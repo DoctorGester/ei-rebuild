@@ -39,7 +39,6 @@ constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 const CSpell* AsSpell(const void* spell) { return static_cast<const CSpell*>(spell); }
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
-UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* a2, UnitList::Node* a3) { return (UnitList::Node*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // SpellHasLineOfSight (0054BBC0, combat.h): whether the spell may hit a target. The missile:
 // constructor 0067E510 (returns this), CSpellEffect::Init 0067ECB0, Update 0067E6D0.
 // 005D7E90 (AIBrain::SetSeen, RET 4). The target's AI brain is attacked by `caster`.
@@ -64,7 +63,7 @@ void RemoveNode(UnitList& list, UnitList::Node* node) {
     else node->next->prev = node->prev;
     node->next = list.free;
     list.free = node;
-    if (--list.count == 0) PtrListRemoveAllOriginal(&list);
+    if (--list.count == 0) list.RemoveAll();
 }
 
 void Unlink(UnitList& list, UnitList::Node* node) {
@@ -155,7 +154,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 break;
             }
         if (found) RemoveNode(units, found);
-        UnitList::Node* node = UnitListNewNode(&units, nullptr, nullptr, units.head);
+        UnitList::Node* node = units.NewNode(nullptr, units.head);
         node->data = target;
         if (units.head) units.head->prev = node;
         else units.tail = node;
@@ -194,7 +193,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         }
         if (!best) break;
         Unlink(units, bestNode);
-        UnitListFreeNodeOriginal(&units, nullptr, bestNode);
+        units.FreeNode(bestNode);
 
         bool hit;
         if (!caster) {

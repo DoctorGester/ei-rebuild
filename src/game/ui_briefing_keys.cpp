@@ -58,8 +58,8 @@ void OpenObjectives(CInterface3D* ui) {
     console::CStringArray parts;
     BriefingVariables quests(QuestPrefix());
     for (NamedFloatTable::Node* node = quests.First(); node; node = quests.Next(node)) {
-        text::Split(node->key, &parts, '.');
-        if (parts.size != kQuestNameParts || Bits(node->value) != kOneBits) continue;
+        text::Split(node->value.key, &parts, '.');
+        if (parts.size != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
         MapRecord* questZone = MapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
@@ -109,7 +109,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
             void* memory = gamecrt::operator_new(kEscMenuSize);
             CUiWindow* menu = nullptr;
             if (memory) {
-                ConstructContainerAt(memory, nullptr, interface_);
+                static_cast<CUiContainer*>(memory)->Construct(interface_);
                 menu = static_cast<CUiWindow*>(memory);
                 menu->vtable_ = EscMenuVtable();
                 menu->inputVtable_ = EscMenuInputVtable();

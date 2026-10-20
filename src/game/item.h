@@ -112,7 +112,6 @@ public:
     // (slot 23), given this one's values through slot 15 with the spell manager `spells`; when
     // that fails the new item is released and the result is null.
     CItem* Clone(CSpellManager* spells);
-    BOOL CallCopyTo(CItem* target, CSpellManager* spells);   // through 0069FFC0 (its verify wrapper)
 
     // 006A0110. The prototype record for the item's kind and index; null for spell containers,
     // other kinds and indices out of range.

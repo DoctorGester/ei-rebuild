@@ -18,7 +18,7 @@ namespace {
 
 struct HashNode {
     HashNode* next;
-    // +4: the value (a vector), destroyed by 00464DF0
+    stlp::vector<char> value;   // +4, destroyed by 00464DF0 (its storage freed)
 };
 
 struct Table {
@@ -35,9 +35,8 @@ static_assert(sizeof(Table) == 0x20);
 
 constexpr std::size_t kRecordSize = 0x2C;
 
-// The node value's deleting destructor (00464DF0, called with 0); the node allocator's deallocate
-// (004648D0, thiscall on the count's allocator proxy); the bucket storage's deallocate (00406590).
-__declspec(naked) void* __fastcall NodeValueDelete(void*, void*, unsigned) EI_ORIGINAL(0x00464DF0)
+// The node allocator's deallocate (004648D0, thiscall on the count's allocator proxy); the bucket
+// storage's deallocate (00406590).
 void BucketsDeallocate(HashNode** buckets, std::size_t n) { stlp::deallocate(buckets, n * sizeof(HashNode*)); }
 
 void DestroyString(std::uint8_t* p) { reinterpret_cast<mfc::CString*>(p)->~CString(); }
@@ -50,7 +49,7 @@ void __fastcall LeverTableDestruct(Table* self) {
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(self->bucketsEnd - self->buckets); ++i) {
         for (HashNode* node = self->buckets[i]; node;) {
             HashNode* next = node->next;
-            NodeValueDelete(reinterpret_cast<std::uint8_t*>(node) + 4, nullptr, 0);
+            node->value.FreeStorage();   // 00464DF0 (flags 0)
             stlp::deallocate(node, 20);   // 004648D0
             node = next;
         }

@@ -10,19 +10,13 @@
 #include "world_glue.h"
 
 #include "ei/hook.h"
+#include "game_lists.h"
 
 #include <cstring>
 #include <new>
 
 namespace {
 
-// CList<ScriptGroup>::AddTail (004C8CE0) and CList<ScriptObjectRef>::AddTail (004C9210); RET 4,
-// the new node in EAX. The element is constructed in the node, then assigned from `value` (a
-// group's objects copied, a reference shared).
-__declspec(naked) void* __fastcall TempGroupsAddTail(mfc::CList<ScriptGroup>*, void*, const ScriptGroup*)
-    EI_ORIGINAL(0x004C8CE0)
-__declspec(naked) void* __fastcall TempObjectsAddTail(mfc::CList<ScriptObjectRef>*, void*, const ScriptObjectRef*)
-    EI_ORIGINAL(0x004C9210)
 
 template <typename T>
 void ConstructArray(mfc::CArray<T>* array, void* vtable) {
@@ -76,10 +70,11 @@ CScript* CScript::Construct() {
     // The evaluator's temporaries start with one empty group and one null reference.
     ScriptGroup group;
     ConstructArray(static_cast<mfc::CArray<ScriptObjectRef>*>(&group), scriptvtable::kRefs);
-    TempGroupsAddTail(&tempGroups_, nullptr, &group);
+    // An empty group and a null reference at the temporary lists' heads (004C8CE0, 004C9210).
+    gamelists::GroupAddHead(mfc::impl::ListAs<gamelists::Groups>(&tempGroups_), nullptr, &group);
     ScriptGroupDestructOriginal(&group);
     ScriptObjectRef none{nullptr};
-    TempObjectsAddTail(&tempObjects_, nullptr, &none);
+    gamelists::ObjectRefAddHead(mfc::impl::ListAs<gamelists::ObjectRefs>(&tempObjects_), nullptr, &none);
     none.Reset();
 
     ScriptReset(this);

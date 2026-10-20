@@ -15,8 +15,6 @@ namespace net {
 
 namespace {
 
-// The server base layer's tick (ServerBase::Tick), through its address.
-__declspec(naked) void __fastcall ServerBaseTickAt(ServerBase* /*self*/, void*, double /*dt*/) EI_ORIGINAL(0x00443590)
 // 0041AA10: announces the game to the master server (patched by Rebirth at a call site; called
 // through its address).
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
@@ -50,7 +48,7 @@ void CountDown(List& list, float dt) {
 // A timer that lands within rounding of zero may expire one tick apart from the original (x87
 // versus plain float maths).
 void ServerSession::TickImpl(double dt) {
-    ServerBaseTickAt(this, nullptr, dt);
+    ServerBase::TickImpl(dt);   // 00443590
     float step = static_cast<float>(dt);
     CountDown(finishedTrades_, step);
     CountDown(awards_, step);

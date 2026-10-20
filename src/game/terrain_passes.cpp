@@ -26,8 +26,6 @@ constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices
 float DetailNear() { return *reinterpret_cast<const float*>(0x0079BD2C); }
 float DetailFar() { return *reinterpret_cast<const float*>(0x0079BD30); }
 
-__declspec(naked) void __fastcall ClipTestAt(SectorData*, void*, CSceneRenderer*) EI_ORIGINAL(0x006BFB20)
-__declspec(naked) void __fastcall FindSeamsAt(SectorData*) EI_ORIGINAL(0x006BFB80)
 
 // Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is
 // there once lit; a visit returning false ends the walk (false).
@@ -127,12 +125,12 @@ int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return 0;
     ForVisibleSectors(this, [&](SectorData* sector) {
         ChooseDetail(sector);
-        ClipTestAt(sector, nullptr, renderer);
+        sector->ClipTest(renderer);
         return true;
     });
     ForVisibleSectors(this, [&](SectorData* sector) {
         if (sector->IsDrawn()) {
-            FindSeamsAt(sector);
+            sector->FindSeams();
             sector->Project(renderer->pipeline_);
         }
         return true;

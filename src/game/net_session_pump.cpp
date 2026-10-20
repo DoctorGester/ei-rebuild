@@ -10,6 +10,8 @@
 #include "net_connection.h"
 #include "net_messages.h"
 
+#include "lib/stlp_list_refs.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
@@ -23,11 +25,10 @@ namespace {
 
 bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
-// list::insert (0047A450 / 0047A480: RET 0xC) and list::erase (0047A380, RET 8); the nodes'
-// deallocation (0047A650, 12 bytes back to the pool) and the pool's free (00404D70).
-__declspec(naked) DriverNode** __fastcall DriversInsert(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/, const RefPtr*) EI_ORIGINAL(0x0047A450)
-__declspec(naked) DriverNode** __fastcall HoldersInsert(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/, const RefPtr*) EI_ORIGINAL(0x0047A480)
-__declspec(naked) DriverNode** __fastcall DriversErase(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/) EI_ORIGINAL(0x0047A380)
+// list<RefPtr>::insert of the drivers (0047A450, shared) and the holders (0047A480, counted), the
+// drivers' erase (0047A380); the nodes' deallocation (0047A650, 12 bytes back to the pool) and the
+// pool's free (00404D70).
+using RefList = stlp::list<RefPtr>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
@@ -38,8 +39,7 @@ DriverLink* NewDriver(DriverSession* self, CRefObject* player, void* raw) {
     auto* driver = raw ? static_cast<DriverLink*>(raw)->Construct() : nullptr;
     reinterpret_cast<RefPtr*>(&driver->player_)->Assign(player);
     RefPtr held{driver};   // taken without a reference; the list's copy adds one
-    DriverNode* out;
-    DriversInsert(&self->drivers_, nullptr, &out, self->drivers_, &held);
+    RefList::Insert<stlp::SharedRef>(stlp::AsRefNode(self->drivers_), held);
     return driver;
 }
 
@@ -70,16 +70,14 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         DriverLink* driver = NewDriver(this, player, net::NewRefObject(sizeof(DriverLink)));
         // The original then destroys the emptied temporary holder (00413270 on null: nothing).
         RefPtr held{driver};
-        DriverNode* out;
-        HoldersInsert(&holders_, nullptr, &out, holders_, &held);
+        RefList::Insert<stlp::CountedRef>(stlp::AsRefNode(holders_), held);
     }
     for (DriverNode* it = drivers_->next; it != drivers_;) {
         it->Driver()->Pump();
         if (IsLive(it->Driver()->player_)) {
             it = it->next;
         } else {
-            DriverNode* out;
-            it = *DriversErase(&drivers_, nullptr, &out, it);
+            it = reinterpret_cast<DriverNode*>(RefList::Erase<stlp::SharedRef>(stlp::AsRefNode(it)));
         }
     }
 }

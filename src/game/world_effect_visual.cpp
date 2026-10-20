@@ -35,10 +35,6 @@ __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x004
 __declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
 void* TheRandom() { return reinterpret_cast<void*>(0x007A9D40); }
 
-// CEffectParticle methods the wall calls directly (through their game addresses).
-__declspec(naked) int __fastcall ParticleUnpackAt(CEffectParticle*, void*, int /*update*/, DeltaField* /*field*/)
-    EI_ORIGINAL(0x00678D30)
-__declspec(naked) void __fastcall ParticleLoadAt(CEffectParticle*, void*, void* /*stream*/) EI_ORIGINAL(0x006793E0)
 
 void ClearBase(CEffect* e) {
     e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
@@ -515,7 +511,7 @@ void CEffectWall::SetDirection(const Vector3* direction) {
 }
 
 int CEffectWall::Unpack(int update, DeltaField* field) {
-    if (ParticleUnpackAt(this, nullptr, update, field) == 0) return 0;
+    if (CEffectParticle::Unpack(update, field) == 0) return 0;
     field->ReadFloat16x3(&direction_.x);
     if (!SnapshotReadToEnd()) return 0;
     if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
@@ -550,7 +546,7 @@ void CEffectWall::Pack(DeltaField* field) {
 }
 
 void CEffectWall::LoadState(void* stream) {
-    ParticleLoadAt(this, nullptr, stream);
+    CEffectParticle::LoadState(stream);
     Read(stream, &direction_, 12);
 }
 

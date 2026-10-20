@@ -51,6 +51,11 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "party_records.h"
+#include "game_lists.h"
+#include "record_vectors.h"
+#include "game_arrays.h"
+#include "library_containers.h"
+#include "bink_video.h"
 
 #include <cstring>
 #include <new>
@@ -101,10 +106,8 @@ using netlink::FileStream;
 // destroys it): PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
 // 0045E850 (RET 4). CMapDatabase::FindMap: the zone record named `name`, or null.
 // 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).
-double VariableGet(NamedFloatTable* table, const char* name) { return (double)NamedTableGet(table, nullptr, name); }
-void VariableSet(NamedFloatTable* table, const char* name, float value) {
-    static_cast<NamedFloatTable*>(table)->Set(name, value);
-}
+double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
+void VariableSet(NamedFloatTable* table, const char* name, float value) { table->Set(name, value); }
 // 0057C460 (RET 8). Starts zone `zone` (mode 2: the main menu). Patched by Rebirth: original address.
 __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int) EI_ORIGINAL(0x0057C460)
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save), the
@@ -303,9 +306,8 @@ const mfc::CString& MoviesFolder() { return *reinterpret_cast<const mfc::CString
 // 00460DB0 (RET 4). Named float table Remove.
 // 00579830 (RET 0xC). Reads a save file through the file stream into `out` (ECX), checking the
 // header (magic in EDX, version, minimum version); false when it is corrupt.
-// 00596E70 / 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::LoadSave, WakeUnitsAround, Tick and
-// SetZoneExits, through their addresses (rewritten in world_save / world_tick / world_zone).
-__declspec(naked) int __fastcall LoadSaveAt(CWorldServer*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
+// 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::WakeUnitsAround, Tick and SetZoneExits, through their
+// addresses (rewritten in world_tick / world_zone).
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 0058EEA0 (RET 4). CWorldServer::SetTime.
@@ -349,7 +351,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         failed = true;
         return 0;
     }
-    int result = LoadSaveAt(World(), nullptr, &data, mapOverride);
+    int result = World()->LoadSave(&data, mapOverride);   // 00596E70
     file.Close();
 
     int entrance = records->entrance;
@@ -399,12 +401,12 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
                             reinterpret_cast<const unsigned char*>(game::Text(kMovieZone))) != 0) {
             {
                 mfc::CString movie = MoviesFolder() + game::Text(kMovieFile);
-                PlayMovieFile(movie, 0, 1, 1, 1, 1, 1);
+                PlayMovie(movie, 0, 1, 1, 1, 1, 1);
             }
-            VariableRemove(variables, nullptr, game::Text(kMovieVariable));
+            variables->Remove(game::Text(kMovieVariable));
         }
     } else {
-        VariableRemove(variables, nullptr, game::Text(kMovieVariable));
+        variables->Remove(game::Text(kMovieVariable));
     }
 
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zoneRecord->map),
@@ -534,7 +536,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         data.Reset();
         bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268),
                                    &file.stream) &&
-                      LoadSaveAt(World(), nullptr, &data, nullptr) != 0;
+                      World()->LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
         ei::SetVtable(&data, kMemoryStreamVtable);
         if (data.data_) gamecrt::operator_delete(data.data_);
@@ -558,7 +560,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     mfc::impl::ConstructArrayOf<mfc::impl::ExitArrayClass>(exits);
     exits.vtable = reinterpret_cast<void*>(kExitArrayVtable);
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
-    ZoneExitsSetSizeOriginal(&exits, nullptr, source->size, -1);
+    gamearrays::ExitsSetSize(&exits, source->size);
     for (int i = 0; i < source->size; ++i) {
         alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
         ZoneExit* exit = recordarrays::ExitGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);
@@ -677,11 +679,11 @@ int ServerPlayerCount() { return static_cast<int>(static_cast<CBaseManager*>(Wor
 
 void GameFlow::UpdateMultiplayerVariable() {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
-    NamedFloatTable* variables = reinterpret_cast<NamedFloatTable*>(player->variables);
+    NamedFloatTable* variables = &player->variables;
     if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
         if (on) VariableSet(variables, game::Text(kMultiplayerVariable), 1.0f);
-        else VariableRemove(variables, nullptr, game::Text(kMultiplayerVariable));
+        else variables->Remove(game::Text(kMultiplayerVariable));
     };
     if (!Active(net::GameServer())) {
         // A client: set while it has no host announcement (info_).
@@ -704,7 +706,7 @@ namespace {
 // The party manager (007AA5A0): 004A88C0 resets it (PartyManagerNewGameFour), 004A8890 (originals_world.h)
 // begins a redeploy of a party.
 
-void* PartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
+void* GlobalPartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
 PartyRecords* GlobalParty() { return reinterpret_cast<PartyRecords*>(0x007C82B0); }
 // A CParty seen as its records (PartyRecords) or through an untyped pointer; Assign / CopyConstruct
@@ -721,7 +723,7 @@ mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
 }
 
 void GameFlow::BeginMultiplayerGame() {
-    PartyManagerNewGameFour(PartyManager());
+    PartyManagerNewGameFour(GlobalPartyManager());
     if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
@@ -730,7 +732,7 @@ void GameFlow::BeginMultiplayerGame() {
         zone->~CString();
     }
     VariableSet(&GlobalParty()->variables, game::Text(kMultiplayerVariable), 1.0f);
-    PartyManagerBeginRedeploy(PartyManager(), nullptr, GlobalParty());
+    PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, GlobalParty());
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
@@ -762,7 +764,7 @@ void GameFlow::ReturnLocalParty() {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
     CParty* party = player->Party();
     AsParty(GlobalParty())->Assign(party);
-    PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
+    PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, party);
     // 00662AC0: the global party record (007C82B0) written into the heroes' folder (007C82A0).
     reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(*reinterpret_cast<const char* const*>(0x007C82A0));
     FlowUpdateFromServerOriginal(this);
@@ -937,11 +939,9 @@ constexpr std::uint32_t kScriptEncoded = 0xACCEECCB;     // in it: the script te
 constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script text as is
 
 // The decoder (mob_script_decoder.h): 00598940 constructs an empty vector<char> (allocator by
-// pointer); 0042D2C0 / 00598D80 free them; 004D8E10 (RET 4) decodes `input` into `text` and the
+// pointer); 0042D2C0 / 00598D80 free them (FreeStorage); 004D8E10 (RET 4) decodes `input` into `text` and the
 // CString, called through its address so its verify wrapper sees the zone's scripts.
 using CharVector = stlp::vector<char>;
-__declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x0042D2C0)
-__declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 
 // A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
@@ -996,8 +996,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     }
     ScriptReset(MainScript());
     ScriptLoadLine(commandsA_, nullptr, &script, 1);
-    EncodedFree(&decoder.input, nullptr);
-    DecodedFree(&decoder.text, nullptr);
+    decoder.input.FreeStorage();
+    decoder.text.FreeStorage();
 }
 
 // ---- SwitchMultiplayerZone ------------------------------------------------------------------------
@@ -1161,8 +1161,6 @@ namespace {
 
 libcrt::Ostream* const kNetLog = reinterpret_cast<libcrt::Ostream*>(0x007C56B0);   // the network log's ostream
 
-// 00598EF0. The connection list's destructor.
-__declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(0x00598EF0)
 // 0066C180. The player list makes a new player. 00665990 (CPlayer::Connect): the player takes a connection.
 
 } // namespace
@@ -1177,7 +1175,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
     joined.blocks = nullptr;
     joined.blockSize = 10;
     if (gameResult_ == 0) {
-        SessionListDestruct(&joined, nullptr);
+        mfc::impl::ListAs<gamelists::Refs>(&joined)->RemoveAll();   // 00598EF0: the connections released
         return;
     }
     static_cast<CPlayerSource*>(lobby)->TakeNew(&joined);   // the new connections
@@ -1218,11 +1216,7 @@ struct ZoneTable {
     ZoneEntry* finish;
     ZoneEntry* end;
 };
-struct OutStrings {
-    stlp::string* start;
-    stlp::string* finish;
-    stlp::string* end;
-};
+using OutStrings = stlp::vector<stlp::string>;
 
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
@@ -1273,11 +1267,11 @@ void __stdcall PickZones(void* outArg, int id, const char* exclude) {
                 else ++i;
         unsigned pick = RandomNext(reinterpret_cast<IsaacRandom*>(0x007A9D40)) % static_cast<unsigned>(group.count);
         stlp::string name(group.items[pick]->first);
-        if (out->finish != out->end) {
-            new (out->finish) stlp::string(name);
-            ++out->finish;
+        if (out->Finish() != out->EndOfStorage()) {
+            new (out->Finish()) stlp::string(name);
+            ++out->Finish();
         } else {
-            StringVectorInsertOverflowOriginal(out, nullptr, out->finish, &name, 1);
+            out->InsertOverflow<stlp::StringElement>(out->Finish(), name, 1);   // 004DCE90
         }
     }
 }
@@ -1292,8 +1286,6 @@ constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C
 
 // 004A51C0 (RET 4). A memory stream copies its remaining data into another.
 void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadSized(static_cast<CStream*>(a2)); }
-// 00596E70 (RET 8). CWorldServer::LoadSave through its address.
-__declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
 
 } // namespace
 
@@ -1312,7 +1304,7 @@ int __stdcall LoadMission(void* file) {
         StreamCopyRest(&mission.s, nullptr, GameSaveStream());
         *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.version_;
     }
-    return LoadSaveAt(reinterpret_cast<void*>(0x007AFF60), nullptr, &mission.s, nullptr);
+    return reinterpret_cast<CWorldServer*>(0x007AFF60)->LoadSave(&mission.s, nullptr);   // 00596E70
 }
 
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
@@ -1830,7 +1822,7 @@ void GameFlow::AfterServerStart() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        FloatTableClearOriginal(variables);
+        variables->Clear();
     PartyResetItems(GlobalParty());
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->count == 1) {
@@ -1853,11 +1845,7 @@ namespace {
 unsigned& ServerStamp() { return *reinterpret_cast<unsigned*>(0x007AFED0); }   // the newest variable stamp seen
 unsigned& AppliedStamp() { return *reinterpret_cast<unsigned*>(0x007AFED4); }  // the stamp applied up to
 
-// The quest text files (007AFDD0, 12-byte strings) and the briefing texts (007AF788).
-__declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
-// Local NamedFloatTable copies: 00581790 an empty one (100 buckets), 00580900 a copy.
-void __fastcall VariablesConstruct(NamedFloatTable* a0) { NamedTableConstructOriginal(a0); }
-__declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const NamedFloatTable*) EI_ORIGINAL(0x00580900)
+// The quest text files (007AFDD0, a vector of strings) and the briefing texts (007AF788).
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { static_cast<NamedFloatTable*>(table)->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
@@ -1871,25 +1859,11 @@ void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
 using NodeVector = stlp::vector<void*>;
 
-// A local NamedFloatTable released the way the original's inlined destructor does.
+// A local NamedFloatTable (00581790 an empty one of 100 buckets, 00580900 a copy), released the way
+// the original's inlined destructor does.
 struct LocalVariables {
     NamedFloatTable table;
-    ~LocalVariables() {
-        std::size_t n = static_cast<std::size_t>(table.finish - table.buckets);
-        for (std::size_t b = 0; b < n; ++b) {
-            NamedFloatTable::Node* node = table.buckets[b];
-            while (node) {
-                NamedFloatTable::Node* next = node->next;
-                reinterpret_cast<mfc::CString*>(&node->key)->~CString();
-                stlp::deallocate(node, sizeof(NamedFloatTable::Node));
-                node = next;
-            }
-            table.buckets[b] = nullptr;
-        }
-        table.count = 0;
-        if (table.buckets)
-            stlp::deallocate(table.buckets, static_cast<std::size_t>(table.endOfStorage - table.buckets) * sizeof(void*));
-    }
+    ~LocalVariables() { table.Destroy(); }
 };
 
 // The client's STLport lists of counted messages (ClientSession::zones_, variables_).
@@ -1914,22 +1888,22 @@ void GameFlow::UpdateFromServer() {
         auto* files = reinterpret_cast<std::uint8_t**>(0x007AFDD0);
         for (std::uint8_t* file = files[0]; file != files[1]; file += 0xC)
             static_cast<CTextManager*>(texts)->RemoveSource(*reinterpret_cast<const char**>(file));
-        QuestFilesClear(files);
+        stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(reinterpret_cast<stlp::vector<stlp::string>*>(files));   // 00581860
     }
     auto* clientWorld = reinterpret_cast<void*>(0x007AF5B8);
     WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
     LocalVariables unusedEmpty;
-    VariablesConstruct(&unusedEmpty.table);
-    auto* variables = reinterpret_cast<NamedFloatTable*>(player->variables);
+    unusedEmpty.table.ConstructDefault();
+    NamedFloatTable* variables = &player->variables;
     // The local player's variables are replaced by the server's; "constr.current" survives.
     // Rebirth's PersistentGlobalVars (the CALL at 00580177 redirected) keeps the "gvar." ones.
     float construction = static_cast<float>(VariableGet(variables, game::Text(kConstructionVariable)));
     LocalVariables unusedCopy;
-    VariablesCopy(&unusedCopy.table, nullptr, variables);
+    unusedCopy.table.CopyConstruct(*variables);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        FloatTableClearOriginal(variables);
+        variables->Clear();
     VariableSet(variables, game::Text(kConstructionVariable), construction);
     if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
         if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.data());
@@ -2053,8 +2027,6 @@ MpHeroRecord* AsHero(SavedPartyEntry* entry) { return reinterpret_cast<MpHeroRec
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).
-__declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
-// 004616A0 (RET 4, FloatTableDeleteNodeOriginal): the variables table frees one node (what the original's inlined clear does).
 
 void DestroyPartyEntry(SavedPartyEntry* entry) {
     PartyRecords* records = &entry->records;
@@ -2063,10 +2035,10 @@ void DestroyPartyEntry(SavedPartyEntry* entry) {
     PartyResetOriginal(records, nullptr, 1, 1);
     AsParty(records)->DestroyParty();   // 00661640
     AsCString(records->zone).~CString();
-    RecordsVariablesDestroy(&records->variables);
+    records->variables.Destroy();   // 00663330
     reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(records->array40)->FreeData();   // 006643F0
     DestructPartyMemberArray(reinterpret_cast<PartyMemberArray*>(&records->recordArrayVtable));   // 00664160
-    EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(records));
+    reinterpret_cast<CEngineObject*>(records)->DestructBase();
 }
 
 } // namespace
@@ -2100,16 +2072,7 @@ void SavedParties::Reload() {
                 // keeping its "gvar." entries.
                 ClearVariablesKeepingGlobals(variables);
             } else {
-                for (std::size_t b = 0; b < static_cast<std::size_t>(variables->finish - variables->buckets); ++b) {
-                    NamedFloatTable::Node* node = variables->buckets[b];
-                    while (node) {
-                        NamedFloatTable::Node* next = node->next;
-                        FloatTableDeleteNodeOriginal(variables, nullptr, node);
-                        node = next;
-                    }
-                    variables->buckets[b] = nullptr;
-                }
-                variables->count = 0;
+                variables->Clear();   // inlined: each chain's nodes freed (004616A0), the count zeroed
             }
             if (entry->records.count == 1) {
                 SavedPartyEntry* eos = eos_;
@@ -2120,7 +2083,9 @@ void SavedParties::Reload() {
                     }
                     ++finish;
                 } else {
-                    PartyEntriesInsertOverflowOriginal(&entries_, nullptr, finish, entry, 1);
+                    libcontainers::InsertHeroRecordsOverflow(   // 00619920
+                        reinterpret_cast<libcontainers::HeroRecords*>(&entries_), nullptr, reinterpret_cast<MpHeroRecord*>(finish),
+                        reinterpret_cast<const MpHeroRecord*>(entry), 1);
                 }
             }
         }
@@ -2140,9 +2105,12 @@ constexpr std::uintptr_t kIngosMaps = std::uintptr_t(0x00790298);       // zone1
 constexpr std::uintptr_t kSuslangerMaps = std::uintptr_t(0x007902C0);   // zone17, zone18
 const char* const* NameList(std::uintptr_t address) { return reinterpret_cast<const char* const*>(address); }
 
-// 00587480 (RET 0xC). The zone table's _M_insert_overflow(pos, value, count).
-__declspec(naked) void __fastcall ZoneTableInsertOverflow(ZoneTable*, void*, ZoneEntry* /*pos*/, const ZoneEntry* /*value*/,
-                                                         unsigned /*count*/) EI_ORIGINAL(0x00587480)
+// 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
+void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {
+    recordvec::ZoneTableVector::InsertOverflow(reinterpret_cast<stlp::vector<recordvec::ZoneTableEntry>*>(table), nullptr,
+                                               reinterpret_cast<recordvec::ZoneTableEntry*>(pos),
+                                               reinterpret_cast<const recordvec::ZoneTableEntry*>(value), count);
+}
 
 mfc::CString& EntryText(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
 
@@ -2166,7 +2134,7 @@ void AppendEmptyEntry(ZoneTable& table) {
     ZoneEntry empty{};
     new (&EntryText(empty.first)) mfc::CString();
     new (&EntryText(empty.second)) mfc::CString();
-    ZoneTableInsertOverflow(&table, nullptr, table.finish, &empty, 1);
+    ZoneTableInsertOverflow(&table, table.finish, &empty, 1);
     EntryText(empty.second).~CString();
     EntryText(empty.first).~CString();
 }

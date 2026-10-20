@@ -84,9 +84,8 @@ public:
     int Register();
     // Slot 3 (00468790): power 1, amplitude 0.1, releases both textures.
     void Reset();
-    // 00467AD0. Draws the bolt (render device virtuals, glow sprites). Not rewritten.
-    int Draw(void* device);
-    int DrawImpl(void* device);   // body of the slot above (registered by member pointer)
+    // 00467AD0 (lightning_draw.cpp). Draws the bolt (render device virtuals, glow sprites).
+    int DrawImpl(void* device);
     // 00466FD0. Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
     // 00467150. Bounding box and sphere of all segments (centre, box relative to it, radius).

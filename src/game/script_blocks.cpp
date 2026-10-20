@@ -31,7 +31,7 @@ namespace {
 // CList<ScriptDecl>::NewNode (__thiscall (prev, next)); the element is constructed (vtable 0073D3DC).
 using BlockList = mfc::CList<ScriptDecl>;
 BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList::Node* next) {
-    return static_cast<BlockList::Node*>(ScriptBlockListNewNodeOriginal(list, nullptr, prev, next));
+    return mfc::impl::NewNodeAs<mfc::impl::CommandBlockList>(list, prev, next);
 }
 // CArray<ScriptArea>::SetSize (__thiscall (size, growBy)); CArray<ScriptAreaPart>::Copy.
 // SetSize of SSCCmd's arrays (__thiscall (size, growBy)): strings, object pointers, group pointers,

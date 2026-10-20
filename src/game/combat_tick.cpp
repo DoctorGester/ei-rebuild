@@ -101,7 +101,7 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
 int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
 // The world time of an object's world (00455950).
-int WorldTick(const void* object) { return static_cast<CWorld*>(ObjectWorld(object))->tick_; }
+int WorldTick(const void* object) { return static_cast<CWorld*>(ObjectWorld(static_cast<const CEngineObject*>(object)))->tick_; }
 // The prototype's height offset (UnitPrototypeRecord +0x24).
 float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height); }
 // The messages of a unit's player (CPlayer::connection_).
@@ -123,7 +123,6 @@ namespace {
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
 void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote(a2); }
 void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
-inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
 // CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
 // 0052FBC0 ScaledValue (unit.cpp; ST0).
@@ -303,7 +302,7 @@ void InitPtrList(UnitPtrList* list) {
 
 void DestroyPtrList(UnitPtrList* list) {
     list->vtable = mfc::PtrListVtable();
-    PtrListRemoveAll(list);
+    list->RemoveAll();
 }
 } // namespace
 

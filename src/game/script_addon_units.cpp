@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "lib/mfc_list.h"
 #include "random.h"
 #include "originals_ai.h"
 #include "originals_units.h"
@@ -30,11 +31,10 @@ void* GetPlayer(int number) { return reinterpret_cast<CWorldServer*>(0x007AFF60)
 
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).
-inline void __fastcall PtrListDestruct(mfc::CTypedPtrList<CEngineObject>* a0) { PtrListDestructOriginal((void*)a0); }
 CSectorMap* const kSectorMap = reinterpret_cast<CSectorMap*>(0x007B01F4);
 
 // A unit's prototype record (00530930): its name and, at +4, its model name (the race).
-static const UnitPrototypeRecord* UnitPrototype(void* unit) { return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit)); }
+static const UnitPrototypeRecord* UnitPrototype(void* unit) { return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype()); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
@@ -65,7 +65,7 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
     Vector3 point = {x, y, 0.0f};
     kSectorMap->FindUnitsInRadius(&point, &list, radius);
     for (auto* node = list.head; node; node = node->next) visit(node->data);
-    PtrListDestruct(&list);
+    mfc::impl::DestructList<mfc::impl::ItemListClass>(list);
 }
 
 // A float field of the unit's data object, 0 and invalid arguments without one.

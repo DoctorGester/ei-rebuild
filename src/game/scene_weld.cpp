@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -18,10 +19,7 @@ namespace scene {
 namespace {
 
 // The aligned arrays' instantiations used here: points (Add 0044F2E0), texture coordinates (Add
-// 0044FBB0) go through their original addresses (the Add copies take the element as separate
-// arguments).
-__declspec(naked) int __fastcall PointsAdd(PointBuffer*, void*, Vector3) EI_ORIGINAL(0x0044F2E0)
-__declspec(naked) int __fastcall CoordsAdd(UvBuffer*, void*, float, float) EI_ORIGINAL(0x0044FBB0)
+// 0044FBB0); the element is passed as its bits.
 
 double WeldDistance() {
     double d;
@@ -59,7 +57,7 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
                 if (!(length >= weld)) break;
             }
             if (index == points.size) {
-                PointsAdd(&points, nullptr, p);
+                points.Add(std::bit_cast<PointBits>(p));
                 index = points.size - 1;
             }
             pointMap.data[i] = static_cast<std::uint32_t>(index);
@@ -93,7 +91,7 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
                 if (!(libcrt::Hypot(du, dv) >= weld)) break;
             }
             if (index == coords.size) {
-                CoordsAdd(&coords, nullptr, uv[0], uv[1]);
+                coords.Add(UvBits{std::bit_cast<std::uint32_t>(uv[0]), std::bit_cast<std::uint32_t>(uv[1])});
                 index = coords.size - 1;
             }
             coordMap.data[i] = static_cast<std::uint32_t>(index);

@@ -60,9 +60,6 @@ void ReadItemIds(CStream* stream, AlignedPtrArray& list, CBaseManager* manager) 
     }
 }
 
-// The party's variables as the named float table they are (same layout).
-NamedFloatTable& Variables(PartyVariableMap& map) { return reinterpret_cast<NamedFloatTable&>(map); }
-
 // Versions of the save format that added fields (compared signed).
 constexpr int kVersionRecordFlags = 0x51;
 constexpr int kVersionRecord77C = 0x5B;
@@ -165,7 +162,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     stream->Read(&records, sizeof(records));
     members_.SetSize(records, -1);
     for (int i = 0; i < records; ++i) members_.data[i].Load(stream);
-    if (loadVariables != 0) Variables(variables_).Load(stream);
+    if (loadVariables != 0) variables_.Load(stream);
     LoadingParty() = nullptr;
     money_ = 0;
     stream->Read(&money_, 4);
@@ -191,7 +188,7 @@ void CParty::SaveParty(CStream* stream, int saveVariables) {
     int records = members_.size;
     WriteValue(stream, records);
     for (int i = 0; i < records; ++i) members_.data[i].Save(stream);
-    if (saveVariables != 0) Variables(variables_).Save(stream);
+    if (saveVariables != 0) variables_.Save(stream);
     std::uint32_t key = IsaacRandom::Global().Next();
     WriteValue(stream, money_ ^ key);
     WriteValue(stream, key);

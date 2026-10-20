@@ -17,6 +17,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "originals_library.h"
+#include "record_arrays.h"
 
 #include <new>
 
@@ -64,7 +65,9 @@ using Registry = CFileRegistry;
 // The theme array (CArray<MusicTheme> at +0x1C): SetSize [006B59A0: size, grow by (-1 keeps it)]
 // and the element assignment [006B4D40] (MFC template instantiations; the original inlines the
 // second SetSize and the first assignment, identically).
-__declspec(naked) void __fastcall ThemesSetSize(void*, void*, int, int) EI_ORIGINAL(0x006B59A0)
+void ThemesSetSize(void* themes, int size) {
+    recordarrays::Themes::SetSize(static_cast<recordarrays::Themes::Array*>(themes), nullptr, size, -1);
+}
 
 // The theme being read, laid out as MusicTheme with constructed members.
 struct LocalTheme {
@@ -80,7 +83,7 @@ static_assert(sizeof(LocalTheme) == sizeof(MusicTheme));
 // Appends a copy of `theme` to the music system's themes.
 void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     int n = music->themeCount;
-    ThemesSetSize(&music->themesVtable, nullptr, n + 1, -1);
+    ThemesSetSize(&music->themesVtable, n + 1);
     music->themes[n].Assign(reinterpret_cast<const MusicTheme*>(&theme));
 }
 
@@ -290,7 +293,9 @@ EI_REPLACE_METHOD(0x006B5350, CMusicSystem::UpdateMusic);
 
 namespace {
 // 006B56C0: the theme array's destructor (CArray<MusicTheme>::~CArray, a template instantiation).
-__declspec(naked) void __fastcall ThemesDestruct(void*) EI_ORIGINAL(0x006B56C0)
+void ThemesDestruct(void* themes) {
+    recordarrays::Themes::Destruct<recordarrays::ThemeArrayClass>(static_cast<recordarrays::Themes::Array*>(themes));
+}
 constexpr int kMusicClassId = 0xE;
 // "CMusicSystem" (007967F4).
 const char* MusicClassNameText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007967F4)); }
@@ -316,7 +321,7 @@ EI_REPLACE_METHOD(0x006B4350, CMusicSystem::Construct);
 
 void CMusicSystem::ResetThemes() {
     state = 0;
-    ThemesSetSize(&themesVtable, nullptr, 0, -1);
+    ThemesSetSize(&themesVtable, 0);
     jingle = game::NoneText();
     mainMenu = jingle;
     credits = mainMenu;

@@ -139,6 +139,8 @@ void Install(const char* savesDir) {
             g_fullScreen < 0 ? "(snapshot)" : g_fullScreen ? "1" : "0", g_fpsCursor < 0 ? "(snapshot)" : g_fpsCursor ? "1" : "0",
             g_addonPath[0] ? g_addonPath : "(snapshot)");
 }
+// 00671280: CMappedResource::Construct at its address (a vanilla run constructs with the game's own code).
+__declspec(naked) CMappedResource* __fastcall HarnessMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
 std::string ModFileStep(const std::string& argument) {
     char archive[MAX_PATH] = {}, name[MAX_PATH] = {};
     long expected = -1;
@@ -149,7 +151,7 @@ std::string ModFileStep(const std::string& argument) {
     const mfc::CString path = *static_cast<const mfc::CString*>(worlddata::TextPathString()) + archive;
     void* memory = ::operator new(sizeof(CMappedResource));
     std::memset(memory, 0, sizeof(CMappedResource));
-    CMappedResource* res = MappedResourceConstructOriginal(memory);
+    CMappedResource* res = HarnessMappedResourceConstruct(memory);
     long got = -2;   // the archive did not open
     if (MappedResourceOpenOriginal(res, nullptr, path, 0)) {
         std::uint32_t size = 0;

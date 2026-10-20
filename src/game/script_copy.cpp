@@ -134,8 +134,6 @@ ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) {
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // 006FE268: ConstructElements for CString.
 void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-// Library copy constructors of the binding and nested call arrays (__thiscall (const CArray&)).
-__declspec(naked) void __fastcall SubCallsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCD90)
 
 template <typename T>
 void InitArray(mfc::CArray<T>* a, void* vtable) {
@@ -171,7 +169,8 @@ void CopyConstructCmd(SSCCmd* to, const SSCCmd* from) {
                                         reinterpret_cast<const recordarrays::Bindings::Array*>(&from->localBindings));
     recordarrays::BindingsCopyConstruct(reinterpret_cast<recordarrays::Bindings::Array*>(&to->globalBindings), nullptr,
                                         reinterpret_cast<const recordarrays::Bindings::Array*>(&from->globalBindings));
-    SubCallsCopyConstruct(&to->subCalls, nullptr, &from->subCalls);
+    recordarrays::SubCallsCopyConstruct(reinterpret_cast<recordarrays::SubCalls::Array*>(&to->subCalls), nullptr,
+                                        reinterpret_cast<const recordarrays::SubCalls::Array*>(&from->subCalls));
     to->calledScript = from->calledScript;
 }
 

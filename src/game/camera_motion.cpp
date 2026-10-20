@@ -136,8 +136,7 @@ void CCamera::ClampAboveObjects() {
     const Vector3* zero = &camera::ZeroVector();
     SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     NearbyList list;
-    std::uint8_t alloc = 0;
-    ListConstruct411850(&list, nullptr, &alloc);
+    list.Construct();   // 00411850
     WorldClient()->ObjectsInRange(reinterpret_cast<const float*>(p), 16.0f, &list);
     float best = 0.0f;
     for (NearbyNode* node = list.head->next; node != list.head; node = node->next) {

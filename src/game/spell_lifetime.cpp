@@ -132,7 +132,7 @@ void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
 
 void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CEngineObject* newCaster, const Vector3* newPosition,
                         CEngineObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
-    spell->CallCopyTo(Spell());
+    spell->CopyTo(Spell());   // 0068B370
     world = newWorld;
     position = *newPosition;
     AssignCounted(caster, newCaster);

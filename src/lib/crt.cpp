@@ -660,52 +660,6 @@ unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
 }
 EI_REPLACE(0x006EBBB4, libcrt::Controlfp);
 
-// ---- eh vector constructor / destructor iterator ----
-
-namespace {
-// Destroys `left` elements below `end`, last first, when the loop it guards is left by an exception
-// (__ArrayUnwind).
-struct ArrayUnwind {
-    char*& end;
-    std::size_t size;
-    int& left;
-    ElementFunction destroy;
-    bool done = false;
-    ~ArrayUnwind() {
-        if (done) return;
-        char* p = end;
-        while (--left >= 0) {
-            p -= size;
-            destroy(p, nullptr);
-        }
-    }
-};
-} // namespace
-
-void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
-                                 ElementFunction destroy) {
-    char* p = static_cast<char*>(array);
-    int constructed = 0;
-    ArrayUnwind unwind{p, size, constructed, destroy};
-    for (; constructed < count; ++constructed) {
-        construct(p, nullptr);
-        p += size;
-    }
-    unwind.done = true;
-}
-EI_REPLACE(0x006E8693, libcrt::ConstructElements);
-
-void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
-    char* p = static_cast<char*>(array) + size * count;
-    ArrayUnwind unwind{p, size, count, destroy};
-    while (--count >= 0) {
-        p -= size;
-        destroy(p, nullptr);
-    }
-    unwind.done = true;
-}
-EI_REPLACE(0x006E859F, libcrt::DestroyElements);
-
 // ---- The runtime the image owns (EI_REPLACE_STANDALONE: the hook build keeps the exe's) ----
 
 namespace {
@@ -1049,3 +1003,53 @@ EI_REPLACE(0x006E61F0, DirectInputCreateEx);
 
 } // namespace libcrt::imports
 #endif
+
+namespace libcrt {
+
+// ---- eh vector constructor / destructor iterator (ei_vectors too) ----
+
+namespace {
+// Destroys `left` elements below `end`, last first, when the loop it guards is left by an exception
+// (__ArrayUnwind).
+struct ArrayUnwind {
+    char*& end;
+    std::size_t size;
+    int& left;
+    ElementFunction destroy;
+    bool done = false;
+    ~ArrayUnwind() {
+        if (done) return;
+        char* p = end;
+        while (--left >= 0) {
+            p -= size;
+            destroy(p, nullptr);
+        }
+    }
+};
+} // namespace
+
+void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
+                                 ElementFunction destroy) {
+    char* p = static_cast<char*>(array);
+    int constructed = 0;
+    ArrayUnwind unwind{p, size, constructed, destroy};
+    for (; constructed < count; ++constructed) {
+        construct(p, nullptr);
+        p += size;
+    }
+    unwind.done = true;
+}
+EI_REPLACE(0x006E8693, libcrt::ConstructElements);
+
+void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
+    char* p = static_cast<char*>(array) + size * count;
+    ArrayUnwind unwind{p, size, count, destroy};
+    while (--count >= 0) {
+        p -= size;
+        destroy(p, nullptr);
+    }
+    unwind.done = true;
+}
+EI_REPLACE(0x006E859F, libcrt::DestroyElements);
+
+} // namespace libcrt

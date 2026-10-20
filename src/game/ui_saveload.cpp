@@ -42,6 +42,7 @@
 #include "record_lifetime.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
+#include "record_vectors.h"
 
 #include <cstdint>
 #include <cstring>
@@ -92,9 +93,8 @@ bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int 
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 __declspec(naked) void __fastcall EntryConstruct(SaveEntry* /*at*/, const SaveEntry* /*from*/) EI_ORIGINAL(0x00657C60)
-__declspec(naked) void __fastcall EntriesInsertOverflow(void* /*vector*/, void*, SaveEntry* /*at*/, const SaveEntry*,
-                                                        unsigned /*count*/) EI_ORIGINAL(0x006579C0)
-__declspec(naked) SaveEntry* __fastcall EntriesErase(void* /*vector*/, void*, SaveEntry*, SaveEntry*) EI_ORIGINAL(0x006578F0)
+// Its insert that reallocates (006579C0) and erase (006578F0): recordvec::SaveEntryVector's.
+stlp::vector<SaveEntry>* Entries(void* vector) { return static_cast<stlp::vector<SaveEntry>*>(vector); }
 // CFileFind members beyond lib/mfc.h: FindNextFile (006E6653), IsDots (006E661A), Close
 // (006E63E9), and MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the
 // original calls it.
@@ -340,7 +340,7 @@ void CSaveLoadWindow::FillEntries() {
     mfc::CString pattern;
     pattern.Format(game::savewords::SavePattern(), GameFolder());
     mfc::CFileFind find;
-    EntriesErase(EntryVector(this), nullptr, entriesBegin_, entriesEnd_);
+    recordvec::SaveEntryVector::EraseRange(Entries(EntryVector(this)), nullptr, entriesBegin_, entriesEnd_);
     int highest = 0;     // the highest number after "save" in the folder names
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
     BOOL more = find.FindFile(pattern, 0);
@@ -353,7 +353,7 @@ void CSaveLoadWindow::FillEntries() {
             EntryConstruct(entriesEnd_, &fresh.e);
             ++entriesEnd_;
         } else {
-            EntriesInsertOverflow(EntryVector(this), nullptr, entriesEnd_, &fresh.e, 1);
+            recordvec::SaveEntryVector::InsertOverflow(Entries(EntryVector(this)), nullptr, entriesEnd_, &fresh.e, 1);
         }
         SaveEntry* entry = entriesEnd_ - 1;
         Str(entry->folder_) = FileName(find);
@@ -413,7 +413,7 @@ void CSaveLoadWindow::FillEntries() {
         LocalEntry fresh;
         SaveEntry* at = entriesBegin_;
         if (entriesEnd_ == entriesCapacity_) {
-            EntriesInsertOverflow(EntryVector(this), nullptr, at, &fresh.e, 1);
+            recordvec::SaveEntryVector::InsertOverflow(Entries(EntryVector(this)), nullptr, at, &fresh.e, 1);
         } else if (at == entriesEnd_) {
             if (entriesEnd_) entriesEnd_->CopyConstruct(&fresh.e);
             ++entriesEnd_;

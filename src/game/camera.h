@@ -74,16 +74,16 @@ struct CameraView {
 };
 static_assert(sizeof(CameraView) == 0x18);
 
-// A node of the camera's shake list (an STLport list on the game's node allocator).
+// A shake of the camera (CCamera::shakes_, an STLport list<CameraShake>: 24-byte nodes from the
+// node allocator; constructor 00411660, end() 00411530, insert 00411630, erase 00411540).
 struct CameraShake {
-    CameraShake* next;
-    CameraShake* prev;
-    float elapsed;      // +0x08
-    float duration;     // +0x0C
-    float amplitude;    // +0x10
-    float decay;        // +0x14
+    float elapsed;      // +0x00
+    float duration;     // +0x04
+    float amplitude;    // +0x08
+    float decay;        // +0x0C
 };
-static_assert(sizeof(CameraShake) == 0x18);
+using ShakeList = stlp::list<CameraShake>;
+static_assert(sizeof(ShakeList::Node) == 0x18);
 
 // A key of a recorded camera path (camera\*.cam, played by PlayCamera), and a frame of the file
 // being recorded (the dword at +4 is never written by the recorder: stack bytes there, zero here).
@@ -102,20 +102,10 @@ struct CubicCurve3 {
     Vector3* Evaluate(Vector3* out, float t) const;
 };
 
-// An STLport deque iterator (four pointers), and the deque of saved view stack entries (0x24-byte
-// elements, 14 per node) the camera owns at +0x1E0. The allocator is the empty base at +0x24.
-struct DequeIterator {
-    void* cur;
-    void* first;
-    void* last;
-    void** node;
-};
-struct ViewStack {
-    DequeIterator start;    // +0x00
-    DequeIterator finish;   // +0x10
-    void** map;             // +0x20
-    unsigned mapSize;       // +0x24
-};
+// The deque of saved view stack entries (0x24-byte elements, 14 per node) the camera owns at
+// +0x1E0: constructor 00411AB0, destructor 0040CFB0 (its _Destroy, 00411DF0, does nothing).
+using ViewStack = stlp::deque<stlp::Opaque<0x24>>;
+static_assert(sizeof(ViewStack) == 0x28);
 static_assert(sizeof(ViewStack) == 0x28);
 
 // 0040D9B0. Average, lowest and highest surface height on a grid of `step` spacing over
@@ -238,7 +228,7 @@ public:
     float distance_;            // +0xF0
     Quaternion viewRotation_;   // +0xF4 heading
     float pitch_;               // +0x104 degrees
-    CameraShake* shakes_;       // +0x108 list sentinel
+    ShakeList shakes_;          // +0x108
     Vector3 boundsCenter_;      // +0x10C
     float boundsRadius_;        // +0x118
     int targetId_;              // +0x11C
@@ -281,22 +271,6 @@ static_assert(offsetof(CCamera, nearDistance_) == 0x2E0);
 static_assert(offsetof(CCamera, fileName_) == 0x2EC);
 static_assert(offsetof(CCamera, keys_) == 0x2F0);
 static_assert(offsetof(CCamera, keyIndex_) == 0x304);
-
-// The camera's STLport containers and the node list the object query fills (library code).
-// `list` is the address of the field holding the sentinel.
-__declspec(naked) inline void __fastcall ShakeListConstruct(CameraShake** /*list*/, void*, const void* /*alloc*/)
-    EI_ORIGINAL(0x00411660)
-__declspec(naked) inline void __fastcall ShakeEnd(CameraShake* const*, void*, CameraShake** /*ret*/)
-    EI_ORIGINAL(0x00411530)
-__declspec(naked) inline void __fastcall ShakeInsert(CameraShake* const*, void*, CameraShake** /*ret*/,
-                                                     CameraShake* /*pos*/, const float* /*value*/)
-    EI_ORIGINAL(0x00411630)
-__declspec(naked) inline void __fastcall ShakeErase(CameraShake* const*, void*, CameraShake** /*ret*/,
-                                                    CameraShake* /*pos*/) EI_ORIGINAL(0x00411540)
-__declspec(naked) inline void __fastcall ViewStackConstruct(ViewStack*, void*, const void* /*alloc*/, int /*n*/)
-    EI_ORIGINAL(0x00411AB0)
-__declspec(naked) inline void __stdcall ViewStackDestroyRange(DequeIterator /*first*/, DequeIterator /*last*/)
-    EI_ORIGINAL(0x00411DF0)
 
 // The STLport list<CObject3D*> (12-byte nodes) that CWorldClient::ObjectsInRange (0056DAF0) fills.
 using NearbyList = stlp::list<CObject3D*>;

@@ -133,7 +133,7 @@ namespace {
 // CRT eh vector constructor / destructor iterators (pointer, element size, count, [constructor,]
 // destructor); the segment's element constructor 00468900 and destructor 00468920; the engine
 // object's destructor body 00455930.
-void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
+void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
 void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // The segment's element constructor and destructor as the iterators call them (ECX the element).
 void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct(); }
@@ -195,7 +195,7 @@ void __fastcall LightningDestruct(CLightning* self) {
     if (self->main_.points.data) gamecrt::operator_delete(reinterpret_cast<void**>(self->main_.points.data)[-1]);
     if (self->glowTexture_) self->glowTexture_->Release();
     if (self->texture_) self->texture_->Release();
-    EngineObjectDestructBase(self);
+    static_cast<CEngineObject*>(self)->DestructBase();
 }
 EI_REPLACE(0x00468810, LightningDestruct);
 

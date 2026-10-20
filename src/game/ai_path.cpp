@@ -14,7 +14,6 @@
 
 // --- Forwarders to original code not rewritten yet -----------------------------------------------
 
-__declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
 
 namespace {
 // MFC ConstructElements<PathCell> (zero-fills `count` elements).
@@ -80,7 +79,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     int region = 0;
     auto** markRows = reinterpret_cast<std::uint8_t**>(marks.rows);
     if (sameRegion) {
-        region = Regions()->RegionAt(sizeClass, ux, uy);
+        region = Regions()->DominantRegion(sizeClass, ux, uy);
         // Clear the reachability marks in the box spanned by the unit and the target (and a margin).
         int dx = (tx - ux < 0 ? ux - tx : tx - ux) + 1;
         int x0 = tx - dx, x1 = tx + dx + 1;

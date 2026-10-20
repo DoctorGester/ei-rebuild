@@ -97,8 +97,8 @@ struct LocalPath {
     }
     ~LocalPath() {
         mfc::impl::DestructHeader<mfc::impl::PointArrayClass>(&Path()->excludedBlocks);
-        CellListDestroy(&Path()->cells);
-        CellListDestroy(&Path()->steps);
+        mfc::impl::DestructList<mfc::impl::CellListClass>(Path()->cells);
+        mfc::impl::DestructList<mfc::impl::CellListClass>(Path()->steps);
     }
     LocalPath(const LocalPath&) = delete;
     LocalPath& operator=(const LocalPath&) = delete;
@@ -112,12 +112,12 @@ static_assert(sizeof(AIPath) == 0x88);
 // part is zeroed (the original leaves it uninitialised until it is filled).
 struct LocalMotionOrder {
     MotionOrder order;
-    alignas(4) std::uint8_t steps[sizeof(PathCellList)];
+    PathCellList steps;
     LocalMotionOrder() {
         std::memset(&order, 0, sizeof(order));
-        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(steps, 0x80);
+        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&steps, 0x80);
     }
-    ~LocalMotionOrder() { CellListDestroy(steps); }
+    ~LocalMotionOrder() { mfc::impl::DestructList<mfc::impl::CellListClass>(steps); }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
     void* bytes() { return this; }

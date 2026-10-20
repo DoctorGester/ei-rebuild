@@ -19,17 +19,17 @@ namespace {
 // vector<T> as three pointers, for record types only original code constructs.
 using RawVector = stlp::vector<char>;
 
-using RecordFn = void(__fastcall*)(void* record, void*);                       // destructor body
+using RecordFn = void (*)(void* record);                                       // destructor body
 using ResizeFn = void(__fastcall*)(void* vector, void*, unsigned count);        // vector::resize
 using SerializeFn = void (*)(void* record, ChunkArchive* ar);
 
 // Element destructors (release the records' strings); vector::resize of each record type is
 // recordvec::ResizeUntyped (006D26E0, 006D2830, 006DB9C0, 006DBBD0, 006DBE20).
-__declspec(naked) void __fastcall DestroyPrint(void*, void*) EI_ORIGINAL(0x006D29A0)
-__declspec(naked) void __fastcall DestroyPrint2(void*, void*) EI_ORIGINAL(0x006D29E0)
-__declspec(naked) void __fastcall DestroyAck(void*, void*) EI_ORIGINAL(0x006DC390)
-__declspec(naked) void __fastcall DestroyAck2(void*, void*) EI_ORIGINAL(0x006DC920)
-__declspec(naked) void __fastcall DestroyAck3(void*, void*) EI_ORIGINAL(0x006DCAF0)
+void DestroyPrint(void* record) { static_cast<PrintRecord*>(record)->name.~string(); }      // 006D29A0
+void DestroyPrint2(void* record) { static_cast<PrintRecord2*>(record)->name.~string(); }    // 006D29E0
+void DestroyAck(void* record) { static_cast<acks::UnitAcks*>(record)->Destruct(); }         // 006DC390
+void DestroyAck2(void* record) { static_cast<acks::ModelAcks*>(record)->Destruct(); }       // 006DC920
+void DestroyAck3(void* record) { static_cast<acks::ExtraAcks*>(record)->Destruct(); }       // 006DCAF0
 
 // How each instantiation serialises a record: prints.db records through their vtable, acks.db
 // records by a direct call.
@@ -49,7 +49,7 @@ void SerializeArray(ChunkArchive* ar, int id, RawVector* v, int size, RecordFn d
     if (ar->loading_) {
         // erase(begin(), end()): the tail copy is empty; the old records are destroyed in order.
         char* end = v->end();
-        for (char* p = v->begin(); p != end; p += size) destroy(p, nullptr);
+        for (char* p = v->begin(); p != end; p += size) destroy(p);
         v->Finish() = v->Start();
         count = ar->CountChunks(1);
         resize(v, nullptr, static_cast<unsigned>(count));

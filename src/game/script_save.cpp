@@ -14,18 +14,6 @@
 
 namespace {
 
-// The savers of the other parts (004B / 004BB range), __thiscall with the stream.
-// 004B1A80 particle source, 004B1C50 FX source, 004B1DB0 lightning (list node data): not
-// rewritten. 004BBFE0 definition / instance (0xC0), 004BB320 run
-// (0xB4): rewritten below, called through their addresses (verify wrappers run).
-__declspec(naked) void __fastcall ParticleSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1A80)
-__declspec(naked) void __fastcall FxSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1C50)
-__declspec(naked) void __fastcall LightningSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1DB0)
-__declspec(naked) void __fastcall DefinitionSave(const ScriptDefinition*, void*, ScriptStream*) EI_ORIGINAL(0x004BBFE0)
-__declspec(naked) void __fastcall RunSave(const ScriptRun*, void*, ScriptStream*) EI_ORIGINAL(0x004BB320)
-// The savers of this file, called from CScript::Save through their addresses as well.
-__declspec(naked) void __fastcall DeclSaveOrig(const ScriptDecl*, void*, ScriptStream*) EI_ORIGINAL(0x004C1230)
-
 // The script being saved; the run saver (004BB320) finds a run's instance through it.
 CScript*& SavingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
 
@@ -61,13 +49,13 @@ void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
     NamedValues(&vars->groups)->Save(stream);
 }
 
-// A list's count, then each element through `save`.
-template <typename List, typename Save>
-void WriteList(ScriptStream* stream, const List& list, Save save) {
+// A list's count, then each element through its saver `save`.
+template <typename T>
+void WriteList(ScriptStream* stream, const mfc::CList<T>& list, void (T::*save)(ScriptStream*) const) {
     WriteInt(stream, list.count);
     for (const auto* node = list.head; node;) {
         const auto* next = node->next;
-        save(&node->data, nullptr, stream);
+        (node->data.*save)(stream);
         node = next;
     }
 }
@@ -170,17 +158,17 @@ void CScript::SaveState(ScriptStream* stream) {
     WriteInt(stream, lights.size);
     for (int i = 0; i < lights.size; ++i) lights.data[i].ScriptPointLightSave(stream);
 
-    WriteList(stream, particles_, ParticleSourceSave);
-    WriteList(stream, fxSources_, FxSourceSave);
-    WriteList(stream, lightning_, LightningSave);
+    WriteList(stream, particles_, &ScriptParticleSource::ScriptParticleSourceSave);   // 004B1A80
+    WriteList(stream, fxSources_, &ScriptFxSource::ScriptFxSourceSave);            // 004B1C50
+    WriteList(stream, lightning_, &ScriptLightning::ScriptLightningSave);          // 004B1DB0
     stream->Write(&nextParticleId_, 4);
     stream->Write(&nextFxId_, 4);
-    WriteList(stream, blocks_, DeclSaveOrig);
-    WriteList(stream, worldBlocks_, DeclSaveOrig);
+    WriteList(stream, blocks_, &ScriptDecl::Save);
+    WriteList(stream, worldBlocks_, &ScriptDecl::Save);
 
     const auto& scripts = definitions_;
     WriteInt(stream, scripts.size);
-    for (int i = 0; i < scripts.size; ++i) DefinitionSave(&scripts.data[i], nullptr, stream);
+    for (int i = 0; i < scripts.size; ++i) scripts.data[i].Save(stream);
 
     const ScriptVars& globals = globals_;
     NamedValues(&globals.floats)->Save(stream);
@@ -189,8 +177,8 @@ void CScript::SaveState(ScriptStream* stream) {
     NamedValues(&globals.groups)->Save(stream);
 
     // Instances (copies of definitions) and runs.
-    WriteList(stream, instances_, DefinitionSave);
-    WriteList(stream, runs_, RunSave);
+    WriteList(stream, instances_, &ScriptDefinition::Save);
+    WriteList(stream, runs_, &ScriptRun::Save);
 
     stream->Write(&loaded_, 4);
     stream->Write(&fileCount_, 4);

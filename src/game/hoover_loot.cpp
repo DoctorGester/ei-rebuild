@@ -32,8 +32,7 @@ using PtrListNode = PtrList::Node;
 
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
 // and weapons (with the same effects).
-inline PtrListNode* __fastcall NewNode(PtrList* l, void*, PtrListNode* prev, PtrListNode* next) { return static_cast<PtrListNode*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
+static char* UnitPrototype(void* unit) { return reinterpret_cast<char*>(static_cast<CUnit*>(unit)->GetPrototype()); }
 void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
@@ -41,7 +40,7 @@ IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 // An object referenced once more and appended to `list`.
 void Append(PtrList* list, void* object) {
     ++static_cast<CEngineObject*>(object)->refCount_;
-    PtrListNode* node = NewNode(list, nullptr, list->tail, nullptr);
+    PtrListNode* node = list->NewNode(list->tail, nullptr);
     node->data = object;
     if (list->tail) list->tail->next = node;
     else list->head = node;
@@ -49,7 +48,7 @@ void Append(PtrList* list, void* object) {
 }
 // The node appended without a new reference (the prototype items on the second list).
 void AppendShared(PtrList* list, void* object) {
-    PtrListNode* node = NewNode(list, nullptr, list->tail, nullptr);
+    PtrListNode* node = list->NewNode(list->tail, nullptr);
     node->data = object;
     if (list->tail) list->tail->next = node;
     else list->head = node;

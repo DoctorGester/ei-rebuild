@@ -100,6 +100,11 @@ using SharedEntryList = PolicyList<RefEntry, SharedEntry>;
 using CountedEntryList = PolicyList<RefEntry, CountedEntry>;
 static_assert(sizeof(SharedRefList) == 4);
 
+// The network sessions' DriverNode and ClientNode as list<RefPtr>'s nodes (AsNode), for the
+// statics with an element policy (Insert / Erase / InsertRange<SharedRef or CountedRef>).
+template <typename Node>
+list<RefPtr>::Node* AsRefNode(Node* node) { return AsNode<RefPtr>(node); }
+
 // RefPtr equality for remove(value): the same object.
 struct SameObject {
     bool operator()(const RefPtr& a, const RefPtr& b) const { return a.ptr == b.ptr; }

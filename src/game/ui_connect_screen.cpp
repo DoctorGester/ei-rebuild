@@ -810,7 +810,7 @@ void CMpConnectScreen::Create() {
     selectedAddress_ = net::NetAddress{};
     RebuildList();
     DrawListAt(this);
-    interface_->ShowHelp(0);
+    interface_->OpenHelp(0);
     refreshTimer_ = 0.0f;
     // Surface 1: "connecting".
     CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));

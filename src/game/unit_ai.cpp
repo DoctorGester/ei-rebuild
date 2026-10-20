@@ -20,6 +20,7 @@
 #include "world_data.h"
 #include "lib/crt_iostream.h"
 #include "lib/mfc_array.h"
+#include "game_arrays.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -58,8 +59,10 @@ GameOstream* GameOstream::Put(int c) { return reinterpret_cast<GameOstream*>(rei
 GameOstream* GameOstream::Apply(void* manipulator) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 
-// 0052CEC0: DestructElements of counted references (stdcall).
-__declspec(naked) void __stdcall DestructRefs(CEngineObject**, int) EI_ORIGINAL(0x0052CEC0)
+// 0052CEC0: DestructElements of counted references (gamearrays::ObjectRefs').
+void DestructRefs(CEngineObject** refs, int count) {
+    gamearrays::ObjectRefs::DestructElements(reinterpret_cast<ScriptObjectRef*>(refs), count);
+}
 
 // 006E79A0: the game's memmove.
 
@@ -96,9 +99,7 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 
 // AIRef (0052B030, 0052A8F0, 0050E220, 0050E290): counted_ref.cpp.
 
-__declspec(naked) void __fastcall LooksSetSizeAt(AILookArray*, void*, int, int) EI_ORIGINAL(0x005D8EE0)
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
-__declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 
 // The perception memory at +0xD0, the report list at +0x164 and the corpse list at +0x148 are
 // separate objects; these forwarders pass the sub-object as `this`.

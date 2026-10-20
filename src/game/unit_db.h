@@ -302,6 +302,17 @@ static_assert(offsetof(UnitDatabase, models) == 0x40);
 static_assert(offsetof(UnitDatabase, levels) == 0x60);
 static_assert(sizeof(UnitDatabase) == 0x80);
 
+namespace unitdb {
+// The unit database (007AF358; the prototype table is its first member).
+inline UnitDatabase& Database() { return reinterpret_cast<UnitDatabase&>(PrototypeTable()); }
+// operator[] on the prototype and model name indexes (005335E0 / 0053C780; an unknown name gets a
+// null entry): the record, or null.
+inline UnitPrototypeRecord* PrototypeNamed(const stlp::string& name) {
+    return reinterpret_cast<UnitPrototypeRecord*>(PrototypeTable().byName.Subscript(name));
+}
+inline UnitModelRecord* ModelNamed(const stlp::string& name) { return Database().models.byName.Subscript(name); }
+} // namespace unitdb
+
 // unit_stat_small.cpp (A-U12). 00539280 (thiscall on the model table's vector, RET 4) / 0053AD30
 // (UnitPrototypeTable::At; thiscall on the prototype table, RET 4): record `index`, or null past the end.
 UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::uint32_t index);

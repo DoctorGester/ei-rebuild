@@ -29,7 +29,7 @@ CMapObject* AsMapObject(std::uint8_t* object) { return reinterpret_cast<CMapObje
 CUnit* AsUnit(std::uint8_t* unit) { return reinterpret_cast<CUnit*>(unit); }
 DeltaState* StateOf(std::uint8_t* object) { return AsMapObject(object)->NetState(); }   // +0x1C4
 // The world (ObjectWorld) as the base class.
-CWorld* WorldOf(const void* object) { return static_cast<CWorld*>(ObjectWorld(object)); }
+CWorld* WorldOf(const void* object) { return static_cast<CWorld*>(ObjectWorld(static_cast<const CEngineObject*>(object))); }
 // The unit's player (CUnit::player, a CPlayer).
 CPlayer* AsPlayer(void* player) { return static_cast<CPlayer*>(player); }
 
@@ -201,7 +201,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
     std::uint32_t countWord = 0;   // (one byte read into a word whose upper bytes the original leaves)
     field->ReadDelta(&countWord, 1);
     int count = static_cast<int>(countWord & 0xFF);
-    EffectArraySetSizeOriginal(&self->effectsVtable, nullptr, count, -1);
+    self->SetEffectCount(count);
     for (int i = 0; i < self->effectCount; ++i) {
         MapEffect* effect = &self->effects[i];
         effect->ticksLeft = 0;

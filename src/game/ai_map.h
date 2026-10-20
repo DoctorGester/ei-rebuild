@@ -8,6 +8,7 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -100,13 +101,11 @@ static_assert(sizeof(PassCostContext) == 0x18);
 
 // A growable square of byte marks over map cells (0x18 bytes), filled by MarkVisibleCells.
 struct VisibilityGrid {
-    // 005C8D40 (forwarder). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first
-    // call (x = 0x7FFFFFFF) sizes and clears it.
-    void Include(int x, int y, int n);
-    // The rewrite of 005C8D40 (ai_movement.cpp); Include stays the forwarder to its address.
+    // 005C8D40 (ai_movement.cpp). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the
+    // first call (x = 0x7FFFFFFF) sizes and clears it.
     void Grow(int x, int y, int n);
 
-    int originX, originY;       // cell of data[0]; 0x7FFFFFFF before the first Include
+    int originX, originY;       // cell of data[0]; 0x7FFFFFFF before the first Grow
     std::uint8_t* data;         // +0x08 width * height
     std::uint8_t** rows;        // +0x0C rows[i] = data + i * width
     int width, height;          // +0x10
@@ -511,11 +510,9 @@ void __fastcall BlockSearchPathTo(BlockSearch* search, void*, int x, int y, Path
 
 // The region map at CAIMap + 0x22F8 (0x29C bytes): connected areas of 8x8-cell blocks per size class.
 struct CRegionMap {
-    // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
-    // original leaves it).
-    int RegionAt(int sizeClass, int x, int y);
-    // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
-    // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
+    // 005B0600 (ai_region_reach.cpp): the region of cell (x, y) for a size class, the one most of
+    // the reachable 3x3 blocks around the cell belong to (the first seen on a tie; 0 when none);
+    // EAX's upper half is 0.
     int DominantRegion(int sizeClass, int x, int y);
     // 005B07C0 (ai_region_reach.cpp). Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI
     // map's, CAIMap::marks: 1 yes, 2 no).
@@ -588,6 +585,8 @@ static_assert(offsetof(CRegionMap, progress) == 0x118);
 static_assert(offsetof(CRegionMap, edges) == 0x11C);
 static_assert(offsetof(CRegionMap, regions) == 0x21C);
 static_assert(sizeof(CRegionMap) == 0x29C);
+// 005AF3D0 (ai_region_reach.cpp; thiscall, returns this): the region map's constructor.
+CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
 
 // The region map's constructor (005AF3D0, ai_region_reach.cpp) hands these to the CRT's `eh
 // vector constructor iterator` for its three grid arrays: the grids' constructors 005AF580 /
@@ -775,6 +774,12 @@ struct AreaOffset {
 
 struct AIEventTable;   // unit_ai.h
 
+// The cells under a bridge (CAIMap::bridgeHeights): an STLport hash_map keyed (short)x << 16 |
+// (short)y, the value the cell's saved ground level (low word), object height (bits 16-21) and
+// occluder kind (bits 24-28).
+using BridgeMap = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
+static_assert(sizeof(BridgeMap) == 0x14);
+
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
 // Name from the game's error strings; layout provisional.
 class CAIMap {
@@ -956,9 +961,7 @@ public:
     // 005B61B0 / 005B6380 (ai_occluders.cpp). Adds / removes one footprint cell's occluder.
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
-    // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).
-    void Refresh(int minX, int maxX, int minY, int maxY);
-    // The rewrite of 005B8FA0 (ai_refresh.cpp); Refresh stays the forwarder to its address.
+    // 005B8FA0 (ai_refresh.cpp). Recomputes passability in the rectangle (inclusive, grown by 3 cells).
     void RefreshArea(int minX, int maxX, int minY, int maxY);
     // 005B8BA0 (RET 0x14; ai_refresh.cpp). The passability mark of cell (x, y) for a standing
     // level and its height in AI units: from the terrain type, water depth and the occluders over
@@ -1000,7 +1003,7 @@ public:
     ClimbTable climbLarge;              // +0x0D4 size classes other than 0: no step steeper than 40 degrees
     ClimbTable climbSmall;              // +0x0E8 size class 0: up to 60 degrees, every step at the flat cost
     lib::AlignedArray<AITerrainType> materials;     // +0x0FC the terrain types (16 after Load)
-    std::uint8_t bridgeHeights[0x14];   // +0x10C hash_map<int, uint16> keyed (short)x << 16 | (short)y
+    BridgeMap bridgeHeights;            // +0x10C keyed (short)x << 16 | (short)y
     float heightScale;                  // +0x120 world z to AI height units
     CSectorMap sectorMap;               // +0x124 (vtable 0073F9DC)
     FootprintCellSet footprint;         // +0x14C scratch for MarkFootprint
@@ -1088,6 +1091,6 @@ int __stdcall StandingLevel(const CUnit* unit);
 // 005B30B0 (thiscall on the bridge map CAIMap + 0x10C, RET 0x10; ai_bridges.cpp). Puts back what
 // the cell's bridge map entry saved (ground level, object height, the occluder word's low five
 // bits) and erases the entry; nothing without one. x and y are read as shorts.
-void __fastcall RestoreBridgeCell(void* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder);
+void __fastcall RestoreBridgeCell(BridgeMap* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder);
 // 005B3160. Bridge deck height of cell (x, y) from the hash map at CAIMap + 0x10C, 0 if none.
-int __fastcall BridgeHeight(const void* map, void*, short x, short y);
+int __fastcall BridgeHeight(const BridgeMap* map, void*, short x, short y);

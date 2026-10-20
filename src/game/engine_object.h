@@ -57,3 +57,8 @@ public:
     std::uint32_t prototypeId_;
 };
 static_assert(sizeof(CEngineObject) == 0x1C);
+// 0040CB20 (camera_object.cpp): the engine object's constructor body (inlined in most classes).
+CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
+// 00455950: CEngineObject::World, for the callers that name the object's base (CMapObject::World
+// hides it).
+inline void* ObjectWorld(const CEngineObject* object) { return object->World(); }

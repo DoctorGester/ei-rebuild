@@ -24,6 +24,7 @@
 #include "originals_units.h"
 #include "unit_db.h"
 #include "world_glue.h"
+#include "record_vectors.h"
 
 namespace {
 
@@ -44,9 +45,7 @@ struct TextGlue {
 void* TextGlue::Table() { return GameClientTexts(); }
 int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
-// vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (RET 0xC).
-__declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow* /*pos*/, const TradeRow*, int /*n*/)
-    EI_ORIGINAL(0x00629E60)
+// vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (recordvec::TradeRowVector's).
 
 
 struct SurfaceDraw {
@@ -79,7 +78,7 @@ TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
         if (rows->end) rows->end->CopyConstruct(&value);
         ++rows->end;
     } else {
-        RowsInsertOverflow(rows, nullptr, rows->end, &value, 1);
+        recordvec::TradeRowVector::InsertOverflow(reinterpret_cast<stlp::vector<TradeRow>*>(rows), nullptr, rows->end, &value, 1);
     }
     return rows->end - 1;
 }
@@ -352,11 +351,9 @@ EI_REPLACE(0x006261A0, TradeDrawLists);
 // --- 00624F10 -----------------------------------------------------------------------------------
 
 namespace {
-// 0062A0B0 (thiscall, RET 0xC): vector<TradeRecord>'s insert that reallocates; 00626F10
+// 0062A0B0: vector<TradeRecord>'s insert that reallocates (recordvec::TradeRecordVector's); 00626F10
 // (__fastcall): fills record +0x150 from the local player's unit records; LocalPlayerData (00578BA0):
 // the local player's data (+0x34 the number of unit records).
-__declspec(naked) void __fastcall RecordsInsertOverflow(TradeRecords*, void*, TradeRecord* /*pos*/, const TradeRecord*,
-                                                        int /*n*/) EI_ORIGINAL(0x0062A0B0)
 void __fastcall TradeSnapshotRecord(CTradePanel*);
 
 int PartyRecordCount() { return *reinterpret_cast<int*>(LocalPlayerData() + 0x34); }
@@ -446,7 +443,8 @@ void CTradePanel::ResetRecords() {
             if (records_.end) *records_.end = blank;
             ++records_.end;
         } else {
-            RecordsInsertOverflow(&records_, nullptr, records_.end, &blank, 1);
+            recordvec::TradeRecordVector::InsertOverflow(reinterpret_cast<stlp::vector<TradeRecord>*>(&records_), nullptr,
+                                                         records_.end, &blank, 1);
         }
         recordIndex_ = i;
         TradeSnapshotRecord(this);

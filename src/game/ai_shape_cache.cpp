@@ -14,6 +14,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "game_hashes.h"
 
 #include <cstdint>
 
@@ -24,8 +25,6 @@ using CacheNode = UnitShapeCache::Map::Node;
 
 constexpr std::size_t kFirstBuckets = 100;
 
-// 005BE090 (RET 4): the map's value slot for a handle, inserted (empty) when missing.
-__declspec(naked) RefPtr* __fastcall CacheSlot(void*, void*, const CacheHandle*) EI_ORIGINAL(0x005BE090)
 
 bool SameHeight(float a, float b) {
     // FCOMP then TEST AH, 0x40: equal, or unordered.
@@ -49,7 +48,8 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
     }
 
     CRefObject* created = CreateShape(handle);
-    RefPtr* slot = CacheSlot(&shapes, nullptr, handle);
+    // 005BE090: the map's value slot for a handle, inserted (empty) when missing.
+    RefPtr* slot = gamehash::ShapeSlot(reinterpret_cast<gamehash::ShapeTable*>(&shapes), nullptr, handle);
     if (created != slot->ptr) {
         slot->Destroy();
         slot->Share(created);

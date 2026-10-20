@@ -58,9 +58,6 @@ constexpr std::uintptr_t kItemSourceRefVtable = std::uintptr_t(0x0073FA88);
 constexpr std::uintptr_t kUnitSpecVtable = std::uintptr_t(0x0073C6E0);
 constexpr std::uintptr_t kBehaviourDestructor = std::uintptr_t(0x0046C290);
 
-// The unit prototypes' name map (an STLport hash_map<string, UnitPrototypeRecord*>, unit_db.h).
-inline void* PrototypeNameMap() { return reinterpret_cast<void*>(0x007AF364); }
-
 // ---- UseQuickItem (0058ECE0) -------------------------------------------------------------------
 
 inline const char* QuickEffectPrototype() { return reinterpret_cast<const char*>(0x007908D0); }   // "st.tr.130"

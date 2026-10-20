@@ -48,11 +48,9 @@ static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, u
               offsetof(CDebugPanel, asked_) == 0x2C && offsetof(CDebugPanel, visible_) == 0x3C &&
               offsetof(CDebugPanel, lastDraw_) == 0x40);
 
-// STLport (library).
-__declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const stlp::string*, const stlp::string*) EI_ORIGINAL(0x00445170)
-__declspec(naked) Node** __fastcall InsertHint(StringMap*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
-__declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
-__declspec(naked) void __fastcall PairDelete(void*, void*, unsigned) EI_ORIGINAL(0x004457F0)
+// STLport (library): the map<string, string> instantiation's pair constructor (00445170), insert
+// with a hint (004450B0), pair destructor (00445040) and its scalar deleting destructor (004457F0).
+using Pairs = lib_trees::StringPairs;
 
 CDebugPanel* Panel(void* self) { return static_cast<CDebugPanel*>(self); }
 
@@ -75,12 +73,13 @@ void __fastcall StringTableSet(void* self, void*, const char* key, const char* v
     if (it == map.end() || stlp::StringAbi::Less(&k, &it->first)) {
         stlp::string empty;
         stlp::StringElement::Default(&empty);
-        alignas(4) std::uint8_t pair[sizeof(stlp::string) * 2];
-        PairConstruct(pair, nullptr, &k, &empty);
+        alignas(4) std::uint8_t storage[sizeof(stlp::string) * 2];
+        auto* pair = reinterpret_cast<Pairs::Value*>(storage);
+        Pairs::MakeValue(pair, nullptr, &k, &empty);
         Node* inserted;
-        InsertHint(&map, nullptr, &inserted, it, pair);
+        Pairs::InsertHint(&map, nullptr, &inserted, it, pair);
         it = inserted;
-        PairDestruct(pair);
+        Pairs::DestroyValue(pair);
     }
     it->second.Assign(value);   // inlined by the original: overwrite, then cut or append
 }
@@ -106,7 +105,7 @@ void __fastcall StringTableDestruct(void* self) {
         while (node) {
             lib_trees::StringPairs::EraseSubtree(&map, nullptr, node->right);
             Node* left = node->left;
-            PairDelete(&node->first, nullptr, 0);
+            Pairs::DeletingDestroyValue(reinterpret_cast<Pairs::Value*>(&node->first), nullptr, 0);
             stlp::deallocate(node, 40);   // 004452D0
             node = left;
         }

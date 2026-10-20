@@ -12,6 +12,7 @@
 #include "../lib/mfc.h"
 #include "ei/hook.h"
 #include "lib/containers.h"
+#include "lib/mfc_list.h"
 #include "originals_library.h"
 
 #include <cstdint>
@@ -42,19 +43,6 @@ using AssocIndex = IndexMap::Assoc;
 using Assoc32 = PairMap::Assoc;
 static_assert(sizeof(Assoc64) == 0x18 && sizeof(AssocIndex) == 0x14 && sizeof(Assoc32) == 0x10);
 
-// Each map's GetAssocAt [key, out hash], InitHashTable [size, allocate] and NewAssoc, and the
-// first map's destructor; the other two destructors are inlined.
-__declspec(naked) Assoc64* __fastcall CornersGetAssocAt(CornerMap*, void*, const std::uint64_t*, std::uint32_t*) EI_ORIGINAL(0x004540A0)
-__declspec(naked) void __fastcall CornersInitHashTable(CornerMap*, void*, std::uint32_t, int) EI_ORIGINAL(0x00453FD0)
-__declspec(naked) Assoc64* __fastcall CornersNewAssoc(CornerMap*) EI_ORIGINAL(0x00454040)
-__declspec(naked) void __fastcall CornersDestruct(CornerMap*) EI_ORIGINAL(0x00453F80)
-__declspec(naked) AssocIndex* __fastcall IndicesGetAssocAt(IndexMap*, void*, const std::uint64_t*, std::uint32_t*) EI_ORIGINAL(0x004541C0)
-__declspec(naked) void __fastcall IndicesInitHashTable(IndexMap*, void*, std::uint32_t, int) EI_ORIGINAL(0x004540F0)
-__declspec(naked) AssocIndex* __fastcall IndicesNewAssoc(IndexMap*) EI_ORIGINAL(0x00454160)
-__declspec(naked) Assoc32* __fastcall PairsGetAssocAt(PairMap*, void*, const std::uint32_t*, std::uint32_t*) EI_ORIGINAL(0x004542E0)
-__declspec(naked) void __fastcall PairsInitHashTable(PairMap*, void*, std::uint32_t, int) EI_ORIGINAL(0x00454210)
-__declspec(naked) Assoc32* __fastcall PairsNewAssoc(PairMap*) EI_ORIGINAL(0x00454280)
-
 // The sorted corner list (a CArray of 16-byte records, vtable 0073C19C): SetSize (00453CA0) and
 // SetAtGrow (00453E00).
 struct CornerRecord {
@@ -79,22 +67,12 @@ void DestroyMap(MapT& map, std::uintptr_t vtable) {
     map.RemoveAll();
 }
 
-// map[key] (operator[], inlined by the original): the association, created when missing.
-template <typename MapT, typename KeyT>
-typename MapT::Assoc* Lookup(MapT& map, KeyT key,
-                             typename MapT::Assoc* (__fastcall* getAssocAt)(MapT*, void*, const KeyT*, std::uint32_t*),
-                             void(__fastcall* initHashTable)(MapT*, void*, std::uint32_t, int),
-                             typename MapT::Assoc* (__fastcall* newAssoc)(MapT*)) {
-    std::uint32_t hash;
-    typename MapT::Assoc* assoc = getAssocAt(&map, nullptr, &key, &hash);
-    if (assoc) return assoc;
-    if (!map.table) initHashTable(&map, nullptr, map.hashSize, 1);
-    assoc = newAssoc(&map);
-    assoc->hash = hash;
-    assoc->key = key;
-    assoc->next = map.table[hash];
-    map.table[hash] = assoc;
-    return assoc;
+// map[key] (operator[], inlined by the original; the maps' GetAssocAt, InitHashTable and NewAssoc:
+// corners 004540A0 / 00453FD0 / 00454040, indices 004541C0 / 004540F0 / 00454160, pairs 004542E0 /
+// 00454210 / 00454280): the value, created when missing.
+template <typename K, typename V>
+V& Lookup(mfc::CMap<K, V>& map, K key) {
+    return *mfc::impl::MapAbi<K, V>::ElementAt(&map, nullptr, &key);
 }
 
 const MeshFace& FaceAt(SceneMesh* mesh, int f) { return mesh->faces.data[f]; }
@@ -122,7 +100,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
     for (int f = 0; f < mesh->faces.size; ++f) {
         for (int k = 0; k < 3; ++k) {
             std::uint64_t key = CornerKey(FaceAt(mesh, f), k);
-            Lookup(corners, key, &CornersGetAssocAt, &CornersInitHashTable, &CornersNewAssoc)->value = key;
+            Lookup(corners, key) = key;
         }
     }
 
@@ -136,7 +114,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
             r.texture = static_cast<std::int32_t>(static_cast<std::uint32_t>(key) & 0xFFFF);
             r.index = records.size;
             records.SetAtGrow(records.size, r);   // 00453E00
-            Lookup(indices, key, &IndicesGetAssocAt, &IndicesInitHashTable, &IndicesNewAssoc)->value = static_cast<std::uint32_t>(r.index);
+            Lookup(indices, key) = static_cast<std::uint32_t>(r.index);
         }
     }
     GameQsort(records.data, static_cast<unsigned>(records.size), sizeof(CornerRecord), kCompareRecords);
@@ -171,7 +149,7 @@ void BuildPairs(SceneMesh* mesh) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
             std::uint32_t key = (face.vertex[k] << 16) | face.position[k];
-            Lookup(pairs, key, &PairsGetAssocAt, &PairsInitHashTable, &PairsNewAssoc)->value = key;
+            Lookup(pairs, key) = key;
         }
     }
 
@@ -220,7 +198,7 @@ void __fastcall IndexMeshCorners(VtArray* meshes) {
         BuildPairs(&Typed<MeshArray>(*meshes).data[m]);
         DestroyMap(indices, 0x0073C184);
         corners.vtable = reinterpret_cast<void*>(0x0073C190);
-        CornersDestruct(&corners);
+        corners.RemoveAll();   // 00453F80
     }
     records.vtable = reinterpret_cast<void*>(0x0073C19C);
     if (records.data) gamecrt::operator_delete(records.data);

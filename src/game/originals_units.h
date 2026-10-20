@@ -31,8 +31,6 @@ struct UnitVitals;
 __declspec(naked) inline int __fastcall SkillRecordIndex(const void*, void*, const void*) EI_ORIGINAL(0x0051FF00)
 __declspec(naked) inline void __fastcall UnitParameterBlock(void*, void*, void*, void*, int) EI_ORIGINAL(0x005270E0)
 __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0052E310)
-// 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
-__declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
 
 // C3k. A counted reference is a pointer slot whose object keeps a count at +4 and has Release as virtual slot 4.
 // 0052B030 releases the object and clears the slot (plain RET; no result in EAX).
@@ -41,23 +39,11 @@ __declspec(naked) inline void __fastcall CountedRefResetOriginal(void* /*slot*/)
 // controller's order counts as fighting (plain RET, AL).
 __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*controller*/) EI_ORIGINAL(0x0054B580)
 // 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10).
-__declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
 
-// C3l. 005335E0: the unit prototype map (a hash map keyed by a string; RET 4: key; EAX = the address of the value slot, after
-// inserting an entry for a missing name).
-__declspec(naked) inline void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
-    EI_ORIGINAL(0x005335E0)
 class CFigureAnimationState;
 class CUnitClientSpecific;
 struct FigureAnimation;
 class CObject3DClientSpecific;
-// 005392F0 (library: STLport list::erase of the speech
-// queue): removes `at`, the next node to *out (RET 8).
-struct ClientSpeech;
-struct ClientSpeechNode;
-__declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** /*queue*/, void*,
-                                                             ClientSpeechNode** /*out*/, ClientSpeechNode* /*at*/)
-    EI_ORIGINAL(0x005392F0)
 
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
@@ -77,13 +63,9 @@ __declspec(naked) inline int __fastcall LockOpensOriginal(const LockKey* /*key*/
     EI_ORIGINAL(0x00522A80)
 class CTorchObjectSpec;   // server_specific_manager.h
 struct DeltaField;        // net_delta.h
-// C3m. 0050E660 (rewritten as CMapObject::DestructBody): the map object's destructor body.
-__declspec(naked) inline void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
 
 
 // C3o. Map object / unit statistics originals whose copies differed in their return type.
-// 0050E2D0 (rewritten as CMapObject::Construct; thiscall, plain RET): the map object base constructor; returns this.
-__declspec(naked) inline CMapObject* __fastcall MapObjectConstructOriginal(void* /*object*/) EI_ORIGINAL(0x0050E2D0)
 // 00517700 (rewritten as CObject3D::SetFigureScale; RET 4): sets the scale (+0xC4) and rebuilds the figure when it
 // changed; EAX as the original leaves it (00532AB0 CUnit::ResetUnitScale returns it).
 __declspec(naked) inline std::uintptr_t __fastcall ObjectSetFigureScaleOriginal(void* /*object*/, void*, const float* /*scale*/)

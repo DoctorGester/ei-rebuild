@@ -25,6 +25,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_script.h"
+#include "game_lists.h"
 
 namespace {
 
@@ -33,10 +34,6 @@ namespace {
 // 0058D670. Runs the units in the update map (rewritten below; called through its address so a
 // Rebirth launch without the flag still runs addon's patched original).
 __declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORIGINAL(0x0058D670)
-// 0059A050. RemoveAt of the counted-reference list (+0x12E44): unlinks the node, releases its
-// object (slot 4) and frees the node.
-__declspec(naked) void __fastcall CountedRemoveAt(mfc::CTypedPtrList<CEngineObject>*, void*,
-                                                  mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x0059A050)
 // 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
@@ -112,9 +109,6 @@ private:
 } // namespace
 
 int Projectile::Update() { return reinterpret_cast<CSpellEffect*>(this)->Update(); }
-// 0059C810. Releases the node's missile and returns the node to the free list (the last one frees
-// every block).
-__declspec(naked) void __fastcall ProjectileFreeNode(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x0059C810)
 
 // ---- The tick ------------------------------------------------------------------------------------
 
@@ -159,7 +153,7 @@ void CWorldServer::Tick(char force) {
             missiles.tail = current->prev;
         else
             current->next->prev = current->prev;
-        ProjectileFreeNode(&projectiles_, nullptr, current);
+        mfc::impl::FreeNodeAs<gamelists::Refs>(&projectiles_, current);   // 0059C810: the missile released
     }
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
@@ -292,7 +286,7 @@ void CWorldServer::UpdateUnits() {
     for (auto* position = counted_.head; position;) {
         auto* current = position;
         position = position->next;
-        if (current->data->RunTick() == 0) CountedRemoveAt(&counted_, nullptr, current);
+        if (current->data->RunTick() == 0) mfc::impl::RemoveAtAs<gamelists::EngineObjects>(&counted_, current);   // 0059A050: the object released
     }
     for (int i = 0; i < SleepingIds().size; ++i) {
         if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);

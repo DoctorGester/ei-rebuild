@@ -380,9 +380,9 @@ void CBriefingScreen::MarkPeople() {
     stlp::vector<int> open;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         std::uint32_t bits;
-        std::memcpy(&bits, &node->value, 4);
+        std::memcpy(&bits, &node->value.mapped, 4);
         if (bits != kOneBits) continue;
-        text::Split(node->key, &parts, '.');
+        text::Split(node->value.key, &parts, '.');
         if (parts.GetSize() != kTopicNameParts) continue;
         if (Compare(parts[2].Left(kConstructorPrefix), ConstructorTopic()) == 0) continue;
         int id = TextKeyFromName(parts[1]);

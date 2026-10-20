@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_gameplay.h"
+#include "record_vectors.h"
 
 namespace net {
 
@@ -18,7 +19,6 @@ namespace {
 
 // The two parties (00661050 class, outside this range).
 void __fastcall PartyDestruct(void* a0) { PartyRecordsDestructOriginal(a0); }
-__declspec(naked) void __fastcall Vector25ACDestruct(void* /*vector*/) EI_ORIGINAL(0x0041F7F0)
 
 // The release a counted pointer's destructor inlines: one reference less, deleted at zero.
 void ReleaseInline(void* slot) {
@@ -59,7 +59,7 @@ void ClientSession::Destruct() {
     lines_.Release();
     players_.Release();
     waiting_.Release();
-    Vector25ACDestruct(&queries_);
+    recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
     GrowingBufferDestruct(&joinData_);
     SessionBase::Destruct();
@@ -73,7 +73,7 @@ EI_REPLACE_METHOD(0x0041CA10, ClientSession::Destruct);
 // frees as the out-of-line ones called here, which ClientSession::Destruct uses too).
 void ClientBase::DestructBase() {
     waiting_.Release();
-    Vector25ACDestruct(&queries_);
+    recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
     GrowingBufferDestruct(&joinData_);
     SessionBase::Destruct();

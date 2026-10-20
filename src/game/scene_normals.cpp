@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -19,7 +20,6 @@
 namespace scene {
 namespace {
 
-__declspec(naked) void __fastcall PointsSetAtGrow(PointBuffer*, void*, int, Vector3) EI_ORIGINAL(0x00452AF0)
 
 Vector3 GamePoint(std::uintptr_t address) {
     Vector3 p;
@@ -70,7 +70,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
                 normal.y = sum.y / length;
                 normal.z = sum.z / length;
             }
-            PointsSetAtGrow(&normals, nullptr, normals.size, normal);
+            normals.SetAtGrow(normals.size, std::bit_cast<PointBits>(normal));   // 00452AF0
         }
 
         for (int f = 0; f < faces.size; ++f) {

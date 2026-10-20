@@ -41,8 +41,6 @@ void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
 
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
-// 00460BC0 (RET 8). Named float table Set.
-void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, a3); }
 
 // A CString constructed by a callee into raw storage, destroyed explicitly.
 struct StringSlot {
@@ -112,7 +110,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
     }
     StringSlot variable;
     BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
-    VariableSet(player->variables, nullptr, variable.Get(), 1.0f);
+    player->variables.Set(variable.Get(), 1.0f);
     variable.Get().~CString();
 }
 
@@ -120,7 +118,6 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 namespace {
 
-// 00460DB0 (RET 4). Named float table Remove.
 // 004DEDD0 (RET 4). The briefing texts forget a loaded file.
 // 0040C720. STLport string destructor.
 
@@ -134,7 +131,7 @@ void GameFlow::ForgetBriefing(const char* briefing) {
     auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
     StringSlot variable;
     BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
-    VariableRemove(player->variables, nullptr, variable.Get());
+    player->variables.Remove(variable.Get());
     variable.Get().~CString();
 }
 
@@ -314,7 +311,7 @@ void GameFlow::RegisterQuests(const char* folder) {
         new (folders.Finish()) stlp::string(name);
         ++folders.Finish();
     } else {
-        StringVectorInsertOverflowOriginal(&folders, nullptr, folders.Finish(), &name, 1);
+        folders.InsertOverflow<stlp::StringElement>(folders.Finish(), name, 1);   // 004DCE90
     }
 }
 

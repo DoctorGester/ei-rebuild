@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "record_lifetime.h"
+#include "record_vectors.h"
 
 namespace {
 
@@ -15,17 +16,8 @@ namespace {
 // (006ADC10, RET 0xC), the records' destructors (006AF4D0 quests, 006AF5A0 briefings, plain RET)
 // and the vectors' resize (006B2100 / 006B2240, RET 4: new records default-constructed, extra
 // ones destroyed).
-__declspec(naked) void __fastcall FloatsFillInsert(stlp::vector<float>*, void*, float* /*position*/, unsigned /*count*/,
-                                                   const float* /*value*/) EI_ORIGINAL(0x006ADC10)
 void __fastcall QuestDestroy(QuestRecord* record) { static_cast<QuestRecord*>(record)->Destruct(); }
 void __fastcall BriefingDestroy(QuestBriefingRecord* record) { static_cast<QuestBriefingRecord*>(record)->Destruct(); }
-__declspec(naked) void __fastcall QuestsResize(stlp::vector<QuestRecord>*, void*, unsigned /*count*/) EI_ORIGINAL(0x006B2100)
-__declspec(naked) void __fastcall BriefingsResize(stlp::vector<QuestBriefingRecord>*, void*, unsigned /*count*/)
-    EI_ORIGINAL(0x006B2240)
-// The records' Serialize (rewritten below), called through their addresses so that their verify
-// wrappers, which compare with the originals, run for every record.
-__declspec(naked) void __fastcall QuestSerializeAt(QuestRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x006AD7D0)
-__declspec(naked) void __fastcall BriefingSerializeAt(QuestBriefingRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x006AD900)
 
 // The vectors' serialiser (one instantiation per record type in the original): chunk `id`
 // holding one chunk 1 per record; loading destroys the old records (erase(begin, end): the tail
@@ -33,7 +25,7 @@ __declspec(naked) void __fastcall BriefingSerializeAt(QuestBriefingRecord*, void
 template <typename Record>
 void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, void(__fastcall* destroy)(Record*),
                       void(__fastcall* resize)(stlp::vector<Record>*, void*, unsigned),
-                      void(__fastcall* serialize)(Record*, void*, ChunkArchive*)) {
+                      void (Record::*serialize)(ChunkArchive*)) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
@@ -49,7 +41,7 @@ void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, v
         ar->Current()->occurrence = i + 1;
         Record* record = records->Start() + i;
         if (ar->EnterChunk(1)) {
-            serialize(record, nullptr, ar);
+            (record->*serialize)(ar);
             ar->LeaveChunk();
         }
     }
@@ -72,8 +64,7 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
         // erase(begin, end), then resize(count, 0.0f): the vector is empty, so a fill insert.
         places.Finish() = places.Start();
         count = ar->CountChunks(1);
-        float zero = 0.0f;
-        FloatsFillInsert(&places, nullptr, places.Finish(), static_cast<unsigned>(count), &zero);
+        places.FillInsert<stlp::PlainElement<float>>(places.Finish(), static_cast<unsigned>(count), 0.0f);   // 006ADC10
     } else {
         count = static_cast<int>(places.size());
     }
@@ -170,11 +161,12 @@ void QuestBriefingRecord::ConstructDefault() {
 }
 
 void ChunkArchive::SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void*) {
-    SerializeRecords(this, id, quests, QuestDestroy, QuestsResize, QuestSerializeAt);
+    SerializeRecords(this, id, quests, QuestDestroy, recordvec::QuestVector::ResizeDefault, &QuestRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x006B1F20, ChunkArchive::SerializeQuests);
 
 void ChunkArchive::SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void*) {
-    SerializeRecords(this, id, briefings, BriefingDestroy, BriefingsResize, BriefingSerializeAt);
+    SerializeRecords(this, id, briefings, BriefingDestroy, recordvec::BriefingVector::ResizeDefault,
+                     &QuestBriefingRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x006B2010, ChunkArchive::SerializeBriefings);

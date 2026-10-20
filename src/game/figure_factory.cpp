@@ -20,12 +20,9 @@
 
 namespace {
 
-// The member constructors (every field zero, returns the member): 0056FD00 for the vertex and
-// normal arrays, 005AD870 (figure_slots.cpp ClearArray) for the corners, 004D9E90 / 004D9E80 /
-// 004D9EA0 (sky_object.cpp, AlignedArray::Construct) for the words, indices and texture coordinates.
-__declspec(naked) void* __fastcall ConstructPackets(void*) EI_ORIGINAL(0x0056FD00)
-__declspec(naked) void* __fastcall ConstructIndices(lib::AlignedArray<std::uint16_t>*) EI_ORIGINAL(0x004D9E80)
-__declspec(naked) void* __fastcall ConstructTexCoords(lib::AlignedArray<TexCoord>*) EI_ORIGINAL(0x004D9EA0)
+// The member constructors (every field zero, returns the member; AlignedArray::Construct, sky_object.cpp):
+// 0056FD00 for the vertex and normal arrays, 004D9E90 / 004D9E80 / 004D9EA0 for the words, indices and
+// texture coordinates; 005AD870 (figure_slots.cpp ClearArray) for the corners.
 
 // The inlined array constructor: the four fields zeroed in order.
 template <typename T>
@@ -61,20 +58,20 @@ void* Create(int classId) {
         ZeroArray(o->normals_);
         ZeroArray(o->corners_);
         o->words_.Construct();
-        ConstructIndices(&o->indices_);
-        ConstructTexCoords(&o->texCoords_);
+        o->indices_.Construct();
+        o->texCoords_.Construct();
         SetVtable(o, CFigureMesh::kPlainMeshVtableAddress);
         return o;
     }
     case 0x43: {
         CFigureMesh* o = NewPart(0x284);
         if (!o) return nullptr;
-        ConstructPackets(&o->vertices_);
-        ConstructPackets(&o->normals_);
+        o->vertices_.Construct();
+        o->normals_.Construct();
         figure::ClearArray(reinterpret_cast<std::uint32_t*>(&o->corners_));   // 005AD870
         o->words_.Construct();
-        ConstructIndices(&o->indices_);
-        ConstructTexCoords(&o->texCoords_);
+        o->indices_.Construct();
+        o->texCoords_.Construct();
         SetVtable(o, CFigureMesh::kMeshVtableAddress);
         return o;
     }

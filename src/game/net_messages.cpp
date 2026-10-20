@@ -27,7 +27,6 @@ namespace net {
 namespace {
 
 // vector<RefPtr> of the file message: copy of the elements sharing them, deallocate.
-__declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AE90)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
 
 // 00783D6C: the empty text the server entry's reset assigns.
@@ -675,7 +674,7 @@ FileMessage* FileMessage::Clone() {   // 00416220
     to.Start() = block;
     to.Finish() = block;
     to.EndOfStorage() = block + n;
-    to.Finish() = SharedRefsCopy(from.begin(), from.end(), block, 0);
+    to.Finish() = stlp::SharedRefVector::UninitializedCopy(from.begin(), from.end(), block, nullptr);   // 0042AE90
     ei::SetVtable(p, kVtableAddress);
     return p;
 }

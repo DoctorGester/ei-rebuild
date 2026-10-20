@@ -24,11 +24,6 @@ using dbfile::LocalStream;
 constexpr int kQuestsChunk = 1;
 constexpr int kBriefingsChunk = 2;
 
-// The tables' vector serialisers (RET 0xC: id, vector, unused; rewritten in quest_records.cpp),
-// through their addresses so that their verify wrappers run.
-__declspec(naked) void __fastcall SerializeQuestsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006B1F20)
-__declspec(naked) void __fastcall SerializeBriefingsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006B2010)
-
 } // namespace
 
 int QuestDatabase::Load(const char* folder) {
@@ -44,11 +39,11 @@ int QuestDatabase::Load(const char* folder) {
     FillStream(*stream, data, size);
 
     // The serialisers' unused third argument is a stack slot the original has not written yet.
-    LoadTable(stream, kQuestsChunk, SerializeQuestsAt, &quests, nullptr, [this] {
+    LoadTable(stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, nullptr, [this] {
         for (QuestRecord* record = quests.begin(); record != quests.end(); ++record)
             questsByName[record->name] = record;
     });
-    LoadTable(stream, kBriefingsChunk, SerializeBriefingsAt, &briefings.records, nullptr, [this] {
+    LoadTable(stream, kBriefingsChunk, &ChunkArchive::SerializeBriefings, &briefings.records, nullptr, [this] {
         for (QuestBriefingRecord* record = briefings.records.begin(); record != briefings.records.end(); ++record)
             briefings.index[record->name] = record;
     });

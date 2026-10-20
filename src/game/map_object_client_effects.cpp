@@ -471,10 +471,7 @@ void CMapObjectClientSpecific::ApplyLightMode(int mode) {
         }
         light->flags_ |= kLightHeld;
         int id = light->id_;
-        void* end = nullptr;
-        ListEnd4049D0Original(&TheLightFactory()->litIds_, nullptr, &end);
-        void* inserted = nullptr;
-        ListInsert404A40Original(&TheLightFactory()->litIds_, nullptr, &inserted, end, &id);
+        stlp::list<int>::Insert(TheLightFactory()->litIds_.End(), id);   // 004049D0 end, 00404A40 insert
         return;
     }
     if (mode == 2 && light) DropLight(this);

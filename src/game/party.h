@@ -9,6 +9,7 @@
 
 #include "engine_object.h"
 #include "map_object_figures.h"
+#include "object_tables.h"
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -56,12 +57,6 @@ constexpr std::uintptr_t kPartyMemberArrayVtable = std::uintptr_t(0x00742FF4);
 // and the storage freed. 00664470: slot 0 (operator delete with flags bit 0; returns the array).
 void __fastcall DestructPartyMemberArray(PartyMemberArray* array);
 PartyMemberArray* __fastcall DeletePartyMemberArray(PartyMemberArray* array, void*, unsigned flags);
-
-// The party's named variables (the script's "gtime" and the like): an STLport hash_map<CString,
-// float>. Its hash is not needed by the code here (declared only).
-struct PartyVariableHash;
-using PartyVariableMap = stlp::hash_map<mfc::CString, float, PartyVariableHash>;
-static_assert(sizeof(PartyVariableMap) == 0x14);
 
 class CParty : public CEngineObject {
 public:
@@ -194,7 +189,7 @@ public:
     PartyMemberArray members_;              // +0x2C
     AlignedPtrArray items_;                 // +0x40 CItem*
     std::uint32_t money_;               // +0x50 the party's money (Money(); cleared by Clear, saved masked)
-    PartyVariableMap variables_;            // +0x54
+    NamedFloatTable variables_;             // +0x54 named variables (the script's "gtime" and the like)
     mfc::CString zone_;                     // +0x68 the zone name ("gz1g" after a new game)
     std::uint32_t entrance_;            // +0x6C the zone exit the party arrives by (cleared by Clear)
 };

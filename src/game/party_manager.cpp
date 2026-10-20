@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "record_vectors.h"
 #include "game_hashes.h"
+#include "lib/stlp_vector_refs.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -22,14 +23,11 @@ static_assert(sizeof(PartyInPlace) == sizeof(CParty));
 
 namespace {
 
-// STLport members (library), called as the original does: the party map's clear(), resize(n) of
+// STLport members (library), called as the original does: the party map's clear() (004AD050,
+// gamehash::PartyAbi's), resize(n) of
 // the entry, record and template vectors (null pointers / empty entries appended), resize(n, x) of
 // an entry's ids.
-__declspec(naked) void __fastcall PartyMapClear(PartyMap* /*map*/) EI_ORIGINAL(0x004AD050)
-__declspec(naked) void __fastcall RecordsResize(stlp::vector<PartyRecord*>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD700)
-__declspec(naked) void __fastcall TemplatesResize(ClassTemplateVector* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD8D0)
-// hash_map<CString, float>::operator= (the party's variables): clear, then copy_from.
-__declspec(naked) void __fastcall FloatTableAssign(PartyVariableMap* /*table*/, void*, const PartyVariableMap* /*source*/) EI_ORIGINAL(0x004A8AD0)
+// (The record and template vectors' resize, 004AD700 / 004AD8D0: stlp::CountedRefVector's.)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
 // pointers, whose release the original inlines (004A5D70 / 004A7EA0): one reference less, the
@@ -67,7 +65,7 @@ EI_REPLACE_METHOD(0x004AD2C0, ChunkArchive::IntField);
 void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     if (!EnterChunk(id)) return;
     if (loading_) {
-        PartyMapClear(parties);
+        gamehash::PartyAbi::Clear(reinterpret_cast<gamehash::PartyTable*>(parties));
         int count = CountChunks(1);
         for (int i = 1; i <= count; ++i) {
             int key = 0;
@@ -151,7 +149,7 @@ void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>*
         for (ClassTemplate** p = templates->begin(); p != templates->end(); ++p) Release(*p);
         templates->Finish() = templates->Start();
         count = CountChunks(1);
-        TemplatesResize(templates, nullptr, static_cast<unsigned>(count));
+        stlp::CountedRefVector::ResizeDefault(&stlp::AsRefPtrs(*templates), nullptr, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(templates->size());
     }
@@ -173,7 +171,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
             for (PartyRecord** p = records.Start(); p != records.Finish(); ++p) Release(*p);
             records.Finish() = records.Start();
             count = ar->CountChunks(1);
-            RecordsResize(&records, nullptr, static_cast<unsigned>(count));
+            stlp::CountedRefVector::ResizeDefault(&stlp::AsRefPtrs(records), nullptr, static_cast<unsigned>(count));
         } else {
             count = static_cast<int>(records.size());
         }
@@ -252,12 +250,12 @@ CParty* RecordParty(PartyRecord* record) { return reinterpret_cast<CParty*>(reco
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
     if (auto* found = static_cast<CParty*>(this->Find(text10))) CopyParty(found, party);
-    PartyVariableMap variables;
-    FloatTableCopyConstructOriginal(&variables, nullptr, &party->variables_);
+    NamedFloatTable variables;
+    variables.CopyConstruct(party->variables_);
     mfc::CString zone(party->zone_);
     for (PartyRecord* record : records) {
         CParty* target = RecordParty(record);
-        FloatTableAssign(&target->variables_, nullptr, &variables);
+        target->variables_.Assign(variables);
         target->zone_ = zone;
         target->entrance_ = party->entrance_;
     }

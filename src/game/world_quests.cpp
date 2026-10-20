@@ -42,7 +42,7 @@ constexpr int kMercSlots = 10;
 
 // 00461360. The text key (object id) of a name (object_tables.cpp), ECX = name.
 // 00460AF0 (RET 4). Named float table Get; the value is left in ST0.
-double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
+double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 
 // C3 of FCOMP: equal or unordered (the original's TEST AH,0x40).
 bool EqualOrUnordered(double a, float b) { return !(a < b) && !(a > b); }
@@ -90,9 +90,9 @@ void CWorldServer::UpdateMercBriefings() {
                     break;
                 }
             }
-            void* variables = player->variables;
+            NamedFloatTable* variables = &player->variables;
             if (inParty) {
-                if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n10), worlddata::Zero())) {
+                if (!EqualOrUnordered(VariableGet(variables, b.n10), worlddata::Zero())) {
                     set(b.n8, 0.0f);
                     set(b.n1, 0.0f);
                     set(b.n2, 0.0f);
@@ -105,7 +105,7 @@ void CWorldServer::UpdateMercBriefings() {
                     set(b.n9, 0.0f);
                     set(b.n2, briefedHere ? 1.0f : 0.0f);
                 }
-            } else if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n10), worlddata::Zero())) {
+            } else if (!EqualOrUnordered(VariableGet(variables, b.n10), worlddata::Zero())) {
                 set(b.n8, 0.0f);
                 set(b.n1, 0.0f);
                 set(b.n2, 0.0f);
@@ -114,11 +114,11 @@ void CWorldServer::UpdateMercBriefings() {
                 set(b.n10, 0.0f);
                 set(b.hired, 0.0f);
             } else {
-                double hiredValue = VariableGet(variables, nullptr, b.hired);
+                double hiredValue = VariableGet(variables, b.hired);
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
                 float hiredStored = hired;
                 if (!EqualOrUnordered(hiredValue, worlddata::Zero())) {
-                    if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), worlddata::One())) {
+                    if (!EqualOrUnordered(VariableGet(variables, b.n8), worlddata::One())) {
                         if (otherMercs < 2) {
                             bool firstTime = EqualOrUnordered(hiredStored, worlddata::One());
                             set(b.n1, firstTime ? 1.0f : 0.0f);
@@ -140,7 +140,7 @@ void CWorldServer::UpdateMercBriefings() {
                         set(b.n9, 0.0f);
                         set(b.n10, 0.0f);
                     }
-                } else if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), worlddata::One())) {
+                } else if (!EqualOrUnordered(VariableGet(variables, b.n8), worlddata::One())) {
                     set(b.n11, 1.0f);
                 }
             }
@@ -160,8 +160,6 @@ using NameList = BriefingRecord::NameList;
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
-__declspec(naked) void __fastcall TempListDestruct(mfc::CTypedPtrList<void>*, void*) EI_ORIGINAL(0x00405130)
-inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) {
     reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3);
 }
@@ -178,8 +176,8 @@ CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(first, nullptr, 10);
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(second, nullptr, 10);
     CEngineObject* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
-    TempListDestruct(second, nullptr);
-    TempListDestruct(first, nullptr);
+    mfc::impl::DestructList<mfc::impl::TempListClass>(*second);
+    mfc::impl::DestructList<mfc::impl::TempListClass>(*first);
     return item;
 }
 
@@ -202,7 +200,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     for (const mfc::CString* name = record->giveItems.begin(); name != record->giveItems.end(); ++name) {
         CEngineObject* item = CreateNamedItem(*name, true);
         if (!item) continue;
-        auto* node = PtrListNewNode(&items, nullptr, items.tail, nullptr);
+        auto* node = items.NewNode(items.tail, nullptr);
         node->data = item;
         if (items.tail) items.tail->next = node;
         else items.head = node;
@@ -286,7 +284,7 @@ namespace {
 
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
 // 00530930. The unit's prototype record; its first field is the prototype name.
-static const char** UnitPrototype(CEngineObject* object, void*) { return static_cast<const char**>(::UnitPrototypeOf(object)); }
+static const char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_cast<const char**>(static_cast<CUnit*>(object)->GetPrototype()); }
 // 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
 // (name, prototype, extra), remove the member with a text key.
 void __fastcall PartyAddMember(CParty* a0, void*, const char* a2, const char* a3, const char* a4) { a0->AddMember(a2, a3, a4); }
@@ -355,7 +353,6 @@ static_assert(sizeof(ShareNode) == 0x10);
 
 using IdArray = mfc::CArray<int>;
 
-__declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGINAL(0x0059D5C0)
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
@@ -428,7 +425,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         it.manager = nullptr;
     }
     list.vtable = reinterpret_cast<void*>(worlddata::kShareListVtable);
-    ShareListRemoveAll(&list, nullptr);
+    list.RemoveAll();   // 0059D5C0
 }
 
 // With a player: its living heroes share `amount` equally.
@@ -599,7 +596,6 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
-__declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, int, const UnitPlacement*) EI_ORIGINAL(0x0059C510)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 
@@ -664,7 +660,8 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
             std::memcpy(entry.rotation, &unit->orientation, sizeof(entry.rotation));
             entry.value20 = static_cast<std::uint32_t>(unit->moveMode2);
             entry.value24 = unit->activeWeapon;
-            PlacementsSetAtGrow(placements, nullptr, placements->size, &entry);
+            mfc::impl::ArrayAs<mfc::impl::Placements>(*placements)
+                .SetAtGrow(placements->size, reinterpret_cast<const mfc::impl::Placement40&>(entry));   // 0059C510
         }
         if (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
         if (!ObjectSlots(unit)->IsDead()) WorldRemoveObject(this, nullptr, unit->id_);

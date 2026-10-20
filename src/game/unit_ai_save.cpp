@@ -73,13 +73,13 @@ void AIBrain::LoadMemory(CStream* stream) {
     stream->Read(&nearbyCountdown, 4);
     int count;
     stream->Read(&count, 4);
-    ReportsSetSizeAt(&reports, nullptr, count, -1);
+    reports.SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
         reinterpret_cast<AIRef*>(&reports.data[i].object)->Load(stream, WorldServer());
         stream->Read(&reports.data[i].what, 4);
     }
     stream->Read(&count, 4);
-    CallsSetSizeAt(&calls, nullptr, count, -1);
+    calls.SetSize(count, -1);
     for (int i = 0; i < calls.size; ++i) {
         AICallRecord& call = calls.data[i];
         call.hostileMask = 0;

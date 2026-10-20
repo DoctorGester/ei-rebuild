@@ -379,10 +379,10 @@ void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
         if (!cut(prev, cur, &cross)) continue;
         int size = points.size;
         if (i < size) {
-            UiPointsSetSize(&points, nullptr, size + 1, -1);
+            points.SetSize(size + 1, -1);   // 00453100
             std::memmove(&points.data[i + 1], &points.data[i], (size - i) * sizeof(UiPointF));
         } else {
-            UiPointsSetSize(&points, nullptr, i + 1, -1);
+            points.SetSize(i + 1, -1);
         }
         points.data[i] = cross;
         ++i;
@@ -400,7 +400,6 @@ void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
 
 } // namespace
 
-__declspec(naked) void __fastcall UiPointsSetSize(UiPointArray*, void*, int, int) EI_ORIGINAL(0x00453100)
 
 void CHudMap::UpdateView() {
     // Follow the camera: the map is centred on its target and turns with its facing.
@@ -433,7 +432,7 @@ void CHudMap::UpdateView() {
     auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
     UiPointArray& points = visibleArea_;
     int count = viewPolygon_.size;
-    UiPointsSetSize(&points, nullptr, count, -1);   // the original inlines the same code
+    points.SetSize(count, -1);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
         const UiPointF& v = viewPolygon_.data[i];
         double x = D(v.x) / D(zoom_);
@@ -507,7 +506,7 @@ void CHudMap::UpdateView() {
         UiPointF first = points.data[0];
         for (int k = 4 - count % 4; k > 0; --k) {
             int size = points.size;
-            UiPointsSetSize(&points, nullptr, size + 1, -1);
+            points.SetSize(size + 1, -1);   // 00453100
             points.data[size] = first;
         }
     }

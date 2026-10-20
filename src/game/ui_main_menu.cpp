@@ -24,6 +24,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "world_glue.h"
+#include "bink_video.h"
 
 #include <cstdint>
 
@@ -191,13 +192,13 @@ void CMainMenu::OnMessageResult(int result) {
     if (result == 0x10001) {
         {
             mfc::CString path = *GameBasePathString() + kExitMovie;
-            PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
+            PlayMovie(path, 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
     } else if (result == 0x20001) {
         {
             mfc::CString path = *GameBasePathString() + kIntroMovie;
-            PlayMovieFile(path, 0, 1, 1, 1, 1, 1);
+            PlayMovie(path, 0, 1, 1, 1, 1, 1);
         }
         InterfaceHasScreen() = false;
         Flow()->RequestState3();

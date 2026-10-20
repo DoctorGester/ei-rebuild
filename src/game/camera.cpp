@@ -433,22 +433,19 @@ void CCamera::Update(float dt) {
     ApplyView();
 
     // Shakes: damped oscillations added to the height.
-    CameraShake* const* list = &shakes_;
-    if (shakes_->next == shakes_) return;
+    if (shakes_.Empty()) return;
     float offset = 0.0f;
-    for (CameraShake* s = shakes_->next; s != shakes_;) {
+    for (ShakeList::Node* node = shakes_.First(); node != shakes_.End();) {
+        CameraShake* s = &node->data;
         double damping = x87::fexp(-(D(s->decay) * s->elapsed));
         double wave = x87::fcos(D(camera::ClockFloat()) * s->elapsed * kShakeFrequency);
         offset = static_cast<float>(wave * damping * s->amplitude + offset);
         double elapsed = D(dt) + s->elapsed;
         s->elapsed = static_cast<float>(elapsed);
-        if (!(elapsed >= s->duration)) {
-            s = s->next;
-        } else {
-            CameraShake* next;
-            ShakeErase(list, nullptr, &next, s);
-            s = next;
-        }
+        if (!(elapsed >= s->duration))
+            node = node->next;
+        else
+            node = ShakeList::Erase(node);
     }
     localPosition_.z = static_cast<float>(D(offset) + localPosition_.z);
 }
@@ -574,14 +571,11 @@ void CCamera::Shake(const Vector3* source, float duration, float amplitude, floa
     double strength = amplitude;
     if (distanceF > kShakeFull)
         strength = (1.0 - (D(distanceF) - kShakeFull) / (D(kShakeRange) - kShakeFull)) * amplitude;
-    float entry[4];
-    entry[0] = 0.0f;
-    entry[1] = static_cast<float>(D(duration) * kShakeTicks);
-    entry[2] = static_cast<float>(strength);
-    CopyFloat(&entry[3], &decay);
-    CameraShake* end;
-    ShakeEnd(&shakes_, nullptr, &end);
-    CameraShake* inserted;
-    ShakeInsert(&shakes_, nullptr, &inserted, end, entry);
+    CameraShake entry;
+    entry.elapsed = 0.0f;
+    entry.duration = static_cast<float>(D(duration) * kShakeTicks);
+    entry.amplitude = static_cast<float>(strength);
+    CopyFloat(&entry.decay, &decay);
+    ShakeList::Insert(shakes_.End(), entry);
 }
 EI_REPLACE_METHOD(0x004113A0, CCamera::Shake);

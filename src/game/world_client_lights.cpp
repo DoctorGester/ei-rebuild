@@ -220,7 +220,7 @@ EI_REPLACE_METHOD(0x00566360, CWorldClient::UpdateLighting);
 
 void CWorldClient::UpdateExitMarkers() {
     if (exitCount_ != countedA0_.GetSize()) return;
-    auto* variables = reinterpret_cast<NamedFloatTable*>(reinterpret_cast<WorldPlayer*>(session_)->variables);
+    NamedFloatTable* variables = &reinterpret_cast<WorldPlayer*>(session_)->variables;
     for (int i = 0; i < exitCount_; ++i) {
         auto* marker = reinterpret_cast<CParticleSource*>(countedA0_[i]);
         if (!marker) continue;

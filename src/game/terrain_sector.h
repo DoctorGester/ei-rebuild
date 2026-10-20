@@ -259,9 +259,6 @@ struct SectorData {
     // the lit sectors before / after in y are drawn at detail 1, at detail 1 whether those before /
     // after in x are drawn at detail 2.
     void FindSeams();
-
-    // Forwarders.
-    void Destruct();                    // 006BF8A0 the destructor body (terrain_landscape.cpp)
 };
 static_assert(sizeof(SectorData) == 0x394);
 static_assert(offsetof(SectorData, minZ) == 0x154);

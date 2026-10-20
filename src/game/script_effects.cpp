@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc_list.h"
 
 #include <climits>
 #include <cmath>
@@ -113,8 +114,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     if (source) {
         DropEffect(&source->object);
     } else {
-        auto* node = static_cast<mfc::CList<ScriptFxSource>::Node*>(
-            ScriptFxListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
+        auto* node = mfc::impl::NewNodeAs<mfc::impl::FxSourceList>(&list, list.tail, nullptr);   // 004CD5B0
         node->data.object = nullptr;
         node->data.countdown = INT_MAX;
         if (list.tail) list.tail->next = node;
@@ -156,8 +156,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
 void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     mfc::CList<ScriptLightning>& list = lightning_;
-    auto* node = static_cast<mfc::CList<ScriptLightning>::Node*>(
-        ScriptLightningListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
+    auto* node = mfc::impl::NewNodeAs<mfc::impl::LightningList>(&list, list.tail, nullptr);   // 004CD620
     node->data.object = nullptr;
     node->data.id = -1;
     if (list.tail) list.tail->next = node;
@@ -208,8 +207,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
         DropEffect(&source->object);
     } else {
         // The original copies a temporary whose fields are all written below.
-        auto* node = static_cast<mfc::CList<ScriptParticleSource>::Node*>(
-            ScriptParticleListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
+        auto* node = mfc::impl::NewNodeAs<mfc::impl::ParticleSourceList>(&list, list.tail, nullptr);   // 004CD540
         node->data.object = nullptr;
         if (list.tail) list.tail->next = node;
         else list.head = node;

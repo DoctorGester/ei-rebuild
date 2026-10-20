@@ -64,10 +64,10 @@ directly), library code and not yet ported, and lists the "differ" group (declar
 (grep `src/game/ui_`). Batches are 50 addresses taken by site count from the report. Next step after the forwarders: call the rewritten
 ones directly.
 
-## Retiring container forwarders (C13b1, C13b2)
+## Retiring container forwarders (C13b1-C13b3)
 
 Measure with `python tools/direct_calls.py --report -v --cast --loose --library` after a `build.cmd verify` (it reads the map);
-check_cleanup's "EI_ORIGINAL forwarder" count is the ratchet (C13b2: 1,426 to 798). Forwarders to library containers go once the
+check_cleanup's "EI_ORIGINAL forwarder" count is the ratchet (C13b2: 1,426 to 798; C13b3: to 365). Forwarders to library containers go once the
 storage is typed; then the call is the container's member or its ABI type's static member. The helpers this uses:
 
 - `mfc::impl::ArrayAs<Abi>(array)` (lib/mfc_array.h) views a `CArray<T>` as the policy instantiation `Abi` registers (same element
@@ -79,9 +79,18 @@ storage is typed; then the call is the container's member or its ABI type's stat
   `VectorAbi::ResizeDefault` (`recordvec::ResizeUntyped<Abi>` where a serialiser holds the vector untyped), a map's constructor /
   destructor / find / operator[] the `stlp::map` members (the map's key order must be the instantiation's: CInterface3D's help topics
   are `stlp::map<CString, int, CStringLess>`).
+- Lists: `mfc::impl::ListAs<Abi>` / `NewNodeAs` / `FreeNodeAs` / `RemoveAtAs` view a CList as its registered instantiation;
+  `stlp::AsNode<T>` / `AsRefNode` view a node declared by its own struct as `list<T>::Node` for `ListAbi<T, E>`'s statics.
+  Element policies (`HeldObject`, `SharedRef`, `CountedRef`, `ConstructElementsAt`) pick the instantiation, not the call site.
+- Trees and hashes: `stlp::TreeAbi<Map>` / `HashtableAbi<Traits>` statics over the registered instantiation (library_trees.h,
+  game_hashes.h); pointer-triple vectors go through `VectorAbi` statics; serialisers by member pointer.
+- A forwarder to a rewrite under another name (`Refresh` / `RefreshArea`, `CallCopyTo` / `CopyToImpl`, `ShowHelp` / `OpenHelp`) is
+  dropped and the callers name the rewrite; a base-class body hidden by a derived declaration is a qualified call
+  (`CMapObject::DestructBody()`, `CObject3D::Construct()`, `SessionBase::TickImpl(dt)`). Hooks are retired, so "through its address
+  so the verify wrapper runs" no longer holds a forwarder; tests/verify's do stay (a vanilla run must call the game's own code).
 
-Left on purpose: Rebirth-patched callees, the vector recorders and replay stand-ins, harness-replaced entries, WordsSetAtGrow,
-ViewStackDestroyRange, and anything tests/verify reads (the map object effect array). The rest of the "types differ" rows are C13b3.
+Left on purpose: Rebirth-patched callees, the skip list, the vector recorders and replay stand-ins, harness-replaced entries,
+WordsSetAtGrow and ViewStackDestroyRange. Follow-up C13b3x lists what is left.
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 

@@ -41,7 +41,7 @@ mfc::CString& AsString(T* field) {
 
 CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                                     std::uint32_t flags, std::uint32_t format) {
-    ConstructContainerAt(this, nullptr, ui);
+    static_cast<CUiContainer*>(this)->Construct(ui);
     EmptyString(&title_);
     EmptyString(&text_);
     result_ = result;
@@ -67,7 +67,7 @@ EI_REPLACE_METHOD(0x00634650, CMessageBox::Construct);
 // --- 0063B5D0: the objectives window -------------------------------------------------------------
 
 CObjectivesWindow* CObjectivesWindow::Construct(CInterface3D* ui) {
-    ConstructContainerAt(this, nullptr, ui);
+    static_cast<CUiContainer*>(this)->Construct(ui);
     zones_.Start() = nullptr;
     zones_.Finish() = nullptr;
     zones_.EndOfStorage() = nullptr;

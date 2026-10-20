@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "lib/mfc_file.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,8 +23,6 @@ std::uint8_t KeyCharacter(int scan) { return reinterpret_cast<const std::uint8_t
 
 // The screen capture (CallCaptureSurface on [007AF080] + 0x18); the picture (dib.h) is written with
 // CDib::Write and deleted through its slot 1.
-// CFile::CFile(name, flags) (0070108B, RET 8).
-__declspec(naked) void __fastcall ConstructFile(void*, void*, const char*, unsigned) EI_ORIGINAL(0x0070108B)
 
 std::uint32_t& ShotCounter() { return *reinterpret_cast<std::uint32_t*>(0x007C7E24); }
 
@@ -67,7 +66,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         ++ShotCounter();
         alignas(4) std::uint8_t storage[sizeof(mfc::CFile)];
         auto* file = reinterpret_cast<mfc::CFile*>(storage);
-        ConstructFile(file, nullptr, name, 0x1001);   // modeCreate | modeWrite
+        reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name, 0x1001);   // 0070108B: modeCreate | modeWrite
         picture->Write(file);
         file->Close();
         using DeleteFn = void(__thiscall*)(void*, int);
@@ -91,7 +90,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
     if (stackBegin_ != stackEnd_) WindowKeyDown(stackEnd_[-1], key, repeat, flags);
     if (stackBegin_ != stackEnd_ && !stackEnd_[-1]->Input()->handled_ &&
         KeyCharacter(scan) == ';') {
-        ShowHelp(1);
+        OpenHelp(1);
     }
 }
 

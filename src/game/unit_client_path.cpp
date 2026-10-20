@@ -95,7 +95,7 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
         direction.x = static_cast<float>(x87::fcos(heading));
         direction.y = static_cast<float>(x87::fsin(heading));
         direction.z = 0.0f;
-        TransformSetHeading(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x);
+        reinterpret_cast<CTransformObject*>(unit)->SetHeading(&direction.x);
     }
 
     // The animation the figure plays (its animation state, CObject3D +0x98).

@@ -23,8 +23,7 @@ namespace {
 constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 const void* SelectTimeout() { return reinterpret_cast<const void*>(0x0079B928); }
-// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n).
-__declspec(naked) void __fastcall AddressesInsertOverflow(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x00441180)
+// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n) (00441180, plain elements).
 
 // A hostent's first address (h_addr_list[0]).
 std::uint32_t FirstAddress(const void* host) {
@@ -136,7 +135,7 @@ SocketDriver* SocketDriver::Construct() {
         if (addressesEnd) *addressesEnd = a;
         ++addressesEnd;
     } else {
-        AddressesInsertOverflow(&addresses, nullptr, addressesEnd, &a, 1);
+        reinterpret_cast<stlp::vector<NetAddress>*>(&addresses)->InsertOverflow<stlp::PlainElement<NetAddress>>(addressesEnd, a, 1);
     }
     return this;
 }

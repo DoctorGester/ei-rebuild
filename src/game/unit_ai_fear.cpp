@@ -74,7 +74,7 @@ float PrototypeSize(CUnit* unit) {
 void ConstructOrder(AIMoveOrder* order) {
     LooksInit(&order->looks);
     order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
-    order->Reset();
+    order->Clear();
 }
 
 // A flight point 5 from the enemy's side of the unit and within 3 of it at random, accepted when a

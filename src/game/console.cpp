@@ -18,6 +18,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "library_trees.h"
 
 #include <cstring>
 
@@ -53,7 +54,7 @@ GameOStream& GameOStream::operator<<(double v) { return *reinterpret_cast<GameOS
 GameOStream& GameOStream::Apply(void* manipulator) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 
-__declspec(naked) CommandHandler* __fastcall CommandIndex(CommandMap*, void*, const mfc::CString&) EI_ORIGINAL(0x005E0B20)
+CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return *lib_trees::Commands::Subscript(map, nullptr, &name); }
 
 namespace {
 
@@ -173,7 +174,7 @@ const CommandRegistration kCommandRegistrations[27] = {
 void __fastcall Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         mfc::CString name(game::Text(r.name));
-        *CommandIndex(r.cheat ? CheatCommands() : PublicCommands(), nullptr, name) = reinterpret_cast<CommandHandler>(r.handler);
+        Command(r.cheat ? CheatCommands() : PublicCommands(), name) = reinterpret_cast<CommandHandler>(r.handler);
     }
 
     mfc::CString command;
@@ -206,8 +207,8 @@ void __fastcall Execute(const char* text) {
         app::QuitGame(0);
         return;
     }
-    if (*CommandIndex(PublicCommands(), nullptr, command)) {
-        (*CommandIndex(PublicCommands(), nullptr, command))(&args);
+    if (Command(PublicCommands(), command)) {
+        (Command(PublicCommands(), command))(&args);
         return;
     }
     if (!CheatEnabled()) {
@@ -219,8 +220,8 @@ void __fastcall Execute(const char* text) {
             PrintLine(game::Text(0x00792388));   // "Activated!"
             return;
         }
-    } else if (*CommandIndex(CheatCommands(), nullptr, command)) {
-        if (!NetworkGame()) (*CommandIndex(CheatCommands(), nullptr, command))(&args);
+    } else if (Command(CheatCommands(), command)) {
+        if (!NetworkGame()) (Command(CheatCommands(), command))(&args);
         return;
     }
     PrintLine(game::Text(0x0078D848));   // "Unknown command"
