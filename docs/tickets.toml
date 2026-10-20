@@ -340,7 +340,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/render_textures.cpp", "src/game/map_object_shadow.cpp"]
-note = "docs/notes/renderer.md section 13, item 2. 4-15 shadow textures (64x64, 21 KB with mips) are made again as new images every frame in fights and towns, and the global map texture (341 KB) every frame. Put the shadow textures in one texture array of slices updated with UpdateSubresource (mips on the GPU), mark changes from 0051CE60 TextureChanged instead of the snapshot compare, update other memory textures in place. Gain 0.5-1.5 ms CPU. Check: render_scene, render_options_shadows, ui_global_map_pick frames at 8 / 0.5%."
+note = "R16j replaces object shadows by a shadow map (on by default); the shadow-texture part here only matters for the classic option, so R16b comes after R16j."
 
 [[ticket]]
 id = "R16c"
@@ -370,7 +370,7 @@ size = 1
 model = "opus"
 depends = ["R16", "R16b"]
 files = ["src/render/render_mesh.cpp", "src/game/world_client_decals.cpp", "src/game/device_shadow.cpp"]
-note = "docs/notes/renderer.md section 13, item 5. Decals are clipped onto the ground on the CPU (ProjectDecal 0056C750) and handed over as flat meshes every frame (12-32, up to 344 KB in the town). Draw a box per decal projecting onto the depth of ground and platforms instead; the game keeps its lists, lifetimes and textures. Changes the look slightly at slopes and platform edges: show the user side-by-side frames (frame_preview.py). Check: ground_prints, render_scene, effects at 16 / 2%."
+note = "Object shadows leave this ticket when R16j lands (they become shadow-map shadows); the other decals stay."
 
 [[ticket]]
 id = "R16f"
@@ -410,7 +410,17 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/", "src/game/terrain_lighting.cpp"]
-note = "docs/notes/renderer.md section 13, item 9. Waits for the user: it changes the look. Today all lighting is CPU per vertex (terrain_lighting.cpp: ambient + sun + heightfield ray shadows + point lights, relit on the LightingFreq countdown; about 2 ms a frame on the CPU in zone1; figures lit per draw in 3DfpFPU slots 39-44; object shadows 64x64 CPU-rasterised textures on ground quads). Plan GPU lighting with the game vertex colours as the fallback option; option off must match today at 8 / 0.1%; the user reviews side-by-side frames."
+note = "Object shadows split out to R16j (user 2026-10-20 wants GPU shadows); R16i keeps per-pixel lighting and terrain sun shadows, still waiting for the user."
+
+[[ticket]]
+id = "R16j"
+title = "GPU shadows: units and objects cast shadows from the sun through a shadow map, replacing the CPU shadow textures"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16"]
+files = ["src/render/ src/game/map_object_shadow.cpp src/game/device_shadow.cpp docs/notes/renderer.md"]
+note = "User 2026-10-20: 'we definitely want at least GPU shadows rendered in the modern way'; today's shadows are very inaccurate, especially on slopes, and update in a staggered way (64x64 textures rasterised and blurred on the CPU by 2DintMMX, map_object_shadow.cpp 0051CE60, rebuilt a few per frame, laid on flat ground quads by 0056C750). Render figures and map objects into a sun shadow map each frame (the sun direction from the terrain, TerrainFields +0x258 / SetSun; the meshes R16 already hands over with their matrices), sample it with filtering (PCF) when drawing terrain, objects and figures, so shadows fall correctly on slopes, platforms and other objects and move every frame. New shadows on by default in the image, the old ones kept as an option (EI_RENDER word or render:: switch, for ST2's options screen); with the option on 'classic', frames must match today at 8 / 0.1%. The game's own shadow building keeps running unless the goldens show it is visual only. Show the user side-by-side frames (frame_preview.py) of slopes, a town and a fight. Measure the CPU / GPU cost with render_stats. Terrain self-shadowing from the sun (CPU ray march in terrain_lighting.cpp) and per-pixel lighting stay in R16i."
 
 # ---------------------------------------------------------------- native interface drawing
 
