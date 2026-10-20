@@ -87,7 +87,7 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
     {
         mfc::CString name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), mfc::CString(game::EmptyText()));
         const char* text = name;
-        StringAssignRangeOriginal(&quest->name, nullptr, text, text + std::strlen(text));
+        quest->name.Assign(text);
     }
     quest->exp = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Exp(), 0));
     quest->money = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Money(), 0));
@@ -140,17 +140,12 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
     }
 }
 
-// A briefing's name, exp and money; `assignChars` uses the C-string assignment (the "complete"
-// briefing) instead of the range one.
-void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section, bool assignChars) {
+// A briefing's name, exp and money (the original assigns the "complete" briefing's name with the
+// C-string assignment, the others' with the range one: the same result).
+void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
         mfc::CString name = reg.GetString(section, game::questwords::Name(), mfc::CString(game::EmptyText()));
-        const char* text = name;
-        if (assignChars) {
-            StringAssignCStrOriginal(&briefing->name, nullptr, text);
-        } else {
-            StringAssignRangeOriginal(&briefing->name, nullptr, text, text + std::strlen(text));
-        }
+        briefing->name.Assign(static_cast<const char*>(name));
     }
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
     briefing->money = static_cast<float>(reg.GetFloat(section, game::questwords::Money(), 0));
@@ -174,17 +169,17 @@ void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingR
 }
 
 void ConstructBriefing(QuestBriefingRecord* briefing) {
-    StringInitEmpty(&briefing->name);
+    stlp::StringElement::Default(&briefing->name);
     FirstListConstruct(List(briefing, 0), nullptr, &kAllocator);
     for (int i = 1; i < 6; ++i) ListConstruct(List(briefing, i), nullptr, &kAllocator);
-    StringInitEmpty(&briefing->text);
+    stlp::StringElement::Default(&briefing->text);
 }
 
 // "briefing receive": the lists read inline (the first three erased over their range, the others
 // cleared), added like the quest.
 void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     briefing->field10 = 0;
-    ReadBriefingHeader(reg, briefing, game::questwords::BriefingReceive(), false);
+    ReadBriefingHeader(reg, briefing, game::questwords::BriefingReceive());
     for (int i = 0; i < 6; ++i) ReadListInline(reg, game::questwords::BriefingReceive(), i, briefing, i < 3);
     AddReceiveBriefing(db, briefing);
 }
@@ -192,7 +187,7 @@ void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* 
 // "briefing reject": the item lists read inline (cleared first), the others by 006AE740; added by
 // 006B0600 (also unless the name is there).
 void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
-    ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject(), false);
+    ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject());
     ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing, false);
     ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing, false);
     for (int i = 2; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingReject(), game::questwords::ListKey(i), List(briefing, i));
@@ -201,7 +196,7 @@ void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* b
 
 // "briefing complete": the name assigned as a C string, all six lists by 006AE740.
 void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
-    ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete(), true);
+    ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete());
     for (int i = 0; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
     static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
 }
@@ -221,9 +216,9 @@ bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image) {
 
     alignas(4) char questStorage[kQuestSize];
     auto* quest = reinterpret_cast<QuestRecord*>(questStorage);
-    StringInitEmpty(&quest->name);
+    stlp::StringElement::Default(&quest->name);
     PlacesConstruct(&quest->places, nullptr, &kAllocator);
-    StringInitEmpty(&quest->text);
+    stlp::StringElement::Default(&quest->text);
     {
         console::CStringArray places;
         ReadQuest(reg, quest, places);

@@ -253,7 +253,7 @@ void CHudPortraits::Rebuild(int wide) {
 
         UnitPrototypeRecord* prototype;
         {
-            NamePair key{stlp::string(player->text_.start, player->text_.finish), nullptr};
+            NamePair key{stlp::string(player->text_), nullptr};
             prototype = static_cast<UnitPrototypeRecord*>(
                 static_cast<NamePair*>(NameMapInsertOriginal(UnitPrototypes(), nullptr, &key))->value);
             // EI_Plugin's Fixes (00640C97): an unknown prototype becomes the first one that is no creature.
@@ -277,7 +277,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[count_ - 1].FaceName() = picture;
         slots_[count_ - 1].faceState_ = 0;
         slots_[count_ - 1].playerId_ = player->serial_;
-        regions_.data[count_ - 1]->SetTipString(player->name_.start, 1, 0);
+        regions_.data[count_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
 }
 

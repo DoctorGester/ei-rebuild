@@ -293,7 +293,7 @@ void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {   //
 // The chat lines on +0x25DC, each shown with its number.
 void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {   // 0041E5D0
     AppendCounted(&self->lines_, LinesEnd, LinesInsert, message);
-    static_cast<CInterface3D*>(TextTable())->OnChatLine(message->text_.start, message->number_);
+    static_cast<CInterface3D*>(TextTable())->OnChatLine(message->text_.data(), message->number_);
 }
 void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(&self->lines_, LinesErase, message); }   // 0041E690
 // The host message kept at +0x25EC.
@@ -302,19 +302,19 @@ void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
     AppendCounted(&self->zones_, ZonesEnd, ZonesInsert, message);
-    static_cast<GameFlow*>(Flow())->MarkBriefing(message->text_.start);
+    static_cast<GameFlow*>(Flow())->MarkBriefing(message->text_.data());
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
     RemoveCounted(&self->zones_, ZonesErase, message);
-    static_cast<GameFlow*>(Flow())->ForgetBriefing(message->text_.start);
+    static_cast<GameFlow*>(Flow())->ForgetBriefing(message->text_.data());
 }
 // The current map at +0x25F4; without a server of our own the flow loads it.
 void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 0041E900
     AssignRef(&self->map_, message);
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
-    FlowLoadZoneQuests(Flow(), nullptr, message->text_.start);
-    static_cast<GameFlow*>(Flow())->RegisterQuests(message->text_.start);
+    FlowLoadZoneQuests(Flow(), nullptr, message->text_.data());
+    static_cast<GameFlow*>(Flow())->RegisterQuests(message->text_.data());
 }
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables on +0x25FC; the flow is told of every change.
@@ -331,7 +331,7 @@ void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {   
 // +0x25E8.
 void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0041EAC0
     AppendRaw(&self->files_, FilesEnd, FilesInsert, message);
-    if (FlowHasFile(Flow(), nullptr, message->name_.start)) return;
+    if (FlowHasFile(Flow(), nullptr, message->name_.data())) return;
     auto* request = NewMessageMemory<FileRequestMessage>();
     if (request) {
         RefValueConstructBase(request);
@@ -361,8 +361,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     const char* none = game::EmptyText();
     const std::size_t noneLength = std::strlen(none);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::MQClient)) return;
-    if (static_cast<std::size_t>(file->name_.finish - file->name_.start) == noneLength &&
-        std::memcmp(file->name_.start, none, noneLength) == 0)
+    if (file->name_.size() == noneLength && std::memcmp(file->name_.data(), none, noneLength) == 0)
         return;
 
     stlp::vector<FileChunkMessage*> chunks;
@@ -398,7 +397,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         const std::int32_t size = file->size_;
         buffer.high = buffer.begin + size;
         if (buffer.high > buffer.end) buffer.Grow(static_cast<std::uint32_t>(size));
-        FlowWriteMapFile(Flow(), nullptr, file->name_.start, &buffer);
+        FlowWriteMapFile(Flow(), nullptr, file->name_.data(), &buffer);
         DropRequestsFor(self, file);
         buffer.DestructGrowing();
     }

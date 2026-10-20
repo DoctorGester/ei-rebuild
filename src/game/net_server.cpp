@@ -17,7 +17,6 @@ namespace net {
 namespace {
 
 // 00421800: STLport string constructor with room for n bytes, library.
-inline StringRep* __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { return (StringRep*)StringReserveOriginal((void*)a0, nullptr, a2, a3); }
 
 // STLport list constructors, list taking the allocator; one per element type, library.
 __declspec(naked) void* __fastcall ListConstruct41FD30(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FD30)
@@ -63,10 +62,8 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     ListConstruct423440(&trades_, nullptr, &allocator);
     ListConstruct423700(&finishedTrades_, nullptr, &allocator);
     ListConstruct421B20(&banned_, nullptr, &allocator);
-    StringReserve(&name_, nullptr, &allocator, 8);
-    *name_.finish = 0;
-    StringReserve(&mapName_, nullptr, &allocator, 8);
-    *mapName_.finish = 0;
+    stlp::StringElement::Default(&name_);
+    stlp::StringElement::Default(&mapName_);
     ei::SetVtable(this, kVtableAddress);
     magic_ = kSessionMagic;
     RegisterMessageTypes();

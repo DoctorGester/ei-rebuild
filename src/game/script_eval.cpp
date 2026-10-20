@@ -466,8 +466,8 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         if (server) {
             const char* name = stringArgs.data[0];
             stlp::string key(name);
-            // StringRep is the raw layout of an STLport string.
-            *result = static_cast<float>(server->GetVariable(reinterpret_cast<const net::StringRep*>(&key)));
+            // stlp::string is the raw layout of an STLport string.
+            *result = static_cast<float>(server->GetVariable(reinterpret_cast<const stlp::string*>(&key)));
             return;
         }
         StoreBits(result, kZero);

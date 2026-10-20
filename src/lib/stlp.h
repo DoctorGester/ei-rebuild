@@ -45,9 +45,17 @@ public:
 
     // operator=: STLport assigns through assign(first, last).
     void AssignFrom(const string& s) { Assign(s.start_, s.finish_); }
+    // operator=(const char*) (0041F550): assign(text, text + strlen(text)).
+    void Assign(const char* text) { Assign(text, text + std::strlen(text)); }
+    // substr(pos, n) (0041F5F0): out_of_range past the end; the rest of the string at most n long.
+    string substr(std::size_t pos, std::size_t n) const;
 
     const char* data() const { return start_; }
+    char* data() { return start_; }
+    char& operator[](std::size_t i) { return start_[i]; }
+    char operator[](std::size_t i) const { return start_[i]; }
     std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
+    std::size_t capacity() const { return static_cast<std::size_t>(eos_ - start_); }
     bool empty() const { return start_ == finish_; }
     bool operator==(const string& o) const {
         return size() == o.size() && std::memcmp(start_, o.start_, size()) == 0;
@@ -82,7 +90,9 @@ static_assert(sizeof(string) == 12);
 
 // operator+(const string&, const char*) (00427D60): joined in a temporary with exactly the room,
 // which the result is a copy of (two blocks; the temporary's is freed once the result has its own).
+// operator+(const string&, const string&) (00427E80) the same.
 string Plus(const string& a, const char* text);
+string Plus(const string& a, const string& b);
 
 // The vector element policy (stlp_vector.h) of strings: copied with the copy constructor
 // (00428DF0), assigned through assign(first, last), destroyed with the buffer freed. A

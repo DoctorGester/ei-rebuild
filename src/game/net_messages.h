@@ -50,8 +50,8 @@ public:
     LoginMessage* Construct();                  // 00413350
     void Destruct();                            // 00413800
 
-    StringRep name_;             // +0x0C the player's name
-    StringRep text_;             // +0x18
+    stlp::string name_;             // +0x0C the player's name
+    stlp::string text_;             // +0x18
     std::uint8_t host_;          // +0x24 asks to host (honoured with a local client)
     std::uint8_t unused_25[3];
     std::uint32_t state_;        // +0x28 4 when made; the player record's state
@@ -68,7 +68,7 @@ static_assert(sizeof(LoginMessage) == 0x34);
 // differ only in their vtables. The helpers are the slot bodies with the class's vtable.
 class __declspec(novtable) TextMessage : public Message {
 public:
-    StringRep text_;             // +0x0C
+    stlp::string text_;             // +0x0C
 
 protected:
     static Message* CreateAs(std::uintptr_t vtable);
@@ -113,7 +113,7 @@ public:
     void Destruct();                            // 00414060
 
     std::uint32_t kind_;         // +0x0C
-    StringRep text_;             // +0x10
+    stlp::string text_;             // +0x10
 };
 static_assert(offsetof(CommandMessage, text_) == 0x10);
 static_assert(sizeof(CommandMessage) == 0x1C);
@@ -223,8 +223,8 @@ public:
     PlayerMessage* Construct();                 // 0041C680
     void Destruct();                            // 004148E0
 
-    StringRep name_;             // +0x0C
-    StringRep text_;             // +0x18
+    stlp::string name_;             // +0x0C
+    stlp::string text_;             // +0x18
     std::uint32_t state_;        // +0x24 1 when made (from the login)
     std::uint8_t host_;          // +0x28 the hosting player
     std::uint8_t unused_29[3];
@@ -255,7 +255,7 @@ public:
     void Destruct();                            // 00414D10
 
     std::uint32_t number_;       // +0x0C
-    StringRep text_;             // +0x10
+    stlp::string text_;             // +0x10
     RefPtr connection_;          // +0x1C the only receiver (null: everyone; not sent)
 };
 static_assert(offsetof(LineMessage, text_) == 0x10);
@@ -277,8 +277,8 @@ public:
     HostMessage* Construct();                   // 0041C7C0
     void Destruct();                            // 004152A0
 
-    StringRep address_;          // +0x0C "host:port"
-    StringRep zone_;             // +0x18
+    stlp::string address_;          // +0x0C "host:port"
+    stlp::string zone_;             // +0x18
 };
 static_assert(offsetof(HostMessage, zone_) == 0x18);
 static_assert(sizeof(HostMessage) == 0x24);
@@ -347,7 +347,7 @@ public:
     static Message* __fastcall Create();        // 00415980 (value_ and serial_ are not set)
     void Destruct();                            // 00415D00
 
-    StringRep name_;             // +0x0C
+    stlp::string name_;             // +0x0C
     float value_;                // +0x18
     std::uint32_t serial_;       // +0x1C from the counter at 0079B608
 };
@@ -370,7 +370,7 @@ public:
     std::uint16_t chunkCount_;   // +0x0C
     std::uint16_t unused_0E;
     std::int32_t size_;          // +0x10 bytes
-    StringRep name_;             // +0x14
+    stlp::string name_;             // +0x14
     RefVector chunks_;           // +0x20 the chunk messages (not sent)
 };
 static_assert(offsetof(FileMessage, size_) == 0x10);
@@ -418,7 +418,7 @@ public:
     RefPtr connection_;          // +0x0C the receiver (not sent)
     std::uint32_t kind_;         // +0x10 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
     float value_;                // +0x14
-    StringRep text_;             // +0x18 the item's name
+    stlp::string text_;             // +0x18 the item's name
 };
 static_assert(offsetof(AwardMessage, kind_) == 0x10);
 static_assert(offsetof(AwardMessage, text_) == 0x18);

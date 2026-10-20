@@ -84,21 +84,6 @@ bool FindField(ChunkArchive* a, int id, Ref* child) {
 }
 
 
-// string::assign(text, text + strlen(text)) as StringField inlines it: overwrite in place and cut
-// the rest, or overwrite the whole string and append the remainder.
-void AssignText(stlp::string* s, const char* text) {
-    std::size_t length = std::strlen(text);
-    std::size_t size = s->size();
-    char* start = const_cast<char*>(s->data());
-    if (length <= size) {
-        std::memcpy(start, text, length);
-        StringEraseOriginal(s, nullptr, start + length, start + size);
-    } else {
-        std::memcpy(start, text, size);
-        StringAppendTailOriginal(s, nullptr, text + size, text + length, s);
-    }
-}
-
 } // namespace
 
 // ---- Chunk primitives ----------------------------------------------------------------------------
@@ -254,8 +239,10 @@ void ChunkArchive::StringField(int id, stlp::string* s) {
         return;
     }
     Ref child;
-    if (FindField(this, id, &child)) AssignText(s, reinterpret_cast<const char*>(Data() + child.offset));
-    else AssignText(s, game::EmptyText());
+    // string::assign(text, text + strlen(text)), inlined by the original: overwrite in place and
+    // cut the rest, or overwrite the whole string and append the remainder.
+    if (FindField(this, id, &child)) s->Assign(reinterpret_cast<const char*>(Data() + child.offset));
+    else s->Assign(game::EmptyText());
 }
 EI_REPLACE_METHOD(0x00409470, ChunkArchive::StringField);
 

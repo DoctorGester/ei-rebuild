@@ -21,6 +21,7 @@
 #include <concepts>
 #include <bit>
 #include <cstring>
+#include <new>
 #include "originals_library.h"
 
 namespace {
@@ -694,7 +695,7 @@ void CSoundManager::Tick() {
         // A flat sound's level is recomputed from its saved Miles level as if that were 0..100.
         if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
         else UpdatePositional(slot);
-        if (LoadSample(slot, i, reinterpret_cast<const char*>(rec->name[0]), 0) != 0) {
+        if (LoadSample(slot, i, rec->name.data(), 0) != 0) {
             slot->handle = rec->handle;
             AilSetSampleLoopCount()(slot->sample, 0);
             ApplyVolumePan(slot);
@@ -1077,8 +1078,8 @@ int CSoundManager::AllocateVoice(int priority) {
     if (slot->looping != 0) {
         // The stolen looping sound waits in the deferred map with its state and sample position.
         auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
-        if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
-        reinterpret_cast<stlp::string*>(rec->name)->AssignFrom(*reinterpret_cast<const stlp::string*>(slot->name));
+        if (rec) stlp::string::Reserve(rec->name, 8);
+        rec->name.AssignFrom(slot->name);
         rec->volume = slot->volume;
         rec->baseVolume = slot->baseVolume;
         rec->pan = slot->pan;
@@ -1123,8 +1124,8 @@ int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech)
 // No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
 int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, int pan, int heightFade, int speech) {
     auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
-    if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
-    reinterpret_cast<stlp::string*>(rec->name)->Assign(name, name + std::strlen(name));
+    if (rec) stlp::string::Reserve(rec->name, 8);
+    rec->name.Assign(name);
     rec->baseVolume = volume;
     rec->pan = pan;
     rec->priority = priority;
@@ -1197,8 +1198,8 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
     if (index == -1) {
         if (loop == 0) return -1;
         auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
-        if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
-        reinterpret_cast<stlp::string*>(rec->name)->Assign(name, name + std::strlen(name));
+        if (rec) stlp::string::Reserve(rec->name, 8);
+        rec->name.Assign(name);
         std::memcpy(&rec->position, position, sizeof(rec->position));
         std::memcpy(&rec->nearDistance, &nearDist, 4);
         std::memcpy(&rec->farDistance, &farDist, 4);
@@ -1233,8 +1234,6 @@ EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
 // --- 006B89F0: LoadSample ----------------------------------------------------------------------------
 
 namespace {
-// STLport string members (the instantiations the original calls).
-void __fastcall StringAssignTagged(void* a0, void*, const char* a2, const char* a3, int a4) { StringAssignTaggedOriginal(a0, nullptr, a2, a3, (const void*)a4); }
 // The cache map (CSoundManager + 0x870): find [out iterator, key], find-or-insert of a pair
 // [returns the pair], erase by key; the pair's constructor [key, value].
 struct CacheIter {
@@ -1285,26 +1284,26 @@ void PushBack(WaveList& list, const WaveRecord* record) {
     else list.head = node;
     list.tail = node;
 }
-// cache[key] = node (through a temporary pair, as the original).
-void CacheSet(CSoundManager* m, const std::uint32_t* key, WaveNode* node) {
+// cache[key] = node (through a temporary pair {key, node}, as the original).
+void CacheSet(CSoundManager* m, const stlp::string* key, WaveNode* node) {
     std::uint32_t pair[4];
     WaveNode* none = nullptr;
     PairConstruct(pair, nullptr, key, &none);
     std::uint8_t* inserted = CacheInsert(m->cache, nullptr, pair);
-    StlStringDestroy(pair);
+    reinterpret_cast<stlp::string*>(pair)->~string();
     *reinterpret_cast<WaveNode**>(inserted + 0xC) = node;
 }
 // A record copied out of a node (its own copy of the name).
 void CopyOut(WaveRecord* out, const WaveNode* node) {
     out->data = node->data.data;
-    StringCopyConstructOriginal(out->name, nullptr, node->data.name);
+    new (&out->Name()) stlp::string(node->data.Name());
     out->lastUsed = node->data.lastUsed;
     out->size = node->data.size;
     out->uses = node->data.uses;
 }
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const std::uint32_t* key, const char* name, const CacheIter& it) {
+void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const char* name, const CacheIter& it) {
     WaveNode* node = *reinterpret_cast<WaveNode**>(it.node + 0x10);
     WaveRecord record;
     CopyOut(&record, node);
@@ -1316,7 +1315,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const std::uint32_t* key, cons
     CacheSet(m, key, m->cacheList.head);
     slot->length = static_cast<float>(m->WaveLength(record.data, record.size));
     AilSetNamedSampleFile()(slot->sample, name, record.data, record.size, 0);
-    StlStringDestroy(record.name);
+    record.Name().~string();
 }
 
 // Drops unused waves from the least recently used end until the new one fits the budget or the
@@ -1327,7 +1326,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
         WaveRecord record;
         CopyOut(&record, node);
         if (static_cast<std::uint32_t>(incoming + m->cacheBytes) < kCacheBudget && now - record.lastUsed < kCacheKeep) {
-            StlStringDestroy(record.name);
+            record.Name().~string();
             return;
         }
         if (record.uses <= 0) {
@@ -1337,7 +1336,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
             Unlink(m->cacheList, node);
             ListFreeNode(&m->cacheList, nullptr, node);
         }
-        StlStringDestroy(record.name);
+        record.Name().~string();
         node = prev;
     }
 }
@@ -1349,23 +1348,17 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 // making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
 // Returns 0 when no archive has the file or the decompression fails.
 int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, int compressed) {
-    std::uint32_t key[3];
-    std::uint8_t allocator = 0;
-    StringInitWithAllocator(key, nullptr, &allocator);
-    StringAssignSpan(key, nullptr, name, name + std::strlen(name));
+    stlp::string key(name);   // freed on each return
     CacheIter it;
-    CacheFind(cache, nullptr, &it, key);
+    CacheFind(cache, nullptr, &it, &key);
     if (it.node != nullptr) {
-        if (compressed == 0) UseCached(this, slot, key, name, it);
+        if (compressed == 0) UseCached(this, slot, &key, name, it);
     } else {
         CMappedResource* source = nullptr;
         void* data = nullptr;
         std::uint32_t fileSize = 0;
         for (auto* n = waveSources.head;;) {
-            if (n == nullptr) {
-                StringRepDestroy(key);
-                return 0;
-            }
+            if (n == nullptr) return 0;
             auto* current = n;
             n = n->next;
             source = current->data;
@@ -1379,18 +1372,15 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             int decodedSize = 0;
             int ok = AilDecompressAsi()(data, size, Mp3Suffix(), &decoded, &decodedSize, DecompressCallback());
             source->CloseFile(data);
-            if (ok == 0) {
-                StringRepDestroy(key);
-                return 0;
-            }
+            if (ok == 0) return 0;
             size = decodedSize;
             data = decoded;
         } else {
             Evict(this, size, now);
         }
         WaveRecord record;
-        StringInitEmpty(record.name);
-        StringAssignTagged(record.name, nullptr, reinterpret_cast<const char*>(key[0]), reinterpret_cast<const char*>(key[1]), 0);
+        stlp::StringElement::Default(&record.Name());
+        record.Name().AssignFrom(key);
         record.lastUsed = now;
         record.size = size;
         record.uses = 1;
@@ -1401,22 +1391,21 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             std::memcpy(memory, data, static_cast<std::size_t>(size));
             source->CloseFile(data);
             PushFront(cacheList, &record);
-            CacheSet(this, key, cacheList.head);
+            CacheSet(this, &key, cacheList.head);
             AilSetNamedSampleFile()(slot->sample, name, memory, size, 0);
         } else {
             record.data = data;
             PushBack(cacheList, &record);
-            CacheSet(this, key, cacheList.tail);
+            CacheSet(this, &key, cacheList.tail);
             AilSetSampleFile()(slot->sample, data, size);
         }
         slot->length = static_cast<float>(WaveLength(record.data, record.size));
-        StlStringDestroy(record.name);
+        record.Name().~string();
     }
-    StringAssignTagged(slot->name, nullptr, reinterpret_cast<const char*>(key[0]), reinterpret_cast<const char*>(key[1]), 0);
+    slot->name.AssignFrom(key);
     slot->playing = 1;
     slot->handle = nextHandle;
     ++nextHandle;
-    StlStringDestroy(key);
     return 1;
 }
 EI_REPLACE_METHOD(0x006B89F0, CSoundManager::LoadSample);
@@ -1427,9 +1416,7 @@ __declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)
 
 WaveRecord* WaveRecord::Assign(const WaveRecord* from) {
     data = from->data;
-    auto& to = *reinterpret_cast<stlp::string*>(name);
-    const auto& source = *reinterpret_cast<const stlp::string*>(from->name);
-    if (&source != &to) to.AssignFrom(source);
+    if (&from->Name() != &Name()) Name().AssignFrom(from->Name());
     lastUsed = from->lastUsed;
     size = from->size;
     uses = from->uses;

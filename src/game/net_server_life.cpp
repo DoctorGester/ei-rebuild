@@ -54,8 +54,8 @@ void DestroyInline(RefPtr& slot) {
 // 00417BC0: the destructor body. The server's own vtable is not restored first (the original does
 // not either).
 void ServerSession::Destruct() {
-    StringBufferFree(&mapName_);
-    StringBufferFree(&name_);
+    mapName_.~string();
+    name_.~string();
     List25BCClear(&banned_);
     List25C0Destruct(&finishedTrades_);
     List25BCDestruct(&trades_);

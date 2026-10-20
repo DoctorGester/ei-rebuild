@@ -824,10 +824,9 @@ bool Connection::Accept(std::uint32_t sequence) {
     for (std::int32_t* it = received_; it != receivedEnd_; ++it) {
         if (*it == static_cast<std::int32_t>(sequence)) {
             if (NetLog()) {
-                StringRep peer;
-                const char* text = address_.ToString(&peer)->start;
+                stlp::string peer;
+                const char* text = address_.ToString(&peer)->data();
                 NetLog()->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
-                if (peer.start) stlp::deallocate(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
             }
             return false;
         }

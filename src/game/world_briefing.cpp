@@ -197,7 +197,7 @@ void ShareQuestFile(const char* path, const char* name) {
     data->cur = to + size;
     data->Commit();
     stlp::string listed(name);
-    net::GameServer()->ShareFile(reinterpret_cast<const net::StringRep*>(&listed), data);
+    net::GameServer()->ShareFile(reinterpret_cast<const stlp::string*>(&listed), data);
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).

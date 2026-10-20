@@ -52,8 +52,8 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* player = NewMessageMemory<PlayerMessage>();
     if (player) {
         MessageConstructBase(player);
-        StringInitEmpty(&player->name_);
-        StringInitEmpty(&player->text_);
+        stlp::StringElement::Default(&player->name_);
+        stlp::StringElement::Default(&player->text_);
         ei::SetVtable(player, PlayerMessage::kVtableAddress);
         player->host_ = 0;
         player->state_ = 1;
@@ -87,10 +87,10 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     ref.Destroy();
     auto* bound = static_cast<BindingMessage*>(LastObject(bindings));
 
-    StringRep* name = &record->name_;
-    if (&msg->name_ != name) StringAssignTaggedOriginal(name, nullptr, msg->name_.start, msg->name_.finish, name);
+    stlp::string* name = &record->name_;
+    if (&msg->name_ != name) name->AssignFrom(msg->name_);
     record->state_ = msg->state_;
-    if (&msg->text_ != &record->text_) StringAssignTaggedOriginal(&record->text_, nullptr, msg->text_.start, msg->text_.finish, name);
+    if (&msg->text_ != &record->text_) record->text_.AssignFrom(msg->text_);
     record->id_ = msg->id_;
 
     // The lowest player number no player has yet.
@@ -134,7 +134,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     if (host) record->host_ = 1;
 
     std::uint32_t announcement = 0;   // CString
-    void* formatted = worlddata::InterfaceManager()->MessageText(&announcement, 0, name->start);
+    void* formatted = worlddata::InterfaceManager()->MessageText(&announcement, 0, name->data());
     self->Announce(*static_cast<const char**>(formatted), nullptr);
     CStringDestroy(&announcement);
 }

@@ -786,7 +786,7 @@ void CSoundManager::Close() {
     while (cacheList.count != 0) {
         AilMemFree()(cacheList.head->data.data);
         WaveRecord record = cacheList.RemoveHead();
-        StringRepDestroy(record.name);
+        record.Name().~string();
     }
     CacheMapClear(cache);
     if (midiSequence != nullptr) {

@@ -37,7 +37,7 @@ void WriteInline(GameBuffer* buffer, const void* from, std::uint32_t size) {
 
 } // namespace
 
-bool GameBuffer::ReadString(net::StringRep* s, int maxLength) {
+bool GameBuffer::ReadString(stlp::string* s, int maxLength) {
     std::uint32_t word = 0;
     auto* bytes = reinterpret_cast<std::uint8_t*>(&word);
     ReadInline(this, bytes, 1);
@@ -50,28 +50,16 @@ bool GameBuffer::ReadString(net::StringRep* s, int maxLength) {
     if (cur + length > end) ReserveRead(length);
     const char* first = reinterpret_cast<const char*>(cur);
     const char* last = first + length;
-    // string::assign(first, last) inlined: overwrite and cut, or overwrite and append the rest.
-    const auto size = static_cast<std::uint32_t>(s->finish - s->start);
-    const auto count = static_cast<std::uint32_t>(length);
-    if (count <= size) {
-        std::memcpy(s->start, first, count);
-        char* newFinish = s->start + count;
-        if (newFinish != s->finish) {
-            std::memmove(newFinish, s->finish, 1);   // the terminator
-            s->finish = newFinish;
-        }
-    } else {
-        std::memcpy(s->start, first, size);
-        StringAppendTailOriginal(s, nullptr, first + size, last, last);
-    }
+    // string::assign(first, last), inlined: overwrite and cut, or overwrite and append the rest.
+    s->Assign(first, last);
     cur = reinterpret_cast<std::uint8_t*>(const_cast<char*>(first)) + length;
     Commit();
     return true;
 }
 EI_REPLACE_METHOD(0x004DA200, GameBuffer::ReadString);
 
-void GameBuffer::WriteString(const net::StringRep* s) {
-    const auto length = static_cast<std::uint32_t>(s->finish - s->start);
+void GameBuffer::WriteString(const stlp::string* s) {
+    const auto length = static_cast<std::uint32_t>(s->size());
     if (static_cast<int>(length) >= 0x80) {
         std::uint32_t header = length * 2 + 1;
         WriteInline(this, &header, 4);
@@ -79,6 +67,6 @@ void GameBuffer::WriteString(const net::StringRep* s) {
         std::uint32_t header = length * 2;   // one byte of it
         WriteInline(this, &header, 1);
     }
-    WriteInline(this, s->start, length);
+    WriteInline(this, s->data(), length);
 }
 EI_REPLACE_METHOD(0x004DA380, GameBuffer::WriteString);

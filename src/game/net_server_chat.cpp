@@ -36,7 +36,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
         RefValueConstructBase(line);
         ei::SetVtable(line, kMessageVtable);
         line->version_ = 1;
-        StringInitEmpty(&line->text_);
+        stlp::StringElement::Default(&line->text_);
         RefNullBOriginal(&line->connection_);
         ei::SetVtable(line, LineMessage::kVtableAddress);
     }
@@ -50,7 +50,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 
     void** sentinel = static_cast<void**>(lines_);
     auto* added = static_cast<LineMessage*>(static_cast<void**>(sentinel[1])[2]);
-    StringAssignRangeOriginal(&added->text_, nullptr, text, text + std::strlen(text));
+    added->text_.Assign(text);
     added->number_ = nextLine_;
     ++nextLine_;
 

@@ -77,14 +77,14 @@ src/game/net_link.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,9
 src/game/net_messages.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/net_server.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
-src/game/net_server_awards.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
+src/game/net_server_awards.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/net_server_chat.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
-src/game/net_server_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+src/game/net_server_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_files.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/net_server_join.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/game/net_server_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
 src/game/net_server_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/net_server_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
+src/game/net_server_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_players.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,4
 src/game/net_server_trade.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
@@ -100,7 +100,7 @@ src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,21
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,14
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,146
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,125
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,46
@@ -133,7 +133,7 @@ src/game/script_construct.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_copy.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_destroy.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_eval.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
+src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/script_exec_helpers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_exec_run.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/script_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,16

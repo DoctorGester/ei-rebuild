@@ -525,9 +525,8 @@ void CMpConnectScreen::EditAddress() {
     }
     boxText_[0] = '\0';
     if (row > 0 && static_cast<unsigned>(row) < entries_.size()) {
-        net::StringRep text;
-        CopyText(boxText_, entry.address.ToString(&text)->start);
-        libcrt::NodeDeallocateChecked(text.start, static_cast<std::size_t>(text.eos - text.start));
+        stlp::string text;
+        CopyText(boxText_, entry.address.ToString(&text)->data());
     }
     OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
 }
@@ -583,8 +582,8 @@ void CMpConnectScreen::RebuildList() {
         entry.address = server->address_;
         entry.gameType = static_cast<int>(server->kind_);
         if (entry.gameType < 0 || entry.gameType > 3) entry.gameType = 0;
-        entry.name = server->name_.start;
-        entry.description = server->description_.start;
+        entry.name = server->name_.data();
+        entry.description = server->description_.data();
         entry.players = static_cast<signed char>(server->players_);
         entry.maxPlayers = static_cast<signed char>(server->maxPlayers_);
         entry.ping = x87::fistp(server->ping_ * MillisecondsPerSecond());

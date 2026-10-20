@@ -47,26 +47,6 @@ void DestroyInline(RefPtr* p) {
     if (held->refs_ == 0 && held) delete held;
 }
 
-// The inlined string assign of a C string: copied over the current characters, the rest erased (the
-// terminator moved down) or appended.
-void AssignText(StringRep* to, const char* text, const void* tag) {
-    const char* end = text + std::strlen(text);
-    std::size_t length = static_cast<std::size_t>(end - text);
-    std::size_t size = static_cast<std::size_t>(to->finish - to->start);
-    if (length <= size) {
-        std::memcpy(to->start, text, length);
-        char* first = to->start + length;
-        char* last = to->finish;
-        if (first != last) {
-            GameMemmove(first, last, static_cast<std::size_t>(last - last) + 1);
-            to->finish = to->finish - last + first;
-        }
-    } else {
-        std::memcpy(to->start, text, size);
-        StringAppendRangeOriginal(to, nullptr, text + (to->finish - to->start), end, tag);
-    }
-}
-
 } // namespace
 
 // 0041D1A0: keeps `object` on the timers list for `seconds` (shared into the entry).
@@ -93,18 +73,13 @@ void ClientSession::SendCommand(int kind, const char* text) {
     if (command) {
         ei::SetVtable(command, kMessageVtable);
         command->version_ = 1;
-        StringRep* string = &command->text_;
-        string->start = nullptr;
-        string->finish = nullptr;
-        char* none = nullptr;
-        std::uint8_t allocator = 0;
-        StringEndOfStorageOriginal(&string->eos, nullptr, &allocator, &none);
-        StringAllocateBlock(string, nullptr, 8);
-        *string->finish = 0;
+        stlp::StringElement::Default(&command->text_);
         ei::SetVtable(command, CommandMessage::kVtableAddress);
     }
     command->kind_ = static_cast<std::uint32_t>(kind);
-    AssignText(&command->text_, text, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(kind)));
+    // The inlined assign of a C string: copied over the current characters, the rest cut (the
+    // terminator moved down) or appended.
+    command->text_.Assign(text);
 
     RefPtr raw;
     RefPtrFromRaw(&raw, command);
@@ -124,27 +99,13 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
     auto* entry = NewMessageMemory<ServerEntry>();
     if (entry) {
         entry->ConstructBase();
-        StringRep* name = &entry->name_;
-        StringRep* description = &entry->description_;
-        std::uint8_t allocator = 0;
-        StringReserveOriginal(name, nullptr, &allocator, 8);
-        *name->finish = 0;
-        StringReserveOriginal(description, nullptr, &allocator, 8);
-        *description->finish = 0;
+        stlp::StringElement::Default(&entry->name_);
+        stlp::StringElement::Default(&entry->description_);
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
         const char* empty = game::QuestionMarkText();
-        StringAssignRangeOriginal(name, nullptr, empty, empty + std::strlen(empty));
+        entry->name_.Assign(empty);
         entry->kind_ = 4;
-        const char* end = empty + std::strlen(empty);
-        std::size_t length = static_cast<std::size_t>(end - empty);
-        std::size_t size = static_cast<std::size_t>(description->finish - description->start);
-        if (length <= size) {
-            std::memcpy(description->start, empty, length);
-            StringEraseOriginal(description, nullptr, description->start + length, description->finish);
-        } else {
-            std::memcpy(description->start, empty, size);
-            StringAppendRangeOriginal(description, nullptr, empty + (description->finish - description->start), end, out);
-        }
+        entry->description_.Assign(empty);   // inlined: overwrite, then cut or append
         entry->players_ = 0;
         entry->maxPlayers_ = 0;
         entry->password_ = 0;

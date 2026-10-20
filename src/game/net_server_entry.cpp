@@ -29,39 +29,26 @@ void ServerSession::DescribeImpl(RefPtr* out) {
     auto* entry = NewMessageMemory<ServerEntry>();
     if (entry) {
         entry->ConstructBase();
-        std::uint8_t allocator = 0;
-        StringReserveOriginal(&entry->name_, nullptr, &allocator, 8);
-        *entry->name_.finish = 0;
-        StringInitEmpty(&entry->description_);
+        stlp::StringElement::Default(&entry->name_);
+        stlp::StringElement::Default(&entry->description_);
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
-        StringAssignCStrOriginal(&entry->name_, nullptr, game::QuestionMarkText());
+        entry->name_.Assign(game::QuestionMarkText());
         entry->kind_ = 4;
-        StringAssignCStrOriginal(&entry->description_, nullptr, game::QuestionMarkText());
+        entry->description_.Assign(game::QuestionMarkText());
         entry->players_ = 0;
         entry->maxPlayers_ = 0;
         entry->password_ = 0;
     }
-    StringRep* name = &entry->name_;
-    if (&name_ != name) StringAssignTaggedOriginal(name, nullptr, name_.start, name_.finish, out);
+    if (&name_ != &entry->name_) entry->name_.AssignFrom(name_);
     entry->kind_ = kind_;
-    StringRep* description = &entry->description_;
-    const char* empty = game::EmptyText();
-    StringAssignRangeOriginal(description, nullptr, empty, empty + std::strlen(empty));
+    stlp::string* description = &entry->description_;
+    description->Assign(game::EmptyText());
 
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
         std::uint32_t title = 0;   // CString
         const char* text = *SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-        const char* end = text + std::strlen(text);
-        std::size_t length = static_cast<std::size_t>(end - text);
-        std::size_t size = static_cast<std::size_t>(description->finish - description->start);
-        if (length <= size) {
-            std::memcpy(description->start, text, length);
-            StringEraseOriginal(description, nullptr, description->start + length, description->finish);
-        } else {
-            std::memcpy(description->start, text, size);
-            StringAppendRangeOriginal(description, nullptr, text + (description->finish - description->start), end, out);
-        }
+        description->Assign(text);   // inlined: overwrite, then cut or append
         CStringDestroy(&title);
     }
 

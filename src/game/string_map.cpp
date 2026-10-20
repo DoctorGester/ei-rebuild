@@ -52,10 +52,6 @@ static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, u
 __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const stlp::string*, const stlp::string*) EI_ORIGINAL(0x00445170)
 __declspec(naked) Node** __fastcall InsertHint(StringMap*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
-void __fastcall StringErase(stlp::string* a0, void*, const char* a2, const char* a3) {
-    StringEraseOriginal(a0, nullptr, const_cast<char*>(a2), const_cast<char*>(a3));
-}
-void __fastcall StringAppend(stlp::string* a0, void*, const char* a2, const char* a3, int a4) { StringAppendRangeOriginal(a0, nullptr, a2, a3, (const void*)a4); }
 __declspec(naked) void __fastcall PairDelete(void*, void*, unsigned) EI_ORIGINAL(0x004457F0)
 __declspec(naked) void __fastcall NodeFree(Node*, std::size_t) EI_ORIGINAL(0x004452D0)
 
@@ -63,12 +59,6 @@ CDebugPanel* Panel(void* self) { return static_cast<CDebugPanel*>(self); }
 
 // The node allocator's free list of 0x28-byte nodes (0079B234), which the destructor pushes to inline.
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B234); }
-
-// A key string the functions below construct and release explicitly (when the original does).
-struct KeyString {
-    alignas(stlp::string) std::uint8_t storage[sizeof(stlp::string)];
-    stlp::string* Make(const char* text) { return new (storage) stlp::string(text, text + std::strlen(text)); }
-};
 
 } // namespace
 
@@ -79,48 +69,32 @@ EI_REPLACE(0x004447D0, StringTable);
 // 004447E0 (slot 0): table[key] = value (a missing key is inserted at its lower bound with an
 // empty value first).
 void __fastcall StringTableSet(void* self, void*, const char* key, const char* value) {
-    KeyString keyStorage;
-    stlp::string* k = keyStorage.Make(key);
+    stlp::string k(key);
     StringMap& map = Panel(self)->entries_;
     Node* it;
-    lib_trees::StringPairs::LowerBound(&map, nullptr, &it, k);
-    if (it == map.end() || stlp::StringAbi::Less(k, &it->first)) {
-        KeyString emptyStorage;
-        auto* empty = reinterpret_cast<stlp::string*>(emptyStorage.storage);
-        char alloc;
-        StringReserveOriginal(empty, nullptr, &alloc, 8);
-        *const_cast<char*>(empty->data()) = 0;
+    lib_trees::StringPairs::LowerBound(&map, nullptr, &it, &k);
+    if (it == map.end() || stlp::StringAbi::Less(&k, &it->first)) {
+        stlp::string empty;
+        stlp::StringElement::Default(&empty);
         alignas(4) std::uint8_t pair[sizeof(stlp::string) * 2];
-        PairConstruct(pair, nullptr, k, empty);
+        PairConstruct(pair, nullptr, &k, &empty);
         Node* inserted;
         InsertHint(&map, nullptr, &inserted, it, pair);
         it = inserted;
         PairDestruct(pair);
-        StlStringDestroy(empty);
     }
-    stlp::string& s = it->second;
-    std::size_t length = std::strlen(value);
-    std::size_t size = s.size();
-    char* start = const_cast<char*>(s.data());
-    if (length <= size) {
-        std::memcpy(start, value, length);
-        StringErase(&s, nullptr, start + length, start + size);
-    } else {
-        std::memcpy(start, value, size);
-        StringAppend(&s, nullptr, value + size, value + length, 0);
-    }
-    k->~string();
+    it->second.Assign(value);   // inlined by the original: overwrite, then cut or append
 }
 EI_REPLACE(0x004447E0, StringTableSet);
 
 // 004449A0 (slot 1): removes `key`.
 void __fastcall StringTableRemove(void* self, void*, const char* key) {
-    KeyString keyStorage;
-    stlp::string* k = keyStorage.Make(key);
     StringMap& map = Panel(self)->entries_;
     Node* it;
-    lib_trees::StringPairs::Find(&map, nullptr, &it, k);
-    k->~string();
+    {
+        stlp::string k(key);
+        lib_trees::StringPairs::Find(&map, nullptr, &it, &k);
+    }
     if (it != map.end()) map.Erase<stlp::TreeElement<StringMap::Value>>(it);
 }
 EI_REPLACE(0x004449A0, StringTableRemove);

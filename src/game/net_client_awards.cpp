@@ -75,7 +75,7 @@ void ClientSession::ApplyAwards() {
     if (!player) return;
     for (RefNode* node = static_cast<RefNode*>(self->awards_)->next; node != self->awards_; node = node->next) {
         auto* award = static_cast<AwardMessage*>(node->data.ptr);
-        const char* name = award->text_.start;
+        const char* name = award->text_.data();
         switch (award->kind_) {
         case 0: {
             std::uint32_t bits;

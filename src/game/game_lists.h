@@ -33,7 +33,7 @@ inline void DestroySharedObject(SharedObject* p) {
 }
 // The sound manager's wave records: the name an empty string with room for 8 bytes (006BE240, after
 // the zero fill); its buffer freed (006B90C0).
-inline stlp::string* WaveName(WaveRecord* p) { return reinterpret_cast<stlp::string*>(p->name); }
+inline stlp::string* WaveName(WaveRecord* p) { return &p->Name(); }
 inline void InitWave(WaveRecord* p) { stlp::StringElement::Default(WaveName(p)); }
 inline void DestroyWave(WaveRecord* p) { stlp::StringElement::Destroy(WaveName(p)); }
 

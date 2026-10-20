@@ -43,10 +43,10 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 // player counts, kind, password flag and texts, added to the client. A wrong size or
 // a short record ends the reading (the entry being filled is not added).
 void ClientSession::ReadServerListImpl(GameBuffer* in) {
-    alignas(4) std::uint8_t recordBytes[sizeof(GameInfoRecord)];
-    auto* record = reinterpret_cast<GameInfoRecord*>(recordBytes);
-    StringInitEmpty(&record->name);
-    StringInitEmpty(&record->description);
+    GameInfoRecord read;   // its strings freed at the end (description first)
+    GameInfoRecord* record = &read;
+    stlp::StringElement::Default(&record->name);
+    stlp::StringElement::Default(&record->description);
     GameBuffer buffer;
     static_cast<GameBuffer*>(&buffer)->ConstructGrowing();
     alignas(4) std::uint8_t coder[kCoderSize];   // CoderState
@@ -72,12 +72,12 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
             auto* entry = NewMessageMemory<ServerEntry>();
             if (entry) {
                 entry->ConstructBase();
-                StringInitEmpty(&entry->name_);
-                StringInitEmpty(&entry->description_);
+                stlp::StringElement::Default(&entry->name_);
+                stlp::StringElement::Default(&entry->description_);
                 ei::SetVtable(entry, ServerEntry::kVtableAddress);
-                StringAssignCStrOriginal(&entry->name_, nullptr, game::QuestionMarkText());
+                entry->name_.Assign(game::QuestionMarkText());
                 entry->kind_ = 4;
-                StringAssignCStrOriginal(&entry->description_, nullptr, game::QuestionMarkText());
+                entry->description_.Assign(game::QuestionMarkText());
                 entry->players_ = 0;
                 entry->maxPlayers_ = 0;
                 entry->password_ = 0;
@@ -88,22 +88,15 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
             entry->password_ = record->hasPassword;
             entry->maxPlayers_ = record->maxPlayers;
             entry->players_ = record->players;
-            StringRep* name = &entry->name_;
-            if (&record->name != name) StringAssignTaggedOriginal(name, nullptr, record->name.start, record->name.finish, entry);
-            StringRep* description = &entry->description_;
-            if (&record->description != description)
-                StringAssignTaggedOriginal(description, nullptr, record->description.start, record->description.finish, entry);
+            stlp::string* name = &entry->name_;
+            if (&record->name != name) name->AssignFrom(record->name);
+            stlp::string* description = &entry->description_;
+            if (&record->description != description) description->AssignFrom(record->description);
             AddServer(entry);
         }
     }
     coderCursor->End();
     GrowingBufferDestruct(&buffer);
-    if (complete) {
-        libcontainers::DestroyGameInfoRecord(record);
-    } else {
-        StlStringDestroy(&record->description);
-        StlStringDestroy(&record->name);
-    }
 }
 EI_REPLACE_METHOD(0x0041D600, ClientSession::ReadServerListImpl);
 
