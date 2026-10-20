@@ -243,9 +243,19 @@ addon's log and dumps land in the overlay (`harness_saves\rebirth_install\`). Su
 **Goldens** (2026-10-20): every vanilla golden (101) came out the same from the fix profile, so none was re-recorded: the suite reaches no
 fix in a way the digest, console or saves show (addon's logging fixes logged nothing either). `rebirth_fixes` (new) does: the same buff eight
 times keeps 4 effects on the hero where the plain original keeps 11 (FixSpellEffectsOverflow); its golden is the fix profile's, and the
-image with the defaults matches it. Not reached by any golden: FixLeversActivate's signed / level-0 cases, FixSpellSelfCasting, FixMoveObject,
-FixAddMapObject, FixRemoveMapObject, FixCreateItem (rebirth_fixes' GiveItem of unknown names made addon log nothing: to look at),
-FixProgressNames (Rebirth's islands).
+image with the defaults matches it. addon's logging fixes write no line at run time; a fix is shown reached by its golden differing from an
+`EI_ADDON_FLAGS=0` run. SV9a added two (fix profile goldens, the image matches; the plain original differs in each part):
+- `rebirth_fixes_world`: FixCreateItem (`GiveItem` of "nosuchitem": the plain original's FatalError; rebirth_fixes' "no such item" stops
+  before the factory), FixMoveObject (`SetCPFast` to x -0.5), FixRemoveMapObject (`AddMob` of an object holding a
+  zone1 id, then `load savea`: the plain original crashes at 0059362A).
+- `rebirth_fixes_ui`: FixLeversActivate (a level -1 lock opened by the science button), FixPlaingBattleMusicFromAntimagic
+  (`IsPlayerInDanger` while antimagic is cast on a friendly unit), FixSpellSelfCasting #1 (`clickunit <name> dbl` with a spell picked).
+
+Not reached: FixSpellSelfCasting #0 (spell types 0x28 / 0x29 are not in vanilla spells.sdb), FixAddMapObject (an unknown prototype stops
+first in GiveStartingEquipment's FatalError or FillFromPrototype; needs data with a prototype missing from one table only), FixRepairPrice
+(an item's durability below 0, or a worn finished item taken apart: long fights), FixProgressNames (Rebirth's islands gipat2 / jigran; the
+movie choice is not in a golden), FixProcessLogin (multiplayer join; the age it clears is not in a golden). EI_Plugin's Briefings and
+Fixes cannot be recorded through addon.dll (above).
 
 **Rebirth's data is a smoke set** (`run_all --rebirth`, before releases; `config/rebirth_scenarios.csv` plus every scenario with a step for
 one install, rebirthflags, addonpath or widescreen): the default suite and `--no-hooks` run the vanilla data only. `--all-rebirth`

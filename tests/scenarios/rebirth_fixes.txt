@@ -1,9 +1,10 @@
 # Rebirth's bug fixes, the standalone's defaults (include/ei/rebirth.h; docs/notes/rebirth.md, "One test profile"),
 # on the vanilla data. The golden comes from the original with addon.dll's fixes (tests/verify/harness_addon.h), so
 # what a fix changes here is in it: the same buff cast eight times and three others on the hero
-# (FixSpellEffectsOverflow: each AddEffect drops the older equal effect), a wolf hit by spells and attacked (the
-# battle music test every update, FixPlaingBattleMusicFromAntimagic), items by name, two unknown (FixCreateItem: no
-# item, where the plain original stops with a fatal error), and the camp's trade and repair pages (FixRepairPrice).
+# (FixSpellEffectsOverflow: each AddEffect drops the older equal effect). The wolf hit by spells and attacked,
+# the items by name (two unknown) and the camp's trade and repair pages run next to FixPlaingBattleMusicFromAntimagic,
+# FixCreateItem and FixRepairPrice without reaching the cases they change (rebirth_fixes_ui.txt and
+# rebirth_fixes_world.txt reach the first two).
 reject Script error
 waitmenu
 console thingamabob

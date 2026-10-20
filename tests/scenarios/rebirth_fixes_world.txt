@@ -1,0 +1,41 @@
+# Rebirth's bug fixes reached through script commands (docs/notes/rebirth.md, "One test profile"), on the vanilla
+# data; the golden comes from the original with addon.dll's fixes. Each part differs from the plain original
+# (EI_ADDON_FLAGS=0):
+# - FixCreateItem (CItemManager::CreateItem 006AC970): GiveItem of an unknown name gives nothing; the plain
+#   original stops with "Can't find prototype for item" (FatalError: a message box, then exit).
+# - FixMoveObject (CSectorMap::Move 005C11D0): SetCPFast to x -0.5 is refused (the hero stays); the plain
+#   original moves him there.
+# - FixRemoveMapObject (CWorldServer::RemoveObject 005935C0): AddMob loads a plain map object from zone2.mob
+#   with the id of one of zone1's objects (tools/make_trap_mob.py --kind B001 --first-id 1324), which takes over
+#   the id map's entry; loading savea then removes an id the map no longer has. The fix skips it; the plain
+#   original reads through the missing entry (crash at 0059362A).
+# prepare: make_trap_mob.py --first-id 1324 --count 1 --kind B001 --out clash.mob
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @GiveItem(0,"Axe.steel")
+frames 3
+console @GiveItem(0,"nosuchitem")
+frames 3
+check IsAlive(GetLeader())
+
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @SetCPFast(GetLeader(),-0.5,10,0)
+frames 5
+console #IsEqual(GetX(GetLeader()),GSGetVar(0,"hx"))
+dump moved
+
+console @AddMob("..\saves\clash.mob")
+frames 10
+load savea
+waitfor 20 IsGreater(HP(GetLeader()),0)
+dump loaded_savea
+frames 10
+check IsAlive(GetLeader())
+report
+quit
