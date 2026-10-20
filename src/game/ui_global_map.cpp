@@ -101,37 +101,12 @@ int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std
     return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
 }
 
-// The local player's variables, copied by name prefix into a hash_map<CString, float> (constructed
-// with 100 buckets by 00581790).
-struct VariableIterator {
-    NamedFloatTable::Node* node;
-    NamedFloatTable* table;
-    NamedFloatTable::Node* NextBucket();                // 005E0DB0
-};
-NamedFloatTable::Node* VariableIterator::NextBucket() { return (NamedFloatTable::Node*)VariableIteratorNextOriginal((void*)this); }
-
-// A local hash_map<CString, float>, freed the way the original's inlined destructor does: every
-// node's key released and the node returned to the 16-byte free list, then the bucket storage.
+// The local player's variables, copied by name prefix into a local hash_map<CString, float> (100
+// buckets, 00581790), freed the way the original's inlined destructor does.
 class VariableTable {
 public:
-    VariableTable() { NamedTableConstructOriginal(&table_); }
-    ~VariableTable() {
-        std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
-        for (std::size_t b = 0; b < n; ++b) {
-            NamedFloatTable::Node* node = table_.buckets[b];
-            while (node) {
-                NamedFloatTable::Node* next = node->next;
-                reinterpret_cast<mfc::CString*>(&node->key)->~CString();
-                stlp::deallocate(node, sizeof(NamedFloatTable::Node));
-                node = next;
-            }
-            table_.buckets[b] = nullptr;
-        }
-        table_.count = 0;
-        if (table_.buckets)
-            stlp::deallocate(table_.buckets,
-                             static_cast<std::size_t>(table_.endOfStorage - table_.buckets) * sizeof(void*));
-    }
+    VariableTable() { table_.ConstructDefault(); }
+    ~VariableTable() { table_.Destroy(); }
     NamedFloatTable* Table() { return &table_; }
 
 private:
@@ -359,13 +334,12 @@ void CGlobalMap::Create() {
     for (int i = 0; i < zoneCount_; ++i) {
         variable.Format(game::Text(0x00794140), zones_.data[i].name);   // "q.%s"
         GameLocalPlayerVariables(variable, vars.Table());
-        VariableIterator it;
-        FloatTableBeginOriginal(vars.Table(), nullptr, &it);
-        while (NamedFloatTable::Node* node = it.node) {
+        const NamedFloatTable& table = *vars.Table();
+        for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
             std::uint32_t value;
-            std::memcpy(&value, &node->value, 4);
+            std::memcpy(&value, &node->value.mapped, 4);
             if (value == 0x3F800000) {
-                text::Split(node->key, &parts, '.');
+                text::Split(node->value.key, &parts, '.');
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
                     QuestsSetSize(&quests_, nullptr, quests_.size + 1, -1);
@@ -396,9 +370,6 @@ void CGlobalMap::Create() {
                     ++questCount_;
                 }
             }
-            NamedFloatTable::Node* next = node->next;
-            if (!next) next = it.NextBucket();
-            it.node = next;
         }
     }
 

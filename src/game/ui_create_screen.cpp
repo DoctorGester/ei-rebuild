@@ -6,6 +6,7 @@
 #include "app.h"
 #include "world.h"
 #include "ui_camp.h"
+#include "ui_briefing.h"
 #include "ui_create_screen.h"
 
 #include "ui.h"
@@ -31,15 +32,15 @@ namespace {
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
 std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
 
-// Member constructors (thiscall on the member).
-__declspec(naked) void __fastcall Member5F8F30(void*) EI_ORIGINAL(0x005F8F30)
-__declspec(naked) void __fastcall Member5F6080(void*) EI_ORIGINAL(0x005F6080)
-__declspec(naked) void __fastcall Member5F5F90(void*) EI_ORIGINAL(0x005F5F90)
-   // CStringArray
-// STLport containers taking an allocator (by address; empty).
-__declspec(naked) void __fastcall Member5F90E0(void*, void*, const void*) EI_ORIGINAL(0x005F90E0)
-__declspec(naked) void __fastcall Member5F9300(void*, void*, const void*) EI_ORIGINAL(0x005F9300)
-__declspec(naked) void __fastcall Member5F9540(void*, void*, const void*) EI_ORIGINAL(0x005F9540)
+// An empty STLport list whose nodes are `Node` (next, prev, then the element): its sentinel from the
+// node pool, linked to itself (the list constructors 005F90E0 / 005F9300).
+template <typename Node>
+Node* EmptyList() {
+    auto* head = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    head->next = head;
+    head->prev = head;
+    return head;
+}
 
 // The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
@@ -53,7 +54,6 @@ void SetVtables(void* window, void** vtable, void** inputVtable) {
 
 void CInterface3D::CreateScreen(int id) {
     void* screen = nullptr;
-    char allocators[4] = {};
     switch (id) {
     case 0:
         return;
@@ -61,15 +61,12 @@ void CInterface3D::CreateScreen(int id) {
         screen = gamecrt::operator_new(0x230);
         if (!screen) break;
         ConstructContainerAt(screen, nullptr, this);
-        SetDword(screen, 0x168, 0x007402AC);
-        SetDword(screen, 0x16C, 0);
-        SetDword(screen, 0x178, 0);
-        SetDword(screen, 0x174, 0);
-        SetDword(screen, 0x170, 0);
-        mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(ei::OffsetPtr(screen, 0x1DC));
-        Member5F8F30(ei::OffsetPtr(screen, 0x1F0));
-        Member5F6080(ei::OffsetPtr(screen, 0x204));
-        Member5F5F90(ei::OffsetPtr(screen, 0x220));
+        auto* battle = static_cast<CBattleScreen*>(screen);
+        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&battle->party_);
+        mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&battle->heroes_);
+        battle->personTexts_.Construct();          // 005F8F30
+        battle->clientParty_.Construct();          // 005F6080
+        battle->itemUseKey_.ConstructItemUseKey();  // 005F5F90
         SetVtables(screen, Vtable(0x00740764), Vtable(0x00740730));
         break;
     }
@@ -83,15 +80,18 @@ void CInterface3D::CreateScreen(int id) {
         screen = gamecrt::operator_new(0x2A4);
         if (!screen) break;
         ConstructContainerAt(screen, nullptr, this);
-        StringArrayConstruct(ei::OffsetPtr(screen, 0x170));
-        SetDword(screen, 0x184, EmptyString());
-        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(ei::OffsetPtr(screen, 0x190));
-        Member5F90E0(ei::OffsetPtr(screen, 0x240), nullptr, &allocators[0]);
-        SetDword(screen, 0x248, EmptyString());
-        Member5F8F30(ei::OffsetPtr(screen, 0x26C));
-        Member5F9300(ei::OffsetPtr(screen, 0x278), nullptr, &allocators[1]);
-        IdVectorConstructOriginal(ei::OffsetPtr(screen, 0x284), nullptr, &allocators[2]);
-        Member5F9540(ei::OffsetPtr(screen, 0x294), nullptr, &allocators[3]);
+        auto* briefing = static_cast<CBriefingScreen*>(screen);
+        StringArrayConstruct(&briefing->topics_);
+        new (&briefing->topic_) mfc::CString();
+        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&briefing->party_);
+        briefing->movers_ = EmptyList<BriefingMover>();
+        new (&briefing->dialogueText_) mfc::CString();
+        briefing->personTexts_.Construct();           // 005F8F30
+        briefing->shown_ = EmptyList<BriefingShownItem>();
+        briefing->people_.ConstructEmpty();           // 005F8F10
+        briefing->speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
+        briefing->speakersEnd_ = nullptr;
+        briefing->speakersCapacity_ = nullptr;
         SetVtables(screen, Vtable(0x007405AC), Vtable(0x00740578));
         break;
     }

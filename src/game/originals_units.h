@@ -43,10 +43,6 @@ __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*co
 // 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10).
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
 
-// C3l. 005335E0: the unit prototype map (a hash map keyed by a string; RET 4: key; EAX = the address of the value slot, after
-// inserting an entry for a missing name).
-__declspec(naked) inline void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
-    EI_ORIGINAL(0x005335E0)
 class CFigureAnimationState;
 class CUnitClientSpecific;
 struct FigureAnimation;

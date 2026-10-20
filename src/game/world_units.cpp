@@ -68,13 +68,6 @@ __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(
 // 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
-// The prototype table's name map (007AF364): the insert (00514880) returns the stored pair.
-// An entry of the name map: the STLport string key and the prototype.
-struct PrototypeNamePair {
-    stlp::string key;                  // +0x00
-    UnitPrototypeRecord* prototype;    // +0x0C
-};
-static_assert(sizeof(PrototypeNamePair) == 0x10);
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
 // Placement on the maps.
 // The unit's setup.
@@ -104,9 +97,7 @@ void DestroyMessage(UnitSpec* message) {
 void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& scratch) {
     UnitPrototypeRecord* prototype;
     {
-        stlp::string key(prototypeName);
-        PrototypeNamePair pair{key, nullptr};
-        prototype = static_cast<PrototypeNamePair*>(NameMapInsertOriginal(worlddata::PrototypeNameMap(), nullptr, &pair))->prototype;
+        prototype = unitdb::PrototypeNamed(stlp::string(prototypeName));   // find_or_insert of {name, null} (00514880)
     }
     int hairStyle = prototype ? prototype->hair : 1;
 
@@ -376,7 +367,6 @@ void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { static
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { static_cast<CUnit*>((void*)a0)->SetHostileMask((std::uint32_t)a2); }
-UnitPrototypeRecord** __fastcall UnitPrototypeAt(void* a0, void*, const void* a2) { return (UnitPrototypeRecord**)PrototypeMapAtOriginal(a0, nullptr, a2); }
 void __fastcall MarkNewObject(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
 
 // The timed objects' types (world_effect.h).
@@ -559,7 +549,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             UnitPrototypeRecord* prototype;
             {
                 stlp::string key(prototypeName);
-                prototype = *UnitPrototypeAt(worlddata::PrototypeNameMap(), nullptr, &key);
+                prototype = unitdb::PrototypeNamed(key);
             }
             unsigned index;
             if (prototype) {

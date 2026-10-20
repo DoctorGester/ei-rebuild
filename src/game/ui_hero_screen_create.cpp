@@ -78,7 +78,6 @@ float MenuTurn() { return GameFloat(0x007C7F14) * GameFloat(0x0073CDF4); }
 // screen's mode, 00615D30, originals_ui.h).
 __declspec(naked) void __fastcall ReloadHeroesAt(MpHeroRoster*) EI_ORIGINAL(0x00662FB0)
 MpHeroRoster* Heroes() { return reinterpret_cast<MpHeroRoster*>(0x007C82A0); }
-void* FigurePrototypes() { return reinterpret_cast<void*>(0x007AF3A4); }   // hash_map<string, FigurePrototypeRecord*>
 
 // The screen's vectors as the library's: the figures' prototype names, and the voices (a
 // MpVoiceEntry with its CStrings as objects).
@@ -329,15 +328,14 @@ void CMpHeroScreen::Create() {
         const UnitPrototypeRecord* prototype;
         {
             stlp::string key(static_cast<const char*>(creature()->name));
-            prototype = static_cast<const UnitPrototypeRecord*>(
-                *PrototypeMapAtOriginal(&unitdb::PrototypeTable().byName, nullptr, &key));
+            prototype = unitdb::PrototypeNamed(key);
         }
         if (!prototype) continue;
         const FigurePrototypeRecord* figure;
         {
             // The original inlines operator[] (a pair of the name and null through 0053D340).
             stlp::string key(static_cast<const char*>(prototype->modelName));
-            figure = reinterpret_cast<const FigurePrototypeRecord*>(*FigureMapAtOriginal(FigurePrototypes(), nullptr, &key));
+            figure = reinterpret_cast<const FigurePrototypeRecord*>(unitdb::ModelNamed(key));
         }
         figureModel = *reinterpret_cast<const mfc::CString*>(&figure->model);
         auto isModel = [&figureModel](const char* name) {

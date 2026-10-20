@@ -20,6 +20,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/stlp_hash.h"
 #include "originals_ai.h"
 #include "originals_ui.h"
 #include "originals_units.h"
@@ -32,7 +33,8 @@ namespace {
 
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
 void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
-void* LootNames() { return reinterpret_cast<void*>(0x007C8764); }   // the loot table's (007C8758) name index
+// The loot table (007C8758): its records, then their name index.
+stlp::RecordsByName* LootTable() { return reinterpret_cast<stlp::RecordsByName*>(0x007C8758); }
 float TurnedOver() { return *reinterpret_cast<const float*>(0x007410D0); }   // pi
 const char* ItemFigureFormat() { return reinterpret_cast<const char*>(0x007934DC); }   // "initqu%ditem"
 const char* ItemImageFormat() { return reinterpret_cast<const char*>(0x007934D0); }    // "quitem%04d"
@@ -41,9 +43,6 @@ const int* SlotYs() { return reinterpret_cast<const int*>(0x00741138); }   // 30
 using ActionDoneFn = void(__fastcall*)(CUnit*);
 ActionDoneFn SpeakerActionDone() { return reinterpret_cast<ActionDoneFn>(0x006023F0); }
 
-// 0060AC20: the name index's find-or-insert (thiscall, RET 4; the value's address).
-__declspec(naked) const itemdb::ItemRecordHead** __fastcall LootNameAt(void* /*names*/, void*, const stlp::string* /*key*/)
-    EI_ORIGINAL(0x0060AC20)
 
 constexpr int kEventJoins = 1;
 constexpr int kSlots = 7;
@@ -164,10 +163,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     text::ReplaceChar(&key, '_', ' ');
     key.MakeLower();
     const itemdb::ItemRecordHead* record;
-    {
-        stlp::string lookup(static_cast<const char*>(key));
-        record = *LootNameAt(LootNames(), nullptr, &lookup);
-    }
+    // The name index's operator[] (0060AC20; an unknown name gets a null entry).
+    record = static_cast<const itemdb::ItemRecordHead*>(stlp::RecordNamed(LootTable(), nullptr, key));
     if (!record) return;
 
     float x = static_cast<float>(SlotXs()[index % kSlots]);

@@ -472,7 +472,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         }
         StoreBits(result, kZero);
         WorldPlayer* player = WorldServer()->GetPlayer(Ftol(f[0]));
-        if (player) *result = NamedTableGet(player->variables, nullptr, stringArgs.data[0]);
+        if (player) *result = player->variables.Get(stringArgs.data[0]);
         return;
     }
     case 0xA2:   // IsCameraPlaying

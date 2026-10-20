@@ -56,19 +56,6 @@ WorldPlayer* LocalPlayer() {
     return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(WorldClient())->LocalView())->player;
 }
 
-// The global variables' hash table: a node is {next, name, value}.
-struct VariableNode {
-    VariableNode* next;
-    const char* name;
-    float value;
-};
-struct VariableIterator {
-    VariableNode* node;
-    void* table;
-    VariableNode* NextBucket();   // 005E0DB0: first node of the next non-empty bucket, or null
-};
-VariableNode* VariableIterator::NextBucket() { return (VariableNode*)VariableIteratorNextOriginal((void*)this); }
-
 // 0079B5D8: the network client session, active unless it was detached.
 inline net::ClientSession* Server() { return net::GameClient(); }
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
@@ -214,17 +201,14 @@ void __fastcall ListVar(CStringArray* args) {
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(Out() << game::Text(0x0079266C) << static_cast<const char*>((*args)[1]) << game::Text(0x00792680));
     }
-    VariableIterator it;
-    FloatTableBeginOriginal(player->variables, nullptr, &it);
-    while (it.node) {
-        EndLine((Out() << it.node->name << game::Text(0x0078DA6C)).PutFloat(it.node->value));   // " = "
+    const NamedFloatTable& variables = player->variables;
+    for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
+        const char* name = node->value.key;
+        EndLine((Out() << name << game::Text(0x0078DA6C)).PutFloat(node->value.mapped));   // " = "
         if (writing) {
-            line.Format(game::Text(0x00792664), it.node->name, static_cast<double>(it.node->value));   // "%s %g\n"
+            line.Format(game::Text(0x00792664), name, static_cast<double>(node->value.mapped));   // "%s %g\n"
             file.WriteString(line);
         }
-        VariableNode* next = it.node->next;
-        if (!next) next = it.NextBucket();
-        it.node = next;
     }
     if (writing) file.Close();
 }

@@ -33,8 +33,6 @@ namespace {
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
 char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
-// 0059D7A0. The timed-object map's clear (nodes freed, buckets kept).
-__declspec(naked) void __fastcall TimedMapClear(void*, void*) EI_ORIGINAL(0x0059D7A0)
 // 0040A3A0. CRefObject::Release (the missiles).
 
 // The timed objects are ended (slot 5, ClearState) and released, then the map is emptied (the
@@ -46,7 +44,7 @@ void EndTimedObjects(CWorldServer* world) {
         object->ClearState();
         object->Release();
     }
-    TimedMapClear(&world->timedObjects_, nullptr);
+    world->timedObjects_.map.Clear();   // 0059D7A0: nodes freed, buckets kept
     world->timedObjects_.maxId = 0;
 }
 
@@ -138,8 +136,6 @@ __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
 void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
-// 0059D6D0. The other id maps' clear.
-__declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D0)
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
@@ -181,7 +177,7 @@ void CWorldServer::ResetZone() {
     ObjectMapClearOriginal(&objects_);
     ObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (ObjectIdMap* map : maps) {
-        IdMapClear(map, nullptr);
+        map->map.Clear();   // 0059D6D0
         map->maxId = 0;
     }
     ClearMissilePointers(this);

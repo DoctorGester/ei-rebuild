@@ -101,10 +101,8 @@ using netlink::FileStream;
 // destroys it): PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
 // 0045E850 (RET 4). CMapDatabase::FindMap: the zone record named `name`, or null.
 // 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).
-double VariableGet(NamedFloatTable* table, const char* name) { return (double)NamedTableGet(table, nullptr, name); }
-void VariableSet(NamedFloatTable* table, const char* name, float value) {
-    static_cast<NamedFloatTable*>(table)->Set(name, value);
-}
+double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
+void VariableSet(NamedFloatTable* table, const char* name, float value) { table->Set(name, value); }
 // 0057C460 (RET 8). Starts zone `zone` (mode 2: the main menu). Patched by Rebirth: original address.
 __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int) EI_ORIGINAL(0x0057C460)
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save), the
@@ -401,10 +399,10 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
                 mfc::CString movie = MoviesFolder() + game::Text(kMovieFile);
                 PlayMovieFile(movie, 0, 1, 1, 1, 1, 1);
             }
-            VariableRemove(variables, nullptr, game::Text(kMovieVariable));
+            variables->Remove(game::Text(kMovieVariable));
         }
     } else {
-        VariableRemove(variables, nullptr, game::Text(kMovieVariable));
+        variables->Remove(game::Text(kMovieVariable));
     }
 
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zoneRecord->map),
@@ -677,11 +675,11 @@ int ServerPlayerCount() { return static_cast<int>(static_cast<CBaseManager*>(Wor
 
 void GameFlow::UpdateMultiplayerVariable() {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
-    NamedFloatTable* variables = reinterpret_cast<NamedFloatTable*>(player->variables);
+    NamedFloatTable* variables = &player->variables;
     if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
         if (on) VariableSet(variables, game::Text(kMultiplayerVariable), 1.0f);
-        else VariableRemove(variables, nullptr, game::Text(kMultiplayerVariable));
+        else variables->Remove(game::Text(kMultiplayerVariable));
     };
     if (!Active(net::GameServer())) {
         // A client: set while it has no host announcement (info_).
@@ -1830,7 +1828,7 @@ void GameFlow::AfterServerStart() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        FloatTableClearOriginal(variables);
+        variables->Clear();
     PartyResetItems(GlobalParty());
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->count == 1) {
@@ -1855,9 +1853,6 @@ unsigned& AppliedStamp() { return *reinterpret_cast<unsigned*>(0x007AFED4); }  /
 
 // The quest text files (007AFDD0, 12-byte strings) and the briefing texts (007AF788).
 __declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
-// Local NamedFloatTable copies: 00581790 an empty one (100 buckets), 00580900 a copy.
-void __fastcall VariablesConstruct(NamedFloatTable* a0) { NamedTableConstructOriginal(a0); }
-__declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const NamedFloatTable*) EI_ORIGINAL(0x00580900)
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { static_cast<NamedFloatTable*>(table)->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
@@ -1871,25 +1866,11 @@ void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
 using NodeVector = stlp::vector<void*>;
 
-// A local NamedFloatTable released the way the original's inlined destructor does.
+// A local NamedFloatTable (00581790 an empty one of 100 buckets, 00580900 a copy), released the way
+// the original's inlined destructor does.
 struct LocalVariables {
     NamedFloatTable table;
-    ~LocalVariables() {
-        std::size_t n = static_cast<std::size_t>(table.finish - table.buckets);
-        for (std::size_t b = 0; b < n; ++b) {
-            NamedFloatTable::Node* node = table.buckets[b];
-            while (node) {
-                NamedFloatTable::Node* next = node->next;
-                reinterpret_cast<mfc::CString*>(&node->key)->~CString();
-                stlp::deallocate(node, sizeof(NamedFloatTable::Node));
-                node = next;
-            }
-            table.buckets[b] = nullptr;
-        }
-        table.count = 0;
-        if (table.buckets)
-            stlp::deallocate(table.buckets, static_cast<std::size_t>(table.endOfStorage - table.buckets) * sizeof(void*));
-    }
+    ~LocalVariables() { table.Destroy(); }
 };
 
 // The client's STLport lists of counted messages (ClientSession::zones_, variables_).
@@ -1919,17 +1900,17 @@ void GameFlow::UpdateFromServer() {
     auto* clientWorld = reinterpret_cast<void*>(0x007AF5B8);
     WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
     LocalVariables unusedEmpty;
-    VariablesConstruct(&unusedEmpty.table);
-    auto* variables = reinterpret_cast<NamedFloatTable*>(player->variables);
+    unusedEmpty.table.ConstructDefault();
+    NamedFloatTable* variables = &player->variables;
     // The local player's variables are replaced by the server's; "constr.current" survives.
     // Rebirth's PersistentGlobalVars (the CALL at 00580177 redirected) keeps the "gvar." ones.
     float construction = static_cast<float>(VariableGet(variables, game::Text(kConstructionVariable)));
     LocalVariables unusedCopy;
-    VariablesCopy(&unusedCopy.table, nullptr, variables);
+    unusedCopy.table.CopyConstruct(*variables);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        FloatTableClearOriginal(variables);
+        variables->Clear();
     VariableSet(variables, game::Text(kConstructionVariable), construction);
     if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
         if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.data());
@@ -2053,8 +2034,6 @@ MpHeroRecord* AsHero(SavedPartyEntry* entry) { return reinterpret_cast<MpHeroRec
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).
-__declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
-// 004616A0 (RET 4, FloatTableDeleteNodeOriginal): the variables table frees one node (what the original's inlined clear does).
 
 void DestroyPartyEntry(SavedPartyEntry* entry) {
     PartyRecords* records = &entry->records;
@@ -2063,7 +2042,7 @@ void DestroyPartyEntry(SavedPartyEntry* entry) {
     PartyResetOriginal(records, nullptr, 1, 1);
     AsParty(records)->DestroyParty();   // 00661640
     AsCString(records->zone).~CString();
-    RecordsVariablesDestroy(&records->variables);
+    records->variables.Destroy();   // 00663330
     reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(records->array40)->FreeData();   // 006643F0
     DestructPartyMemberArray(reinterpret_cast<PartyMemberArray*>(&records->recordArrayVtable));   // 00664160
     EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(records));
@@ -2100,16 +2079,7 @@ void SavedParties::Reload() {
                 // keeping its "gvar." entries.
                 ClearVariablesKeepingGlobals(variables);
             } else {
-                for (std::size_t b = 0; b < static_cast<std::size_t>(variables->finish - variables->buckets); ++b) {
-                    NamedFloatTable::Node* node = variables->buckets[b];
-                    while (node) {
-                        NamedFloatTable::Node* next = node->next;
-                        FloatTableDeleteNodeOriginal(variables, nullptr, node);
-                        node = next;
-                    }
-                    variables->buckets[b] = nullptr;
-                }
-                variables->count = 0;
+                variables->Clear();   // inlined: each chain's nodes freed (004616A0), the count zeroed
             }
             if (entry->records.count == 1) {
                 SavedPartyEntry* eos = eos_;

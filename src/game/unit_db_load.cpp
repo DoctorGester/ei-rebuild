@@ -8,8 +8,6 @@
 #include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
 #include "lib/crt.h"
 #include "originals_engine.h"    // game::FatalError
-#include "originals_library.h"   // FigureMapAtOriginal
-#include "originals_units.h"     // PrototypeMapAtOriginal
 #include "record_vectors.h"      // recordvec::SkillLevelVector
 
 #include "ei/hook.h"
@@ -37,35 +35,32 @@ using dbfile::SerializeFn;
 // 0053DD00).
 template <typename Record>
 using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*);
-// STLport instantiations: hash_map<string, record*>::operator[] of the NPC and the level tables
-// (RET 4: the key; EAX the value's address; those of the prototypes and the models are shared
-// forwarders), and vector<SkillLevelRecord>::clear.
-__declspec(naked) void** __fastcall NpcMapAt(void* /*map*/, void*, const void* /*key*/) EI_ORIGINAL(0x0053C650)
-__declspec(naked) void** __fastcall LevelMapAt(void* /*map*/, void*, const void* /*key*/) EI_ORIGINAL(0x0053C8B0)
+// vector<SkillLevelRecord>::clear.
 __declspec(naked) void __fastcall SkillLevelsClear(void* /*vector*/) EI_ORIGINAL(0x00520C20)
 
-// Every record of [begin, end) entered into the name index under its name (operator[]: a record
-// of a name seen before replaces the earlier one).
-template <typename Record, typename At>
-void IndexNames(Record* begin, Record* const& end, void* index, At at) {
+// Every record of [begin, end) entered into the name index under its name (operator[]: 0053C8B0,
+// 0053C780, 005335E0, 0053C650; a record of a name seen before replaces the earlier one).
+template <typename Record, typename Index>
+void IndexNames(Record* begin, Record* const& end, Index* index) {
     for (Record* record = begin; record != end; ++record) {
         stlp::string key(static_cast<const char*>(record->name));
-        *reinterpret_cast<Record**>(at(index, nullptr, &key)) = record;
+        auto& slot = index->Subscript(key);
+        slot = reinterpret_cast<std::remove_reference_t<decltype(slot)>>(record);
     }
 }
 
 // One pass over the file: an archive of its own opened for loading, the table's records read as
 // chunk `id` and, after the archive is closed, entered into the name index. `levels` is the
 // serialisers' unused third argument, as the original passes it.
-template <typename Record, typename At>
+template <typename Record, typename Index>
 void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, void* table, void* levels, Record*& begin,
-               Record*& end, void* index, At at) {
+               Record*& end, Index* index) {
     ChunkArchive archive;
     archive.Construct();
     archive.Open(stream, 1, 1);
     (archive.*serialize)(id, static_cast<stlp::vector<Record>*>(table), levels);
     archive.Close(stream);
-    IndexNames(begin, end, index, at);
+    IndexNames(begin, end, index);
     archive.Destruct();
 }
 
@@ -111,13 +106,11 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     CMemoryStream* stream = &local.stream;
     FillStream(*stream, data, size);
 
-    LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, &levels, &levels, levels.begin, levels.end, &levels.byName,
-              LevelMapAt);
-    LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, &models, &levels, models.begin, models.end, &models.byName,
-              FigureMapAtOriginal);
+    LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, &levels, &levels, levels.begin, levels.end, &levels.byName);
+    LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, &models, &levels, models.begin, models.end, &models.byName);
     LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, &prototypes, &levels, Begin(prototypes), End(prototypes),
-              &prototypes.byName, PrototypeMapAtOriginal);
-    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, &npcs, &levels, Begin(npcs), End(npcs), &npcs.byName, NpcMapAt);
+              &prototypes.byName);
+    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, &npcs, &levels, Begin(npcs), End(npcs), &npcs.byName);
 
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();

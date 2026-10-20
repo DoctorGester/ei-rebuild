@@ -78,61 +78,19 @@ int FindText(const char* key) { return reinterpret_cast<UiTexts*>(Texts())->Find
 // The quest the window last selected (a global CString).
 mfc::CString& LastQuest() { return *reinterpret_cast<mfc::CString*>(0x007C8178); }
 
-// The local player's variables, copied by name prefix into an STLport hash_map<CString, float>.
-
-// 00609C10 (not rewritten): hash_map constructor with at least `buckets` buckets (the three
-// pointers are the hasher, key-equal and allocator objects, one byte each).
-__declspec(naked) void __fastcall ConstructTable(NamedFloatTable*, void*, int /*buckets*/, const void*, const void*,
-                                                 const void*) EI_ORIGINAL(0x00609C10)
 // 004DBE40 (not rewritten): splits `text` at `separator` into `out`.
 
 // A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
 class VariableTable {
 public:
-    VariableTable() {
-        char functors[3] = {};
-        ConstructTable(&table_, nullptr, 100, &functors[0], &functors[1], &functors[2]);
-    }
+    VariableTable() { table_.ConstructDefault(); }   // 00609C10 with 100 buckets
     void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
-    ~VariableTable() { Destroy(); }
+    ~VariableTable() { table_.Destroy(); }   // inlined: every node's key released, then the buckets
 
-    // Iteration in STLport's order: buckets in order, each chain from its head.
-    NamedFloatTable::Node* First() const {
-        std::size_t n = BucketCount();
-        for (std::size_t b = 0; b < n; ++b)
-            if (table_.buckets[b]) return table_.buckets[b];
-        return nullptr;
-    }
-    NamedFloatTable::Node* Next(const NamedFloatTable::Node* node) const {
-        if (node->next) return node->next;
-        std::size_t n = BucketCount();
-        for (std::size_t b = stlp::HashText(node->key) % n + 1; b < n; ++b)
-            if (table_.buckets[b]) return table_.buckets[b];
-        return nullptr;
-    }
+    NamedFloatTable::Node* First() const { return table_.First(); }
+    NamedFloatTable::Node* Next(const NamedFloatTable::Node* node) const { return table_.Next(node); }
 
 private:
-    std::size_t BucketCount() const { return static_cast<std::size_t>(table_.finish - table_.buckets); }
-
-    // What the original's inlined destructor (and clear) do: every node's key released and the
-    // node returned to the 16-byte free list, bucket by bucket, then the bucket storage.
-    void Destroy() {
-        for (std::size_t b = 0; b < BucketCount(); ++b) {
-            NamedFloatTable::Node* node = table_.buckets[b];
-            while (node) {
-                NamedFloatTable::Node* next = node->next;
-                reinterpret_cast<mfc::CString*>(&node->key)->~CString();
-                stlp::deallocate(node, sizeof(NamedFloatTable::Node));
-                node = next;
-            }
-            table_.buckets[b] = nullptr;
-        }
-        table_.count = 0;
-        if (table_.buckets)
-            stlp::deallocate(table_.buckets,
-                             static_cast<std::size_t>(table_.endOfStorage - table_.buckets) * sizeof(void*));
-    }
-
     NamedFloatTable table_;
 };
 
@@ -367,8 +325,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         table->Fill(prefix);
         ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            if (node->value == 0.0f || x87::IsNaN(node->value)) continue;
-            text::Split(node->key, &parts, '.');
+            if (node->value.mapped == 0.0f || x87::IsNaN(node->value.mapped)) continue;
+            text::Split(node->value.key, &parts, '.');
             if (parts.GetSize() == 3) PushBack(&found, parts[2]);
         }
         shownQuest_ = -1;
@@ -675,13 +633,13 @@ void CObjectivesWindow::Build() {
         ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            text::Split(node->key, &parts, '.');
+            text::Split(node->value.key, &parts, '.');
             if (parts.GetSize() != 3) continue;
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(interfaceQuest),
                                 reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts[2]))) == 0)
                 current = parts[1];
             std::uint32_t one;
-            std::memcpy(&one, &node->value, 4);
+            std::memcpy(&one, &node->value.mapped, 4);
             if (one != 0x3F800000) continue;
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;

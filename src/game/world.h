@@ -15,6 +15,7 @@
 #include "engine_object.h"
 #include "ground_print.h"
 #include "object_diplomacy.h"
+#include "object_tables.h"
 #include "player_source.h"
 #include "unit_looks.h"
 #include "lib/mfc.h"
@@ -103,7 +104,7 @@ struct WorldPlayer {
     std::uint8_t* mercs;                 // +0x0A0 0x784-byte records, unit id at +0x1C
     int mercCount;                       // +0x0A4
     std::uint8_t partyItems[0xC4 - 0xA8]; // the party's members_ tail, items_ and money (through Party())
-    std::uint8_t variables[0xD8 - 0xC4]; // +0x0C4 named float variables ("gtime", quest flags)
+    NamedFloatTable variables;           // +0x0C4 named float variables ("gtime", quest flags)
     std::uint8_t partyZone[0xE0 - 0xD8];  // the party's zone_ and +0x6C (through Party())
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
     mfc::CTypedPtrList<CEngineObject> items;

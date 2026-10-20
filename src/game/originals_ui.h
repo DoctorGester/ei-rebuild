@@ -77,8 +77,6 @@ __declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, vo
 __declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
 // 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
 __declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
-// 005E0DB0: variable table iterator: the next node in the bucket chain or null (plain RET, EAX = node).
-__declspec(naked) inline void* __fastcall VariableIteratorNextOriginal(void* /*iterator*/) EI_ORIGINAL(0x005E0DB0)
 
 // 005E44A0 (Rebirth-patched by ImproveConsole; rewritten as ConsoleWindow::OnChar): the console's typed character
 // (thiscall, RET 0xC: key, repeat, flags; no result).
@@ -204,6 +202,3 @@ __declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, vo
 __declspec(naked) inline CUiWindow* __fastcall InterfaceActiveWindowOriginal(CInterface3D* /*interface*/) EI_ORIGINAL(0x005F7590)
 __declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(const CInterface3D* /*interface*/, void*,
                                                                               tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)
-// 005F8F10: the constructor of CBattleScreen's vector<int> instantiations from an allocator (thiscall, RET 4; no result).
-__declspec(naked) inline void __fastcall IdVectorConstructOriginal(void* /*vector*/, void*, const void* /*allocator*/)
-    EI_ORIGINAL(0x005F8F10)

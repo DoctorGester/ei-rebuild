@@ -64,7 +64,7 @@ void ReadStringInto(CStream* stream, mfc::CString& target) {
 // 005335E0, hash_map<string, record*>::operator[], inlined by the original).
 char* PrototypeByName(const char* name) {
     stlp::string key(name);
-    return *reinterpret_cast<char**>(PrototypeMapAtOriginal(&unitdb::PrototypeTable().byName, nullptr, &key));
+    return unitdb::PrototypeTable().byName.Subscript(key);
 }
 
 // The world the unit belongs to (its manager's context).

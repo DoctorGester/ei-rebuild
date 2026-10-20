@@ -283,9 +283,9 @@ void CBriefingScreen::FinishDialogue() {
     BriefingVariables variables(TopicPrefix());
     console::CStringArray parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        text::Split(node->key, &parts, '.');
+        text::Split(node->value.key, &parts, '.');
         if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
-        WorldCompleteBriefingOriginal(WorldServer(), nullptr, 0, node->key);
+        WorldCompleteBriefingOriginal(WorldServer(), nullptr, 0, node->value.key);
         break;
     }
 

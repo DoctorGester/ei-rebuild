@@ -64,14 +64,13 @@ CCamera* CCamera::Construct() {
     worldRotation_.SetIdentity();
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    std::uint8_t alloc = 0;
-    ShakeListConstruct(&shakes_, nullptr, &alloc);
+    shakes_.Construct();
     for (CameraView& view : views_) {
         view.distance = 30.0f;
         std::memcpy(&view.rotation, &camera::IdentityRotation(), sizeof(Quaternion));
         view.pitch = DefaultPitch();
     }
-    ViewStackConstruct(&viewStack_, nullptr, &alloc, 0);
+    viewStack_.Construct(0);
     new (&fileName_) mfc::CString;   // the empty string
     keys_ = nullptr;
     keyGrowBy_ = 0;
@@ -110,21 +109,8 @@ void CCamera::Destruct() {
     targetId_ = -1;
     if (keys_) gamecrt::operator_delete(reinterpret_cast<void**>(keys_)[-1]);   // block start kept before the keys
     fileName_.~CString();
-    ViewStackDestroyRange(viewStack_.start, viewStack_.finish);
-    if (viewStack_.map) {
-        void** endNode = viewStack_.finish.node + 1;
-        for (void** node = viewStack_.start.node; node < endNode; ++node)
-            stlp::deallocate(*node, 0xE * 36);   // 00411E20
-        stlp::deallocate(viewStack_.map, static_cast<std::size_t>(viewStack_.mapSize) * 4);   // 00411EA0
-    }
-    for (CameraShake* node = shakes_->next; node != shakes_;) {
-        CameraShake* next = node->next;
-        stlp::deallocate(node, 24);   // 00411B30
-        node = next;
-    }
-    shakes_->next = shakes_;
-    shakes_->prev = shakes_;
-    stlp::deallocate(shakes_, 24);   // 00411B30
+    viewStack_.Destroy();   // the nodes (00411E20), then the map (00411EA0)
+    shakes_.Destroy();      // the nodes, then the sentinel (00411B30)
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     DestructBase();
 }

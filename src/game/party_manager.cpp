@@ -28,8 +28,6 @@ namespace {
 __declspec(naked) void __fastcall PartyMapClear(PartyMap* /*map*/) EI_ORIGINAL(0x004AD050)
 __declspec(naked) void __fastcall RecordsResize(stlp::vector<PartyRecord*>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD700)
 __declspec(naked) void __fastcall TemplatesResize(ClassTemplateVector* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD8D0)
-// hash_map<CString, float>::operator= (the party's variables): clear, then copy_from.
-__declspec(naked) void __fastcall FloatTableAssign(PartyVariableMap* /*table*/, void*, const PartyVariableMap* /*source*/) EI_ORIGINAL(0x004A8AD0)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
 // pointers, whose release the original inlines (004A5D70 / 004A7EA0): one reference less, the
@@ -252,12 +250,12 @@ CParty* RecordParty(PartyRecord* record) { return reinterpret_cast<CParty*>(reco
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
     if (auto* found = static_cast<CParty*>(this->Find(text10))) CopyParty(found, party);
-    PartyVariableMap variables;
-    FloatTableCopyConstructOriginal(&variables, nullptr, &party->variables_);
+    NamedFloatTable variables;
+    variables.CopyConstruct(party->variables_);
     mfc::CString zone(party->zone_);
     for (PartyRecord* record : records) {
         CParty* target = RecordParty(record);
-        FloatTableAssign(&target->variables_, nullptr, &variables);
+        target->variables_.Assign(variables);
         target->zone_ = zone;
         target->entrance_ = party->entrance_;
     }

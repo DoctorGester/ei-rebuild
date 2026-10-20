@@ -98,11 +98,6 @@ inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDat
 // C3h. 00405950: __node_alloc<true,0>::allocate(bytes) (ECX = bytes, plain RET, block or null).
 __declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
 
-// C3i. 00405720: STLport hash_map erase(node) (RET 8: node, table; EAX not a result). 00700D73: CString::operator+=(char)
-// (RET 4, returns this).
-// 006FE296: CArray<CString> DestructElements (RET 8: first, count).
-__declspec(naked) inline void __fastcall HashEraseOriginal(void* /*map*/, void*, void* /*node*/, const void* /*table*/)
-    EI_ORIGINAL(0x00405720)
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
 // 004C98F0: pointer list AddTail (RET 4, EAX not a result). 004DCE90: string vector insert overflow
@@ -114,16 +109,6 @@ __declspec(naked) inline void __fastcall StringVectorInsertOverflowOriginal(void
 inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* source) {
     static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
 }
-// The 0x4xxxxx hash tables (STLport hash_map instantiations): 00406E80 clear (plain RET).
-__declspec(naked) inline void __fastcall HashClearOriginal(void* /*map*/) EI_ORIGINAL(0x00406E80)
-// A-H17. hash_set<int> 007C8370 (the client's party ids, message 0x60), thiscall on the set: 0066B400
-// insert_unique (RET 8: the pair<iterator, bool> written to `out`, returned; resizes first), 0066B490 find (RET 8:
-// the iterator node, table to `out`), 0066BA70 clear (plain RET; nodes to the free list 0079B224).
-__declspec(naked) inline void* __fastcall IntSetInsertOriginal(void* /*set*/, void*, void* /*out*/, const int* /*key*/)
-    EI_ORIGINAL(0x0066B400)
-__declspec(naked) inline void __fastcall IntSetFindOriginal(void* /*set*/, void*, void* /*out*/, const int* /*key*/)
-    EI_ORIGINAL(0x0066B490)
-__declspec(naked) inline void __fastcall IntSetClearOriginal(void* /*set*/) EI_ORIGINAL(0x0066BA70)
 
 // Container instantiations inside the exe, decided from the disassembly. CList NewNode(prev, next) (RET 8, EAX the new
 // node): 004CD6D0 (0x20-byte nodes) / 004CDA30 (0xBC-byte nodes) construct the element through the template's
@@ -149,17 +134,7 @@ __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list
 // elements).
 __declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x0050FE70)
-// 00514880: hash_map<string, ...>::insert(pair) (RET 4: pair; EAX = node + 4, the stored pair). 005197B0: map find(key) writing
-// the iterator to `out` (RET 8: out, key; EAX = out).
-__declspec(naked) inline void* __fastcall NameMapInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x00514880)
-// 0053C780: operator[] of the figure prototypes' hash_map<string, record*> (007AF3A4; RET 4: the key string; EAX the
-// value's address; an unknown name gets a null entry).
-__declspec(naked) inline char** __fastcall FigureMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
-    EI_ORIGINAL(0x0053C780)
-// 0053D340: the same find_or_insert on another hash_map<string, T*> instantiation (the figure prototypes, 007AF3A4).
-__declspec(naked) inline void* __fastcall FigureMapInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x0053D340)
+// 005197B0: map find(key) writing the iterator to `out` (RET 8: out, key; EAX = out).
 __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, void*, void** /*out*/, const void* /*key*/)
     EI_ORIGINAL(0x005197B0)
 // vector<CString>: 0052E010 clear (destroys the elements, plain RET); no result.
@@ -228,21 +203,6 @@ inline void __fastcall CStringCopyConstructOriginal(void* where, void*, const mf
 inline void __fastcall CStringConstructTextOriginal(void* where, void*, const char* text) {
     new (where) mfc::CString(text);
 }
-// STLport hash_map<CString, float> (NamedFloatTable, object_tables.h; the party's variables), thiscall on the table:
-// 004A8A50 copy constructor from `source` (RET 4, returns this), 004AA950 copy_from(`source`) (RET 4), 00461540
-// clear (plain RET), 004616A0 deletes one node (RET 4), 004614C0 begin() (RET 4: the iterator it fills; no result).
-// 00609F50: the bucket vector's destructor (plain RET).
-__declspec(naked) inline void* __fastcall FloatTableCopyConstructOriginal(void* /*table*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x004A8A50)
-__declspec(naked) inline void __fastcall FloatTableCopyFromOriginal(void* /*table*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x004AA950)
-__declspec(naked) inline void __fastcall FloatTableClearOriginal(void* /*table*/) EI_ORIGINAL(0x00461540)
-__declspec(naked) inline void __fastcall FloatTableDeleteNodeOriginal(void* /*table*/, void*, void* /*node*/)
-    EI_ORIGINAL(0x004616A0)
-__declspec(naked) inline void __fastcall FloatTableBeginOriginal(void* /*table*/, void*, void* /*iterator*/)
-    EI_ORIGINAL(0x004614C0)
-__declspec(naked) inline void __fastcall BucketVectorDestroyOriginal(void* /*vector*/) EI_ORIGINAL(0x00609F50)
-
 // C3m. 006E9180: CRT strncmp (gamecrt::strncmp).
 inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return gamecrt::strncmp(a, b, n); }
 // C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).

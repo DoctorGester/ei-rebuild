@@ -4,6 +4,8 @@
 #include "ui_screens.h"
 #include "game_strings.h"
 #include "ui_camp.h"
+#include "acks_db.h"
+#include "unit_create.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -429,12 +431,6 @@ EI_REPLACE(0x00618060, MpHeroRename);
 // --- 00619150: the voice's sound ----------------------------------------------------------------
 
 namespace {
-// 00619FB0 (RET 4): the sound sets' hash_map<string, UnitSoundBank*>::operator[] (inserts a null
-// entry for an unknown name); EAX = the value slot.
-__declspec(naked) UnitSoundBank** __fastcall SoundSetAt(void* /*map*/, void*, const stlp::string* /*key*/)
-    EI_ORIGINAL(0x00619FB0)
-void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }
-void* SoundSets() { return reinterpret_cast<void*>(0x007C8A6C); }
 constexpr std::uint32_t kVoiceFlags = 0x2282;
 
 bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) == kVoiceFlags && entry.name; }
@@ -447,13 +443,14 @@ void CMpHeroScreen::PlayVoice() {
     char* prototype;
     {
         stlp::string key(static_cast<const char*>(hero->texts[6]));
-        prototype = static_cast<char*>(*PrototypeMapAtOriginal(UnitPrototypes(), nullptr, &key));
+        prototype = unitdb::PrototypeTable().byName.Subscript(key);
     }
     if (!prototype) return;
     UnitSoundBank* set;
     {
         stlp::string key(*reinterpret_cast<const char* const*>(prototype));
-        set = *SoundSetAt(SoundSets(), nullptr, &key);
+        // The sound sets (the units' acks) by name: operator[] (00619FB0) inserts a null entry for an unknown name.
+        set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
     }
     if (!set) return;
     // The original gathers the voice entries in a temporary vector; here they are counted and

@@ -295,7 +295,7 @@ mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* na
 }
 
 void CWorldClient::ApplyObjectVariables() {
-    auto* variables = reinterpret_cast<NamedFloatTable*>(reinterpret_cast<WorldPlayer*>(session_)->variables);
+    NamedFloatTable* variables = &reinterpret_cast<WorldPlayer*>(session_)->variables;
     for (SectorListNode* node = objects_.First(); node != objects_.End(); node = node->next) {
         auto* object = static_cast<CMapObject*>(node->data);
         const char* name = object->name2;

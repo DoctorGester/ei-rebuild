@@ -15,6 +15,7 @@
 #include "item.h"
 #include "random.h"
 #include "spell.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -397,10 +398,6 @@ EI_REPLACE_METHOD(0x005EE5C0, CItemInfoPanel::Draw);
 Quaternion* __fastcall MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
 namespace {
 
-// hash_map<string, record*>::operator[] of the unit prototypes (007AF364, 005335E0) and of the
-// figure prototypes (007AF3A4, 0053C780); both insert a null entry for an unknown name.
-char** FigurePrototypeAt(void* map, void*, const stlp::string* key) { return FigureMapAtOriginal(map, nullptr, key); }
-
 
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
@@ -416,12 +413,12 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     char* unit;
     {
         stlp::string key(prototype);
-        unit = static_cast<char*>(*PrototypeMapAtOriginal(reinterpret_cast<void*>(0x007AF364), nullptr, &key));
+        unit = unitdb::PrototypeTable().byName.Subscript(key);   // an unknown name gets a null entry
     }
     char* figure;
     {
         stlp::string key(Get<const char*>(unit, 4));
-        figure = *FigurePrototypeAt(reinterpret_cast<void*>(0x007AF3A4), nullptr, &key);
+        figure = reinterpret_cast<char*>(unitdb::ModelNamed(key));
     }
     mfc::CString sex;
     const char* figureModel = Get<const char*>(figure, 0xE8);

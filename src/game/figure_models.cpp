@@ -22,14 +22,9 @@ namespace {
 using ModelMap = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>;
 using AnimationMap = FigureModel::AnimationMap;
 
-// The model map's find (RET 8: out iterator, key) and operator[] (RET 4: the pair, key then value).
-__declspec(naked) void __fastcall MapFind(ModelMap*, void*, ModelMap::Iterator*, const stlp::string*) EI_ORIGINAL(0x004FB0F0)
-__declspec(naked) ModelMap::Pair* __fastcall MapIndex(ModelMap*, void*, const stlp::string*) EI_ORIGINAL(0x004FBBD0)
-
-// The model's animation map: find (RET 8) and operator[] (RET 4). The animations are
-// CMMIOResources (0x6C bytes, CMMIOResource::Construct).
-__declspec(naked) void __fastcall AnimFind(AnimationMap*, void*, AnimationMap::Iterator*, const stlp::string*) EI_ORIGINAL(0x005AD520)
-__declspec(naked) AnimationMap::Pair* __fastcall AnimIndex(AnimationMap*, void*, const stlp::string*) EI_ORIGINAL(0x005ADC10)
+// The model map's and the model's animation map's find (004FB0F0 / 005AD520) and find_or_insert
+// (004FBBD0 / 005ADC10, through operator[]). The animations are CMMIOResources (0x6C bytes,
+// CMMIOResource::Construct).
 
 // The STLport hashtable's inlined constructor: the buckets vector's end-of-storage member from an
 // allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8) and
@@ -48,23 +43,15 @@ void* OpenPart(CFigureManager* manager, const stlp::string* name, std::uintptr_t
     return manager->GetFile(path, nullptr);
 }
 
-// operator[] with a copy of the name as its key.
-FigureModel** ModelSlot(ModelMap* map, const stlp::string* name) {
-    stlp::string key(*name);
-    return &MapIndex(map, nullptr, &key)->value;
-}
-CMappedResource** AnimationSlot(AnimationMap* map, const stlp::string* name) {
-    stlp::string key(*name);
-    return &AnimIndex(map, nullptr, &key)->value;
-}
+// operator[]: a {name, null} pair for find_or_insert.
+FigureModel** ModelSlot(ModelMap* map, const stlp::string* name) { return &map->Subscript(*name); }
+CMappedResource** AnimationSlot(AnimationMap* map, const stlp::string* name) { return &map->Subscript(*name); }
 
 } // namespace
 
 FigureModel* CFigureManager::FindModel(const stlp::string* name) {
     ModelMap* map = &models_;
-    ModelMap::Iterator found;
-    MapFind(map, nullptr, &found, name);
-    if (found.node) return found.node->value;
+    if (const ModelMap::Node* found = map->Find(*name)) return found->value;
 
     void* mesh = OpenPart(this, name, 0x0078EC88);        // ".mod"
     void* bones = OpenPart(this, name, 0x00784640);       // ".bon"
@@ -78,8 +65,8 @@ FigureModel* CFigureManager::FindModel(const stlp::string* name) {
     parts->mesh->OpenFromMemory(mesh);
     if (bones) parts->bones->OpenFromMemory(bones);
     if (animation) parts->animations->OpenFromMemory(animation);
-    MapFind(map, nullptr, &found, name);
-    return found.node ? found.node->value : nullptr;
+    const ModelMap::Node* found = map->Find(*name);
+    return found ? found->value : nullptr;
 }
 
 EI_REPLACE_METHOD(0x005AA5F0, CFigureManager::FindModel);
@@ -90,9 +77,7 @@ EI_REPLACE_METHOD(0x005AA5F0, CFigureManager::FindModel);
 // either way.
 CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
     AnimationMap* map = &animationCache;
-    AnimationMap::Iterator found;
-    AnimFind(map, nullptr, &found, name);
-    if (found.node) return found.node->value;
+    if (const AnimationMap::Node* found = map->Find(*name)) return found->value;
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
         void* memory = gamecrt::operator_new(0x6C);
@@ -100,8 +85,8 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
         *AnimationSlot(map, name) = animation;
         (*AnimationSlot(map, name))->OpenFromMemory(data);
     }
-    AnimFind(map, nullptr, &found, name);
-    return found.node ? found.node->value : nullptr;
+    const AnimationMap::Node* found = map->Find(*name);
+    return found ? found->value : nullptr;
 }
 EI_REPLACE_METHOD(0x005A9EF0, FigureModel::FindAnimation);
 

@@ -287,10 +287,6 @@ __declspec(naked) void __fastcall PlatformRemoveAt(PlatformList*, void*, Platfor
 
 // The id map +0xD8 (hash_map<unsigned, DynamicNode*>, then the highest key): operator[]
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
-void __fastcall IdMapErase(PendingMap* map, void*, const PendingMap::Node* node, const PendingMap* owner) {
-    HashEraseOriginal(map, nullptr, const_cast<PendingMap::Node*>(node), owner);
-}
-void __fastcall IdMapClear(PendingMap* map) { HashClearOriginal(map); }
 
 // ClearMaps: the session's player data [00665200].
 void __fastcall SessionPlayerClear(WorldSession* session) { PlayerClearOriginal(session); }
@@ -516,7 +512,7 @@ void CWorldClient::RemoveObject(int id) {
         else
             node->next->prev = node->prev;
         kept.FreeNode(node);
-        if (const PendingMap::Node* again = ids.Find(static_cast<std::uint32_t>(id))) IdMapErase(&ids, nullptr, again, &ids);
+        if (const PendingMap::Node* again = ids.Find(static_cast<std::uint32_t>(id))) ids.Erase(const_cast<PendingMap::Node*>(again));
     }
     PlainList& objects = objects_;
     SectorListNode* node = objects.head->next;
@@ -573,7 +569,7 @@ void CWorldClient::ClearMaps() {
     // destruction).
     platforms_.list.RemoveAll();
     dynamicObjects_.RemoveAll();
-    IdMapClear(&dynamicNodes_);
+    dynamicNodes_.Clear();
     dynamicMaxId_ = 0;
 
     stlp::list<void*>& records = list7BC_;
@@ -703,13 +699,8 @@ void CWorldClient::UnitsInBox(const long* rect, SectorList* out) {
 
 namespace {
 
-// The prototypes' name map (worlddata::PrototypeNameMap, hash_map<string, record*>): find or insert
-// a {name, 0} pair [00514880], returning the stored pair; the prototype table's lookup by name
-// [00514930].
-struct NamePair {
-    stlp::string first;
-    UnitPrototypeRecord* second;
-};
+// The prototypes' name map (hash_map<string, record*>): find or insert a {name, 0} pair
+// [00514880]; the prototype table's lookup by name [00514930].
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
 // [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
@@ -741,13 +732,8 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (SameText(name, worlddata::HairPartText())) {
-                NamePair* stored;
-                {
-                    stlp::string key(static_cast<const char*>(record->texts[5]));
-                    NamePair pair{key, nullptr};
-                    stored = (NamePair*)NameMapInsertOriginal(worlddata::PrototypeNameMap(), nullptr, (const void*)&pair);
-                }
-                int number = stored->second->hair;
+                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(stlp::string(static_cast<const char*>(record->texts[5])));
+                int number = prototype->hair;
                 if (number != -1) {
                     hair.Format(worlddata::HairFormat(), number);
                     parts.SetAtGrow(parts.GetSize(), hair);
@@ -1154,7 +1140,6 @@ __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040
 __declspec(naked) void __fastcall Construct562A80(void*) EI_ORIGINAL(0x00562A80)
 __declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
 __declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453400)
-__declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 // vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
 __declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
@@ -1319,7 +1304,7 @@ int CWorldClient::Setup() {
     if (manager) {
         static_cast<CBaseManager*>(manager)->ConstructBase();
         mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&manager->freeParticles, 10);
-        Construct5725E0(&manager->held_);
+        manager->held_.Construct(100);   // 005725E0
         manager->maxHeldId_ = 0;
         ei::SetVtable(manager, worlddata::kParticleManagerVtable);
         ParticleManagerClearQuietStart(manager);   // 004981A0

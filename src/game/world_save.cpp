@@ -169,8 +169,6 @@ __declspec(naked) void __fastcall CommandQueueSave(void*, void*, WorldStream*) E
 // 006618C0 / 00661C10 (RET 8). A player's party records, read / written.
 __declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
 __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
-// 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
-double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0055FB00 (RET 4). CWorld::FindUnit.
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
@@ -221,7 +219,7 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
         int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick));
         player->lastTick = now;
         if (elapsed < 0) elapsed = 0;
-        double current = VariableGet(player->variables, nullptr, name);
+        double current = player->variables.Get(name);
         float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
         player->server->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }

@@ -238,7 +238,8 @@ void ReadPlayer(WorldPlayer* p, Builder& b) {
     for (int i = 0; i < party->members_.GetSize(); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
     b.Unsigned("entrance", party->entrance_);
     std::vector<std::pair<std::string, float>> variables;
-    party->variables_.ForEach([&](const PartyVariableMap::Node* n) { variables.emplace_back(Text(n->key), n->value); });
+    for (const NamedFloatTable::Node* n = party->variables_.First(); n; n = party->variables_.Next(n))
+        variables.emplace_back(Text(n->value.key), n->value.mapped);
     std::sort(variables.begin(), variables.end());
     for (const auto& v : variables) b.Float(Intern("var." + v.first), v.second);
 }

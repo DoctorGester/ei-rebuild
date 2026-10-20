@@ -177,7 +177,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         if (cx < 0 || cy < 0 || cx >= width || cy >= height) {
             ground = 0.0f;
         } else if (cells[cy][cx].flags & kCellBridge) {
-            ground = static_cast<float>(BridgeHeight(bridgeHeights, nullptr, static_cast<short>(cx),
+            ground = static_cast<float>(BridgeHeight(&bridgeHeights, nullptr, static_cast<short>(cx),
                                                      static_cast<short>(cy))) / heightScale;
         } else {
             ground = GroundHeight(cx, cy);

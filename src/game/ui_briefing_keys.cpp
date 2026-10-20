@@ -58,8 +58,8 @@ void OpenObjectives(CInterface3D* ui) {
     console::CStringArray parts;
     BriefingVariables quests(QuestPrefix());
     for (NamedFloatTable::Node* node = quests.First(); node; node = quests.Next(node)) {
-        text::Split(node->key, &parts, '.');
-        if (parts.size != kQuestNameParts || Bits(node->value) != kOneBits) continue;
+        text::Split(node->value.key, &parts, '.');
+        if (parts.size != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
         MapRecord* questZone = MapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;

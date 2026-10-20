@@ -71,11 +71,11 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     } else {
         player = WorldServer()->GetPlayer(0);
         if (!player) {
-            FloatTableClearOriginal(out);
+            out->Clear();
             return;
         }
     }
-    reinterpret_cast<NamedFloatTable*>(player->variables)->CopyPrefixed(prefix, out);
+    player->variables.CopyPrefixed(prefix, out);
 }
 EI_REPLACE(0x00578C40, PlayerZeroVariables);
 
@@ -253,7 +253,7 @@ EI_REPLACE(0x00578B20, GameRejoin);
 
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out) {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
-    reinterpret_cast<NamedFloatTable*>(player->variables)->CopyPrefixed(prefix, out);
+    player->variables.CopyPrefixed(prefix, out);
 }
 EI_REPLACE(0x00578B70, GameLocalPlayerVariables);
 

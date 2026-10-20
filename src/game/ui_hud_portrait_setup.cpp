@@ -34,8 +34,6 @@ float Thin() { return GameFloat(0x0073BAD4); }            // 0.2
 float Fat() { return GameFloat(0x0073CCA8); }             // 0.8
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle (ui_hud_portraits.cpp)
 const Quaternion& Identity() { return *reinterpret_cast<const Quaternion*>(0x007C8150); }
-void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }     // hash_map<string, UnitPrototypeRecord*>
-void* FigurePrototypes() { return reinterpret_cast<void*>(0x007AF3A4); }   // hash_map<string, FigurePrototypeRecord*>
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 
 // The slots' STLport vector (CHudPortraits +0x158): 0064AB20 appends a default slot (identity
@@ -43,12 +41,6 @@ void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 __declspec(naked) void __fastcall SlotsPushDefault(HudPortraitSlot** /*vector*/) EI_ORIGINAL(0x0064AB20)
 __declspec(naked) HudPortraitSlot* __fastcall SlotsErase(HudPortraitSlot** /*vector*/, void*, HudPortraitSlot* /*first*/,
                                                          HudPortraitSlot* /*last*/) EI_ORIGINAL(0x0064AD40)
-
-// pair<const string, T*> of the name maps; find_or_insert returns the stored pair.
-struct NamePair {
-    stlp::string name;
-    void* value;
-};
 
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
@@ -249,18 +241,15 @@ void CHudPortraits::Rebuild(int wide) {
 
         UnitPrototypeRecord* prototype;
         {
-            NamePair key{stlp::string(player->text_), nullptr};
-            prototype = static_cast<UnitPrototypeRecord*>(
-                static_cast<NamePair*>(NameMapInsertOriginal(UnitPrototypes(), nullptr, &key))->value);
+            prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
             // EI_Plugin's Fixes (00640C97): an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = reinterpret_cast<UnitPrototypeRecord*>(pluginfixes::FallbackPrototype());
         }
         FigurePrototypeRecord* figure;
         {
-            NamePair key{stlp::string(static_cast<const char*>(prototype->modelName)), nullptr};
-            figure = static_cast<FigurePrototypeRecord*>(
-                static_cast<NamePair*>(FigureMapInsertOriginal(FigurePrototypes(), nullptr, &key))->value);
+            figure = reinterpret_cast<FigurePrototypeRecord*>(
+                unitdb::ModelNamed(stlp::string(static_cast<const char*>(prototype->modelName))));
         }
         SexOf(figure->model, sex);
         build = game::Text(0x007844A8);                              // "me"
