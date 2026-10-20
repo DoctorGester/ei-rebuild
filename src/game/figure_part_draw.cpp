@@ -32,14 +32,6 @@
 
 namespace {
 
-// STLport string (start, finish, end of storage), handled through the original members.
-struct RawString {
-    char* start;
-    char* finish;
-    char* eos;
-};
-const stlp::string* AsString(const RawString* s) { return reinterpret_cast<const stlp::string*>(s); }
-
 // The positions with the offsets added (007C2E48, a lib::AlignedArray; a function-local static,
 // guard 007C2E58 bit 1, freed at exit by 005A8AE0).
 lib::AlignedArray<VertexPacket>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E48); }
@@ -60,7 +52,7 @@ void LightForMaterial(CLight* light, CMaterial* material, std::uint32_t ambient)
     light->SetLitColors(reinterpret_cast<const float*>(material), std::bit_cast<float>(ambient));
 }
 // 005197B0: map<string, LinkPartHeader>::find on a figure's part headers: the node to *out.
-void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, const RawString* a3) {
+void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, const stlp::string* a3) {
     StringMapFindOriginal(a0, nullptr, reinterpret_cast<void**>(a2), a3);
 }
 
@@ -195,9 +187,6 @@ struct Part {
     bool Textured() const { return textureA && textureB; }
 };
 
-// An allocator argument for the string members: they read (at most) a byte through it.
-const void* Allocator(Part& part) { return reinterpret_cast<char*>(&part.material) + 3; }
-
 // A pointer passed to the device's draws as a dword.
 // A texture offset as the draws take it (its bits).
 std::uint32_t OffsetBits(float offset) { return std::bit_cast<std::uint32_t>(offset); }
@@ -208,13 +197,9 @@ std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpre
 void FlatColours(Part& part) {
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
-        RawString s;
-        StringInitWithAllocator(&s, nullptr, Allocator(part));
-        StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
+        stlp::string s(name);
         CFigureMesh* mesh = part.Mesh();
-        part.figure->FlatColours(AsString(&s), mesh->flatColour_, mesh->flatSpecular_, &part.Colours(),
-                                 &part.Speculars());
-        StringBufferFree(&s);
+        part.figure->FlatColours(&s, mesh->flatColour_, mesh->flatSpecular_, &part.Colours(), &part.Speculars());
         return;
     }
     part.Colours().SetSizeDiscard(part.Mesh()->buffers_.normalCount * 4);
@@ -252,11 +237,8 @@ void Light(Part& part) {
 
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
-        RawString s;
-        StringInitWithAllocator(&s, nullptr, Allocator(part));
-        StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
-        part.figure->LightPart(AsString(&s), part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
-        StringRepDestroy(&s);
+        stlp::string s(name);
+        part.figure->LightPart(&s, part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
     } else {
         std::uint32_t vector[3];
         std::memcpy(vector, &part.material->colors.emissive, sizeof(vector));
@@ -328,17 +310,7 @@ void DrawThroughFigure(Part& part) {
     CFigureMesh* mesh = part.Mesh();
     bool moved = mesh->offsets_.size != 0;
     const char* name = MeshName(mesh);
-    RawString s;
-    if (moved || part.Textured()) {
-        StringInitWithAllocator(&s, nullptr, Allocator(part));
-        StringInitRangeOriginal(&s, nullptr, name, name + std::strlen(name), part.material);
-    } else {
-        s.start = nullptr;
-        s.finish = nullptr;
-        int zero = 0;
-        StringEndOfStorageOriginal(&s.eos, nullptr, Allocator(part), &zero);
-        StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
-    }
+    stlp::string s(name);
     mesh = part.Mesh();
     std::uint32_t u = OffsetBits(mesh->textureOffsetU_);
     std::uint32_t v = OffsetBits(mesh->textureOffsetV_);
@@ -347,31 +319,23 @@ void DrawThroughFigure(Part& part) {
     lib::AlignedArray<Vector3>* offsets = &mesh->offsets_;
     int result;
     if (moved && part.Textured()) {
-        result = part.figure->DrawPartMovedTextured(AsString(&s), part.drawFlags, part.textureA->surface_,
+        result = part.figure->DrawPartMovedTextured(&s, part.drawFlags, part.textureA->surface_,
                                                     part.textureB->surface_, colours, speculars, offsets, u, v);
     } else if (moved) {
-        result = part.figure->DrawPartMoved(AsString(&s), part.drawFlags, colours, speculars, offsets, u, v);
+        result = part.figure->DrawPartMoved(&s, part.drawFlags, colours, speculars, offsets, u, v);
     } else if (part.Textured()) {
-        result = part.figure->DrawPartTextured(AsString(&s), part.drawFlags, part.textureA->surface_,
+        result = part.figure->DrawPartTextured(&s, part.drawFlags, part.textureA->surface_,
                                                part.textureB->surface_, colours, speculars, u, v);
     } else {
-        result = part.figure->DrawPart(AsString(&s), part.drawFlags, colours, speculars, u, v);
+        result = part.figure->DrawPart(&s, part.drawFlags, colours, speculars, u, v);
     }
-    StringBufferFree(&s);
 
     if (part.rect) {
-        const char* pieceName = MeshName(part.Mesh());
-        RawString key;
-        key.start = nullptr;
-        key.finish = nullptr;
-        int zero = 0;
-        StringEndOfStorageOriginal(&key.eos, nullptr, Allocator(part), &zero);
-        StringAssignSpan(&key, nullptr, pieceName, pieceName + std::strlen(pieceName));
+        stlp::string key(MeshName(part.Mesh()));
         LinkHeaderMap::Node* node = nullptr;
         FindPiece(&part.figure->headers_, nullptr, &node, &key);
         RECT* own = &part.node->screen_;
         gameapi::CopyRect(own, &node->second.screen);
-        StringBufferFree(&key);
         *part.rect = *own;
     }
     if (result != 2) part.Mesh()->flags_ |= 0x40;

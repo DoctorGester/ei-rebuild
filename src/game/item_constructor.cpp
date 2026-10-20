@@ -427,23 +427,16 @@ void* const kMaterialTable = reinterpret_cast<void*>(0x007C86D8);
 // 006AD000 (RET 0x10). The item manager makes an item (kind, record index, a, b).
 CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a4, int a5) { return (CItem*)a0->MakeItem(a2, a3, a4, a5); }
 
-// The string-keyed maps the loot item's table index comes from (STLport strings handled through
-// the original members; see class_templates.cpp): operator[] of the weapon (007C8704, 006AD670),
-// armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell (007C851C, 004ABD00) maps,
-// and the modifier map's find_or_insert (007C853C, 004ACC10) of a (name, null) pair (00689950).
-struct NameKey {
-    char* start;
-    char* finish;
-    char* eos;
-};
+// The string-keyed maps the loot item's table index comes from: operator[] of the weapon
+// (007C8704, 006AD670), armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell
+// (007C851C, 004ABD00) maps, and the modifier map's find_or_insert (007C853C, 004ACC10) of a
+// (name, null) pair.
 struct NamePair {
-    NameKey name;
+    stlp::string name;
     void* record;
 };
-static NameKey* KeyFromChars(NameKey* s, void*, const char* text, const void* alloc) { return static_cast<NameKey*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-__declspec(naked) void __fastcall PairConstruct(NamePair*, void*, const NameKey*, void* const*) EI_ORIGINAL(0x00689950)
-__declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006AD670)
-__declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006A75E0)
+__declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x006AD670)
+__declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x006A75E0)
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 int TableIndex(const RecordTable& table, const char* record, int stride) {
@@ -451,45 +444,24 @@ int TableIndex(const RecordTable& table, const char* record, int stride) {
 }
 
 // The table index of a loot item's second name part (`which`: its +0x50).
-int LootTableIndex(int which, const char* name, const void* allocator) {
-    NameKey key;
-    char* record;
+int LootTableIndex(int which, const char* name) {
+    if (which < 0 || which > 4) return 0;
+    stlp::string key(name);
     switch (which) {
     case 0:
-        KeyFromChars(&key, nullptr, name, allocator);
-        record = *WeaponNameAt(reinterpret_cast<void*>(0x007C8704), nullptr, &key);
-        StlStringDestroy(&key);
-        return TableIndex(Weapons(), record, kWeaponSize);
+        return TableIndex(Weapons(), *WeaponNameAt(reinterpret_cast<void*>(0x007C8704), nullptr, &key), kWeaponSize);
     case 1:
-        KeyFromChars(&key, nullptr, name, allocator);
-        record = *ArmorNameAt(reinterpret_cast<void*>(0x007C8724), nullptr, &key);
-        StlStringDestroy(&key);
-        return TableIndex(Armors(), record, kArmorSize);
+        return TableIndex(Armors(), *ArmorNameAt(reinterpret_cast<void*>(0x007C8724), nullptr, &key), kArmorSize);
     case 2:
-        KeyFromChars(&key, nullptr, name, allocator);
-        record = *(char**)QuickItemMapAtOriginal(reinterpret_cast<void*>(0x007C8744), nullptr, (const void*)&key);
-        StlStringDestroy(&key);
-        return TableIndex(QuickItems(), record, kQuickItemSize);
+        return TableIndex(QuickItems(), *(char**)QuickItemMapAtOriginal(reinterpret_cast<void*>(0x007C8744), nullptr, &key),
+                          kQuickItemSize);
     case 3:
-        StringInitWithAllocator(&key, nullptr, allocator);
-        StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
-        record = *(char**)SpellMapAtOriginal(reinterpret_cast<void*>(0x007C851C), nullptr, (const void*)&key);
-        StlStringDestroy(&key);
-        return TableIndex(Spells(), record, kSpellSize);
-    case 4: {
-        StringInitWithAllocator(&key, nullptr, allocator);
-        StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
-        void* none = nullptr;
-        NamePair pair;
-        PairConstruct(&pair, nullptr, &key, &none);
-        void** slot = &((NamePair*)ModifierMapFindOrInsertOriginal(reinterpret_cast<void*>(0x007C853C), nullptr, (const void*)&pair))->record;
-        StlStringDestroy(&pair.name);
-        record = static_cast<char*>(*slot);
-        StringRepDestroy(&key);
-        return TableIndex(SpellModifiers(), record, kSpellModifierSize);
+        return TableIndex(Spells(), *(char**)SpellMapAtOriginal(reinterpret_cast<void*>(0x007C851C), nullptr, &key), kSpellSize);
+    default: {
+        NamePair pair{key, nullptr};
+        auto* stored = static_cast<NamePair*>(ModifierMapFindOrInsertOriginal(reinterpret_cast<void*>(0x007C853C), nullptr, &pair));
+        return TableIndex(SpellModifiers(), static_cast<char*>(stored->record), kSpellModifierSize);
     }
-    default:
-        return 0;
     }
 }
 
@@ -568,7 +540,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     auto* loot = static_cast<CItemLoot*>(item);
     if (item->GetClassId() == kClassLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size > 1) {
         int which = static_cast<int>(loot->recordType_);
-        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts.data[1], &name));
+        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts.data[1]));
     }
     return item;
 }

@@ -45,7 +45,7 @@ src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ground_print.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/hash_tables_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/ini_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
-src/game/item_constructor.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+src/game/item_constructor.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/item_db_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,21
 src/game/item_db_open.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/item_db_text.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -235,7 +235,7 @@ src/game/world_sessions.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_sync.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/world_unit_set.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
-src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
+src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,18

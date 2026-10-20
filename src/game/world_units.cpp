@@ -68,20 +68,13 @@ __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(
 // 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
-// The prototype table's name map (007AF364): an STLport string key (0040C5A0 / 0040C720), the
-// pair (005729D0 builds {key, value}) and the insert (00514880, returns the stored pair).
-struct RawString {
-    std::uint8_t bytes[12];
-};
+// The prototype table's name map (007AF364): the insert (00514880) returns the stored pair.
 // An entry of the name map: the STLport string key and the prototype.
 struct PrototypeNamePair {
-    RawString key;                     // +0x00
+    stlp::string key;                  // +0x00
     UnitPrototypeRecord* prototype;    // +0x0C
 };
 static_assert(sizeof(PrototypeNamePair) == 0x10);
-static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-__declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
-    EI_ORIGINAL(0x005729D0)
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
 // Placement on the maps.
 // The unit's setup.
@@ -109,16 +102,12 @@ void DestroyMessage(UnitSpec* message) {
 
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
 void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& scratch) {
-    RawString key;
-    char allocator;
-    RawStringInit(&key, nullptr, prototypeName, &allocator);
-    void* none = nullptr;
-    PrototypeNamePair pair;
-    NamePairBuild(&pair, nullptr, &key, &none);
-    PrototypeNamePair* stored = (PrototypeNamePair*)NameMapInsertOriginal(worlddata::PrototypeNameMap(), nullptr, &pair);
-    StlStringDestroy(&pair);
-    UnitPrototypeRecord* prototype = stored->prototype;
-    StlStringDestroy(&key);
+    UnitPrototypeRecord* prototype;
+    {
+        stlp::string key(prototypeName);
+        PrototypeNamePair pair{key, nullptr};
+        prototype = static_cast<PrototypeNamePair*>(NameMapInsertOriginal(worlddata::PrototypeNameMap(), nullptr, &pair))->prototype;
+    }
     int hairStyle = prototype ? prototype->hair : 1;
 
     mfc::CStringArray* parts = &message->object.parts;
@@ -569,12 +558,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             const char* prototypeName = unitSpec->prototype;
             UnitPrototypeRecord* prototype;
             {
-                alignas(4) std::uint8_t key[12];
-                char allocator;
-                StringInitWithAllocator(key, nullptr, &allocator);
-                StringAssignSpan(key, nullptr, prototypeName, prototypeName + std::strlen(prototypeName));
-                prototype = *UnitPrototypeAt(worlddata::PrototypeNameMap(), nullptr, key);
-                StlStringDestroy(key);
+                stlp::string key(prototypeName);
+                prototype = *UnitPrototypeAt(worlddata::PrototypeNameMap(), nullptr, &key);
             }
             unsigned index;
             if (prototype) {

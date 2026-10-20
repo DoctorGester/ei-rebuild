@@ -22,14 +22,6 @@
 
 namespace {
 
-// An STLport string the game's own members build and free (start, finish, end of storage).
-struct StringSlot {
-    char* start;
-    char* finish;
-    char* eos;
-};
-static_assert(sizeof(StringSlot) == sizeof(stlp::string));
-
 // 005AA5F0: the manager's model of a name (figure_models.cpp).
 // The animation state: LinkPiece (RET 0xC), FindRoot (map_object_animation_bones.cpp).
 // 00480080: game::FatalError(format, ...).
@@ -38,15 +30,11 @@ static_assert(sizeof(StringSlot) == sizeof(stlp::string));
 } // namespace
 
 int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* name) {
-    StringSlot key;
-    key.start = nullptr;
-    key.finish = nullptr;
-    char allocatorTag;
-    int zero = 0;
-    StringEndOfStorageOriginal(&key.eos, nullptr, &allocatorTag, &zero);
-    StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
-    auto* model = static_cast<FigureModel*>(FindModel(reinterpret_cast<const stlp::string*>(&key)));
-    StringBufferFree(&key);
+    FigureModel* model;
+    {
+        stlp::string key(name);
+        model = static_cast<FigureModel*>(FindModel(&key));
+    }
 
     std::uint32_t* data;
     if (model) {
