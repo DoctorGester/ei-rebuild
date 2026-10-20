@@ -198,6 +198,15 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   terrainlevels on|point|off
+//                             the image's ground pages draw the texture level their sampler reads
+//                             (render::TerrainLevels: a grey per level, marked green / blue), through
+//                             the shipped sampler (on) or the old point-mip one (point), or their
+//                             colours (off). Ignored in a run of the original code
+//   levelsteps <frame> <least> <most>
+//                             require the fraction of neighbouring level-map pixel pairs of
+//                             frames\<frame>.bmp whose level jumps (capture::LevelSteps: the seams of
+//                             R12) to lie within <least>..<most>. Skipped in a run of the original code
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
@@ -2639,6 +2648,39 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "terrainlevels") {
+            if (!render::Active()) {
+                Log("harness: terrainlevels %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "on") render::TerrainLevels(render::TerrainLevelMode::Levels);
+            else if (s.argument == "point") render::TerrainLevels(render::TerrainLevelMode::PointMips);
+            else if (s.argument == "off") render::TerrainLevels(render::TerrainLevelMode::Off);
+            else g_failures.push_back("terrainlevels needs on, point or off");
+        } else if (s.verb == "levelsteps") {
+            char frame[64] = "";
+            double least = 0, most = 1;
+            if (sscanf_s(s.argument.c_str(), "%63s %lf %lf", frame, unsigned(sizeof(frame)), &least, &most) < 3) {
+                g_failures.push_back("levelsteps needs a frame name, a least and a most fraction");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: levelsteps %s: not the new renderer (the original code): no level map", frame);
+                continue;
+            }
+            double steps = 0;
+            long long pairs = 0;
+            const char* why = "";
+            if (!capture::LevelSteps(frame, &steps, &pairs, &why)) {
+                g_failures.push_back(std::string("levelsteps ") + frame + ": " + why);
+                continue;
+            }
+            char text[200];
+            std::snprintf(text, sizeof(text), "levelsteps %s: %.4f%% of %lld neighbouring pairs step a level (allowed %.4f%% .. %.4f%%)",
+                          frame, 100.0 * steps, pairs, 100.0 * least, 100.0 * most);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (steps < least || steps > most) g_failures.push_back(text);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";

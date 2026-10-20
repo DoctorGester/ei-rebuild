@@ -1,0 +1,62 @@
+# Terrain seams (R12, docs/notes/renderer.md section 11): the ground pages sampled with point mips
+# (D3DTFP_POINT, what the game asks for) jumped a texture level along the tiles' edges, which showed
+# as seams moving with the camera. The image samples them anisotropically with linear mips. At two
+# frozen views of zone1 (zoomed out, then moved by the screen edge) the image captures its frame, the
+# terrain's level map through its own sampler (terrainlevels on) and through the old one (point);
+# levelsteps requires few level steps in the first and many in the second (so the check sees seams);
+# Rebirth's wide view looks further over steeper slopes and has more of both.
+# A run of the original code captures its frames and skips the level steps.
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+move 400 300
+wheel 400 300 -120
+frames 2
+wheel 400 300 -120
+frames 2
+wheel 400 300 -120
+frames 2
+wheel 400 300 -120
+frames 2
+wheel 400 300 -120
+frames 2
+wheel 400 300 -120
+wait 1500
+move 400 60
+frames 3
+freeze
+capture far
+terrainlevels on
+capture far_levels
+terrainlevels point
+capture far_point
+terrainlevels off
+unfreeze
+vanilla levelsteps far_levels 0 0.0005
+rebirth levelsteps far_levels 0 0.004
+vanilla levelsteps far_point 0.001 1
+rebirth levelsteps far_point 0.006 1
+
+move 0 300
+frames 4
+move 400 60
+frames 3
+freeze
+capture west
+terrainlevels on
+capture west_levels
+terrainlevels point
+capture west_point
+terrainlevels off
+unfreeze
+vanilla levelsteps west_levels 0 0.0005
+rebirth levelsteps west_levels 0 0.004
+vanilla levelsteps west_point 0.001 1
+rebirth levelsteps west_point 0.006 1
+report
+quit

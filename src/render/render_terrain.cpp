@@ -76,7 +76,8 @@ const char* const kTerrainSource = R"(
 cbuffer params : register(b0) {
     float4 row0; float4 row1; float4 row2; float4 row3;
     float4 fog;     // rgb: the fog colour
-    float4 flags;   // x: water (alpha from the vertex colour), y: fog on; zw: the half-pixel shift
+    float4 flags;   // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels),
+                    // y: fog on; zw: the half-pixel shift
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
 struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 pos : SV_Position; };
@@ -94,6 +95,7 @@ Texture2D<float4> tex : register(t0);
 SamplerState smp : register(s0);
 float4 ps_main(vs_out i) : SV_Target0 {
     float4 t = tex.Sample(smp, i.uv);
+    if (flags.x > 1.5) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
     float3 c = saturate(t.rgb * i.col.rgb + i.spec.rgb);
     float a = flags.x > 0.5 ? i.col.a : t.a;
     if (flags.y > 0.5) c = lerp(fog.rgb, c, i.spec.a);
@@ -148,6 +150,59 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     g_pipelines.emplace(key, pipeline);
     return pipeline;
 }
+
+#if defined(EI_RENDER_VALIDATION)
+// --- The level map (render::TerrainLevels, harness build) ---------------------------------------------
+
+TerrainLevelMode g_levelMode = TerrainLevelMode::Off;
+
+// A texture of a page texture's size and levels, level k all grey k * 32 (at most 255).
+struct LevelImage {
+    int width, height, levels;
+    sg_image image;
+    sg_view view;
+};
+std::vector<LevelImage> g_levelImages;
+
+sg_view LevelView(sg_view page) {
+    sg_image image = sg_query_view_image(page);
+    if (!image.id) return sg_view{};
+    int width = sg_query_image_width(image), height = sg_query_image_height(image);
+    int levels = sg_query_image_num_mipmaps(image);
+    for (const LevelImage& l : g_levelImages)
+        if (l.width == width && l.height == height && l.levels == levels) return l.view;
+    if (width <= 0 || height <= 0 || levels <= 0 || levels > SG_MAX_MIPMAPS) return sg_view{};
+    std::vector<std::vector<std::uint8_t>> pixels(static_cast<std::size_t>(levels));
+    sg_image_desc d{};
+    d.width = width;
+    d.height = height;
+    d.num_mipmaps = levels;
+    d.pixel_format = SG_PIXELFORMAT_RGBA8;
+    d.label = "ei-terrain-levels";
+    for (int k = 0; k < levels; ++k) {
+        int w = (width >> k) > 0 ? width >> k : 1, h = (height >> k) > 0 ? height >> k : 1;
+        auto grey = static_cast<std::uint8_t>(k * 32 < 255 ? k * 32 : 255);
+        auto& level = pixels[static_cast<std::size_t>(k)];
+        level.assign(static_cast<std::size_t>(w) * h * 4, grey);
+        for (std::size_t i = 3; i < level.size(); i += 4) level[i] = 255;
+        d.data.mip_levels[k] = sg_range{level.data(), level.size()};
+    }
+    LevelImage l{width, height, levels, sg_make_image(&d), sg_view{}};
+    sg_view_desc v{};
+    v.texture.image = l.image;
+    l.view = sg_make_view(&v);
+    g_levelImages.push_back(l);
+    return l.view;
+}
+
+void DropLevelImages() {
+    for (const LevelImage& l : g_levelImages) {
+        sg_destroy_view(l.view);
+        sg_destroy_image(l.image);
+    }
+    g_levelImages.clear();
+}
+#endif
 
 } // namespace
 
@@ -277,14 +332,25 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
     b.views[0] = TextureView(batch.texture);
-    b.samplers[0] = LinearSampler();
+    b.samplers[0] = TerrainSampler(batch.state.stages[0]);
+    float mode = batch.water ? 1.0f : 0.0f;
+#if defined(EI_RENDER_VALIDATION)
+    if (g_levelMode != TerrainLevelMode::Off && !batch.water) {
+        sg_view levels = LevelView(b.views[0]);
+        if (levels.id) {
+            b.views[0] = levels;
+            if (g_levelMode == TerrainLevelMode::PointMips) b.samplers[0] = LinearSampler();
+            mode = 2.0f;
+        }
+    }
+#endif
     sg_apply_bindings(&b);
     Params params{};
     params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     params.fog[0] = static_cast<float>((f.fogColour >> 16) & 0xFF) / 255.0f;
     params.fog[1] = static_cast<float>((f.fogColour >> 8) & 0xFF) / 255.0f;
     params.fog[2] = static_cast<float>(f.fogColour & 0xFF) / 255.0f;
-    params.flags[0] = batch.water ? 1.0f : 0.0f;
+    params.flags[0] = mode;
     params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
     params.flags[2] = f.pixelShift[0];
     params.flags[3] = f.pixelShift[1];
@@ -295,6 +361,9 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
 }
 
 void DestroyTerrain() {
+#if defined(EI_RENDER_VALIDATION)
+    DropLevelImages();
+#endif
     g_geometry.Destroy();
     RetireBuffers();
     for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
@@ -304,6 +373,15 @@ void DestroyTerrain() {
 }
 
 } // namespace detail
+
+#if defined(EI_RENDER_VALIDATION)
+void TerrainLevels(TerrainLevelMode mode) {
+    if (mode != g_levelMode)
+        ei::Log("render: terrain level map %s",
+                mode == TerrainLevelMode::Off ? "off" : mode == TerrainLevelMode::Levels ? "on" : "on, through point mips");
+    g_levelMode = mode;
+}
+#endif
 
 void TerrainPage(const SectorData* s, void* renderer, int page) {
     if (!s || !renderer || !Active()) return;
