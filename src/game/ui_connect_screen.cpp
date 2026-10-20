@@ -5,6 +5,7 @@
 // sites and EI_Plugin's NPlayers (W2b), as the list draw 0061D780 (ui_connect_list.cpp) does its
 // patches.
 #include "net_classes.h"
+#include "record_vectors.h"
 #include "stl_sorts.h"
 #include "ui.h"
 #include "ui_screens.h"
@@ -92,9 +93,6 @@ constexpr std::uint32_t kPlainSprite = 0x100;
 // The connection screen's helpers through their addresses (rewritten here; the wrappers run).
 __declspec(naked) void __fastcall DrawListAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D780)   // Rebirth-patched
 __declspec(naked) void __fastcall MasterRequestAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D0D0)
-// The list's vector members (rewritten below): assignment and _M_insert_overflow(pos, x, n) (RET 0xC).
-__declspec(naked) void __fastcall InsertOverflow(MpAddressList*, void*, MpAddressEntry* /*pos*/,
-                                                 const MpAddressEntry* /*x*/, unsigned /*n*/) EI_ORIGINAL(0x0061EC40)
 __declspec(naked) int __fastcall MasterLinkTickAt(net::MasterLink*) EI_ORIGINAL(0x00440DE0)
 
 // The original's inlined strcpy into a box's text buffer.
@@ -232,7 +230,7 @@ void __fastcall MpAddressesPushDefault(MpAddressList* list) {
         return;
     }
     MpAddressEntry entry{};
-    InsertOverflow(list, nullptr, finish, &entry, 1);
+    list->InsertOverflow<recordvec::MpAddressElement>(finish, entry, 1);
 }
 EI_REPLACE(0x0061E5A0, MpAddressesPushDefault);
 
@@ -242,7 +240,7 @@ MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, 
     MpAddressEntry*& finish = list->Finish();
     if (finish == list->EndOfStorage()) {
         MpAddressEntry entry{};
-        InsertOverflow(list, nullptr, pos, &entry, 1);
+        list->InsertOverflow<recordvec::MpAddressElement>(pos, entry, 1);
     } else if (pos == finish) {
         if (finish) {
             new (&finish->name) mfc::CString();

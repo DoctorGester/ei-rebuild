@@ -14,7 +14,6 @@ src/game/ai_plan.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_region_reach.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_shape_cache.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_unit_layer.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/app_device_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/app_frame.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,4
 src/game/app_main.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/app_registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -77,7 +76,7 @@ src/game/net_connection.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,39
 src/game/net_connection_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,38
 src/game/net_connection_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/game/net_link.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
-src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,13
+src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,9
 src/game/net_messages.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/net_server.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/net_server_awards.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
@@ -92,7 +91,7 @@ src/game/net_server_players.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,4
 src/game/net_server_trade.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/net_server_vars.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
-src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0,6
+src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0,4
 src/game/net_session_pump.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/net_session_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,11
 src/game/net_socket_driver.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -105,14 +104,14 @@ src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,14
 src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,146
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
-src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,21
+src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,20
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,46
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
 src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,27
 src/game/particle_callbacks.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
 src/game/particle_create.cpp,0,0,0,0,85,0,0,0,0,0,0,0,0,0
 src/game/party_items.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/party_manager.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
+src/game/party_manager.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/party_records.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/quest_database.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
@@ -151,7 +150,7 @@ src/game/sound_manager.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,13
 src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/game/sound_music.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/spell_cast.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/string_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
+src/game/string_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/terrain_animation.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_landscape.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_passes.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -165,7 +164,7 @@ src/game/ui_briefing_create.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_briefing_people.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_camp.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,6
 src/game/ui_chat_window.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_connect_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
+src/game/ui_connect_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/ui_container_draws.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ui_create_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,17
 src/game/ui_edit_field.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -192,13 +191,12 @@ src/game/ui_item_view.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,4
 src/game/ui_layouts.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,10
 src/game/ui_menus.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_objectives.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
-src/game/ui_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
+src/game/ui_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_saveload.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/game/ui_screens.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_spell_column.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_trade_panel.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/ui_window.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_window_delete.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_ai.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,4
 src/game/unit_ai_brain.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -234,7 +232,7 @@ src/game/world_server.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_sessions.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_sync.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
-src/game/world_unit_set.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
+src/game/world_unit_set.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0

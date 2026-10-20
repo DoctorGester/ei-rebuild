@@ -13,6 +13,7 @@
 #include "resource_local.h"   // LocalStream
 
 #include "ei/hook.h"
+#include "record_vectors.h"
 #include "game_hashes.h"
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -25,7 +26,6 @@ namespace {
 // the entry, record and template vectors (null pointers / empty entries appended), resize(n, x) of
 // an entry's ids.
 __declspec(naked) void __fastcall PartyMapClear(PartyMap* /*map*/) EI_ORIGINAL(0x004AD050)
-__declspec(naked) void __fastcall EntriesResize(stlp::vector<PartyManagerEntry>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004ADAA0)
 __declspec(naked) void __fastcall RecordsResize(stlp::vector<PartyRecord*>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD700)
 __declspec(naked) void __fastcall TemplatesResize(ClassTemplateVector* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD8D0)
 // hash_map<CString, float>::operator= (the party's variables): clear, then copy_from.
@@ -107,7 +107,7 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
         for (PartyManagerEntry* e = entries->begin(); e != entries->end(); ++e) e->Destruct();
         entries->Finish() = entries->Start();
         count = CountChunks(1);
-        EntriesResize(entries, nullptr, static_cast<unsigned>(count));
+        recordvec::PartyEntryVector::ResizeDefault(entries, nullptr, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(entries->size());
     }

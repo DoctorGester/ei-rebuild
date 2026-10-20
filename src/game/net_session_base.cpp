@@ -8,6 +8,7 @@
 #include "ei/vcall.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
+#include "record_vectors.h"
 
 #include <cstring>
 
@@ -27,11 +28,6 @@ TypeRegistry::ByVtable::Node* __fastcall ByVtableNewNode(TypeRegistry::ByVtable*
 __declspec(naked) TypeRegistry::ByType::Node* __fastcall ByTypeNewNode(TypeRegistry::ByType* /*table*/, void*,
                                                                       const TypeRegistry::ByType::Pair* /*pair*/) EI_ORIGINAL(0x0042AA00)
 
-// vector<Replicated>: push_back of a default element (0041F790), _M_insert_overflow (00426B10).
-__declspec(naked) void __fastcall ReplicatedPushDefault(ReplicatedVector* /*v*/) EI_ORIGINAL(0x0041F790)
-__declspec(naked) void __fastcall ReplicatedInsertOverflow(ReplicatedVector* /*v*/, void*, Replicated* /*pos*/,
-                                                           const Replicated* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426B10)
-
 // The insert half of hash_map::operator[] as 0042A890 inlines it, through the game's own resize
 // and node allocation: the node of `key` (a new node {key, value()} at the head of its bucket when
 // missing).
@@ -50,7 +46,7 @@ typename Map::Node* FindOrInsert(Map& table, std::uint32_t key, Resize resize, N
 } // namespace
 
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
-    ReplicatedPushDefault(v);
+    v->PushDefault<recordvec::ReplicatedElement>();
     Replicated* last = v->end() - 1;
     last->object = static_cast<Message*>(object);
     last->priority = priority;
@@ -61,7 +57,7 @@ void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priori
         ++v->Finish();   // the element's default constructor (00429030) does nothing
     } else {
         Replicated value{};   // the original passes an uninitialised local; it is overwritten below
-        ReplicatedInsertOverflow(v, nullptr, v->end(), &value, 1);
+        v->InsertOverflow<recordvec::ReplicatedElement>(v->end(), value, 1);
     }
     Replicated* last = v->end() - 1;
     last->object = static_cast<Message*>(object);

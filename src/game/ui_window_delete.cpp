@@ -5,6 +5,7 @@
 // jump to the window's or container's destructor are registered as those. docs/notes/ui.md,
 // section 2 "Deleting destructors".
 #include "global_map_clouds.h"
+#include "library_trees.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
@@ -21,10 +22,6 @@
 #include "originals_library.h"
 
 namespace {
-
-// Destructor bodies not rewritten yet.
-// 005FAFA0 (RET 4): the "pers" texts tree's _M_erase(node) (library code).
-__declspec(naked) void __fastcall PersonTextsEraseAt(PersonTextMap*, void*, PersonTextNode*) EI_ORIGINAL(0x005FAFA0)
 
 // The vtables the bodies write.
 void** InputSideBaseVtable() { return reinterpret_cast<void**>(0x007401D0); }
@@ -46,7 +43,7 @@ void FreeVectorStorage(T* begin, T* capacity) {
 void DestroyPersonTexts(PersonTextMap& map) {
     PersonTextNode* header = map.end();
     if (map.size() != 0) {
-        PersonTextsEraseAt(&map, nullptr, header->parent);
+        lib_trees::PersonTexts::EraseSubtree(&map, nullptr, header->parent);
         map.ResetToEmpty();
     }
     stlp::deallocate(map.end(), sizeof(PersonTextNode));

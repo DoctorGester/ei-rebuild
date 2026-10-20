@@ -17,6 +17,7 @@
 #include "ei/x87.h"
 #include "originals_script.h"
 #include "originals_library.h"
+#include "record_vectors.h"
 #include "../hook/log.h"
 
 #include <cstdint>
@@ -56,11 +57,7 @@ __declspec(naked) void __fastcall QueryConstructAt(Query* /*p*/) EI_ORIGINAL(0x0
 // The game's stlp::vector<Query> instantiation: 004439C0 _M_insert_overflow(pos, x, n), 00443BF0
 // operator=, 004442B0 erase(first, last), 00444090 resize(n).
 using QueryList = stlp::vector<Query>;
-__declspec(naked) void __fastcall QueriesInsertOverflow(QueryList*, void*, Query* /*pos*/, const Query* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x004439C0)
 __declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*/, Query* /*dest*/, const void* /*unused*/, int /*unused*/) EI_ORIGINAL(0x00443FF0)
-__declspec(naked) QueryList* __fastcall QueriesAssign(QueryList*, void*, const QueryList* /*from*/) EI_ORIGINAL(0x00443BF0)
-__declspec(naked) Query* __fastcall QueriesErase(QueryList*, void*, Query* /*first*/, Query* /*last*/) EI_ORIGINAL(0x004442B0)
-__declspec(naked) void __fastcall QueriesResize(QueryList*, void*, unsigned /*n*/) EI_ORIGINAL(0x00444090)
 // The session's receive step, through its address (rewritten in net_session_tick.cpp).
 __declspec(naked) void __fastcall SessionTickAt(SessionBase*, void*, double) EI_ORIGINAL(0x00437370)
 
@@ -421,7 +418,7 @@ EI_REPLACE_METHOD(0x004422D0, ClientBase::SetAlwaysAsk);
 // entry), as asked.
 void ClientBase::SetQueries(const ClientQueries* from) {
     QueryList& v = queries_.list;
-    QueriesAssign(&v, nullptr, &from->list);
+    recordvec::QueryVector::Assign(&v, nullptr, &from->list);
     queries_.extra = from->extra;
     if (v.end() == v.begin()) return;
     for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
@@ -473,7 +470,7 @@ void ClientBase::Ask(const NetAddress* address) {
         } else {
             Query temporary;
             QueryConstruct(&temporary);
-            QueriesInsertOverflow(&v, nullptr, v.end(), &temporary, 1);
+            v.InsertOverflow<recordvec::QueryElement>(v.end(), temporary, 1);
             GrowingBufferDestruct(&temporary.reply);
         }
         v.back().address = *address;
@@ -799,9 +796,9 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
         bool loading = archive->loading_ != 0;
         int n;
         if (loading) {
-            QueriesErase(&list, nullptr, list.begin(), list.end());
+            list.EraseRange<recordvec::QueryElement>(list.begin(), list.end());
             n = archive->CountChunks(1);
-            QueriesResize(&list, nullptr, static_cast<unsigned>(n));
+            recordvec::QueryVector::ResizeDefault(&list, nullptr, static_cast<unsigned>(n));
         } else {
             n = static_cast<int>(list.size());
         }

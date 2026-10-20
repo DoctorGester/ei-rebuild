@@ -1,5 +1,6 @@
 // The options window's settings and key bindings (00651350..006524A0) and its slider's layout
 // (0065B8B0). See ui.h (COptionsWindow, CUiSlider) and docs/notes/ui.md ("Objectives, save/load, options").
+#include "record_vectors.h"
 #include "ui.h"
 
 #include "item_db_text.h"
@@ -25,11 +26,6 @@
 __declspec(naked) void COptionsWindow::CallApply() EI_ORIGINAL(0x006524A0)
 
 namespace {
-// 00652930 (RET 0xC): the binding vector's _M_insert_overflow(pos, value, count): new storage,
-// the old rows copied (00652FF0) and destroyed (006537E0), `count` copies of `value` at `pos`.
-__declspec(naked) void __fastcall BindingsInsertOverflow(stlp::vector<OptionBinding>* /*bindings*/, void*,
-                                                         OptionBinding* /*pos*/, const OptionBinding* /*value*/,
-                                                         unsigned /*count*/) EI_ORIGINAL(0x00652930)
 
 // Strings of the exe.
 const char* TextOptionPrefix() { return reinterpret_cast<const char*>(0x007948C8); }    // "option_"
@@ -133,7 +129,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
         return;
     }
     OptionBinding blank{};
-    BindingsInsertOverflow(&bindings, nullptr, at, &blank, 1);
+    bindings.InsertOverflow<recordvec::OptionBindingElement>(at, blank, 1);
     // `blank` has no key storage; its strings go with it.
 }
 } // namespace

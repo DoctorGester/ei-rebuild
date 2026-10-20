@@ -1,6 +1,7 @@
 // The 3D library's figure meshes and their part loaders (004F2650-004FBD80); see link_figure.h.
 #include "link_figure.h"
 
+#include "library_trees.h"
 #include "model.h"
 #include "originals_script.h"
 #include "texture.h"   // CTextureDevice
@@ -161,7 +162,7 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
     ranges.words = {Append(words_, words, wordCount), wordCount};
     ranges.indices = {Append(indices_, indices, indexCount), indexCount};
 
-    *LinkRangeMapAtOriginal(&ranges_, nullptr, name) = ranges;
+    *lib_trees::LinkRanges::Subscript(&ranges_, nullptr, name) = ranges;
     return true;
 }
 EI_REPLACE_METHOD(0x004F30F0, CLinkMesh::AddPart);

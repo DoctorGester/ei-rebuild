@@ -10,6 +10,7 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "lib/stlp_string.h"
+#include "library_trees.h"
 #include "ui.h"        // CInterface3D, CUiSurface
 #include "ui_gdi.h"    // GameDC, GameFont
 
@@ -56,8 +57,6 @@ void __fastcall StringErase(stlp::string* a0, void*, const char* a2, const char*
     StringEraseOriginal(a0, nullptr, const_cast<char*>(a2), const_cast<char*>(a3));
 }
 void __fastcall StringAppend(stlp::string* a0, void*, const char* a2, const char* a3, int a4) { StringAppendRangeOriginal(a0, nullptr, a2, a3, (const void*)a4); }
-__declspec(naked) void __fastcall Erase(StringMap*, void*, Node* /*position*/) EI_ORIGINAL(0x00445010)
-__declspec(naked) void __fastcall EraseSubtree(StringMap*, void*, Node*) EI_ORIGINAL(0x00445310)
 __declspec(naked) void __fastcall PairDelete(void*, void*, unsigned) EI_ORIGINAL(0x004457F0)
 __declspec(naked) void __fastcall NodeFree(Node*, std::size_t) EI_ORIGINAL(0x004452D0)
 
@@ -123,7 +122,7 @@ void __fastcall StringTableRemove(void* self, void*, const char* key) {
     Node* it;
     Find(&map, nullptr, &it, k);
     k->~string();
-    if (it != map.end()) Erase(&map, nullptr, it);
+    if (it != map.end()) map.Erase<stlp::TreeElement<StringMap::Value>>(it);
 }
 EI_REPLACE(0x004449A0, StringTableRemove);
 
@@ -133,7 +132,7 @@ void __fastcall StringTableDestruct(void* self) {
     if (map.size()) {
         Node* node = map.end()->parent;
         while (node) {
-            EraseSubtree(&map, nullptr, node->right);
+            lib_trees::StringPairs::EraseSubtree(&map, nullptr, node->right);
             Node* left = node->left;
             PairDelete(&node->first, nullptr, 0);
             NodeFree(node, 1);
