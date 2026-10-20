@@ -1659,6 +1659,14 @@ model = "opus"
 depends = ["S18"]
 note = "User 2026-10-16: after the standalone exe is complete. In the original game one map, the user remembers it as Портал (Portal), was very slow to save and load. Find the zone, add a scenario that saves and loads there, profile the image with EI_PROFILE=1 / tools/profile_report.py, and compare its timings with the original's. Then find the hot spots and speed them up without changing behaviour: save files and goldens must stay byte-identical."
 
+[[ticket]]
+id = "WB16"
+title = "Harness runs read the user's real game settings: pin them"
+group = "harness"
+size = 1
+model = "opus"
+note = "Found 2026-10-20: after the user played (2026-10-16), 13 goldens differ in both the original (--no-hooks --fresh) and the image: ground_prints, hero_death, levers, magic_traps, net_pair_leave, net_pair_zone, script_fx, terrain_water_load, ui_saveload_delete, ui_view_screen, world_load, zone_gz15h_tornado, zone_gz2g_traps (random draw counts and unit AI differ). harness_starter.cpp answers only CtfMon, VideoResolution, FullScreen, FPSIndependentCursor, AddonPath and WideScreen; every other RegQueryValueEx goes to HKCU\\Software\\Nival Interactive\\EvilIslands (writes are already skipped, harness.cpp SkippedRegSetValue). Pin every value the game reads to a committed snapshot (config/, both installs), so the user's settings never reach a run. Find the values that reproduce the existing goldens (try the likely ones: Difficulty Level, DefaultTimeScale, Autosave, terrain / shadow switches) before re-recording any golden; re-record only what can't be matched, under the 4-pass rule. Never write the user's registry. Also check other per-user state a run can read (files the game writes in the install, e.g. the key bindings)."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
