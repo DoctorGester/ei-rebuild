@@ -233,9 +233,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     net::ClientSession* session = *reinterpret_cast<net::ClientSession**>(0x0079B5D8);
     ListNode** players = reinterpret_cast<ListNode**>(&session->players_);
     PartyIds ids;
-    std::uint8_t allocators[2] = {};
-    IdVectorConstructOriginal(&ids.withUnit, nullptr, &allocators[0]);
-    IdVectorConstructOriginal(&ids.without, nullptr, &allocators[1]);
+    ids.Construct();
     ids.camera = -1;
     for (ListNode* node = (*players)->next; node != *players; node = node->next) {
         net::PlayerMessage* player = reinterpret_cast<net::PlayerMessage*>(node->data);

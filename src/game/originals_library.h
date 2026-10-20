@@ -19,7 +19,6 @@ namespace net { struct FreedBatch; struct HistoryNode; }
 namespace stlp { class string; }
 
 __declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
-__declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).

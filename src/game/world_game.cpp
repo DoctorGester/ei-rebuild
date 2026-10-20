@@ -940,7 +940,6 @@ constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script te
 // pointer); 0042D2C0 / 00598D80 free them; 004D8E10 (RET 4) decodes `input` into `text` and the
 // CString, called through its address so its verify wrapper sees the zone's scripts.
 using CharVector = stlp::vector<char>;
-__declspec(naked) void __fastcall CharVectorConstruct(CharVector*, void*, const char* /*allocator*/) EI_ORIGINAL(0x00598940)
 __declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x0042D2C0)
 __declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
@@ -973,9 +972,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     LocalMemoryStream scripts;
     LocalMemoryStream text;
     MobScriptDecoder decoder;
-    char allocator = 0;
-    CharVectorConstruct(&decoder.text, nullptr, &allocator);
-    CharVectorConstruct(&decoder.input, nullptr, &allocator);
+    decoder.text.ConstructEmpty();   // 00598940
+    decoder.input.ConstructEmpty();
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* path = MapPathInto(this, nullptr, storage, mob);
@@ -1872,7 +1870,6 @@ void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
 using NodeVector = stlp::vector<void*>;
-__declspec(naked) void __fastcall NodeVectorConstruct(NodeVector*, void*, const void*) EI_ORIGINAL(0x00584720)
 
 // A local NamedFloatTable released the way the original's inlined destructor does.
 struct LocalVariables {
@@ -1987,8 +1984,7 @@ void GameFlow::UpdateFromServer() {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
         NodeVector changed;
-        char allocator;
-        NodeVectorConstruct(&changed, nullptr, &allocator);
+        changed.ConstructEmpty();   // 00584720
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             unsigned stamp = NodeStamp(node);

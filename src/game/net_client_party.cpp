@@ -30,7 +30,6 @@ __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* 
 
 // vector<CEngineObject*> with counted elements (library), the party's
 // reset and add (00661050 class, outside this range).
-__declspec(naked) void __fastcall ObjectVectorConstruct(void* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00424B40)
 __declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, void*, CEngineObject** /*pos*/, CEngineObject* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00428A20)
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 inline int __fastcall PartyAdd(void* a0, void*, void* a2, int a3, int a4) { return (int)static_cast<CParty*>(a0)->AddItem(static_cast<CItem*>(a2), a3, a4); }
@@ -180,8 +179,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     PartyReset(party, nullptr, 1, 0);
     party->Money() = static_cast<int>(remote->money_);
     stlp::vector<CEngineObject*> items;
-    std::uint8_t allocator = 0;
-    ObjectVectorConstruct(&items, nullptr, &allocator);
+    items.ConstructEmpty();   // 00424B40
     for (std::uint32_t i = 0; i < count(); ++i) {
         CStream* stream = StreamOf(remote->members_.begin()[i].ptr);
         stream->Seek(0);

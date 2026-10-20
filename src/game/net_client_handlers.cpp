@@ -46,9 +46,6 @@ inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetO
 inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow); }
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
-// Message members.
-__declspec(naked) void __fastcall RefVectorConstruct(RefVector* /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FFF0)
-
 
 void* TextTable() { return worlddata::InterfaceManager(); }
 void* Flow() { return TheGameFlow(); }
@@ -194,8 +191,7 @@ void ClientSession::StartParty(CRefObject* partner) {
         RefValueConstructBase(party);
         ei::SetVtable(party, kMessageVtable);
         party->version_ = 1;
-        std::uint8_t allocator = 0;
-        RefVectorConstruct(&party->members_, nullptr, &allocator);
+        party->members_.ConstructEmpty();   // 0041FFF0
         party->player_.ptr = nullptr;
         party->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
         ei::SetVtable(party, PartyMessage::kVtableAddress);

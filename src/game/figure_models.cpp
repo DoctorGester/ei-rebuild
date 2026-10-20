@@ -35,7 +35,6 @@ __declspec(naked) AnimationMap::Pair* __fastcall AnimIndex(AnimationMap*, void*,
 // allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8) and
 // insert(pos, n, value) (RET 0xC); reserve is the vector's own.
 using BucketVector = stlp::vector<AnimationMap::Node*>;
-__declspec(naked) void __fastcall BucketsEndOfStorage(AnimationMap::Node***, void*, const void*, const void*) EI_ORIGINAL(0x005AD640)
 __declspec(naked) void __fastcall BucketsInsert(BucketVector*, void*, AnimationMap::Node**, std::uint32_t, const void*) EI_ORIGINAL(0x005ADAD0)
 
 // The data of "<name><suffix>" (the manager's GetFile), or null.
@@ -121,9 +120,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     auto* count = static_cast<std::uint32_t*>(table.CountProxy());
     buckets->Start() = nullptr;
     buckets->Finish() = nullptr;
-    char allocatorTag = 0;
-    std::uint32_t zero = 0;
-    BucketsEndOfStorage(&buckets->EndOfStorage(), nullptr, &allocatorTag, &zero);
+    buckets->EndOfStorage() = nullptr;   // the allocator proxy (005AD640)
     *count = 0;
     const auto* first = reinterpret_cast<const std::uint32_t*>(0x0073B914);
     const auto* last = reinterpret_cast<const std::uint32_t*>(0x0073B984);

@@ -283,9 +283,6 @@ namespace {
 // Not rewritten: the container window constructor, the STLport vector constructors of the two
 // windows' members, the message box constructor and the interface's window activation. Thiscall
 // methods are declared __fastcall with the unused EDX.
-__declspec(naked) void __fastcall ConstructSaveList(void* /*vector*/, void*, void* /*allocator*/) EI_ORIGINAL(0x0062B550)
-__declspec(naked) void __fastcall ConstructBindingList(void*, void*, void*) EI_ORIGINAL(0x0062B570)
-__declspec(naked) void __fastcall ConstructSettingList(void*, void*, void*) EI_ORIGINAL(0x0062B5E0)
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 void SetVtables(CUiWindow* window, std::uintptr_t main, std::uintptr_t input) {
@@ -299,8 +296,9 @@ CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
     if (!memory) return nullptr;
     auto* w = static_cast<CSaveLoadWindow*>(memory);
     ConstructContainerAt(w, nullptr, ui);
-    char allocator;
-    ConstructSaveList(&w->entriesBegin_, nullptr, &allocator);
+    w->entriesBegin_ = nullptr;   // vector<SaveEntry>() (0062B550)
+    w->entriesEnd_ = nullptr;
+    w->entriesCapacity_ = nullptr;
     w->isSave_ = false;
     w->sliding_ = false;
     new (static_cast<void*>(&w->name_)) mfc::CString();
@@ -314,9 +312,8 @@ COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     if (!memory) return nullptr;
     auto* w = static_cast<COptionsWindow*>(memory);
     ConstructContainerAt(w, nullptr, ui);
-    char allocator[2];
-    ConstructBindingList(&w->bindings_, nullptr, &allocator[0]);
-    ConstructSettingList(&w->settings_, nullptr, &allocator[1]);
+    w->bindings_.ConstructEmpty();   // 0062B570
+    w->settings_.ConstructEmpty();   // 0062B5E0
     w->sliding_ = false;
     w->groupNames_.Construct();
     SetVtables(w, COptionsWindow::kVtableAddress, COptionsWindow::kInputVtableAddress);
@@ -388,7 +385,6 @@ namespace {
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
 // / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
 __declspec(naked) void __fastcall MenuTitlesVector(void*, void*, const void*) EI_ORIGINAL(0x00634300)
-__declspec(naked) void __fastcall MenuHeroVector(void*, void*, const void*) EI_ORIGINAL(0x006342A0)
 
 // The empty CString's data pointer (00796E48), stored as a CString member is.
 const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x00796E48); }
@@ -474,12 +470,13 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             lib_trees::ConstructHeroItemCache(&w->models_);
             lib_trees::ConstructHeroItemCache(&w->textures_);
             SetVtables(&w->window, 0x00740A2C, 0x007409F8);   // the item screens' base
-            char allocators[4] = {};
-            FirstListConstruct(&w->defaults_, nullptr, &allocators[1]);
-            FirstListConstruct(&w->names_, nullptr, &allocators[0]);
+            w->defaults_ = nullptr;   // vector<CString>() (0053F4F0)
+            w->defaultsEnd_ = nullptr;
+            w->defaultsCapacity_ = nullptr;
+            w->names_.ConstructEmpty();
             w->text_ = EmptyStringData();
-            MenuHeroVector(&w->voiceLists_[0], nullptr, &allocators[2]);
-            MenuHeroVector(&w->voiceLists_[1], nullptr, &allocators[3]);
+            w->voiceLists_[0].ConstructEmpty();   // 006342A0
+            w->voiceLists_[1].ConstructEmpty();
             SetVtables(&w->window, 0x0074214C, 0x00742118);
         }
         ui->PushWindow(&w->window, 1, 1);

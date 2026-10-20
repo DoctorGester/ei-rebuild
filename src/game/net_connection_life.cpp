@@ -39,12 +39,10 @@ template <typename F>
 void* Callback(F function) { return reinterpret_cast<void*>(function); }
 
 // Container constructors (allocator / comparison arguments are empty objects passed by address).
-__declspec(naked) void __fastcall ReceivedConstruct(std::int32_t** /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00438CE0)
 __declspec(naked) void __fastcall FreedListConstruct(FreedBatch** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439120)
 __declspec(naked) void __fastcall BySentIdConstruct(SentIdMap* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x004393C0)
 __declspec(naked) void __fastcall HistoryListConstruct(HistoryNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439960)
 __declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
-__declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
 inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
 
 // Reset's container teardown.
@@ -94,7 +92,9 @@ void DestroyForReset(Connection* c) {
 Connection* Connection::Construct(std::uint32_t id) {
     ei::SetVtable(this, CRefObject::kVtableAddress);
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
-    ReceivedConstruct(&received_, nullptr, &tags[2]);
+    received_ = nullptr;   // vector<int>() (00438CE0)
+    receivedEnd_ = nullptr;
+    receivedEos_ = nullptr;
     address_ = NetAddress{};
     VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
     FreedListConstruct(&freedIds_, nullptr, &tags[2]);
@@ -113,8 +113,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     attached_.Count() = 0;
     attached_.EmptyInitialize();
     HeaderListConstruct(&headers_, nullptr, &tags[3]);
-    std::uint32_t zero = 0;
-    IncomingProxyConstruct(&incoming_, nullptr, &tags[3], &zero);
+    // The list's allocator proxy (0043A980) holds null until the sentinel is made.
     auto* sentinel = static_cast<HeaderNode*>(NodeAllocate(sizeof(HeaderNode)));
     incoming_ = sentinel;
     sentinel->next = sentinel;

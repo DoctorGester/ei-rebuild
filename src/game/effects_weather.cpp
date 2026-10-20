@@ -59,7 +59,6 @@ void* SoundManager() { return *reinterpret_cast<void**>(0x007AF784); }
 // constructor (004E2BA0) and insert-overflow (004E2FA0).
 using KeyVector = stlp::vector<std::uint32_t>;
 static_assert(sizeof(KeyVector) == 12);
-__declspec(naked) void __fastcall KeyVectorConstruct(KeyVector*, void*, const char* /*allocator*/) EI_ORIGINAL(0x004E2BA0)
 void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
     DwordVectorInsertOverflowOriginal(v, nullptr, pos, value, count);
 }
@@ -252,8 +251,7 @@ int CVisibilityFog::UpdateCells() {
     KeyVector& dead = DeadCells();
     if (!(DeadCellsGuard() & 1)) {
         DeadCellsGuard() |= 1;
-        char allocator;
-        KeyVectorConstruct(&dead, nullptr, &allocator);
+        dead.ConstructEmpty();   // 004E2BA0
         GameAtExit(ei::static_init::Exit004E1C50);
     }
     dead.Finish() = dead.Start();

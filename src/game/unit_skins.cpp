@@ -73,7 +73,6 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<const RecordVector*>(table); }
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
 // constructor [0056F570, allocator] and destructor [0056F590].
-__declspec(naked) void __fastcall RecordListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0056F570)
 __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F590)
 // The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
 // The texture cache [this +0x18C]: build a composite texture [00693180 ComposeTexture: out name, set,
@@ -86,7 +85,6 @@ __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F59
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
 __declspec(naked) void __fastcall PrototypeTextures(const UnitPrototypeRecord*, const IdList*, const IdList*, void*, void*)
     EI_ORIGINAL(0x00535CB0)
-__declspec(naked) void __fastcall StringsConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053BB80)
 __declspec(naked) stlp::string* __fastcall StringsCopy(void*, void*, int, const stlp::string*, const stlp::string*)
     EI_ORIGINAL(0x0053D7F0)
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
@@ -95,7 +93,6 @@ __declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*
     EI_ORIGINAL(0x00575E50)
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 
-const std::uint8_t kAllocator = 0;
 
 // --- The dressed units ---------------------------------------------------------------------------
 
@@ -197,8 +194,8 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
     alignas(4) char listStorage[sizeof(RecordList)];
-    RecordListConstruct(listStorage, nullptr, &kAllocator);
     RecordList& list = *reinterpret_cast<RecordList*>(listStorage);
+    list.ConstructEmpty();   // 0056F570
     alignas(4) char setStorage[sizeof(SkinComposition)];
     SkinComposition& set = *reinterpret_cast<SkinComposition*>(setStorage);
     set.bytes.Construct();
@@ -276,10 +273,10 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
     alignas(4) char firstStorage[sizeof(StringList)];
     alignas(4) char secondStorage[sizeof(StringList)];
-    StringsConstruct(firstStorage, nullptr, &kAllocator);
-    StringsConstruct(secondStorage, nullptr, &kAllocator);
     StringList& first = *reinterpret_cast<StringList*>(firstStorage);
     StringList& second = *reinterpret_cast<StringList*>(secondStorage);
+    first.ConstructEmpty();   // 0053BB80
+    second.ConstructEmpty();
 
     const char* const* names = record->names.Start();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
