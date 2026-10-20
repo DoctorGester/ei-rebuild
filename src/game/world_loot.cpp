@@ -16,6 +16,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "lib/mfc_list.h"
+#include "game_lists.h"
 
 namespace {
 
@@ -29,8 +30,6 @@ CEngineObject* NextItem(ObjectList* list, ObjectList::Node** position) {
     return *reinterpret_cast<CEngineObject**>(
         NextParticle(list, nullptr, reinterpret_cast<mfc::CTypedPtrList<Particle>::Node**>(position)));
 }
-// 0059CAD0 (RET 4). Frees a node of the shared-object list (+0x12E60).
-__declspec(naked) void __fastcall SharedListFreeNode(void*, void*, void* /*node*/) EI_ORIGINAL(0x0059CAD0)
 // 00665470 (RET 8). The player receives the objects of a list.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
@@ -104,7 +103,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         else node->prev->next = node->next;
         if (node == list.tail) list.tail = node->prev;
         else node->next->prev = node->prev;
-        SharedListFreeNode(&list, nullptr, node);
+        mfc::impl::FreeNodeAs<gamelists::SharedObjects>(&list, node);   // 0059CAD0
         abandon();
         return true;
     }

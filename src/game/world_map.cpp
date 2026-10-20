@@ -134,7 +134,7 @@ namespace {
 // counted pointer (flags 0: in place).
 __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
-void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
+void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 
 void ClearMissilePointers(CWorldServer* world) {
@@ -151,7 +151,7 @@ void CWorldServer::ResetZone() {
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     countdowns_.RemoveAll();
-    ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
+    gamearrays::ExitsSetSize(&exitsVtable_, 0);
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ClearMissilePointers(this);

@@ -312,7 +312,7 @@ void CPlayerServer::ClearState() {
     possessedId_ = 0xFFFFFFFFu;
     refreshPending_ = 0;
     flag70_ = 0;
-    PlacementsSetSizeOriginal(&placements_, nullptr, 0, -1);
+    mfc::impl::ArrayAs<mfc::impl::Placements>(placements_).SetSize(0, -1);   // 0059C3D0
     compressor_.Reset();
     decompressor_.Reset();
     refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % 0x385u + 0x384u);

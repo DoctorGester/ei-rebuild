@@ -78,7 +78,6 @@ constexpr int kMessagePartial = 0x01;
 // 005B1F10 follow a target, 005B2050 turn to a direction, 005B22C0 the path's end point.
 // The step list of a motion order (a CList of path cells, vtable 0073EDB0): 00556D10 constructor
 // (block size), 00556D40 RemoveAll.
-void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 // The world server's timed objects (world_server.cpp).
 // The AI: 005D5E90 the brain's leader (AIBrain::LeaderOrFollowed), 005D4F70 the brain's reset, 005AEA40 the
 // alarm's reset.
@@ -211,7 +210,7 @@ struct LocalMotionOrder {
     }
     ~LocalMotionOrder() {
         steps.vtable = PathCellListVtable();
-        CellListRemoveAll(&steps);
+        steps.RemoveAll();   // 00556D40
     }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;

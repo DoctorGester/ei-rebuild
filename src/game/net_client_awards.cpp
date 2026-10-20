@@ -37,7 +37,6 @@ void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { stati
 void __fastcall PlayerRemoveItem(void* player, void*, int index) { static_cast<CPlayer*>(player)->TakeItem(index); }
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.
-__declspec(naked) void __fastcall CountedRemoveAll(ObjectList*) EI_ORIGINAL(0x00429E50)
 
 constexpr int kClassQuestItem = 0x14;
 
@@ -99,7 +98,7 @@ void ClientSession::ApplyAwards() {
             items.tail = added;
             PlayerGiveItems(player, nullptr, &items, 0);
             items.vtable = gameslots::ItemObjectListClass::Vtable();
-            CountedRemoveAll(&items);
+            mfc::impl::ListAs<gamelists::EngineObjects>(&items)->RemoveAll();   // 00429E50
             break;
         }
         case 3: {

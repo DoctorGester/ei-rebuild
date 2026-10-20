@@ -353,7 +353,6 @@ static_assert(sizeof(ShareNode) == 0x10);
 
 using IdArray = mfc::CArray<int>;
 
-__declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGINAL(0x0059D5C0)
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
@@ -426,7 +425,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         it.manager = nullptr;
     }
     list.vtable = reinterpret_cast<void*>(worlddata::kShareListVtable);
-    ShareListRemoveAll(&list, nullptr);
+    list.RemoveAll();   // 0059D5C0
 }
 
 // With a player: its living heroes share `amount` equally.
@@ -597,7 +596,6 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
-__declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, int, const UnitPlacement*) EI_ORIGINAL(0x0059C510)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 
@@ -662,7 +660,8 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
             std::memcpy(entry.rotation, &unit->orientation, sizeof(entry.rotation));
             entry.value20 = static_cast<std::uint32_t>(unit->moveMode2);
             entry.value24 = unit->activeWeapon;
-            PlacementsSetAtGrow(placements, nullptr, placements->size, &entry);
+            mfc::impl::ArrayAs<mfc::impl::Placements>(*placements)
+                .SetAtGrow(placements->size, reinterpret_cast<const mfc::impl::Placement40&>(entry));   // 0059C510
         }
         if (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
         if (!ObjectSlots(unit)->IsDead()) WorldRemoveObject(this, nullptr, unit->id_);

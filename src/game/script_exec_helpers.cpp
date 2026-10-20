@@ -13,6 +13,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_script.h"
+#include "game_arrays.h"
 
 #include <cstdint>
 #include <cstring>
@@ -21,8 +22,6 @@
 
 namespace {
 
-// 004BCF10: an area's destructor (vtable 0073D31C, frees the parts).
-__declspec(naked) void __fastcall AreaDestruct(void*) EI_ORIGINAL(0x004BCF10)
 
 struct World {
     void RemoveTimedObject(int id);       // 0058E5D0
@@ -130,7 +129,7 @@ void CScript::DeleteArea(int id) {
         ScriptArea* areas = areas_.data;
         if (areas[i].id != id) continue;
         int after = areas_.size - i - 1;
-        AreaDestruct(&areas[i]);
+        gamearrays::DestroyArea(&areas[i]);   // 004BCF10: the parts freed
         if (after) {
             areas = areas_.data;
             GameMemmove(&areas[i], &areas[i + 1], after * kAreaSize);

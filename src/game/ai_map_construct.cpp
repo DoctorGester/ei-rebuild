@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_ai.h"
 #include "unit_ai.h"
+#include "lib/mfc_list.h"
 
 namespace {
 
@@ -25,7 +26,6 @@ __declspec(naked) void __fastcall ByteGridConstruct(void*, void*, int, int) EI_O
 __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 
 // Destructors of the members (thiscall).
-__declspec(naked) void __fastcall DestroyNodeList(void*, void*) EI_ORIGINAL(0x005995E0)
 // 006E859F: the CRT's `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, std::uintptr_t a3) {
     libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3));
@@ -108,8 +108,8 @@ void __fastcall DestructAIMap(CAIMap* self) {
     regions.local.Destruct();
     FreeGrid(regions.backward.records);
     FreeGrid(regions.forward.records);
-    DestroyNodeList(&self->unitLayerLarge.nodes, nullptr);
-    DestroyNodeList(&self->unitLayerSmall.nodes, nullptr);
+    mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerLarge.nodes);   // 005995E0
+    mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerSmall.nodes);
     for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(self->areaLists[list]);
     FreeGrid(self->WaterGrid());
     self->bridges.cells.FreeData();

@@ -72,11 +72,11 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         GameAtExit(reinterpret_cast<void (*)()>(0x005BA3F0));
     }
     int sizeClass = unit->sizeClass;
-    CellListRemoveAllOriginal(&path->cells);
+    path->cells.RemoveAll();   // 00556D40
     bool ok = regionMap.FindRegionChain(sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
     if (!ok || chain.count * 8 > maxCells) {
         chain.vtable = PathCellListVtable();
-        CellListRemoveAllOriginal(&chain);
+        chain.RemoveAll();
         return false;
     }
     ClearMarksAround(&chain);

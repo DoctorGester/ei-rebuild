@@ -41,10 +41,6 @@ __declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*pa
 __declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
 __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)
-// 0059C3D0 (RET 8, no result): SetSize(count, growBy) of the unit placements (an MFC CArray of 0x28-byte records whose
-// new elements 004CEE20 builds), the player state's +0x74 and the zone entry's list.
-__declspec(naked) inline void __fastcall PlacementsSetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
-    EI_ORIGINAL(0x0059C3D0)
 // 00664B70 (RET 4): formats a message error ("... prevID=%x curID=%x") with the previous and the current message
 // type (bytes) and raises the fatal error 00480080; returns its result.
 __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /*format*/, int /*previous*/, int /*type*/)

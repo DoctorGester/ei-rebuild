@@ -20,6 +20,7 @@
 #include "world_data.h"
 #include "lib/crt_iostream.h"
 #include "lib/mfc_array.h"
+#include "game_arrays.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -58,8 +59,10 @@ GameOstream* GameOstream::Put(int c) { return reinterpret_cast<GameOstream*>(rei
 GameOstream* GameOstream::Apply(void* manipulator) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 
-// 0052CEC0: DestructElements of counted references (stdcall).
-__declspec(naked) void __stdcall DestructRefs(CEngineObject**, int) EI_ORIGINAL(0x0052CEC0)
+// 0052CEC0: DestructElements of counted references (gamearrays::ObjectRefs').
+void DestructRefs(CEngineObject** refs, int count) {
+    gamearrays::ObjectRefs::DestructElements(reinterpret_cast<ScriptObjectRef*>(refs), count);
+}
 
 // 006E79A0: the game's memmove.
 

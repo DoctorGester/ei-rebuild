@@ -6,6 +6,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "game_arrays.h"
 
 #include <cstring>
 
@@ -13,10 +14,6 @@
 
 namespace {
 
-// 004CDF40: CArray<ScriptQuestObjective>::SetSize(size, growBy) (library; new elements get an empty
-// text).
-__declspec(naked) void __fastcall ObjectivesSetSize(mfc::CArray<ScriptQuestObjective>*, void*, int, int)
-    EI_ORIGINAL(0x004CDF40)
 
 } // namespace
 
@@ -45,7 +42,7 @@ void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, floa
     copy = *text;
     mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     int at = objectives.size;
-    ObjectivesSetSize(&objectives, nullptr, at + 1, -1);
+    mfc::impl::ArrayAs<gamearrays::Objectives>(objectives).SetSize(at + 1, -1);   // 004CDF40: new ones an empty text
     ScriptQuestObjective& objective = objectives.data[at];
     objective.type = type;
     objective.text = copy;

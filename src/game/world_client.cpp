@@ -344,7 +344,6 @@ namespace {
 // 005F8070: InterfaceStringEventOriginal (originals_ui.h).
 // 00665A10 CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
-__declspec(naked) void __fastcall PendingListRemoveAt(mfc::CList<CEngineObject*>*, void*, void*) EI_ORIGINAL(0x005704A0)
 
 bool NaN(double v) {
     std::uint64_t bits;
@@ -453,7 +452,7 @@ int CWorldClient::Segment() {
             int key = object->id_;
             void* position = nullptr;
             if (PendingMapLookup(&dynamicNodes_, nullptr, reinterpret_cast<const std::uint32_t*>(&key), &position)) {
-                PendingListRemoveAt(&dynamicObjects_, nullptr, position);
+                dynamicObjects_.RemoveAt(static_cast<mfc::CList<CEngineObject*>::Node*>(position));   // 005704A0
                 hash400::PositionsRemoveKey(dynamicNodes_, key);
             }
         }

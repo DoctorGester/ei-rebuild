@@ -36,7 +36,6 @@ constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::Bl
 // Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0; the aligned arrays' (a frame's
 // points 0044F1D0, the children 0044F540; a frame's points copied 0044F410) are their members.
 using MorphFrames = mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements>;
-__declspec(naked) void __fastcall MorphFramesSetSize(MorphFrames*, void*, int, int) EI_ORIGINAL(0x0044F7E0)
 // Vector helpers, __fastcall out in ECX: b - a [00448A10 scales instead: v * t, t as float bits],
 // a + b [0040CDC0]. Each component is one rounded operation.
 
@@ -178,7 +177,7 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
     CopyRotationKeys(bone, node);
     CopyTranslationKeys(bone, node);
     if (node->morphKeys.size == 0) {
-        MorphFramesSetSize(&bone->morphFrames_, nullptr, 0, -1);
+        mfc::impl::ArrayAs<gamearrays::BlocksAt8>(bone->morphFrames_).SetSize(0, -1);   // 0044F7E0
     } else {
         bone->morphFrames_.SetSize(node->positionKeys.size);
         if (bone->morphFrames_.size > 0) BuildMorphFrames(bone, node);

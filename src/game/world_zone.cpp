@@ -101,7 +101,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
                                                   reinterpret_cast<const unsigned char*>(kNoExit)) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
         int index = exits->size;
-        ZoneExitsSetSizeOriginal(exits, nullptr, index + 1, -1);
+        gamearrays::ExitsSetSize(exits, index + 1);
         ZoneExit* to = &exits->data[index];
         auto* src = reinterpret_cast<const std::uint8_t*>(from);
         auto* dst = reinterpret_cast<std::uint8_t*>(to);

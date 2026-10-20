@@ -217,7 +217,7 @@ static_assert(offsetof(ZoneExit, target) == 0x28);
 static_assert(offsetof(ZoneExit, deployAngle) == 0x38);
 
 // MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
-// Its SetSize is the instantiation's own: ZoneExitsSetSizeOriginal (00573080, originals_world.h;
+// Its SetSize is the instantiation's own: gamearrays::ExitsSetSize (00573080, game_arrays.h;
 // new records are constructed).
 using ZoneExitArray = mfc::CArray<ZoneExit>;
 

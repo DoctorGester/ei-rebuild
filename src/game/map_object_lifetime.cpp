@@ -81,10 +81,8 @@ __declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members (00546230).
 void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
-__declspec(naked) void __fastcall BrainList70Destroy(void*) EI_ORIGINAL(0x005575F0)
 void __fastcall BrainArrayDestroy(void* a0) { CountedRefResetOriginal(a0); }
 void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
-__declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
 // This file's 3D object constructor and destructor bodies, through their game addresses.
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
@@ -461,14 +459,14 @@ void CUnitServer::DestructBody() {
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
     mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
-    BrainList70Destroy(&b->modes);
+    gamelists::OwnedRefs::Destruct<gamelists::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));   // 005575F0
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
     Brain14Destroy(&b->looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
     SetVtable(&armourSpells, kArmourSpellListVtable);
-    Controller91CDestroy(&armourSpells);
+    mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();   // 00558020
     if (CEngineObject* leader = followedLeader) leader->Release();
     if (CEngineObject* target = action2.target) target->Release();
     action2.target = nullptr;

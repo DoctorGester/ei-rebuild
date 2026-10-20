@@ -45,7 +45,6 @@ __declspec(naked) void __fastcall FxSourceLoad(void*, void*, ScriptStream*) EI_O
 CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_cast<void**>(0x007AFFA8), nullptr, id); }
 
 // CArray template members (out of line), __thiscall (size, growBy).
-__declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C5CB0)      // 0x20 slots
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
 // ScriptVars constructor / destructor body.
 
@@ -622,7 +621,7 @@ void CScript::LoadState(ScriptStream* stream) {
 
     // Point lights (+0x00; 0x20-byte slots).
     auto* lights = Raw(&pointLights_);
-    LightsSetSize(lights, nullptr, ReadInt(stream), -1);
+    mfc::impl::ArrayAs<gamearrays::PointLights>(pointLights_).SetSize(ReadInt(stream), -1);   // 004C5CB0
     for (int i = 0; i < lights->size; ++i) PointLightLoad(lights->data + i * 0x20, nullptr, stream);
 
     ScriptParticlesLoad(reinterpret_cast<RawList*>(&particles_), stream);

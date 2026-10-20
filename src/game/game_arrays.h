@@ -75,6 +75,8 @@ inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
 using Exits = ArrayAbi<MapExit, EachElements<MapExit, InitExit, DestroyExit>>;
+// 00573080: SetSize(size, -1) of a CArray<ZoneExit> given by its header (its first member).
+inline void ExitsSetSize(void* exits, int size) { Exits::SetSize(static_cast<Exits::Array*>(exits), nullptr, size, -1); }
 using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
 using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObjective, InitObjective, DestroyObjective>>;

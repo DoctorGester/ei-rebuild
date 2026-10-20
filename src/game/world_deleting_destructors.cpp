@@ -12,6 +12,8 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_library.h"
+#include "game_lists.h"
+#include "record_arrays.h"
 
 void __fastcall DestroyFigureManager(char* manager);   // figure_model_destroy.cpp (005AA1C0)
 void __fastcall ObjectHolderRelease(CEngineObject** self);   // refptr_copies.cpp
@@ -26,16 +28,21 @@ T* DestroyAndFree(T* self, unsigned flags, Body body) {
     return self;
 }
 
-// The MFC collection destructors the deleting destructors below run (library rows).
-__declspec(naked) void __fastcall PlatformListDestruct(void*) EI_ORIGINAL(0x0056FE40)
-__declspec(naked) void __fastcall ClientArrayDestruct(void*) EI_ORIGINAL(0x005711E0)
+// The MFC collection destructors the deleting destructors below run: the instantiations' own
+// (0056FE40, 005711E0, 0059A3C0, 005B1810, 005B19A0, 005BDEE0).
+template <typename Abi, typename Class>
+void ListDestruct(void* list) { Abi::template Destruct<Class>(static_cast<typename Abi::List*>(list)); }
+template <typename Abi, typename Class>
+void ArrayDestruct(void* array) { Abi::template Destruct<Class>(static_cast<typename Abi::Array*>(array)); }
+constexpr auto PlatformListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl::PlatformListClass>;
+constexpr auto ClientArrayDestruct = ArrayDestruct<recordarrays::WaterLevels, mfc::impl::ClientMapArrayClass>;
 void __fastcall SectorArrayDestruct(void* array) {
     CSectorMap::DestructSectors(static_cast<mfc::CArray<Sector, SectorElements>*>(array));
 }
-__declspec(naked) void __fastcall ArrayElementListDestruct(void*) EI_ORIGINAL(0x0059A3C0)
-__declspec(naked) void __fastcall BlockCostListDestruct(void*) EI_ORIGINAL(0x005B1810)
-__declspec(naked) void __fastcall AIMapListDestruct(void*) EI_ORIGINAL(0x005B19A0)
-__declspec(naked) void __fastcall WaypointListDestruct(void*) EI_ORIGINAL(0x005BDEE0)
+constexpr auto ArrayElementListDestruct = ListDestruct<gamelists::SharedObjects, gamelists::SharedObjectListClass>;
+constexpr auto BlockCostListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl::BlockCostListClass>;
+constexpr auto AIMapListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl::AiMapListClass>;
+constexpr auto WaypointListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl::WaypointListClass>;
 
 } // namespace
 

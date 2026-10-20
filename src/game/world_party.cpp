@@ -18,6 +18,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/mfc_list.h"
+#include "game_lists.h"
 
 #include "ei/hook.h"
 #include "originals_engine.h"
@@ -27,6 +28,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "ei/x87.h"
+#include "lib/mfc_array.h"
 
 namespace {
 
@@ -49,15 +51,13 @@ constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The player's carried items (CParty::items_): an aligned array of item pointers (its SetSize
-// 0059CB50 is lib::AlignedArray's, called through ItemArraySetSize).
+// 0059CB50 is lib::AlignedArray's).
 using ItemArray = AlignedPtrArray;
 
 // CArray<int> (vtable 0073EBD4), and the CArray of record pointers CreateUnits takes (0073FAA4).
 using IdArray = mfc::CArray<int>;
 using RecordArray = RecordPtrArray;
 
-// 0059CB50 (RET 8). The item array's SetSize(size, growBy).
-__declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) EI_ORIGINAL(0x0059CB50)
 // 006A0110 (CItem::GetPrototype). A quest item's description: the names of the zones it belongs to.
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
@@ -147,7 +147,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
         if (IsMultiplayerClient()) {
             // A client takes everything back.
             for (int i = 0; i < items->size; ++i) AddTail(taken, ItemAt(items, i));
-            ItemArraySetSize(items, nullptr, 0, -1);
+            items->SetSize(0, -1);
         } else {
             TakeZoneQuestItems(items, &taken);
         }
@@ -223,7 +223,8 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     QuaternionFromAxisAngle(&rotation, nullptr, &up, angle);
 
     WorldCreateUnitsOriginal(this, nullptr, player, &records, &start, rotation, placements);
-    if (placements) PlacementsSetSizeOriginal(placements, nullptr, 0, -1);
+    if (placements)   // 0059C3D0
+        mfc::impl::Placements::SetSize(static_cast<mfc::impl::Placements::Array*>(placements), nullptr, 0, -1);
     CPlayerServer* state = player->server;
     std::uint32_t lastZ;
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
@@ -248,8 +249,10 @@ namespace {
 // 006AD000 (RET 0x10). The item factory (world slot 18) makes an item: type, record index, the
 // two halves of the item's +0x18, -1.
 CEngineObject* __fastcall FactoryMakeItem(void* a0, void*, int a2, int a3, int a4, int a5) { return (CEngineObject*)static_cast<CItemManager*>(a0)->MakeItem(a2, a3, a4, a5); }
-// 00599FA0 (RET 4). CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
-__declspec(naked) void __fastcall CountedAddTail(void*, void*, CEngineObject*) EI_ORIGINAL(0x00599FA0)
+// 00599FA0. CTypedPtrList<CRefPtr> AddTail: the list holds a reference (gamelists::CountedAddTail).
+void CountedAddTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* object) {
+    gamelists::CountedAddTail(mfc::impl::ListAs<gamelists::EngineObjects>(list), nullptr, object);
+}
 
 } // namespace
 
@@ -266,7 +269,7 @@ CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
     // An item below its maximum is kept on the counted list (once).
     float current = source->charge_;
     float maximum = source->chargeMax_;
-    if (maximum > current && copy && !counted_.Find(copy)) CountedAddTail(&counted_, nullptr, copy);
+    if (maximum > current && copy && !counted_.Find(copy)) CountedAddTail(&counted_, copy);
     return copy;
 }
 
@@ -292,7 +295,7 @@ CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
 
 void CWorldServer::AddCounted(CEngineObject* item) {
     if (!item || counted_.Find(item)) return;
-    CountedAddTail(&counted_, nullptr, item);   // the original inlines the same AddTail
+    CountedAddTail(&counted_, item);   // the original inlines the same AddTail
 }
 
 EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
