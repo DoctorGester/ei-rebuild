@@ -18,6 +18,12 @@ Spelling only. A forwarder is converted only when all of this holds, otherwise i
   a Rebirth-patched function (config/rebirth_patches.csv, EI_REBIRTH_IMPLEMENTS), or a decision listed in
   config/direct_calls_skip.csv (address,reason: e.g. a call site that does not compile directly).
 
+A registration may name its function through a using-alias or a template instantiation spelled without its
+namespaces or default arguments (`Map8::Subscript`, C13b): resolve_registered finds it in the map. A forwarder of
+a static container wrapper whose body is one member call (`self->SetSize(n, g)`, stlp::VectorAbi / mfc ArrayAbi)
+becomes that member call on the caller's container ('unwrap', match_unwrap). Template-ids at a call site are
+written through the aliases the site sees (abbreviated).
+
 A call `F(self, nullptr, a, b)` becomes `self->M(a, b)` (`x.M(a, b)` for `&x`, `M(a, b)` for `this`); a renamed
 call keeps its object and arguments. The tool adds the include of the target's header to a .cpp call site that
 lacks it. The compiler checks the rest: a site that does not compile goes into the skip list.
@@ -376,6 +382,281 @@ def resolve_forwarder(f, decls):
     return sigs[0]
 
 
+# ------------------------------------------------------------------- aliases and instantiations (C13b)
+# A registration may name its function through a using-alias (`using Map8 = stlp::HashtableAbi<...>;` in the
+# registering file or a header it includes) or a template instantiation whose arguments are spelled without
+# their namespaces or through <cstdint> typedefs. expand_aliases writes the aliases out; the map is then
+# searched by the name as written and, failing that, by its qualifier-free form (loose_key) when that is unique.
+
+_ALIAS = re.compile(r'\busing\s+([A-Za-z_]\w*)\s*=\s*([^;{}]+);|\btypedef\s+([^;{}()]+?)\s+([A-Za-z_]\w*)\s*;')
+_ALIASES = {}          # qualified alias name -> [(Source, expansion, namespaces)]
+_STD_INTS = {'uint32_t': 'unsigned int', 'int32_t': 'int', 'uint16_t': 'unsigned short', 'int16_t': 'short',
+             'uint8_t': 'unsigned char', 'int8_t': 'signed char', 'size_t': 'unsigned int',
+             'uintptr_t': 'unsigned int', 'intptr_t': 'int', 'ptrdiff_t': 'int', 'uint64_t': 'unsigned __int64',
+             'int64_t': '__int64', 'DWORD': 'unsigned long', 'BYTE': 'unsigned char', 'WORD': 'unsigned short'}
+
+
+def collect_aliases(sources):
+    _ALIASES.clear()
+    _SEEN_ALIASES.clear()
+    _LOOSE.clear()
+    for s in sources:
+        for _, _, k, n in s.scopes:
+            if k == 'ns':
+                _NAMESPACES.update(n.split('::'))
+    for s in sources:
+        if not s.path.startswith('src/'):
+            continue
+        for m in _ALIAS.finditer(s.bare):
+            if s.in_body(m.start()) or any(k in ('class', 'template class') for k, _ in s.scope_at(m.start())):
+                continue
+            if re.search(r'\btemplate\s*<[^;{}]*$', s.bare[max(0, m.start() - 200):m.start()]):
+                continue
+            name, exp = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+            exp = s.code[m.start(2 if m.group(1) else 3):m.end(2 if m.group(1) else 3)]
+            exp = re.sub(r'\btypename\s+', '', exp).strip()
+            ns = [n for n in s.namespaces_at(m.start()) if n != "`anonymous namespace'"]
+            _ALIASES.setdefault('::'.join(ns + [name]), []).append((s, exp, ns))
+
+
+def alias_for(qname, src):
+    """The expansion and its namespaces of alias `qname` as `src` sees it (its own first), or None."""
+    cands = _ALIASES.get(qname, ())
+    own = [c for c in cands if c[0] is src]
+    seen = [c for c in cands if c[0] is not src and c[0].path.endswith('.h') and sees(src, c[0])]
+    for group in (own, seen):
+        if len({normalize_type(e) for _, e, _ in group}) == 1:
+            return group[0][1], group[0][2]
+    return None
+
+
+_QUALIFIED = re.compile(r'(?<![\w:])(?:::)?[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*')
+
+
+def expand_aliases(name, src, namespaces=()):
+    """`name` (a registration's function) with the aliases of its scope written out."""
+    parts = split_qualified(name)
+    scope, last = '::'.join(parts[:-1]), parts[-1]
+    if not scope:
+        return name
+    return expand_text(scope, src, namespaces) + '::' + last
+
+
+def expand_text(scope, src, namespaces=()):
+    """A type's text with the aliases `src` sees written out."""
+    for _ in range(8):
+        changed = False
+
+        def sub(m):
+            nonlocal changed
+            tok = m.group(0).lstrip(':')
+            tparts = tok.split('::')
+            for k in range(len(tparts), 0, -1):
+                head = '::'.join(tparts[:k])
+                for pre in [namespaces[:i] for i in range(len(namespaces), -1, -1)]:
+                    a = alias_for('::'.join(list(pre) + [head]), src)
+                    if a:
+                        changed = True
+                        exp, ans = a
+                        return '::'.join([exp] + tparts[k:])
+            return m.group(0)
+        scope = _QUALIFIED.sub(sub, scope)
+        if not changed:
+            break
+    return scope
+
+
+# The type names a call site writes (a template argument, a wrapper's class) through the aliases it sees:
+# `stlp::TreeAbi<stlp::map<CRefObject*,net::AttachedId,stlp::TreeLess<CRefObject*>>, ...>` is `trees::Attached`
+# where net_connection_trees.h is included. An alias may leave out default template arguments.
+
+_SEEN_ALIASES = {}
+
+
+def visible_aliases(src, offset):
+    """[(name as the site writes it, loose name tree of its type)] of the aliases `src` sees at `offset`."""
+    here = [n for n in src.namespaces_at(offset) if n != "`anonymous namespace'"]
+    here_q = '::'.join(here).split('::') if here else []
+    key = (src.path, tuple(here_q))
+    if key in _SEEN_ALIASES:
+        return _SEEN_ALIASES[key]
+    out = []
+    for qname, cands in _ALIASES.items():
+        for a_src, exp, ns in cands:
+            if a_src is not src and not (a_src.path.endswith('.h') and sees(src, a_src)):
+                continue
+            ns_q = '::'.join(ns).split('::') if ns else []
+            k = 0
+            while k < len(ns_q) and k < len(here_q) and ns_q[k] == here_q[k]:
+                k += 1
+            name = '::'.join(ns_q[k:] + [qname.split('::')[-1]])
+            tree = name_tree(loose_key(expand_text(exp, a_src, ns)))
+            if tree and any(a is not None for _, a in tree):
+                out.append((name, tree))
+            break
+    _SEEN_ALIASES[key] = out
+    return out
+
+
+_TEMPLATE_ID = re.compile(r'(?<![\w:])[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*<')
+
+
+def abbreviated(text, src, offset):
+    """`text` (a normalised type) with template-ids written through the aliases the site sees."""
+    if '<' not in text:
+        return text
+    aliases = visible_aliases(src, offset)
+    if not aliases:
+        return text
+    spans = []
+    for m in _TEMPLATE_ID.finditer(text):
+        depth, i = 0, m.end() - 1
+        while i < len(text):
+            if text[i] == '<':
+                depth += 1
+            elif text[i] == '>':
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        spans.append((m.start(), i + 1))
+    spans.sort(key=lambda s: s[0] - s[1])
+    done = []
+    for a, b in spans:
+        if any(x <= a < y or x < b <= y for x, y, _ in done):
+            continue
+        tree = name_tree(loose_key(text[a:b]))
+        hits = {n for n, at in aliases if at == tree} or {n for n, at in aliases if prefix_match(at, tree)}
+        if len(hits) == 1:
+            done.append((a, b, next(iter(hits))))
+    for a, b, n in sorted(done, reverse=True):
+        text = text[:a] + n + text[b:]
+    return text
+
+
+_NAMESPACES = {'std'}   # every namespace name the sources open (collect_aliases)
+
+
+def loose_key(name):
+    """A normalised name without its namespace qualifiers and with the <cstdint> typedefs written out."""
+    t = normalize_type(name)
+    t = re.sub(r'\b(?:std::)?(' + '|'.join(_STD_INTS) + r')\b', lambda m: _STD_INTS[m.group(1)], t)
+    t = re.sub(r'(?<![\w])([A-Za-z_]\w*)::(?=[A-Za-z_])', lambda m: '' if m.group(1) in _NAMESPACES else m.group(0), t)
+    return re.sub(r'\s+', ' ', t)
+
+
+_LOOSE = {}
+
+
+def loose_index(decls):
+    key = id(decls)
+    if _LOOSE.get('key') != key:
+        idx = defaultdict(set)
+        for q in decls:
+            if '<' in q or '::' in q:
+                idx[loose_key(q)].add(q)
+        _LOOSE.clear()
+        _LOOSE.update(key=key, idx=idx)
+    return _LOOSE['idx']
+
+
+def using_namespaces(src):
+    """The namespaces a file opens with `using namespace N;` (as lists of names)."""
+    return [m.group(1).split('::') for m in re.finditer(r'(?<![\w])using\s+namespace\s+([\w:]+)\s*;', src.bare)]
+
+
+def resolve_registered(name, src, decls, simple_index):
+    """resolve_target for a registration in `src`: the name as written, then with its aliases written out, then
+    by its qualifier-free form."""
+    t, why = resolve_target(name, decls, simple_index)
+    if t is not None or why != 'target not found in the map':
+        return t, why, name
+    # The aliases of the file's scope, then of the namespaces it opens with `using namespace`.
+    expansions = []
+    for ns in [[]] + using_namespaces(src):
+        expanded = expand_aliases(name, src, ns)
+        if expanded != name and expanded not in expansions:
+            expansions.append(expanded)
+            t2, why2 = resolve_target(expanded, decls, simple_index)
+            if t2 is not None or why2 != 'target not found in the map':
+                return t2, why2, expanded
+    for cand in expansions + [name]:
+        hits = loose_index(decls).get(loose_key(cand), set())
+        if len(hits) != 1:
+            # Default template arguments the registration leaves out (ArrayAbi<Bytes<8>> for
+            # ArrayAbi<Bytes<8>, PlainElements<Bytes<8>>>): each argument list written is a prefix of the map's.
+            want = name_tree(loose_key(cand))
+            hits = {q for q in simple_index.get(split_qualified(normalize_type(cand))[-1], ())
+                    if want is not None and prefix_match(want, name_tree(loose_key(q)))}
+        if len(hits) == 1:
+            q = next(iter(hits))
+            t3, why3 = resolve_target(q, decls, simple_index)
+            return t3, why3, q
+    return None, why, name
+
+
+def name_tree(name):
+    """A qualified name as [(identifier, [argument trees] or None)], template arguments parsed; None when it does
+    not parse (a function type, a pointer to member)."""
+    pos = [0]
+
+    def ident():
+        m = re.compile(r'\s*([^<>,:]+?)\s*(?=[<>,]|::|$)').match(name, pos[0])
+        if not m:
+            return None
+        pos[0] = m.end()
+        return m.group(1)
+
+    def qualified():
+        out = []
+        while True:
+            i = ident()
+            if i is None:
+                return None
+            args = None
+            if name.startswith('<', pos[0]):
+                pos[0] += 1
+                args = []
+                while True:
+                    a = qualified()
+                    if a is None:
+                        return None
+                    args.append(a)
+                    if name.startswith(',', pos[0]):
+                        pos[0] += 1
+                        continue
+                    if name.startswith('>', pos[0]):
+                        pos[0] += 1
+                        break
+                    return None
+            out.append((i, args))
+            m = re.compile(r'\s*').match(name, pos[0])
+            pos[0] = m.end()
+            if name.startswith('::', pos[0]):
+                pos[0] += 2
+                continue
+            # a pointer / reference / const after the name belongs to it
+            m = re.compile(r'[\s*&]*(?:const[\s*&]*)*').match(name, pos[0])
+            if m.end() > pos[0]:
+                out.append((name[pos[0]:m.end()].replace(' ', ''), None))
+                pos[0] = m.end()
+            return out
+
+    tree = qualified()
+    return tree if tree is not None and pos[0] == len(name) else None
+
+
+def prefix_match(want, have):
+    if want is None or have is None or len(want) != len(have):
+        return False
+    for (wi, wa), (hi, ha) in zip(want, have):
+        if wi != hi or (wa is None) != (ha is None):
+            return False
+        if wa is not None and (len(wa) > len(ha) or not all(prefix_match(a, b) for a, b in zip(wa, ha))):
+            return False
+    return True
+
+
 def resolve_target(name, decls, simple_index):
     """The Sig of a registered name (as written in the registration), or a reason."""
     norm = normalize_type(name)
@@ -586,6 +867,254 @@ def spelled(t, src, offset):
         inner = base if base in BUILTINS else spelled_type(base, src, offset)
         return ('const ' if const else '') + inner + '*'
     return t if t in BUILTINS else spelled_type(t, src, offset)
+
+
+# ---------------------------------------------------------------- container ABI wrappers (C13b)
+# The STLport / MFC instantiations are registered through static wrappers (stlp::VectorAbi<T, E>::Reserve,
+# mfc::impl::ArrayAbi<T, E>::SetSize, ...) that take the container as their first parameter and whose body is
+# one call of the container's own member: `self->template Reserve<E>(n);`. A call through such a forwarder
+# becomes that member call on the caller's container (`list->Reserve<stlp::StringElement>(n)`), when the
+# forwarder's container is the wrapper's, or the same template with the element type the wrapper erases
+# (mfc::impl::Bytes<N>, stlp::Opaque<N>) written as the real one and the rest equal (then the body may not name
+# the wrapper's policy). Parameters the body dereferences (`*value`) are dereferenced at the call; parameters it
+# does not read must be plain arguments (nullptr, a literal or a name).
+
+_ERASED_LEAF = re.compile(r'^(?:mfc::impl::Bytes|stlp::Opaque|Bytes|Opaque)<\d+>$')
+# Element types a registered instantiation stands for when the caller's container holds another element of
+# the same size and kind (vector<unsigned int> for vector<int> or vector<T*>, CList<void*> for CList<T*>,
+# vector<char> for vector<unsigned char>): the caller's own instantiation of the member is the same code.
+# Never float / double (an x87 copy is not a bit copy) or class types (those are erased leaves above).
+_FOUR_BYTE_INTS = {'int', 'unsigned int', 'long', 'unsigned long'}
+_RETARGET = {
+    'unsigned int': lambda y: y in _FOUR_BYTE_INTS or _plain_pointer(y),
+    'void*': lambda y: _plain_pointer(y),
+    'char': lambda y: y in ('unsigned char', 'signed char'),
+}
+
+
+def _plain_pointer(text):
+    """A data pointer type's text (not a function pointer)."""
+    return text.endswith('*') and '(' not in text
+_BODY_CALL = re.compile(r'^(return\s+)?self\s*->\s*(?:template\s+)?([A-Za-z_]\w*)\s*(<[^()]*>)?\s*\((.*)\)\s*;$', re.S)
+_TYPE_WORDS = {'const', 'void', 'int', 'unsigned', 'char', 'float', 'double', 'bool', 'short', 'long', 'signed'}
+
+
+def _param_name(text):
+    """The name of a parameter declaration, or None when it has none."""
+    text = re.sub(r'=.*$', '', text, flags=re.S).strip()
+    m = re.search(r'([A-Za-z_]\w*)\s*$', text)
+    if not m or m.group(1) in _TYPE_WORDS:
+        return None
+    before = text[:m.start()].strip()
+    if not before or before.endswith('::'):
+        return None
+    return m.group(1)
+
+
+def _template_params(src, head_end):
+    """Names of the template parameters of the class whose body opens at `head_end`."""
+    i = max(src.bare.rfind(';', 0, head_end), src.bare.rfind('}', 0, head_end), src.bare.rfind('{', 0, head_end))
+    m = re.search(r'template\s*<(.*)>\s*(?:struct|class)\s+\w+', src.bare[i + 1:head_end], re.S)
+    if not m:
+        return []
+    names = []
+    for p in split_params(m.group(1)):
+        p = re.sub(r'=.*$', '', p, flags=re.S).strip()
+        mm = re.search(r'([A-Za-z_]\w*)$', p)
+        names.append(mm.group(1) if mm else '')
+    return names
+
+
+def _template_args(scope):
+    """The argument texts of the last template-id of a qualified class name."""
+    last = split_qualified(scope)[-1]
+    if '<' not in last:
+        return []
+    return split_params(last[last.index('<') + 1:last.rindex('>')])
+
+
+def abi_body(t, classes):
+    """The one member call a static wrapper's inline body makes: (member, template argument texts or None,
+    [(parameter index, dereferenced)], [parameter names]) or a reason."""
+    parts = split_qualified(t.scope)
+    cls = parts[-1].split('<')[0]
+    bodies = [(s, o, c) for s, o, c in classes.bodies.get(cls, ())
+              if '::'.join(n for n in s.namespaces_at(o) if n != "`anonymous namespace'") == '::'.join(parts[:-1])]
+    if len(bodies) != 1:
+        return 'wrapper class body not found once'
+    s, o, c = bodies[0]
+    found = [m for m in re.finditer(r'(?<![\w~])' + re.escape(t.simple) + r'\s*\(', s.bare[o:c])]
+    found = [m for m in found if re.search(r'\bstatic\b[^;{}]*$', s.bare[o:o + m.start()])]
+    if len(found) != 1:
+        return 'wrapper overloaded or not inline'
+    open_paren = o + found[0].end() - 1
+    close, args = parse_args(s.bare, open_paren)
+    if close is None:
+        return 'wrapper parameters unbalanced'
+    names = [_param_name(s.code[a:b]) for a, b in args]
+    m = re.match(r'\s*(?:const\s*)?\{', s.bare[close + 1:])
+    if not m:
+        return 'wrapper not defined inline'
+    body_open = close + 1 + m.end() - 1
+    depth, i = 0, body_open
+    while i < c:
+        if s.bare[i] == '{':
+            depth += 1
+        elif s.bare[i] == '}':
+            depth -= 1
+            if depth == 0:
+                break
+        i += 1
+    body = s.code[body_open + 1:i].strip()
+    bm = _BODY_CALL.match(body)
+    if not bm or ';' in bm.group(4) or '{' in bm.group(4):
+        return 'wrapper body is not one member call'
+    if not names or names[0] is None:
+        return 'wrapper object unnamed'
+    targs = None
+    if bm.group(3):
+        tparams = _template_params(s, o)
+        actual = _template_args(t.scope)
+        if not tparams or len(tparams) != len(actual):
+            return 'wrapper template arguments'
+        subst = dict(zip(tparams, actual))
+        targs = []
+        for a in split_params(bm.group(3)[1:-1]):
+            if a.strip() not in subst:
+                return 'wrapper body names other template arguments'
+            targs.append(subst[a.strip()])
+    order = []
+    for a in split_params(bm.group(4)):
+        am = re.fullmatch(r'\s*(\*?)\s*([A-Za-z_]\w*)\s*', a)
+        if not am or am.group(2) not in names[1:]:
+            return 'wrapper body passes more than its parameters'
+        order.append((names.index(am.group(2)), bool(am.group(1))))
+    return bm.group(2), targs, order, names
+
+
+def tree_text(tree):
+    out = []
+    for i, a in tree:
+        if out and not re.match(r'[*&]', i):
+            out.append('::')
+        out.append(i)
+        if a is not None:
+            out.append('<' + ','.join(tree_text(x) for x in a) + '>')
+    return ''.join(out)
+
+
+def erased_match(want, have, subst):
+    """Whether name tree `have` (the caller's type) is `want` (the wrapper's) with erased leaves replaced;
+    the replacements go into subst (erased text -> real text)."""
+    if want is None or have is None or len(want) != len(have):
+        return False
+    for (wi, wa), (hi, ha) in zip(want, have):
+        if wi != hi or (wa is None) != (ha is None):
+            return False
+        if wa is None:
+            continue
+        if len(wa) != len(ha):
+            return False
+        for x, y in zip(wa, ha):
+            xt, yt = tree_text(x), tree_text(y)
+            if _ERASED_LEAF.match(xt) or (xt != yt and xt in _RETARGET and _RETARGET[xt](yt)):
+                if subst.setdefault(xt, yt) != yt:
+                    return False
+            elif not erased_match(x, y, subst):
+                return False
+    return True
+
+
+def substituted(t, subst):
+    """A normalised type with the erased types replaced (`Bytes<8>const*` -> `AreaOffset const*`)."""
+    for k, v in subst.items():
+        t = re.sub(re.escape(k) + r'(?=\w)', v + ' ', t).replace(k, v)
+    return normalize_type(t) if subst else t
+
+
+def match_unwrap(fsig, tsig, classes):
+    """('unwrap', info) for a forwarder of a static container wrapper (see above), or (None, why)."""
+    if fsig.member or not tsig.static or fsig.cc != tsig.cc or not fsig.params or not tsig.params:
+        return None, 'not a wrapper call'
+    if len(fsig.params) != len(tsig.params):
+        return None, 'parameter count'
+    fself, tself = fsig.params[0], tsig.params[0]
+    if not fself.endswith('*') or not tself.endswith('*'):
+        return None, 'object not a pointer'
+    fbase, tbase = fself[:-1], tself[:-1]
+    if tbase.endswith(' const') and not fbase.endswith(' const'):
+        tbase = tbase[:-6]
+    if fbase.endswith(' const') and not tbase.endswith(' const'):
+        return None, 'const object for a non-const wrapper'
+    body = abi_body(tsig, classes)
+    if isinstance(body, str):
+        return None, body
+    member, targs, order, names = body
+    subst = {}
+    if fbase != tbase:
+        if not erased_match(name_tree(tbase), name_tree(fbase), subst) or not subst:
+            return None, f'object {fself} for {tself}'
+        if targs:
+            # The member's element policy follows a retargeted element (PlainElement<unsigned int> ->
+            # PlainElement<int>); an erased element's policy may be the wrapper's own, so not those.
+            if any(_ERASED_LEAF.match(k) for k in subst):
+                return None, f'object {fself} for {tself}'
+            targs = [substituted(normalize_type(x), subst) for x in targs]
+    used = {i for i, _ in order}
+    # A parameter is the wrapper's with the element replaced, or (a count, an index) unchanged.
+    for i, (a, b) in enumerate(zip(fsig.params[1:], tsig.params[1:]), 1):
+        if i in used and not same_params([a], [substituted(b, subst)]) and not same_params([a], [b]):
+            return None, f'parameter {a} for {substituted(b, subst)}'
+    ret = substituted(tsig.ret, subst)
+    if fsig.ret != 'void' and ret != fsig.ret and tsig.ret != fsig.ret:
+        return None, f'result {ret} read as {fsig.ret}'
+    return 'unwrap', {'member': member, 'targs': targs, 'order': order, 'used': used}
+
+
+_PLAIN_ARG = re.compile(r'nullptr|NULL|0|-?\d+|[A-Za-z_]\w*|true|false')
+
+
+def rewrite_unwrap(f, site):
+    """rewrite_site for an 'unwrap' forwarder: `F(obj, nullptr, a, &b)` -> `obj->M(a, b)`."""
+    s = site.src
+    open_paren, close, args = site.args
+    if site.obj or site.qualifier not in ('', '::'):
+        return None, 'qualified call'
+    if len(args) != len(f.sig.params):
+        return None, 'argument count differs'
+    info = f.unwrap
+    for i, (a, b) in enumerate(args):
+        if i and i not in info['used'] and not _PLAIN_ARG.fullmatch(s.bare[a:b].strip()):
+            return None, f'an argument the member does not take has an effect ({s.bare[a:b].strip()})'
+    sa, sb = _trimmed(s.code, *args[0])
+    self_code = s.code[sa:sb]
+    if '\n' in self_code or s.code[sa:sb] != s.raw[sa:sb]:
+        return None, 'object expression spans lines or has a comment'
+    name = info['member']
+    if info['targs']:
+        name += '<' + ', '.join(spelled(normalize_type(x), s, site.start) for x in info['targs']) + '>'
+    if self_code.startswith('&') and not self_code.startswith('&&') and is_postfix(self_code[1:]):
+        head = [_trimmed(s.code, sa + 1, sb), '.' + name]
+    elif is_postfix(self_code):
+        head = [(sa, sb), '->' + name]
+    else:
+        head = ['(', (sa, sb), ')->' + name]
+    pieces = head + ['(']
+    for k, (i, deref) in enumerate(info['order']):
+        ta, tb = _trimmed(s.code, *args[i])
+        if k:
+            pieces.append(', ')
+        text = s.code[ta:tb]
+        if not deref:
+            pieces.append((ta, tb))
+        elif text.startswith('&') and not text.startswith('&&') and is_postfix(text[1:].strip()):
+            pieces.append(_trimmed(s.code, ta + 1, tb))
+        elif is_postfix(text):
+            pieces += ['*', (ta, tb)]
+        else:
+            pieces += ['*(', (ta, tb), ')']
+    pieces.append(')')
+    return (site.start, close + 1, pieces), ''
 
 
 # ------------------------------------------------------------------------------------- class graph
@@ -865,13 +1394,19 @@ CAST_SITES = set()    # (path, line) of calls that need static_cast<T*> (--cast-
 
 
 def spelled_type(qname, site_src, site_offset):
-    """A class's name as written at a call site: qualified past the namespaces the site is in."""
+    """A class's name as written at a call site: qualified past the namespaces the site is in, its template-ids
+    through the aliases the site sees."""
     parts = split_qualified(qname)
     here = site_src.namespaces_at(site_offset)
     k = 0
     while k < len(parts) - 1 and k < len(here) and parts[k] == here[k]:
         k += 1
-    return '::'.join(parts[k:])
+    return comma_spaced(abbreviated('::'.join(parts[k:]), site_src, site_offset))
+
+
+def comma_spaced(text):
+    """Template arguments as the sources write them: `A<B, C>`."""
+    return re.sub(r',(?=\S)', ', ', text)
 
 
 def spelled_target(tsig, site_src, site_offset):
@@ -882,7 +1417,9 @@ def spelled_target(tsig, site_src, site_offset):
     k = 0
     while k < len(scope) and k < len(here) and scope[k] == here[k]:
         k += 1
-    return '::'.join(scope[k:] + parts[-1:])
+    if k < len(scope):
+        return comma_spaced(abbreviated('::'.join(scope[k:]), site_src, site_offset)) + '::' + parts[-1]
+    return parts[-1]
 
 
 def _trimmed(text, a, b):
@@ -949,6 +1486,8 @@ def rewrite_site(f, site):
     the raw text, which are written with the edits inside them (a forwarder call in the arguments)."""
     if f.kind == 'loose':
         return rewrite_loose(f, site)
+    if f.kind == 'unwrap':
+        return rewrite_unwrap(f, site)
     s = site.src
     open_paren, close, args = site.args
     if f.kind == 'rename':
@@ -1166,6 +1705,7 @@ def analyse(sources, decls, library=False, scope=None, tiers=None, exclude=()):
     regs = registrations(sources, library)
     kept = kept_shims(sources)
     classes = Classes(sources)
+    collect_aliases(sources)
     fwds = find_forwarders(sources)
     spans = defaultdict(list)
     for f in fwds:
@@ -1207,11 +1747,13 @@ def analyse(sources, decls, library=False, scope=None, tiers=None, exclude=()):
             else:
                 f.reason = why or 'not in the map (overloaded or not compiled) but called'
             continue
-        t, why = resolve_target(f.target_name, decls, simple_index)
+        t, why, resolved = resolve_registered(f.target_name, tsrc, decls, simple_index)
         if t is None and plain != f.target_name and why == 'target not found in the map':
-            t, why = resolve_target(plain, decls, simple_index)
+            t, why, resolved = resolve_registered(plain, tsrc, decls, simple_index)
             if t is not None:
                 f.target_name = plain
+        if t is not None:
+            f.target_resolved = resolved
         if t is None:
             f.reason = why
             continue
@@ -1223,7 +1765,15 @@ def analyse(sources, decls, library=False, scope=None, tiers=None, exclude=()):
         if t.special:
             f.reason = 'target constructor / destructor / operator'
             continue
-        f.kind = match(f.sig, t)
+        f.kind = None
+        if t.static and not f.sig.member:
+            kind, info = match_unwrap(f.sig, t, classes)
+            if kind:
+                f.kind, f.unwrap = kind, info
+            else:
+                f.unwrap_why = info
+        if not f.kind:
+            f.kind = match(f.sig, t)
         if not f.kind and tiers.get('loose'):
             f.kind, f.conv = match_loose(f.sig, t, classes)
             if not f.kind:
@@ -1295,6 +1845,25 @@ def plan(fwds, classes):
                 why = why[:-1] + f'; {where})' if why.endswith(')') else f'{why} ({where})'
                 break
             mine.append((site.src, e))
+            # The classes a template target or an unwrapped call names come from their headers.
+            if f.kind == 'unwrap':
+                names = ' '.join(f.unwrap['targs'] or ())
+            else:
+                names = f.target.scope if '<' in f.target.scope else ''
+            for name in re.findall(r'[A-Za-z_]\w*', normalize_type(names)):
+                hdr = [b[0] for b in classes.bodies.get(name, ()) if b[0].path.endswith('.h')]
+                if len({h.path for h in hdr}) != 1 or hdr[0] is site.src or sees(site.src, hdr[0]) or \
+                        not site.src.path.endswith('.cpp'):
+                    continue
+                inc = include_line(site.src.path, hdr[0].path)
+                if inc is None:
+                    why = f'cannot include {hdr[0].path}'
+                    break
+                incs.add((site.src, inc))
+            if why:
+                break
+            if f.kind == 'unwrap':
+                continue        # the container's own member: declared with the container the call uses
             vectors = vector_sources()
             if site.src.path in vectors and site.src.path != f.target_src_path and vectors.get(f.target_src_path) is not True:
                 why = f'ei_vectors links the caller without the target ({site.src.path})'
@@ -1656,6 +2225,8 @@ def main(argv):
                     print(f'      forwarder: {f.sig.und}\n      target:    {f.target.und}')
                     if getattr(f, 'loose_why', ''):
                         print(f'      loose:     {f.loose_why}')
+                    if getattr(f, 'unwrap_why', ''):
+                        print(f'      wrapper:   {f.unwrap_why}')
         for f in done:
             print(f'{f.address:08X} {f.src.path}:{f.src.line_of(f.start)} {f.name} -> {f.target_name}: '
                   f'convertible ({f.kind}, {len(f.sites)} call sites)')

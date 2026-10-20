@@ -55,8 +55,6 @@ struct TextDecoder {
     ByteVector input;   // +0x0C
 };
 __declspec(naked) void __fastcall ByteVectorConstruct(ByteVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0042D310)
-__declspec(naked) void __fastcall ByteVectorErase(ByteVector* /*v*/, void*, std::uint8_t* /*first*/, std::uint8_t* /*last*/) EI_ORIGINAL(0x0042D340)
-__declspec(naked) void __fastcall ByteVectorFill(ByteVector* /*v*/, void*, std::uint8_t* /*pos*/, std::uint32_t /*n*/, const std::uint8_t* /*value*/) EI_ORIGINAL(0x0042D370)
 // 004D8E10: unpacks the input, unscrambles it and stores it in `out`.
 void __fastcall DecodeText(TextDecoder* a0, void*, mfc::CString* a2) { reinterpret_cast<MobScriptDecoder*>(a0)->Decode(a2); }   // same layout
 
@@ -290,9 +288,9 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     std::uint8_t zero = 0;
     std::uint32_t had = static_cast<std::uint32_t>(decoder.input.size());
     if (length < had)
-        ByteVectorErase(&decoder.input, nullptr, decoder.input.begin() + length, decoder.input.end());
+        decoder.input.EraseRange<stlp::PlainElement<unsigned char>>(decoder.input.begin() + length, decoder.input.end());
     else
-        ByteVectorFill(&decoder.input, nullptr, decoder.input.end(), length - had, &zero);
+        decoder.input.FillInsert<stlp::PlainElement<unsigned char>>(decoder.input.end(), length - had, zero);
     FileRead(File(), decoder.input.begin(), length);
     if (parent_) parent_->Advance(static_cast<int>(length));
     consumed_ += static_cast<int>(length);

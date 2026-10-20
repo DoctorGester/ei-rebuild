@@ -61,7 +61,7 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     IntArray values{nullptr, 0, 0, 0};
     SetRectFn setRect = ImportSetRect();
     for (const MenuRect& entry : kRects) {
-        DwordsSetSize(reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values), nullptr, 0, -1);
+        reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values)->SetSize(0, -1);
         reg->GetIntArray(game::Text(entry.section), game::Text(entry.name), reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values));
         if (values.size != 4) {
             int result = game::FatalError(game::Text(entry.error));

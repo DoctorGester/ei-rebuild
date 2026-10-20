@@ -37,13 +37,9 @@ SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
     return size;
 }
 
-// 0065E010 (RET 8): CArray::SetSize of the token array. The original calls it for a format token
-// and inlines the same template code (SetAtGrow) for a word.
-__declspec(naked) void __fastcall TokensSetSize(UiTokenArray*, void*, int, int) EI_ORIGINAL(0x0065E010)
-
 void Append(UiTokenArray& tokens, UiTextToken* token) {
     int index = tokens.size;
-    TokensSetSize(&tokens, nullptr, index + 1, -1);
+    tokens.SetSize(index + 1, -1);
     tokens.data[index] = token;
 }
 

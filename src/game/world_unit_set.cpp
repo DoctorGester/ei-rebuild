@@ -3,6 +3,7 @@
 // set). The set's three STLport hash_maps are walked with the original's iterator helpers, so the
 // order matches theirs.
 #include "core_streams.h"
+#include "record_vectors.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -131,14 +132,8 @@ void UnitSet::Write(CStream* stream) {
 
 namespace {
 
-// vector<FiguredUnitRecord>::resize [0055A400], vector<DressedUnitRecord>::resize [0055A580],
 // vector<int>::resize(n, value) [004FE0C0], vector<CString>::resize [0051F5B0], the stream's
 // CString reader [004E5840, on the stream].
-__declspec(naked) void __fastcall ResizeFigured(stlp::vector<FiguredUnitRecord>*, void*, std::uint32_t)
-    EI_ORIGINAL(0x0055A400)
-__declspec(naked) void __fastcall ResizeDressed(stlp::vector<DressedUnitRecord>*, void*, std::uint32_t)
-    EI_ORIGINAL(0x0055A580)
-__declspec(naked) void __fastcall ResizeIds(UnitIdList*, void*, std::uint32_t, const std::uint32_t*) EI_ORIGINAL(0x004FE0C0)
 
 void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 
@@ -147,7 +142,7 @@ void GetIds(CStream* stream, UnitIdList& list) {
     std::uint32_t n;
     Get(stream, &n, 4);
     std::uint32_t zero = 0;
-    ResizeIds(&list, nullptr, n, &zero);
+    list.Resize<stlp::PlainElement<unsigned int>>(n, zero);
     Get(stream, list.begin(), static_cast<std::uint32_t>(list.size()) << 2);
 }
 
@@ -157,7 +152,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
                               stlp::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
     Get(stream, &count, 4);
-    ResizeFigured(figured, nullptr, count);
+    recordvec::FiguredUnitVector::ResizeDefault(figured, nullptr, count);
     for (FiguredUnitRecord* record = figured->begin(); record != figured->end(); ++record) {
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->armourIds);
@@ -174,7 +169,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
             stream->ReadInto(reinterpret_cast<mfc::CString*>(&record->names[i]));
     }
     Get(stream, &count, 4);
-    ResizeDressed(dressed, nullptr, count);
+    recordvec::DressedUnitVector::ResizeDefault(dressed, nullptr, count);
     for (DressedUnitRecord* record = dressed->begin(); record != dressed->end(); ++record) {
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->items);

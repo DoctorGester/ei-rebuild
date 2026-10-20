@@ -697,14 +697,10 @@ using SpellEntry = ArmourSpellList::Node;
 constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 // 005316F0 CUnit: its items into two lists; 005318B0 CUnit::GetWeapon; the list instantiations
-// 00558C00 (FreeNode of the first), 00558C50 / 00429F10 (their destructors), 00558B10 / 00558B80
-// (NewNode / FreeNode of the spell list), 00558840 (its element's assignment), 00429B50 (a
-// reference's assignment).
-__declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
+// 00558C50 / 00429F10 (their destructors), 00558B10 / 00558B80 (NewNode / FreeNode of the spell
+// list), 00558840 (its element's assignment), 00429B50 (a reference's assignment).
 void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
 inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
-__declspec(naked) SpellEntry* __fastcall SpellNewNode(ArmourSpellList*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
-    EI_ORIGINAL(0x00558B10)
 __declspec(naked) void __fastcall SpellFreeNode(ArmourSpellList*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
 } // namespace
 
@@ -722,7 +718,7 @@ void CUnitServer::RefreshItemSpells() {
         else current->prev->next = current->next;
         if (current == items.tail) items.tail = current->prev;
         else current->next->prev = current->prev;
-        ItemListFreeNode(&items, nullptr, current);
+        items.FreeNode(current);
     }
     ArmourSpellList* list = &armourSpells;
     SpellEntry*& head = armourSpells.head;
@@ -748,7 +744,7 @@ void CUnitServer::RefreshItemSpells() {
             continue;
         }
         ArmourSpell blank{};
-        SpellEntry* added = SpellNewNode(list, nullptr, tail, nullptr);
+        SpellEntry* added = list->NewNode(tail, nullptr);
         added->data.Assign(&blank);
         if (tail) tail->next = added;
         else head = added;

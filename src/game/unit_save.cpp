@@ -52,16 +52,6 @@ void WriteItemIds(CStream* stream, CEngineObject* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
 }
 
-// A raw STLport string (12 bytes) built and destroyed by the original's routines.
-struct RawString {
-    void* InitFrom(const char* text, void* allocator);   // 0040C5A0
-    std::uint8_t bytes[12];
-};
-} // namespace
-
-void* RawString::InitFrom(const char* text, void* alloc) { return ::StringInitFromChars(this, nullptr, text, alloc); }
-
-namespace {
 // Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
 void ReadStringInto(CStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
@@ -73,12 +63,8 @@ void ReadStringInto(CStream* stream, mfc::CString& target) {
 // The prototype record named `name` through the name map (an unknown name is added to it;
 // 005335E0, hash_map<string, record*>::operator[], inlined by the original).
 char* PrototypeByName(const char* name) {
-    RawString key;
-    char allocator;
-    key.InitFrom(name, &allocator);
-    char* record = *reinterpret_cast<char**>(PrototypeMapAtOriginal(&unitdb::PrototypeTable().byName, nullptr, &key));
-    StlStringDestroy(&key);
-    return record;
+    stlp::string key(name);
+    return *reinterpret_cast<char**>(PrototypeMapAtOriginal(&unitdb::PrototypeTable().byName, nullptr, &key));
 }
 
 // The world the unit belongs to (its manager's context).

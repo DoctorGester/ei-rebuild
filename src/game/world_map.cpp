@@ -2,6 +2,7 @@
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "base_manager.h"
+#include "hash_tables_400.h"
 #include "object_diplomacy.h"
 #include "player_manager.h"
 #include "player_messages.h"
@@ -246,12 +247,6 @@ mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectListNewNode(
     return (mfc::CTypedPtrList<CEngineObject>::Node*)PtrListNewNode573290Original((void*)a0, nullptr, (void*)a2, (void*)a3);
 }
 __declspec(naked) void __fastcall ObjectListRemoveAll(mfc::CTypedPtrList<CEngineObject>*, void*) EI_ORIGINAL(0x00570470)
-// 00599A80 (RET 4) / 00599AE0 (RET 4). An id map's erase(key) / lookup (pointer to the value or
-// null).
-__declspec(naked) CEngineObject** __fastcall IdMapLookup(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599AE0)
-// 0059CCE0 (RET 8). The aligned object array's SetAtGrow.
-__declspec(naked) void __fastcall AlignedArraySetAtGrow(lib::AlignedArray<CEngineObject*>*, void*, int,
-                                                         CEngineObject*) EI_ORIGINAL(0x0059CCE0)
 // 0066C180. The player list creates a temporary player (returned).
 WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
@@ -292,13 +287,13 @@ void CWorldServer::SendFreshObjects() {
         auto* next = node->next;
         CEngineObject* object = node->data;
         unsigned id = static_cast<unsigned>(object->id_);
-        IdMapEraseOriginal(&mapObjects_, nullptr, &id);
+        hash400::ObjectsRemoveKey(mapObjects_.map, id);
         id = static_cast<unsigned>(object->id_);
-        if (IdMapLookup(&otherMapObjects_, nullptr, &id)) {
+        if (hash400::ObjectsFind(otherMapObjects_.map, id)) {
             id = static_cast<unsigned>(object->id_);
-            IdMapEraseOriginal(&otherMapObjects_, nullptr, &id);
+            hash400::ObjectsRemoveKey(otherMapObjects_.map, id);
         }
-        AlignedArraySetAtGrow(&objects, nullptr, objects.size, object);
+        objects.SetAtGrow(objects.size, object);
         node = next;
     }
     state->SendObjectsAdded(&objects);

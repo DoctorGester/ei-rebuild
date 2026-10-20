@@ -15,6 +15,7 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "lib/mfc_list.h"
 #include "originals_library.h"
 
 #include <cstdint>
@@ -45,16 +46,14 @@ using SeenMap = DwordMap;
 void* SeenMapVtable() { return reinterpret_cast<void*>(0x0073C16C); }
 __declspec(naked) MapAssoc* __fastcall MapGetAssocAt(SeenMap*, void*, const std::uint32_t*, std::uint32_t*)
     EI_ORIGINAL(0x00453C60)
-__declspec(naked) void __fastcall MapInitHashTable(SeenMap*, void*, std::uint32_t, int) EI_ORIGINAL(0x00453B90)
-__declspec(naked) MapAssoc* __fastcall MapNewAssoc(SeenMap*) EI_ORIGINAL(0x00453C00)
 
 // map[key] as the original inlines it: the association (created with value 0 when missing).
 MapAssoc* MapLookup(SeenMap& map, std::uint32_t key) {
     std::uint32_t hash;
     MapAssoc* assoc = MapGetAssocAt(&map, nullptr, &key, &hash);
     if (assoc) return assoc;
-    if (!map.table) MapInitHashTable(&map, nullptr, map.hashSize, 1);
-    assoc = MapNewAssoc(&map);
+    if (!map.table) mfc::impl::MapAbi<unsigned int, unsigned int>::InitHashTable(&map, nullptr, map.hashSize, 1);
+    assoc = mfc::impl::MapAbi<unsigned int, unsigned int>::NewAssoc(&map);
     assoc->hash = hash;
     assoc->key = key;
     assoc->next = map.table[hash];
@@ -74,10 +73,10 @@ void MapMark(SeenMap& map, std::uint32_t key) {
             }
         }
     } else {
-        MapInitHashTable(&map, nullptr, map.hashSize, 1);
+        mfc::impl::MapAbi<unsigned int, unsigned int>::InitHashTable(&map, nullptr, map.hashSize, 1);
     }
     if (!assoc) {
-        assoc = MapNewAssoc(&map);
+        assoc = mfc::impl::MapAbi<unsigned int, unsigned int>::NewAssoc(&map);
         assoc->hash = hash;
         assoc->key = key;
         assoc->next = map.table[hash];

@@ -48,8 +48,6 @@ void AnimationAddPart(void* state, void*, CFigureMesh* part) { static_cast<CFigu
 void AnimationSetScale(void* state, void*, float x, float y, float z) {
     static_cast<CFigureAnimationState*>(state)->Rescale(x, y, z);
 }
-__declspec(naked) void __fastcall SetAtGrowAt(AlignedPtrArray*, void*, int, void*) EI_ORIGINAL(0x00519E80)
-__declspec(naked) void __fastcall SetSizeAt(AlignedPtrArray*, void*, int, int) EI_ORIGINAL(0x00519D70)
 
 // The original's branch-free selects: the stored candidate `v` replaces the bound when the
 // comparison sets C0 (it is beyond the bound, or unordered).
@@ -214,13 +212,13 @@ int CObject3D::LoadFigures() {
         bool known = false;
         for (int k = 0; k < parts.size && !known; ++k) known = parts.data[k] == part;
         if (known) continue;
-        SetAtGrowAt(&parts, nullptr, parts.size, part);
+        parts.SetAtGrow(parts.size, part);
         ++part->refCount_;
         SetPartOwner(part, nullptr, this);
         if (animation) AnimationAddPart(animation, nullptr, part);
         if (attached) Specific()->OnPartAdded(part);
     }
-    SetSizeAt(&pendingParts, nullptr, 0, -1);
+    pendingParts.SetSize(0, -1);
     if (GetClassId() != kClassUnit) {
         for (int i = 0; i < parts.size; ++i) static_cast<CFigureMesh*>(parts.data[i])->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;

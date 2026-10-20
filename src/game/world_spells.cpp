@@ -93,7 +93,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
                                                    &from, target, &end, static_cast<std::uint8_t>(extra));
     if (reinterpret_cast<CSpellEffect*>(missile)->Update()) {
         auto& list = projectiles_;
-        ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
+        ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
         Projectile* old = node->data;
         node->data = missile;
         if (missile) ++missile->referenceCount;

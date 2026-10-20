@@ -66,8 +66,6 @@ void SetScrollPos(void* bar, int position) {
 
 // --- Shared ---------------------------------------------------------------------------------
 
-__declspec(naked) void __fastcall UiItemsSetSize(UiItemArray*, void*, int, int) EI_ORIGINAL(0x0062A390)
-
 // --- Item predicates -------------------------------------------------------------------------
 
 namespace {
@@ -240,12 +238,12 @@ int CUiItemStrip::ArmorTab(const char* item) {
 EI_REPLACE_METHOD(0x00621A80, CUiItemStrip::ArmorTab);
 
 void CUiItemStrip::RebuildList() {
-    UiItemsSetSize(&list_, nullptr, 0, -1);
+    list_.SetSize(0, -1);
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) {
             int index = list_.size;
             char* item = source_->data[i];
-            UiItemsSetSize(&list_, nullptr, index + 1, -1);
+            list_.SetSize(index + 1, -1);
             list_.data[index] = item;
         }
     } else {
@@ -253,7 +251,7 @@ void CUiItemStrip::RebuildList() {
             char* item = source_->data[i];
             if (TabOf(item) == tab_) {
                 int index = list_.size;
-                UiItemsSetSize(&list_, nullptr, index + 1, -1);
+                list_.SetSize(index + 1, -1);
                 list_.data[index] = item;
             }
         }
@@ -275,12 +273,12 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     if (!item) return;
     CItem* wanted = item;
     float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
-    UiItemsSetSize(&list_, nullptr, 0, -1);
+    list_.SetSize(0, -1);
     // The original inlines the array's SetSize (0062A390) in the second loop.
     auto append = [&](char* entry) {
         if (wanted->IsSameAsSlot(reinterpret_cast<CItem*>(entry))) found = static_cast<float>(list_.size);
         int index = list_.size;
-        UiItemsSetSize(&list_, nullptr, index + 1, -1);
+        list_.SetSize(index + 1, -1);
         list_.data[index] = entry;
     };
     if (filter_ == 0 && tab_ == 5) {

@@ -37,12 +37,6 @@ std::uint32_t PartyKind(std::uint32_t kind) {
     return kGroup[kind] == 0 ? 0x27 : kGroup[kind] == 1 ? 0x28 : kind;
 }
 
-// The lookups and picks are called through their addresses, so that their verify wrappers run
-// (SayAck and SayNamedAck are their only callers).
-__declspec(naked) UnitAcks* __fastcall FindUnitAcks(AckTable<UnitAcks>*, void*, const char*) EI_ORIGINAL(0x006D9A30)
-__declspec(naked) ModelAcks* __fastcall FindModelAcks(AckTable<ModelAcks>*, void*, const char*) EI_ORIGINAL(0x006D9CE0)
-__declspec(naked) ExtraAcks* __fastcall FindExtraAcks(AckTable<ExtraAcks>*, void*, const char*) EI_ORIGINAL(0x006D9F80)
-
 // The speech list a record keeps for `kind`, or null.
 SpeechList* ListFor(const AckRecordHead& record, std::uint32_t kind) {
     auto* node = record.speeches.Find(static_cast<int>(kind));
@@ -122,7 +116,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     if (kind <= 0x29) {
         if (kind == 0x23 || kind == 0x24)
             sound::Manager()->Play3D("weapons\\crash.wav", 0, &unit->position.x, 8.0f, 20.0f, 0, 0);
-        UnitAcks* record = FindUnitAcks(&db.units, nullptr, prototype->name);
+        UnitAcks* record = db.units.Find(prototype->name);
         if (!record) return nullptr;
         if (kind == 0x29) {
             environmentList = &record->environmentSpeeches;
@@ -131,16 +125,16 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
             if (!list) return nullptr;
         }
     } else if (kind <= 0x2D) {
-        ExtraAcks* record = FindExtraAcks(&db.extras, nullptr, prototype->name);
+        ExtraAcks* record = db.extras.Find(prototype->name);
         if (!record) return nullptr;
         list = ListFor(record->head, kind);
         if (!list) return nullptr;
     } else if (kind <= 0x32) {
-        ModelAcks* record = FindModelAcks(&db.models, nullptr, prototype->name);
+        ModelAcks* record = db.models.Find(prototype->name);
         if (!record) {
             auto* model = reinterpret_cast<const UnitModelRecord*>(
                 unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
-            record = FindModelAcks(&db.models, nullptr, model->name);
+            record = db.models.Find(model->name);
             if (!record) return nullptr;
         }
         list = ListFor(record->head, kind);
@@ -169,7 +163,7 @@ const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool a
     if (!unit) return nullptr;
     auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
     if (!prototype) return nullptr;
-    UnitAcks* record = FindUnitAcks(&Database().units, nullptr, prototype->name);
+    UnitAcks* record = Database().units.Find(prototype->name);
     if (!record) return nullptr;
     std::size_t length = std::strlen(name);
     for (const SpeechRecord* s = record->namedSpeeches.begin(); s != record->namedSpeeches.end(); ++s) {

@@ -207,6 +207,11 @@
 //                             require the fraction of neighbouring level-map pixel pairs of
 //                             frames\<frame>.bmp whose level jumps (capture::LevelSteps: the seams of
 //                             R12) to lie within <least>..<most>. Skipped in a run of the original code
+//   mmplevels <most>          require the levels of every .mmp texture the image holds, decoded as drawn,
+//                             to lie within a mean difference of <most> (0..255 per channel) from their
+//                             level 0, both box-filtered to 4 x 4 (render::CheckMmpLevels: levels read
+//                             from the wrong bytes drew bright green strips over the trees, R12b).
+//                             Skipped in a run of the original code
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
@@ -2731,6 +2736,26 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (steps < least || steps > most) g_failures.push_back(text);
+        } else if (s.verb == "mmplevels") {
+            double most = 0;
+            if (sscanf_s(s.argument.c_str(), "%lf", &most) < 1) {
+                g_failures.push_back("mmplevels needs the largest mean difference allowed");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: mmplevels: not the new renderer (the original code): no decoded textures");
+                continue;
+            }
+            render::MmpLevelCheck check = render::CheckMmpLevels();
+            char text[240];
+            std::snprintf(text, sizeof(text),
+                          "mmplevels: %d textures, %d levels; largest mean difference %.2f (allowed %.2f; level %d of a "
+                          "%dx%d texture, format %08X)",
+                          check.textures, check.levels, check.worst, most, check.worstLevel, check.worstWidth,
+                          check.worstHeight, static_cast<unsigned>(check.worstFormat));
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (check.levels == 0 || check.worst > most) g_failures.push_back(text);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";

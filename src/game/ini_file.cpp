@@ -4,6 +4,7 @@
 
 #include "console.h"
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_library.h"
@@ -71,7 +72,7 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
     console::CStringArray codes;
     if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
-    DwordsSetSize(&temp, nullptr, codes.GetSize(), -1);
+    temp.SetSize(codes.GetSize(), -1);
     for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
     return 1;
 }

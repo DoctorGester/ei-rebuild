@@ -38,9 +38,6 @@ __declspec(naked) void __fastcall SerializePrints2At(ChunkArchive*, void*, int, 
 __declspec(naked) void __fastcall SerializeAcksAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006DB430)
 __declspec(naked) void __fastcall SerializeAcks2At(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006DB680)
 __declspec(naked) void __fastcall SerializeAcks3At(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006DB8D0)
-// AckTable<ExtraAcks>::RecordAt (RET 4; rewritten in acks_db.cpp), likewise.
-__declspec(naked) acks::ExtraAcks* __fastcall ExtraAcksAt(acks::AckTable<acks::ExtraAcks>*, void*, std::uint32_t)
-    EI_ORIGINAL(0x006D8E30)
 
 // Every record of `records` filed in `index` under its name (the index's operator[]: a record of
 // a name seen before replaces the earlier one).
@@ -144,7 +141,7 @@ int AckDatabase::Load(const char* folder) {
         for (int list = 0; list < 5; ++list) record.head.speeches[kFirstModelKind + list] = &record.lists[list];
     }
     for (std::size_t i = 0; i < extras.records.size(); ++i) {
-        ExtraAcks* record = ExtraAcksAt(&extras, nullptr, static_cast<std::uint32_t>(i));
+        ExtraAcks* record = extras.RecordAt(static_cast<std::uint32_t>(i));
         for (int list = 0; list < 2; ++list) record->head.speeches[kFirstExtraKind + list] = &record->lists[list];
     }
     return 1;

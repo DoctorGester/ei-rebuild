@@ -988,7 +988,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         const std::uint8_t* data = text.s.data_;
         std::uint32_t size = text.s.size_;
         char zero = 0;
-        CharVectorResizeOriginal(&decoder.input, nullptr, size, &zero);
+        decoder.input.Resize<stlp::PlainElement<char>>(size, zero);
         std::memmove(decoder.input.begin(), data, size);
         decoder.Decode(&script);
     } else if (scripts.s.FindTagged(kScriptPlain, &text.s)) {
@@ -1876,8 +1876,6 @@ void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
 using NodeVector = stlp::vector<void*>;
 __declspec(naked) void __fastcall NodeVectorConstruct(NodeVector*, void*, const void*) EI_ORIGINAL(0x00584720)
-__declspec(naked) void __fastcall NodeVectorInsertOverflow(NodeVector*, void*, void**, void* const*, unsigned)
-    EI_ORIGINAL(0x00587700)
 __declspec(naked) void __fastcall NodeVectorFree(void**, unsigned) EI_ORIGINAL(0x00584A90)
 
 // A local NamedFloatTable released the way the original's inlined destructor does.
@@ -2012,7 +2010,7 @@ void GameFlow::UpdateFromServer() {
                 ++changed.Finish();
             } else {
                 void* value = node;
-                NodeVectorInsertOverflow(&changed, nullptr, changed.Finish(), &value, 1);
+                changed.InsertOverflow<stlp::PlainElement<void*>>(changed.Finish(), value, 1);
             }
         }
         if (changed.begin() != changed.end()) {

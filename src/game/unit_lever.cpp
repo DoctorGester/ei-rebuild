@@ -24,13 +24,9 @@
 
 namespace {
 
-// The model's lever record by name [stlp::string from chars 0040C5A0, the map 0079C1AC's
-// operator[] 00464750 (key) returning the stored pointer's slot, the string's destructor 0040C770].
-struct RawString {
-    void* words[3];
-};
-static RawString* StringFromChars(RawString* s, void*, const char* text, const void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-__declspec(naked) LeverRecord** __fastcall LeverRecordAt(void*, void*, const RawString*) EI_ORIGINAL(0x00464750)
+// The model's lever record by name [the map 0079C1AC's operator[] 00464750 (key) returning the
+// stored pointer's slot].
+__declspec(naked) LeverRecord** __fastcall LeverRecordAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x00464750)
 // The lever table's map of records by model name (0079C1A0 + 0xC).
 void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 // The object's world [00455950]; the sector map's units in a radius [005C0BD0: position, list,
@@ -46,11 +42,8 @@ CMapObject* AsMapObject(void* unit) { return static_cast<CMapObject*>(AsEngineOb
 void Lever::SetState(int wanted, float duration) {
     // FCOMP + TEST AH,1: a negative (or NaN) duration takes the model's default.
     if (x87::IsNaN(duration) || duration < 0.0f) {
-        RawString key;
-        char allocator;
-        StringFromChars(&key, nullptr, name, &allocator);
+        stlp::string key(name);
         const LeverRecord* record = *LeverRecordAt(LeverRecordMap(), nullptr, &key);
-        StringRepDestroy(&key);
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
     int& current = state;

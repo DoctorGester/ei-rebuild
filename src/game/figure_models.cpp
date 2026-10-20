@@ -22,30 +22,20 @@ namespace {
 using ModelMap = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>;
 using AnimationMap = FigureModel::AnimationMap;
 
-// A key the game's string copy constructor fills and one of its destructor instantiations frees
-// (an STLport string's three pointers, unconstructed here).
-struct StringSlot {
-    char* start;
-    char* finish;
-    char* eos;
-};
-static_assert(sizeof(StringSlot) == sizeof(stlp::string));
-
 // The model map's find (RET 8: out iterator, key) and operator[] (RET 4: the pair, key then value).
 __declspec(naked) void __fastcall MapFind(ModelMap*, void*, ModelMap::Iterator*, const stlp::string*) EI_ORIGINAL(0x004FB0F0)
-__declspec(naked) ModelMap::Pair* __fastcall MapIndex(ModelMap*, void*, const StringSlot*) EI_ORIGINAL(0x004FBBD0)
+__declspec(naked) ModelMap::Pair* __fastcall MapIndex(ModelMap*, void*, const stlp::string*) EI_ORIGINAL(0x004FBBD0)
 
 // The model's animation map: find (RET 8) and operator[] (RET 4). The animations are
 // CMMIOResources (0x6C bytes, CMMIOResource::Construct).
 __declspec(naked) void __fastcall AnimFind(AnimationMap*, void*, AnimationMap::Iterator*, const stlp::string*) EI_ORIGINAL(0x005AD520)
-__declspec(naked) AnimationMap::Pair* __fastcall AnimIndex(AnimationMap*, void*, const StringSlot*) EI_ORIGINAL(0x005ADC10)
+__declspec(naked) AnimationMap::Pair* __fastcall AnimIndex(AnimationMap*, void*, const stlp::string*) EI_ORIGINAL(0x005ADC10)
 
 // The STLport hashtable's inlined constructor: the buckets vector's end-of-storage member from an
-// allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8),
-// reserve (RET 4) and insert(pos, n, value) (RET 0xC).
+// allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8) and
+// insert(pos, n, value) (RET 0xC); reserve is the vector's own.
 using BucketVector = stlp::vector<AnimationMap::Node*>;
 __declspec(naked) void __fastcall BucketsEndOfStorage(AnimationMap::Node***, void*, const void*, const void*) EI_ORIGINAL(0x005AD640)
-__declspec(naked) void __fastcall BucketsReserve(BucketVector*, void*, std::uint32_t) EI_ORIGINAL(0x005AD880)
 __declspec(naked) void __fastcall BucketsInsert(BucketVector*, void*, AnimationMap::Node**, std::uint32_t, const void*) EI_ORIGINAL(0x005ADAD0)
 
 // The data of "<name><suffix>" (the manager's GetFile), or null.
@@ -59,12 +49,14 @@ void* OpenPart(CFigureManager* manager, const stlp::string* name, std::uintptr_t
     return manager->GetFile(path, nullptr);
 }
 
-FigureModel** ModelSlot(ModelMap* map, const stlp::string* name, void (__fastcall* destroy)(void*)) {
-    StringSlot key;
-    StringCopyConstructOriginal(&key, nullptr, name);
-    ModelMap::Pair* pair = MapIndex(map, nullptr, &key);
-    destroy(&key);
-    return &pair->value;
+// operator[] with a copy of the name as its key.
+FigureModel** ModelSlot(ModelMap* map, const stlp::string* name) {
+    stlp::string key(*name);
+    return &MapIndex(map, nullptr, &key)->value;
+}
+CMappedResource** AnimationSlot(AnimationMap* map, const stlp::string* name) {
+    stlp::string key(*name);
+    return &AnimIndex(map, nullptr, &key)->value;
 }
 
 } // namespace
@@ -82,8 +74,8 @@ FigureModel* CFigureManager::FindModel(const stlp::string* name) {
 
     void* memory = gamecrt::operator_new(sizeof(FigureModel));
     auto* model = static_cast<FigureModel*>(memory ? ConstructFigureModel(static_cast<FigureModel*>(memory)) : nullptr);
-    *ModelSlot(map, name, &StringRepDestroy) = model;
-    FigureModel* parts = *ModelSlot(map, name, &StlStringDestroy);
+    *ModelSlot(map, name) = model;
+    FigureModel* parts = *ModelSlot(map, name);
     parts->mesh->OpenFromMemory(mesh);
     if (bones) parts->bones->OpenFromMemory(bones);
     if (animation) parts->animations->OpenFromMemory(animation);
@@ -106,15 +98,8 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
     if (data) {
         void* memory = gamecrt::operator_new(0x6C);
         CMappedResource* animation = memory ? static_cast<CMMIOResource*>(memory)->Construct() : nullptr;
-        StringSlot key;
-        StringCopyConstructOriginal(&key, nullptr, name);
-        CMappedResource** slot = &AnimIndex(map, nullptr, &key)->value;
-        StringRepDestroy(&key);
-        *slot = animation;
-        StringCopyConstructOriginal(&key, nullptr, name);
-        slot = &AnimIndex(map, nullptr, &key)->value;
-        StringRepDestroy(&key);
-        (*slot)->OpenFromMemory(data);
+        *AnimationSlot(map, name) = animation;
+        (*AnimationSlot(map, name))->OpenFromMemory(data);
     }
     AnimFind(map, nullptr, &found, name);
     return found.node ? found.node->value : nullptr;
@@ -145,7 +130,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     std::uint32_t hint = 100;
     const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
     std::uint32_t n = prime == last ? *reinterpret_cast<const std::uint32_t*>(0x0073B980) : *prime;
-    BucketsReserve(buckets, nullptr, n);
+    buckets->Reserve<stlp::PlainElement<AnimationMap::Node*>>(n);
     void* none = nullptr;
     BucketsInsert(buckets, nullptr, buckets->Finish(), n, &none);
     *count = 0;

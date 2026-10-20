@@ -24,6 +24,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/mfc_list.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -156,14 +157,9 @@ constexpr int kClassQuestItem = 0x14;
 
 using NameList = BriefingRecord::NameList;
 
-struct RawString {
-    std::uint8_t bytes[12];
-};
-static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
-__declspec(naked) void __fastcall TempListConstruct(mfc::CTypedPtrList<void>*, void*, int /*blockSize*/) EI_ORIGINAL(0x00598EC0)
 __declspec(naked) void __fastcall TempListDestruct(mfc::CTypedPtrList<void>*, void*) EI_ORIGINAL(0x00405130)
 inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) {
@@ -179,8 +175,8 @@ CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::CTypedPtrList<void> lists[2];
     mfc::CTypedPtrList<void>* first = fromSecond ? &lists[0] : &lists[1];
     mfc::CTypedPtrList<void>* second = fromSecond ? &lists[1] : &lists[0];
-    TempListConstruct(first, nullptr, 10);
-    TempListConstruct(second, nullptr, 10);
+    mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(first, nullptr, 10);
+    mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(second, nullptr, 10);
     CEngineObject* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
     TempListDestruct(second, nullptr);
     TempListDestruct(first, nullptr);
@@ -255,11 +251,8 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     text::Split(name, &parts, '.');
     BriefingRecord* record = nullptr;
     if (parts.GetSize() == 3) {
-        RawString key;
-        char allocator;
-        RawStringInit(&key, nullptr, parts[2], &allocator);
+        stlp::string key(parts[2]);
         record = *(BriefingRecord**)MapRegistryFindOriginal(worlddata::QuestBriefings(), nullptr, &key);
-        StlStringDestroy(&key);
     }
     WorldPlayer* player = nullptr;
     {
@@ -362,8 +355,6 @@ static_assert(sizeof(ShareNode) == 0x10);
 
 using IdArray = mfc::CArray<int>;
 
-__declspec(naked) ShareNode* __fastcall ShareListNewNode(ShareList*, void*, ShareNode* /*prev*/, ShareNode* /*next*/)
-    EI_ORIGINAL(0x0059D5F0)
 __declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGINAL(0x0059D5C0)
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
@@ -395,7 +386,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         if (!unit) continue;
         CUnitServer* controller = ControllerOf(unit);
         if (!controller) continue;
-        ShareNode* node = ShareListNewNode(&list, nullptr, list.tail, nullptr);
+        ShareNode* node = list.NewNode(list.tail, nullptr);
         node->data.controller = controller;
         std::uint32_t zero = 0;
         std::memcpy(&node->data.share, &zero, 4);

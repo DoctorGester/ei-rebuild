@@ -11,7 +11,7 @@ void MobScriptDecoder::Decode(mfc::CString* out) {
     const char zero = 0;
     const char* coded = input.begin();
     const auto length = static_cast<unsigned>(input.end() - coded) - 4;
-    CharVectorResizeOriginal(&text, nullptr, length, &zero);
+    text.Resize<stlp::PlainElement<char>>(length, zero);
     std::memcpy(text.begin(), coded + 4, length);
     std::uint32_t x;
     std::memcpy(&x, coded, 4);

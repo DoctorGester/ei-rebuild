@@ -60,7 +60,6 @@ void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a
 template <typename Destructor>
 void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // MFC (library): CStringArray, the CArray instantiations of patrols and waypoints.
-__declspec(naked) void __fastcall WaypointsSetSize(Array<Waypoint>*, void*, int, int) EI_ORIGINAL(0x0046E970)
 __declspec(naked) void __fastcall PatrolsSetSize(Array<Patrol>*, void*, int, int) EI_ORIGINAL(0x0045DAE0)
 __declspec(naked) void __stdcall ConstructPatrols(Patrol*, int) EI_ORIGINAL(0x0045E180)
 __declspec(naked) void __stdcall DestructPatrols(Patrol*, int) EI_ORIGINAL(0x0046F0B0)
@@ -179,7 +178,7 @@ void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* fro
         recordarrays::PatrolGetAt(from, nullptr, copy, i);
         Patrol& to = self->data[i];
         to.position = copy->position;
-        WaypointsSetSize(&to.waypoints, nullptr, copy->waypoints.size, -1);
+        to.waypoints.SetSize(copy->waypoints.size, -1);
         for (int j = 0; j < copy->waypoints.size; ++j) {
             Waypoint w;
             WaypointAt(&copy->waypoints, nullptr, &w, j);
@@ -218,7 +217,7 @@ void __fastcall PatrolChunkOnChunk(TargetChunk* self) {
     WaypointChunk child;
     StartChild(child, &self->chunk);
     auto* patrol = static_cast<Patrol*>(self->target);
-    WaypointsSetSize(&patrol->waypoints, nullptr, patrol->waypoints.size + 1, -1);
+    patrol->waypoints.SetSize(patrol->waypoints.size + 1, -1);
     patrol->waypoints.data[patrol->waypoints.size - 1].position = {0.0f, 0.0f, 0.0f};
     auto* again = static_cast<Patrol*>(self->target);
     child.target = &again->waypoints.data[patrol->waypoints.size - 1];

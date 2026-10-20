@@ -259,6 +259,18 @@ bool RemoveDevice();
 // that showed as seams). Off: the pages' colours.
 enum class TerrainLevelMode { Off, Levels, PointMips };
 void TerrainLevels(TerrainLevelMode mode);
+// Harness build only (the harness's "mmplevels", R12b): how far the levels of the .mmp textures held
+// now, decoded as for drawing, lie from their level 0: both box-filtered down to 4 x 4, the mean
+// absolute difference per channel (0..255), the largest over all levels down to 4 x 4.
+// Levels decoded from the wrong bytes (the old offsets' overflow: bright green strips over the trees)
+// lie far off; the file's own mips stay close.
+struct MmpLevelCheck {
+    int textures = 0, levels = 0;
+    double worst = 0.0;
+    int worstWidth = 0, worstHeight = 0, worstLevel = 0;   // that texture's first level's size, the level
+    std::uint32_t worstFormat = 0;                         // its .mmp format id
+};
+MmpLevelCheck CheckMmpLevels();
 // Where the frame shows in the game window's client area: the frame's size and its rectangle there
 // (aspect kept, centred; the rest black). False when the new renderer does not present itself.
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);

@@ -15,6 +15,8 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/stlp_vector.h"
+#include "lib/stlp_vector_refs.h"
 #include "originals_core.h"
 #include "originals_library.h"
 
@@ -29,7 +31,6 @@ __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, con
 __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
 __declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
-__declspec(naked) void __fastcall RefsResize(RefVector* /*vector*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x004200C0)
 // Counted pointer element destructors (deleting destructors called with 0).
 __declspec(naked) void* __fastcall FileRefDestroy(RefPtr* /*p*/, void*, unsigned /*flags*/) EI_ORIGINAL(0x0042B880)
 
@@ -1042,7 +1043,7 @@ void PartyMessage::Write(BufferCursor* cursor) {   // 00412AC0
 void PartyMessage::Read(BufferCursor* cursor) {   // 00412B70
     std::int32_t count;
     Take(cursor, count);
-    RefsResize(&members_, nullptr, static_cast<std::size_t>(count));
+    stlp::VectorAbi<RefPtr, stlp::CountedRefElement>::ResizeDefault(&members_, nullptr, static_cast<std::size_t>(count));
     for (std::int32_t i = 0; i < count; ++i) {
         RefPtr& slot = members_.begin()[i];
         AssignCounted(slot, CurrentConnection()->ReadObjectRef(cursor));

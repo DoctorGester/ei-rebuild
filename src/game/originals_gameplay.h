@@ -67,12 +67,6 @@ __declspec(naked) inline int __fastcall PlayerEraseQuestItemOriginal(void* /*pla
 // 00613920: the spell prototype named `name` (thiscall on the spell table 007C8510, RET 4), or null.
 // C3m. 0069D290: a record of the material table by name; 0069D380: the class-0x15 prototype table's record by name
 // (thiscall on 007C8778, item_db.h's QuestItems() table). RET 4; null when missing.
-// C3m. 0059C7A0 (the world server's missile list, an MFC CTypedPtrList of counted Projectile pointers): NewNode(prev,
-// next), a node taken from the free list or carved from a new block.
-__declspec(naked) inline mfc::CTypedPtrList<Projectile>::Node* __fastcall ProjectileNewNode(
-    mfc::CTypedPtrList<Projectile>*, void*, mfc::CTypedPtrList<Projectile>::Node* /*prev*/,
-    mfc::CTypedPtrList<Projectile>::Node* /*next*/) EI_ORIGINAL(0x0059C7A0)
-
 
 // C3n batch 4. The player and its server half (thiscall), through their addresses so the wrappers run: 00665DE0
 // (rewritten as CPlayer::Tick; plain RET) the player's update before the tick; 0066D6E0 (CPlayerServer::SendObject0B; RET 8)

@@ -221,6 +221,96 @@ class DirectCallsTest(unittest.TestCase):
         self.assertEqual(reasons['BazAt'], 'vector recorder (EI_RECORD)')
         self.assertIn('BarAt(&foo, nullptr, 1)', out.get('src/game/user.cpp', USER))
 
+    ABI_HEADER = '''#pragma once
+namespace stlp {
+template <int N> struct Opaque { char bytes[N]; };
+template <typename T> struct Vec {
+    void Grow(int n, const T& x);
+    template <typename E> void Fill(int n);
+};
+template <typename T, typename E = int>
+struct VecAbi {
+    using Vector = Vec<T>;
+    static void __fastcall Grow(Vector* self, void*, int n, const T* x) { self->Grow(n, *x); }
+    static void __fastcall Fill(Vector* self, void*, int n) { self->template Fill<E>(n); }
+    static int __fastcall Count(Vector* self) { return self->size + 0; }
+};
+} // namespace stlp
+'''
+    ABI_REGISTRATIONS = ('#include "abi.h"\nnamespace {\nusing Dwords = stlp::VecAbi<unsigned int>;\n'
+                         'using Erased = stlp::VecAbi<stlp::Opaque<4>>;\n}\n'
+                         'EI_REPLACE(0x00401100, Dwords::Grow);\nEI_REPLACE(0x00401140, Dwords::Fill);\n'
+                         'EI_REPLACE(0x00401180, Erased::Grow);\nEI_REPLACE(0x004011C0, Dwords::Count);\n')
+    ABI_MAP = {
+        'stlp::VecAbi<unsigned int,int>::Grow': [dc.Sig(
+            'public: static void __fastcall stlp::VecAbi<unsigned int,int>::Grow(struct stlp::Vec<unsigned int> *,void *,'
+            'int,unsigned int const *)', 'abi.cpp.obj')],
+        'stlp::VecAbi<unsigned int,int>::Fill': [dc.Sig(
+            'public: static void __fastcall stlp::VecAbi<unsigned int,int>::Fill(struct stlp::Vec<unsigned int> *,void *,'
+            'int)', 'abi.cpp.obj')],
+        'stlp::VecAbi<stlp::Opaque<4>,int>::Grow': [dc.Sig(
+            'public: static void __fastcall stlp::VecAbi<struct stlp::Opaque<4>,int>::Grow(struct stlp::Vec<struct '
+            'stlp::Opaque<4> > *,void *,int,struct stlp::Opaque<4> const *)', 'abi.cpp.obj')],
+        'stlp::VecAbi<unsigned int,int>::Count': [dc.Sig(
+            'public: static int __fastcall stlp::VecAbi<unsigned int,int>::Count(struct stlp::Vec<unsigned int> *)',
+            'abi.cpp.obj')],
+        'GrowAt': [dc.Sig("void __fastcall `anonymous namespace'::GrowAt(struct stlp::Vec<unsigned int> *,void *,int,"
+                          "unsigned int const *)", 'user.cpp.obj')],
+        'FillAt': [dc.Sig("void __fastcall `anonymous namespace'::FillAt(struct stlp::Vec<unsigned int> *,void *,int)",
+                          'user.cpp.obj')],
+        'GrowFooAt': [dc.Sig("void __fastcall `anonymous namespace'::GrowFooAt(struct stlp::Vec<struct Foo> *,void *,"
+                             "int,struct Foo const *)", 'user.cpp.obj')],
+        'CountAt': [dc.Sig("int __fastcall `anonymous namespace'::CountAt(struct stlp::Vec<unsigned int> *)",
+                           'user.cpp.obj')],
+        'GrowIntAt': [dc.Sig("void __fastcall `anonymous namespace'::GrowIntAt(struct stlp::Vec<int> *,void *,int,"
+                             "int const *)", 'user.cpp.obj')],
+        'GrowFloatAt': [dc.Sig("void __fastcall `anonymous namespace'::GrowFloatAt(struct stlp::Vec<float> *,void *,"
+                               "int,float const *)", 'user.cpp.obj')],
+    }
+
+    def test_wrappers(self):
+        # Registrations through a file's using-alias (with a default template argument left out) are found in the
+        # map; a forwarder of a wrapper whose body is one member call becomes that call on the container, also
+        # for a container of the real element where the wrapper erases it (Opaque<4>). Count's body is not one
+        # member call: it stays a call of the wrapper. A same-size integer element is retargeted (int for
+        # unsigned int); a float is not.
+        user = ('#include "lib/abi.h"\nstruct Foo { int x; };\nnamespace {\n'
+                '__declspec(naked) void __fastcall GrowAt(stlp::Vec<unsigned int>*, void*, int, const unsigned int*) '
+                'EI_ORIGINAL(0x00401100)\n'
+                '__declspec(naked) void __fastcall FillAt(stlp::Vec<unsigned int>*, void*, int) EI_ORIGINAL(0x00401140)\n'
+                '__declspec(naked) void __fastcall GrowFooAt(stlp::Vec<Foo>*, void*, int, const Foo*) '
+                'EI_ORIGINAL(0x00401180)\n'
+                '__declspec(naked) int __fastcall CountAt(stlp::Vec<unsigned int>*) EI_ORIGINAL(0x004011C0)\n'
+                '__declspec(naked) void __fastcall GrowIntAt(stlp::Vec<int>*, void*, int, const int*) '
+                'EI_ORIGINAL(0x00401100)\n'
+                '__declspec(naked) void __fastcall GrowFloatAt(stlp::Vec<float>*, void*, int, const float*) '
+                'EI_ORIGINAL(0x00401100)\n}\n'
+                'int Run(stlp::Vec<unsigned int>* v, stlp::Vec<Foo>& foos, unsigned int x, const Foo* foo) {\n'
+                '    GrowAt(v, nullptr, 3, &x);\n    FillAt(v, nullptr, 2);\n    GrowFooAt(&foos, nullptr, 1, foo);\n'
+                '    return CountAt(v);\n}\n'
+                'void Ints(stlp::Vec<int>& ints, int y, stlp::Vec<float>& floats, float z) {\n'
+                '    GrowIntAt(&ints, nullptr, 1, &y);\n    GrowFloatAt(&floats, nullptr, 1, &z);\n}\n')
+        sources = [dc.Source('src/lib/abi.h', self.ABI_HEADER), dc.Source('src/lib/abi.cpp', self.ABI_REGISTRATIONS),
+                   dc.Source('src/game/user.cpp', user)]
+        fwds, out = run(sources, self.ABI_MAP)
+        self.assertEqual({f.name: (f.kind, f.reason) for f in fwds},
+                         {'GrowAt': ('unwrap', ''), 'FillAt': ('unwrap', ''), 'GrowFooAt': ('unwrap', ''),
+                          'CountAt': ('rename', ''), 'GrowIntAt': ('unwrap', ''), 'GrowFloatAt': (None, 'types differ')})
+        self.assertIn('    v->Grow(3, x);\n    v->Fill<int>(2);\n    foos.Grow(1, *foo);\n'
+                      '    return stlp::VecAbi<unsigned int, int>::Count(v);\n', out['src/game/user.cpp'])
+        # vector<unsigned int>'s wrapper serves vector<int> (the same code), never vector<float>.
+        self.assertIn('    ints.Grow(1, y);\n', out['src/game/user.cpp'])
+
+    def test_abbreviated(self):
+        # A template-id the site has an alias for is written through it (default arguments left out).
+        src = dc.Source('src/game/user.cpp', 'using AttachedMap = stlp::map<int, char>;\nvoid f() {}\n')
+        dc._FREE_DECLS['all'] = [src]
+        dc._SEES.clear()
+        dc.collect_aliases([src])
+        self.assertEqual(dc.abbreviated('stlp::TreeElement<stlp::map<int,char,stlp::Less<int>>::Value>', src, 60),
+                         'stlp::TreeElement<AttachedMap::Value>')
+        self.assertEqual(dc.abbreviated('stlp::map<int,int>', src, 60), 'stlp::map<int,int>')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "record_vectors.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -22,8 +23,6 @@ static_assert(sizeof(LeverRecordVector) == 12);
 
 namespace {
 // The chunk archive (originals_engine.h): +0x58 is its loading flag, +0x50 its chunk stack.
-// STLport (library): resize.
-__declspec(naked) void __fastcall RecordsResize(LeverRecordVector*, void*, unsigned) EI_ORIGINAL(0x00465180)
 
 void CopyPlain(LeverRecord* to, const LeverRecord* from) {
     std::memcpy(to->spots, from->spots, sizeof(to->spots));
@@ -107,7 +106,7 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVecto
         for (LeverRecord* r = kept; r != list->end(); ++r) RecordDestruct(r);
         list->Finish() = kept;
         n = ar->CountChunks(1);
-        RecordsResize(list, nullptr, static_cast<unsigned>(n));
+        recordvec::LeverVector::ResizeDefault(list, nullptr, static_cast<unsigned>(n));
     } else {
         n = static_cast<int>(list->size());
     }

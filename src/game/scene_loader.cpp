@@ -135,10 +135,6 @@ __declspec(naked) void __fastcall ConstructRotKeyArray(RotKeyRecords*) EI_ORIGIN
 __declspec(naked) void __fastcall ConstructPosKeyArray(PosKeyRecords*) EI_ORIGINAL(0x00475860)
 __declspec(naked) void __fastcall ConstructMorphHeadArray(MorphHeadRecords*) EI_ORIGINAL(0x00475BC0)
 __declspec(naked) void __fastcall ConstructNormalArray(NormalRecords*) EI_ORIGINAL(0x00476930)
-__declspec(naked) void __fastcall SetSizeRotKeys(RotKeyRecords*, void*, int, int) EI_ORIGINAL(0x00475520)
-__declspec(naked) void __fastcall SetSizePosKeys(PosKeyRecords*, void*, int, int) EI_ORIGINAL(0x00475880)
-__declspec(naked) void __fastcall SetSizeNormals(NormalRecords*, void*, int, int) EI_ORIGINAL(0x00476950)
-__declspec(naked) void __fastcall SetSizeMorphHeads(MorphHeadRecords*, void*, int, int) EI_ORIGINAL(0x00475BE0)
 __declspec(naked) void __fastcall ConstructPointBlock(PointBuffer*) EI_ORIGINAL(0x00475F10)
 __declspec(naked) void __fastcall SetSizePointBlock(PointBuffer*, void*, int, int) EI_ORIGINAL(0x00475F40)
 
@@ -495,10 +491,10 @@ void Loader::SkipRecord() {
 
     RecordHeader h;
     Read(file_, &h, sizeof(h));
-    SetSizeRotKeys(&rotKeys, nullptr, h.rotKeyCount, -1);
-    SetSizePosKeys(&posKeys, nullptr, h.posKeyCount, -1);
-    SetSizeNormals(&normals, nullptr, h.posKeyCount, -1);
-    SetSizeMorphHeads(&morphHeads, nullptr, h.morphKeyCount - 1, -1);
+    rotKeys.SetSize(h.rotKeyCount, -1);
+    posKeys.SetSize(h.posKeyCount, -1);
+    normals.SetSize(h.posKeyCount, -1);
+    morphHeads.SetSize(h.morphKeyCount - 1, -1);
     Read(file_, name.GetBufferSetLength(h.nameLength), h.nameLength);
     Read(file_, parent.GetBufferSetLength(h.parentLength), h.parentLength);
     Read(file_, rotKeys.data, rotKeys.size * 0x14);

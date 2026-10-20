@@ -689,15 +689,14 @@ struct AIReportElements {
 };
 
 // CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp). SetSize 005CD670 and
-// RemoveAt 005CD800 are registered on the template (A-W12; callers still reach them through
-// ReportsSetSizeAt / ReportsRemoveAtAt, their addresses).
+// RemoveAt 005CD800 are registered on the template (A-W12; SetSize is still called through
+// ReportsSetSizeAt, its address).
 using AIReportArray = mfc::CArray<AIReport, AIReportElements>;
 // 005CC620. Keeps the larger `what` of a listed object, else appends it (with a reference).
 void __fastcall ReportsAdd(AIReportArray* reports, void*, CEngineObject* object, int what);
 // 005CC560. Whether `object` is listed (only AL is set).
 bool __fastcall ReportsContains(AIReportArray* reports, void*, CEngineObject* object);
 void __fastcall ReportsSetSizeAt(AIReportArray* reports, void*, int size, int growBy);     // 005CD670
-void __fastcall ReportsRemoveAtAt(AIReportArray* reports, void*, int index, int count);    // 005CD800
 
 // One way the unit can attack or help (0x28 bytes): a weapon (part -1) or a spell.
 struct AIAttackOption {

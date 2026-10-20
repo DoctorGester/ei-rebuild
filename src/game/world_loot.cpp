@@ -27,7 +27,6 @@ using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 // MFC list helpers instantiated in the exe (not rewritten).
 __declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-__declspec(naked) void __fastcall PtrListRemoveAt(ObjectList*, void*, ObjectList::Node*) EI_ORIGINAL(0x0059A680)
 // 0059A670 (a byte-identical copy of NextParticle, effects.h): the item at `position`, which moves on.
 CEngineObject* NextItem(ObjectList* list, ObjectList::Node** position) {
     return *reinterpret_cast<CEngineObject**>(
@@ -137,7 +136,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
                 CEngineObject* item = node->data;
                 if (item->GetClassId() == kClassQuestItem) {
                     PtrListAddTailOriginal(&quest, nullptr, item);
-                    PtrListRemoveAt(&items, nullptr, node);
+                    items.RemoveAt(node);
                 }
                 node = next;
             }

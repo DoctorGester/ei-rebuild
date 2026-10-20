@@ -180,12 +180,9 @@ using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
 __declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x0064B620)
 __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
-__declspec(naked) void __fastcall IdsDestroyA(IdVector*) EI_ORIGINAL(0x004E2A20)
-__declspec(naked) void __fastcall IdsDestroyB(IdVector*) EI_ORIGINAL(0x005F9880)
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
-__declspec(naked) void __fastcall PartySetAtGrow(mfc::CArray<CUnit*>*, void*, int, CUnit*) EI_ORIGINAL(0x0060AD50)
 __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
@@ -284,7 +281,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 party->data[0] = unit;
                 cameraFirst = true;
             } else {
-                PartySetAtGrow(party, nullptr, party->size, unit);
+                party->SetAtGrow(party->size, unit);
             }
         }
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
@@ -296,8 +293,8 @@ void RebuildClientParty(CBattleScreen* screen) {
         screen->clientParty_.camera = ids.camera;
         IdsAssign(&screen->clientParty_.without, nullptr, &ids.without);
     }
-    IdsDestroyB(&ids.without);
-    IdsDestroyA(&ids.withUnit);
+    ids.without.FreeStorage();
+    ids.withUnit.FreeStorage();
 }
 
 // Frees a list's nodes (00404D70) and empties it (the header is freed by the caller).

@@ -13,6 +13,7 @@
 #include "resource_local.h"   // LocalStream
 
 #include "ei/hook.h"
+#include "record_vectors.h"
 #include "game_hashes.h"
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -25,12 +26,10 @@ namespace {
 // the entry, record and template vectors (null pointers / empty entries appended), resize(n, x) of
 // an entry's ids.
 __declspec(naked) void __fastcall PartyMapClear(PartyMap* /*map*/) EI_ORIGINAL(0x004AD050)
-__declspec(naked) void __fastcall EntriesResize(stlp::vector<PartyManagerEntry>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004ADAA0)
 __declspec(naked) void __fastcall RecordsResize(stlp::vector<PartyRecord*>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD700)
 __declspec(naked) void __fastcall TemplatesResize(ClassTemplateVector* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD8D0)
 // hash_map<CString, float>::operator= (the party's variables): clear, then copy_from.
 __declspec(naked) void __fastcall FloatTableAssign(PartyVariableMap* /*table*/, void*, const PartyVariableMap* /*source*/) EI_ORIGINAL(0x004A8AD0)
-__declspec(naked) void __fastcall IdsResize(stlp::vector<int>* /*v*/, void*, unsigned /*n*/, const int* /*value*/) EI_ORIGINAL(0x004AE3A0)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
 // pointers, whose release the original inlines (004A5D70 / 004A7EA0): one reference less, the
@@ -108,7 +107,7 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
         for (PartyManagerEntry* e = entries->begin(); e != entries->end(); ++e) e->Destruct();
         entries->Finish() = entries->Start();
         count = CountChunks(1);
-        EntriesResize(entries, nullptr, static_cast<unsigned>(count));
+        recordvec::PartyEntryVector::ResizeDefault(entries, nullptr, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(entries->size());
     }
@@ -125,7 +124,7 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
                 ids.Finish() = ids.Start();
                 idCount = CountChunks(1);
                 const int zero = 0;
-                IdsResize(&ids, nullptr, static_cast<unsigned>(idCount), &zero);
+                ids.Resize<stlp::PlainElement<int>>(static_cast<unsigned>(idCount), zero);
             } else {
                 idCount = static_cast<int>(ids.size());
             }

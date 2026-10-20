@@ -1,6 +1,7 @@
 // Connections of the network sessions: object replication. See net_connection.h.
 #include "net_coder.h"
 #include "net_connection.h"
+#include "net_connection_trees.h"
 #include "at_exit_functions.h"
 #include "game_strings.h"
 
@@ -10,6 +11,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/stlp_tree_abi.h"
 
 #include <cstring>
 #include "originals_core.h"
@@ -42,9 +44,8 @@ __declspec(naked) void __fastcall HeadersSplice(HeaderNode** /*list*/, void*, He
                                                 HeaderNode* /*first*/, HeaderNode* /*last*/) EI_ORIGINAL(0x00438770)
 __declspec(naked) HeaderNode** __fastcall HeaderIteratorCopy(HeaderNode** /*it*/, void*, HeaderNode* const* /*from*/) EI_ORIGINAL(0x004387C0)
 __declspec(naked) HistoryNode** __fastcall ListIteratorDecrement(HistoryNode** /*it*/) EI_ORIGINAL(0x00439A60)
-// Red-black trees: iterator increment, find / lower_bound, insert with a hint, erase by key,
+// Red-black trees: find / lower_bound, insert with a hint, erase by key,
 // operator[].
-void __fastcall TreeIncrement(void** a0) { TreeIncrementOriginal((void*)a0); }
 __declspec(naked) RecordMap::Node** __fastcall RecordsFind(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
                                                            const std::int32_t* /*key*/) EI_ORIGINAL(0x0043CE70)
 __declspec(naked) RecordMap::Node** __fastcall RecordsLowerBound(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
@@ -57,7 +58,6 @@ __declspec(naked) AttachedMap::Node** __fastcall AttachedLowerBound(AttachedMap*
 __declspec(naked) AttachedMap::Node** __fastcall AttachedIteratorCopy(AttachedMap::Node** /*it*/, void*, AttachedMap::Node* const* /*from*/) EI_ORIGINAL(0x00439C40)
 __declspec(naked) AttachedMap::Node** __fastcall AttachedInsertHint(AttachedMap* /*tree*/, void*, AttachedMap::Node** /*out*/,
                                                                     AttachedMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439B80)
-__declspec(naked) std::uint32_t __fastcall AttachedErase(AttachedMap* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x0043D2E0)
 __declspec(naked) std::uint32_t __fastcall ByObjectErase(ObjectMap* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x0043C3B0)
 __declspec(naked) RefPtr* __fastcall BySentIdAt(SentIdMap* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00437B90)
 // The object references' lookups: find in byObject_, attached_ and bySentId_; operator[] of
@@ -70,7 +70,6 @@ __declspec(naked) AttachedMap::Node** __fastcall AttachedFind(AttachedMap* /*tre
 __declspec(naked) SentIdMap::Node** __fastcall BySentIdFind(SentIdMap* /*tree*/, void*, SentIdMap::Node** /*out*/,
                                                             const std::int32_t* /*key*/) EI_ORIGINAL(0x0043BF00)
 __declspec(naked) Record* __fastcall RecordsAt(RecordMap* /*tree*/, void*, const std::int32_t* /*key*/) EI_ORIGINAL(0x004382A0)
-__declspec(naked) AttachedId* __fastcall AttachedAt(AttachedMap* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x00438530)
 __declspec(naked) MessageFactory* __fastcall FactoryAt(TypeRegistry::ByType* /*table*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00439EA0)
 // vector<int> of received sequences: insert when full.
 __declspec(naked) void __fastcall ReceivedInsertOverflow(std::int32_t** /*vector*/, void*, std::int32_t* /*pos*/, const void* /*value*/,
@@ -125,7 +124,7 @@ std::int32_t BufferedSize(GameBuffer* b) {
 // A tree iterator moved on (the library's ++).
 template <typename Node>
 void Increment(Node*& it) {
-    TreeIncrement(reinterpret_cast<void**>(&it));
+    it = Node::From(stlp::rb::Next(it->Base()));
 }
 
 // The handlers registered for message `type` on `channel` (__fastcall: session, message). The end
@@ -446,7 +445,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         RefPtr* slot = &found->second.object;
         if (slot->ptr) {
             CRefObject* object = slot->ptr;
-            AttachedErase(&attached_, nullptr, &object);
+            attached_.EraseKey<stlp::TreeElement<AttachedMap::Value>>(object);
             object = slot->ptr;
             session = CurrentSession();
             CallHandlers(session, 2, type, object);
@@ -764,7 +763,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
         slot->Share(object);
     }
     found->second.version = 0;
-    AttachedId* attachedId = AttachedAt(&attached_, nullptr, &object);
+    AttachedId* attachedId = trees::Attached::Subscript(&attached_, nullptr, &object);
     attachedId->id = static_cast<std::uint16_t>(key);
     attachedId->type = static_cast<std::uint8_t>(type);
     return object;

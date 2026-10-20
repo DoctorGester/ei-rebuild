@@ -16,8 +16,6 @@ namespace {
 const char* const kNotRegistry = game::Text(0x0079600C);   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = game::Text(0x00796044);     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
-// 006FD4DE CString::CString(LPCTSTR, int) on raw storage.
-void __fastcall ConstructString(void* a0, void*, const char* a2, int a3) { new (a0) mfc::CString(a2, a3); }
 // _ftol (006E853C) of a float: FLD, then the game's _ftol (truncates).
 int FloatToInt(const float* value) { return static_cast<int>(gamecrt::Ftol(*value)); }
 
@@ -37,17 +35,6 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
     std::uint32_t sum = 0;
     for (const char* p = name; *p; ++p) sum += static_cast<std::uint32_t>(gamecrt::tolower(*p));
     return sum % slots;
-}
-
-// A CString made by CString(LPCTSTR, int) (the original builds it in place).
-struct RawString {
-    char* data;
-    mfc::CString& Get() { return *reinterpret_cast<mfc::CString*>(this); }
-};
-RawString MakeString(const char* text, int length) {
-    RawString s;
-    ConstructString(&s, nullptr, text, length);
-    return s;
 }
 
 // GetIntArray / GetFloatArray: the values are copied as dwords.
@@ -189,9 +176,7 @@ BOOL CFileRegistry::GetSectionNames(console::CStringArray* out) {
     out->SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
         const std::uint8_t* record = data_ + U32(root + 8 + 6 * i);
-        RawString name = MakeString(reinterpret_cast<const char*>(record + 4), U16(record + 2));
-        (*out)[i] = name.Get();
-        name.Get().~CString();
+        (*out)[i] = mfc::CString(reinterpret_cast<const char*>(record + 4), U16(record + 2));
     }
     return 1;
 }
@@ -222,9 +207,8 @@ EI_REPLACE_METHOD(0x00694C80, CFileRegistry::GetFloat);
 
 mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc::CString defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        RawString text = MakeString(reinterpret_cast<const char*>(value + 2), U16(value));
-        mfc::CString result(text.Get());
-        text.Get().~CString();
+        mfc::CString text(reinterpret_cast<const char*>(value + 2), U16(value));
+        mfc::CString result(text);
         return result;
     }
     return defaultValue;
@@ -273,9 +257,7 @@ BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console
     out->SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
         std::uint16_t length = U16(value);
-        RawString text = MakeString(reinterpret_cast<const char*>(value + 2), length);
-        (*out)[i] = text.Get();
-        text.Get().~CString();
+        (*out)[i] = mfc::CString(reinterpret_cast<const char*>(value + 2), length);
         value += length + 2;
     }
     return 1;
