@@ -1,5 +1,6 @@
 // Script object references and groups (sets of object references). See script.h.
 #include "script.h"
+#include "game_arrays.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -127,7 +128,7 @@ EI_REPLACE_METHOD(0x004B25F0, ScriptObjectRef::Save);
 
 // ---- ScriptGroup --------------------------------------------------------------------------------
 
-void ScriptGroup::SetSize(int a0, int a1) { PtrArraySetSize((void*)this, nullptr, a0, a1); }
+void ScriptGroup::SetSize(int newSize, int newGrowBy) { mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*this).SetSize(newSize, newGrowBy); }
 
 void ScriptGroup::Resize(int newSize) {
     if (newSize == 0) {

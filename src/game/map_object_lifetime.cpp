@@ -9,6 +9,7 @@
 #include "game_lists.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
+#include "game_arrays.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
 #include "spell.h"         // CLightFactory
@@ -74,7 +75,6 @@ __declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB
 // 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
 // segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
 __declspec(naked) void __fastcall ConstructUnitArray(mfc::CArray<float>*) EI_ORIGINAL(0x004CD080)
-inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members (00546230).
@@ -420,7 +420,7 @@ void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
     lightStateA = 0;
     lightStateB = 0;
-    SetParticleCount(&particles, nullptr, 0, -1);
+    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
     if (light) {
         light->flags_ &= ~0x200u;
         if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {

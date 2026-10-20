@@ -70,8 +70,6 @@ inline double CIasin(double s) { return libcrt::CiAsin(s); }
 inline double CIpow(double x, double y) { return libcrt::CiPow(x, y); }
 
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
-__declspec(naked) inline void __fastcall PtrArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
-    EI_ORIGINAL(0x004C2050)
 // CRT _mbscmp (plain RET, EAX: <0, 0, >0); src/lib/crt.cpp includes this header for gamecrt::mbscmp.
 __declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 // The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET (src/lib/stlp.cpp uses it too).
@@ -193,16 +191,11 @@ __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list
 __declspec(naked) inline void* __fastcall VectorGetAllocatorOriginal(const void* /*vector*/, void*, void* /*out*/)
     EI_ORIGINAL(0x00421EB0)
 __declspec(naked) inline void __fastcall NodeFree12Original(void* /*p*/, std::size_t /*count*/) EI_ORIGINAL(0x00426860)
-// CArray::SetSize(size, growBy) instantiations (RET 8, no result): 0046EAD0 plain 12-byte elements, 0050FE70 the map
-// object's effect array (20-byte elements).
+// CArray::SetSize(size, growBy) instantiation (RET 8, no result): 0050FE70 the map object's effect array (20-byte
+// elements).
 // 00468D60 / 00557230: sprite / point array constructors (vtables 0073C584 / 0073F07C; plain RET, return `this`).
-__declspec(naked) inline void __fastcall Array12SetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0046EAD0)
 __declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x0050FE70)
-// 0050FA30: CArray<DeltaField>::SetSize(size, growBy) on a DeltaState (net_delta.h; growBy -1 keeps the step).
-__declspec(naked) inline void __fastcall NetFieldsSetSizeOriginal(void* /*state*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0050FA30)
 __declspec(naked) inline void* __fastcall SpriteArrayConstructOriginal(void* /*array*/) EI_ORIGINAL(0x00468D60)
 __declspec(naked) inline void* __fastcall PointArrayConstructOriginal(void* /*array*/) EI_ORIGINAL(0x00557230)
 // 00514880: hash_map<string, ...>::insert(pair) (RET 4: pair; EAX = node + 4, the stored pair). 005197B0: map find(key) writing

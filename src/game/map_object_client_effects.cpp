@@ -4,6 +4,7 @@
 
 #include "effects.h"
 #include "map_object.h"
+#include "game_arrays.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "base_manager.h"
@@ -305,7 +306,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         // SetSize(size + 1), then the element assigned from the local record (00512490: the
         // source referenced), then the local record's reference released.
         int index = particles.size;
-        CompanionParticlesSetSizeOriginal(&particles, nullptr, index + 1, -1);
+        mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(index + 1, -1);
         EffectParticle& record = particles.data[index];
         record.type = added.type;
         record.power = added.power;
@@ -386,7 +387,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         added.present = 1;
         PlayEffectSound(!first, &added, &CompanionOwner(this)->position.x, added.kind, "\\start.wav");
         int index = sounds.size;
-        CompanionSoundsSetSizeOriginal(&sounds, nullptr, index + 1, -1);
+        mfc::impl::ArrayAs<mfc::impl::SoundRecords>(sounds).SetSize(index + 1, -1);
         std::memcpy(&sounds.data[index], &added, sizeof(added));
     }
 
@@ -482,7 +483,7 @@ EI_REPLACE_METHOD(0x00511A00, CMapObjectClientSpecific::ApplyLightMode);
 void CMapObjectClientSpecific::DestroyClientCompanion() {
     lightStateA = 0;
     lightStateB = 0;
-    CompanionParticlesSetSizeOriginal(&particles, nullptr, 0, -1);
+    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
     if (light) DropLight(this);
     owner = nullptr;
 }

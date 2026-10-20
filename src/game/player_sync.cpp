@@ -400,7 +400,7 @@ void CPlayerServer::UpdatePartyUnits() {
         for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node))
             known.CopyToList(&BrainOf(static_cast<CUnit*>(node->value))->seenCorpses);
     } else {
-        PtrArraySetSize(&partyUnits_, nullptr, party.size, -1);
+        partyUnits_.SetSize(party.size, -1);
         for (int i = 0; i < party.size; ++i) {
             ScriptObjectRef copy;
             gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&party), nullptr, &copy, i);

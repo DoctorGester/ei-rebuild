@@ -36,7 +36,6 @@ BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList:
 // CArray<ScriptArea>::SetSize (__thiscall (size, growBy)); CArray<ScriptAreaPart>::Copy.
 // SetSize of SSCCmd's arrays (__thiscall (size, growBy)): strings, object pointers, group pointers,
 // bindings (both arrays), nested calls (dropped elements delete their command).
-void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 
 // CList::AddTail of an empty ScriptDecl, as 004BF540 / 004BF900 inline it: the node after the tail,
@@ -78,7 +77,7 @@ mfc::CArray<ScriptAreaPart>* CScript::FindArea(int id) {
     }
     mfc::CArray<ScriptAreaPart> empty{mfc::impl::ScriptAreaPartsClass::Vtable(), nullptr, 0, 0, 0};
     int index = areas.size;
-    AreasSetSize(&areas, nullptr, index + 1, -1);
+    mfc::impl::ArrayAs<mfc::impl::ScriptAreas>(areas).SetSize(index + 1, -1);
     areas.data[index].parts.Copy(empty);   // 004CE2F0
     areas.data[areas.size - 1].id = id;
     return &areas.data[areas.size - 1].parts;
@@ -133,7 +132,7 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     cmd->groupArgs.SetSize(0, -1);
     cmd->localBindings.SetSize(0, -1);
     cmd->globalBindings.SetSize(0, -1);
-    SubCallsSetSize(&cmd->subCalls, nullptr, 0, -1);
+    mfc::impl::ArrayAs<recordarrays::SubCalls>(cmd->subCalls).SetSize(0, -1);
     cmd->calledScript = nullptr;
 }
 EI_REPLACE(0x004B5F70, ScriptCmdClear);

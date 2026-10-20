@@ -20,6 +20,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_world.h"
+#include "game_arrays.h"
 
 #include <cstdint>
 #include <cstring>
@@ -44,7 +45,6 @@ CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_ca
 
 // CArray template members (out of line), __thiscall (size, growBy).
 __declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C5CB0)      // 0x20 slots
-void __fastcall CmdsSetSize(void* a0, void*, int a2, int a3) { CmdArraySetSizeOriginal(a0, nullptr, a2, a3); }
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
 // ScriptVars constructor / destructor body.
 
@@ -59,7 +59,6 @@ void __fastcall CmdDestroy(void* cmd, void*, int flags) { static_cast<SSCCmd*>(c
 
 // SSCCmd's argument arrays (out of line), __thiscall (size, growBy): floats, group pointers,
 // bindings (both arrays), nested calls (a new SSCCmd per element).
-void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 } // namespace
 
@@ -257,7 +256,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
         ScriptGroup* group = &values.data[i];
         int size = 0;
         stream->Read(&size, 4);
-        PtrArraySetSize(group, nullptr, size, -1);
+        group->SetSize(size, -1);
         for (int k = 0; k < size; ++k) {
             int id = 0;
             stream->Read(&id, 4);
@@ -299,7 +298,7 @@ void SSCCmd::Load(ScriptStream* stream) {
     globalBindings.SetSize(ReadInt(stream), -1);
     for (int i = 0; i < globalBindings.size; ++i) stream->Read(&globalBindings.data[i], 12);
 
-    SubCallsSetSize(&subCalls, nullptr, ReadInt(stream), -1);
+    mfc::impl::ArrayAs<recordarrays::SubCalls>(subCalls).SetSize(ReadInt(stream), -1);
     for (int i = 0; i < subCalls.size; ++i) subCalls.data[i].Load(stream);
 
     calledScript = SavedScript()->FindBlock(ReadInt(stream));
@@ -398,7 +397,7 @@ void ScriptVars::Load(ScriptStream* stream) {
 
     count = 0;
     stream->Read(&count, 4);
-    PtrArraySetSize(static_cast<ScriptGroup*>(static_cast<void*>(&objects)), nullptr, count, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(count, -1);
     objectNames.SetSize(count, -1);
     for (int i = 0; i < objects.size; ++i) {
         ScriptObjectRef* ref = &objects.data[i];
@@ -414,12 +413,12 @@ void ScriptVars::Load(ScriptStream* stream) {
 
     count = 0;
     stream->Read(&count, 4);
-    GroupValuesSetSize(&groups, nullptr, count, -1);
+    mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(count, -1);
     groupNames.SetSize(count, -1);
     for (int i = 0; i < groups.size; ++i) {
         ScriptGroup* group = &groups.data[i];
         stream->Read(&slot, 4);
-        PtrArraySetSize(group, nullptr, slot, -1);
+        group->SetSize(slot, -1);
         for (int k = 0; k < slot; ++k) group->data[k].Load(stream);
         group->Sort();
         ScriptStringLoad(&groupNames.data[i], stream);
@@ -515,7 +514,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
         node = node->next;
         stream->Read(&block->id, 4);
         int size = ReadInt(stream);
-        CmdsSetSize(&block->commands, nullptr, size, -1);
+        mfc::impl::ArrayAs<recordarrays::Cmds>(block->commands).SetSize(size, -1);
         for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
     }
 }
@@ -638,7 +637,7 @@ void CScript::LoadState(ScriptStream* stream) {
 
     // Definitions (+0x8C).
     auto& scripts = definitions_;
-    DefinitionsSetSize(&scripts, nullptr, ReadInt(stream), -1);
+    mfc::impl::ArrayAs<recordarrays::Definitions>(scripts).SetSize(ReadInt(stream), -1);
     for (int i = 0; i < scripts.size; ++i) {
         ScriptDefinition* definition = &scripts.data[i];
         stream->Read(&definition->index, 4);
@@ -657,7 +656,7 @@ void CScript::LoadState(ScriptStream* stream) {
 
     if (StreamVersion(stream) < 0x57) return;
     auto& areas = areas_;
-    AreasSetSize(&areas, nullptr, ReadInt(stream), -1);
+    mfc::impl::ArrayAs<mfc::impl::ScriptAreas>(areas).SetSize(ReadInt(stream), -1);
     for (int i = 0; i < areas.size; ++i) {
         ScriptArea* area = &areas.data[i];
         stream->Read(&area->id, 4);

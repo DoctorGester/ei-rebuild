@@ -77,14 +77,6 @@ struct ClientSpeechNode;
 __declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** /*queue*/, void*,
                                                              ClientSpeechNode** /*out*/, ClientSpeechNode* /*at*/)
     EI_ORIGINAL(0x005392F0)
-// 005121B0: the client companion's particle array (CMapObjectClientSpecific +0x28): SetSize(count, growBy) (RET 8, no
-// result).
-__declspec(naked) inline void __fastcall CompanionParticlesSetSizeOriginal(void* /*array*/, void*, int /*count*/,
-                                                                           int /*growBy*/) EI_ORIGINAL(0x005121B0)
-// 00512330 (library, MFC CArray::SetSize): the client companion's sound array (+0x3C; 0x14-byte records): SetSize(count,
-// growBy) (RET 8, no result).
-__declspec(naked) inline void __fastcall CompanionSoundsSetSizeOriginal(void* /*array*/, void*, int /*count*/,
-                                                                       int /*growBy*/) EI_ORIGINAL(0x00512330)
 
 // A-U11 (unit_db.cpp, unit_db_destroy.cpp). The unit database's records: 0053EBC0 / 0053ED30 / 0053EE70 destroy a
 // prototype / NPC / model record (rewritten in unit_db_destroy.cpp; thiscall, plain RET); 0053E2A0 / 0053E520 / 0053E730 /

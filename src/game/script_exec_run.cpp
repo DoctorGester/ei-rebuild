@@ -323,7 +323,7 @@ void __fastcall ScriptFreeTemporaries(CScript* script) {
             gamecrt::operator_delete(group.data);
         }
     }
-    PtrArraySetSize(&groups.tail->data, nullptr, 0, -1);
+    groups.tail->data.SetSize(0, -1);
     // Temporary object references.
     mfc::CList<ScriptObjectRef>& objects = script->tempObjects_;
     while (objects.count > 1) {

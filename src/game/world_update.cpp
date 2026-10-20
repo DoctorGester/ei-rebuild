@@ -158,7 +158,7 @@ int CWorldServer::Update() {
         CPlayerServer* state = player->server;
         if (!NoPendingPossession(state)) continue;
         ScriptGroup& own = state->partyUnits_;
-        PtrArraySetSize(&own, nullptr, heroes.size, -1);
+        own.SetSize(heroes.size, -1);
         for (int i = 0; i < heroes.size; ++i) {
             ScriptObjectRef copy;
             ScriptObjectRef* ref = GroupGetAt(&heroes, nullptr, &copy, i);

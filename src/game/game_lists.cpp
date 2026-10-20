@@ -2,6 +2,7 @@
 // addresses (ticket S7; the plain ones are in lib/mfc_list.cpp).
 #include "game/game_lists.h"
 #include "game/originals_script.h"
+#include "game/record_arrays.h"
 
 #include "ei/hook.h"
 
@@ -80,7 +81,7 @@ const gamearrays::ObjectRefs::Array* RefArray(const ScriptGroup* group) {
 // source's size, each command a GetAt copy assigned and destroyed; then the id.
 void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
     mfc::impl::ConstructHeader<mfc::impl::ScriptCommandsClass>(&to->commands);
-    CmdArraySetSizeOriginal(&to->commands, nullptr, from->commands.size, -1);
+    mfc::impl::ArrayAs<recordarrays::Cmds>(to->commands).SetSize(from->commands.size, -1);
     for (int i = 0; i < from->commands.size; ++i) {
         alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
         auto* copy = reinterpret_cast<SSCCmd*>(storage);

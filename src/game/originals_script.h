@@ -29,14 +29,10 @@ __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, 
 __declspec(naked) inline void __fastcall ScriptGroupDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2290)
 
 // C3i part 2. 004C4FD0: CArray<SubCall>::SetSize(count, growBy) (RET 8).
-__declspec(naked) inline void __fastcall SubCallArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
-    EI_ORIGINAL(0x004C4FD0)
 
 // C3k. 004C2030: script group (CArray with vtable 0073D11C) constructor (plain RET, returns `this`). 004CD2B0:
 // CArray<SSCCmd>::SetSize(size, growBy) (RET 8, no result).
 __declspec(naked) inline void* __fastcall ScriptGroupConstructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2030)
-__declspec(naked) inline void __fastcall CmdArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x004CD2B0)
 
 // The link figures' STLport map<string, ...> members (link_figure.h; library instantiations):
 // 004F4B90 the part headers' operator[] (RET 4, EAX = the value, a zeroed 0x50-byte header when new),
@@ -53,7 +49,4 @@ __declspec(naked) inline void __fastcall PartyMapDeleteNodeOriginal(void* /*map*
     EI_ORIGINAL(0x004ABA70)
 // C3m. CArray::SetSize (__thiscall (size, growBy)) of the script arrays: 004C3980 group values, 004CD770 definitions
 // (0xC0 records), 004CDB30 areas (ScriptArea).
-__declspec(naked) inline void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
-__declspec(naked) inline void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770)
-__declspec(naked) inline void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
 

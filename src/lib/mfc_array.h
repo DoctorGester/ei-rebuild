@@ -130,6 +130,14 @@ struct ArrayHeader {
     static void __fastcall Destruct(Array* self) { ArrayAbi<Bytes<1>>::Destruct<Class>(self); }
 };
 
+// An array declared with the default element policy seen as the instantiation `Abi` of the same
+// layout (its elements built and destroyed as that instantiation's out-of-line code does).
+template <typename Abi, typename T, typename E>
+typename Abi::Array& ArrayAs(CArray<T, E>& a) {
+    static_assert(sizeof(typename Abi::Element) == sizeof(T));
+    return reinterpret_cast<typename Abi::Array&>(a);
+}
+
 // The same constructor and destructor on a typed array: the vtable of `Class`; the elements
 // destroyed by the array's policy, the storage freed (ArrayAbi::Destruct).
 template <typename Class, typename T, typename E>

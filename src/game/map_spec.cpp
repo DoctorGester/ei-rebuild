@@ -463,7 +463,7 @@ void TrapSpec::TrapSpecSave() {
     std::uint32_t count = static_cast<std::uint32_t>(areas.size);
     c.WriteHeader(0xBBAB0003, static_cast<int>(count * 12 + 4));
     FileWrite(c, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, areas.data + i * 12, 12);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &areas.data[i], 12);
     count = static_cast<std::uint32_t>(targets.size);
     c.WriteHeader(0xBBAB0004, static_cast<int>(count * 8 + 4));
     FileWrite(c, &count, 4);
@@ -481,9 +481,9 @@ void TrapSpec::TrapSpecOnChunk() {
     case 0xBBAB0002: ReadInto(c, spell); break;
     case 0xBBAB0003: {
         std::uint32_t n = static_cast<std::uint32_t>(c.ReadInt());
-        Array12SetSizeOriginal(&areas, nullptr, static_cast<int>(n), -1);
+        areas.SetSize(static_cast<int>(n), -1);
         for (std::uint32_t i = 0; i < n; ++i) {
-            FileRead(c, areas.data + i * 12, 12);
+            FileRead(c, &areas.data[i], 12);
             c.Advance(12);
         }
         break;

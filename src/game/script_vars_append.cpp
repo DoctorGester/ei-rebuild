@@ -106,7 +106,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
         ScriptGroup copy;
         GroupAt(&other->values, nullptr, &copy, i);
         ScriptGroup* group = &values.data[old + i];
-        PtrArraySetSize(group, nullptr, copy.size, -1);
+        group->SetSize(copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
@@ -181,7 +181,7 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
     vars->floatNames.SetSize(0, -1);
     vars->strings.SetSize(0, -1);
     vars->stringNames.SetSize(0, -1);
-    PtrArraySetSize(reinterpret_cast<ScriptGroup*>(&vars->objects), nullptr, 0, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars->objects).SetSize(0, -1);
     vars->objectNames.SetSize(0, -1);
     if (vars->groups.data) {
         DestroyGroups(vars->groups.data, vars->groups.size);

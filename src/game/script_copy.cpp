@@ -233,7 +233,7 @@ EI_REPLACE(0x004CBA00, ScriptNamesCopyConstruct);
 // reference of its own; the copy is released (all inline in the original).
 template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other) {
     InitArray(&values, scriptvtable::kRefs);
-    PtrArraySetSize(&values, nullptr, other->values.size, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptObjectRef value;
         RefAt(&other->values, nullptr, &value, i);
@@ -253,12 +253,12 @@ EI_REPLACE_METHOD(0x004CBDB0, ScriptNamedValues<ScriptObjectRef>::CopyConstruct)
 // destructor inlined (vtable 0073D11C, each reference destroyed, the array freed).
 template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other) {
     InitArray(&values, scriptvtable::kGroups);
-    GroupValuesSetSize(&values, nullptr, other->values.size, -1);
+    mfc::impl::ArrayAs<gamearrays::Groups>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->values, nullptr, &copy, i);
         ScriptGroup* group = &values.data[i];
-        PtrArraySetSize(group, nullptr, copy.size, -1);
+        group->SetSize(copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
@@ -287,7 +287,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     ScriptNamesCopyConstruct(&stringNames, nullptr, &other->stringNames);
 
     InitArray(&objects, scriptvtable::kRefs);
-    PtrArraySetSize(&objects, nullptr, other->objects.size, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
         RefAt(&other->objects, nullptr, &value, i);
@@ -299,7 +299,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     ScriptNamesCopyConstruct(&objectNames, nullptr, &other->objectNames);
 
     InitArray(&groups, scriptvtable::kGroups);
-    GroupValuesSetSize(&groups, nullptr, other->groups.size, -1);
+    mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->groups, nullptr, &copy, i);
