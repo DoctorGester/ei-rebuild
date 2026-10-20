@@ -185,6 +185,10 @@ def sets_display_mode(scenario):
 # Our renderer's switch-over (docs/notes/renderer.md section 9): no DirectDraw or Direct3D 7 device, the frame
 # presented through its own swap chain, full screen without a display mode change.
 OUR_RENDERER = 'new,present'
+# --widescreen compares with addon's frames, which have the game's shadow decals: the image draws them too
+# (the classic shadows, R16j) instead of its shadow map.
+WIDESCREEN_RENDERER = OUR_RENDERER + ',classicshadows'
+renderer = OUR_RENDERER   # what run_once gives the image's runs (main sets the widescreen one)
 
 
 def our_code(install):
@@ -374,11 +378,11 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if install == 'standalone':
         # Never the display mode: our renderer whatever the environment says.
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'vanilla', 'game.exe'), '--standalone']
-        env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER)
+        env = dict(os.environ if env is None else env, EI_RENDER=renderer)
     elif install == 'standalone-rebirth':
         # ei_launch's default game folder is the Rebirth install's.
         cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe'), '--standalone']
-        env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER, EI_REBIRTH=standalone_rebirth_flags(root))
+        env = dict(os.environ if env is None else env, EI_RENDER=renderer, EI_REBIRTH=standalone_rebirth_flags(root))
     else:
         # The original code only (S21c: no tool runs ours inside game.exe), drawn by dgVoodoo.
         if install == 'vanilla':
@@ -946,6 +950,8 @@ def plan(args, root=ROOT):
     jobs = [(name, install) for name in names for install in installs
             if install not in ('rebirth', 'standalone-rebirth') or name in rebirth]
     if args.widescreen:
+        global renderer
+        renderer = WIDESCREEN_RENDERER
         # addon's WideScreen exists on the Rebirth install only: the image there, or addon's runs to record
         names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, 'rebirth-nohooks' if args.record else 'standalone-rebirth') for name in names]
