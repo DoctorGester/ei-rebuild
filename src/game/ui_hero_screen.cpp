@@ -207,24 +207,9 @@ EI_REPLACE(0x00615800, VoiceEntryDestroy);
 
 // --- 00634500 / 00634560: the caches' objects released ----------------------------------------------
 
-ItemObjectCache::Node* ItemObjectCache::Node::Next() {
-    Node* node = this;
-    if (node->right) {
-        node = node->right;
-        while (node->left) node = node->left;
-        return node;
-    }
-    Node* up = node->parent;
-    while (node == up->right) {
-        node = up;
-        up = up->parent;
-    }
-    return node->right != up ? up : node;
-}
-
 void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
-    for (ItemObjectCache::Node* node = cache->header->left; node != cache->header; node = node->Next())
-        static_cast<CEngineObject*>(node->object)->Release();
+    for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node))
+        static_cast<CEngineObject*>(node->second.object)->Release();
 }
 EI_REPLACE(0x00634500, ReleaseCachedObjects);
 EI_REPLACE(0x00634560, ReleaseCachedObjects);
@@ -234,7 +219,7 @@ EI_REPLACE(0x00634560, ReleaseCachedObjects);
 namespace {
 void DestroyVoices(MpVoiceVector& voices) {
     for (MpVoiceEntry* entry = voices.begin(); entry != voices.end(); ++entry) entry->Destroy();
-    FreeBlock8Original(voices.begin(), static_cast<int>(voices.EndOfStorage() - voices.begin()));
+    stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));   // 006344C0
 }
 void DestroyStrings(const char** begin, const char** end) {
     for (const char** at = begin; at != end; ++at) CStringDestroy(at);
@@ -251,9 +236,9 @@ void CMpHeroScreen::Destroy() {
     for (void** at = defaults_; at != defaultsEnd_; ++at) CStringDestroy(at);
     stlp::deallocate(defaults_, static_cast<std::size_t>(defaultsCapacity_ - defaults_) * sizeof(void*));   // 00520F20
     ReleaseCachedObjects(&screen->textures_);
-    DestroyTextureMapOriginal(&screen->textures_);
+    screen->textures_.map.Destroy();   // 00634200
     ReleaseCachedObjects(&screen->models_);
-    DestroyModelMapOriginal(&screen->models_);
+    screen->models_.map.Destroy();     // 00634160
     DestroyContainerBody(this);
 }
 namespace {

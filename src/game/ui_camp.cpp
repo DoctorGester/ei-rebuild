@@ -1263,32 +1263,13 @@ EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
 
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
-namespace {
-// The item caches' maps (STLport, thiscall): 005FA420 / 005FA630 construct the header node from
-// an allocator (RET 4; the byte they copy is overwritten), 005FA400 / 005FA610 empty it.
-__declspec(naked) void __fastcall ConstructTextureMap(void*, void*, const void*) EI_ORIGINAL(0x005FA630)
-
-// A cache: the map's header, an empty tree whose compare byte is `compare`, the limit 50.
-void ConstructCache(ItemObjectCache& cache, void(__fastcall* construct)(void*, void*, const void*),
-                    void(__fastcall* empty)(void*), const void* allocator, std::uint8_t compare) {
-    construct(&cache, nullptr, allocator);
-    cache.count = 0;
-    cache.compare = compare;
-    empty(&cache);
-    cache.limit = 50;
-}
-} // namespace
-
 CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     ConstructContainerAt(this, nullptr, ui);
     hoveredItem_ = nullptr;
-    // The original passes the address of its first argument (the models') and of a stack byte
-    // (the textures') as the allocators; the compare byte is the flag's low byte.
+    // The caches' compare byte is the flag's low byte.
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);
-    CInterface3D* slot = ui;
-    std::uint8_t junk = 0;
-    ConstructCache(models_, ConstructModelMap, EmptyModelMap, &slot, compare);
-    ConstructCache(textures_, ConstructTextureMap, EmptyTextureMap, &junk, compare);
+    models_.Construct(compare);
+    textures_.Construct(compare);
     vtable_ = reinterpret_cast<void**>(0x00740A2C);
     inputVtable_ = reinterpret_cast<void**>(0x007409F8);
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is

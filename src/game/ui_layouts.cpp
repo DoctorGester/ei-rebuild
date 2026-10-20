@@ -471,8 +471,8 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (w) {
             ConstructContainerAt(w, nullptr, ui);
             w->hoveredItem_ = nullptr;
-            lib_trees::ConstructHeroItemCache(reinterpret_cast<lib_trees::HeroItemCache*>(&w->models_));
-            lib_trees::ConstructHeroItemCache(reinterpret_cast<lib_trees::HeroItemCache*>(&w->textures_));
+            lib_trees::ConstructHeroItemCache(&w->models_);
+            lib_trees::ConstructHeroItemCache(&w->textures_);
             SetVtables(&w->window, 0x00740A2C, 0x007409F8);   // the item screens' base
             char allocators[4] = {};
             FirstListConstruct(&w->defaults_, nullptr, &allocators[1]);
