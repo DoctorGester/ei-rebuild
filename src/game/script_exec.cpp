@@ -39,6 +39,8 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_script.h"
@@ -187,8 +189,6 @@ struct PartySlot {
     std::uint8_t unused_04[36];
 };
 using PartyArray = mfc::CArray<PartySlot>;
-__declspec(naked) PartyArray* __fastcall PartySlotsConstruct(PartyArray*) EI_ORIGINAL(0x004BB000)
-__declspec(naked) void __fastcall PartySlotsDestruct(PartyArray*) EI_ORIGINAL(0x004BB020)
 using ObjectIterator = ObjectListIterator;
 
 // Damage description for KillUnit (vtable +0x7C; 0x34 bytes used, the original reserves 0x4C).
@@ -282,7 +282,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
     PtrList units;
-    PtrListConstructOriginal(&units, nullptr, 10);
+    mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&units, 10);
     float radius = static_cast<CMapObject*>(object)->radius + static_cast<CMapObject*>(object)->radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
     for (PtrList::Node* pos = units.head; pos;) {
@@ -330,7 +330,7 @@ void RedeployParty(const SSCCmd* cmd) {
     if (!player) return;
     CPlayerServer* state = player->server;
     PartyArray slots;
-    PartySlotsConstruct(&slots);
+    mfc::impl::ConstructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
     TheWorld()->CollectParty(player, &slots);
     void* party = player->Party();
     PartyManagerBeginRedeploy(ThePartyManager(), nullptr, party);
@@ -341,7 +341,7 @@ void RedeployParty(const SSCCmd* cmd) {
     state->SendParty();
     player->server->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);
-    PartySlotsDestruct(&slots);
+    mfc::impl::DestructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
 }
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
@@ -1183,7 +1183,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CTypedPtrList<CEngineObject> items;
-            ItemListConstructOriginal(&items, nullptr, 10);
+            mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             player->Party()->Money() += Ftol(f[1]);
             PlayerOf(player)->GiveItems(&items, 0);
             PtrListDestructOriginal(&items);
@@ -1194,7 +1194,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CTypedPtrList<CEngineObject> items;
-            ItemListConstructOriginal(&items, nullptr, 10);
+            mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
                 PtrListAddTailOriginal(&items, nullptr, item);

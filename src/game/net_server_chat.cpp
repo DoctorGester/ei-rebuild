@@ -30,7 +30,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
         ei::SetVtable(line, kMessageVtable);
         line->version_ = 1;
         stlp::StringElement::Default(&line->text_);
-        RefNullBOriginal(&line->connection_);
+        line->connection_.ptr = nullptr;   // RefPtr() (0041FF70)
         ei::SetVtable(line, LineMessage::kVtableAddress);
     }
     RefPtr ref;

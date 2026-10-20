@@ -33,23 +33,6 @@ __declspec(naked) inline void __fastcall UnitParameterBlock(void*, void*, void*,
 __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0052E310)
 // 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
-__declspec(naked) inline void __fastcall StepsAppend(AnimationSteps*, void*, const AnimationSteps*)
-    EI_ORIGINAL(0x00556950)
-__declspec(naked) inline int __fastcall StepsAdd(AnimationSteps*, void*, const AnimationStep*) EI_ORIGINAL(0x00557CC0)
-__declspec(naked) inline void __fastcall StepsSetAtGrow(AnimationSteps*, void*, int, const AnimationStep*)
-    EI_ORIGINAL(0x00558950)
-
-// 00530730 / 00531070: equip armour (RET 4, returns the item it replaced or null) / add weapon (RET 4, slot index,
-// 1 when already there, -1 when full). 00554450: the unit controller resyncs with its unit (plain RET, no result).
-// 00557E70: destructor of the animation-step array / controller list (ECX = object, plain RET, no result).
-__declspec(naked) inline void __fastcall AnimationStepsDestroyOriginal(void* /*steps*/) EI_ORIGINAL(0x00557E70)
-
-// 00556870: AnimationSteps copy constructor (RET 4, returns this).
-__declspec(naked) inline void* __fastcall StepsCopyConstructOriginal(void* /*steps*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x00556870)
-// 00556D10: cell list constructor (block size; RET 4, returns this).
-__declspec(naked) inline void* __fastcall CellListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
-    EI_ORIGINAL(0x00556D10)
 
 // C3k. A counted reference is a pointer slot whose object keeps a count at +4 and has Release as virtual slot 4.
 // 0052B030 releases the object and clears the slot (plain RET; no result in EAX).
@@ -57,10 +40,8 @@ __declspec(naked) inline void __fastcall CountedRefResetOriginal(void* /*slot*/)
 // 0054B580 (rewritten as CUnitServer::IsFighting; Rebirth patches it, so callers go through the address): whether the
 // controller's order counts as fighting (plain RET, AL).
 __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*controller*/) EI_ORIGINAL(0x0054B580)
-// 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10). 00557B60: AnimationSteps
-// constructor (plain RET, returns `this`).
+// 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10).
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
-__declspec(naked) inline void* __fastcall StepsConstructOriginal(void* /*steps*/) EI_ORIGINAL(0x00557B60)
 
 // C3l. 005335E0: the unit prototype map (a hash map keyed by a string; RET 4: key; EAX = the address of the value slot, after
 // inserting an entry for a missing name).

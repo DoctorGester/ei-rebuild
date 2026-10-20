@@ -118,8 +118,6 @@ void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4
 // 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists.
 UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, UnitListNode* a3) { return (UnitListNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
-AnimationSteps* __fastcall AnimationListConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
-AnimationSteps* __fastcall AnimationListCopy(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 // 00548DE0 (CUnitServer::PlayAnimationOrder): plays `animation` (taken by value and destroyed).
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
@@ -411,14 +409,14 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" damaged to death")->PutChar(10)->Apply(kLogEndLine);
 
     AnimationSteps animation;
-    AnimationListConstruct(&animation);
+    animation.ConstructBase();
     animation.vtable = kAnimationStepsVtable;
     std::uint32_t direction = HitDirection(attacker, hitKind);
     BuildDeathAnimation(&animation, direction, 1, 0);
     animationHeld = 0;
     frozen = 0;
     AnimationSteps copy;
-    AnimationListCopy(&copy, nullptr, &animation);
+    copy.CopyConstructSteps(animation);
     copy.extra = animation.extra;
     PlayAnimationOrder(copy);
     AIEventsOf(world)->ForgetUnit(this);

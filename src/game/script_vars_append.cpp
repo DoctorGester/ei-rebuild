@@ -12,6 +12,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc_string.h"
+#include "lib/mfc_array.h"
 
 #include "ei/hook.h"
 #include "originals_library.h"

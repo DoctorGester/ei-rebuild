@@ -21,9 +21,33 @@ void AnimationSteps::Assign(const AnimationSteps& source) {
     mfc::impl::AnimationStepListAbi::Assign(reinterpret_cast<mfc::impl::AnimationStepList*>(this), nullptr,
                                             reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
 }
-void AnimationSteps::SetSize(int newCount, int newGrowBy) {
-    mfc::impl::AnimationSteps::SetSize(reinterpret_cast<mfc::impl::AnimationSteps::Array*>(this), nullptr, newCount, newGrowBy);
+namespace {
+using StepArray = mfc::impl::AnimationSteps::Array;
+StepArray* Array(AnimationSteps* list) { return reinterpret_cast<StepArray*>(list); }
+const StepArray* Array(const AnimationSteps* list) { return reinterpret_cast<const StepArray*>(list); }
+const mfc::impl::AnimationStep12& Step(const AnimationStep& step) {
+    return reinterpret_cast<const mfc::impl::AnimationStep12&>(step);
 }
+} // namespace
+
+void AnimationSteps::SetSize(int newCount, int newGrowBy) { Array(this)->SetSize(newCount, newGrowBy); }
+int AnimationSteps::Add(const AnimationStep& step) { return Array(this)->Add(Step(step)); }
+void AnimationSteps::SetAtGrow(int index, const AnimationStep& step) { Array(this)->SetAtGrow(index, Step(step)); }
+void AnimationSteps::RemoveAt(int index, int removed) { Array(this)->RemoveAt(index, removed); }
+void AnimationSteps::CopySteps(const AnimationSteps& source) { Array(this)->Copy(*Array(&source)); }
+AnimationSteps* AnimationSteps::ConstructBase() {
+    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsClass>(*Array(this));
+    return this;
+}
+AnimationSteps* AnimationSteps::ConstructOwn() {
+    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsCopyClass>(*Array(this));
+    return this;
+}
+AnimationSteps* AnimationSteps::CopyConstructSteps(const AnimationSteps& source) {
+    mfc::impl::AnimationStepListAbi::CopyConstructSteps(Array(this), nullptr, Array(&source));
+    return this;
+}
+void AnimationSteps::DestructSteps() { mfc::impl::DestructArrayOf<mfc::impl::AnimationStepsClass>(*Array(this)); }
 
 namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)

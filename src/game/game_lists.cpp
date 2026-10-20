@@ -5,6 +5,7 @@
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_array.h"
 
 #include <cstdint>
 #include <new>

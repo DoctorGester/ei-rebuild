@@ -15,6 +15,7 @@
 #include "render/render_state.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_array.h"
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -31,12 +32,10 @@ void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cas
 std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
 
 // Member constructors (thiscall on the member).
-__declspec(naked) void __fastcall Member5C1760(void*) EI_ORIGINAL(0x005C1760)
 __declspec(naked) void __fastcall Member5F8F30(void*) EI_ORIGINAL(0x005F8F30)
 __declspec(naked) void __fastcall Member5F6080(void*) EI_ORIGINAL(0x005F6080)
 __declspec(naked) void __fastcall Member5F5F90(void*) EI_ORIGINAL(0x005F5F90)
    // CStringArray
-__declspec(naked) void __fastcall Member5FAF80(void*) EI_ORIGINAL(0x005FAF80)
 // STLport containers taking an allocator (by address; empty).
 __declspec(naked) void __fastcall Member5F90E0(void*, void*, const void*) EI_ORIGINAL(0x005F90E0)
 __declspec(naked) void __fastcall Member5F9300(void*, void*, const void*) EI_ORIGINAL(0x005F9300)
@@ -67,7 +66,7 @@ void CInterface3D::CreateScreen(int id) {
         SetDword(screen, 0x178, 0);
         SetDword(screen, 0x174, 0);
         SetDword(screen, 0x170, 0);
-        Member5C1760(ei::OffsetPtr(screen, 0x1DC));
+        mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(ei::OffsetPtr(screen, 0x1DC));
         Member5F8F30(ei::OffsetPtr(screen, 0x1F0));
         Member5F6080(ei::OffsetPtr(screen, 0x204));
         Member5F5F90(ei::OffsetPtr(screen, 0x220));
@@ -86,7 +85,7 @@ void CInterface3D::CreateScreen(int id) {
         ConstructContainerAt(screen, nullptr, this);
         StringArrayConstruct(ei::OffsetPtr(screen, 0x170));
         SetDword(screen, 0x184, EmptyString());
-        Member5FAF80(ei::OffsetPtr(screen, 0x190));
+        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(ei::OffsetPtr(screen, 0x190));
         Member5F90E0(ei::OffsetPtr(screen, 0x240), nullptr, &allocators[0]);
         SetDword(screen, 0x248, EmptyString());
         Member5F8F30(ei::OffsetPtr(screen, 0x26C));

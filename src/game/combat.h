@@ -109,9 +109,25 @@ struct AnimationSteps {
     AnimationSteps* CopyConstruct(const AnimationSteps& source);
     // 005483C0 (RET 4): assignment, Copy of the steps and extra.
     void Assign(const AnimationSteps& source);
-    // 00557B80 (RET 8): the steps' SetSize(count, growBy); new steps are blank (the instantiation
-    // mfc::impl::AnimationSteps).
+    // The steps' array, CArray<AnimationStep> (the instantiation mfc::impl::AnimationSteps; extra
+    // is left alone by each).
+    // 00557B80 (RET 8): SetSize(count, growBy); new steps are blank.
     void SetSize(int newCount, int newGrowBy = -1);
+    // 00557CC0 (RET 4): `step` appended; its index.
+    int Add(const AnimationStep& step);
+    // 00558950 (RET 8): step `index` becomes `step`, the array grown to hold it.
+    void SetAtGrow(int index, const AnimationStep& step);
+    // 00557E20 (RET 8): `count` steps from `index` removed.
+    void RemoveAt(int index, int count);
+    // 00556950 (RET 4): the steps become a copy of `source`'s.
+    void CopySteps(const AnimationSteps& source);
+    // Constructed empty: 00557B60 with the base vtable (0073EF2C), 00556850 with the list's own
+    // (0073F01C); 00556870 (RET 4) the list's own and a copy of `source`'s steps. Return this.
+    AnimationSteps* ConstructBase();
+    AnimationSteps* ConstructOwn();
+    AnimationSteps* CopyConstructSteps(const AnimationSteps& source);
+    // 00557E70: destroyed (the base vtable, the storage freed).
+    void DestructSteps();
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 

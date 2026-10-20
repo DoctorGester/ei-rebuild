@@ -48,6 +48,8 @@
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp_list_refs.h"
+#include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
@@ -1158,12 +1160,8 @@ __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040
 __declspec(naked) void __fastcall Construct562A80(void*) EI_ORIGINAL(0x00562A80)
 __declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
 __declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453400)
-__declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL(0x00570EA0)
-__declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
-__declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
 __declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
-__declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
 // vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
 __declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
     EI_ORIGINAL(0x00573520)
@@ -1300,13 +1298,13 @@ int CWorldClient::Setup() {
         terrain->textureFrames.Construct();
         static_cast<CMMIOResource*>(&terrain->archive)->Construct();
         terrain->vertexTiles.Construct();
-        Construct570EA0(&terrain->sectorCache, nullptr, 10);
+        mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&terrain->sectorCache, 10);
         stlp::ConstructTableWithDword(reinterpret_cast<stlp::TableWithDword*>(&terrain->lights));
         terrain->wavePhases.Construct();
         terrain->visibleColumnFirst.Construct();
         terrain->visibleColumnLast.Construct();
         terrain->textAE0 = camera::EmptyStringData();
-        Construct5711C0(&terrain->waterLevels);
+        mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
         static_cast<Terrain*>(terrain)->Reset();
     }
@@ -1326,7 +1324,7 @@ int CWorldClient::Setup() {
     auto* manager = reinterpret_cast<CParticleManager*>(New(sizeof(CParticleManager)));
     if (manager) {
         static_cast<CBaseManager*>(manager)->ConstructBase();
-        Construct56FD40(&manager->freeParticles, nullptr, 10);
+        mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&manager->freeParticles, 10);
         Construct5725E0(&manager->held_);
         manager->maxHeldId_ = 0;
         ei::SetVtable(manager, worlddata::kParticleManagerVtable);
@@ -1387,7 +1385,7 @@ int CWorldClient::Setup() {
     if (arrays) {
         static_cast<CBaseManager*>(arrays)->ConstructBase();
         arrays->current = nullptr;
-        Construct5715D0(&arrays->list, nullptr, 10);
+        mfc::impl::ConstructListHeader<mfc::impl::ClientList3Class>(&arrays->list, 10);
         ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);
     }
     arrayManager_ = arrays;

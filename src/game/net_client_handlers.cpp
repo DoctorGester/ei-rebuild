@@ -197,7 +197,7 @@ void ClientSession::StartParty(CRefObject* partner) {
         std::uint8_t allocator = 0;
         RefVectorConstruct(&party->members_, nullptr, &allocator);
         party->player_.ptr = nullptr;
-        RefNullA(&party->partner_);
+        party->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
         ei::SetVtable(party, PartyMessage::kVtableAddress);
         party->acceptedRevision_ = 0;
         party->revision_ = 1;
@@ -288,7 +288,7 @@ void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0
         ei::SetVtable(request, kMessageVtable);
         request->version_ = 1;
         request->FileRef().ptr = nullptr;
-        RefNullBOriginal(&request->ConnectionRef());
+        request->ConnectionRef().ptr = nullptr;   // RefPtr() (0041FF70)
         ei::SetVtable(request, FileRequestMessage::kVtableAddress);
     }
     AssignRef(&request->FileRef(), message);

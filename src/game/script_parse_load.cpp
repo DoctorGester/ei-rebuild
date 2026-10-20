@@ -17,6 +17,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc_string.h"
+#include "lib/mfc_array.h"
 #include "originals_script.h"
 #include "originals_library.h"
 

@@ -86,11 +86,8 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     RefVector* messages = &state()->members_;
 
     // A copy of the old messages, then the list emptied.
-    std::uint8_t allocator = 0;
-    const void* allocatorCopy = VectorGetAllocatorOriginal(messages, nullptr, &allocator);
     RefVector previous;
-    VectorBaseConstruct(&previous, nullptr, static_cast<std::size_t>(messages->size()), allocatorCopy);
-    previous.Finish() = UninitializedCopy(messages->begin(), messages->end(), previous.begin(), 0);
+    previous.CopyConstruct<stlp::CountedRefElement>(*messages);
     state()->members_.EraseRange<stlp::CountedRefElement>(state()->members_.begin(), state()->members_.end());
     state()->money_ = static_cast<std::uint32_t>(party->Money());
 

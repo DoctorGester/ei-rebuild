@@ -145,6 +145,16 @@ CArray<T, E>* ConstructArrayOf(CArray<T, E>& a) {
     return a.Construct(Class::Vtable());
 }
 template <typename Class, typename T, typename E>
+void DestructArrayOf(CArray<T, E>& a);
+
+// The destructor of an instantiation whose elements need nothing, on a header inside an element or
+// a layout (ConstructHeader's counterpart): the vtable of `Class`, the storage freed.
+template <typename Class>
+void DestructHeader(void* at) {
+    DestructArrayOf<Class>(*static_cast<CArray<Bytes<1>>*>(at));
+}
+
+template <typename Class, typename T, typename E>
 void DestructArrayOf(CArray<T, E>& a) {
     a.vtable = Class::Vtable();
     a.FreeData();

@@ -39,7 +39,6 @@ void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructEl
 // (004C2290), the ScriptVars floats (004C29C0).
 void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }   // 004C26A0 is 004BC810's body
 inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
-__declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29C0)
 
 // Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)
 // and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
@@ -102,7 +101,7 @@ void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     NamesDestruct(&vars.stringNames);
     FreeStrings(&vars.strings);
     NamesDestruct(&vars.floatNames);
-    FloatArrayDestruct(&vars.floats);
+    mfc::impl::DestructHeader<mfc::impl::ScriptFloatsClass>(&vars.floats);
     FreePlain(&definition->ifThen, mfc::impl::ScriptIfThenArrayClass::Vtable());
     definition->params.~CString();
     definition->name.~CString();

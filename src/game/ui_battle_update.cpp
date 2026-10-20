@@ -178,7 +178,6 @@ static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUn
 // (RET 4), 004E2A20 / 005F9880 the destructors of the two instantiations.
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
-__declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x0064B620)
 __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
@@ -204,7 +203,7 @@ using PtrArray = mfc::CArray<void*>;
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
     if (ids->Finish() != ids->EndOfStorage()) {
-        IdConstruct(ids->Finish(), value);
+        stlp::ConstructAt(ids->Finish(), value);   // 0064B620
         ++ids->Finish();
     } else {
         DwordVectorInsertOverflowOriginal(ids, nullptr, ids->Finish(), value, 1);

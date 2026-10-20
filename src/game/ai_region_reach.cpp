@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_array.h"
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -136,7 +137,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     PointArray& blocks = Blocks();
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
-        PointArrayConstructOriginal(&blocks);
+        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&blocks);
         GameAtExit(BlocksDestructor());
     }
     if (blocks.data) {
@@ -203,12 +204,12 @@ void CRegionMap::LabelRegions() {
     PointArray& second = FloodSecond();
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
-        PointArrayConstructOriginal(&queue);
+        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&queue);
         GameAtExit(FloodQueueDestructor());
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
-        PointArrayConstructOriginal(&second);
+        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&second);
         GameAtExit(FloodSecondDestructor());
     }
     queue.SetSize(0, -1);

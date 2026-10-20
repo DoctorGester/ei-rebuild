@@ -41,7 +41,7 @@ void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOrigi
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's
 // destructor; 004C2050 SetSize.
-void __fastcall GroupConstruct(ScriptGroup* a0, void*) { ScriptGroupConstructOriginal((void*)a0); }
+void __fastcall GroupConstruct(ScriptGroup* a0, void*) { mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>((void*)a0); }
 inline void __fastcall GroupDestruct(ScriptGroup* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) {
     gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,

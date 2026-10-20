@@ -31,8 +31,6 @@ __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, con
 __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
 __declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
-// Counted pointer element destructors (deleting destructors called with 0).
-__declspec(naked) void* __fastcall FileRefDestroy(RefPtr* /*p*/, void*, unsigned /*flags*/) EI_ORIGINAL(0x0042B880)
 
 // 00783D6C: the empty text the server entry's reset assigns.
 const char* EmptyText() { return reinterpret_cast<const char*>(0x00783D6C); }
@@ -685,7 +683,7 @@ FileMessage* FileMessage::Clone() {   // 00416220
 }
 int FileMessage::OnShutdown() {   // 00416390
     ei::SetVtable(this, kVtableAddress);
-    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) FileRefDestroy(p, nullptr, 0);
+    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();   // 0042B880 (flags 0)
     FileRefsDeallocate(&chunks_.EndOfStorage(), nullptr, chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()));
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -982,10 +980,7 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     auto* p = NewMessageMemory<PartyMessage>();
     if (!p) return nullptr;
     CloneHeader(p, this);
-    std::uint8_t allocator = 0;
-    const void* copy = VectorGetAllocatorOriginal(&members_, nullptr, &allocator);
-    VectorBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.size()), copy);
-    p->members_.Finish() = UninitializedCopy(members_.begin(), members_.end(), p->members_.begin(), 0);
+    p->members_.CopyConstruct<stlp::CountedRefElement>(members_);
     p->money_ = money_;
     p->accepted_ = accepted_;
     p->acceptedRevision_ = acceptedRevision_;

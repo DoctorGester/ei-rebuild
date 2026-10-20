@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include <cstdint>
 #include "originals_library.h"
@@ -19,19 +20,14 @@ namespace {
 
 // Constructors of the members (thiscall).
 __declspec(naked) void __fastcall ConstructBridgeMap(void*, void*) EI_ORIGINAL(0x005BCCD0)
-__declspec(naked) void __fastcall ConstructSectorArray(void*, void*) EI_ORIGINAL(0x005BD1C0)
 __declspec(naked) void __fastcall ConstructRegionMap(CRegionMap*, void*) EI_ORIGINAL(0x005AF3D0)
 __declspec(naked) void __fastcall ByteGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCBD0)
-__declspec(naked) void __fastcall ConstructCellRowArray(void*, void*) EI_ORIGINAL(0x005BD1E0)
 // 005B40F0: resets the dirty rectangle (+4).
 __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 
 // Destructors of the members (thiscall).
-__declspec(naked) void __fastcall DestroyCellRowArray(void*, void*) EI_ORIGINAL(0x00599180)
 __declspec(naked) void __fastcall DestroyNodeList(void*, void*) EI_ORIGINAL(0x005995E0)
-__declspec(naked) void __fastcall DestroyAreaList(void*, void*) EI_ORIGINAL(0x005997A0)
 __declspec(naked) void __fastcall DestroyBridgeMap(void*, void*) EI_ORIGINAL(0x005984A0)
-__declspec(naked) void __fastcall DestroyClimbTable(void*, void*) EI_ORIGINAL(0x004600D0)
 // 006E859F: the CRT's `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, std::uintptr_t a3) {
     libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3));
@@ -58,7 +54,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->climbSmall.Construct(kArrayVtable);
     self->materials.Construct();
     ConstructBridgeMap(self->bridgeHeights, nullptr);
-    ConstructSectorArray(&self->sectorMap.sectors, nullptr);
+    mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(self->sectorMap.sectors);
     CSectorMap& sectors = self->sectorMap;
     sectors.vtable = reinterpret_cast<void*>(CSectorMap::kVtableAddress);
     sectors.aiMap = nullptr;
@@ -78,7 +74,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     ConstructRegionMap(&self->regionMap, nullptr);
     self->forwardSearch.nodes.Construct(1, 1);
     ByteGridConstruct(&self->forwardSearch.levels, nullptr, 1, 1);
-    ConstructCellRowArray(&self->forwardSearch.cellRowsVtable, nullptr);
+    mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&self->forwardSearch.cellRowsVtable);
     self->forwardSearch.map = nullptr;
     self->backwardSearch.Construct(nullptr);
     self->CellGrid().Construct(1, 1);
@@ -101,10 +97,10 @@ void __fastcall DestructAIMap(CAIMap* self) {
     FreeGrid(self->marks);
     FreeGrid(self->OccluderGrid());
     FreeGrid(self->CellGrid());
-    DestroyCellRowArray(&self->backwardSearch.cellRowsVtable, nullptr);
+    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&self->backwardSearch.cellRowsVtable);
     FreeGrid(self->backwardSearch.levels);
     FreeGrid(self->backwardSearch.nodes);
-    DestroyCellRowArray(&self->forwardSearch.cellRowsVtable, nullptr);
+    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&self->forwardSearch.cellRowsVtable);
     FreeGrid(self->forwardSearch.levels);
     FreeGrid(self->forwardSearch.nodes);
     CRegionMap& regions = self->regionMap;
@@ -116,7 +112,7 @@ void __fastcall DestructAIMap(CAIMap* self) {
     FreeGrid(regions.forward.records);
     DestroyNodeList(&self->unitLayerLarge.nodes, nullptr);
     DestroyNodeList(&self->unitLayerSmall.nodes, nullptr);
-    for (int list = 5; list >= 0; --list) DestroyAreaList(&self->areaLists[list], nullptr);
+    for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(self->areaLists[list]);
     FreeGrid(self->WaterGrid());
     self->bridges.cells.FreeData();
     self->footprint.cells.FreeData();
@@ -124,8 +120,8 @@ void __fastcall DestructAIMap(CAIMap* self) {
     CSectorMap::DestructSectors(&self->sectorMap.sectors);
     DestroyBridgeMap(self->bridgeHeights, nullptr);
     self->materials.FreeData();
-    DestroyClimbTable(&self->climbSmall, nullptr);
-    DestroyClimbTable(&self->climbLarge, nullptr);
+    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(self->climbSmall);
+    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(self->climbLarge);
 }
 
 // 005B5E10 (thiscall).

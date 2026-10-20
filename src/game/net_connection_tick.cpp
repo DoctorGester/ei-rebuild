@@ -6,6 +6,7 @@
 #include "net_connection.h"
 
 #include "ei/hook.h"
+#include "lib/stlp_vector.h"
 #include "ei/x87.h"
 #include "net_connection_trees.h"
 #include "originals_library.h"
@@ -29,7 +30,6 @@ __declspec(naked) void __fastcall HistorySplice(HistoryNode** /*list*/, void*, H
 __declspec(naked) FreedBatch** __fastcall FreedErase(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x004390C0)
 // vector<uint16_t> pieces of the id pools: construct in place, insert when full; vector copy of
 // 4-byte elements (returns the end of the copy).
-__declspec(naked) void __fastcall IdConstruct(std::uint16_t* /*at*/, const void* /*value*/) EI_ORIGINAL(0x0043D7E0)
 __declspec(naked) void __fastcall IdInsertOverflow(IdPool* /*pool*/, void*, std::uint16_t* /*pos*/, const void* /*value*/,
                                                    std::uint32_t /*n*/) EI_ORIGINAL(0x0043B530)
 __declspec(naked) FreedId* __fastcall CopyFreed(FreedId* /*first*/, FreedId* /*last*/, FreedId* /*dest*/) EI_ORIGINAL(0x0043DC80)
@@ -128,7 +128,8 @@ bool Connection::Tick(double dt) {
             std::uint32_t value = e->id;
             IdPool& pool = idPools_[e->type];
             if (pool.end != pool.eos) {
-                IdConstruct(pool.end, &value);
+                auto id = static_cast<std::uint16_t>(value);
+                stlp::ConstructAt(pool.end, &id);   // 0043D7E0
                 ++pool.end;
             } else {
                 IdInsertOverflow(&pool, nullptr, pool.end, &value, 1);

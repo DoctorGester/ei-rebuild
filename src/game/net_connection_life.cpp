@@ -8,6 +8,7 @@
 
 #include "core_streams.h"
 #include "ei/hook.h"
+#include "lib/stlp_vector.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -219,7 +220,6 @@ namespace {
 // Copy constructors of the containers (library).
 __declspec(naked) void* __fastcall ReceivedGetAllocator(std::int32_t* const* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00438CC0)
 __declspec(naked) void __fastcall ReceivedReserveConstruct(std::int32_t** /*vector*/, void*, int /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00438D00)
-__declspec(naked) std::int32_t* __fastcall CopyInts(const std::int32_t* /*first*/, const std::int32_t* /*last*/, std::int32_t* /*dest*/) EI_ORIGINAL(0x0043B360)
 __declspec(naked) void __fastcall FreedListCopy(FreedBatch** /*to*/, void*, FreedBatch* const* /*from*/) EI_ORIGINAL(0x00437930)
 __declspec(naked) void __fastcall BySentIdCopy(SentIdMap* /*to*/, void*, const SentIdMap* /*from*/) EI_ORIGINAL(0x00437AA0)
 __declspec(naked) void __fastcall HistoryCopy(HistoryNode** /*to*/, void*, HistoryNode* const* /*from*/) EI_ORIGINAL(0x00437F60)
@@ -237,7 +237,7 @@ Connection* Connection::Clone() {
     std::uint8_t tag = 0;
     void* alloc = ReceivedGetAllocator(&received_, nullptr, &tag);
     ReceivedReserveConstruct(&copy->received_, nullptr, static_cast<int>(receivedEnd_ - received_), alloc);
-    copy->receivedEnd_ = CopyInts(received_, receivedEnd_, copy->received_);
+    copy->receivedEnd_ = stlp::CopyTrivial(received_, receivedEnd_, copy->received_);   // 0043B360
     // id, round trips; timers, clock, budget: copied as dwords.
     std::memcpy(&copy->id_, &id_, offsetof(Connection, address_) - offsetof(Connection, id_));
     copy->address_ = address_;

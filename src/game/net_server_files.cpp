@@ -17,7 +17,6 @@
 namespace net {
 
 namespace {
-__declspec(naked) void __fastcall RefNull(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFC0)
 
 constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
 
@@ -51,7 +50,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     auto* chunk = NewMessageMemory<FileChunkMessage>();
     if (chunk) {
         MessageConstructBase(chunk);
-        RefNull(&chunk->file_);
+        chunk->file_.ptr = nullptr;   // RefPtr() (0041FFC0)
         ei::SetVtable(chunk, FileChunkMessage::kVtableAddress);
     }
     RefPtr filler;

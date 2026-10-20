@@ -6,6 +6,7 @@
 #include "unit_client_models.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include "ei/hook.h"
 #include "originals_engine.h"

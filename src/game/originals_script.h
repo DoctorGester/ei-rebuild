@@ -28,12 +28,6 @@ __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, 
 // C3h. 004C2290: a script group's destructor (plain RET).
 __declspec(naked) inline void __fastcall ScriptGroupDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2290)
 
-// C3i part 2. 004C4FD0: CArray<SubCall>::SetSize(count, growBy) (RET 8).
-
-// C3k. 004C2030: script group (CArray with vtable 0073D11C) constructor (plain RET, returns `this`). 004CD2B0:
-// CArray<SSCCmd>::SetSize(size, growBy) (RET 8, no result).
-__declspec(naked) inline void* __fastcall ScriptGroupConstructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2030)
-
 // The link figures' STLport map<string, ...> members (link_figure.h; library instantiations):
 // 004F4B90 the part headers' operator[] (RET 4, EAX = the value, a zeroed 0x50-byte header when new),
 // 004F4CE0 the part ranges' operator[] (RET 4, EAX = the value).

@@ -20,7 +20,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall RefNullB(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFD0)
 
 constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
@@ -124,10 +123,10 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     auto* trade = NewMessageMemory<TradeMessage>();
     if (trade) {
         MessageConstructBase(trade);
-        RefNullA(&trade->player_);
-        RefNullA(&trade->partner_);
-        RefNullB(&trade->offer_);
-        RefNullB(&trade->partnerOffer_);
+        trade->player_.ptr = nullptr;   // RefPtr() (0041FF80)
+        trade->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
+        trade->offer_.ptr = nullptr;   // RefPtr() (0041FFD0)
+        trade->partnerOffer_.ptr = nullptr;   // RefPtr() (0041FFD0)
         ei::SetVtable(trade, TradeMessage::kVtableAddress);
         trade->done_ = 0;
         trade->revision_ = 0;

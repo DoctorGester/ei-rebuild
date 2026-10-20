@@ -302,7 +302,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
     std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
     int length = EntryTicks(unit, index, 0x20);
     AnimationStep blank = BlankStep();
-    StepsAdd(steps, nullptr, &blank);
+    steps->Add(blank);
     AnimationStep& added = steps->steps[steps->count - 1];
     added.animation = Get<std::uint8_t>(animation, 0x10);
     added.duration = length;
@@ -352,13 +352,13 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
         // A pause for the extra time, then the animation; the action at its moment.
         *duration = EntryTicks(unit, index, 0x40);
         int pause = value - EntryTicks(unit, index, 0x20);
-        StepsSetAtGrow(steps, nullptr, steps->count, &blank);
+        steps->SetAtGrow(steps->count, blank);
         AnimationStep& first = steps->steps[steps->count - 1];
         first.animation = 0xFF;
         first.duration = pause;
         int length = EntryTicks(unit, index, 0x20);
         blank = BlankStep();
-        StepsAdd(steps, nullptr, &blank);
+        steps->Add(blank);
         AnimationStep& second = steps->steps[steps->count - 1];
         second.animation = index;
         second.duration = length;
@@ -370,18 +370,18 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     int moment = EntryTicks(unit, index, 0x40);
     *duration = moment;
     int pause = value - EntryTicks(unit, index, 0x20);
-    StepsAdd(steps, nullptr, &blank);
+    steps->Add(blank);
     AnimationStep& first = steps->steps[steps->count - 1];
     first.animation = index;
     first.duration = moment;
     blank = BlankStep();
-    StepsAdd(steps, nullptr, &blank);
+    steps->Add(blank);
     AnimationStep& second = steps->steps[steps->count - 1];
     second.animation = 0xFF;
     second.duration = pause;
     int rest = EntryTicks(unit, index, 0x20) - *duration;
     blank = BlankStep();
-    StepsAdd(steps, nullptr, &blank);
+    steps->Add(blank);
     AnimationStep& third = steps->steps[steps->count - 1];
     third.animation = 0xFF;
     third.duration = rest;

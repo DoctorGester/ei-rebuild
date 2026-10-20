@@ -99,10 +99,6 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<C
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
-AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-AnimationSteps* __fastcall StepsConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
-inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-__declspec(naked) void __fastcall StepsRemoveAt(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557E20)
 
 // 0073C548: how much faster a dead body sinks every update.
 float SinkAcceleration() { return *reinterpret_cast<const float*>(0x0073C548); }
@@ -164,10 +160,10 @@ void EmptyAction(UnitAction* order) {
 struct LocalSteps {
     AnimationSteps steps;
     LocalSteps() {
-        StepsConstruct(&steps);
+        steps.ConstructBase();
         steps.vtable = kAnimationStepsVtable;
     }
-    ~LocalSteps() { StepsDestroy(&steps); }
+    ~LocalSteps() { steps.DestructSteps(); }
     LocalSteps(const LocalSteps&) = delete;
     LocalSteps& operator=(const LocalSteps&) = delete;
 };
@@ -176,10 +172,10 @@ struct LocalSteps {
 struct PlanCopy {
     AnimationSteps steps;
     explicit PlanCopy(const AnimationSteps& from) {
-        StepsCopyConstruct(&steps, nullptr, &from);
+        steps.CopyConstructSteps(from);
         steps.extra = from.extra;
     }
-    ~PlanCopy() { StepsDestroy(&steps); }
+    ~PlanCopy() { steps.DestructSteps(); }
     PlanCopy(const PlanCopy&) = delete;
     PlanCopy& operator=(const PlanCopy&) = delete;
 };
@@ -315,9 +311,9 @@ void CUnitServer::UpdateState() {
             hitDirection = 0xFFFFFFFFu;
             return;
         }
-        StepsAppend(&Queue(this), nullptr, &SavedQueue(this));
+        Queue(this).CopySteps(SavedQueue(this));
         QueueTime(this) = SavedQueueTime(this);
-        StepsAppend(&Queue(this), nullptr, &SavedQueue(this));
+        Queue(this).CopySteps(SavedQueue(this));
         QueueTime(this) = SavedQueueTime(this);
         StartQueueIfUnset(this);
         PopFinishedSteps();
@@ -500,11 +496,11 @@ void CUnitServer::PlayHitReaction() {
         TickOf(ObjectWorld(this)) + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
-    StepsAppend(&SavedQueue(this), nullptr, &Queue(this));
+    SavedQueue(this).CopySteps(Queue(this));
     SavedQueueTime(this) = QueueTime(this);
-    StepsAppend(&Queue(this), nullptr, &reaction.steps);
+    Queue(this).CopySteps(reaction.steps);
     QueueTime(this) = reaction.steps.extra;
-    StepsAppend(&Queue(this), nullptr, &reaction.steps);
+    Queue(this).CopySteps(reaction.steps);
     QueueTime(this) = reaction.steps.extra;
     StartQueueIfUnset(this);
     PopFinishedSteps();
@@ -542,7 +538,7 @@ void CUnitServer::EndOrder(char abort) {
                     TakeQueue(this, &rest.steps);
                 } else {
                     rest.steps.extra = QueueTime(this);
-                    StepsRemoveAt(&rest.steps, nullptr, 1, 1);
+                    rest.steps.RemoveAt(1, 1);
                     PlaySteps(&rest.steps);
                 }
             }
@@ -563,7 +559,7 @@ void CUnitServer::TickAction() {
     OrderPlan& plan = Plan(this);
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
-        StepsAppend(&Queue(this), nullptr, &plan.animation);
+        Queue(this).CopySteps(plan.animation);
         QueueTime(this) = plan.animation.extra;
         Queue(this).Assign(plan.animation);   // 005483C0
         StartQueueIfUnset(this);

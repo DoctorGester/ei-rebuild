@@ -38,6 +38,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/mfc_array.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -461,7 +462,6 @@ int& CampaignMode() { return *reinterpret_cast<int*>(0x007C2CC4); }
 int& SpectatorFlag() { return *reinterpret_cast<int*>(0x0079BE6C); }
 
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
-__declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0x0056FFE0)
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
 // (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
@@ -555,7 +555,7 @@ int __stdcall StartNetworkZone(const char* zone) {
 
     // The zone's exits, all leading to "MPGame1".
     ZoneExitArray exits;
-    ExitArrayConstruct(&exits, nullptr);
+    mfc::impl::ConstructArrayOf<mfc::impl::ExitArrayClass>(exits);
     exits.vtable = reinterpret_cast<void*>(kExitArrayVtable);
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
     ZoneExitsSetSizeOriginal(&exits, nullptr, source->size, -1);

@@ -301,7 +301,7 @@ int CPlayerServer::SendPartyState() {
 
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;
-    ScriptGroupConstructOriginal(&shared);
+    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&shared);
     shared.vtable = scriptvtable::kRefs;
     if (IsMultiplayerClient() && player->Party()->members_.size == 1)
         WorldServer()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unitId), &shared);
@@ -380,10 +380,10 @@ int CPlayerServer::ReceiveMessages() {
 
 void CPlayerServer::UpdatePartyUnits() {
     ScriptGroup known;
-    ScriptGroupConstructOriginal(&known);
+    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&known);
     known.vtable = scriptvtable::kRefs;
     ScriptGroup party;
-    ScriptGroupConstructOriginal(&party);
+    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&party);
     party.vtable = scriptvtable::kRefs;
     gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&party), nullptr,
                               reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&group50F8_));

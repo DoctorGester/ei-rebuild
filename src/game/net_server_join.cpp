@@ -54,8 +54,8 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* binding = NewMessageMemory<BindingMessage>();
     if (binding) {
         MessageConstructBase(binding);
-        RefNullA(&binding->PlayerRef());
-        RefNullBOriginal(&binding->ConnectionRef());
+        binding->PlayerRef().ptr = nullptr;   // RefPtr() (0041FF80)
+        binding->ConnectionRef().ptr = nullptr;   // RefPtr() (0041FF70)
         ei::SetVtable(binding, BindingMessage::kVtableAddress);
     }
     value = RefPtrFromRaw(&ref, binding);   // 00428050

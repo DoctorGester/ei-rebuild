@@ -21,6 +21,7 @@
 #include "originals_units.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -493,7 +494,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     auto* guard = reinterpret_cast<std::uint8_t*>(kCandidatesGuard);
     if (!(*guard & 1)) {
         *guard |= 1;
-        PtrListConstructOriginal(reinterpret_cast<mfc::CList<void*>*>(kCandidates), nullptr, 10);
+        mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(reinterpret_cast<mfc::CList<void*>*>(kCandidates), 10);
         GameAtExit(ei::static_init::Exit005D2570);
     }
     CUnit* self = brain->owner->unit;
