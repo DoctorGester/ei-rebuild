@@ -13,11 +13,18 @@ bool g_enabled[kPatchCount];   // zero-initialised: every patch off until LoadSe
 
 namespace {
 const char* const kNames[] = {
-#define EI_REBIRTH_PATCH(name) #name,
+#define EI_REBIRTH_PATCH(name, kind) #name,
 #include "ei/rebirth_patches.inc"
 #undef EI_REBIRTH_PATCH
 };
 static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
+
+const Kind kKinds[] = {
+#define EI_REBIRTH_PATCH(name, kind) Kind::kind,
+#include "ei/rebirth_patches.inc"
+#undef EI_REBIRTH_PATCH
+};
+static_assert(sizeof(kKinds) / sizeof(kKinds[0]) == kPatchCount);
 
 int g_pluginNPlayers = 7;
 int g_pluginPause = 1;
@@ -27,9 +34,15 @@ char g_queued[1024];                         // QueueSpec runs before any C++ ob
 void SetAll(bool on) {
     for (bool& e : detail::g_enabled) e = on;
 }
+
+void SetDefaults() {
+    for (int i = 0; i < kPatchCount; ++i) detail::g_enabled[i] = kKinds[i] == Kind::Fix;
+}
 } // namespace
 
 void Set(Patch p, bool on) { detail::g_enabled[static_cast<int>(p)] = on; }
+
+Kind KindOf(Patch p) { return kKinds[static_cast<int>(p)]; }
 
 int PluginNPlayers() { return g_pluginNPlayers; }
 void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }
@@ -77,6 +90,7 @@ bool ApplySpec(const char* spec) {
         Patch patch;
         if (_stricmp(token, "all") == 0) SetAll(on);
         else if (_stricmp(token, "none") == 0) SetAll(!on);
+        else if (_stricmp(token, "defaults") == 0) SetDefaults();
         else if (FromName(token, &patch)) Set(patch, on);
         else ok = false;
     }
@@ -89,7 +103,9 @@ void QueueSpec(const char* spec) {
 }
 
 void LoadSettings(const char* iniPath) {
-    SetAll(GetPrivateProfileIntA("Rebirth", "Default", 0, iniPath) != 0);
+    const int all = static_cast<int>(GetPrivateProfileIntA("Rebirth", "Default", -1, iniPath));
+    if (all >= 0) SetAll(all != 0);
+    else SetDefaults();
     for (int i = 0; i < kPatchCount; ++i) {
         int value = static_cast<int>(GetPrivateProfileIntA("Rebirth", kNames[i], -1, iniPath));
         if (value >= 0) detail::g_enabled[i] = value != 0;

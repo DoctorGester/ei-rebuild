@@ -1,0 +1,12 @@
+{
+  "scenario": "rebirth_fixes",
+  "install": "vanilla",
+  "recorded": "2026-10-20",
+  "commit": "11aeaa40",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "SV9: Rebirth's bug fixes on the vanilla data, from the original with addon.dll's fix set (FixSpellEffectsOverflow drops the older equal buffs: 4 effects where the plain original keeps 11)",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}

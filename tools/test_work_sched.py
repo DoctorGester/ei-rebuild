@@ -669,10 +669,14 @@ class SchedTest(unittest.TestCase):
                                                'ei_standalone: the game returned 0\n', '')
         self.scenario('boot', 'waitmenu\nquit\n')
         wide = self.scenario('wide', 'render new\nresolution 800x600\nfullscreen 1\n')
+        # The vanilla data only unless the Rebirth data is asked for (SV9)
+        vanilla = [('boot', 'standalone'), ('wide', 'standalone')]
         both = [('boot', 'standalone'), ('boot', 'standalone-rebirth'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')]
-        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), both)
-        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp), both)     # the default since S21
-        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', 'boot']), root=self.tmp),
+        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), vanilla)
+        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp), vanilla)     # the default since S21
+        self.assertEqual(run_all.plan(run_all.parse_args(['--all-rebirth']), root=self.tmp), both)
+        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', 'boot']), root=self.tmp), [('boot', 'vanilla')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', '--rebirth', 'boot']), root=self.tmp),
                          [('boot', 'vanilla'), ('boot', 'rebirth')])
         for gone in ('--hooked', '--native', '--dgvoodoo', '--verified-candidates'):    # S21c
             with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
@@ -682,22 +686,24 @@ class SchedTest(unittest.TestCase):
         # "# no original:" leaves the original's runs out on the installs it names (S21a), and only those
         flags = self.scenario('flags', '# no original: vanilla (flags the original lacks)\nwaitmenu\n')
         self.assertEqual(run_all.no_original(flags), {'vanilla'})
-        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', 'flags']), root=self.tmp), [('flags', 'rebirth')])
-        self.assertEqual(run_all.plan(run_all.parse_args(['flags']), root=self.tmp),
+        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', '--rebirth', 'flags']), root=self.tmp),
+                         [('flags', 'rebirth')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth', 'flags']), root=self.tmp),
                          [('flags', 'standalone'), ('flags', 'standalone-rebirth')])
         os.remove(flags)
-        # Without names the Rebirth data takes the scenarios config/rebirth_scenarios.csv marks, and any with a
-        # Rebirth golden
+        # --rebirth without names: the smoke set, config/rebirth_scenarios.csv's marks and any scenario with a step for
+        # one install (or rebirthflags, addonpath, widescreen)
         os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
         with open(os.path.join(self.tmp, 'config', 'rebirth_scenarios.csv'), 'w') as f:
-            f.write('boot,0\nwide,0\n')
-        os.makedirs(os.path.join(self.tmp, 'tests', 'golden', 'wide', 'rebirth'))
-        open(os.path.join(self.tmp, 'tests', 'golden', 'wide', 'rebirth', 'golden.json'), 'w').close()
-        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp),
+            f.write('scenario,rebirth,why\nwide,1,test\n')
+        self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth']), root=self.tmp),
                          [('boot', 'standalone'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')])
-        with contextlib.redirect_stderr(io.StringIO()):
-            self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks']), root=self.tmp), [('boot', 'vanilla')])   # wide: dgVoodoo's mode
+        with contextlib.redirect_stderr(io.StringIO()):   # wide: dgVoodoo's mode
+            self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', '--rebirth']), root=self.tmp), [('boot', 'vanilla')])
         os.remove(os.path.join(self.tmp, 'config', 'rebirth_scenarios.csv'))
+        stepped = self.scenario('stepped', 'waitmenu\nrebirth click 1 1\n')
+        self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth-only']), root=self.tmp), [('stepped', 'standalone-rebirth')])
+        os.remove(stepped)
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--vanilla-only', 'wide']), root=self.tmp),
                          [('wide', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--rebirth-only', 'wide']), root=self.tmp),

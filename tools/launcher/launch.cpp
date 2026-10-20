@@ -576,6 +576,32 @@ int wmain(int argc, wchar_t** argv) {
     // image never has it.
     SetEnvironmentVariableW(L"EI_NO_HOOKS", standalone ? nullptr : L"1");
 
+    // The original game on the vanilla data with Rebirth's bug fixes (SV9, tests/verify/harness_addon.h): a harness
+    // run of game.exe there also loads Rebirth's addon loader (starter\Engine\dinput.dll, which loads addon.dll at
+    // the game's entry point) and the harness keeps only the patches of the run's Rebirth flags (the standalone's
+    // defaults). Not for function vectors (EI_VECTORS=1: the plain original's) or with EI_ADDON_FLAGS=0.
+    std::wstring addonLoader;
+    {
+        wchar_t vectors[4] = L"", flags[4] = L"";
+        GetEnvironmentVariableW(L"EI_VECTORS", vectors, 4);
+        GetEnvironmentVariableW(L"EI_ADDON_FLAGS", flags, 4);
+        wchar_t fullGame[MAX_PATH];
+        GetFullPathNameW(gameDir.c_str(), MAX_PATH, fullGame, nullptr);
+        std::wstring game = fullGame;
+        while (game.size() > 3 && game.back() == L'\\') game.pop_back();
+        if (!standalone && !harness.empty() && _wcsicmp(game.c_str(), kVanillaInstall) == 0 && wcscmp(vectors, L"1") != 0 &&
+            wcscmp(flags, L"0") != 0) {
+            addonLoader = std::wstring(kRebirthInstall) + L"\\starter\\Engine\\dinput.dll";
+            if (GetFileAttributesW(addonLoader.c_str()) == INVALID_FILE_ATTRIBUTES) {
+                std::fwprintf(stderr, L"ei_launch: Rebirth's addon loader %s not found\n", addonLoader.c_str());
+                return 2;
+            }
+            SetEnvironmentVariableW(L"EI_ADDON_FLAGS", L"1");
+        } else if (!standalone) {
+            SetEnvironmentVariableW(L"EI_ADDON_FLAGS", nullptr);
+        }
+    }
+
     // A run that waits for the game puts it in a job that dies with ei_launch (also when ei_launch is
     // killed): no game outlives its launcher. A launch without --wait leaves the game running.
     HANDLE job = nullptr;
@@ -618,6 +644,13 @@ int wmain(int argc, wchar_t** argv) {
                     if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
                 return failed;
             }
+            // After ei_hook.dll, whose harness answers the loader's registry reads (harness_settings.h).
+            if (!addonLoader.empty())
+                if (const int failed = InjectDll(game.pi.hProcess, addonLoader)) {
+                    for (Game& started : games)
+                        if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
+                    return failed;
+                }
         }
     }
     for (Game& game : games) {

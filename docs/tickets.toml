@@ -1479,6 +1479,16 @@ depends = ["SV5d3"]
 files = ["tests/scenarios/net_*.txt", "tests/scenarios/peer/", "tests/verify/harness_pair.cpp"]
 note = "SV5d3's fakemaster answers a host's announcements (OnMaster 0041ACA0 reached). Still unreached: the client side's server list reply from the master (ClientSession::ReadServerListImpl 0041D600: an LZ-compressed run of {address, GameInfoRecord}, GameInfoRecord::Read 00401170), which needs the fake master to answer a lobby client's list request with the hosted game's record (the second game of a pair then finds the host through the master, not the LAN broadcast); bad updates. Also: net_pair_quest takes ~150-190 s (the zone walk: 2 x 150 frames per hop); fewer or shorter hops would cut it."
 
+[[ticket]]
+id = "SV9a"
+title = "Scenarios that reach Rebirth's unreached fixes in the fix-profile goldens"
+group = "verification"
+size = 1
+model = "sonnet"
+depends = ["SV9"]
+files = ["tests/scenarios/ tests/golden/ docs/notes/rebirth.md"]
+note = "From SV9: of the 11 Fix-kind patches only FixSpellEffectsOverflow changes a golden (rebirth_fixes). Write scenarios whose vanilla run reaches FixLeversActivate, FixSpellSelfCasting, FixMoveObject, FixAddMapObject, FixRemoveMapObject, FixCreateItem, FixProgressNames, FixRepairPrice, FixPlaingBattleMusicFromAntimagic, FixProcessLogin (addon.log lines or a golden that differs from an EI_ADDON_FLAGS=0 run), record them from the original + fixes, check the image matches. EI_Plugin fixes (Briefings/Fixes) cannot be recorded through addon.dll; list them separately."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]

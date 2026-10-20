@@ -137,6 +137,11 @@ static const HarnessPatch* HarnessPatchIn(std::uintptr_t address, std::size_t si
     return nullptr;
 }
 
+const char* HarnessPatchAt(std::uintptr_t address, std::size_t size) {
+    const HarnessPatch* p = HarnessPatchIn(address, size);
+    return p ? p->what : nullptr;
+}
+
 static int g_unexpectedSkips = 0;
 int UnexpectedSkips() { return g_unexpectedSkips; }
 
@@ -399,6 +404,9 @@ int InstallHooks() {
 static constexpr std::uintptr_t kWinMain = 0x00456440;
 void InstallCoverage();   // cover.cpp
 static unsigned char g_winMainBytes[5];
+static void (*g_originalWinMainAction)();
+
+void SetOriginalWinMainAction(void (*action)()) { g_originalWinMainAction = action; }
 
 static void __stdcall OnWinMain() {
     // System DPI aware before the game makes its window, as the HIGHDPIAWARE compatibility flag on
@@ -411,6 +419,7 @@ static void __stdcall OnWinMain() {
     std::memcpy(p, g_winMainBytes, 5);
     VirtualProtect(p, 5, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p, 5);
+    if (g_originalWinMainAction) g_originalWinMainAction();
     Log("%d hook(s) installed", InstallHooks());
     InstallCoverage();
     InstallProfiler();
