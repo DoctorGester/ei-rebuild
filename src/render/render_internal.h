@@ -46,6 +46,18 @@ struct StageState {
     bool hasTexture = false;
 };
 
+// A rectangle of stage 0's texture drawn from another texture (render::TexturePatch), in texture
+// coordinates of stage 0 (wrapped into 0..1): inside `to` the shader samples `texture` at
+// uv * map.xy + map.zw, kept inside `inside` (the source rectangle less half a texel). All zero: none.
+struct StagePatch {
+    sg_view texture{};
+    float to[4] = {};       // u0, v0, u1, v1
+    float map[4] = {};
+    float inside[4] = {};   // u0, v0, u1, v1
+};
+// The patch the texture of `holder` has, as of now (render_textures.cpp).
+StagePatch PatchOf(const void* holder);
+
 // The old device's state for one pass of a mesh draw: what the new renderer needs to draw it the
 // same way. Blend, depth and culling make the pipeline; the rest goes to the shader.
 struct PassState {
@@ -61,6 +73,7 @@ struct PassState {
     std::uint32_t fogColour = 0;                   // D3DCOLOR
     std::uint32_t textureFactor = 0xFFFFFFFF;
     StageState stages[2];
+    StagePatch patch;                              // stage 0's texture's patch, if any
 
     std::uint32_t PipelineKey() const {
         return (blend ? 1u : 0u) | (static_cast<std::uint32_t>(sourceBlend & 15) << 1) |

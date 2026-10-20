@@ -17,6 +17,7 @@
 #include "../game/texture.h"   // CDXSurface, CTexture
 
 #include <cstring>
+#include <iterator>
 #include <unordered_map>
 
 namespace render::detail {
@@ -393,8 +394,72 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
     }
     t.checkedFrame = FrameNumber();
     t.owned = true;
+    t.width = width;
+    t.height = height;
     t.source = std::move(source);
     return t.view.id != 0;
+}
+
+namespace {
+
+// The patches (render::TexturePatch) by target holder: rectangles in texels of the first levels.
+struct Patch {
+    const void* source = nullptr;
+    int to[4] = {};
+    int from[4] = {};
+};
+std::unordered_map<const void*, Patch> g_patches;
+int g_patchFailures = 0;
+
+// The size of the first level of the texture of `holder`: its memory, or what was decoded for it.
+bool HolderSize(const void* holder, int* width, int* height) {
+    auto memory = g_memory.find(holder);
+    if (memory != g_memory.end()) {
+        *width = memory->second.width;
+        *height = memory->second.height;
+        return true;
+    }
+    auto decoded = g_textures.find(holder);
+    if (decoded == g_textures.end() || !decoded->second.owned || decoded->second.width <= 0) return false;
+    *width = decoded->second.width;
+    *height = decoded->second.height;
+    return true;
+}
+
+bool Inside(const int r[4], int width, int height) {
+    return r[0] >= 0 && r[1] >= 0 && r[0] < r[2] && r[1] < r[3] && r[2] <= width && r[3] <= height;
+}
+
+} // namespace
+
+StagePatch PatchOf(const void* holder) {
+    StagePatch p;
+    if (g_patches.empty() || !holder) return p;
+    auto it = g_patches.find(holder);
+    if (it == g_patches.end()) return p;
+    const Patch& patch = it->second;
+    int tw = 0, th = 0, sw = 0, sh = 0;
+    if (!HolderSize(holder, &tw, &th) || !HolderSize(patch.source, &sw, &sh)) return p;
+    // Texture coordinates: the target's rectangle; a texel of it at (x, y) takes the source's texel
+    // at (x - to + from) scaled by the rectangles' sizes (the same size from the blink).
+    float kx = static_cast<float>(patch.from[2] - patch.from[0]) / static_cast<float>(patch.to[2] - patch.to[0]);
+    float ky = static_cast<float>(patch.from[3] - patch.from[1]) / static_cast<float>(patch.to[3] - patch.to[1]);
+    p.to[0] = static_cast<float>(patch.to[0]) / static_cast<float>(tw);
+    p.to[1] = static_cast<float>(patch.to[1]) / static_cast<float>(th);
+    p.to[2] = static_cast<float>(patch.to[2]) / static_cast<float>(tw);
+    p.to[3] = static_cast<float>(patch.to[3]) / static_cast<float>(th);
+    p.map[0] = kx * static_cast<float>(tw) / static_cast<float>(sw);
+    p.map[1] = ky * static_cast<float>(th) / static_cast<float>(sh);
+    p.map[2] = (static_cast<float>(patch.from[0]) - kx * static_cast<float>(patch.to[0])) / static_cast<float>(sw);
+    p.map[3] = (static_cast<float>(patch.from[1]) - ky * static_cast<float>(patch.to[1])) / static_cast<float>(sh);
+    // Half a texel in from the source rectangle's edges: no texel next to it filtered in (the face's
+    // open and closed rectangles touch).
+    p.inside[0] = (static_cast<float>(patch.from[0]) + 0.5f) / static_cast<float>(sw);
+    p.inside[1] = (static_cast<float>(patch.from[1]) + 0.5f) / static_cast<float>(sh);
+    p.inside[2] = (static_cast<float>(patch.from[2]) - 0.5f) / static_cast<float>(sw);
+    p.inside[3] = (static_cast<float>(patch.from[3]) - 0.5f) / static_cast<float>(sh);
+    p.texture = SurfaceView(patch.source);
+    return p;
 }
 
 bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
@@ -804,6 +869,25 @@ bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
     return detail::TextureFromMmpData(holder, data, mip, levels);
 }
 
+void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
+    using namespace detail;
+    if (!target || !source || !Active() || !Started()) return;
+    int tw = 0, th = 0, sw = 0, sh = 0;
+    if (!HolderSize(target, &tw, &th) || !HolderSize(source, &sw, &sh) || !Inside(to, tw, th) || !Inside(from, sw, sh)) {
+        if (g_patchFailures++ < 10)
+            ei::Log("render: texture patch (%d,%d)-(%d,%d) of a %dx%d texture from (%d,%d)-(%d,%d) of a %dx%d one: "
+                    "not recorded (a texture without its size, or a rectangle outside it)",
+                    to[0], to[1], to[2], to[3], tw, th, from[0], from[1], from[2], from[3], sw, sh);
+        return;
+    }
+    Patch& p = g_patches[target];
+    p.source = source;
+    for (int k = 0; k < 4; ++k) {
+        p.to[k] = to[k];
+        p.from[k] = from[k];
+    }
+}
+
 } // namespace render
 
 namespace render {
@@ -862,6 +946,10 @@ void FreeSurfaceMemory(const void* holder) {
 }
 
 void HolderGone(const void* holder) {
+    // Its patch, and those it was the source of.
+    detail::g_patches.erase(holder);
+    for (auto it = detail::g_patches.begin(); it != detail::g_patches.end();)
+        it = it->second.source == holder ? detail::g_patches.erase(it) : std::next(it);
     FreeSurfaceMemory(holder);
     detail::g_pictures.erase(holder);
     // What the renderer made for it (a later holder at the same address starts afresh; a texture

@@ -133,6 +133,15 @@ struct MeshDraw {
 // False when it was not decoded (the new renderer is off, or the format is not one it reads).
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
 
+// From now on the rectangle `to` of the texture of `target` shows the rectangle `from` of the
+// texture of `source` (both surface holders; rectangles left, top, right, bottom in texels of the
+// textures' first level): every mesh draw sampling `target` in its first stage takes those texels
+// from `source` in the shader (on every level); the target's texture is not changed. One per
+// target: a new one replaces it; forgotten when either holder goes (HolderGone). Nothing is
+// recorded when a rectangle is empty or outside its texture (the old path's blit failed then).
+// The unit's face (00533980, the blink).
+void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
+
 // The game made new pixels for a texture on the CPU (the shadow textures, 0051CE60) and copies
 // them into its surface (CDXSurface): the new renderer takes them from the buffer (`pitch` bytes
 // per row, `bitsPerPixel` 16 or 32, the channel masks of the surface's format). Nothing for a holder

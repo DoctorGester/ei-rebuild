@@ -1,9 +1,10 @@
 // The blink of the party units' faces (CUnitClientSpecific, unit_client_models.h; A-U3): the face
-// texture holds the open and the closed eyes, which the original copies over the eye rectangle of
-// the unit's skin texture with DirectDraw blits down the mip chain.
+// texture ("<model>mouth") holds the open and the closed state, which the original copies over a
+// rectangle of the unit's skin texture with DirectDraw blits down the mip chain.
 //
 // No texture has a DirectDraw surface (dx_surface.h; the skins are decoded by the new renderer):
-// the copy does nothing (ticket R11d), and the blink's state is kept as the original keeps it.
+// the new renderer draws the face's rectangle over the skin's in its shader instead
+// (render::TexturePatch, R11d; docs/notes/units.md); the skin's texture is not changed.
 #include "unit_client_models.h"
 
 #include "map_object_figures.h"
@@ -14,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "render/render.h"
 
 #include <windows.h>
 
@@ -57,11 +59,16 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 
 } // namespace
 
-// 00533980 (__fastcall, RET 8). The original blits `from` of `source` to `at` of `target`, then the
-// same halved on each next level of both mip chains (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP attachments,
-// whose references are never released) until either has no further level. The textures have no
-// DirectDraw surface: nothing is copied.
-void __fastcall BlitMipChain(CTexture* /*target*/, const int* /*at*/, CTexture* /*source*/, const RECT* /*from*/) {}
+// 00533980 (__fastcall, RET 8). The original blits (Blt, DDBLT_WAIT) `from` of `source` to the
+// rectangle of its size at `at` of `target`, then on each next level of both mip chains
+// (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP attachments, whose references are never released) with each of
+// the eight edges halved (SAR), until either has no further level. Ours hands the first level's
+// rectangles to the new renderer, which shows them over the skin in its shader on every level.
+void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const RECT* from) {
+    const int to[4] = {at[0], at[1], at[0] + (from->right - from->left), at[1] + (from->bottom - from->top)};
+    const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
+    render::TexturePatch(target->surface_, to, source->surface_, rectangle);
+}
 EI_REPLACE(0x00533980, BlitMipChain);
 
 void CUnitClientSpecific::BlinkClose(bool force) {

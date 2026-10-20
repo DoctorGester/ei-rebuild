@@ -241,7 +241,15 @@ device +0x12C). Renderer side (`render_textures.cpp`): decoded textures (`StoreD
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
 texture and window entries); `TexturePixels` ignores a holder with memory.
 
-Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload. Dead / not functions: 00693DE0,
+Texture patches (R11d): `render::TexturePatch(target, to, source, from)` records that a rectangle of one holder's
+texture shows a rectangle of another's (first-level texels, one per target, gone with either holder). `ReadPassState`
+gives stage 0's patch to the batch (`PassState::patch`), and the mesh shader samples the source (`tex2`, stage 0's
+sampler; coordinates kept half a texel inside its rectangle) where the wrapped stage-0 coordinates fall in the target
+rectangle; the target texture is not changed. The unit's face (00533980, the blink: the original blits into the skin
+down the mip chain) is its only user; check `render_blink` (frames of the hero's portrait with the mouth open, closed,
+open again; the original's run the same).
+
+Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload, render_blink. Dead / not functions: 00693DE0,
 0068F860 (reached only from unreferenced 00691D50),
 004EAFD0 (inside 004EA4A0's range).
 
@@ -304,7 +312,7 @@ come first, then what holds for the present path (the subsection names are cited
   code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
   them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
   the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). `CDXSurface::surface` (+0x10) stays, always null.
-  Left: the COM stand-ins and device.h's wrappers (R9b2); the eye blink copies nothing (R11d).
+  Left: the COM stand-ins and device.h's wrappers (R9b2). R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform

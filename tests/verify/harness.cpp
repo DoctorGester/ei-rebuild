@@ -299,6 +299,7 @@
 #include "../../src/game/options.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
+#include "../../src/game/unit_client_models.h"
 #include "../../src/game/originals_engine.h"
 #include "../../src/game/originals_ui.h"
 #include "../../src/game/originals_world.h"
@@ -1641,6 +1642,36 @@ std::string PostUnitMouse(const std::string& argument) {
 __declspec(naked) float* __fastcall HarnessPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
     EI_ORIGINAL(0x0056C350)
 
+// --- blink faces|open|close (R11d) ------------------------------------------------------------------
+// faces: the client world loads its units' face textures (0056DE80, thiscall; the game does it when
+// a zone is entered between zones, not for a new game). open / close: every unit of the client
+// world with a face texture shows its face's open or closed state: the game's own blink (00539010 /
+// 00538ED0, thiscall RET 4, forced), as the briefing's speakers do. Through the original addresses,
+// so a run of the original code takes its own. Fails when no unit has a face.
+__declspec(naked) void __fastcall HarnessLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
+__declspec(naked) void __fastcall HarnessBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
+__declspec(naked) void __fastcall HarnessBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
+
+std::string BlinkStep(const std::string& argument) {
+    if (argument != "faces" && argument != "open" && argument != "close") return "blink needs faces, open or close";
+    auto* world = reinterpret_cast<CWorldClient*>(kClientWorld);
+    if (argument == "faces") HarnessLoadUnitFaces(world);
+    SectorListNode* head = world->objects_.head;
+    if (!head) return "blink: no client world";
+    int faces = 0;
+    for (SectorListNode* node = head->next; node != head; node = node->next) {
+        CEngineObject* object = node->data;
+        if (!object || object->GetClassId() != kClassUnit) continue;
+        auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
+        if (!half || !half->faceTexture) continue;
+        if (argument == "open") HarnessBlinkOpen(half, nullptr, 1);
+        else if (argument == "close") HarnessBlinkClose(half, nullptr, 1);
+        ++faces;
+    }
+    Log("harness: blink %s: %d units with a face", argument.c_str(), faces);
+    return faces ? "" : "blink: no unit has a face texture";
+}
+
 std::string PostGroundMouse(const std::string& argument) {
     float wx = 0.0f, wy = 0.0f;
     char verb[16] = "click";
@@ -2715,6 +2746,33 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "diffcapture") {
+            // Two captures that must differ in a share of their pixels from `least` to `most` (R11d).
+            char a[64] = "", b[64] = "";
+            double least = 0, most = 1;
+            int tolerance = 8;
+            if (sscanf_s(s.argument.c_str(), "%63s %63s %lf %lf %d", a, unsigned(sizeof(a)), b, unsigned(sizeof(b)), &least,
+                         &most, &tolerance) < 4) {
+                g_failures.push_back("diffcapture needs two frame names, a least and a most fraction");
+                continue;
+            }
+            double differing = 0;
+            int largest = 0;
+            const char* why = "";
+            if (!capture::Compare(a, b, tolerance, &differing, &largest, &why)) {
+                g_failures.push_back(std::string("diffcapture ") + a + " " + b + ": " + why);
+                continue;
+            }
+            char text[200];
+            std::snprintf(text, sizeof(text),
+                          "diffcapture %s %s: %.4f%% of the pixels differ by more than %d (largest %d; allowed %.4f%% .. %.4f%%)",
+                          a, b, 100.0 * differing, tolerance, largest, 100.0 * least, 100.0 * most);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (differing < least || differing > most) g_failures.push_back(text);
+        } else if (s.verb == "blink") {
+            std::string error = BlinkStep(s.argument);
+            if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "terrainlevels") {
             if (!render::Active()) {
                 Log("harness: terrainlevels %s: not the new renderer (the original code): ignored", s.argument.c_str());

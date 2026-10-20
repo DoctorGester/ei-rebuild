@@ -112,6 +112,9 @@ cbuffer fs_params : register(b0) {
     int4 alpha_ops;        // stage 0: op, arg1, arg2; w: stage 1 op
     int4 alpha_ops1;       // stage 1: arg1, arg2
     int4 switches;         // x: specular, y: fog, z: alpha test func (0 off), w: alpha reference
+    float4 patch_to;       // stage 0's patch (render::TexturePatch): its rectangle (u0, v0, u1, v1), zero: none
+    float4 patch_map;      // the patch texture's coordinates: uv * xy + zw
+    float4 patch_inside;   // ... kept inside its rectangle (u0, v0, u1, v1)
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
 struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 pos : SV_Position; };
@@ -135,8 +138,10 @@ vs_out vs_main(vs_in i) {
 }
 Texture2D<float4> tex0 : register(t0);
 Texture2D<float4> tex1 : register(t1);
+Texture2D<float4> tex2 : register(t2);   // stage 0's patch
 SamplerState smp0 : register(s0);
 SamplerState smp1 : register(s1);
+SamplerState smp2 : register(s2);
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;
     float4 v = sel == 0 ? diffuse : sel == 2 ? texel : sel == 3 ? factor : sel == 4 ? spec : current;
@@ -180,6 +185,10 @@ float4 ps_main(vs_out i) : SV_Target0 {
     float4 diffuse = i.col;
     float4 current = diffuse;
     float4 t0 = tex0.Sample(smp0, i.uv);
+    // Stage 0's patch: inside its rectangle the texels come from the patch texture (a unit's face).
+    float2 w = i.uv - floor(i.uv);
+    float4 tp = tex2.Sample(smp2, clamp(w * patch_map.xy + patch_map.zw, patch_inside.xy, patch_inside.zw));
+    if (all(w >= patch_to.xy) && all(w < patch_to.zw)) t0 = tp;
     if (colour_ops.x > 1) {
         float3 c = combine(colour_ops.x, arg(colour_ops.y, current, diffuse, t0, i.spec),
                            arg(colour_ops.z, current, diffuse, t0, i.spec), current, diffuse, t0).rgb;
@@ -221,8 +230,11 @@ struct FsParams {
     std::int32_t alphaOps[4];
     std::int32_t alphaOps1[4];
     std::int32_t switches[4];
+    float patchTo[4];
+    float patchMap[4];
+    float patchInside[4];
 };
-static_assert(sizeof(FsParams) == 112);
+static_assert(sizeof(FsParams) == 160);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
@@ -332,6 +344,7 @@ PassState ReadPassState(char* device) {
         const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
+        if (stage == 0) s.patch = PatchOf(holder);
     }
     PassDone();
     return s;
@@ -426,7 +439,7 @@ bool CreateMeshShader() {
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = sizeof(FsParams);
     s.uniform_blocks[1].hlsl_register_b_n = 0;
-    for (int t = 0; t < 2; ++t) {
+    for (int t = 0; t < 3; ++t) {   // the two stages and stage 0's patch
         s.views[t].texture.stage = SG_SHADERSTAGE_FRAGMENT;
         s.views[t].texture.image_type = SG_IMAGETYPE_2D;
         s.views[t].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
@@ -462,6 +475,8 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
         b.views[t] = st.texture.id ? st.texture : SurfaceView(nullptr);
         b.samplers[t] = anisotropic ? AnisotropicSampler(st) : StageSampler(st);
     }
+    b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
+    b.samplers[2] = b.samplers[0];
     sg_apply_bindings(&b);
     VsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
@@ -500,6 +515,13 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     fs.switches[1] = s.fog ? 1 : 0;
     fs.switches[2] = s.alphaTest ? s.alphaFunc : 0;
     fs.switches[3] = s.alphaReference;
+    if (s.patch.texture.id) {
+        for (int k = 0; k < 4; ++k) {
+            fs.patchTo[k] = s.patch.to[k];
+            fs.patchMap[k] = s.patch.map[k];
+            fs.patchInside[k] = s.patch.inside[k];
+        }
+    }
     sg_range vr{&vs, sizeof(vs)};
     sg_apply_uniforms(0, &vr);
     sg_range fr{&fs, sizeof(fs)};
