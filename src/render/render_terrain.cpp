@@ -121,7 +121,8 @@ std::vector<sg_buffer> g_retiredBuffers;
 // water pass (006C6330) under the scene's 007AEDD0; both with ALPHABLENDENABLE on (SRCALPHA /
 // INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
 sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
-    std::uint32_t key = s.PipelineKey();
+    int samples = PassSampleCount();
+    std::uint32_t key = s.PipelineKey() | (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
     sg_pipeline_desc p{};
@@ -138,7 +139,7 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     p.index_type = SG_INDEXTYPE_UINT32;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
     ApplyPassState(p, s);
-    p.sample_count = 1;
+    p.sample_count = samples;
     p.label = "ei-terrain";
     sg_pipeline pipeline = sg_make_pipeline(&p);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID)
@@ -332,7 +333,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
     b.views[0] = TextureView(batch.texture);
-    b.samplers[0] = TerrainSampler(batch.state.stages[0]);
+    b.samplers[0] = AnisotropicSampler(batch.state.stages[0]);
     float mode = batch.water ? 1.0f : 0.0f;
 #if defined(EI_RENDER_VALIDATION)
     if (g_levelMode != TerrainLevelMode::Off && !batch.water) {

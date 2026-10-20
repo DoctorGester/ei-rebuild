@@ -454,11 +454,15 @@ static void MergePeerReport(const std::wstring& reportPath, const std::wstring& 
     WriteReport(reportPath, merged);
 }
 
+// The machine's two installs: the default game folder is Rebirth's (run_all passes --game for the vanilla one).
+constexpr const wchar_t* kVanillaInstall = L"F:\\games\\EvilIslands";
+constexpr const wchar_t* kRebirthInstall = L"F:\\games\\Evil Islands (Rebirth)";
+
 int wmain(int argc, wchar_t** argv) {
     wchar_t self[MAX_PATH];
     GetModuleFileNameW(nullptr, self, MAX_PATH);
 
-    std::wstring gameDir = L"F:\\games\\Evil Islands (Rebirth)";
+    std::wstring gameDir = kRebirthInstall;
     std::wstring dll = Dir(self) + L"\\ei_hook.dll";
     std::wstring exeOverride;
     std::wstring harness;
@@ -511,6 +515,8 @@ int wmain(int argc, wchar_t** argv) {
             return 2;
         }
         SetEnvironmentVariableW(L"EI_HARNESS", scenario);
+        // The installs no harness run may write in, whichever it plays (tests/verify/harness_install.h).
+        SetEnvironmentVariableW(L"EI_INSTALL_ROOTS", (gameDir + L";" + kVanillaInstall + L";" + kRebirthInstall).c_str());
         wait = true;
     }
     // The games: the scenario's own, and with a "peer" line the pair's other game (above).

@@ -281,6 +281,26 @@ happen (the harness logs "share id" if one does).
   differed in random draw counts in the original and the image alike; the snapshot keeps 0x1c, which reproduces them
   (AudioSFX / AudioSpeech / ShowTutorial made no difference). To change a setting for every run, edit the snapshot and
   re-record what it moves; `EI_HARNESS_SETTINGS=<folder>` runs with another snapshot folder (tryouts).
+- **No run writes into an install** (harness_install.h; WB17). Other modules' writes go to the overlay too: kernel32's
+  exports are stubs jumping through its own import slots (CreateFileA/W, CreateFile2, DeleteFile, CreateDirectory,
+  RemoveDirectory, SetFileAttributes, CopyFileW, MoveFileExW) or call kernelbase through them (CopyFileA:
+  CopyFileExW; MoveFileW: MoveFileWithProgressW; MoveFileA / MoveFileExA: MoveFileWithProgressTransactedW), and the
+  harness takes those slots, so addon.dll (statically linked CRT), EI_Plugin.asi, Miles and Bink are covered. Under
+  them, ntdll's NtCreateFile / NtOpenFile / NtSetInformationFile (rename, link, delete) / NtDeleteFile stubs jump to
+  a guard: anything under an install root (the working directory at start, EI_GAME_ROOT, EI_INSTALL_ROOTS, which
+  ei_launch sets to both installs) opened for writing (write access or any disposition but FILE_OPEN), created,
+  renamed, linked or deleted is refused and fails the run (`install: write refused: <call> <path> (<module>+<offset>)`).
+  The report's stack lists return addresses (words just after a call) from the refused call up, e.g.
+  `ei_hook.dll+B8AA5, addon.dll+7BD60, ...`; `ei_hook.map` names ei_hook's. The game's root itself is written to the
+  overlay's root (emptying mp\ the game deletes every entry FindFirstFile lists, `mp\..` too: a directory, the delete
+  fails in both). A log (*.log) or a file over 16 MB is not copied into the overlay before a keeping write (the write
+  starts empty). Checked (2026-10-20) by adding the run's own `harness_saves\Starter` as a root for one Rebirth
+  world_load: addon's log, errors.log and Dumps opens were refused and the run failed with their lines.
+  What wrote into the installs before (2026-10-20): addon.dll's DllMain (addon+1000FFDE, AddonInit) opens
+  `starter\addon.log` and appends ~60 KB per launch (1.3 GB by then; the user removed it) and its crash handler wrote
+  minidumps to `starter\Dumps\` (58 from runs of 2026-10-02..15). addon.dll is loaded at game.exe's entry point (the
+  dinput.dll proxy's DllMain makes the entry jump to its loader), after ei_launch injected ei_hook.dll, so the harness
+  sees all its writes; in the image no addon.dll loads.
 - **Starter answers** (harness_starter.cpp): resolution, widescreen, and CtfMon answered 0 (addon.dll otherwise closes
   the user's ctfmon at start and restarts it from DLL_PROCESS_DETACH, which hung every Rebirth exit; S3e). A game hung
   after quit is ended after 3 s with `exit_hang.txt` (each thread's EIP and return addresses).

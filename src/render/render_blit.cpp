@@ -76,7 +76,57 @@ struct FsParams {
 
 sg_shader g_blitShader{}, g_clearShader{};
 sg_pipeline g_blit{}, g_clear{};
+// For the smooth option's multisampled passes (render_smooth.cpp), made at their first use.
+sg_pipeline g_blitMultisampled{}, g_clearMultisampled{};
+int g_multisampledSamples = 0;
 sg_sampler g_nearest{};
+
+sg_pipeline MakeBlitPipeline(int samples) {
+    sg_pipeline_desc p{};
+    p.shader = g_blitShader;
+    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
+    p.depth.pixel_format = kDepthFormat;
+    p.depth.compare = SG_COMPAREFUNC_ALWAYS;   // a blit ignores and keeps the depth buffer
+    p.depth.write_enabled = false;
+    p.colors[0].pixel_format = kColourFormat;
+    p.colors[0].write_mask = SG_COLORMASK_RGB;
+    p.sample_count = samples;
+    p.label = "ei-window-blit";
+    return sg_make_pipeline(&p);
+}
+
+sg_pipeline MakeClearPipeline(int samples) {
+    sg_pipeline_desc q{};
+    q.shader = g_clearShader;
+    q.depth.pixel_format = kDepthFormat;
+    q.depth.compare = SG_COMPAREFUNC_ALWAYS;
+    q.depth.write_enabled = true;
+    q.colors[0].pixel_format = kColourFormat;
+    q.colors[0].write_mask = SG_COLORMASK_NONE;
+    q.sample_count = samples;
+    q.label = "ei-clear-depth";
+    return sg_make_pipeline(&q);
+}
+
+void DestroyMultisampledPipelines() {
+    if (g_blitMultisampled.id) sg_destroy_pipeline(g_blitMultisampled);
+    if (g_clearMultisampled.id) sg_destroy_pipeline(g_clearMultisampled);
+    g_blitMultisampled = g_clearMultisampled = sg_pipeline{};
+    g_multisampledSamples = 0;
+}
+
+// The blit's or the depth clear's pipeline for the pass being drawn.
+sg_pipeline PassPipeline(bool clear) {
+    int samples = PassSampleCount();
+    if (samples <= 1) return clear ? g_clear : g_blit;
+    if (g_multisampledSamples != samples) {
+        DestroyMultisampledPipelines();
+        g_blitMultisampled = MakeBlitPipeline(samples);
+        g_clearMultisampled = MakeClearPipeline(samples);
+        g_multisampledSamples = samples;
+    }
+    return clear ? g_clearMultisampled : g_blitMultisampled;
+}
 
 } // namespace
 
@@ -114,17 +164,7 @@ bool CreateBlitPipeline() {
     sd.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
     sd.label = "ei-window-blit";
     g_nearest = sg_make_sampler(&sd);
-    sg_pipeline_desc p{};
-    p.shader = g_blitShader;
-    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
-    p.depth.pixel_format = kDepthFormat;
-    p.depth.compare = SG_COMPAREFUNC_ALWAYS;   // a blit ignores and keeps the depth buffer
-    p.depth.write_enabled = false;
-    p.colors[0].pixel_format = kColourFormat;
-    p.colors[0].write_mask = SG_COLORMASK_RGB;
-    p.sample_count = 1;
-    p.label = "ei-window-blit";
-    g_blit = sg_make_pipeline(&p);
+    g_blit = MakeBlitPipeline(1);
 
     sg_shader_desc c{};
     c.vertex_func.source = kClearDepthSource;
@@ -136,16 +176,7 @@ bool CreateBlitPipeline() {
     c.uniform_blocks[0].hlsl_register_b_n = 0;
     c.label = "ei-clear-depth";
     g_clearShader = sg_make_shader(&c);
-    sg_pipeline_desc q{};
-    q.shader = g_clearShader;
-    q.depth.pixel_format = kDepthFormat;
-    q.depth.compare = SG_COMPAREFUNC_ALWAYS;
-    q.depth.write_enabled = true;
-    q.colors[0].pixel_format = kColourFormat;
-    q.colors[0].write_mask = SG_COLORMASK_NONE;
-    q.sample_count = 1;
-    q.label = "ei-clear-depth";
-    g_clear = sg_make_pipeline(&q);
+    g_clear = MakeClearPipeline(1);
     bool ok = sg_query_pipeline_state(g_blit) == SG_RESOURCESTATE_VALID &&
               sg_query_pipeline_state(g_clear) == SG_RESOURCESTATE_VALID;
     if (!ok) ei::Log("render: the window blit or depth clear pipeline could not be created (see the sokol messages above)");
@@ -157,7 +188,7 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     int dw = b.destination.right - b.destination.left, dh = b.destination.bottom - b.destination.top;
     int sw = b.source.right - b.source.left, sh = b.source.bottom - b.source.top;
     if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
-    sg_apply_pipeline(g_blit);
+    sg_apply_pipeline(PassPipeline(false));
     sg_bindings bind{};
     bind.views[0] = b.texture;
     bind.samplers[0] = g_nearest;
@@ -180,7 +211,7 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height) {
     if (!g_clear.id) return;
     Rect r = clear.rect.right > clear.rect.left ? clear.rect : Rect{0, 0, width, height};
     if (r.bottom <= r.top) return;
-    sg_apply_pipeline(g_clear);
+    sg_apply_pipeline(PassPipeline(true));
     VsParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
                 {static_cast<float>(width), static_cast<float>(height), clear.z, 0.0f}};
     sg_range vr{&vs, sizeof(vs)};
@@ -195,6 +226,7 @@ void BlitParts(sg_shader* shader, sg_pipeline* pipeline, sg_sampler* sampler) {
 }
 
 void DestroyBlits() {
+    DestroyMultisampledPipelines();
     if (g_blit.id) sg_destroy_pipeline(g_blit);
     if (g_clear.id) sg_destroy_pipeline(g_clear);
     if (g_blitShader.id) sg_destroy_shader(g_blitShader);

@@ -207,6 +207,23 @@
 //                             require the fraction of neighbouring level-map pixel pairs of
 //                             frames\<frame>.bmp whose level jumps (capture::LevelSteps: the seams of
 //                             R12) to lie within <least>..<most>. Skipped in a run of the original code
+//   mmplevels <most>          require the levels of every .mmp texture the image holds, decoded as drawn,
+//                             to lie within a mean difference of <most> (0..255 per channel) from their
+//                             level 0, both box-filtered to 4 x 4 (render::CheckMmpLevels: levels read
+//                             from the wrong bytes drew bright green strips over the trees, R12b).
+//                             Skipped in a run of the original code
+//   smooth on|off             the image's smooth option (render::SetSmooth, R12a: the world view
+//                             multisampled, its models sampled anisotropically), from the next frame;
+//                             "render new,present,smooth" turns it on from the start. Ignored in a
+//                             run of the original code
+//   smoothcheck <plain> <smooth> <least> <most>
+//                             require the smooth option on, the last frame's world drawn multisampled
+//                             (as many samples as the device gives, at least 2) and resolved, models
+//                             in it sampled anisotropically, and frames\<smooth>.bmp to differ from
+//                             frames\<plain>.bmp (the same frozen moment without the option) in a
+//                             fraction of its pixels (by more than 8) within <least>..<most>: the
+//                             world's edges and textures, nothing black or stale. Skipped in a run of
+//                             the original code
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
@@ -239,8 +256,9 @@
 //
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
 // off, saves and config\tutorial.ini kept in harness_saves next to the DLL, every other write under
-// the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, ...) going to a
-// copy-on-write overlay there too, no registry writes, and a UDP port of its own for the multiplayer
+// the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, addon.dll's log, ...)
+// going to a copy-on-write overlay there too (any other write into an install is refused and fails the
+// run: harness_install.h), no registry writes, and a UDP port of its own for the multiplayer
 // sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
@@ -263,6 +281,7 @@
 #include "harness_settings.h"
 #include "harness_starter.h"
 #include "harness_input.h"
+#include "harness_install.h"
 #include "harness_net.h"
 #include "harness_pair.h"
 #include "ui_census.h"
@@ -771,6 +790,21 @@ const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
     return nullptr;
 }
 
+// Whether `path` is the game's root folder itself (when the game empties mp\ it deletes every entry
+// FindFirstFile lists, "mp\.." too).
+bool IsGameRoot(const char* path) {
+    char full[MAX_PATH];
+    DWORD n = GetFullPathNameA(path, MAX_PATH, full, nullptr);
+    if (n == 0 || n >= MAX_PATH) return false;
+    while (n > 3 && full[n - 1] == '\\') full[--n] = '\0';
+    for (const char* root : g_rootDirs) {
+        std::size_t length = std::strlen(root);
+        while (length > 3 && root[length - 1] == '\\') --length;
+        if (length && length == n && _strnicmp(full, root, length) == 0) return true;
+    }
+    return false;
+}
+
 void MakeParentDirs(const char* file) {
     char dir[MAX_PATH];
     strcpy_s(dir, file);
@@ -822,30 +856,51 @@ const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
     return path;
 }
 
+// Whether a write that keeps its file's contents gets the install's copy first: not a log (a run's log
+// starts empty in the overlay; addon.dll appends to starter\addon.log, which grows with the user's play) and
+// not a file over 16 MB.
+bool CopiedForWrite(const char* original) {
+    const std::size_t length = std::strlen(original);
+    if (length >= 4 && _stricmp(original + length - 4, ".log") == 0) return false;
+    WIN32_FILE_ATTRIBUTE_DATA data;
+    if (!GetFileAttributesExA(original, GetFileExInfoStandard, &data)) return true;
+    if (data.nFileSizeHigh == 0 && data.nFileSizeLow <= 16u << 20) return true;
+    Log("harness: %s not copied into the overlay for a write (over 16 MB); the write starts from an empty file", original);
+    return false;
+}
+
 // For a write: the overlay path (its directories created; with `keep` an install file not yet in
 // the overlay is copied first).
 const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
+    if (!shadow && path && IsGameRoot(path)) {
+        // The root's own write (a delete of "mp\.."): the overlay's root, a folder like the install's.
+        LogInstallWrite(path, g_savesDir);
+        return g_savesDir;
+    }
     if (!shadow) return path;
     MakeParentDirs(shadow);
     char pinned[MAX_PATH];
     const char* original = settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned) ? pinned : path;
     if (keep && g_getFileAttributes(shadow) == INVALID_FILE_ATTRIBUTES &&
-        g_getFileAttributes(original) != INVALID_FILE_ATTRIBUTES)
+        g_getFileAttributes(original) != INVALID_FILE_ATTRIBUTES && CopiedForWrite(original))
         g_copyFile(original, shadow, TRUE);
     LogInstallWrite(path, shadow);
     return shadow;
 }
 
+// Whether `path` is an install file (harness_install.h: other modules' writes go to the overlay too).
+bool InInstall(const char* path) {
+    char b[MAX_PATH];
+    return ShadowOf(path, b) != nullptr || (path && IsGameRoot(path));
+}
+
 HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES sa,
                                    DWORD disposition, DWORD flags, HANDLE templ) {
     char b[MAX_PATH];
-    constexpr DWORD kWriteAccess = GENERIC_WRITE | GENERIC_ALL | FILE_WRITE_DATA | FILE_APPEND_DATA | DELETE |
-                                   FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA;
-    bool write = (access & kWriteAccess) != 0 || disposition == CREATE_ALWAYS || disposition == CREATE_NEW ||
-                 disposition == TRUNCATE_EXISTING || disposition == OPEN_ALWAYS;
+    bool write = install::WritesFile(access, disposition);
     bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
     const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
     // The game opens some data files for reading without sharing them; parallel harness runs read
@@ -1037,6 +1092,7 @@ void WriteReport() {
     if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
+    if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -2692,6 +2748,63 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (steps < least || steps > most) g_failures.push_back(text);
+        } else if (s.verb == "mmplevels") {
+            double most = 0;
+            if (sscanf_s(s.argument.c_str(), "%lf", &most) < 1) {
+                g_failures.push_back("mmplevels needs the largest mean difference allowed");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: mmplevels: not the new renderer (the original code): no decoded textures");
+                continue;
+            }
+            render::MmpLevelCheck check = render::CheckMmpLevels();
+            char text[240];
+            std::snprintf(text, sizeof(text),
+                          "mmplevels: %d textures, %d levels; largest mean difference %.2f (allowed %.2f; level %d of a "
+                          "%dx%d texture, format %08X)",
+                          check.textures, check.levels, check.worst, most, check.worstLevel, check.worstWidth,
+                          check.worstHeight, static_cast<unsigned>(check.worstFormat));
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (check.levels == 0 || check.worst > most) g_failures.push_back(text);
+        } else if (s.verb == "smooth") {
+            if (!render::Active()) {
+                Log("harness: smooth %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "on" || s.argument == "off") render::SetSmooth(s.argument == "on");
+            else g_failures.push_back("smooth needs on or off");
+        } else if (s.verb == "smoothcheck") {
+            char plain[64] = "", smooth[64] = "";
+            double least = 0, most = 1;
+            if (sscanf_s(s.argument.c_str(), "%63s %63s %lf %lf", plain, unsigned(sizeof(plain)), smooth, unsigned(sizeof(smooth)),
+                         &least, &most) < 4) {
+                g_failures.push_back("smoothcheck needs two frame names, a least and a most fraction");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: smoothcheck %s %s: not the new renderer (the original code): skipped", plain, smooth);
+                continue;
+            }
+            render::SmoothInfo info = render::SmoothState();
+            double differing = 0;
+            int largest = 0;
+            const char* why = "";
+            bool compared = capture::Compare(plain, smooth, 8, &differing, &largest, &why);
+            char text[320];
+            std::snprintf(text, sizeof(text),
+                          "smoothcheck %s %s: option %s, %d samples (the device gives %d), last frame %d multisampled "
+                          "passes, %d models anisotropic, %d as their stage; %.3f%% of the pixels differ by more than 8 "
+                          "(largest %d; allowed %.3f%% .. %.3f%%)",
+                          plain, smooth, info.on ? "on" : "off", info.targetSamples, info.deviceSamples, info.multisampledPasses,
+                          info.anisotropicModels, info.plainModels, 100.0 * differing, largest, 100.0 * least, 100.0 * most);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (!compared) g_failures.push_back(std::string("smoothcheck ") + plain + " " + smooth + ": " + why);
+            else if (!info.on || info.targetSamples < 2 || info.targetSamples != info.deviceSamples ||
+                     info.multisampledPasses < 1 || info.anisotropicModels < 1 || differing < least || differing > most)
+                g_failures.push_back(text);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";
@@ -3372,6 +3485,9 @@ struct Harness {
         PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);
         PatchSlot(kWritePrivateProfileStringASlot, &RedirectedWriteProfileString, g_writeProfileString);
         PatchSlot(kGetPrivateProfileSectionNamesASlot, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
+        // Every other module's writes into the install go to the overlay too, and what still reaches an install
+        // is refused and fails the run (harness_install.h).
+        install::Install({&WritePath, &ReadPath, &InInstall});
         if (g_deterministic) {
             clock::InstallVirtual(&g_tickLength);
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)

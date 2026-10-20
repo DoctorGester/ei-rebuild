@@ -13,8 +13,8 @@
 // captures write the new frame. There is no DirectDraw fallback (R11a): when the new renderer cannot
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
-// list, only carries the harness build's "removable"; "new", "present" and "cpuwindows" are accepted
-// and change nothing.
+// list, carries the smooth option ("smooth", SetSmooth) and the harness build's "removable"; "new",
+// "present" and "cpuwindows" are accepted and change nothing.
 
 #include <cstdint>
 #include <vector>
@@ -30,6 +30,30 @@ namespace render {
 // Sets the options from `spec` (the format of EI_RENDER) and EI_RENDER's. Without a call the
 // environment is read at the first use.
 void Configure(const char* spec);
+
+// The smooth option (R12a; user 2026-10-20: off by default): the image as the user's Rebirth dgVoodoo
+// setup draws it (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x). On, the world view's
+// models (figures, map objects, the sky, shadows) are sampled anisotropically (16x) with linear mips
+// where their stage asks for linear filters (the terrain pages always are, R12), and the world view is
+// drawn with 8x multisampling (fewer when the device has no 8x), resolved into the frame before the
+// interface draws over it, before every present and every screen copy or capture. The interface's
+// sprites, previews and window surfaces draw as without it. Its one switch: EI_RENDER's word "smooth"
+// (read at the start) or SetSmooth (takes effect at the next frame). Off: what the game asks for.
+void SetSmooth(bool on);
+bool Smooth();
+// The world view's draws (CWorldClient::Render, 00569E40) come between BeginWorld and EndWorld.
+void BeginWorld();
+void EndWorld();
+// The smooth option's state: on, the samples the device gives (up to 8) and the world's target's,
+// and in the last presented frame the multisampled passes and the models drawn anisotropically
+// (world) or as their stage says (the interface's).
+struct SmoothInfo {
+    bool on = false;
+    int deviceSamples = 1, targetSamples = 1;
+    int multisampledPasses = 0;
+    int anisotropicModels = 0, plainModels = 0;
+};
+SmoothInfo SmoothState();
 
 // The new renderer draws: in the standalone image, until it failed (no Direct3D 11 device at the
 // start, a sokol panic, a lost device that could not be made again). Every call below does nothing
@@ -259,6 +283,18 @@ bool RemoveDevice();
 // that showed as seams). Off: the pages' colours.
 enum class TerrainLevelMode { Off, Levels, PointMips };
 void TerrainLevels(TerrainLevelMode mode);
+// Harness build only (the harness's "mmplevels", R12b): how far the levels of the .mmp textures held
+// now, decoded as for drawing, lie from their level 0: both box-filtered down to 4 x 4, the mean
+// absolute difference per channel (0..255), the largest over all levels down to 4 x 4.
+// Levels decoded from the wrong bytes (the old offsets' overflow: bright green strips over the trees)
+// lie far off; the file's own mips stay close.
+struct MmpLevelCheck {
+    int textures = 0, levels = 0;
+    double worst = 0.0;
+    int worstWidth = 0, worstHeight = 0, worstLevel = 0;   // that texture's first level's size, the level
+    std::uint32_t worstFormat = 0;                         // its .mmp format id
+};
+MmpLevelCheck CheckMmpLevels();
 // Where the frame shows in the game window's client area: the frame's size and its rectangle there
 // (aspect kept, centred; the rest black). False when the new renderer does not present itself.
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);

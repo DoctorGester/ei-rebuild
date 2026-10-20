@@ -183,6 +183,27 @@ bool Convert(const SurfaceMemory& m, std::vector<std::uint8_t>& out, bool keyed 
     return true;
 }
 
+// The next level of an RGBA8 level of `*width` x `*height` as a 2x2 box filter (sizes halved, at
+// least 1); `*width` / `*height` become its size.
+std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
+    int w = *width, h = *height;
+    int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
+    std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
+    for (int y = 0; y < nh; ++y) {
+        for (int x = 0; x < nw; ++x) {
+            int x0 = x * 2, y0 = y * 2, x1 = x0 + 1 < w ? x0 + 1 : x0, y1 = y0 + 1 < h ? y0 + 1 : y0;
+            for (int c = 0; c < 4; ++c) {
+                int sum = src[(static_cast<std::size_t>(y0) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y0) * w + x1) * 4 + c] +
+                          src[(static_cast<std::size_t>(y1) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y1) * w + x1) * 4 + c];
+                dst[(static_cast<std::size_t>(y) * nw + x) * 4 + c] = static_cast<std::uint8_t>((sum + 2) / 4);
+            }
+        }
+    }
+    *width = nw;
+    *height = nh;
+    return dst;
+}
+
 // An RGBA8 image from `levels` (level 0 first); levels not given are box-filtered from the last one,
 // down to 1x1.
 sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>> levels, const char* label) {
@@ -191,24 +212,7 @@ sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>>
         w = w > 1 ? w / 2 : 1;
         h = h > 1 ? h / 2 : 1;
     }
-    while ((w > 1 || h > 1) && levels.size() < SG_MAX_MIPMAPS) {
-        int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
-        const std::vector<std::uint8_t>& src = levels.back();
-        std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
-        for (int y = 0; y < nh; ++y) {
-            for (int x = 0; x < nw; ++x) {
-                int x0 = x * 2, y0 = y * 2, x1 = x0 + 1 < w ? x0 + 1 : x0, y1 = y0 + 1 < h ? y0 + 1 : y0;
-                for (int c = 0; c < 4; ++c) {
-                    int sum = src[(static_cast<std::size_t>(y0) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y0) * w + x1) * 4 + c] +
-                              src[(static_cast<std::size_t>(y1) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y1) * w + x1) * 4 + c];
-                    dst[(static_cast<std::size_t>(y) * nw + x) * 4 + c] = static_cast<std::uint8_t>((sum + 2) / 4);
-                }
-            }
-        }
-        levels.push_back(std::move(dst));
-        w = nw;
-        h = nh;
-    }
+    while ((w > 1 || h > 1) && levels.size() < SG_MAX_MIPMAPS) levels.push_back(HalveLevel(levels.back(), &w, &h));
     sg_image_desc desc{};
     desc.width = width;
     desc.height = height;
@@ -437,13 +441,23 @@ struct MmpFile {
 };
 static_assert(sizeof(MmpFile) == 0x4C);
 
-// The offset of a mip level's pixels after the header, as the game computes it (006908E0, 32-bit
-// arithmetic: the extra block plus a geometric sum of the larger levels).
+// The offset of the first level's pixels after the header, as the game computes it (006908E0, and
+// inline in the fill 00690970; 32-bit arithmetic: the extra block plus a geometric sum of the larger
+// levels). Only for the level the texture starts at: the product overflows from about the sixth
+// level of a 1024 x 1024 texture on (R12b), and the fill steps from level to level instead
+// (MmpFileLevelBytes).
 std::uint32_t MipOffset(const MmpFile& h, unsigned mip) {
     if (mip == 0) return h.extraSize;
     std::uint32_t levelBytes = (h.bitsPerPixel * h.height * h.width) >> 3;
     std::uint32_t scale = 1u << ((2 * mip) & 31);
     return levelBytes * (scale - 1) * 4 / (scale * 3) + h.extraSize;
+}
+
+// The bytes level `mip` takes in the file as the game's fill (00690970) copies it and steps over it:
+// bits per pixel x width x height / 8 of the level's size (each halved per level, down to 0), no
+// whole DXT blocks for the levels under 4 x 4.
+std::uint32_t MmpFileLevelBytes(const MmpFile& h, unsigned mip) {
+    return (h.bitsPerPixel * (h.width >> (mip & 31)) * (h.height >> (mip & 31))) >> 3;
 }
 
 // One level of the file as RGBA8.
@@ -468,7 +482,7 @@ bool DecodeMmpLevel(const MmpFile& h, const std::uint8_t* pixels, int width, int
     return true;
 }
 
-// The bytes a level of `width` x `height` takes in the file.
+// The bytes a level of `width` x `height` takes to decode (whole DXT blocks).
 std::uint32_t MmpLevelBytes(const MmpFile& h, int width, int height) {
     if ((h.format & 0xFFFFFF) == 0x545844) {   // "DXT": 8 bytes a 4x4 block for DXT1, else 16
         auto blocks = static_cast<std::uint32_t>((width + 3) / 4) * static_cast<std::uint32_t>((height + 3) / 4);
@@ -486,22 +500,32 @@ bool DecodeMmp(const MmpFile& h, const std::uint8_t* pixels, std::uint32_t pixel
     *width = *height = 0;
     *first = 0xFFFFFFFFu;
     *end = 0;
+    std::uint32_t offset = MipOffset(h, mip);
+    std::vector<std::uint8_t> padded;
     for (unsigned m = mip; m < mip + (levels ? levels : 1) && m < h.mipCount && decoded.size() < SG_MAX_MIPMAPS; ++m) {
         int w = static_cast<int>(h.width >> (m & 31)), hh = static_cast<int>(h.height >> (m & 31));
         if (w < 1) w = 1;
         if (hh < 1) hh = 1;
-        std::uint32_t offset = MipOffset(h, m);
         if (offset < pixelsOffset) break;
+        std::uint32_t bytes = MmpFileLevelBytes(h, m);
+        const std::uint8_t* source = pixels + (offset - pixelsOffset);
+        if (bytes < MmpLevelBytes(h, w, hh)) {
+            // A level the fill copies only part of (a DXT level under 4 x 4: the start of its
+            // block): the rest as zeros.
+            padded.assign(MmpLevelBytes(h, w, hh), 0);
+            std::memcpy(padded.data(), source, bytes);
+            source = padded.data();
+        }
         std::vector<std::uint8_t> level;
-        if (!DecodeMmpLevel(h, pixels + (offset - pixelsOffset), w, hh, level)) break;
+        if (!DecodeMmpLevel(h, source, w, hh, level)) break;
         if (m == mip) {
             *width = w;
             *height = hh;
         }
         decoded.push_back(std::move(level));
-        std::uint32_t levelEnd = offset + MmpLevelBytes(h, w, hh);
         if (offset < *first) *first = offset;
-        if (levelEnd > *end) *end = levelEnd;
+        if (offset + bytes > *end) *end = offset + bytes;
+        offset += bytes;
     }
     return !decoded.empty() && *width > 0 && *height > 0;
 }
@@ -664,7 +688,7 @@ sg_sampler StageSampler(const StageState& s) {
     return sampler;
 }
 
-sg_sampler TerrainSampler(const StageState& s) {
+sg_sampler AnisotropicSampler(const StageState& s) {
     // Point sampling asked for (the options' Filtering 0): as the stage says.
     if (s.minFilter == 1 || s.magFilter == 1) return StageSampler(s);
     std::uint32_t key = 0x80000000u | (s.mipFilter <= 1 ? 1u : 0u) | (static_cast<std::uint32_t>(s.addressU & 7) << 9) |
@@ -673,19 +697,20 @@ sg_sampler TerrainSampler(const StageState& s) {
     if (it != g_samplers.end()) return it->second;
     // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose
     // texture coordinates change direction and scale from tile to tile (D3DTFP_POINT's level
-    // steps showed as seams along the tile edges; renderer.md section 11).
+    // steps showed as seams along the tile edges; renderer.md section 11). The smooth option samples
+    // the world's models so too (dgVoodoo's Filtering 16, R12a).
     sg_sampler_desc d{};
     d.min_filter = SG_FILTER_LINEAR;
     d.mag_filter = SG_FILTER_LINEAR;
     d.mipmap_filter = SG_FILTER_LINEAR;
-    d.max_anisotropy = kTerrainAnisotropy;
+    d.max_anisotropy = kAnisotropy;
     if (s.mipFilter <= 1) d.max_lod = 0.0f;   // D3DTFP_NONE (the options' Mipmapping 0): level 0 only
     d.wrap_u = Wrap(s.addressU);
     d.wrap_v = Wrap(s.addressV);
     d.border_color = SG_BORDERCOLOR_TRANSPARENT_BLACK;
-    d.label = "ei-terrain-sampler";
+    d.label = "ei-anisotropic-sampler";
     sg_sampler sampler = sg_make_sampler(&d);
-    ei::Log("render: terrain sampler: anisotropic %u with linear mips%s (the stage's filters %u / %u / %u)", kTerrainAnisotropy,
+    ei::Log("render: anisotropic sampler: %u with linear mips%s (the stage's filters %u / %u / %u)", kAnisotropy,
             s.mipFilter <= 1 ? ", level 0 only" : "", s.magFilter, s.minFilter, s.mipFilter);
     g_samplers.emplace(key, sampler);
     return sampler;
@@ -849,5 +874,50 @@ void PictureFromMmp(const void* holder, const void* data) {
     detail::FpuGuard fpu;
     detail::PictureFromMmpData(holder, data);
 }
+
+#if defined(EI_RENDER_VALIDATION)
+MmpLevelCheck CheckMmpLevels() {
+    using namespace detail;
+    MmpLevelCheck c;
+    for (const auto& entry : g_textures) {
+        const TextureSource& s = entry.second.source;
+        if (!entry.second.owned || s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpFile)) continue;
+        MmpFile h{};
+        std::memcpy(&h, s.header.data(), sizeof(h));
+        std::vector<std::vector<std::uint8_t>> levels;
+        int width = 0, height = 0;
+        std::uint32_t first = 0, end = 0;
+        if (!DecodeMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &width, &height, levels, &first, &end)) continue;
+        ++c.textures;
+        // Each level and level 0 box-filtered down to 4 x 4 (or less): the file's own filtering of
+        // a level (1-bit alpha kept 0 or 1, sharpened colours) changes its texels, not those averages.
+        auto summary = [](std::vector<std::uint8_t> level, int w, int hh) {
+            while (w > 4 || hh > 4) level = HalveLevel(level, &w, &hh);
+            return level;
+        };
+        const std::vector<std::uint8_t> reference = summary(levels[0], width, height);
+        int w = width, hh = height;
+        for (std::size_t l = 1; l < levels.size(); ++l) {
+            w = w > 1 ? w / 2 : 1;
+            hh = hh > 1 ? hh / 2 : 1;
+            if (w < 4 || hh < 4) break;   // DXT levels under 4 x 4 are only partly in the file
+            const std::vector<std::uint8_t> mine = summary(levels[l], w, hh);
+            std::uint32_t sum = 0;
+            for (std::size_t i = 0; i < reference.size(); ++i)
+                sum += static_cast<std::uint32_t>(reference[i] > mine[i] ? reference[i] - mine[i] : mine[i] - reference[i]);
+            double difference = static_cast<double>(sum) / static_cast<double>(reference.size());
+            ++c.levels;
+            if (difference > c.worst) {
+                c.worst = difference;
+                c.worstWidth = width;
+                c.worstHeight = height;
+                c.worstLevel = static_cast<int>(l);
+                c.worstFormat = h.format;
+            }
+        }
+    }
+    return c;
+}
+#endif
 
 } // namespace render
