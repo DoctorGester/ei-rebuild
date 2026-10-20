@@ -25,20 +25,6 @@ void PartyConstruct(PartyStorage* party) { reinterpret_cast<CParty*>(party)->Con
 static_assert(sizeof(PartyStorage) == sizeof(CParty));
 // 0041F460: an empty STLport string (library).
 
-// STLport list constructors, list(const allocator&), one per element type (library).
-__declspec(naked) void* __fastcall ListConstruct41F8B0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041F8B0)
-__declspec(naked) void* __fastcall ListConstruct41FB10(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FB10)
-__declspec(naked) void* __fastcall ListConstruct423990(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423990)
-__declspec(naked) void* __fastcall ListConstruct423B80(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423B80)
-__declspec(naked) void* __fastcall ListConstruct423D70(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423D70)
-__declspec(naked) void* __fastcall ListConstruct423F50(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423F50)
-__declspec(naked) void* __fastcall ListConstruct424130(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00424130)
-__declspec(naked) void* __fastcall ListConstruct424320(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00424320)
-__declspec(naked) void* __fastcall ListConstruct424510(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00424510)
-__declspec(naked) void* __fastcall ListConstruct420F10(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00420F10)
-__declspec(naked) void* __fastcall ListConstruct424750(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00424750)
-__declspec(naked) void* __fastcall ListConstruct4249E0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004249E0)
-
 void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
 template <typename T>
@@ -58,34 +44,33 @@ EI_REPLACE(0x0041C420, ClientVectorConstruct);
 
 // The client base's constructor is inlined: the session base, its lobby fields, an unbound socket.
 ClientSession* ClientSession::Construct() {
-    char allocator = 0;   // the lists' (empty) allocator argument
     SessionBase::Construct();
     host_ = NetAddress{};
     static_cast<GameBuffer*>(&joinData_)->ConstructGrowing();
-    ListConstruct41F8B0(&servers_, nullptr, &allocator);
+    servers_.Construct();
     ClientVectorConstruct(&queries_);
-    ListConstruct41FB10(&waiting_, nullptr, &allocator);
+    waiting_.Construct();
     alwaysAsk_ = NetAddress{};
     ei::SetVtable(this, ClientBase::kVtableAddress);
     joinState_ = kNotJoined;
     joinId_ = 0;
     socket_.Open(-1);
-    ListConstruct423990(&players_, nullptr, &allocator);
-    ListConstruct423B80(&lines_, nullptr, &allocator);
-    ListConstruct423D70(&files_, nullptr, &allocator);
-    ListConstruct423F50(&chunks_, nullptr, &allocator);
-    ListConstruct424130(&fileRequests_, nullptr, &allocator);
+    players_.Construct();
+    lines_.Construct();
+    files_.Construct();
+    chunks_.Construct();
+    fileRequests_.Construct();
     info_ = nullptr;
     binding_ = nullptr;
     map_ = nullptr;
-    ListConstruct424320(&zones_, nullptr, &allocator);
-    ListConstruct424510(&variables_, nullptr, &allocator);
+    zones_.Construct();
+    variables_.Construct();
     player_.ptr = nullptr;
-    ListConstruct420F10(&timers_, nullptr, &allocator);
-    ListConstruct424750(&awards_, nullptr, &allocator);
+    timers_.Construct();
+    awards_.Construct();
     party_.ptr = nullptr;
-    ListConstruct4231C0(&offers_, nullptr, &allocator);
-    ListConstruct4249E0(&tradeRecords_, nullptr, &allocator);
+    offers_.Construct();
+    tradeRecords_.Construct();
     trade_ = nullptr;
     PartyConstruct(&parties_[0]);
     PartyConstruct(&parties_[1]);
@@ -155,10 +140,8 @@ EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
 void ClientSession::CollectReplicatedImpl(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
-    auto* timers = static_cast<TimedNode*>(self->timers_);
-    for (TimedNode* n = timers->next; n != self->timers_; n = n->next) PushReplicated(*out, n->data.object.ptr, 1);
-    auto* requests = static_cast<RefNode*>(self->fileRequests_);
-    for (RefNode* n = requests->next; n != self->fileRequests_; n = n->next) PushReplicated(*out, n->data.ptr, 1);
+    for (TimedNode* n = self->timers_.First(); n != self->timers_.End(); n = n->next) PushReplicated(*out, n->data.ref.ptr, 1);
+    for (RefNode* n = self->fileRequests_.First(); n != self->fileRequests_.End(); n = n->next) PushReplicated(*out, n->data.ptr, 1);
     if (void* group = self->party_.ptr) {
         PushReplicatedInline(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
@@ -169,8 +152,6 @@ void ClientSession::CollectReplicatedImpl(ReplicatedVector** out) {
         }
     }
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x0041D050, ClientSession::CollectReplicatedImpl);
 
 } // namespace net

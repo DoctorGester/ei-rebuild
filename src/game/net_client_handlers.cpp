@@ -19,6 +19,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "record_lists.h"
 #include "stl_sorts.h"
 #include "ui.h"
 #include "world.h"
@@ -33,43 +34,12 @@ void __fastcall ClientApplyParty(ClientSession* self);      // net_client_party.
 
 namespace {
 
-using EndFn = void** (__fastcall*)(void*, void*, void**);
-using InsertFn = void** (__fastcall*)(void*, void*, void**, void*, const void*);
-using EraseFn = void** (__fastcall*)(void*, void*, void**, void*);
-
-// The STLport lists of the client (library): end / insert / erase of each.
-__declspec(naked) void** __fastcall PlayersEnd(void*, void*, void**) EI_ORIGINAL(0x00423950)
-__declspec(naked) void** __fastcall PlayersInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00423960)
-__declspec(naked) void** __fastcall PlayersErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429550)
-__declspec(naked) void** __fastcall LinesEnd(void*, void*, void**) EI_ORIGINAL(0x00423B40)
-__declspec(naked) void** __fastcall LinesInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00423B50)
-__declspec(naked) void** __fastcall LinesErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429590)
-__declspec(naked) void** __fastcall ZonesEnd(void*, void*, void**) EI_ORIGINAL(0x004242E0)
-__declspec(naked) void** __fastcall ZonesInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x004242F0)
-__declspec(naked) void** __fastcall ZonesErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429690)
-__declspec(naked) void** __fastcall VariablesEnd(void*, void*, void**) EI_ORIGINAL(0x004244D0)
-__declspec(naked) void** __fastcall VariablesInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x004244E0)
-__declspec(naked) void** __fastcall VariablesErase(void*, void*, void**, void*) EI_ORIGINAL(0x004296D0)
-__declspec(naked) void** __fastcall FilesEnd(void*, void*, void**) EI_ORIGINAL(0x00423D30)
-__declspec(naked) void** __fastcall FilesInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00423D40)
-__declspec(naked) void** __fastcall FilesErase(void*, void*, void**, void*) EI_ORIGINAL(0x004295D0)
-__declspec(naked) void** __fastcall RequestsEnd(void*, void*, void**) EI_ORIGINAL(0x00420CF0)
-__declspec(naked) void** __fastcall RequestsInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00424100)
-__declspec(naked) void** __fastcall RequestsErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429650)
-__declspec(naked) void** __fastcall ObjectsErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429610)
-__declspec(naked) void** __fastcall ChunksEnd(void*, void*, void**) EI_ORIGINAL(0x00420C30)
-__declspec(naked) void** __fastcall ChunksInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00423F20)
 // std::sort of the chunk pointers by index, as the instantiation splits it: the introsort loop
 // (RET 0xC: a null type tag, twice the size's log2, the empty comparator) and the final insertion
 // sort (RET 4: the comparator).
 // The game flow's map file writer (patched by Rebirth: through its address).
 __declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const char* /*name*/, GameBuffer* /*buffer*/)
     EI_ORIGINAL(0x005813A0)
-__declspec(naked) void** __fastcall AwardsEnd(void*, void*, void**) EI_ORIGINAL(0x004210E0)
-__declspec(naked) void** __fastcall AwardsInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00424720)
-void** __fastcall PartiesInsert(void* a0, void*, void** a2, void* a3, const void* a4) { return ListInsert423190Original(a0, nullptr, a2, a3, a4); }
-// The trade records (+0x2614: TradeRecordNode, net_classes.h).
-__declspec(naked) void** __fastcall TradesInsertDefault(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00424900)
 // Parties (00661050 class, outside this range).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 // The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
@@ -86,32 +56,26 @@ bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
 }
 
-void Append(void* list, EndFn end, InsertFn insert, const void* value) {
-    void* position;
-    end(list, nullptr, &position);
-    void* inserted;
-    insert(list, nullptr, &inserted, position, value);
-}
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
-void RemoveValue(void* list, EraseFn erase, const void* value) {
-    void** sentinel = *static_cast<void***>(list);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
-        void** next = static_cast<void**>(node[0]);
-        if (node[2] == value) {
-            void* erased;
-            erase(list, nullptr, &erased, node);
-        }
+template <typename List>
+void RemoveValue(List& list, const void* value) {
+    RefNode* sentinel = list.End();
+    for (RefNode* node = sentinel->next; node != sentinel;) {
+        RefNode* next = node->next;
+        if (node->data.ptr == value) list.Erase(node);
         node = next;
     }
 }
 // A list given the message through a holder without a reference.
-void AppendRaw(void* list, EndFn end, InsertFn insert, Message* message) {
+template <typename List>
+void AppendRaw(List& list, Message* message) {
     RefPtr raw;
-    Append(list, end, insert, RefPtrFromRaw(&raw, message));
+    list.Insert(list.End(), *RefPtrFromRaw(&raw, message));
 }
-void RemoveRaw(void* list, EraseFn erase, Message* message) {
+template <typename List>
+void RemoveRaw(List& list, Message* message) {
     RefPtr raw;
-    RemoveValue(list, erase, RefPtrFromRaw(&raw, message)->ptr);
+    RemoveValue(list, RefPtrFromRaw(&raw, message)->ptr);
 }
 
 // Counted pointers as the handlers inline them.
@@ -144,31 +108,29 @@ void ClearRef(CRefObject** slot) {
     }
 }
 // A list appended with a counted holder of the message that is released afterwards.
-void AppendCounted(void* list, EndFn end, InsertFn insert, Message* message) {
+template <typename List>
+void AppendCounted(List& list, Message* message) {
     CRefObject* object = message;
     RefPtr local;
     local.ptr = object;
     AddRef(object);
-    Append(list, end, insert, &local);
+    list.Insert(list.End(), local);
     ReleaseRef(local.ptr);
 }
-void RemoveCounted(void* list, EraseFn erase, Message* message) {
+template <typename List>
+void RemoveCounted(List& list, Message* message) {
     CRefObject* object = message;
     AddRef(object);
-    RemoveValue(list, erase, object);
+    RemoveValue(list, object);
     ReleaseRef(object);
 }
 
 // Every request for `file` erased from +0x25E8 (the sentinel read once, the next node taken first).
 void DropRequestsFor(ClientSession* self, const Message* file) {
-    void* requests = &self->fileRequests_;
-    void** sentinel = static_cast<void**>(self->fileRequests_);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
-        void** next = static_cast<void**>(node[0]);
-        if (static_cast<FileRequestMessage*>(node[2])->FileRef().ptr == file) {
-            void* erased;
-            RequestsErase(requests, nullptr, &erased, node);
-        }
+    RefNode* sentinel = self->fileRequests_.End();
+    for (RefNode* node = sentinel->next; node != sentinel;) {
+        RefNode* next = node->next;
+        if (static_cast<FileRequestMessage*>(node->data.ptr)->FileRef().ptr == file) self->fileRequests_.Erase(node);
         node = next;
     }
 }
@@ -189,18 +151,8 @@ void DropParty(ClientSession* self) {
     self->party_.ptr = nullptr;
 }
 
-// The trade records emptied inline: each record destroyed, its node freed.
-void ClearTradeRecords(ClientSession* self) {
-    TradeRecordNode* first = self->tradeRecords_->next;
-    for (TradeRecordNode* node = first; node != self->tradeRecords_;) {
-        TradeRecordNode* current = node;
-        node = node->next;
-        libcontainers::DestroyTradeRecord(reinterpret_cast<TradeRecord*>(&current->acceptedRevision));
-        if (current) gamecrt::operator_delete(current);
-    }
-    self->tradeRecords_->next = self->tradeRecords_;
-    self->tradeRecords_->prev = self->tradeRecords_;
-}
+// The trade records emptied (clear() inlined).
+void ClearTradeRecords(ClientSession* self) { self->tradeRecords_.Clear<recordlist::TradeElement>(); }
 
 } // namespace
 
@@ -219,12 +171,10 @@ void ClientSession::RecordTrade(const void* party) {
     ++ours->version_;
     std::uint32_t a = ours->acceptedRevision_;
     std::uint32_t b = ours->revision_;
-    TradeRecordNode* sentinel = tradeRecords_;
-    for (TradeRecordNode* node = sentinel->next; node != sentinel; node = node->next)
-        if (node->revision == b && node->acceptedRevision == a) return;
-    void* inserted;
-    TradesInsertDefault(&tradeRecords_, nullptr, &inserted, tradeRecords_);
-    TradeRecordNode* record = tradeRecords_->prev;   // the node just added
+    for (TradeRecordNode* node = tradeRecords_.First(); node != tradeRecords_.End(); node = node->next)
+        if (node->data.revision == b && node->data.acceptedRevision == a) return;
+    stlp::list<TradeRecord>::InsertDefault<recordlist::TradeElement>(tradeRecords_.End());
+    TradeRecord* record = &tradeRecords_.End()->prev->data;   // the node just added
     record->acceptedRevision = ours->acceptedRevision_;
     record->revision = ours->revision_;
     record->parties[0].Party()->Assign(parties_[0].Party());   // 00661300
@@ -282,30 +232,30 @@ void __fastcall ClientOnBinding(ClientSession* self, Message* message) { AssignR
 void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players on +0x25D8, with the interface's player list refreshed.
 void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {   // 0041E490
-    AppendRaw(&self->players_, PlayersEnd, PlayersInsert, message);
+    AppendRaw(self->players_, message);
     static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(1);
 }
 void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(0); }   // 0041E510
 void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {   // 0041E520
-    RemoveCounted(&self->players_, PlayersErase, message);
+    RemoveCounted(self->players_, message);
     static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(1);
 }
 // The chat lines on +0x25DC, each shown with its number.
 void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {   // 0041E5D0
-    AppendCounted(&self->lines_, LinesEnd, LinesInsert, message);
+    AppendCounted(self->lines_, message);
     static_cast<CInterface3D*>(TextTable())->OnChatLine(message->text_.data(), message->number_);
 }
-void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(&self->lines_, LinesErase, message); }   // 0041E690
+void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }   // 0041E690
 // The host message kept at +0x25EC.
 void __fastcall ClientOnInfo(ClientSession* self, Message* message) { AssignRef(&self->info_, message); }   // 0041E730
 void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }   // 0041E760
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
-    AppendCounted(&self->zones_, ZonesEnd, ZonesInsert, message);
+    AppendCounted(self->zones_, message);
     static_cast<GameFlow*>(Flow())->MarkBriefing(message->text_.data());
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
-    RemoveCounted(&self->zones_, ZonesErase, message);
+    RemoveCounted(self->zones_, message);
     static_cast<GameFlow*>(Flow())->ForgetBriefing(message->text_.data());
 }
 // The current map at +0x25F4; without a server of our own the flow loads it.
@@ -319,18 +269,18 @@ void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 004
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables on +0x25FC; the flow is told of every change.
 void __fastcall ClientOnVariable(ClientSession* self, Message* message) {   // 0041E990
-    AppendRaw(&self->variables_, VariablesEnd, VariablesInsert, message);
+    AppendRaw(self->variables_, message);
     FlowVariablesChanged(Flow());
 }
 void __fastcall ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(Flow()); }   // 0041EA10
 void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {   // 0041EA20
-    RemoveRaw(&self->variables_, VariablesErase, message);
+    RemoveRaw(self->variables_, message);
     FlowVariablesChanged(Flow());
 }
 // The shared files on +0x25E0; for a file the flow lacks, a request holding the file goes on
 // +0x25E8.
 void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0041EAC0
-    AppendRaw(&self->files_, FilesEnd, FilesInsert, message);
+    AppendRaw(self->files_, message);
     if (FlowHasFile(Flow(), nullptr, message->name_.data())) return;
     auto* request = NewMessageMemory<FileRequestMessage>();
     if (request) {
@@ -342,10 +292,10 @@ void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0
         ei::SetVtable(request, FileRequestMessage::kVtableAddress);
     }
     AssignRef(&request->FileRef(), message);
-    AppendRaw(&self->fileRequests_, RequestsEnd, RequestsInsert, request);
+    AppendRaw(self->fileRequests_, request);
 }
 void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0041EBF0
-    RemoveRaw(&self->files_, FilesErase, message);
+    RemoveRaw(self->files_, message);
     DropRequestsFor(self, message);
 }
 // 0041ECC0 (A-E2): a chunk of a shared file, kept on +0x25E4. When the list then holds as many
@@ -356,7 +306,7 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0
 // instruction, the JE at 0041ED40 made a JMP) returns after collecting every chunk: no file from the
 // server is written. The constructor registers the handler by its address.
 void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
-    AppendRaw(&self->chunks_, ChunksEnd, ChunksInsert, message);
+    AppendRaw(self->chunks_, message);
     auto* file = static_cast<FileMessage*>(message->file_.ptr);
     const char* none = game::EmptyText();
     const std::size_t noneLength = std::strlen(none);
@@ -366,11 +316,11 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
 
     stlp::vector<FileChunkMessage*> chunks;
     int count = 0;
-    const auto& received = *reinterpret_cast<const stlp::list<FileChunkMessage*>*>(&self->chunks_);
-    for (auto* node = received.First(); node != received.End(); node = node->next) {
-        if (node->data->file_.ptr != file) continue;
+    for (RefNode* node = self->chunks_.First(); node != self->chunks_.End(); node = node->next) {
+        auto* chunk = static_cast<FileChunkMessage*>(node->data.ptr);
+        if (chunk->file_.ptr != file) continue;
         ++count;
-        chunks.push_back(node->data);
+        chunks.push_back(chunk);
     }
     if (count == file->chunkCount_) {
         GameBuffer buffer;
@@ -404,12 +354,12 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     chunks.FreeStorage();
 }
 EI_REPLACE(0x0041ECC0, ClientOnFileChunk);
-void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(&self->chunks_, ObjectsErase, message); }   // 0041EF10
+void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }   // 0041EF10
 // The awards on +0x2608 (applied by the tick).
-void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(&self->awards_, AwardsEnd, AwardsInsert, message); }   // 0041EF90
+void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }   // 0041EF90
 // The other players' trade offers on +0x2610; the one paired with ours rebuilds the party.
 void __fastcall ClientOnParty(ClientSession* self, Message* message) {   // 0041EFF0
-    AppendRaw(&self->offers_, PartiesEnd, PartiesInsert, message);
+    AppendRaw(self->offers_, message);
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);
     ClientApplyParty(self);
@@ -419,7 +369,7 @@ void __fastcall ClientOnPartyChanged(ClientSession* self, Message* message) {   
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
-void __fastcall ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(&self->offers_, PartiesErase, message); }   // 0041F0D0
+void __fastcall ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(self->offers_, message); }   // 0041F0D0
 // Party members, every channel: the description committed and the party rebuilt.
 void __fastcall ClientOnMember(ClientSession* self, Message*) {   // 0041F150 / 0041F180 / 0041F1B0
     ClientCommitParty(self);
@@ -444,10 +394,10 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
         b = message->partnerRevision_;
         a = message->revision_;
     }
-    TradeRecordNode* sentinel = self->tradeRecords_;
-    for (TradeRecordNode* node = sentinel->next; node != sentinel; node = node->next) {
-        if (node->revision == b && node->acceptedRevision == a) {
-            static_cast<CInterface3D*>(TextTable())->OnExchangeDone(&node->parties[1], &node->parties[0], &node->parties[2]);
+    for (TradeRecordNode* node = self->tradeRecords_.First(); node != self->tradeRecords_.End(); node = node->next) {
+        TradeRecord& record = node->data;
+        if (record.revision == b && record.acceptedRevision == a) {
+            static_cast<CInterface3D*>(TextTable())->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
             break;
         }
     }

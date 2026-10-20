@@ -1896,19 +1896,12 @@ struct LocalVariables {
     }
 };
 
-// The client's STLport lists of counted messages (ClientSession::zones_, variables_): a sentinel
-// head, each node's value the message.
-template <typename T>
-struct MessageNode {
-    MessageNode* next;
-    MessageNode* prev;
-    T* message;
-};
-using VariableNode = MessageNode<net::VariableMessage>;
-using ZoneNode = MessageNode<net::ZoneMessage>;
+// The client's STLport lists of counted messages (ClientSession::zones_, variables_).
+using VariableNode = net::RefNode;
+using ZoneNode = net::RefNode;
 // The server's variables (name_, value_ and the stamp serial_).
-VariableNode* VariableList() { return static_cast<VariableNode*>(net::GameClient()->variables_); }
-net::VariableMessage* NodeRecord(VariableNode* node) { return node->message; }
+VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
+net::VariableMessage* NodeRecord(VariableNode* node) { return static_cast<net::VariableMessage*>(node->data.ptr); }
 unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }
 // The value's bits, moved as the dword the original pushes (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
@@ -1970,9 +1963,8 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The briefings the server says were seen.
-    for (ZoneNode* node = static_cast<ZoneNode*>(net::GameClient()->zones_)->next;
-         node != static_cast<ZoneNode*>(net::GameClient()->zones_); node = node->next)
-        MarkBriefing(node->message->text_.data());
+    for (ZoneNode* node = net::GameClient()->zones_.First(); node != net::GameClient()->zones_.End(); node = node->next)
+        MarkBriefing(static_cast<net::ZoneMessage*>(node->data.ptr)->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
         mfc::CString name(NodeRecord(node)->name_.data());

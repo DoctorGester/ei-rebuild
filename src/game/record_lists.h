@@ -40,12 +40,7 @@ static_assert(sizeof(stlp::list<ChunkRef>::Node) == sizeof(ChunkArchive::StackNo
 // operator new): two revisions and three parties. Copied member by member (CParty's copy
 // constructor, 006613C0), destroyed last party first (006611D0, as 00424DB0 does); T() constructs
 // the parties (00661050) and leaves the revisions as the stack held them.
-struct TradeRecord {
-    std::uint32_t acceptedRevision;
-    std::uint32_t revision;
-    net::PartyStorage parties[3];
-};
-static_assert(sizeof(stlp::list<TradeRecord>::Node) == sizeof(net::TradeRecordNode));
+using net::TradeRecord;
 struct TradeElement {
     static void Copy(TradeRecord* to, const TradeRecord& from) {
         to->acceptedRevision = from.acceptedRevision;

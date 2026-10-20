@@ -27,6 +27,7 @@
 #include "net_coder.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/stlp_list_refs.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -301,12 +302,16 @@ using RefNode = stlp::list<RefPtr>::Node;
 struct TimedEntry {
     union {
         float seconds;
-        std::uint32_t secondsBits;
+        std::uint32_t key;   // the seconds' bits, as the lists copy them
     };
-    RefPtr object;
+    RefPtr ref;
 };
 static_assert(sizeof(TimedEntry) == 8);
 using TimedNode = stlp::list<TimedEntry>::Node;
+// The timed lists by how they hold the object: shared (the client's timers, the server's awards)
+// or counted (the server's finished trades).
+using SharedTimedList = stlp::PolicyList<TimedEntry, stlp::SharedEntry>;
+using CountedTimedList = stlp::PolicyList<TimedEntry, stlp::CountedEntry>;
 
 // A node of the clients list (STLport list<RefPtr<Connection>>).
 struct ClientNode {
@@ -483,7 +488,7 @@ public:
     // the magic and the entry).
     void SendInfo(const NetAddress* address, std::uint32_t echo);
 
-    void* joins_;                       // +0x2568 STLport list<PendingJoin> (0041FD30)
+    stlp::list<PendingJoin> joins_;     // +0x2568 (constructor 0041FD30)
     std::uint32_t unused_256C;         // +0x256C not set
 };
 static_assert(offsetof(ServerBase, joins_) == 0x2568);
@@ -524,8 +529,8 @@ public:
     // 004193F0. When the held map message names `name`: drops it and queues "name_3" instead.
     bool FinishMap(const stlp::string* name);
     // 00419570 .. 00419940 (net_server_vars.cpp): the script variables (named floats).
-    void** FindVariable(void** out, const stlp::string* name);
-    void** FindOrAddVariable(void** out, const stlp::string* name);
+    RefNode** FindVariable(RefNode** out, const stlp::string* name);
+    RefNode** FindOrAddVariable(RefNode** out, const stlp::string* name);
     void SetVariable(const stlp::string* name, float value);      // zero removes it
     void RaiseVariable(const stlp::string* name, float value);    // to the larger value
     void RemoveVariable(const stlp::string* name);
@@ -580,22 +585,22 @@ public:
                                         // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress_;          // +0x257C the master server (port 28004)
     std::uint32_t nextLine_;            // +0x258C the number of the next chat line
-    void* players_;                     // +0x2590 player records (0073BC70)
-    void* lines_;                       // +0x2594 chat and system lines (0073BC88), at most 50
-    void* files_;                       // +0x2598 shared files (0073BD18)
-    void* fileRequests_;                // +0x259C the clients' requests (0073BC58: file, connection)
+    stlp::SharedRefList players_;       // +0x2590 player records (0073BC70)
+    stlp::SharedRefList lines_;         // +0x2594 chat and system lines (0073BC88), at most 50
+    stlp::SharedRefList files_;         // +0x2598 shared files (0073BD18)
+    stlp::CountedRefList fileRequests_; // +0x259C the clients' requests (0073BC58: file, connection)
     // +0x25A0 where the game is hosted (a HostMessage, net_messages.h; world_game.cpp's AnnounceHost),
     // replicated to everyone when set
     RefPtr hostInfo_;
-    void* bindings_;                    // +0x25A4 player <-> connection (0073BCB8)
+    stlp::SharedRefList bindings_;      // +0x25A4 player <-> connection (0073BCB8)
     RefPtr map_;                        // +0x25A8 the map message (0073BD00) while a map is played
-    void* queuedMaps_;                  // +0x25AC map messages (0073BCD0) the host may pick next
-    void* variables_;                   // +0x25B0 script variables (0073BCE8)
-    void* awards_;                      // +0x25B4 {delay, award (0073BD48)}
-    void* offers_;                      // +0x25B8 the players' trade offers (party messages 0073BD78)
-    void* trades_;                      // +0x25BC trades (0073BD60)
-    void* finishedTrades_;              // +0x25C0 {delay, trade}: done trades, kept 60 s
-    void* banned_;                      // +0x25C4 banned IPv4 addresses
+    stlp::SharedRefList queuedMaps_;    // +0x25AC map messages (0073BCD0) the host may pick next
+    stlp::SharedRefList variables_;     // +0x25B0 script variables (0073BCE8)
+    SharedTimedList awards_;            // +0x25B4 {delay, award (0073BD48)}
+    stlp::CountedRefList offers_;       // +0x25B8 the players' trade offers (party messages 0073BD78)
+    stlp::CountedRefList trades_;       // +0x25BC trades (0073BD60)
+    CountedTimedList finishedTrades_;   // +0x25C0 {delay, trade}: done trades, kept 60 s
+    stlp::list<NetAddress> banned_;     // +0x25C4 banned IPv4 addresses
     stlp::string name_;                    // +0x25C8 the game's name
     stlp::string mapName_;                 // +0x25D4 the current map
     std::uint32_t maxPlayers_;          // +0x25E0 8; set by the creator (0057E740)
@@ -672,9 +677,9 @@ public:
     std::uint8_t unused_259D[3];
     float retryTimer_;                  // +0x25A0 seconds to the next join request
     float retryInterval_;               // +0x25A4 doubles with every request (0.1 first)
-    void* servers_;                     // +0x25A8 STLport list of counted ServerEntry
+    stlp::SharedRefList servers_;       // +0x25A8 the servers found (ServerEntry)
     ClientQueries queries_;             // +0x25AC servers asked directly
-    void* waiting_;                     // +0x25BC addresses waiting to be asked (list<NetAddress>)
+    stlp::list<NetAddress> waiting_;    // +0x25BC addresses waiting to be asked
     NetAddress alwaysAsk_;              // +0x25C0 asked on every refresh (ip 0: none)
     std::uint32_t nextQuery_;           // +0x25D0 the query the refresh pings next
     std::uint32_t unused_25D4;         // +0x25D4 not set
@@ -698,24 +703,16 @@ struct PartyStorage {
 };
 static_assert(sizeof(PartyStorage) == 0x70);
 
-// A node of the client's trade records (ClientSession::tradeRecords_, 0x160 bytes): the revisions
-// of a finished trade and copies of the two parties and the traded one.
-struct TradeRecordNode {
-    TradeRecordNode* next;
-    TradeRecordNode* prev;
-    std::uint32_t acceptedRevision;   // +0x08 our offer's accepted revision of the partner's
-    std::uint32_t revision;           // +0x0C our offer's revision
-    PartyStorage parties[3];          // +0x10 ours, the partner's, the traded party
-};
-static_assert(sizeof(TradeRecordNode) == 0x160);
-
-// The same record as the node's element (from +8), as its destructor 00424DB0 takes it.
+// A finished trade of the client's (ClientSession::tradeRecords_, 0x160-byte nodes; its list's
+// element policy is record_lists.h's TradeElement): the revisions of the trade and copies of the
+// two parties and the traded one.
 struct TradeRecord {
-    std::uint32_t acceptedRevision;
-    std::uint32_t revision;
-    PartyStorage parties[3];
+    std::uint32_t acceptedRevision;   // our offer's accepted revision of the partner's
+    std::uint32_t revision;           // our offer's revision
+    PartyStorage parties[3];          // ours, the partner's, the traded party
 };
-static_assert(sizeof(TradeRecord) == sizeof(TradeRecordNode) - 8);
+using TradeRecordNode = stlp::list<TradeRecord>::Node;
+static_assert(sizeof(TradeRecordNode) == 0x160);
 
 // The game client (vtable 0073BDEC). 0x2700 bytes, pointer at 0079B5D8 (GameClient()). It keeps
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
@@ -753,22 +750,22 @@ public:
     // 0041D260. A command message (0073BC40 {kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, const char* text);
 
-    void* players_;                     // +0x25D8 player records (0073BC70)
-    void* lines_;                       // +0x25DC chat lines (0073BC88)
-    void* files_;                       // +0x25E0 shared files (0073BD18)
-    void* chunks_;                      // +0x25E4 file chunks (0073BD30)
-    void* fileRequests_;                // +0x25E8 file requests for the server (0073BC58)
+    stlp::CountedRefList players_;      // +0x25D8 player records (0073BC70)
+    stlp::CountedRefList lines_;        // +0x25DC chat lines (0073BC88)
+    stlp::CountedRefList files_;        // +0x25E0 shared files (0073BD18)
+    stlp::CountedRefList chunks_;       // +0x25E4 file chunks (0073BD30)
+    stlp::SharedRefList fileRequests_;  // +0x25E8 file requests for the server (0073BC58)
     CRefObject* info_;                  // +0x25EC the game's description (0073BCA0), counted
     CRefObject* binding_;               // +0x25F0 our binding (0073BCB8), counted
     CRefObject* map_;                   // +0x25F4 the map message (0073BD00), counted
-    void* zones_;                       // +0x25F8 map messages the host may pick (0073BCD0)
-    void* variables_;                   // +0x25FC script variables (0073BCE8)
+    stlp::CountedRefList zones_;        // +0x25F8 map messages the host may pick (0073BCD0)
+    stlp::CountedRefList variables_;    // +0x25FC script variables (0073BCE8)
     RefPtr player_;                     // +0x2600 the local player's record (0073BBF8)
-    void* timers_;                      // +0x2604 {next, prev, seconds left, object}: objects kept for a while
-    void* awards_;                      // +0x2608 awards received, applied by ApplyAwards (0073BD48)
+    SharedTimedList timers_;            // +0x2604 {seconds left, object}: objects kept for a while
+    stlp::CountedRefList awards_;       // +0x2608 awards received, applied by ApplyAwards (0073BD48)
     RefPtr party_;                      // +0x260C our trade offer (party description 0073BD78)
-    void* offers_;                      // +0x2610 the other players' trade offers (0073BD78)
-    TradeRecordNode* tradeRecords_;     // +0x2614 the trades done (the list's sentinel)
+    stlp::CountedRefList offers_;       // +0x2610 the other players' trade offers (0073BD78)
+    stlp::list<TradeRecord> tradeRecords_;   // +0x2614 the trades done
     CRefObject* trade_;                 // +0x2618 the current trade (0073BD60), counted
     std::uint32_t gameType_;            // +0x261C the multiplayer game type 0..3 (StartServer 0057E740): start zone, type variable
     PartyStorage parties_[2];           // +0x2620 ours (published at +0x260C), +0x2690 the partner's

@@ -17,13 +17,6 @@
 namespace net {
 
 namespace {
-// The lines list (+0x2594): end, insert, node count, erase (library; the counted pointer from a raw
-// one without a reference is RefPtrFromRaw, core_refcount.h).
-__declspec(naked) void** __fastcall LinesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420450)
-__declspec(naked) void** __fastcall LinesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004225B0)
-__declspec(naked) void __fastcall CountLines(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290F0)
-__declspec(naked) void** __fastcall LinesErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00420460)
-
 constexpr std::uint32_t kMaxLines = 50;
 
 } // namespace
@@ -40,25 +33,19 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
         RefNullBOriginal(&line->connection_);
         ei::SetVtable(line, LineMessage::kVtableAddress);
     }
-    void* lines = &lines_;
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, line);   // 00428030
-    void* end;
-    LinesEnd(lines, nullptr, &end);
-    void* inserted;
-    LinesInsert(lines, nullptr, &inserted, end, value);
+    lines_.Insert(lines_.End(), *value);
 
-    void** sentinel = static_cast<void**>(lines_);
-    auto* added = static_cast<LineMessage*>(static_cast<void**>(sentinel[1])[2]);
+    auto* added = static_cast<LineMessage*>(lines_.End()->prev->data.ptr);
     added->text_.Assign(text);
     added->number_ = nextLine_;
     ++nextLine_;
 
     CRefObject* connection = nullptr;
     if (player && !(player->flags7_ & CRefObject::kDetached)) {
-        void** bindings = static_cast<void**>(bindings_);
-        for (void** node = static_cast<void**>(bindings[0]); node != bindings; node = static_cast<void**>(node[0])) {
-            auto* binding = static_cast<BindingMessage*>(node[2]);
+        for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
+            auto* binding = static_cast<BindingMessage*>(node->data.ptr);
             if (binding->PlayerRef().ptr == player) {
                 connection = binding->ConnectionRef().ptr;
                 break;
@@ -70,12 +57,9 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     if (connection) ++connection->refs_;
     if (previous) previous->Release();
 
-    std::uint32_t count = 0;
-    CountLines(&count, nullptr, static_cast<void**>(lines_)[0], lines_);
-    if (count > kMaxLines) {
-        void* erased;
-        LinesErase(lines, nullptr, &erased, static_cast<void**>(lines_)[0]);
-    }
+    int count = 0;
+    stlp::SharedRefList::Distance(lines_.First(), lines_.End(), count);
+    if (static_cast<std::uint32_t>(count) > kMaxLines) lines_.Erase(lines_.First());
 }
 
 // 0041A490: Announce with text `kind` of the text table formatted with `text`.

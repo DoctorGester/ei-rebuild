@@ -48,7 +48,6 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";   // 0079444
 CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
 
 // The multiplayer session's player records (STLport list of PlayerMessage pointers).
-using SessionPlayerList = stlp::list<net::PlayerMessage*>;
 
 // IDirect3DDevice7::SetRenderState / GetRenderState.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
@@ -297,10 +296,11 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     } else {
         int unitId = owner_->party_[region]->id_;
         // The session's player records: id_ (+0x2C) the player's unit, serial_ (+0x30) its id.
-        auto* end = static_cast<SessionPlayerList::Node*>(net::GameClient()->players_);
-        for (SessionPlayerList::Node* node = end->next; node != end; node = node->next) {
-            if (node->data->id_ == unitId) {
-                playerId = node->data->serial_;
+        net::RefNode* end = net::GameClient()->players_.End();
+        for (net::RefNode* node = end->next; node != end; node = node->next) {
+            auto* player = static_cast<net::PlayerMessage*>(node->data.ptr);
+            if (player->id_ == unitId) {
+                playerId = player->serial_;
                 break;
             }
         }

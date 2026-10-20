@@ -19,26 +19,9 @@
 namespace net {
 
 namespace {
-// The players list (+0x2590) and the bindings list (+0x25A4): end, insert(pos, value), begin (the
-// counted pointers come from RefPtrFromRaw, without a reference; the list insert adds one).
-__declspec(naked) void** __fastcall PlayersEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420390)
-__declspec(naked) void** __fastcall PlayersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004223D0)
-__declspec(naked) void** __fastcall PlayersBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420380)
-__declspec(naked) void** __fastcall BindingsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004206E0)
-__declspec(naked) void** __fastcall BindingsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00422BB0)
-__declspec(naked) void** __fastcall BindingsEnd2(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00422BA0)
-__declspec(naked) void** __fastcall BindingsBegin2(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00422B90)
-__declspec(naked) void __fastcall CountNodes(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429110)
-// erase(position) of the players and bindings lists, distance(first, last) (library).
-__declspec(naked) void** __fastcall PlayersErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x004293B0)
-__declspec(naked) void** __fastcall BindingsErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00429490)
-__declspec(naked) void __fastcall CountPlayers(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290D0)
-
-
-void* LastObject(void* list) {
-    void** sentinel = *static_cast<void***>(list);
-    return static_cast<void**>(sentinel[1])[2];
-}
+// The record just appended to a list of counted pointers.
+template <typename List>
+CRefObject* LastObject(const List& list) { return list.End()->prev->data.ptr; }
 // 0079B60C: the serial the next player record gets.
 std::uint32_t& PlayerCounter() { return *reinterpret_cast<std::uint32_t*>(0x0079B60C); }
 
@@ -61,16 +44,12 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         player->number_ = -1;
         player->serial_ = -1;
     }
-    void* players = &self->players_;
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, player);   // 00428040
-    void* end;
-    PlayersEnd(players, nullptr, &end);
-    void* inserted;
-    PlayersInsert(players, nullptr, &inserted, end, value);
+    self->players_.Insert(self->players_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
-    auto* record = static_cast<PlayerMessage*>(LastObject(players));
+    auto* record = static_cast<PlayerMessage*>(LastObject(self->players_));
 
     auto* binding = NewMessageMemory<BindingMessage>();
     if (binding) {
@@ -79,13 +58,11 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         RefNullBOriginal(&binding->ConnectionRef());
         ei::SetVtable(binding, BindingMessage::kVtableAddress);
     }
-    void* bindings = &self->bindings_;
     value = RefPtrFromRaw(&ref, binding);   // 00428050
-    BindingsEnd(bindings, nullptr, &end);
-    BindingsInsert(bindings, nullptr, &inserted, end, value);
+    self->bindings_.Insert(self->bindings_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
-    auto* bound = static_cast<BindingMessage*>(LastObject(bindings));
+    auto* bound = static_cast<BindingMessage*>(LastObject(self->bindings_));
 
     stlp::string* name = &record->name_;
     if (&msg->name_ != name) name->AssignFrom(msg->name_);
@@ -96,16 +73,12 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     // The lowest player number no player has yet.
     int number = 1;
     for (;;) {
-        void* it;
-        PlayersBegin(players, nullptr, &it);
         bool used = false;
-        while (it != *static_cast<void**>(players)) {
-            auto* other = static_cast<PlayerMessage*>(static_cast<void**>(it)[2]);
-            if (other->number_ == number) {
+        for (RefNode* it = self->players_.First(); it != self->players_.End(); it = it->next) {
+            if (static_cast<PlayerMessage*>(it->data.ptr)->number_ == number) {
                 used = true;
                 break;
             }
-            it = *static_cast<void**>(it);
         }
         if (!used) break;
         ++number;
@@ -124,11 +97,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         host = msg->host_ != 0;
     } else {
         int count = 0;
-        void* last;
-        void* lastValue = *BindingsEnd2(bindings, nullptr, &last);
-        void* first;
-        void* firstValue = *BindingsBegin2(bindings, nullptr, &first);
-        CountNodes(&count, nullptr, firstValue, lastValue);
+        stlp::SharedRefList::Distance(self->bindings_.First(), self->bindings_.End(), count);
         host = count == 1;
     }
     if (host) record->host_ = 1;
@@ -143,15 +112,11 @@ EI_REPLACE(0x0041ADB0, ServerOnJoin);
 namespace {
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 // Every node of `list` holding `value` erased (the next node taken first).
-template <typename Erase>
-void EraseValue(void* list, Erase erase, const void* value) {
-    void** sentinel = *static_cast<void***>(list);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
-        void** next = static_cast<void**>(node[0]);
-        if (node[2] == value) {
-            void* erased;
-            erase(list, nullptr, &erased, node);
-        }
+void EraseValue(stlp::SharedRefList& list, const void* value) {
+    RefNode* sentinel = list.End();
+    for (RefNode* node = sentinel->next; node != sentinel;) {
+        RefNode* next = node->next;
+        if (node->data.ptr == value) list.Erase(node);
         node = next;
     }
 }
@@ -181,20 +146,18 @@ void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
     if (Live(player)) {
         std::uint8_t wasHost = player->host_;
-        EraseValue(&self->players_, PlayersErase, player);
+        EraseValue(self->players_, player);
         if (wasHost) {
-            std::uint32_t count = 0;
-            void** sentinel = static_cast<void**>(self->players_);
-            CountPlayers(&count, nullptr, sentinel[0], sentinel);
-            if (count > 0) {
-                auto* first = static_cast<PlayerMessage*>(static_cast<void**>(static_cast<void**>(self->players_)[0])[2]);
+            int count = 0;
+            stlp::SharedRefList::Distance(self->players_.First(), self->players_.End(), count);
+            if (count != 0) {
+                auto* first = static_cast<PlayerMessage*>(self->players_.First()->data.ptr);
                 first->host_ = 1;
-                first = static_cast<PlayerMessage*>(static_cast<void**>(static_cast<void**>(self->players_)[0])[2]);
                 ++first->version_;
             }
         }
     }
-    EraseValue(&self->bindings_, BindingsErase, message->binding_.ptr);
+    EraseValue(self->bindings_, message->binding_.ptr);
 }
 EI_REPLACE(0x0041B0C0, ServerOnPlayerGone);
 

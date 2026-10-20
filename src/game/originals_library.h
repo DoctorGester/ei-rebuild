@@ -20,18 +20,6 @@ namespace console { class CStringArray; }
 namespace net { struct FreedBatch; struct HistoryNode; }
 namespace stlp { class string; }
 
-__declspec(naked) inline void** __fastcall PartiesEnd(void*, void*, void**) EI_ORIGINAL(0x004208A0)
-__declspec(naked) inline void __fastcall List25BCClear(void* /*list*/) EI_ORIGINAL(0x00421CD0)
-__declspec(naked) inline void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/)
-    EI_ORIGINAL(0x00422390)
-__declspec(naked) inline void* __fastcall ListConstruct4231C0(void* /*list*/, void*, const void* /*alloc*/)
-    EI_ORIGINAL(0x004231C0)
-__declspec(naked) inline void __fastcall List2610Destruct(void* /*list*/) EI_ORIGINAL(0x00423370)
-__declspec(naked) inline void __fastcall List25ACFree(void* /*list*/, void*, void* /*node*/, int /*n*/)
-    EI_ORIGINAL(0x00425A40)
-__declspec(naked) inline void __fastcall List25B0Clear(void* /*list*/) EI_ORIGINAL(0x00427100)
-__declspec(naked) inline void __fastcall List2598Clear(void* /*list*/) EI_ORIGINAL(0x004271C0)
-__declspec(naked) inline void** __fastcall PartiesErase(void*, void*, void**, void*) EI_ORIGINAL(0x004294D0)
 __declspec(naked) inline RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/)
     EI_ORIGINAL(0x0042AF80)
 __declspec(naked) inline void __fastcall NamesSetSizeOriginal(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
@@ -167,8 +155,6 @@ __declspec(naked) inline void __fastcall PtrListAddTailOriginal(void* /*list*/, 
 __declspec(naked) inline void __fastcall StringVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
                                                                             const void* /*first*/, unsigned /*count*/)
     EI_ORIGINAL(0x004DCE90)
-__declspec(naked) inline void** __fastcall ListEndIteratorOriginal(void* /*list*/, void*, void** /*out*/)
-    EI_ORIGINAL(0x0041FCD0)
 // 006FEB61: CStringArray::Copy(source) (RET 4, EAX not a result).
 inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* source) {
     static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
@@ -235,10 +221,6 @@ __declspec(naked) inline void __fastcall ItemListRemoveAllOriginal(void* /*list*
 // 00421AF0 and 00423190 on the 12-byte node pool (NetAddress / uint list, RefPtr list), 0056E8A0 on the cell lists.
 __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
                                                                     const void* /*value*/) EI_ORIGINAL(0x0056E8A0)
-__declspec(naked) inline void** __fastcall ListInsert421AF0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
-                                                                    const void* /*value*/) EI_ORIGINAL(0x00421AF0)
-__declspec(naked) inline void** __fastcall ListInsert423190Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
-                                                                    const void* /*value*/) EI_ORIGINAL(0x00423190)
 // 00421EB0: vector<RefPtr>::get_allocator (RET 4: out; copies the allocator tag byte at +8 to *out, EAX = out).
 // 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET).
 __declspec(naked) inline void* __fastcall VectorGetAllocatorOriginal(const void* /*vector*/, void*, void* /*out*/)

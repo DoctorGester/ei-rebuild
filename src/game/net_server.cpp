@@ -18,20 +18,6 @@ namespace {
 
 // 00421800: STLport string constructor with room for n bytes, library.
 
-// STLport list constructors, list taking the allocator; one per element type, library.
-__declspec(naked) void* __fastcall ListConstruct41FD30(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FD30)
-__declspec(naked) void* __fastcall ListConstruct422400(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00422400)
-__declspec(naked) void* __fastcall ListConstruct4225E0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004225E0)
-__declspec(naked) void* __fastcall ListConstruct422800(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00422800)
-__declspec(naked) void* __fastcall ListConstruct4229E0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004229E0)
-__declspec(naked) void* __fastcall ListConstruct422BE0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00422BE0)
-__declspec(naked) void* __fastcall ListConstruct422DC0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00422DC0)
-__declspec(naked) void* __fastcall ListConstruct4221E0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004221E0)
-__declspec(naked) void* __fastcall ListConstruct422FE0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00422FE0)
-__declspec(naked) void* __fastcall ListConstruct423440(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423440)
-__declspec(naked) void* __fastcall ListConstruct423700(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423700)
-__declspec(naked) void* __fastcall ListConstruct421B20(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00421B20)
-
 void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
 // 00783E30: the game's UDP port (read at run time, as the original does).
@@ -42,26 +28,25 @@ int GamePort() { return *reinterpret_cast<const volatile int*>(0x00783E30); }
 // The server base's constructor is inlined: the session base, the pending joins, the socket bound
 // to the game port.
 ServerSession* ServerSession::Construct(std::uint32_t kind) {
-    char allocator = 0;   // the containers' (empty) allocator argument
     SessionBase::Construct();
-    ListConstruct41FD30(&joins_, nullptr, &allocator);
+    joins_.Construct();
     ei::SetVtable(this, ServerBase::kVtableAddress);
     socket_.Open(GamePort());
     masterAddress_ = NetAddress{};
-    ListConstruct422400(&players_, nullptr, &allocator);
-    ListConstruct4225E0(&lines_, nullptr, &allocator);
-    ListConstruct422800(&files_, nullptr, &allocator);
-    ListConstruct4229E0(&fileRequests_, nullptr, &allocator);
+    players_.Construct();
+    lines_.Construct();
+    files_.Construct();
+    fileRequests_.Construct();
     hostInfo_.ptr = nullptr;
-    ListConstruct422BE0(&bindings_, nullptr, &allocator);
+    bindings_.Construct();
     map_.ptr = nullptr;
-    ListConstruct422DC0(&queuedMaps_, nullptr, &allocator);
-    ListConstruct4221E0(&variables_, nullptr, &allocator);
-    ListConstruct422FE0(&awards_, nullptr, &allocator);
-    ListConstruct4231C0(&offers_, nullptr, &allocator);
-    ListConstruct423440(&trades_, nullptr, &allocator);
-    ListConstruct423700(&finishedTrades_, nullptr, &allocator);
-    ListConstruct421B20(&banned_, nullptr, &allocator);
+    queuedMaps_.Construct();
+    variables_.Construct();
+    awards_.Construct();
+    offers_.Construct();
+    trades_.Construct();
+    finishedTrades_.Construct();
+    banned_.Construct();
     stlp::StringElement::Default(&name_);
     stlp::StringElement::Default(&mapName_);
     ei::SetVtable(this, kVtableAddress);
@@ -99,11 +84,9 @@ namespace {
 // A list node's message: lists of counted messages (RefNode), and the timed lists (TimedNode:
 // {seconds, object}).
 template <typename T = Message>
-T* ValueOf(void* node) { return static_cast<T*>(static_cast<RefNode*>(node)->data.ptr); }
+T* ValueOf(const RefNode* node) { return static_cast<T*>(node->data.ptr); }
 template <typename T>
-T* TimedValueOf(void* node) { return static_cast<T*>(static_cast<TimedNode*>(node)->data.object.ptr); }
-void* Head(void* list) { return *static_cast<void**>(list); }
-void* Next(void* node) { return *static_cast<void**>(node); }
+T* TimedValueOf(const TimedNode* node) { return static_cast<T*>(node->data.ref.ptr); }
 
 } // namespace
 
@@ -117,11 +100,10 @@ void* Next(void* node) { return *static_cast<void**>(node); }
 void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;
-    for (void* n = Next(Head(&players_)); n != Head(&players_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
-    for (void* n = Next(Head(&variables_)); n != Head(&variables_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
-    void* bindings = Head(&bindings_);
-    if (Next(bindings) != bindings) {
-        for (void* n = Next(bindings); n != Head(&bindings_); n = Next(n)) {
+    for (RefNode* n = players_.First(); n != players_.End(); n = n->next) PushReplicated(*out, ValueOf(n), 2);
+    for (RefNode* n = variables_.First(); n != variables_.End(); n = n->next) PushReplicated(*out, ValueOf(n), 2);
+    if (!bindings_.Empty()) {
+        for (RefNode* n = bindings_.First(); n != bindings_.End(); n = n->next) {
             auto* binding = ValueOf<BindingMessage>(n);
             if (binding->ConnectionRef().ptr != CurrentConnection()) continue;
             record = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
@@ -129,7 +111,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
             PushReplicated(*out, binding, 2);
         }
         if (record && !(record->flags7_ & CRefObject::kDetached)) {
-            for (void* n = Next(Head(&lines_)); n != Head(&lines_); n = Next(n)) {
+            for (RefNode* n = lines_.First(); n != lines_.End(); n = n->next) {
                 auto* line = ValueOf<LineMessage>(n);
                 CRefObject* target = line->connection_.ptr;
                 if ((!target || target == CurrentConnection()) &&
@@ -138,10 +120,10 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
             }
         }
     }
-    for (void* n = Next(Head(&files_)); n != Head(&files_); n = Next(n)) {
+    for (RefNode* n = files_.First(); n != files_.End(); n = n->next) {
         PushReplicated(*out, ValueOf(n), 2);
-        void* requests = Head(&fileRequests_);
-        for (void* m = Next(requests); m != requests; m = Next(m)) {
+        RefNode* requests = fileRequests_.End();
+        for (RefNode* m = requests->next; m != requests; m = m->next) {
             auto* request = ValueOf<FileRequestMessage>(m);
             if (request->FileRef().ptr != ValueOf(n) || request->ConnectionRef().ptr != CurrentConnection()) continue;
             const RefVector& chunks = ValueOf<FileMessage>(n)->chunks_;
@@ -150,14 +132,14 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         }
     }
     if (hosting)
-        for (void* n = Next(Head(&queuedMaps_)); n != Head(&queuedMaps_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
+        for (RefNode* n = queuedMaps_.First(); n != queuedMaps_.End(); n = n->next) PushReplicated(*out, ValueOf(n), 2);
     if (CRefObject* object = hostInfo_.ptr) PushReplicated(*out, object, 2);
     if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
-    for (void* n = Next(Head(&awards_)); n != Head(&awards_); n = Next(n)) {
+    for (TimedNode* n = awards_.First(); n != awards_.End(); n = n->next) {
         auto* award = TimedValueOf<AwardMessage>(n);
         if (award->connection_.ptr == CurrentConnection()) PushReplicated(*out, award, 2);
     }
-    for (void* n = Next(Head(&offers_)); n != Head(&offers_); n = Next(n)) {
+    for (RefNode* n = offers_.First(); n != offers_.End(); n = n->next) {
         auto* offer = ValueOf<PartyMessage>(n);
         if (offer->partner_.ptr != record) continue;
         bool complete = true;
@@ -171,17 +153,15 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
             PushReplicated(*out, ValueOf<PartyMessage>(n)->members_.begin()[i].ptr, 2);
     }
-    for (void* n = Next(Head(&trades_)); n != Head(&trades_); n = Next(n)) {
+    for (RefNode* n = trades_.First(); n != trades_.End(); n = n->next) {
         auto* trade = ValueOf<TradeMessage>(n);
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
-    for (void* n = Next(Head(&finishedTrades_)); n != Head(&finishedTrades_); n = Next(n)) {
+    for (TimedNode* n = finishedTrades_.First(); n != finishedTrades_.End(); n = n->next) {
         auto* trade = TimedValueOf<TradeMessage>(n);
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00417EB0, ServerSession::CollectReplicatedImpl);
 
 } // namespace net

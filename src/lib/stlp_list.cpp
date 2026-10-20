@@ -217,10 +217,10 @@ using PlainList16 = stlp::ListAbi<stlp::Opaque<16>>;
 using PlainList20 = stlp::ListAbi<stlp::Opaque<20>>;
 using PlainList28 = stlp::ListAbi<stlp::Opaque<28>>;
 using PlainList260 = stlp::ListAbi<stlp::Opaque<0x104>>;
-using SharedRefList = stlp::ListAbi<RefPtr, stlp::SharedRef>;
-using CountedRefList = stlp::ListAbi<RefPtr, stlp::CountedRef>;
-using SharedEntryList = stlp::ListAbi<stlp::RefEntry, stlp::SharedEntry>;
-using CountedEntryList = stlp::ListAbi<stlp::RefEntry, stlp::CountedEntry>;
+using SharedRefAbi = stlp::ListAbi<RefPtr, stlp::SharedRef>;
+using CountedRefAbi = stlp::ListAbi<RefPtr, stlp::CountedRef>;
+using SharedEntryAbi = stlp::ListAbi<stlp::RefEntry, stlp::SharedEntry>;
+using CountedEntryAbi = stlp::ListAbi<stlp::RefEntry, stlp::CountedEntry>;
 using HeldObjectList = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
 using CStringList = stlp::ListAbi<mfc::CString>;
 using StringDwordList = stlp::ListAbi<stlp::StringDwordPair, stlp::StringDwordElement>;
@@ -262,27 +262,27 @@ EI_REPLACE(0x0056EAF0, List32::Insert);   // S16a: the client's screen entries (
 EI_REPLACE(0x005392C0, PlainList20::Insert);
 EI_REPLACE(0x00439C50, PlainList260::Insert);
 // insert(pos, x) of SharedRef (9), CountedRef (11), SharedEntry, HeldObject (3) and CString.
-EI_REPLACE(0x004221B0, SharedRefList::Insert);
-EI_REPLACE(0x004223D0, SharedRefList::Insert);
-EI_REPLACE(0x004225B0, SharedRefList::Insert);
-EI_REPLACE(0x004227D0, SharedRefList::Insert);
-EI_REPLACE(0x00422BB0, SharedRefList::Insert);
-EI_REPLACE(0x00424100, SharedRefList::Insert);
-EI_REPLACE(0x00439E30, SharedRefList::Insert);
-EI_REPLACE(0x004437A0, SharedRefList::Insert);
-EI_REPLACE(0x0047A450, SharedRefList::Insert);
-EI_REPLACE(0x004229B0, CountedRefList::Insert);
-EI_REPLACE(0x00423190, CountedRefList::Insert);
-EI_REPLACE(0x00423410, CountedRefList::Insert);
-EI_REPLACE(0x00423960, CountedRefList::Insert);
-EI_REPLACE(0x00423B50, CountedRefList::Insert);
-EI_REPLACE(0x00423D40, CountedRefList::Insert);
-EI_REPLACE(0x00423F20, CountedRefList::Insert);
-EI_REPLACE(0x004242F0, CountedRefList::Insert);
-EI_REPLACE(0x004244E0, CountedRefList::Insert);
-EI_REPLACE(0x00424720, CountedRefList::Insert);
-EI_REPLACE(0x0047A480, CountedRefList::Insert);
-EI_REPLACE(0x00426230, SharedEntryList::Insert);
+EI_REPLACE(0x004221B0, SharedRefAbi::Insert);
+EI_REPLACE(0x004223D0, SharedRefAbi::Insert);
+EI_REPLACE(0x004225B0, SharedRefAbi::Insert);
+EI_REPLACE(0x004227D0, SharedRefAbi::Insert);
+EI_REPLACE(0x00422BB0, SharedRefAbi::Insert);
+EI_REPLACE(0x00424100, SharedRefAbi::Insert);
+EI_REPLACE(0x00439E30, SharedRefAbi::Insert);
+EI_REPLACE(0x004437A0, SharedRefAbi::Insert);
+EI_REPLACE(0x0047A450, SharedRefAbi::Insert);
+EI_REPLACE(0x004229B0, CountedRefAbi::Insert);
+EI_REPLACE(0x00423190, CountedRefAbi::Insert);
+EI_REPLACE(0x00423410, CountedRefAbi::Insert);
+EI_REPLACE(0x00423960, CountedRefAbi::Insert);
+EI_REPLACE(0x00423B50, CountedRefAbi::Insert);
+EI_REPLACE(0x00423D40, CountedRefAbi::Insert);
+EI_REPLACE(0x00423F20, CountedRefAbi::Insert);
+EI_REPLACE(0x004242F0, CountedRefAbi::Insert);
+EI_REPLACE(0x004244E0, CountedRefAbi::Insert);
+EI_REPLACE(0x00424720, CountedRefAbi::Insert);
+EI_REPLACE(0x0047A480, CountedRefAbi::Insert);
+EI_REPLACE(0x00426230, SharedEntryAbi::Insert);
 EI_REPLACE(0x0056E8A0, HeldObjectList::Insert);
 EI_REPLACE(0x00572B00, HeldObjectList::Insert);
 EI_REPLACE(0x0069C410, HeldObjectList::Insert);
@@ -299,32 +299,32 @@ EI_REPLACE(0x005F9C70, CStringList::CreateNode);
 EI_REPLACE(0x004FB8B0, StringDwordList::CreateNode);
 
 // push_back(x): end(), then the instantiation's insert.
-EI_REPLACE(0x004207C0, SharedRefList::PushBack);
-EI_REPLACE(0x00422F70, SharedEntryList::PushBack);
-EI_REPLACE(0x004246C0, SharedEntryList::PushBack);
-EI_REPLACE(0x00423690, CountedEntryList::PushBack);
+EI_REPLACE(0x004207C0, SharedRefAbi::PushBack);
+EI_REPLACE(0x00422F70, SharedEntryAbi::PushBack);
+EI_REPLACE(0x004246C0, SharedEntryAbi::PushBack);
+EI_REPLACE(0x00423690, CountedEntryAbi::PushBack);
 EI_REPLACE(0x0056DED0, HeldObjectList::PushBack);
 
 // erase(pos): SharedRef (8), CountedRef (8), SharedEntry (2), CountedEntry and CString.
-EI_REPLACE(0x00420290, SharedRefList::Erase);
-EI_REPLACE(0x00420460, SharedRefList::Erase);
-EI_REPLACE(0x004293B0, SharedRefList::Erase);
-EI_REPLACE(0x00429490, SharedRefList::Erase);
-EI_REPLACE(0x00429650, SharedRefList::Erase);
-EI_REPLACE(0x00438840, SharedRefList::Erase);
-EI_REPLACE(0x004436D0, SharedRefList::Erase);
-EI_REPLACE(0x0047A380, SharedRefList::Erase);
-EI_REPLACE(0x004293F0, CountedRefList::Erase);
-EI_REPLACE(0x004294D0, CountedRefList::Erase);
-EI_REPLACE(0x00429550, CountedRefList::Erase);
-EI_REPLACE(0x00429590, CountedRefList::Erase);
-EI_REPLACE(0x004295D0, CountedRefList::Erase);
-EI_REPLACE(0x00429610, CountedRefList::Erase);
-EI_REPLACE(0x00429690, CountedRefList::Erase);
-EI_REPLACE(0x004296D0, CountedRefList::Erase);
-EI_REPLACE(0x00422FA0, SharedEntryList::Erase);
-EI_REPLACE(0x004246E0, SharedEntryList::Erase);
-EI_REPLACE(0x004236C0, CountedEntryList::Erase);
+EI_REPLACE(0x00420290, SharedRefAbi::Erase);
+EI_REPLACE(0x00420460, SharedRefAbi::Erase);
+EI_REPLACE(0x004293B0, SharedRefAbi::Erase);
+EI_REPLACE(0x00429490, SharedRefAbi::Erase);
+EI_REPLACE(0x00429650, SharedRefAbi::Erase);
+EI_REPLACE(0x00438840, SharedRefAbi::Erase);
+EI_REPLACE(0x004436D0, SharedRefAbi::Erase);
+EI_REPLACE(0x0047A380, SharedRefAbi::Erase);
+EI_REPLACE(0x004293F0, CountedRefAbi::Erase);
+EI_REPLACE(0x004294D0, CountedRefAbi::Erase);
+EI_REPLACE(0x00429550, CountedRefAbi::Erase);
+EI_REPLACE(0x00429590, CountedRefAbi::Erase);
+EI_REPLACE(0x004295D0, CountedRefAbi::Erase);
+EI_REPLACE(0x00429610, CountedRefAbi::Erase);
+EI_REPLACE(0x00429690, CountedRefAbi::Erase);
+EI_REPLACE(0x004296D0, CountedRefAbi::Erase);
+EI_REPLACE(0x00422FA0, SharedEntryAbi::Erase);
+EI_REPLACE(0x004246E0, SharedEntryAbi::Erase);
+EI_REPLACE(0x004236C0, CountedEntryAbi::Erase);
 EI_REPLACE(0x005F8E50, CStringList::Erase);
 // erase(pos) of the connection's 0x104-byte headers (nodes from operator new; S12d).
 EI_REPLACE(0x00438660, PlainList260::Erase);
@@ -332,22 +332,22 @@ EI_REPLACE(0x00438660, PlainList260::Erase);
 EI_REPLACE(0x004FAE00, StringDwordList::Erase);
 
 // clear(): SharedRef (7), CountedRef (8), SharedEntry (2).
-EI_REPLACE(0x00427100, SharedRefList::Clear);
-EI_REPLACE(0x00427140, SharedRefList::Clear);
-EI_REPLACE(0x00427180, SharedRefList::Clear);
-EI_REPLACE(0x004271C0, SharedRefList::Clear);
-EI_REPLACE(0x00427260, SharedRefList::Clear);
-EI_REPLACE(0x004272A0, SharedRefList::Clear);
-EI_REPLACE(0x00427480, SharedRefList::Clear);
-EI_REPLACE(0x00427200, CountedRefList::Clear);
-EI_REPLACE(0x00427360, CountedRefList::Clear);
-EI_REPLACE(0x004273A0, CountedRefList::Clear);
-EI_REPLACE(0x004273E0, CountedRefList::Clear);
-EI_REPLACE(0x00427420, CountedRefList::Clear);
-EI_REPLACE(0x004274C0, CountedRefList::Clear);
-EI_REPLACE(0x00427500, CountedRefList::Clear);
-EI_REPLACE(0x004275A0, CountedRefList::Clear);
-EI_REPLACE(0x004272E0, SharedEntryList::Clear);
+EI_REPLACE(0x00427100, SharedRefAbi::Clear);
+EI_REPLACE(0x00427140, SharedRefAbi::Clear);
+EI_REPLACE(0x00427180, SharedRefAbi::Clear);
+EI_REPLACE(0x004271C0, SharedRefAbi::Clear);
+EI_REPLACE(0x00427260, SharedRefAbi::Clear);
+EI_REPLACE(0x004272A0, SharedRefAbi::Clear);
+EI_REPLACE(0x00427480, SharedRefAbi::Clear);
+EI_REPLACE(0x00427200, CountedRefAbi::Clear);
+EI_REPLACE(0x00427360, CountedRefAbi::Clear);
+EI_REPLACE(0x004273A0, CountedRefAbi::Clear);
+EI_REPLACE(0x004273E0, CountedRefAbi::Clear);
+EI_REPLACE(0x00427420, CountedRefAbi::Clear);
+EI_REPLACE(0x004274C0, CountedRefAbi::Clear);
+EI_REPLACE(0x00427500, CountedRefAbi::Clear);
+EI_REPLACE(0x004275A0, CountedRefAbi::Clear);
+EI_REPLACE(0x004272E0, SharedEntryAbi::Clear);
 // The client's sector grids' cell lists (S16, on the standalone boot path): clear (2), erase,
 // ~list (2).
 EI_REPLACE(0x005703C0, HeldObjectList::Clear);
@@ -356,20 +356,20 @@ EI_REPLACE(0x00572270, HeldObjectList::Erase);
 EI_REPLACE(0x005755E0, HeldObjectList::Erase);   // S16a: the second grid's cells
 EI_REPLACE(0x00572E90, HeldObjectList::Destruct);
 EI_REPLACE(0x0069BE70, HeldObjectList::Destruct);
-EI_REPLACE(0x00427560, SharedEntryList::Clear);
+EI_REPLACE(0x00427560, SharedEntryAbi::Clear);
 EI_REPLACE(0x004FBCF0, StringDwordList::Clear);   // S12c: the link loader's archives
 
 // ~list() of CountedRef (the release inlined): 2 instantiations.
-EI_REPLACE(0x00423370, CountedRefList::Destruct);
-EI_REPLACE(0x004235F0, CountedRefList::Destruct);
+EI_REPLACE(0x00423370, CountedRefAbi::Destruct);
+EI_REPLACE(0x004235F0, CountedRefAbi::Destruct);
 
 // S12g: ~list() of the client's servers (SharedRef, the owner's release inlined) and of the
 // server's keyed references at +0x25C0 (CountedEntry); insert(pos, first, last) of SharedRef and
 // CountedRef (each element through the instantiation's insert 0047A450 / 0047A480).
-EI_REPLACE(0x00421A50, SharedRefList::Destruct);
-EI_REPLACE(0x004238B0, CountedEntryList::Destruct);
-EI_REPLACE(0x00560430, SharedRefList::InsertRange);
-EI_REPLACE(0x00560460, CountedRefList::InsertRange);
+EI_REPLACE(0x00421A50, SharedRefAbi::Destruct);
+EI_REPLACE(0x004238B0, CountedEntryAbi::Destruct);
+EI_REPLACE(0x00560430, SharedRefAbi::InsertRange);
+EI_REPLACE(0x00560460, CountedRefAbi::InsertRange);
 
 // remove(value) of CountedRef (erasing through 00429510).
 EI_REPLACE(0x00427320, stlp::ListRemoveCounted);

@@ -7,6 +7,7 @@
 #include "core_refcount.h"
 #include "item.h"
 #include "party.h"
+#include "record_lists.h"
 #include "spell.h"
 
 #include "ei/hook.h"
@@ -28,12 +29,11 @@ namespace {
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
 __declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
 
-// vector<CEngineObject*> with counted elements (library), the +0x2614 list erase, the party's
+// vector<CEngineObject*> with counted elements (library), the party's
 // reset and add (00661050 class, outside this range).
 __declspec(naked) void __fastcall ObjectVectorConstruct(void* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00424B40)
 __declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, void*, CEngineObject** /*pos*/, CEngineObject* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00428A20)
 __declspec(naked) void __fastcall ObjectVectorDeallocate(CEngineObject** /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004268A0)
-__declspec(naked) void** __fastcall List2614Erase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00429770)
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 inline int __fastcall PartyAdd(void* a0, void*, void* a2, int a3, int a4) { return (int)static_cast<CParty*>(a0)->AddItem(static_cast<CItem*>(a2), a3, a4); }
 
@@ -147,8 +147,7 @@ EI_REPLACE(0x0041DA50, ClientPublishParty);
 void* __fastcall ClientFindParty(ClientSession* self) {
     auto* ours = static_cast<PartyMessage*>(self->party_.ptr);
     if (!ours) return nullptr;
-    auto* sentinel = static_cast<OfferNode*>(self->offers_);
-    for (OfferNode* node = sentinel->next; node != sentinel; node = node->next) {
+    for (OfferNode* node = self->offers_.First(); node != self->offers_.End(); node = node->next) {
         auto* other = static_cast<PartyMessage*>(node->data.ptr);
         if (other->partner_.ptr != ours->player_.ptr || other->player_.ptr != ours->partner_.ptr) continue;
         if (other && !(other->flags7_ & CRefObject::kDetached)) return other;
@@ -218,15 +217,12 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
     for (std::uint32_t i = 0; i < count(); ++i) PartyAdd(party, nullptr, items[i], 1, 1);
 
-    void* entries = &self->tradeRecords_;
     std::int32_t revision = static_cast<std::int32_t>(remote->revision_);
-    TradeRecordNode* sentinel = self->tradeRecords_;
+    TradeRecordNode* sentinel = self->tradeRecords_.End();
     for (TradeRecordNode* node = sentinel->next; node != sentinel;) {
         TradeRecordNode* next = node->next;
-        if (static_cast<std::int32_t>(node->acceptedRevision) < revision) {
-            void* erased;
-            List2614Erase(entries, nullptr, &erased, node);
-        }
+        if (static_cast<std::int32_t>(node->data.acceptedRevision) < revision)
+            stlp::list<TradeRecord>::Erase<recordlist::TradeElement>(node);
         node = next;
     }
     for (CEngineObject** p = items.begin(); p != items.end(); ++p)

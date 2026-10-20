@@ -37,22 +37,27 @@ struct CountedRef {
     static void Destroy(RefPtr* p) { RefPtrRelease(p); }
 };
 
-// RefEntry: the key, then the reference as SharedRef (e.g. 00426680; destroyed as 00421560).
+// A key and a reference (RefEntry, or another pair of a dword and a RefPtr with the same member
+// names): the key, then the reference as SharedRef (e.g. 00426680; destroyed as 00421560).
 struct SharedEntry {
-    static void Copy(RefEntry* to, const RefEntry& from) {
+    template <typename Entry>
+    static void Copy(Entry* to, const Entry& from) {
         to->key = from.key;
         SharedRef::Copy(&to->ref, from.ref);
     }
-    static void Destroy(RefEntry* p) { SharedRef::Destroy(&p->ref); }
+    template <typename Entry>
+    static void Destroy(Entry* p) { SharedRef::Destroy(&p->ref); }
 };
 
-// RefEntry: the key, then the reference as CountedRef (e.g. 004265F0; destroyed as 004215A0).
+// The same with the reference as CountedRef (e.g. 004265F0; destroyed as 004215A0).
 struct CountedEntry {
-    static void Copy(RefEntry* to, const RefEntry& from) {
+    template <typename Entry>
+    static void Copy(Entry* to, const Entry& from) {
         to->key = from.key;
         CountedRef::Copy(&to->ref, from.ref);
     }
-    static void Destroy(RefEntry* p) { CountedRef::Destroy(&p->ref); }
+    template <typename Entry>
+    static void Destroy(Entry* p) { CountedRef::Destroy(&p->ref); }
 };
 
 // A held engine object copied with one more reference (its dword count; e.g. 0056F680) and
@@ -66,6 +71,34 @@ struct HeldObject {
         if (*p) (*p)->Release();
     }
 };
+
+// A list<T> of an instantiation that copies and destroys its elements by the policy E: the members
+// its code compiles (stlp_list.h's bodies with E; the game's out-of-line copies are registered in
+// stlp_list.cpp). Construct (the sentinel) and the walks (First, End, Distance) are list<T>'s.
+template <typename T, typename E>
+struct PolicyList : list<T> {
+    using Base = list<T>;
+    using Node = typename Base::Node;
+
+    // insert(pos, x) (e.g. 004229B0): a copy of x linked in before pos.
+    Node* Insert(Node* pos, const T& x) { return Base::template Insert<E>(pos, x); }
+    // push_back(x) (e.g. 004207C0).
+    void PushBack(const T& x) { Base::template Insert<E>(this->head, x); }
+    // erase(pos) (e.g. 00420290): the node after pos.
+    Node* Erase(Node* pos) { return Base::template Erase<E>(pos); }
+    // clear() (e.g. 00427100).
+    void Clear() { Base::template Clear<E>(); }
+    // ~list() (e.g. 00423370): clear(), then the sentinel back to the pool.
+    void Release() { Base::template Release<E>(); }
+    template <typename Same> void Remove(const T& x, Same same) { Base::template Remove<E>(x, same); }
+};
+
+// The reference lists by their element policy.
+using SharedRefList = PolicyList<RefPtr, SharedRef>;
+using CountedRefList = PolicyList<RefPtr, CountedRef>;
+using SharedEntryList = PolicyList<RefEntry, SharedEntry>;
+using CountedEntryList = PolicyList<RefEntry, CountedEntry>;
+static_assert(sizeof(SharedRefList) == 4);
 
 // RefPtr equality for remove(value): the same object.
 struct SameObject {
