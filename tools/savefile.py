@@ -30,6 +30,7 @@ import argparse, re, struct, sys
 MAGIC_SCENARIO = 0xDEAD
 MAGIC_MISSION = 0x102
 MAGIC_INFO = 0x111
+MAGIC_PARTY = 0x114   # a multiplayer hero, mp\<n>.mp (MpHeroRecord::WriteFile 00662AC0)
 
 
 class DecodeError(Exception):
@@ -527,6 +528,9 @@ def decode_data(data, name=''):
         savefile_scenario.read_scenario(r)
     elif magic == MAGIC_INFO:
         read_info(r)
+    elif magic == MAGIC_PARTY:
+        import savefile_scenario
+        savefile_scenario.read_party(r, 'party', "the hero's party (CParty::SaveParty with variables)")
     else:
         raise DecodeError(f'{name}: unknown magic {magic:#x}')
     if not r.at_end():

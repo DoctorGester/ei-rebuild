@@ -1,0 +1,332 @@
+# SV5d3: a quest finished in the multiplayer game zone and the zone completed on the base (CompleteZone), in a
+# public game whose master server answers (a pair of games, harness_pair.h). This game hosts with a prepared
+# strong hero (tools/make_mp_hero.py: a new hero's file with strength 1000, a 300-damage axe and armour that
+# absorbs 100 of every damage type; a new level 1 hero loses every multiplayer quest's fight); the peer
+# (peer/net_pair_quest.txt) joins with a new hero and waits on the base.
+# - The hero list shows only the prepared hero (mp\ is read from the run's overlay only): row 0 (region 9),
+#   continue (region 1) to the connection screen.
+# - Public (region 4) with the master on the pair's virtual port 28124 ("masterhost", "fakemaster"): every
+#   announcement (AnnounceToMaster 0041AA10) is answered with a master packet: OnMaster 0041ACA0 keeps its
+#   token, which the next announcement carries back (the report's MASTER: line).
+# - The pair's offer (z3q2 z6q1 z7q1 z9q2 on both installs): the sheriff's fifth topic (region 4) is z9q2,
+#   "Danger near the City of the Dead": the old camp in the north-west of zone9 (the quest place 80.5 264.5)
+#   and its ten undead (1000188..1000197, around 8..55 x 266..309). The briefing is clicked through after the
+#   peer has joined (a guest joining while the host's briefing runs crashes the original and the image alike
+#   in CTextManager::PeekWord, from CBriefingScreen::NextPhrase).
+# - Walks: the wheel zooms out; before each clickground step "lookat" clicks the minimap to bring the camera
+#   over the target (the minimap is centred on the camera, 1 layout pixel about 2.8 map units on vanilla's,
+#   3.75 x 2.7 on Rebirth's wider one; the camera goes back to the hero at times). Each step is repeated
+#   because a fight stops the walk. The last undead killed: QuestComplete -> FinishQuestMap 0057FB90 ->
+#   FinishMap 004193F0 queues "z9q2_3".
+# - Back through exit 1 (remove rectangle 205 305 215 320; the leave box's Enter), then the sheriff's middle
+#   topic "The undead are destroyed" (z9q2_3): command 1 -> CompleteZone 00418ED0 (text 7 announced, the kind 0
+#   and kind 1 awards shared by the two clients, the host's items with the final award, the next zones
+#   queued); 60 s later the awards reach both clients (ClientOnAward 0041EF90).
+# prepare: make_mp_hero.py --stats 1000 60 60 --skills 60 --damage 300 --absorb 100
+timeout 480
+peer net_pair_quest
+reject Script error
+waitmenu
+masterhost 127.0.0.1:28124
+fakemaster 28124
+clickregion 5
+waitwindow 15 heroes
+wait 500
+frames 10
+clickregion 9
+frames 10
+clickregion 1
+frames 10
+waitwindow 15 00741CD0
+
+clickregion 4
+frames 5
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+peerwait 90 joined
+frames 20
+
+# The sheriff's fifth topic takes z9q2 (seven phrases).
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+clickregion 4
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z9q2
+frames 40
+
+# The camera zoomed out; the walk to the old camp.
+key f1
+frames 3
+wheel 400 300 -120
+frames 5
+wheel 400 300 -120
+frames 5
+wheel 400 300 -120
+frames 5
+wheel 400 300 -120
+frames 5
+vanilla minimap 701 81 2.8 2.8
+rebirth minimap 726 80.6 3.75 2.7
+lookat 80 264
+frames 5
+lookat 80 264
+frames 5
+clickground 80 264 dblclick
+frames 150
+lookat 80 264
+frames 5
+lookat 80 264
+frames 5
+clickground 80 264 dblclick
+frames 150
+lookat 80 264
+frames 5
+lookat 80 264
+frames 5
+clickground 80 264 dblclick
+frames 150
+lookat 80 264
+frames 5
+lookat 80 264
+frames 5
+clickground 80 264 dblclick
+frames 150
+lookat 80 264
+frames 5
+lookat 80 264
+frames 5
+clickground 80 264 dblclick
+frames 150
+lookat 80 264
+frames 5
+lookat 80 264
+frames 5
+clickground 80 264 dblclick
+frames 150
+
+# The undead: the west part of the camp (the camera stops at the map's edge), then the east part.
+lookat 40 280
+frames 5
+lookat 40 280
+frames 5
+clickground 40 280 dblclick
+frames 150
+lookat 40 280
+frames 5
+lookat 40 280
+frames 5
+clickground 40 280 dblclick
+frames 150
+lookat 25 292
+frames 5
+lookat 25 292
+frames 5
+clickground 25 292 dblclick
+frames 150
+lookat 25 292
+frames 5
+lookat 25 292
+frames 5
+clickground 25 292 dblclick
+frames 150
+lookat 10 280
+frames 5
+lookat 10 280
+frames 5
+clickground 10 280 dblclick
+frames 150
+lookat 10 280
+frames 5
+lookat 10 280
+frames 5
+clickground 10 280 dblclick
+frames 150
+lookat 25 305
+frames 5
+lookat 25 305
+frames 5
+clickground 25 305 dblclick
+frames 150
+lookat 25 305
+frames 5
+lookat 25 305
+frames 5
+clickground 25 305 dblclick
+frames 150
+lookat 10 292
+frames 5
+lookat 10 292
+frames 5
+clickground 10 292 dblclick
+frames 150
+lookat 10 292
+frames 5
+lookat 10 292
+frames 5
+clickground 10 292 dblclick
+frames 150
+lookat 40 304
+frames 5
+lookat 40 304
+frames 5
+clickground 40 304 dblclick
+frames 150
+lookat 40 304
+frames 5
+lookat 40 304
+frames 5
+clickground 40 304 dblclick
+frames 150
+lookat 40 285
+frames 5
+lookat 40 285
+frames 5
+clickground 40 285 dblclick
+frames 150
+lookat 40 285
+frames 5
+lookat 40 285
+frames 5
+clickground 40 285 dblclick
+frames 150
+lookat 36 265
+frames 5
+lookat 36 265
+frames 5
+clickground 36 265 dblclick
+frames 150
+lookat 36 265
+frames 5
+lookat 36 265
+frames 5
+clickground 36 265 dblclick
+frames 150
+lookat 55 288
+frames 5
+lookat 55 288
+frames 5
+clickground 55 288 dblclick
+frames 150
+lookat 55 288
+frames 5
+lookat 55 288
+frames 5
+clickground 55 288 dblclick
+frames 150
+lookat 52 292
+frames 5
+lookat 52 292
+frames 5
+clickground 52 292 dblclick
+frames 150
+lookat 52 292
+frames 5
+lookat 52 292
+frames 5
+clickground 52 292 dblclick
+frames 150
+lookat 45 280
+frames 5
+lookat 45 280
+frames 5
+clickground 45 280 dblclick
+frames 150
+lookat 45 280
+frames 5
+lookat 45 280
+frames 5
+clickground 45 280 dblclick
+frames 150
+
+# Back to exit 1.
+lookat 210 312
+frames 5
+lookat 210 312
+frames 5
+clickground 210 312 dblclick
+frames 150
+lookat 210 312
+frames 5
+lookat 210 312
+frames 5
+clickground 210 312 dblclick
+frames 150
+lookat 210 312
+frames 5
+lookat 210 312
+frames 5
+clickground 210 312 dblclick
+frames 150
+lookat 210 312
+frames 5
+lookat 210 312
+frames 5
+clickground 210 312 dblclick
+frames 150
+lookat 210 312
+frames 5
+lookat 210 312
+frames 5
+clickground 210 312 dblclick
+frames 150
+lookat 210 312
+frames 5
+lookat 210 312
+frames 5
+clickground 210 312 dblclick
+frames 150
+waitwindow 30 msgbox
+key enter
+waitwindow 60 briefing
+frames 40
+
+# The sheriff's middle topic completes the zone.
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+capture topics
+clickregion 1
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+# The awards go out 60 s after CompleteZone queued them.
+frames 400
+peersignal done
+frames 20
+report
+quit

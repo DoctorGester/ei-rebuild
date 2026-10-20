@@ -344,10 +344,10 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 897BAE32 n 69
+@ 1 update 40 frame 7 tick 20 zone - hash B650D919 n 69
 world updates 40
 world paused 1
-random isaac.count 97
+random isaac.count 100
 client tick 21
 client paused 1
 client ticksRun 37
@@ -359,104 +359,104 @@ cunit129 #place 9095538D
 cunit148 #place 871EB996
 cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
-+ cunit1000011214 80 unhuma "Yob"
++ cunit1000011214 80 unhuma ""
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit E726EBC8
-cunit1000011214 #vitals 24605452
-@ 2 update 60 frame 11 tick 20 zone - hash D3101921 n 69
+cunit1000011214 #unit 7D1B4726
+cunit1000011214 #vitals 68D49C6E
+@ 2 update 60 frame 11 tick 20 zone - hash 223A96C2 n 69
 world updates 60
-random isaac.count 234
+random isaac.count 13
+client ticksRun 57
+@ 3 update 80 frame 15 tick 20 zone - hash C8CC9D63 n 69
+world updates 80
+random isaac.count 212
 random isaac.a 0xAD54DD2B
 random isaac.b 0xA8A4A46F
 random isaac.c 0x00000010
 random isaac.results 0xEDE387CF
 random isaac.memory 0x679D48CE
-client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 8D76D8FF n 69
-world updates 80
-random isaac.count 155
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash 778EA813 n 69
+@ 4 update 100 frame 19 tick 20 zone - hash 336D88EF n 69
 world updates 100
-random isaac.count 88
+random isaac.count 143
 client ticksRun 97
-@ 5 update 120 frame 23 tick 20 zone - hash F796B7C7 n 69
+@ 5 update 120 frame 23 tick 20 zone - hash C1EFFA6A n 69
 world updates 120
-random isaac.count 23
+random isaac.count 62
 client ticksRun 117
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 98B30BEB
+cunit1000011214 #unit FB61B7EB
 cunit1000011214 #vitals A7CF3098
-@ 6 update 140 frame 27 tick 20 zone - hash AC94CF4A n 69
+@ 6 update 140 frame 27 tick 20 zone - hash F3A90C99 n 69
 world updates 140
-random isaac.count 195
+random isaac.count 6
+client ticksRun 137
+@ 7 update 160 frame 31 tick 20 zone - hash 88528BF2 n 69
+world updates 160
+random isaac.count 146
 random isaac.a 0x59688C84
 random isaac.b 0x05C0F64A
 random isaac.c 0x00000011
 random isaac.results 0x3985745C
 random isaac.memory 0xD598B619
-client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash 3B7C4553 n 69
-world updates 160
-random isaac.count 118
 random crt.rand 0x010C970A
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash 4D5F0215 n 69
+@ 8 update 180 frame 35 tick 20 zone - hash FF31DCD7 n 69
 world updates 180
-random isaac.count 38
+random isaac.count 80
 client ticksRun 177
-@ 9 update 200 frame 39 tick 20 zone - hash D6C6A954 n 69
+@ 9 update 200 frame 39 tick 20 zone - hash 1B8F0C98 n 69
 world updates 200
-random isaac.count 236
+random isaac.count 26
+random crt.rand 0x1A3D81A5
+client ticksRun 197
+@ 10 update 220 frame 43 tick 20 zone - hash A56CF3D3 n 69
+world updates 220
+random isaac.count 198
 random isaac.a 0xD3ACD48C
 random isaac.b 0x46F61B65
 random isaac.c 0x00000012
 random isaac.results 0x51AB37E7
 random isaac.memory 0x07E2A63C
-random crt.rand 0x1A3D81A5
-client ticksRun 197
-@ 10 update 220 frame 43 tick 20 zone - hash 4F39022B n 69
-world updates 220
-random isaac.count 108
 client ticksRun 217
-@ 11 update 240 frame 47 tick 20 zone - hash 64E45AD9 n 69
+@ 11 update 240 frame 47 tick 20 zone - hash B001EBC9 n 69
 world updates 240
-random isaac.count 52
+random isaac.count 79
 client ticksRun 237
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy 1"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit CC938727
+cunit1000011214 #unit 8A910266
 cunit1000011214 #vitals A7CF3098
-@ 12 update 260 frame 51 tick 20 zone - hash 4661150D n 69
+@ 12 update 260 frame 51 tick 20 zone - hash 21FD22FC n 69
 world updates 260
-random isaac.count 3
+random isaac.count 38
 client ticksRun 257
 + cunit1000011214 80 unhufe "Human Mercenary Thief 1"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit DC173CE8
+cunit1000011214 #unit C0780724
 cunit1000011214 #vitals A7CF3098
-@ 13 update 280 frame 55 tick 20 zone - hash 7681625C n 69
+@ 13 update 280 frame 55 tick 20 zone - hash 19F8B78E n 69
 world updates 280
-random isaac.count 196
+random isaac.count 200
 random isaac.a 0xCCD97F13
 random isaac.b 0x06F752A7
 random isaac.c 0x00000013
 random isaac.results 0xA3299F22
 random isaac.memory 0xFA47C019
 client ticksRun 277
-cunit1000011214 #unit 25E3568B
-@ 14 update 300 frame 59 tick 20 zone - hash 7988BD4F n 69
+cunit1000011214 #unit 398C6D47
+@ 14 update 300 frame 59 tick 20 zone - hash BEF5F396 n 69
 world updates 300
-random isaac.count 133
+random isaac.count 137
 client ticksRun 297
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 5FFA4B98
+cunit1000011214 #unit B2C298A7
 cunit1000011214 #vitals A7CF3098
-@ 15 update 320 frame 63 tick 20 zone - hash A7393AD0 n 69
+@ 15 update 320 frame 63 tick 20 zone - hash F07C4D86 n 69
 world updates 320
-random isaac.count 243
+random isaac.count 247
 random isaac.a 0xCB716B85
 random isaac.b 0xB251CB1E
 random isaac.c 0x00000014
@@ -464,109 +464,99 @@ random isaac.results 0xD229851C
 random isaac.memory 0x6EB4C603
 random crt.rand 0x8CCCEDD4
 client ticksRun 317
-@ 16 update 340 frame 67 tick 20 zone - hash 2460277F n 69
+@ 16 update 340 frame 67 tick 20 zone - hash 9F4064F5 n 69
 world updates 340
-random isaac.count 181
+random isaac.count 196
 random crt.rand 0x92682547
 client ticksRun 337
-@ 17 update 360 frame 71 tick 20 zone - hash 65DB9EF9 n 69
+@ 17 update 360 frame 71 tick 20 zone - hash 664CC647 n 69
 world updates 360
-random isaac.count 136
+random isaac.count 140
 random crt.rand 0x62AA0AEE
 client ticksRun 357
-@ 18 update 380 frame 75 tick 20 zone - hash E2C1C4EF n 69
+@ 18 update 380 frame 75 tick 20 zone - hash 303BF3EA n 69
 world updates 380
-random isaac.count 1
+random isaac.count 27
 client ticksRun 377
-@ 19 update 400 frame 79 tick 20 zone - hash B2DC5403 n 69
+@ 19 update 400 frame 79 tick 20 zone - hash 4625B67D n 69
 world updates 400
-random isaac.count 185
+random isaac.count 187
 random isaac.a 0xEC8B18DA
 random isaac.b 0xC00D1120
 random isaac.c 0x00000015
 random isaac.results 0x7F188E8D
 random isaac.memory 0x117C2EA1
 client ticksRun 397
-+ cunit1000011214 80 unhuma "Yob"
-cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 69AD51DD
-cunit1000011214 #vitals 24605452
-@ 20 update 420 frame 83 tick 20 zone - hash BC40D27F n 69
+cunit1000011214 #unit C579174D
+@ 20 update 420 frame 83 tick 20 zone - hash 7BAB5447 n 69
 world updates 420
-random isaac.count 135
+random isaac.count 137
 client ticksRun 417
-+ cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
-cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 2E58365D
-cunit1000011214 #vitals A7CF3098
-@ 21 update 440 frame 87 tick 20 zone - hash 96673B52 n 69
+cunit1000011214 #unit 679ACC3B
+@ 21 update 440 frame 87 tick 20 zone - hash 353CAD0B n 69
 world updates 440
-random isaac.count 69
+random isaac.count 71
 client ticksRun 437
-@ 22 update 460 frame 91 tick 20 zone - hash C4C584E7 n 69
+@ 22 update 460 frame 91 tick 20 zone - hash 1F7E14B5 n 69
 world updates 460
-random isaac.count 4
-client ticksRun 457
-+ cunit1000011214 80 unhuma "Yob"
-cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 5E5F6111
-cunit1000011214 #vitals 24605452
-@ 23 update 480 frame 95 tick 20 zone - hash D70B8D53 n 69
-world updates 480
-random isaac.count 186
+random isaac.count 244
 random isaac.a 0x4A066D82
 random isaac.b 0x7F810A0E
 random isaac.c 0x00000016
 random isaac.results 0xB4D4DEF9
 random isaac.memory 0x22BDF147
+client ticksRun 457
+cunit1000011214 #unit 26E0CE40
+@ 23 update 480 frame 95 tick 20 zone - hash 4293282F n 69
+world updates 480
+random isaac.count 177
 client ticksRun 477
-@ 24 update 500 frame 99 tick 20 zone - hash B07D0D75 n 69
+@ 24 update 500 frame 99 tick 20 zone - hash 370D6A3C n 69
 world updates 500
-random isaac.count 70
+random isaac.count 68
 client ticksRun 497
-@ 25 update 520 frame 103 tick 20 zone - hash 5820EFE5 n 69
+@ 25 update 520 frame 103 tick 20 zone - hash F327FC05 n 69
 world updates 520
-random isaac.count 225
+random isaac.count 223
 random isaac.a 0xE012CB18
 random isaac.b 0x9B12A79B
 random isaac.c 0x00000017
 random isaac.results 0x5E7F68F0
 random isaac.memory 0x725FE540
 client ticksRun 517
-@ 26 update 540 frame 107 tick 20 zone - hash B2901318 n 69
+@ 26 update 540 frame 107 tick 20 zone - hash FD0C9FE0 n 69
 world updates 540
-random isaac.count 166
+random isaac.count 164
 client ticksRun 537
-@ 27 update 560 frame 111 tick 20 zone - hash D16F99C2 n 69
+@ 27 update 560 frame 111 tick 20 zone - hash 2CDB086A n 69
 world updates 560
 random isaac.count 96
 client ticksRun 557
-cunit1000011214 #unit E07B8B75
-@ 28 update 580 frame 115 tick 20 zone - hash 8F97B1FC n 69
+cunit1000011214 #unit 198FE116
+@ 28 update 580 frame 115 tick 20 zone - hash 0DBC8DB6 n 69
 world updates 580
-random isaac.count 12
+random isaac.count 14
 client ticksRun 577
-cunit1000011214 #unit 8526528E
-@ 29 update 600 frame 119 tick 20 zone - hash 1D7AFE17 n 69
+cunit1000011214 #unit 7ACBCAC2
+@ 29 update 600 frame 119 tick 20 zone - hash BB81CF8E n 69
 world updates 600
-random isaac.count 205
+random isaac.count 207
 random isaac.a 0x98B37538
 random isaac.b 0xC5B281A2
 random isaac.c 0x00000018
 random isaac.results 0x52789397
 random isaac.memory 0x287F676A
 client ticksRun 597
-cunit1000011214 #unit 7CD238ED
-@ 30 update 620 frame 123 tick 35 zone - hash 81B617BC n 68
+@ 30 update 620 frame 123 tick 35 zone - hash 54A40A6B n 68
 world tick 35
 world updates 620
 world paused 0
-random isaac.count 31
-random isaac.a 0xD0C4AD5D
-random isaac.b 0x7E01E608
-random isaac.c 0x0000001A
-random isaac.results 0x89033F0D
-random isaac.memory 0x698BF309
+random isaac.count 224
+random isaac.a 0x49656368
+random isaac.b 0xB8E62275
+random isaac.c 0x0000001B
+random isaac.results 0xD73650FE
+random isaac.memory 0x1C6242A9
 random crt.rand 0x2958FEA0
 obj129 #ai 3857E0B0
 obj129 #place C4384715

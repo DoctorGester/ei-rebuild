@@ -63,6 +63,10 @@
 //                             that mouse step (default click) at the screen point where the game's ground
 //                             pick (0056C350, what a walk order asks) finds map point (x, y), searched over
 //                             the 800x600 layout; fails when no point comes within 1.5 units (off screen)
+//   groundview                log the map points the ground pick finds at the layout's centre and corners
+//   minimap <cx> <cy> <sx> <sy>, lookat <x> <y>
+//                             the minimap's centre (layout) and map units per pixel; lookat clicks the
+//                             minimap to bring the camera toward map point (x, y) (see LookAt)
 //   hold <mods>, release <mods>
 //                             press / release the modifier keys <mods> (ctrl, shift, alt; separated by
 //                             spaces, "+" or ","), held over frames and further steps. The game takes
@@ -96,6 +100,8 @@
 //   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
 //                             master the connection screen asks and a public game announces itself to
 //                             (net_second_master: 127.0.0.1 only)
+//   fakemaster <port>         in a pair's game: a master server on the pair's virtual port <port> answers
+//                             this game's announcements (harness_pair.h; with "masterhost 127.0.0.1:<port>")
 //   peer <name>               ei_launch's: start a second game beside this one on tests/scenarios/peer/<name>.txt,
 //                             the two in lockstep on a network of their own (harness_pair.h; net_pair_*.txt)
 //   peersignal <tag>, peerwait <seconds> <tag>
@@ -840,12 +846,21 @@ bool Hidden(const char* relative) {
     return false;
 }
 
+// Install folders a run sees only in its overlay, never the install's own files: mp\ (the multiplayer
+// heroes, mp\<n>.mp; SV5d3: the user's own heroes had been listed and loaded on the hero screen, so goldens
+// followed the user's play). A scenario's hero comes from tools/make_mp_hero.py or the game's hero screen.
+// `relative` is the path below the game folder.
+bool OverlayOnly(const char* relative) {
+    return _strnicmp(relative, "mp", 2) == 0 && (relative[2] == '\\' || relative[2] == '/' || relative[2] == '\0');
+}
+
 // For a read: the overlay copy when it exists, else `path` (saves always redirect); a hidden file
 // without an overlay copy reads as the missing overlay path.
 const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
+    if (shadow && OverlayOnly(shadow + std::strlen(g_savesDir) + 1)) return shadow;
     if (shadow && g_getFileAttributes(shadow) != INVALID_FILE_ATTRIBUTES) return shadow;
     if (shadow && g_hiddenCount && Hidden(shadow + std::strlen(g_savesDir) + 1)) {
         static int logged = 0;
@@ -889,7 +904,7 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
     MakeParentDirs(shadow);
     char pinned[MAX_PATH];
     const char* original = settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned) ? pinned : path;
-    if (keep && g_getFileAttributes(shadow) == INVALID_FILE_ATTRIBUTES &&
+    if (keep && !OverlayOnly(shadow + std::strlen(g_savesDir) + 1) && g_getFileAttributes(shadow) == INVALID_FILE_ATTRIBUTES &&
         g_getFileAttributes(original) != INVALID_FILE_ATTRIBUTES && CopiedForWrite(original))
         g_copyFile(original, shadow, TRUE);
     LogInstallWrite(path, shadow);
@@ -1713,6 +1728,51 @@ std::string PostGroundMouse(const std::string& argument) {
     return "";
 }
 
+// --- groundview (SV5d3) ---------------------------------------------------------------------------
+// Logs the map points the ground pick finds at the layout's centre and corners (where the camera looks;
+// for writing a scenario's clickground steps).
+void LogGroundView() {
+    const RECT client = GameClient();
+    const int cw = client.right - client.left, ch = client.bottom - client.top;
+    char text[400] = "groundview:";
+    for (const auto& at : {std::pair{400, 300}, std::pair{0, 0}, std::pair{799, 0}, std::pair{0, 599}, std::pair{799, 599}}) {
+        float out[3] = {};
+        HarnessPickSurface(reinterpret_cast<void*>(kClientWorld), nullptr, out, at.first * cw / 800, at.second * ch / 600);
+        const std::size_t used = std::strlen(text);
+        std::snprintf(text + used, sizeof(text) - used, " (%d,%d) %.1f %.1f;", at.first, at.second, out[0], out[1]);
+    }
+    Log("harness: %s", text);
+}
+
+// --- minimap <cx> <cy> <sx> <sy>, lookat <x> <y> (SV5d3) -----------------------------------------------
+// The battle screen's minimap is centred on the camera: a click at layout (cx + dx, cy + dy) moves the
+// camera by (dx * sx, -dy * sy) map units ("minimap" gives the install's numbers: its HUD differs). lookat
+// clicks the minimap where the camera, as the ground pick at the layout's centre finds it, would look at
+// map point (x, y), at most 50 pixels from the centre; nothing when it is within 3 units already. The
+// game's camera stops at the map's edge, and it goes back to the hero on its own at times, so a walk
+// repeats lookat before its clickground steps.
+struct MinimapLayout { float cx = 0, cy = 0, sx = 0, sy = 0; } g_minimap;
+
+std::string LookAt(const std::string& argument) {
+    float wx = 0.0f, wy = 0.0f;
+    if (sscanf_s(argument.c_str(), "%f %f", &wx, &wy) != 2) return "lookat needs <x> <y>";
+    if (!(g_minimap.sx > 0.0f && g_minimap.sy > 0.0f)) return "lookat: no minimap step before it";
+    const RECT client = GameClient();
+    const int cw = client.right - client.left, ch = client.bottom - client.top;
+    float out[3] = {};
+    HarnessPickSurface(reinterpret_cast<void*>(kClientWorld), nullptr, out, 400 * cw / 800, 300 * ch / 600);
+    const float dx = (wx - out[0]) / g_minimap.sx, dy = -(wy - out[1]) / g_minimap.sy;
+    if (std::fabs(wx - out[0]) < 3.0f && std::fabs(wy - out[1]) < 3.0f) {
+        Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f", wx, wy, out[0], out[1]);
+        return "";
+    }
+    const float length = std::sqrt(dx * dx + dy * dy), clamp = length > 50.0f ? 50.0f / length : 1.0f;
+    const int lx = int(std::lround(g_minimap.cx + dx * clamp)), ly = int(std::lround(g_minimap.cy + dy * clamp));
+    Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f, minimap click (%d,%d)", wx, wy, out[0], out[1], lx, ly);
+    PostMouse("click", lx, ly);
+    return "";
+}
+
 // --- hudstate [minquick] (ticket I9) ----------------------------------------------------------
 // Logs the battle screen's state (the window on top): the pending action (+0x17C, +0x180), each
 // party member's selection (flags_ 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
@@ -1896,7 +1956,7 @@ bool IsInputStep(const std::string& verb) {
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "dblclickregion" || verb == "moveregion" ||
            verb == "clickunit" ||
-           verb == "clickground" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
+           verb == "clickground" || verb == "lookat" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
 }
 
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
@@ -2581,6 +2641,22 @@ void RunSteps() {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
             }
+        } else if (s.verb == "groundview") {
+            LogGroundView();
+        } else if (s.verb == "minimap") {
+            MinimapLayout m;
+            if (sscanf_s(s.argument.c_str(), "%f %f %f %f", &m.cx, &m.cy, &m.sx, &m.sy) != 4) {
+                g_failures.push_back("minimap needs <cx> <cy> <sx> <sy>");
+                Log("harness: %s", g_failures.back().c_str());
+            } else {
+                g_minimap = m;
+            }
+        } else if (s.verb == "lookat") {
+            std::string error = LookAt(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
         } else if (s.verb == "clickunit" || s.verb == "clickground") {
             HeldModifiers held(&s.argument);
             std::string error = s.verb == "clickunit" ? PostUnitMouse(s.argument) : PostGroundMouse(s.argument);
@@ -2644,6 +2720,11 @@ void RunSteps() {
             }
         } else if (s.verb == "masterhost") {
             options::TheOptions()->masterServerName_ = s.argument.c_str();
+        } else if (s.verb == "fakemaster") {
+            const int port = std::atoi(s.argument.c_str());
+            if (!pair::Active()) g_failures.push_back("fakemaster: not a pair's game (a \"peer\" line starts the other)");
+            else if (port <= 0 || port > 0xFFFF) g_failures.push_back("fakemaster needs <port>");
+            else pair::FakeMaster(static_cast<std::uint16_t>(port));
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";

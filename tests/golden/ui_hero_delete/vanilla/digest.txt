@@ -344,10 +344,10 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 897BAE32 n 69
+@ 1 update 40 frame 7 tick 20 zone - hash B650D919 n 69
 world updates 40
 world paused 1
-random isaac.count 97
+random isaac.count 100
 client tick 21
 client paused 1
 client ticksRun 37
@@ -359,115 +359,107 @@ cunit129 #place 9095538D
 cunit148 #place 871EB996
 cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
-+ cunit1000011214 80 unhuma "Yob"
++ cunit1000011214 80 unhuma ""
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit E726EBC8
-cunit1000011214 #vitals 24605452
-@ 2 update 60 frame 11 tick 20 zone - hash E7843EAF n 69
+cunit1000011214 #unit 7D1B4726
+cunit1000011214 #vitals 68D49C6E
+@ 2 update 60 frame 11 tick 20 zone - hash A899B12C n 69
 world updates 60
-random isaac.count 170
+random isaac.count 29
+client ticksRun 57
++ cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
+cunit1000011214 #place 125B38F9
+cunit1000011214 #unit B28B2A62
+cunit1000011214 #vitals A7CF3098
+@ 3 update 80 frame 15 tick 20 zone - hash 344F3E1A n 69
+world updates 80
+random isaac.count 238
 random isaac.a 0xAD54DD2B
 random isaac.b 0xA8A4A46F
 random isaac.c 0x00000010
 random isaac.results 0xEDE387CF
 random isaac.memory 0x679D48CE
-client ticksRun 57
-+ cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
-cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 4D66B22E
-cunit1000011214 #vitals A7CF3098
-@ 3 update 80 frame 15 tick 20 zone - hash 66DB9D7C n 69
-world updates 80
-random isaac.count 125
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash 0F13F8DA n 69
+@ 4 update 100 frame 19 tick 20 zone - hash AB74CABB n 69
 world updates 100
-random isaac.count 44
+random isaac.count 159
 client ticksRun 97
-cunit1000011214 #unit F34FD822
-@ 5 update 120 frame 23 tick 20 zone - hash 571C577C n 69
+cunit1000011214 #unit D8FAB4CD
+@ 5 update 120 frame 23 tick 20 zone - hash 40D8B8DE n 69
 world updates 120
-random isaac.count 210
+random isaac.count 119
+client ticksRun 117
+cunit1000011214 #unit 210EDEAE
+@ 6 update 140 frame 27 tick 20 zone - hash 6F682A18 n 69
+world updates 140
+random isaac.count 27
+client ticksRun 137
+@ 7 update 160 frame 31 tick 20 zone - hash 6BD65E87 n 69
+world updates 160
+random isaac.count 204
 random isaac.a 0x59688C84
 random isaac.b 0x05C0F64A
 random isaac.c 0x00000011
 random isaac.results 0x3985745C
 random isaac.memory 0xD598B619
-client ticksRun 117
-cunit1000011214 #unit 0ABBB241
-@ 6 update 140 frame 27 tick 20 zone - hash 01327E2B n 69
-world updates 140
-random isaac.count 128
-client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash E430C6D6 n 69
-world updates 160
-random isaac.count 48
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash 9EC6A218 n 69
+@ 8 update 180 frame 35 tick 20 zone - hash 562C4F8D n 69
 world updates 180
-random isaac.count 253
+random isaac.count 122
+client ticksRun 177
+@ 9 update 200 frame 39 tick 20 zone - hash 9EF46BD9 n 69
+world updates 200
+random isaac.count 31
+client ticksRun 197
+@ 10 update 220 frame 43 tick 20 zone - hash 6B81503C n 69
+world updates 220
+random isaac.count 238
 random isaac.a 0xD3ACD48C
 random isaac.b 0x46F61B65
 random isaac.c 0x00000012
 random isaac.results 0x51AB37E7
 random isaac.memory 0x07E2A63C
-client ticksRun 177
-@ 9 update 200 frame 39 tick 20 zone - hash ADAC9FB0 n 69
-world updates 200
-random isaac.count 107
-client ticksRun 197
-@ 10 update 220 frame 43 tick 20 zone - hash 4D9E9897 n 69
-world updates 220
-random isaac.count 51
 client ticksRun 217
-@ 11 update 240 frame 47 tick 20 zone - hash 3891122C n 69
+@ 11 update 240 frame 47 tick 20 zone - hash E7737BBE n 69
 world updates 240
-random isaac.count 3
+random isaac.count 110
 client ticksRun 237
-@ 12 update 260 frame 51 tick 20 zone - hash 2D0B4690 n 69
+@ 12 update 260 frame 51 tick 20 zone - hash 4FE05182 n 69
 world updates 260
-random isaac.count 153
+random isaac.count 49
+client ticksRun 257
++ cunit1000011214 80 unhuma "test"
+cunit1000011214 #place 125B38F9
+cunit1000011214 #unit 85DC9018
+cunit1000011214 #vitals A7CF3098
+@ 13 update 280 frame 55 tick 20 zone - hash E8F0A35B n 69
+world updates 280
+random isaac.count 1
+client ticksRun 277
+@ 14 update 300 frame 59 tick 20 zone - hash 96B4E33F n 69
+world updates 300
+random isaac.count 194
 random isaac.a 0xCCD97F13
 random isaac.b 0x06F752A7
 random isaac.c 0x00000013
 random isaac.results 0xA3299F22
 random isaac.memory 0xFA47C019
-client ticksRun 257
-+ cunit1000011214 80 unhuma "test"
-cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 046017D4
-cunit1000011214 #vitals A7CF3098
-@ 13 update 280 frame 55 tick 20 zone - hash 690DDFA7 n 69
-world updates 280
-random isaac.count 50
-client ticksRun 277
-@ 14 update 300 frame 59 tick 20 zone - hash 62A230DD n 69
-world updates 300
-random isaac.count 212
+client ticksRun 297
+@ 15 update 320 frame 63 tick 20 zone - hash 020C6651 n 69
+world updates 320
+random isaac.count 62
+client ticksRun 317
+cunit1000011214 #unit D8A87C85
+@ 16 update 340 frame 67 tick 20 zone - hash 6ABCE6A2 n 69
+world updates 340
+random isaac.count 218
 random isaac.a 0xCB716B85
 random isaac.b 0xB251CB1E
 random isaac.c 0x00000014
 random isaac.results 0xD229851C
 random isaac.memory 0x6EB4C603
-client ticksRun 297
-@ 15 update 320 frame 63 tick 20 zone - hash A71A7871 n 69
-world updates 320
-random isaac.count 148
-client ticksRun 317
-+ cunit1000011214 80 unhuma "Yob"
-cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 9673D4F3
-cunit1000011214 #vitals 24605452
-@ 16 update 340 frame 67 tick 20 zone - hash E49DC803 n 69
-world updates 340
-random isaac.count 101
 client ticksRun 337
-@ 17 update 360 frame 71 tick 20 zone - hash 333A680D n 69
+@ 17 update 360 frame 71 tick 20 zone - hash 674C18E3 n 69
 world updates 360
-random isaac.count 191
-random isaac.a 0xEC8B18DA
-random isaac.b 0xC00D1120
-random isaac.c 0x00000015
-random isaac.results 0x7F188E8D
-random isaac.memory 0x117C2EA1
+random isaac.count 167
 client ticksRun 357

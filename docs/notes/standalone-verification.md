@@ -171,9 +171,10 @@ until S21c); `EI_COVER=<addr,...>` on the original still watches single addresse
   remote player of the host's world) and `net_pair_kick` (kick by serial, ban by name, a refused join); goldens for
   both installs and both games. Walks use `clickground` (the console's `#` / `@` commands do nothing on the
   multiplayer base). SV5d2: `net_pair_leave` (shared files to a peer that lacks one, the peer lost in the game zone,
-  the host back to the base and the map's reject topic: LeaveZone and its award). Still unreached (SV5d3): a quest
-  completed in the game zone (CompleteZone: every offered quest needs a fight a new hero loses), the master
-  server's answer.
+  the host back to the base and the map's reject topic: LeaveZone and its award). SV5d3: `net_pair_quest` (a
+  prepared strong hero, `make_mp_hero.py`, finishes z9q2 and the sheriff's "_3" topic: CompleteZone and its awards
+  to both games; a public game whose `fakemaster` answers: OnMaster). Walks in the zone: `lookat` (a minimap click
+  under the target) before each `clickground`.
 - Still unreached: TryTame (SV5a1), SuspectionMode
   Enter / Execute, patrol points, CTrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
   update after 500 bored ticks).
@@ -262,12 +263,16 @@ happen (the harness logs "share id" if one does).
   file read as missing in one game until it writes it (a peer without the host's quest file). The report's
   `PAIR:` line. A pair takes two machine slots (run_all's machine_slot(count=2), work_sched's games_of; ei_launch takes
   the second itself when its caller held only one). Goldens keep both games (golden.py: the golden's peer\).
+  `fakemaster <port>` (SV5d3): datagrams to that virtual port are the master's: each announcement is answered with a
+  master packet (kind -1, the announcement's key, a new token); the report's `MASTER:` line.
 - **Typed text** (SV5d2): the game's TranslateMessage (slot 0073B450) is the harness's: the US layout with no key
   held, and letters and digits make no WM_CHAR (the `key` step posts theirs). Windows' own translation followed the
   user's keyboard layout and held keys, so typed hero names came out doubled ("hhoosstt"), with capitals or with
   letters missing, differently per run.
 - **Install files and registry** (harness.cpp, harness_settings.h; WB16): writes under the game folder
   (config\keyboard.ini on exit, the skin cache, mp\) go to the run's harness_saves overlay, read back from there.
+  mp\ (multiplayer heroes) is the overlay's only (SV5d3): before, its listing fell back to the install and showed the
+  user's own heroes; a run starts with none, or a prepare tool's (`make_mp_hero.py`).
   No run reads the user's settings: every registry call on HKCU / HKLM `Software\Nival Interactive` and
   `Software\Gipat.Ru` (the original's settings, Rebirth's game settings and starter switches) from any module
   (game, image, ei_hook.dll, addon.dll) is answered from the committed snapshot `config/harness/registry.reg`
@@ -366,6 +371,6 @@ happen (the harness logs "share id" if one does).
 - SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
   out net ids in address order; only multiplayer and the lobby reach it).
 - I13: a read-before-write detector for never-written heap bytes.
-- SV5d3: a quest completed in a multiplayer game zone (CompleteZone, the kind 0 / 1 awards), the master server's
-  answer (section 4).
+- SV5d3 (watch): net_pair_quest's Rebirth original parted once in five passes at world update 10040 (a fight in
+  z9q2: an extra block of random draws); the golden is from three agreeing passes.
 - WB12a: the original's runs are not cloaked.

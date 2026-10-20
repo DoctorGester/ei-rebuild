@@ -59,6 +59,9 @@ HANDLE g_turn[2];          // auto-reset events: "your turn may have come"
 HANDLE g_peerProcess;
 bool g_alone = false;      // the other game has ended (or never came): no more waiting
 bool g_cut = false;        // "netcut": nothing sent arrives, nothing sent here is received
+std::uint16_t g_fakeMaster = 0;   // "fakemaster": the virtual port this game's master answers on
+unsigned g_masterAnswers = 0;
+std::uint32_t g_lastToken = 0;    // the token the last announcement carried back
 char g_name[96];
 
 // This process's sockets and their virtual ports, and the next port of its own.
@@ -261,6 +264,28 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
         ++g_lost;
         return length;
     }
+    if (g_fakeMaster && port == g_fakeMaster && length >= 8) {
+        // The master's answer: kind -1, the announcement's master key, a token (numbered answers).
+        std::uint32_t key = 0;
+        std::memcpy(&key, data, 4);
+        std::memcpy(&g_lastToken, data + 4, 4);
+        const std::uint32_t token = 0x4D530000u + ++g_masterAnswers;
+        for (Datagram& d : g_shared->slots) {
+            if (d.full) continue;
+            d.seq = g_shared->nextSeq++;
+            d.to = from;
+            d.from = port;
+            d.length = 9;
+            d.data[0] = static_cast<char>(-1);
+            std::memcpy(d.data + 1, &key, 4);
+            std::memcpy(d.data + 5, &token, 4);
+            d.full = 1;
+            break;
+        }
+        Log("harness: pair: fake master %u answered announcement %u (key %08X, token back %08X) with token %08X", port,
+            g_masterAnswers, key, g_lastToken, token);
+        return length;
+    }
     if (!Claimed(port)) {
         ++g_unheard;   // nobody holds the port: gone, as a datagram to a closed port is
         return length;
@@ -340,11 +365,19 @@ void Cut() {
     Log("harness: pair: this game's network is cut");
 }
 
+void FakeMaster(std::uint16_t port) {
+    g_fakeMaster = port;
+    Log("harness: pair: a fake master answers on virtual port %u", port);
+}
+
 void Report(FILE* f) {
     if (!g_shared) return;
     char ended[80] = "still running at this report";
     char cut[64] = "";
     if (g_cut) std::snprintf(cut, sizeof(cut), "; cut by netcut (%u datagrams lost)", g_lost);
+    if (g_fakeMaster)
+        std::fprintf(f, "\nMASTER: the fake master on port %u answered %u announcements; the last carried token %08X back\n",
+                     g_fakeMaster, g_masterAnswers, g_lastToken);
     if (g_peerEndedAt >= 0) std::snprintf(ended, sizeof(ended), "ended at this game's frame %ld", g_peerEndedAt);
     std::fprintf(f, "\nPAIR: side %d (%s): %u turns in lockstep, %llu ms waiting for the other game; %u datagrams sent "
                  "(%u to no one), %u received; the other game %s\n",

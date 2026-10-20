@@ -320,7 +320,7 @@ group = "renderer"
 size = 1
 model = "opus"
 files = ["docs/notes/renderer.md src/render/"]
-note = "RenderDoc 1.43 is installed at E:\\bin\\renderdoc (x86 folder for the 32-bit standalone, in-app API renderdoc_app.h); usable for frame analysis behind an env var, captures under build\\, no registry or RenderDoc settings changes (user 2026-10-20)."
+note = "User 2026-10-20: stop call-matching the old renderer; modernise it. Examples from the user: no texture blits (composite in shaders), no constant buffer re-uploads, decals on the GPU without re-uploads. Research ticket, no game-code changes: measure what a frame uploads and copies today (vertex / index / constant / texture bytes, blits, per-draw state changes, draw count) on a few scenes (zone1 outdoors, a town, a big fight, the interface), then write a short plan in docs/notes/renderer.md: static meshes, figures and terrain pages in persistent GPU buffers (skinning / morphs on the GPU), dynamic data through one ring buffer, instancing for map objects and particles, texture arrays or atlases, ground decals (prints, shadows, blood, spell marks) as GPU decals instead of re-baked textures, the interface and face / blink overlays composited in shaders, fewer passes. Each item: what it replaces, expected gain, how frame captures check it (tolerance, not bit-exact). End with tickets filed in order (R16a ...). Also a candidate (user asked how lighting works, 2026-10-20): today all lighting is CPU per-vertex (terrain_lighting.cpp: ambient + sun + heightfield ray shadows + point lights registered per vertex, relit on the LightingFreq countdown; figures lit per draw in 3DfpFPU slots 39-44; object shadows 64x64 CPU-rasterised textures on ground quads). Plan GPU lighting (sun + point lights per pixel, shadow maps or GPU-rendered shadow textures) with the game's vertex colours as the fallback; it changes the look, so it waits for the user's go-ahead. RenderDoc 1.43 is installed at E:\\bin\\renderdoc (x86 folder for the 32-bit standalone, in-app API renderdoc_app.h); usable for frame analysis behind an env var, captures under build\\, no registry or RenderDoc settings changes (user 2026-10-20)."
 
 [[ticket]]
 id = "R16a"
@@ -340,7 +340,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/render_textures.cpp", "src/game/map_object_shadow.cpp"]
-note = "R16j replaces object shadows by a shadow map (on by default); the shadow-texture part here only matters for the classic option, so R16b comes after R16j."
+note = "docs/notes/renderer.md section 13, item 2. 4-15 shadow textures (64x64, 21 KB with mips) are made again as new images every frame in fights and towns, and the global map texture (341 KB) every frame. Put the shadow textures in one texture array of slices updated with UpdateSubresource (mips on the GPU), mark changes from 0051CE60 TextureChanged instead of the snapshot compare, update other memory textures in place. Gain 0.5-1.5 ms CPU. Check: render_scene, render_options_shadows, ui_global_map_pick frames at 8 / 0.5%. R16j replaces object shadows by a shadow map (on by default); the shadow-texture part here only matters for the classic option, so R16b comes after R16j."
 
 [[ticket]]
 id = "R16c"
@@ -370,7 +370,7 @@ size = 1
 model = "opus"
 depends = ["R16", "R16b"]
 files = ["src/render/render_mesh.cpp", "src/game/world_client_decals.cpp", "src/game/device_shadow.cpp"]
-note = "Object shadows leave this ticket when R16j lands (they become shadow-map shadows); the other decals stay."
+note = "docs/notes/renderer.md section 13, item 5. Decals are clipped onto the ground on the CPU (ProjectDecal 0056C750) and handed over as flat meshes every frame (12-32, up to 344 KB in the town). Draw a box per decal projecting onto the depth of ground and platforms instead; the game keeps its lists, lifetimes and textures. Changes the look slightly at slopes and platform edges: show the user side-by-side frames (frame_preview.py). Check: ground_prints, render_scene, effects at 16 / 2%. Object shadows leave this ticket when R16j lands (they become shadow-map shadows); the other decals stay."
 
 [[ticket]]
 id = "R16f"
@@ -410,7 +410,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/", "src/game/terrain_lighting.cpp"]
-note = "Object shadows split out to R16j (user 2026-10-20 wants GPU shadows); R16i keeps per-pixel lighting and terrain sun shadows, still waiting for the user."
+note = "docs/notes/renderer.md section 13, item 9. Waits for the user: it changes the look. Today all lighting is CPU per vertex (terrain_lighting.cpp: ambient + sun + heightfield ray shadows + point lights, relit on the LightingFreq countdown; about 2 ms a frame on the CPU in zone1; figures lit per draw in 3DfpFPU slots 39-44; object shadows 64x64 CPU-rasterised textures on ground quads). Plan GPU lighting with the game vertex colours as the fallback option; option off must match today at 8 / 0.1%; the user reviews side-by-side frames. Object shadows split out to R16j (user 2026-10-20 wants GPU shadows); R16i keeps per-pixel lighting and terrain sun shadows, still waiting for the user."
 
 [[ticket]]
 id = "R16j"
@@ -1468,7 +1468,16 @@ group = "verification"
 size = 1
 model = "opus"
 files = ["config/rebirth_patches.csv config/rebirth_scenarios.csv include/ei/rebirth.h src/lib/rebirth.cpp tools/run_all.py tests/golden/ docs/notes/rebirth.md"]
-note = "User 2026-10-20: scripting / console additions stay flags (off by default) for now; decide later."
+note = "User 2026-10-20: reduce the test surface; Rebirth vs vanilla runs are about 40% of suite time (last main suites: image 119 standalone + 95 standalone-rebirth runs, 913 s / 847 s; original 110 vanilla + 48 rebirth, 966 s / 483 s). Rebirth's obvious bug fixes go into the standalone right away. (1) Classify every patch in config/rebirth_patches.csv / docs/notes/rebirth.md: always on in the standalone (the 10 single-player bug fixes, crash-avoiding fixes, and multiplayer fixes that only repair behaviour), stays a flag (scripting / console additions, mod folders, widescreen / rendering superseded by our renderer, anything changing balance or content), dropped (crash handling / infrastructure we replace). (2) Make the always-on set the image's default (ei::rebirth defaults), keep each one switchable off. (3) Record the vanilla-data goldens from the original game.exe with only that set applied: first try addon.dll loaded into the vanilla run with a harness-written addon config enabling only those patches (config in the run overlay, nothing written to F:\\games), else apply the captured patch bytes; verify each fix is actually live in the recording (rebirth_sites_live style check). Re-record the vanilla goldens from it and say which changed and why. (4) Cut Rebirth-data runs to a smoke set (data-dependent scenarios only: Rebirth maps / scripts / resources) run on demand or before releases, not after every merge; update run_all defaults, config/rebirth_scenarios.csv and work.py test. Report before / after suite times. User 2026-10-20: scripting / console additions stay flags (off by default) for now; decide later."
+
+[[ticket]]
+id = "SV5d4"
+title = "Multiplayer on the pair harness: the master's server list (GameInfoRecord::Read), bad updates"
+group = "verification"
+size = 2
+depends = ["SV5d3"]
+files = ["tests/scenarios/net_*.txt", "tests/scenarios/peer/", "tests/verify/harness_pair.cpp"]
+note = "SV5d3's fakemaster answers a host's announcements (OnMaster 0041ACA0 reached). Still unreached: the client side's server list reply from the master (ClientSession::ReadServerListImpl 0041D600: an LZ-compressed run of {address, GameInfoRecord}, GameInfoRecord::Read 00401170), which needs the fake master to answer a lobby client's list request with the hosted game's record (the second game of a pair then finds the host through the master, not the LAN broadcast); bad updates. Also: net_pair_quest takes ~150-190 s (the zone walk: 2 x 150 frames per hop); fewer or shorter hops would cut it."
 
 # ---------------------------------------------------------------- harness and suite
 
