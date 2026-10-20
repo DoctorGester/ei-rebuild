@@ -40,4 +40,10 @@ bool Compare(const char* a, const char* b, int tolerance, double* differing, int
 bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,
                  const char** why);
 
+// The save's picture (<slot>\shot.sav, 256x192 5:6:5 as the saves write it) against frames\<frame>.bmp,
+// both as averages of the picture's 8x8 blocks (32x24; the frame's matching rectangles), counted as
+// Compare does. `centre`: against the frame's centred 4:3 part only.
+bool CompareSavePicture(const char* path, const char* frame, bool centre, int tolerance, double* differing, int* largest,
+                        const char** why);
+
 } // namespace ei::verify::capture

@@ -184,7 +184,7 @@ nothing more is shown but nothing crashes.
 | 005DBA50 `CBinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
 | 005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 | the colour-fill Blt that clears a new window is left out (a new DIB section is zero) |
 | 005FDC00 / 005FDC60 | GDI through a memory DC on the DIB |
-| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy (`render::CopyFrameTo`; no Blt from the old target, which does not hold the frame), save picture stretch (CPU copy, (2x+1) * source / (2 * size)), Greyscale, SwapContents, pixel read: no Lock / GetSurfaceDesc |
+| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy (`render::CopyFrameTo`; no Blt from the old target, which does not hold the frame; between frames the last frame, R13), save picture stretch (CPU copy, (2x+1) * source / (2 * size)), Greyscale, SwapContents, pixel read: no Lock / GetSurfaceDesc |
 | 005FDA80, 005E54A0 / 005E5690 / 005E6630, 005DBD80 / 005DB3F0 / 005DA400 | the original's Blt, composition 005E5C40, background save, Lock / BinkCopyToBuffer / Unlock are gone (R11a); the new renderer gets the blits, the cursor and the frames |
 
 Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present.
@@ -201,6 +201,15 @@ by 00655550 (SaveGame; the autosave 006570E0 writes it from a window surface). 0
 memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C).
 The new folder is "save<n>", n one more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid). Checked by scenario ui_saveload. The SavesPath Rebirth patch
 is disabled in this install and not reproduced.
+
+**Screen copies between frames** (R13): 006570E0 (quick save F5 "saveq", autosaves) copies the screen with
+CaptureScreen (005FD3D0) and stretches it to 256x192 (005FD440) for shot.sav. The new game's autosave passes DL 1 and
+draws the interface first (FrameStep without a present: the copy comes from that frame); the quick save key passes DL 0
+and copies between frames, before the next frame's first draw. The original's render target then still holds the
+last frame, and so does the new renderer's target: `render::CopyFrameTo` reads it as it is when nothing of the frame is
+drawn or queued yet (no pass, no commands). A pass there would clear it first: the save's picture was the plain clear
+colour (blue-grey 0x8596) after R11a. Checked by scenario ui_quicksave (`checksave saveq world`: the picture against a
+capture of the same frozen moment as 8x8 block averages; the original's: at most 22 per channel, a cleared one 145+).
 
 ## 7. Textures without DirectDraw
 
@@ -518,7 +527,8 @@ function and cleared on a write error; nothing in the shipped game's code sets i
 The pixels are checked by the harness: `key scrolllock` (scan 0x46), `record on|off` (sets 0079BC54), `checkshot <n>
 <frame> [tolerance] [fraction]` (reads `shot<n>.bmp` from the saves overlay and compares it with frames\<frame>.bmp as
 samecapture does). Scenario `render_present_shot`: Scroll Lock in the main menu and in the game at a frozen moment,
-then the recorder for a few frozen frames.
+then the recorder for a few frozen frames. A save's picture: `checksave <slot> <frame> [tolerance] [fraction]`
+(`<slot>\shot.sav` against the frame as 8x8 block averages; scenario ui_quicksave, section 6).
 
 ### R10: runs of our code on our renderer, dgVoodoo for the original code only
 
