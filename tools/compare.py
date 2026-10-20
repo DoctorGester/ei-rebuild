@@ -8,8 +8,8 @@ digest and the saves of the scenarios that have one, this any scenario's console
 
 usage: python tools/compare.py [scenario names or paths...] [--rebirth | --both] [--runs N] [--jobs N]
                                [--clock virtual|real[,clocktrace][,randtrace]] [--fresh]
-  scenarios  names in tests/scenarios (default: all); with --rebirth and no names, those that
-             config/rebirth_scenarios.csv runs under Rebirth
+  scenarios  names in tests/scenarios (default: all); with --rebirth and no names, run_all's Rebirth
+             smoke set (run_all.rebirth_scenarios)
   --rebirth  run under Rebirth instead of the vanilla install; --both: vanilla, then Rebirth
   --runs N   run each side N times (default 1); with N > 1 it also checks each side repeats itself
   --jobs N   games at once (default 4; run_all.py's machine-wide slots apply)

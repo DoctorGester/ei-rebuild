@@ -203,8 +203,10 @@ change, so none of its runs needs the machine to itself); dgVoodoo draws the ori
 The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
 `standalone`: run\vanilla's game.exe laid out without its code, the vanilla data, our renderer; `ei_launch
 --standalone`) and on the Rebirth install (`standalone-rebirth`: run\rebirth's game.exe, the Rebirth data and
-goldens, the flags of `config/ei_rebirth_standalone.ini`; every scenario with a Rebirth golden or marked in
-config/rebirth_scenarios.csv; `--vanilla-only` / `--rebirth-only` pick one); an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
+goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of
+config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
+`--all-rebirth` every scenario); an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
+The vanilla runs of the original carry Rebirth's bug fixes, the standalone's defaults (docs/notes/rebirth.md, "One test profile").
 Harness games never take the foreground (harness.cpp, `noforeground::`), and every run (the image's and the
 original's) keeps every window out of sight (cloaked tool windows: no window, taskbar button or Alt+Tab entry; `EI_HARNESS_SHOW_WINDOW=1` shows
 them to watch a run); the report's `WINDOW:` line and run_all's `game windows:` summary check it
