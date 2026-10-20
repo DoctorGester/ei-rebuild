@@ -287,6 +287,19 @@ group = "renderer"
 size = 1
 note = "User 2026-10-16: camera edge pan works but the cursor is not confined to the window (ClipCursor), and the camera pans while the cursor is outside the window. New options, default off (original behaviour)."
 
+[[ticket]]
+id = "R12a"
+title = "World meshes and edges as the user's dgVoodoo draws the original: anisotropic filtering, 8x MSAA"
+group = "renderer"
+depends = ["R12"]
+note = "R12 found the user's original look: Rebirth's starter\\Engine\\dgVoodoo.conf forces Filtering 16 and Antialiasing 8x (the harness's run\\vanilla dgVoodoo is appdriven). R12 gave the terrain pages anisotropic sampling with linear mips; the meshes (figures, map objects, sky) still sample as the game's stage states say (point mips) and the frame has no MSAA. Decide with the user whether the image should match that look (an option or the default), then sample world meshes the same way and add MSAA to the frame target (interface sprites and window surfaces unchanged)."
+
+[[ticket]]
+id = "R12b"
+title = "Bright green streaks in tree foliage that the original does not show"
+group = "renderer"
+note = "R12's captures (render_terrain_seams far, vanilla vs standalone, top right trees near (2950, 700) at 3840x2160): the image draws thin bright green leaf strips over the tree crowns that the original's frame lacks (largest channel difference about 190). Likely an alpha test / blend or texture state of the foliage meshes' pass (render_mesh.cpp ReadPassState); compare the pass state with the original's for those meshes."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

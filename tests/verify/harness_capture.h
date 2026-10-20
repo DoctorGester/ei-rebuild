@@ -35,6 +35,12 @@ bool WriteFrame(const char* name, int width, int height, const std::vector<std::
 // channel difference. False (with `why`) when a file is missing, unreadable or of another size.
 bool Compare(const char* a, const char* b, int tolerance, double* differing, int* largest, const char** why);
 
+// The level steps of frames\<name>.bmp, a capture of the terrain's level map (render::TerrainLevels,
+// R12): of the horizontally and vertically neighbouring pixel pairs that both show the map (green
+// 0x5A, blue 0xA5), the fraction (`steps`) whose red differs by 24 or more (most of a level: a level
+// step, where the texture's sharpness jumps), and how many such pairs there are (`pairs`).
+bool LevelSteps(const char* name, double* steps, long long* pairs, const char** why);
+
 // The same for any .bmp file (the game's own: 16 or 32 bits with channel masks, or 24) against
 // frames\<frame>.bmp; `how` gets the file's size and format.
 bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,
