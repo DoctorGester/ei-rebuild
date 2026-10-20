@@ -164,8 +164,15 @@ and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C i
 (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
 size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, and `DirectPixels`, which
 describes it as a `SurfacePixels`, in `dx_surface.h`) and read by the renderer after GdiFlush.
-Change detection: the renderer keeps a copy of the memory each window texture was made from and converts again only
-when it differs (a memcmp at each blit).
+Change detection (R16a): writers mark what they wrote (`render::SurfaceWritten`): the DC release 005FDC60 marks
+GDI's bounds of the DC (`SetBoundsRect` at 005FDC00, `GetBoundsRect`, 2 pixels wider), `DirectPixels` the whole
+memory unless the caller only reads (`reads`: PixelAt, the copies' sources, SwapContents' save, SurfaceBytes),
+`CopyFrameTo` the whole memory. At a blit only the marked rectangle is compared with the copy of what the texture
+holds, and the differing part is converted and written into the texture (a Direct3D 11 default-usage texture handed
+to sokol, `UpdateSubresource`); a surface already blitted in this frame gets a new texture instead. The harness
+build compares the rest of the memory at every blit: a change outside the marks is logged ("MISSED WRITE") and fails
+the run (`render::MissedSurfaceWrites`; its time counts as "counting"). Memory textures (section 7) are still
+compared once a frame (R16b).
 
 **Holders without a surface**: no holder has a DirectDraw surface (`CDXSurface::surface` is always null; R11b removed
 the code for one): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the cursor's background and
@@ -765,13 +772,13 @@ frame though most of it did not change (0.5-2.7 MB a frame).
 in one run (a switch between the old and the new path; `samecapture`, tools/compare_frames.py) with a tolerance, never
 across runs; the goldens check the game state.
 
-1. **R16a Window surfaces by change marks, partial uploads.** Replaces the memcmp of every shown surface at every blit
-   and whole-surface uploads with marks set where the game writes the memory (DC release 005FDC60, the pixel code,
-   SwapContents / Freeze, CopyFrameTo, greyscale; N0's census lists the writers) and an upload of the changed rectangle.
-   Gain: 1-3 ms CPU a frame on interface screens, about 0.9 ms in the world, at 4K. Risk: a writer without a mark shows
-   stale pixels; the harness build keeps the memcmp as a check that logs and fails. Check: ui_* and render_* captures
-   at 8 / 0.1% (the pixels are the same, so 0 expected). The native interface (ui-native.md, P1-P8) later removes the
-   surfaces; this is the step that pays now.
+1. **R16a Window surfaces by change marks, partial uploads (done).** How it works: section 6, "Change detection".
+   Measured with render_stats (vanilla, 4K; `renderstats` "window surfaces" ms, the window part of "textures"), before
+   / after: menu 0.5-0.8 / 0.004 ms, zone1 0.4-0.6 / 0.2, fight 0.7 / 0.2, camp 1.6 / 0.6, escape menu 2.3-2.8 /
+   0.006; memory compared menu 5.6 MB / 0.1, zone1 4.7 / 2.9, camp 12.3 / 7.9, escape menu 32.4 / 0 (Rebirth alike).
+   What is still compared is the surfaces the game redraws every frame (the HUD unit panel, the item strip, the camp
+   page: GDI's bounds cover them whole, and 91-99% of the redraws change nothing, ui-census.md); the native interface
+   (ui-native.md, P1-P8) removes those. Checked by the ui_* and render_* scenarios (captures, 0 missed writes).
 2. **R16b Shadow and memory textures updated in place.** The shadow textures (0051CE60 marks the changed one,
    `TextureChanged`) go into one texture array of 64 x 64 slices updated with UpdateSubresource, mips made on the GPU;
    other memory textures (the global map's 341 KB one) are updated in place instead of made again. Gain: 4-15 image and

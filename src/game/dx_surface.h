@@ -37,8 +37,9 @@ struct SurfacePixels {
 
 // The pixel code reads and writes the memory of `holder` directly (no Lock / Unlock): describes it
 // into `pixels` after flushing GDI; false, with `pixels` empty, for a null holder or one without
-// such memory.
-bool DirectPixels(const void* holder, SurfacePixels* pixels);
+// such memory. Unless `reads` (the caller only reads it), the whole memory is marked written for the
+// new renderer (render::SurfaceWritten): the caller writes it before the surface's next blit.
+bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads = false);
 
 // A texture holder as 004EFA60 makes one (vtable, device, width, height, bits; the holder count one
 // higher), allocated on the game's heap, with no DirectDraw surface, only the new renderer's memory
