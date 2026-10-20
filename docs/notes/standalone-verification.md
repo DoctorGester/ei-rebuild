@@ -371,4 +371,6 @@ happen (the harness logs "share id" if one does).
 - SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
   out net ids in address order; only multiplayer and the lobby reach it).
 - I13: a read-before-write detector for never-written heap bytes.
+- SV5d3 (watch): net_pair_quest's Rebirth original parted once in five passes at world update 10040 (a fight in
+  z9q2: an extra block of random draws); the golden is from three agreeing passes.
 - WB12a: the original's runs are not cloaked.

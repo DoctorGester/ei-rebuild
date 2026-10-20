@@ -1461,6 +1461,15 @@ group = "verification"
 size = 1
 note = "User 2026-10-16: remapping hotkeys did not seem to work, possibly from their local UTF-8 test patch (key_bindings.cpp was among its files). Recheck on a clean build against the original; if the image differs, a scenario that remaps a key and uses it, with goldens."
 
+[[ticket]]
+id = "SV5d4"
+title = "Multiplayer on the pair harness: the master's server list (GameInfoRecord::Read), bad updates"
+group = "verification"
+size = 2
+depends = ["SV5d3"]
+files = ["tests/scenarios/net_*.txt", "tests/scenarios/peer/", "tests/verify/harness_pair.cpp"]
+note = "SV5d3's fakemaster answers a host's announcements (OnMaster 0041ACA0 reached). Still unreached: the client side's server list reply from the master (ClientSession::ReadServerListImpl 0041D600: an LZ-compressed run of {address, GameInfoRecord}, GameInfoRecord::Read 00401170), which needs the fake master to answer a lobby client's list request with the hosted game's record (the second game of a pair then finds the host through the master, not the LAN broadcast); bad updates. Also: net_pair_quest takes ~150-190 s (the zone walk: 2 x 150 frames per hop); fewer or shorter hops would cut it."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
