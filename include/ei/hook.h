@@ -63,6 +63,8 @@ int InstallHooks();
 // literal). Called before InstallHooks, it marks the functions holding the bytes as the harness's:
 // in game.exe their recorders are left out as expected, not as unexpected skips.
 void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what);
+// The `what` of a noted harness patch overlapping [address, address + size), or nullptr.
+const char* HarnessPatchAt(std::uintptr_t address, std::size_t size);
 // Registrations InstallHooks left out for a reason other than the harness's patches (an unknown
 // function start, a second hook on one address, ...): their rewrites never run. The harness fails a
 // run with any (SV6).
@@ -94,6 +96,9 @@ struct StartupActionRegistrar {
 // game.exe (the original game's harness): arranges for InstallHooks() (the recorders), the coverage
 // breakpoints and the profiler to go in when WinMain is entered (after other mods patch).
 void InstallHooksAtWinMain();
+// game.exe: `action` runs when WinMain is entered (after addon.dll applied its patches), before the
+// recorders go in: the harness's addon fix set (tests/verify/harness_addon.h).
+void SetOriginalWinMainAction(void (*action)());
 
 } // namespace ei
 

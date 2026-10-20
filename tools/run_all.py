@@ -1,6 +1,6 @@
 """Runs every harness scenario on the vanilla install's data and on Rebirth's and prints a summary.
 
-usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth]
+usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
                                [--standalone | --no-hooks] [--fresh] [--jobs N] [--retries N]
                                [--clock virtual|real[,...]] [--golden]
        python tools/run_all.py --widescreen [--record] [scenario names...]
@@ -11,12 +11,15 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    EI_RENDER=new,present (install "standalone", vanilla goldens), and on the Rebirth install's data
                    with run\\rebirth's game.exe and the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no
                    addon.dll, no EI_Plugin.asi; install "standalone-rebirth", Rebirth goldens). Every scenario runs
-                   on the vanilla data; on Rebirth's those with a Rebirth golden, those config/rebirth_scenarios.csv
-                   marks and any it does not list yet. Named scenarios and --all-rebirth run on both. An address
+                   on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after every merge):
+                   --rebirth adds the smoke set (rebirth_scenarios(): config/rebirth_scenarios.csv's marks and every
+                   scenario with a step for one install, rebirthflags, addonpath or widescreen) or the named
+                   scenarios, --rebirth-only runs those alone, --all-rebirth every scenario on both. An address
                    with no rewrite ends the run: "standalone: no code at ...".
   --no-hooks       game.exe with the original code only (ei_launch --no-hooks: the harness, no rewrite), on the
-                   vanilla install (install "vanilla") and on Rebirth's (install "rebirth", for the scenarios
-                   config/rebirth_scenarios.csv marks or does not list): the runs goldens are recorded from
+                   vanilla install (install "vanilla": with Rebirth's bug fixes, which ei_launch has addon.dll apply;
+                   docs/notes/rebirth.md "One test profile") and on Rebirth's (install "rebirth", with --rebirth as
+                   above): the runs goldens are recorded from
                    (tools/golden.py), kept in the reference cache (--fresh). With EI_VECTORS=1 in the environment
                    the recorders are the only hooks and the runs write function vectors (tools/vectors.py). A
                    scenario's line "# no original: <install>..." (vanilla, rebirth) leaves its runs there out:
@@ -380,7 +383,8 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe'), '--standalone']
         env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER, EI_REBIRTH=standalone_rebirth_flags(root))
     else:
-        # The original code only (S21c: no tool runs ours inside game.exe), drawn by dgVoodoo.
+        # The original code only (S21c: no tool runs ours inside game.exe), drawn by dgVoodoo. On the vanilla data
+        # ei_launch adds addon.dll's bug fixes (SV9, ADDON_FIXES).
         if install == 'vanilla':
             cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'vanilla', 'game.exe')]
         elif os.path.exists(os.path.join(run_dir(root), 'rebirth', 'game.exe')):
@@ -463,10 +467,31 @@ def reference_dir():
     return os.path.join(os.path.dirname(os.path.normpath(common)), 'build', 'reference') if common else None
 
 
-def install_fingerprint(root, install):
+# The vanilla install's original runs (SV9; docs/notes/rebirth.md, "One test profile"): ei_launch also loads Rebirth's
+# addon loader (ADDON_FILES[0]), so addon.dll applies its patches, and the harness keeps those of the Rebirth flags on
+# in the run (the standalone's defaults: the bug fixes) and undoes the rest (tests/verify/harness_addon.h). Not with
+# EI_VECTORS=1 (function vectors are the plain original's).
+ADDON_FILES = (r'F:\games\Evil Islands (Rebirth)\starter\Engine\dinput.dll', r'F:\games\Evil Islands (Rebirth)\starter\addon.dll')
+
+
+def addon_fixes(install, environ=None):
+    """Whether install's original runs carry addon.dll's bug fixes."""
+    environ = os.environ if environ is None else environ
+    return install == 'vanilla' and environ.get('EI_VECTORS') != '1' and environ.get('EI_ADDON_FLAGS') != '0'
+
+
+def install_fingerprint(root, install, environ=None):
     """What of an install decides a run of the original code: the files beside its game.exe in run/<install>
-    (names, sizes, times; configuration files such as dgVoodoo.conf by content)."""
+    (names, sizes, times; configuration files such as dgVoodoo.conf by content); with addon.dll's bug fixes, the
+    patches' kinds (include/ei/rebirth_patches.inc: the defaults) and addon's files."""
     h = hashlib.sha1(install.encode())
+    if addon_fixes(install, environ):
+        with contextlib.suppress(OSError), open(os.path.join(root, 'include', 'ei', 'rebirth_patches.inc'), 'rb') as f:
+            h.update(f.read())
+        for path in ADDON_FILES:
+            with contextlib.suppress(OSError):
+                st = os.stat(path)
+                h.update(f'{path.lower()}\0{st.st_size}\0{st.st_mtime_ns}\0'.encode())
     with contextlib.suppress(OSError):
         for entry in sorted(os.scandir(os.path.join(run_dir(root), install)), key=lambda e: e.name.lower()):
             if not entry.is_file():
@@ -494,7 +519,7 @@ def reference_key(name, install, root, clock, environ):
     h = hashlib.sha1(f'{name}\0{install}\0{rev}\0{clock or ""}\0'.encode())
     settings = {k: v for k, v in game_environment(environ).items() if k != 'EI_RENDER'}    # run_once drops it
     h.update(json.dumps(settings, sort_keys=True).encode())
-    h.update(install_fingerprint(root, install).encode())
+    h.update(install_fingerprint(root, install, environ).encode())
     for source in sorted(glob.glob(os.path.join(root, 'tests', 'verify', 'harness*'))):
         with contextlib.suppress(OSError), open(source, 'rb') as f:
             h.update(f.read())
@@ -876,22 +901,38 @@ def launch_install(install):
     return install[:-len('-nohooks')] if install.endswith('-nohooks') else install
 
 
+# A scenario line that makes the run depend on the install (SV9): a step for one install only, Rebirth's flags, its
+# mod folder or WideScreen switch.
+REBIRTH_LINE = re.compile(r'^\s*(?:rebirth|vanilla|rebirthflags|addonpath|widescreen)\s', re.M)
+
+
 def rebirth_scenarios(names, root=ROOT):
-    """The scenarios that also run under Rebirth: marked 1 in config/rebirth_scenarios.csv, or not in it."""
+    """The Rebirth smoke set among names (SV9: Rebirth's data only where it decides something): the scenarios
+    config/rebirth_scenarios.csv marks 1 (Rebirth's maps, scripts, resources) and those with a REBIRTH_LINE."""
     path = os.path.join(root, 'config', 'rebirth_scenarios.csv')
-    listed = {}
-    if os.path.exists(path):
-        for line in open(path):
+    marked = set()
+    with contextlib.suppress(OSError), open(path, encoding='utf-8') as f:
+        for line in f:
             parts = line.strip().split(',')
-            if len(parts) >= 2 and parts[1] in ('0', '1'):
-                listed[parts[0]] = parts[1] == '1'
-    return {n for n in names if listed.get(n, True)}
+            if len(parts) >= 2 and parts[1] == '1':
+                marked.add(parts[0])
+    smoke = set()
+    for n in names:
+        if n in marked:
+            smoke.add(n)
+            continue
+        with contextlib.suppress(OSError):
+            with open(os.path.join(root, 'tests', 'scenarios', n + '.txt'), encoding='utf-8', errors='replace') as f:
+                if REBIRTH_LINE.search(f.read()):
+                    smoke.add(n)
+    return smoke
 
 
 def parse_args(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('scenarios', nargs='*')
     ap.add_argument('--vanilla-only', action='store_true')
+    ap.add_argument('--rebirth', action='store_true')
     ap.add_argument('--rebirth-only', action='store_true')
     ap.add_argument('--all-rebirth', action='store_true')
     ap.add_argument('--standalone', action='store_true')
@@ -937,12 +978,16 @@ def plan(args, root=ROOT):
     if args.rebirth_only: installs = ['rebirth']
     if standalone:
         installs = ['standalone'] if args.vanilla_only else ['standalone-rebirth'] if args.rebirth_only else list(STANDALONE_INSTALLS)
-    if args.scenarios or args.all_rebirth or args.rebirth_only:
+    # The Rebirth data (SV9): only on demand: --rebirth / --rebirth-only the named scenarios or the smoke set,
+    # --all-rebirth every one.
+    if args.all_rebirth or ((args.rebirth or args.rebirth_only) and args.scenarios):
         rebirth = set(names)
-    else:
+    elif args.rebirth or args.rebirth_only:
         rebirth = rebirth_scenarios(names, root)
-        if standalone:      # the image is checked by the goldens: every Rebirth golden runs
-            rebirth |= {n for n in names if has_golden(n, 'rebirth', root)}
+    else:
+        rebirth = set()
+    if args.rebirth_only:
+        names = [n for n in names if n in rebirth]
     jobs = [(name, install) for name in names for install in installs
             if install not in ('rebirth', 'standalone-rebirth') or name in rebirth]
     if args.widescreen:

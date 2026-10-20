@@ -7,16 +7,19 @@
 //
 //     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixLeversActivate)) { ...patched behaviour... }
 //
-// Every flag is off by default (the original 1.06). They are read once at startup, before any
-// rewritten code runs: ei_rebirth.ini next to ei_hook.dll (next to the exe in the standalone
-// build), then the EI_REBIRTH environment variable (ei_launch --rebirth), then a harness
-// scenario's "rebirthflags" line. The standalone image never loads addon.dll or EI_Plugin.asi:
-// these flags alone decide (config/ei_rebirth_standalone.ini for the Rebirth install's runs).
+// Defaults (user 2026-10-20): Rebirth's bug fixes (Kind::Fix in rebirth_patches.inc) are on, every
+// other flag is off; each can be switched either way. Every flag is off until LoadSettings, which
+// the standalone image calls once at startup, before any rewritten code runs (ei_vectors.exe, which
+// replays the original's vectors, never does): the defaults, then ei_rebirth.ini next to ei_hook.dll
+// (next to the exe in the standalone build), then the EI_REBIRTH environment variable (ei_launch
+// --rebirth), then a harness scenario's "rebirthflags" line. The standalone image never loads
+// addon.dll or EI_Plugin.asi: these flags alone decide (config/ei_rebirth_standalone.ini for the
+// Rebirth install's runs). "none" is the original 1.06.
 //
 // ei_rebirth.ini:
 //     [Rebirth]
-//     Default=0             ; every flag not named below
-//     FixLeversActivate=1   ; any name from rebirth_patches.inc
+//     Default=0             ; every flag not named below (absent: the defaults)
+//     FixLeversActivate=0   ; any name from rebirth_patches.inc
 //     SecondMaster=         ; EI_Plugin NewMaster's second master server, host[:port] (default empty: none)
 #pragma once
 
@@ -25,7 +28,7 @@
 namespace ei::rebirth {
 
 enum class Patch : std::uint8_t {
-#define EI_REBIRTH_PATCH(name) name,
+#define EI_REBIRTH_PATCH(name, kind) name,
 #include "rebirth_patches.inc"
 #undef EI_REBIRTH_PATCH
     Count
@@ -40,6 +43,12 @@ extern bool g_enabled[kPatchCount];
 inline bool Enabled(Patch p) { return detail::g_enabled[static_cast<int>(p)]; }
 
 void Set(Patch p, bool on);
+
+// What a patch is in the standalone (rebirth_patches.inc): a bug fix on by default, a flag off by
+// default, or Rebirth's own infrastructure the rebuild drops.
+enum class Kind : std::uint8_t { Fix, Flag, Dropped };
+Kind KindOf(Patch p);
+inline bool DefaultOn(Patch p) { return KindOf(p) == Kind::Fix; }
 
 // The player count EI_Plugin's NPlayers feature (Patch::EiPluginNPlayers) is configured with
 // (EI_Plugin.ini [CONFIG] NPlayers; the plugin's default 7 until the hook DLL has read the ini).
@@ -62,15 +71,15 @@ void SetPluginSecondMaster(const char* address);
 const char* Name(Patch p);
 bool FromName(const char* name, Patch* out);
 
-// "all", "none", or patch names separated by commas or spaces, each optionally "=0" / "=1".
+// "all", "none", "defaults", or patch names separated by commas or spaces, each optionally "=0" / "=1".
 // Unknown names are skipped; returns false if there was one.
 bool ApplySpec(const char* spec);
 
 // Queues a spec to apply after the ini and the environment (the harness, before WinMain).
 void QueueSpec(const char* spec);
 
-// Reads the settings: [Rebirth] of `iniPath` (a missing file changes nothing), the EI_REBIRTH
-// environment variable, then the queued specs. Called once, before hooks are installed.
+// Reads the settings: the defaults, [Rebirth] of `iniPath` (a missing file changes nothing), the
+// EI_REBIRTH environment variable, then the queued specs. Called once, before hooks are installed.
 void LoadSettings(const char* iniPath);
 
 } // namespace ei::rebirth

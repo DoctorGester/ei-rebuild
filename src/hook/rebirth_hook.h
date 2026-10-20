@@ -12,7 +12,7 @@ namespace ei::rebirth_hook {
 // [Rebirth] NPlayers (default 7, the plugin's), its Pause mode [Rebirth] Pause (default 1). Logs the flags.
 void SettingsOnly(const char* iniPath);
 
-// True when a flag is on (SettingsOnly).
+// True when a flag other than the default bug fixes is on (SettingsOnly).
 bool RebirthLaunch();
 
 } // namespace ei::rebirth_hook

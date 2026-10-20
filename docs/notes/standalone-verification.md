@@ -10,10 +10,12 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
 - **A rewrite is checked** by a golden scenario that reaches it or by function vectors that replay it (rewrite guide,
   "Verification"); `tools/coverage.py` says which (section 4).
 - **The suite** is the image's: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone`
-  (vanilla data) and `standalone-rebirth` (Rebirth data, `config/ei_rebirth_standalone.ini`'s flags) and compares
-  every run that has a golden. GOLDENS THE SAME / GOLDENS DIFFER sets the exit code.
+  (vanilla data, Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data
+  (`standalone-rebirth`, `config/ei_rebirth_standalone.ini`'s flags) is a smoke set run on demand (`--rebirth`; SV9).
+  GOLDENS THE SAME / GOLDENS DIFFER sets the exit code.
 - **Goldens come from the original**: `--no-hooks` runs of game.exe (ei_launch always sets EI_NO_HOOKS for it), with
-  the harness's canonicalising patches (section 5). A scenario the original cannot run (`# no original: <install>`)
+  the harness's canonicalising patches (section 5); on the vanilla data with addon.dll's bug fixes only
+  (docs/notes/rebirth.md, "One test profile"). A scenario the original cannot run (`# no original: <install>`)
   gets the image's own golden instead (`golden.py record --image`, section 2).
 - **Heap jitter** (SV7a, SV7c, SV7c2; `EI_HEAP_JITTER=<seed>[,fill]`, `EI_HEAP_FILL`) moves the blocks of game.exe's heap and of the
   image's heap alike (the image's malloc is a VC6-style CRT heap on the same import slots, SV7c2): a golden must hold
@@ -155,7 +157,7 @@ them outside the game. Check each new family with a corrupted copy (one bit of a
 scenario reaches it), vector (tests/vectors/data has its file), suite (only scenarios without a golden), unreached,
 startup / dead (tests/coverage/unreachable.txt), with a risk rank (size x area weight, x2 unreached); `who <address or
 name>`, `top [N] [--area]`. The reach data, tests/coverage/reach.txt, is the last hook build's collection (EI_COVER=hooks,
-until S21c); `EI_COVER=<addr,...>` on the original still watches single addresses (tools/rebirth_coverage.py).
+until S21c); `EI_COVER=<addr,...>` on the original still watches single addresses (src/hook/cover.cpp).
 - Dead (SV5c): the fake unit (class 0x39) and its scene loader: no shipped data makes one, no code reaches slot 62, no
   .amf exists. CubicSegment::Evaluate 0040E440 and SetBSpline are dead (the game uses the copy at 004E5660).
 - Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (CEffectTornado
