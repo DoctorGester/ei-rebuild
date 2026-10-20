@@ -1121,6 +1121,7 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
         }
     }
     UnmapTarget();
+    SurfaceWritten(holder, nullptr);
     return true;
 }
 

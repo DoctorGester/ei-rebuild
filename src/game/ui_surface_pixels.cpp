@@ -117,14 +117,14 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     SurfaceHolder* from = HolderOf(this);
     SurfaceHolder* to = HolderOf(copy);
     SurfacePixels fromPixels, toPixels;
-    if (DirectPixels(from, &fromPixels) && DirectPixels(to, &toPixels)) StretchCopy(toPixels, fromPixels);
+    if (DirectPixels(from, &fromPixels, true) && DirectPixels(to, &toPixels)) StretchCopy(toPixels, fromPixels);
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
     auto* pixels = static_cast<std::uint16_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 2));
     SurfaceHolder* holder = HolderOf(copy);
     gameapi::EnterCriticalSection(DeviceLock());
     SurfacePixels copied;
-    bool direct = DirectPixels(holder, &copied);
+    bool direct = DirectPixels(holder, &copied, true);
     int bytes = copied.bitsPerPixel >> 3;
     const ChannelLayout converter = LayoutOf(copied);
     const std::uint8_t* source = copied.bits;
@@ -235,7 +235,7 @@ void CUiSurface::SwapContents(int restore) {
             holder_ = made;
             if (made) ++made->refCount;
             if (previous) ReleaseHolder(previous);
-            DirectPixels(holder_, &desc);   // (no memory: the description stays empty)
+            DirectPixels(holder_, &desc, true);   // (no memory: the description stays empty)
             SurfaceBytesTotal() += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         }
         if (!kept_) return;
@@ -252,7 +252,7 @@ void CUiSurface::SwapContents(int restore) {
     SurfaceHolder* holder = holder_;
     if (!holder) return;
     gameapi::EnterCriticalSection(DeviceLock());
-    bool direct = DirectPixels(holder, &desc);   // (no memory: an empty copy)
+    bool direct = DirectPixels(holder, &desc, true);   // (no memory: an empty copy)
     if (kept_) gamecrt::operator_delete(kept_);
     keptSize_ = static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
     kept_ = static_cast<std::uint8_t*>(gamecrt::operator_new(keptSize_));
@@ -277,7 +277,7 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     if (x >= width_ || y >= height_) return 0;
     gameapi::EnterCriticalSection(DeviceLock());
     SurfacePixels desc;
-    if (!DirectPixels(holder, &desc)) {
+    if (!DirectPixels(holder, &desc, true)) {
         gameapi::LeaveCriticalSection(DeviceLock());
         return 0;
     }

@@ -1098,6 +1098,9 @@ void WriteReport() {
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
+    const char* missed = "";
+    if (const int count = render::MissedSurfaceWrites(&missed))   // a window surface's writer without a mark (R16a)
+        failures.push_back(std::to_string(count) + " window surface change(s) without a SurfaceWritten mark, the first: " + missed);
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());

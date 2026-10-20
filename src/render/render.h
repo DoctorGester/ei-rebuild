@@ -85,8 +85,8 @@ struct FrameStats {
     // first texture bound.
     std::uint64_t passes = 0, draws = 0, pipelineApplies = 0, pipelineChanges = 0, bindings = 0, textureChanges = 0;
     // Images made (or updated in place) per kind and their bytes (every level); bytes compared with
-    // the snapshots of the renderer's memory (window surfaces at every blit, memory textures once a
-    // frame) and converted from it.
+    // the snapshots of the renderer's memory (window surfaces where marked written, memory textures
+    // once a frame) and converted from it.
     std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {}, largestUpload[UploadKinds] = {};
     std::uint64_t comparedBytes = 0;
     // CPU time (ms): the hand-over (terrain pages, meshes, pre-transformed draws), texture work
@@ -220,6 +220,14 @@ struct Rect {
     int left, top, right, bottom;
 };
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
+// The game wrote `written` (pixels; null: all of it) of the SurfaceMemory of `holder` (R16a): a
+// window surface is read again only where it was marked (and there only the rows and columns that
+// differ from what its texture holds), and that part uploaded. Writers: the DC release 005FDC60 (GDI's
+// bounds), DirectPixels for writing (the pixel code), CopyFrameTo.
+void SurfaceWritten(const void* holder, const Rect* written);
+// Harness build only: the window surfaces whose memory changed where no SurfaceWritten mark said (a
+// writer without a mark: stale pixels in the product; the run fails), and the first one's description.
+int MissedSurfaceWrites(const char** first);
 
 // A movie's decoded frame (CBinkVideo 005DBD80): R, G, B, X bytes per pixel (BinkCopyToBuffer's
 // 32-bit "R" type), kept for `key` (the video object) until the next one; MovieBlit draws the last
