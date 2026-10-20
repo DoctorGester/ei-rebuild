@@ -123,10 +123,6 @@ __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*nam
 
 // A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp): 005EE6C0
 // Describe(item), 005F1590 DescribeStats(info) (each RET 4).
-// 0065A770 (library, RET 4): the interface's help topics (map<CString, int>, CInterface3D +0x98) operator[]: the
-// topic's value, a new entry with 0 when absent.
-__declspec(naked) inline int* __fastcall HelpTopicsAtOriginal(void* /*topics*/, void*, const mfc::CString* /*topic*/)
-    EI_ORIGINAL(0x0065A770)
 // 005F8070 (rewritten as CInterface3D::OnStringEvent; Rebirth's NewStringEvents patches it, so callers go through its
 // address): a script string event on the interface (007C7D50; RET 4, no result).
 __declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*interface*/, void*, const char* /*event*/)
@@ -185,8 +181,6 @@ void __cdecl LoadKeyBindings();
 namespace strmap {
 void __fastcall PanelInit(void* /*panel*/, void*, CInterface3D* /*ui*/);
 }
-__declspec(naked) inline void** __fastcall HelpTopicsInsertOriginal(void* /*map*/, void*, void** /*out*/, void* /*hint*/,
-                                                                    const void* /*pair*/) EI_ORIGINAL(0x005F9810)
 // 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
 // the chat is closed), the caret clamped to it.
 __declspec(naked) inline void __fastcall ChatOverlayDrawTypedOriginal(void* /*chat*/) EI_ORIGINAL(0x005E3700)

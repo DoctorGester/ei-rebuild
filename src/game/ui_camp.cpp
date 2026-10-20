@@ -850,13 +850,11 @@ namespace {
 
 // 00613630 (__fastcall: block, count): frees a vector's block of 0x3C-byte entries (STLport node
 // allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
-__declspec(naked) void __fastcall FreeBlock3C(void*, int) EI_ORIGINAL(0x00613630)
-__declspec(naked) void __stdcall FreeBlock18(void*, int) EI_ORIGINAL(0x006135F0)
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
     for (TradeRow* at = rows.begin; at != rows.end; ++at) at->Destroy();
-    FreeBlock18(rows.begin, static_cast<int>(rows.capacity - rows.begin));
+    stlp::deallocate(rows.begin, static_cast<std::size_t>(rows.capacity - rows.begin) * 24);   // 006135F0
 }
 
 } // namespace
@@ -864,7 +862,7 @@ void DestroyRows(TradeRows& rows) {
 void __fastcall TradePanelDestroy(CUiWindow* window) {
     auto* self = static_cast<CTradePanel*>(window);
     StringArrayDestruct(&self->texts_);
-    FreeBlock3C(self->records_.begin, static_cast<int>(self->records_.capacity - self->records_.begin));
+    stlp::deallocate(self->records_.begin, static_cast<std::size_t>(self->records_.capacity - self->records_.begin) * 60);   // 00613630
     DestroyRows(self->science_);
     DestroyRows(self->schools_);
     DestroyRows(self->perks_);

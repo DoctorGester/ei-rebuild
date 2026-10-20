@@ -53,23 +53,16 @@ __declspec(naked) void __fastcall HistoryDestroy(HistoryNode** /*list*/) EI_ORIG
 __declspec(naked) void __fastcall BySentIdClear(SentIdMap* /*tree*/) EI_ORIGINAL(0x004394A0)
 __declspec(naked) void __fastcall BySentIdFreeHeader(SentIdMap* /*tree*/) EI_ORIGINAL(0x00439500)
 __declspec(naked) void __fastcall FreedClear(FreedBatch** /*list*/) EI_ORIGINAL(0x0043BA20)
-__declspec(naked) void __fastcall FreedFreeSentinelA(FreedBatch** /*list*/, void*, FreedBatch* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043A410)
-__declspec(naked) void __fastcall ReceivedDeallocate(std::int32_t** /*eos*/, void*, std::int32_t* /*start*/, int /*count*/) EI_ORIGINAL(0x0043A300)
 
 // The destructor's container teardown.
 __declspec(naked) void __fastcall ListDeleteNodes(HeaderNode** /*list*/) EI_ORIGINAL(0x0043D420)
-__declspec(naked) void __fastcall HeaderSentinelFree(HeaderNode** /*list*/, void*, HeaderNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x00439D80)
 __declspec(naked) void __fastcall HistoryClear(HistoryNode** /*list*/) EI_ORIGINAL(0x0043CA40)
-__declspec(naked) void __fastcall HistorySentinelFree(HistoryNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043AAF0)
-__declspec(naked) void __fastcall ByObjectHeaderFree(ObjectMap* /*tree*/, void*, ObjectMap::Node* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A4E0)
-__declspec(naked) void __fastcall BySentIdHeaderFree(SentIdMap* /*tree*/, void*, SentIdMap::Node* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A480)
-__declspec(naked) void __fastcall FreedSentinelFreeB(FreedBatch* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043B180)
 
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
 // The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) {
-    ReceivedDeallocate(&c->receivedEos_, nullptr, c->received_, static_cast<int>(c->receivedEos_ - c->received_));
+    stlp::deallocate(c->received_, static_cast<std::size_t>(c->receivedEos_ - c->received_) * 4);   // 0043A300
 }
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
@@ -88,7 +81,7 @@ void DestroyForReset(Connection* c) {
     BySentIdClear(&c->bySentId_);
     BySentIdFreeHeader(&c->bySentId_);
     FreedClear(&c->freedIds_);
-    FreedFreeSentinelA(&c->freedIds_, nullptr, c->freedIds_, 1);
+    stlp::deallocate(c->freedIds_, 20);   // 0043A410
     VectorDtorIterator(c->idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(c);
 }
@@ -180,24 +173,24 @@ void Connection::Destruct() {
     GrowingBufferDestruct(&reliableIn_);
     GrowingBufferDestruct(&reliableOut_);
     ListDeleteNodes(&incoming_);
-    HeaderSentinelFree(&incoming_, nullptr, incoming_, 1);
+    stlp::deallocate(incoming_, 268);   // 00439D80
     ListDeleteNodes(&headers_);
-    HeaderSentinelFree(&headers_, nullptr, headers_, 1);
+    stlp::deallocate(headers_, 268);   // 00439D80
     attached_.Clear<stlp::TreeElement<AttachedMap::Value>>();
     trees::Attached::FreeHeader(&attached_);
     trees::Records::Clear(&records_);
     trees::Records::FreeHeader(&records_);
     HistoryClear(&acknowledged_);
-    HistorySentinelFree(acknowledged_, 1);
+    stlp::deallocate(acknowledged_, 288);   // 0043AAF0
     HistoryClear(&history_);
-    HistorySentinelFree(history_, 1);
+    stlp::deallocate(history_, 288);   // 0043AAF0
     VectorDtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Destroy));
     trees::Objects::Clear(&byObject_);
-    ByObjectHeaderFree(&byObject_, nullptr, byObject_.end(), 1);
+    stlp::deallocate(byObject_.end(), 24);   // 0043A4E0
     BySentIdClear(&bySentId_);
-    BySentIdHeaderFree(&bySentId_, nullptr, bySentId_.end(), 1);
+    stlp::deallocate(bySentId_.end(), 24);   // 0043A480
     FreedClear(&freedIds_);
-    FreedSentinelFreeB(freedIds_, 1);
+    stlp::deallocate(freedIds_, 20);   // 0043B180
     VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);

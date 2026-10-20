@@ -37,7 +37,6 @@ __declspec(naked) void __fastcall QueueClear(QueueNode** /*list*/) EI_ORIGINAL(0
 __declspec(naked) void __fastcall QueueInsertRange(QueueNode** /*list*/, void*, QueueNode* /*pos*/, QueueNode* /*first*/, QueueNode* /*last*/) EI_ORIGINAL(0x004795B0)
 inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
-__declspec(naked) void __fastcall NodesDeallocate(QueueNode* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00479530)
 // 004A5250 (RET 4): writes a stream (its size as a 2- or 4-byte prefix, then its bytes) into the
 // stream in ECX.
 void __fastcall StreamWriteSized(CStream* a0, void*, CStream* a2) { a0->WriteSized(a2); }
@@ -290,7 +289,7 @@ int LoopbackLink::OnShutdown() {   // 00478610
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(peer_);
     QueueClear(&queue_);
-    NodesDeallocate(queue_, 1);
+    stlp::deallocate(queue_, 48);   // 00479530
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     NetLink::Construct();

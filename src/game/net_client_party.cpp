@@ -27,13 +27,11 @@ namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
-__declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
 
 // vector<CEngineObject*> with counted elements (library), the party's
 // reset and add (00661050 class, outside this range).
 __declspec(naked) void __fastcall ObjectVectorConstruct(void* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00424B40)
 __declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, void*, CEngineObject** /*pos*/, CEngineObject* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00428A20)
-__declspec(naked) void __fastcall ObjectVectorDeallocate(CEngineObject** /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004268A0)
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 inline int __fastcall PartyAdd(void* a0, void*, void* a2, int a3, int a4) { return (int)static_cast<CParty*>(a0)->AddItem(static_cast<CItem*>(a2), a3, a4); }
 
@@ -135,7 +133,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     ++state()->version_;
     for (RefPtr* p = previous.begin(); p != previous.end(); ++p)
         if (p->ptr) p->ptr->Release();
-    VectorDeallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()));
+    stlp::deallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()) * 4);   // 00426490
 }
 EI_REPLACE(0x0041DA50, ClientPublishParty);
 
@@ -224,7 +222,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
     for (CEngineObject** p = items.begin(); p != items.end(); ++p)
         if (*p) (*p)->Release();
-    ObjectVectorDeallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()));
+    stlp::deallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()) * 4);   // 004268A0
 }
 EI_REPLACE(0x0041DDC0, ClientApplyParty);
 

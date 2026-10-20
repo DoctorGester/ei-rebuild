@@ -293,14 +293,10 @@ __declspec(naked) inline void __fastcall ShakeInsert(CameraShake* const*, void*,
     EI_ORIGINAL(0x00411630)
 __declspec(naked) inline void __fastcall ShakeErase(CameraShake* const*, void*, CameraShake** /*ret*/,
                                                     CameraShake* /*pos*/) EI_ORIGINAL(0x00411540)
-__declspec(naked) inline void __fastcall ShakeNodeFree(void* /*node*/, int /*n*/) EI_ORIGINAL(0x00411B30)
 __declspec(naked) inline void __fastcall ViewStackConstruct(ViewStack*, void*, const void* /*alloc*/, int /*n*/)
     EI_ORIGINAL(0x00411AB0)
 __declspec(naked) inline void __stdcall ViewStackDestroyRange(DequeIterator /*first*/, DequeIterator /*last*/)
     EI_ORIGINAL(0x00411DF0)
-__declspec(naked) inline void __fastcall ViewStackFreeNode(void* /*alloc*/, void*, void* /*node*/, int /*n*/)
-    EI_ORIGINAL(0x00411E20)
-__declspec(naked) inline void __fastcall ViewStackFreeMap(void** /*map*/, int /*size*/) EI_ORIGINAL(0x00411EA0)
 
 // The STLport list<CObject3D*> (12-byte nodes) that CWorldClient::ObjectsInRange (0056DAF0) fills.
 using NearbyList = stlp::list<CObject3D*>;

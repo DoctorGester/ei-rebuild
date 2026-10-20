@@ -17,6 +17,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/stlp_tree_cstring.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -341,7 +342,7 @@ public:
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
     // +0x98 help topics seen: topic name -> times (or the page the help window was closed on; see ui_help_window.cpp) (config\tutorial.ini, "name count" lines; read
     // by Create 005F4990, written by Shutdown, counted by OpenHelp 005F86F0).
-    stlp::map<mfc::CString, int> helpTopics_;
+    stlp::map<mfc::CString, int, stlp::CStringLess> helpTopics_;   // lib_trees::HelpTopics
     mfc::CString messageText_;       // +0xA4 the message window's text (ShowMessage)
     int messageFlag_;                // +0xA8 (ShowMessage clears it; the message window's page, set when it closes)
     mfc::CString savedText_;         // +0xAC the current quest (OnQuestVariable); saved from version 0x5F

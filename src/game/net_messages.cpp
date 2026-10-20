@@ -28,9 +28,7 @@ namespace {
 
 // vector<RefPtr> of the file message: copy of the elements sharing them, deallocate.
 __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AE90)
-__declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
-__declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
 
 // 00783D6C: the empty text the server entry's reset assigns.
 const char* EmptyText() { return reinterpret_cast<const char*>(0x00783D6C); }
@@ -684,7 +682,7 @@ FileMessage* FileMessage::Clone() {   // 00416220
 int FileMessage::OnShutdown() {   // 00416390
     ei::SetVtable(this, kVtableAddress);
     for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();   // 0042B880 (flags 0)
-    FileRefsDeallocate(&chunks_.EndOfStorage(), nullptr, chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()));
+    stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * 4);   // 004251B0
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
@@ -996,7 +994,7 @@ int PartyMessage::OnShutdown() {   // 004177A0
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
     for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p) RefPtrDestroyAt(p, nullptr, 0);
-    RefsDeallocate(&members_.EndOfStorage(), nullptr, members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()));
+    stlp::deallocate(members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()) * 4);   // 00425210
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     InitParty(this);

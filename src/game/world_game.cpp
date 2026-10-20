@@ -1873,7 +1873,6 @@ void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
 using NodeVector = stlp::vector<void*>;
 __declspec(naked) void __fastcall NodeVectorConstruct(NodeVector*, void*, const void*) EI_ORIGINAL(0x00584720)
-__declspec(naked) void __fastcall NodeVectorFree(void**, unsigned) EI_ORIGINAL(0x00584A90)
 
 // A local NamedFloatTable released the way the original's inlined destructor does.
 struct LocalVariables {
@@ -2023,7 +2022,7 @@ void GameFlow::UpdateFromServer() {
                 VariableSetBits(variables, record->name_.data(), ValueBits(record));
             }
         } while (!settled);
-        NodeVectorFree(changed.begin(), static_cast<unsigned>(changed.EndOfStorage() - changed.begin()));
+        stlp::deallocate(changed.begin(), static_cast<std::size_t>(changed.EndOfStorage() - changed.begin()) * 4);   // 00584A90
     } else {
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);

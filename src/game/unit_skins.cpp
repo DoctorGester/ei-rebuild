@@ -89,8 +89,7 @@ __declspec(naked) void __fastcall PrototypeTextures(const UnitPrototypeRecord*, 
 __declspec(naked) void __fastcall StringsConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053BB80)
 __declspec(naked) stlp::string* __fastcall StringsCopy(void*, void*, int, const stlp::string*, const stlp::string*)
     EI_ORIGINAL(0x0053D7F0)
-void __fastcall StringsFree(stlp::string* a0, int a1) { NodeFree12Original(a0, static_cast<std::size_t>(a1)); }
-__declspec(naked) void __fastcall StringsDeallocate(void*, void*, stlp::string*, int) EI_ORIGINAL(0x0053BF40)
+void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
 void __fastcall StringsInsertOverflow(void* a0, void*, stlp::string* a2, const void* a3, int a4) { StringVectorInsertOverflowOriginal(a0, nullptr, a2, a3, static_cast<unsigned>(a4)); }
 __declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*, const stlp::string*, const stlp::string*, int)
     EI_ORIGINAL(0x00575E50)
@@ -307,9 +306,9 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     }
 
     for (stlp::string* s = second.Start(); s != second.Finish(); ++s) s->~string();
-    StringsDeallocate(&second.EndOfStorage(), nullptr, second.Start(), Capacity(second));
+    stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * 12);   // 0053BF40
     for (stlp::string* s = first.Start(); s != first.Finish(); ++s) stlp::StringAbi::DeletingDestructor(s, nullptr, 0);
-    StringsDeallocate(&first.EndOfStorage(), nullptr, first.Start(), Capacity(first));
+    stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * 12);   // 0053BF40
 }
 
 } // namespace

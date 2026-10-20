@@ -592,7 +592,7 @@ void CWorldClient::ClearMaps() {
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
         SectorListNode* next = node->next;
         ObjectHolderDelete(&node->data, nullptr, 0);
-        NodeFree12Fast(node, 1);
+        stlp::deallocate(node, 12);   // 0056FB40
         node = next;
     }
     heroes.head->next = heroes.head;
@@ -956,9 +956,6 @@ __declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
 __declspec(naked) void __fastcall CountedArraySetSize(mfc::CArray<CEngineObject*>*, void*, int, int) EI_ORIGINAL(0x00570000)
 // The lists' element destructors [00575560 / 00575580 (node + 8, flags)] and
 // node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
-__declspec(naked) void __fastcall Node1B8Free(void*, int) EI_ORIGINAL(0x0056FB80)
-__declspec(naked) void __fastcall Node7BCFree(void*, int) EI_ORIGINAL(0x00498C40)
-__declspec(naked) void __fastcall NodeB8Free(void*, int) EI_ORIGINAL(0x0056FB00)
 // The platform list's RemoveAll [0056FDA0]; the base world's teardown [0055F8E0].
 __declspec(naked) void __fastcall PlatformRemoveAll(PlatformList*) EI_ORIGINAL(0x0056FDA0)
 
@@ -981,7 +978,7 @@ void EmptyList(stlp::list<T>& list, F free) {
 void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
     EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
         static_cast<GroundPrint*>(&node->data)->Destruct();
-        Node1B8Free(node, 1);
+        stlp::deallocate(node, 164);   // 0056FB80
     });
     EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
         static_cast<GroundPrint*>(&node->data)->DeletingDestruct(0);
@@ -1037,14 +1034,14 @@ void CWorldClient::Teardown() {
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             CellOps::Clear(&grid.rows_[y][x]);
-    EmptyList(list7BC_, [](stlp::list<void*>::Node* node) { Node7BCFree(node, 1); });
+    EmptyList(list7BC_, [](stlp::list<void*>::Node* node) { stlp::deallocate(node, 12); });
     EmptyList(heroes_, [](SectorListNode* node) {
         ObjectHolderDelete(&node->data, nullptr, 0);
-        NodeFree12Fast(node, 1);
+        stlp::deallocate(node, 12);   // 0056FB40
     });
     PlainList& objects = objects_;
     stlp::ListForEachRelease(objects.head->next, objects.head, 0);
-    EmptyList(objects, [](SectorListNode* node) { NodeB8Free(node, 1); });
+    EmptyList(objects, [](SectorListNode* node) { stlp::deallocate(node, 12); });
     if (WorldSession* session = Session()) {
         session->Release();
         session_ = nullptr;
@@ -1112,7 +1109,7 @@ void CWorldClient::Deselect(CEngineObject* object) {
             CEngineObject* found = objects->FindObject(static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(node->data)));
             if (found && (found->flags_ & 0x10)) Unhighlight(found);
         }
-        EmptyList(selected, [](Node* node) { Node7BCFree(node, 1); });
+        EmptyList(selected, [](Node* node) { stlp::deallocate(node, 12); });
         return;
     }
     const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object->id_));

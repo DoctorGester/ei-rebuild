@@ -26,7 +26,7 @@ namespace {
 // The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): loading a zone's quests.
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // vector<string> (library): the block free.
-void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { NodeFree12Original((void*)a0, a1); }
+void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * 12); }
 
 
 std::uint32_t* VariableCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }

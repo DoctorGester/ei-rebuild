@@ -257,23 +257,6 @@ EI_REPLACE_METHOD(0x005F5BA0, CInterface3D::CreateScreen);
 
 // --- 005F8A80: the message window ------------------------------------------------------------------
 
-namespace {
-// The message queue (a std::list of CStrings at +0x84; thiscall): 005F8E50 erases a node into
-// the returned iterator (RET 8).
-__declspec(naked) void __fastcall MessageListErase(void*, void*, void* /*out*/, void* /*node*/) EI_ORIGINAL(0x005F8E50)
-__declspec(naked) void __fastcall ConstructListHolder(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA340)
-inline void* __fastcall AllocateNodes(std::size_t a0) { return NodeAllocateOriginal(a0); }
-
-// A list header node of 12 bytes, linked to itself.
-void NewListHeader(stlp::list<CUiMesh*>* list) {
-    using Node = stlp::list<CUiMesh*>::Node;
-    auto* node = static_cast<Node*>(AllocateNodes(0xC));
-    list->head = node;
-    node->next = node;
-    node->prev = node;
-}
-} // namespace
-
 void CInterface3D::ShowMessage(int force) {
     bool forced = static_cast<std::uint8_t>(force) != 0;
     if (!forced) {
@@ -284,8 +267,7 @@ void CInterface3D::ShowMessage(int force) {
         alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
         auto* text = reinterpret_cast<mfc::CString*>(storage);
         CStringCopyConstructOriginal(text, nullptr, &node->data);
-        void* next;
-        MessageListErase(&messages_, nullptr, &next, node);
+        messages_.Erase(node);   // 005F8E50
         messageText_ = *text;
         messageFlag_ = 0;
         text->~CString();
@@ -303,13 +285,8 @@ void CInterface3D::ShowMessage(int force) {
         SetDword(&win->title_, 0, EmptyString());
         StringArrayConstruct(&win->lines_);
         win->page_ = value;
-        // The original passes a stack slot and a zeroed local; the holder keeps the zero.
-        std::uint32_t junk = 0, zero = 0;
-        ConstructListHolder(&win->pulsing_, nullptr, &junk, &zero);
-        NewListHeader(&win->pulsing_);
-        *reinterpret_cast<std::uint8_t*>(&win->pictures_) = 0;   // the allocator byte, overwritten
-        win->pictures_.head = nullptr;
-        NewListHeader(&win->pictures_);
+        win->pulsing_.Construct();    // the allocator proxy (005FA340), then a sentinel
+        win->pictures_.Construct();
         SetVtables(win, Vtable(0x00740E28), Vtable(0x00740DF4));
         window = win;
     }
@@ -320,19 +297,6 @@ EI_REPLACE_METHOD(0x005F8A80, CInterface3D::ShowMessage);
 
 // --- 005F86F0: the help window -----------------------------------------------------------------------
 
-namespace {
-// The seen-topics map at +0x98 (STLport map<CString, int>; thiscall): find (005FAEA0) and
-// lower_bound (005FAF30) into an iterator (RET 8); insert with a hint is HelpTopicsInsertOriginal.
-using TopicNode = stlp::map<mfc::CString, int>::Node;
-__declspec(naked) void __fastcall TopicsFind(void*, void*, TopicNode** /*out*/, const void* /*key*/) EI_ORIGINAL(0x005FAEA0)
-__declspec(naked) void __fastcall TopicsLowerBound(void*, void*, TopicNode** /*out*/, const void* /*key*/)
-    EI_ORIGINAL(0x005FAF30)
-// The help window's list member at +0x188 (005F9A00, from an allocator; RET 4).
-__declspec(naked) void __fastcall ConstructHelpList(void*, void*, const void*) EI_ORIGINAL(0x005F9A00)
-// _mbscmp (the game's CRT).
-int __cdecl MbsCompare(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
-} // namespace
-
 void CInterface3D::OpenHelp(int flag) {
     if (stackBegin_ == stackEnd_) return;
     CUiWindow* active = stackEnd_[-1];
@@ -340,32 +304,18 @@ void CInterface3D::OpenHelp(int flag) {
     const char* topic = reinterpret_cast<TopicFn>(active->vtable_[41])(active);
     if (!topic) return;
     int seen = -1;
-    stlp::map<mfc::CString, int>* topics = &helpTopics_;
-    TopicNode* found;
+    // The seen-topics map (find 005FAEA0; operator[], lower_bound 005FAF30 and an insert at that
+    // hint, inlined by the original).
+    decltype(helpTopics_)::Node* found;
     {
         mfc::CString key(topic);
-        TopicsFind(topics, nullptr, &found, &key);
+        found = helpTopics_.find(key);
     }
-    if (found != topics->end()) {
+    if (found != helpTopics_.end()) {
         seen = found->second;
     } else {
         mfc::CString key(topic);
-        TopicNode* at;
-        TopicsLowerBound(topics, nullptr, &at, &key);
-        if (at == topics->end() || MbsCompare(key, at->first) < 0) {
-            // A new entry {topic, 0} before `at`.
-            struct Pair {
-                std::uint8_t key[sizeof(mfc::CString)];
-                int value;
-            } pair;
-            CStringCopyConstructOriginal(pair.key, nullptr, &key);
-            pair.value = 0;
-            void* inserted;
-            HelpTopicsInsertOriginal(topics, nullptr, &inserted, at, &pair);
-            at = static_cast<TopicNode*>(inserted);
-            reinterpret_cast<mfc::CString*>(pair.key)->~CString();
-        }
-        at->second = 0;
+        helpTopics_.Subscript(key) = 0;
     }
     bool forced = static_cast<std::uint8_t>(flag) != 0;
     if (*reinterpret_cast<const int*>(0x0079BE78) != 0) {
@@ -383,12 +333,8 @@ void CInterface3D::OpenHelp(int flag) {
         SetDword(&win->title_, 0, EmptyString());
         StringArrayConstruct(&win->lines_);
         win->page_ = seen;
-        // The original passes its argument slot as the list's allocator.
-        int slot = flag;
-        ConstructHelpList(&win->pulsing_, nullptr, &slot);
-        std::uint32_t junk = 0, zero = 0;
-        ConstructListHolder(&win->pictures_, nullptr, &junk, &zero);
-        NewListHeader(&win->pictures_);
+        win->pulsing_.Construct();    // 005F9A00
+        win->pictures_.Construct();   // the allocator proxy (005FA340), then a sentinel
         SetVtables(win, Vtable(0x00740E28), Vtable(0x00740DF4));
         window = win;
     }

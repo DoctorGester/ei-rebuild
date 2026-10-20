@@ -20,7 +20,6 @@ namespace stlp { class string; }
 
 __declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
 __declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
-__declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
@@ -172,7 +171,6 @@ __declspec(naked) inline void __fastcall ItemListRemoveAllOriginal(void* /*list*
 __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
                                                                     const void* /*value*/) EI_ORIGINAL(0x0056E8A0)
 // 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET).
-__declspec(naked) inline void __fastcall NodeFree12Original(void* /*p*/, std::size_t /*count*/) EI_ORIGINAL(0x00426860)
 // CArray::SetSize(size, growBy) instantiation (RET 8, no result): 0050FE70 the map object's effect array (20-byte
 // elements).
 __declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
