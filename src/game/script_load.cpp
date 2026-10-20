@@ -21,6 +21,7 @@
 #include "originals_script.h"
 #include "originals_world.h"
 #include "game_arrays.h"
+#include "game_lists.h"
 
 #include <cstdint>
 #include <cstring>
@@ -141,12 +142,18 @@ using RawList = ScriptList;
 
 // CList::NewNode instantiations (__thiscall (prev, next); the element is default-constructed).
 using NewNodeFn = ListNode*(__fastcall*)(RawList*, void*, ListNode* prev, ListNode* next);
-ListNode* __fastcall NewParticleNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptParticleListNewNodeOriginal(a0, nullptr, a2, a3); }
-ListNode* __fastcall NewFxNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptFxListNewNodeOriginal(a0, nullptr, a2, a3); }
-ListNode* __fastcall NewLightningNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptLightningListNewNodeOriginal(a0, nullptr, a2, a3); }
-ListNode* __fastcall NewBlockNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptBlockListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
-__declspec(naked) ListNode* __fastcall NewInstanceNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD930)
-ListNode* __fastcall NewRunNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptRunListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
+// 004CD540 particle sources, 004CD5B0 FX sources, 004CD620 lightning, 004CD6D0 command blocks,
+// 004CD930 instances, 004CDA30 runs.
+template <typename Abi>
+ListNode* __fastcall NewNode(RawList* list, void*, ListNode* prev, ListNode* next) {
+    return mfc::impl::NewNodeAs<Abi>(list, prev, next);
+}
+constexpr NewNodeFn NewParticleNode = NewNode<mfc::impl::ParticleSourceList>;
+constexpr NewNodeFn NewFxNode = NewNode<mfc::impl::FxSourceList>;
+constexpr NewNodeFn NewLightningNode = NewNode<mfc::impl::LightningList>;
+constexpr NewNodeFn NewBlockNode = NewNode<mfc::impl::CommandBlockList>;
+constexpr NewNodeFn NewInstanceNode = NewNode<gamelists::Definitions>;
+constexpr NewNodeFn NewRunNode = NewNode<gamelists::Runs>;
 
 // CList::AddTail as inlined: a new node after the tail, its element filled by `fill`, then linked.
 template <typename Fill>

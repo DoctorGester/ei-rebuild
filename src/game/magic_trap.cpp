@@ -28,6 +28,7 @@
 #include "originals_units.h"
 #include "lib/mfc_slots.h"
 #include "game_slots.h"
+#include "game_lists.h"
 
 namespace {
 
@@ -57,7 +58,6 @@ constexpr int kPtrListBlockSize = 10;
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
-__declspec(naked) void __fastcall VictimFreeNode(VictimList*, void*, VictimNode*) EI_ORIGINAL(0x0052CE20)
 void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { AIRef::Of(a0)->Assign(a2); }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
@@ -95,7 +95,7 @@ void MagicTrap::UpdateVictims() {
             else node->prev->next = node->next;
             if (node == victims->tail) victims->tail = node->prev;
             else node->next->prev = node->prev;
-            VictimFreeNode(victims, nullptr, node);
+            mfc::impl::FreeNodeAs<gamelists::ObjectRefs>(victims, node);   // 0052CE20
         }
         node = next;
     }

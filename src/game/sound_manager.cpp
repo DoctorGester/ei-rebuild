@@ -23,6 +23,7 @@
 #include <cstring>
 #include <new>
 #include "originals_library.h"
+#include "game_lists.h"
 
 namespace {
 
@@ -1207,9 +1208,7 @@ EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
 namespace {
 // The cache map (CSoundManager + 0x870): find 006BC0C0, find-or-insert of a pair 006BCC20 (the
 // pair's constructor 006BC140), erase by key 006BCCD0.
-// The cache list: a new node [prev, next], the record's copy into it, a node freed.
-__declspec(naked) WaveNode* __fastcall ListNewNode(WaveList*, void*, WaveNode*, WaveNode*) EI_ORIGINAL(0x006BD4F0)
-__declspec(naked) void __fastcall ListFreeNode(WaveList*, void*, WaveNode*) EI_ORIGINAL(0x006BD560)
+// The cache list (gamelists::Waves): a new node [prev, next] 006BD4F0, a node freed 006BD560.
 
 // Miles.
 using NamedFileFn = int(__stdcall*)(void*, const char*, const void*, int, int);
@@ -1234,14 +1233,14 @@ void Unlink(WaveList& list, WaveNode* node) {
     else node->next->prev = node->prev;
 }
 void PushFront(WaveList& list, const WaveRecord* record) {
-    WaveNode* node = ListNewNode(&list, nullptr, nullptr, list.head);
+    WaveNode* node = mfc::impl::NewNodeAs<gamelists::Waves>(&list, nullptr, list.head);
     node->data.Assign(record);
     if (list.head) list.head->prev = node;
     else list.tail = node;
     list.head = node;
 }
 void PushBack(WaveList& list, const WaveRecord* record) {
-    WaveNode* node = ListNewNode(&list, nullptr, list.tail, nullptr);
+    WaveNode* node = mfc::impl::NewNodeAs<gamelists::Waves>(&list, list.tail, nullptr);
     node->data.Assign(record);
     if (list.tail) list.tail->next = node;
     else list.head = node;
@@ -1264,7 +1263,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const
     WaveRecord record;
     CopyOut(&record, node);
     Unlink(m->cacheList, node);
-    ListFreeNode(&m->cacheList, nullptr, node);
+    mfc::impl::FreeNodeAs<gamelists::Waves>(&m->cacheList, node);
     record.lastUsed = gameapi::GetTickCount();
     record.uses = record.uses + 1;
     PushFront(m->cacheList, &record);
@@ -1290,7 +1289,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
             m->cacheBytes -= record.size;
             m->cache.EraseKey(record.Name());
             Unlink(m->cacheList, node);
-            ListFreeNode(&m->cacheList, nullptr, node);
+            mfc::impl::FreeNodeAs<gamelists::Waves>(&m->cacheList, node);
         }
         record.Name().~string();
         node = prev;

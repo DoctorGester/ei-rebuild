@@ -13,6 +13,7 @@
 #include "world.h"
 
 #include "record_lifetime.h"
+#include "record_vectors.h"   // vector::resize of the speech lists (006E4560, 006E47F0)
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -180,11 +181,6 @@ EI_REPLACE(0x006D8A40, SayNamedAck);
 
 namespace {
 
-// vector::resize of the two speech list instantiations (new elements default-constructed).
-__declspec(naked) void __fastcall ResizeSpeeches(SpeechList*, void*, unsigned) EI_ORIGINAL(0x006E4560)
-__declspec(naked) void __fastcall ResizeEnvironmentSpeeches(stlp::vector<EnvironmentSpeech>*, void*, unsigned)
-    EI_ORIGINAL(0x006E47F0)
-
 void SpeechFields(ChunkArchive* ar, SpeechRecord* speech) {
     ar->StringField(1, &speech->sound);
     ar->Field(2, &speech->chance, 4);
@@ -228,11 +224,11 @@ void __fastcall SpeechField(ChunkArchive* ar, void*, int id, SpeechRecord* speec
     ar->LeaveChunk();
 }
 void __fastcall SpeechListField(ChunkArchive* ar, void*, int id, SpeechList* list, ChunkArchive*) {
-    ListField(ar, id, list, ResizeSpeeches, [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
+    ListField(ar, id, list, recordvec::SpeechVector::ResizeDefault, [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
 }
 void __fastcall EnvironmentSpeechListField(ChunkArchive* ar, void*, int id, stlp::vector<EnvironmentSpeech>* list,
                                            ChunkArchive*) {
-    ListField(ar, id, list, ResizeEnvironmentSpeeches, [ar](EnvironmentSpeech* speech) {
+    ListField(ar, id, list, recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
         SpeechFields(ar, &speech->speech);
         ar->Field(10, &speech->environment, 4);
     });

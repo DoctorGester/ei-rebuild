@@ -95,6 +95,33 @@ void DestructList(CList<T, E>& list) {
     list.RemoveAll();
 }
 
+// A list declared with another element policy (or another element type of the same size) seen as
+// the instantiation `Abi` of the same layout, whose out-of-line code builds and destroys the
+// elements (ArrayAs's counterpart; a list of raw bytes takes any instantiation); its nodes likewise.
+template <typename Abi, typename T, typename E>
+typename Abi::List* ListAs(CList<T, E>* list) {
+    return reinterpret_cast<typename Abi::List*>(list);
+}
+template <typename Abi, typename Node>
+typename Abi::Node* NodeAs(Node* node) {
+    return reinterpret_cast<typename Abi::Node*>(node);
+}
+// NewNode(prev, next), FreeNode(node) and RemoveAt(node) of the list as `Abi`.
+template <typename Abi, typename T, typename E>
+typename CList<T, E>::Node* NewNodeAs(CList<T, E>* list, typename CList<T, E>::Node* prev,
+                                      typename CList<T, E>::Node* next) {
+    return reinterpret_cast<typename CList<T, E>::Node*>(
+        ListAs<Abi>(list)->NewNode(NodeAs<Abi>(prev), NodeAs<Abi>(next)));
+}
+template <typename Abi, typename T, typename E>
+void FreeNodeAs(CList<T, E>* list, typename CList<T, E>::Node* node) {
+    ListAs<Abi>(list)->FreeNode(NodeAs<Abi>(node));
+}
+template <typename Abi, typename T, typename E>
+void RemoveAtAs(CList<T, E>* list, typename CList<T, E>::Node* node) {
+    ListAs<Abi>(list)->RemoveAt(NodeAs<Abi>(node));
+}
+
 // ---- CMap -----------------------------------------------------------------------------------------
 
 // MFC's HashKey for DWORD-sized keys: the key (its low dword for a 64-bit one) shifted right by 4.

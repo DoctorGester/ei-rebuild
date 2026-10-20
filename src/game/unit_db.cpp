@@ -194,20 +194,13 @@ EI_REPLACE_METHOD(0x0052DF40, ChunkArchive::SerializeCStrings);
 
 namespace {
 
-// The records' Serialize and destructors through their game addresses (their verify wrappers stay in
-// the path); the vectors' resizes are STLport code.
-__declspec(naked) void __fastcall PrototypeSerializeAt(UnitPrototypeRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D740)
-__declspec(naked) void __fastcall NpcSerializeAt(UnitNpcRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0052DA60)
-__declspec(naked) void __fastcall ModelSerializeAt(UnitModelRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0052DC70)
-__declspec(naked) void __fastcall LevelSerializeAt(UnitLevelRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0052DEE0)
-
 // A vector of records as chunk `id`: one chunk 1 per record. Loading destroys the records (the
 // original erases them through stlp::copy of an empty range first), empties the vector and resizes
 // it to the count of chunks 1. Each record's chunk is the next occurrence (set before entering it);
 // the vector's start is read before entering.
-template <typename Record, typename Destroy, typename Resize, typename Serialize>
+template <typename Record, typename Destroy, typename Resize>
 void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, Destroy destroy, Resize resize,
-                      Serialize serialize) {
+                      void (Record::*serialize)(ChunkArchive*)) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
@@ -222,7 +215,7 @@ void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, D
         ar->Current()->occurrence = i + 1;
         Record* first = records->begin();
         if (ar->EnterChunk(1)) {
-            serialize(first + i, nullptr, ar);
+            (first[i].*serialize)(ar);
             ar->LeaveChunk();
         }
     }
@@ -235,24 +228,24 @@ void DestroyLevelName(UnitLevelRecord* record) { record->name.~CString(); }
 
 void ChunkArchive::SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void*) {
     SerializeRecords(this, id, records, [](UnitPrototypeRecord* r) { unitdb::DestroyPrototypeRecord(r); },
-                     recordvec::UnitPrototypeVector::ResizeDefault, PrototypeSerializeAt);
+                     recordvec::UnitPrototypeVector::ResizeDefault, &UnitPrototypeRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x0053DC10, ChunkArchive::SerializePrototypes);
 
 void ChunkArchive::SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void*) {
     SerializeRecords(this, id, records, [](UnitNpcRecord* r) { unitdb::DestroyNpcRecord(r); }, recordvec::UnitNpcVector::ResizeDefault,
-                     NpcSerializeAt);
+                     &UnitNpcRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x0053DD00, ChunkArchive::SerializeNpcs);
 
 void ChunkArchive::SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void*) {
     SerializeRecords(this, id, records, [](UnitModelRecord* r) { unitdb::DestroyModelRecord(r); },
-                     recordvec::UnitModelVector::ResizeDefault, ModelSerializeAt);
+                     recordvec::UnitModelVector::ResizeDefault, &UnitModelRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x0053DF50, ChunkArchive::SerializeModels);
 
 void ChunkArchive::SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void*) {
-    SerializeRecords(this, id, records, DestroyLevelName, recordvec::UnitLevelVector::ResizeDefault, LevelSerializeAt);
+    SerializeRecords(this, id, records, DestroyLevelName, recordvec::UnitLevelVector::ResizeDefault, &UnitLevelRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x0053E1B0, ChunkArchive::SerializeUnitLevels);
 

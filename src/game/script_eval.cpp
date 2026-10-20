@@ -35,6 +35,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "originals_script.h"
+#include "game_lists.h"
 
 #include <bit>
 #include <cstdint>
@@ -631,7 +632,6 @@ using TempGroupList = mfc::CList<ScriptGroup>;
 
 // The script's temporary groups: AddTail (004C8D80) copies the group into a new node and returns
 // the node. 004C2290: group destructor. 004C1290: group assignment.
-__declspec(naked) TempGroupList::Node* __fastcall GroupTempsAddTail(TempGroupList*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C8D80)
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOriginal((void*)a0); }
 inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) {
     gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
@@ -667,7 +667,8 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         empty.size = 0;
         empty.maxSize = 0;
         empty.growBy = 0;
-        TempGroupList::Node* node = GroupTempsAddTail(&script->tempGroups_, nullptr, &empty);
+        auto* node = reinterpret_cast<TempGroupList::Node*>(
+            gamelists::GroupAddTail(mfc::impl::ListAs<gamelists::Groups>(&script->tempGroups_), nullptr, &empty));
         GroupDestruct(&empty);
         *result = &node->data;
     }

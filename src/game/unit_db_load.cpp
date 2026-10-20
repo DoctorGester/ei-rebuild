@@ -28,7 +28,6 @@ constexpr int kModelSlots = 6;
 using dbfile::FillStream;
 using dbfile::LocalResource;
 using dbfile::LocalStream;
-using dbfile::SerializeFn;
 
 // The tables' vector serialisers (RET 0xC: id, vector, unused; ChunkArchive::SerializeUnitLevels /
 // SerializeModels / SerializePrototypes / SerializeNpcs, unit_db.cpp: 0053E1B0, 0053DF50, 0053DC10,

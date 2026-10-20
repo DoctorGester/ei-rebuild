@@ -110,21 +110,7 @@ inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* s
     static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
 }
 
-// Container instantiations inside the exe, decided from the disassembly. CList NewNode(prev, next) (RET 8, EAX the new
-// node): 004CD6D0 (0x20-byte nodes) / 004CDA30 (0xBC-byte nodes) construct the element through the template's
-// ConstructElements. (The pointer lists' members are mfc::CList's: mfc_list.cpp registers them.)
-__declspec(naked) inline void* __fastcall ScriptBlockListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
-    EI_ORIGINAL(0x004CD6D0)
-__declspec(naked) inline void* __fastcall ScriptRunListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
-    EI_ORIGINAL(0x004CDA30)
-// CList::NewNode(prev, next) of the script's particle source (004CD540), FX source (004CD5B0) and lightning
-// (004CD620) lists (RET 8, the node in EAX; the element zeroed, an FX source's name constructed empty).
-__declspec(naked) inline void* __fastcall ScriptParticleListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
-                                                                            void* /*next*/) EI_ORIGINAL(0x004CD540)
-__declspec(naked) inline void* __fastcall ScriptFxListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
-                                                                      void* /*next*/) EI_ORIGINAL(0x004CD5B0)
-__declspec(naked) inline void* __fastcall ScriptLightningListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
-                                                                             void* /*next*/) EI_ORIGINAL(0x004CD620)
+// Container instantiations inside the exe, decided from the disassembly.
 // STLport list insert(position, value) writing the new iterator to `out` (RET 0xC: out, position, value; EAX = out):
 // 00421AF0 and 00423190 on the 12-byte node pool (NetAddress / uint list, RefPtr list), 0056E8A0 on the cell lists.
 __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
