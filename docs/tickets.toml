@@ -1461,6 +1461,15 @@ group = "verification"
 size = 1
 note = "User 2026-10-16: remapping hotkeys did not seem to work, possibly from their local UTF-8 test patch (key_bindings.cpp was among its files). Recheck on a clean build against the original; if the image differs, a scenario that remaps a key and uses it, with goldens."
 
+[[ticket]]
+id = "SV9"
+title = "One test profile: Rebirth's bug fixes on in the standalone, goldens from the original with only those patches, Rebirth runs cut to a smoke set"
+group = "verification"
+size = 1
+model = "opus"
+files = ["config/rebirth_patches.csv config/rebirth_scenarios.csv include/ei/rebirth.h src/lib/rebirth.cpp tools/run_all.py tests/golden/ docs/notes/rebirth.md"]
+note = "User 2026-10-20: reduce the test surface; Rebirth vs vanilla runs are about 40% of suite time (last main suites: image 119 standalone + 95 standalone-rebirth runs, 913 s / 847 s; original 110 vanilla + 48 rebirth, 966 s / 483 s). Rebirth's obvious bug fixes go into the standalone right away. (1) Classify every patch in config/rebirth_patches.csv / docs/notes/rebirth.md: always on in the standalone (the 10 single-player bug fixes, crash-avoiding fixes, and multiplayer fixes that only repair behaviour), stays a flag (scripting / console additions, mod folders, widescreen / rendering superseded by our renderer, anything changing balance or content), dropped (crash handling / infrastructure we replace). (2) Make the always-on set the image's default (ei::rebirth defaults), keep each one switchable off. (3) Record the vanilla-data goldens from the original game.exe with only that set applied: first try addon.dll loaded into the vanilla run with a harness-written addon config enabling only those patches (config in the run overlay, nothing written to F:\\games), else apply the captured patch bytes; verify each fix is actually live in the recording (rebirth_sites_live style check). Re-record the vanilla goldens from it and say which changed and why. (4) Cut Rebirth-data runs to a smoke set (data-dependent scenarios only: Rebirth maps / scripts / resources) run on demand or before releases, not after every merge; update run_all defaults, config/rebirth_scenarios.csv and work.py test. Report before / after suite times."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
