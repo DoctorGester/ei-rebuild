@@ -1703,18 +1703,19 @@ __declspec(naked) float* __fastcall HarnessPickSurface(void* /*client world*/, v
     EI_ORIGINAL(0x0056C350)
 
 // --- blink faces|open|close (R11d) ------------------------------------------------------------------
-// faces: the client world loads its units' face textures (CWorldClient::LoadUnitFaces 0056DE80; the
-// game does it when a zone is entered between zones, not for a new game). open / close: every unit of
-// the client world with a face texture shows its face's open or closed state: the game's own blink
-// (00539010 / 00538ED0, thiscall RET 4, forced), as the briefing's speakers do, through the original
-// addresses so a run of the original code takes its own. Fails when no unit has a face.
+// faces: the client world loads its units' face textures (0056DE80, thiscall; the game does it when
+// a zone is entered between zones, not for a new game). open / close: every unit of the client
+// world with a face texture shows its face's open or closed state: the game's own blink (00539010 /
+// 00538ED0, thiscall RET 4, forced), as the briefing's speakers do. Through the original addresses,
+// so a run of the original code takes its own. Fails when no unit has a face.
+__declspec(naked) void __fastcall HarnessLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
 __declspec(naked) void __fastcall HarnessBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
 __declspec(naked) void __fastcall HarnessBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
 
 std::string BlinkStep(const std::string& argument) {
     if (argument != "faces" && argument != "open" && argument != "close") return "blink needs faces, open or close";
     auto* world = reinterpret_cast<CWorldClient*>(kClientWorld);
-    if (argument == "faces") world->LoadUnitFaces();
+    if (argument == "faces") HarnessLoadUnitFaces(world);
     SectorListNode* head = world->objects_.head;
     if (!head) return "blink: no client world";
     int faces = 0;
