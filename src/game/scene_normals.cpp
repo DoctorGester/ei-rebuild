@@ -7,6 +7,7 @@
 #include "scene_loader.h"
 
 #include "../lib/crt.h"
+#include "lib/containers.h"
 #include "lib/vecmath.h"
 #include "ei/hook.h"
 #include "originals_library.h"
@@ -50,7 +51,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
             for (int f = 0; f < faces.size; ++f) {
                 const MeshFace& face = faces.data[f];
                 if (face.vertex[0] == key || face.vertex[1] == key || face.vertex[2] == key)
-                    DwordsSetAtGrow(&facesOfVertex, nullptr, facesOfVertex.size, static_cast<std::uint32_t>(f));
+                    facesOfVertex.SetAtGrow(facesOfVertex.size, static_cast<std::uint32_t>(f));
             }
             Vector3 sum = GamePoint(0x0079B9B0);
             const std::uint32_t* list = facesOfVertex.data;

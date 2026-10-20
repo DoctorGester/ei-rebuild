@@ -703,8 +703,6 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 __declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
 void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
 inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
-__declspec(naked) SpellEntry* __fastcall SpellNewNode(ArmourSpellList*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
-    EI_ORIGINAL(0x00558B10)
 __declspec(naked) void __fastcall SpellFreeNode(ArmourSpellList*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
 } // namespace
 
@@ -748,7 +746,7 @@ void CUnitServer::RefreshItemSpells() {
             continue;
         }
         ArmourSpell blank{};
-        SpellEntry* added = SpellNewNode(list, nullptr, tail, nullptr);
+        SpellEntry* added = list->NewNode(tail, nullptr);
         added->data.Assign(&blank);
         if (tail) tail->next = added;
         else head = added;

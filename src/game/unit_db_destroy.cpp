@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "lib/crt.h"
+#include "lib/stlp_vector.h"
 
 namespace unitdb {
 
@@ -86,14 +87,11 @@ __declspec(naked) void __fastcall LevelsDeallocate(char**, void*, char* /*p*/, i
 __declspec(naked) void __fastcall ModelNamesClear(NameTable*) EI_ORIGINAL(0x0053C430)
 __declspec(naked) void __fastcall ModelBucketsFree(HashNode***) EI_ORIGINAL(0x0053B930)
 void __fastcall ModelRecordDestroy(char* record) { DestroyModelRecord(reinterpret_cast<UnitModelRecord*>(record)); }
-__declspec(naked) void __fastcall ModelsFree(RawVector*) EI_ORIGINAL(0x0053B7A0)
 __declspec(naked) void __fastcall NpcNamesClear(NameTable*) EI_ORIGINAL(0x0053C280)
 __declspec(naked) void __fastcall NpcBucketsFree(HashNode***) EI_ORIGINAL(0x005150D0)
 void __fastcall NpcRecordDestroy(char* record) { DestroyNpcRecord(reinterpret_cast<UnitNpcRecord*>(record)); }
-__declspec(naked) void __fastcall NpcsFree(RawVector*) EI_ORIGINAL(0x0053B600)
 __declspec(naked) void __fastcall PrototypeNamesClear(NameTable*) EI_ORIGINAL(0x0053C0D0)
 __declspec(naked) void __fastcall PrototypeBucketsFree(HashNode***) EI_ORIGINAL(0x0053BE70)
-__declspec(naked) void __fastcall PrototypesFree(RawVector*) EI_ORIGINAL(0x0053B460)
 
 // The NPC table's pieces: a node value's destructor (0053D990, RET 4, flag 0), the node
 // allocator's deallocate(node, 1) (0053CAA0, RET 8, `this` the allocator at the count),
@@ -144,7 +142,6 @@ void DestroyNames(NameTable& names, NameValueDestroyFn destroyValue, NameNodeDea
         stlp::deallocate(names.buckets, static_cast<std::size_t>(names.bucketsEos - names.buckets) * sizeof(HashNode*));
 }
 __declspec(naked) void __fastcall StringVectorFree(CStringVector*) EI_ORIGINAL(0x00520EB0)
-__declspec(naked) void __fastcall StringVectorDestroy(CStringVector*) EI_ORIGINAL(0x0053F020)
 
 void DestroyString(mfc::CString* s) { s->~CString(); }
 
@@ -203,21 +200,21 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     ModelBucketsFree(&models.names.buckets);
     for (char *p = models.records.begin(), *end = models.records.end(); p != end; p += 0x168)
         ModelRecordDestroy(p);
-    ModelsFree(&models.records);
+    models.records.FreeStorage();
 
     RecordTable& npcs = self->npcs;
     NpcNamesClear(&npcs.names);
     NpcBucketsFree(&npcs.names.buckets);
     for (char *p = npcs.records.begin(), *end = npcs.records.end(); p != end; p += 0x60)
         NpcRecordDestroy(p);
-    NpcsFree(&npcs.records);
+    npcs.records.FreeStorage();
 
     RecordTable& prototypes = self->prototypes;
     PrototypeNamesClear(&prototypes.names);
     PrototypeBucketsFree(&prototypes.names.buckets);
     for (char *p = prototypes.records.begin(), *end = prototypes.records.end(); p != end; p += 0x120)
         reinterpret_cast<UnitPrototypeRecord*>(p)->DeleteScalar(0);
-    PrototypesFree(&prototypes.records);
+    prototypes.records.FreeStorage();
 }
 
 // 00539CE0. The NPC table: the name map's clear inlined (each chain's values destroyed and nodes
@@ -230,8 +227,8 @@ void __fastcall DestroyNpcTable(RecordTable* self) {
         auto* record = reinterpret_cast<UnitNpcRecord*>(p);
         DestroyStringVector(&record->startSpells);
         DestroyStringVector(&record->startQuickItems);
-        StringVectorDestroy(&record->startWeapons);
-        StringVectorDestroy(&record->skillNames);
+        stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>::Destruct(&record->startWeapons);
+        stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>::Destruct(&record->skillNames);
         DestroyString(&record->name);
     }
     FreeStorage(&self->records, sizeof(UnitNpcRecord));

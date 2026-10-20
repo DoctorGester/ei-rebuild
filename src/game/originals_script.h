@@ -58,11 +58,6 @@ __declspec(naked) inline LinkPartRanges* __fastcall LinkRangeMapAtOriginal(stlp:
 __declspec(naked) inline void __fastcall LinkRangeMapEraseOriginal(stlp::map<stlp::string, LinkPartRanges>* /*map*/, void*,
                                                                    void* /*node*/) EI_ORIGINAL(0x004F4E40)
 
-// A-S7. 004D8EB0: STLport vector<char>::resize(n, value) (RET 8, EAX not a result): cut, or filled with *value
-// (0042D4E0 grows it). Used by the .mob script decoder and CWorldServer::LoadZoneScripts.
-__declspec(naked) inline void __fastcall CharVectorResizeOriginal(stlp::vector<char>* /*v*/, void*, unsigned /*n*/,
-                                                                  const char* /*value*/) EI_ORIGINAL(0x004D8EB0)
-
 // A-E1. 004ABA70 (RET 4): hashtable<pair<const int, CParty>>::_M_delete_node on the party manager's map: the node's
 // party destroyed, the node back to the node pool.
 __declspec(naked) inline void __fastcall PartyMapDeleteNodeOriginal(void* /*map*/, void*, void* /*node*/)

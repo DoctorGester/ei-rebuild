@@ -225,9 +225,6 @@ constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create 
 // An MFC CStringArray as 00517110 reads it.
 using PartNameArray = mfc::CStringArray;
 
-// 00519A10 (AlignedPtrArray::Add, below), through its address so its wrapper runs.
-__declspec(naked) int __fastcall AddAt(AlignedPtrArray*, void*, void*) EI_ORIGINAL(0x00519A10)
-
 CEngineObject* FigureManagerOf(const CObject3D* object) {
     return static_cast<CWorld*>(object->ManagerContext())->FigureManager();
 }
@@ -274,7 +271,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
     bool present = false;
     for (int i = 0; i < parts.size && !present; ++i) present = parts.data[i] == part;
     if (!present) {
-        AddAt(&parts, nullptr, part);
+        parts.Add(part);
         ++part->refCount_;
         part->SetObject(this);
         if (animation) static_cast<CFigureAnimationState*>(animation)->AttachMesh(part);

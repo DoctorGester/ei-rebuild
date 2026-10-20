@@ -17,8 +17,6 @@ constexpr int kRandMax = 0x7FFF;
 // The two growing helpers of the original's local candidate list: 0051A010 (SetAtGrow) and
 // 0051A190 (SetSize), copies of AlignedPtrArray's 00519E80 / 00519D70 (registered with the same
 // members below); through their addresses so their wrappers run.
-__declspec(naked) void __fastcall CandidatesSetAtGrow(AlignedPtrArray*, void*, int, void*) EI_ORIGINAL(0x0051A010)
-__declspec(naked) void __fastcall CandidatesSetSize(AlignedPtrArray*, void*, int, int) EI_ORIGINAL(0x0051A190)
 
 bool Accepts(CObject3D* object, const FigureAnimation* animation) {
     return ObjectSlots(object)->AcceptsAnimation(animation);
@@ -43,7 +41,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         std::uint32_t entryKey = entry->key;
         bool variant = wanted == 0 ? (entryKey & kKeyLowBits) == 0 : (~entryKey & key & kKeyLowBits) == 0;
         if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
-        if (Accepts(this, entry)) CandidatesSetAtGrow(&candidates, nullptr, candidates.size, entry);
+        if (Accepts(this, entry)) candidates.SetAtGrow(candidates.size, entry);
     }
     auto** list = reinterpret_cast<FigureAnimation**>(candidates.data);
     int count = candidates.size;
@@ -76,7 +74,7 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
         if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
         if (!Accepts(this, entry)) continue;
         int index = candidates.size;
-        CandidatesSetSize(&candidates, nullptr, index + 1, -1);
+        candidates.SetSize(index + 1, -1);
         candidates.data[index] = entry;
     }
     if (candidates.size == 0) {

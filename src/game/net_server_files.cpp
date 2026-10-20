@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/stlp_vector_refs.h"
 #include "originals_library.h"
 #include "originals_script.h"
 
@@ -19,8 +20,6 @@ namespace {
 // STLport vector<RefPtr> (library): constructor with an allocator, erase(first, last),
 // insert(pos, n, value).
 __declspec(naked) void __fastcall ChunkVectorConstruct(RefVector* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x0041FF90)
-__declspec(naked) void __fastcall ChunkVectorErase(RefVector* /*vector*/, void*, RefPtr* /*first*/, RefPtr* /*last*/) EI_ORIGINAL(0x00421D90)
-__declspec(naked) void __fastcall ChunkVectorInsert(RefVector* /*vector*/, void*, RefPtr* /*pos*/, std::size_t /*n*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00426CB0)
 __declspec(naked) void __fastcall RefNull(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFC0)
 // The files list (+0x2598): end, insert (the counted pointer is RefPtrFromRaw, core_refcount.h).
 __declspec(naked) void** __fastcall FilesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420550)
@@ -74,9 +73,9 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     RefVector& chunks = file->chunks_;
     std::uint32_t have = static_cast<std::uint32_t>(chunks.size());
     if (static_cast<std::uint32_t>(chunkCount) < have)
-        ChunkVectorErase(&chunks, nullptr, chunks.begin() + chunkCount, chunks.end());
+        chunks.EraseRange<stlp::SharedRefElement>(chunks.begin() + chunkCount, chunks.end());
     else
-        ChunkVectorInsert(&chunks, nullptr, chunks.end(), static_cast<std::uint32_t>(chunkCount) - have, &filler);
+        chunks.FillInsert<stlp::SharedRefElement>(chunks.end(), static_cast<std::uint32_t>(chunkCount) - have, filler);
     filler.Destroy();
 
     data->Seek(0);

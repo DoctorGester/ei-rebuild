@@ -266,7 +266,7 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) DwordsSetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -276,12 +276,12 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) DwordsSetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
             if (object->GetClassId() != world::kClassUnit) continue;
             if (--SleepCountdown(object) > 0) continue;
             auto* controller = reinterpret_cast<const std::uint8_t*>(static_cast<CUnit*>(object)->controller);
             if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
-                DwordsSetAtGrow(&SleepingIds(), nullptr, SleepingIds().size, static_cast<unsigned>(object->id_));
+                SleepingIds().SetAtGrow(SleepingIds().size, static_cast<unsigned>(object->id_));
             else
                 SleepCountdown(object) = UpdateCountdownFor(object);
         }

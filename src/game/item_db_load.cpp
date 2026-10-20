@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "lib/stlp.h"
+#include "lib/stlp_vector.h"
 
 namespace {
 
@@ -150,9 +151,6 @@ __declspec(naked) void __fastcall SpellListsResize(void*, void*, unsigned) EI_OR
 // vector<string>::erase(first, last) (RET 8) and resize(count) (RET 4).
 __declspec(naked) void __fastcall IntsFillInsert(stlp::vector<int>*, void*, int* /*position*/, unsigned /*count*/,
                                                  const int* /*value*/) EI_ORIGINAL(0x0055B030)
-__declspec(naked) stlp::string* __fastcall StringsErase(stlp::vector<stlp::string>*, void*, stlp::string* /*first*/,
-                                                        stlp::string* /*last*/) EI_ORIGINAL(0x00583CB0)
-__declspec(naked) void __fastcall StringsResize(stlp::vector<stlp::string>*, void*, unsigned /*count*/) EI_ORIGINAL(0x004DC900)
 
 // A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
 // to the field count first.
@@ -160,9 +158,9 @@ void StringListField(ChunkArchive* ar, int id, stlp::vector<stlp::string>* list)
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
-        StringsErase(list, nullptr, list->begin(), list->end());
+        list->EraseRange<stlp::StringElement>(list->begin(), list->end());
         count = ar->CountChunks(1);
-        StringsResize(list, nullptr, static_cast<unsigned>(count));
+        stlp::VectorAbi<stlp::string, stlp::StringElement>::ResizeDefault(list, nullptr, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(list->size());
     }

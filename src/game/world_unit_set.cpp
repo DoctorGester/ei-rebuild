@@ -138,7 +138,6 @@ __declspec(naked) void __fastcall ResizeFigured(stlp::vector<FiguredUnitRecord>*
     EI_ORIGINAL(0x0055A400)
 __declspec(naked) void __fastcall ResizeDressed(stlp::vector<DressedUnitRecord>*, void*, std::uint32_t)
     EI_ORIGINAL(0x0055A580)
-__declspec(naked) void __fastcall ResizeIds(UnitIdList*, void*, std::uint32_t, const std::uint32_t*) EI_ORIGINAL(0x004FE0C0)
 
 void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 
@@ -147,7 +146,7 @@ void GetIds(CStream* stream, UnitIdList& list) {
     std::uint32_t n;
     Get(stream, &n, 4);
     std::uint32_t zero = 0;
-    ResizeIds(&list, nullptr, n, &zero);
+    list.Resize<stlp::PlainElement<unsigned int>>(n, zero);
     Get(stream, list.begin(), static_cast<std::uint32_t>(list.size()) << 2);
 }
 

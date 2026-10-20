@@ -11,6 +11,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "originals_library.h"
 
 #include <cstdint>
@@ -61,12 +62,8 @@ struct CornerRecord {
     std::int32_t index;
 };
 using RecordArray = mfc::CArray<CornerRecord>;
-__declspec(naked) void __fastcall RecordsSetSize(RecordArray*, void*, int, int) EI_ORIGINAL(0x00453CA0)
 __declspec(naked) void __fastcall RecordsSetAtGrow(RecordArray*, void*, int, const CornerRecord*) EI_ORIGINAL(0x00453E00)
 
-// The index array's SetSize [0044FA90] and SetAtGrow [00452FC0], the dword array's SetSize [00452EB0].
-__declspec(naked) void __fastcall WordsSetSize(WordArray*, void*, int, int) EI_ORIGINAL(0x0044FA90)
-__declspec(naked) void __fastcall DwordsSetSize(DwordArray*, void*, int, int) EI_ORIGINAL(0x00452EB0)
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.
 void __cdecl GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { GameQsortOriginal(a0, a1, a2, a3); }
@@ -130,7 +127,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
         }
     }
 
-    RecordsSetSize(&records, nullptr, 0, -1);
+    records.SetSize(0, -1);
     if (corners.count != 0) {
         for (Assoc64* a = corners.Next(nullptr); a; a = corners.Next(a)) {
             std::uint64_t key = a->key;
@@ -156,7 +153,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
 
 // Step 4: each face corner's index in the table (-1 when absent), appended to +0x128.
 void IndexFaceCorners(SceneMesh* mesh) {
-    WordsSetSize(&mesh->cornerIndices, nullptr, 0, -1);
+    mesh->cornerIndices.SetSize(0, -1);
     for (int f = 0; f < mesh->faces.size; ++f) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
@@ -185,7 +182,7 @@ void BuildPairs(SceneMesh* mesh) {
             std::uint32_t value = a->value;
             std::uint32_t pair = (value >> 16) | (value << 16);   // words: vertex, position
             int at = list.size;
-            DwordsSetSize(&list, nullptr, at + 1, -1);
+            list.SetSize(at + 1, -1);
             list.data[at] = pair;
         }
     }
@@ -198,13 +195,13 @@ void BuildPairs(SceneMesh* mesh) {
         for (int i = 0; i < missing; ++i) {
             ++position;
             int at = list.size;
-            DwordsSetSize(&list, nullptr, at + 1, -1);
+            list.SetSize(at + 1, -1);
             list.data[at] = static_cast<std::uint32_t>(vertex) |
                                                                (static_cast<std::uint32_t>(position) << 16);
         }
     }
     DwordArray& out = mesh->pairs;
-    DwordsSetSize(&out, nullptr, list.size, -1);
+    out.SetSize(list.size, -1);
     std::memcpy(out.data, list.data, static_cast<std::size_t>(list.size) * 4);
     list.FreeData();
     DestroyMap(pairs, 0x0073C178);

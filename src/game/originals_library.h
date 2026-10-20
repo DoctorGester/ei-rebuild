@@ -456,13 +456,9 @@ __declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatc
 __declspec(naked) inline void** __fastcall HashMapAt(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)
 // C3n. The engine's aligned arrays (lib::AlignedArray<T>, thiscall on the array): 004513A0 (rewritten as
 // DwordArraySetSize2) SetSize(n, growBy); 00452FC0 / 004538D0 (rewritten as ShortArraySetAtGrow / DwordArraySetAtGrow)
-// SetAtGrow(index, value) on 16-bit / 32-bit elements (the value pushed as a dword).
-__declspec(naked) inline void __fastcall DwordsSetSize(lib::AlignedArray<std::uint32_t>* /*array*/, void*, int /*size*/,
-                                                       int /*growBy*/) EI_ORIGINAL(0x004513A0)
+// SetAtGrow(index, value) on 16-bit elements (the value pushed as a dword).
 __declspec(naked) inline void __fastcall WordsSetAtGrow(lib::AlignedArray<std::uint16_t>* /*array*/, void*, int /*index*/,
                                                         int /*value*/) EI_ORIGINAL(0x00452FC0)
-__declspec(naked) inline void __fastcall DwordsSetAtGrow(lib::AlignedArray<std::uint32_t>* /*array*/, void*, int /*index*/,
-                                                         std::uint32_t /*value*/) EI_ORIGINAL(0x004538D0)
 // C3n. 00461190 (rewritten as CStream::ReadString; thiscall on the stream, RET 4): reads a string from the stream and
 // constructs it as a CString at `out` (raw storage the size of a CString), returning it.
 __declspec(naked) inline mfc::CString* __fastcall StreamReadString(CStream* /*stream*/, void*, void* /*out*/)

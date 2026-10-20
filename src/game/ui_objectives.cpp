@@ -165,10 +165,7 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
     }
 }
 
-// The window's exit list (CArray<ObjectiveExit> at +0x188), not rewritten: SetSize 0064EFD0 and
-// SetAtGrow 0064F160 (thiscall).
-__declspec(naked) void __fastcall ExitsSetSize(mfc::CArray<ObjectiveExit>*, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0064EFD0)
+// The window's exit list (CArray<ObjectiveExit> at +0x188): SetAtGrow 0064F160 (thiscall).
 __declspec(naked) void __fastcall ExitsSetAtGrow(mfc::CArray<ObjectiveExit>*, void*, int /*index*/,
                                                  const ObjectiveExit&) EI_ORIGINAL(0x0064F160)
 
@@ -271,7 +268,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     nearestExit_ = -1;
     bool anyKnown = false;
     mfc::CArray<ObjectiveExit>* exitArray = &exits_;
-    ExitsSetSize(exitArray, nullptr, 0, -1);
+    exitArray->SetSize(0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
         const MapExit& source = map->exits.data[i];
         if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(source.target),

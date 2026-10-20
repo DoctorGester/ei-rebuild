@@ -43,6 +43,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp_list_refs.h"
@@ -1160,12 +1161,7 @@ __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040
 __declspec(naked) void __fastcall Construct562A80(void*) EI_ORIGINAL(0x00562A80)
 __declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
 __declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453400)
-__declspec(naked) void __fastcall Construct570E10(void*) EI_ORIGINAL(0x00570E10)
-__declspec(naked) void __fastcall Construct570E40(void*) EI_ORIGINAL(0x00570E40)
-__declspec(naked) void __fastcall Construct56FD30(void*) EI_ORIGINAL(0x0056FD30)
-__declspec(naked) void __fastcall Construct570E70(void*) EI_ORIGINAL(0x00570E70)
 __declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL(0x00570EA0)
-__declspec(naked) void __fastcall Construct570DE0(void*) EI_ORIGINAL(0x00570DE0)
 __declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
 __declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
 __declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
@@ -1299,19 +1295,19 @@ int CWorldClient::Setup() {
         terrain->pageTextures.growBy = 0;
         terrain->pageTextures.capacity = 0;
         terrain->pageTextures.size = 0;
-        Construct570E10(&terrain->pageMaterials);
+        terrain->pageMaterials.Construct();
         terrain->textF8 = camera::EmptyStringData();
         terrain->textFC = camera::EmptyStringData();
-        Construct570E40(&terrain->materials);
-        Construct56FD30(&terrain->textureClass);
-        Construct56FD30(&terrain->textureFrames);
+        terrain->materials.Construct();
+        terrain->textureClass.Construct();
+        terrain->textureFrames.Construct();
         static_cast<CMMIOResource*>(&terrain->archive)->Construct();
-        Construct570E70(&terrain->vertexTiles);
+        terrain->vertexTiles.Construct();
         Construct570EA0(&terrain->sectorCache, nullptr, 10);
         stlp::ConstructTableWithDword(reinterpret_cast<stlp::TableWithDword*>(&terrain->lights));
-        Construct570DE0(&terrain->wavePhases);
-        Construct56FD30(&terrain->visibleColumnFirst);
-        Construct56FD30(&terrain->visibleColumnLast);
+        terrain->wavePhases.Construct();
+        terrain->visibleColumnFirst.Construct();
+        terrain->visibleColumnLast.Construct();
         terrain->textAE0 = camera::EmptyStringData();
         Construct5711C0(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);

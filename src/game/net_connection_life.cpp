@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/stlp_tree_abi.h"
 #include "originals_script.h"
 #include "originals_library.h"
 
@@ -44,15 +45,12 @@ __declspec(naked) void __fastcall ByObjectConstruct(ObjectMap* /*tree*/, void*, 
 __declspec(naked) void __fastcall HistoryListConstruct(HistoryNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439960)
 __declspec(naked) void __fastcall RecordsBaseConstruct(Connection::RecordMap* /*tree*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0043A590)
 __declspec(naked) void __fastcall RecordsEmpty(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x0043A570)
-__declspec(naked) void __fastcall AttachedBaseConstruct(AttachedMap* /*tree*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0043A780)
-__declspec(naked) void __fastcall AttachedEmpty(AttachedMap* /*tree*/) EI_ORIGINAL(0x0043A760)
 __declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
 __declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
 inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
 
 // Reset's container teardown.
 __declspec(naked) void __fastcall ListDeleteAll(HeaderNode** /*list*/) EI_ORIGINAL(0x00439D40)
-__declspec(naked) void __fastcall AttachedDestroy(AttachedMap* /*tree*/) EI_ORIGINAL(0x004385A0)
 __declspec(naked) void __fastcall RecordsDestroy(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x004383A0)
 __declspec(naked) void __fastcall HistoryDestroy(HistoryNode** /*list*/) EI_ORIGINAL(0x004399C0)
 __declspec(naked) void __fastcall ByObjectClear(ObjectMap* /*tree*/) EI_ORIGINAL(0x004396A0)
@@ -66,8 +64,6 @@ __declspec(naked) void __fastcall ReceivedDeallocate(std::int32_t** /*eos*/, voi
 // The destructor's container teardown.
 __declspec(naked) void __fastcall ListDeleteNodes(HeaderNode** /*list*/) EI_ORIGINAL(0x0043D420)
 __declspec(naked) void __fastcall HeaderSentinelFree(HeaderNode** /*list*/, void*, HeaderNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x00439D80)
-__declspec(naked) void __fastcall AttachedClear(AttachedMap* /*tree*/) EI_ORIGINAL(0x00439BB0)
-__declspec(naked) void __fastcall AttachedFreeHeader(AttachedMap* /*tree*/) EI_ORIGINAL(0x00439C10)
 __declspec(naked) void __fastcall RecordsClear(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x00439AE0)
 __declspec(naked) void __fastcall RecordsFreeHeader(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x00439B40)
 __declspec(naked) void __fastcall HistoryClear(HistoryNode** /*list*/) EI_ORIGINAL(0x0043CA40)
@@ -89,7 +85,7 @@ void DestroyForReset(Connection* c) {
     GrowingBufferDestruct(&c->reliableOut_);
     ListDeleteAll(&c->incoming_);
     ListDeleteAll(&c->headers_);
-    AttachedDestroy(&c->attached_);
+    c->attached_.Destroy<stlp::TreeElement<AttachedMap::Value>>();
     RecordsDestroy(&c->records_);
     HistoryDestroy(&c->acknowledged_);
     HistoryDestroy(&c->history_);
@@ -126,10 +122,10 @@ Connection* Connection::Construct(std::uint32_t id) {
     records_.Count() = 0;
     records_.Compare() = static_cast<std::uint8_t>(id);
     RecordsEmpty(&records_);
-    AttachedBaseConstruct(&attached_, nullptr, &tags[3]);
+    trees::Attached::ConstructBase(&attached_, nullptr, &tags[3]);
     attached_.Compare() = static_cast<std::uint8_t>(id);
     attached_.Count() = 0;
-    AttachedEmpty(&attached_);
+    attached_.EmptyInitialize();
     HeaderListConstruct(&headers_, nullptr, &tags[3]);
     std::uint32_t zero = 0;
     IncomingProxyConstruct(&incoming_, nullptr, &tags[3], &zero);
@@ -194,8 +190,8 @@ void Connection::Destruct() {
     HeaderSentinelFree(&incoming_, nullptr, incoming_, 1);
     ListDeleteNodes(&headers_);
     HeaderSentinelFree(&headers_, nullptr, headers_, 1);
-    AttachedClear(&attached_);
-    AttachedFreeHeader(&attached_);
+    attached_.Clear<stlp::TreeElement<AttachedMap::Value>>();
+    trees::Attached::FreeHeader(&attached_);
     RecordsClear(&records_);
     RecordsFreeHeader(&records_);
     HistoryClear(&acknowledged_);
@@ -238,7 +234,6 @@ __declspec(naked) void __fastcall ByObjectCopy(ObjectMap* /*to*/, void*, const O
 __declspec(naked) void __fastcall PriorityCopy(Connection::EntryMap* /*to*/, void*, const Connection::EntryMap* /*from*/) EI_ORIGINAL(0x00437E00)
 __declspec(naked) void __fastcall HistoryCopy(HistoryNode** /*to*/, void*, HistoryNode* const* /*from*/) EI_ORIGINAL(0x00437F60)
 __declspec(naked) void __fastcall RecordsCopy(Connection::RecordMap* /*to*/, void*, const Connection::RecordMap* /*from*/) EI_ORIGINAL(0x004381B0)
-__declspec(naked) void __fastcall AttachedCopy(AttachedMap* /*to*/, void*, const AttachedMap* /*from*/) EI_ORIGINAL(0x00438440)
 __declspec(naked) void __fastcall HeaderListCopy(HeaderNode** /*to*/, void*, HeaderNode* const* /*from*/) EI_ORIGINAL(0x00438690)
 } // namespace
 
@@ -267,7 +262,7 @@ Connection* Connection::Clone() {
     HistoryCopy(&copy->history_, nullptr, &history_);
     HistoryCopy(&copy->acknowledged_, nullptr, &acknowledged_);
     RecordsCopy(&copy->records_, nullptr, &records_);
-    AttachedCopy(&copy->attached_, nullptr, &attached_);
+    trees::Attached::CopyConstruct(&copy->attached_, nullptr, &attached_);
     copy->headerSequence_ = headerSequence_;
     copy->incomingSequence_ = incomingSequence_;
     HeaderListCopy(&copy->headers_, nullptr, &headers_);

@@ -57,8 +57,6 @@ using RecordArray = RecordPtrArray;
 
 // 004621A0 (RET 8). CPtrList::NewNode(prev, next), out of line.
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-// 0059D450 (RET 8). CArray<int>::SetAtGrow(index, value).
-__declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, int) EI_ORIGINAL(0x0059D450)
 // 0059CB50 (RET 8). The item array's SetSize(size, growBy).
 __declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) EI_ORIGINAL(0x0059CB50)
 // 006A0110 (CItem::GetPrototype). A quest item's description: the names of the zones it belongs to.
@@ -119,7 +117,7 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
         CEngineObject* object = node->value;
         if (!ObjectSlots(object)->IsUsable()) continue;
         int id = ObjectSlots(object)->KeyId();
-        if (!Contains(wanted, id)) IdArraySetAtGrow(&wanted, nullptr, wanted.size, id);
+        if (!Contains(wanted, id)) wanted.SetAtGrow(wanted.size, id);
     }
 
     // Quest items move from the array to the list: in single player only those whose

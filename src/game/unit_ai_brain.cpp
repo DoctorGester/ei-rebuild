@@ -36,7 +36,6 @@ void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
 
 __declspec(naked) void __fastcall CallsSetSizeAt(AICallArray*, void*, int, int) EI_ORIGINAL(0x005CDD60)
 __declspec(naked) void __fastcall ReportsSetSizeAt(AIReportArray*, void*, int, int) EI_ORIGINAL(0x005CD670)
-__declspec(naked) void __fastcall ReportsRemoveAtAt(AIReportArray*, void*, int, int) EI_ORIGINAL(0x005CD800)
 
 namespace {
 AIBrain* BrainOf(CUnit* unit) {
@@ -389,7 +388,7 @@ void AIBrain::Forget(CEngineObject* object) {
     RemoveAllOf(seenCorpses, held.object);
     RemoveAllOf(corpses, held.object);
     for (int i = 0; i < reports.size; ++i) {
-        if (reports.data[i].object == object) ReportsRemoveAtAt(&reports, nullptr, i--, 1);
+        if (reports.data[i].object == object) reports.RemoveAt(i--, 1);
     }
     held.Reset();
 }

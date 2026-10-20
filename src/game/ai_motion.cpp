@@ -18,15 +18,6 @@
 #include <cstring>
 
 namespace {
-// The game's CArray template instantiations for the trajectory arrays.
-__declspec(naked) int __fastcall WaypointsAdd(mfc::CArray<MotionWaypoint>*, void*, const MotionWaypoint*)
-    EI_ORIGINAL(0x005C8400)
-__declspec(naked) void __fastcall WaypointsSetAtGrow(mfc::CArray<MotionWaypoint>*, void*, int, const MotionWaypoint*)
-    EI_ORIGINAL(0x005C87F0)
-__declspec(naked) void __fastcall StepSpeedsSetAtGrow(mfc::CArray<float>*, void*, int, float) EI_ORIGINAL(0x005C8950)
-__declspec(naked) void __fastcall PointsSetSize(mfc::CArray<MotionPoint>*, void*, int, int) EI_ORIGINAL(0x005C8560)
-__declspec(naked) void __fastcall WaypointsSetSize(mfc::CArray<MotionWaypoint>*, void*, int, int) EI_ORIGINAL(0x005C86B0)
-
 // x87 FCOM followed by TEST AH,0x40: "equal", which unordered (NaN) operands also are.
 bool Equal(double a, double b) { return !(a < b) && !(a > b); }
 
@@ -504,12 +495,12 @@ void UnitMotion::Build(AIPath* path) {
     CopyBits(&first.x, &order->x);
     CopyBits(&first.y, &order->y);
     first.cells = 0;
-    WaypointsSetAtGrow(&waypoints, nullptr, waypoints.size, &first);
+    waypoints.SetAtGrow(waypoints.size, first);
     int previous = 0;
     for (PathCellList::Node* node = path->steps.head; node;) {
         PathCellList::Node* next = node->next;
         ++waypoints.data[waypoints.size - 1].cells;
-        StepSpeedsSetAtGrow(&stepSpeeds, nullptr, stepSpeeds.size, static_cast<float>(static_cast<double>(node->data.flags)));
+        stepSpeeds.SetAtGrow(stepSpeeds.size, static_cast<float>(static_cast<double>(node->data.flags)));
         if (!next) break;
         PathCellList::Node* afterNext = next->next;
         const PathCell& cell = node->data;
@@ -519,19 +510,19 @@ void UnitMotion::Build(AIPath* path) {
         switch (dir) {
         case 2:
             w = Waypoint(cx, cy);
-            WaypointsSetAtGrow(&waypoints, nullptr, waypoints.size, &w);
+            waypoints.SetAtGrow(waypoints.size, w);
             break;
         case 4:
             w = Waypoint(cx, cy + 1.0f);
-            WaypointsSetAtGrow(&waypoints, nullptr, waypoints.size, &w);
+            waypoints.SetAtGrow(waypoints.size, w);
             break;
         case 6:
             w = Waypoint(cx + 1.0f, cy + 1.0f);
-            WaypointsSetAtGrow(&waypoints, nullptr, waypoints.size, &w);
+            waypoints.SetAtGrow(waypoints.size, w);
             break;
         case 8:
             w = Waypoint(cx + 1.0f, cy);
-            WaypointsAdd(&waypoints, nullptr, &w);
+            waypoints.Add(w);
             break;
         default:
             break;
@@ -543,19 +534,19 @@ void UnitMotion::Build(AIPath* path) {
             switch (dir) {
             case 1:
                 w = Waypoint(cx + 0.5f, cy);
-                WaypointsAdd(&waypoints, nullptr, &w);
+                waypoints.Add(w);
                 break;
             case 3:
                 w = Waypoint(cx, cy + 0.5f);
-                WaypointsSetAtGrow(&waypoints, nullptr, waypoints.size, &w);
+                waypoints.SetAtGrow(waypoints.size, w);
                 break;
             case 5:
                 w = Waypoint(cx + 0.5f, cy + 1.0f);
-                WaypointsAdd(&waypoints, nullptr, &w);
+                waypoints.Add(w);
                 break;
             case 7:
                 w = Waypoint(cx + 1.0f, cy + 0.5f);
-                WaypointsAdd(&waypoints, nullptr, &w);
+                waypoints.Add(w);
                 break;
             default:
                 break;
@@ -569,7 +560,7 @@ void UnitMotion::Build(AIPath* path) {
     std::memcpy(&last.x, &order->arg5, sizeof(float));
     std::memcpy(&last.y, &order->arg6, sizeof(float));
     last.cells = 0;
-    WaypointsAdd(&waypoints, nullptr, &last);
+    waypoints.Add(last);
     Subdivide();
     LimitSpeeds(baseTurnRate);
 
@@ -642,12 +633,12 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         CopyBits(&p.y, &a->y);
         int size = points.size;
         p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
-        PointsSetSize(&points, nullptr, size + 1, -1);
+        points.SetSize(size + 1, -1);
         points.data[size] = p;
         size = points.size;
         CopyBits(&p.x, &b->x);
         CopyBits(&p.y, &b->y);
-        PointsSetSize(&points, nullptr, size + 1, -1);
+        points.SetSize(size + 1, -1);
         points.data[size] = p;
         ++*stepIndex;
         return;
@@ -661,7 +652,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         p.y = static_cast<float>(g * a->y + f * b->y);
         p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
         int size = points.size;
-        PointsSetSize(&points, nullptr, size + 1, -1);
+        points.SetSize(size + 1, -1);
         points.data[size] = p;
         ++*stepIndex;
     }
@@ -694,10 +685,10 @@ void UnitMotion::LoadState(CStream* stream) {
     // The original reads each count into its argument slot: a failed read leaves the stream pointer.
     int count = 0;
     stream->Read(&count, 4);
-    PointsSetSize(&points, nullptr, count, -1);
+    points.SetSize(count, -1);
     for (int i = 0; i < points.size; ++i) stream->Read(&points[i], sizeof(MotionPoint));
     stream->Read(&count, 4);
-    WaypointsSetSize(&waypoints, nullptr, count, -1);
+    waypoints.SetSize(count, -1);
     for (int i = 0; i < waypoints.size; ++i) stream->Read(&waypoints[i], sizeof(MotionWaypoint));
     stream->Read(&count, 4);
     stepSpeeds.SetSize(count, -1);

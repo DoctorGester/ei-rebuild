@@ -988,7 +988,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         const std::uint8_t* data = text.s.data_;
         std::uint32_t size = text.s.size_;
         char zero = 0;
-        CharVectorResizeOriginal(&decoder.input, nullptr, size, &zero);
+        decoder.input.Resize<stlp::PlainElement<char>>(size, zero);
         std::memmove(decoder.input.begin(), data, size);
         decoder.Decode(&script);
     } else if (scripts.s.FindTagged(kScriptPlain, &text.s)) {

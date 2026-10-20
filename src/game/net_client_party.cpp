@@ -13,6 +13,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/stlp_vector_refs.h"
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_gameplay.h"
@@ -24,8 +25,6 @@ namespace net {
 namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
-__declspec(naked) RefPtr* __fastcall VectorErase(RefVector* /*vector*/, void*, RefPtr* /*first*/, RefPtr* /*last*/) EI_ORIGINAL(0x00421ED0)
-__declspec(naked) void __fastcall VectorInsertOverflow(RefVector* /*vector*/, void*, RefPtr* /*pos*/, const RefPtr* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426F00)
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
 __declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
 
@@ -52,7 +51,7 @@ void PushBack(RefVector* v, const RefPtr* value) {
         libcontainers::ConstructRefPtr(v->end(), value);
         ++v->Finish();
     } else {
-        VectorInsertOverflow(v, nullptr, v->end(), value, 1);
+        v->InsertOverflow<stlp::CountedRefElement>(v->end(), *value, 1);
     }
 }
 
@@ -92,7 +91,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     RefVector previous;
     VectorBaseConstruct(&previous, nullptr, static_cast<std::size_t>(messages->size()), allocatorCopy);
     previous.Finish() = UninitializedCopy(messages->begin(), messages->end(), previous.begin(), 0);
-    VectorErase(&state()->members_, nullptr, state()->members_.begin(), state()->members_.end());
+    state()->members_.EraseRange<stlp::CountedRefElement>(state()->members_.begin(), state()->members_.end());
     state()->money_ = static_cast<std::uint32_t>(party->Money());
 
     std::uint32_t scratch = 0;
