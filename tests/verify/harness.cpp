@@ -239,6 +239,11 @@
 //   shadowcheck <casters>     require the last frame's shadow map made with at least <casters> objects
 //                             casting into it and the ground and some meshes sampling it (render::
 //                             ShadowState). Skipped in a run of the original code
+//   terraincache on|off|check the image's terrain pages kept on the GPU (render::SetTerrainCache, R16c;
+//                             the default) or built and uploaded every frame (off), from the next
+//                             frame; check requires that no check of a kept page against a fresh build
+//                             (every 16th frame, render::TerrainCacheState) found it stale. Ignored in
+//                             a run of the original code
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time); "-" only starts a new
@@ -3003,6 +3008,25 @@ void RunSteps() {
             }
             if (s.argument == "classic" || s.argument == "map") render::SetClassicShadows(s.argument == "classic");
             else g_failures.push_back("shadows needs classic or map");
+        } else if (s.verb == "terraincache") {
+            if (!render::Active()) {
+                Log("harness: terraincache %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "on" || s.argument == "off") {
+                render::SetTerrainCache(s.argument == "on");
+            } else if (s.argument == "check") {
+                render::TerrainCacheInfo info = render::TerrainCacheState();
+                char text[200];
+                std::snprintf(text, sizeof(text), "terraincache: %s, %zu pages kept, %llu checks against a fresh build, %llu stale",
+                              info.on ? "on" : "off", info.pages, static_cast<unsigned long long>(info.checks),
+                              static_cast<unsigned long long>(info.stale));
+                Log("harness: %s", text);
+                g_capturedFrames.push_back(text);
+                if (info.stale > 0) g_failures.push_back(text);
+            } else {
+                g_failures.push_back("terraincache needs on, off or check");
+            }
         } else if (s.verb == "shadowcheck") {
             int least = 1;
             if (sscanf_s(s.argument.c_str(), "%d", &least) < 1) {
@@ -3047,7 +3071,7 @@ void RunSteps() {
                 "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
                 "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
                 "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
-                "CPU ms hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f); "
+                "CPU ms terrain %.3f, hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f); "
                 "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
                 per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
@@ -3063,7 +3087,7 @@ void RunSteps() {
                 kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
                 static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,
                 static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
-                t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n,
+                t.terrainMs / n, t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n,
                 per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
                 t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0);
             Log("harness: %s", text);

@@ -5,7 +5,8 @@
 # again (smooth2). The two with it match; smoothcheck requires the option's world passes and
 # anisotropic models in the frame and the smooth frame to differ from the plain one only in a few
 # pixels (the world's edges and textures: nothing black or stale). The quick save's picture (R13, a
-# screen copy between frames) must still show that frame.
+# screen copy between frames) must still show that frame. R16c: the smooth frame with the terrain pages
+# built and uploaded again (smooth_fresh) matches the one with them kept on the GPU.
 # no original: vanilla rebirth (the smooth option is our renderer's)
 render new,present,smooth
 reject Script error
@@ -25,7 +26,11 @@ smooth off
 capture plain
 smooth on
 capture smooth2
+terraincache off
+capture smooth_fresh
+terraincache on
 samecapture smooth smooth2
+samecapture smooth smooth_fresh
 smoothcheck plain smooth 0.002 0.2
 key f5
 waitline 15 Saved saveq
@@ -33,6 +38,7 @@ vanilla checksave saveq smooth 32 0.02
 rebirth checksave saveq smooth centre 32 0.02
 unfreeze
 frames 5
+terraincache check
 check IsAlive(GetLeader())
 report
 quit

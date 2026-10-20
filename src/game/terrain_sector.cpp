@@ -17,6 +17,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_world.h"
+#include "render/render.h"
 
 namespace terrain {
 namespace {
@@ -448,6 +449,7 @@ void SectorData::Build() {
             ApplyWaterLevels();
         }
     }
+    render::TerrainChanged(this, true);   // the pages kept on the GPU (R16c)
 }
 
 void SectorData::ApplyWaterLevels() {
@@ -470,6 +472,7 @@ void SectorData::ApplyWaterLevels() {
             }
         }
         std::memset(&levels.data[id], 0, 4);
+        render::TerrainChanged(this, false);
     }
 }
 

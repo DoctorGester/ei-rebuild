@@ -19,6 +19,7 @@
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "originals_library.h"
+#include "render/render.h"
 
 #include <cmath>
 #include <cstdint>
@@ -88,6 +89,7 @@ void SectorData::Clear() {
         for (int page = 0; page < tiles[quarter].size; ++page) tiles[quarter][page].SetSize(0, -1);
     }
     ResetFields();
+    render::TerrainChanged(this, true);
 }
 
 void SectorData::ScheduleRelight(int frames) {
@@ -104,6 +106,7 @@ void SectorData::RelightTick() {
 
 void SectorData::Animate(Terrain* landscape, int frame) {
     if (frame % 3 == 0 && (landscape->landscapeFlags & 2) != 0) {
+        bool stepped = false;
         for (int i = 0; i < animated.size; ++i) {
             AnimatedTile& tile = animated[i];
             if (tile.frame == 0 && tile.speed < 1000 &&
@@ -111,12 +114,14 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                 continue;
             }
             tile.frame = (tile.frame + 1) % tile.frames;
+            stepped = true;
             const float* uv = landscape->TileUv(tile.rotation, tile.frameBase + tile.frame, 0);
             for (int k = 0; k < 9; ++k) {
                 tile.vertices[k].u = uv[k];
                 tile.vertices[k].v = 1.0f - uv[k + 9];
             }
         }
+        if (stepped) render::TerrainChanged(this, false);   // the pages kept on the GPU (R16c)
     }
     if (!hasWater || (landscape->landscapeFlags & 1) == 0) return;
 
@@ -186,6 +191,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
         }
         rowStart = static_cast<float>(rowStart + stepY);
     }
+    render::TerrainChanged(this, false);
 }
 
 namespace {

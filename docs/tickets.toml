@@ -422,6 +422,33 @@ depends = ["R16"]
 files = ["src/render/ src/game/map_object_shadow.cpp src/game/device_shadow.cpp docs/notes/renderer.md"]
 note = "User 2026-10-20: 'we definitely want at least GPU shadows rendered in the modern way'; today's shadows are very inaccurate, especially on slopes, and update in a staggered way (64x64 textures rasterised and blurred on the CPU by 2DintMMX, map_object_shadow.cpp 0051CE60, rebuilt a few per frame, laid on flat ground quads by 0056C750). Render figures and map objects into a sun shadow map each frame (the sun direction from the terrain, TerrainFields +0x258 / SetSun; the meshes R16 already hands over with their matrices), sample it with filtering (PCF) when drawing terrain, objects and figures, so shadows fall correctly on slopes, platforms and other objects and move every frame. New shadows on by default in the image, the old ones kept as an option (EI_RENDER word or render:: switch, for ST2's options screen); with the option on 'classic', frames must match today at 8 / 0.1%. The game's own shadow building keeps running unless the goldens show it is visual only. Show the user side-by-side frames (frame_preview.py) of slopes, a town and a fight. Measure the CPU / GPU cost with render_stats. Terrain self-shadowing from the sun (CPU ray march in terrain_lighting.cpp) and per-pixel lighting stay in R16i."
 
+[[ticket]]
+id = "R16c2"
+title = "Water waves in the terrain vertex shader"
+group = "renderer"
+depends = ["R16c"]
+note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%."
+
+[[ticket]]
+id = "R16j1"
+title = "Shadow map: map objects whose classic shadow shows cast none (the fight's ruin blocks)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16j"]
+files = ["src/render/render_shadows.cpp src/game/world_client_draw.cpp src/game/map_object_shadow.cpp"]
+note = "User 2026-10-20, on the fight preview (render_shadows' fight_map vs fight_classic, build/R16j/full/stone_full.png): 'Looks like the shadow is missing on this stone?'. At full 4K resolution the classic frame shows the ruin's front wall block, and the pillar to its left, throwing dark shadows down and to the right onto the dirt; with the map the dirt below them stays lit, while the figures do cast. Find out why: are those stones in the casters list (0051CE60 CastsShadow) and are their meshes attributed between BeginCaster / EndCaster (world_client_draw.cpp kDraw) or drawn elsewhere (sorted model batches, flat geometry, deferred), cut by kLeastStrength, alpha, the depth bias or the 160-unit caster reach? shadowcheck's counts and RenderDoc (E:\\bin\\renderdoc) on the map pass can tell. Also check the town and slope frames for the same. Fix so every object the classic shadows draw casts into the map; render_shadows passes, frames with the classic option unchanged, and show the user the same crop before / after. Second case, same day (town bz1g, town_map vs town_classic, build/R16j/full/bush_full.png): 'Here the bush shadow seems to be missing as well.' The small fern by the house's corner post casts a soft shadow down-left with classic shadows and none with the map (the house's own shadow shows), so check alpha-tested foliage too: stage 0's alpha cut in the caster pass (alpha reference, texture bound), first-pass-only, and whether bushes reach CastsShadow."
+
+[[ticket]]
+id = "R16j2"
+title = "Shadow map: soft edges like the old shadows (wider near the far end, sharp at contact)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16j1"]
+files = ["src/render/render_shadows.cpp"]
+note = "User 2026-10-20: 'the new shadows are quite a bit harder than the original one, see the shadow of the town gate'. The old shadows are 64 x 64 textures stretched over each object's shadow quad and, with the shadow option on 'blurred' (mode 2, 0079BD0C), blurred twice on the CPU (2DintMMX BlurShadow / BlurShadow2, map_object_shadow.cpp ~358): a penumbra of a few texels of a 64-texel image, so about a tenth of the object's size, wide on a building. The map is 4096 texels over the visible ground (about 72 units) with 3 x 3 PCF, an edge of a few hundredths of a unit. Make the edge soft: contact-hardening (PCSS: blocker search, penumbra from the receiver's distance to the blocker times the sun's chosen angular size, Poisson-disc taps, rotated per pixel) so a shadow is sharp where an object meets the ground and soft away from it; tune the largest penumbra to look like the old one on the town gate (render_shadows' town_map vs town_classic). Keep the classic option unchanged, and the GPU cost of the map pass + sampling within about 0.3 ms at 4K (render_stats). Show the user the town gate, the fight and a slope before / after."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
@@ -1488,6 +1515,16 @@ model = "sonnet"
 depends = ["SV9"]
 files = ["tests/scenarios/ tests/golden/ docs/notes/rebirth.md"]
 note = "From SV9: of the 11 Fix-kind patches only FixSpellEffectsOverflow changes a golden (rebirth_fixes). Write scenarios whose vanilla run reaches FixLeversActivate, FixSpellSelfCasting, FixMoveObject, FixAddMapObject, FixRemoveMapObject, FixCreateItem, FixProgressNames, FixRepairPrice, FixPlaingBattleMusicFromAntimagic, FixProcessLogin (addon.log lines or a golden that differs from an EI_ADDON_FLAGS=0 run), record them from the original + fixes, check the image matches. EI_Plugin fixes (Briefings/Fixes) cannot be recorded through addon.dll; list them separately."
+
+[[ticket]]
+id = "SV5d5"
+title = "net_pair_quest takes 130-240 s a run: find where the time goes and shorten it"
+group = "verification"
+size = 1
+model = "opus"
+depends = ["SV5d3"]
+files = ["tests/scenarios/net_pair_quest.txt tests/scenarios/peer/net_pair_quest.txt tests/verify/harness_pair.h"]
+note = "User 2026-10-20 asked whether net_pair_quest's run time had been improved: it has not. work.db's run table: 30 s before SV5d3 added the quest, then 130-240 s every run (standalone 133-238, vanilla 143-214; two games each, timeout 480 against the 60 s default), the longest scenario in both suites. The time goes to: the hero walking across zone9 to the old camp and back (lookat + clickground steps repeated because fights stop the walk, frames 150 each), the ten undead's fights, the briefing clicked through with wait 4000 / 800 steps (twice), and the 60 s of game time before CompleteZone's awards reach the clients (frames 400). Measure each part from the run's ei_hook.log timestamps first, then shorten without losing what the scenario reaches (CompleteZone 00418ED0, kind 0 / 1 awards, ClientOnAward 0041EF90, OnMaster 0041ACA0): e.g. the game's own speed-up (harness speed / the virtual clock if the pair can run on it), fewer and shorter walk steps, waitwindow instead of fixed waits. Only inputs the original handles. Goldens re-recorded only if the steps change; vanilla and image goldens must still agree."
 
 # ---------------------------------------------------------------- harness and suite
 
