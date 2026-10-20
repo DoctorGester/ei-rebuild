@@ -41,7 +41,6 @@ constexpr std::uint32_t kTextureIsLoaded = 8;   // CTexture::flags_ (CEngineObje
 const char* NullTextureText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078EDF8)); }
 
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
-IDirectDrawSurface7* Surface(CDXSurface* holder) { return static_cast<IDirectDrawSurface7*>(holder->surface); }
 
 } // namespace
 
@@ -177,23 +176,16 @@ std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
 std::uint32_t __fastcall RendererZEnableHook(CSceneRenderer* self) { return self->CSceneRenderer::ZEnable(); }
 EI_REPLACE(0x00501AA0, RendererZEnableHook);
 
-// The holder is stored before the batch is flushed; no device lock.
+// The holder is stored before the batch is flushed; no device lock. The stage's texture is null on
+// the stand-in (no holder has a DirectDraw surface); the new renderer draws with the holder.
 int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
     CTextureDevice* device = device_;
     CDXSurface*& bound = device->stageSurfaces_[stage];
-    if (!texture) {
-        if (!bound) return 1;
-        bound = nullptr;
-        static_cast<CTextureDevice*>(device)->FlushBatch();
-        device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);
-        ++device->textureChanges_;
-        return 1;
-    }
-    CDXSurface* surface = static_cast<CTexture*>(texture)->surface_;
+    CDXSurface* surface = texture ? static_cast<CTexture*>(texture)->surface_ : nullptr;
     if (bound == surface) return 1;
     bound = surface;
-    static_cast<CTextureDevice*>(device)->FlushBatch();
-    device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), surface ? Surface(surface) : nullptr);
+    device->FlushBatch();
+    device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);
     ++device->textureChanges_;
     return 1;
 }

@@ -2,16 +2,16 @@
 // and the selected save's picture (00656E10). See ui.h (CSaveLoadWindow) and
 // docs/notes/renderer.md (section 11).
 //
-// The window shows two 256x256 5:6:5 textures made by 005FF0B0 (a CTexture whose holder, +0x5C,
-// holds the DirectDraw texture): objects_[1], into which ShowPicture reads the selected save's
+// The window shows two 256x256 5:6:5 textures made by 005FF0B0 (a CTexture with its holder at
+// +0x5C): objects_[1], into which ShowPicture reads the selected save's
 // shot.sav (256x192 pixels, 0x18000 bytes), and dialog_ (+0x184), which FillEntries fills from
 // the escape menu's 256x192 copy of the screen (interface +0x5C) for the new save of a save window
 // and SaveGame writes to the new save's shot.sav. Like the original, the 0x18000 bytes are one
 // block from the start of the pixels (a pitch of 512 bytes is taken for granted).
 //
 // Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per
-// holder, dx_surface.cpp; render::SurfaceMemory): written into and read from that memory with no
-// Lock (DirectPixels).
+// holder, given by the texture manager's 00691D80; dx_surface.cpp, render::SurfaceMemory): written
+// into and read from that memory with no Lock (DirectPixels).
 #include "app.h"
 #include "app_helpers.h"
 #include "lib/mfc_time.h"
@@ -150,16 +150,16 @@ CDXSurface* HolderOf(CEngineObject* texture) { return static_cast<CTexture*>(tex
 // with flags 0 and the Unlock after).
 class PicturePixels {
 public:
-    explicit PicturePixels(CDXSurface* holder) : holder_(holder) { desc_[0] = 0x7C; }
+    explicit PicturePixels(CDXSurface* holder) : holder_(holder) {}
 
     // False without memory (the textures always have it: 00691D80; the original's failed Lock whose
     // report said stop).
-    bool Begin() { return DirectPixels(holder_, desc_); }
-    std::uint8_t* Bits() const { return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc_[9])); }
+    bool Begin() { return DirectPixels(holder_, &pixels_); }
+    std::uint8_t* Bits() const { return pixels_.bits; }
 
 private:
     CDXSurface* holder_;
-    std::uint32_t desc_[0x1F] = {};
+    SurfacePixels pixels_;
 };
 
 // The escape menu's 256x192 5:6:5 copy of the screen (interface +0x5C), or null.
@@ -177,17 +177,6 @@ __declspec(naked) void CSaveLoadWindow::CallShowPicture() EI_ORIGINAL(0x00656E10
 __declspec(naked) void CSaveLoadWindow::CallFillEntries() EI_ORIGINAL(0x00655D40)
 __declspec(naked) void CSaveLoadWindow::CallDeleteSave() EI_ORIGINAL(0x00655B20)
 
-// --- Game-owned memory ---------------------------------------------------------------------------
-
-void CSaveLoadWindow::GivePictureMemory(CEngineObject* texture) {
-    if (!texture) return;
-    CDXSurface* holder = HolderOf(texture);
-    if (!holder) return;
-    // The surface's size (004EFA60 put it there) and the texture's pixel format (the device's
-    // format for the texture's format id).
-    AttachTextureMemory(holder, holder->width, holder->height,
-                        reinterpret_cast<const std::uint32_t*>(&static_cast<CTexture*>(texture)->format_));
-}
 
 // --- 00656E10 ------------------------------------------------------------------------------------
 
@@ -457,7 +446,6 @@ void CSaveLoadWindow::FillEntries() {
             dialog_ = shot;
             ++shot->refCount_;
             RemoveObjectAt(objects_.size - 1);
-            GivePictureMemory(dialog_);
             CDXSurface* holder = HolderOf(dialog_);
             gameapi::EnterCriticalSection(DeviceLock());
             PicturePixels pixels(holder);

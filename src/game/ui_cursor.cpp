@@ -30,11 +30,6 @@ CTextureDevice* DeviceObject() { return *reinterpret_cast<CTextureDevice**>(0x00
 LONG CursorWidth() { return *reinterpret_cast<LONG*>(0x007C7C90); }
 LONG CursorHeight() { return *reinterpret_cast<LONG*>(0x007C7C94); }
 
-// DDSURFACEDESC2 as dwords.
-constexpr int kDescHeight = 2;    // +0x08
-constexpr int kDescWidth = 3;     // +0x0C
-constexpr int kDescPitch = 4;     // +0x10
-constexpr int kDescSurface = 9;   // +0x24
 
 // The mask of `count` pixels of a row: all ones where the pixel's colour is 0 (16 bits: the whole
 // pixel; 32 bits: its low 24 bits), else 0.
@@ -65,10 +60,9 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
 
     // The picture's size and pixels: the new renderer's memory (the original: GetSurfaceDesc, then a
     // Lock). 004EFC60 gave the holder that memory or threw.
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    DirectPixels(holder, desc);
-    std::uint32_t pictureWidth = desc[kDescWidth], pictureHeight = desc[kDescHeight];
+    SurfacePixels image;
+    DirectPixels(holder, &image);
+    std::uint32_t pictureWidth = static_cast<std::uint32_t>(image.width), pictureHeight = static_cast<std::uint32_t>(image.height);
     std::uint32_t count = pictureWidth / pictureHeight;
     height = static_cast<LONG>(pictureHeight);
     frames = static_cast<int>(count);
@@ -80,8 +74,8 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
 
     // The mask, under the device lock.
     gameapi::EnterCriticalSection(DeviceLock());
-    const auto* pixels = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(desc[kDescSurface]));
-    std::uint32_t rows = desc[kDescHeight], columns = desc[kDescWidth], pitch = desc[kDescPitch];
+    const std::uint8_t* pixels = image.bits;
+    std::uint32_t rows = pictureHeight, columns = pictureWidth, pitch = static_cast<std::uint32_t>(image.pitch);
     if (holder->bitsPerPixel == 16) {
         auto* mask = reinterpret_cast<std::uint16_t*>(saved);
         for (std::uint32_t y = 0; y < rows; ++y)

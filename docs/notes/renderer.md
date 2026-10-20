@@ -162,8 +162,8 @@ and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C i
 
 **Memory** (owned by the new renderer): `render::NewSurfaceMemory / SurfaceMemoryOf / FreeSurfaceMemory / HolderGone`
 (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
-size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, `ClientPixels`,
-`DirectPixels` in `dx_surface.h`) and read by the renderer after GdiFlush; the renderer reads no DirectDraw surface.
+size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, and `DirectPixels`, which
+describes it as a `SurfacePixels`, in `dx_surface.h`) and read by the renderer after GdiFlush.
 Change detection: the renderer keeps a copy of the memory each window texture was made from and converts again only
 when it differs (a memcmp at each blit).
 
@@ -197,8 +197,7 @@ lock held, the 24-bit clear ignoring the pitch, ...) are in the functions' comme
 0068F6C0): objects_[1] filled by 00656E10 (ShowPicture: the selected save's shot.sav) and +0x184 (the new save's
 picture) filled by 00655D40 (FillEntries, from the escape menu's 256x192 copy, interface +0x5C) and written to shot.sav
 by 00655550 (SaveGame; the autosave 006570E0 writes it from a window surface). 00656464 is not a function (inside
-00655D40; a false vtable entry 0074718C). Build (00653DD0) and FillEntries give each texture's holder
-memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C).
+00655D40; a false vtable entry 0074718C). Both textures have the renderer's memory from 00691D80.
 The new folder is "save<n>", n one more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid). Checked by scenario ui_saveload. The SavesPath Rebirth patch
 is disabled in this install and not reproduced.
 
@@ -221,7 +220,7 @@ its decoded copy. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 ar
 | 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read); the holder is `NewMemoryTextureHolder`, one level (the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
 | 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the device's 5650 / 5551 / 4444 (missing: FatalError "Can't find texture format %d."); its texture through 0068F6C0 |
 | 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface` (`texture_shadow.cpp`) | 64x64 4:4:4:4 shadow texture and the shared render surface (manager +0xE0) |
-| 00690FC0 `LockPixels`, 00691030 `UnlockPixels`; 0051CE60's copy -> `CTexture::LoadPixelsFrom` | device lock held between the two; the holder is described from its memory (`ClientPixels`); the shadow texture is filled from the render surface on the CPU |
+| 00690FC0 `LockPixels`, 00691030 `UnlockPixels`; 0051CE60's copy -> `CTexture::LoadPixelsFrom` | device lock held between the two; the holder is described from its memory (`DirectPixels`); the shadow texture is filled from the render surface on the CPU |
 | 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
 | 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0); not reached (no .bmp in the installs); loops over the width then the height (a non-square .bmp overruns the surface) |
 | 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
@@ -237,8 +236,8 @@ Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from th
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
 figure textures); writers 005FFFB0 CopyImage, 005EC020, the global map's weather 0062F050 (00499F10 draws into the
 memory) and the save / load three all use `DirectPixels`. The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
-one) pass the holder's null surface to SetTexture (the old device draws nothing in the switch-over; the renderer reads
-the bound holder, device +0x12C). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
+one) pass null to SetTexture (the old device draws nothing in the switch-over; the renderer reads the bound holder,
+device +0x12C). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
 texture and window entries); `TexturePixels` ignores a holder with memory.
 
@@ -301,13 +300,11 @@ come first, then what holds for the present path (the subsection names are cited
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
   the global map's clouds on the GPU.
-- **DirectDraw left after R11b** (R11c): R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only
-  ports no code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows,
-  so re-add them after a regeneration). Still there: the COM stand-ins and device.h's wrappers (R9b2), the render
-  target's DirectDraw surface tests (app_frame.cpp, surface_capture.cpp, unit_client_blink.cpp,
-  renderer_lifetime.cpp: always the no-surface branch), `device::Surface` in the binds and draws (always null), the
-  DirectDraw-description layout of the `DirectPixels` desc, and `GivePictureMemory` / `AttachTextureMemory`
-  (ui_saveload.cpp: the textures already have memory).
+- **DirectDraw left after R11c**: R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only ports no
+  code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
+  them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
+  the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). `CDXSurface::surface` (+0x10) stays, always null.
+  Left: the COM stand-ins and device.h's wrappers (R9b2); the eye blink copies nothing (R11d).
 - No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
@@ -355,7 +352,7 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   sized to its client area (`ResizeBuffers` when it changes; the hook makes the process system DPI aware at WinMain so
   that rectangle is in physical pixels), stretched over it, `Present(1, 0)`. The movie players and the loading screen
   go through 004EF610 as before.
-- Guarded for surfaceless holders: `device::SameSurface` (both without a surface: the same only when one holder) in
+- Guarded for surfaceless holders: `device::SameSurface` (the same only when one holder) in
   005FDA80 (window blits: otherwise every window was skipped), the three movie players' "not the primary itself"
   checks and CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once; 00458270's screen
   clears with no primary do nothing (app_frame.cpp, result 0). The movie holders (`bink_video.cpp` `NewMovieHolder`):
@@ -522,8 +519,8 @@ after a movie or a load the cursor thread's clock stands still until the main th
 
 ### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame
 
-`surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): a holder without a DirectDraw surface (the
-switch-over's render target and primary) gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
+`surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): the holder (the render target or the primary)
+gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
 before the gamma ramp and the present's cursor): a CDib of the rectangle's size in the holder's depth with the channel
 masks `device::ScreenFormat` gives, rows bottom-up, the part outside the frame black. No frame yet: no bitmap (logged
 once). The callers are unchanged, so the file names (`shot%.4d.bmp` from counter 007C7E24 for Scroll Lock; the

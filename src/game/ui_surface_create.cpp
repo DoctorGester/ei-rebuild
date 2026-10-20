@@ -27,7 +27,6 @@
 #include "lib/mfc.h"
 
 #include <windows.h>
-#include <ddraw.h>   // DDSURFACEDESC2 (the description's layout)
 
 #include <cstdint>
 #include <cstring>
@@ -36,13 +35,12 @@
 
 namespace {
 
-// The surface's description from its memory (DirectPixels: window and picture holders alike; the
-// original's GetSurfaceDesc). `desc` must be zeroed with its size set; it stays so without memory.
-void Describe(CDXSurface* holder, DDSURFACEDESC2* desc) { DirectPixels(holder, reinterpret_cast<std::uint32_t*>(desc)); }
-
-// height * pitch of the surface's description.
-std::uint32_t SurfaceBytes(const DDSURFACEDESC2& desc) {
-    return desc.dwHeight * static_cast<std::uint32_t>(desc.lPitch);
+// height * pitch of the surface's memory (DirectPixels: window and picture holders alike; the
+// original's GetSurfaceDesc); 0 without memory.
+std::uint32_t SurfaceBytes(CDXSurface* holder) {
+    SurfacePixels pixels;
+    DirectPixels(holder, &pixels);
+    return static_cast<std::uint32_t>(pixels.height) * static_cast<std::uint32_t>(pixels.pitch);
 }
 
 // Puts `made` (counted once more, may be null) into the surface's holder and drops the previous
@@ -66,11 +64,7 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
                                     reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), self->width_, self->height_)
                               : nullptr;
     ReplaceHolder(self, made);
-    CDXSurface* holder = self->holder_;
-    DDSURFACEDESC2 desc = {};
-    desc.dwSize = sizeof(desc);   // 0x7C
-    Describe(holder, &desc);
-    UiSurfaceBytes() += SurfaceBytes(desc);
+    UiSurfaceBytes() += SurfaceBytes(self->holder_);
     self->kept_ = nullptr;
     self->flags_ |= CUiSurface::kShown;
     self->keptSize_ = 0;
@@ -98,12 +92,7 @@ void CUiSurface::ReleaseContents() {
         kept_ = nullptr;
         UiSurfaceKeptBytes() -= keptSize_;
     }
-    if (CDXSurface* holder = holder_) {
-        DDSURFACEDESC2 desc = {};
-        desc.dwSize = sizeof(desc);
-        Describe(holder, &desc);
-        UiSurfaceBytes() -= SurfaceBytes(desc);
-    }
+    if (CDXSurface* holder = holder_) UiSurfaceBytes() -= SurfaceBytes(holder);
     CDXSurface* holder = holder_;
     holder_ = nullptr;
     if (holder) holder->Release();
@@ -138,10 +127,7 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     CDXSurface* holder = self->holder_;
     self->width_ = holder->width;
     self->height_ = holder->height;
-    DDSURFACEDESC2 desc = {};
-    desc.dwSize = sizeof(desc);
-    Describe(holder, &desc);
-    UiSurfaceBytes() += SurfaceBytes(desc);
+    UiSurfaceBytes() += SurfaceBytes(holder);
     gameapi::SetRect(&self->rect_, 0, 0, self->holder_->width, self->holder_->height);
     self->kept_ = nullptr;
     self->keptSize_ = 0;

@@ -261,8 +261,8 @@ address in its source comment (grep the address); the per-function table that us
   releases a spell and empties lists it has just set empty; VictimList::Serialize (0052C740, library) writes raw pointers;
   00539CE0 returns junk in EAX.
 - Client effects and figures: the blink's rectangles mix units (closed: top = the face offset itself, unscaled; open: top =
-  (eye height + offset) x scale); `BlitMipChain` never releases the attached mip surfaces it gets and copies nothing when a
-  texture has no DirectDraw surface (the original would crash); integer edges follow `_ftol` of double maths (the
+  (eye height + offset) x scale); `BlitMipChain` never releases the attached mip surfaces it gets; ours copies nothing (no
+  texture has a DirectDraw surface; ticket R11d); integer edges follow `_ftol` of double maths (the
   original's x87 at 24 bits could differ by one). `HitEffect`'s third argument is a flags word whose stack slot the original
   reuses for the material CString; heroes index the armour table 0073EC78 by the hit location without a range check.
   `Say`'s new queue entry has three padding bytes of stack garbage (ours zero); `StopSpeech` frees nodes through
