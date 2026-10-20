@@ -206,17 +206,9 @@ __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list
 __declspec(naked) inline void* __fastcall VectorGetAllocatorOriginal(const void* /*vector*/, void*, void* /*out*/)
     EI_ORIGINAL(0x00421EB0)
 __declspec(naked) inline void __fastcall NodeFree12Original(void* /*p*/, std::size_t /*count*/) EI_ORIGINAL(0x00426860)
-// The type registry's by-vtable hash_map: 0042B8A0 _M_new_node(pair) (RET 4, EAX the node; ECX is not read), 0042B9C0
-// resize(hint) (RET 4, no result).
-__declspec(naked) inline void* __fastcall ByVtableNewNodeOriginal(void* /*table*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x0042B8A0)
-__declspec(naked) inline void __fastcall ByVtableResizeOriginal(void* /*table*/, void*, std::uint32_t /*hint*/)
-    EI_ORIGINAL(0x0042B9C0)
-// CArray::SetSize(size, growBy) instantiations (RET 8, no result): 0044FCD0 the figure array (0x220-byte elements with a
-// virtual destructor), 0046EAD0 plain 12-byte elements, 0050FE70 the map object's effect array (20-byte elements).
+// CArray::SetSize(size, growBy) instantiations (RET 8, no result): 0046EAD0 plain 12-byte elements, 0050FE70 the map
+// object's effect array (20-byte elements).
 // 00468D60 / 00557230: sprite / point array constructors (vtables 0073C584 / 0073F07C; plain RET, return `this`).
-__declspec(naked) inline void __fastcall FigureArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0044FCD0)
 __declspec(naked) inline void __fastcall Array12SetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x0046EAD0)
 __declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)

@@ -4,7 +4,7 @@
 // the shared templates: mfc::CArray with the element constructors of each instantiation (plain ones
 // zero-fill; the others call the original's out of line), lib::AlignedArray for the vertex arrays.
 // The template functions the original calls out of line (SetAtGrow, the local arrays' destructors,
-// ...) are reached through their original addresses.
+// ...) are the library's instantiations (lib/mfc_array.h, lib/mfc_list.h, record_arrays.h).
 #include "material.h"
 #include "registry.h"
 #include "scene_loader.h"
@@ -13,6 +13,7 @@
 #include "figure_mesh.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
+#include "record_arrays.h"
 #include "texture.h"
 #include "world.h"
 
@@ -26,6 +27,8 @@
 #include "originals_render.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 #include "lib/mfc_window.h"
 
 #include <cstring>
@@ -42,17 +45,9 @@ void Read(mfc::CFileVirtuals* file, void* data, std::uint32_t size) { file->Read
 // A float stored from the bits the loader copied.
 void SetBits(float& to, std::uint32_t bits) { std::memcpy(&to, &bits, 4); }
 
-// --- Element types and constructors of the arrays the loader fills ----------------------------------
+// --- Element types of the arrays the loader fills ----------------------------------------------------
 
-__declspec(naked) void __stdcall ConstructMeshes(void*, int) EI_ORIGINAL(0x004545C0)
-__declspec(naked) void __stdcall DestructMeshes(void*, int) EI_ORIGINAL(0x00476F50)
-__declspec(naked) void __stdcall ConstructNodes(void*, int) EI_ORIGINAL(0x00454F80)
-__declspec(naked) void __stdcall DestructNodes(void*, int) EI_ORIGINAL(0x00477100)
-__declspec(naked) void __stdcall ConstructGroups(void*, int) EI_ORIGINAL(0x00454DB0)       // FaceGroup
-__declspec(naked) void __stdcall DestructGroups(void*, int) EI_ORIGINAL(0x00476F20)
-__declspec(naked) void __stdcall ConstructNodeMorphKeys(void*, int) EI_ORIGINAL(0x00454F30) // node +0xD0
-__declspec(naked) void __stdcall DestructNodeMorphKeys(void*, int) EI_ORIGINAL(0x00453700)
-__declspec(naked) void __stdcall ConstructMaps(void*, int) EI_ORIGINAL(0x00477380)         // CMap (0x1C)
+using mfc::impl::Map32;   // CMap<DWORD, DWORD>: 00477340 GetAssocAt, 00476050 operator[], 00476140 the destructor
 
 // The records the file stores (the construction of all of them zero-fills: 00477130 .. 00477530,
 // 00454ED0, 00454F00, 00452DC0, i.e. mfc::PlainElements).
@@ -62,7 +57,7 @@ struct FileUv {
 using FilePointArray = mfc::CArray<PointBits>;                // A: 12-byte positions
 using FileUvArray = mfc::CArray<FileUv>;                      // B
 using FileFaceArray = mfc::CArray<FileFace>;                  // C
-using GroupRecordArray = mfc::CArray<FaceGroup, OriginalElements<FaceGroup, ConstructGroups, DestructGroups>>;   // D
+using GroupRecordArray = recordarrays::FaceGroups::Array;     // D (00454DB0 / 00476F20)
 // The file's key records: the frame word, then the values (the loader copies them through the
 // FPU into the node's keys).
 struct FileRotationKey {       // E (0x14): a vector at +8
@@ -93,53 +88,36 @@ using PosKeyRecords = mfc::CArray<FilePositionKey>;          // F
 using MorphHeadRecords = mfc::CArray<FileMorphHead>;         // G
 using NormalRecords = mfc::CArray<FileNormal>;               // H
 
-using MeshRecordArray = mfc::CArray<SceneMesh, OriginalElements<SceneMesh, ConstructMeshes, DestructMeshes>>;
-using NodeRecordArray = mfc::CArray<SceneNode, OriginalElements<SceneNode, ConstructNodes, DestructNodes>>;
+using MeshRecordArray = recordarrays::SceneMeshes::Array;     // 004545C0 / 00476F50
+using NodeRecordArray = recordarrays::SceneNodes::Array;       // 00454F80 / 00477100
 
-using MapRecordArray = mfc::CArray<DwordMap, OriginalElements<DwordMap, ConstructMaps>>;
-
-// Out-of-line members of the instantiations the loader reaches (the template with the original's address).
-// The CMap<DWORD, DWORD> members: 00477340 GetAssocAt (the association of `key`, null if none; `hash`
-// receives its bucket), 00476050 operator[] (the value of `key`, inserted as 0 when missing), 00476140
-// the destructor.
-__declspec(naked) MapAssoc* __fastcall MapGetAssocAt(const DwordMap*, void*, const std::uint32_t&, std::uint32_t&) EI_ORIGINAL(0x00477340)
-__declspec(naked) std::uint32_t& __fastcall MapAt(DwordMap*, void*, const std::uint32_t&) EI_ORIGINAL(0x00476050)
-__declspec(naked) void __fastcall MapDestruct(DwordMap*) EI_ORIGINAL(0x00476140)
+// One CMap<DWORD, DWORD> per group (00477380 builds them; destroyed through slot 1 by 004763C0).
+using MapRecordArray = mfc::impl::OwnedDwordMaps::Array;
 
 using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (vtable 0073C800)
-__declspec(naked) void __fastcall IndexSetAtGrow(IndexArray*, void*, int, const std::uint32_t&) EI_ORIGINAL(0x004773F0)
-__declspec(naked) int __fastcall IndexAdd(IndexArray*, void*, const std::uint32_t&) EI_ORIGINAL(0x00476640)
-__declspec(naked) void __fastcall IndexDestruct(IndexArray*) EI_ORIGINAL(0x00476780)
-__declspec(naked) void __fastcall GroupsSetSize(mfc::CArray<FaceGroup>*, void*, int, int) EI_ORIGINAL(0x00474DB0)   // the mesh's groups (+0x148)
+
+// The value of `key` in `map`, inserted as 0 when missing (CMap::operator[], 00476050).
+std::uint32_t& At(DwordMap& map, std::uint32_t key) { return *Map32::ElementAt(&map, nullptr, &key); }
 
 } // namespace
 
 
-void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { ConstructNodeMorphKeys(keys, count); }
-void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) { DestructNodeMorphKeys(keys, count); }
+// 00454F30: the keys zero filled. 00453700: each key's points freed (the block at +4).
+void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { mfc::PlainElements<NodeMorphKey>::Construct(keys, count); }
+void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
+    for (; count--; ++keys) keys->points.FreeData();
+}
 
 namespace {
 
-// Destructors of the record's local arrays (they free the data; the elements are plain).
-__declspec(naked) void __fastcall DestroyPoints(FilePointArray*) EI_ORIGINAL(0x00474F30)        // A
-__declspec(naked) void __fastcall DestroyTexCoords(FileUvArray*) EI_ORIGINAL(0x00475110)     // B
-__declspec(naked) void __fastcall DestroyFileFaces(FileFaceArray*) EI_ORIGINAL(0x004752F0)     // C
-__declspec(naked) void __fastcall DestroyRotKeys(RotKeyRecords*) EI_ORIGINAL(0x00475680)       // E
-__declspec(naked) void __fastcall DestroyPosKeys(PosKeyRecords*) EI_ORIGINAL(0x004759E0)       // F
-__declspec(naked) void __fastcall DestroyMorphHeads(MorphHeadRecords*) EI_ORIGINAL(0x00475D40)    // G
-__declspec(naked) void __fastcall DestroyNormals(NormalRecords*) EI_ORIGINAL(0x00476AB0)       // H
-__declspec(naked) void __fastcall DestroyMapArray(MapRecordArray*) EI_ORIGINAL(0x004763C0)
+// The record's local arrays are built and destroyed as their instantiations (mfc::impl
+// ConstructArrayOf / DestructArrayOf: 00474F30 A, 00475110 B, 004752F0 C, 00475680 E, 004759E0 F,
+// 00475D40 G, 00476AB0 H, 00476780 the index lists; 00475500 .. 00476930 the skipped records' E .. H).
+using mfc::impl::ConstructArrayOf;
+using mfc::impl::DestructArrayOf;
 
-// The skipped records' locals, which the original constructs and sizes out of line.
-__declspec(naked) void __fastcall ConstructRotKeyArray(RotKeyRecords*) EI_ORIGINAL(0x00475500)
-__declspec(naked) void __fastcall ConstructPosKeyArray(PosKeyRecords*) EI_ORIGINAL(0x00475860)
-__declspec(naked) void __fastcall ConstructMorphHeadArray(MorphHeadRecords*) EI_ORIGINAL(0x00475BC0)
-__declspec(naked) void __fastcall ConstructNormalArray(NormalRecords*) EI_ORIGINAL(0x00476930)
-__declspec(naked) void __fastcall ConstructPointBlock(PointBuffer*) EI_ORIGINAL(0x00475F10)
-__declspec(naked) void __fastcall SetSizePointBlock(PointBuffer*, void*, int, int) EI_ORIGINAL(0x00475F40)
-
-// The helpers array (+0x56C).
-__declspec(naked) void __fastcall SetSizeHelpers(VtArray*, void*, int, int) EI_ORIGINAL(0x00453550)
+// The helpers array (+0x56C): materials, sized by 00453550.
+recordarrays::Materials::Array& Helpers(VtArray& helpers) { return Typed<recordarrays::Materials::Array>(helpers); }
 
 
 // --- Inlined MFC templates -----------------------------------------------------------------------
@@ -219,7 +197,7 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
     std::uint32_t texture = r.texCoords.size ? face->texture[corner] : 0;
     std::uint32_t key = face->position[corner] << 16 | texture;
     std::uint32_t hash;
-    MapAssoc* assoc = MapGetAssocAt(&m.seen, nullptr, key, hash);
+    MapAssoc* assoc = Map32::GetAssocAt(&m.seen, nullptr, &key, &hash);
     if (!assoc || assoc->value == 0) {
         const std::uint32_t* point = r.Point(face->position[corner]);
         std::uint32_t x = x87::LoadStoreBits(&point[0]);
@@ -233,16 +211,16 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
         // The third corner goes through the out-of-line Add instantiations (same effect).
         if (corner < 2) {
             m.texCoords.SetAtGrow(m.texCoords.size, UvBits{{u, v}});
-            IndexSetAtGrow(&m.sources, nullptr, m.sources.size, face->position[corner]);
+            m.sources.SetAtGrow(m.sources.size, face->position[corner]);   // 004773F0
         } else {
             m.texCoords.Add(UvBits{{u, v}});
-            IndexAdd(&m.sources, nullptr, face->position[corner]);
+            m.sources.Add(face->position[corner]);   // 00476640
         }
-        MapAt(&m.index, nullptr, key) = static_cast<std::uint32_t>(m.positions.size - 1);
-        MapAt(&m.seen, nullptr, key) = 1;
+        At(m.index, key) = static_cast<std::uint32_t>(m.positions.size - 1);
+        At(m.seen, key) = 1;
     }
-    meshFace->vertex[corner] = MapAt(&m.index, nullptr, key);
-    meshFace->vertex2[corner] = MapAt(&m.index, nullptr, key);
+    meshFace->vertex[corner] = At(m.index, key);
+    meshFace->vertex2[corner] = At(m.index, key);
 }
 
 class Loader {
@@ -398,8 +376,9 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     mesh->texCoords.Copy(m.texCoords);
     m.positions.SetSize(0);
     m.texCoords.SetSize(0);
-    mfc::CArray<FaceGroup>* groups = &mesh->groups;
-    GroupsSetSize(groups, nullptr, r.groups.size, -1);
+    // The mesh's groups sized as their instantiation (00474DB0: FaceGroup's constructor and destructor).
+    auto* groups = reinterpret_cast<recordarrays::FaceGroups::Array*>(&mesh->groups);
+    groups->SetSize(r.groups.size, -1);
     for (int g = 0; g < r.groups.size; ++g) {
         groups->data[g].Assign(r.Group(g));
     }
@@ -419,10 +398,10 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
 
     m.texCoords.FreeData();
     m.positions.FreeData();
-    IndexDestruct(&m.sources);
-    DestroyMapArray(&m.maps);
-    MapDestruct(&m.index);
-    MapDestruct(&m.seen);
+    DestructArrayOf<mfc::impl::IndexArrayClass>(m.sources);
+    DestructArrayOf<mfc::impl::SceneObjectArrayClass>(m.maps);
+    Map32::Destruct<mfc::impl::DwordMapClass>(&m.index);
+    Map32::Destruct<mfc::impl::DwordMapClass>(&m.seen);
 }
 
 // Record i: node i and mesh i.
@@ -465,14 +444,14 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     LoadMorphKeys(r, h, node);
     BuildMesh(r, mesh, node);
 
-    DestroyNormals(&r.normals);
-    DestroyMorphHeads(&r.morphHeads);
-    DestroyPosKeys(&r.posKeys);
-    DestroyRotKeys(&r.rotKeys);
+    DestructArrayOf<mfc::impl::NormalArrayClass>(r.normals);
+    DestructArrayOf<mfc::impl::MorphHeadArrayClass>(r.morphHeads);
+    DestructArrayOf<mfc::impl::PosKeyArrayClass>(r.posKeys);
+    DestructArrayOf<mfc::impl::RotKeyArrayClass>(r.rotKeys);
     FaceGroupArrayDestruct(reinterpret_cast<mfc::CArray<FaceGroup>*>(&r.groups));   // D, 00454CE0
-    DestroyFileFaces(&r.faces);
-    DestroyTexCoords(&r.texCoords);
-    DestroyPoints(&r.points);
+    DestructArrayOf<mfc::impl::FileFaceArrayClass>(r.faces);
+    DestructArrayOf<mfc::impl::FileUvArrayClass>(r.texCoords);
+    DestructArrayOf<mfc::impl::FilePointArrayClass>(r.points);
 }
 
 // A record after the meshes: read in full and dropped. Only its names, keys, normals and morph
@@ -484,10 +463,10 @@ void Loader::SkipRecord() {
     PosKeyRecords posKeys;
     MorphHeadRecords morphHeads;
     NormalRecords normals;
-    ConstructRotKeyArray(&rotKeys);
-    ConstructPosKeyArray(&posKeys);
-    ConstructMorphHeadArray(&morphHeads);
-    ConstructNormalArray(&normals);
+    ConstructArrayOf<mfc::impl::RotKeyArrayClass>(rotKeys);
+    ConstructArrayOf<mfc::impl::PosKeyArrayClass>(posKeys);
+    ConstructArrayOf<mfc::impl::MorphHeadArrayClass>(morphHeads);
+    ConstructArrayOf<mfc::impl::NormalArrayClass>(normals);
 
     RecordHeader h;
     Read(file_, &h, sizeof(h));
@@ -502,17 +481,17 @@ void Loader::SkipRecord() {
     if (version_ == kVersionWithNormals) Read(file_, normals.data, normals.size * 0x14);
     for (int k = 0; k < morphHeads.size; ++k) {
         PointBuffer points;
-        ConstructPointBlock(&points);
-        SetSizePointBlock(&points, nullptr, h.pointCount, -1);
+        points.Construct();                    // 00475F10
+        points.SetSize(h.pointCount, -1);      // 00475F40
         Read(file_, &morphHeads.data[k].frame, 4);
         Read(file_, &morphHeads.data[k].extra, 4);
         Read(file_, points.data, h.pointCount * 12);
         points.FreeData();   // 00475F20
     }
-    DestroyNormals(&normals);
-    DestroyMorphHeads(&morphHeads);
-    DestroyPosKeys(&posKeys);
-    DestroyRotKeys(&rotKeys);
+    DestructArrayOf<mfc::impl::NormalArrayClass>(normals);
+    DestructArrayOf<mfc::impl::MorphHeadArrayClass>(morphHeads);
+    DestructArrayOf<mfc::impl::PosKeyArrayClass>(posKeys);
+    DestructArrayOf<mfc::impl::RotKeyArrayClass>(rotKeys);
 }
 
 // A helper (0x3E-byte header, then three names).
@@ -571,7 +550,7 @@ mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* he
     for (int i = 0; i < meshes->size; ++i) loader.LoadRecord(i, meshes, nodes);
     for (int i = 0; i < header.skippedCount; ++i) loader.SkipRecord();
 
-    SetSizeHelpers(helpers, nullptr, header.helperCount, -1);
+    Helpers(*helpers).SetSize(header.helperCount, -1);
     for (int i = 0; i < helpers->size; ++i) loader.LoadHelper(&Typed<HelperArray>(*helpers).data[i]);
     return 1;
 }
@@ -710,19 +689,15 @@ int Length(const mfc::CString& s) { return s.GetLength(); }
 // 7 (GetName) gives the name.
 CEngineObject* FigureObject(CFigureMesh* figure) { return reinterpret_cast<CEngineObject*>(figure); }
 
-// Not rewritten.
-__declspec(naked) void __stdcall ConstructFigures(void*, int) EI_ORIGINAL(0x00453240)
-__declspec(naked) void __stdcall DestructFigures(void*, int) EI_ORIGINAL(0x00453210)
-__declspec(naked) void __stdcall ConstructBoneLinks(void*, int) EI_ORIGINAL(0x004534F0)
-__declspec(naked) void __stdcall DestructBoneLinks(void*, int) EI_ORIGINAL(0x004534C0)
-using FigureRecordArray = mfc::CArray<CFigureMesh, OriginalElements<CFigureMesh, ConstructFigures, DestructFigures>>;
-// Per figure, a copy of its node's frame records (NodeFrame, 0x28 bytes each).
-using BoneLinkArray = mfc::CArray<VtArray, OriginalElements<VtArray, ConstructBoneLinks, DestructBoneLinks>>;
-__declspec(naked) void __fastcall SetSizeBoneLinks(VtArray*, void*, int, int) EI_ORIGINAL(0x00450370)       // unit +0x558
-__declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
-// Reads the figure's .reg file: the texture names ({id, name}) and links ({id, value}).
-__declspec(naked) void __fastcall LoadFigureRegistry(void*, const mfc::CString*, VtArray*, VtArray*) EI_ORIGINAL(0x0044B980)
-__declspec(naked) mfc::BOOL __fastcall BuildSkeleton(VtArray*, VtArray*, int, void*) EI_ORIGINAL(0x00448A40)
+// The figures (00453240 builds them, 00453210 destroys them; sized by 0044FCD0).
+using FigureRecordArray = recordarrays::FigureParts::Array;
+// Per figure, a copy of its node's frame records (NodeFrame, 0x28 bytes each, sized by 00450F20 as
+// key frames): the arrays built empty (004534F0) and destroyed through slot 1 (004534C0); the
+// unit's array (+0x558) is sized by 00450370.
+using BoneLinkRecords = mfc::impl::KeyFrames::Array;
+inline void InitBoneLinks(BoneLinkRecords* p) { mfc::impl::ConstructArrayOf<mfc::impl::BoneLinkArrayClass>(*p); }
+using BoneLinkArray =
+    mfc::CArray<BoneLinkRecords, mfc::impl::EachElements<BoneLinkRecords, InitBoneLinks, mfc::impl::DeleteThroughObject<BoneLinkRecords>>>;
 int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return static_cast<CMaterialManager*>(a0)->FillMaterial(static_cast<CMaterial*>(a2), a3); }
 
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
@@ -794,9 +769,9 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     VtArray* boneLinks = &u->boneLinks;
 
     SceneLoad s(fileName);
-    SetSizeBoneLinks(boneLinks, nullptr, 0, -1);
-    SetSizeHelpers(helpers, nullptr, 0, -1);
-    FigureArraySetSizeOriginal(figures, nullptr, 0, -1);
+    Typed<BoneLinkArray>(*boneLinks).SetSize(0, -1);
+    Helpers(*helpers).SetSize(0, -1);
+    Typed<FigureRecordArray>(*figures).SetSize(0, -1);
 
     if (!s.file.Open(fileName, 0x8000, nullptr)) {
         mfc::CString message;
@@ -865,9 +840,9 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(nd.name)),
                                 reinterpret_cast<const unsigned char*>(name)) != 0)
                 continue;
-            VtArray* links = &linkArray.data[f];
+            BoneLinkRecords* links = &linkArray.data[f];
             const VtArray* from = &nd.frames;
-            SetSizeBoneLinkRecords(links, nullptr, from->size, -1);
+            links->SetSize(from->size, -1);
             std::memcpy(links->data, from->data, from->size * 0x28);
         }
     }

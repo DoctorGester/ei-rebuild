@@ -116,7 +116,7 @@ void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char
 
 // A string list read inline: emptied (erased over its range, or cleared), reserved for the list's
 // size, then every non-empty string appended.
-void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingRecord* briefing, bool erase) {
+void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
     console::CStringArray strings;
     reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
     CStringVector* v = List(briefing, list);
@@ -138,7 +138,7 @@ void ConstructBriefing(QuestBriefingRecord* briefing) {
 void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     briefing->field10 = 0;
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReceive());
-    for (int i = 0; i < 6; ++i) ReadListInline(reg, game::questwords::BriefingReceive(), i, briefing, i < 3);
+    for (int i = 0; i < 6; ++i) ReadListInline(reg, game::questwords::BriefingReceive(), i, briefing);
     AddReceiveBriefing(db, briefing);
 }
 
@@ -146,8 +146,8 @@ void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* 
 // 006B0600 (also unless the name is there).
 void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject());
-    ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing, false);
-    ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing, false);
+    ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing);
+    ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing);
     for (int i = 2; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingReject(), game::questwords::ListKey(i), List(briefing, i));
     static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
 }

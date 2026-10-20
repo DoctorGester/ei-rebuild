@@ -18,32 +18,15 @@ namespace {
 using FiguredGroups = stlp::hash_map<unsigned, FiguredUnitMap, stlp::IntHash>;
 using DressedMap = stlp::hash_map<unsigned, DressedUnitRecord, stlp::IntHash>;
 
-// begin() of the groups map [0055AB50], of a group's figured map [0055ADF0] and of the dressed
-// map [0055AE50]; the iterators' step to the next bucket's head when a chain ends [0055B9D0
-// groups, 0055B500 figured]; the dressed map's hash of a key [0055C5C0] (bucket index).
-__declspec(naked) FiguredGroups::Iterator* __fastcall GroupsBegin(FiguredGroups*, void*, FiguredGroups::Iterator*)
-    EI_ORIGINAL(0x0055AB50)
-__declspec(naked) FiguredUnitMap::Iterator* __fastcall FiguredBegin(FiguredUnitMap*, void*, FiguredUnitMap::Iterator*)
-    EI_ORIGINAL(0x0055ADF0)
-__declspec(naked) DressedMap::Iterator* __fastcall DressedBegin(DressedMap*, void*, DressedMap::Iterator*)
-    EI_ORIGINAL(0x0055AE50)
-__declspec(naked) FiguredGroups::Node* __fastcall GroupsNextBucket(FiguredGroups::Iterator*) EI_ORIGINAL(0x0055B9D0)
-__declspec(naked) FiguredUnitMap::Node* __fastcall FiguredNextBucket(FiguredUnitMap::Iterator*) EI_ORIGINAL(0x0055B500)
-__declspec(naked) std::uint32_t __fastcall DressedBucketOf(const DressedMap*, void*, const unsigned* /*key*/)
-    EI_ORIGINAL(0x0055C5C0)
+// The maps are walked as their iterators do: begin() (0055AB50 the groups, 0055ADF0 a group's
+// figured map, 0055AE50 the dressed map), then ++ (the chain's next node, else the next bucket's
+// head: 0055B9D0 groups, 0055B500 figured, the dressed map's inline with its hash 0055C5C0).
 // A record's head written to the stream [00558FA0, on the record].
 __declspec(naked) void __fastcall WriteRecordHead(void* /*record*/, void*, CStream*) EI_ORIGINAL(0x00558FA0)
 
 void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 
 void PutWord(CStream* stream, std::uint32_t value) { Put(stream, &value, 4); }
-
-// ++iterator: the chain's next node, else the helper's next bucket head.
-template <typename Iterator, typename Node>
-Node* Step(Iterator& it, Node* (__fastcall* nextBucket)(Iterator*)) {
-    Node* next = it.node->next;
-    return next ? next : nextBucket(&it);
-}
 
 } // namespace
 
@@ -63,25 +46,16 @@ EI_REPLACE_METHOD(0x00558FA0, DressedUnitRecord::Write);
 void UnitSet::Write(CStream* stream) {
     // The number of figured records over every group.
     std::uint32_t count = 0;
-    FiguredGroups::Iterator group;
-    GroupsBegin(&figured, nullptr, &group);
-    while (group.node) {
-        FiguredUnitMap::Iterator unit;
-        FiguredBegin(&group.node->value, nullptr, &unit);
-        while (unit.node) {
-            ++count;
-            unit.node = Step(unit, FiguredNextBucket);
-        }
-        group.node = Step(group, GroupsNextBucket);
+    for (FiguredGroups::Node* group = figured.First(); group; group = figured.After(group)) {
+        FiguredUnitMap& units = group->value;
+        for (FiguredUnitMap::Node* unit = units.First(); unit; unit = units.After(unit)) ++count;
     }
     PutWord(stream, count);
 
-    GroupsBegin(&figured, nullptr, &group);
-    while (group.node) {
-        FiguredUnitMap::Iterator unit;
-        FiguredBegin(&group.node->value, nullptr, &unit);
-        while (unit.node) {
-            FiguredUnitRecord& record = unit.node->value;
+    for (FiguredGroups::Node* group = figured.First(); group; group = figured.After(group)) {
+        FiguredUnitMap& units = group->value;
+        for (FiguredUnitMap::Node* unit = units.First(); unit; unit = units.After(unit)) {
+            FiguredUnitRecord& record = unit->value;
             WriteRecordHead(&record, nullptr, stream);
             PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphS));
             PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphT));
@@ -93,16 +67,12 @@ void UnitSet::Write(CStream* stream) {
                 const char* text = names(i);
                 Put(stream, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
             }
-            unit.node = Step(unit, FiguredNextBucket);
         }
-        group.node = Step(group, GroupsNextBucket);
     }
     PutWord(stream, static_cast<std::uint32_t>(dressed.Size()));
 
-    DressedMap::Iterator it;
-    DressedBegin(&dressed, nullptr, &it);
-    while (it.node) {
-        DressedUnitRecord* record = &it.node->value;
+    for (DressedMap::Node* node = dressed.First(); node; node = dressed.After(node)) {
+        DressedUnitRecord* record = &node->value;
         std::uint32_t key = record->prototype;   // two bytes written
         Put(stream, &key, 2);
         auto counted = [stream](const UnitIdList& list) {
@@ -116,15 +86,6 @@ void UnitSet::Write(CStream* stream) {
         std::uint32_t flag = static_cast<std::uint8_t>(record->extraWeapon);
         Put(stream, &flag, 1);
         PutWord(stream, static_cast<std::uint32_t>(record->modelNumber));
-
-        DressedMap::Node* next = it.node->next;
-        if (!next) {
-            std::uint32_t bucket = DressedBucketOf(it.table, nullptr, &it.node->key);
-            std::uint32_t buckets_n = static_cast<std::uint32_t>(it.table->BucketCount());
-            while (++bucket < buckets_n && !(next = it.table->Bucket(bucket))) {
-            }
-        }
-        it.node = next;
     }
 }
 
