@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_world.h"
 
@@ -28,7 +29,7 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
 void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 __declspec(naked) void __fastcall NodeDeallocate(void*, void*, FigureModel::AnimationMap::Node*, int) EI_ORIGINAL(0x005AE150)
 // 00406590: deallocates `count` pointers (the buckets).
-void __fastcall DeallocatePointers(void* a0, int a1) { BucketsDeallocateOriginal(a0, (std::size_t)a1); }
+void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
 
 // The figure manager's helpers: the model destructor (through its original address), 00674F40
 // (CResourceManager::Destroy, the base's clean-up), 005AE5D0 (RET 4) the pair destructor, 004FC080

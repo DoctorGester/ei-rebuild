@@ -41,7 +41,6 @@ void* Callback(F function) { return reinterpret_cast<void*>(function); }
 __declspec(naked) void __fastcall ReceivedConstruct(std::int32_t** /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00438CE0)
 __declspec(naked) void __fastcall FreedListConstruct(FreedBatch** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439120)
 __declspec(naked) void __fastcall BySentIdConstruct(SentIdMap* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x004393C0)
-__declspec(naked) void __fastcall ByObjectConstruct(ObjectMap* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x00439570)
 __declspec(naked) void __fastcall HistoryListConstruct(HistoryNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439960)
 __declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
 __declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
@@ -106,7 +105,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
     FreedListConstruct(&freedIds_, nullptr, &tags[2]);
     BySentIdConstruct(&bySentId_, nullptr, &tags[3], &tags[2]);
-    ByObjectConstruct(&byObject_, nullptr, &tags[2], &tags[3]);
+    trees::Objects::ConstructWith(&byObject_, nullptr, &tags[2], &tags[3]);
     VectorCtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Construct), Callback(trees::Entries::Destroy));
     HistoryListConstruct(&history_, nullptr, &tags[3]);
     HistoryListConstruct(&acknowledged_, nullptr, &tags[3]);

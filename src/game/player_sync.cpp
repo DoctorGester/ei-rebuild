@@ -26,6 +26,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_array.h"
 
 #include <cstring>
 
@@ -411,7 +412,7 @@ void CPlayerServer::UpdatePartyUnits() {
     }
     party.vtable = scriptvtable::kRefsBase;
     if (party.data != nullptr) {
-        ScriptRefElementsDestruct(party.data, party.size);
+        gamearrays::ObjectRefs::DestructElements(party.data, party.size);
         gamecrt::operator_delete(party.data);
     }
     known.vtable = scriptvtable::kRefsBase;

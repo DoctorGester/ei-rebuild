@@ -24,6 +24,7 @@
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "lib/gameapi.h"
+#include "lib/stlp.h"
 #include "party.h"
 
 #include <cmath>
@@ -246,9 +247,9 @@ void CMpHeroScreen::Destroy() {
     DestroyVoices(voiceLists_[0]);
     CStringDestroy(&text_);
     DestroyStrings(names_.begin(), names_.end());
-    FreeBlock4Original(names_.begin(), static_cast<int>(names_.EndOfStorage() - names_.begin()));
+    stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));   // 00520F60
     for (void** at = defaults_; at != defaultsEnd_; ++at) CStringDestroy(at);
-    FreeBlock4ProxyOriginal(&defaultsCapacity_, nullptr, defaults_, static_cast<int>(defaultsCapacity_ - defaults_));
+    stlp::deallocate(defaults_, static_cast<std::size_t>(defaultsCapacity_ - defaults_) * sizeof(void*));   // 00520F20
     ReleaseCachedObjects(&screen->textures_);
     DestroyTextureMapOriginal(&screen->textures_);
     ReleaseCachedObjects(&screen->models_);

@@ -75,7 +75,6 @@ static_assert(sizeof(AILook) == 0x10);
 // see their calls.
 using AILookArray = mfc::CArray<AILook>;
 void __fastcall LooksSetSizeAt(AILookArray* looks, void*, int size, int growBy);    // 005D8EE0
-void __fastcall LooksCopyAt(AILookArray* looks, void*, const AILookArray* other);   // 005D8B60
 void __fastcall LooksDestroyAt(AILookArray* looks);                                  // 004CB770 (base vtable, frees the data)
 // 005573F0 (unit_ai_looks.cpp). Base vtable, no data, growth step 0. Returns `looks`.
 AILookArray* __fastcall LooksInit(AILookArray* looks);

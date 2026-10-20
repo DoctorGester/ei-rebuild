@@ -155,7 +155,6 @@ __declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*arra
                                                                     void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
 // 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; the group's destructor body 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
 // (vtable 0073D2F8; plain RET, EAX not a result).
-__declspec(naked) inline void __stdcall ScriptGroupElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC980)
 __declspec(naked) inline void __fastcall CStringArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C26A0)
 // 004C3B20 / 004C5AF0: CArray<ScriptGroup> / CArray<ScriptIfThen>::~CArray (plain RET).
 __declspec(naked) inline void __fastcall ScriptGroupArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C3B20)
@@ -189,8 +188,6 @@ __declspec(naked) inline void __fastcall PositionsResizeOriginal(void* /*map*/, 
 __declspec(naked) inline void __fastcall SpareCountsResizeOriginal(void* /*map*/, void*, std::uint32_t /*hint*/)
     EI_ORIGINAL(0x004070B0)
 __declspec(naked) inline void __fastcall HashClearOriginal(void* /*map*/) EI_ORIGINAL(0x00406E80)
-__declspec(naked) inline void __fastcall BucketsDeallocateOriginal(void* /*pointers*/, std::size_t /*count*/)
-    EI_ORIGINAL(0x00406590)
 // A-H17. hash_set<int> 007C8370 (the client's party ids, message 0x60), thiscall on the set: 0066B400
 // insert_unique (RET 8: the pair<iterator, bool> written to `out`, returned; resizes first), 0066B490 find (RET 8:
 // the iterator node, table to `out`), 0066BA70 clear (plain RET; nodes to the free list 0079B224).

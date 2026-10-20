@@ -11,6 +11,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_array.h"
 
 #include <cstring>
 
@@ -77,7 +78,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         CStringArrayDestructOriginal(&vars.objectNames);
         vars.objects.vtable = scriptvtable::kRefsBase;
         if (vars.objects.data) {
-            ScriptRefElementsDestruct(vars.objects.data, vars.objects.size);
+            gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
             gamecrt::operator_delete(vars.objects.data);
         }
         CStringArrayDestructOriginal(&vars.stringNames);

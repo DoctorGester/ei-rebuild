@@ -28,9 +28,6 @@ __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, 
 // C3h. 004C2290: a script group's destructor (plain RET).
 __declspec(naked) inline void __fastcall ScriptGroupDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2290)
 
-// C3i. 004CC7D0: CArray<ScriptObjectRef> DestructElements, releasing each reference (RET 8: first, count; EAX not a result).
-__declspec(naked) inline void __stdcall ScriptRefElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC7D0)
-
 // C3i part 2. 004C4FD0: CArray<SubCall>::SetSize(count, growBy) (RET 8).
 __declspec(naked) inline void __fastcall SubCallArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x004C4FD0)

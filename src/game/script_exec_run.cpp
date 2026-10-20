@@ -49,7 +49,7 @@ inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) 
                               reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
 }
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
-void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
+void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 // The temporaries lists' RemoveTail (values returned through a hidden pointer).
 ScriptGroup* TempGroupsRemoveTail(mfc::CList<ScriptGroup>* list, ScriptGroup* out) {
     return gamelists::GroupRemoveTail(reinterpret_cast<gamelists::Groups::List*>(list), nullptr, out);

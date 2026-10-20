@@ -75,8 +75,7 @@ const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<
 // constructor [0056F570, allocator] and destructor [0056F590].
 __declspec(naked) void __fastcall RecordListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0056F570)
 __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F590)
-// The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
-__declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
+// The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
 // The texture cache [this +0x18C]: build a composite texture [00693180 ComposeTexture: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
@@ -203,7 +202,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     RecordList& list = *reinterpret_cast<RecordList*>(listStorage);
     alignas(4) char setStorage[sizeof(SkinComposition)];
     SkinComposition& set = *reinterpret_cast<SkinComposition*>(setStorage);
-    BytesConstruct(&set);
+    set.bytes.Construct();
     new (&set.names) console::CStringArray;
 
     const std::uint32_t* items = record->items.Start();

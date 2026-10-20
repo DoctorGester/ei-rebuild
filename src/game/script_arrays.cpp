@@ -6,7 +6,9 @@
 #include "script.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 #include "lib/mfc_string.h"
+#include "game_arrays.h"
 #include "originals_library.h"
 #include "originals_script.h"
 
@@ -118,13 +120,13 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     FreeStrings(&vars.groupNames);
     vars.groups.vtable = scriptvtable::kGroupsBase;
     if (vars.groups.data) {
-        ScriptGroupElementsDestruct(vars.groups.data, vars.groups.size);
+        gamearrays::Groups::DestructElements(vars.groups.data, vars.groups.size);
         gamecrt::operator_delete(vars.groups.data);
     }
     FreeStrings(&vars.objectNames);
     vars.objects.vtable = scriptvtable::kRefsBase;
     if (vars.objects.data) {
-        ScriptRefElementsDestruct(vars.objects.data, vars.objects.size);
+        gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
         gamecrt::operator_delete(vars.objects.data);
     }
     FreeStrings(&vars.stringNames);
