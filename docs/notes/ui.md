@@ -493,7 +493,10 @@ import, which harness runs redirect to harness_saves; called by address `Call*`)
 `groupNames_` an mfc::CStringArray; `DestroyOptions` 0062B180); options (`COptionsWindow`: input, `Draw`, `Redraw`, `HelpTopic`
 P, `Update`, `OnKeyDown`; ui_hud; `RefreshRows`, `ShowGroup` (RET 4), `BuildSettings`, `BuildBindings`, `LoadSettings` (S; sets
 every control twice), `Apply` (`ui_options.cpp`; `Call*` forms by address); Build runs all but Apply (ui_hud also clicks group
-2); Apply: ui_main_menu's OK); controls (`CUiScrollbar` `TakePosition` S, `Update` also the message log, `CUiSlider::SetRect`
+2); Apply: ui_main_menu's OK; key remapping: ui_options_bind (Enter, a taken key's box, cancelled), ui_options_remap (SV8:
+Enter, `dblclickregion`, a taken key's box, OK, then the keys used in the game, the hero's moveMode in the digest) and
+ui_options_remap_load (the keyboard.ini ui_options_remap saves, written by `tools/make_keyboard_ini.py` into the overlay,
+loaded at start: the restart half)); controls (`CUiScrollbar` `TakePosition` S, `Update` also the message log, `CUiSlider::SetRect`
 slot 26 RET 4: every frame; `CUiTooltip`; `CUiScrollText::Tokenize` / `DrawLines` RET 4 (`ui_scroll_text.cpp`; the message log);
 `CUiEditField::OnKeyDown` S (`ui_edit_field.cpp`; no scenario types into one); `CUiScrollingSurface::RenderText` 0065F020: the
 titles' RichEdit text via EM_FORMATRANGE, ui_main_menu, render_titles_present); `CObjectivesWindow` (`Build`, `ShowZone`,
@@ -507,7 +510,9 @@ Key handlers run only when the window is not sliding in, pass the key to 0060182
 (+8) for the keys they use. A save window edits the name (+0x188, caret +0x190; the first edit of an entry other than "saveq" /
 "savea" / "saveb" sets +0x18C); options: while a binding row waits (+0x3F4) the next scan code (flags & 0x1FF) is looked up in
 the key names 007857B0 (88 x 0x48), a key bound to another row asks "key_already_mapped", else CommitBinding (00652000) and
-RefreshRows. Slide-in eases the model from y 700 to its place (550 / 620 save/load, 480 options): `e = 2s^2` below s = 0.5, else
+RefreshRows. OK only copies the window's table into 0079BF70 (Apply); config\keyboard.ini ("<key name> <action>"
+lines, 00462DF0) is written on the interface's shutdown (005F4F90), so a game that ends without it keeps the remap for
+that session only; settings go to the registry on exit (harness runs skip RegSetValueExA, slot 0073B018). Slide-in eases the model from y 700 to its place (550 / 620 save/load, 480 options): `e = 2s^2` below s = 0.5, else
 `1 - 2(1-s)^2`, then `(a - 700) * e + 700` stored once as float; `Update` adds `FrameTime() / 0.5` and compares the unrounded sum
 with 1; `CUiScrollbar::Update` adds `FrameTime() * speed * 16` (negated for "up") to a float accumulator (NaN loops forever in
 both). `CUiScrollText` (constructor 0065CC00; the battle message log and the quest log; `textRect_` +0x18C, `lines_` +0x1B0,

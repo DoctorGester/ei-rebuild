@@ -1,0 +1,3441 @@
+# ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
+# compact (tools/golden.py): objects as hashes of their fields
+@ 0 update 20 frame 3 tick 20 zone - hash 9BCE8CC2 n 172
++ world world
+world tick 20
+world updates 20
+world paused 0
+world timeBase 12.0
+world secondsPerTick 0.00111111114
+world wind.x 0.0
+world wind.y 1.0
+world wind.z 0.0
+world windStrength 0x00000000
+world nightLevel 0x00000000
+world weatherFactor 0x3F800000
+world alarm0.active 0
+world alarm0.time 0
+world alarm0.x 0.0
+world alarm0.y 0.0
+world alarm1.active 0
+world alarm1.time 0
+world alarm1.x 0.0
+world alarm1.y 0.0
+world alarm2.active 0
+world alarm2.time 0
+world alarm2.x 0.0
+world alarm2.y 0.0
+world alarm3.active 0
+world alarm3.time 0
+world alarm3.x 0.0
+world alarm3.y 0.0
+world alarm4.active 0
+world alarm4.time 0
+world alarm4.x 0.0
+world alarm4.y 0.0
+world climate 1
+world cave 0
+world weather 0
+world weatherStrength 0.0
+world exits 0
+world gameResult 4
+world lastRainBoltTick 0
+world zoneLoaded 1
+world scriptsActive 1
+world start.x 0.0
+world start.y 0.0
+world start.z 0.0
+world occluderReplanTime 0
+world sessionKind 2
+world objects 150
+world mapObjects 6
+world sentObjects 144
+world timedObjects 10
+world updateMap 1
+world projectiles 1
+world counted 0
+world sharedObjects 0
+world allied0 0x00000001
+world hostile0 0x00000000
+world allied1 0x00000002
+world hostile1 0x00000000
+world allied2 0x00000004
+world hostile2 0x00000000
+world allied3 0x00000008
+world hostile3 0x00000000
+world allied4 0x00000010
+world hostile4 0x00000000
+world allied5 0x00000020
+world hostile5 0x00000000
+world allied6 0x00000040
+world hostile6 0x00000000
+world allied7 0x00000080
+world hostile7 0x00000000
+world allied8 0x00000100
+world hostile8 0x00000000
+world allied9 0x00000200
+world hostile9 0x00000000
+world allied10 0x00000400
+world hostile10 0x00000000
+world allied11 0x00000800
+world hostile11 0x00000000
+world allied12 0x00001000
+world hostile12 0x00000000
+world allied13 0x00002000
+world hostile13 0x00000000
+world allied14 0x00004000
+world hostile14 0x00000000
+world allied15 0x00008000
+world hostile15 0x00000000
+world allied16 0x00010000
+world hostile16 0x00000000
+world allied17 0x00020000
+world hostile17 0x00000000
+world allied18 0x00040000
+world hostile18 0x00000000
+world allied19 0x00080000
+world hostile19 0x00000000
+world allied20 0x00100000
+world hostile20 0x00000000
+world allied21 0x00200000
+world hostile21 0x00000000
+world allied22 0x00400000
+world hostile22 0x00000000
+world allied23 0x00800000
+world hostile23 0x00000000
+world allied24 0x01000000
+world hostile24 0x00000000
+world allied25 0x02000000
+world hostile25 0x00000000
+world allied26 0x04000000
+world hostile26 0x00000000
+world allied27 0x08000000
+world hostile27 0x00000000
+world allied28 0x10000000
+world hostile28 0x00000000
+world allied29 0x20000000
+world hostile29 0x00000000
+world allied30 0x40000000
+world hostile30 0x00000000
+world allied31 0x80000000
+world hostile31 0x00000000
++ random random
+random isaac.seeded 1
+random isaac.count 132
+random isaac.a 0x04FD013A
+random isaac.b 0x133CFE05
+random isaac.c 0x0000000F
+random isaac.results 0xEA891960
+random isaac.memory 0x85371991
+random crt.rand 0x4D254E1B
++ player0 player
+player0 id 0
+player0 partyId 0
+player0 sessionKind 2
+player0 lastScreen 0
+player0 godMode 0
+player0 lastTick -1
+player0 items 0
+player0 ids 0
+player0 units 0
+player0 objects 6
+player0 money 0
+player0 partyItems 0
+player0 members 0
+player0 entrance 0
++ obj2 80 unmoco2 ""
+obj2 #ai 713079FE
+obj2 #place 784FE175
+obj2 #unit 807D16EC
+obj2 #vitals CB4D8108
++ obj3 82 nafltr59
+obj3 # 85B0C8E0
++ obj4 82 nafltr59
+obj4 # 0580918E
++ obj5 82 nafltr59
+obj5 # BFF09181
++ obj6 82 nafltr59
+obj6 # AD662917
++ obj7 82 nafltr59
+obj7 # E8C41297
++ obj8 82 nafltr59
+obj8 # 6A2302B0
++ obj9 82 nafltr59
+obj9 # 7A827A09
++ obj129 80 unanwibo ""
+obj129 #ai 56D9E491
+obj129 #place ED6A0B50
+obj129 #unit 068D0078
+obj129 #vitals 9438E29B
++ obj132 84 stst9
+obj132 # 1C6F0FA9
++ obj148 80 unanwiwo ""
+obj148 #ai A28A7880
+obj148 #place B11668C7
+obj148 #unit E45FFE92
+obj148 #vitals F38E5BC2
++ obj150 82 nafltr59
+obj150 # A117EB5B
++ obj160 82 nafltr76
+obj160 # 3E912C6E
++ obj163 82 nafltr59
+obj163 # 3093E005
++ obj172 82 naflbu6
+obj172 # 5AC59A0C
++ obj173 82 naflbu6
+obj173 # 156C3AEB
++ obj177 83 nast7
+obj177 # 68F6799B
++ obj181 83 nast7
+obj181 # 3B7934FF
++ obj182 82 naflbu6
+obj182 # 3DBCFE8D
++ obj183 82 naflbu6
+obj183 # 67A5BF69
++ obj187 80 unmoog1 ""
+obj187 #ai A4E18502
+obj187 #place 98BB6A8D
+obj187 #unit 143908FC
+obj187 #vitals FF33FEF4
++ obj188 82 nafltr59
+obj188 # 81844D3C
++ obj189 82 nafltr59
+obj189 # 84BC5215
++ obj190 82 nafltr59
+obj190 # 1BBDAF8C
++ obj192 82 nafltr59
+obj192 # D473B9AA
++ obj194 82 nafltr59
+obj194 # 8C811CBA
++ obj195 82 nafltr59
+obj195 # 9B62D7B2
++ obj212 82 nafltr21
+obj212 # 818FD1DE
++ obj213 82 nafltr21
+obj213 # 2826E7DB
++ obj214 82 nafltr21
+obj214 # 051A603A
++ obj215 82 nafltr59
+obj215 # 11D5F196
++ obj216 82 nafltr59
+obj216 # 02221955
++ obj218 82 nafltr70
+obj218 # 79C5EEBA
++ obj219 82 nafltr20
+obj219 # 14D5CA55
++ obj220 82 nafltr59
+obj220 # 56073A03
++ obj221 84 stbr7
+obj221 # B35DCE67
++ obj222 84 stst36
+obj222 # AE8E01ED
++ obj228 84 stst146
+obj228 # 3D28C1F9
++ obj231 84 stst149
+obj231 # 65542B34
++ obj232 82 nafltr59
+obj232 # 58530397
++ obj233 82 nafltr59
+obj233 # C0334A48
++ obj234 82 nafltr59
+obj234 # 7AC8CD92
++ obj235 82 nafltr59
+obj235 # 4FB0C13E
++ obj237 82 nafltr59
+obj237 # 74981FD0
++ obj241 82 nafltr59
+obj241 # FAE4CFF6
++ obj242 84 stbuho3
+obj242 # DACDE7B9
++ obj243 84 stbr1
+obj243 # 3CE2E31C
++ obj250 82 naflbu6
+obj250 # B4E1A9A6
++ obj253 87 stto8
+obj253 # 48DC1FAC
++ obj254 82 naflbu6
+obj254 # 680E30AF
++ obj255 82 naflbu6
+obj255 # 78CB1F87
++ obj261 82 nafltr59
+obj261 # 57DB9983
++ obj262 82 naflbu8
+obj262 # 067C8FE8
++ obj263 82 naflbu8
+obj263 # 771922E6
++ obj265 82 naflbu8
+obj265 # 741BE9E1
++ obj266 82 nafltr59
+obj266 # 19A9C2DC
++ obj267 82 nafltr20
+obj267 # 0850ACC2
++ obj268 82 naflbu8
+obj268 # A0F90040
++ obj269 82 naflbu8
+obj269 # BDE9F4F9
++ obj270 82 naflbu8
+obj270 # 384F4B15
++ obj272 82 naflbu8
+obj272 # C543D3CB
++ obj273 83 nast7
+obj273 # 388A48E5
++ obj274 82 nafltr59
+obj274 # 6E9669F0
++ obj275 82 nafltr59
+obj275 # DFC7F5B1
++ obj276 82 nafltr59
+obj276 # 864F37D6
++ obj277 82 nafltr59
+obj277 # 03DD1321
++ obj278 82 nafltr59
+obj278 # 552F1776
++ obj279 82 nafltr59
+obj279 # 237B9AA7
++ obj280 82 nafltr59
+obj280 # 5881D608
++ obj281 82 nafltr59
+obj281 # 04E8BAA1
++ obj282 82 nafltr59
+obj282 # 70164780
++ obj283 82 nafltr59
+obj283 # 142E94E7
++ obj284 82 nafltr59
+obj284 # 0F78EDF4
++ obj285 82 nafltr59
+obj285 # 3F9E9ED2
++ obj286 82 nafltr59
+obj286 # 88639585
++ obj287 82 nafltr59
+obj287 # 778AAA4A
++ obj288 82 nafltr59
+obj288 # 7DB353DD
++ obj289 82 nafltr59
+obj289 # 8ECDA921
++ obj290 82 nafltr59
+obj290 # D6F98DEB
++ obj291 82 nafltr59
+obj291 # 8AE82F75
++ obj292 82 nafltr59
+obj292 # 7F609259
++ obj293 82 nafltr77
+obj293 # B23D3A8C
++ obj295 82 nafltr78
+obj295 # 359B2C18
++ obj296 82 nafltr78
+obj296 # 72B0411E
++ obj297 82 nafltr77
+obj297 # 6FFDCE96
++ obj298 82 nafltr77
+obj298 # C349C6AC
++ obj299 82 nafltr77
+obj299 # F86AEA7A
++ obj300 82 nafltr22
+obj300 # 7A1FD1EB
++ obj301 82 nafltr22
+obj301 # 866A4322
++ obj302 82 nafltr22
+obj302 # EC98C02C
++ obj303 82 nafltr22
+obj303 # 0B8084D1
++ obj304 82 nafltr22
+obj304 # 8B90424C
++ obj305 82 nafltr22
+obj305 # DD0C302D
++ obj306 82 nafltr22
+obj306 # F75FFA40
++ obj307 82 nafltr22
+obj307 # 988B38C6
++ obj308 82 nafltr22
+obj308 # 923F3110
++ obj309 82 nafltr68
+obj309 # 754E26AD
++ obj310 82 nafltr59
+obj310 # E81BC56D
++ obj311 82 nafltr68
+obj311 # 8ECE47CD
++ obj312 82 nafltr68
+obj312 # 80F477D8
++ obj313 82 nafltr68
+obj313 # 28825619
++ obj314 82 nafltr68
+obj314 # F250B27F
++ obj315 82 nafltr22
+obj315 # 81F22BF4
++ obj316 82 nafltr22
+obj316 # 90F841DB
++ obj317 82 nafltr59
+obj317 # FB52E4EF
++ obj318 82 nafltr59
+obj318 # A87CF704
++ obj319 82 nafltr59
+obj319 # A49EBC30
++ obj320 82 nafltr59
+obj320 # 1DCA14C3
++ obj321 82 nafltr59
+obj321 # 0AFA6E0C
++ obj322 82 nafltr59
+obj322 # 8DE7D049
++ obj324 82 naflbu8
+obj324 # 36434634
++ obj325 82 nafltr59
+obj325 # 32D3B2E5
++ obj326 82 nafltr59
+obj326 # 3A84F818
++ obj328 82 naflbu7
+obj328 # D3A793CA
++ obj329 82 naflbu7
+obj329 # E2CFC048
++ obj330 82 naflbu7
+obj330 # EFFDF992
++ obj331 82 naflbu17
+obj331 # B6924A4F
++ obj332 82 naflbu17
+obj332 # 1D191D0C
++ obj333 82 naflbu18
+obj333 # 5C390AAF
++ obj334 82 naflbu18
+obj334 # 5354F28D
++ obj335 82 naflbu18
+obj335 # 8A3486D1
++ obj336 82 naflbu18
+obj336 # 3960667C
++ obj337 82 naflbu18
+obj337 # 2B2F31E2
++ obj338 82 naflbu18
+obj338 # DC07FE80
++ obj339 82 naflbu18
+obj339 # 87AEF109
++ obj340 82 naflbu18
+obj340 # 11248FCF
++ obj341 82 naflbu18
+obj341 # 0641FD4B
++ obj346 83 nast7
+obj346 # F06D5C80
++ obj347 83 nast7
+obj347 # D2187567
++ obj348 82 naflbu8
+obj348 # 70D32337
++ obj349 82 naflbu8
+obj349 # 5B5C5078
++ obj350 82 naflbu8
+obj350 # 1D09EE91
++ obj351 82 naflbu8
+obj351 # 91C85242
++ obj352 82 naflbu8
+obj352 # A6B1DDAB
++ obj353 82 nafltr78
+obj353 # DB93A6CE
++ obj368 82 naflbu8
+obj368 # CD1EA28B
++ obj379 82 naflbu8
+obj379 # 14471782
++ obj380 82 naflbu8
+obj380 # 49D66792
++ obj381 82 naflbu8
+obj381 # 07C684F9
++ obj382 82 naflbu8
+obj382 # AC7A02D1
++ obj388 80 unmoto ""
+obj388 #ai 619103C9
+obj388 #place AC91BBB2
+obj388 #unit FFB0D0A2
+obj388 #vitals 295BF584
++ obj5147051 82 stst4disc
+obj5147051 # 3859677E
++ obj5147352 82 stst4disc
+obj5147352 # F7474DF9
++ obj5147353 82 stst4disc
+obj5147353 # F7474DF9
++ obj5147354 82 stst4disc
+obj5147354 # F7474DF9
++ obj5147355 82 stst4disc
+obj5147355 # F7474DF9
++ obj5147356 82 stst4disc
+obj5147356 # F7474DF9
++ obj5147357 82 stst4disc
+obj5147357 # F7474DF9
++ obj5147358 82 stst4disc
+obj5147358 # F7474DF9
++ obj5147359 82 stst4disc
+obj5147359 # F7474DF9
++ timed157 75 CEffectPointLight
+timed157 # F9D74287
++ timed251 75 CEffectPointLight
+timed251 # 275513C7
++ timed257 75 CEffectPointLight
+timed257 # 1DEC7753
++ timed259 75 CEffectPointLight
+timed259 # DC6D7850
++ timed260 75 CEffectPointLight
+timed260 # 72979814
++ timed323 75 CEffectPointLight
+timed323 # 5D2F3740
++ timed343 75 CEffectPointLight
+timed343 # 9D7A7092
++ timed358 75 CEffectPointLight
+timed358 # 9EFA4315
++ timed387 75 CEffectPointLight
+timed387 # 7505AFA0
++ timed5147050 75 CEffectPointLight
+timed5147050 # 2E28BE64
++ missile0 spell 39
+missile0 # FEC14634
++ aievents events
+aievents tick 20
+aievents width 9
+aievents height 9
+aievents count 0
+aievents side0.count 0
+aievents side0.hash 0x811C9DC5
+aievents side1.count 0
+aievents side1.hash 0x811C9DC5
+aievents side2.count 0
+aievents side2.hash 0x811C9DC5
+aievents side3.count 0
+aievents side3.hash 0x811C9DC5
+aievents side4.count 0
+aievents side4.hash 0x811C9DC5
+aievents side5.count 0
+aievents side5.hash 0x811C9DC5
+aievents side6.count 0
+aievents side6.hash 0x811C9DC5
+aievents side7.count 0
+aievents side7.hash 0x811C9DC5
+aievents side8.count 0
+aievents side8.hash 0x811C9DC5
+aievents side9.count 0
+aievents side9.hash 0x811C9DC5
+aievents side10.count 0
+aievents side10.hash 0x811C9DC5
+aievents side11.count 0
+aievents side11.hash 0x811C9DC5
+aievents side12.count 0
+aievents side12.hash 0x811C9DC5
+aievents side13.count 0
+aievents side13.hash 0x811C9DC5
+aievents side14.count 0
+aievents side14.hash 0x811C9DC5
+aievents side15.count 0
+aievents side15.hash 0x811C9DC5
++ script script
+script #files 982697DF
+script #globals 33E544A3
+script #gobject DFB99406
+script #instances 46BBAC38
+script #lightning 6A354D7C
+script #loaded B7FE1BB6
+script #nextFxId CC37E54D
+script #nextParticleId EA2DC23B
+script #runs F80920E1
++ client client
+client tick 20
+client paused 0
+client ticksRun 17
+client tickFraction 0.0
+client partyDanger 0
+client objects 150
+client units 5
+client synchronised 6
++ cunit2 80 unmoco2 ""
+cunit2 #place 05174B21
+cunit2 #unit CA7CD47D
+cunit2 #vitals 02033E21
++ cunit129 80 unanwibo ""
+cunit129 #place CC95DED6
+cunit129 #unit F0D31922
+cunit129 #vitals B073BCC9
++ cunit148 80 unanwiwo ""
+cunit148 #place CE270717
+cunit148 #unit 41270B60
+cunit148 #vitals C17C1FEE
++ cunit187 80 unmoog1 ""
+cunit187 #place F3DF9084
+cunit187 #unit 1A3C50C2
+cunit187 #vitals 1DDF30F4
++ cunit388 80 unmoto ""
+cunit388 #place 22FE5018
+cunit388 #unit 88A27EBC
+cunit388 #vitals 1F5A7471
+@ 1 update 40 frame 7 tick 40 zone gz1g hash D32311C6 n 832
+world tick 40
+world updates 40
+world timeBase 5.97222233
+world wind.x -0.728199959
+world wind.y -0.685364664
+world windStrength 0x3E4CCCCD
+world nightLevel 0x3F800000
+world exits 2
+world gameResult 1
+world sessionKind 1
+world objects 815
+world mapObjects 56
+world sentObjects 759
+world timedObjects 4
+world updateMap 15
+world projectiles 2
+world hostile0 0x000001D8
+world hostile3 0x00000001
+world hostile4 0x00000001
+world hostile6 0x00000001
+world hostile7 0x00000001
+world hostile8 0x00000001
+random isaac.count 169
+random isaac.a 0x3F9FACDD
+random isaac.b 0xD08B2C7D
+random isaac.c 0x00000049
+random isaac.results 0x9C5755A9
+random isaac.memory 0x0323AF1B
+random crt.rand 0xE9E1B30C
+player0 sessionKind 1
+player0 lastTick 30
+player0 units 1
+player0 objects 8
+player0 members 1
+player0 member0.unit 1000011214
+player0 var.AnimPray 1.0
+player0 var.Said1 1.0
+player0 var.ZT1 1.0
+player0 var.b.bz2g.z0 1.0
+player0 var.gtime 6.00333357
+player0 var.z.gz1g_gz2g 1.0
+player0 var.z.gz2g_gz3g 1.0
+- obj2
+- obj3
+- obj4
+- obj5
+- obj6
+- obj7
+- obj8
+- obj9
+- obj129
+- obj132
+- obj148
+- obj150
+- obj160
+- obj163
+- obj172
+- obj173
+- obj177
+- obj181
+- obj182
+- obj183
+- obj187
+- obj188
+- obj189
+- obj190
+- obj192
+- obj194
+- obj195
+- obj212
+- obj213
+- obj214
+- obj215
+- obj216
+- obj218
+- obj219
+- obj220
+- obj221
+- obj222
+- obj228
+- obj231
+- obj232
+- obj233
+- obj234
+- obj235
+- obj237
+- obj241
+- obj242
+- obj243
+- obj250
+- obj253
+- obj254
+- obj255
+- obj261
+- obj262
+- obj263
+- obj265
+- obj266
+- obj267
+- obj268
+- obj269
+- obj270
+- obj272
+- obj273
+- obj274
+- obj275
+- obj276
+- obj277
+- obj278
+- obj279
+- obj280
+- obj281
+- obj282
+- obj283
+- obj284
+- obj285
+- obj286
+- obj287
+- obj288
+- obj289
+- obj290
+- obj291
+- obj292
+- obj293
+- obj295
+- obj296
+- obj297
+- obj298
++ obj299 84 stbr1
+obj299 # 4909749A
+- obj300
+- obj301
+- obj302
+- obj303
+- obj304
+- obj305
+- obj306
+- obj307
+- obj308
+- obj309
+- obj310
+- obj311
+- obj312
+- obj313
+- obj314
+- obj315
+- obj316
+- obj317
+- obj318
+- obj319
+- obj320
+- obj321
+- obj322
+- obj324
+- obj325
+- obj326
+- obj328
+- obj329
+- obj330
+- obj331
+- obj332
+- obj333
+- obj334
+- obj335
+- obj336
+- obj337
+- obj338
+- obj339
+- obj340
+- obj341
+- obj346
+- obj347
+- obj348
+- obj349
+- obj350
+- obj351
+- obj352
+- obj353
+- obj368
+- obj379
+- obj380
+- obj381
+- obj382
+- obj388
++ obj477 84 stst13
+obj477 # 1B65B940
++ obj481 84 stwali1
+obj481 # FF3EE465
++ obj483 84 stwali1
+obj483 # 28630BF3
++ obj493 84 stwali1
+obj493 # 0774BFD4
++ obj496 84 stwali1
+obj496 # 212E27A5
++ obj498 84 stwali1
+obj498 # 8C70B9D6
++ obj500 84 stwali1
+obj500 # CB456ACB
++ obj502 84 stwali1
+obj502 # 2E020D05
++ obj503 84 stwali1
+obj503 # FC5B2A1D
++ obj505 84 stwali1
+obj505 # 543F75DD
++ obj506 84 stwali1
+obj506 # 77880CB9
++ obj507 84 stwali1
+obj507 # 59F8CE29
++ obj508 84 stwali1
+obj508 # 88726833
++ obj509 84 stwali1
+obj509 # FE64E52A
++ obj510 84 stwali1
+obj510 # B94DEFD7
++ obj512 84 stwali1
+obj512 # B0D03391
++ obj519 84 stwali1
+obj519 # 3E014BC1
++ obj524 84 stwali1
+obj524 # 2CE2053B
++ obj525 84 stwali1
+obj525 # 075E4934
++ obj526 84 stwali1
+obj526 # C00D6D87
++ obj527 84 stwali1
+obj527 # E71516BB
++ obj528 84 stwali1
+obj528 # E0B67736
++ obj529 84 stwali1
+obj529 # 0AF8196B
++ obj530 84 stwali1
+obj530 # 7A87D7BD
++ obj531 84 stwali1
+obj531 # F692BD0F
++ obj532 84 stwali1
+obj532 # 80752622
++ obj533 84 stwali1
+obj533 # 2A0D4048
++ obj534 84 stwali1
+obj534 # BD3BF7BD
++ obj535 84 stwali1
+obj535 # 05984FF4
++ obj536 84 stwali1
+obj536 # B2F87BDD
++ obj537 84 stwali1
+obj537 # B1942B52
++ obj538 84 stwali1
+obj538 # 25BADBB4
++ obj539 84 stwali1
+obj539 # 55CBC0F9
++ obj540 84 stwali1
+obj540 # FF759BD9
++ obj541 84 stwali1
+obj541 # FB1AE7DD
++ obj542 84 stwali1
+obj542 # DE0BB98C
++ obj543 84 stwali1
+obj543 # 3069DF8A
++ obj544 84 stwali1
+obj544 # C739EBB5
++ obj557 84 stwali1
+obj557 # A679AA35
++ obj558 84 stwali1
+obj558 # FF7E3134
++ obj559 84 stwali1
+obj559 # D2E68E03
++ obj560 84 stwali1
+obj560 # ACD71497
++ obj561 84 stwali1
+obj561 # 1B5E1CA5
++ obj562 84 stwali1
+obj562 # 8B3EEB66
++ obj563 84 stwali1
+obj563 # C1F62AC6
++ obj564 84 stwali1
+obj564 # 255DA1A2
++ obj566 84 stwali1
+obj566 # 5D738A2B
++ obj568 84 stwali1
+obj568 # E62B7961
++ obj569 84 stwali1
+obj569 # 6C26A243
++ obj570 84 stwali1
+obj570 # 5BB43101
++ obj571 84 stwali1
+obj571 # 16938820
++ obj572 84 stwali1
+obj572 # 68CE574F
++ obj580 84 stwali1
+obj580 # E8FA9483
++ obj581 84 stwali1
+obj581 # F24EFAB3
++ obj582 84 stwali1
+obj582 # D97FEEBB
++ obj587 84 stwali1
+obj587 # BAC33AEC
++ obj588 84 stwali1
+obj588 # 7FAADE04
++ obj589 84 stwali1
+obj589 # 8D7167CF
++ obj590 84 stwali1
+obj590 # 7D13CF1E
++ obj591 84 stwali1
+obj591 # CE2ECE30
++ obj663 80 unmoog1 ""
+obj663 #ai B691C05A
+obj663 #place 7A56B849
+obj663 #unit B77D59C5
+obj663 #vitals C8C47D0C
++ obj666 80 unmogo ""
+obj666 #ai 07BFFC82
+obj666 #place 22C61CE9
+obj666 #unit 07AF42EC
+obj666 #vitals 2871DAC1
++ obj668 80 unmogo ""
+obj668 #ai 80E96731
+obj668 #place 01C880C3
+obj668 #unit 1F4A92F7
+obj668 #vitals 2871DAC1
++ obj669 80 unmogo ""
+obj669 #ai 80E96731
+obj669 #place 5EDE8E20
+obj669 #unit BFB60BAD
+obj669 #vitals 2871DAC1
++ obj670 80 unmogo ""
+obj670 #ai 80E96731
+obj670 #place 80EF688B
+obj670 #unit 0505CBA8
+obj670 #vitals 2871DAC1
++ obj699 80 unhuma ""
+obj699 #ai 0F79C16E
+obj699 #place 2FABAB77
+obj699 #unit 2F1EAF08
+obj699 #vitals F72D441A
++ obj702 80 unhufe ""
+obj702 #ai 0F79C16E
+obj702 #place 643D63F8
+obj702 #unit B0CC1FED
+obj702 #vitals F72D441A
++ obj708 84 stbuho6
+obj708 # 641EAEC5
++ obj709 84 stst14
+obj709 # 50F503B6
++ obj710 84 stst4
+obj710 # 48A2F823
++ obj711 84 stwe3
+obj711 # 1497808C
++ obj741 84 stst15
+obj741 # 7337F7B6
++ obj742 84 stst8
+obj742 # E5070753
++ obj743 84 stst9
+obj743 # 50F359F3
++ obj744 84 stst9
+obj744 # ED69ADF0
++ obj819 84 stst4
+obj819 # C8EAED9D
++ obj847 82 nafltr59
+obj847 # B474669B
++ obj848 82 nafltr75
+obj848 # 0FEDECCC
++ obj850 82 nafltr75
+obj850 # 3646E013
++ obj851 82 nafltr56
+obj851 # AC5546F0
++ obj852 82 nafltr56
+obj852 # DD7C2932
++ obj853 82 nafltr59
+obj853 # 16F64E38
++ obj854 82 nafltr57
+obj854 # C12F12A1
++ obj855 82 nafltr57
+obj855 # 3216C51E
++ obj856 82 naflbu6
+obj856 # 2E8A26ED
++ obj857 82 naflbu6
+obj857 # 3CDC12C7
++ obj858 82 naflbu6
+obj858 # 8E0E8335
++ obj860 82 nafltr75
+obj860 # 8C220BCA
++ obj861 82 nafltr56
+obj861 # 1F6631D1
++ obj862 82 nafltr56
+obj862 # 7DC6966B
++ obj863 82 nafltr56
+obj863 # 7CEF3D57
++ obj864 82 nafltr57
+obj864 # 278A7E21
++ obj865 82 nafltr57
+obj865 # EDFBC325
++ obj866 82 nafltr59
+obj866 # DC0A36F9
++ obj867 82 nafltr59
+obj867 # D1A74AFB
++ obj868 82 nafltr59
+obj868 # 4D884FDD
++ obj869 82 nafltr57
+obj869 # 1DED56D4
++ obj870 82 nafltr57
+obj870 # ADF344EB
++ obj871 82 nafltr57
+obj871 # 9EF5F2B8
++ obj872 82 nafltr56
+obj872 # BF5B162A
++ obj873 82 nafltr56
+obj873 # AD65CD72
++ obj874 82 nafltr56
+obj874 # 60CF937B
++ obj875 82 nafltr57
+obj875 # 2892D8D6
++ obj877 82 nafltr59
+obj877 # 1AFE17CF
++ obj878 82 nafltr59
+obj878 # 217861D4
++ obj879 82 nafltr59
+obj879 # 1D113892
++ obj880 82 nafltr59
+obj880 # BB3E1F56
++ obj881 82 nafltr59
+obj881 # A493807A
++ obj885 82 nafltr56
+obj885 # 4637436E
++ obj886 82 nafltr57
+obj886 # 3D0114F1
++ obj888 82 nafltr75
+obj888 # 9B8BB403
++ obj889 82 nafltr56
+obj889 # 8F2B3CE8
++ obj890 82 nafltr56
+obj890 # 7A64DEC6
++ obj891 82 nafltr56
+obj891 # BF90860A
++ obj892 82 nafltr57
+obj892 # 941D8DA9
++ obj893 82 nafltr57
+obj893 # 4E2C5EBB
++ obj895 82 nafltr59
+obj895 # 29C126F6
++ obj896 82 nafltr59
+obj896 # D4230106
++ obj897 82 nafltr59
+obj897 # F6322218
++ obj898 82 nafltr59
+obj898 # 73DF3487
++ obj899 82 nafltr59
+obj899 # 9EF644C1
++ obj908 82 nafltr57
+obj908 # BE86BF0D
++ obj911 82 nafltr21
+obj911 # 60380554
++ obj914 82 nafltr56
+obj914 # 57BCA0B6
++ obj916 82 nafltr57
+obj916 # 6CAD8E8F
++ obj917 82 nafltr56
+obj917 # ADE4202D
++ obj918 82 nafltr56
+obj918 # FC0474FC
++ obj919 82 nafltr56
+obj919 # 329F8521
++ obj920 82 nafltr56
+obj920 # 90FD59F7
++ obj921 82 nafltr57
+obj921 # E09DCAF1
++ obj929 84 stbuho5
+obj929 # DD16E972
++ obj931 84 stbuho7
+obj931 # E727E5C9
++ obj933 84 stbuho7
+obj933 # 6DB6C712
++ obj945 84 stwame1
+obj945 # CCB47BF0
++ obj947 84 stwame1
+obj947 # 95E319FA
++ obj950 84 stwame1
+obj950 # 41EE4A0A
++ obj951 84 stwame1
+obj951 # 657FE4C2
++ obj952 84 stwame1
+obj952 # 81E7735C
++ obj953 84 stwame1
+obj953 # 56BAB7D1
++ obj954 84 stwame1
+obj954 # 80CFC76C
++ obj955 84 stwame1
+obj955 # 01A77400
++ obj963 84 stwame1
+obj963 # E72B05E0
++ obj964 84 stwame1
+obj964 # 20645343
++ obj965 84 stwame1
+obj965 # E9B98005
++ obj966 84 stwame1
+obj966 # F010DB3D
++ obj967 84 stwame1
+obj967 # 72BBCF5A
++ obj968 84 stwame1
+obj968 # D20E13A8
++ obj969 84 stwame1
+obj969 # AC3368B9
++ obj970 84 stwame1
+obj970 # 34C50A7C
++ obj971 84 stwame1
+obj971 # 937D96EC
++ obj972 84 stwame1
+obj972 # 835E460C
++ obj973 84 stwame1
+obj973 # 8949DDB4
++ obj974 84 stwame1
+obj974 # D793663B
++ obj975 84 stwame1
+obj975 # BD593CB8
++ obj976 84 stwame1
+obj976 # 93A356F7
++ obj977 84 stwame1
+obj977 # D020B4B3
++ obj978 84 stwame1
+obj978 # ACD755E8
++ obj979 84 stwame1
+obj979 # 471AAE73
++ obj980 84 stwame1
+obj980 # 94D76AA1
++ obj981 84 stwame1
+obj981 # 4C52FA49
++ obj982 84 stwame1
+obj982 # 856993C3
++ obj984 84 stwame1
+obj984 # 1D938116
++ obj985 84 stwame1
+obj985 # 7569A4E1
++ obj986 84 stwame1
+obj986 # F046E298
++ obj987 82 nafltr59
+obj987 # 67BB0EF6
++ obj988 82 nafltr59
+obj988 # D48C4FB4
++ obj989 82 nafltr56
+obj989 # CF255E8F
++ obj991 82 nafltr57
+obj991 # E2C3CE9F
++ obj1082 82 nafltr57
+obj1082 # 156F9915
++ obj1084 82 nafltr57
+obj1084 # 9B755B67
++ obj1085 82 nafltr57
+obj1085 # 1146DAE3
++ obj1103 82 nafltr57
+obj1103 # 817E5A78
++ obj1104 82 nafltr59
+obj1104 # B8739D1B
++ obj1105 82 nafltr59
+obj1105 # B4DE5EB4
++ obj1106 82 nafltr59
+obj1106 # 208F562C
++ obj1107 82 nafltr59
+obj1107 # 338F8733
++ obj1108 82 nafltr21
+obj1108 # 0601CEDD
++ obj1109 82 nafltr57
+obj1109 # 179F4168
++ obj1110 82 nafltr57
+obj1110 # DE6656A8
++ obj1176 82 nafltr57
+obj1176 # 141D0D22
++ obj1177 82 nafltr56
+obj1177 # B36CA609
++ obj1178 82 nafltr56
+obj1178 # 8DACCBA1
++ obj1179 82 nafltr59
+obj1179 # 5786D189
++ obj1180 82 nafltr59
+obj1180 # 80CAF644
++ obj1181 82 nafltr59
+obj1181 # 2BB72F6B
++ obj1182 82 nafltr56
+obj1182 # A6E3286E
++ obj1183 82 nafltr56
+obj1183 # 386A0F60
++ obj1184 82 nafltr56
+obj1184 # C8C75767
++ obj1185 82 nafltr57
+obj1185 # 2B31CE71
++ obj1186 82 nafltr59
+obj1186 # 4EB8134C
++ obj1188 82 nafltr56
+obj1188 # 5C241056
++ obj1189 82 nafltr56
+obj1189 # 7B344E84
++ obj1190 82 naflbu6
+obj1190 # 388117A2
++ obj1191 82 naflbu6
+obj1191 # C7FA4430
++ obj1192 82 naflbu6
+obj1192 # 1332E370
++ obj1193 82 naflbu6
+obj1193 # AB3F8630
++ obj1194 82 naflbu6
+obj1194 # DE75B00C
++ obj1195 82 naflbu6
+obj1195 # C89A6E3D
++ obj1196 82 naflbu6
+obj1196 # 2D9D4C04
++ obj1197 82 naflbu6
+obj1197 # 2009EE06
++ obj1198 82 naflbu6
+obj1198 # 84A1CC64
++ obj1199 82 nafltr56
+obj1199 # 0DE6721D
++ obj1200 82 nafltr59
+obj1200 # CEECECDC
++ obj1201 82 nafltr59
+obj1201 # B0A59864
++ obj1202 82 nafltr56
+obj1202 # 30325C58
++ obj1203 82 nafltr56
+obj1203 # 050DF043
++ obj1204 82 naflbu6
+obj1204 # FC226F83
++ obj1205 82 naflbu6
+obj1205 # 724175B4
++ obj1206 82 naflbu6
+obj1206 # 79625B57
++ obj1207 82 naflbu6
+obj1207 # 4E62BB07
++ obj1208 82 nafltr22
+obj1208 # 9B9CBC0B
++ obj1209 82 nafltr22
+obj1209 # 4CC73192
++ obj1210 82 nafltr23
+obj1210 # 17AF9A24
++ obj1211 82 nafltr20
+obj1211 # 2CB51906
++ obj1212 82 nafltr20
+obj1212 # A2547136
++ obj1221 82 nafltr59
+obj1221 # 1888F9E3
++ obj1222 82 nafltr59
+obj1222 # 0E5B3E0E
++ obj1223 82 nafltr56
+obj1223 # 56846B20
++ obj1224 82 nafltr56
+obj1224 # F36D10E5
++ obj1225 82 nafltr56
+obj1225 # A512A525
++ obj1226 82 nafltr57
+obj1226 # D19B7D1A
++ obj1227 82 nafltr59
+obj1227 # B3DEAD4D
++ obj1228 82 naflbu6
+obj1228 # C62A2D2D
++ obj1229 82 naflbu6
+obj1229 # B8F56317
++ obj1230 82 naflbu6
+obj1230 # 540297BF
++ obj1231 82 naflbu6
+obj1231 # E946B5B7
++ obj1232 82 naflbu6
+obj1232 # 79F8B944
++ obj1233 82 naflbu6
+obj1233 # 1F81A31B
++ obj1234 83 nast16
+obj1234 # 62AF6C6B
++ obj1236 83 nast15
+obj1236 # 5444D42E
++ obj1238 82 nafltr56
+obj1238 # B1F4FA7F
++ obj1239 82 nafltr56
+obj1239 # 6377841A
++ obj1240 82 nafltr59
+obj1240 # C4010B25
++ obj1241 82 naflbu6
+obj1241 # 2B8CDCB5
++ obj1242 82 naflbu6
+obj1242 # DE9AD074
++ obj1243 82 naflbu6
+obj1243 # C62058A8
++ obj1244 82 nafltr56
+obj1244 # 848BD1FC
++ obj1245 82 nafltr57
+obj1245 # 32F4F09D
++ obj1246 82 nafltr56
+obj1246 # 34553DEB
++ obj1247 82 naflbu6
+obj1247 # 205AAFCA
++ obj1248 82 naflbu6
+obj1248 # 3EF3C124
++ obj1249 82 naflbu6
+obj1249 # 11FBC9A0
++ obj1250 82 nafltr59
+obj1250 # 3C2E3E60
++ obj1252 82 naflbu6
+obj1252 # 1CC0AA2C
++ obj1253 82 naflbu6
+obj1253 # 1A194C51
++ obj1254 82 nafltr56
+obj1254 # 2C176041
++ obj1255 82 nafltr57
+obj1255 # DADEE68E
++ obj1256 82 nafltr57
+obj1256 # CFD5F885
++ obj1257 82 nafltr56
+obj1257 # EF8D3D1F
++ obj1258 82 nafltr56
+obj1258 # C536742D
++ obj1259 82 nafltr59
+obj1259 # 6423AFAF
++ obj1260 82 nafltr59
+obj1260 # 6526E87E
++ obj1261 82 nafltr59
+obj1261 # 783F079F
++ obj1262 82 naflbu6
+obj1262 # 789805F3
++ obj1263 82 naflbu6
+obj1263 # 07568226
++ obj1264 82 naflbu6
+obj1264 # C9BFA7A6
++ obj1265 82 naflbu6
+obj1265 # 37952554
++ obj1266 82 naflbu6
+obj1266 # C6EC2601
++ obj1267 82 naflbu6
+obj1267 # 129B8F15
++ obj1268 82 naflbu6
+obj1268 # 9EE1AB0D
++ obj1269 82 naflbu6
+obj1269 # 3583C746
++ obj1270 82 nafltr59
+obj1270 # 65AFD4AE
++ obj1271 82 nafltr59
+obj1271 # 4E40C6ED
++ obj1272 82 nafltr59
+obj1272 # 3D925D77
++ obj1273 82 nafltr59
+obj1273 # DC6FD21F
++ obj1274 82 nafltr56
+obj1274 # C9CC0B88
++ obj1275 82 nafltr56
+obj1275 # 7BF79E7E
++ obj1276 82 nafltr57
+obj1276 # B294B9BE
++ obj1277 82 nafltr56
+obj1277 # D4FDB35D
++ obj1278 82 naflbu6
+obj1278 # 942F6145
++ obj1279 82 naflbu6
+obj1279 # BD353068
++ obj1280 82 naflbu6
+obj1280 # 8F182898
++ obj1281 82 naflbu6
+obj1281 # 9DAF066F
++ obj1282 82 naflbu6
+obj1282 # ECD370E3
++ obj1283 82 naflbu6
+obj1283 # 7D7DF8BC
++ obj1284 82 naflbu6
+obj1284 # 7BF6B816
++ obj1285 82 naflbu6
+obj1285 # F84DDA58
++ obj1286 82 nafltr20
+obj1286 # C3A3DCB3
++ obj1287 82 nafltr20
+obj1287 # 7A2D9C89
++ obj1288 82 nafltr21
+obj1288 # 601F978B
++ obj1289 82 nafltr22
+obj1289 # 7A097EDF
++ obj1290 82 nafltr22
+obj1290 # 975F7FEB
++ obj1291 82 nafltr22
+obj1291 # 453F9C13
++ obj1292 82 nafltr23
+obj1292 # C003E83A
++ obj1293 82 nafltr23
+obj1293 # 0C5FC21F
++ obj1294 82 nafltr21
+obj1294 # 6DC83377
++ obj1295 82 nafltr21
+obj1295 # 387273AB
++ obj1296 82 nafltr22
+obj1296 # 839BFF60
++ obj1297 82 nafltr22
+obj1297 # 0E2EC435
++ obj1298 82 nafltr22
+obj1298 # 713F9CD9
++ obj1300 82 nafltr23
+obj1300 # D3A2C5BB
++ obj1301 82 nafltr23
+obj1301 # AD9F741D
++ obj1302 82 nafltr20
+obj1302 # DB41F167
++ obj1303 82 nafltr21
+obj1303 # 383D8019
++ obj1304 82 nafltr21
+obj1304 # 1A75D8F1
++ obj1305 82 nafltr22
+obj1305 # E5DF778C
++ obj1306 82 nafltr22
+obj1306 # 629A8FE0
++ obj1307 82 nafltr22
+obj1307 # 3377C1D2
++ obj1308 82 nafltr20
+obj1308 # 685C5768
++ obj1309 82 nafltr20
+obj1309 # C5128225
++ obj1310 82 naflbu6
+obj1310 # 39A72757
++ obj1311 82 naflbu6
+obj1311 # 549484FC
++ obj1312 82 naflbu6
+obj1312 # 5DCEA2FE
++ obj1313 82 naflbu6
+obj1313 # E83413B1
++ obj1314 82 naflbu6
+obj1314 # 0112D8C7
++ obj1315 82 nafltr21
+obj1315 # 7630215C
++ obj1316 82 nafltr22
+obj1316 # F141A3AA
++ obj1317 82 nafltr22
+obj1317 # 2B8D1563
++ obj1318 82 nafltr23
+obj1318 # 8F0C2CBC
++ obj1319 82 nafltr23
+obj1319 # C5F3F7B8
++ obj1320 82 nafltr20
+obj1320 # BA2FB1C1
++ obj1322 82 naflbu6
+obj1322 # C4552C36
++ obj1323 82 naflbu6
+obj1323 # 9BBB6299
++ obj1324 82 naflbu6
+obj1324 # 3DEE4027
++ obj1325 82 nafltr56
+obj1325 # 3B71CA94
++ obj1326 82 nafltr22
+obj1326 # F894714D
++ obj1327 82 nafltr22
+obj1327 # B489E370
++ obj1328 82 nafltr22
+obj1328 # 64FABC19
++ obj1329 82 nafltr22
+obj1329 # 6CE5D9D2
++ obj1330 82 naflbu6
+obj1330 # 039A956F
++ obj1331 82 naflbu6
+obj1331 # 778EFB11
++ obj1333 82 naflbu6
+obj1333 # AC55CD71
++ obj1334 82 naflbu6
+obj1334 # 77502AE0
++ obj1335 82 naflbu6
+obj1335 # 4AE5076E
++ obj1339 82 nafltr56
+obj1339 # E9D5CAC7
++ obj1340 82 nafltr59
+obj1340 # 41930710
++ obj1341 82 nafltr59
+obj1341 # F14FE165
++ obj1342 82 nafltr56
+obj1342 # E51534AF
++ obj1344 84 stwame1
+obj1344 # 1B83BFAA
++ obj1346 84 stwame1
+obj1346 # 484F1241
++ obj1347 84 stwame1
+obj1347 # 655631B5
++ obj1349 84 stwame1
+obj1349 # 17AAB5D6
++ obj1350 84 stwame1
+obj1350 # E98B0C9F
++ obj1353 84 stwame1
+obj1353 # 8770BDEE
++ obj1354 84 stwame1
+obj1354 # 976F671D
++ obj1355 84 stwame1
+obj1355 # 0C3337E0
++ obj1356 84 stwame1
+obj1356 # 1921CCC9
++ obj1357 84 stwame1
+obj1357 # DB770344
++ obj1358 84 stwame1
+obj1358 # 08BD86AC
++ obj1359 84 stwame1
+obj1359 # 9FE039BB
++ obj1360 84 stwame1
+obj1360 # AB0A3FD0
++ obj1363 84 stst14
+obj1363 # CBBCF139
++ obj1364 84 stwali1
+obj1364 # 1E74F324
++ obj1367 84 stwali1
+obj1367 # AD7F4019
++ obj1368 84 stwali1
+obj1368 # AAD9BB2A
++ obj1372 84 stwali1
+obj1372 # DFD5E638
++ obj1374 84 stwali1
+obj1374 # AE8E10B0
++ obj1376 84 stwali1
+obj1376 # 7BEBFEB5
++ obj1379 84 stwali1
+obj1379 # BE4CAA8F
++ obj1380 84 stwali1
+obj1380 # 8C93FA28
++ obj1383 84 stwali1
+obj1383 # 388E3575
++ obj1385 84 stwali1
+obj1385 # 9F1E8A8B
++ obj1387 84 stwali1
+obj1387 # 97C0B47B
++ obj1391 84 stwali1
+obj1391 # A82F2FD5
++ obj1392 84 stwali1
+obj1392 # 36509708
++ obj1396 84 stwali1
+obj1396 # 02A40787
++ obj1397 84 stwali1
+obj1397 # 647741E9
++ obj1398 84 stwali1
+obj1398 # 5F27862A
++ obj1399 84 stwali1
+obj1399 # BBABB094
++ obj1400 84 stwali1
+obj1400 # F91BF136
++ obj1401 84 stwali1
+obj1401 # DFB4F62F
++ obj1408 84 stwali1
+obj1408 # C9EFB772
++ obj1409 84 stwali1
+obj1409 # 46ECC9FA
++ obj1410 84 stwali1
+obj1410 # 62118056
++ obj1418 84 stwali1
+obj1418 # A2DC6745
++ obj1419 84 stwali1
+obj1419 # CEFB89CE
++ obj1420 84 stwali1
+obj1420 # F5D72A11
++ obj1421 84 stwali1
+obj1421 # 433A18C2
++ obj1423 84 stwali1
+obj1423 # B0765163
++ obj1424 84 stwali1
+obj1424 # FBA3E29B
++ obj1425 84 stwali1
+obj1425 # 97101895
++ obj1426 84 stwali1
+obj1426 # A5DF6813
++ obj1427 84 stwali1
+obj1427 # D2828E31
++ obj1428 84 stwali1
+obj1428 # BE516F8A
++ obj1431 84 stwali1
+obj1431 # 393BC3A8
++ obj1432 84 stwali1
+obj1432 # 6CBFC641
++ obj1433 84 stwali1
+obj1433 # 09D3DA2D
++ obj1434 84 stwali1
+obj1434 # D72FAB5A
++ obj1435 84 stwali1
+obj1435 # 1828E63E
++ obj1436 84 stwali1
+obj1436 # AABC3B6A
++ obj1437 84 stwali1
+obj1437 # 940F9173
++ obj1438 84 stwali1
+obj1438 # 93BCB4A1
++ obj1443 84 stwali1
+obj1443 # 13D2A20A
++ obj1445 84 stwali1
+obj1445 # B65C1F69
++ obj1447 82 nafltr56
+obj1447 # F355662B
++ obj1466 82 nafltr56
+obj1466 # 00A72F3A
++ obj1467 82 nafltr56
+obj1467 # B5F02260
++ obj1473 82 nafltr59
+obj1473 # AA3E27CD
++ obj1474 82 nafltr59
+obj1474 # 04A718AF
++ obj1484 83 nast16
+obj1484 # 11401D3A
++ obj1485 82 nafltr59
+obj1485 # 79F8D539
++ obj1486 82 nafltr59
+obj1486 # E124DA0B
++ obj1487 82 nafltr59
+obj1487 # 0AB676E2
++ obj1488 82 nafltr59
+obj1488 # 3308D964
++ obj1489 82 nafltr59
+obj1489 # 7E28FCDF
++ obj1490 82 nafltr59
+obj1490 # 65FCFBA9
++ obj1494 82 nafltr59
+obj1494 # DC6C3734
++ obj1495 82 nafltr59
+obj1495 # 4BF447BD
++ obj1505 83 nast8
+obj1505 # E8FFFA0F
++ obj1506 83 nast13
+obj1506 # 3074C697
++ obj1508 82 nafltr59
+obj1508 # C41B138D
++ obj1509 82 nafltr59
+obj1509 # 565A8E15
++ obj1511 84 stbuho7
+obj1511 # 033089E7
++ obj1513 84 stbuho7
+obj1513 # 17E95B2D
++ obj1515 84 stbuho7
+obj1515 # 4C3AB87F
++ obj1519 82 nafltr59
+obj1519 # CF43D983
++ obj1520 82 nafltr59
+obj1520 # E78201FF
++ obj1521 82 nafltr59
+obj1521 # B7DF2FE6
++ obj1522 82 nafltr59
+obj1522 # 1BE3B7D3
++ obj1523 82 nafltr59
+obj1523 # 0857F54E
++ obj1524 82 nafltr59
+obj1524 # 71F99441
++ obj1525 82 nafltr59
+obj1525 # 25541C3C
++ obj1527 82 nafltr56
+obj1527 # BB888A53
++ obj1528 82 nafltr59
+obj1528 # 579A6723
++ obj1529 82 nafltr59
+obj1529 # 192D57A6
++ obj1530 82 nafltr59
+obj1530 # BB2333DE
++ obj1531 82 nafltr59
+obj1531 # F1F65C3C
++ obj1532 82 nafltr59
+obj1532 # 0EE866BD
++ obj1533 82 nafltr59
+obj1533 # 07F3CB0B
++ obj1534 82 nafltr59
+obj1534 # 6CD4A906
++ obj1535 82 nafltr59
+obj1535 # AC63A7BE
++ obj1536 82 nafltr59
+obj1536 # 58254307
++ obj1537 82 nafltr59
+obj1537 # 3B99FE98
++ obj1538 82 nafltr59
+obj1538 # DE2CEDB3
++ obj1539 82 nafltr59
+obj1539 # 89BE8342
++ obj1541 82 nafltr59
+obj1541 # C1DC07A4
++ obj1542 82 nafltr59
+obj1542 # 5038FF0B
++ obj1543 82 nafltr59
+obj1543 # 625114B9
++ obj1544 82 nafltr23
+obj1544 # AC4A845B
++ obj1545 82 nafltr20
+obj1545 # B8AE5189
++ obj1546 82 nafltr20
+obj1546 # B9E79DD6
++ obj1548 82 naflbu6
+obj1548 # 181431E4
++ obj1549 82 naflbu6
+obj1549 # 6C24D226
++ obj1550 82 naflbu6
+obj1550 # 904DB992
++ obj1552 82 nafltr56
+obj1552 # B08E2CFF
++ obj1553 82 naflbu6
+obj1553 # B0B580FC
++ obj1554 82 naflbu6
+obj1554 # 650313C3
++ obj1555 82 naflbu6
+obj1555 # 45261052
++ obj1556 82 naflbu6
+obj1556 # AB7A91E2
++ obj1557 82 naflbu6
+obj1557 # F53F2213
++ obj1558 82 naflbu6
+obj1558 # D96595BB
++ obj1559 82 naflbu6
+obj1559 # 18CC772A
++ obj1560 82 naflbu6
+obj1560 # 04937F59
++ obj1561 82 naflbu6
+obj1561 # 02566A8C
++ obj1562 82 naflbu6
+obj1562 # C843A55E
++ obj1563 82 naflbu6
+obj1563 # BCE01FEA
++ obj1564 82 naflbu6
+obj1564 # 649D568E
++ obj1565 82 naflbu6
+obj1565 # 1D0945AA
++ obj1566 82 naflbu6
+obj1566 # 08D71496
++ obj1567 82 naflbu6
+obj1567 # 9CAC97B8
++ obj1568 82 naflbu6
+obj1568 # 80CA2480
++ obj1569 82 naflbu6
+obj1569 # E7FCE6F5
++ obj1570 82 naflbu6
+obj1570 # 5482008F
++ obj1571 82 naflbu6
+obj1571 # 26F8565F
++ obj1572 82 naflbu6
+obj1572 # E9D335F5
++ obj1573 82 naflbu6
+obj1573 # 17A839E2
++ obj1574 82 naflbu6
+obj1574 # A9EE41FD
++ obj1575 82 naflbu6
+obj1575 # B0C6A8EC
++ obj1576 82 naflbu6
+obj1576 # 2CAC3CCE
++ obj1577 82 naflbu6
+obj1577 # 269D5894
++ obj1578 82 naflbu6
+obj1578 # E070DC3F
++ obj1579 82 naflbu6
+obj1579 # 56F7263B
++ obj1580 82 naflbu6
+obj1580 # AD929C1A
++ obj1581 82 naflbu6
+obj1581 # 5D5B922A
++ obj1582 82 naflbu6
+obj1582 # 4E6EBFEC
++ obj1583 82 naflbu6
+obj1583 # CB3E6B17
++ obj1584 82 naflbu6
+obj1584 # 5F6F1F20
++ obj1585 82 nafltr59
+obj1585 # 3815F9E1
++ obj1586 82 nafltr56
+obj1586 # 71B90E82
++ obj1587 82 nafltr59
+obj1587 # 6C1C9806
++ obj1588 82 naflbu6
+obj1588 # 851880B0
++ obj1589 82 naflbu6
+obj1589 # 50965FEA
++ obj1590 82 naflbu6
+obj1590 # FBCAE741
++ obj1591 82 naflbu6
+obj1591 # C36A3A07
++ obj1592 82 naflbu6
+obj1592 # 4FF53EBC
++ obj1593 82 naflbu6
+obj1593 # BF94D6E2
++ obj1594 82 naflbu6
+obj1594 # 973D683D
++ obj1595 82 naflbu6
+obj1595 # B5F605F5
++ obj1596 82 naflbu6
+obj1596 # 4489D43C
++ obj1597 82 naflbu6
+obj1597 # 0F97B243
++ obj1598 82 naflbu6
+obj1598 # EF438CB2
++ obj1599 82 naflbu6
+obj1599 # 9A275D5B
++ obj1600 82 naflbu6
+obj1600 # A550CAAE
++ obj1601 82 nafltr59
+obj1601 # 3D6F82F1
++ obj1602 82 naflbu6
+obj1602 # 4A75FE4E
++ obj1603 82 naflbu6
+obj1603 # 71F139FC
++ obj1604 82 naflbu6
+obj1604 # BFB0374C
++ obj1605 82 naflbu6
+obj1605 # 3D8824AD
++ obj1606 82 naflbu6
+obj1606 # 6834F14E
++ obj1607 82 naflbu6
+obj1607 # 6FD9A622
++ obj1608 82 naflbu6
+obj1608 # 573BA487
++ obj1609 82 naflbu6
+obj1609 # 028BA28E
++ obj1610 82 naflbu6
+obj1610 # 31E10295
++ obj1611 82 naflbu6
+obj1611 # 9A564879
++ obj1612 82 naflbu6
+obj1612 # 8AB11244
++ obj1613 82 nafltr59
+obj1613 # E798E01F
++ obj1614 82 nafltr59
+obj1614 # F0611673
++ obj1615 82 nafltr59
+obj1615 # 8EE2C8EF
++ obj1616 82 nafltr59
+obj1616 # E83FCB48
++ obj1617 82 nafltr59
+obj1617 # ECC2CD34
++ obj1618 82 nafltr59
+obj1618 # A61EB1CC
++ obj1619 82 nafltr59
+obj1619 # A2EA4938
++ obj1620 82 nafltr59
+obj1620 # 71E9C3CB
++ obj1621 82 nafltr59
+obj1621 # 6C626F44
++ obj1622 82 naflbu6
+obj1622 # 79EF4791
++ obj1623 82 naflbu6
+obj1623 # C5221644
++ obj1624 82 naflbu6
+obj1624 # 89408659
++ obj1625 82 naflbu6
+obj1625 # 103E4BB5
++ obj1626 82 naflbu6
+obj1626 # FA9D0F3B
++ obj1627 82 naflbu6
+obj1627 # A2F5B049
++ obj1628 82 naflbu6
+obj1628 # 8376B582
++ obj1629 82 naflbu6
+obj1629 # C1C853E2
++ obj1630 82 naflbu6
+obj1630 # A2D7E5EF
++ obj1631 82 naflbu6
+obj1631 # C980A71C
++ obj1633 82 nafltr59
+obj1633 # A3AA020D
++ obj1634 82 nafltr59
+obj1634 # CC3D9963
++ obj1635 82 nafltr23
+obj1635 # 01A98067
++ obj1637 82 nafltr20
+obj1637 # D6B8D78B
++ obj1641 82 nafltr56
+obj1641 # E839521D
++ obj1642 84 stbuho7
+obj1642 # BC2D7C41
++ obj1646 82 naflbu6
+obj1646 # 84257567
++ obj1648 82 naflbu6
+obj1648 # 09F040C4
++ obj1649 82 naflbu6
+obj1649 # 326E7C17
++ obj1650 82 naflbu6
+obj1650 # 206E86EC
++ obj1651 82 nafltr59
+obj1651 # 9D107AD2
++ obj1652 82 naflbu6
+obj1652 # 223A4607
++ obj1653 82 naflbu6
+obj1653 # D57E6526
++ obj1654 82 naflbu6
+obj1654 # 7393A2F7
++ obj1655 82 naflbu6
+obj1655 # 1A890C51
++ obj1656 82 naflbu6
+obj1656 # 74CE6948
++ obj1657 82 naflbu6
+obj1657 # DAEE1DD8
++ obj1658 82 naflbu6
+obj1658 # CDCD45B1
++ obj1659 82 nafltr59
+obj1659 # C302B450
++ obj1661 82 naflbu6
+obj1661 # 98DE656E
++ obj1662 82 naflbu6
+obj1662 # 9EBB6119
++ obj1663 82 naflbu6
+obj1663 # C66F50BB
++ obj1664 82 naflbu6
+obj1664 # 594E77FC
++ obj1665 82 nafltr59
+obj1665 # 7C6ADB7F
++ obj1666 82 nafltr59
+obj1666 # 700E1A50
++ obj1667 82 nafltr59
+obj1667 # 1DC78BC6
++ obj1668 82 naflbu6
+obj1668 # C90CA620
++ obj1669 82 naflbu6
+obj1669 # 3B2D033A
++ obj1670 82 naflbu6
+obj1670 # 1E2DB709
++ obj1671 82 naflbu6
+obj1671 # 4C1CAAEA
++ obj1672 82 naflbu6
+obj1672 # 10EDCB4B
++ obj1673 82 nafltr59
+obj1673 # C982E00E
++ obj1674 82 nafltr59
+obj1674 # 6E29CA2C
++ obj1675 82 nafltr59
+obj1675 # 299A4C76
++ obj1679 82 nafltr59
+obj1679 # 49658887
++ obj1680 82 naflbu8
+obj1680 # D666A23E
++ obj1681 82 naflbu8
+obj1681 # 8CE07AF2
++ obj1682 82 naflbu8
+obj1682 # 4545D748
++ obj1683 82 naflbu8
+obj1683 # 9049D43F
++ obj1684 82 naflbu8
+obj1684 # 28232495
++ obj1685 82 naflbu8
+obj1685 # 05426083
++ obj1686 82 naflbu8
+obj1686 # C30D9483
++ obj1687 82 naflbu8
+obj1687 # E3C004DD
++ obj1688 82 naflbu8
+obj1688 # 3E84F583
++ obj1689 82 naflbu8
+obj1689 # 82A3B846
++ obj1690 82 naflbu8
+obj1690 # 3B53C165
++ obj1691 82 naflbu8
+obj1691 # 486ED82A
++ obj1692 82 naflbu8
+obj1692 # 488FD94D
++ obj1693 82 naflbu8
+obj1693 # D202B35B
++ obj1694 82 naflbu7
+obj1694 # 0D11A39C
++ obj1695 82 naflbu8
+obj1695 # 96D06320
++ obj1696 82 naflbu8
+obj1696 # 842DA6C9
++ obj1697 82 naflbu8
+obj1697 # 3D1F91AD
++ obj1698 82 naflbu8
+obj1698 # 4CE660D7
++ obj1699 82 naflbu8
+obj1699 # 6E2D42A0
++ obj1700 82 naflbu8
+obj1700 # B1C9A042
++ obj1701 82 naflbu8
+obj1701 # B150F73F
++ obj1702 82 naflbu8
+obj1702 # 4C034923
++ obj1703 82 naflbu8
+obj1703 # D9F86BF6
++ obj1704 82 naflbu8
+obj1704 # E257EBB1
++ obj1705 82 naflbu8
+obj1705 # 719C5185
++ obj1706 82 naflbu8
+obj1706 # 2B75F780
++ obj1707 82 naflbu8
+obj1707 # 83D1123E
++ obj1708 82 naflbu8
+obj1708 # 41502AAE
++ obj1709 82 naflbu8
+obj1709 # C81148A9
++ obj1710 82 naflbu8
+obj1710 # D612948A
++ obj1711 82 naflbu8
+obj1711 # 73B3B919
++ obj1712 82 naflbu8
+obj1712 # DDDBBE27
++ obj1713 82 naflbu8
+obj1713 # 5504AC39
++ obj1714 82 naflbu8
+obj1714 # 04EC2A1B
++ obj1715 82 naflbu8
+obj1715 # 26BC5698
++ obj1716 82 naflbu8
+obj1716 # D7C534D0
++ obj1717 82 naflbu8
+obj1717 # 116A8505
++ obj1718 82 naflbu8
+obj1718 # 50872460
++ obj1719 82 naflbu8
+obj1719 # CD4F6F69
++ obj1720 82 naflbu8
+obj1720 # 1C0EC27C
++ obj1726 82 naflbu8
+obj1726 # 2E00666B
++ obj1727 82 naflbu8
+obj1727 # D5528466
++ obj1728 82 naflbu8
+obj1728 # FC486D95
++ obj1729 82 naflbu8
+obj1729 # 9D6B3D75
++ obj1730 82 naflbu8
+obj1730 # 91687743
++ obj1731 82 naflbu8
+obj1731 # 53BB028D
++ obj1732 82 naflbu8
+obj1732 # 5BBB0AE3
++ obj1733 82 naflbu8
+obj1733 # 54A8CF32
++ obj1734 82 naflbu8
+obj1734 # 8F000509
++ obj1735 82 naflbu8
+obj1735 # F5CF2B9A
++ obj1736 82 naflbu8
+obj1736 # 2C0EF121
++ obj1737 82 naflbu7
+obj1737 # 5A370F5F
++ obj1738 82 naflbu7
+obj1738 # ED53F8B1
++ obj1739 82 naflbu7
+obj1739 # 4AB48383
++ obj1741 82 naflbu7
+obj1741 # E2092A0E
++ obj1745 82 naflbu8
+obj1745 # F0086BFA
++ obj1758 82 naflbu8
+obj1758 # CEA7FAB1
++ obj1760 82 naflbu8
+obj1760 # FB2A5371
++ obj1761 82 naflbu8
+obj1761 # A3D95077
++ obj1762 82 naflbu8
+obj1762 # B57B68C7
++ obj1763 82 naflbu6
+obj1763 # 076E6BE7
++ obj1764 82 naflbu6
+obj1764 # E610A603
++ obj1766 80 unmogo ""
+obj1766 #ai 07BFFC82
+obj1766 #place A5167378
+obj1766 #unit 22D079F2
+obj1766 #vitals 2871DAC1
++ obj1769 82 naflbu6
+obj1769 # 30E99C32
++ obj1770 82 naflbu6
+obj1770 # A767D48D
++ obj1771 82 naflbu6
+obj1771 # BFB453BB
++ obj1775 82 nafltr59
+obj1775 # A2CA794D
++ obj1776 82 nafltr59
+obj1776 # 5CDC56C4
++ obj1777 82 nafltr59
+obj1777 # 0E0E512F
++ obj1778 82 nafltr59
+obj1778 # 4FCC3B88
++ obj1780 82 nafltr59
+obj1780 # BA6C5132
++ obj1781 82 nafltr59
+obj1781 # 903ABDC1
++ obj1789 82 nafltr59
+obj1789 # 9BB087D9
++ obj1791 82 nafltr59
+obj1791 # BDC53B9A
++ obj1792 82 nafltr59
+obj1792 # 6D7C6546
++ obj1793 82 nafltr59
+obj1793 # FEDFC964
++ obj1794 82 nafltr59
+obj1794 # 4B35A400
++ obj1795 82 naflbu8
+obj1795 # B6B6A217
++ obj1796 82 naflbu8
+obj1796 # CF550E57
++ obj1798 82 naflbu8
+obj1798 # AB881058
++ obj1799 82 naflbu8
+obj1799 # 2B868119
++ obj1800 82 naflbu8
+obj1800 # AEDACC6B
++ obj1801 82 naflbu8
+obj1801 # AF1013BC
++ obj1802 82 naflbu7
+obj1802 # C9A32C0B
++ obj1803 82 naflbu7
+obj1803 # 4CD09180
++ obj1804 80 unanwiwo ""
+obj1804 #ai BE7C5954
+obj1804 #place A225C29D
+obj1804 #unit DBD83822
+obj1804 #vitals 98823C26
++ obj1825 84 stst19
+obj1825 # D1DDF6FA
++ obj1827 84 stst19
+obj1827 # B20474BD
++ obj1829 84 stst19
+obj1829 # 8D650177
++ obj1830 84 stbr1
+obj1830 # 28A0D952
++ obj1832 84 stbr1
+obj1832 # 8AC259E3
++ obj1834 82 nafltr59
+obj1834 # 3EB75147
++ obj1835 82 nafltr59
+obj1835 # 45D076E3
++ obj1836 82 nafltr59
+obj1836 # 0FC6E3BC
++ obj1838 82 nafltr59
+obj1838 # 00280C30
++ obj1839 82 nafltr59
+obj1839 # FF94720B
++ obj1844 87 stto6
+obj1844 # 66654B90
++ obj1845 87 stto6
+obj1845 # 9280D875
++ obj1846 87 stto6
+obj1846 # 003066E4
++ obj1848 82 naflbu6
+obj1848 # B482D1FF
++ obj1850 82 naflbu6
+obj1850 # B075F263
++ obj1851 82 nafltr59
+obj1851 # 8E03E47D
++ obj1852 84 stst24
+obj1852 # 62AA17B3
++ obj1853 84 stst23
+obj1853 # D2748BEC
++ obj1856 84 stst22
+obj1856 # 5AE8027D
++ obj1858 84 stst21
+obj1858 # 30003602
++ obj1859 84 stst21
+obj1859 # D80C9ED9
++ obj1860 84 stst21
+obj1860 # 9E730685
++ obj1861 84 stst21
+obj1861 # 17BC71FD
++ obj1862 84 stst21
+obj1862 # C87EA48B
++ obj1863 82 nafltr59
+obj1863 # 107CFA3D
++ obj1864 84 stst25
+obj1864 # 26611C8C
++ obj1868 84 stst21
+obj1868 # 77FE3429
++ obj1869 82 nafltr59
+obj1869 # 14DDC811
++ obj1870 82 nafltr59
+obj1870 # 569465B1
++ obj1871 82 nafltr59
+obj1871 # A59C44DA
++ obj1873 84 stst26
+obj1873 # 24F601B7
++ obj1874 82 nafltr59
+obj1874 # 39AE452D
++ obj1875 84 stst21
+obj1875 # B12E9DA6
++ obj1876 82 nafltr59
+obj1876 # 6F527F3E
++ obj1877 82 nafltr59
+obj1877 # 6A84AE68
++ obj1879 82 nafltr59
+obj1879 # 9EF86DBF
++ obj1881 83 nast8
+obj1881 # 2F1340D7
++ obj1884 80 unhuma ""
+obj1884 #ai 0F79C16E
+obj1884 #place 77A71CC9
+obj1884 #unit 58199F9E
+obj1884 #vitals F72D441A
++ obj1889 93 stga1
+obj1889 # A88924B6
++ obj1890 80 unanwibo ""
+obj1890 #ai 1E7103AC
+obj1890 #place 6129CDBD
+obj1890 #unit D1F93FAB
+obj1890 #vitals 98823C26
++ obj1892 83 nast16
+obj1892 # 848778E9
++ obj1893 82 nafltr59
+obj1893 # D08E1CB1
++ obj1894 82 nafltr59
+obj1894 # 390D0BBF
++ obj1896 83 nast7
+obj1896 # 7C966980
++ obj1897 82 nafltr59
+obj1897 # 30126BD0
++ obj1898 80 unmoog1 ""
+obj1898 #ai 91DA03D8
+obj1898 #place D2276D02
+obj1898 #unit CD6677AC
+obj1898 #vitals C8C47D0C
++ obj1900 80 unmoog1 ""
+obj1900 #ai 91DA03D8
+obj1900 #place 9A3A7337
+obj1900 #unit 68CAB010
+obj1900 #vitals C8C47D0C
++ obj1901 80 unmogo ""
+obj1901 #ai 91DA03D8
+obj1901 #place 5072AD18
+obj1901 #unit 806B0DB5
+obj1901 #vitals 2871DAC1
++ obj1902 83 nast5
+obj1902 # 834C2466
++ obj1903 83 nast6
+obj1903 # D88CC2B3
++ obj1904 82 nafltr59
+obj1904 # 6D87B551
++ obj1905 82 nafltr59
+obj1905 # E85BB9FF
++ obj1906 83 nast7
+obj1906 # EBC001A7
++ obj1907 83 nast7
+obj1907 # 9625F263
++ obj1909 82 nafltr59
+obj1909 # 408F80FC
++ obj1910 82 nafltr59
+obj1910 # F6ABFD85
++ obj1911 82 nafltr59
+obj1911 # E426F285
++ obj1912 82 nafltr59
+obj1912 # 0A2B65DA
++ obj1913 80 unmogo ""
+obj1913 #ai 91DA03D8
+obj1913 #place 4131A804
+obj1913 #unit F551D485
+obj1913 #vitals 2871DAC1
++ obj1915 80 unanwibo ""
+obj1915 #ai 07BFFC82
+obj1915 #place 4291F58C
+obj1915 #unit 384774FF
+obj1915 #vitals 2871DAC1
++ obj1916 80 unanwibo ""
+obj1916 #ai 07BFFC82
+obj1916 #place CF514925
+obj1916 #unit DAF938C6
+obj1916 #vitals 2871DAC1
++ obj1918 80 unanwibo ""
+obj1918 #ai 07BFFC82
+obj1918 #place 449CF903
+obj1918 #unit 56E469F7
+obj1918 #vitals 2871DAC1
++ obj1919 80 unanwibo ""
+obj1919 #ai 07BFFC82
+obj1919 #place 2F8FCD31
+obj1919 #unit 716691A9
+obj1919 #vitals 2871DAC1
++ obj1920 80 unanwibo ""
+obj1920 #ai 07BFFC82
+obj1920 #place B2304598
+obj1920 #unit 332444CA
+obj1920 #vitals 2871DAC1
++ obj1921 80 unmoto ""
+obj1921 #ai 07BFFC82
+obj1921 #place CA5AB959
+obj1921 #unit FD5A7D43
+obj1921 #vitals 5931010B
++ obj1922 80 unmoto ""
+obj1922 #ai 07BFFC82
+obj1922 #place 5581A63C
+obj1922 #unit DE206C2C
+obj1922 #vitals 5931010B
++ obj1923 80 unmoto ""
+obj1923 #ai 07BFFC82
+obj1923 #place B216CF9E
+obj1923 #unit AB1AB51C
+obj1923 #vitals 5931010B
++ obj1925 80 unmoto ""
+obj1925 #ai 07BFFC82
+obj1925 #place 5DD7F7C5
+obj1925 #unit 5CCA5723
+obj1925 #vitals 5931010B
++ obj1926 80 unmoto ""
+obj1926 #ai 07BFFC82
+obj1926 #place 35FAA4FC
+obj1926 #unit FD5A7D43
+obj1926 #vitals 5931010B
++ obj1927 80 unmoto ""
+obj1927 #ai 07BFFC82
+obj1927 #place 87404F02
+obj1927 #unit 27BDCA70
+obj1927 #vitals 5931010B
++ obj1928 80 unmoto ""
+obj1928 #ai 07BFFC82
+obj1928 #place 00045DDB
+obj1928 #unit 71FD022F
+obj1928 #vitals 5931010B
++ obj1930 80 unmoto ""
+obj1930 #ai 07BFFC82
+obj1930 #place 0C55B276
+obj1930 #unit AB1AB51C
+obj1930 #vitals 5931010B
++ obj1932 80 unmoto ""
+obj1932 #ai 07BFFC82
+obj1932 #place ABD5A73A
+obj1932 #unit 5CCA5723
+obj1932 #vitals 5931010B
++ obj1933 80 unmoto ""
+obj1933 #ai 07BFFC82
+obj1933 #place 3CC898D1
+obj1933 #unit BE741B1A
+obj1933 #vitals 5931010B
++ obj1934 80 unmoto ""
+obj1934 #ai 07BFFC82
+obj1934 #place 5166BA4B
+obj1934 #unit 61BDD87F
+obj1934 #vitals 5931010B
++ obj1935 80 unmoto ""
+obj1935 #ai 07BFFC82
+obj1935 #place 5EF325A6
+obj1935 #unit 890C1749
+obj1935 #vitals 5931010B
++ obj1936 80 unmoto ""
+obj1936 #ai 7A0E574D
+obj1936 #place 680F4B97
+obj1936 #unit 84136884
+obj1936 #vitals E3425753
++ obj1937 80 unmoto ""
+obj1937 #ai DD1444A6
+obj1937 #place 6FDAC208
+obj1937 #unit B709643E
+obj1937 #vitals E3425753
++ obj1938 80 unanwiwo ""
+obj1938 #ai 07BFFC82
+obj1938 #place 7BDFD764
+obj1938 #unit 0822F047
+obj1938 #vitals 2871DAC1
++ obj1940 80 unanwiwo ""
+obj1940 #ai 07BFFC82
+obj1940 #place 676BE30D
+obj1940 #unit EA269223
+obj1940 #vitals 2871DAC1
++ obj1943 80 unmogo ""
+obj1943 #ai 07BFFC82
+obj1943 #place F3A2AA56
+obj1943 #unit BFB60BAD
+obj1943 #vitals 2871DAC1
++ obj1944 80 unmoba2 ""
+obj1944 #ai 07BFFC82
+obj1944 #place 5A82FA85
+obj1944 #unit 25E96267
+obj1944 #vitals 3B410D23
++ obj1945 80 unmoba2 ""
+obj1945 #ai 07BFFC82
+obj1945 #place F08CD5E2
+obj1945 #unit 13FDDD0E
+obj1945 #vitals 3B410D23
++ obj1947 80 unanhopi ""
+obj1947 #ai 704545B0
+obj1947 #place CEEA4C16
+obj1947 #unit 378D20CB
+obj1947 #vitals 0D6AE555
++ obj1948 80 unanhopi ""
+obj1948 #ai 704545B0
+obj1948 #place FB192204
+obj1948 #unit B40BA8FE
+obj1948 #vitals 0D6AE555
++ obj1949 80 unanhopi ""
+obj1949 #ai 704545B0
+obj1949 #place 5D0B8039
+obj1949 #unit 8373A4AD
+obj1949 #vitals 0D6AE555
++ obj1950 80 unanhopi ""
+obj1950 #ai 704545B0
+obj1950 #place 2B8A455C
+obj1950 #unit AF926CC6
+obj1950 #vitals 0D6AE555
++ obj1952 80 unanwibo ""
+obj1952 #ai 07BFFC82
+obj1952 #place CBAAB92A
+obj1952 #unit AFC3E1F6
+obj1952 #vitals 2871DAC1
++ obj1953 80 unanwibo ""
+obj1953 #ai 07BFFC82
+obj1953 #place F4122B40
+obj1953 #unit 360A309C
+obj1953 #vitals 2871DAC1
++ obj1954 80 unanwiwo ""
+obj1954 #ai 07BFFC82
+obj1954 #place D1C6F199
+obj1954 #unit 066FB424
+obj1954 #vitals 2871DAC1
++ obj1955 80 unanwiwo ""
+obj1955 #ai 07BFFC82
+obj1955 #place EC46A1C5
+obj1955 #unit 203BD11D
+obj1955 #vitals 2871DAC1
++ obj1958 84 stst151
+obj1958 # 6E231626
++ obj1960 84 stst151
+obj1960 # 6A9FCDD2
++ obj1961 82 nafltr20
+obj1961 # ADF1C6F2
++ obj1962 82 nafltr20
+obj1962 # 933194DA
++ obj1963 82 nafltr20
+obj1963 # 25E3C092
++ obj1964 82 nafltr20
+obj1964 # 9B434E4E
++ obj1965 82 naflbu7
+obj1965 # B41247CD
++ obj1966 82 naflbu8
+obj1966 # BC50E8B1
++ obj1967 82 naflbu8
+obj1967 # 25C20654
++ obj1968 82 naflbu8
+obj1968 # 2C600AF0
++ obj1969 82 naflbu8
+obj1969 # E15AC744
++ obj1970 82 naflbu8
+obj1970 # 4A228CDD
++ obj1971 82 naflbu8
+obj1971 # 12FA9A21
++ obj1972 82 naflbu8
+obj1972 # CDD6F568
++ obj1973 82 naflbu8
+obj1973 # B4083BD4
++ obj1974 82 naflbu8
+obj1974 # 490E3FDF
++ obj1975 82 naflbu8
+obj1975 # 3256472F
++ obj1976 82 naflbu8
+obj1976 # B899328C
++ obj1977 82 naflbu8
+obj1977 # FCCE0AF7
++ obj1978 82 naflbu8
+obj1978 # 23952D11
++ obj1979 82 naflbu8
+obj1979 # 65B6F429
++ obj1980 82 naflbu8
+obj1980 # AFC56A61
++ obj1982 84 stbr6
+obj1982 # 817E8463
++ obj1983 82 naflbu8
+obj1983 # 9945772E
++ obj1984 82 naflbu8
+obj1984 # B1088CC9
++ obj1985 82 naflbu8
+obj1985 # 2FA76BD4
++ obj1986 82 naflbu8
+obj1986 # 476A1C65
++ obj1987 82 naflbu8
+obj1987 # BEFBAA94
++ obj1988 82 naflbu8
+obj1988 # D8C77292
++ obj1989 82 naflbu8
+obj1989 # 56FE7BF7
++ obj1990 82 naflbu8
+obj1990 # FDCF0AEC
++ obj1991 82 naflbu8
+obj1991 # 33E5DDC3
++ obj1992 82 naflbu8
+obj1992 # 8CA68AB0
++ obj1993 82 naflbu8
+obj1993 # ACF8C83D
++ obj1994 82 naflbu8
+obj1994 # 0B3C08F8
++ obj1995 82 naflbu8
+obj1995 # 836FB5B5
++ obj1996 82 nafltr20
+obj1996 # 58B91401
++ obj1997 82 naflbu8
+obj1997 # 9182E641
++ obj1998 82 nafltr20
+obj1998 # A87009B8
++ obj1999 82 naflbu8
+obj1999 # B936439C
++ obj2000 82 naflbu6
+obj2000 # F40C04C6
++ obj2001 82 naflbu6
+obj2001 # 3A64BA54
++ obj2002 82 naflbu6
+obj2002 # AAF780E1
++ obj2003 87 stto5
+obj2003 # E25C64D2
++ obj2004 87 stto5
+obj2004 # 63CB4F54
++ obj2005 84 stst151
+obj2005 # 21204A56
++ obj2006 84 stst151
+obj2006 # 1D7C1825
++ obj2007 84 stst151
+obj2007 # 9CD1A8B9
++ obj2008 84 stst151
+obj2008 # 4BF77D71
++ obj1288720 84 stst30
+obj1288720 # 543F1FFE
++ obj1288788 84 stwali1
+obj1288788 # C44D0D92
++ obj1288791 82 naflbu17
+obj1288791 # E4F64AD1
++ obj1288795 84 stst155
+obj1288795 # 2583105B
++ obj1288796 84 stst155
+obj1288796 # 3DECDAAD
++ obj1288797 82 naflbu17
+obj1288797 # 0D50559F
++ obj1288800 82 naflbu17
+obj1288800 # 1C01F686
++ obj1288801 82 naflbu18
+obj1288801 # CBA7A16A
++ obj1288803 84 stst30
+obj1288803 # 630E9036
++ obj1288804 82 nafltr83
+obj1288804 # 54A17770
++ obj1288806 82 naflbu19
+obj1288806 # AE38CBF8
++ obj1288807 82 naflbu18
+obj1288807 # 8D6C111A
++ obj1288808 84 stst30
+obj1288808 # 2ADCDC8B
++ obj1288813 82 naflbu18
+obj1288813 # CB8CF50B
++ obj1288814 82 nafltr20
+obj1288814 # 00FC472C
++ obj1288815 82 naflbu17
+obj1288815 # 4D552B64
++ obj1288816 82 naflbu18
+obj1288816 # F1CBB455
++ obj1288827 82 naflbu18
+obj1288827 # A3A21B00
++ obj1288832 82 naflbu18
+obj1288832 # 6B4CCDEE
++ obj1288839 82 nafltr86
+obj1288839 # ED4467AB
++ obj1288856 82 nafltr20
+obj1288856 # BE1A9730
++ obj1288857 82 naflbu16
+obj1288857 # 37A95F07
++ obj1288859 84 stst56
+obj1288859 # 4C8F9EE0
++ obj1288863 82 nafltr20
+obj1288863 # 159E93EC
++ obj1288864 82 naflbu19
+obj1288864 # 57F8FA84
++ obj1288865 82 naflbu19
+obj1288865 # C815E311
++ obj1288867 84 stwali1
+obj1288867 # EA630C57
++ obj1288870 82 naflbu18
+obj1288870 # 60427590
++ obj1288878 82 nafltr20
+obj1288878 # 03B89887
++ obj1288880 84 stst56
+obj1288880 # A15F4912
++ obj1288882 82 naflbu19
+obj1288882 # C993896D
++ obj1288892 84 stst56
+obj1288892 # 27C41FBC
++ obj1288894 82 naflbu18
+obj1288894 # A635F2EC
++ obj1288906 82 naflbu18
+obj1288906 # F3C49623
++ obj1288913 84 stst56
+obj1288913 # 035F657B
++ obj1288917 84 stst56
+obj1288917 # 9BDC8C05
++ obj1288918 87 stto6
+obj1288918 # B0AFE3EF
+- obj5147051
+- obj5147352
+- obj5147353
+- obj5147354
+- obj5147355
+- obj5147356
+- obj5147357
+- obj5147358
+- obj5147359
++ obj1000011214 80 unhuma ""
+obj1000011214 #ai DE1E58AD
+obj1000011214 #place 42E21D1A
+obj1000011214 #unit D00B52BC
+obj1000011214 #vitals 97F70322
+- timed157
+- timed251
+- timed257
+- timed259
+- timed260
+- timed323
+- timed343
+- timed358
+- timed387
++ timed1288822 75 CEffectPointLight
+timed1288822 # 50A40FCC
++ timed1288862 75 CEffectPointLight
+timed1288862 # 13B0450B
++ timed1288868 75 CEffectPointLight
+timed1288868 # FAF7FDBB
++ timed1288891 75 CEffectPointLight
+timed1288891 # 5BC04F0F
+- timed5147050
+missile0 # EF58B7AE
++ missile1 spell 39
+missile1 # 1D6520AE
+aievents tick 40
+aievents width 33
+aievents height 25
+script #files 012FC665
+script #ggroup 393FB575
+script #globals A5413D6F
+script #gobject 3656F9F8
+script #inst AA0C8751
+script #instances 9EC34A1E
+client tick 40
+client ticksRun 12
+client objects 767
+- cunit2
+- cunit129
+- cunit148
+- cunit187
+- cunit388
++ cunit699 80 unhuma ""
+cunit699 #place 0F0F9A5B
+cunit699 #unit 13B71E29
+cunit699 #vitals C3E01DE4
++ cunit702 80 unhufe ""
+cunit702 #place 6D0A9F34
+cunit702 #unit B841FBF0
+cunit702 #vitals C3E01DE4
++ cunit1804 80 unanwiwo ""
+cunit1804 #place 82C912B9
+cunit1804 #unit BE8B603B
+cunit1804 #vitals F464C324
++ cunit1884 80 unhuma ""
+cunit1884 #place 1A54E793
+cunit1884 #unit 13B71E29
+cunit1884 #vitals C3E01DE4
++ cunit1000011214 80 unhuma ""
+cunit1000011214 #place DFCF543E
+cunit1000011214 #unit C6081760
+cunit1000011214 #vitals 7D2D89BA
+@ 2 update 60 frame 11 tick 60 zone gz1g hash E2DDB970 n 832
+world tick 60
+world updates 60
+random isaac.count 232
+random isaac.a 0xF1F316A5
+random isaac.b 0xEB2D1386
+random isaac.c 0x0000005B
+random isaac.results 0x0F5CC9EF
+random isaac.memory 0x7C4D763E
+random crt.rand 0x53931FF6
+player0 godMode 1
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #ai 5B93EC8B
+obj1804 #place C689A0AF
+obj1804 #unit 226AA445
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #ai D4E7841A
+obj1890 #place EB4FC5ED
+obj1890 #vitals B1788B7B
+obj1936 #ai 57689465
+obj1936 #vitals C03850B1
+obj1937 #ai 2B5B222F
+obj1937 #place AD01CA64
+obj1937 #unit 77A32C7D
+obj1937 #vitals C03850B1
+obj1000011214 #unit C933F75C
+obj1000011214 #vitals C4BEBB32
+missile0 # 066964B0
+missile1 # F454F3B0
+aievents tick 60
+client tick 60
+client ticksRun 32
+cunit699 #place CF311CCC
+cunit1804 #place C2A14CCD
+cunit1804 #unit D72CA4CA
+cunit1884 #place AE30F036
+cunit1000011214 #place FF01FC81
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 7009937A n 832
+world tick 80
+world updates 80
+random isaac.count 228
+random isaac.a 0x9B56B7BC
+random isaac.b 0x163CEF37
+random isaac.c 0x0000006D
+random isaac.results 0x5119A4E5
+random isaac.memory 0x1B5B1773
+random crt.rand 0xCE0548B0
+player0 lastTick 67
+player0 var.gtime 6.04444456
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #ai CFFDFCAF
+obj1804 #place DA332DDE
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #ai 90E51D2D
+obj1890 #place 9C1F8BA7
+obj1890 #vitals 26AA52F3
+obj1936 #ai 8C78E638
+obj1936 #vitals 57EA8939
+obj1937 #ai 62AA20B5
+obj1937 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # BDAF7E80
+missile1 # 4F92E980
+aievents tick 80
+client tick 80
+client ticksRun 52
+cunit1804 #place DF969219
+cunit1804 #unit 618078DC
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 766ADADE n 832
+world tick 100
+world updates 100
+random isaac.a 0xAAD3BE8D
+random isaac.b 0x09BB03F8
+random isaac.c 0x0000007F
+random isaac.results 0xDBDBF05B
+random isaac.memory 0x89319451
+random crt.rand 0xE6F08740
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #ai 73A8A730
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #ai F5AE3867
+obj1890 #place E110DD2D
+obj1890 #vitals 98823C26
+obj1936 #ai B66E276B
+obj1936 #vitals E3425753
+obj1937 #ai 54513559
+obj1937 #vitals E3425753
+obj1000011214 #vitals 97F70322
+missile0 # 5194E01F
+missile1 # A3A9771F
+aievents tick 100
+client tick 100
+client ticksRun 72
+cunit1804 #place 0B0BC947
+@ 5 update 120 frame 23 tick 120 zone gz1g hash CB8FD6A4 n 832
+world tick 120
+world updates 120
+random isaac.count 234
+random isaac.a 0x91E09E89
+random isaac.b 0x342EF6F5
+random isaac.c 0x00000091
+random isaac.results 0x6A16C1BB
+random isaac.memory 0xC6BCD918
+random crt.rand 0xC7B2D153
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #ai 94531A11
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #ai 5A5A09EC
+obj1890 #place 1864D7CB
+obj1890 #vitals B1788B7B
+obj1936 #ai 74C540A6
+obj1936 #vitals C03850B1
+obj1937 #ai 5801BC73
+obj1937 #place 585FEC0B
+obj1937 #unit 234B16A9
+obj1937 #vitals C03850B1
+obj1000011214 #vitals C4BEBB32
+missile0 # BEA945FF
+missile1 # 4C94D2FF
+aievents tick 120
+client tick 120
+client ticksRun 92
+cunit1804 #place 5D944E41
+@ 6 update 140 frame 27 tick 120 zone gz1g hash 0E193AD4 n 832
+world updates 140
+world paused 1
+random isaac.count 200
+random isaac.a 0xDF1604DF
+random isaac.b 0xCDE8FAAC
+random isaac.c 0x00000092
+random isaac.results 0xF0A8DEF3
+random isaac.memory 0xD7D0E635
+obj699 #unit 58199F9E
+obj702 #unit 29C54E57
+obj1804 #unit 14F78A26
+obj1884 #unit 6E84B1FD
+obj1890 #unit B13EB64E
+obj1936 #unit 14AC7515
+obj1937 #unit 544C263F
+obj1000011214 #unit 503AA6E6
+client tick 121
+client paused 1
+client ticksRun 112
+@ 7 update 160 frame 31 tick 140 zone gz1g hash 6823154E n 832
+world tick 140
+world updates 160
+world paused 0
+random isaac.count 116
+random isaac.a 0x7561FEF0
+random isaac.b 0x8882607A
+random isaac.c 0x000000A3
+random isaac.results 0x3EFDC986
+random isaac.memory 0xEAB4CF11
+random crt.rand 0x2BD051DA
+player0 lastTick 131
+player0 var.gtime 6.11555576
+obj699 #unit 2F1EAF08
+obj699 #vitals 39A58F25
+obj702 #unit B0CC1FED
+obj702 #vitals 39A58F25
+obj1804 #ai 038D7564
+obj1804 #unit 226AA445
+obj1804 #vitals 26AA52F3
+obj1884 #unit 58199F9E
+obj1884 #vitals 39A58F25
+obj1890 #ai 87F03D9A
+obj1890 #place D0EFF4E4
+obj1890 #unit D1F93FAB
+obj1890 #vitals 26AA52F3
+obj1936 #ai 79513C09
+obj1936 #unit 84136884
+obj1936 #vitals 57EA8939
+obj1937 #ai FDE84FF3
+obj1937 #place 038CD4E7
+obj1937 #unit 234B16A9
+obj1937 #vitals 57EA8939
+obj1000011214 #unit C933F75C
+obj1000011214 #vitals 536C62BA
+missile0 # 5292DB60
+missile1 # A0AF4C60
+aievents tick 140
+client tick 140
+client paused 0
+client ticksRun 132
+@ 8 update 180 frame 35 tick 160 zone gz1g hash 0769077C n 832
+world tick 160
+world updates 180
+random isaac.count 73
+random isaac.a 0x73AAFEF1
+random isaac.b 0x50BF9D49
+random isaac.c 0x000000B5
+random isaac.results 0xE61A8601
+random isaac.memory 0xC6D1ABB0
+random crt.rand 0x8A24E405
+obj699 #ai C269B926
+obj699 #vitals F72D441A
+obj702 #ai C269B926
+obj702 #vitals F72D441A
+obj1804 #ai 68404A16
+obj1804 #vitals 98823C26
+obj1884 #ai C269B926
+obj1884 #vitals F72D441A
+obj1890 #ai BF2E6477
+obj1890 #place A36EDC0F
+obj1890 #vitals 98823C26
+obj1936 #ai E0E5FFEE
+obj1936 #vitals E3425753
+obj1937 #ai C135AAD1
+obj1937 #place 346DED51
+obj1937 #unit 0866456A
+obj1937 #vitals E3425753
+obj1000011214 #ai B8966489
+obj1000011214 #vitals 97F70322
+missile0 # BBA3087E
+missile1 # 499E9F7E
+aievents tick 160
+client tick 160
+client ticksRun 152
+@ 9 update 200 frame 39 tick 180 zone gz1g hash 0F8C86D9 n 832
+world tick 180
+world updates 200
+random isaac.count 117
+random isaac.a 0x7BDB6A97
+random isaac.b 0x8E46FCA2
+random isaac.c 0x000000C7
+random isaac.results 0x041E943F
+random isaac.memory 0x68CB73BE
+random crt.rand 0x4DF76C10
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #ai 970ACAD3
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #ai 32214690
+obj1890 #place D95695BA
+obj1890 #vitals B1788B7B
+obj1936 #ai D3064045
+obj1936 #vitals C03850B1
+obj1937 #ai E3A6819D
+obj1937 #place 6498E644
+obj1937 #unit 44FEEF76
+obj1937 #vitals C03850B1
+obj1000011214 #unit B4B02E3D
+obj1000011214 #vitals C4BEBB32
+missile0 # 6039A705
+missile1 # 92043005
+aievents tick 180
+client tick 180
+client ticksRun 172
+cunit1000011214 #unit 5DDB5359
+@ 10 update 220 frame 43 tick 200 zone gz1g hash 4C49B2D8 n 832
+world tick 200
+world updates 220
+random isaac.count 40
+random isaac.a 0x1C57E920
+random isaac.b 0x088E1D41
+random isaac.c 0x000000D9
+random isaac.results 0x7A20EA01
+random isaac.memory 0x7A3F3E98
+random crt.rand 0xC4DAC61A
+player0 lastTick 195
+player0 var.gtime 6.18666697
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #ai 82AB1FCD
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #ai 8028F66E
+obj1890 #place 0DC233CF
+obj1890 #unit 2A8B909B
+obj1890 #vitals 26AA52F3
+obj1936 #ai 649CD88F
+obj1936 #vitals 57EA8939
+obj1937 #ai 11830F7D
+obj1937 #unit DA7DC2F8
+obj1937 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # 8C02399A
+missile1 # 7E3FAE9A
+aievents tick 200
+client tick 200
+client ticksRun 192
+@ 11 update 240 frame 47 tick 220 zone gz1g hash 7632A710 n 832
+world tick 220
+world updates 240
+random isaac.count 3
+random isaac.a 0xD7653147
+random isaac.b 0x7B7E986B
+random isaac.c 0x000000EB
+random isaac.results 0x251810B3
+random isaac.memory 0xB37C3239
+random crt.rand 0x9E6DE52A
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #ai 95CF9972
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #ai E799DC65
+obj1890 #vitals 98823C26
+obj1936 #ai A103718D
+obj1936 #vitals E3425753
+obj1937 #ai 0B6F85C2
+obj1937 #unit E84BA07A
+obj1937 #vitals E3425753
+obj1000011214 #vitals 97F70322
+missile0 # 633F9C7A
+missile1 # 91020B7A
+aievents tick 220
+client tick 220
+client ticksRun 212
+@ 12 update 260 frame 51 tick 240 zone gz1g hash E8EE035C n 832
+world tick 240
+world updates 260
+random isaac.count 185
+random isaac.a 0x2B50AF1E
+random isaac.b 0xE228F139
+random isaac.c 0x000000FE
+random isaac.results 0xD7805D7C
+random isaac.memory 0x30304509
+random crt.rand 0x17E41884
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #ai 76683620
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #ai 0D606E3A
+obj1890 #vitals B1788B7B
+obj1936 #ai 591D131A
+obj1936 #vitals C03850B1
+obj1937 #ai ED89F1CD
+obj1937 #unit BE1107FC
+obj1937 #vitals C03850B1
+obj1000011214 #unit 6D370C65
+obj1000011214 #vitals C4BEBB32
+missile0 # 8F0402E5
+missile1 # 7D3995E5
+aievents tick 240
+client tick 240
+client ticksRun 232
+cunit1000011214 #unit 406A3293
+@ 13 update 280 frame 55 tick 260 zone gz1g hash 4296B0FF n 832
+world tick 260
+world updates 280
+random isaac.count 99
+random isaac.a 0xC3E28010
+random isaac.b 0xB8F5241B
+random isaac.c 0x00000110
+random isaac.results 0x686DE73F
+random isaac.memory 0x4A919FA7
+random crt.rand 0x29375814
+player0 lastTick 259
+player0 var.gtime 6.25777817
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #ai A4146A18
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #ai 1E7F85D2
+obj1890 #vitals 26AA52F3
+obj1936 #ai 957D2AF9
+obj1936 #vitals 57EA8939
+obj1937 #ai 14AEE79A
+obj1937 #unit 8C27657E
+obj1937 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # 6635D1FB
+missile1 # 940846FB
+aievents tick 260
+client tick 260
+client ticksRun 252
+@ 14 update 300 frame 59 tick 280 zone gz1g hash 146F8997 n 832
+world tick 280
+world updates 300
+world updateMap 14
+random isaac.count 104
+random isaac.a 0xFF82B282
+random isaac.b 0x468A2178
+random isaac.c 0x00000122
+random isaac.results 0x99F1436E
+random isaac.memory 0xCED7174B
+random crt.rand 0x5EEDBB62
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #ai 685038F6
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #ai CA2D114D
+obj1890 #vitals 98823C26
+obj1936 #ai BD7E8E45
+obj1936 #vitals E3425753
+obj1937 #ai E3EB735D
+obj1937 #unit 8C74CDD6
+obj1937 #vitals 0D4C367F
+obj1000011214 #unit AAC99449
+obj1000011214 #vitals 97F70322
+missile0 # 1D4AA15D
+missile1 # EF77365D
+aievents tick 280
+client tick 280
+client ticksRun 272
+cunit1000011214 #unit 68EECBF3
+@ 15 update 320 frame 63 tick 300 zone gz1g hash 7BFC3D21 n 832
+world tick 300
+world updates 320
+random isaac.count 66
+random isaac.a 0xF7F48D35
+random isaac.b 0x90050004
+random isaac.c 0x0000012E
+random isaac.results 0x1FBB8EBE
+random isaac.memory 0xD4D59210
+random crt.rand 0x873BB438
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #ai 23C71B5C
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #ai E77733AC
+obj1890 #vitals B1788B7B
+obj1936 #ai 8EB0B97D
+obj1936 #vitals C03850B1
+obj1000011214 #vitals C4BEBB32
+missile0 # F1713FC2
+missile1 # 034CA8C2
+aievents tick 300
+client tick 300
+client ticksRun 292
+@ 16 update 340 frame 67 tick 320 zone gz1g hash B853E060 n 832
+world tick 320
+world updates 340
+random isaac.count 5
+random isaac.a 0x99767344
+random isaac.b 0x040E7BEC
+random isaac.c 0x00000132
+random isaac.results 0x0CAA61EA
+random isaac.memory 0x1F12F827
+random crt.rand 0xD32FB35E
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #ai 53DA9BF4
+obj1890 #vitals 26AA52F3
+obj1936 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # 1E4C9A22
+missile1 # EC710D22
+aievents tick 320
+client tick 320
+client ticksRun 312
+@ 17 update 360 frame 71 tick 340 zone gz1g hash C91320E7 n 832
+world tick 340
+world updates 360
+random isaac.count 181
+random isaac.a 0xC4C95E03
+random isaac.b 0x7329070A
+random isaac.c 0x00000137
+random isaac.results 0xE57A5FD1
+random isaac.memory 0x01A223EE
+random crt.rand 0xC35713C7
+player0 lastTick 323
+player0 var.gtime 6.32888937
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #ai 9626E566
+obj1890 #vitals 98823C26
+obj1936 #ai E03CA23C
+obj1936 #vitals E3425753
+obj1000011214 #vitals 97F70322
+missile0 # F27704BD
+missile1 # 004A93BD
+aievents tick 340
+client tick 340
+client ticksRun 332
+@ 18 update 380 frame 75 tick 360 zone gz1g hash A5D44A37 n 832
+world tick 360
+world updates 380
+random isaac.count 156
+random isaac.a 0x948F6DE3
+random isaac.b 0x18B2A80E
+random isaac.c 0x0000013B
+random isaac.results 0xE8074B98
+random isaac.memory 0x96C3E152
+random crt.rand 0x66E301E4
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #ai 802B1BE1
+obj1890 #vitals B1788B7B
+obj1936 #ai 8EB0B97D
+obj1936 #vitals C03850B1
+obj1000011214 #vitals C4BEBB32
+missile0 # 1B46D7A3
+missile1 # E97B40A3
+aievents tick 360
+client tick 360
+client ticksRun 352
+@ 19 update 400 frame 79 tick 380 zone gz1g hash 36DEF55E n 832
+world tick 380
+world updates 400
+random isaac.count 89
+random isaac.a 0x74228C4A
+random isaac.b 0x4A7B555F
+random isaac.c 0x0000013F
+random isaac.results 0xB75EF932
+random isaac.memory 0x89F46AC3
+random crt.rand 0xBAADA9B3
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #vitals 26AA52F3
+obj1936 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # C0DC78D8
+missile1 # 32E1EFD8
+aievents tick 380
+client tick 380
+client ticksRun 372
+@ 20 update 420 frame 83 tick 400 zone gz1g hash C70C2979 n 832
+world tick 400
+world updates 420
+random isaac.count 51
+random isaac.a 0x89D3DEB8
+random isaac.b 0xE21F3651
+random isaac.c 0x00000143
+random isaac.results 0x7DE538D1
+random isaac.memory 0x498950D6
+random crt.rand 0x948B1040
+player0 lastTick 387
+player0 var.gtime 6.40000057
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #vitals 98823C26
+obj1936 #vitals E3425753
+obj1000011214 #vitals 97F70322
+missile0 # 2CE7E647
+missile1 # DEDA7147
+aievents tick 400
+client tick 400
+client ticksRun 392
+@ 21 update 440 frame 87 tick 420 zone gz1g hash 8DDF3A49 n 832
+world tick 420
+world updates 440
+random isaac.count 226
+random isaac.a 0xCFCF67C7
+random isaac.b 0xCA17E79E
+random isaac.c 0x00000148
+random isaac.results 0xF188F4CD
+random isaac.memory 0xD2A68263
+random crt.rand 0xC73347CA
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #vitals B1788B7B
+obj1936 #ai E03CA23C
+obj1936 #vitals C03850B1
+obj1000011214 #vitals C4BEBB32
+missile0 # C3DA43A7
+missile1 # 31E7D4A7
+aievents tick 420
+client tick 420
+client ticksRun 412
+@ 22 update 460 frame 91 tick 440 zone gz1g hash CC5F7E3E n 832
+world tick 440
+world updates 460
+random isaac.count 114
+random isaac.a 0x42D33704
+random isaac.b 0x6A5370EC
+random isaac.c 0x0000014C
+random isaac.results 0xEFC2B9D3
+random isaac.memory 0x037212C9
+random crt.rand 0x746DA2DA
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #vitals 26AA52F3
+obj1936 #ai 8EB0B97D
+obj1936 #vitals 57EA8939
+obj1000011214 #unit 8B7AAAFF
+obj1000011214 #vitals 536C62BA
+missile0 # 2FE1DD38
+missile1 # DDDC4A38
+aievents tick 440
+client tick 440
+client ticksRun 432
+cunit1000011214 #unit 2F6095B9
+@ 23 update 480 frame 95 tick 460 zone gz1g hash B1288DE0 n 832
+world tick 460
+world updates 480
+random isaac.count 47
+random isaac.a 0x5E90B4BD
+random isaac.b 0xA2B365D1
+random isaac.c 0x00000150
+random isaac.results 0x0B22AF1F
+random isaac.memory 0xB50719BA
+random crt.rand 0xD4FE52F3
+player0 lastTick 451
+player0 var.gtime 6.47111177
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #vitals 98823C26
+obj1936 #vitals E3425753
+obj1000011214 #vitals 97F70322
+missile0 # C6D00E26
+missile1 # 34ED9926
+aievents tick 460
+client tick 460
+client ticksRun 452
+@ 24 update 500 frame 99 tick 480 zone gz1g hash BB595992 n 832
+world tick 480
+world updates 500
+random isaac.count 240
+random isaac.a 0x49E5D72C
+random isaac.b 0x854769C2
+random isaac.c 0x00000155
+random isaac.results 0xFD4C06FF
+random isaac.memory 0xBA1096C2
+random crt.rand 0x28AEA88C
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #vitals B1788B7B
+obj1936 #vitals C03850B1
+obj1000011214 #unit 98B8A04E
+obj1000011214 #vitals C4BEBB32
+missile0 # 7D161416
+missile1 # 8F2B8316
+aievents tick 480
+client tick 480
+client ticksRun 472
+cunit1000011214 #unit EB5046B7
+@ 25 update 520 frame 103 tick 500 zone gz1g hash A84F1EDA n 832
+world tick 500
+world updates 520
+random isaac.count 191
+random isaac.a 0x18A54636
+random isaac.b 0xBB68D0B2
+random isaac.c 0x00000159
+random isaac.results 0x16A51E0F
+random isaac.memory 0x8DB0CC11
+random crt.rand 0xD95CF53B
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #vitals 26AA52F3
+obj1936 #ai 53A88FFF
+obj1936 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # 912D8A89
+missile1 # 63101D89
+aievents tick 500
+client tick 500
+client ticksRun 492
+@ 26 update 540 frame 107 tick 520 zone gz1g hash 1FE1DBA7 n 832
+world tick 520
+world updates 540
+random isaac.count 219
+random isaac.a 0x6C7B5D35
+random isaac.b 0x37502B57
+random isaac.c 0x0000015D
+random isaac.results 0x386BBD4C
+random isaac.memory 0xFCF19319
+random crt.rand 0x66B1D38B
+player0 lastTick 515
+player0 var.gtime 6.54222298
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #vitals 98823C26
+obj1936 #ai E03CA23C
+obj1936 #vitals E3425753
+obj1000011214 #vitals 97F70322
+missile0 # 7E102F69
+missile1 # 8C2DB869
+aievents tick 520
+client tick 520
+client ticksRun 512
+@ 27 update 560 frame 111 tick 540 zone gz1g hash A7FFFCE8 n 832
+world tick 540
+world updates 560
+random isaac.count 155
+random isaac.a 0x3F6245D2
+random isaac.b 0x6318D084
+random isaac.c 0x00000161
+random isaac.results 0x08FD2E38
+random isaac.memory 0xDC134B54
+random crt.rand 0x50B26A99
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #vitals B1788B7B
+obj1936 #ai 8EB0B97D
+obj1936 #vitals C03850B1
+obj1000011214 #vitals C4BEBB32
+missile0 # 922BB1F6
+missile1 # 601626F6
+aievents tick 540
+client tick 540
+client ticksRun 532
+@ 28 update 580 frame 115 tick 560 zone gz1g hash 4B5B006C n 832
+world tick 560
+world updates 580
+random isaac.count 73
+random isaac.a 0xFA9B77A3
+random isaac.b 0xA02CD335
+random isaac.c 0x00000165
+random isaac.results 0x14182EAB
+random isaac.memory 0xBF4C869D
+random crt.rand 0x04037184
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #vitals 26AA52F3
+obj1936 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # 7B1A62E8
+missile1 # 8927F5E8
+aievents tick 560
+client tick 560
+client ticksRun 552
+@ 29 update 600 frame 119 tick 580 zone gz1g hash DB31DEF3 n 832
+world tick 580
+world updates 600
+random isaac.count 237
+random isaac.a 0x92B206D8
+random isaac.b 0xF7B49EA9
+random isaac.c 0x0000016A
+random isaac.results 0xF2AAD487
+random isaac.memory 0xEB599A41
+random crt.rand 0xD553282E
+player0 lastTick 579
+player0 var.gtime 6.61333418
+obj699 #vitals F72D441A
+obj702 #vitals F72D441A
+obj1804 #vitals 98823C26
+obj1884 #vitals F72D441A
+obj1890 #vitals 98823C26
+obj1936 #vitals E3425753
+obj1000011214 #vitals 97F70322
+missile0 # A080CD93
+missile1 # 52BD5A93
+aievents tick 580
+client tick 580
+client ticksRun 572
+@ 30 update 620 frame 123 tick 600 zone gz1g hash C8D3666B n 832
+world tick 600
+world updates 620
+random isaac.count 149
+random isaac.a 0x47C2231A
+random isaac.b 0xE8170BA3
+random isaac.c 0x0000016E
+random isaac.results 0x2FE3D5A9
+random isaac.memory 0xCDB256B2
+random crt.rand 0x612924B5
+obj699 #vitals AE7756AD
+obj702 #vitals AE7756AD
+obj1804 #vitals B1788B7B
+obj1884 #vitals AE7756AD
+obj1890 #vitals B1788B7B
+obj1936 #ai E03CA23C
+obj1936 #vitals C03850B1
+obj1000011214 #vitals C4BEBB32
+missile0 # 4CBB530C
+missile1 # BE86C40C
+aievents tick 600
+client tick 600
+client ticksRun 592
+@ 31 update 640 frame 127 tick 620 zone gz1g hash D6E4803D n 832
+world tick 620
+world updates 640
+random isaac.count 82
+random isaac.a 0x2B429B7E
+random isaac.b 0x40CEC7CF
+random isaac.c 0x00000172
+random isaac.results 0x768E20B8
+random isaac.memory 0x8A1BF2DA
+random crt.rand 0xA671D785
+obj699 #vitals 39A58F25
+obj702 #vitals 39A58F25
+obj1804 #vitals 26AA52F3
+obj1884 #vitals 39A58F25
+obj1890 #vitals 26AA52F3
+obj1936 #ai 8EB0B97D
+obj1936 #vitals 57EA8939
+obj1000011214 #vitals 536C62BA
+missile0 # A386F6EC
+missile1 # 51BB61EC
+aievents tick 620
+client tick 620
+client ticksRun 612
+@ 32 update 660 frame 131 tick 630 zone gz1g hash 63314F77 n 832
+world tick 630
+world updates 660
+world paused 1
+random isaac.count 228
+random isaac.a 0xBD3450B6
+random isaac.b 0xC15E086A
+random isaac.c 0x00000175
+random isaac.results 0x4C17B3B5
+random isaac.memory 0x07C12162
+random crt.rand 0x3F4DD572
+obj699 #unit 58199F9E
+obj699 #vitals AE7756AD
+obj702 #unit 29C54E57
+obj702 #vitals AE7756AD
+obj1804 #unit 14F78A26
+obj1804 #vitals B1788B7B
+obj1884 #unit 6E84B1FD
+obj1884 #vitals AE7756AD
+obj1890 #unit 4A4C197E
+obj1890 #vitals B1788B7B
+obj1936 #unit 14AC7515
+obj1936 #vitals C03850B1
+obj1000011214 #unit 01B1F1F4
+obj1000011214 #vitals C4BEBB32
+missile0 # 3823BA83
+missile1 # CA1E2D83
+aievents tick 630
+client tick 631
+client paused 1
+client ticksRun 632
+@ 33 update 680 frame 135 tick 630 zone gz1g hash 59045877 n 832
+world updates 680
+random isaac.count 178
+client ticksRun 652
+@ 34 update 700 frame 139 tick 630 zone gz1g hash 62042E22 n 832
+world updates 700
+random isaac.count 134
+client ticksRun 672
+@ 35 update 720 frame 143 tick 630 zone gz1g hash BBC99964 n 832
+world updates 720
+random isaac.count 73
+client ticksRun 692
+@ 36 update 740 frame 147 tick 630 zone gz1g hash 4105CDDB n 832
+world updates 740
+random isaac.count 31
+client ticksRun 712

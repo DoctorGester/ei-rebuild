@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_options_remap_load",
+  "install": "rebirth",
+  "recorded": "2026-10-20",
+  "commit": "8028a0dd",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "SV8: keys remapped in the options (Enter, double click, a taken key) and used; the saved keyboard.ini loaded at start",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}
