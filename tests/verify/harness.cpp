@@ -239,8 +239,9 @@
 //
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
 // off, saves and config\tutorial.ini kept in harness_saves next to the DLL, every other write under
-// the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, ...) going to a
-// copy-on-write overlay there too, no registry writes, and a UDP port of its own for the multiplayer
+// the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, addon.dll's log, ...)
+// going to a copy-on-write overlay there too (any other write into an install is refused and fails the
+// run: harness_install.h), no registry writes, and a UDP port of its own for the multiplayer
 // sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
@@ -263,6 +264,7 @@
 #include "harness_settings.h"
 #include "harness_starter.h"
 #include "harness_input.h"
+#include "harness_install.h"
 #include "harness_net.h"
 #include "harness_pair.h"
 #include "ui_census.h"
@@ -822,6 +824,19 @@ const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
     return path;
 }
 
+// Whether a write that keeps its file's contents gets the install's copy first: not a log (a run's log
+// starts empty in the overlay; addon.dll appends to starterddon.log, which grows with the user's play) and
+// not a file over 16 MB.
+bool CopiedForWrite(const char* original) {
+    const std::size_t length = std::strlen(original);
+    if (length >= 4 && _stricmp(original + length - 4, ".log") == 0) return false;
+    WIN32_FILE_ATTRIBUTE_DATA data;
+    if (!GetFileAttributesExA(original, GetFileExInfoStandard, &data)) return true;
+    if (data.nFileSizeHigh == 0 && data.nFileSizeLow <= 16u << 20) return true;
+    Log("harness: %s not copied into the overlay for a write (over 16 MB); the write starts from an empty file", original);
+    return false;
+}
+
 // For a write: the overlay path (its directories created; with `keep` an install file not yet in
 // the overlay is copied first).
 const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
@@ -833,19 +848,22 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
     char pinned[MAX_PATH];
     const char* original = settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned) ? pinned : path;
     if (keep && g_getFileAttributes(shadow) == INVALID_FILE_ATTRIBUTES &&
-        g_getFileAttributes(original) != INVALID_FILE_ATTRIBUTES)
+        g_getFileAttributes(original) != INVALID_FILE_ATTRIBUTES && CopiedForWrite(original))
         g_copyFile(original, shadow, TRUE);
     LogInstallWrite(path, shadow);
     return shadow;
 }
 
+// Whether `path` is an install file (harness_install.h: other modules' writes go to the overlay too).
+bool InInstall(const char* path) {
+    char b[MAX_PATH];
+    return ShadowOf(path, b) != nullptr;
+}
+
 HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES sa,
                                    DWORD disposition, DWORD flags, HANDLE templ) {
     char b[MAX_PATH];
-    constexpr DWORD kWriteAccess = GENERIC_WRITE | GENERIC_ALL | FILE_WRITE_DATA | FILE_APPEND_DATA | DELETE |
-                                   FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA;
-    bool write = (access & kWriteAccess) != 0 || disposition == CREATE_ALWAYS || disposition == CREATE_NEW ||
-                 disposition == TRUNCATE_EXISTING || disposition == OPEN_ALWAYS;
+    bool write = install::WritesFile(access, disposition);
     bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
     const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
     // The game opens some data files for reading without sharing them; parallel harness runs read
@@ -1037,6 +1055,7 @@ void WriteReport() {
     if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
+    if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -3372,6 +3391,9 @@ struct Harness {
         PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);
         PatchSlot(kWritePrivateProfileStringASlot, &RedirectedWriteProfileString, g_writeProfileString);
         PatchSlot(kGetPrivateProfileSectionNamesASlot, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
+        // Every other module's writes into the install go to the overlay too, and what still reaches an install
+        // is refused and fails the run (harness_install.h).
+        install::Install({&WritePath, &ReadPath, &InInstall});
         if (g_deterministic) {
             clock::InstallVirtual(&g_tickLength);
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)

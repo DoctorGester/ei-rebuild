@@ -29,7 +29,10 @@ and the two mss32.dll versions, checked against `addon.log`.
 applies the patch tables and calls WinMain; `ei_hook.dll` installs its hooks when WinMain starts and so sees all of addon's patches.
 WinMain creates the sound manager (006B6040), whose `AIL_startup` makes Miles load every `*.asi` in the working directory (mp3dec.asi,
 EI_Plugin.asi); EI_Plugin writes CALL 10001BD0 at 006B6272 (right after `AIL_startup`), which applies its features and calls the original
-006B73E0. The installer knows the plugin's sites and active features (from `EI_Plugin.ini` and the mode word) and keeps the original where
+006B73E0. (More exactly: dinput.dll's DllMain points game.exe's entry 006EC226 at its loader, which loads addon.dll on the main
+thread; addon's DllMain, AddonInit at addon+FFDE, opens `starter\addon.log` (appended to on every launch) and sets its crash
+handler, which writes minidumps to `starter\Dumps\`. In harness runs both land in the run's overlay: standalone-verification.md,
+"No run writes into an install".) The installer knows the plugin's sites and active features (from `EI_Plugin.ini` and the mode word) and keeps the original where
 a hook would silently drop the plugin's change (0045C560 was one). dgVoodoo is the same in our vanilla runs.
 
 addon reads `HKCU\Software\Gipat.Ru\EI_Starter\Settings` (`WideScreen`, `ObjectsDrawRadius` / `LandscapeDrawRadius` [100; 5376 here], `AddonPath` =
