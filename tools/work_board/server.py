@@ -98,6 +98,7 @@ class Board:
             data, groups, tickets, commit = self.toml_cache[1]
         tickets = [dict(t) for t in tickets]
         self.tickets_py.with_status(tickets, self.work.ticket_statuses(db))
+        self.tickets_py.with_worked(db, tickets)
         self.tickets_py.derive(tickets)
         return data, groups, tickets, commit
 

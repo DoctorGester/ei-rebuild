@@ -15,6 +15,7 @@
 #include "ground_decal.h"        // DecalTexCoord
 #include "model.h"               // ThePrintsDatabase
 #include "originals_effects.h"
+#include "record_lists.h"
 #include "terrain.h"             // Terrain::SurfaceClass
 #include "texture.h"
 #include "world.h"
@@ -23,6 +24,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/stlp_list.h"
 
 #include <cstring>
 
@@ -55,18 +57,6 @@ double PerDegree() { return *reinterpret_cast<const double*>(0x0073BA30); }
 bool BloodPrintsOn() { return *reinterpret_cast<const int*>(0x0079BD50) != 0; }
 bool FootprintsOn() { return *reinterpret_cast<const int*>(0x0079BD4C) != 0; }
 bool ScorchMarksOn() { return *reinterpret_cast<const int*>(0x0079BD54) != 0; }
-
-// The lists' insert(position, value) (thiscall, RET 0xC; `out` receives the new node).
-__declspec(naked) void __fastcall BloodPrintsInsert(stlp::list<BloodPrint>*, void*, stlp::list<BloodPrint>::Node** /*out*/,
-                                                    stlp::list<BloodPrint>::Node* /*position*/, const BloodPrint*)
-    EI_ORIGINAL(0x0056ED90)
-__declspec(naked) void __fastcall FootprintsInsert(stlp::list<Footprint>*, void*, stlp::list<Footprint>::Node** /*out*/,
-                                                   stlp::list<Footprint>::Node* /*position*/, const Footprint*)
-    EI_ORIGINAL(0x0056EED0)
-__declspec(naked) void __fastcall ScorchMarksInsert(stlp::list<GroundPrint>*, void*,
-                                                    stlp::list<GroundPrint>::Node** /*out*/,
-                                                    stlp::list<GroundPrint>::Node* /*position*/, const GroundPrint*)
-    EI_ORIGINAL(0x0056F010)
 
 // 004EBE60, inlined: *slot = value with counted references, the old one released.
 void AssignCounted(CTexture** slot, CTexture* value) {
@@ -412,7 +402,7 @@ void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSiz
     print->Construct(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
                      static_cast<std::uint8_t>(fresh));
     stlp::list<BloodPrint>::Node* node;
-    BloodPrintsInsert(&bloodPrints_, nullptr, &node, bloodPrints_.End(), print);
+    stlp::ListAbi<BloodPrint, recordlist::BloodPrintElement>::Insert(&bloodPrints_, nullptr, &node, bloodPrints_.End(), print);
     print->Destruct();
 }
 
@@ -445,7 +435,7 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
         print->Construct(x, y, halfWidth, halfLength, angle, look->alpha, look->life, look->lifetime, tile, scale,
                          visible, bloodKind);
         stlp::list<Footprint>::Node* node;
-        FootprintsInsert(&footprints_, nullptr, &node, footprints_.End(), print);
+        stlp::ListAbi<Footprint, recordlist::FootprintElement>::Insert(&footprints_, nullptr, &node, footprints_.End(), print);
         print->Destruct();
     }
     return inBlood ? bloodKind : -1;
@@ -461,7 +451,7 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
     auto* print = reinterpret_cast<GroundPrint*>(storage);
     print->ConstructScorch(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
     stlp::list<GroundPrint>::Node* node;
-    ScorchMarksInsert(&scorchMarks_, nullptr, &node, scorchMarks_.End(), print);
+    stlp::ListAbi<GroundPrint, recordlist::ScorchMarkElement>::Insert(&scorchMarks_, nullptr, &node, scorchMarks_.End(), print);
     print->Destruct();
 }
 

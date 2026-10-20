@@ -69,36 +69,14 @@ void AssignCounted(RefPtr& ref, CRefObject* object) {
     }
 }
 
-// Strings.
-void StringCopy(StringRep& to, const StringRep& from) {
-    to.start = nullptr;
-    to.finish = nullptr;
-    to.eos = nullptr;
-    StringAssignSpan(&to, nullptr, from.start, from.finish);
-}
-// An empty string with an 8-byte block from _M_allocate_block.
-void StringEmpty(StringRep& s) {
-    s.start = nullptr;
-    s.finish = nullptr;
-    s.eos = nullptr;
-    StringAllocateBlock(&s, nullptr, 8);
-    *s.finish = 0;
-}
-// The same with the node allocator called directly (the constructors that inline it).
-void StringEmptyInline(StringRep& s) {
-    s.start = nullptr;
-    s.finish = nullptr;
-    s.eos = nullptr;
-    char* block = static_cast<char*>(stlp::allocate(8));
-    s.start = block;
-    s.finish = block;
-    s.eos = block + 8;
-    *block = 0;
-}
-void StringFree(StringRep& s) { stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start)); }
-void AssignEmptyText(StringRep& s) {
+// Strings, made in the message's memory and freed by the class's Destruct: a copy (a block of
+// length + 1 bytes), an empty one with an 8-byte block.
+void StringCopy(stlp::string& to, const stlp::string& from) { new (&to) stlp::string(from); }
+void StringEmpty(stlp::string& s) { stlp::StringElement::Default(&s); }
+void StringFree(stlp::string& s) { s.~string(); }
+void AssignEmptyText(stlp::string& s) {
     const char* text = EmptyText();
-    StringAssignRangeOriginal(&s, nullptr, text, text + std::strlen(text));
+    s.Assign(text, text + std::strlen(text));
 }
 
 // An empty vector of counted pointers.
@@ -127,11 +105,11 @@ void TakeBytes(BufferCursor* cursor, void* to, std::size_t n) {
     std::memcpy(to, cursor->p, n);
     cursor->p += n;
 }
-void PutString(BufferCursor* cursor, const StringRep& s) { PutBytes(cursor, s.start, std::strlen(s.start) + 1); }
-void TakeString(BufferCursor* cursor, StringRep& s) {
+void PutString(BufferCursor* cursor, const stlp::string& s) { PutBytes(cursor, s.data(), std::strlen(s.data()) + 1); }
+void TakeString(BufferCursor* cursor, stlp::string& s) {
     const char* text = reinterpret_cast<const char*>(cursor->p);
     std::size_t length = std::strlen(text);
-    StringAssignRangeOriginal(&s, nullptr, text, text + length);
+    s.Assign(text, text + length);
     cursor->p += length + 1;
 }
 // Object references through the connection being written or read.
@@ -275,7 +253,7 @@ void TextMessage::DestructAs(std::uintptr_t vtable) {
 Message* __fastcall SayMessage::Create() { return CreateAs(kVtableAddress); }   // 004171A0
 SayMessage* SayMessage::Construct() {   // 004138A0
     MessageConstructBase(this);
-    StringEmptyInline(text_);
+    StringEmpty(text_);
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
@@ -291,7 +269,7 @@ void SayMessage::Destruct() { DestructAs(kVtableAddress); }           // 00413C4
 Message* __fastcall ZoneMessage::Create() { return CreateAs(kVtableAddress); }   // 00415570
 ZoneMessage* ZoneMessage::Construct() {   // 00418C30
     MessageConstructBase(this);
-    StringEmptyInline(text_);
+    StringEmpty(text_);
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
@@ -327,7 +305,7 @@ Message* __fastcall CommandMessage::Create() {   // 00417250
 }
 CommandMessage* CommandMessage::Construct() {   // 00413C90
     MessageConstructBase(this);
-    StringEmptyInline(text_);
+    StringEmpty(text_);
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
@@ -463,7 +441,7 @@ Message* __fastcall PlayerMessage::Create() {   // 00414420
 PlayerMessage* PlayerMessage::Construct() {   // 0041C680
     MessageConstructBase(this);
     StringEmpty(name_);
-    StringEmptyInline(text_);
+    StringEmpty(text_);
     ei::SetVtable(this, kVtableAddress);
     id_ = -1;
     number_ = -1;
@@ -589,7 +567,7 @@ Message* __fastcall HostMessage::Create() {   // 00414DB0
 HostMessage* HostMessage::Construct() {   // 0041C7C0
     MessageConstructBase(this);
     StringEmpty(address_);
-    StringEmptyInline(zone_);
+    StringEmpty(zone_);
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
@@ -1090,8 +1068,8 @@ ServerEntry* ServerEntry::Clone() {   // 00412590
 }
 int ServerEntry::OnShutdown() {   // 00412750
     ei::SetVtable(this, kVtableAddress);
-    StringBufferFree(&description_);
-    StringBufferFree(&name_);
+    StringFree(description_);
+    StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     ConstructBase();
     StringEmpty(name_);

@@ -11,6 +11,7 @@
 #include "script_array.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 #include "lib/mfc_string.h"
 #include "record_arrays.h"
 
@@ -55,9 +56,9 @@ __declspec(naked) void __fastcall IfThenCopy(void*, void*, const void*) EI_ORIGI
 __declspec(naked) void __stdcall ZeroFloats(void*, int) EI_ORIGINAL(0x004CC870)
 void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
+void __stdcall DestructRefs(void* a0, int a1) { gamearrays::ObjectRefs::DestructElements(static_cast<ScriptObjectRef*>(a0), a1); }
 __declspec(naked) void __stdcall ConstructGroups(void*, int) EI_ORIGINAL(0x004CC9B0)
-void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }
+void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructElements(static_cast<ScriptGroup*>(a0), a1); }
 __declspec(naked) void __stdcall ConstructCmds(void*, int) EI_ORIGINAL(0x004CE920)
 __declspec(naked) void __stdcall ConstructIfThen(void*, int) EI_ORIGINAL(0x004CD4A0)
 void __fastcall RefDestroy(void* ref, void*, int flags) { ScriptRefDestroy(static_cast<CEngineObject**>(ref), nullptr, flags); }
@@ -197,18 +198,12 @@ const CScript* SavedScript() { return reinterpret_cast<const CScript*>(0x007C27D
 // CScript::FindBlock on the saved script, as the loaders inline it.
 ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
 
-// The loaders of this file, called from each other through their addresses (verify wrappers run).
-__declspec(naked) void __fastcall FloatsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C2D40)
-__declspec(naked) void __fastcall StringsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C3200)
-__declspec(naked) void __fastcall ObjectsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C36B0)
-__declspec(naked) void __fastcall GroupsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C40D0)
-
 // The four variable loaders of one ScriptVars (globals, instances).
 void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
-    FloatsLoadOrig(&vars->floats, nullptr, stream);
-    StringsLoadOrig(&vars->strings, nullptr, stream);
-    ObjectsLoadOrig(&vars->objects, nullptr, stream);
-    GroupsLoadOrig(&vars->groups, nullptr, stream);
+    NamedValues(&vars->floats)->Load(stream);
+    NamedValues(&vars->strings)->Load(stream);
+    NamedValues(&vars->objects)->Load(stream);
+    NamedValues(&vars->groups)->Load(stream);
 }
 
 } // namespace

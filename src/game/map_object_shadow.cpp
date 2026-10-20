@@ -6,6 +6,7 @@
 #include "link_figure.h"        // CLinkMesh
 #include "map_object.h"         // ObjectSlots
 #include "ground_decal.h"        // DecalTexCoord
+#include "dx_surface.h"          // SurfacePixels
 #include "map_object_figures.h"
 #include "model.h"
 #include "spell.h"              // CLight
@@ -30,7 +31,6 @@
 #include "originals_effects.h"
 #include "originals_world.h"
 
-#include <ddraw.h>
 #include <bit>
 #include <cstring>
 #include <vector>
@@ -205,8 +205,6 @@ struct RasterTarget : RasterTriangle {
 static_assert(sizeof(RasterTarget) == 0x40);
 constexpr int kKeyTexelPitch = 0x200;   // 256 texels of 2 bytes
 
-// The surface description the lock fills (only the pitch and the bits are read).
-static_assert(sizeof(DDSURFACEDESC2) == 0x7C);
 
 // One corner's x and y in the light's rotation `m` (3x4 rows of 4).
 double CornerX(const float* m, float a, float b) {
@@ -323,8 +321,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // Rasterise into the render surface.
     void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
-    DDSURFACEDESC2 description;
-    if (!static_cast<CTexture*>(surface)->LockPixels(reinterpret_cast<std::uint32_t*>(&description))) {
+    SurfacePixels description;
+    if (!static_cast<CTexture*>(surface)->LockPixels(&description)) {
         *failure = game::FatalError(reinterpret_cast<const char*>(0x0078F584), self->GetName());
         if (lights.manager) --lights.manager->refCount_;
         return false;
@@ -333,10 +331,10 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     CTexture* skin = self->partSets[0] ? self->partSets[0]->texture : nullptr;
     target.keyTexels = skin && (skin->flags_ & kTextureKeyed) ? skin->block_ : nullptr;
     target.keyPitch = kKeyTexelPitch;
-    target.pitch = description.lPitch;
+    target.pitch = description.pitch;
     // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
     // from there) and copied into the surface afterwards.
-    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.lPitch) * kTextureSize);
+    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.pitch) * kTextureSize);
     target.bits = pixels.data();
     std::memset(target.bits, 0, kTextureSize * kTextureSize * 2);
     count = 0;
@@ -360,7 +358,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         converter->BlurShadow(target.bits, kTextureSize, kTextureSize);
         converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
     }
-    std::memcpy(description.lpSurface, pixels.data(), pixels.size());
+    std::memcpy(description.bits, pixels.data(), pixels.size());
     static_cast<CTexture*>(surface)->UnlockPixels();
 
     // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
@@ -369,10 +367,9 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     shadowTexture->LoadPixelsFrom(static_cast<CTextureDevice*>(RenderDevice()), static_cast<const CTexture*>(surface));
     // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
     // texture in its memory is read from there instead).
-    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.lPitch,
-                          description.ddpfPixelFormat.dwRGBBitCount, description.ddpfPixelFormat.dwRBitMask,
-                          description.ddpfPixelFormat.dwGBitMask, description.ddpfPixelFormat.dwBBitMask,
-                          description.ddpfPixelFormat.dwRGBAlphaBitMask);
+    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
+                          description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
+                          description.alphaMask);
 
     // The light's rotation as a matrix.
     double x2 = static_cast<double>(turn.x) + turn.x;

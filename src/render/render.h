@@ -13,8 +13,8 @@
 // captures write the new frame. There is no DirectDraw fallback (R11a): when the new renderer cannot
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
-// list, only carries the harness build's "removable"; "new", "present" and "cpuwindows" are accepted
-// and change nothing.
+// list, carries the smooth option ("smooth", SetSmooth) and the harness build's "removable"; "new",
+// "present" and "cpuwindows" are accepted and change nothing.
 
 #include <cstdint>
 #include <vector>
@@ -30,6 +30,71 @@ namespace render {
 // Sets the options from `spec` (the format of EI_RENDER) and EI_RENDER's. Without a call the
 // environment is read at the first use.
 void Configure(const char* spec);
+
+// The smooth option (R12a; user 2026-10-20: off by default): the image as the user's Rebirth dgVoodoo
+// setup draws it (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x). On, the world view's
+// models (figures, map objects, the sky, shadows) are sampled anisotropically (16x) with linear mips
+// where their stage asks for linear filters (the terrain pages always are, R12), and the world view is
+// drawn with 8x multisampling (fewer when the device has no 8x), resolved into the frame before the
+// interface draws over it, before every present and every screen copy or capture. The interface's
+// sprites, previews and window surfaces draw as without it. Its one switch: EI_RENDER's word "smooth"
+// (read at the start) or SetSmooth (takes effect at the next frame). Off: what the game asks for.
+void SetSmooth(bool on);
+bool Smooth();
+// The world view's draws (CWorldClient::Render, 00569E40) come between BeginWorld and EndWorld.
+void BeginWorld();
+void EndWorld();
+// The smooth option's state: on, the samples the device gives (up to 8) and the world's target's,
+// and in the last presented frame the multisampled passes and the models drawn anisotropically
+// (world) or as their stage says (the interface's).
+struct SmoothInfo {
+    bool on = false;
+    int deviceSamples = 1, targetSamples = 1;
+    int multisampledPasses = 0;
+    int anisotropicModels = 0, plainModels = 0;
+};
+SmoothInfo SmoothState();
+
+// What the new renderer did for the presented frames (R16, docs/notes/renderer.md section 13): the
+// hand-over's commands, the bytes written to the GPU, the draws and state changes, the textures made
+// and the CPU time spent, summed over `frames`. TakeFrameStats returns the sums since its last call
+// and starts new ones (the harness's "renderstats"). The CPU times and the reuse counts are the
+// harness build's only (zero in the product).
+struct FrameStats {
+    enum Upload { Mmp, CpuPixels, MemoryTexture, WindowSurface, Movie, Small, UploadKinds };
+    std::uint32_t frames = 0;
+    int width = 0, height = 0;   // the last frame's size
+    // Hand-over: terrain pages and the batches they became, meshes handed over (BeginMesh with
+    // corners built) and their passes, pre-transformed draws (TlDraw, ScreenDraw), window blits
+    // (SurfaceBlit, movies, cursor, fills), depth clears, the old device's state read per pass.
+    std::uint64_t terrainPages = 0, terrainBatches = 0, meshes = 0, meshPasses = 0, transformedDraws = 0;
+    std::uint64_t blits = 0, depthClears = 0, stateReads = 0, matrices = 0;
+    // Of the meshes: the flat geometry (004EA4A0: object shadows, ground prints, selection markers,
+    // light decals) and its vertex bytes.
+    std::uint64_t flatMeshes = 0, flatVertexBytes = 0;
+    // The vertices handed over against the last frame's of the same terrain page (sector, page) or
+    // mesh (its positions' address): all the same, only the colours changed (relit), positions or
+    // texture coordinates changed (moved), or none last frame (new); meshes whose positions and
+    // texture coordinates equal another's of the same frame (shared: instancing candidates).
+    enum Reuse { Same, Relit, Moved, New, ReuseKinds };
+    std::uint64_t terrainReuse[ReuseKinds] = {}, meshReuse[ReuseKinds] = {}, sharedMeshes = 0;
+    // Bytes appended to the per-frame vertex and index buffers, uniform bytes.
+    std::uint64_t terrainVertexBytes = 0, terrainIndexBytes = 0, meshVertexBytes = 0, meshIndexBytes = 0;
+    std::uint64_t uniformBytes = 0;
+    // Submission: passes, draws, pipeline applies and changes, bindings applies, changes of the
+    // first texture bound.
+    std::uint64_t passes = 0, draws = 0, pipelineApplies = 0, pipelineChanges = 0, bindings = 0, textureChanges = 0;
+    // Images made (or updated in place) per kind and their bytes (every level); bytes compared with
+    // the snapshots of the renderer's memory (window surfaces at every blit, memory textures once a
+    // frame) and converted from it.
+    std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {}, largestUpload[UploadKinds] = {};
+    std::uint64_t comparedBytes = 0;
+    // CPU time (ms): the hand-over (terrain pages, meshes, pre-transformed draws), texture work
+    // (views checked, converted, made), EndFrame (uploads, draws, the present on the window).
+    // (statsMs: these counts' own hashing, left out of the others.)
+    double handOverMs = 0.0, textureMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
+};
+FrameStats TakeFrameStats();
 
 // The new renderer draws: in the standalone image, until it failed (no Direct3D 11 device at the
 // start, a sokol panic, a lost device that could not be made again). Every call below does nothing
@@ -108,6 +173,15 @@ struct MeshDraw {
 // surface): decoded from the file, keyed by the holder, kept until the holder goes (HolderGone).
 // False when it was not decoded (the new renderer is off, or the format is not one it reads).
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
+
+// From now on the rectangle `to` of the texture of `target` shows the rectangle `from` of the
+// texture of `source` (both surface holders; rectangles left, top, right, bottom in texels of the
+// textures' first level): every mesh draw sampling `target` in its first stage takes those texels
+// from `source` in the shader (on every level); the target's texture is not changed. One per
+// target: a new one replaces it; forgotten when either holder goes (HolderGone). Nothing is
+// recorded when a rectangle is empty or outside its texture (the old path's blit failed then).
+// The unit's face (00533980, the blink).
+void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
 
 // The game made new pixels for a texture on the CPU (the shadow textures, 0051CE60) and copies
 // them into its surface (CDXSurface): the new renderer takes them from the buffer (`pitch` bytes

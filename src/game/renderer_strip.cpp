@@ -44,7 +44,6 @@ float& TopV() { return *reinterpret_cast<float*>(0x007AF058); }
 float& BottomV() { return *reinterpret_cast<float*>(0x007AF054); }
 
 // The index array's SetAtGrow (00452FC0) and Add (00504E50).
-__declspec(naked) void __fastcall IndicesAdd(lib::AlignedArray<std::uint16_t>*, void*, int /*value*/) EI_ORIGINAL(0x00504E50)
 
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
@@ -110,13 +109,13 @@ void AddQuad(int count, bool firstBySetAtGrow) {
         WordsSetAtGrow(&Indices(), nullptr, Indices().size, count - 4);
         WordsSetAtGrow(&Indices(), nullptr, Indices().size, count - 3);
     } else {
-        IndicesAdd(&Indices(), nullptr, count - 4);
-        IndicesAdd(&Indices(), nullptr, count - 3);
+        Indices().Add(static_cast<unsigned short>(count - 4));
+        Indices().Add(static_cast<unsigned short>(count - 3));
     }
-    IndicesAdd(&Indices(), nullptr, count - 2);
-    IndicesAdd(&Indices(), nullptr, count - 2);
-    IndicesAdd(&Indices(), nullptr, count - 3);
-    IndicesAdd(&Indices(), nullptr, count - 1);
+    Indices().Add(static_cast<unsigned short>(count - 2));
+    Indices().Add(static_cast<unsigned short>(count - 2));
+    Indices().Add(static_cast<unsigned short>(count - 3));
+    Indices().Add(static_cast<unsigned short>(count - 1));
 }
 
 TLVertex* StripAt(int i) { return Strip().data + i; }

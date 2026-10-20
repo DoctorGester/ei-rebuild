@@ -96,7 +96,6 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 // AIRef (0052B030, 0052A8F0, 0050E220, 0050E290): counted_ref.cpp.
 
 __declspec(naked) void __fastcall LooksSetSizeAt(AILookArray*, void*, int, int) EI_ORIGINAL(0x005D8EE0)
-__declspec(naked) void __fastcall LooksCopyAt(AILookArray*, void*, const AILookArray*) EI_ORIGINAL(0x005D8B60)
 void __fastcall LooksDestroyAt(AILookArray* looks) { AiLookArrayDestructOriginal(looks); }
 __declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 

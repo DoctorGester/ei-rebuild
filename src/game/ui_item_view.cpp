@@ -504,23 +504,14 @@ void VirtualCall(void* object, int slot, Args... args) {
     reinterpret_cast<void(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
 }
 
-// What a texture's +0x5C points at: the counted holder of its DirectDraw surface.
-struct TextureSurface {
-    void* vtable;
-    int references;
-    long result;                 // +0x08
-    std::uint8_t unused_0C[4];
-    void** surface;              // +0x10 IDirectDrawSurface7
-};
-
 constexpr std::uint32_t kPnt3 = 0x33544E50;   // "PNT3"
 
-// The texture's pixels for one fill into `desc` (a DDSURFACEDESC2 as dwords): the texture manager's
-// textures have only the new renderer's memory (00691D80, ticket R8), written directly
-// (DirectPixels; the original: a Lock with flags 0 and the Unlock after). 0, or the error the
-// original's report gets when there is no memory (none is made without it).
-long LockTexture(TextureSurface* holder, std::uint32_t* desc) {
-    return DirectPixels(holder, desc) ? 0 : E_FAIL;
+// The texture's pixels for one fill: the texture manager's textures have only the new renderer's
+// memory (00691D80, ticket R8), written directly (DirectPixels; the original: a Lock with flags 0
+// and the Unlock after). 0, or the error the original's report gets when there is no memory (none
+// is made without it).
+long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
+    return DirectPixels(holder, pixels) ? 0 : E_FAIL;
 }
 
 } // namespace
@@ -530,7 +521,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     auto* texture = reinterpret_cast<std::uint8_t*>(manager->NewTexture(0x100, 0x100, 0x20));
     if (!texture) return nullptr;
     Set(texture, 4, Get<int>(texture, 4) + 1);
-    auto* holder = Get<TextureSurface*>(texture, 0x5C);
+    auto* holder = Get<CDXSurface*>(texture, 0x5C);
     std::uint8_t* image;
     {
         mfc::CString base(name);
@@ -555,9 +546,8 @@ void* __fastcall ItemFigureTexture(const char* name) {
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    long hr = LockTexture(holder, desc);
+    SurfacePixels target;
+    long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
@@ -565,10 +555,10 @@ void* __fastcall ItemFigureTexture(const char* name) {
         return nullptr;
     }
     // Rows of 0x200 bytes, the image at the bottom.
-    std::uint32_t at = desc[9] + (static_cast<std::uint32_t>(0x100 - height) << 9);
+    std::uint8_t* at = target.bits + (static_cast<std::uint32_t>(0x100 - height) << 9);
     if (!image) {
         for (int row = height; row > 0; --row) {
-            std::memset(reinterpret_cast<void*>(at), 0xFF, static_cast<std::uint32_t>(width) * 2);
+            std::memset(at, 0xFF, static_cast<std::uint32_t>(width) * 2);
             at += 0x200;
         }
     } else {
@@ -580,7 +570,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
                 *to++ = static_cast<std::uint16_t>(((p >> 9) & 0x7C00) | ((p >> 6) & 0x3E0) | ((p >> 3) & 0x1F) |
                                                    ((p >> 16) & 0x8000));
             }
-            at = reinterpret_cast<std::uint32_t>(to) + static_cast<std::uint32_t>(0x100 - width) * 2;
+            at = reinterpret_cast<std::uint8_t*>(to + (0x100 - width));
         }
     }
     if (pixels) gamecrt::operator_delete(pixels);
@@ -594,7 +584,7 @@ EI_REPLACE(0x005EC020, ItemFigureTexture);
 
 int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y, int, int) {
-    auto* holder = Get<TextureSurface*>(texture, 0x5C);
+    auto* holder = Get<CDXSurface*>(texture, 0x5C);
     std::uint8_t* image;
     {
         mfc::CString base(name);
@@ -612,18 +602,17 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    long hr = LockTexture(holder, desc);
+    SurfacePixels target;
+    long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         return 0;
     }
-    std::uint32_t at = desc[9] + (static_cast<std::uint32_t>(y) * 0x100 + static_cast<std::uint32_t>(x)) * 2;
+    std::uint8_t* at = target.bits + (static_cast<std::uint32_t>(y) * 0x100 + static_cast<std::uint32_t>(x)) * 2;
     if (!image) {
         for (int row = height; row > 0; --row) {
-            std::memset(reinterpret_cast<void*>(at), 0xFF, static_cast<std::uint32_t>(width) * 2);
+            std::memset(at, 0xFF, static_cast<std::uint32_t>(width) * 2);
             at += 0x200;
         }
     } else {
@@ -635,7 +624,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
                 *to++ = static_cast<std::uint16_t>(((p >> 9) & 0x7C00) | ((p >> 6) & 0x3E0) | ((p >> 3) & 0x1F) |
                                                    ((p >> 16) & 0x8000));
             }
-            at = reinterpret_cast<std::uint32_t>(to) + static_cast<std::uint32_t>(0x100 - width) * 2;
+            at = reinterpret_cast<std::uint8_t*>(to + (0x100 - width));
             from += imageWidth - width;
         }
     }

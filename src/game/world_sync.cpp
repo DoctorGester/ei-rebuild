@@ -271,7 +271,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
                                     std::bit_cast<std::uint32_t>(direction.z), windStrength_))
                 return 0;
         }
-        if (player->dirty & kDirtyCountdowns) state->SendState73(countdowns_);
+        if (player->dirty & kDirtyCountdowns) state->SendState73(&countdowns_);
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();

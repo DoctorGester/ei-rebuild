@@ -250,7 +250,7 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(seer))->EyePoint(&eye);
     grid->originX = kNoGridOrigin;
     grid->originY = kNoGridOrigin;
-    GridCellsResizeOriginal(&grid->data, nullptr, 1, 1);
+    reinterpret_cast<SearchGrid<std::uint8_t>*>(&grid->data)->Resize(1, 1);   // the cells (+8) as a SearchGrid
     std::memset(grid->data, 0, static_cast<std::size_t>(grid->height * grid->width));
 
     CUnitServer* mine = ControllerOf(seer);

@@ -104,11 +104,11 @@ EI_REPLACE_METHOD(0x0041A140, ServerSession::SetPassword);
 
 // 0041A170: the connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
-void* ServerSession::FindGuestConnection(const StringRep* name) {
-    const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
+void* ServerSession::FindGuestConnection(const stlp::string* name) {
+    const std::size_t length = name->size();
     for (void** node = First(players_); node != players_; node = static_cast<void**>(node[0])) {
         PlayerMessage* player = PlayerAt(node);
-        if (gamecrt::strnicmp(player->name_.start, name->start, length) != 0) continue;
+        if (gamecrt::strnicmp(player->name_.data(), name->data(), length) != 0) continue;
         void** bindings = static_cast<void**>(bindings_);
         void** first = First(bindings);
         for (void** binding = first; binding != bindings; binding = static_cast<void**>(binding[0])) {
@@ -170,7 +170,7 @@ void ServerSession::Kick(void* connection) {
         BindingMessage* binding = BindingAt(node);
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
-            if (Live(player)) AnnounceText(2, player->name_.start, nullptr);
+            if (Live(player)) AnnounceText(2, player->name_.data(), nullptr);
         }
         break;
     }
@@ -190,7 +190,7 @@ void ServerSession::Ban(void* connection) {
         BindingMessage* binding = BindingAt(node);
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
-            if (Live(player)) AnnounceText(3, player->name_.start, nullptr);
+            if (Live(player)) AnnounceText(3, player->name_.data(), nullptr);
         }
         break;
     }
@@ -214,7 +214,7 @@ void ServerSession::ReportDeparture(void* connection, int text) {
         if (!Live(binding)) return;
         PlayerMessage* player = PlayerOf(binding);
         if (!Live(player)) return;
-        AnnounceText(text, player->name_.start, nullptr);
+        AnnounceText(text, player->name_.data(), nullptr);
         return;
     }
 }

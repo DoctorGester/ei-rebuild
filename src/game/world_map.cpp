@@ -7,6 +7,7 @@
 #include "player_manager.h"
 #include "player_messages.h"
 #include "world.h"
+#include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"
 
 #include "lib/crt.h"
@@ -151,7 +152,7 @@ void CWorldServer::ResetZone() {
     for (auto* node = shared.head; node; node = node->next) static_cast<SharedObject*>(&node->data)->DeletingDestruct(0);
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
-    TweenArrayRemoveAllOriginal(countdowns_);
+    countdowns_.RemoveAll();
     ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
     ScriptReset(MainScript());
     ScriptReset(SecondScript());

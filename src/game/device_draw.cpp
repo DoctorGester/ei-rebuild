@@ -168,13 +168,13 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& a
 }
 
 // Stage 0's surface, as 004EB300 binds it (inline in 004EB370): when it changes, the batched
-// vertices are flushed, the holder's DirectDraw surface set, and the change counted.
+// vertices are flushed, the stage's texture set (null: no holder has a DirectDraw surface; the new
+// renderer draws with the holder in stageSurfaces_), and the change counted.
 void BindStage0(CTextureDevice* device, CDXSurface* holder) {
     if (device->stageSurfaces_[0] == holder) return;
     device->stageSurfaces_[0] = holder;
     FlushBatch(device);
-    IDirectDrawSurface7* surface = holder ? device::Surface(holder) : nullptr;
-    device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, surface);
+    device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
     ++device->textureChanges_;
 }
 

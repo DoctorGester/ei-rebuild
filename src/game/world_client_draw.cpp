@@ -132,7 +132,6 @@ __declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGIN
 __declspec(naked) void __fastcall NodeFree32(void*, void*, void*, int) EI_ORIGINAL(0x0056F840)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
-__declspec(naked) void __fastcall VectorErase(stlp::vector<CEngineObject*>*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
 
 // The object margin around the camera when collecting what to draw (0073BAB0, 100.0).
 float ObjectsDrawMargin() { return *reinterpret_cast<const float*>(0x0073BAB0); }
@@ -251,6 +250,9 @@ EI_REPLACE(0x0056A370, QueueScreenEntry);
 // ---- Render (00569E40) --------------------------------------------------------------------------
 
 int CWorldClient::Render() {
+    // The world view for the new renderer's smooth option (R12a: multisampled, models sampled
+    // anisotropically); the interface draws after it.
+    render::BeginWorld();
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
     UpdateLighting();
@@ -345,6 +347,7 @@ int CWorldClient::Render() {
         Flush(renderer);
         SetRenderState(renderer, 7, renderer->zEnable_);
     }
+    render::EndWorld();
     return 1;
 }
 EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
@@ -627,13 +630,13 @@ int CWorldClient::DrawPass() {
         v.Finish() = VectorCopyBack(v.end(), v.end(), v.begin());
     }
     stlp::vector<CEngineObject*>& shadow5D = FrameObjects(FrameList::Shadow5D);
-    VectorErase(&shadow5D, nullptr, shadow5D.begin(), shadow5D.end());
+    shadow5D.EraseRange<stlp::PlainElement<CEngineObject*>>(shadow5D.begin(), shadow5D.end());
     stlp::vector<CEngineObject*>& shadowUnits = FrameObjects(FrameList::ShadowUnits);
-    VectorErase(&shadowUnits, nullptr, shadowUnits.begin(), shadowUnits.end());
+    shadowUnits.EraseRange<stlp::PlainElement<CEngineObject*>>(shadowUnits.begin(), shadowUnits.end());
     stlp::vector<CEngineObject*>& shadow52 = FrameObjects(FrameList::Shadow52);
     shadow52.Finish() = VectorCopyBack(shadow52.end(), shadow52.end(), shadow52.begin());
     stlp::vector<CEngineObject*>& touchedModels = FrameObjects(FrameList::TouchedModels);
-    VectorErase(&touchedModels, nullptr, touchedModels.begin(), touchedModels.end());
+    touchedModels.EraseRange<stlp::PlainElement<CEngineObject*>>(touchedModels.begin(), touchedModels.end());
     return 1;
 }
 EI_REPLACE_METHOD(0x0056AFE0, CWorldClient::DrawPass);

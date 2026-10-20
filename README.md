@@ -98,7 +98,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   needs the world to do something waits for it (`waitfor`) or waits long enough at 55 ms an update.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;
   `freeze` / `unfreeze` hold the game's clocks and camera around captures; `samecapture <a> <b>`
-  requires two captures to match. `python tools\compare_frames.py A B` compares two captures or two
+  requires two captures to match, `diffcapture <a> <b> <least> <most>` that they differ in that share of
+  the pixels; `blink faces|open|close` loads the units' faces or shows every face's open / closed state (render_blink).
+  `python tools\compare_frames.py A B` compares two captures or two
   runs' frames with a tolerance (`--mask` restricts it to where two other frames differ).
   A finished run's frames are stored packed (`<name>.bmp.z`, tools/frame_store.py; compare_frames and
   frame_preview read both forms).

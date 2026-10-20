@@ -1,0 +1,38 @@
+# The smooth option (R12a; docs/notes/renderer.md section 11): turned on from the start (EI_RENDER's
+# "smooth"), the image draws the world view with 8x multisampling, resolved into the frame before the
+# interface, every present and every screen copy, and samples the world's models anisotropically.
+# At one frozen moment of zone1: the frame with the option (smooth), without it (plain) and with it
+# again (smooth2). The two with it match; smoothcheck requires the option's world passes and
+# anisotropic models in the frame and the smooth frame to differ from the plain one only in a few
+# pixels (the world's edges and textures: nothing black or stale). The quick save's picture (R13, a
+# screen copy between frames) must still show that frame.
+# no original: vanilla rebirth (the smooth option is our renderer's)
+render new,present,smooth
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+waitpresent 10
+move 400 20
+frames 5
+freeze
+capture smooth
+smooth off
+capture plain
+smooth on
+capture smooth2
+samecapture smooth smooth2
+smoothcheck plain smooth 0.002 0.2
+key f5
+waitline 15 Saved saveq
+vanilla checksave saveq smooth 32 0.02
+rebirth checksave saveq smooth centre 32 0.02
+unfreeze
+frames 5
+check IsAlive(GetLeader())
+report
+quit

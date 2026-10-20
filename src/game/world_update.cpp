@@ -18,6 +18,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_array.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -56,7 +57,7 @@ mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) {
 ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) {
     return gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a0), nullptr, a2, a3);
 }
-void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
+void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(static_cast<ScriptObjectRef*>(a0), a1); }
 
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, WorldPlayer* player) {

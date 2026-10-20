@@ -243,11 +243,8 @@ void CMpConnectScreen::DrawListVanilla() {
             text.Format(game::Text(0x00792F34), label(4), static_cast<const char*>(entry.description));
             int lines = surface->DrawWrappedText(text, &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
-            net::StringRep address;
-            text.Format(game::Text(0x00792F34), label(5), entry.address.ToString(&address)->start);
-            if (address.start) {
-                libcrt::NodeDeallocateChecked(address.start, static_cast<std::size_t>(address.eos - address.start));
-            }
+            stlp::string address;
+            text.Format(game::Text(0x00792F34), label(5), entry.address.ToString(&address)->data());
             Draw(surface, text, &row, 0);
             Down(&row);
             text.Format(game::Text(0x00792F14), label(6), entry.ping);

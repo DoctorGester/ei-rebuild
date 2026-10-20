@@ -436,17 +436,11 @@ namespace {
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
-// STLport string members: default constructor [004217E0], assign [00428F10], destructor [0040C720].
 
 // The quest's record (its experience and money rewards), from the quest database.
 QuestRecord* FindQuestRecord(const char* name) {
-    std::uint32_t key[3];
-    std::uint8_t allocator = 0;
-    StringInitWithAllocator(key, nullptr, &allocator);
-    StringAssignSpan(key, nullptr, name, name + std::strlen(name));
-    auto* record = static_cast<QuestRecord*>(*QuestIndexAt(QuestIndex(), nullptr, key));
-    StlStringDestroy(key);
-    return record;
+    stlp::string key(name);
+    return static_cast<QuestRecord*>(*QuestIndexAt(QuestIndex(), nullptr, &key));
 }
 
 bool SameText(const char* a, const char* b) {

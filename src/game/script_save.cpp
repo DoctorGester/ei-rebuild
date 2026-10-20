@@ -25,10 +25,6 @@ __declspec(naked) void __fastcall DefinitionSave(const ScriptDefinition*, void*,
 __declspec(naked) void __fastcall RunSave(const ScriptRun*, void*, ScriptStream*) EI_ORIGINAL(0x004BB320)
 // The savers of this file, called from CScript::Save through their addresses as well.
 __declspec(naked) void __fastcall DeclSaveOrig(const ScriptDecl*, void*, ScriptStream*) EI_ORIGINAL(0x004C1230)
-__declspec(naked) void __fastcall FloatsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C2EF0)
-__declspec(naked) void __fastcall StringsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C33C0)
-__declspec(naked) void __fastcall ObjectsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C38C0)
-__declspec(naked) void __fastcall GroupsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C4330)
 
 // The script being saved; the run saver (004BB320) finds a run's instance through it.
 CScript*& SavingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
@@ -55,14 +51,14 @@ int ObjectId(const ScriptObjectRef& ref) { return ref.object ? ref.object->id_ :
 // A ScriptVars as the definition and run savers write it: floats, strings and objects inline (the
 // pieces of their savers; objects through ScriptObjectRef::Save), groups through 004C4330.
 void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
-    (reinterpret_cast<const ScriptNamedValues<float>*>(&vars->floats))->Save(stream);
-    (reinterpret_cast<const ScriptNamedValues<mfc::CString>*>(&vars->strings))->Save(stream);
+    NamedValues(&vars->floats)->Save(stream);
+    NamedValues(&vars->strings)->Save(stream);
     WriteInt(stream, vars->objects.size);
     for (int i = 0; i < vars->objects.size; ++i) {
         vars->objects.data[i].Save(stream);
         WriteName(stream, vars->objectNames, i);
     }
-    GroupsSaveOrig(&vars->groups, nullptr, stream);
+    NamedValues(&vars->groups)->Save(stream);
 }
 
 // A list's count, then each element through `save`.
@@ -187,10 +183,10 @@ void CScript::SaveState(ScriptStream* stream) {
     for (int i = 0; i < scripts.size; ++i) DefinitionSave(&scripts.data[i], nullptr, stream);
 
     const ScriptVars& globals = globals_;
-    FloatsSaveOrig(&globals.floats, nullptr, stream);
-    StringsSaveOrig(&globals.strings, nullptr, stream);
-    ObjectsSaveOrig(&globals.objects, nullptr, stream);
-    GroupsSaveOrig(&globals.groups, nullptr, stream);
+    NamedValues(&globals.floats)->Save(stream);
+    NamedValues(&globals.strings)->Save(stream);
+    NamedValues(&globals.objects)->Save(stream);
+    NamedValues(&globals.groups)->Save(stream);
 
     // Instances (copies of definitions) and runs.
     WriteList(stream, instances_, DefinitionSave);

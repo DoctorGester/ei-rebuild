@@ -137,9 +137,6 @@ __declspec(naked) inline int* __fastcall HelpTopicsAtOriginal(void* /*topics*/, 
 // pool (__fastcall: block, count); 00520F20 the same for 4-byte entries through an allocator proxy (thiscall, RET 8: block,
 // count). 00634160 / 00634200: the hero screen's model / texture map destroyed (nodes erased, header freed; ECX).
 __declspec(naked) inline void __fastcall FreeBlock8Original(void* /*block*/, int /*count*/) EI_ORIGINAL(0x006344C0)
-__declspec(naked) inline void __fastcall FreeBlock4Original(void* /*block*/, int /*count*/) EI_ORIGINAL(0x00520F60)
-__declspec(naked) inline void __fastcall FreeBlock4ProxyOriginal(void* /*proxy*/, void*, void* /*block*/, int /*count*/)
-    EI_ORIGINAL(0x00520F20)
 __declspec(naked) inline void __fastcall DestroyModelMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634160)
 __declspec(naked) inline void __fastcall DestroyTextureMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634200)
 // 005F8070 (rewritten as CInterface3D::OnStringEvent; Rebirth's NewStringEvents patches it, so callers go through its

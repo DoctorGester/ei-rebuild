@@ -69,10 +69,9 @@ void LogLine(std::uintptr_t text) {
 // "<text><address>\n" and a flush; the address string is freed again.
 void LogAddressLine(std::uintptr_t text, const NetAddress* address) {
     if (!NetLog()) return;
-    StringRep s;
+    stlp::string s;
     address->ToString(&s);
-    NetLog()->Put(game::Text(text))->Put(s.start)->PutChar('\n')->Flush();
-    if (s.start) stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start));
+    NetLog()->Put(game::Text(text))->Put(s.data())->PutChar('\n')->Flush();
 }
 
 float GameFloat(std::uintptr_t a) {

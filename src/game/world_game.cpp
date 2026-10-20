@@ -477,16 +477,15 @@ void AnnounceHost(const char* zone) {
     if (libcrt::imports::GetHostName(host, sizeof(host)) != 0) return;
     net::NetAddress address{};
     address.Parse(host, kHostPort);   // 00440440
-    net::StringRep text;
-    mfc::CString formatted(address.ToString(&text)->start);   // 00435010
-    StringBufferFree(&text);
+    stlp::string text;
+    mfc::CString formatted(address.ToString(&text)->data());   // 00435010
     // (the count cleared before the null test)
     auto* memory = static_cast<net::HostMessage*>(net::NewRefObject(sizeof(net::HostMessage)));
     net::HostMessage* record = nullptr;
     if (memory) {
         net::MessageConstructBase(memory);   // 004186E0
-        StringInitEmpty(&memory->address_);
-        StringInitEmpty(&memory->zone_);
+        stlp::StringElement::Default(&memory->address_);
+        stlp::StringElement::Default(&memory->zone_);
         ei::SetVtable(memory, net::HostMessage::kVtableAddress);
         record = memory;
     }
@@ -497,9 +496,9 @@ void AnnounceHost(const char* zone) {
     }
     const char* text1 = formatted;
     auto* shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
-    StringAssignRangeOriginal(&shared->address_, nullptr, text1, text1 + std::strlen(text1));
+    shared->address_.Assign(text1);
     shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
-    StringAssignRangeOriginal(&shared->zone_, nullptr, zone, zone + std::strlen(zone));
+    shared->zone_.Assign(zone);
     net::GameServer()->AnnounceToGuests(kServerMessageZone, zone);
 }
 
@@ -1033,7 +1032,7 @@ void GameFlow::SwitchMultiplayerZone() {
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
             auto* announced = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
-            if (Active(announced)) net::GameServer()->AnnounceToGuests(kServerDropClient, announced->zone_.start);
+            if (Active(announced)) net::GameServer()->AnnounceToGuests(kServerDropClient, announced->zone_.data());
             RefPtr& handle = net::GameServer()->hostInfo_;
             if (handle.ptr) {
                 handle.Destroy();
@@ -1074,11 +1073,11 @@ void GameFlow::SwitchMultiplayerZone() {
         AsParty(RequestParty())->Assign(AsParty(&records.party));
     } else {
         auto* host = static_cast<net::HostMessage*>(net::GameClient()->info_);
-        if (Active(host)) AsCString(records.party.zone) = host->zone_.start;
+        if (Active(host)) AsCString(records.party.zone) = host->zone_.data();
         host = static_cast<net::HostMessage*>(net::GameClient()->info_);
         if (Active(host)) {
             state_ = 5;
-            AsCString(requestTarget_) = host->address_.start;
+            AsCString(requestTarget_) = host->address_.data();
             AsParty(RequestParty())->Assign(AsParty(&records.party));
         }
     }
@@ -1128,7 +1127,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     LocalLogin()->host_ = 1;
     const char* shown = name && *name ? name : game::Text(kServerName);
-    StringAssignRangeOriginal(&net::GameServer()->name_, nullptr, shown, shown + std::strlen(shown));
+    net::GameServer()->name_.Assign(shown);
     net::GameServer()->maxPlayers_ = value25E0;
     if (password && *password) net::GameServer()->SetPassword(password);
     net::GameServer()->SetPublic(unlisted == 0);
@@ -1823,8 +1822,6 @@ namespace {
 // 0057DEE0 (RET 4). The flow's party setup step (1 here).
 void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { flow->UseResources(step != 0); }
 
-void AssignText(net::StringRep* field, const char* text) { StringAssignRangeOriginal(field, nullptr, text, text + std::strlen(text)); }
-
 } // namespace
 
 void GameFlow::AfterServerStart() {
@@ -1840,11 +1837,11 @@ void GameFlow::AfterServerStart() {
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->count == 1) {
         const mfc::CString* names = GlobalParty()->records->texts;
-        AssignText(&LocalLogin()->text_, names[5]);
-        AssignText(&LocalLogin()->name_, names[0]);
+        LocalLogin()->text_.Assign(names[5]);
+        LocalLogin()->name_.Assign(names[0]);
     } else {
-        AssignText(&LocalLogin()->text_, game::Text(kDefaultHeroName));
-        AssignText(&LocalLogin()->name_, game::Text(kDefaultPartyName));
+        LocalLogin()->text_.Assign(game::Text(kDefaultHeroName));
+        LocalLogin()->name_.Assign(game::Text(kDefaultPartyName));
     }
     LocalLogin()->state_ = 1;
 }
@@ -1946,7 +1943,7 @@ void GameFlow::UpdateFromServer() {
         FloatTableClearOriginal(variables);
     VariableSet(variables, game::Text(kConstructionVariable), construction);
     if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
-        if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.start);
+        if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.data());
     }
 
     // The game type's construction variable and briefings, at least 1.
@@ -1975,10 +1972,10 @@ void GameFlow::UpdateFromServer() {
     // The briefings the server says were seen.
     for (ZoneNode* node = static_cast<ZoneNode*>(net::GameClient()->zones_)->next;
          node != static_cast<ZoneNode*>(net::GameClient()->zones_); node = node->next)
-        MarkBriefing(node->message->text_.start);
+        MarkBriefing(node->message->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
-        mfc::CString name(NodeRecord(node)->name_.start);
+        mfc::CString name(NodeRecord(node)->name_.data());
         bool quest;
         {
             mfc::CString prefix = name.Left(2);
@@ -2031,7 +2028,7 @@ void GameFlow::UpdateFromServer() {
                     settled = false;
                 }
                 net::VariableMessage* record = NodeRecord(node);
-                VariableSetBits(variables, record->name_.start, ValueBits(record));
+                VariableSetBits(variables, record->name_.data(), ValueBits(record));
             }
         } while (!settled);
         NodeVectorFree(changed.begin(), static_cast<unsigned>(changed.EndOfStorage() - changed.begin()));
@@ -2039,8 +2036,8 @@ void GameFlow::UpdateFromServer() {
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             net::VariableMessage* record = NodeRecord(node);
-            mfc::CString name(record->name_.start);
-            VariableSetBits(variables, record->name_.start, ValueBits(record));
+            mfc::CString name(record->name_.data());
+            VariableSetBits(variables, record->name_.data(), ValueBits(record));
         }
         AppliedStamp() = 0;
     }

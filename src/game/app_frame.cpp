@@ -1,6 +1,6 @@
 // WinMain's frame step (00458010: the interface and the game ticked, the frame drawn and flipped,
 // a screenshot per frame while recording a movie) and the intro movies (00458270: the list read
-// from an .ini file, each played, the screen cleared through the primary surface's Blt). Every
+// from an .ini file, each played, the screen cleared before and after). Every
 // callee is reached through its original address. See docs/notes/app.md.
 #include "dib.h"
 #include "game_strings.h"
@@ -18,8 +18,6 @@
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ini_file.h"
-
-#include <ddraw.h>
 
 #include <cstdint>
 #include <cstring>
@@ -66,22 +64,14 @@ __declspec(naked) void __fastcall IniDestruct(void*) EI_ORIGINAL(0x00695BE0)
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
-// Fills the device object's screen rectangle of the primary surface with black (Blt with
-// DDBLT_COLORFILL | DDBLT_WAIT) under the render lock (taken twice, as the original does); the
-// result goes to the device's lastLoadResult_. Without DirectDraw (`present`, renderer.md section 9)
-// the primary is a holder without a surface: nothing to fill, the result is 0.
+// The original fills the device object's screen rectangle of the primary surface with black (a
+// colour-fill Blt under the render lock, taken twice) and keeps the result in the device's
+// lastLoadResult_. The primary is a holder without a surface (renderer.md section 9): nothing to
+// fill, the result 0.
 void ClearScreen() {
     CTextureDevice* device = RenderDeviceObject();
     gameapi::EnterCriticalSection(RenderLock());
-    CDXSurface* primary = device->primary_;
-    DDBLTFX fx = {};
-    fx.dwSize = sizeof(fx);
-    fx.dwFillColor = 0;
-    gameapi::EnterCriticalSection(RenderLock());
-    auto* surface = static_cast<IDirectDrawSurface7*>(primary->surface);
-    long result = surface ? surface->Blt(&device->screen_, nullptr, nullptr, DDBLT_COLORFILL | DDBLT_WAIT, &fx) : 0;
-    gameapi::LeaveCriticalSection(RenderLock());
-    device->lastLoadResult_ = result;
+    device->lastLoadResult_ = 0;
     gameapi::LeaveCriticalSection(RenderLock());
 }
 

@@ -46,6 +46,18 @@ struct StageState {
     bool hasTexture = false;
 };
 
+// A rectangle of stage 0's texture drawn from another texture (render::TexturePatch), in texture
+// coordinates of stage 0 (wrapped into 0..1): inside `to` the shader samples `texture` at
+// uv * map.xy + map.zw, kept inside `inside` (the source rectangle less half a texel). All zero: none.
+struct StagePatch {
+    sg_view texture{};
+    float to[4] = {};       // u0, v0, u1, v1
+    float map[4] = {};
+    float inside[4] = {};   // u0, v0, u1, v1
+};
+// The patch the texture of `holder` has, as of now (render_textures.cpp).
+StagePatch PatchOf(const void* holder);
+
 // The old device's state for one pass of a mesh draw: what the new renderer needs to draw it the
 // same way. Blend, depth and culling make the pipeline; the rest goes to the shader.
 struct PassState {
@@ -61,6 +73,7 @@ struct PassState {
     std::uint32_t fogColour = 0;                   // D3DCOLOR
     std::uint32_t textureFactor = 0xFFFFFFFF;
     StageState stages[2];
+    StagePatch patch;                              // stage 0's texture's patch, if any
 
     std::uint32_t PipelineKey() const {
         return (blend ? 1u : 0u) | (static_cast<std::uint32_t>(sourceBlend & 15) << 1) |
@@ -98,6 +111,7 @@ struct MeshBatch {
     bool unclipped;           // projected to the screen without clipping by the old path
     float zScale;             // the depth is multiplied by it (1: unchanged)
     bool lines;               // a line list (else triangles)
+    bool model = false;       // a model's mesh (BeginMesh .. MeshPass), not pre-transformed vertices
 };
 
 // A window surface's blit: the image read at the blit, the screen and source rectangles.
@@ -132,6 +146,13 @@ struct Frame {
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<Command> commands;
+    // The world view's commands (render::BeginWorld .. EndWorld): [first, end) into `commands`, the
+    // last range open (end SIZE_MAX) while the world view draws. With the smooth option they are drawn
+    // into the multisampled target and their models sampled anisotropically (render_smooth.cpp).
+    struct Range {
+        std::size_t first, end;
+    };
+    std::vector<Range> worldRanges;
     // The software cursor (render::Cursor) when the new renderer presents itself: drawn last, after
     // the frame without it is kept for the cursor thread (render_cursor.cpp).
     BlitBatch cursor{};
@@ -240,7 +261,8 @@ void RetireBuffers();
 // the last pass of the frame.
 class GeometryStream {
 public:
-    explicit GeometryStream(const char* label) : vertices_(false, label), indices_(true, label) {}
+    // `terrain`: counted as the terrain's uploads (FrameStats), else the meshes'.
+    GeometryStream(const char* label, bool terrain) : vertices_(false, label), indices_(true, label), terrain_(terrain) {}
     bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
     // The vertex and index buffers with the last upload's offsets; false when there is none.
     bool Bind(sg_bindings& b) const;
@@ -248,6 +270,7 @@ public:
 
 private:
     StreamBuffer vertices_, indices_;
+    bool terrain_;
     std::uint32_t frame_ = 0xFFFFFFFFu;
     std::size_t vertexCount_ = 0, indexCount_ = 0;
     int vertexOffset_ = -1, indexOffset_ = -1;
@@ -263,7 +286,8 @@ void DestroyTerrain();
 // The mesh pipelines and draws (render_mesh.cpp).
 bool CreateMeshShader();
 void UploadMeshes(const Frame& frame);
-void DrawMeshBatch(const Frame& frame, const MeshBatch& batch);
+// `anisotropic`: both stages through AnisotropicSampler (a world model with the smooth option).
+void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, bool anisotropic);
 void DestroyMeshes();
 
 // The window surfaces' blits and the depth clear in the middle of the pass (render_blit.cpp).
@@ -285,6 +309,32 @@ bool CursorPicturePart(const void* holder, const void* mask, int maskBytes, cons
 // DestroyBlits, and every image kept across frames (movies, the cursor's and fills' cache): the
 // device is lost.
 void DropBlits();
+
+// The counts of the frame being built (render::FrameStats; summed at Present). StatsTimer adds the
+// CPU time of its scope to one of the stats' fields; a timer inside another's scope takes its time
+// out of the outer one's field (each field counts its own work only).
+FrameStats& Stats();
+class StatsTimer {
+public:
+    explicit StatsTimer(double FrameStats::* field);
+    ~StatsTimer();
+    StatsTimer(const StatsTimer&) = delete;
+    StatsTimer& operator=(const StatsTimer&) = delete;
+
+private:
+    double FrameStats::* field_;
+    long long start_;
+    StatsTimer* outer_;
+};
+// Counts an applied pipeline (a change when it differs from the last one applied in the frame), the
+// bindings with their first texture view, a draw with its uniform bytes.
+void CountPipeline(sg_pipeline pipeline);
+void CountBindings(const sg_bindings& b);
+void CountDraw(std::size_t uniformBytes);
+void CountUpload(FrameStats::Upload kind, std::size_t bytes);
+// Compares `count` vertices handed over for `key` (a terrain page: sector and page; a mesh: its
+// positions, page 0) with the last frame's for the same key (FrameStats::Reuse).
+void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices, std::size_t count);
 
 // Counts of the images the renderer made (sg_make_image) and updated in place (sg_update_image)
 // by purpose, logged in the verify build (render_blit.cpp).
@@ -335,10 +385,11 @@ void KeepFrameForCursor();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
 sg_sampler StageSampler(const StageState& stage);
-// The terrain pages' sampler for `stage` (stage 0 of the page's pass): with linear filters asked
-// for, anisotropic (kTerrainAnisotropy) with linear mips; point filters as the stage says.
-constexpr std::uint32_t kTerrainAnisotropy = 16;
-sg_sampler TerrainSampler(const StageState& stage);
+// The sampler for `stage` with linear filters asked for: anisotropic (kAnisotropy) with linear mips;
+// point filters as the stage says. Always for the terrain pages (stage 0 of the page's pass, R12),
+// with the smooth option for the world's models too (R12a).
+constexpr std::uint32_t kAnisotropy = 16;
+sg_sampler AnisotropicSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a
 // long time dropped.
 void RetireTextures();
@@ -364,5 +415,26 @@ private:
 // Pixel formats of the off-screen pass (render.cpp).
 constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;
 constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
+
+// The smooth option's multisampling (render_smooth.cpp; render.cpp draws the frame's world commands
+// into a multisampled target and resolves it into the frame target, docs/notes/renderer.md section 11).
+// The sample count of the pass being drawn (1, or the multisampled target's): every pipeline drawing
+// into the frame is made for it.
+int PassSampleCount();
+// The most samples up to kSmoothSamples the device renders kColourFormat and kDepthFormat with (1:
+// none).
+constexpr int kSmoothSamples = 8;
+int SupportedSamples(ID3D11Device* device);
+// The two copies below made for a multisampled target of `samples`; false (logged) when they could
+// not be: the world is then drawn without multisampling.
+bool PrepareSmoothCopies(int samples);
+// Inside a pass on the multisampled target: the frame target's colour and depth (texture views of
+// the single-sampled images) copied into every sample.
+void CopyIntoMultisampled(sg_view colour, sg_view depth);
+// Inside a pass on the frame target: its depth set to sample 0 of the multisampled depth (a texture
+// view of it); the colour comes from the multisampled pass's resolve.
+void CopyDepthFromMultisampled(sg_view depth);
+// The copies' shaders and pipelines, before sg_shutdown.
+void DestroySmooth();
 
 } // namespace render::detail

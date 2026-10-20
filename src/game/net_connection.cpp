@@ -46,30 +46,18 @@ __declspec(naked) HeaderNode** __fastcall HeaderIteratorCopy(HeaderNode** /*it*/
 __declspec(naked) HistoryNode** __fastcall ListIteratorDecrement(HistoryNode** /*it*/) EI_ORIGINAL(0x00439A60)
 // Red-black trees: find / lower_bound, insert with a hint, erase by key,
 // operator[].
-__declspec(naked) RecordMap::Node** __fastcall RecordsFind(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
-                                                           const std::int32_t* /*key*/) EI_ORIGINAL(0x0043CE70)
-__declspec(naked) RecordMap::Node** __fastcall RecordsLowerBound(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
-                                                                 const std::int32_t* /*key*/) EI_ORIGINAL(0x00439AA0)
 __declspec(naked) RecordMap::Node** __fastcall RecordsIteratorCopy(RecordMap::Node** /*it*/, void*, RecordMap::Node* const* /*from*/) EI_ORIGINAL(0x00439B70)
 __declspec(naked) RecordMap::Node** __fastcall RecordsInsertHint(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
                                                                  RecordMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439A70)
-__declspec(naked) AttachedMap::Node** __fastcall AttachedLowerBound(AttachedMap* /*tree*/, void*, AttachedMap::Node** /*out*/,
-                                                                    CRefObject* const* /*key*/) EI_ORIGINAL(0x0043D3E0)
 __declspec(naked) AttachedMap::Node** __fastcall AttachedIteratorCopy(AttachedMap::Node** /*it*/, void*, AttachedMap::Node* const* /*from*/) EI_ORIGINAL(0x00439C40)
 __declspec(naked) AttachedMap::Node** __fastcall AttachedInsertHint(AttachedMap* /*tree*/, void*, AttachedMap::Node** /*out*/,
                                                                     AttachedMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439B80)
-__declspec(naked) std::uint32_t __fastcall ByObjectErase(ObjectMap* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x0043C3B0)
 __declspec(naked) RefPtr* __fastcall BySentIdAt(SentIdMap* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00437B90)
 // The object references' lookups: find in byObject_, attached_ and bySentId_; operator[] of
 // records_ (returns the mapped Record) and of attached_ (returns the mapped AttachedId); operator[]
 // of the type registry's factory table.
-__declspec(naked) ObjectMap::Node** __fastcall ByObjectFind(ObjectMap* /*tree*/, void*, ObjectMap::Node** /*out*/,
-                                                            CRefObject* const* /*key*/) EI_ORIGINAL(0x0043C450)
-__declspec(naked) AttachedMap::Node** __fastcall AttachedFind(AttachedMap* /*tree*/, void*, AttachedMap::Node** /*out*/,
-                                                              CRefObject* const* /*key*/) EI_ORIGINAL(0x0043D380)
 __declspec(naked) SentIdMap::Node** __fastcall BySentIdFind(SentIdMap* /*tree*/, void*, SentIdMap::Node** /*out*/,
                                                             const std::int32_t* /*key*/) EI_ORIGINAL(0x0043BF00)
-__declspec(naked) Record* __fastcall RecordsAt(RecordMap* /*tree*/, void*, const std::int32_t* /*key*/) EI_ORIGINAL(0x004382A0)
 __declspec(naked) MessageFactory* __fastcall FactoryAt(TypeRegistry::ByType* /*table*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00439EA0)
 // vector<int> of received sequences: insert when full.
 __declspec(naked) void __fastcall ReceivedInsertOverflow(std::int32_t** /*vector*/, void*, std::int32_t* /*pos*/, const void* /*value*/,
@@ -84,15 +72,11 @@ __declspec(naked) ObjectMap::Node** __fastcall ByObjectLowerBound(ObjectMap* /*t
 __declspec(naked) ObjectMap::Node** __fastcall ByObjectIteratorCopy(ObjectMap::Node** /*it*/, void*, ObjectMap::Node* const* /*from*/) EI_ORIGINAL(0x00437D60)
 __declspec(naked) ObjectMap::Node** __fastcall ByObjectInsertHint(ObjectMap* /*tree*/, void*, ObjectMap::Node** /*out*/,
                                                                   ObjectMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439540)
-__declspec(naked) void __fastcall ByObjectEraseAt(ObjectMap* /*tree*/, void*, ObjectMap::Node* /*position*/) EI_ORIGINAL(0x00437D40)
 __declspec(naked) void* __fastcall ByObjectMakePair(void* /*pair*/, void*, Message* const* /*key*/, const RefPtr* /*value*/) EI_ORIGINAL(0x0043A050)
-__declspec(naked) EntryMap::Node** __fastcall PriorityLowerBound(EntryMap* /*tree*/, void*, EntryMap::Node** /*out*/,
-                                                                 ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043CA00)
 __declspec(naked) EntryMap::Node** __fastcall PriorityIteratorCopy(EntryMap::Node** /*it*/, void*, EntryMap::Node* const* /*from*/) EI_ORIGINAL(0x00437F10)
 __declspec(naked) EntryMap::Node** __fastcall PriorityInsertHint(EntryMap* /*tree*/, void*, EntryMap::Node** /*out*/,
                                                                  EntryMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439730)
 __declspec(naked) void* __fastcall PriorityMakePair(void* /*pair*/, void*, ReplicaEntry* const* /*key*/, const RefPtr* /*value*/) EI_ORIGINAL(0x0043A070)
-__declspec(naked) std::uint32_t __fastcall PriorityErase(EntryMap* /*tree*/, void*, ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043C900)
 // 0041DD50: a RefPtr from a raw pointer, adding a reference.
 // The static vector of 004346D0: constructor, erase of a range, introsort loop and final insertion
 // sort by object, atexit.
@@ -164,7 +148,7 @@ RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::in
 // The node for `key` in `records`, inserted when missing (the lower_bound + hinted insert idiom).
 RecordMap::Node* RecordAt(RecordMap& records, std::int32_t key) {
     RecordMap::Node* lb;
-    RecordsLowerBound(&records, nullptr, &lb, &key);
+    trees::Records::LowerBound(&records, nullptr, &lb, &key);
     if (lb == records.end() || key < lb->first) lb = InsertRecord(records, lb, key);
     return lb;
 }
@@ -278,7 +262,7 @@ EI_REPLACE_METHOD(0x00433F20, Connection::RollBack);
 
 void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
     AttachedMap::Node* lb;
-    AttachedLowerBound(&attached_, nullptr, &lb, &object);
+    trees::Attached::LowerBound(&attached_, nullptr, &lb, &object);
     if (lb == attached_.end() || reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
         struct {
             CRefObject* key;
@@ -362,7 +346,7 @@ bool Connection::SendUpdate(int budget) {
                 }
                 if (entry->object_.ptr) {
                     CRefObject* key = entry->object_.ptr;
-                    ByObjectErase(&byObject_, nullptr, &key);
+                    trees::Objects::EraseKey(&byObject_, nullptr, &key);
                     entry->object_.Assign(nullptr);
                     entry->version_ = 0;
                 }
@@ -429,7 +413,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     cursor->ReadBytes(&id, 2);
     std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
     RecordMap::Node* found;
-    RecordsFind(&records_, nullptr, &found, &key);
+    trees::Records::Find(&records_, nullptr, &found, &key);
     SessionBase* session = CurrentSession();
 
     if (!created) {
@@ -549,7 +533,7 @@ void Connection::Track(Replicated* item) {
 
     EntryMap& map = priorities_[static_cast<std::int8_t>(item->priority)];
     EntryMap::Node* lb2;
-    PriorityLowerBound(&map, nullptr, &lb2, &entry);
+    trees::Entries::LowerBound(&map, nullptr, &lb2, &entry);
     if (lb2 == map.end() || reinterpret_cast<std::uintptr_t>(entry) < reinterpret_cast<std::uintptr_t>(lb2->first)) {
         RefPtr none;
         ::RefPtrNull(&none);
@@ -623,14 +607,14 @@ void Connection::CollectChanges() {
                 Increment(node);
                 entry = entryAt(gone);
                 if (entry->id_ == 0) {
-                    PriorityErase(&priorities_[entry->flags_ >> 1], nullptr, &entry);
+                    trees::Entries::EraseKey(&priorities_[entry->flags_ >> 1], nullptr, &entry);
                 } else {
                     CRefObject* old = entry->object_.ptr;
                     entry->object_.ptr = nullptr;
                     if (old) old->Release();
                     entry->version_ = 0;
                 }
-                ByObjectEraseAt(&byObject_, nullptr, gone);
+                trees::Objects::EraseAt(&byObject_, nullptr, gone);
             }
         } while (item != end);
     }
@@ -639,12 +623,12 @@ void Connection::CollectChanges() {
         Increment(node);
         ReplicaEntry* entry = entryAt(gone);
         if (entry->id_ == 0) {
-            PriorityErase(&priorities_[entry->flags_ >> 1], nullptr, &entry);
+            trees::Entries::EraseKey(&priorities_[entry->flags_ >> 1], nullptr, &entry);
         } else {
             entry->object_.Assign(nullptr);
             entry->version_ = 0;
         }
-        ByObjectEraseAt(&byObject_, nullptr, gone);
+        trees::Objects::EraseAt(&byObject_, nullptr, gone);
     }
 }
 EI_REPLACE_METHOD(0x004346D0, Connection::CollectChanges);
@@ -688,7 +672,7 @@ bool Usable(const CRefObject* object) { return object && !(object->flags7_ & CRe
 void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     if (Usable(object)) {
         ObjectMap::Node* found;
-        ByObjectFind(&byObject_, nullptr, &found, &object);
+        trees::Objects::Find(&byObject_, nullptr, &found, &object);
         if (found != byObject_.end()) {
             auto* entry = static_cast<ReplicaEntry*>(found->second.ptr);
             if (entry->id_ == 0) {
@@ -704,7 +688,7 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
             return;
         }
         AttachedMap::Node* node;
-        AttachedFind(&attached_, nullptr, &node, &object);
+        trees::Attached::Find(&attached_, nullptr, &node, &object);
         if (node != attached_.end()) {
             std::uint16_t id = node->second.id;
             std::uint8_t type = node->second.type;
@@ -739,9 +723,9 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
         return static_cast<ReplicaEntry*>(node->second.ptr)->object_.ptr;
     }
     RecordMap::Node* found;
-    RecordsFind(&records_, nullptr, &found, &key);
+    trees::Records::Find(&records_, nullptr, &found, &key);
     if (found == records_.end()) {
-        Record* record = RecordsAt(&records_, nullptr, &key);
+        Record* record = trees::Records::Subscript(&records_, nullptr, &key);
         CRefObject* object = CurrentSession()->types_.Create(type & 0xFF);
         if (!object) return nullptr;
         if (object != record->object.ptr) {
@@ -840,10 +824,9 @@ bool Connection::Accept(std::uint32_t sequence) {
     for (std::int32_t* it = received_; it != receivedEnd_; ++it) {
         if (*it == static_cast<std::int32_t>(sequence)) {
             if (NetLog()) {
-                StringRep peer;
-                const char* text = address_.ToString(&peer)->start;
+                stlp::string peer;
+                const char* text = address_.ToString(&peer)->data();
                 NetLog()->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
-                if (peer.start) stlp::deallocate(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
             }
             return false;
         }

@@ -389,8 +389,8 @@ int CSceneRenderer::DrawSpritesImpl(char additive, const void* pointArray, const
     EnsureStatics();
     Unused().SetSizeDiscard(0x200);
     Corners().SetSizeDiscard(0x2000);
-    ByteArraySetSizeOriginal(&Outcodes(), nullptr, 0x800, -1);
-    WordArraySetSizeOriginal(&Indices(), nullptr, 0x3000, -1);
+    Outcodes().SetSize(0x800, -1);
+    Indices().SetSize(0x3000, -1);
     std::uint32_t view[16];
     TransposedTop(pipeline, view);
 

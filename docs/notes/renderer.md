@@ -37,9 +37,9 @@ start the renderer (no Direct3D 11 device).") and WinMain ends the game.
 panic, a lost device not made again: R9c1). Every `render::` entry point checks it itself, so game code does not ask.
 In game.exe (the harness and the vector recorders run inside the original's process) it is false: captures there read
 the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options; the harness build's `removable` (R9c5) is the only one; `new`, `present` and
-`cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted and change nothing; any other
-word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
+comma-separated list of options: `smooth` (the smooth option, R12a, section 11) and the harness build's `removable`
+(R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
+and change nothing; any other word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
 
@@ -162,8 +162,8 @@ and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C i
 
 **Memory** (owned by the new renderer): `render::NewSurfaceMemory / SurfaceMemoryOf / FreeSurfaceMemory / HolderGone`
 (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
-size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, `ClientPixels`,
-`DirectPixels` in `dx_surface.h`) and read by the renderer after GdiFlush; the renderer reads no DirectDraw surface.
+size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, and `DirectPixels`, which
+describes it as a `SurfacePixels`, in `dx_surface.h`) and read by the renderer after GdiFlush.
 Change detection: the renderer keeps a copy of the memory each window texture was made from and converts again only
 when it differs (a memcmp at each blit).
 
@@ -197,8 +197,7 @@ lock held, the 24-bit clear ignoring the pitch, ...) are in the functions' comme
 0068F6C0): objects_[1] filled by 00656E10 (ShowPicture: the selected save's shot.sav) and +0x184 (the new save's
 picture) filled by 00655D40 (FillEntries, from the escape menu's 256x192 copy, interface +0x5C) and written to shot.sav
 by 00655550 (SaveGame; the autosave 006570E0 writes it from a window surface). 00656464 is not a function (inside
-00655D40; a false vtable entry 0074718C). Build (00653DD0) and FillEntries give each texture's holder
-memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C).
+00655D40; a false vtable entry 0074718C). Both textures have the renderer's memory from 00691D80.
 The new folder is "save<n>", n one more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid). Checked by scenario ui_saveload. The SavesPath Rebirth patch
 is disabled in this install and not reproduced.
 
@@ -221,7 +220,7 @@ its decoded copy. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 ar
 | 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read); the holder is `NewMemoryTextureHolder`, one level (the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
 | 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the device's 5650 / 5551 / 4444 (missing: FatalError "Can't find texture format %d."); its texture through 0068F6C0 |
 | 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface` (`texture_shadow.cpp`) | 64x64 4:4:4:4 shadow texture and the shared render surface (manager +0xE0) |
-| 00690FC0 `LockPixels`, 00691030 `UnlockPixels`; 0051CE60's copy -> `CTexture::LoadPixelsFrom` | device lock held between the two; the holder is described from its memory (`ClientPixels`); the shadow texture is filled from the render surface on the CPU |
+| 00690FC0 `LockPixels`, 00691030 `UnlockPixels`; 0051CE60's copy -> `CTexture::LoadPixelsFrom` | device lock held between the two; the holder is described from its memory (`DirectPixels`); the shadow texture is filled from the render surface on the CPU |
 | 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
 | 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0); not reached (no .bmp in the installs); loops over the width then the height (a non-square .bmp overruns the surface) |
 | 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
@@ -237,12 +236,20 @@ Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from th
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
 figure textures); writers 005FFFB0 CopyImage, 005EC020, the global map's weather 0062F050 (00499F10 draws into the
 memory) and the save / load three all use `DirectPixels`. The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
-one) pass the holder's null surface to SetTexture (the old device draws nothing in the switch-over; the renderer reads
-the bound holder, device +0x12C). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
+one) pass null to SetTexture (the old device draws nothing in the switch-over; the renderer reads the bound holder,
+device +0x12C). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
 texture and window entries); `TexturePixels` ignores a holder with memory.
 
-Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload. Dead / not functions: 00693DE0,
+Texture patches (R11d): `render::TexturePatch(target, to, source, from)` records that a rectangle of one holder's
+texture shows a rectangle of another's (first-level texels, one per target, gone with either holder). `ReadPassState`
+gives stage 0's patch to the batch (`PassState::patch`), and the mesh shader samples the source (`tex2`, stage 0's
+sampler; coordinates kept half a texel inside its rectangle) where the wrapped stage-0 coordinates fall in the target
+rectangle; the target texture is not changed. The unit's face (00533980, the blink: the original blits into the skin
+down the mip chain) is its only user; check `render_blink` (frames of the hero's portrait with the mouth open, closed,
+open again; the original's run the same).
+
+Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload, render_blink. Dead / not functions: 00693DE0,
 0068F860 (reached only from unreferenced 00691D50),
 004EAFD0 (inside 004EA4A0's range).
 
@@ -301,13 +308,11 @@ come first, then what holds for the present path (the subsection names are cited
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
   the global map's clouds on the GPU.
-- **DirectDraw left after R11b** (R11c): R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only
-  ports no code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows,
-  so re-add them after a regeneration). Still there: the COM stand-ins and device.h's wrappers (R9b2), the render
-  target's DirectDraw surface tests (app_frame.cpp, surface_capture.cpp, unit_client_blink.cpp,
-  renderer_lifetime.cpp: always the no-surface branch), `device::Surface` in the binds and draws (always null), the
-  DirectDraw-description layout of the `DirectPixels` desc, and `GivePictureMemory` / `AttachTextureMemory`
-  (ui_saveload.cpp: the textures already have memory).
+- **DirectDraw left after R11c**: R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only ports no
+  code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
+  them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
+  the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). `CDXSurface::surface` (+0x10) stays, always null.
+  Left: the COM stand-ins and device.h's wrappers (R9b2). R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
@@ -355,7 +360,7 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   sized to its client area (`ResizeBuffers` when it changes; the hook makes the process system DPI aware at WinMain so
   that rectangle is in physical pixels), stretched over it, `Present(1, 0)`. The movie players and the loading screen
   go through 004EF610 as before.
-- Guarded for surfaceless holders: `device::SameSurface` (both without a surface: the same only when one holder) in
+- Guarded for surfaceless holders: `device::SameSurface` (the same only when one holder) in
   005FDA80 (window blits: otherwise every window was skipped), the three movie players' "not the primary itself"
   checks and CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once; 00458270's screen
   clears with no primary do nothing (app_frame.cpp, result 0). The movie holders (`bink_video.cpp` `NewMovieHolder`):
@@ -522,8 +527,8 @@ after a movie or a load the cursor thread's clock stands still until the main th
 
 ### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame
 
-`surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): a holder without a DirectDraw surface (the
-switch-over's render target and primary) gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
+`surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): the holder (the render target or the primary)
+gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
 before the gamma ramp and the present's cursor): a CDib of the rectangle's size in the holder's depth with the channel
 masks `device::ScreenFormat` gives, rows bottom-up, the part outside the frame black. No frame yet: no bitmap (logged
 once). The callers are unchanged, so the file names (`shot%.4d.bmp` from counter 007C7E24 for Scroll Lock; the
@@ -592,8 +597,8 @@ resolution must have the machine to themselves and serialised the suites.
   alpha (texture for ground, vertex colour for water) and always adds the specular colour (DrawSectorPage turns
   SPECULARENABLE on around each of its draws, after the hand-over). The harness build logs each new terrain pipeline's
   state ("render: terrain pipeline (first for a ground page): ..."). `--widescreen` matches addon's frames with it.
-- **Terrain sampling (R12)**: the pages are sampled anisotropically (16x) with linear mips (`TerrainSampler`,
-  render_textures.cpp; logged once) when stage 0 asks for linear filters (the options' Filtering 1 / 2; point filters
+- **Terrain sampling (R12)**: the pages are sampled anisotropically (16x) with linear mips (`AnisotropicSampler`,
+  render_textures.cpp; logged once per sampler) when stage 0 asks for linear filters (the options' Filtering 1 / 2; point filters
   stay point, Mipmapping 0 keeps level 0). The game asks for D3DTFP_POINT mips: through them whole terrain
   triangles snapped to the next level (a triangle's level follows its texture-coordinate slopes, which change from
   tile to tile) and the sharpness jumped along the tiles' edges: the seams the user saw moving with the camera. The
@@ -614,6 +619,37 @@ resolution must have the machine to themselves and serialised the suites.
   channel. The file's own mips reach 52 (1-bit alpha small levels); the overflowing offsets gave 128 / 149 (vanilla /
   Rebirth); limit 80. Against the harness original's `far` frame, the tree crowns (2750, 550)-(3250, 950) at
   3840 x 2160: 1.30% of the pixels differed (tolerance 8, shift 1; largest 150) before, 0.24% after (leaf edges).
+
+- **The smooth option (R12a)**, user's decision 2026-10-20: off by default; on, the image draws as the user's
+  Rebirth dgVoodoo setup (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x) except for the interface. One
+  switch: `smooth` in EI_RENDER (read once, at the first use: the harness's `render` step or the environment), or
+  `render::SetSmooth` (from the next frame; ST2's options screen can call it, ST1 keep it in the settings file);
+  `render::Smooth()` reads it. Goldens and frame checks run with it off.
+  - The world view (`CWorldClient::Render` 00569E40 between `render::BeginWorld` / `EndWorld`: sky, terrain,
+    objects, shadows, water, effects, flying hit points) is a range of the frame's commands (`Frame::worldRanges`).
+    Its models (`MeshBatch::model`: BeginMesh draws, not the pre-transformed ones) take `AnisotropicSampler` for both
+    stages (point filters stay point, Mipmapping 0 keeps level 0); the interface's sprites and previews keep
+    `StageSampler`.
+  - The world's runs of commands draw into a multisampled colour and depth target of 8 samples (`kSmoothSamples`;
+    fewer when `CheckMultisampleQualityLevels` refuses 8 for RGBA8 or D32, none when the target cannot be made: logged),
+    and each such pass resolves into the frame target (sokol's resolve attachment) at its end; the other runs draw
+    into the frame target as without the option, so the interface's edges and window surfaces are unchanged (a 3D
+    draw's edges run through pixel centres, D3D7's convention: multisampled, every sprite would get half-covered
+    border pixels). Between runs (render_smooth.cpp): after a world run the frame target's depth is set from sample 0
+    of the multisampled depth; before a world run that follows other draws the frame target's colour and depth go
+    into every sample (a pass of its own: the resolve's destination cannot be read in the pass that resolves into
+    it). The frame target is what every reader takes (the present, the cursor thread's copy, `ReadFrame`,
+    `CopyFrameTo`, the gamma ramp check), always resolved: a pass ends with the resolve, and a copy between frames
+    (R13) finds the last frame there.
+  - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`; mesh and
+    terrain pipelines keyed by it, the blit and depth clear made for it at first use): sokol's validation skips a
+    draw whose pipeline's count differs from the pass's. A change of the option remakes the targets at a frame's
+    first pass.
+  - Check (scenario `render_smooth`, image only, vanilla and Rebirth): on from the start; in zone1 at one frozen
+    moment the frame with the option, without it (`smooth off`) and with it again (`smooth on`): the two with it
+    match (samecapture); `smoothcheck plain smooth 0.002 0.2` requires the option on, the world multisampled with the
+    device's samples (8 here) in the last frame, anisotropic world models, and the frames to differ in 0.2% .. 20% of
+    the pixels (a black or stale frame fails); the quick save's picture (`checksave`, R13) matches the smooth frame.
 
 ### Frame capture
 
@@ -683,3 +719,103 @@ a record it has just erased (reads freed nodes, so its walk over more than one r
 texture operation against the capability bits with `&` (operation number, not its bit); 004E7E00 appends indices and
 copies one index more than asked. Different in ours: a throw from the constructors does not free what was built; the
 driver record's unset GUID and monitor bytes are zeroed; fields the original leaves as stack contents are zero.
+
+## 13. R16: what a frame costs, and the plan to draw from GPU-resident data
+
+User's direction (2026-10-20): stop matching the old renderer's calls; composite in shaders, keep data on the GPU,
+re-upload only what changed. R11d's blink (`render::TexturePatch`: a shader patch instead of a texel copy) is the
+pattern.
+
+**Measuring.** `render::FrameStats` (render.h) counts per presented frame: the hand-over (terrain pages and batches,
+meshes and passes, flat geometry, pre-transformed draws, blits, depth clears, state reads, matrices), bytes appended to
+the vertex / index streams, uniform bytes, passes, draws, pipeline and first-texture changes, images made per kind
+(.mmp, CPU pixels, memory textures, window surfaces, movie, small) with their bytes, and the renderer memory compared
+with snapshots. The harness build adds the CPU time (hand-over, texture work, EndFrame; a nested timer's time counts
+only for its own field) and each terrain page's / mesh's vertices against the last frame's (same; only colours
+changed = relit; positions or texture coordinates changed = moved; new), plus the meshes whose geometry equals
+another's in the frame. The harness step `renderstats <label>|-` logs the averages since the last one into the report;
+scenario `render_stats` (image only) measures the main menu, zone1, a fight of twelve creatures (GodMode hero), the
+camp, the base bz1g (a town), the global map and its escape menu. `EI_PROFILE=1` gives the game side
+(tools/profile_report.py). RenderDoc was not needed: the counters see the hand-over, which a capture does not.
+
+Per frame, vanilla, 3840 x 2160 (the harness's desktop size; Rebirth's runs are within a few percent; times from a run
+without the profiler):
+
+| Scene | terrain pages: same / relit / moved | meshes (flat) | draws | pipeline / texture changes | upload KB: terrain / meshes | images made again | memory compared | CPU ms: hand-over / textures / EndFrame |
+|---|---|---|---|---|---|---|---|---|
+| menu (3D scene) | 15: 8 / 4 / 2 | 166 (12) | 174 | 8 / 32 | 268 / 546 | 2.3 shadows | 5.6 MB | 0.46 / 0.87 / 0.46 |
+| zone1 | 54: 28 / 15 / 5 | 145 (13) | 165 | 12 / 50 | 808 / 277 | 3.9 shadows | 4.7 MB | 0.61 / 0.93 / 0.51 |
+| fight | 54: 28 / 15 / 5 | 350 (32) | 370 | 12 / 57 | 808 / 500 | 11.2 shadows | 4.7 MB | 0.67 / 2.48 / 0.83 |
+| town (bz1g) | 49: 28 / 13 / 3 | 135 (27, 344 KB) | 151 | 8 / 59 | 372 / 2310 | 14.5 shadows | 0.2 MB | 1.64 / 2.47 / 0.93 |
+| camp | 0 | 95 | 118 | 6 / 27 | 0 / 76 | a 4 MB window surface every 15 frames | 12.3 MB | 0.12 / 2.36 / 0.42 |
+| global map | 0 | 23 | 25 | 2 / 7 | 0 / 181 | its 341 KB map texture every frame | 0.6 MB | 0.16 / 1.16 / 0.22 |
+| escape menu | 0 | 12 | 14 | 3 / 4 | 0 / 105 | none | 32.4 MB | 0.05 / 2.94 / 0.12 |
+
+Meshes against the last frame: zone1 112 same / 22 relit / 11 moved, fight 131 / 199 / 19 (132 share another mesh's
+geometry), town 52 / 60 / 23. A shadow texture is 64 x 64 with mips (21 KB). Game side (profile, zone1, about 13 ms a
+harness frame): terrain lighting (`SectorData::Light` / `ShadeSun`) about 16%, object shadows (`DrawShadow`: CPU raster
+and decal projection) 10-17%, the renderer's `MemoryChanged` 5%.
+
+What the numbers say: draws (14-372) and state changes (2-13 pipelines, 4-66 textures) are cheap; the cost is CPU work
+around the GPU: comparing and converting the renderer's memory (window surfaces compared at every blit: up to 32 MB a
+frame at 4K), shadow textures made again as new images (4-15 a frame), and every vertex built and streamed again each
+frame though most of it did not change (0.5-2.7 MB a frame).
+
+**Plan**, by value for effort (tickets R16a-R16i, renderer group). Frame checks compare A/B frames of one frozen moment
+in one run (a switch between the old and the new path; `samecapture`, tools/compare_frames.py) with a tolerance, never
+across runs; the goldens check the game state.
+
+1. **R16a Window surfaces by change marks, partial uploads.** Replaces the memcmp of every shown surface at every blit
+   and whole-surface uploads with marks set where the game writes the memory (DC release 005FDC60, the pixel code,
+   SwapContents / Freeze, CopyFrameTo, greyscale; N0's census lists the writers) and an upload of the changed rectangle.
+   Gain: 1-3 ms CPU a frame on interface screens, about 0.9 ms in the world, at 4K. Risk: a writer without a mark shows
+   stale pixels; the harness build keeps the memcmp as a check that logs and fails. Check: ui_* and render_* captures
+   at 8 / 0.1% (the pixels are the same, so 0 expected). The native interface (ui-native.md, P1-P8) later removes the
+   surfaces; this is the step that pays now.
+2. **R16b Shadow and memory textures updated in place.** The shadow textures (0051CE60 marks the changed one,
+   `TextureChanged`) go into one texture array of 64 x 64 slices updated with UpdateSubresource, mips made on the GPU;
+   other memory textures (the global map's 341 KB one) are updated in place instead of made again. Gain: 4-15 image and
+   view creations a frame to none, 0.5-1.5 ms CPU in fights and towns. Risk: low (slice reuse when objects go). Check:
+   render_scene, render_options_shadows, ui_global_map_pick frames at 8 / 0.5% (GPU mips differ slightly).
+3. **R16c Terrain pages resident on the GPU.** Per sector page, level of detail and seam variant: positions and texture
+   coordinates in static buffers made when the page first draws, kept until the sector's tile lists, LOD or seams
+   change; the lit colours (8 of 28 bytes a vertex) in their own stream, uploaded only for pages relit (the
+   LightingFreq countdown). Gain: terrain upload 0.8 MB to under 0.1 MB a frame, most of TerrainPage's 0.3-0.5 ms.
+   Risk: a missed invalidation (water levels, seams); the harness build compares a cached page with a fresh build every
+   N frames. Check: render_scene, render_terrain_seams, render_smooth with the cache on / off at 8 / 0.1% (0 expected).
+4. **R16d Meshes resident on the GPU.** Model-space corners (positions, texture coordinates) kept per mesh, the colours
+   streamed: map objects, the sky and interface sprites never upload again; figures upload colours when relit and
+   positions only when their frame changed. Needs a cheap change signal from the game (the figure's animation frame,
+   the object's lighting stamp) instead of hashing. Gain: mesh upload 0.3-2.3 MB to tens of KB a frame, the Build copy.
+   Risk: data the game changes in place without a signal; the harness build compares. Check: render_scene, models,
+   units, render_blink at 8 / 0.1%.
+5. **R16e Ground decals on the GPU.** Footprints, blood, object shadows, selection markers, light pools and spell marks
+   are projected on the CPU (ProjectDecal 0056C750) into flat meshes every frame (12-32 a frame, up to 344 KB in the
+   town); instead a box per decal projects onto the depth of the ground and platforms in a shader (the game keeps its
+   lists, lifetimes and textures; the shadow textures from R16b). Gain: the CPU projection and clipping and the flat
+   uploads; all decals in one instanced draw. Risk: the look changes at steep slopes, platform edges and under water;
+   draw order (after ground and platforms, before figures). Check: ground_prints, render_scene, effects frames at
+   16 / 2% plus a side-by-side (frame_preview.py) for the user.
+6. **R16f The present without a frame copy.** Every frame is copied whole for the cursor thread (33 MB of GPU traffic
+   at 4K) before the cursor is drawn into it; drawing the cursor and the gamma ramp in the present pass keeps the frame
+   clean for the cursor thread. Gain: GPU bandwidth only. Risk: low. Check: render_cursor_present, render_present,
+   render_present_shot (cursorcheck's own comparisons, 0 differences).
+7. **R16g Per-draw records and instancing.** After R16c / R16d the per-frame data is matrices, colours and pass state:
+   one ring buffer of per-draw records (matrix, fog, stage operations) read by index replaces apply_uniforms per draw;
+   meshes with the same geometry and state (132 of 350 in the fight: creatures of one kind; trees) draw instanced,
+   their textures from texture arrays where sizes match; materials read from the game's data instead of the stand-in
+   device's state. Particles: the scenes measured have 0-3 pre-transformed draws, so they follow only if a spell-heavy
+   scene (spells_cast) shows otherwise. Gain: small now (draws are few), grows with unit counts and wider views. Check:
+   render_scene, units at 8 / 0.1%.
+8. **R16h Figure animation on the GPU.** The game morphs the figure parts' positions on the CPU every frame; key frames
+   on the GPU and the blend in the vertex shader remove the moved meshes' uploads and the CPU morph. The game keeps its
+   bounds for picking and culling on the CPU. Risk: float differences against the CPU blend; picking. Check: models,
+   units at 8 / 0.5%; the goldens (picking).
+9. **R16i GPU lighting and shadows (later: it changes the look and waits for the user).** Sun and point lights per pixel
+   and shadow maps (or GPU-drawn shadow textures) instead of the terrain lit per vertex (about 2 ms a frame on the
+   CPU), figures lit per draw (3DfpFPU slots 39-44) and 64 x 64 CPU-rasterised object shadows; the game's vertex
+   colours stay as the fallback behind an option. Check: the user's review of side-by-side frames; with the option off
+   the frames match today's at 8 / 0.1%.
+
+Not worth a ticket now: pipeline and texture-binding changes (2-13 / 4-66 a frame) and the state reads per pass (part
+of the 0.5-1.6 ms hand-over).

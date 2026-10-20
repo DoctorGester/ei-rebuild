@@ -3,6 +3,7 @@
 // docs/notes/world.md.
 #include "map_spec.h"
 #include "world.h"
+#include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"
 
 #include "chunk_stream.h"
@@ -211,7 +212,7 @@ void CWorldServer::ClearMapObjects() {
         ObjectHolderDelete(reinterpret_cast<CEngineObject**>(&node->data), nullptr, 0);   // 0059DDB0
     counted_.RemoveAll();
 
-    TweenArrayRemoveAllOriginal(countdowns_);
+    countdowns_.RemoveAll();
 
     pending.vtable = ObjectPtrListVtable();
     pending.RemoveAll();   // 00570470 (the list destructor's body)

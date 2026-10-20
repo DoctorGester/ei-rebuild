@@ -120,7 +120,7 @@ int CPlayerServer::OnPause() {
             return 1;
         auto* record = static_cast<net::LoginMessage*>(server->FindPlayer(leader));
         if (record && !(record->flags7_ & CRefCounted::kDetached) && mode != 3)
-            server->AnnounceText(kTextPause, record->name_.start, nullptr);
+            server->AnnounceText(kTextPause, record->name_.data(), nullptr);
     }
     static_cast<CWorldServer*>(Owner()->ManagerContext())->SetServerPaused(pause != 0 ? 1 : 0);
     return 1;

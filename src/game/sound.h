@@ -41,7 +41,7 @@ static_assert(sizeof(SoundFader) == 0x1C);
 
 // One of the 15 Miles sample voices (array at CSoundManager + 0x24C, 0x54 bytes each).
 struct SoundSlot {
-    std::uint32_t name[3];      // +0x00 STLport string (start, finish, end of storage): the wave name
+    stlp::string name;          // +0x00 the wave name
     void* sample;               // +0x0C HSAMPLE
     std::int32_t volume;        // +0x10 Miles volume 0..127
     std::int32_t baseVolume;    // +0x14 2D sounds: volume 0..100
@@ -67,7 +67,7 @@ static_assert(offsetof(SoundSlot, finished) == 0x30 && offsetof(SoundSlot, handl
 // A sound that lost its voice to a higher priority one and waits to be restarted (0x48 bytes,
 // allocated with operator new and kept in the hash map at CSoundManager + 0x884, keyed by handle).
 struct DeferredSound {
-    std::uint32_t name[3];      // +0x00 STLport string
+    stlp::string name;          // +0x00
     std::int32_t volume;        // +0x0C
     std::int32_t baseVolume;    // +0x10
     std::int32_t pan;           // +0x14
@@ -143,9 +143,11 @@ static_assert(sizeof(DeferredMap) == 0x14);
 
 // The wave cache (006B89F0): a list of loaded waves, most recently used first, and a hash_map from
 // the wave name to its list node (CSoundManager + 0x870).
+// The name stays raw words: the record is copied bitwise by the cache list (CList with raw
+// elements, RemoveHead by value) and its name built and freed by hand; Name() is the string.
 struct WaveRecord {
     void* data;                 // +0x00 Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
-    std::uint32_t name[3];      // +0x04 STLport string
+    std::uint32_t name[3];      // +0x04 STLport string (Name())
     std::uint32_t lastUsed;     // +0x10 GetTickCount()
     std::int32_t size;          // +0x14 bytes
     std::int32_t uses;          // +0x18 voices playing it (CacheEntry's +0x20 is this field of the node)
@@ -153,6 +155,9 @@ struct WaveRecord {
     // 006BD1B0 (RET 4; S13, sound_manager.cpp; the compiler's operator=): the data pointer, the
     // name by STLport's assign (unless it is the same string), the three counters. Returns this.
     WaveRecord* Assign(const WaveRecord* from);
+
+    stlp::string& Name() { return *reinterpret_cast<stlp::string*>(name); }
+    const stlp::string& Name() const { return *reinterpret_cast<const stlp::string*>(name); }
 };
 static_assert(sizeof(WaveRecord) == 0x1C);
 // CList<WaveRecord> (0x1C bytes). Its NewNode / FreeNode stay the instantiation's (006BD4F0 /

@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <new>
 
 namespace stlp {
 
@@ -84,12 +85,15 @@ char* __fastcall StringAbi::Erase(string* self, void*, char* first, char* last) 
     return first;
 }
 
-string* __fastcall StringAbi::Substr(const string* self, void*, string* out, std::size_t pos, std::size_t n) {
-    std::size_t size = self->size();
+string string::substr(std::size_t pos, std::size_t n) const {
+    std::size_t size = this->size();
     if (pos > size) ThrowOutOfRange();
     std::size_t length = std::min(size - pos, n);
-    out->InitRange(self->start_ + pos, self->start_ + pos + length);
-    return out;
+    return string(start_ + pos, start_ + pos + length);
+}
+
+string* __fastcall StringAbi::Substr(const string* self, void*, string* out, std::size_t pos, std::size_t n) {
+    return new (out) string(self->substr(pos, n));
 }
 
 void __fastcall StringAbi::Reserve(string* self, void*, std::size_t n) {

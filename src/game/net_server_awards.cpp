@@ -24,9 +24,7 @@ namespace net {
 
 namespace {
 
-// STLport strings and lists (library instantiations).
-inline void __fastcall StringRangeInitTag(StringRep* a0, void*, const char* a2, const char* a3, std::uint32_t a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
-__declspec(naked) char* __fastcall CopyTrivial(const char* /*first*/, const char* /*last*/, char* /*result*/) EI_ORIGINAL(0x004193D0)
+// STLport lists (library instantiations).
 __declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219E0)
 __declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
 __declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
@@ -51,19 +49,6 @@ void DestroyInline(RefPtr* p) {
     }
 }
 
-// An award's text: an empty string built the way the inline string(const char*) does.
-void EmptyAwardText(StringRep* s) {
-    s->start = nullptr;
-    s->finish = nullptr;
-    s->eos = nullptr;
-    const char* first = game::EmptyText();
-    const char* last = first + std::strlen(first);
-    StringAllocateBlock(s, nullptr, static_cast<std::size_t>(last - first) + 1);
-    char* end = CopyTrivial(first, last, s->start);
-    s->finish = end;
-    *end = 0;
-}
-
 } // namespace
 
 } // namespace net
@@ -79,15 +64,16 @@ EI_REPLACE_METHOD(0x004263F0, RefPtr::CopyShared);
 EI_REPLACE_METHOD(0x004250A0, RefPtr::CopyShared);   // byte-identical copy
 
 // 00419D90: queues an award message for `connection` on the pending awards (+0x25B4) with a 60
-// second delay. `text` is the caller's string, destroyed here.
-void ServerSession::QueueAward(CRefObject* connection, int kind, float value, StringRep text) {
+// second delay. `text` is the caller's string (made in the argument slot), destroyed here as the
+// callee destroys a by-value argument.
+void ServerSession::QueueAward(CRefObject* connection, int kind, float value, stlp::string text) {
     auto* award = NewMessageMemory<AwardMessage>();
     if (award) {
         RefValueConstructBase(award);
         ei::SetVtable(award, kMessageVtable);
         award->version_ = 1;
         award->connection_.ptr = nullptr;
-        StringInitEmpty(&award->text_);
+        stlp::StringElement::Default(&award->text_);
         ei::SetVtable(award, AwardMessage::kVtableAddress);
     }
     CRefObject* previous = award->connection_.ptr;
@@ -97,27 +83,8 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
     award->kind_ = static_cast<std::uint32_t>(kind);
     std::memcpy(&award->value_, &value, 4);
 
-    // The text, assigned in place (string::operator= inlined).
-    StringRep* to = &award->text_;
-    const char* first = text.start;
-    const char* last = text.finish;
-    char* d = to->start;
-    if (first == last) {
-        StringEraseOriginal(to, nullptr, d, to->finish);
-    } else {
-        for (;;) {
-            if (d == to->finish) {
-                if (first != last) StringAppend(to, nullptr, first, last, connection);
-                else StringEraseOriginal(to, nullptr, d, to->finish);
-                break;
-            }
-            *d++ = *first++;
-            if (first == last) {
-                StringEraseOriginal(to, nullptr, d, to->finish);
-                break;
-            }
-        }
-    }
+    // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
+    award->text_.AssignFrom(text);
 
     RefPtr shared;
     shared.Share(award);
@@ -127,7 +94,6 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
     AwardsPushBack(&awards_, nullptr, &entry);
     entry.object.Destroy();
     DestroyInline(&shared);
-    StringBufferFree(&text);
 }
 
 // 004191C0: finds the host (the first binding whose player is live and has the host flag) and,
@@ -153,23 +119,12 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
         if (count() != 0) {
             do {
                 const char* item = items[0][i];
-                StringRep text;
-                text.start = nullptr;
-                text.finish = nullptr;
-                char* none = nullptr;
-                std::uint8_t allocator = 0;
-                StringEndOfStorageOriginal(&text.eos, nullptr, &allocator, &none);
-                StringRangeInitTag(&text, nullptr, item, item + std::strlen(item), withFinal);
-                QueueAward(connection, 2, 0.0f, text);
+                QueueAward(connection, 2, 0.0f, stlp::string(item));
                 ++i;
             } while (i < count());
         }
     }
-    if (withFinal) {
-        StringRep text;
-        EmptyAwardText(&text);
-        QueueAward(connection, 4, 0.0f, text);
-    }
+    if (withFinal) QueueAward(connection, 4, 0.0f, stlp::string(game::EmptyText()));
 }
 
 // 00418ED0: the zone completion command ("<zone>_3"). Announces the current map's title (text 7)
@@ -178,7 +133,7 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
 // empties the queued messages (+0x25AC), +0x25B0 and +0x2598, and queues the following zones
 // (00418530).
-void ServerSession::CompleteZone(const StringRep* zone) {
+void ServerSession::CompleteZone(const stlp::string* zone) {
     auto* holder = &map_;
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
@@ -189,10 +144,11 @@ void ServerSession::CompleteZone(const StringRep* zone) {
         CStringDestroy(&title);
     }
 
-    StringRep key;
-    StringPlusText(&key, zone, game::ZoneSuffix3Text());
-    auto* entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&key));
-    StringRepDestroy(&key);
+    std::uint8_t* entry;
+    {
+        stlp::string key = stlp::Plus(*zone, game::ZoneSuffix3Text());
+        entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&key));
+    }
     if (entry) {
         void* clients = &clients_;
         int count = 0;
@@ -212,16 +168,9 @@ void ServerSession::CompleteZone(const StringRep* zone) {
         ClientNode* sentinel = clients_;
         for (ClientNode* node = sentinel->next; node != sentinel;) {
             CRefObject* connection = node->connection;
-            std::uint8_t allocator = 0;
-            StringRep text0;
-            StringInitWithAllocator(&text0, nullptr, &allocator);
             const char* empty = game::EmptyText();
-            StringAssignSpan(&text0, nullptr, empty, empty + std::strlen(empty));
-            QueueAward(connection, 0, award0, text0);
-            StringRep text1;
-            StringInitWithAllocator(&text1, nullptr, &allocator);
-            StringRangeInitTag(&text1, nullptr, empty, empty + std::strlen(empty), static_cast<std::uint32_t>(share));
-            QueueAward(connection, 1, award1, text1);
+            QueueAward(connection, 0, award0, stlp::string(empty));
+            QueueAward(connection, 1, award1, stlp::string(empty));
             node = node->next;
             sentinel = clients_;
         }
@@ -262,16 +211,12 @@ void ServerSession::LeaveZone() {
         CStringDestroy(&text);
         CStringDestroy(&title);
 
-        StringRep key;
-        StringPlusText(&key, &static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
-        const char* keyText = key.start;
-        StringRep lookup;
-        std::uint8_t allocator = 0;
-        StringInitWithAllocator(&lookup, nullptr, &allocator);
-        StringAssignSpan(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
-        auto* entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&lookup));
-        StlStringDestroy(&lookup);
-        libcrt::NodeDeallocateCheckedStd(key.start, static_cast<std::size_t>(key.eos - key.start));
+        std::uint8_t* entry;
+        {
+            stlp::string key = stlp::Plus(static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
+            stlp::string lookup(key.data());
+            entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&lookup));
+        }
         if (entry) AwardHost(entry, true);
     }
 

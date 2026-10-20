@@ -492,7 +492,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
             if (stream->version_ >= kVersionCountdowns)   // the countdowns are a tween array (006D4660)
-                TweenLoadEntries(reinterpret_cast<TweenArray*>(countdowns_), nullptr, stream);
+                TweenLoadEntries(&countdowns_, nullptr, stream);
 
             // Counted references to items (added at the head of the list).
             for (;;) {
@@ -711,7 +711,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);
-    TweenSave(reinterpret_cast<const TweenArray*>(countdowns_), nullptr, stream);   // 006D47E0
+    TweenSave(&countdowns_, nullptr, stream);   // 006D47E0
 
     for (auto* node = counted_.head; node;) {
         auto* next = node->next;

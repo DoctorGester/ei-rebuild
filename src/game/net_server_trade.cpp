@@ -56,7 +56,7 @@ PartyMessage* FindPartnerOffer(void* list, PartyMessage* offer) {
 // The partner is told a trade was offered (text 10) or withdrawn (text 11), with the player's name.
 void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     CRefObject* partner = offer->partner_.ptr;
-    const char* name = static_cast<PlayerMessage*>(offer->player_.ptr)->name_.start;
+    const char* name = static_cast<PlayerMessage*>(offer->player_.ptr)->name_.data();
     std::uint32_t line = 0;   // CString
     void* formatted = worlddata::InterfaceManager()->MessageText(&line, text, name);
     self->Announce(*static_cast<const char**>(formatted), partner);

@@ -31,14 +31,10 @@ VariableMessage* VariableAt(void** node) { return static_cast<VariableMessage*>(
 
 // The search the original inlines in each function: the first node whose variable's name has the
 // same bytes as `name`, else the sentinel.
-void** FindNode(void** sentinel, const StringRep* name) {
-    const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
+void** FindNode(void** sentinel, const stlp::string* name) {
     void** node = static_cast<void**>(sentinel[0]);
-    for (; node != sentinel; node = static_cast<void**>(node[0])) {
-        const StringRep& other = VariableAt(node)->name_;
-        if (static_cast<std::size_t>(other.finish - other.start) == length && std::memcmp(other.start, name->start, length) == 0)
-            break;
-    }
+    for (; node != sentinel; node = static_cast<void**>(node[0]))
+        if (VariableAt(node)->name_ == *name) break;
     return node;
 }
 
@@ -50,17 +46,17 @@ void Erase(void*& list, void** node) {
 } // namespace
 
 // 00419570: the variable named `name` (its list node), or the sentinel.
-void** ServerSession::FindVariable(void** out, const StringRep* name) {
+void** ServerSession::FindVariable(void** out, const stlp::string* name) {
     *out = FindNode(static_cast<void**>(variables_), name);
     return out;
 }
 
 // 004195D0: the variable named `name`, made (value 0) at the front of the list when missing.
-void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
+void** ServerSession::FindOrAddVariable(void** out, const stlp::string* name) {
     void* variables = &variables_;
     void** node = static_cast<void**>(static_cast<void**>(variables_)[0]);
     while (node != variables_) {
-        if (StringEquals(&VariableAt(node)->name_, name)) break;
+        if (VariableAt(node)->name_ == *name) break;
         node = static_cast<void**>(node[0]);
     }
     if (node != variables_) {
@@ -73,7 +69,7 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
         RefValueConstructBase(variable);
         ei::SetVtable(variable, kMessageVtable);
         variable->version_ = 1;
-        StringInitEmpty(&variable->name_);
+        stlp::StringElement::Default(&variable->name_);
         ei::SetVtable(variable, VariableMessage::kVtableAddress);
     }
     RefPtr ref;
@@ -84,33 +80,16 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
     VariablesInsert(variables, nullptr, &inserted, begin, value);
     void** first = static_cast<void**>(static_cast<void**>(variables_)[0]);
 
-    // The name, assigned in place (string::operator= inlined).
-    StringRep* to = &VariableAt(first)->name_;
-    if (name != to) {
-        const char* from = name->start;
-        const char* last = name->finish;
-        char* d = to->start;
-        bool append = false;
-        if (from != last) {
-            for (;;) {
-                if (d == to->finish) {
-                    append = from != last;
-                    break;
-                }
-                *d++ = *from++;
-                if (from == last) break;
-            }
-        }
-        if (append) StringAppend(to, nullptr, from, last, out);
-        else StringEraseOriginal(to, nullptr, d, to->finish);
-    }
+    // The name, assigned in place (string::operator= inlined: overwrite, then cut or append).
+    stlp::string* to = &VariableAt(first)->name_;
+    if (name != to) to->AssignFrom(*name);
     *out = first;
     return out;
 }
 
 // 00419730: sets the variable; a zero (or NaN) value removes it instead. A set bumps the version
 // and takes the next serial.
-void ServerSession::SetVariable(const StringRep* name, float value) {
+void ServerSession::SetVariable(const stlp::string* name, float value) {
     if (!EqualOrUnordered(value, GameFloat(0x0073B858))) {
         void* found;
         FindOrAddVariable(&found, name);
@@ -128,7 +107,7 @@ void ServerSession::SetVariable(const StringRep* name, float value) {
 
 // 004197D0: raises the variable to `value` (the larger of the two; `value` when either is NaN),
 // made when missing; a result of zero (or NaN) removes it.
-void ServerSession::RaiseVariable(const StringRep* name, float value) {
+void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     void* found;
     FindOrAddVariable(&found, name);
     VariableMessage* variable = VariableAt(static_cast<void**>(found));
@@ -151,13 +130,13 @@ void ServerSession::RaiseVariable(const StringRep* name, float value) {
 }
 
 // 004198D0: removes the variable when it exists.
-void ServerSession::RemoveVariable(const StringRep* name) {
+void ServerSession::RemoveVariable(const stlp::string* name) {
     void** node = FindNode(static_cast<void**>(variables_), name);
     if (node != variables_) Erase(variables_, node);
 }
 
 // 00419940: the variable's value, 0 when missing (returned unrounded in ST0).
-double ServerSession::GetVariable(const StringRep* name) {
+double ServerSession::GetVariable(const stlp::string* name) {
     void** node = FindNode(static_cast<void**>(variables_), name);
     if (node != variables_) return VariableAt(node)->value_;
     return GameFloat(0x0073B858);

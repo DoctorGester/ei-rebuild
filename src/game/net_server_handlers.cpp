@@ -37,7 +37,7 @@ std::uint32_t TakeDword(BufferCursor* cursor) {
 }
 
 // The record's strings as the STLport strings they are.
-stlp::string& AsString(StringRep& text) { return *reinterpret_cast<stlp::string*>(&text); }
+
 
 // The bindings (+0x25A4): an STLport list of counted pointers to BindingMessage.
 const stlp::list<RefPtr>& Bindings(ServerSession* server) {
@@ -52,23 +52,23 @@ void ServerSession::AnnounceToMaster() {
     GameBuffer buffer;
     buffer.ConstructGrowing();
     GameInfoRecord info;
-    stlp::string& name = AsString(info.name);
-    stlp::string& description = AsString(info.description);
+    stlp::string& name = info.name;
+    stlp::string& description = info.description;
     stlp::string::Reserve(name, 8);
     stlp::string::Reserve(description, 8);
 
-    name.Assign(name_.start, name_.finish);
+    name.AssignFrom(name_);
     info.hasPassword = password_[0] != 0;
     info.masterKey = masterKey_;
     info.kind = static_cast<std::uint8_t>(kind_);
     const char* empty = game::EmptyText();
-    description.Assign(empty, empty + std::strlen(empty));
+    description.Assign(empty);
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
         mfc::CString* title = SessionMapNameInto(reinterpret_cast<mfc::CString*>(storage));
         const char* text = *title;
-        description.Assign(text, text + std::strlen(text));
+        description.Assign(text);
         title->~CString();
     }
     info.players = static_cast<std::uint8_t>(ClientCount());
@@ -80,8 +80,6 @@ void ServerSession::AnnounceToMaster() {
     // EI_Plugin's NewMaster (its call at 0041ABDA sends as SendTo does, then the copy).
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket_.socket, buffer);
 
-    description.~string();
-    name.~string();
     buffer.DestructGrowing();
 }
 EI_REPLACE_METHOD(0x0041AA10, ServerSession::AnnounceToMaster);
@@ -117,7 +115,7 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
         if (binding->flags7_ & CRefCounted::kDetached) return;
         auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
         mfc::CString line;
-        line.Format("^%i%s^7: %s", player->number_, player->name_.start, message->text_.start);
+        line.Format("^%i%s^7: %s", player->number_, player->name_.data(), message->text_.data());
         server->Announce(line, nullptr);
         return;
     }

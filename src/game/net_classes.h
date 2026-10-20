@@ -50,15 +50,6 @@ T* NewMessageMemory() {
     return reinterpret_cast<T*>(p);
 }
 
-// An STLport string as the message classes embed it: start, finish, end of storage. (A raw layout:
-// the game's own string functions construct and free it.)
-struct StringRep {
-    char* start;
-    char* finish;
-    char* eos;
-};
-static_assert(sizeof(StringRep) == 12);
-
 // A sockaddr_in: family 2, then the port and the IPv4 address in network order, 8 zero bytes.
 struct NetAddress {
     std::uint16_t family;
@@ -71,9 +62,9 @@ struct NetAddress {
     bool Parse(const char* text, int defaultPort);
     // 00440690. "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) as
     // an STLport string in `out`; returns `out`.
-    StringRep* Format(StringRep* out, int resolve) const;
+    stlp::string* Format(stlp::string* out, int resolve) const;
     // 00435010 (net_session_tick.cpp). Format without the look-up; returns `out`.
-    StringRep* ToString(StringRep* out) const;
+    stlp::string* ToString(stlp::string* out) const;
 };
 static_assert(sizeof(NetAddress) == 0x10);
 
@@ -205,9 +196,9 @@ public:
 
     void Destruct();                            // 004128E0
 
-    StringRep name_;              // +0x28
+    stlp::string name_;              // +0x28
     std::uint32_t kind_;          // +0x34 the game kind (4: none)
-    StringRep description_;       // +0x38 the current map's title
+    stlp::string description_;       // +0x38 the current map's title
     std::uint8_t players_;        // +0x44
     std::uint8_t maxPlayers_;     // +0x45
     std::uint8_t password_;       // +0x46 whether joining needs a password
@@ -527,21 +518,21 @@ public:
     // 00417A10 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
     ServerSession* DeletingDestruct(unsigned flags);
     // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
-    void SetMap(const StringRep* name);
+    void SetMap(const stlp::string* name);
     // 00418530. Queues a map message for each zone that follows the current map.
     void QueueMapList();
     // 004193F0. When the held map message names `name`: drops it and queues "name_3" instead.
-    bool FinishMap(const StringRep* name);
+    bool FinishMap(const stlp::string* name);
     // 00419570 .. 00419940 (net_server_vars.cpp): the script variables (named floats).
-    void** FindVariable(void** out, const StringRep* name);
-    void** FindOrAddVariable(void** out, const StringRep* name);
-    void SetVariable(const StringRep* name, float value);      // zero removes it
-    void RaiseVariable(const StringRep* name, float value);    // to the larger value
-    void RemoveVariable(const StringRep* name);
-    double GetVariable(const StringRep* name);                 // 0 when missing
+    void** FindVariable(void** out, const stlp::string* name);
+    void** FindOrAddVariable(void** out, const stlp::string* name);
+    void SetVariable(const stlp::string* name, float value);      // zero removes it
+    void RaiseVariable(const stlp::string* name, float value);    // to the larger value
+    void RemoveVariable(const stlp::string* name);
+    double GetVariable(const stlp::string* name);                 // 0 when missing
     // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
     // shares of the zone's two values and the host's items, then the map state is dropped.
-    void CompleteZone(const StringRep* zone);
+    void CompleteZone(const stlp::string* zone);
     // 00418CC0. The zone leaving command ("<zone>_2"): the host's items with the final award, then
     // the map state is dropped and the world's map cleared.
     void LeaveZone();
@@ -549,10 +540,10 @@ public:
     // final award).
     void AwardHost(const std::uint8_t* entry, bool withFinal);
     // 00419D90. Queues an award message for `connection` (60 s delay); destroys `text`.
-    void QueueAward(CRefObject* connection, int kind, float value, StringRep text);
+    void QueueAward(CRefObject* connection, int kind, float value, stlp::string text);
     // 00419A00 (net_server_files.cpp). Lists `data` under `name` (unless listed) as a file message
     // with 64-byte chunk messages.
-    void ShareFile(const StringRep* name, GameBuffer* data);
+    void ShareFile(const stlp::string* name, GameBuffer* data);
     // 00417E10 (net_server_entry.cpp). Whether the server is announced to the master server (port 28004).
     void SetPublic(bool announce);
     // 0041AA10 (net_server_handlers.cpp, A-E1; EI_Plugin's NewMaster patches its send at 0041ABDA,
@@ -571,7 +562,7 @@ public:
     // 0041A020 .. 0041A770 (net_server_players.cpp): players, connections, admission.
     int LeaderId();                                       // 0041A020: the first host's id, -1
     void SetPassword(const char* text);                   // 0041A140
-    void* FindGuestConnection(const StringRep* name);     // 0041A170
+    void* FindGuestConnection(const stlp::string* name);     // 0041A170
     void* FindConnectionBySerial(int serial);             // 0041A270
     void* FindPlayer(int id);                             // 0041A2E0
     void AnnounceToGuests(int kind, const char* text);    // 0041A500
@@ -605,8 +596,8 @@ public:
     void* trades_;                      // +0x25BC trades (0073BD60)
     void* finishedTrades_;              // +0x25C0 {delay, trade}: done trades, kept 60 s
     void* banned_;                      // +0x25C4 banned IPv4 addresses
-    StringRep name_;                    // +0x25C8 the game's name
-    StringRep mapName_;                 // +0x25D4 the current map
+    stlp::string name_;                    // +0x25C8 the game's name
+    stlp::string mapName_;                 // +0x25D4 the current map
     std::uint32_t maxPlayers_;          // +0x25E0 8; set by the creator (0057E740)
     std::uint32_t kind_;                // +0x25E4 the constructor's argument: the game kind
     std::uint8_t password_[0x14];       // +0x25E8 the join password (empty: none)
@@ -796,8 +787,8 @@ static_assert(sizeof(ClientSession) == 0x2700);
 // in 0041D600 (00401170). Field meanings from 0041AA10: player count, maximum players, the
 // session magic. Names provisional.
 struct GameInfoRecord {
-    StringRep name;              // +0x00
-    StringRep description;       // +0x0C
+    stlp::string name;              // +0x00
+    stlp::string description;       // +0x0C
     std::uint8_t players;        // +0x18 number of players
     std::uint8_t maxPlayers;     // +0x19 the server's maxPlayers_
     std::uint8_t kind;           // +0x1A the server's kind_ (ServerEntry::kind_)

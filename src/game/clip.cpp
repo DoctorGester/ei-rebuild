@@ -122,7 +122,7 @@ int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, st
     std::uint8_t c1 = outcodes[tri[1]];
     std::uint8_t c2 = outcodes[tri[2]];
     int combined = c0 | c1 | c2;
-    WordArraySetSizeOriginal(&WorkWords(), nullptr, 0x20, -1);
+    WorkWords().SetSize(0x20, -1);
     *indexCount = 3;
     if (c0 & c1 & c2 & 0x3F) {
         *indexCount = 0;

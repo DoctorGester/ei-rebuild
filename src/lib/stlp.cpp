@@ -96,13 +96,17 @@ void string::Append(const char* first, const char* last) {
     }
 }
 
-string Plus(const string& a, const char* text) {
-    const std::size_t n = std::strlen(text);
+namespace {
+string Join(const string& a, const char* first, const char* last) {
     string joined;
-    string::Reserve(joined, a.size() + n + 1);
+    string::Reserve(joined, a.size() + static_cast<std::size_t>(last - first) + 1);
     joined.Append(a.data(), a.data() + a.size());
-    joined.Append(text, text + n);
+    joined.Append(first, last);
     return string(joined);
 }
+} // namespace
+
+string Plus(const string& a, const char* text) { return Join(a, text, text + std::strlen(text)); }
+string Plus(const string& a, const string& b) { return Join(a, b.data(), b.data() + b.size()); }
 
 } // namespace stlp

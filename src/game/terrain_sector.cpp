@@ -46,13 +46,6 @@ __declspec(naked) void __stdcall DestroyFlagArrays(FlagArray*, int) EI_ORIGINAL(
 __declspec(naked) void __stdcall ConstructTileLists(TileList*, int) EI_ORIGINAL(0x006C5050)
 __declspec(naked) void __stdcall DestroyTileLists(TileList*, int) EI_ORIGINAL(0x006C5010)
 
-struct MfcOps {
-    void SetSizeByte(int size, int growBy);     // 006FF64A CByteArray::SetSize
-    void SetAtGrowByte(int index, std::uint8_t value);  // 006FF7DC CByteArray::SetAtGrow
-};
-void MfcOps::SetSizeByte(int n, int g) { ByteArraySetSizeOriginal(this, nullptr, n, g); }
-__declspec(naked) void MfcOps::SetAtGrowByte(int, std::uint8_t) EI_ORIGINAL(0x006FF7DC)
-
 } // namespace
 
 // The sector's CArray element policies. The records start zeroed (006C4F10, inlined) and release
@@ -423,7 +416,7 @@ void SectorData::Build() {
         tiles[q].SetSize(pageCount);
         for (int k = 0; k < pageCount; ++k) {
             int c = counts[q * 256 + k];
-            reinterpret_cast<MfcOps*>(&tileFlags[q].data[k])->SetSizeByte(c, -1);
+            tileFlags[q].data[k].SetSize(c, -1);   // CByteArray::SetSize (006FF64A)
             tiles[q].data[k].SetSize(c * 9);
         }
     }
@@ -444,7 +437,7 @@ void SectorData::Build() {
             int k = 0;
             while (k < waterMaterials.size && waterMaterials.data[k] != id) ++k;
             if (k == waterMaterials.size)
-                reinterpret_cast<MfcOps*>(&waterMaterials)->SetAtGrowByte(waterMaterials.size, static_cast<std::uint8_t>(id));
+                waterMaterials.SetAtGrow(waterMaterials.size, static_cast<std::uint8_t>(id));   // CByteArray (006FF7DC)
         }
         if (hasWater) {
             mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
@@ -602,7 +595,7 @@ SectorData* SectorData::Construct() {
     hasSpecular = 0;
     ProjectionInput().SetSize(kProjectionVertices);
     ProjectionOutput().SetSize(kProjectionVertices);
-    ByteArraySetSizeOriginal(&ProjectionOutcodes(), nullptr, ProjectionInput().size, -1);
+    ProjectionOutcodes().SetSize(ProjectionInput().size, -1);
     return this;
 }
 EI_REPLACE_METHOD(0x006BF5F0, SectorData::Construct);

@@ -112,7 +112,7 @@ static_assert(sizeof(Params) == 96);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
-GeometryStream g_geometry("ei-terrain");
+GeometryStream g_geometry("ei-terrain", true);
 std::vector<sg_buffer> g_retiredBuffers;
 
 // The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
@@ -121,7 +121,8 @@ std::vector<sg_buffer> g_retiredBuffers;
 // water pass (006C6330) under the scene's 007AEDD0; both with ALPHABLENDENABLE on (SRCALPHA /
 // INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
 sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
-    std::uint32_t key = s.PipelineKey();
+    int samples = PassSampleCount();
+    std::uint32_t key = s.PipelineKey() | (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
     sg_pipeline_desc p{};
@@ -138,7 +139,7 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     p.index_type = SG_INDEXTYPE_UINT32;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
     ApplyPassState(p, s);
-    p.sample_count = 1;
+    p.sample_count = samples;
     p.label = "ei-terrain";
     sg_pipeline pipeline = sg_make_pipeline(&p);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID)
@@ -262,8 +263,12 @@ bool GeometryStream::Upload(const std::vector<Vertex>& vertices, const std::vect
     indexCount_ = indices.size();
     vertexOffset_ = indexOffset_ = -1;
     if (vertices.empty() || indices.empty()) return false;
-    vertexOffset_ = vertices_.Append(vertices.data(), vertices.size() * sizeof(Vertex));
-    indexOffset_ = indices_.Append(indices.data(), indices.size() * sizeof(std::uint32_t));
+    std::size_t vertexBytes = vertices.size() * sizeof(Vertex), indexBytes = indices.size() * sizeof(std::uint32_t);
+    vertexOffset_ = vertices_.Append(vertices.data(), vertexBytes);
+    indexOffset_ = indices_.Append(indices.data(), indexBytes);
+    FrameStats& stats = Stats();
+    (terrain_ ? stats.terrainVertexBytes : stats.meshVertexBytes) += vertexBytes;
+    (terrain_ ? stats.terrainIndexBytes : stats.meshIndexBytes) += indexBytes;
     return vertexOffset_ >= 0 && indexOffset_ >= 0;
 }
 
@@ -331,8 +336,9 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     sg_pipeline pipeline = Pipeline(batch.state, batch.water);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
+    CountPipeline(pipeline);
     b.views[0] = TextureView(batch.texture);
-    b.samplers[0] = TerrainSampler(batch.state.stages[0]);
+    b.samplers[0] = AnisotropicSampler(batch.state.stages[0]);
     float mode = batch.water ? 1.0f : 0.0f;
 #if defined(EI_RENDER_VALIDATION)
     if (g_levelMode != TerrainLevelMode::Off && !batch.water) {
@@ -345,6 +351,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     }
 #endif
     sg_apply_bindings(&b);
+    CountBindings(b);
     Params params{};
     params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     params.fog[0] = static_cast<float>((f.fogColour >> 16) & 0xFF) / 255.0f;
@@ -358,6 +365,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     sg_apply_uniforms(0, &u);
     sg_apply_uniforms(1, &u);
     sg_draw(batch.firstIndex, batch.indexCount, 1);
+    CountDraw(2 * sizeof(params));
 }
 
 void DestroyTerrain() {
@@ -385,6 +393,8 @@ void TerrainLevels(TerrainLevelMode mode) {
 
 void TerrainPage(const SectorData* s, void* renderer, int page) {
     if (!s || !renderer || !Active()) return;
+    StatsTimer timer(&FrameStats::handOverMs);
+    ++Stats().terrainPages;
     Frame& f = CurrentFrame();
     if (f.terrainVertices.size() > 8'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack at +0x24 (renderer +8), which the
@@ -406,6 +416,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     bool seams = lod != 2 && (s->seamBefore != 0 || s->seamAfter != 0);
 
     int firstIndex = static_cast<int>(f.terrainIndices.size());
+    std::size_t firstVertex = f.terrainVertices.size();
     for (int quarter = 0; quarter < 4; ++quarter) {
         if (s->quarterMode[quarter] == 2) continue;   // outside the view
         const auto& lists = s->tiles[quarter];
@@ -448,6 +459,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     }
     int count = static_cast<int>(f.terrainIndices.size()) - firstIndex;
     if (count <= 0) return;
+    CountReuse(true, s, page, f.terrainVertices.data() + firstVertex, f.terrainVertices.size() - firstVertex);
     // The old device's state the page is drawn with; DrawPage changes none of what the pipeline
     // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
     PassState state;
@@ -463,6 +475,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
             return;
         }
     }
+    ++Stats().terrainBatches;
     f.terrainBatches.push_back(TerrainBatch{texture, water, matrix, firstIndex, count, state});
     f.commands.push_back(Command{Command::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
 }

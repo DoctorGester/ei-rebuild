@@ -34,21 +34,16 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 // (the file, its index, up to 64 bytes) per 64 bytes. The vector is
 // first filled with one shared chunk (a copy per element when shared, as RefPtr copies are),
 // whose elements are then filled in turn.
-void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
+void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     void* files = &files_;
     void** sentinel = static_cast<void**>(files_);
-    const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
-        auto* other = static_cast<FileMessage*>(node[2]);
-        if (static_cast<std::size_t>(other->name_.finish - other->name_.start) == length &&
-            std::memcmp(other->name_.start, name->start, length) == 0)
-            return;
-    }
+    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
+        if (static_cast<FileMessage*>(node[2])->name_ == *name) return;
 
     auto* file = NewMessageMemory<FileMessage>();
     if (file) {
         MessageConstructBase(file);
-        StringInitEmpty(&file->name_);
+        stlp::StringElement::Default(&file->name_);
         std::uint8_t allocator = 0;
         ChunkVectorConstruct(&file->chunks_, nullptr, &allocator);
         ei::SetVtable(file, FileMessage::kVtableAddress);
@@ -58,7 +53,7 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     std::int32_t size = data->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->begin)) +
                         static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->high));
     std::int32_t chunkCount = (size + kChunkSize - 1) / kChunkSize;
-    if (name != &file->name_) StringAssignTaggedOriginal(&file->name_, nullptr, name->start, name->finish, name->start);
+    if (name != &file->name_) file->name_.AssignFrom(*name);
     file->size_ = size;
     file->chunkCount_ = static_cast<std::uint16_t>(chunkCount);
 

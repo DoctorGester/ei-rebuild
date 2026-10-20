@@ -36,19 +36,14 @@ SurfaceHolder* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-// DDSURFACEDESC2 as dwords.
-constexpr int kDescHeight = 2;      // +0x08
-constexpr int kDescWidth = 3;       // +0x0C
-constexpr int kDescPitch = 4;       // +0x10
-constexpr int kDescSurface = 9;     // +0x24 lpSurface
-constexpr int kDescFormat = 0x12;   // +0x48 DDPIXELFORMAT
-constexpr int kDescBits = 0x15;     // +0x54 dwRGBBitCount
-constexpr int kDescRed = 0x16;      // +0x58
-constexpr int kDescGreen = 0x17;    // +0x5C
-constexpr int kDescBlue = 0x18;     // +0x60
-
-// Pixels of a DirectDraw format go to and from 0xAARRGGBB through ChannelLayout (texture.h:
+// Pixels of a surface's format go to and from 0xAARRGGBB through ChannelLayout (texture.h:
 // Split 004EDAA0, FromNative 004EDC70, ToNative 004EDC00).
+ChannelLayout LayoutOf(const SurfacePixels& pixels) {
+    ChannelLayout layout;
+    const PixelFormat format = pixels.Format();
+    layout.Split(&format);
+    return layout;
+}
 
 // SHL / SHR by CL (the count taken mod 32).
 std::uint32_t Shl(std::uint32_t v, int count) { return v << (count & 31); }
@@ -61,18 +56,19 @@ std::uint32_t ReadPixel(const std::uint8_t* at, int bytes) {
     return value;
 }
 
-// `from` stretched into `to` (both described as by a Lock, the same pixel format), nearest texel:
+// `from` stretched into `to` (the same pixel format), nearest texel:
 // destination pixel x takes the source pixel under its centre, (2 x + 1) * source width / (2 width).
 // Windows' DirectDraw does exactly that at whole-number ratios (checked offline: 800x600 and
 // 1280x720 to 160x120, 1920x1080 to 128x96); at other ratios it picks a neighbour now and then.
-void StretchCopy(const std::uint32_t* to, const std::uint32_t* from) {
-    int bytes = static_cast<int>(to[kDescBits] >> 3);
-    std::uint32_t dw = to[kDescWidth], dh = to[kDescHeight], sw = from[kDescWidth], sh = from[kDescHeight];
-    if (dw == 0 || dh == 0 || from[kDescBits] != to[kDescBits]) return;
+void StretchCopy(const SurfacePixels& to, const SurfacePixels& from) {
+    int bytes = to.bitsPerPixel >> 3;
+    std::uint32_t dw = static_cast<std::uint32_t>(to.width), dh = static_cast<std::uint32_t>(to.height);
+    std::uint32_t sw = static_cast<std::uint32_t>(from.width), sh = static_cast<std::uint32_t>(from.height);
+    if (dw == 0 || dh == 0 || from.bitsPerPixel != to.bitsPerPixel) return;
     for (std::uint32_t y = 0; y < dh; ++y) {
-        const auto* src = reinterpret_cast<const std::uint8_t*>(from[kDescSurface]) +
-                          static_cast<std::size_t>((2 * static_cast<std::uint64_t>(y) + 1) * sh / (2 * dh)) * from[kDescPitch];
-        auto* out = reinterpret_cast<std::uint8_t*>(to[kDescSurface]) + static_cast<std::size_t>(y) * to[kDescPitch];
+        const std::uint8_t* src = from.bits +
+                                  static_cast<std::size_t>((2 * static_cast<std::uint64_t>(y) + 1) * sh / (2 * dh)) * from.pitch;
+        std::uint8_t* out = to.bits + static_cast<std::size_t>(y) * to.pitch;
         for (std::uint32_t x = 0; x < dw; ++x)
             std::memcpy(out + static_cast<std::size_t>(x) * bytes,
                         src + static_cast<std::size_t>((2 * static_cast<std::uint64_t>(x) + 1) * sw / (2 * dw)) * bytes,
@@ -120,22 +116,18 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     }
     SurfaceHolder* from = HolderOf(this);
     SurfaceHolder* to = HolderOf(copy);
-    std::uint32_t fromDesc[0x1F], toDesc[0x1F];
-    if (DirectPixels(from, fromDesc) && DirectPixels(to, toDesc)) StretchCopy(toDesc, fromDesc);
+    SurfacePixels fromPixels, toPixels;
+    if (DirectPixels(from, &fromPixels) && DirectPixels(to, &toPixels)) StretchCopy(toPixels, fromPixels);
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
     auto* pixels = static_cast<std::uint16_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 2));
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
     SurfaceHolder* holder = HolderOf(copy);
     gameapi::EnterCriticalSection(DeviceLock());
-    std::memset(desc, 0, sizeof(desc));
-    desc[0] = 0x7C;
-    bool direct = DirectPixels(holder, desc);
-    int bytes = static_cast<int>(desc[kDescBits] >> 3);
-    ChannelLayout converter;
-    converter.Split(&desc[kDescFormat]);
-    const std::uint8_t* source = reinterpret_cast<const std::uint8_t*>(desc[kDescSurface]);
+    SurfacePixels copied;
+    bool direct = DirectPixels(holder, &copied);
+    int bytes = copied.bitsPerPixel >> 3;
+    const ChannelLayout converter = LayoutOf(copied);
+    const std::uint8_t* source = copied.bits;
     std::uint16_t* out = pixels;
     if (direct && count != 0) {
         std::uint32_t left = static_cast<std::uint32_t>(count);
@@ -159,19 +151,18 @@ void CUiSurface::Greyscale() {
     if (!HolderOf(this)) return;
     SurfaceHolder* holder = HolderOf(this);
     gameapi::EnterCriticalSection(DeviceLock());
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    if (!DirectPixels(holder, desc)) {
+    SurfacePixels desc;
+    if (!DirectPixels(holder, &desc)) {
         gameapi::LeaveCriticalSection(DeviceLock());
         return;
     }
-    std::uint32_t count = desc[kDescWidth] * desc[kDescHeight];
-    std::uint32_t bits = desc[kDescBits];
-    std::uint32_t red = desc[kDescRed], green = desc[kDescGreen], blue = desc[kDescBlue];
+    std::uint32_t count = static_cast<std::uint32_t>(desc.width) * static_cast<std::uint32_t>(desc.height);
+    std::uint32_t bits = static_cast<std::uint32_t>(desc.bitsPerPixel);
+    std::uint32_t red = desc.redMask, green = desc.greenMask, blue = desc.blueMask;
     bool done = false;
     if (bits == 16 && red == 0xF800 && green == 0x7E0 && blue == 0x1F) {
         // 5:6:5: (2 r + 2 g6 + b) / 16 in every channel.
-        auto* p = reinterpret_cast<std::uint16_t*>(desc[kDescSurface]);
+        auto* p = reinterpret_cast<std::uint16_t*>(desc.bits);
         if (count != 0) {
             do {
                 std::uint32_t pixel = *p;
@@ -182,7 +173,7 @@ void CUiSurface::Greyscale() {
         done = true;
     } else if (bits == 16 && red == 0x7C00 && green == 0x3E0 && blue == 0x1F) {
         // 5:5:5: (2 r + 4 g + b) / 16.
-        auto* p = reinterpret_cast<std::uint16_t*>(desc[kDescSurface]);
+        auto* p = reinterpret_cast<std::uint16_t*>(desc.bits);
         if (count != 0) {
             do {
                 std::uint32_t pixel = *p;
@@ -192,7 +183,7 @@ void CUiSurface::Greyscale() {
         }
         done = true;
     } else if (bits == 32 && red == 0xFF0000 && green == 0xFF00 && blue == 0xFF) {
-        auto* p = reinterpret_cast<std::uint32_t*>(desc[kDescSurface]);
+        auto* p = reinterpret_cast<std::uint32_t*>(desc.bits);
         if (count != 0) {
             do {
                 *p = Grey32(*p);
@@ -203,9 +194,8 @@ void CUiSurface::Greyscale() {
     }
     if (!done) {
         // Any other format through the converter, a pixel of bits / 8 bytes at a time.
-        auto* p = reinterpret_cast<std::uint8_t*>(desc[kDescSurface]);
-        ChannelLayout converter;
-        converter.Split(&desc[kDescFormat]);
+        std::uint8_t* p = desc.bits;
+        const ChannelLayout converter = LayoutOf(desc);
         int bytes = static_cast<int>(bits >> 3);
         if (count != 0) {
             do {
@@ -231,7 +221,7 @@ std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x
 void CUiSurface::SwapContents(int restore) {
     ObservePixels(this, restore ? "SwapContents(restore)" : "SwapContents(save)", restore != 0,
                   _AddressOfReturnAddress());
-    std::uint32_t desc[0x1F];
+    SurfacePixels desc;
     if (restore) {
         if (!holder_) {
             // A new surface of the surface's size.
@@ -245,18 +235,13 @@ void CUiSurface::SwapContents(int restore) {
             holder_ = made;
             if (made) ++made->refCount;
             if (previous) ReleaseHolder(previous);
-            SurfaceHolder* holder = holder_;
-            std::memset(desc, 0, sizeof(desc));
-            desc[0] = 0x7C;
-            DirectPixels(holder, desc);   // (no memory: the description stays empty)
-            SurfaceBytesTotal() += desc[kDescHeight] * desc[kDescPitch];
+            DirectPixels(holder_, &desc);   // (no memory: the description stays empty)
+            SurfaceBytesTotal() += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         }
         if (!kept_) return;
         SurfaceHolder* holder = holder_;
         gameapi::EnterCriticalSection(DeviceLock());
-        std::memset(desc, 0, sizeof(desc));
-        desc[0] = 0x7C;
-        if (DirectPixels(holder, desc)) std::memcpy(reinterpret_cast<void*>(desc[kDescSurface]), kept_, keptSize_);
+        if (DirectPixels(holder, &desc)) std::memcpy(desc.bits, kept_, keptSize_);
         KeptBytesTotal() -= keptSize_;
         gameapi::LeaveCriticalSection(DeviceLock());
         gamecrt::operator_delete(kept_);
@@ -267,13 +252,11 @@ void CUiSurface::SwapContents(int restore) {
     SurfaceHolder* holder = holder_;
     if (!holder) return;
     gameapi::EnterCriticalSection(DeviceLock());
-    std::memset(desc, 0, sizeof(desc));
-    desc[0] = 0x7C;
-    bool direct = DirectPixels(holder, desc);   // (no memory: an empty copy)
+    bool direct = DirectPixels(holder, &desc);   // (no memory: an empty copy)
     if (kept_) gamecrt::operator_delete(kept_);
-    keptSize_ = desc[kDescHeight] * desc[kDescPitch];
+    keptSize_ = static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
     kept_ = static_cast<std::uint8_t*>(gamecrt::operator_new(keptSize_));
-    if (direct) std::memcpy(kept_, reinterpret_cast<const void*>(desc[kDescSurface]), keptSize_);
+    if (direct) std::memcpy(kept_, desc.bits, keptSize_);
     KeptBytesTotal() += keptSize_;
     gameapi::LeaveCriticalSection(DeviceLock());
     SurfaceBytesTotal() -= keptSize_;
@@ -293,19 +276,16 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     if (!holder || x < 0 || y < 0) return 0;
     if (x >= width_ || y >= height_) return 0;
     gameapi::EnterCriticalSection(DeviceLock());
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    if (!DirectPixels(holder, desc)) {
+    SurfacePixels desc;
+    if (!DirectPixels(holder, &desc)) {
         gameapi::LeaveCriticalSection(DeviceLock());
         return 0;
     }
-    int bytes = static_cast<int>(desc[kDescBits] >> 3);
-    std::uint32_t at = desc[kDescSurface] + desc[kDescPitch] * static_cast<std::uint32_t>(y) +
-                       static_cast<std::uint32_t>(bytes) * static_cast<std::uint32_t>(x);
-    std::uint32_t value = bytes > 0 ? ReadPixel(reinterpret_cast<const std::uint8_t*>(at), bytes) : 0;
-    ChannelLayout converter;
-    converter.Split(&desc[kDescFormat]);
-    std::uint32_t rgb = converter.FromNative(value);
+    int bytes = desc.bitsPerPixel >> 3;
+    const std::uint8_t* at = desc.bits + static_cast<std::size_t>(desc.pitch) * static_cast<std::uint32_t>(y) +
+                             static_cast<std::size_t>(bytes) * static_cast<std::uint32_t>(x);
+    std::uint32_t value = bytes > 0 ? ReadPixel(at, bytes) : 0;
+    std::uint32_t rgb = LayoutOf(desc).FromNative(value);
     gameapi::LeaveCriticalSection(DeviceLock());
     return rgb;
 }

@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_ai.h"
 #include "originals_units.h"
+#include "lib/mfc.h"
 #include "lib/mfc_array.h"
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -100,7 +101,7 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->actionPoint, &order->point, sizeof(Vector3));
-    LooksCopyAt(&brain->looks, nullptr, &order->looks);
+    brain->looks.Copy(order->looks);
     brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
 }
 
@@ -429,7 +430,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->actionPoint, &order.point, sizeof(Vector3));
-    LooksCopyAt(&brain->looks, nullptr, &order.looks);
+    brain->looks.Copy(order.looks);
     brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
     level = brain->noticedLevel;
     DestroyLooks(&order);

@@ -18,9 +18,7 @@ namespace net {
 
 namespace {
 
-// STLport (library): string equality and substr, the string destructor, the objects list
-// (+0x259C) end / insert.
-__declspec(naked) StringRep* __fastcall StringSubstr(const StringRep* /*s*/, void*, StringRep* /*out*/, std::size_t /*pos*/, std::size_t /*n*/) EI_ORIGINAL(0x0041F5F0)
+// STLport (library): the objects list (+0x259C) end / insert.
 __declspec(naked) void** __fastcall ObjectsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420610)
 __declspec(naked) void** __fastcall ObjectsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004229B0)
 
@@ -37,9 +35,9 @@ enum CommandKind : std::uint32_t {
 void* CurrentConnectionObject() { return CurrentConnection(); }
 std::size_t StringNpos() { return *reinterpret_cast<const std::size_t*>(0x0073BDE8); }
 
-bool Is(const StringRep& s, const char* t) {
+bool Is(const stlp::string& s, const char* t) {
     std::size_t length = std::strlen(t);
-    return static_cast<std::size_t>(s.finish - s.start) == length && std::memcmp(s.start, t, length) == 0;
+    return s.size() == length && std::memcmp(s.data(), t, length) == 0;
 }
 
 } // namespace
@@ -84,10 +82,10 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* mes
 //   2 / 3: every guest whose name starts with `text` is kicked / banned;
 //   4 / 5: the client with serial atoi(text) is kicked / banned.
 void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
-    StringRep* text = &message->text_;
+    stlp::string* text = &message->text_;
     switch (message->kind_) {
     case kPreviewMap:
-        if (self->IsHostConnection(CurrentConnectionObject())) WorldPrepareMap(TheGameFlow(), nullptr, text->start);
+        if (self->IsHostConnection(CurrentConnectionObject())) WorldPrepareMap(TheGameFlow(), nullptr, text->data());
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
@@ -95,18 +93,15 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         void** node = static_cast<void**>(queued[0]);
         for (; node != self->queuedMaps_; node = static_cast<void**>(node[0])) {
             auto* entry = static_cast<ZoneMessage*>(node[2]);
-            if (StringEquals(&entry->text_, text)) break;
+            if (entry->text_ == *text) break;
         }
         if (node == self->queuedMaps_) return;
-        const std::size_t cut = static_cast<std::size_t>(text->finish - text->start) - 2;
-        StringRep suffix, name;
-        StringSubstr(text, nullptr, &suffix, cut, StringNpos());
-        StringSubstr(text, nullptr, &name, 0, static_cast<std::size_t>(text->finish - text->start) - 2);
+        const std::size_t cut = text->size() - 2;
+        stlp::string suffix = text->substr(cut, StringNpos());
+        stlp::string name = text->substr(0, text->size() - 2);
         if (Is(suffix, game::ZoneSuffix1Text())) self->SetMap(&name);
         if (Is(suffix, game::ZoneSuffix2Text())) self->LeaveZone();
         if (Is(suffix, game::ZoneSuffix3Text())) self->CompleteZone(&name);
-        StringRepDestroy(&name);
-        StringRepDestroy(&suffix);
         return;
     }
     case kKickByName:
@@ -124,10 +119,10 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
             self->Ban(connection);
         }
     case kKickBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Kick(self->FindConnectionBySerial(GameAtoi(text->start)));
+        if (self->IsHostConnection(CurrentConnectionObject())) self->Kick(self->FindConnectionBySerial(GameAtoi(text->data())));
         return;
     case kBanBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Ban(self->FindConnectionBySerial(GameAtoi(text->start)));
+        if (self->IsHostConnection(CurrentConnectionObject())) self->Ban(self->FindConnectionBySerial(GameAtoi(text->data())));
         return;
     default:
         return;

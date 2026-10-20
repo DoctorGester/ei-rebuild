@@ -17,6 +17,7 @@
 #include "../game/texture.h"   // CDXSurface, CTexture
 
 #include <cstring>
+#include <iterator>
 #include <unordered_map>
 
 namespace render::detail {
@@ -206,7 +207,8 @@ std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* 
 
 // An RGBA8 image from `levels` (level 0 first); levels not given are box-filtered from the last one,
 // down to 1x1.
-sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>> levels, const char* label) {
+sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>> levels, const char* label,
+                   FrameStats::Upload kind) {
     int w = width, h = height;
     for (std::size_t i = 1; i < levels.size(); ++i) {
         w = w > 1 ? w / 2 : 1;
@@ -218,9 +220,14 @@ sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>>
     desc.height = height;
     desc.num_mipmaps = static_cast<int>(levels.size());
     desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    for (std::size_t i = 0; i < levels.size(); ++i) desc.data.mip_levels[i] = sg_range{levels[i].data(), levels[i].size()};
+    std::size_t bytes = 0;
+    for (std::size_t i = 0; i < levels.size(); ++i) {
+        desc.data.mip_levels[i] = sg_range{levels[i].data(), levels[i].size()};
+        bytes += levels[i].size();
+    }
     desc.label = label;
     CountImage(ImageUse::Texture, true);
+    CountUpload(kind, bytes);
     return sg_make_image(&desc);
 }
 
@@ -238,7 +245,7 @@ sg_view MakeTextureView(sg_image image) {
 
 const Texture& White() {
     if (!g_white.image.id) {
-        g_white.image = MakeImage(1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white");
+        g_white.image = MakeImage(1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white", FrameStats::Small);
         g_white.view = MakeTextureView(g_white.image);
     }
     return g_white;
@@ -272,6 +279,7 @@ bool MemoryChanged(const Snapshots& snapshots, const void* holder, const Surface
     GdiFlush();
     auto it = snapshots.find(holder);
     if (it == snapshots.end() || it->second.size() != MemoryBytes(m)) return true;
+    Stats().comparedBytes += it->second.size();
     return std::memcmp(it->second.data(), m.bits, it->second.size()) != 0;
 }
 
@@ -300,7 +308,7 @@ void ReadClientTexture(Texture& t, const void* holder, const SurfaceMemory& c) {
     }
     std::vector<std::vector<std::uint8_t>> levels;
     levels.push_back(std::move(pixels));
-    t.image = MakeImage(c.width, c.height, std::move(levels), "ei-client-texture");
+    t.image = MakeImage(c.width, c.height, std::move(levels), "ei-client-texture", FrameStats::MemoryTexture);
     t.view = MakeTextureView(t.image);
     if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
         if (t.view.id) sg_destroy_view(t.view);
@@ -331,6 +339,7 @@ void ReadWindow(Texture& t, const void* holder, const SurfaceMemory& m, bool key
     d.data.mip_levels[0] = sg_range{pixels.data(), pixels.size()};
     d.label = "ei-window-surface";
     CountImage(ImageUse::Window, true);
+    CountUpload(FrameStats::WindowSurface, pixels.size());
     t.image = sg_make_image(&d);
     t.view = MakeTextureView(t.image);
     if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
@@ -346,6 +355,7 @@ void Remake(Texture& t);
 } // namespace
 
 sg_view SurfaceView(const void* holder) {
+    StatsTimer timer(&FrameStats::textureMs);
     auto memory = g_memory.find(holder);
     std::uint32_t frame = FrameNumber();
     if (memory == g_memory.end()) {
@@ -381,11 +391,12 @@ sg_view SurfaceView(const void* holder) {
 // renderer's: that memory is what the texture shows.
 bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                   const char* label, TextureSource source) {
+    FrameStats::Upload kind = source.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp;
     if (!holder || g_memory.count(holder)) return false;
     Texture& t = g_textures[holder];
     t.usedFrame = FrameNumber();
     Retire(t);
-    t.image = MakeImage(width, height, std::move(levels), label);
+    t.image = MakeImage(width, height, std::move(levels), label, kind);
     t.view = MakeTextureView(t.image);
     if (!t.view.id) {
         if (t.image.id) sg_destroy_image(t.image);
@@ -393,8 +404,72 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
     }
     t.checkedFrame = FrameNumber();
     t.owned = true;
+    t.width = width;
+    t.height = height;
     t.source = std::move(source);
     return t.view.id != 0;
+}
+
+namespace {
+
+// The patches (render::TexturePatch) by target holder: rectangles in texels of the first levels.
+struct Patch {
+    const void* source = nullptr;
+    int to[4] = {};
+    int from[4] = {};
+};
+std::unordered_map<const void*, Patch> g_patches;
+int g_patchFailures = 0;
+
+// The size of the first level of the texture of `holder`: its memory, or what was decoded for it.
+bool HolderSize(const void* holder, int* width, int* height) {
+    auto memory = g_memory.find(holder);
+    if (memory != g_memory.end()) {
+        *width = memory->second.width;
+        *height = memory->second.height;
+        return true;
+    }
+    auto decoded = g_textures.find(holder);
+    if (decoded == g_textures.end() || !decoded->second.owned || decoded->second.width <= 0) return false;
+    *width = decoded->second.width;
+    *height = decoded->second.height;
+    return true;
+}
+
+bool Inside(const int r[4], int width, int height) {
+    return r[0] >= 0 && r[1] >= 0 && r[0] < r[2] && r[1] < r[3] && r[2] <= width && r[3] <= height;
+}
+
+} // namespace
+
+StagePatch PatchOf(const void* holder) {
+    StagePatch p;
+    if (g_patches.empty() || !holder) return p;
+    auto it = g_patches.find(holder);
+    if (it == g_patches.end()) return p;
+    const Patch& patch = it->second;
+    int tw = 0, th = 0, sw = 0, sh = 0;
+    if (!HolderSize(holder, &tw, &th) || !HolderSize(patch.source, &sw, &sh)) return p;
+    // Texture coordinates: the target's rectangle; a texel of it at (x, y) takes the source's texel
+    // at (x - to + from) scaled by the rectangles' sizes (the same size from the blink).
+    float kx = static_cast<float>(patch.from[2] - patch.from[0]) / static_cast<float>(patch.to[2] - patch.to[0]);
+    float ky = static_cast<float>(patch.from[3] - patch.from[1]) / static_cast<float>(patch.to[3] - patch.to[1]);
+    p.to[0] = static_cast<float>(patch.to[0]) / static_cast<float>(tw);
+    p.to[1] = static_cast<float>(patch.to[1]) / static_cast<float>(th);
+    p.to[2] = static_cast<float>(patch.to[2]) / static_cast<float>(tw);
+    p.to[3] = static_cast<float>(patch.to[3]) / static_cast<float>(th);
+    p.map[0] = kx * static_cast<float>(tw) / static_cast<float>(sw);
+    p.map[1] = ky * static_cast<float>(th) / static_cast<float>(sh);
+    p.map[2] = (static_cast<float>(patch.from[0]) - kx * static_cast<float>(patch.to[0])) / static_cast<float>(sw);
+    p.map[3] = (static_cast<float>(patch.from[1]) - ky * static_cast<float>(patch.to[1])) / static_cast<float>(sh);
+    // Half a texel in from the source rectangle's edges: no texel next to it filtered in (the face's
+    // open and closed rectangles touch).
+    p.inside[0] = (static_cast<float>(patch.from[0]) + 0.5f) / static_cast<float>(sw);
+    p.inside[1] = (static_cast<float>(patch.from[1]) + 0.5f) / static_cast<float>(sh);
+    p.inside[2] = (static_cast<float>(patch.from[2]) - 0.5f) / static_cast<float>(sw);
+    p.inside[3] = (static_cast<float>(patch.from[3]) - 0.5f) / static_cast<float>(sh);
+    p.texture = SurfaceView(patch.source);
+    return p;
 }
 
 bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
@@ -580,7 +655,8 @@ void Remake(Texture& t) {
     } else {
         return;
     }
-    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again");
+    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again",
+                        s.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp);
     t.view = MakeTextureView(t.image);
     if (!t.view.id) {
         if (t.image.id) sg_destroy_image(t.image);
@@ -624,6 +700,7 @@ sg_view TextureView(const void* texture) {
 
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height) {
     *width = *height = 0;
+    StatsTimer timer(&FrameStats::textureMs);
     auto memory = g_memory.find(holder);
     if (memory == g_memory.end()) return sg_view{};
     std::uint32_t frame = FrameNumber();
@@ -688,7 +765,7 @@ sg_sampler StageSampler(const StageState& s) {
     return sampler;
 }
 
-sg_sampler TerrainSampler(const StageState& s) {
+sg_sampler AnisotropicSampler(const StageState& s) {
     // Point sampling asked for (the options' Filtering 0): as the stage says.
     if (s.minFilter == 1 || s.magFilter == 1) return StageSampler(s);
     std::uint32_t key = 0x80000000u | (s.mipFilter <= 1 ? 1u : 0u) | (static_cast<std::uint32_t>(s.addressU & 7) << 9) |
@@ -697,19 +774,20 @@ sg_sampler TerrainSampler(const StageState& s) {
     if (it != g_samplers.end()) return it->second;
     // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose
     // texture coordinates change direction and scale from tile to tile (D3DTFP_POINT's level
-    // steps showed as seams along the tile edges; renderer.md section 11).
+    // steps showed as seams along the tile edges; renderer.md section 11). The smooth option samples
+    // the world's models so too (dgVoodoo's Filtering 16, R12a).
     sg_sampler_desc d{};
     d.min_filter = SG_FILTER_LINEAR;
     d.mag_filter = SG_FILTER_LINEAR;
     d.mipmap_filter = SG_FILTER_LINEAR;
-    d.max_anisotropy = kTerrainAnisotropy;
+    d.max_anisotropy = kAnisotropy;
     if (s.mipFilter <= 1) d.max_lod = 0.0f;   // D3DTFP_NONE (the options' Mipmapping 0): level 0 only
     d.wrap_u = Wrap(s.addressU);
     d.wrap_v = Wrap(s.addressV);
     d.border_color = SG_BORDERCOLOR_TRANSPARENT_BLACK;
-    d.label = "ei-terrain-sampler";
+    d.label = "ei-anisotropic-sampler";
     sg_sampler sampler = sg_make_sampler(&d);
-    ei::Log("render: terrain sampler: anisotropic %u with linear mips%s (the stage's filters %u / %u / %u)", kTerrainAnisotropy,
+    ei::Log("render: anisotropic sampler: %u with linear mips%s (the stage's filters %u / %u / %u)", kAnisotropy,
             s.mipFilter <= 1 ? ", level 0 only" : "", s.magFilter, s.minFilter, s.mipFilter);
     g_samplers.emplace(key, sampler);
     return sampler;
@@ -800,7 +878,27 @@ namespace render {
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
     if (!holder || !data || !Active() || !detail::Started()) return false;
     detail::FpuGuard fpu;
+    detail::StatsTimer timer(&FrameStats::textureMs);
     return detail::TextureFromMmpData(holder, data, mip, levels);
+}
+
+void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
+    using namespace detail;
+    if (!target || !source || !Active() || !Started()) return;
+    int tw = 0, th = 0, sw = 0, sh = 0;
+    if (!HolderSize(target, &tw, &th) || !HolderSize(source, &sw, &sh) || !Inside(to, tw, th) || !Inside(from, sw, sh)) {
+        if (g_patchFailures++ < 10)
+            ei::Log("render: texture patch (%d,%d)-(%d,%d) of a %dx%d texture from (%d,%d)-(%d,%d) of a %dx%d one: "
+                    "not recorded (a texture without its size, or a rectangle outside it)",
+                    to[0], to[1], to[2], to[3], tw, th, from[0], from[1], from[2], from[3], sw, sh);
+        return;
+    }
+    Patch& p = g_patches[target];
+    p.source = source;
+    for (int k = 0; k < 4; ++k) {
+        p.to[k] = to[k];
+        p.from[k] = from[k];
+    }
 }
 
 } // namespace render
@@ -861,6 +959,10 @@ void FreeSurfaceMemory(const void* holder) {
 }
 
 void HolderGone(const void* holder) {
+    // Its patch, and those it was the source of.
+    detail::g_patches.erase(holder);
+    for (auto it = detail::g_patches.begin(); it != detail::g_patches.end();)
+        it = it->second.source == holder ? detail::g_patches.erase(it) : std::next(it);
     FreeSurfaceMemory(holder);
     detail::g_pictures.erase(holder);
     // What the renderer made for it (a later holder at the same address starts afresh; a texture

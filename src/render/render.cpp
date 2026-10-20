@@ -24,6 +24,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace render {
 
@@ -36,13 +38,17 @@ using namespace detail;
 bool g_configured = false;
 bool g_failed = false;   // device or pipelines could not be created, or sokol panicked: nothing more is drawn
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
+// The smooth option (R12a, off by default): EI_RENDER's "smooth" (ParseSpec), render::SetSmooth.
+bool g_smooth = false;
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12 (R9c5)
 #endif
 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
-// and the scenarios) change nothing: the image always draws with the new renderer.
+// and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
+// the smooth option on (render::SetSmooth).
 void ParseSpec(const char* spec) {
+    g_smooth = false;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
 #endif
@@ -54,6 +60,7 @@ void ParseSpec(const char* spec) {
         while (!word.empty() && word.front() == ' ') word.erase(word.begin());
         while (!word.empty() && word.back() == ' ') word.pop_back();
         if (word == "new" || word == "present" || word == "cpuwindows") {}
+        else if (word == "smooth") g_smooth = true;
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
 #endif
@@ -92,6 +99,7 @@ sg_color FromD3DColour(std::uint32_t c) {
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
+int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the device draws the frame with
 
 void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
               const char* /*file*/, void* /*user*/) {
@@ -221,6 +229,7 @@ bool CreateDevice() {
     else
 #endif
         ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
+    g_deviceSamples = SupportedSamples(g_device);
     ProtectDevice(g_device, g_context);
     return true;
 }
@@ -231,8 +240,26 @@ int g_width = 0, g_height = 0;
 sg_image g_colour{}, g_depth{};
 sg_view g_colourAttachment{}, g_colourTexture{}, g_depthAttachment{};
 bool g_haveFrame = false;
+// With the smooth option the world's runs of commands draw into a multisampled target of
+// g_targetSamples (render_smooth.cpp) whose colour each such pass resolves into g_colour; the frame
+// target's depth has a texture view then (copied into the multisampled one before a world run).
+int g_targetSamples = 1;
+sg_image g_multiColour{}, g_multiDepth{};
+sg_view g_multiColourAttachment{}, g_multiDepthAttachment{}, g_multiDepthTexture{}, g_resolveAttachment{}, g_depthTexture{};
+
+void DestroyMultisampled() {
+    for (sg_view* v : {&g_multiColourAttachment, &g_multiDepthAttachment, &g_multiDepthTexture, &g_resolveAttachment, &g_depthTexture}) {
+        if (v->id) sg_destroy_view(*v);
+        *v = sg_view{};
+    }
+    if (g_multiColour.id) sg_destroy_image(g_multiColour);
+    if (g_multiDepth.id) sg_destroy_image(g_multiDepth);
+    g_multiColour = g_multiDepth = sg_image{};
+    g_targetSamples = 1;
+}
 
 void DestroyTarget() {
+    DestroyMultisampled();
     if (g_colourAttachment.id) sg_destroy_view(g_colourAttachment);
     if (g_colourTexture.id) sg_destroy_view(g_colourTexture);
     if (g_depthAttachment.id) sg_destroy_view(g_depthAttachment);
@@ -244,11 +271,62 @@ void DestroyTarget() {
     g_haveFrame = false;
 }
 
-bool EnsureTarget(int width, int height) {
-    if (width == g_width && height == g_height && g_colour.id) return true;
+// The multisampled colour and depth of `samples` (the frame target made): false when the device
+// refused them.
+bool MakeMultisampled(int width, int height, int samples) {
+    sg_image_desc colour{};
+    colour.usage.color_attachment = true;
+    colour.width = width;
+    colour.height = height;
+    colour.pixel_format = kColourFormat;
+    colour.sample_count = samples;
+    colour.label = "ei-frame-colour-multisampled";
+    g_multiColour = sg_make_image(&colour);
+    sg_image_desc depth{};
+    depth.usage.depth_stencil_attachment = true;
+    depth.width = width;
+    depth.height = height;
+    depth.pixel_format = kDepthFormat;
+    depth.sample_count = samples;
+    depth.label = "ei-frame-depth-multisampled";
+    g_multiDepth = sg_make_image(&depth);
+    sg_view_desc v{};
+    v.color_attachment.image = g_multiColour;
+    g_multiColourAttachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.depth_stencil_attachment.image = g_multiDepth;
+    g_multiDepthAttachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.texture.image = g_multiDepth;
+    g_multiDepthTexture = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.resolve_attachment.image = g_colour;
+    g_resolveAttachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.texture.image = g_depth;
+    g_depthTexture = sg_make_view(&v);
+    bool ok = sg_query_image_state(g_multiColour) == SG_RESOURCESTATE_VALID &&
+              sg_query_image_state(g_multiDepth) == SG_RESOURCESTATE_VALID;
+    for (sg_view view : {g_multiColourAttachment, g_multiDepthAttachment, g_multiDepthTexture, g_resolveAttachment, g_depthTexture})
+        ok = ok && sg_query_view_state(view) == SG_RESOURCESTATE_VALID;
+    ok = ok && PrepareSmoothCopies(samples);
+    if (!ok) {
+        DestroyMultisampled();
+        return false;
+    }
+    g_targetSamples = samples;
+    return true;
+}
+
+// The frame target of the game's size; the multisampled one beside it when the smooth option is on.
+// The option's change takes effect at a frame's first pass (`mayChange`).
+bool EnsureTarget(int width, int height, bool mayChange) {
+    int samples = g_smooth ? g_deviceSamples : 1;
+    if (width == g_width && height == g_height && g_colour.id && (samples == g_targetSamples || !mayChange)) return true;
     DestroyTarget();
     sg_image_desc colour{};
     colour.usage.color_attachment = true;
+    colour.usage.resolve_attachment = samples > 1;
     colour.width = width;
     colour.height = height;
     colour.pixel_format = kColourFormat;
@@ -279,6 +357,13 @@ bool EnsureTarget(int width, int height) {
     }
     g_width = width;
     g_height = height;
+    if (samples > 1 && !MakeMultisampled(width, height, samples)) {
+        ei::Log("render: the smooth option: no %d-sample %dx%d target; the world is drawn without multisampling", samples, width, height);
+        g_deviceSamples = 1;
+    }
+    if (g_smooth)
+        ei::Log("render: the smooth option: the world drawn with %d samples into the %dx%d frame, its models sampled "
+                "anisotropically (%u)", g_targetSamples, width, height, kAnisotropy);
     return true;
 }
 
@@ -332,6 +417,7 @@ bool RecreateDevice() {
     DestroyTerrain();
     DestroyMeshes();
     DropBlits();
+    DestroySmooth();
     DropTextures(&kept, &keptBytes);
     sg_shutdown();
     g_context->ClearState();
@@ -577,11 +663,35 @@ void TexturePixels(const void* holder, const void* pixels, int width, int height
                    std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
     if (!holder || !pixels || !Active() || !EnsureStarted()) return;
     FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
     TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
+}
+
+void SetSmooth(bool on) {
+    EnsureConfigured();
+    if (on != g_smooth) ei::Log("render: the smooth option turned %s", on ? "on" : "off");
+    g_smooth = on;
+}
+
+bool Smooth() {
+    EnsureConfigured();
+    return g_smooth;
+}
+
+void BeginWorld() {
+    std::vector<Frame::Range>& ranges = g_frame.worldRanges;
+    if (!Active() || (!ranges.empty() && ranges.back().end == SIZE_MAX)) return;
+    ranges.push_back(Frame::Range{g_frame.commands.size(), SIZE_MAX});
+}
+
+void EndWorld() {
+    std::vector<Frame::Range>& ranges = g_frame.worldRanges;
+    if (!ranges.empty() && ranges.back().end == SIZE_MAX) ranges.back().end = g_frame.commands.size();
 }
 
 void ClearDepth(float z, const Rect* rects, int count) {
     if (!Active()) return;
+    Stats().depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
     if (!rects) {
         g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
         g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
@@ -593,17 +703,273 @@ void ClearDepth(float z, const Rect* rects, int count) {
     }
 }
 
+// --- Frame statistics (R16) ----------------------------------------------------------------------------
+
+namespace {
+FrameStats g_stats;         // the frame being built
+FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
+std::uint32_t g_lastPipeline = 0, g_lastTexture = 0;   // ids applied last in this frame
+#if defined(EI_RENDER_VALIDATION)
+// The times and the reuse counts are the harness build's (the product counts only).
+StatsTimer* g_innerTimer = nullptr;
+// CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
+// colours, this frame's and the last; this frame's mesh geometry hashes.
+struct VertexHashes {
+    std::uint64_t geometry, colours;
+};
+std::unordered_map<std::uint64_t, VertexHashes> g_hashes, g_lastHashes;
+std::unordered_set<std::uint64_t> g_frameGeometry;
+
+// FNV-1a over 32-bit words (every field hashed is one or more of them).
+std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
+    const auto* p = static_cast<const std::uint8_t*>(data);
+    for (std::size_t i = 0; i + 4 <= bytes; i += 4) {
+        std::uint32_t word;
+        std::memcpy(&word, p + i, 4);
+        h = (h ^ word) * 0x100000001B3ull;
+    }
+    return h;
+}
+double g_msPerTick = 0.0;
+
+long long Ticks() {
+    LARGE_INTEGER now{};
+    QueryPerformanceCounter(&now);
+    return now.QuadPart;
+}
+#endif
+
+// The frame's counts into the sums; a new frame's counts begin.
+void AddFrameStats() {
+    g_stats.matrices = g_frame.matrices.size();
+    if (g_width > 0) {
+        g_statsSum.width = g_width;
+        g_statsSum.height = g_height;
+    }
+    FrameStats& s = g_statsSum;
+    const FrameStats& f = g_stats;
+    s.frames += 1;
+    for (auto field : {&FrameStats::terrainPages, &FrameStats::terrainBatches, &FrameStats::meshes, &FrameStats::meshPasses,
+                       &FrameStats::transformedDraws, &FrameStats::blits, &FrameStats::depthClears, &FrameStats::stateReads,
+                       &FrameStats::flatMeshes, &FrameStats::flatVertexBytes, &FrameStats::matrices, &FrameStats::terrainVertexBytes, &FrameStats::terrainIndexBytes,
+                       &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
+                       &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
+                       &FrameStats::textureChanges, &FrameStats::comparedBytes})
+        s.*field += f.*field;
+    for (int k = 0; k < FrameStats::UploadKinds; ++k) {
+        s.uploads[k] += f.uploads[k];
+        s.uploadBytes[k] += f.uploadBytes[k];
+        if (f.largestUpload[k] > s.largestUpload[k]) s.largestUpload[k] = f.largestUpload[k];
+    }
+    for (int k = 0; k < FrameStats::ReuseKinds; ++k) {
+        s.terrainReuse[k] += f.terrainReuse[k];
+        s.meshReuse[k] += f.meshReuse[k];
+    }
+    s.sharedMeshes += f.sharedMeshes;
+    s.handOverMs += f.handOverMs;
+    s.textureMs += f.textureMs;
+    s.endFrameMs += f.endFrameMs;
+    s.statsMs += f.statsMs;
+    g_stats = FrameStats{};
+    g_lastPipeline = g_lastTexture = 0;
+#if defined(EI_RENDER_VALIDATION)
+    g_lastHashes.swap(g_hashes);
+    g_hashes.clear();
+    g_frameGeometry.clear();
+#endif
+}
+} // namespace
+
+namespace detail {
+
+FrameStats& Stats() { return g_stats; }
+
+StatsTimer::StatsTimer(double FrameStats::* field) : field_(field), start_(0), outer_(nullptr) {
+#if defined(EI_RENDER_VALIDATION)
+    start_ = Ticks();
+    outer_ = g_innerTimer;
+    g_innerTimer = this;
+#endif
+}
+
+StatsTimer::~StatsTimer() {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_msPerTick == 0.0) {
+        LARGE_INTEGER frequency{};
+        QueryPerformanceFrequency(&frequency);
+        g_msPerTick = frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
+    }
+    double ms = static_cast<double>(Ticks() - start_) * g_msPerTick;
+    g_stats.*field_ += ms;
+    if (outer_) g_stats.*(outer_->field_) -= ms;   // the outer timer counts its own work only
+    g_innerTimer = outer_;
+#endif
+}
+
+void CountPipeline(sg_pipeline pipeline) {
+    ++g_stats.pipelineApplies;
+    if (pipeline.id != g_lastPipeline) ++g_stats.pipelineChanges;
+    g_lastPipeline = pipeline.id;
+}
+
+void CountBindings(const sg_bindings& b) {
+    ++g_stats.bindings;
+    if (b.views[0].id != g_lastTexture) ++g_stats.textureChanges;
+    g_lastTexture = b.views[0].id;
+}
+
+void CountDraw(std::size_t uniformBytes) {
+    ++g_stats.draws;
+    g_stats.uniformBytes += uniformBytes;
+}
+
+void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key, [[maybe_unused]] int page,
+                [[maybe_unused]] const Vertex* vertices, [[maybe_unused]] std::size_t count) {
+#if defined(EI_RENDER_VALIDATION)
+    StatsTimer timer(&FrameStats::statsMs);
+    VertexHashes h{0xCBF29CE484222325ull, 0xCBF29CE484222325ull};
+    for (std::size_t i = 0; i < count; ++i) {
+        const Vertex& v = vertices[i];
+        h.geometry = Fnv(h.geometry, &v.position, sizeof(v.position));
+        h.geometry = Fnv(h.geometry, &v.u, 2 * sizeof(float));
+        h.colours = Fnv(h.colours, &v.colour, 2 * sizeof(std::uint32_t));
+    }
+    std::uint64_t id = (static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(key)) << 8) ^
+                       static_cast<std::uint64_t>(page) ^ (terrain ? 1ull << 63 : 0);
+    auto last = g_lastHashes.find(id);
+    FrameStats::Reuse r = last == g_lastHashes.end()            ? FrameStats::New
+                          : last->second.geometry != h.geometry ? FrameStats::Moved
+                          : last->second.colours != h.colours   ? FrameStats::Relit
+                                                                : FrameStats::Same;
+    ++(terrain ? g_stats.terrainReuse : g_stats.meshReuse)[r];
+    g_hashes[id] = h;
+    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
+#endif
+}
+
+void CountUpload(FrameStats::Upload kind, std::size_t bytes) {
+    ++g_stats.uploads[kind];
+    g_stats.uploadBytes[kind] += bytes;
+    if (bytes > g_stats.largestUpload[kind]) g_stats.largestUpload[kind] = bytes;
+}
+
+} // namespace detail
+
+FrameStats TakeFrameStats() {
+    FrameStats s = g_statsSum;
+    g_statsSum = FrameStats{};
+    return s;
+}
+
 namespace {
 
 std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
 int g_passes = 0;                  // passes drawn this frame
+int g_passSamples = 1;             // the sample count of the pass being drawn (PassSampleCount)
+
+// Which target holds the frame's latest pixels: none yet (the frame's first pass clears), the frame
+// target, or the multisampled one (its colour also resolved into the frame target).
+enum class Holder : std::uint8_t { None, Frame, Multisampled };
+Holder g_holder = Holder::None;
+
+// The smooth option's counts for this frame and the last presented one (render::SmoothState).
+SmoothInfo g_counts, g_lastCounts;
+
+// Command `k` belongs to the world view (render::BeginWorld .. EndWorld).
+bool InWorld(std::size_t k) {
+    for (const Frame::Range& r : g_frame.worldRanges)
+        if (k >= r.first && k < r.end) return true;
+    return false;
+}
+
+// A pass on the frame target. After a multisampled run its colour is the resolve's; its depth is
+// set from the multisampled one.
+void BeginFramePass() {
+    bool first = g_holder == Holder::None;
+    bool afterWorld = g_holder == Holder::Multisampled;
+    sg_pass pass{};
+    pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
+    pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
+    pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : afterWorld ? SG_LOADACTION_DONTCARE : SG_LOADACTION_LOAD;
+    pass.action.depth.clear_value = 1.0f;
+    pass.attachments.colors[0] = g_colourAttachment;
+    pass.attachments.depth_stencil = g_depthAttachment;
+    pass.label = "ei-frame";
+    sg_begin_pass(&pass);
+    ++Stats().passes;
+    g_passSamples = 1;
+    if (afterWorld) CopyDepthFromMultisampled(g_multiDepthTexture);
+    g_holder = Holder::Frame;
+}
+
+// A pass on the multisampled target, resolved into the frame target at its end. After draws into the
+// frame target their colour and depth are copied into it first (a pass of its own: the frame target
+// is the resolve's destination and cannot be read in that pass).
+void BeginMultisampledPass() {
+    bool first = g_holder == Holder::None;
+    if (g_holder == Holder::Frame) {
+        sg_pass copy{};
+        copy.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+        copy.action.colors[0].store_action = SG_STOREACTION_STORE;
+        copy.action.depth.load_action = SG_LOADACTION_DONTCARE;
+        copy.action.depth.store_action = SG_STOREACTION_STORE;
+        copy.attachments.colors[0] = g_multiColourAttachment;
+        copy.attachments.depth_stencil = g_multiDepthAttachment;
+        copy.label = "ei-frame-into-multisampled";
+        sg_begin_pass(&copy);
+        ++Stats().passes;
+        g_passSamples = g_targetSamples;
+        CopyIntoMultisampled(g_colourTexture, g_depthTexture);
+        sg_end_pass();
+    }
+    sg_pass pass{};
+    pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
+    pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
+    pass.action.colors[0].store_action = SG_STOREACTION_STORE;
+    pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
+    pass.action.depth.clear_value = 1.0f;
+    pass.action.depth.store_action = SG_STOREACTION_STORE;
+    pass.attachments.colors[0] = g_multiColourAttachment;
+    pass.attachments.resolves[0] = g_resolveAttachment;
+    pass.attachments.depth_stencil = g_multiDepthAttachment;
+    pass.label = "ei-frame-multisampled";
+    sg_begin_pass(&pass);
+    ++Stats().passes;
+    g_passSamples = g_targetSamples;
+    g_holder = Holder::Multisampled;
+    ++g_counts.multisampledPasses;
+}
+
+// Commands [from, to) into the pass begun.
+void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
+    for (std::size_t k = from; k < to; ++k) {
+        const Command& c = g_frame.commands[k];
+        auto i = static_cast<std::size_t>(c.index);
+        switch (c.kind) {
+        case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
+        case Command::Mesh: {
+            const MeshBatch& batch = g_frame.meshBatches[i];
+            // The smooth option: the world's models (figures, map objects, the sky, shadows) sampled
+            // anisotropically; the interface's sprites and previews and the pre-transformed draws as
+            // the stage says.
+            bool anisotropic = g_smooth && batch.model && InWorld(k);
+            if (batch.model) ++(anisotropic ? g_counts.anisotropicModels : g_counts.plainModels);
+            DrawMeshBatch(g_frame, batch, anisotropic);
+            break;
+        }
+        case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
+        case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
+        }
+    }
+}
 
 // Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first
 // clearing it. A frame is drawn in more than one pass when a copy of it is taken in its middle
-// (CopyFrameTo).
+// (CopyFrameTo), and with the smooth option one pass per run of world and other commands (the
+// world's into the multisampled target).
 bool DrawPending() {
     int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height)) return false;
+    if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height, g_passes == 0)) return false;
     if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
     UploadTerrain(g_frame);
     UploadMeshes(g_frame);
@@ -612,29 +978,21 @@ bool DrawPending() {
     // half a pixel would do the same, but sokol takes whole pixels.)
     g_frame.pixelShift[0] = 1.0f / static_cast<float>(width);
     g_frame.pixelShift[1] = -1.0f / static_cast<float>(height);
-    sg_pass pass{};
-    bool first = g_passes == 0;
-    pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
-    pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-    pass.action.depth.clear_value = 1.0f;
-    pass.attachments.colors[0] = g_colourAttachment;
-    pass.attachments.depth_stencil = g_depthAttachment;
-    pass.label = "ei-frame";
-    sg_begin_pass(&pass);
-    for (std::size_t k = g_drawnCommands; k < g_frame.commands.size(); ++k) {
-        const Command& c = g_frame.commands[k];
-        auto i = static_cast<std::size_t>(c.index);
-        switch (c.kind) {
-        case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
-        case Command::Mesh: DrawMeshBatch(g_frame, g_frame.meshBatches[i]); break;
-        case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
-        case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
-        }
-    }
-    sg_end_pass();
-    g_drawnCommands = g_frame.commands.size();
-    ++g_passes;
+    std::size_t k = g_drawnCommands, end = g_frame.commands.size();
+    bool multisampling = g_targetSamples > 1;
+    do {
+        bool world = multisampling && k < end && InWorld(k);
+        std::size_t stop = k;
+        while (stop < end && (multisampling && InWorld(stop)) == world) ++stop;
+        if (world) BeginMultisampledPass();
+        else BeginFramePass();
+        DrawCommands(k, stop, width, height);
+        sg_end_pass();
+        g_passSamples = 1;
+        ++g_passes;
+        k = stop;
+    } while (k < end);
+    g_drawnCommands = end;
     return true;
 }
 
@@ -770,6 +1128,7 @@ void EndFrame() {
     if (g_frameDrawn || !EnsureStarted()) return;
     g_frameDrawn = true;
     FpuGuard fpu;
+    StatsTimer timer(&FrameStats::endFrameMs);
     if (!DrawPending()) return;
     // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
     // turn with the cursor thread's presents (render_cursor.cpp), which take the frame as it was
@@ -791,6 +1150,7 @@ void EndFrame() {
 void Present() {
     if (!Active()) return;
     EndFrame();
+    AddFrameStats();
     g_drawnCommands = 0;
     g_passes = 0;
     g_frame.matrices.clear();
@@ -803,9 +1163,13 @@ void Present() {
     g_frame.blitBatches.clear();
     g_frame.clears.clear();
     g_frame.commands.clear();
+    g_frame.worldRanges.clear();
     g_frame.haveCursor = false;
     g_frame.haveFog = false;
     g_frameDrawn = false;
+    g_holder = Holder::None;
+    g_lastCounts = g_counts;
+    g_counts = SmoothInfo{};
     if (g_started) {
         FpuGuard fpu;
         RetireTextures();
@@ -814,6 +1178,18 @@ void Present() {
         CheckDevice();
     }
     ++g_frameNumber;
+}
+
+namespace detail {
+int PassSampleCount() { return g_passSamples; }
+} // namespace detail
+
+SmoothInfo SmoothState() {
+    SmoothInfo info = g_lastCounts;
+    info.on = Smooth();
+    info.deviceSamples = g_deviceSamples;
+    info.targetSamples = g_targetSamples;
+    return info;
 }
 
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {

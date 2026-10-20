@@ -112,6 +112,9 @@ cbuffer fs_params : register(b0) {
     int4 alpha_ops;        // stage 0: op, arg1, arg2; w: stage 1 op
     int4 alpha_ops1;       // stage 1: arg1, arg2
     int4 switches;         // x: specular, y: fog, z: alpha test func (0 off), w: alpha reference
+    float4 patch_to;       // stage 0's patch (render::TexturePatch): its rectangle (u0, v0, u1, v1), zero: none
+    float4 patch_map;      // the patch texture's coordinates: uv * xy + zw
+    float4 patch_inside;   // ... kept inside its rectangle (u0, v0, u1, v1)
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
 struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 pos : SV_Position; };
@@ -135,8 +138,10 @@ vs_out vs_main(vs_in i) {
 }
 Texture2D<float4> tex0 : register(t0);
 Texture2D<float4> tex1 : register(t1);
+Texture2D<float4> tex2 : register(t2);   // stage 0's patch
 SamplerState smp0 : register(s0);
 SamplerState smp1 : register(s1);
+SamplerState smp2 : register(s2);
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;
     float4 v = sel == 0 ? diffuse : sel == 2 ? texel : sel == 3 ? factor : sel == 4 ? spec : current;
@@ -180,6 +185,10 @@ float4 ps_main(vs_out i) : SV_Target0 {
     float4 diffuse = i.col;
     float4 current = diffuse;
     float4 t0 = tex0.Sample(smp0, i.uv);
+    // Stage 0's patch: inside its rectangle the texels come from the patch texture (a unit's face).
+    float2 w = i.uv - floor(i.uv);
+    float4 tp = tex2.Sample(smp2, clamp(w * patch_map.xy + patch_map.zw, patch_inside.xy, patch_inside.zw));
+    if (all(w >= patch_to.xy) && all(w < patch_to.zw)) t0 = tp;
     if (colour_ops.x > 1) {
         float3 c = combine(colour_ops.x, arg(colour_ops.y, current, diffuse, t0, i.spec),
                            arg(colour_ops.z, current, diffuse, t0, i.spec), current, diffuse, t0).rgb;
@@ -221,15 +230,19 @@ struct FsParams {
     std::int32_t alphaOps[4];
     std::int32_t alphaOps1[4];
     std::int32_t switches[4];
+    float patchTo[4];
+    float patchMap[4];
+    float patchInside[4];
 };
-static_assert(sizeof(FsParams) == 112);
+static_assert(sizeof(FsParams) == 160);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
-GeometryStream g_geometry("ei-mesh");
+GeometryStream g_geometry("ei-mesh", false);
 
 sg_pipeline Pipeline(const PassState& s, bool lines) {
-    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u);
+    int samples = PassSampleCount();
+    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
     sg_pipeline_desc p{};
@@ -246,7 +259,7 @@ sg_pipeline Pipeline(const PassState& s, bool lines) {
     p.index_type = SG_INDEXTYPE_UINT32;
     p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
     ApplyPassState(p, s);
-    p.sample_count = 1;
+    p.sample_count = samples;
     p.label = "ei-mesh";
     sg_pipeline pipeline = sg_make_pipeline(&p);
     g_pipelines.emplace(key, pipeline);
@@ -331,8 +344,10 @@ PassState ReadPassState(char* device) {
         const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
+        if (stage == 0) s.patch = PatchOf(holder);
     }
     PassDone();
+    ++Stats().stateReads;
     return s;
 }
 
@@ -425,7 +440,7 @@ bool CreateMeshShader() {
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = sizeof(FsParams);
     s.uniform_blocks[1].hlsl_register_b_n = 0;
-    for (int t = 0; t < 2; ++t) {
+    for (int t = 0; t < 3; ++t) {   // the two stages and stage 0's patch
         s.views[t].texture.stage = SG_SHADERSTAGE_FRAGMENT;
         s.views[t].texture.image_type = SG_IMAGETYPE_2D;
         s.views[t].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
@@ -449,19 +464,23 @@ void UploadMeshes(const Frame& f) {
     g_geometry.Upload(f.meshVertices, f.meshIndices);
 }
 
-void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
+void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     sg_bindings b{};
     if (batch.indexCount <= 0 || !g_geometry.Bind(b)) return;
     const PassState& s = batch.state;
     sg_pipeline pipeline = Pipeline(s, batch.lines);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
+    CountPipeline(pipeline);
     for (int t = 0; t < 2; ++t) {
         const StageState& st = s.stages[t];
         b.views[t] = st.texture.id ? st.texture : SurfaceView(nullptr);
-        b.samplers[t] = StageSampler(st);
+        b.samplers[t] = anisotropic ? AnisotropicSampler(st) : StageSampler(st);
     }
+    b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
+    b.samplers[2] = b.samplers[0];
     sg_apply_bindings(&b);
+    CountBindings(b);
     VsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
@@ -499,11 +518,19 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
     fs.switches[1] = s.fog ? 1 : 0;
     fs.switches[2] = s.alphaTest ? s.alphaFunc : 0;
     fs.switches[3] = s.alphaReference;
+    if (s.patch.texture.id) {
+        for (int k = 0; k < 4; ++k) {
+            fs.patchTo[k] = s.patch.to[k];
+            fs.patchMap[k] = s.patch.map[k];
+            fs.patchInside[k] = s.patch.inside[k];
+        }
+    }
     sg_range vr{&vs, sizeof(vs)};
     sg_apply_uniforms(0, &vr);
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(1, &fr);
     sg_draw(batch.firstIndex, batch.indexCount, 1);
+    CountDraw(sizeof(vs) + sizeof(fs));
 }
 
 void DestroyMeshes() {
@@ -519,6 +546,7 @@ void DestroyMeshes() {
 void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending = Pending{};
     if (!device || !mesh.matrix || !Active() || !Started()) return;
+    StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = CurrentFrame();
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
         if (g_dropped++ == 0) ei::Log("render: too many meshes in one frame; the rest are dropped");
@@ -551,12 +579,20 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
 
 bool MeshPass(void* device) {
     if (!g_pending.active || device != g_pending.device) return true;
+    StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = CurrentFrame();
     if (!g_pending.built) {
         g_pending.built = true;
+        ++Stats().meshes;
+        std::size_t first = f.meshVertices.size();
         if (!Build(f, g_pending)) {
             g_pending.active = false;
             return true;
+        }
+        CountReuse(false, g_pending.mesh.positions, 0, f.meshVertices.data() + first, f.meshVertices.size() - first);
+        if (!g_pending.mesh.corners) {
+            ++Stats().flatMeshes;
+            Stats().flatVertexBytes += (f.meshVertices.size() - first) * sizeof(Vertex);
         }
     }
     if (g_pending.indexCount > 0) {
@@ -571,6 +607,8 @@ bool MeshPass(void* device) {
         batch.fogScale = g_pending.fogScale;
         batch.unclipped = !g_pending.mesh.clipped;
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
+        batch.model = true;
+        ++Stats().meshPasses;
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
@@ -583,6 +621,8 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
             int primitive) {
     if (!device || !vertices || vertexCount <= 0 || !Active() || !Started()) return true;
     if (fvf != 0x1C4 && fvf != 0xC4) return true;   // not a layout the game uses for these
+    StatsTimer timer(&FrameStats::handOverMs);
+    ++Stats().transformedDraws;
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height)) return true;
     Frame& f = CurrentFrame();
@@ -654,6 +694,8 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
 
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
     if (!device || !vertices || count <= 0 || !Active() || !Started()) return true;
+    StatsTimer timer(&FrameStats::handOverMs);
+    ++Stats().transformedDraws;
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height)) return true;
     Frame& f = CurrentFrame();
