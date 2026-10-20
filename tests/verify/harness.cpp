@@ -48,7 +48,7 @@
 //                             global map turned by a right-button drag)
 //   wheel <x> <y> <delta>    turn the mouse wheel by <delta> (120 a notch; negative: towards the
 //                             user) with the mouse at (x, y) in the 800x600 layout
-//   clickregion <n>, rclickregion <n>, moveregion <n>
+//   clickregion <n>, rclickregion <n>, dblclickregion <n>, moveregion <n>
 //                             the same at the centre of clickable region <n> of the window on top
 //                             of the interface (its regions as the screen's code numbers them;
 //                             placed with the game's own scaling, so Rebirth's widescreen layout too)
@@ -70,7 +70,7 @@
 //                             +0x7E Alt), never the real keyboard, so the original game and the image
 //                             see the same. Alt is sent as WM_SYSKEYDOWN / WM_SYSKEYUP, as Windows does
 //   <mods> as the last words of key, click, rclick, move, dblclick, rdblclick, ldown, lup, rdown, rup,
-//   wheel, clickregion, rclickregion, moveregion, clickunit (e.g. "click 90 320 shift", "key 1 ctrl",
+//   wheel, clickregion, rclickregion, dblclickregion, moveregion, clickunit (e.g. "click 90 320 shift", "key 1 ctrl",
 //   "clickunit Wolf0 l ctrl+shift"): the modifiers are pressed just before the step's input and
 //   released just after it (a plain "key ctrl" is still the key ctrl)
 //   hudstate [minquick]       log the battle screen's pending action, the party's selection and
@@ -1446,6 +1446,12 @@ void PostRegionMouse(const std::string& verb, int index) {
     } else if (verb == "rclickregion") {
         PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
         PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+    } else if (verb == "dblclickregion") {
+        // As "dblclick": down, up, double click, up.
+        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, at);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
     }
 }
 
@@ -1770,7 +1776,8 @@ std::string DescribeTopWindow() {
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
-           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit" ||
+           verb == "clickregion" || verb == "rclickregion" || verb == "dblclickregion" || verb == "moveregion" ||
+           verb == "clickunit" ||
            verb == "clickground" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
 }
 
@@ -2445,7 +2452,8 @@ void RunSteps() {
             HeldModifiers held(&s.argument);
             if (sscanf_s(s.argument.c_str(), "%d %d %d", &x, &y, &delta) == 3) PostWheel(x, y, delta);
             else Log("harness: wheel needs <x> <y> <delta>");
-        } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
+        } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "dblclickregion" ||
+                   s.verb == "moveregion") {
             HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile") {

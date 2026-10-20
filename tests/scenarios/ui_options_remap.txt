@@ -1,0 +1,69 @@
+# SV8: keys remapped in the options window (docs/notes/ui.md section 8) and used in the game. A new
+# game; TAB opens the objectives (keyboard.ini's "TAB obj"); the Esc menu's Options (region 4): group 3
+# (region 5) row 6 "obj" selected and Enter (00650E40) waits for a key: Y; group 5 (region 7) row 7
+# "crawl" (V) double-clicked (00650D70 waits for a key too): J; row 4 "run" (Z) gets Q, which weapon1
+# holds: the "key_already_mapped" box's OK (region 0) moves it (00652000). OK (region 0) stores the key
+# table (006524A0) and closes the Esc menu too. Then Y opens the objectives and TAB no longer does; V
+# does nothing, J crawls, Q runs (the hero's moveMode in the digest). On quit the interface's shutdown
+# (005F4F90) writes config\keyboard.ini (00462DF0) into harness_saves' overlay, never the install;
+# ui_options_remap_load starts with that file.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+
+# The default binding first.
+key tab
+waitwindow 10 objectives
+key esc
+waitwindow 10 battle
+
+key esc
+waitwindow 10 escmenu
+clickregion 4
+waitwindow 10 options
+clickregion 5
+frames 5
+clickregion 19
+frames 5
+key enter
+frames 5
+key y
+frames 5
+clickregion 7
+frames 5
+dblclickregion 20
+frames 5
+key j
+frames 5
+clickregion 17
+frames 5
+key enter
+frames 5
+key q
+waitwindow 10 msgbox
+clickregion 0
+waitwindow 10 options
+clickregion 0
+waitwindow 10 battle
+
+# The new keys in the game.
+key y
+waitwindow 10 objectives
+key esc
+waitwindow 10 battle
+key tab
+frames 10
+waitwindow 2 battle
+key v
+frames 20
+key j
+frames 40
+key q
+frames 40
+report
+quit

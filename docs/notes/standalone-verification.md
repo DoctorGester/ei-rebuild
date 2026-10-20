@@ -160,7 +160,10 @@ until S21c); `EI_COVER=<addr,...>` on the original still watches single addresse
   .amf exists. CubicSegment::Evaluate 0040E440 and SetBSpline are dead (the game uses the copy at 004E5660).
 - Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (CEffectTornado
   launches only on Rebirth and only in about half the runs: a strike needs open ground at a random point), ui_camp_make,
-  magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`).
+  magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`),
+  ui_options_remap / ui_options_remap_load (SV8: keys remapped in the options and used, the saved keyboard.ini loaded
+  at start through `make_keyboard_ini.py`, which writes it into the run's overlay; the user's report of remapping not
+  working did not reproduce on a clean build).
 - Multiplayer (SV5d): `net_pair_join` is a pair of games (section 6): a second game finds the first's hosted game in the
   lobby list, joins it (join request, admit, login, the client's BeginMultiplayerGame into bz1mpg), both say a chat
   line, and the second leaves; goldens for both games. SV5d1: `net_pair_zone` (an exchange on the base, the host's
@@ -263,6 +266,10 @@ happen (the harness logs "share id" if one does).
   held, and letters and digits make no WM_CHAR (the `key` step posts theirs). Windows' own translation followed the
   user's keyboard layout and held keys, so typed hero names came out doubled ("hhoosstt"), with capitals or with
   letters missing, differently per run.
+- **Install files and registry** (harness.cpp): writes under the game folder (config\keyboard.ini on exit, the skin
+  cache, mp\) go to the run's harness_saves overlay, read back from there; RegSetValueExA (slot 0073B018, the image
+  calls it through the same slot) is skipped, so the options' exit save never reaches the registry. Reads still come
+  from the user's registry (HKCU\Software\Nival Interactive\EvilIslands), so goldens follow its values.
 - **Starter answers** (harness_starter.cpp): resolution, widescreen, and CtfMon answered 0 (addon.dll otherwise closes
   the user's ctfmon at start and restarts it from DLL_PROCESS_DETACH, which hung every Rebirth exit; S3e). A game hung
   after quit is ended after 3 s with `exit_hang.txt` (each thread's EIP and return addresses).

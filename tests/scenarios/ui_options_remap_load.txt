@@ -1,0 +1,42 @@
+# SV8: the remapped keys after a restart. The game starts with the config\keyboard.ini that
+# ui_options_remap saves (tools/make_keyboard_ini.py writes it into harness_saves' overlay, which the
+# game reads instead of the install's): "Y obj", "J crawl", "Q run", no TAB / V / Z / weapon1 lines.
+# 00462C10 loads it at the interface's start. Y opens the objectives and TAB does not; V does nothing,
+# J crawls, Q runs (the hero's pose in the digest). The options window shows the loaded keys (group 3,
+# then group 5; 00651600), cancelled.
+# prepare: make_keyboard_ini.py
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+
+key tab
+frames 10
+waitwindow 2 battle
+key y
+waitwindow 10 objectives
+key esc
+waitwindow 10 battle
+key v
+frames 20
+key j
+frames 40
+key q
+frames 40
+
+key esc
+waitwindow 10 escmenu
+clickregion 4
+waitwindow 10 options
+clickregion 5
+frames 5
+clickregion 7
+frames 5
+clickregion 1
+waitwindow 10 battle
+report
+quit

@@ -1,8 +1,10 @@
 // The key bindings file (the base path 007AF460 + the name at 00787C04): loaded at start
-// (00462C10) and saved (00462DF0). The tables are the ones FindCommandByKey (object_tables.cpp)
-// reads: the bound key of each command slot (0x200 signed bytes at 0079BF70), the commands
-// (0x48-byte entries at 007857B0: slot, name, the key's display text) and the key names (0x10-byte
-// entries at 00787070: code, name). See docs/notes/app.md.
+// (00462C10) and saved (00462DF0) on the interface's shutdown. Each line is "<key> <action>". The
+// tables are the ones FindCommandByKey (object_tables.cpp) and the options window (ui_options.cpp)
+// use: the action of each scan code (0x200 signed bytes at 0079BF70), the keys (0x48-byte entries at
+// 007857B0: scan code, the file's name, Windows' display text) and the actions (0x10-byte entries at
+// 00787070: id, name, options group and row; the first is a blank id 0). See docs/notes/ui.md
+// section 8.
 #include "console.h"
 #include "game_strings.h"
 
@@ -21,24 +23,24 @@ namespace keybind {
 
 namespace {
 
-struct Command {
-    int slot;              // also the scan code whose key name is shown
-    const char* name;
-    char keyText[0x40];    // GetKeyNameTextA's text (up to 31 bytes)
+struct Key {
+    int scan;              // the scan code, the index into the action table
+    const char* name;      // the file's name ("TAB", "Q", ...)
+    char text[0x40];       // GetKeyNameTextA's text (up to 31 bytes), shown by the options window
 };
-static_assert(sizeof(Command) == 0x48);
-struct KeyName {
-    int code;
-    const char* name;
+static_assert(sizeof(Key) == 0x48);
+struct Action {
+    int id;
+    const char* name;      // the file's name ("obj", "weapon1", ...)
     std::uint8_t unused_08[8];
 };
-static_assert(sizeof(KeyName) == 0x10);
+static_assert(sizeof(Action) == 0x10);
 
-Command* Commands() { return reinterpret_cast<Command*>(0x007857B0); }
-constexpr int kCommandCount = (0x00787070 - 0x007857B0) / 0x48;   // 88
-KeyName* KeyNames() { return reinterpret_cast<KeyName*>(0x00787070); }
-constexpr int kKeyNameCount = 60;
-signed char* Bindings() { return reinterpret_cast<signed char*>(0x0079BF70); }
+Key* Keys() { return reinterpret_cast<Key*>(0x007857B0); }
+constexpr int kKeyCount = (0x00787070 - 0x007857B0) / 0x48;   // 88
+Action* Actions() { return reinterpret_cast<Action*>(0x00787070); }
+constexpr int kActionCount = 60;
+signed char* ActionOfScan() { return reinterpret_cast<signed char*>(0x0079BF70); }
 
 
 // 00700C05: operator+(CString, LPCTSTR).
@@ -55,33 +57,33 @@ bool OpenFile(console::CStdioFile& file, unsigned flags) {
 
 } // namespace
 
-// 00462C10: each command's key text from its scan code (empty when Windows has no name), the
-// bindings cleared, then "command key" lines read: both names looked up case-insensitively, the
-// key's code stored for the command's slot.
+// 00462C10: each key's text from its scan code (empty when Windows has no name), the table
+// cleared, then "key action" lines read: both names looked up case-insensitively, the action's id
+// stored for the key's scan code (a line whose key is unknown is skipped after the action lookup).
 void __cdecl LoadKeyBindings() {
-    for (int i = 0; i < kCommandCount; ++i) {
-        Command& c = Commands()[i];
-        if (!gameapi::GetKeyNameTextA(c.slot << 16, c.keyText, 0x1F)) c.keyText[0] = 0;
+    for (int i = 0; i < kKeyCount; ++i) {
+        Key& k = Keys()[i];
+        if (!gameapi::GetKeyNameTextA(k.scan << 16, k.text, 0x1F)) k.text[0] = 0;
     }
     mfc::CString line;
     console::CStringArray words;
     console::CStdioFile file;
-    std::memset(Bindings(), 0, 0x200);
+    std::memset(ActionOfScan(), 0, 0x200);
     if (!OpenFile(file, console::CStdioFile::typeText)) return;
     while (file.ReadString(line)) {
         text::SplitWords(line, &words, ' ');
         if (words.GetSize() <= 1) continue;
         bool known = false;
-        int command = 0;
-        for (; command < kCommandCount; ++command) {
-            if (libcrt::Stricmp(Commands()[command].name, words[0]) == 0) {
+        int key = 0;
+        for (; key < kKeyCount; ++key) {
+            if (libcrt::Stricmp(Keys()[key].name, words[0]) == 0) {
                 known = true;
                 break;
             }
         }
-        for (int key = 0; key < kKeyNameCount; ++key) {
-            if (libcrt::Stricmp(KeyNames()[key].name, words[1]) != 0) continue;
-            if (known) Bindings()[Commands()[command].slot] = static_cast<signed char>(KeyNames()[key].code);
+        for (int action = 0; action < kActionCount; ++action) {
+            if (libcrt::Stricmp(Actions()[action].name, words[1]) != 0) continue;
+            if (known) ActionOfScan()[Keys()[key].scan] = static_cast<signed char>(Actions()[action].id);
             break;
         }
     }
@@ -89,27 +91,27 @@ void __cdecl LoadKeyBindings() {
 }
 EI_REPLACE(0x00462C10, LoadKeyBindings);
 
-// 00462DF0: one line per bound slot whose command and key are both known (format 00787C18:
-// command name, key name).
+// 00462DF0: one line per scan code with an action, when both the key and the action are known
+// (format 00787C18: key name, action name).
 void __cdecl SaveKeyBindings() {
     mfc::CString line;
     console::CStdioFile file;
     if (!OpenFile(file, console::CStdioFile::modeCreate | console::CStdioFile::modeWrite)) return;
-    for (int slot = 0; slot < 0x200; ++slot) {
-        signed char code = Bindings()[slot];
-        if (!code) continue;
+    for (int scan = 0; scan < 0x200; ++scan) {
+        signed char id = ActionOfScan()[scan];
+        if (!id) continue;
         bool known = false;
-        int command = 0;
-        for (; command < kCommandCount; ++command) {
-            if (Commands()[command].slot == slot) {
+        int key = 0;
+        for (; key < kKeyCount; ++key) {
+            if (Keys()[key].scan == scan) {
                 known = true;
                 break;
             }
         }
-        for (int key = 0; key < kKeyNameCount; ++key) {
-            if (KeyNames()[key].code != code) continue;
+        for (int action = 0; action < kActionCount; ++action) {
+            if (Actions()[action].id != id) continue;
             if (known) {
-                line.Format(game::Text(0x00787C18), Commands()[command].name, KeyNames()[key].name);
+                line.Format(game::Text(0x00787C18), Keys()[key].name, Actions()[action].name);
                 file.WriteString(line);
             }
             break;

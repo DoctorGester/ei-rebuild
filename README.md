@@ -75,7 +75,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   handled after one). Plain `wait <ms>` is left for "let the world run this long".
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
-  `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
+  `clickregion/rclickregion/dblclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
   window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
   `hold <mods>` / `release <mods>` press and release Ctrl / Shift / Alt (`ctrl shift alt`), and the same words after
   a key or mouse step's arguments (`click 400 560 shift`, `key 1 ctrl`) hold them around that step; the game
