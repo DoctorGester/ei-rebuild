@@ -6,6 +6,7 @@
 
 #include <windows.h>
 #include <winternl.h>
+#include <intrin.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -28,6 +29,7 @@ SRWLOCK g_lock = SRWLOCK_INIT;
 struct State {
     std::set<std::string> problemSet;
     std::vector<std::string> problems;
+    std::set<std::string> refused;     // calls and paths refused (each reported once)
     std::vector<std::wstring> roots;   // each install root as a DOS path and as a device path, no trailing backslash
 };
 State& S() {
@@ -341,58 +343,72 @@ bool UnderRoot(const wchar_t* path) {
     return false;
 }
 
-// The first caller outside ntdll, kernelbase and kernel32, as "module+offset".
-std::string Caller() {
-    void* frames[32];
-    const USHORT count = RtlCaptureStackBackTrace(2, 32, frames, nullptr);
+// The code addresses on the stack from `stack` (the guarded call's return address) up, outside ntdll,
+// kernelbase and kernel32 (the first five, "module+offset"): found by scanning for values that point into a
+// module's executable code, since the system's frames keep no EBP chain (RtlCaptureStackBackTrace found none).
+std::string Callers(const void* stack) {
     const HMODULE system[] = {GetModuleHandleA("ntdll.dll"), GetModuleHandleA("kernelbase.dll"), GetModuleHandleA("kernel32.dll")};
-    for (USHORT i = 0; i < count; ++i) {
-        HMODULE module = nullptr;
-        if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                static_cast<LPCSTR>(frames[i]), &module))
+    const auto* tib = reinterpret_cast<const NT_TIB*>(NtCurrentTeb());
+    const auto* end = static_cast<const std::uintptr_t*>(tib->StackBase);
+    std::string text;
+    int found = 0;
+    for (auto* p = static_cast<const std::uintptr_t*>(stack); p < end && found < 5; ++p) {
+        MEMORY_BASIC_INFORMATION info;
+        constexpr DWORD kExecutable = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+        if (*p < 0x10000 || !VirtualQuery(reinterpret_cast<const void*>(*p), &info, sizeof(info)) || info.Type != MEM_IMAGE ||
+            !(info.Protect & kExecutable))
             continue;
+        const auto module = static_cast<HMODULE>(info.AllocationBase);
         if (module == system[0] || module == system[1] || module == system[2]) continue;
         char name[MAX_PATH];
         if (!GetModuleFileNameA(module, name, MAX_PATH)) continue;
         const char* base = std::strrchr(name, '\\');
-        char text[MAX_PATH + 16];
-        std::snprintf(text, sizeof(text), "%s+%X", base ? base + 1 : name,
-                      unsigned(reinterpret_cast<std::uintptr_t>(frames[i]) - reinterpret_cast<std::uintptr_t>(module)));
-        return text;
+        char entry[MAX_PATH + 16];
+        std::snprintf(entry, sizeof(entry), "%s%s+%X", text.empty() ? "" : ", ", base ? base + 1 : name,
+                      unsigned(*p - reinterpret_cast<std::uintptr_t>(module)));
+        text += entry;
+        ++found;
     }
-    return "unknown caller";
+    return text.empty() ? "no caller found" : "stack: " + text;
 }
 
-// Whether `path` lies in an install (then the call is refused and the run fails).
-bool Refuse(const char* call, const wchar_t* path) {
+// Whether `path` lies in an install (then the call is refused and the run fails; each call and path reported once).
+bool Refuse(const char* call, const char* label, unsigned long value, const wchar_t* path, const void* stack) {
     if (!UnderRoot(path)) return false;
     char narrow[kPathChars];
     WideCharToMultiByte(CP_ACP, 0, path, -1, narrow, sizeof(narrow), nullptr, nullptr);
-    Problem(std::string("write refused: ") + call + " " + narrow + " (" + Caller() + ")");
+    const std::string what = std::string(call) + " " + narrow;
+    AcquireSRWLockExclusive(&g_lock);
+    const bool fresh = S().refused.insert(what).second;
+    ReleaseSRWLockExclusive(&g_lock);
+    if (!fresh) return true;
+    char detail[64];
+    std::snprintf(detail, sizeof(detail), " (%s %lX; ", label, value);
+    Problem("write refused: " + what + detail + Callers(stack) + ")");
     return true;
 }
 
-bool RefuseName(const char* call, const OBJECT_ATTRIBUTES* attributes) {
+bool RefuseName(const char* call, unsigned long access, const OBJECT_ATTRIBUTES* attributes, const void* stack) {
     if (!attributes || !attributes->ObjectName) return false;
     Busy busy;
     if (!busy.outer) return false;
     wchar_t path[kPathChars];
     return NamePath(attributes->RootDirectory, attributes->ObjectName->Buffer, attributes->ObjectName->Length, path) &&
-           Refuse(call, path);
+           Refuse(call, "access", access, path, stack);
 }
 
 NTSTATUS NTAPI GuardedCreateFile(PHANDLE handle, ACCESS_MASK access, POBJECT_ATTRIBUTES attributes, PIO_STATUS_BLOCK io,
                                  PLARGE_INTEGER size, ULONG fileAttributes, ULONG share, ULONG disposition, ULONG options,
                                  PVOID ea, ULONG eaBytes) {
     const bool writes = (access & kWriteAccess) || disposition != kFileOpen || (options & kFileDeleteOnClose);
-    if (writes && RefuseName("NtCreateFile", attributes)) return kAccessDenied;
+    if (writes && RefuseName("NtCreateFile", access, attributes, _AddressOfReturnAddress())) return kAccessDenied;
     return g_ntCreateFile(handle, access, attributes, io, size, fileAttributes, share, disposition, options, ea, eaBytes);
 }
 
 NTSTATUS NTAPI GuardedOpenFile(PHANDLE handle, ACCESS_MASK access, POBJECT_ATTRIBUTES attributes, PIO_STATUS_BLOCK io,
                                ULONG share, ULONG options) {
     const bool writes = (access & kWriteAccess) || (options & kFileDeleteOnClose);
-    if (writes && RefuseName("NtOpenFile", attributes)) return kAccessDenied;
+    if (writes && RefuseName("NtOpenFile", access, attributes, _AddressOfReturnAddress())) return kAccessDenied;
     return g_ntOpenFile(handle, access, attributes, io, share, options);
 }
 
@@ -403,12 +419,12 @@ NTSTATUS NTAPI GuardedSetInformationFile(HANDLE handle, PIO_STATUS_BLOCK io, PVO
         Busy busy;
         if (busy.outer) {
             wchar_t path[kPathChars];
-            if (removes && HandlePath(handle, path) && Refuse("NtSetInformationFile (rename or delete)", path))
+            if (removes && HandlePath(handle, path) && Refuse("NtSetInformationFile (rename or delete)", "class", kind, path, _AddressOfReturnAddress()))
                 return kAccessDenied;
             const auto* target = static_cast<const RenameInformation*>(information);
             if (names && target && bytes >= offsetof(RenameInformation, name) &&
                 NamePath(target->root, target->name, target->nameBytes, path) &&
-                Refuse("NtSetInformationFile (rename or link target)", path))
+                Refuse("NtSetInformationFile (rename or link target)", "class", kind, path, _AddressOfReturnAddress()))
                 return kAccessDenied;
         }
     }
@@ -416,7 +432,7 @@ NTSTATUS NTAPI GuardedSetInformationFile(HANDLE handle, PIO_STATUS_BLOCK io, PVO
 }
 
 NTSTATUS NTAPI GuardedDeleteFile(POBJECT_ATTRIBUTES attributes) {
-    if (RefuseName("NtDeleteFile", attributes)) return kAccessDenied;
+    if (RefuseName("NtDeleteFile", DELETE, attributes, _AddressOfReturnAddress())) return kAccessDenied;
     return g_ntDeleteFile(attributes);
 }
 

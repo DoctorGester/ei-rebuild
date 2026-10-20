@@ -773,6 +773,21 @@ const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
     return nullptr;
 }
 
+// Whether `path` is the game's root folder itself (when the game empties mp\ it deletes every entry
+// FindFirstFile lists, "mp\.." too).
+bool IsGameRoot(const char* path) {
+    char full[MAX_PATH];
+    DWORD n = GetFullPathNameA(path, MAX_PATH, full, nullptr);
+    if (n == 0 || n >= MAX_PATH) return false;
+    while (n > 3 && full[n - 1] == '\\') full[--n] = '\0';
+    for (const char* root : g_rootDirs) {
+        std::size_t length = std::strlen(root);
+        while (length > 3 && root[length - 1] == '\\') --length;
+        if (length && length == n && _strnicmp(full, root, length) == 0) return true;
+    }
+    return false;
+}
+
 void MakeParentDirs(const char* file) {
     char dir[MAX_PATH];
     strcpy_s(dir, file);
@@ -825,7 +840,7 @@ const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
 }
 
 // Whether a write that keeps its file's contents gets the install's copy first: not a log (a run's log
-// starts empty in the overlay; addon.dll appends to starterddon.log, which grows with the user's play) and
+// starts empty in the overlay; addon.dll appends to starter\addon.log, which grows with the user's play) and
 // not a file over 16 MB.
 bool CopiedForWrite(const char* original) {
     const std::size_t length = std::strlen(original);
@@ -843,6 +858,11 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
+    if (!shadow && path && IsGameRoot(path)) {
+        // The root's own write (a delete of "mp\.."): the overlay's root, a folder like the install's.
+        LogInstallWrite(path, g_savesDir);
+        return g_savesDir;
+    }
     if (!shadow) return path;
     MakeParentDirs(shadow);
     char pinned[MAX_PATH];
@@ -857,7 +877,7 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
 // Whether `path` is an install file (harness_install.h: other modules' writes go to the overlay too).
 bool InInstall(const char* path) {
     char b[MAX_PATH];
-    return ShadowOf(path, b) != nullptr;
+    return ShadowOf(path, b) != nullptr || (path && IsGameRoot(path));
 }
 
 HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES sa,
