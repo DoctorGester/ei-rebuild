@@ -66,6 +66,14 @@ class SaveFileTest(unittest.TestCase):
         self.assertEqual(savefile.differences(a, b),
                          [('obj1', 'mana', '2.0', '3.0'), ('obj2', 'x', '1', '(none)'), ('obj3', 'x', '(none)', '1')])
 
+    def test_mp_hero_decodes(self):
+        # make_mp_hero's files decode to the end (the party reader takes every byte), the strong one too.
+        import make_mp_hero
+        for data in (make_mp_hero.hero_file(), make_mp_hero.hero_file('peer', 1000, 60, 60, 60, 300, 100)):
+            entities = savefile.decode_data(data, 'hero')
+            self.assertEqual(entities[0][1], f'magic {savefile.MAGIC_PARTY:#x}')
+            self.assertGreater(len(savefile.lines(entities)), 100)
+
 
 if __name__ == '__main__':
     unittest.main()
