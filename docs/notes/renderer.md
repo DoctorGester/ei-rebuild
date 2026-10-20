@@ -37,9 +37,9 @@ start the renderer (no Direct3D 11 device).") and WinMain ends the game.
 panic, a lost device not made again: R9c1). Every `render::` entry point checks it itself, so game code does not ask.
 In game.exe (the harness and the vector recorders run inside the original's process) it is false: captures there read
 the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options; the harness build's `removable` (R9c5) is the only one; `new`, `present` and
-`cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted and change nothing; any other
-word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
+comma-separated list of options: `smooth` (the smooth option, R12a, section 11) and the harness build's `removable`
+(R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
+and change nothing; any other word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
 
@@ -592,8 +592,8 @@ resolution must have the machine to themselves and serialised the suites.
   alpha (texture for ground, vertex colour for water) and always adds the specular colour (DrawSectorPage turns
   SPECULARENABLE on around each of its draws, after the hand-over). The harness build logs each new terrain pipeline's
   state ("render: terrain pipeline (first for a ground page): ..."). `--widescreen` matches addon's frames with it.
-- **Terrain sampling (R12)**: the pages are sampled anisotropically (16x) with linear mips (`TerrainSampler`,
-  render_textures.cpp; logged once) when stage 0 asks for linear filters (the options' Filtering 1 / 2; point filters
+- **Terrain sampling (R12)**: the pages are sampled anisotropically (16x) with linear mips (`AnisotropicSampler`,
+  render_textures.cpp; logged once per sampler) when stage 0 asks for linear filters (the options' Filtering 1 / 2; point filters
   stay point, Mipmapping 0 keeps level 0). The game asks for D3DTFP_POINT mips: through them whole terrain
   triangles snapped to the next level (a triangle's level follows its texture-coordinate slopes, which change from
   tile to tile) and the sharpness jumped along the tiles' edges: the seams the user saw moving with the camera. The
@@ -614,6 +614,37 @@ resolution must have the machine to themselves and serialised the suites.
   channel. The file's own mips reach 52 (1-bit alpha small levels); the overflowing offsets gave 128 / 149 (vanilla /
   Rebirth); limit 80. Against the harness original's `far` frame, the tree crowns (2750, 550)-(3250, 950) at
   3840 x 2160: 1.30% of the pixels differed (tolerance 8, shift 1; largest 150) before, 0.24% after (leaf edges).
+
+- **The smooth option (R12a)**, user's decision 2026-10-20: off by default; on, the image draws as the user's
+  Rebirth dgVoodoo setup (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x) except for the interface. One
+  switch: `smooth` in EI_RENDER (read once, at the first use: the harness's `render` step or the environment), or
+  `render::SetSmooth` (from the next frame; ST2's options screen can call it, ST1 keep it in the settings file);
+  `render::Smooth()` reads it. Goldens and frame checks run with it off.
+  - The world view (`CWorldClient::Render` 00569E40 between `render::BeginWorld` / `EndWorld`: sky, terrain,
+    objects, shadows, water, effects, flying hit points) is a range of the frame's commands (`Frame::worldRanges`).
+    Its models (`MeshBatch::model`: BeginMesh draws, not the pre-transformed ones) take `AnisotropicSampler` for both
+    stages (point filters stay point, Mipmapping 0 keeps level 0); the interface's sprites and previews keep
+    `StageSampler`.
+  - The world's runs of commands draw into a multisampled colour and depth target of 8 samples (`kSmoothSamples`;
+    fewer when `CheckMultisampleQualityLevels` refuses 8 for RGBA8 or D32, none when the target cannot be made: logged),
+    and each such pass resolves into the frame target (sokol's resolve attachment) at its end; the other runs draw
+    into the frame target as without the option, so the interface's edges and window surfaces are unchanged (a 3D
+    draw's edges run through pixel centres, D3D7's convention: multisampled, every sprite would get half-covered
+    border pixels). Between runs (render_smooth.cpp): after a world run the frame target's depth is set from sample 0
+    of the multisampled depth; before a world run that follows other draws the frame target's colour and depth go
+    into every sample (a pass of its own: the resolve's destination cannot be read in the pass that resolves into
+    it). The frame target is what every reader takes (the present, the cursor thread's copy, `ReadFrame`,
+    `CopyFrameTo`, the gamma ramp check), always resolved: a pass ends with the resolve, and a copy between frames
+    (R13) finds the last frame there.
+  - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`; mesh and
+    terrain pipelines keyed by it, the blit and depth clear made for it at first use): sokol's validation skips a
+    draw whose pipeline's count differs from the pass's. A change of the option remakes the targets at a frame's
+    first pass.
+  - Check (scenario `render_smooth`, image only, vanilla and Rebirth): on from the start; in zone1 at one frozen
+    moment the frame with the option, without it (`smooth off`) and with it again (`smooth on`): the two with it
+    match (samecapture); `smoothcheck plain smooth 0.002 0.2` requires the option on, the world multisampled with the
+    device's samples (8 here) in the last frame, anisotropic world models, and the frames to differ in 0.2% .. 20% of
+    the pixels (a black or stale frame fails); the quick save's picture (`checksave`, R13) matches the smooth frame.
 
 ### Frame capture
 

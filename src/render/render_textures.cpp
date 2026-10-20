@@ -688,7 +688,7 @@ sg_sampler StageSampler(const StageState& s) {
     return sampler;
 }
 
-sg_sampler TerrainSampler(const StageState& s) {
+sg_sampler AnisotropicSampler(const StageState& s) {
     // Point sampling asked for (the options' Filtering 0): as the stage says.
     if (s.minFilter == 1 || s.magFilter == 1) return StageSampler(s);
     std::uint32_t key = 0x80000000u | (s.mipFilter <= 1 ? 1u : 0u) | (static_cast<std::uint32_t>(s.addressU & 7) << 9) |
@@ -697,19 +697,20 @@ sg_sampler TerrainSampler(const StageState& s) {
     if (it != g_samplers.end()) return it->second;
     // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose
     // texture coordinates change direction and scale from tile to tile (D3DTFP_POINT's level
-    // steps showed as seams along the tile edges; renderer.md section 11).
+    // steps showed as seams along the tile edges; renderer.md section 11). The smooth option samples
+    // the world's models so too (dgVoodoo's Filtering 16, R12a).
     sg_sampler_desc d{};
     d.min_filter = SG_FILTER_LINEAR;
     d.mag_filter = SG_FILTER_LINEAR;
     d.mipmap_filter = SG_FILTER_LINEAR;
-    d.max_anisotropy = kTerrainAnisotropy;
+    d.max_anisotropy = kAnisotropy;
     if (s.mipFilter <= 1) d.max_lod = 0.0f;   // D3DTFP_NONE (the options' Mipmapping 0): level 0 only
     d.wrap_u = Wrap(s.addressU);
     d.wrap_v = Wrap(s.addressV);
     d.border_color = SG_BORDERCOLOR_TRANSPARENT_BLACK;
-    d.label = "ei-terrain-sampler";
+    d.label = "ei-anisotropic-sampler";
     sg_sampler sampler = sg_make_sampler(&d);
-    ei::Log("render: terrain sampler: anisotropic %u with linear mips%s (the stage's filters %u / %u / %u)", kTerrainAnisotropy,
+    ei::Log("render: anisotropic sampler: %u with linear mips%s (the stage's filters %u / %u / %u)", kAnisotropy,
             s.mipFilter <= 1 ? ", level 0 only" : "", s.magFilter, s.minFilter, s.mipFilter);
     g_samplers.emplace(key, sampler);
     return sampler;

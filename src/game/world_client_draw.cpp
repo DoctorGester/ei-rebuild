@@ -251,6 +251,9 @@ EI_REPLACE(0x0056A370, QueueScreenEntry);
 // ---- Render (00569E40) --------------------------------------------------------------------------
 
 int CWorldClient::Render() {
+    // The world view for the new renderer's smooth option (R12a: multisampled, models sampled
+    // anisotropically); the interface draws after it.
+    render::BeginWorld();
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
     UpdateLighting();
@@ -345,6 +348,7 @@ int CWorldClient::Render() {
         Flush(renderer);
         SetRenderState(renderer, 7, renderer->zEnable_);
     }
+    render::EndWorld();
     return 1;
 }
 EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);

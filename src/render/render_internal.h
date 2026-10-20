@@ -98,6 +98,7 @@ struct MeshBatch {
     bool unclipped;           // projected to the screen without clipping by the old path
     float zScale;             // the depth is multiplied by it (1: unchanged)
     bool lines;               // a line list (else triangles)
+    bool model = false;       // a model's mesh (BeginMesh .. MeshPass), not pre-transformed vertices
 };
 
 // A window surface's blit: the image read at the blit, the screen and source rectangles.
@@ -132,6 +133,13 @@ struct Frame {
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<Command> commands;
+    // The world view's commands (render::BeginWorld .. EndWorld): [first, end) into `commands`, the
+    // last range open (end SIZE_MAX) while the world view draws. With the smooth option they are drawn
+    // into the multisampled target and their models sampled anisotropically (render_smooth.cpp).
+    struct Range {
+        std::size_t first, end;
+    };
+    std::vector<Range> worldRanges;
     // The software cursor (render::Cursor) when the new renderer presents itself: drawn last, after
     // the frame without it is kept for the cursor thread (render_cursor.cpp).
     BlitBatch cursor{};
@@ -263,7 +271,8 @@ void DestroyTerrain();
 // The mesh pipelines and draws (render_mesh.cpp).
 bool CreateMeshShader();
 void UploadMeshes(const Frame& frame);
-void DrawMeshBatch(const Frame& frame, const MeshBatch& batch);
+// `anisotropic`: both stages through AnisotropicSampler (a world model with the smooth option).
+void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, bool anisotropic);
 void DestroyMeshes();
 
 // The window surfaces' blits and the depth clear in the middle of the pass (render_blit.cpp).
@@ -335,10 +344,11 @@ void KeepFrameForCursor();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
 sg_sampler StageSampler(const StageState& stage);
-// The terrain pages' sampler for `stage` (stage 0 of the page's pass): with linear filters asked
-// for, anisotropic (kTerrainAnisotropy) with linear mips; point filters as the stage says.
-constexpr std::uint32_t kTerrainAnisotropy = 16;
-sg_sampler TerrainSampler(const StageState& stage);
+// The sampler for `stage` with linear filters asked for: anisotropic (kAnisotropy) with linear mips;
+// point filters as the stage says. Always for the terrain pages (stage 0 of the page's pass, R12),
+// with the smooth option for the world's models too (R12a).
+constexpr std::uint32_t kAnisotropy = 16;
+sg_sampler AnisotropicSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a
 // long time dropped.
 void RetireTextures();
@@ -364,5 +374,26 @@ private:
 // Pixel formats of the off-screen pass (render.cpp).
 constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;
 constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
+
+// The smooth option's multisampling (render_smooth.cpp; render.cpp draws the frame's world commands
+// into a multisampled target and resolves it into the frame target, docs/notes/renderer.md section 11).
+// The sample count of the pass being drawn (1, or the multisampled target's): every pipeline drawing
+// into the frame is made for it.
+int PassSampleCount();
+// The most samples up to kSmoothSamples the device renders kColourFormat and kDepthFormat with (1:
+// none).
+constexpr int kSmoothSamples = 8;
+int SupportedSamples(ID3D11Device* device);
+// The two copies below made for a multisampled target of `samples`; false (logged) when they could
+// not be: the world is then drawn without multisampling.
+bool PrepareSmoothCopies(int samples);
+// Inside a pass on the multisampled target: the frame target's colour and depth (texture views of
+// the single-sampled images) copied into every sample.
+void CopyIntoMultisampled(sg_view colour, sg_view depth);
+// Inside a pass on the frame target: its depth set to sample 0 of the multisampled depth (a texture
+// view of it); the colour comes from the multisampled pass's resolve.
+void CopyDepthFromMultisampled(sg_view depth);
+// The copies' shaders and pipelines, before sg_shutdown.
+void DestroySmooth();
 
 } // namespace render::detail

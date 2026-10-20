@@ -229,7 +229,8 @@ std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
 GeometryStream g_geometry("ei-mesh");
 
 sg_pipeline Pipeline(const PassState& s, bool lines) {
-    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u);
+    int samples = PassSampleCount();
+    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
     sg_pipeline_desc p{};
@@ -246,7 +247,7 @@ sg_pipeline Pipeline(const PassState& s, bool lines) {
     p.index_type = SG_INDEXTYPE_UINT32;
     p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
     ApplyPassState(p, s);
-    p.sample_count = 1;
+    p.sample_count = samples;
     p.label = "ei-mesh";
     sg_pipeline pipeline = sg_make_pipeline(&p);
     g_pipelines.emplace(key, pipeline);
@@ -449,7 +450,7 @@ void UploadMeshes(const Frame& f) {
     g_geometry.Upload(f.meshVertices, f.meshIndices);
 }
 
-void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
+void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     sg_bindings b{};
     if (batch.indexCount <= 0 || !g_geometry.Bind(b)) return;
     const PassState& s = batch.state;
@@ -459,7 +460,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
     for (int t = 0; t < 2; ++t) {
         const StageState& st = s.stages[t];
         b.views[t] = st.texture.id ? st.texture : SurfaceView(nullptr);
-        b.samplers[t] = StageSampler(st);
+        b.samplers[t] = anisotropic ? AnisotropicSampler(st) : StageSampler(st);
     }
     sg_apply_bindings(&b);
     VsParams vs{};
@@ -571,6 +572,7 @@ bool MeshPass(void* device) {
         batch.fogScale = g_pending.fogScale;
         batch.unclipped = !g_pending.mesh.clipped;
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
+        batch.model = true;
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }

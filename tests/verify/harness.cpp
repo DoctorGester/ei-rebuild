@@ -212,6 +212,18 @@
 //                             level 0, both box-filtered to 4 x 4 (render::CheckMmpLevels: levels read
 //                             from the wrong bytes drew bright green strips over the trees, R12b).
 //                             Skipped in a run of the original code
+//   smooth on|off             the image's smooth option (render::SetSmooth, R12a: the world view
+//                             multisampled, its models sampled anisotropically), from the next frame;
+//                             "render new,present,smooth" turns it on from the start. Ignored in a
+//                             run of the original code
+//   smoothcheck <plain> <smooth> <least> <most>
+//                             require the smooth option on, the last frame's world drawn multisampled
+//                             (as many samples as the device gives, at least 2) and resolved, models
+//                             in it sampled anisotropically, and frames\<smooth>.bmp to differ from
+//                             frames\<plain>.bmp (the same frozen moment without the option) in a
+//                             fraction of its pixels (by more than 8) within <least>..<most>: the
+//                             world's edges and textures, nothing black or stale. Skipped in a run of
+//                             the original code
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
@@ -2717,6 +2729,43 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (check.levels == 0 || check.worst > most) g_failures.push_back(text);
+        } else if (s.verb == "smooth") {
+            if (!render::Active()) {
+                Log("harness: smooth %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "on" || s.argument == "off") render::SetSmooth(s.argument == "on");
+            else g_failures.push_back("smooth needs on or off");
+        } else if (s.verb == "smoothcheck") {
+            char plain[64] = "", smooth[64] = "";
+            double least = 0, most = 1;
+            if (sscanf_s(s.argument.c_str(), "%63s %63s %lf %lf", plain, unsigned(sizeof(plain)), smooth, unsigned(sizeof(smooth)),
+                         &least, &most) < 4) {
+                g_failures.push_back("smoothcheck needs two frame names, a least and a most fraction");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: smoothcheck %s %s: not the new renderer (the original code): skipped", plain, smooth);
+                continue;
+            }
+            render::SmoothInfo info = render::SmoothState();
+            double differing = 0;
+            int largest = 0;
+            const char* why = "";
+            bool compared = capture::Compare(plain, smooth, 8, &differing, &largest, &why);
+            char text[320];
+            std::snprintf(text, sizeof(text),
+                          "smoothcheck %s %s: option %s, %d samples (the device gives %d), last frame %d multisampled "
+                          "passes, %d models anisotropic, %d as their stage; %.3f%% of the pixels differ by more than 8 "
+                          "(largest %d; allowed %.3f%% .. %.3f%%)",
+                          plain, smooth, info.on ? "on" : "off", info.targetSamples, info.deviceSamples, info.multisampledPasses,
+                          info.anisotropicModels, info.plainModels, 100.0 * differing, largest, 100.0 * least, 100.0 * most);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (!compared) g_failures.push_back(std::string("smoothcheck ") + plain + " " + smooth + ": " + why);
+            else if (!info.on || info.targetSamples < 2 || info.targetSamples != info.deviceSamples ||
+                     info.multisampledPasses < 1 || info.anisotropicModels < 1 || differing < least || differing > most)
+                g_failures.push_back(text);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";
