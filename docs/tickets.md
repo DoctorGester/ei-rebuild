@@ -197,7 +197,7 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-- **WB16** Harness runs read the user's real game settings: pin them (ready; opus, 1 session). SV8 (2026-10-20): key bindings live in <install>\config\keyboard.ini, read at start; harness writes go to harness_saves, but reads may come from F:\games\EvilIslands\config\keyboard.ini, which the user's remap rewrote: pin a committed keyboard.ini per install too. Also RegCreateKeyExA is not skipped (writes no values). Re-record ui_options_remap / ui_options_remap_load if the pinned settings change them.
+- **WB16** Harness runs read the user's real game settings: pin them (running since 2026-10-20; opus, 1 session). SV8 (2026-10-20): key bindings live in <install>\config\keyboard.ini, read at start; harness writes go to harness_saves, but reads may come from F:\games\EvilIslands\config\keyboard.ini, which the user's remap rewrote: pin a committed keyboard.ini per install too. Also RegCreateKeyExA is not skipped (writes no values). Re-record ui_options_remap / ui_options_remap_load if the pinned settings change them.
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
 - **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
