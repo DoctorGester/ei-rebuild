@@ -5,6 +5,7 @@
 // (map_object_shadow.cpp), through the vtable only. The old Direct3D 7 path: the two plain draws
 // turn the device's specular on around the draw for a material that keeps its speculars.
 #include "device.h"   // the old device's calls
+#include "library_trees.h"
 #include "link_figure.h"
 
 #include "core_maths.h"
@@ -137,10 +138,10 @@ struct PartDraw {
 void KeepScreen(CLinkMesh* mesh, const stlp::string* name, int flags, int result) {
     if ((flags & kDrawScreenRect) && result != kNothingDrawn) {
         const RECT& drawn = mesh->loader_->renderer_->drawnRect_;
-        LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name)->screen = drawn;
+        lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name)->screen = drawn;
         return;
     }
-    LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name)->screen = NoScreen();
+    lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name)->screen = NoScreen();
 }
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without

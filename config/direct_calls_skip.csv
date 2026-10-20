@@ -92,4 +92,4 @@ address,reason
 00560E10,src/game/ai_footprint.cpp passes a float * as void* (the target is const MatrixRows's method)
 005B40F0,src/game/ai_map_construct.cpp passes a int * as void* (the target is AIDirtyRect's method)
 00419CD0,RefPtr::Assign: callers hold the counted pointer in fields of view types (ItemSourceRef / ItemTurn links; net sessions): C13a2
-006D43E0,CWorldServer::countdowns_ is raw bytes in world.h (a TweenArray; C13b1 retypes it)
+00452FC0,WordsSetAtGrow: kept on purpose (coordinator, C13b1)

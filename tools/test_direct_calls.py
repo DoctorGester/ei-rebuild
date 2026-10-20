@@ -311,6 +311,48 @@ struct VecAbi {
                          'stlp::TreeElement<AttachedMap::Value>')
         self.assertEqual(dc.abbreviated('stlp::map<int,int>', src, 60), 'stlp::map<int,int>')
 
+    def test_alias_templates(self):
+        # C13b1. An alias template's arguments go in for its parameters, a class's member alias (`Second::Type`)
+        # is written out, and names in an alias's expansion are looked up in its own namespace.
+        header = ('#pragma once\nnamespace net::trees {\nstruct Counted { using Type = RefPtr; };\n'
+                  'template <typename K, typename Second>\n'
+                  'using PairTree = stlp::TreeAbi<stlp::map<K, typename Second::Type>,\n'
+                  '                               stlp::PairElement<typename stlp::map<K, typename Second::Type>::Value, Second>>;\n'
+                  'using Objects = PairTree<std::int32_t, Counted>;\n}\n')
+        reg = '#include "trees.h"\nusing namespace net::trees;\nEI_REPLACE(0x00401000, Objects::Find);\n'
+        hdr, cpp = dc.Source('src/game/trees.h', header), dc.Source('src/game/trees.cpp', reg)
+        dc._FREE_DECLS['all'] = [hdr, cpp]
+        dc._SEES.clear()
+        dc.collect_aliases([hdr, cpp])
+        self.assertEqual(dc.expand_aliases('Objects::Find', cpp, ['net', 'trees']),
+                         'stlp::TreeAbi<stlp::map<std::int32_t, RefPtr>,\n                               '
+                         'stlp::PairElement<stlp::map<std::int32_t, RefPtr>::Value, Counted>>::Find')
+        und = ('public: static struct RefPtr * __fastcall stlp::TreeAbi<class stlp::map<int,struct RefPtr,struct '
+               'stlp::TreeLess<int> >,struct stlp::PairElement<struct stlp::map<int,struct RefPtr,struct stlp::TreeLess'
+               '<int> >::Value,struct net::trees::Counted> >::Find(int const *)')
+        decls = {s.qname: [s] for s in [dc.Sig(und, 'trees.cpp.obj')]}
+        t, why, _ = dc.resolve_registered('Objects::Find', cpp, decls, dc.by_simple(decls))
+        self.assertEqual((why, t and t.simple), ('', 'Find'))
+
+    def test_function_arguments(self):
+        # Function pointer template arguments as undname prints them become their names; the source's spelling
+        # (hex numbers, nullptr, no `&`) has the same loose key.
+        und = ('public: static void __fastcall mfc::impl::ListAbi<struct mfc::impl::Bytes<12>,struct mfc::impl::'
+               'EachElements<struct mfc::impl::Bytes<12>,0,&void __cdecl gamelists::ReleaseHolder(struct mfc::impl::'
+               'Bytes<12> *)> >::FreeNode(struct mfc::impl::Bytes<12> *,void *)')
+        s = dc.Sig(und, 'x')
+        self.assertTrue(s.ok)
+        self.assertEqual(s.qname, 'mfc::impl::ListAbi<mfc::impl::Bytes<12>,mfc::impl::EachElements<mfc::impl::Bytes<12>,'
+                                  '0,&gamelists::ReleaseHolder>>::FreeNode')
+        self.assertEqual(s.params, ['mfc::impl::Bytes<12>*', 'void*'])
+        member = dc.collapse_function_arguments(
+            'void __cdecl f<struct R,&public: void __thiscall ns::R::Assign(struct R const *),7>(void)')
+        self.assertEqual(member, 'void __cdecl f<struct R,&ns::R::Assign,7>(void)')
+        dc._NAMESPACES.update({'mfc', 'impl', 'gamelists'})
+        self.assertEqual(dc.loose_key('ListAbi<Bytes<0xC>, EachElements<Bytes<0xC>, nullptr, ReleaseHolder>>'),
+                         dc.loose_key(s.qname.rsplit('::', 1)[0]))
+        self.assertEqual(dc.loose_key('PlainArray<unsigned, X>'), 'PlainArray<unsigned int,X>')
+
 
 if __name__ == '__main__':
     unittest.main()

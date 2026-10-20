@@ -9,14 +9,12 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
+#include "lib/mfc.h"
 
 #include <cstdint>
 #include "originals_library.h"
 
 namespace {
-
-// 005BD2A0 (RET 4): appends a copy of a cell.
-__declspec(naked) void __fastcall AppendCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD2A0)
 
 } // namespace
 
@@ -26,7 +24,7 @@ void AIPath::LoadPath(CStream* stream) {
     for (int i = 0; i < count; ++i) {
         // The original's cell has an uninitialised second dword; it is read over below.
         PathCell cell{0, 0, 0, 0};
-        AppendCell(&cells, nullptr, &cell);
+        cells.AddTail(cell);
     }
     for (PathCellList::Node* position = cells.head; position;)
         stream->Read(&cells.GetNext(position), 8);

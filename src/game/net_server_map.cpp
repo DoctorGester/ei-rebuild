@@ -24,14 +24,8 @@ namespace {
 
 // List teardown of +0x25AC / +0x25B0: element destructors and node deallocation.
 
-// STLport strings (library): operator+(string, const char*), operator+(string, string),
-// string(const char*, alloc), string(alloc), range assign, assign(first, last, tag), destructors.
-__declspec(naked) StringRep* __fastcall StringPlusString(StringRep* /*out*/, const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427E80)
-static StringRep* StringFromText(StringRep* s, void*, const char* text, const void* alloc) { return static_cast<StringRep*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-
-// The queued message (vtable 0073BCD0, built by 00418C30) and its string member assignment, the
-// list push_back (the counted pointer helpers are RefPtrFromRaw / RefPtrClear, core_refcount.h).
-__declspec(naked) void __fastcall MessageStringAssign(StringRep* /*string*/, void*, const StringRep* /*from*/) EI_ORIGINAL(0x0041F4E0)
+// The queued message (vtable 0073BCD0, built by 00418C30): the list push_back (the counted pointer
+// helpers are RefPtrFromRaw / RefPtrClear, core_refcount.h).
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
@@ -39,8 +33,8 @@ __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const 
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // vector<string> (library): the allocator proxy constructor and the block free; the string
 // buffer free the string destructor inlines.
-__declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, StringRep* const* /*value*/) EI_ORIGINAL(0x004263D0)
-void __fastcall NamesFree(StringRep* a0, std::size_t a1) { NodeFree12Original((void*)a0, a1); }
+__declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, stlp::string* const* /*value*/) EI_ORIGINAL(0x004263D0)
+void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { NodeFree12Original((void*)a0, a1); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 
 
@@ -69,24 +63,24 @@ void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's
 // names (inline, through FindOrAddVariable) and for two paths built from the map name
 // (SetVariable), and queues the host's item awards (004191C0, without the final award).
-void ServerSession::SetMap(const StringRep* name) {
+void ServerSession::SetMap(const stlp::string* name) {
     ClearList(&queuedMaps_, Element25ACDestroy, List25ACFree);
     ClearList(&variables_, Element25B0Destroy, List25B0FreeNode);
 
-    StringRep messageName;
-    StringPlusText(&messageName, name, game::ZoneSuffix2Text());
-    auto* memory = static_cast<ZoneMessage*>(NewRefObject(sizeof(ZoneMessage)));
-    ZoneMessage* message = memory ? memory->Construct() : nullptr;
-    MessageStringAssign(&message->text_, nullptr, &messageName);
-    RefPtr ref;
-    List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
-    RefPtrClear(&ref);   // 00421360
-    StringRepDestroy(&messageName);
+    {
+        stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix2Text());
+        auto* memory = static_cast<ZoneMessage*>(NewRefObject(sizeof(ZoneMessage)));
+        ZoneMessage* message = memory ? memory->Construct() : nullptr;
+        message->text_.AssignFrom(messageName);
+        RefPtr ref;
+        List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+        RefPtrClear(&ref);   // 00421360
+    }
 
     auto* mapMessage = NewMessageMemory<MapMessage>();
     if (mapMessage) {
         MessageConstructBase(mapMessage);
-        StringInitEmpty(&mapMessage->text_);
+        stlp::StringElement::Default(&mapMessage->text_);
         ei::SetVtable(mapMessage, MapMessage::kVtableAddress);
     }
     RefPtr* holder = &map_;
@@ -95,12 +89,12 @@ void ServerSession::SetMap(const StringRep* name) {
         holder->Share(mapMessage);
     }
     auto* current = static_cast<MapMessage*>(holder->ptr);
-    if (name != &current->text_) StringAssignTaggedOriginal(&current->text_, nullptr, name->start, name->finish, mapMessage);
-    if (name != &mapName_) StringAssignTaggedOriginal(&mapName_, nullptr, name->start, name->finish, mapMessage);
+    if (name != &current->text_) current->text_.AssignFrom(*name);
+    if (name != &mapName_) mapName_.AssignFrom(*name);
 
     void* world = TheGameFlow();
-    static_cast<GameFlow*>(world)->RegisterQuests(name->start);
-    WorldPrepareMap(world, nullptr, name->start);
+    static_cast<GameFlow*>(world)->RegisterQuests(name->data());
+    WorldPrepareMap(world, nullptr, name->data());
     std::uint32_t title = 0, text = 0;   // CStrings
     void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
     void* textOut = worlddata::InterfaceManager()->MessageText(&text, 5, *static_cast<const char**>(titleOut));
@@ -108,18 +102,15 @@ void ServerSession::SetMap(const StringRep* name) {
     CStringDestroy(&text);
     CStringDestroy(&title);
 
-    StringRep registryName;
-    StringPlusText(&registryName, name, game::ZoneSuffix1Text());
-    auto* entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&registryName));
-    StringRepDestroy(&registryName);
+    std::uint8_t* entry;
+    {
+        stlp::string registryName = stlp::Plus(*name, game::ZoneSuffix1Text());
+        entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&registryName));
+    }
     if (!entry) return;
 
     for (auto** it = *reinterpret_cast<const char***>(entry + 0x2C); it != *reinterpret_cast<const char***>(entry + 0x30); ++it) {
-        const char* variableName = *it;
-        StringRep resourceName;
-        std::uint32_t alloc;
-        StringInitWithAllocator(&resourceName, nullptr, &alloc);
-        StringAssignSpan(&resourceName, nullptr, variableName, variableName + std::strlen(variableName));
+        stlp::string resourceName(*it);
         void* added;
         FindOrAddVariable(&added, &resourceName);
         auto* record = static_cast<VariableMessage*>(static_cast<void**>(added)[2]);
@@ -128,33 +119,24 @@ void ServerSession::SetMap(const StringRep* name) {
         record->serial_ = *VariableCounter();
         ++*VariableCounter();
         ++record->version_;
-        StlStringDestroy(&resourceName);
     }
 
-    std::uint32_t alloc;
-    StringRep prefix, a, b, path;
-    StringFromText(&prefix, nullptr, game::Text(flowdata::kQuestVariablePrefix), &alloc);
-    StringPlusString(&a, &prefix, name);
-    StringPlusText(&b, &a, game::Text(flowdata::kDot));
-    StringPlusString(&path, &b, name);
-    SetVariable(&path, 1.0f);
-    StlStringDestroy(&path);
-    StlStringDestroy(&b);
-    StlStringDestroy(&a);
-    StlStringDestroy(&prefix);
-
-    StringRep prefix2, a2, b2, c2, path2;
-    StringFromText(&prefix2, nullptr, game::Text(flowdata::kQuestVariablePrefix), &alloc);
-    StringPlusString(&a2, &prefix2, name);
-    StringPlusText(&b2, &a2, game::Text(flowdata::kDot));
-    StringPlusString(&c2, &b2, name);
-    StringPlusText(&path2, &c2, game::PathSuffixText());
-    SetVariable(&path2, 1.0f);
-    StlStringDestroy(&path2);
-    StlStringDestroy(&c2);
-    StlStringDestroy(&b2);
-    StlStringDestroy(&a2);
-    StlStringDestroy(&prefix2);
+    // "<prefix><name>.<name>" and the same with the path suffix; the temporaries freed in reverse.
+    {
+        stlp::string prefix(game::Text(flowdata::kQuestVariablePrefix));
+        stlp::string a = stlp::Plus(prefix, *name);
+        stlp::string b = stlp::Plus(a, game::Text(flowdata::kDot));
+        stlp::string path = stlp::Plus(b, *name);
+        SetVariable(&path, 1.0f);
+    }
+    {
+        stlp::string prefix(game::Text(flowdata::kQuestVariablePrefix));
+        stlp::string a = stlp::Plus(prefix, *name);
+        stlp::string b = stlp::Plus(a, game::Text(flowdata::kDot));
+        stlp::string c = stlp::Plus(b, *name);
+        stlp::string path = stlp::Plus(c, game::PathSuffixText());
+        SetVariable(&path, 1.0f);
+    }
 
     AwardHost(entry, false);
 }
@@ -165,46 +147,44 @@ void ServerSession::QueueMapList() {
     void* flow = TheGameFlow();
     UnloadQuestTexts();
     struct {
-        StringRep* start;
-        StringRep* finish;
-        StringRep* eos;
+        stlp::string* start;
+        stlp::string* finish;
+        stlp::string* eos;
     } zones;
     zones.start = nullptr;
     zones.finish = nullptr;
-    StringRep* none = nullptr;
+    stlp::string* none = nullptr;
     std::uint8_t allocator = 0;
     NamesProxyConstruct(&zones.eos, nullptr, &allocator, &none);
-    PickZones(&zones, kind_, mapName_.start);
-    for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
-        StringRep key;
-        StringPlusText(&key, zone, game::ZoneSuffix1Text());
-        auto* message = NewMessageMemory<ZoneMessage>();
-        if (message) {
-            MessageConstructBase(message);
-            StringInitEmpty(&message->text_);
-            ei::SetVtable(message, ZoneMessage::kVtableAddress);
+    PickZones(&zones, kind_, mapName_.data());
+    for (stlp::string* zone = zones.start; zone != zones.finish; ++zone) {
+        {
+            stlp::string key = stlp::Plus(*zone, game::ZoneSuffix1Text());
+            auto* message = NewMessageMemory<ZoneMessage>();
+            if (message) {
+                MessageConstructBase(message);
+                stlp::StringElement::Default(&message->text_);
+                ei::SetVtable(message, ZoneMessage::kVtableAddress);
+            }
+            message->text_.AssignFrom(key);
+            RefPtr ref;
+            List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+            RefPtrClear(&ref);   // 00421360
         }
-        MessageStringAssign(&message->text_, nullptr, &key);
-        RefPtr ref;
-        List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
-        RefPtrClear(&ref);   // 00421360
-        libcrt::NodeDeallocateCheckedStd(key.start, static_cast<std::size_t>(key.eos - key.start));
-        FlowLoadZoneQuests(flow, nullptr, zone->start);
+        FlowLoadZoneQuests(flow, nullptr, zone->data());
     }
-    for (StringRep* zone = zones.start; zone != zones.finish; ++zone) StringRepDestroy(zone);
+    for (stlp::string* zone = zones.start; zone != zones.finish; ++zone) zone->~string();
     NamesFree(zones.start, static_cast<std::size_t>(zones.eos - zones.start));
 }
 
 // 004193F0: when the held map message names `name`: drops it, empties the queued messages
 // (+0x25AC) and queues a map message "name" + "_3". Returns whether it did.
-bool ServerSession::FinishMap(const StringRep* name) {
+bool ServerSession::FinishMap(const stlp::string* name) {
     auto* holder = &map_;
     CRefObject* map = holder->ptr;
     if (!map || (map->flags7_ & CRefObject::kDetached)) return false;
-    const StringRep* held = &static_cast<MapMessage*>(map)->text_;
-    const std::size_t length = static_cast<std::size_t>(held->finish - held->start);
-    if (length != static_cast<std::size_t>(name->finish - name->start) || std::memcmp(held->start, name->start, length) != 0)
-        return false;
+    const stlp::string* held = &static_cast<MapMessage*>(map)->text_;
+    if (!(*held == *name)) return false;
 
     if (CRefObject* object = holder->ptr) {
         if (object->refs_ != 1) {
@@ -223,19 +203,17 @@ bool ServerSession::FinishMap(const StringRep* name) {
     static_cast<void**>(queuedMaps_)[0] = queuedMaps_;
     static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
 
-    StringRep messageName;
-    StringPlusText(&messageName, name, game::ZoneSuffix3Text());
+    stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix3Text());
     auto* message = NewMessageMemory<ZoneMessage>();
     if (message) {
         MessageConstructBase(message);
-        StringInitEmpty(&message->text_);
+        stlp::StringElement::Default(&message->text_);
         ei::SetVtable(message, ZoneMessage::kVtableAddress);
     }
-    MessageStringAssign(&message->text_, nullptr, &messageName);
+    message->text_.AssignFrom(messageName);
     RefPtr ref;
     List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
     RefPtrClear(&ref);   // 00421360
-    StringBufferFree(&messageName);
     return true;
 }
 

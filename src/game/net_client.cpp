@@ -95,8 +95,8 @@ ClientSession* ClientSession::Construct() {
     auto* record = NewMessageMemory<LoginMessage>();
     if (record) {
         MessageConstructBase(record);
-        StringInitEmpty(&record->name_);
-        StringInitEmpty(&record->text_);
+        stlp::StringElement::Default(&record->name_);
+        stlp::StringElement::Default(&record->text_);
         record->binding_.ptr = nullptr;   // 0041FFE0
         ei::SetVtable(record, LoginMessage::kVtableAddress);
         record->host_ = 0;

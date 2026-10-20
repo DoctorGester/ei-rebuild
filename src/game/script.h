@@ -793,6 +793,11 @@ template <> ScriptNamedValues<mfc::CString>* ScriptNamedValues<mfc::CString>::Co
 template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other);
 template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other);
 static_assert(sizeof(ScriptNamedValues<float>) == 0x28);
+// A ScriptVars value array with its names array after it, as one ScriptNamedValues.
+template <typename T>
+ScriptNamedValues<T>* NamedValues(mfc::CArray<T>* values) { return reinterpret_cast<ScriptNamedValues<T>*>(values); }
+template <typename T>
+const ScriptNamedValues<T>* NamedValues(const mfc::CArray<T>* values) { return reinterpret_cast<const ScriptNamedValues<T>*>(values); }
 
 // An area of CScript +0x194 (IsInArea): its parts and its id.
 struct ScriptArea {

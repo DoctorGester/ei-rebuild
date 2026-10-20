@@ -145,7 +145,7 @@ void Put(CRainSnow& layer, float x, float y, float z) {
 void Project(CRainSnow& layer, CSceneRenderer* renderer) {
     layer.positions.SetSize((layer.particleCount + 3) >> 2);
     layer.projected.SetSizeDiscard(layer.positions.size * 4);
-    ByteArraySetSizeOriginal(&layer.outcodes, nullptr, layer.positions.size * 4, -1);
+    layer.outcodes.SetSize(layer.positions.size * 4, -1);
     CTransformPipeline* pipeline = renderer->pipeline_;
     pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data,
                                          layer.projected.data, layer.outcodes.data, layer.positions.size);

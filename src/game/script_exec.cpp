@@ -155,30 +155,9 @@ void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { party->RemoveI
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
 
-// STLport strings of the server's variable calls, built and destroyed with the original routines
-// (two constructions are used, as in the original).
-struct StlString {
-    void InitEmpty(void* allocator);                     // 004217E0
-    void AssignRange(const char* first, const char* last);   // 00428F10
-    void Destroy();                                      // 00425040
-    void* InitFrom(const char* text, void* allocator);    // 0040C5A0
-    std::uint32_t data[4];
-};
-void StlString::InitEmpty(void* allocator) { StringInitWithAllocator(this, nullptr, allocator); }
-void StlString::AssignRange(const char* first, const char* last) { StringAssignSpan(this, nullptr, first, last); }
-void StlString::Destroy() { StringBufferFree(this); }
-void* StlString::InitFrom(const char* text, void* alloc) { return ::StringInitFromChars(this, nullptr, text, alloc); }
-struct StlAllocator {
-    StlAllocator* Init();                                // 0041F770
-    void Destroy();                                      // 0040C760
-    std::uint8_t data[4];
-};
-__declspec(naked) StlAllocator* StlAllocator::Init() EI_ORIGINAL(0x0041F770)
-__declspec(naked) void StlAllocator::Destroy() EI_ORIGINAL(0x0040C760)
-
-// The multiplayer game server's variables, named by the STLport strings above.
+// The multiplayer game server's variables, named by STLport strings (the original builds them
+// two ways, (004217E0 + 00428F10) and 0040C5A0, with an empty allocator; the same string).
 net::ServerSession* ServerPointer() { return net::GameServer(); }
-const net::StringRep* VariableName(const StlString* text) { return reinterpret_cast<const net::StringRep*>(text); }
 // 004B9FD0: the server exists and is not shutting down.
 bool ServerActive() {
     net::ServerSession* server = net::GameServer();
@@ -380,23 +359,14 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
 }
 
 void GSSetVarMultiplayer(const SSCCmd* cmd) {
-    const char* name = Text(cmd, 0);
-    StlAllocator allocator;
-    StlString text;
-    text.InitEmpty(&allocator);
-    text.AssignRange(name, name + std::strlen(name));
-    ServerPointer()->SetVariable(VariableName(&text), cmd->floatArgs.data[1]);
-    text.Destroy();
+    stlp::string text(Text(cmd, 0));
+    ServerPointer()->SetVariable(&text, cmd->floatArgs.data[1]);
 }
 
 void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
-    StlAllocator allocator;
-    StlString text;
-    text.InitFrom(Text(cmd, 0), allocator.Init());
-    if (setMax) ServerPointer()->RaiseVariable(VariableName(&text), cmd->floatArgs.data[1]);
-    else ServerPointer()->RemoveVariable(VariableName(&text));
-    StlStringDestroy(&text);
-    allocator.Destroy();
+    stlp::string text(Text(cmd, 0));
+    if (setMax) ServerPointer()->RaiseVariable(&text, cmd->floatArgs.data[1]);
+    else ServerPointer()->RemoveVariable(&text);
 }
 
 void PlayMovie(const SSCCmd* cmd) {

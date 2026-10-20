@@ -75,8 +75,7 @@ const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<
 // constructor [0056F570, allocator] and destructor [0056F590].
 __declspec(naked) void __fastcall RecordListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0056F570)
 __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F590)
-// The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
-__declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
+// The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
 // The texture cache [this +0x18C]: build a composite texture [00693180 ComposeTexture: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
@@ -96,8 +95,6 @@ void __fastcall StringsInsertOverflow(void* a0, void*, stlp::string* a2, const v
 __declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*, const stlp::string*, const stlp::string*, int)
     EI_ORIGINAL(0x00575E50)
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
-// STLport string members (as in figure_part_draw.cpp).
-inline void __fastcall StringInitRange(void* a0, void*, const char* a2, const char* a3, int a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 
 const std::uint8_t kAllocator = 0;
 
@@ -205,7 +202,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     RecordList& list = *reinterpret_cast<RecordList*>(listStorage);
     alignas(4) char setStorage[sizeof(SkinComposition)];
     SkinComposition& set = *reinterpret_cast<SkinComposition*>(setStorage);
-    BytesConstruct(&set);
+    set.bytes.Construct();
     new (&set.names) console::CStringArray;
 
     const std::uint32_t* items = record->items.Start();
@@ -292,33 +289,24 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
         int count = static_cast<int>(record->names.Finish() - names);
         Reserve(first, static_cast<int>(first.size()) + count);
         for (const char* const* p = record->names.Start(); p != record->names.Finish(); ++p) {
-            const char* text = *p;
-            alignas(4) char string[12];
-            StringInitWithAllocator(string, nullptr, &kAllocator);
-            StringInitRange(string, nullptr, text, text + std::strlen(text), 0);
+            stlp::string string(*p);
             if (first.Finish() != first.EndOfStorage()) {
-                stlp::StringAbi::ConstructAt(first.Finish(), reinterpret_cast<const stlp::string*>(string));
+                stlp::StringAbi::ConstructAt(first.Finish(), &string);
                 ++first.Finish();
             } else {
-                StringsInsertOverflow(&first, nullptr, first.Finish(), string, 1);
+                StringsInsertOverflow(&first, nullptr, first.Finish(), &string, 1);
             }
-            StringBufferFree(string);
         }
     }
     StringsInsertRange(&first, nullptr, first.Finish(), second.Start(), second.Finish(), 0);
 
-    alignas(4) char name[12];
-    std::memset(name, 0, 2 * sizeof(char*));   // start and finish
-    int zero = 0;
-    StringEndOfStorageOriginal(name + 8, nullptr, &kAllocator, &zero);
-    const char* prefix = ModelPrefix(model);
-    StringAssignSpan(name, nullptr, prefix, prefix + std::strlen(prefix));
-    // The figure loader's slot 3 (LoadFigure; not fresh).
-    self->figureLoader_->LoadFigure(reinterpret_cast<const stlp::string*>(name), &first, record->morphS, record->morphT,
-                                    record->morphU, false);
-    StringBufferFree(name);
+    {
+        stlp::string name(ModelPrefix(model));
+        // The figure loader's slot 3 (LoadFigure; not fresh).
+        self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
+    }
 
-    for (stlp::string* s = second.Start(); s != second.Finish(); ++s) StlStringDestroy(s);
+    for (stlp::string* s = second.Start(); s != second.Finish(); ++s) s->~string();
     StringsDeallocate(&second.EndOfStorage(), nullptr, second.Start(), Capacity(second));
     for (stlp::string* s = first.Start(); s != first.Finish(); ++s) stlp::StringAbi::DeletingDestructor(s, nullptr, 0);
     StringsDeallocate(&first.EndOfStorage(), nullptr, first.Start(), Capacity(first));

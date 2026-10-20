@@ -24,7 +24,6 @@ namespace {
 // normal arrays, 005AD870 (figure_slots.cpp ClearArray) for the corners, 004D9E90 / 004D9E80 /
 // 004D9EA0 (sky_object.cpp, AlignedArray::Construct) for the words, indices and texture coordinates.
 __declspec(naked) void* __fastcall ConstructPackets(void*) EI_ORIGINAL(0x0056FD00)
-__declspec(naked) void* __fastcall ConstructWords(lib::AlignedArray<std::uint32_t>*) EI_ORIGINAL(0x004D9E90)
 __declspec(naked) void* __fastcall ConstructIndices(lib::AlignedArray<std::uint16_t>*) EI_ORIGINAL(0x004D9E80)
 __declspec(naked) void* __fastcall ConstructTexCoords(lib::AlignedArray<TexCoord>*) EI_ORIGINAL(0x004D9EA0)
 
@@ -61,7 +60,7 @@ void* Create(int classId) {
         ZeroArray(o->vertices_);
         ZeroArray(o->normals_);
         ZeroArray(o->corners_);
-        ConstructWords(&o->words_);
+        o->words_.Construct();
         ConstructIndices(&o->indices_);
         ConstructTexCoords(&o->texCoords_);
         SetVtable(o, CFigureMesh::kPlainMeshVtableAddress);
@@ -73,7 +72,7 @@ void* Create(int classId) {
         ConstructPackets(&o->vertices_);
         ConstructPackets(&o->normals_);
         figure::ClearArray(reinterpret_cast<std::uint32_t*>(&o->corners_));   // 005AD870
-        ConstructWords(&o->words_);
+        o->words_.Construct();
         ConstructIndices(&o->indices_);
         ConstructTexCoords(&o->texCoords_);
         SetVtable(o, CFigureMesh::kMeshVtableAddress);

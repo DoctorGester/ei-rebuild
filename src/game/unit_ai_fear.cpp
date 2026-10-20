@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/mfc.h"
 #include "lib/mfc_array.h"
 
 #include <bit>
@@ -302,7 +303,7 @@ void FearMode::Execute(AIBrain* brain) {
             brain->actionTime = AIBrain::kNoTime;
             // 005D7970: the order assigned to the brain's action point and looks.
             brain->actionPoint = order.point;
-            LooksCopyAt(&brain->looks, nullptr, &order.looks);
+            brain->looks.Copy(order.looks);
             brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
         }
     }

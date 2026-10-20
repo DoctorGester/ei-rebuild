@@ -85,7 +85,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
 EI_REPLACE_METHOD(0x00440440, NetAddress::Parse);
 
 // The look-up is given the whole sockaddr, as the original does.
-StringRep* NetAddress::Format(StringRep* out, int resolve) const {
+stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
     char text[0x400];
     bool named = false;
     if (static_cast<std::uint8_t>(resolve)) {
@@ -101,17 +101,8 @@ StringRep* NetAddress::Format(StringRep* out, int resolve) const {
         auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
         gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784044), bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     }
-    out->start = nullptr;
-    out->finish = nullptr;
-    out->eos = nullptr;
-    std::size_t length = std::strlen(text);
-    char* p = static_cast<char*>(stlp::allocate(length + 1));
-    out->start = p;
-    out->finish = p;
-    out->eos = p + length + 1;
-    std::memcpy(p, text, length);
-    out->finish = p + length;
-    *out->finish = 0;
+    // Made in `out` (raw storage): a block of length + 1 bytes, the text, the terminator.
+    new (out) stlp::string(text, text + std::strlen(text));
     return out;
 }
 EI_REPLACE_METHOD(0x00440690, NetAddress::Format);

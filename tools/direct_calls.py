@@ -171,6 +171,35 @@ def normalize_type(t):
     return re.sub(r'\s*([*&,<>])\s*', r'\1', t)
 
 
+_FN_ARG = re.compile(r'&(?:(?:public|private|protected): )?(?:static |virtual )*[^<>,()&]*?'
+                     r'(?:__thiscall|__fastcall|__stdcall|__cdecl) ([^<>,()]+(?:<[^()]*?>)?[^<>,()]*)\(')
+
+
+def collapse_function_arguments(und):
+    """`und` with each function (or member function) pointer template argument written as its name: undname prints
+    `EachElements<Bytes<12>,0,&void __cdecl gamelists::ReleaseHolder(struct Bytes<12> *)>`, the source
+    `EachElements<Bytes<12>, nullptr, ReleaseHolder>` (C13b1)."""
+    out, i = [], 0
+    while True:
+        m = _FN_ARG.search(und, i)
+        if not m:
+            break
+        depth = und.count('<', 0, m.start()) - und.count('>', 0, m.start())
+        if depth <= 0:
+            out.append(und[i:m.end()])
+            i = m.end()
+            continue
+        j, level = m.end(), 1          # the parameter list's close
+        while j < len(und) and level:
+            level += {'(': 1, ')': -1}.get(und[j], 0)
+            j += 1
+        k = re.compile(r'\s*const\b').match(und, j)
+        out.append(und[i:m.start()] + '&' + m.group(1).strip())
+        i = k.end() if k else j
+    out.append(und[i:])
+    return ''.join(out)
+
+
 def split_params(text):
     depth, cur, out = 0, '', []
     for ch in text:
@@ -193,7 +222,7 @@ class Sig:
 
     def __init__(self, und, obj):
         self.und, self.obj = und, obj
-        m = _SIG.match(und)
+        m = _SIG.match(collapse_function_arguments(und))
         self.ok = bool(m)
         if not m:
             return
@@ -396,8 +425,25 @@ _STD_INTS = {'uint32_t': 'unsigned int', 'int32_t': 'int', 'uint16_t': 'unsigned
              'int64_t': '__int64', 'DWORD': 'unsigned long', 'BYTE': 'unsigned char', 'WORD': 'unsigned short'}
 
 
+_TEMPLATE_ALIASES = {}  # alias templates: qualified name -> [(Source, expansion, namespaces, [parameter names])]
+_MEMBER_ALIASES = {}    # aliases in a (non-template) class: `net::trees::CountedValue::Type` -> [(Source, ...)]
+
+
+def _template_param_names(text):
+    """The parameter names of `template <typename K, auto Fn = nullptr>`'s list."""
+    names = []
+    for p in split_params(text):
+        p = p.split('=')[0].strip()
+        m = re.search(r'([A-Za-z_]\w*)\s*$', p)
+        if m:
+            names.append(m.group(1))
+    return names
+
+
 def collect_aliases(sources):
     _ALIASES.clear()
+    _TEMPLATE_ALIASES.clear()
+    _MEMBER_ALIASES.clear()
     _SEEN_ALIASES.clear()
     _LOOSE.clear()
     for s in sources:
@@ -408,26 +454,47 @@ def collect_aliases(sources):
         if not s.path.startswith('src/'):
             continue
         for m in _ALIAS.finditer(s.bare):
-            if s.in_body(m.start()) or any(k in ('class', 'template class') for k, _ in s.scope_at(m.start())):
-                continue
-            if re.search(r'\btemplate\s*<[^;{}]*$', s.bare[max(0, m.start() - 200):m.start()]):
+            scope = s.scope_at(m.start())
+            if s.in_body(m.start()) or any(k == 'template class' for k, _ in scope):
                 continue
             name, exp = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
             exp = s.code[m.start(2 if m.group(1) else 3):m.end(2 if m.group(1) else 3)]
             exp = re.sub(r'\btypename\s+', '', exp).strip()
             ns = [n for n in s.namespaces_at(m.start()) if n != "`anonymous namespace'"]
-            _ALIASES.setdefault('::'.join(ns + [name]), []).append((s, exp, ns))
+            classes = [n for k, n in scope if k == 'class']
+            t = re.search(r'\btemplate\s*<([^;{}]*)>\s*$', s.bare[max(0, m.start() - 300):m.start()])
+            if t is None and re.search(r'\btemplate\s*<[^;{}]*$', s.bare[max(0, m.start() - 300):m.start()]):
+                continue
+            q = '::'.join(ns + classes + [name])
+            if t is not None:
+                if m.group(1) and not classes:
+                    _TEMPLATE_ALIASES.setdefault(q, []).append((s, exp, ns, _template_param_names(t.group(1))))
+            elif classes:
+                _MEMBER_ALIASES.setdefault(q, []).append((s, exp, ns + classes[:-1]))
+            else:
+                _ALIASES.setdefault(q, []).append((s, exp, ns))
 
 
-def alias_for(qname, src):
-    """The expansion and its namespaces of alias `qname` as `src` sees it (its own first), or None."""
-    cands = _ALIASES.get(qname, ())
+def _visible(cands, src):
     own = [c for c in cands if c[0] is src]
     seen = [c for c in cands if c[0] is not src and c[0].path.endswith('.h') and sees(src, c[0])]
     for group in (own, seen):
-        if len({normalize_type(e) for _, e, _ in group}) == 1:
-            return group[0][1], group[0][2]
+        if len({normalize_type(c[1]) for c in group}) == 1:
+            return group[0]
     return None
+
+
+def alias_for(qname, src, members=False):
+    """The expansion and its namespaces of alias `qname` as `src` sees it (its own first), or None; with `members`
+    also an alias declared in a class (`CountedValue::Type`)."""
+    c = _visible(_ALIASES.get(qname, ()), src) or (members and _visible(_MEMBER_ALIASES.get(qname, ()), src))
+    return (c[1], c[2]) if c else None
+
+
+def alias_template_for(qname, src):
+    """The expansion, namespaces and parameter names of alias template `qname` as `src` sees it, or None."""
+    c = _visible(_TEMPLATE_ALIASES.get(qname, ()), src)
+    return (c[1], c[2], c[3]) if c else None
 
 
 _QUALIFIED = re.compile(r'(?<![\w:])(?:::)?[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*')
@@ -443,9 +510,46 @@ def expand_aliases(name, src, namespaces=()):
 
 
 def expand_text(scope, src, namespaces=()):
-    """A type's text with the aliases `src` sees written out."""
-    for _ in range(8):
+    """A type's text with the aliases `src` sees written out: plain aliases, alias templates (their arguments put
+    in for their parameters) and, inside what an alias wrote, a class's member aliases (`Second::Type`). Names in an
+    alias's expansion are looked up in the alias's namespaces too."""
+    contexts = [list(namespaces)]
+
+    def lookup(head, find):
+        for ns in contexts:
+            for pre in [ns[:i] for i in range(len(ns), -1, -1)]:
+                a = find('::'.join(list(pre) + [head]))
+                if a:
+                    return a
+        return None
+
+    def learn(ans):
+        if ans and list(ans) not in contexts:
+            contexts.append(list(ans))
+
+    for _ in range(16):
         changed = False
+        # alias templates first: `PairTree<K, CountedValue>`
+        for m in _TEMPLATE_ID.finditer(scope):
+            head = m.group(0)[:-1].lstrip(':')
+            a = lookup(head, lambda q: alias_template_for(q, src))
+            if not a:
+                continue
+            close = _matching_angle(scope, m.end() - 1)
+            if close is None:
+                continue
+            exp, ans, params = a
+            args = split_params(scope[m.end():close])
+            if len(args) != len(params):
+                continue
+            subst = dict(zip(params, args))
+            body = re.sub(r'(?<![\w:])([A-Za-z_]\w*)\b', lambda p: subst.get(p.group(1), p.group(0)), exp)
+            scope = scope[:m.start()] + body + scope[close + 1:]
+            learn(ans)
+            changed = True
+            break
+        if changed:
+            continue
 
         def sub(m):
             nonlocal changed
@@ -453,17 +557,29 @@ def expand_text(scope, src, namespaces=()):
             tparts = tok.split('::')
             for k in range(len(tparts), 0, -1):
                 head = '::'.join(tparts[:k])
-                for pre in [namespaces[:i] for i in range(len(namespaces), -1, -1)]:
-                    a = alias_for('::'.join(list(pre) + [head]), src)
-                    if a:
-                        changed = True
-                        exp, ans = a
-                        return '::'.join([exp] + tparts[k:])
+                a = lookup(head, lambda q: alias_for(q, src, members=k > 1))
+                if a:
+                    changed = True
+                    exp, ans = a
+                    learn(ans)
+                    return '::'.join([exp] + tparts[k:])
             return m.group(0)
         scope = _QUALIFIED.sub(sub, scope)
         if not changed:
             break
     return scope
+
+
+def _matching_angle(text, open_at):
+    depth = 0
+    for i in range(open_at, len(text)):
+        if text[i] == '<':
+            depth += 1
+        elif text[i] == '>':
+            depth -= 1
+            if depth == 0:
+                return i
+    return None
 
 
 # The type names a call site writes (a template argument, a wrapper's class) through the aliases it sees:
@@ -542,6 +658,13 @@ def loose_key(name):
     t = normalize_type(name)
     t = re.sub(r'\b(?:std::)?(' + '|'.join(_STD_INTS) + r')\b', lambda m: _STD_INTS[m.group(1)], t)
     t = re.sub(r'(?<![\w])([A-Za-z_]\w*)::(?=[A-Za-z_])', lambda m: '' if m.group(1) in _NAMESPACES else m.group(0), t)
+    # Template arguments as undname prints them: numbers in decimal, nullptr as 0, `unsigned` as `unsigned int`,
+    # a function argument without its `&` (collapse_function_arguments).
+    t = re.sub(r'(?<![\w.])0[xX]([0-9A-Fa-f]+)[uUlL]*\b', lambda m: str(int(m.group(1), 16)), t)
+    t = re.sub(r'(?<![\w.])([0-9]+)[uUlL]+\b', r'\1', t)
+    t = re.sub(r'\bnullptr\b', '0', t)
+    t = re.sub(r'\bunsigned(?!\s+(?:int|char|short|long|__int64)\b)', 'unsigned int', t)
+    t = re.sub(r'([<,])\s*&\s*(?=[A-Za-z_])', r'\1', t)
     return re.sub(r'\s+', ' ', t)
 
 
@@ -710,7 +833,7 @@ def same_params(fparams, tparams):
     if len(fparams) != len(tparams):
         return False
     for f, t in zip(fparams, tparams):
-        if f != t and not (t.endswith(('*', '&')) and re.sub(r' const(?=[*&]$)', '', t) == f):
+        if f != t and not (t.endswith(('*', '&')) and re.sub(r' ?\bconst(?=[*&]$)', '', t) == f):
             return False
     return True
 
@@ -1838,6 +1961,14 @@ def plan(fwds, classes):
         if not f.in_scope or f.reason or not f.kind:
             continue
         mine, incs, why = [], set(), ''
+        if f.kind == 'unwrap' and f.unwrap['targs'] and match(f.sig, f.target) == 'rename' and f.sites:
+            # A member call whose element policy no alias names (`x.Clear<stlp::PairElement<...>>()`) reads worse
+            # than the wrapper called through its alias (`trees::Objects::Clear(&x)`): the call keeps its arguments.
+            def long_policy(site):
+                return any('<' in spelled(normalize_type(x), site.src, site.start) for x in f.unwrap['targs'])
+            if any(long_policy(site) for site in f.sites) and \
+                    all('<' not in spelled_target(f.target, site.src, site.start) for site in f.sites):
+                f.kind = 'rename'
         for site in f.sites:
             e, why = rewrite_site(f, site)
             if e is None:

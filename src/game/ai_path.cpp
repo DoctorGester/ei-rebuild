@@ -17,8 +17,6 @@
 __declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
 
 namespace {
-// 005BD200: appends a copy of `cell` to the list.
-__declspec(naked) void __fastcall AddPathCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD200)
 // MFC ConstructElements<PathCell> (zero-fills `count` elements).
 // The direction a quaternion faces (the orientation at CEngineObject + 0x34).
 void __fastcall FacingDirection(const Quaternion* q, void*, Vector3* out) { QuaternionAxisY(q, nullptr, out); }
@@ -268,7 +266,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         cell.x = static_cast<std::int16_t>(ux);
         cell.y = static_cast<std::int16_t>(uy);
         std::memcpy(&cell.flags, &uyHalf, 4);
-        AddPathCell(&pathCells, nullptr, &cell);
+        pathCells.AddHead(cell);
         found = true;
         pathCells.head->data.flags = 0x200;
         AdvancePath(unit, path);

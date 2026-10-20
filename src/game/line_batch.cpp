@@ -30,7 +30,7 @@ EI_REPLACE_METHOD(0x0049B140, LineBatch::AddPoint);
 int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     lib::AlignedArray<ProjectedPoint>& projected = LineProjected();
     projected.SetSizeDiscard(packets.size * 4);
-    ByteArraySetSizeOriginal(&LineOutcodes(), nullptr, packets.size * 4, -1);
+    LineOutcodes().SetSize(packets.size * 4, -1);
     int visibility = pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), packets.data,
                                                          projected.data, LineOutcodes().data, packets.size);
     if (visibility == 0) DeviceDrawLineStrip(device, reinterpret_cast<const ProjectedPoints*>(&projected), colour);

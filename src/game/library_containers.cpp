@@ -70,13 +70,9 @@ mfc::impl::CTime* __fastcall TimeMinusSpan(const mfc::impl::CTime* self, void*, 
     return out;
 }
 
-namespace {
-void FreeStringBlock(net::StringRep& s) { stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start)); }
-} // namespace
-
 void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self) {
-    FreeStringBlock(self->description);
-    FreeStringBlock(self->name);
+    self->description.~string();
+    self->name.~string();
 }
 
 void __fastcall DestroyPrintName(PrintRecord* self) { self->name.~string(); }

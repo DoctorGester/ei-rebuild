@@ -49,20 +49,6 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     return size.cx;
 }
 
-// The STLport string assign of a C string as the original inlines it: copied over the current
-// characters, then the rest erased or the remainder appended (with `tag`, the message, as the
-// iterator category argument the original passes).
-void AssignInline(net::StringRep* to, const char* text, const void* tag) {
-    std::size_t length = std::strlen(text);
-    std::size_t size = static_cast<std::size_t>(to->finish - to->start);
-    if (length <= size) {
-        std::memcpy(to->start, text, length);
-        StringEraseOriginal(to, nullptr, to->start + length, to->finish);
-    } else {
-        std::memcpy(to->start, text, size);
-        StringAppendTailOriginal(to, nullptr, text + size, text + length, tag);
-    }
-}
 
 // A chat line for the server (SayMessage) carrying `text`, kept 60 s on the client's timers.
 void SendSay(const char* text) {
@@ -70,11 +56,11 @@ void SendSay(const char* text) {
     if (say) {
         ei::SetVtable(say, net::kMessageVtable);
         say->version_ = 1;
-        StringInitEmpty(&say->text_);
+        stlp::StringElement::Default(&say->text_);
         ei::SetVtable(say, net::SayMessage::kVtableAddress);
     }
     // As the original: a failed allocation is not checked from here on.
-    AssignInline(&say->text_, text, say);
+    say->text_.Assign(text);   // inlined by the original: overwrite, then cut or append
     net::GameClient()->AddTimed(say, kSayLifetime);
 }
 } // namespace

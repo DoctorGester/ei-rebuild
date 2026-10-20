@@ -25,6 +25,7 @@
 using BOOL = int;
 
 struct ScriptGroup;
+struct TweenEntry;   // model.h (TweenArray)
 class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
@@ -364,7 +365,7 @@ public:
     // 0x60 (00566350), telling the HUD.
     std::uint8_t paused_;
     std::uint8_t unused_06D[0x70 - 0x6D];
-    std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D43E0 sets it up, 006D44E0 ticks it; a CArray)
+    mfc::CArray<TweenEntry> countdowns_;   // +0x070 the water level tweens (TweenArray, model.h; 006D44E0 ticks it)
 };
 static_assert(offsetof(CWorld, shared5C_) == 0x5C);
 // 0055EE40 (world_create.cpp; slot 2 of the base vtable 0073F18C, called by both worlds' Setup).

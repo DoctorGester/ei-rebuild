@@ -10,6 +10,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/stlp_tree_abi.h"
 
 #include <cstring>
 #include <new>
@@ -171,7 +172,7 @@ EI_REPLACE_METHOD(0x004F30F0, CLinkMesh::AddPart);
 
 void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
     FigHeader fig = Read<FigHeader>(cursor);
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
@@ -211,7 +212,7 @@ EI_REPLACE_METHOD(0x004F7F00, CLinkFigureLoader::LoadFigPart);
 
 void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
     *cursor += 0xF0;   // the morphed bounds
@@ -253,7 +254,7 @@ EI_REPLACE_METHOD(0x004F87D0, CLinkFigureLoader::LoadOldPart);
 
 void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
     FigHeader fig;
     std::memcpy(&fig, *cursor, sizeof(fig));
     *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
@@ -268,7 +269,7 @@ EI_REPLACE_METHOD(0x004F9FD0, CLinkFigureLoader::RemorphFigPart);
 
 void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
     *cursor += 0xF8;   // two dwords and the morphed bounds
     int count = Read<int>(cursor);
     VertexPacket* packets = AllocatePackets(count);

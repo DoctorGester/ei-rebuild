@@ -40,7 +40,7 @@ void __fastcall BufferUpdateHigh(GameBuffer* buffer) {
 }
 EI_REPLACE(0x00419CC0, BufferUpdateHigh);
 
-StringRep* NetAddress::ToString(StringRep* out) const {
+stlp::string* NetAddress::ToString(stlp::string* out) const {
     Format(out, 0);
     return out;
 }
@@ -60,10 +60,9 @@ void SessionBase::TickImpl(double dt) {
         BufferUpdateHigh(buffer);
         if (buffer->high - buffer->begin + buffer->base == 0) {
             if (NetLog()) {
-                StringRep address;
-                const char* text = from.ToString(&address)->start;
+                stlp::string address;
+                const char* text = from.ToString(&address)->data();
                 LogAddress(game::nettexts::ZeroLength(), text);
-                StringRepDestroy(&address);
             }
             continue;
         }
@@ -93,10 +92,9 @@ void SessionBase::TickImpl(double dt) {
         Connection* connection = node->connection;
         if (!connection->Tick(dt)) {
             if (NetLog()) {
-                StringRep address;
-                const char* text = connection->address_.ToString(&address)->start;
+                stlp::string address;
+                const char* text = connection->address_.ToString(&address)->data();
                 LogAddress(game::nettexts::Timeout(), text);
-                libcrt::NodeDeallocateCheckedStd(address.start, static_cast<std::size_t>(address.eos - address.start));
             }
             OnClientLost(connection);
             RemoveClient(node);
@@ -122,8 +120,6 @@ namespace {
 __declspec(naked) ClientNode** __fastcall ClientsEnd(ClientNode** /*list*/, void*, ClientNode** /*out*/) EI_ORIGINAL(0x00438830)
 __declspec(naked) ClientNode** __fastcall ClientsBegin(ClientNode** /*list*/, void*, ClientNode** /*out*/) EI_ORIGINAL(0x00438820)
 __declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/) EI_ORIGINAL(0x00438840)
-// 0043B310: the node allocator's deallocate (p in ECX, size in EDX), used for the address strings.
-void __fastcall NodeFree(char* a0, std::size_t a1) { libcrt::NodeDeallocateChecked((void*)a0, a1); }
 
 
 // "<text>\n" and a flush, when there is a network log.
@@ -133,12 +129,11 @@ void LogText(const char* text) {
 
 // The address string of a connection, logged as "<before><address><after>\n", then freed.
 void LogConnection(const char* before, Connection* connection, const char* after) {
-    StringRep peer;
-    const char* text = connection->address_.ToString(&peer)->start;
+    stlp::string peer;
+    const char* text = connection->address_.ToString(&peer)->data();
     LogStream* log = NetLog()->Put(before)->Put(text);
     if (after) log = log->Put(after);
     log->PutChar('\n')->Flush();
-    NodeFree(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
 }
 
 } // namespace
@@ -359,10 +354,9 @@ float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volat
 // The send interval is the constant at 0073BF48 over the rate clamped to [500, 50000].
 void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rate) {
     if (NetLog()) {
-        StringRep peer;
-        const char* text = address->ToString(&peer)->start;
+        stlp::string peer;
+        const char* text = address->ToString(&peer)->data();
         LogAddress(game::nettexts::AddClient(), text);
-        StringBufferFree(&peer);
     }
     RemoveClient(ClientAt(address));
     auto* memory = NewMessageMemory<Connection>();

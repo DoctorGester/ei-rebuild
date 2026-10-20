@@ -211,7 +211,7 @@ void CChatWindow::ShowPlayers() {
         net::PlayerMessage* player = PlayerOf(*p);
         UnitPrototypeRecord* prototype;
         {
-            PrototypeNamePair key{stlp::string(player->text_.start, player->text_.finish), nullptr};
+            PrototypeNamePair key{stlp::string(player->text_), nullptr};
             prototype = static_cast<UnitPrototypeRecord*>(
                 static_cast<PrototypeNamePair*>(NameMapInsertOriginal(UnitPrototypes(), nullptr, &key))->value);
             // EI_Plugin's Fixes (006093B7): an unknown prototype becomes the first one that is no creature.
@@ -232,7 +232,7 @@ void CChatWindow::ShowPlayers() {
         model.Format(game::Text(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);   // "infa%s%s%dface"
         picture.Format(game::Text(0x00792E88), static_cast<const char*>(sex), prototype->skin);                      // "face%s%02d"
         AddPortrait(model, picture);
-        regions_.data[portraits_ - 1]->SetTipString(player->name_.start, 1, 0);
+        regions_.data[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
 }
 EI_REPLACE_METHOD(0x006091C0, CChatWindow::ShowPlayers);
