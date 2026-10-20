@@ -90,9 +90,10 @@ struct FrameStats {
     std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {}, largestUpload[UploadKinds] = {};
     std::uint64_t comparedBytes = 0;
     // CPU time (ms): the hand-over (terrain pages, meshes, pre-transformed draws), texture work
-    // (views checked, converted, made), EndFrame (uploads, draws, the present on the window).
-    // (statsMs: these counts' own hashing, left out of the others.)
-    double handOverMs = 0.0, textureMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
+    // (views checked, converted, made; windowMs: of it, the window surfaces'), EndFrame (uploads,
+    // draws, the present on the window). (statsMs: these counts' own hashing and checks, left out of
+    // the others.)
+    double handOverMs = 0.0, textureMs = 0.0, windowMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
 };
 FrameStats TakeFrameStats();
 

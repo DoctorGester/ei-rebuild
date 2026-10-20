@@ -869,7 +869,7 @@ sg_view TextureView(const void* texture) {
 
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height) {
     *width = *height = 0;
-    StatsTimer timer(&FrameStats::textureMs);
+    StatsTimer timer(&FrameStats::windowMs);
     auto memory = g_memory.find(holder);
     if (memory == g_memory.end()) return sg_view{};
     const SurfaceMemory& m = memory->second;

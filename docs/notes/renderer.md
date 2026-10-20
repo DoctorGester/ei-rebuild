@@ -164,8 +164,15 @@ and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C i
 (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
 size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, and `DirectPixels`, which
 describes it as a `SurfacePixels`, in `dx_surface.h`) and read by the renderer after GdiFlush.
-Change detection: the renderer keeps a copy of the memory each window texture was made from and converts again only
-when it differs (a memcmp at each blit).
+Change detection (R16a): writers mark what they wrote (`render::SurfaceWritten`): the DC release 005FDC60 marks
+GDI's bounds of the DC (`SetBoundsRect` at 005FDC00, `GetBoundsRect`, 2 pixels wider), `DirectPixels` the whole
+memory unless the caller only reads (`reads`: PixelAt, the copies' sources, SwapContents' save, SurfaceBytes),
+`CopyFrameTo` the whole memory. At a blit only the marked rectangle is compared with the copy of what the texture
+holds, and the differing part is converted and written into the texture (a Direct3D 11 default-usage texture handed
+to sokol, `UpdateSubresource`); a surface already blitted in this frame gets a new texture instead. The harness
+build compares the rest of the memory at every blit: a change outside the marks is logged ("MISSED WRITE") and fails
+the run (`render::MissedSurfaceWrites`; its time counts as "counting"). Memory textures (section 7) are still
+compared once a frame (R16b).
 
 **Holders without a surface**: no holder has a DirectDraw surface (`CDXSurface::surface` is always null; R11b removed
 the code for one): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the cursor's background and
