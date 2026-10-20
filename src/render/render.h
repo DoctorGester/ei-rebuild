@@ -13,7 +13,8 @@
 // captures write the new frame. There is no DirectDraw fallback (R11a): when the new renderer cannot
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
-// list, carries the smooth option ("smooth", SetSmooth) and the harness build's "removable"; "new",
+// list, carries the smooth option ("smooth", SetSmooth), the classic shadows ("classicshadows",
+// SetClassicShadows) and the harness build's "removable"; "new",
 // "present" and "cpuwindows" are accepted and change nothing.
 
 #include <cstdint>
@@ -55,6 +56,38 @@ struct SmoothInfo {
 };
 SmoothInfo SmoothState();
 
+// Object shadows (R16j, docs/notes/renderer.md section 13). By default the world's figures and map
+// objects cast shadows from the sun through a shadow map made every frame, sampled with filtering
+// (PCF) where the terrain, the objects and the figures draw; the game's shadow decals (0051CE60's
+// 64 x 64 textures laid on the ground) are not drawn. The classic option draws the decals as the
+// game makes them and no shadow map: EI_RENDER's word "classicshadows" or SetClassicShadows (from
+// the next frame; ST2's options screen).
+void SetClassicShadows(bool on);
+bool ClassicShadows();
+// The sun for this frame's world view: the direction its light travels (CLight::direction_, z
+// negative by day), from CWorldClient::Render. Without it no shadow map is made.
+void ShadowSun(const float direction[3]);
+// The meshes handed over between BeginCaster and EndCaster belong to `object` (the world's object
+// draws, 0056AFE0); CastsShadow (from the object's shadow draw 0051CE60, when the game would draw
+// its shadow: the options' switches, visible) lets them cast into this frame's shadow map, weaker
+// than `strength` 0.5 not at all (a unit fading in). ClassicShadowDecal: the next flat mesh (until
+// EndMesh) is that object's shadow decal, dropped unless the classic option is on.
+void BeginCaster(const void* object);
+void EndCaster();
+void CastsShadow(const void* object, float strength);
+void ClassicShadowDecal();
+// The last presented frame's shadow map: made or not (classic option, no sun or terrain, no
+// caster), its size, the world extent it covers (the larger side), the casters' objects and draws,
+// the meshes and terrain batches that sampled it.
+struct ShadowInfo {
+    bool classic = false;
+    bool made = false;
+    int size = 0;
+    float extent = 0.0f;
+    int casters = 0, casterDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
+};
+ShadowInfo ShadowState();
+
 // What the new renderer did for the presented frames (R16, docs/notes/renderer.md section 13): the
 // hand-over's commands, the bytes written to the GPU, the draws and state changes, the textures made
 // and the CPU time spent, summed over `frames`. TakeFrameStats returns the sums since its last call
@@ -94,6 +127,13 @@ struct FrameStats {
     // draws, the present on the window). (statsMs: these counts' own hashing and checks, left out of
     // the others.)
     double handOverMs = 0.0, textureMs = 0.0, windowMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
+    // R16j: the shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
+    // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
+    // gpuFrames) of the shadow pass and of the whole frame's passes.
+    std::uint64_t shadowDraws = 0;
+    double shadowMs = 0.0;
+    std::uint32_t gpuFrames = 0;
+    double gpuShadowMs = 0.0, gpuFrameMs = 0.0;
 };
 FrameStats TakeFrameStats();
 

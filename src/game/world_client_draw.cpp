@@ -11,6 +11,7 @@
 #include "renderer_lines.h"
 #include "net_session.h"
 #include "sky_object.h"
+#include "spell.h"   // CLight
 #include "ui_flying_hit_points.h"
 #include "view_matrices.h"
 #include "world.h"
@@ -198,9 +199,18 @@ void DrawEach(FrameList list, Draw draw) {
     for (CEngineObject** p = FrameObjects(list).begin(); p != end; ++p) draw(ObjectSlots(*p));
 }
 // The drawn objects' slots 22 / 23 / 24 (+0x58 / +0x5C / +0x60; 005783C0, 005783A0, 005783B0 in
-// the old notes) with the scene context; their results are ignored.
-constexpr auto kDraw = [](CMapObjectVirtuals* object) { object->DrawFigure(SceneContext()); };
-constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) { object->DrawCollectDirty(SceneContext()); };
+// the old notes) with the scene context; their results are ignored. The new renderer learns which
+// object the meshes of a figure draw belong to (its shadow map's casters, R16j).
+constexpr auto kDraw = [](CMapObjectVirtuals* object) {
+    render::BeginCaster(static_cast<const CEngineObject*>(object));
+    object->DrawFigure(SceneContext());
+    render::EndCaster();
+};
+constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) {
+    render::BeginCaster(static_cast<const CEngineObject*>(object));
+    object->DrawCollectDirty(SceneContext());
+    render::EndCaster();
+};
 constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(SceneContext()); };
 
 // Empties the deferred unit list: each node's counted pointer released, the node freed (0056FB40
@@ -250,6 +260,12 @@ int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (R12a: multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
+    // The sun the new renderer's shadow map is drawn from (R16j): the terrain's (Terrain::SetSun).
+    if (terrain_ && terrain_->sun) {
+        const Vector3& d = terrain_->sun->direction_;
+        const float direction[3] = {d.x, d.y, d.z};
+        render::ShadowSun(direction);
+    }
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
     UpdateLighting();

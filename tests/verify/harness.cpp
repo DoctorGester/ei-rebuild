@@ -230,6 +230,13 @@
 //                             fraction of its pixels (by more than 8) within <least>..<most>: the
 //                             world's edges and textures, nothing black or stale. Skipped in a run of
 //                             the original code
+//   shadows classic|map       the image's object shadows (render::SetClassicShadows, R16j): the game's
+//                             decals, or the sun's shadow map (the default), from the next frame;
+//                             "render new,present,classicshadows" starts with the classic ones. Ignored
+//                             in a run of the original code
+//   shadowcheck <casters>     require the last frame's shadow map made with at least <casters> objects
+//                             casting into it and the ground and some meshes sampling it (render::
+//                             ShadowState). Skipped in a run of the original code
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time); "-" only starts a new
@@ -2951,6 +2958,35 @@ void RunSteps() {
             else if (!info.on || info.targetSamples < 2 || info.targetSamples != info.deviceSamples ||
                      info.multisampledPasses < 1 || info.anisotropicModels < 1 || differing < least || differing > most)
                 g_failures.push_back(text);
+        } else if (s.verb == "shadows") {
+            if (!render::Active()) {
+                Log("harness: shadows %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "classic" || s.argument == "map") render::SetClassicShadows(s.argument == "classic");
+            else g_failures.push_back("shadows needs classic or map");
+        } else if (s.verb == "shadowcheck") {
+            int least = 1;
+            if (sscanf_s(s.argument.c_str(), "%d", &least) < 1) {
+                g_failures.push_back("shadowcheck needs the least number of casters");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: shadowcheck: not the new renderer (the original code): skipped");
+                continue;
+            }
+            render::ShadowInfo info = render::ShadowState();
+            char text[240];
+            std::snprintf(text, sizeof(text),
+                          "shadowcheck: %s, map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
+                          "ground batches sampling it (at least %d casters)",
+                          info.classic ? "classic" : "shadow map", info.made ? "made" : "not made", info.size,
+                          static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
+                          info.receivingTerrain, least);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1)
+                g_failures.push_back(text);
         } else if (s.verb == "renderstats") {
             if (!render::Active()) {
                 Log("harness: renderstats %s: not the new renderer (the original code): skipped", s.argument.c_str());
@@ -2962,7 +2998,7 @@ void RunSteps() {
             auto kb = [n](std::uint64_t bytes) { return static_cast<double>(bytes) / 1024.0 / n; };
             auto per = [n](std::uint64_t count) { return static_cast<double>(count) / n; };
             using F = render::FrameStats;
-            char text[1800];
+            char text[2000];
             std::snprintf(
                 text, sizeof(text),
                 "renderstats %s: %u frames of %dx%d, per frame: hand-over %.0f terrain pages -> %.0f batches, %.0f meshes / %.0f "
@@ -2973,7 +3009,8 @@ void RunSteps() {
                 "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
                 "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
                 "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
-                "CPU ms hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f)",
+                "CPU ms hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f); "
+                "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
                 per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
                 per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
@@ -2988,7 +3025,9 @@ void RunSteps() {
                 kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
                 static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,
                 static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
-                t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n);
+                t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n,
+                per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
+                t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
         } else if (s.verb == "checkshot") {

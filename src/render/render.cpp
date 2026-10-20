@@ -40,15 +40,19 @@ bool g_failed = false;   // device or pipelines could not be created, or sokol p
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
 // The smooth option (R12a, off by default): EI_RENDER's "smooth" (ParseSpec), render::SetSmooth.
 bool g_smooth = false;
+// The classic shadows (R16j, off by default): EI_RENDER's "classicshadows", render::SetClassicShadows.
+bool g_classicShadows = false;
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12 (R9c5)
 #endif
 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
 // and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
-// the smooth option on (render::SetSmooth).
+// the smooth option on (render::SetSmooth), "classicshadows" the game's shadow decals instead of the
+// shadow map (render::SetClassicShadows, R16j).
 void ParseSpec(const char* spec) {
     g_smooth = false;
+    bool classicShadows = false;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
 #endif
@@ -61,6 +65,7 @@ void ParseSpec(const char* spec) {
         while (!word.empty() && word.back() == ' ') word.pop_back();
         if (word == "new" || word == "present" || word == "cpuwindows") {}
         else if (word == "smooth") g_smooth = true;
+        else if (word == "classicshadows") classicShadows = true;
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
 #endif
@@ -68,6 +73,8 @@ void ParseSpec(const char* spec) {
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
+    if (classicShadows != g_classicShadows) ei::Log("render: shadows: %s", classicShadows ? "classic" : "the sun's shadow map");
+    g_classicShadows = classicShadows;
     g_configured = true;
 }
 
@@ -418,6 +425,7 @@ bool RecreateDevice() {
     DestroyMeshes();
     DropBlits();
     DestroySmooth();
+    DestroyShadows();
     DropTextures(&kept, &keptBytes);
     sg_shutdown();
     g_context->ClearState();
@@ -678,6 +686,17 @@ bool Smooth() {
     return g_smooth;
 }
 
+void SetClassicShadows(bool on) {
+    EnsureConfigured();
+    if (on != g_classicShadows) ei::Log("render: shadows: %s", on ? "classic (the game's decals)" : "the sun's shadow map");
+    g_classicShadows = on;
+}
+
+bool ClassicShadows() {
+    EnsureConfigured();
+    return g_classicShadows;
+}
+
 void BeginWorld() {
     std::vector<Frame::Range>& ranges = g_frame.worldRanges;
     if (!Active() || (!ranges.empty() && ranges.back().end == SIZE_MAX)) return;
@@ -771,6 +790,11 @@ void AddFrameStats() {
     s.windowMs += f.windowMs;
     s.endFrameMs += f.endFrameMs;
     s.statsMs += f.statsMs;
+    s.shadowDraws += f.shadowDraws;
+    s.shadowMs += f.shadowMs;
+    s.gpuFrames += f.gpuFrames;
+    s.gpuShadowMs += f.gpuShadowMs;
+    s.gpuFrameMs += f.gpuFrameMs;
     g_stats = FrameStats{};
     g_lastPipeline = g_lastTexture = 0;
 #if defined(EI_RENDER_VALIDATION)
@@ -974,6 +998,11 @@ bool DrawPending() {
     if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
     UploadTerrain(g_frame);
     UploadMeshes(g_frame);
+    // The sun's shadow map, once a frame before its first pass (R16j; the classic option: none).
+    if (!g_frame.shadow.prepared) {
+        PrepareShadows(g_frame);
+        DrawShadowMap(g_frame);
+    }
     // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
     // the 3D draws move their positions by half a pixel (Frame::pixelShift). (A viewport moved by
     // half a pixel would do the same, but sokol takes whole pixels.)
@@ -1142,6 +1171,7 @@ void EndFrame() {
         DrawCursor();
         toWindow = DrawToWindow();
     }
+    ShadowFrameEnd();
     sg_commit();
     ++g_commits;
     if (toWindow) PresentWindow();
@@ -1166,6 +1196,12 @@ void Present() {
     g_frame.clears.clear();
     g_frame.commands.clear();
     g_frame.worldRanges.clear();
+    g_frame.shadow.haveSun = false;
+    g_frame.shadow.casters.clear();
+    g_frame.shadow.prepared = false;
+    g_frame.shadow.on = false;
+    g_frame.shadow.lights.clear();
+    ShadowFrameDone();
     g_frame.haveCursor = false;
     g_frame.haveFog = false;
     g_frameDrawn = false;
