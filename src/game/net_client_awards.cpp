@@ -37,9 +37,7 @@ void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { stati
 void __fastcall PlayerRemoveItem(void* player, void*, int index) { static_cast<CPlayer*>(player)->TakeItem(index); }
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.
-ObjectList::Node* __fastcall CountedNewNode(ObjectList* a0, void*, ObjectList::Node* a2, ObjectList::Node* a3) { return (ObjectList::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) void __fastcall CountedRemoveAll(ObjectList*) EI_ORIGINAL(0x00429E50)
-inline void __fastcall PtrListRemoveAll(ObjectList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
 
 constexpr int kClassQuestItem = 0x14;
 
@@ -87,14 +85,14 @@ void ClientSession::ApplyAwards() {
             player->Party()->Money() += static_cast<int>(gamecrt::Ftol(award->value_));
             PlayerGiveItems(player, nullptr, &none, 0);
             none.vtable = mfc::impl::ItemListClass::Vtable();
-            PtrListRemoveAll(&none);
+            none.RemoveAll();
             break;
         }
         case 2: {
             ObjectList items;
             InitList(items, gameslots::ItemObjectListClass::Vtable());
             CEngineObject* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
-            ObjectList::Node* added = CountedNewNode(&items, nullptr, items.tail, nullptr);
+            ObjectList::Node* added = items.NewNode(items.tail, nullptr);
             ObjectHolderAssign(&added->data, nullptr, item);
             if (items.tail) items.tail->next = added;
             else items.head = added;

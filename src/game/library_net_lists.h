@@ -19,15 +19,9 @@ namespace netlists {
 
 // ---- list<SentItem> (a packet's items, 20-byte nodes from the pool) --------------------------------
 
-// The element of net::SentItem's node: what the packet carried for one entry, the entry counted.
-struct SentRecord {
-    std::uint32_t action;
-    std::uint32_t version;
-    net::ReplicaEntry* entry;
-};
+// What the packet carried for one entry, the entry counted.
+using SentRecord = net::SentItem;
 using SentItems = stlp::list<SentRecord>;
-static_assert(sizeof(SentItems::Node) == sizeof(net::SentItem));
-static_assert(offsetof(SentItems::Node, data) == offsetof(net::SentItem, action));
 
 // _M_create_node's copy (0043ABB0): the action and version, the entry with one more reference (its
 // 16-bit count; a null entry stays null). Destroyed with the entry's release (0043A120). insert(pos)
@@ -53,21 +47,8 @@ struct SentRecordElement {
 // ---- list<SentPacket> (the send history and the acknowledged packets; 0x120-byte nodes from
 // operator new) -------------------------------------------------------------------------------------
 
-// net::SentPacket with its items as a list.
-struct PacketRecord {
-    double time;
-    std::uint16_t sequence;
-    std::uint16_t unused_0A;
-    SentItems items;               // +0x0C
-    net::ReliableChunk header;     // +0x10
-    std::uint8_t rolledBack;       // +0x114
-    std::uint8_t unused_115[3];
-};
+using PacketRecord = net::SentPacket;
 using SentPackets = stlp::list<PacketRecord>;
-static_assert(sizeof(PacketRecord) == sizeof(net::SentPacket));
-static_assert(offsetof(PacketRecord, items) == offsetof(net::SentPacket, items));
-static_assert(offsetof(PacketRecord, rolledBack) == offsetof(net::SentPacket, rolledBack));
-static_assert(sizeof(SentPackets::Node) == sizeof(net::HistoryNode));
 
 // _M_create_node's copy (0043ADE0): the time, the sequence (not the word after it), the items by
 // the list's copy constructor (a sentinel, then a copy of each item), the header's 0x104 bytes and
@@ -83,9 +64,8 @@ struct PacketRecordElement {
 
 // ---- list<vector<FreedId>> (the freed-id batches, 20-byte nodes from the pool) ---------------------
 
-using FreedIds = stlp::vector<net::FreedId>;
+using FreedIds = net::FreedIds;
 using FreedBatches = stlp::list<FreedIds>;
-static_assert(sizeof(FreedBatches::Node) == sizeof(net::FreedBatch));
 
 // _M_create_node's copy (0043AC40): vector's copy constructor (room for exactly size() ids, none
 // when empty). Destroyed as 0043A150 (the storage back to the pool, by its capacity). insert(pos)
@@ -101,7 +81,6 @@ struct FreedIdsElement {
 // ---- list<ReliableChunk> (the waiting and out-of-order chunks; 0x10C-byte nodes from operator new)
 
 using Chunks = stlp::list<net::ReliableChunk>;
-static_assert(sizeof(Chunks::Node) == sizeof(net::HeaderNode));
 
 // The chunk's bytes copied. insert(pos) (00439C80) copies a default chunk: the original's stack
 // bytes (the caller writes the sequence, size and data); ours are zero.

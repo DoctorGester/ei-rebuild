@@ -87,6 +87,14 @@ CList<void*>* ConstructListHeader(void* at, int blockSize) {
     return ListHeader<Class>::Construct(static_cast<CList<void*>*>(at), nullptr, blockSize);
 }
 
+// The destructor of a list on the stack or in a layout (ListAbi::Destruct on the list's own type):
+// the vtable of `Class`, then RemoveAll.
+template <typename Class, typename T, typename E>
+void DestructList(CList<T, E>& list) {
+    list.vtable = Class::Vtable();
+    list.RemoveAll();
+}
+
 // ---- CMap -----------------------------------------------------------------------------------------
 
 // MFC's HashKey for DWORD-sized keys: the key (its low dword for a 64-bit one) shifted right by 4.

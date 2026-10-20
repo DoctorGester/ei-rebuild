@@ -244,12 +244,6 @@ void CWorldServer::TeardownZone() {
 
 namespace {
 
-mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectListNewNode(
-    mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2,
-    mfc::CTypedPtrList<CEngineObject>::Node* a3) {
-    return (mfc::CTypedPtrList<CEngineObject>::Node*)PtrListNewNode573290Original((void*)a0, nullptr, (void*)a2, (void*)a3);
-}
-__declspec(naked) void __fastcall ObjectListRemoveAll(mfc::CTypedPtrList<CEngineObject>*, void*) EI_ORIGINAL(0x00570470)
 // 0066C180. The player list creates a temporary player (returned).
 WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
@@ -275,7 +269,7 @@ void CWorldServer::SendFreshObjects() {
         if (!mapObjects_.map.Find(id)) continue;
         if (static_cast<CMapObjectVirtuals*>(object)->IsSynchronised()) continue;
         sentObjects_.Set(static_cast<unsigned>(object->id_), object);
-        auto* entry = ObjectListNewNode(&fresh, nullptr, fresh.tail, nullptr);
+        auto* entry = fresh.NewNode(fresh.tail, nullptr);
         entry->data = object;
         if (fresh.tail) fresh.tail->next = entry;
         else fresh.head = entry;
@@ -304,7 +298,7 @@ void CWorldServer::SendFreshObjects() {
     static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(temporary));
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
     fresh.vtable = ObjectPtrListVtable();
-    ObjectListRemoveAll(&fresh, nullptr);
+    fresh.RemoveAll();
 }
 
 void CWorldServer::ResetState() {

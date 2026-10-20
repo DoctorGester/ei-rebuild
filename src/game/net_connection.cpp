@@ -2,6 +2,7 @@
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_connection_trees.h"
+#include "library_net_lists.h"
 #include "at_exit_functions.h"
 #include "game_strings.h"
 
@@ -24,63 +25,21 @@ namespace net {
 namespace {
 
 using ObjectMap = stlp::map<CRefObject*, RefPtr>;
-using SentIdMap = stlp::map<std::uint32_t, RefPtr>;
+using SentIdMap = stlp::map<std::int32_t, RefPtr>;
 using AttachedMap = stlp::map<CRefObject*, AttachedId>;
 using EntryMap = Connection::EntryMap;
 using RecordMap = Connection::RecordMap;
 
-// --- STLport container instantiations (library) -----------------------------------------------
-// Lists: insert a default element before `pos`, erase, begin, splice. Iterators are node pointers
-// passed by value.
-__declspec(naked) HistoryNode** __fastcall HistoryInsert(HistoryNode** /*list*/, void*, HistoryNode** /*out*/, HistoryNode* /*pos*/) EI_ORIGINAL(0x004397E0)
-__declspec(naked) SentItem** __fastcall ItemsInsert(SentItem** /*list*/, void*, SentItem** /*out*/, SentItem* /*pos*/) EI_ORIGINAL(0x00438F60)
-__declspec(naked) HeaderNode** __fastcall HeadersInsert(HeaderNode** /*list*/, void*, HeaderNode** /*out*/, HeaderNode* /*pos*/) EI_ORIGINAL(0x00439C80)
-__declspec(naked) HeaderNode** __fastcall HeadersInsertCopy(HeaderNode** /*list*/, void*, HeaderNode** /*out*/, HeaderNode* /*pos*/,
-                                                            const ReliableChunk* /*value*/) EI_ORIGINAL(0x00439C50)
-__declspec(naked) HeaderNode** __fastcall HeadersErase(HeaderNode** /*list*/, void*, HeaderNode** /*out*/, HeaderNode* /*pos*/) EI_ORIGINAL(0x00438660)
-__declspec(naked) HeaderNode** __fastcall HeadersBegin(HeaderNode** /*list*/, void*, HeaderNode** /*out*/) EI_ORIGINAL(0x00438640)
-__declspec(naked) HeaderNode** __fastcall HeadersBeginForInsert(HeaderNode** /*list*/, void*, HeaderNode** /*out*/) EI_ORIGINAL(0x00438650)
-__declspec(naked) void __fastcall HeadersSplice(HeaderNode** /*list*/, void*, HeaderNode* /*pos*/, HeaderNode** /*from*/,
-                                                HeaderNode* /*first*/, HeaderNode* /*last*/) EI_ORIGINAL(0x00438770)
-__declspec(naked) HeaderNode** __fastcall HeaderIteratorCopy(HeaderNode** /*it*/, void*, HeaderNode* const* /*from*/) EI_ORIGINAL(0x004387C0)
-__declspec(naked) HistoryNode** __fastcall ListIteratorDecrement(HistoryNode** /*it*/) EI_ORIGINAL(0x00439A60)
-// Red-black trees: find / lower_bound, insert with a hint, erase by key,
-// operator[].
-__declspec(naked) RecordMap::Node** __fastcall RecordsIteratorCopy(RecordMap::Node** /*it*/, void*, RecordMap::Node* const* /*from*/) EI_ORIGINAL(0x00439B70)
-__declspec(naked) RecordMap::Node** __fastcall RecordsInsertHint(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
-                                                                 RecordMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439A70)
-__declspec(naked) AttachedMap::Node** __fastcall AttachedIteratorCopy(AttachedMap::Node** /*it*/, void*, AttachedMap::Node* const* /*from*/) EI_ORIGINAL(0x00439C40)
-__declspec(naked) AttachedMap::Node** __fastcall AttachedInsertHint(AttachedMap* /*tree*/, void*, AttachedMap::Node** /*out*/,
-                                                                    AttachedMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439B80)
-__declspec(naked) RefPtr* __fastcall BySentIdAt(SentIdMap* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00437B90)
-// The object references' lookups: find in byObject_, attached_ and bySentId_; operator[] of
-// records_ (returns the mapped Record) and of attached_ (returns the mapped AttachedId); operator[]
-// of the type registry's factory table.
-__declspec(naked) SentIdMap::Node** __fastcall BySentIdFind(SentIdMap* /*tree*/, void*, SentIdMap::Node** /*out*/,
-                                                            const std::int32_t* /*key*/) EI_ORIGINAL(0x0043BF00)
-__declspec(naked) MessageFactory* __fastcall FactoryAt(TypeRegistry::ByType* /*table*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00439EA0)
-// vector<int> of received sequences: insert when full.
-__declspec(naked) void __fastcall ReceivedInsertOverflow(std::int32_t** /*vector*/, void*, std::int32_t* /*pos*/, const void* /*value*/,
-                                                         std::uint32_t /*n*/) EI_ORIGINAL(0x0043B850)
-// pair<const int, Record> from a key and a Record (the counted pointer shared).
-__declspec(naked) void* __fastcall MakeRecordPair(void* /*pair*/, void*, const std::int32_t* /*key*/, const Record* /*record*/) EI_ORIGINAL(0x0043A090)
-__declspec(naked) TypeRegistry::ByVtable::Node** __fastcall TypeFind(TypeRegistry::ByVtable* /*table*/, void*,
-                                                                    TypeRegistry::ByVtable::Node** /*out*/,
-                                                                    const std::uint32_t* /*key*/) EI_ORIGINAL(0x0042A810)
-__declspec(naked) ObjectMap::Node** __fastcall ByObjectLowerBound(ObjectMap* /*tree*/, void*, ObjectMap::Node** /*out*/,
-                                                                  Message* const* /*key*/) EI_ORIGINAL(0x0043C4B0)
-__declspec(naked) ObjectMap::Node** __fastcall ByObjectIteratorCopy(ObjectMap::Node** /*it*/, void*, ObjectMap::Node* const* /*from*/) EI_ORIGINAL(0x00437D60)
-__declspec(naked) ObjectMap::Node** __fastcall ByObjectInsertHint(ObjectMap* /*tree*/, void*, ObjectMap::Node** /*out*/,
-                                                                  ObjectMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439540)
-__declspec(naked) void* __fastcall ByObjectMakePair(void* /*pair*/, void*, Message* const* /*key*/, const RefPtr* /*value*/) EI_ORIGINAL(0x0043A050)
-__declspec(naked) EntryMap::Node** __fastcall PriorityIteratorCopy(EntryMap::Node** /*it*/, void*, EntryMap::Node* const* /*from*/) EI_ORIGINAL(0x00437F10)
-__declspec(naked) EntryMap::Node** __fastcall PriorityInsertHint(EntryMap* /*tree*/, void*, EntryMap::Node** /*out*/,
-                                                                 EntryMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439730)
-__declspec(naked) void* __fastcall PriorityMakePair(void* /*pair*/, void*, ReplicaEntry* const* /*key*/, const RefPtr* /*value*/) EI_ORIGINAL(0x0043A070)
-// 0041DD50: a RefPtr from a raw pointer, adding a reference.
-// The static vector of 004346D0: constructor, erase of a range, introsort loop and final insertion
-// sort by object, atexit.
-__declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void*, Replicated* /*first*/, Replicated* /*last*/) EI_ORIGINAL(0x00439DD0)
+// --- STLport container instantiations (library_net_lists.h, net_connection_trees.h) -------------
+// The history's, the chunk lists' and a packet's items' element policies.
+using netlists::ChunkElement;
+using netlists::PacketRecordElement;
+using netlists::SentRecordElement;
+using Chunks = stlp::list<ReliableChunk>;
+using Packets = stlp::list<SentPacket>;
+using Items = stlp::list<SentItem>;
+// The static vector of 004346D0: constructor, erase of a range (00439DD0), introsort loop and final
+// insertion sort by object, atexit.
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
 std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
@@ -122,24 +81,17 @@ void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObj
 void WriteObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Write(cursor); }
 void ReadObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Read(cursor); }
 
-// The pair the record inserts build.
-struct RecordPair {
-    std::int32_t key;
-    Record record;
-};
-
-// records_.insert(hint, pair(key, Record())) as ReadRecord inlines it; returns the new node.
+// records_.insert(hint, pair(key, Record())) as ReadRecord inlines it (the pair 0043A090, the
+// insert 00439A70); returns the new node.
 RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::int32_t key) {
     Record empty;
     ::RefPtrNull(&empty.object);
     empty.version = 0;   // left uninitialised by the original; overwritten by every caller
-    RecordPair pair;
-    MakeRecordPair(&pair, nullptr, &key, &empty);
-    RecordMap::Node* copy;
-    RecordsIteratorCopy(&copy, nullptr, &hint);
+    RecordMap::Value pair;
+    trees::Records::MakeValue(&pair, nullptr, &key, &empty);
     RecordMap::Node* inserted;
-    RecordsInsertHint(&records, nullptr, &inserted, copy, &pair);
-    pair.record.object.Destroy();
+    trees::Records::InsertHint(&records, nullptr, &inserted, hint, &pair);
+    pair.second.object.Destroy();
     empty.object.Destroy();
     return inserted;
 }
@@ -155,9 +107,9 @@ RecordMap::Node* RecordAt(RecordMap& records, std::int32_t key) {
 } // namespace
 
 std::uint16_t IdPool::Allocate() {
-    if (begin == end) return ++next;
-    --end;
-    return *end;
+    if (free.begin() == free.end()) return ++next;
+    --free.Finish();
+    return *free.end();
 }
 EI_REPLACE_METHOD(0x00435F10, IdPool::Allocate);
 
@@ -175,11 +127,11 @@ EI_REPLACE_METHOD(0x00433B10, Connection::Silent);
 void Connection::WriteAcks(std::uint8_t** p) {
     std::uint16_t base = static_cast<std::uint16_t>(lastReceived_);
     std::uint32_t mask = 0;
-    std::int32_t* end = receivedEnd_;
+    std::int32_t* end = received_.end();
     std::int32_t target = static_cast<std::int32_t>(lastReceived_);
     for (int k = 1; k <= 32; ++k) {
         --target;
-        std::int32_t* it = received_;
+        std::int32_t* it = received_.begin();
         while (it != end && *it != target) ++it;
         if (it != end) mask |= 1u << (k - 1);
     }
@@ -188,22 +140,21 @@ void Connection::WriteAcks(std::uint8_t** p) {
     std::memcpy(*p, &mask, 4);
     *p += 4;
     // Forget sequences more than 32 behind (from the back, shifting the rest down).
-    for (std::int32_t i = static_cast<std::int32_t>(receivedEnd_ - received_) - 1; i >= 0; --i) {
-        std::int32_t* at = received_ + i;
+    for (std::int32_t i = static_cast<std::int32_t>(received_.size()) - 1; i >= 0; --i) {
+        std::int32_t* at = received_.begin() + i;
         if (static_cast<std::uint32_t>(*at) + 0x20 < lastReceived_) {
-            for (std::int32_t* q = at; q + 1 < receivedEnd_; ++q) q[0] = q[1];
-            --receivedEnd_;
+            for (std::int32_t* q = at; q + 1 < received_.end(); ++q) q[0] = q[1];
+            --received_.Finish();
         }
     }
 }
 EI_REPLACE_METHOD(0x00434C20, Connection::WriteAcks);
 
 void Connection::QueueHeader(int budget) {
-    if (headers_->next == headers_) {
+    if (headers_.Empty()) {
         int size = budget < 0xFF ? budget : 0xFF;
-        HeaderNode* out;
-        HeadersInsert(&headers_, nullptr, &out, headers_);
-        std::uint8_t* chunk = headers_->prev->data.bytes;
+        Chunks::InsertDefault<ChunkElement>(headers_.End());   // 00439C80
+        std::uint8_t* chunk = headers_.End()->prev->data.bytes;
         int available = BufferedSize(&reliableOut_);
         if (size >= available) size = available;
         chunk[2] = static_cast<std::uint8_t>(size);
@@ -218,7 +169,7 @@ void Connection::QueueHeader(int budget) {
         return;
     }
     // The oldest waiting chunk (sequence order with wrap-around) moves to the front.
-    HeaderNode* head = headers_;
+    HeaderNode* head = headers_.End();
     HeaderNode* best = head->next;
     std::uint16_t bestSeq = best->data.Sequence();
     for (HeaderNode* n = best; n != head; n = n->next) {
@@ -229,32 +180,23 @@ void Connection::QueueHeader(int budget) {
         }
     }
     if (head->next == best) return;
-    HeaderNode* last = best->next;
-    HeaderNode* first;
-    HeaderIteratorCopy(&first, nullptr, &best);
-    HeaderNode* position;
-    HeadersBegin(&headers_, nullptr, &position);
-    HeadersSplice(&headers_, nullptr, position, &headers_, first, last);
+    Chunks::SpliceRange(headers_.First(), best, best->next);   // 00438770
 }
 EI_REPLACE_METHOD(0x00434990, Connection::QueueHeader);
 
 void Connection::RollBack(SentPacket* packet) {
     if (packet->rolledBack) return;
-    for (SentItem* item = packet->items->next; item != packet->items; item = item->next) {
+    for (SentItemNode* node = packet->items.First(); node != packet->items.End(); node = node->next) {
         // Unreliable sends are forgotten (the entry is sent again); a reliable change only when
         // the entry still carries the version this packet sent.
+        SentItem* item = &node->data;
         if (item->action == SentItem::kChanged) {
             if (item->entry->version_ == item->version) item->entry->version_ = 0;
         } else if (item->action == SentItem::kRemoved) {
             item->entry->version_ = 0;
         }
     }
-    if (packet->header.Size() != 0) {
-        HeaderNode* position;
-        HeadersBeginForInsert(&headers_, nullptr, &position);
-        HeaderNode* out;
-        HeadersInsertCopy(&headers_, nullptr, &out, position, &packet->header);
-    }
+    if (packet->header.Size() != 0) Chunks::Insert<ChunkElement>(headers_.End(), packet->header);   // 00439C50
     packet->rolledBack = 1;
 }
 EI_REPLACE_METHOD(0x00433F20, Connection::RollBack);
@@ -263,14 +205,11 @@ void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32
     AttachedMap::Node* lb;
     trees::Attached::LowerBound(&attached_, nullptr, &lb, &object);
     if (lb == attached_.end() || reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
-        struct {
-            CRefObject* key;
-            std::uint32_t value;
-        } pair{object, type};
-        AttachedMap::Node* hint;
-        AttachedIteratorCopy(&hint, nullptr, &lb);
+        // The pair holds the type dword in the id's place (both fields are written below).
+        AttachedMap::Value pair{object, {static_cast<std::uint16_t>(type), static_cast<std::uint8_t>(type >> 16),
+                                         static_cast<std::uint8_t>(type >> 24)}};
         AttachedMap::Node* inserted;
-        AttachedInsertHint(&attached_, nullptr, &inserted, hint, &pair);
+        trees::Attached::InsertHint(&attached_, nullptr, &inserted, lb, &pair);   // 00439B80
         lb = inserted;
     }
     lb->second.id = static_cast<std::uint16_t>(key);
@@ -298,18 +237,16 @@ bool Connection::SendUpdate(int budget) {
     QueueHeader(budget - 0x10);
 
     // The reliable chunk at the front of the queue goes into the packet and into its history entry.
-    const ReliableChunk& chunk = headers_->next->data;
+    const ReliableChunk& chunk = headers_.First()->data;
     std::size_t chunkSize = static_cast<std::size_t>(chunk.Size()) + 3;
     std::memcpy(c.p, chunk.bytes, chunkSize);
     c.p += chunkSize;
-    HistoryNode* inserted;
-    HistoryInsert(&history_, nullptr, &inserted, history_);
-    HistoryNode* sent = history_->prev;
+    Packets::InsertDefault<PacketRecordElement>(history_.End());   // 004397E0
+    HistoryNode* sent = history_.End()->prev;
     std::memcpy(&sent->data.time, &clock_, sizeof(sent->data.time));
     sent->data.sequence = sequence;
     sent->data.header = chunk;
-    HeaderNode* afterErase;
-    HeadersErase(&headers_, nullptr, &afterErase, headers_->next);
+    Chunks::Erase<ChunkElement>(headers_.First());   // 00438660
 
     std::uint8_t* count = c.p++;
     *count = 0;
@@ -328,8 +265,8 @@ bool Connection::SendUpdate(int budget) {
                 }
                 if (entry->id_ == 0) {
                     entry->id_ = idPools_[entry->type_].Allocate();
-                    std::uint32_t key = (static_cast<std::uint32_t>(entry->type_) << 16) + entry->id_;
-                    BySentIdAt(&bySentId_, nullptr, &key)->Assign(entry);
+                    std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
+                    trees::SentIds::Subscript(&bySentId_, nullptr, &key)->Assign(entry);   // 00437B90
                 }
                 c.PutBits(1, 1);
                 std::uint32_t id = entry->id_;
@@ -366,9 +303,8 @@ bool Connection::SendUpdate(int budget) {
                 break;
             }
             ++*count;
-            SentItem* added;
-            ItemsInsert(&sent->data.items, nullptr, &added, sent->data.items);
-            SentItem* item = sent->data.items->prev;
+            Items::InsertDefault<SentRecordElement>(sent->data.items.End());   // 00438F60
+            SentItem* item = &sent->data.items.End()->prev->data;
             ReplicaEntry* old = item->entry;
             item->entry = entry;
             ++entry->refs_;
@@ -395,11 +331,8 @@ bool Connection::SendUpdate(int budget) {
 
     if (CurrentSession()->socket_.SendTo(&address_, out)) return complete;
     // Not sent: undo what the history entry recorded and drop it.
-    RollBack(&history_->prev->data);
-    HistoryNode* last = history_;
-    ListIteratorDecrement(&last);
-    HistoryNode* afterHistoryErase;
-    HistoryErase(&history_, nullptr, &afterHistoryErase, last);
+    RollBack(&history_.End()->prev->data);
+    Packets::Erase<PacketRecordElement>(history_.End()->prev);   // 00437F30
     return false;
 }
 EI_REPLACE_METHOD(0x00435A00, Connection::SendUpdate);
@@ -492,9 +425,8 @@ void Connection::Track(Replicated* item) {
     if (!object || (object->flags7_ & CRefObject::kDetached)) return;
     std::uint32_t objectVtable;
     std::memcpy(&objectVtable, object, 4);
-    TypeRegistry::ByVtable::Node* found[2];
-    TypeFind(&CurrentSession()->types_.byVtable, nullptr, found, &objectVtable);
-    std::int32_t type = found[0] ? static_cast<std::int32_t>(found[0]->value) : -1;
+    TypeRegistry::ByVtable::Node* found = CurrentSession()->types_.byVtable.Find(objectVtable);   // 0042A810
+    std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
 
     // A new entry (vtable 0073BF4C) with no version and no id yet.
     auto* entry = NewMessageMemory<ReplicaEntry>();
@@ -506,22 +438,18 @@ void Connection::Track(Replicated* item) {
         entry->id_ = 0;
     }
 
+    CRefObject* key = item->object;
     ObjectMap::Node* lb;
-    ByObjectLowerBound(&byObject_, nullptr, &lb, &item->object);
+    trees::Objects::LowerBound(&byObject_, nullptr, &lb, &key);   // 0043C4B0
     if (lb == byObject_.end() || reinterpret_cast<std::uintptr_t>(item->object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
         RefPtr none;
         ::RefPtrNull(&none);
-        struct {
-            void* key;
-            RefPtr value;
-        } pair;
-        ByObjectMakePair(&pair, nullptr, &item->object, &none);
-        ObjectMap::Node* hint;
-        ByObjectIteratorCopy(&hint, nullptr, &lb);
+        ObjectMap::Value pair;
+        trees::Objects::MakeValue(&pair, nullptr, &key, &none);   // 0043A050
         ObjectMap::Node* inserted;
-        ByObjectInsertHint(&byObject_, nullptr, &inserted, hint, &pair);
+        trees::Objects::InsertHint(&byObject_, nullptr, &inserted, lb, &pair);   // 00439540
         lb = inserted;
-        if (pair.value.ptr) pair.value.ptr->Release();
+        if (pair.second.ptr) pair.second.ptr->Release();
         if (none.ptr) none.ptr->Release();
     }
     CRefObject*& held = lb->second.ptr;
@@ -536,17 +464,12 @@ void Connection::Track(Replicated* item) {
     if (lb2 == map.end() || reinterpret_cast<std::uintptr_t>(entry) < reinterpret_cast<std::uintptr_t>(lb2->first)) {
         RefPtr none;
         ::RefPtrNull(&none);
-        struct {
-            void* key;
-            RefPtr value;
-        } pair;
-        PriorityMakePair(&pair, nullptr, &entry, &none);
-        EntryMap::Node* hint;
-        PriorityIteratorCopy(&hint, nullptr, &lb2);
+        EntryMap::Value pair;
+        trees::Entries::MakeValue(&pair, nullptr, &entry, &none);   // 0043A070
         EntryMap::Node* inserted;
-        PriorityInsertHint(&map, nullptr, &inserted, hint, &pair);
+        trees::Entries::InsertHint(&map, nullptr, &inserted, lb2, &pair);   // 00439730
         lb2 = inserted;
-        if (pair.value.ptr) pair.value.ptr->Release();
+        if (pair.second.ptr) pair.second.ptr->Release();
         if (none.ptr) none.ptr->Release();
     }
     lb2->second.Assign(entry);
@@ -568,7 +491,7 @@ void Connection::CollectChanges() {
         items.ConstructEmpty();   // 00439E10
         GameAtExit(atexit400::DestroyGlobalVector);
     }
-    ReplicatedErase(&items, nullptr, items.begin(), items.end());
+    items.EraseRange<stlp::PlainElement<Replicated>>(items.begin(), items.end());
     ReplicatedVector* target = &items;
     CurrentSession()->CollectReplicated(&target);
     if (items.begin() != items.end()) {
@@ -675,8 +598,8 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
             auto* entry = static_cast<ReplicaEntry*>(found->second.ptr);
             if (entry->id_ == 0) {
                 entry->id_ = idPools_[entry->type_].Allocate();
-                std::uint32_t key = (static_cast<std::uint32_t>(entry->type_) << 16) + entry->id_;
-                AssignEntry(BySentIdAt(&bySentId_, nullptr, &key), entry);
+                std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
+                AssignEntry(trees::SentIds::Subscript(&bySentId_, nullptr, &key), entry);
             }
             std::uint16_t id = entry->id_;
             std::uint8_t type = entry->type_;
@@ -716,7 +639,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     if ((id & 0xFFFF) == 0) return nullptr;
     if (sent) {
         SentIdMap::Node* node;
-        BySentIdFind(&bySentId_, nullptr, &node, &key);
+        trees::SentIds::Find(&bySentId_, nullptr, &node, &key);   // 0043BF00
         if (node == bySentId_.end()) return nullptr;
         return static_cast<ReplicaEntry*>(node->second.ptr)->object_.ptr;
     }
@@ -736,7 +659,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     }
     if (Usable(found->second.object.ptr)) return found->second.object.ptr;
     std::uint32_t typeKey = type & 0xFF;
-    MessageFactory factory = *FactoryAt(&CurrentSession()->types_.byType, nullptr, &typeKey);
+    MessageFactory factory = CurrentSession()->types_.byType[typeKey];   // 00439EA0
     CRefObject* object = factory ? factory() : nullptr;
     if (!object) return nullptr;
     RefPtr* slot = &found->second.object;
@@ -760,19 +683,17 @@ namespace {
 } // namespace
 
 void Connection::Acknowledge(std::uint16_t sequence) {
-    for (HistoryNode* node = history_->next; node != history_; node = node->next) {
+    for (HistoryNode* node = history_.First(); node != history_.End(); node = node->next) {
         if (node->data.sequence == sequence) {
             Delivered(&node->data);
-            HistoryNode* after;
-            HistoryErase(&history_, nullptr, &after, node);
+            Packets::Erase<PacketRecordElement>(node);
             return;
         }
     }
-    for (HistoryNode* node = acknowledged_->next; node != acknowledged_; node = node->next) {
+    for (HistoryNode* node = acknowledged_.First(); node != acknowledged_.End(); node = node->next) {
         if (node->data.sequence == sequence) {
             Delivered(&node->data);
-            HistoryNode* after;
-            HistoryErase(&acknowledged_, nullptr, &after, node);
+            Packets::Erase<PacketRecordElement>(node);
             return;
         }
     }
@@ -819,7 +740,7 @@ bool Connection::Accept(std::uint32_t sequence) {
     }
     if (!(newest > sequence)) newest = sequence;
     lastReceived_ = newest;
-    for (std::int32_t* it = received_; it != receivedEnd_; ++it) {
+    for (std::int32_t* it = received_.begin(); it != received_.end(); ++it) {
         if (*it == static_cast<std::int32_t>(sequence)) {
             if (NetLog()) {
                 stlp::string peer;
@@ -829,11 +750,12 @@ bool Connection::Accept(std::uint32_t sequence) {
             return false;
         }
     }
-    if (receivedEnd_ == receivedEos_) {
-        ReceivedInsertOverflow(&received_, nullptr, receivedEnd_, &sequence, 1);
+    auto value = static_cast<std::int32_t>(sequence);
+    if (received_.end() == received_.EndOfStorage()) {
+        received_.InsertOverflow<stlp::PlainElement<std::int32_t>>(received_.end(), value, 1);   // 0043B850
     } else {
-        if (receivedEnd_) *receivedEnd_ = static_cast<std::int32_t>(sequence);
-        ++receivedEnd_;
+        if (received_.end()) *received_.end() = value;
+        ++received_.Finish();
     }
     return true;
 }
@@ -843,8 +765,8 @@ void Connection::ProcessHeaders() {
     bool progress;
     do {
         progress = false;
-        HeaderNode* node = incoming_->next;
-        if (node == incoming_) return;
+        HeaderNode* node = incoming_.First();
+        if (node == incoming_.End()) return;
         do {
             if (node->data.Sequence() == incomingSequence_) {
                 GameBuffer* in = &reliableIn_;
@@ -861,14 +783,12 @@ void Connection::ProcessHeaders() {
                     in->cur += size;
                 }
                 incomingSequence_ = static_cast<std::uint16_t>(incomingSequence_ + node->data.Size());
-                HeaderNode* after;
-                HeadersErase(&incoming_, nullptr, &after, node);
-                node = after;
+                node = Chunks::Erase<ChunkElement>(node);
                 progress = true;
             } else {
                 node = node->next;
             }
-        } while (node != incoming_);
+        } while (node != incoming_.End());
     } while (progress);
 }
 EI_REPLACE_METHOD(0x00434AE0, Connection::ProcessHeaders);
@@ -900,10 +820,7 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     std::memcpy(header.bytes + 3, from, header.Size());
     cursor->p = from + header.Size();
     if (static_cast<std::uint16_t>(header.Sequence() - incomingSequence_) <= 0x8000 && header.Size() != 0) {
-        HeaderNode* position;
-        HeadersBeginForInsert(&incoming_, nullptr, &position);
-        HeaderNode* inserted;
-        HeadersInsertCopy(&incoming_, nullptr, &inserted, position, &header);
+        Chunks::Insert<ChunkElement>(incoming_.End(), header);
         ProcessHeaders();
     }
     std::uint8_t count = *cursor->p++;
@@ -926,9 +843,8 @@ void Connection::Close() {
         if (CRefObject* object = slot->ptr) {
             std::uint32_t objectVtable = *reinterpret_cast<const std::uint32_t*>(object);
             SessionBase* session = CurrentSession();
-            TypeRegistry::ByVtable::Node* found[2];   // the iterator: node, table
-            TypeFind(&session->types_.byVtable, nullptr, found, &objectVtable);
-            std::uint32_t type = found[0] ? found[0]->value : 0xFFFFFFFFu;
+            TypeRegistry::ByVtable::Node* found = session->types_.byVtable.Find(objectVtable);
+            std::uint32_t type = found ? found->value : 0xFFFFFFFFu;
             CallHandlers(session, 2, type, object);
         }
         if (slot->ptr) {

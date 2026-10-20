@@ -160,8 +160,6 @@ using NameList = BriefingRecord::NameList;
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
-__declspec(naked) void __fastcall TempListDestruct(mfc::CTypedPtrList<void>*, void*) EI_ORIGINAL(0x00405130)
-inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) {
     reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3);
 }
@@ -178,8 +176,8 @@ CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(first, nullptr, 10);
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(second, nullptr, 10);
     CEngineObject* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
-    TempListDestruct(second, nullptr);
-    TempListDestruct(first, nullptr);
+    mfc::impl::DestructList<mfc::impl::TempListClass>(*second);
+    mfc::impl::DestructList<mfc::impl::TempListClass>(*first);
     return item;
 }
 
@@ -202,7 +200,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     for (const mfc::CString* name = record->giveItems.begin(); name != record->giveItems.end(); ++name) {
         CEngineObject* item = CreateNamedItem(*name, true);
         if (!item) continue;
-        auto* node = PtrListNewNode(&items, nullptr, items.tail, nullptr);
+        auto* node = items.NewNode(items.tail, nullptr);
         node->data = item;
         if (items.tail) items.tail->next = node;
         else items.head = node;

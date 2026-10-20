@@ -303,7 +303,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->AddToSectors(unit);
     }
     static_cast<CMapObject*>(object)->MarkChanged(2);
-    PtrListDestruct4C96F0Original(&units);
+    mfc::impl::DestructList<mfc::impl::PtrListClass>(units);
 }
 
 void GiveSkill(const SSCCmd* cmd) {
@@ -1186,7 +1186,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             player->Party()->Money() += Ftol(f[1]);
             PlayerOf(player)->GiveItems(&items, 0);
-            PtrListDestructOriginal(&items);
+            mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x92:     // GiveQuestItem(player, item)
@@ -1197,10 +1197,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
-                PtrListAddTailOriginal(&items, nullptr, item);
+                items.AddTail(item);
                 PlayerOf(player)->GiveItems(&items, 0);
             }
-            PtrListDestructOriginal(&items);
+            mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x93: {   // EraseQuestItem(player, id)

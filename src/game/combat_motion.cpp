@@ -665,7 +665,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
             else current->prev->next = current->next;
             if (current == list->tail) list->tail = current->prev;
             else current->next->prev = current->prev;
-            UnitListFreeNodeOriginal(list, nullptr, current);
+            list->FreeNode(current);
         }
     }
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
@@ -678,7 +678,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
         if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
-        auto* added = static_cast<UnitList::Node*>(PtrListNewNode52CEF0Original(list, nullptr, list->tail, nullptr));
+        auto* added = list->NewNode(list->tail, nullptr);
         added->data = member;
         if (list->tail) list->tail->next = added;
         else list->head = added;

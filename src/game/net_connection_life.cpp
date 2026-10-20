@@ -5,6 +5,7 @@
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_connection_trees.h"
+#include "library_net_lists.h"
 
 #include "core_streams.h"
 #include "ei/hook.h"
@@ -23,63 +24,49 @@ namespace net {
 namespace {
 
 using ObjectMap = stlp::map<CRefObject*, RefPtr>;
-using SentIdMap = stlp::map<std::uint32_t, RefPtr>;
+using SentIdMap = stlp::map<std::int32_t, RefPtr>;
 using AttachedMap = stlp::map<CRefObject*, AttachedId>;
 
 // CRT eh vector constructor / destructor iterators (stdcall).
-void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
+void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
 void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 }  // namespace
 IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
 namespace {
 // An id pool's destructor: its vector of free ids freed.
-void __fastcall IdPoolDestruct(IdPool* pool) { stlp::VectorAbi<std::uint16_t>::DestroyBase(reinterpret_cast<stlp::vector<std::uint16_t>*>(pool)); }
+void __fastcall IdPoolDestruct(IdPool* pool) { pool->free.FreeStorage(); }
 // A function as the pointer the iterators take.
 template <typename F>
 void* Callback(F function) { return reinterpret_cast<void*>(function); }
 
-// Container constructors (allocator / comparison arguments are empty objects passed by address).
-__declspec(naked) void __fastcall FreedListConstruct(FreedBatch** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439120)
-__declspec(naked) void __fastcall BySentIdConstruct(SentIdMap* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x004393C0)
-__declspec(naked) void __fastcall HistoryListConstruct(HistoryNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439960)
-__declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
+// The lists' element policies (library_net_lists.h).
+using netlists::ChunkElement;
+using netlists::FreedIdsElement;
+using netlists::PacketRecordElement;
 inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
-
-// Reset's container teardown.
-__declspec(naked) void __fastcall ListDeleteAll(HeaderNode** /*list*/) EI_ORIGINAL(0x00439D40)
-__declspec(naked) void __fastcall HistoryDestroy(HistoryNode** /*list*/) EI_ORIGINAL(0x004399C0)
-__declspec(naked) void __fastcall BySentIdClear(SentIdMap* /*tree*/) EI_ORIGINAL(0x004394A0)
-__declspec(naked) void __fastcall BySentIdFreeHeader(SentIdMap* /*tree*/) EI_ORIGINAL(0x00439500)
-__declspec(naked) void __fastcall FreedClear(FreedBatch** /*list*/) EI_ORIGINAL(0x0043BA20)
-
-// The destructor's container teardown.
-__declspec(naked) void __fastcall ListDeleteNodes(HeaderNode** /*list*/) EI_ORIGINAL(0x0043D420)
-__declspec(naked) void __fastcall HistoryClear(HistoryNode** /*list*/) EI_ORIGINAL(0x0043CA40)
 
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
-// The std::vector<int> of received sequences given back to the pool.
-void FreeReceived(Connection* c) {
-    stlp::deallocate(c->received_, static_cast<std::size_t>(c->receivedEos_ - c->received_) * 4);   // 0043A300
-}
+// The std::vector<int> of received sequences given back to the pool (0043A300).
+void FreeReceived(Connection* c) { c->received_.FreeStorage(); }
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
 void DestroyForReset(Connection* c) {
     GrowingBufferDestruct(&c->reliableIn_);
     GrowingBufferDestruct(&c->reliableOut_);
-    ListDeleteAll(&c->incoming_);
-    ListDeleteAll(&c->headers_);
+    c->incoming_.Release<ChunkElement>();   // 00439D40
+    c->headers_.Release<ChunkElement>();
     c->attached_.Destroy<stlp::TreeElement<AttachedMap::Value>>();
     trees::Records::Destroy(&c->records_);
-    HistoryDestroy(&c->acknowledged_);
-    HistoryDestroy(&c->history_);
+    c->acknowledged_.Release<PacketRecordElement>();   // 004399C0
+    c->history_.Release<PacketRecordElement>();
     VectorDtorIterator(c->priorities_, sizeof(Connection::EntryMap), 11, Callback(trees::Entries::Destroy));
     trees::Objects::Clear(&c->byObject_);
     trees::Objects::FreeHeader(&c->byObject_);
-    BySentIdClear(&c->bySentId_);
-    BySentIdFreeHeader(&c->bySentId_);
-    FreedClear(&c->freedIds_);
-    stlp::deallocate(c->freedIds_, 20);   // 0043A410
+    trees::SentIds::Clear(&c->bySentId_);   // 004394A0
+    trees::SentIds::FreeHeader(&c->bySentId_);   // 00439500
+    c->freedIds_.Clear<FreedIdsElement>();   // 0043BA20
+    stlp::deallocate(c->freedIds_.End(), sizeof(FreedBatch));   // 0043A410
     VectorDtorIterator(c->idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(c);
 }
@@ -92,17 +79,15 @@ void DestroyForReset(Connection* c) {
 Connection* Connection::Construct(std::uint32_t id) {
     ei::SetVtable(this, CRefObject::kVtableAddress);
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
-    received_ = nullptr;   // vector<int>() (00438CE0)
-    receivedEnd_ = nullptr;
-    receivedEos_ = nullptr;
+    received_.ConstructEmpty();   // vector<int>() (00438CE0)
     address_ = NetAddress{};
     VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
-    FreedListConstruct(&freedIds_, nullptr, &tags[2]);
-    BySentIdConstruct(&bySentId_, nullptr, &tags[3], &tags[2]);
+    freedIds_.Construct();   // 00439120
+    trees::SentIds::ConstructWith(&bySentId_, nullptr, &tags[3], &tags[2]);   // 004393C0
     trees::Objects::ConstructWith(&byObject_, nullptr, &tags[2], &tags[3]);
     VectorCtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Construct), Callback(trees::Entries::Destroy));
-    HistoryListConstruct(&history_, nullptr, &tags[3]);
-    HistoryListConstruct(&acknowledged_, nullptr, &tags[3]);
+    history_.Construct();   // 00439960
+    acknowledged_.Construct();
     // The trees' comparison byte is copied from the stack slot of the id argument.
     trees::Records::ConstructBase(&records_, nullptr, &tags[3]);
     records_.Count() = 0;
@@ -112,10 +97,10 @@ Connection* Connection::Construct(std::uint32_t id) {
     attached_.Compare() = static_cast<std::uint8_t>(id);
     attached_.Count() = 0;
     attached_.EmptyInitialize();
-    HeaderListConstruct(&headers_, nullptr, &tags[3]);
+    headers_.Construct();   // 00439CE0
     // The list's allocator proxy (0043A980) holds null until the sentinel is made.
     auto* sentinel = static_cast<HeaderNode*>(NodeAllocate(sizeof(HeaderNode)));
-    incoming_ = sentinel;
+    incoming_.head = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
     static_cast<GameBuffer*>(&reliableOut_)->ConstructGrowing();
@@ -138,9 +123,8 @@ Connection* Connection::Construct(std::uint32_t id) {
     roundTripSquare_ = static_cast<float>(old * old);
     lastReceived_ = 0;
     sequenceHigh_ = 0x10000;
-    FreedBatch* out;
-    FreedInsert(&freedIds_, nullptr, &out, freedIds_);
-    FreedInsert(&freedIds_, nullptr, &out, freedIds_);
+    stlp::list<FreedIds>::InsertDefault<FreedIdsElement>(freedIds_.End());   // 00439000
+    stlp::list<FreedIds>::InsertDefault<FreedIdsElement>(freedIds_.End());
     id_ = id;
     Put32(&clock_, 0, 0);
     freedTimer_ = 0.0f;
@@ -171,25 +155,25 @@ void Connection::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     GrowingBufferDestruct(&reliableIn_);
     GrowingBufferDestruct(&reliableOut_);
-    ListDeleteNodes(&incoming_);
-    stlp::deallocate(incoming_, 268);   // 00439D80
-    ListDeleteNodes(&headers_);
-    stlp::deallocate(headers_, 268);   // 00439D80
+    incoming_.Clear<ChunkElement>();   // 0043D420
+    stlp::deallocate(incoming_.End(), sizeof(HeaderNode));   // 00439D80
+    headers_.Clear<ChunkElement>();
+    stlp::deallocate(headers_.End(), sizeof(HeaderNode));
     attached_.Clear<stlp::TreeElement<AttachedMap::Value>>();
     trees::Attached::FreeHeader(&attached_);
     trees::Records::Clear(&records_);
     trees::Records::FreeHeader(&records_);
-    HistoryClear(&acknowledged_);
-    stlp::deallocate(acknowledged_, 288);   // 0043AAF0
-    HistoryClear(&history_);
-    stlp::deallocate(history_, 288);   // 0043AAF0
+    acknowledged_.Clear<PacketRecordElement>();   // 0043CA40
+    stlp::deallocate(acknowledged_.End(), sizeof(HistoryNode));   // 0043AAF0
+    history_.Clear<PacketRecordElement>();
+    stlp::deallocate(history_.End(), sizeof(HistoryNode));
     VectorDtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Destroy));
     trees::Objects::Clear(&byObject_);
     stlp::deallocate(byObject_.end(), 24);   // 0043A4E0
-    BySentIdClear(&bySentId_);
+    trees::SentIds::Clear(&bySentId_);
     stlp::deallocate(bySentId_.end(), 24);   // 0043A480
-    FreedClear(&freedIds_);
-    stlp::deallocate(freedIds_, 20);   // 0043B180
+    freedIds_.Clear<FreedIdsElement>();
+    stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));   // 0043B180
     VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -208,16 +192,6 @@ EI_REPLACE_METHOD(0x004334C0, Connection::DeletingDestruct);
 
 namespace net {
 
-namespace {
-// Copy constructors of the containers (library).
-__declspec(naked) void* __fastcall ReceivedGetAllocator(std::int32_t* const* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00438CC0)
-__declspec(naked) void __fastcall ReceivedReserveConstruct(std::int32_t** /*vector*/, void*, int /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00438D00)
-__declspec(naked) void __fastcall FreedListCopy(FreedBatch** /*to*/, void*, FreedBatch* const* /*from*/) EI_ORIGINAL(0x00437930)
-__declspec(naked) void __fastcall BySentIdCopy(SentIdMap* /*to*/, void*, const SentIdMap* /*from*/) EI_ORIGINAL(0x00437AA0)
-__declspec(naked) void __fastcall HistoryCopy(HistoryNode** /*to*/, void*, HistoryNode* const* /*from*/) EI_ORIGINAL(0x00437F60)
-__declspec(naked) void __fastcall HeaderListCopy(HeaderNode** /*to*/, void*, HeaderNode* const* /*from*/) EI_ORIGINAL(0x00438690)
-} // namespace
-
 // 00433060 (slot 3).
 Connection* Connection::Clone() {
     auto* copy = NewMessageMemory<Connection>();
@@ -226,28 +200,27 @@ Connection* Connection::Clone() {
     copy->sendSequence_ = sendSequence_;
     copy->lastReceived_ = lastReceived_;
     copy->sequenceHigh_ = sequenceHigh_;
-    std::uint8_t tag = 0;
-    void* alloc = ReceivedGetAllocator(&received_, nullptr, &tag);
-    ReceivedReserveConstruct(&copy->received_, nullptr, static_cast<int>(receivedEnd_ - received_), alloc);
-    copy->receivedEnd_ = stlp::CopyTrivial(received_, receivedEnd_, copy->received_);   // 0043B360
+    // vector(const vector&): room for exactly size() sequences (00438D00), copied (0043B360).
+    copy->received_.ConstructWithCapacity(received_.size());
+    copy->received_.Finish() = stlp::CopyTrivial(received_.begin(), received_.end(), copy->received_.begin());
     // id, round trips; timers, clock, budget: copied as dwords.
     std::memcpy(&copy->id_, &id_, offsetof(Connection, address_) - offsetof(Connection, id_));
     copy->address_ = address_;
     std::memcpy(&copy->sendInterval_, &sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
     for (int i = 0; i < kMessageTypes; ++i) copy->idPools_[i].CopyFrom(idPools_[i]);
-    FreedListCopy(&copy->freedIds_, nullptr, &freedIds_);
+    netlists::CopyConstruct<FreedIds, FreedIdsElement>(&copy->freedIds_, nullptr, &freedIds_);   // 00437930
     copy->freedTimer_ = freedTimer_;
-    BySentIdCopy(&copy->bySentId_, nullptr, &bySentId_);
+    trees::SentIds::CopyConstruct(&copy->bySentId_, nullptr, &bySentId_);   // 00437AA0
     trees::Objects::CopyConstruct(&copy->byObject_, nullptr, &byObject_);
     for (int i = 0; i < 11; ++i) trees::Entries::CopyConstruct(&copy->priorities_[i], nullptr, &priorities_[i]);
-    HistoryCopy(&copy->history_, nullptr, &history_);
-    HistoryCopy(&copy->acknowledged_, nullptr, &acknowledged_);
+    netlists::CopyConstruct<SentPacket, PacketRecordElement>(&copy->history_, nullptr, &history_);   // 00437F60
+    netlists::CopyConstruct<SentPacket, PacketRecordElement>(&copy->acknowledged_, nullptr, &acknowledged_);
     trees::Records::CopyConstruct(&copy->records_, nullptr, &records_);
     trees::Attached::CopyConstruct(&copy->attached_, nullptr, &attached_);
     copy->headerSequence_ = headerSequence_;
     copy->incomingSequence_ = incomingSequence_;
-    HeaderListCopy(&copy->headers_, nullptr, &headers_);
-    HeaderListCopy(&copy->incoming_, nullptr, &incoming_);
+    netlists::CopyConstruct<ReliableChunk, ChunkElement>(&copy->headers_, nullptr, &headers_);   // 00438690
+    netlists::CopyConstruct<ReliableChunk, ChunkElement>(&copy->incoming_, nullptr, &incoming_);
     copy->ackMask_ = ackMask_;
     copy->ackBase_ = ackBase_;
     copy->reliableOut_.ConstructCopy(&reliableOut_);
@@ -267,17 +240,14 @@ EI_REPLACE(0x00433060, CloneHook);
 namespace net {
 
 IdPool* IdPool::CopyFrom(const IdPool& other) {
-    begin = nullptr;
-    end = nullptr;
-    eos = nullptr;
-    std::size_t count = static_cast<std::size_t>(other.end - other.begin);
+    free.ConstructEmpty();
+    std::size_t count = other.free.size();
     std::uint16_t* block = count ? static_cast<std::uint16_t*>(NodeAllocate(count * 2)) : nullptr;
-    begin = block;
-    end = block;
-    eos = block + count;
-    std::size_t bytes = static_cast<std::size_t>(other.end - other.begin) * 2;
-    std::memmove(block, other.begin, bytes);
-    end = reinterpret_cast<std::uint16_t*>(reinterpret_cast<std::uint8_t*>(block) + bytes);
+    free.Start() = block;
+    free.Finish() = block;
+    free.EndOfStorage() = block + count;
+    std::memmove(block, other.free.begin(), count * 2);
+    free.Finish() = block + count;
     next = other.next;
     return this;
 }
@@ -346,9 +316,7 @@ EI_REPLACE_METHOD(0x004344A0, ReplicaEntry::DeletingDestruct);
 // 00433040 (no Ghidra function; the element constructor the connection's constructor passes to the
 // vector constructor iterator): an empty id pool (no free ids, next 0). Returns this.
 IdPool* __fastcall IdPoolConstruct(IdPool* self) {
-    self->begin = nullptr;
-    self->end = nullptr;
-    self->eos = nullptr;
+    self->free.ConstructEmpty();
     self->next = 0;
     return self;
 }

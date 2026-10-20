@@ -25,6 +25,7 @@
 #include "ei/vcall.h"
 #include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -478,8 +479,8 @@ void CUnitServer::DestructBody() {
     DestroyArray(currentPlan.animation, kServerArrayVtable);
     motion.excludedBlocks.vtable = reinterpret_cast<void*>(AIPath::kExcludedBlocksVtable);
     if (motion.excludedBlocks.data) gamecrt::operator_delete(motion.excludedBlocks.data);
-    CellListDestroy(&motion.cells);
-    CellListDestroy(&motion.steps);
+    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
+    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, kServerArrayVtable);
     SetVtable(this, kControllerVtable);
     unit = nullptr;

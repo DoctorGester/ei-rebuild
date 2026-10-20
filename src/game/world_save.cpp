@@ -160,7 +160,6 @@ void __fastcall MarkNew(CEngineObject* a0, void*) { static_cast<CEffect*>((void*
 // 0040A3A0. CRefObject::Release.
 // 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
 // pointer's assignment (reference added, old one released through slot 4).
-mfc::CTypedPtrList<CEngineObject>::Node* __fastcall CountedNewNode(mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2, mfc::CTypedPtrList<CEngineObject>::Node* a3) { return (mfc::CTypedPtrList<CEngineObject>::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // Load / Save of the time wheel (+0x2838), the first command queue (+0x12874), the diplomacy
 // tables (+0x12C64) and the countdowns (+0x70).
 __declspec(naked) void __fastcall TimeWheelLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAE30)
@@ -342,7 +341,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             if (id == -1) break;
             CEngineObject* object = ManagerFindObject(items, nullptr, id);
             if (!object) continue;
-            PtrListAddTailOriginal(&player->items, nullptr, object);
+            player->items.AddTail(object);
             ++object->refCount_;
         }
         stream->Read(&player->godMode, 1);
@@ -500,7 +499,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (id < 0) break;
                 CEngineObject* item = ManagerFindObject(itemManager_, nullptr, id);
                 if (!item) continue;
-                auto* node = CountedNewNode(&counted_, nullptr, nullptr, counted_.head);
+                auto* node = counted_.NewNode(nullptr, counted_.head);
                 ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
                 if (counted_.head) counted_.head->prev = node;
                 else counted_.tail = node;

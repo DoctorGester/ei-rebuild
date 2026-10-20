@@ -213,7 +213,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         world->Sectors()->FindUnitsInRadius(&MapObject(unit)->position, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::PtrListVtable();
-        PtrListRemoveAllOriginal(&heard);
+        heard.RemoveAll();
     }
     return out;
 }

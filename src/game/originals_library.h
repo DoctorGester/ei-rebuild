@@ -15,10 +15,8 @@ class CFileRegistry;
 class CStream;
 namespace lib { template <typename T> struct AlignedArray; }
 namespace console { class CStringArray; }
-namespace net { struct FreedBatch; struct HistoryNode; }
 namespace stlp { class string; }
 
-__declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
@@ -91,10 +89,6 @@ inline void* __fastcall CStringAssignTextOriginal(void* destination, void*, cons
 inline int __fastcall CStringFindTextOriginal(const void* string, void*, const char* text) {
     return static_cast<const mfc::CString*>(string)->Find(text);
 }
-// MFC CPtrList::NewNode(prev, next) 004621A0 (RET 8, returns the node, data cleared); RemoveAll 0052CA10 (plain RET).
-__declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
-    EI_ORIGINAL(0x004621A0)
-__declspec(naked) inline void __fastcall PtrListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x0052CA10)
 // MFC CWordArray::~CWordArray 006FEECD and CByteArray::~CByteArray 006FF61D (plain RET): the storage freed.
 __declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
 __declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
@@ -103,23 +97,16 @@ inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDat
 
 // C3h. 00405950: __node_alloc<true,0>::allocate(bytes) (ECX = bytes, plain RET, block or null).
 __declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
-// 00427830: CPtrList destructor (plain RET); 00429F10: CPtrList::RemoveAll (plain RET). EAX is not a result.
-__declspec(naked) inline void __fastcall PtrListDestructOriginal(void* /*list*/) EI_ORIGINAL(0x00427830)
-__declspec(naked) inline void __fastcall PtrListRemoveAllNodesOriginal(void* /*list*/) EI_ORIGINAL(0x00429F10)
 
 // C3i. 00405720: STLport hash_map erase(node) (RET 8: node, table; EAX not a result). 00700D73: CString::operator+=(char)
-// (RET 4, returns this). 006E8693: CRT `eh vector constructor iterator` (RET 0x14: array, size, count, ctor, dtor).
+// (RET 4, returns this).
 // 006FE296: CArray<CString> DestructElements (RET 8: first, count).
 __declspec(naked) inline void __fastcall HashEraseOriginal(void* /*map*/, void*, void* /*node*/, const void* /*table*/)
     EI_ORIGINAL(0x00405720)
-__declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
-                                                                    void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
 // 004C98F0: pointer list AddTail (RET 4, EAX not a result). 004DCE90: string vector insert overflow
 // (RET 0xC: pos, first, count). 0041FCD0: list end() iterator written to `out` (RET 4, returns out).
-__declspec(naked) inline void __fastcall PtrListAddTailOriginal(void* /*list*/, void*, void* /*element*/)
-    EI_ORIGINAL(0x004C98F0)
 __declspec(naked) inline void __fastcall StringVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
                                                                             const void* /*first*/, unsigned /*count*/)
     EI_ORIGINAL(0x004DCE90)
@@ -138,17 +125,9 @@ __declspec(naked) inline void __fastcall IntSetFindOriginal(void* /*set*/, void*
     EI_ORIGINAL(0x0066B490)
 __declspec(naked) inline void __fastcall IntSetClearOriginal(void* /*set*/) EI_ORIGINAL(0x0066BA70)
 
-// C3k. 004C96F0: destructor of the pointer list built by 004C96A0 (vtable 0073D454; plain RET, EAX not a result).
-__declspec(naked) inline void __fastcall PtrListDestruct4C96F0Original(void* /*list*/) EI_ORIGINAL(0x004C96F0)
-// Container instantiations inside the exe, decided from the disassembly. CList / CPtrList NewNode(prev, next)
-// (all RET 8, EAX the new node): 0052CEF0 is CPtrList's (the node's data is cleared), 0052CDB0 / 00429EA0 / 004CD6D0
-// (0x20-byte nodes) / 004CDA30 (0xBC-byte nodes) construct the element through the template's ConstructElements.
-__declspec(naked) inline void* __fastcall PtrListNewNode52CEF0Original(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
-    EI_ORIGINAL(0x0052CEF0)
-__declspec(naked) inline void* __fastcall ListNewNode52CDB0Original(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
-    EI_ORIGINAL(0x0052CDB0)
-__declspec(naked) inline void* __fastcall ListNewNode429EA0Original(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
-    EI_ORIGINAL(0x00429EA0)
+// Container instantiations inside the exe, decided from the disassembly. CList NewNode(prev, next) (RET 8, EAX the new
+// node): 004CD6D0 (0x20-byte nodes) / 004CDA30 (0xBC-byte nodes) construct the element through the template's
+// ConstructElements. (The pointer lists' members are mfc::CList's: mfc_list.cpp registers them.)
 __declspec(naked) inline void* __fastcall ScriptBlockListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x004CD6D0)
 __declspec(naked) inline void* __fastcall ScriptRunListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
@@ -161,10 +140,6 @@ __declspec(naked) inline void* __fastcall ScriptFxListNewNodeOriginal(void* /*li
                                                                       void* /*next*/) EI_ORIGINAL(0x004CD5B0)
 __declspec(naked) inline void* __fastcall ScriptLightningListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
                                                                              void* /*next*/) EI_ORIGINAL(0x004CD620)
-// 005588A0: CPtrList::FreeNode(node) (RET 4, EAX not a result). 00558C50: CPtrList::RemoveAll (plain RET).
-__declspec(naked) inline void __fastcall UnitListFreeNodeOriginal(void* /*list*/, void*, void* /*node*/)
-    EI_ORIGINAL(0x005588A0)
-__declspec(naked) inline void __fastcall ItemListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00558C50)
 // STLport list insert(position, value) writing the new iterator to `out` (RET 0xC: out, position, value; EAX = out):
 // 00421AF0 and 00423190 on the 12-byte node pool (NetAddress / uint list, RefPtr list), 0056E8A0 on the cell lists.
 __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
@@ -221,8 +196,6 @@ __declspec(naked) inline void __fastcall DwordVectorInsertOverflowOriginal(void*
 // its data cleared; a CPtrList instance); 0059A100 the pointer array's destructor (releases every element, frees the buffer;
 // plain RET, no result); 0059C890 releases `count` elements from `first` (stdcall, RET 8, no result).
 __declspec(naked) inline void __fastcall CountedListClearOriginal(void* /*list*/) EI_ORIGINAL(0x005703C0)
-__declspec(naked) inline void* __fastcall PtrListNewNode573290Original(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
-    EI_ORIGINAL(0x00573290)
 __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
@@ -275,12 +248,6 @@ inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return
 // C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).
 __declspec(naked) inline void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
 __declspec(naked) inline void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
-// C3m. The net connection's history list (STLport list of HistoryNode): 00437F30 erase(pos).
-__declspec(naked) inline net::HistoryNode** __fastcall HistoryErase(net::HistoryNode** /*list*/, void*, net::HistoryNode** /*out*/,
-                                                             net::HistoryNode* /*pos*/) EI_ORIGINAL(0x00437F30)
-// C3m. The freed-batch list (STLport list of FreedBatch): 00439000 insert(pos) of a default batch.
-__declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatch** /*list*/, void*, net::FreedBatch** /*out*/,
-                                                           net::FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
 #include "string_arg.h"   // StringArg
 // C3n. The engine's aligned arrays (lib::AlignedArray<T>, thiscall on the array): 004513A0 (rewritten as

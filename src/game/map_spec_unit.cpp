@@ -56,7 +56,7 @@ namespace {
 
 // CRT eh vector constructor / destructor iterators.
 template <typename Constructor, typename Destructor>
-void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
+void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
 template <typename Destructor>
 void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // MFC (library): CStringArray, the CArray instantiations of patrols and waypoints.

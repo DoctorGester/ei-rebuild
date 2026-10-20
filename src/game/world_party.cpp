@@ -17,6 +17,7 @@
 #include "lib/crt.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/mfc_list.h"
 
 #include "ei/hook.h"
 #include "originals_engine.h"
@@ -55,8 +56,6 @@ using ItemArray = AlignedPtrArray;
 using IdArray = mfc::CArray<int>;
 using RecordArray = RecordPtrArray;
 
-// 004621A0 (RET 8). CPtrList::NewNode(prev, next), out of line.
-inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 // 0059CB50 (RET 8). The item array's SetSize(size, growBy).
 __declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) EI_ORIGINAL(0x0059CB50)
 // 006A0110 (CItem::GetPrototype). A quest item's description: the names of the zones it belongs to.
@@ -81,7 +80,7 @@ void InitList(ObjectList& list) {
 
 // AddTail through the game's out-of-line NewNode.
 void AddTail(ObjectList& list, CEngineObject* object) {
-    ObjectList::Node* node = PtrListNewNode(&list, nullptr, list.tail, nullptr);
+    ObjectList::Node* node = list.NewNode(list.tail, nullptr);
     node->data = object;
     if (list.tail) list.tail->next = node;
     else list.head = node;
@@ -165,10 +164,10 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
                 AddTail(one, fresh);
                 PlayerGiveItems(player, nullptr, &one, 0);
                 item->Release();
-                PtrListDestructOriginal(&one);
+                mfc::impl::DestructList<mfc::impl::ItemListClass>(one);
                 node = next;
             }
-            PtrListRemoveAllNodesOriginal(&taken);
+            taken.RemoveAll();
         }
     }
     // The list's inline destructor.

@@ -283,9 +283,6 @@ __declspec(naked) void __fastcall CellOps::Clear2(SectorList*) EI_ORIGINAL(0x005
 // platform list's RemoveAt [0056FDD0] (on the platform set's list, +0x1F0).
 using DynamicList = mfc::CList<CEngineObject*>;
 using DynamicNode = DynamicList::Node;
-DynamicNode* __fastcall DynamicNewNode(DynamicList* list, void*, DynamicNode* prev, DynamicNode* next) {
-    return static_cast<DynamicNode*>(PtrListNewNode573290Original(list, nullptr, prev, next));
-}
 __declspec(naked) void __fastcall PlatformRemoveAt(PlatformList*, void*, PlatformNode*) EI_ORIGINAL(0x0056FDD0)
 
 // The id map +0xD8 (hash_map<unsigned, DynamicNode*>, then the highest key): operator[]
@@ -333,7 +330,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     const PendingMap::Node* entry = dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_));
     if (!entry && ObjectSlots(object)->IsSynchronised()) {
         DynamicList& kept = dynamicObjects_;
-        DynamicNode* node = DynamicNewNode(&kept, nullptr, kept.tail, nullptr);
+        DynamicNode* node = kept.NewNode(kept.tail, nullptr);
         node->data = object;
         if (kept.tail)
             kept.tail->next = node;
@@ -413,7 +410,7 @@ void CWorldClient::RefreshPlatforms(CEngineObject* object) {
 bool CWorldClient::QueueSynchronised(CEngineObject* object) {
     if (dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_))) return false;
     DynamicList& kept = dynamicObjects_;
-    DynamicNode* node = DynamicNewNode(&kept, nullptr, kept.tail, nullptr);
+    DynamicNode* node = kept.NewNode(kept.tail, nullptr);
     node->data = object;
     if (kept.tail)
         kept.tail->next = node;
