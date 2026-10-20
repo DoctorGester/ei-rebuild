@@ -13,7 +13,6 @@ src/game/ai_path_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_plan.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_region_reach.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_shape_cache.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ai_unit_layer.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/app_frame.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,4
 src/game/app_main.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/app_registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -41,7 +40,6 @@ src/game/figure_mesh_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/figure_model_destroy.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/figure_models.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/ground_print.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/hash_tables_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/ini_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/item_constructor.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -49,7 +47,7 @@ src/game/item_db_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,20
 src/game/item_db_open.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/item_db_text.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0,0
-src/game/item_stock.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,35
+src/game/item_stock.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,34
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/lever_table.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/lightning.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -72,9 +70,9 @@ src/game/net_client_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/net_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,27
 src/game/net_client_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,21
 src/game/net_client_party.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
-src/game/net_connection.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,39
-src/game/net_connection_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,38
-src/game/net_connection_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
+src/game/net_connection.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,29
+src/game/net_connection_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,28
+src/game/net_connection_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/net_link.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,9
 src/game/net_messages.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
@@ -104,7 +102,7 @@ src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,14
 src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,146
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
-src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,20
+src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,46
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
 src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,27
@@ -127,7 +125,7 @@ src/game/scene_loader.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,39
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0,0,0,0
 src/game/scene_meshes.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/game/scene_normals.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/scene_registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
+src/game/scene_registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/scene_skeleton.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/scene_weld.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_blocks.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -147,10 +145,10 @@ src/game/script_reset.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/server_specific_manager.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/sound_manager.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,13
-src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
+src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/sound_music.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/spell_cast.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/string_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
+src/game/string_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/terrain_animation.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_landscape.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_passes.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -214,8 +212,8 @@ src/game/unit_lever.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_motion_tick.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_skins.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/game/world_client.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/world_client_draw.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
-src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,40
+src/game/world_client_draw.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
+src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,39
 src/game/world_client_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_client_view.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_deleting_destructors.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6

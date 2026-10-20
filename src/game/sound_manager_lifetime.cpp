@@ -7,6 +7,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "record_arrays.h"
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
@@ -170,8 +171,6 @@ __declspec(naked) void __fastcall CacheMapClear(void* /*map*/) EI_ORIGINAL(0x006
 __declspec(naked) void __fastcall DeferredMapClear(void* /*map*/) EI_ORIGINAL(0x006BD100)
 __declspec(naked) void __fastcall CacheBucketsDestruct(void* /*buckets*/) EI_ORIGINAL(0x006BC4D0)
 __declspec(naked) void __fastcall DeferredBucketsDestruct(void* /*buckets*/) EI_ORIGINAL(0x006BC510)
-// DestructElements<WaveRecord> (the record's name string).
-__declspec(naked) void __stdcall WaveRecordsDestruct(WaveRecord* /*first*/, int /*count*/) EI_ORIGINAL(0x006BE210)
 // Miles (game.exe's imports 0073B7D4 / 0073B7D0).
 using AilVoidFn = void(__stdcall*)();
 AilVoidFn AilStartup() { return *reinterpret_cast<AilVoidFn*>(std::uintptr_t(0x0073B7D4)); }
@@ -260,7 +259,7 @@ void CSoundManager::DestructBody() {
     CacheMapClear(cache);
     CacheBucketsDestruct(cacheBuckets);
     cacheList.vtable = reinterpret_cast<void*>(kCacheListVtable);
-    for (WaveNode* node = cacheList.head; node; node = node->next) WaveRecordsDestruct(&node->data, 1);
+    for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
     libcrt::DestroyElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
     libcrt::DestroyElements(emitters, sizeof(SoundEmitter), 16, reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));

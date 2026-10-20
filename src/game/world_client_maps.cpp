@@ -863,9 +863,6 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
 // ---- Platforms (00560650, 00560820) --------------------------------------------------------------
 
 namespace {
-// The face list's NewNode [00573000: (prev, next); the element constructed by 00575660].
-__declspec(naked) PlatformNode* __fastcall PlatformNewNode(PlatformList*, void*, PlatformNode*, PlatformNode*)
-    EI_ORIGINAL(0x00573000)
 constexpr float kSteepest = 0.8f;   // 0073CCA8: the smallest normal z of a face added
 } // namespace
 
@@ -875,7 +872,7 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
     if (x87::IsNaN(normal->z) || normal->z < kSteepest) return 0;
     // AddHead with the instantiation's NewNode.
     PlatformNode* last = list.head;
-    PlatformNode* node = PlatformNewNode(&list, nullptr, nullptr, last);
+    PlatformNode* node = list.NewNode(nullptr, last);
     // (The original first copies 0x4C bytes of uninitialised stack over the record; every field is
     // written below or by the caller.)
     if (last)

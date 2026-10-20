@@ -8,10 +8,6 @@
 
 namespace {
 using NodeList = mfc::CList<UnitLayerNode>;
-// 005BE7B0: CList<UnitLayerNode>::NewNode(prev, next) on the layer's node list (data zero-filled,
-// count + 1).
-__declspec(naked) NodeList::Node* __fastcall NewListNode(NodeList*, void*, NodeList::Node*, NodeList::Node*)
-    EI_ORIGINAL(0x005BE7B0)
 
 // A node from the free list, or a new one appended to the layer's list. The original copies an
 // uninitialised stack element into a new node's data (MFC AddTail of a default element); the
@@ -22,7 +18,7 @@ UnitLayerNode* TakeNode(CUnitLayer* layer) {
         return node;
     }
     NodeList& nodes = layer->nodes;
-    NodeList::Node* added = NewListNode(&nodes, nullptr, nodes.tail, nullptr);
+    NodeList::Node* added = nodes.NewNode(nodes.tail, nullptr);
     if (nodes.tail) nodes.tail->next = added;
     else nodes.head = added;
     nodes.tail = added;

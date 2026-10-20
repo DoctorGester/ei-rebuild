@@ -10,6 +10,7 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "lib/stlp_string.h"
+#include "lib/stlp_tree_abi.h"
 #include "library_trees.h"
 #include "ui.h"        // CInterface3D, CUiSurface
 #include "ui_gdi.h"    // GameDC, GameFont
@@ -48,8 +49,6 @@ static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, u
               offsetof(CDebugPanel, lastDraw_) == 0x40);
 
 // STLport (library).
-__declspec(naked) Node** __fastcall LowerBound(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x004456E0)
-__declspec(naked) Node** __fastcall Find(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x00445620)
 __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const stlp::string*, const stlp::string*) EI_ORIGINAL(0x00445170)
 __declspec(naked) Node** __fastcall InsertHint(StringMap*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
@@ -84,7 +83,7 @@ void __fastcall StringTableSet(void* self, void*, const char* key, const char* v
     stlp::string* k = keyStorage.Make(key);
     StringMap& map = Panel(self)->entries_;
     Node* it;
-    LowerBound(&map, nullptr, &it, k);
+    lib_trees::StringPairs::LowerBound(&map, nullptr, &it, k);
     if (it == map.end() || stlp::StringAbi::Less(k, &it->first)) {
         KeyString emptyStorage;
         auto* empty = reinterpret_cast<stlp::string*>(emptyStorage.storage);
@@ -120,7 +119,7 @@ void __fastcall StringTableRemove(void* self, void*, const char* key) {
     stlp::string* k = keyStorage.Make(key);
     StringMap& map = Panel(self)->entries_;
     Node* it;
-    Find(&map, nullptr, &it, k);
+    lib_trees::StringPairs::Find(&map, nullptr, &it, k);
     k->~string();
     if (it != map.end()) map.Erase<stlp::TreeElement<StringMap::Value>>(it);
 }

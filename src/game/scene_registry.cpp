@@ -44,13 +44,11 @@ __declspec(naked) void __stdcall ConstructNamed(void* /*p*/, int /*count*/) EI_O
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
 using SeenMap = DwordMap;
 void* SeenMapVtable() { return reinterpret_cast<void*>(0x0073C16C); }
-__declspec(naked) MapAssoc* __fastcall MapGetAssocAt(SeenMap*, void*, const std::uint32_t*, std::uint32_t*)
-    EI_ORIGINAL(0x00453C60)
 
 // map[key] as the original inlines it: the association (created with value 0 when missing).
 MapAssoc* MapLookup(SeenMap& map, std::uint32_t key) {
     std::uint32_t hash;
-    MapAssoc* assoc = MapGetAssocAt(&map, nullptr, &key, &hash);
+    MapAssoc* assoc = mfc::impl::Map32::GetAssocAt(&map, nullptr, &key, &hash);
     if (assoc) return assoc;
     if (!map.table) mfc::impl::MapAbi<unsigned int, unsigned int>::InitHashTable(&map, nullptr, map.hashSize, 1);
     assoc = mfc::impl::MapAbi<unsigned int, unsigned int>::NewAssoc(&map);

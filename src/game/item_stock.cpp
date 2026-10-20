@@ -42,10 +42,8 @@ namespace {
 // pointers, from the maps, with the level per school (8 floats) and a percentage threshold.
 __declspec(naked) void __fastcall CallFillSpellMaps(ItemStock*, void*, void* /*table*/) EI_ORIGINAL(0x0069A480)
 
-// vector<char*> members (thiscall): 0069E3F0 insert(position, first, last; a fourth unused
-// argument), 0069D9A0 allocate a block of n and copy [first, last) into it, 0069D470
+// vector<char*> members (thiscall): 0069D9A0 allocate a block of n and copy [first, last) into it, 0069D470
 // _M_insert_overflow(position, &value, n); 0069C990 deallocate (fastcall: block, element count).
-__declspec(naked) void __fastcall PtrInsertRange(StockPtrVector*, void*, char**, char**, char**, void*) EI_ORIGINAL(0x0069E3F0)
 __declspec(naked) char** __fastcall PtrAllocateCopy(StockPtrVector*, void*, std::size_t, char**, char**) EI_ORIGINAL(0x0069D9A0)
 __declspec(naked) void __fastcall PtrInsertOverflow(void*, void*, StockMaterial**, StockMaterial* const*, std::size_t)
     EI_ORIGINAL(0x0069D470)
@@ -260,7 +258,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (prototypes->size() > static_cast<std::size_t>(count)) {
         Shuffle(prototypes->begin(), prototypes->end());
-        PtrInsertRange(&taken, nullptr, taken.begin(), prototypes->begin(), prototypes->begin() + count, prototypes);
+        taken.RangeInsert<stlp::PlainElement<char*>>(taken.begin(), prototypes->begin(), prototypes->begin() + count);
     } else if (prototypes != &taken) {
         AssignPointers(taken, *prototypes);
     }
