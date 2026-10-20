@@ -2591,6 +2591,14 @@ group = "standalone"
 size = 1
 note = "User wishlist 2026-10-20: the standalone game loads (and saves) its settings from a file instead of HKCU\\Software\\Nival Interactive\\EvilIslands. Import the registry values once if the file is missing. A file per run would also give the harness its pinned settings for free (WB16)."
 
+[[ticket]]
+id = "ST2"
+title = "In-game graphics options instead of the launcher"
+group = "standalone"
+size = 2
+depends = ["S18"]
+note = "User 2026-10-20: after the standalone exe, add graphics options to the game itself so no launcher is needed: display mode (windowed / borderless full screen; no exclusive mode change), resolution, antialiasing, anisotropic filtering and the like. R12a (the dgVoodoo look as an option, off by default), R14 (stay on screen on focus loss) and R15 (confine the cursor, no edge pan outside the window) supply switches it can show. Settings go to the settings file of ST1."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
