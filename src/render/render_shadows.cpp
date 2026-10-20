@@ -458,8 +458,9 @@ void PrepareShadows(Frame& f) {
     // The visible ground seen from the sun: every second terrain vertex inside the camera's view.
     D3 lo{1e30, 1e30, 1e30}, hi{-1e30, -1e30, -1e30};
     int seen = 0;
-    for (std::size_t i = 0; i < f.terrainVertices.size(); i += 2) {
-        const Vector3& p = f.terrainVertices[i].position;
+    std::vector<Vector3> visible;
+    TerrainPositions(f, 2, &visible);
+    for (const Vector3& p : visible) {
         D3 at{p.x, p.y, p.z};
         D4 c = Transform(camera, D4{at.x, at.y, at.z, 1.0});
         if (c.w <= 0.0 || std::fabs(c.x) > 1.05 * c.w || std::fabs(c.y) > 1.05 * c.w || c.z > c.w) continue;

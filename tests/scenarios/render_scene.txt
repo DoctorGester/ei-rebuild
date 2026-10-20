@@ -3,7 +3,9 @@
 # one frozen moment, captured twice: world / world_again must match, and the golden checks the game
 # state. A run of the original code (dgVoodoo) captures its own frame the same way. (render_terrain,
 # this scenario's first half, went with S21a; the old path's oldterrain / oldobjects / oldinterface
-# steps beside the new frame went with R11.)
+# steps beside the new frame went with R11.) R16c: the image's frame with its terrain pages kept on the
+# GPU must match the frame with every page built and uploaded again (world_fresh), and no kept page
+# checked against a fresh build may have been stale.
 render new
 reject Script error
 waitmenu
@@ -18,7 +20,12 @@ wait 1000
 freeze
 capture world
 capture world_again
+terraincache off
+capture world_fresh
+terraincache on
 unfreeze
 samecapture world world_again
+samecapture world world_fresh
+terraincache check
 report
 quit

@@ -784,12 +784,27 @@ across runs; the goldens check the game state.
    other memory textures (the global map's 341 KB one) are updated in place instead of made again. Gain: 4-15 image and
    view creations a frame to none, 0.5-1.5 ms CPU in fights and towns. Risk: low (slice reuse when objects go). Check:
    render_scene, render_options_shadows, ui_global_map_pick frames at 8 / 0.5% (GPU mips differ slightly).
-3. **R16c Terrain pages resident on the GPU.** Per sector page, level of detail and seam variant: positions and texture
-   coordinates in static buffers made when the page first draws, kept until the sector's tile lists, LOD or seams
-   change; the lit colours (8 of 28 bytes a vertex) in their own stream, uploaded only for pages relit (the
-   LightingFreq countdown). Gain: terrain upload 0.8 MB to under 0.1 MB a frame, most of TerrainPage's 0.3-0.5 ms.
-   Risk: a missed invalidation (water levels, seams); the harness build compares a cached page with a fresh build every
-   N frames. Check: render_scene, render_terrain_seams, render_smooth with the cache on / off at 8 / 0.1% (0 expected).
+3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page at a level of detail and
+   seam variant is built once, all four quarters, into a pool of default-usage buffers written with UpdateSubresource
+   (sokol has no partial update): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a
+   stream of their own) and absolute indices. A frame keeps the visible quarters of each page handed over
+   (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is built again when its tile
+   lists, records or edge flags moved (pointers, sizes) or the game rebuilt the sector (`render::TerrainChanged(s,
+   true)` from Build and Clear). When the game only moves vertices or texture coordinates (Animate's waves and
+   animated tiles, ApplyWaterLevels: `TerrainChanged(s, false)`) the page reads them again through its vertices'
+   records and tile entries and uploads the changed range; the visible quarters' colours are compared with the
+   records every frame, the changed range uploaded. The pool (at least 128 K vertices) starts again with the frame's
+   pages when full (made larger when they need more than half of it); pages not drawn for 600 frames are dropped.
+   The shadow map's fit reads the pieces' positions (`TerrainPositions`, the same vertices in the same order).
+   Measured (render_stats, vanilla 4K, per frame): terrain upload before / after menu 268 / 51 KB, zone1 808 / 229,
+   fight 808 / 211, town 372 / 74 (indices only when a page is built: none in these scenes); terrain CPU (`renderstats`
+   "terrain": hand-over and uploads) zone1 0.44-0.61 ms with every page built and uploaded every frame / 0.24 kept,
+   town 0.15 kept (Rebirth's wider view: zone1 1046 / 289 KB, 0.67 / 0.44-0.56 ms; the times are noisy). What zone1 still uploads is mostly its water pages
+   (the waves move every water vertex each tick, Animate on the CPU) and relit colours; waves in the vertex shader
+   would take the rest (R16c2). Check: the harness's `terraincache off` builds and uploads every page every frame as
+   before; render_scene, render_terrain_seams and render_smooth capture the frozen frame both ways (0 pixels differ),
+   and the harness build compares every kept page with a fresh build every 16th frame (`terraincache check`, 0 stale
+   in the render_* scenarios and render_stats).
 4. **R16d Meshes resident on the GPU.** Model-space corners (positions, texture coordinates) kept per mesh, the colours
    streamed: map objects, the sky and interface sprites never upload again; figures upload colours when relit and
    positions only when their frame changed. Needs a cheap change signal from the game (the figure's animation frame,
