@@ -798,8 +798,8 @@ across runs; the goldens check the game state.
    The shadow map's fit reads the pieces' positions (`TerrainPositions`, the same vertices in the same order).
    Measured (render_stats, vanilla 4K, per frame): terrain upload before / after menu 268 / 51 KB, zone1 808 / 229,
    fight 808 / 211, town 372 / 74 (indices only when a page is built: none in these scenes); terrain CPU (`renderstats`
-   "terrain": hand-over and uploads) zone1 0.44 ms with every page built every frame / 0.25 kept, town 0.33 / 0.17-0.33
-   (noisy; the per-page state read and pass bookkeeping remain). What zone1 still uploads is mostly its water pages
+   "terrain": hand-over and uploads) zone1 0.44-0.61 ms with every page built and uploaded every frame / 0.24 kept,
+   town 0.15 kept (Rebirth's wider view: zone1 1046 / 289 KB, 0.67 / 0.44-0.56 ms; the times are noisy). What zone1 still uploads is mostly its water pages
    (the waves move every water vertex each tick, Animate on the CPU) and relit colours; waves in the vertex shader
    would take the rest (R16c2). Check: the harness's `terraincache off` builds and uploads every page every frame as
    before; render_scene, render_terrain_seams and render_smooth capture the frozen frame both ways (0 pixels differ),
