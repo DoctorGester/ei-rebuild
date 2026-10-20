@@ -35,7 +35,6 @@ struct Vertex {
     float u, v;
 };
 static_assert(sizeof(Vertex) == 28);
-using TerrainVertex = Vertex;
 
 // One texture stage of the old device for a pass (D3DTEXTURESTAGESTATETYPE values).
 struct StageState {
@@ -92,12 +91,19 @@ PassState ReadPassState(char* device);
 // draws with `s` (render_mesh.cpp).
 void ApplyPassState(sg_pipeline_desc& p, const PassState& s);
 
+// A terrain page kept on the GPU (render_terrain.cpp) and one quarter of it drawn in a frame.
+struct CachedPage;
+struct TerrainPiece {
+    CachedPage* page;
+    int quarter;
+};
+
 struct TerrainBatch {
     const void* texture;      // the game's CTexture
     bool water;               // the water pass (alpha from the vertex colour)
     int matrix;               // index into Frame::matrices
-    int firstIndex;
-    int indexCount;
+    int firstPiece;           // into Frame::terrainPieces
+    int pieceCount;
     PassState state;          // the old device's state for the page (its textures not read)
 };
 
@@ -154,8 +160,7 @@ struct ShadowFrame {
 
 struct Frame {
     std::vector<Matrix4> matrices;
-    std::vector<Vertex> terrainVertices;
-    std::vector<std::uint32_t> terrainIndices;
+    std::vector<TerrainPiece> terrainPieces;
     std::vector<TerrainBatch> terrainBatches;
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
@@ -296,9 +301,15 @@ private:
 
 // The terrain shader and draws, inside EndFrame's off-screen pass (render_terrain.cpp; the pipelines
 // are made per pass state as they are needed).
+// UploadTerrain puts the pages handed over with changes into the pool (R16c); TerrainPositions gives
+// every `step`th position of the frame's terrain vertices in draw order (the shadow map's fit);
+// TerrainFrameDone, after a present, drops pages not drawn for a long time. DestroyTerrain keeps the
+// pages (placed again in a new pool at their next draw).
 bool CreateTerrainShader();
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
+void TerrainPositions(const Frame& frame, std::size_t step, std::vector<Vector3>* out);
+void TerrainFrameDone();
 void DestroyTerrain();
 
 // The mesh pipelines and draws (render_mesh.cpp).

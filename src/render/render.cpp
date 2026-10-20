@@ -786,6 +786,7 @@ void AddFrameStats() {
     }
     s.sharedMeshes += f.sharedMeshes;
     s.handOverMs += f.handOverMs;
+    s.terrainMs += f.terrainMs;
     s.textureMs += f.textureMs;
     s.windowMs += f.windowMs;
     s.endFrameMs += f.endFrameMs;
@@ -1186,9 +1187,9 @@ void Present() {
     g_drawnCommands = 0;
     g_passes = 0;
     g_frame.matrices.clear();
-    g_frame.terrainVertices.clear();
-    g_frame.terrainIndices.clear();
+    g_frame.terrainPieces.clear();
     g_frame.terrainBatches.clear();
+    TerrainFrameDone();
     g_frame.meshVertices.clear();
     g_frame.meshIndices.clear();
     g_frame.meshBatches.clear();

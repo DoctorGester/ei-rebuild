@@ -125,7 +125,8 @@ struct FrameStats {
     // CPU time (ms): the hand-over (terrain pages, meshes, pre-transformed draws), texture work
     // (views checked, converted, made; windowMs: of it, the window surfaces'), EndFrame (uploads,
     // draws, the present on the window). (statsMs: these counts' own hashing and checks, left out of
-    // the others.)
+    // the others; terrainMs: the terrain pages' hand-over and uploads, left out of the times around them.)
+    double terrainMs = 0.0;
     double handOverMs = 0.0, textureMs = 0.0, windowMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
     // R16j: the shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
     // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
@@ -318,6 +319,21 @@ void ClearDepth(float z, const Rect* rects, int count);
 // (007AF060, whose transform pipeline holds the current clip matrix) and the page (ground pages
 // 0..pages+1, water pages after them).
 void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
+// The game changed what the sector's pages are built from (R16c: the renderer keeps them on the GPU):
+// `rebuilt` its tile lists and records (SectorData::Build, Clear), else it moved vertices or texture
+// coordinates (Animate's waves and animated tiles, ApplyWaterLevels).
+void TerrainChanged(const terrain::SectorData* sector, bool rebuilt);
+// Harness build only (the harness's "terraincache", R16c): the terrain pages kept on the GPU (on, the
+// default) or built and uploaded again every frame (off: as before R16c, for frame comparisons); the
+// pages kept, and the checks of kept pages against a fresh build (every 16th frame) with how many
+// found one stale (a change TerrainChanged was not told of).
+void SetTerrainCache(bool on);
+struct TerrainCacheInfo {
+    bool on = true;
+    std::size_t pages = 0;
+    std::uint64_t checks = 0, stale = 0;
+};
+TerrainCacheInfo TerrainCacheState();
 
 // Copies the new frame's `source` rectangle (screen pixels, as drawn so far this frame) into the
 // SurfaceMemory of `holder` (a CDXSurface), stretched to its size: the screen copies of 005FD3D0

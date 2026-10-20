@@ -422,6 +422,13 @@ depends = ["R16"]
 files = ["src/render/ src/game/map_object_shadow.cpp src/game/device_shadow.cpp docs/notes/renderer.md"]
 note = "User 2026-10-20: 'we definitely want at least GPU shadows rendered in the modern way'; today's shadows are very inaccurate, especially on slopes, and update in a staggered way (64x64 textures rasterised and blurred on the CPU by 2DintMMX, map_object_shadow.cpp 0051CE60, rebuilt a few per frame, laid on flat ground quads by 0056C750). Render figures and map objects into a sun shadow map each frame (the sun direction from the terrain, TerrainFields +0x258 / SetSun; the meshes R16 already hands over with their matrices), sample it with filtering (PCF) when drawing terrain, objects and figures, so shadows fall correctly on slopes, platforms and other objects and move every frame. New shadows on by default in the image, the old ones kept as an option (EI_RENDER word or render:: switch, for ST2's options screen); with the option on 'classic', frames must match today at 8 / 0.1%. The game's own shadow building keeps running unless the goldens show it is visual only. Show the user side-by-side frames (frame_preview.py) of slopes, a town and a fight. Measure the CPU / GPU cost with render_stats. Terrain self-shadowing from the sun (CPU ray march in terrain_lighting.cpp) and per-pixel lighting stay in R16i."
 
+[[ticket]]
+id = "R16c2"
+title = "Water waves in the terrain vertex shader"
+group = "renderer"
+depends = ["R16c"]
+note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
