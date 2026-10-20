@@ -52,6 +52,7 @@
 #include "originals_ai.h"
 #include "originals_core.h"
 #include "game_lists.h"
+#include "bink_video.h"
 
 #include <cstdint>
 #include <cstring>
@@ -368,7 +369,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 void PlayMovie(const SSCCmd* cmd) {
     mfc::CString path = *GameBasePathString() + MoviesFolder();
     mfc::CString file = path + cmd->stringArgs.data[0];
-    PlayMovieFile(file, 0, 1, 1, 1, 1, 1);
+    ::PlayMovie(file, 0, 1, 1, 1, 1, 1);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {

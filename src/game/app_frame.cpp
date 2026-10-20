@@ -18,6 +18,7 @@
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ini_file.h"
+#include "bink_video.h"
 
 #include <cstdint>
 #include <cstring>
@@ -146,7 +147,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         alignas(mfc::CString) unsigned char fullRaw[sizeof(mfc::CString)];
         mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), reinterpret_cast<const mfc::CString*>(0x007AF458), game::Text(0x00784A4C));
         mfc::CString* full = ConcatString(reinterpret_cast<mfc::CString*>(fullRaw), dir, &list.data[i]);
-        PlayMovieFile(*full, 0, 1, 0, 0, a, b);
+        PlayMovie(*full, 0, 1, 0, 0, static_cast<char>(a), b);
         full->~CString();
         dir->~CString();
         if (clearAfter) ClearScreen();

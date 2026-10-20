@@ -23,6 +23,7 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "world_glue.h"
+#include "library_trees.h"
 
 #include <cstdint>
 #include <cstring>
@@ -60,7 +61,7 @@ void CInterface3D::CreateScreen(int id) {
     case 1: {   // the in-game screen (ui_camp.h)
         screen = gamecrt::operator_new(0x230);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
+        static_cast<CUiContainer*>(screen)->Construct(this);
         auto* battle = static_cast<CBattleScreen*>(screen);
         mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&battle->party_);
         mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&battle->heroes_);
@@ -73,13 +74,13 @@ void CInterface3D::CreateScreen(int id) {
     case 2:
         screen = gamecrt::operator_new(0x17C);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
+        static_cast<CUiContainer*>(screen)->Construct(this);
         SetVtables(screen, Vtable(0x00740688), Vtable(0x00740654));
         break;
     case 3: {   // the base / briefing screen
         screen = gamecrt::operator_new(0x2A4);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
+        static_cast<CUiContainer*>(screen)->Construct(this);
         auto* briefing = static_cast<CBriefingScreen*>(screen);
         StringArrayConstruct(&briefing->topics_);
         new (&briefing->topic_) mfc::CString();
@@ -106,7 +107,7 @@ void CInterface3D::CreateScreen(int id) {
     case 7:
         screen = gamecrt::operator_new(0x168);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
+        static_cast<CUiContainer*>(screen)->Construct(this);
         SetVtables(screen, Vtable(0x00740840), Vtable(0x0074080C));
         break;
     case 8:
@@ -277,7 +278,7 @@ void CInterface3D::ShowMessage(int force) {
     CUiWindow* window = nullptr;
     if (memory) {
         int value = messageFlag_;
-        ConstructContainerAt(memory, nullptr, this);
+        static_cast<CUiContainer*>(memory)->Construct(this);
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = true;
         CStringConstructTextOriginal(&win->text_, nullptr, messageText_);
@@ -325,7 +326,7 @@ void CInterface3D::OpenHelp(int flag) {
     void* memory = gamecrt::operator_new(0x194);
     CUiWindow* window = nullptr;
     if (memory) {
-        ConstructContainerAt(memory, nullptr, this);
+        static_cast<CUiContainer*>(memory)->Construct(this);
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = false;
         CStringConstructTextOriginal(&win->text_, nullptr, topic);
@@ -363,10 +364,10 @@ void FreeNode18(void* node) {
     *FreeList18() = node;
 }
 
-// Members (thiscall): screen 9's two maps (005F9F80 with two allocators, RET 8; 005F98F0);
-// screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
-__declspec(naked) void __fastcall Screen9FirstMap(void*, void*, const void*, const void*) EI_ORIGINAL(0x005F9F80)
-__declspec(naked) void __fastcall Screen9SecondMap(void*) EI_ORIGINAL(0x005F98F0)
+// Members (thiscall): screen 9's two maps are item caches (lib_trees::ItemCache: 005F9F80 with two
+// allocators, 005F98F0); screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
+using ItemCache = lib_trees::ItemCache;
+ItemCache::Tree* CacheAt(void* self, int offset) { return reinterpret_cast<ItemCache::Tree*>(static_cast<std::uint8_t*>(self) + offset); }
 __declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
 
 std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
@@ -375,14 +376,14 @@ std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 
 // 005F6F30 (thiscall, RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
 void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
-    ConstructContainerAt(self, nullptr, ui);
+    static_cast<CUiContainer*>(self)->Construct(ui);
     SetDword(self, 0x168, 0);
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;
     CInterface3D* slot = ui;
-    Screen9FirstMap(Bytes(self) + 0x170, nullptr, &junk, &slot);
+    ItemCache::ConstructWith(CacheAt(self, 0x170), nullptr, &junk, &slot);
     SetDword(self, 0x17C, 50);
-    Screen9SecondMap(Bytes(self) + 0x180);
+    ItemCache::Construct(CacheAt(self, 0x180));
     SetDword(self, 0x18C, 50);
     SetDword(self, 0x1AC, 0);
     SetDword(self, 0x1B0, 0);
@@ -396,8 +397,8 @@ EI_REPLACE(0x005F6F30, Screen9Construct);
 // 005F6D50 (thiscall, RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list
 // at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
 void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
-    ConstructContainerAt(self, nullptr, ui);
-    MappedResourceConstructOriginal(Bytes(self) + 0x170);
+    static_cast<CUiContainer*>(self)->Construct(ui);
+    reinterpret_cast<CMappedResource*>(Bytes(self) + 0x170)->Construct();
     std::uint8_t* list = Bytes(self) + 0x1C8;
     list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten
     SetDword(list, 0, 0);

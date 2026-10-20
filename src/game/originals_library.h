@@ -86,9 +86,6 @@ inline void* __fastcall CStringAssignTextOriginal(void* destination, void*, cons
 inline int __fastcall CStringFindTextOriginal(const void* string, void*, const char* text) {
     return static_cast<const mfc::CString*>(string)->Find(text);
 }
-// MFC CWordArray::~CWordArray 006FEECD and CByteArray::~CByteArray 006FF61D (plain RET): the storage freed.
-__declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
-__declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
 // CPlex::FreeDataChain 006FE90F (plain RET, ECX = chain head; mfc::PlexFreeDataChain is the forwarder).
 inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(chain)); }
 
@@ -106,13 +103,6 @@ inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* s
 
 // Container instantiations inside the exe, decided from the disassembly.
 // 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET).
-// CArray::SetSize(size, growBy) instantiation (RET 8, no result): 0050FE70 the map object's effect array (20-byte
-// elements).
-__declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0050FE70)
-// 005197B0: map find(key) writing the iterator to `out` (RET 8: out, key; EAX = out).
-__declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, void*, void** /*out*/, const void* /*key*/)
-    EI_ORIGINAL(0x005197B0)
 
 // (The game streams' ostream members are libcrt::Ostream's, lib/crt_iostream.h.)
 // MFC CString operator+(const CString&, const CString&) 00700B9F / (const CString&, const char*) 00700C05 (__stdcall, RET 0xC:

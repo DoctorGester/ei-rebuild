@@ -99,9 +99,7 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 
 // AIRef (0052B030, 0052A8F0, 0050E220, 0050E290): counted_ref.cpp.
 
-__declspec(naked) void __fastcall LooksSetSizeAt(AILookArray*, void*, int, int) EI_ORIGINAL(0x005D8EE0)
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
-__declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 
 // The perception memory at +0xD0, the report list at +0x164 and the corpse list at +0x148 are
 // separate objects; these forwarders pass the sub-object as `this`.

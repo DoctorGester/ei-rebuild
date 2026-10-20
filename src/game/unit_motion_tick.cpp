@@ -449,7 +449,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     }
     if (!replan && canStand && SectorMapMove(world->Sectors(), nullptr, UnitOf(c), &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
-        TransformSetHeading(reinterpret_cast<CTransformObject*>(UnitOf(c)), nullptr, &direction.x);
+        reinterpret_cast<CTransformObject*>(UnitOf(c))->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);

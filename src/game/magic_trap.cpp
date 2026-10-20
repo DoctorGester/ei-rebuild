@@ -290,7 +290,7 @@ void SetSpell(MagicTrap* trap, CEngineObject* spell) {
 } // namespace
 
 MagicTrap* MagicTrap::Construct() {
-    MapObjectConstructOriginal(this);
+    CMapObject::Construct();
     spell = nullptr;
     EmptyArray(area);
     area.vtable = mfc::impl::TrapAreasArrayClass::Vtable();   // while constructed
@@ -335,7 +335,7 @@ void MagicTrap::DestructBody() {
     area.vtable = mfc::impl::TrapCircleArrayClass::Vtable();
     if (area.data) gamecrt::operator_delete(area.data);
     if (spell) spell->Release();
-    DestructMapObjectAt(this);
+    CMapObject::DestructBody();
 }
 EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
 

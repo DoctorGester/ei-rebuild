@@ -35,6 +35,7 @@
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "lib/mfc_slots.h"
 
 #include <concepts>
 
@@ -89,12 +90,11 @@ bool NonEmpty(const char* cstring) { return reinterpret_cast<const int*>(cstring
 
 // --- Not rewritten ------------------------------------------------------------------------------
 
-// The links' and the quests' SetSize (00631E70 / 00631FF0, thiscall, RET 8) and their elements'
-// assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
-__declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x00631E70)
-__declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x00631FF0)
+// The links' and the quests' SetSize (00631E70 / 00631FF0, mfc::impl::GlobalMapPointRecords') and
+// their elements' assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
+void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
+    mfc::impl::ArrayAs<mfc::impl::GlobalMapPointRecords>(places).SetSize(size, -1);
+}
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
@@ -342,7 +342,7 @@ void CGlobalMap::Create() {
                 text::Split(node->value.key, &parts, '.');
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
-                    QuestsSetSize(&quests_, nullptr, quests_.size + 1, -1);
+                    SetPlaceCount(quests_, quests_.size + 1);
                     quests_.data[quests_.size - 1].AssignCopy(questTemplate.Get());
                     GlobalMapPlace& quest = quests_.data[n];
                     *reinterpret_cast<mfc::CString*>(&quest.name) = parts[2];
@@ -388,7 +388,7 @@ void CGlobalMap::Create() {
             if (!NonEmpty(way->figure)) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
-            LinksSetSize(&links_, nullptr, links_.size + 1, -1);
+            SetPlaceCount(links_, links_.size + 1);
             links_.data[links_.size - 1].Assign(linkTemplate.Get());
             links_.data[n].zone = i;
             *reinterpret_cast<mfc::CString*>(&links_.data[n].name) = *reinterpret_cast<mfc::CString*>(&way->name);
@@ -552,7 +552,7 @@ void CGlobalMap::Create() {
         if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal(game::Text(0x007940F0), 1);   // "saveb"
         autosave_ = false;
     }
-    interface_->ShowHelp(0);
+    interface_->OpenHelp(0);
 }
 
 EI_REPLACE_METHOD(0x0062D350, CGlobalMap::Create);
@@ -704,7 +704,7 @@ void EmptyArray(Array* array, std::uintptr_t vtable) {
 } // namespace
 
 CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
-    ConstructContainerAt(this, nullptr, ui);
+    reinterpret_cast<CUiContainer*>(this)->Construct(ui);
     allodTitle_ = EmptyCString();
     EmptyArray(&zones_, 0x00740BFC);
     EmptyArray(&links_, 0x00740BF0);

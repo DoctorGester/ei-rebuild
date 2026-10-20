@@ -27,7 +27,6 @@ __declspec(naked) inline Vector3* __fastcall Negate(Vector3* /*out*/, const Vect
 // 00403F40 (rewritten as CBaseManager::FindObject): the manager's object with this id, or null.
 __declspec(naked) inline CEngineObject* __fastcall ManagerFindObject(void* /*manager*/, void*, int /*id*/)
     EI_ORIGINAL(0x00403F40)
-__declspec(naked) inline void __fastcall ConstructEngineObject(void* /*object*/) EI_ORIGINAL(0x0040CB20)
 __declspec(naked) inline void* __fastcall RefPtrDestroyAt(RefPtr* /*p*/, void*, unsigned /*flags*/)
     EI_ORIGINAL(0x004292A0)
 
@@ -49,12 +48,6 @@ __declspec(naked) inline void __fastcall ReleaseCountedOriginal(void* /*object*/
 // C3m. 0040CDC0 (rewritten as AddVectors): out = a + b, each component one rounded add (ECX out; returns out).
 __declspec(naked) inline Vector3* __fastcall VectorAdd(Vector3* /*out*/, const Vector3* /*a*/, const Vector3* /*b*/)
     EI_ORIGINAL(0x0040CDC0)
-// C3n. 00401F00 / 00402220 (rewritten as TurnUpTowardsHook / SetHeadingHook; thiscall on the transform object, RET 8 / 4):
-// turns the object up towards a direction (`reduced` 1: by the reduced angle), sets its heading from a direction.
-__declspec(naked) inline void __fastcall TransformSetHeading(CTransformObject* /*object*/, void*, const float* /*direction*/)
-    EI_ORIGINAL(0x00402220)
 // C3n. 00419CD0 (rewritten as RefPtr::Assign; thiscall on the pointer slot, RET 4): the counted pointer in `slot` takes
 // `object` (its count raised, the previous object released).
 __declspec(naked) inline void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
-// C3n. 00455930 (rewritten as CEngineObject::DestructBase; thiscall, plain RET): the engine object's destructor body.
-__declspec(naked) inline void __fastcall EngineObjectDestructBase(CEngineObject* /*object*/) EI_ORIGINAL(0x00455930)

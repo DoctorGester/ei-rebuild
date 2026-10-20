@@ -1366,7 +1366,7 @@ EI_REPLACE_METHOD(0x006B89F0, CSoundManager::LoadSample);
 
 // --- Forwarders -------------------------------------------------------------------------------------
 
-__declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)
+void CSoundManager::StreamNotify(int /*mode*/) {}   // 006BBAC0: a shared RET 4
 
 WaveRecord* WaveRecord::Assign(const WaveRecord* from) {
     data = from->data;

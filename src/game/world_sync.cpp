@@ -27,6 +27,10 @@
 
 #include <cstring>
 
+void __fastcall DiffObjectSets(lib::AlignedArray<std::uint32_t>* sent, lib::AlignedArray<std::uint32_t>* current,
+                               lib::AlignedArray<std::uint32_t>* added, lib::AlignedArray<std::uint32_t>* gone,
+                               lib::AlignedArray<std::uint32_t>* same);   // 0047B1F0 (world_object_sets.cpp)
+
 namespace {
 
 // ---- Data -------------------------------------------------------------------------------------
@@ -81,10 +85,13 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // The player state's (CPlayerServer) messages and updates.
 void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { static_cast<CPlayerServer*>(a0)->SendObjectsAdded(a2); }
 void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
-// 0047B1F0 (RET 0xC). Compares the ids in `known` with the objects in `current`; fills `added`,
-// `kept` and `removed` (ECX known, EDX current).
-__declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
-                                                 StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
+// 0047B1F0 (world_object_sets.cpp). Compares the ids in `known` with the objects in `current`;
+// fills `added`, `kept` and `removed`.
+void DiffSets(void* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept, StaticPtrArray* removed) {
+    using Set = lib::AlignedArray<std::uint32_t>;
+    ::DiffObjectSets(static_cast<Set*>(known), reinterpret_cast<Set*>(current), reinterpret_cast<Set*>(added),
+                     reinterpret_cast<Set*>(kept), reinterpret_cast<Set*>(removed));
+}
 // The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
 // groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860: gamehash's tables), the unit
 // added with 005593D0 and the set written with 00559E60.
@@ -275,7 +282,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         SetSize(collected, static_cast<int>(objects_.map.Size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data);
         SetSize(collected, static_cast<int>(end - Collected().data));
-        DiffObjectSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
+        DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
         state->SendObjectsRemoved(&Kept());
         StateObjectsAdded(state, nullptr, &Added());
         state->SendObjectsChanged(&Removed());
@@ -284,7 +291,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         SetSize(collected, static_cast<int>(timedObjects_.map.Size()));
         end = CollectTimedObjects(this, state, collected.data);
         SetSize(collected, static_cast<int>(end - Collected().data));
-        DiffObjectSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
+        DiffSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
         state->SendTimedRemoved(&Kept());
         state->SendTimedAdded(&Added());
         state->SendTimedChanged(&Removed());

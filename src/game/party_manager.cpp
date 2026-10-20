@@ -23,10 +23,10 @@ static_assert(sizeof(PartyInPlace) == sizeof(CParty));
 
 namespace {
 
-// STLport members (library), called as the original does: the party map's clear(), resize(n) of
+// STLport members (library), called as the original does: the party map's clear() (004AD050,
+// gamehash::PartyAbi's), resize(n) of
 // the entry, record and template vectors (null pointers / empty entries appended), resize(n, x) of
 // an entry's ids.
-__declspec(naked) void __fastcall PartyMapClear(PartyMap* /*map*/) EI_ORIGINAL(0x004AD050)
 // (The record and template vectors' resize, 004AD700 / 004AD8D0: stlp::CountedRefVector's.)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
@@ -65,7 +65,7 @@ EI_REPLACE_METHOD(0x004AD2C0, ChunkArchive::IntField);
 void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     if (!EnterChunk(id)) return;
     if (loading_) {
-        PartyMapClear(parties);
+        gamehash::PartyAbi::Clear(reinterpret_cast<gamehash::PartyTable*>(parties));
         int count = CountChunks(1);
         for (int i = 1; i <= count; ++i) {
             int key = 0;

@@ -379,8 +379,6 @@ namespace {
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
     return reinterpret_cast<itemdb::SpellRecord*>(static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Spells())), nullptr, name)));
 }
-__declspec(naked) CEngineObject* __fastcall BuildSpell(void*, void*, itemdb::SpellRecord* /*prototype*/, StockList* /*modifiers*/)
-    EI_ORIGINAL(0x00689310)
 // The modifier list (list<modifier*>): constructor 0069BF70, end 0068C500, insert 0068C560, node
 // free 0068C640. The output list of counted spells: end 0069BE60, insert 0069C410.
 
@@ -504,7 +502,9 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
                     if (budget < ModifierLevel(repeated) + reached) break;
                 }
             }
-            CEngineObject* spell = BuildSpell(spellManager, nullptr, prototype, &chosen);
+            CEngineObject* spell = static_cast<CSpellManager*>(spellManager)
+                                       ->CreateSpell(reinterpret_cast<char*>(prototype),
+                                                     reinterpret_cast<SpellModifierNode**>(&chosen));
             if (spell) ++spell->refCount_;
             StockList::Insert<HeldSpell>(out->End(), static_cast<void*>(spell));
             if (spell) spell->Release();   // slot 4

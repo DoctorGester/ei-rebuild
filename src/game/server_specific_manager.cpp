@@ -27,8 +27,6 @@ enum ServerObjectType {
     kTorchObjectSpec = 0x4B,
 };
 
-// Constructor bodies of the other server objects (not rewritten; each returns this).
-__declspec(naked) CEngineObject* __fastcall Object3DServerConstruct(void*) EI_ORIGINAL(0x0051F240)
 
 } // namespace
 
@@ -62,7 +60,7 @@ int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
     switch (type) {
     case kObject3DServer:
-        if (void* p = gamecrt::operator_new_zeroed(0x20)) return Object3DServerConstruct(p);
+        if (void* p = gamecrt::operator_new_zeroed(0x20)) return Object3DServerConstruct(static_cast<CObject3DSpecific*>(p));
         return nullptr;
     case kMapObjectServer:
         if (void* p = gamecrt::operator_new_zeroed(sizeof(CMapObjectServer)))

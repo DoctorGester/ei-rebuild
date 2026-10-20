@@ -77,33 +77,24 @@ CMapObject* MapObjectOf(CEngineObject* object) { return static_cast<CMapObject*>
 std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
 
 // The list operations of the two grids' instantiations (thiscall on the cell's list):
-// erase(out iterator, node), end(out iterator) and insert(out iterator, position, value).
-struct GridOpsA {
-    static SectorListNode** __fastcall Erase(SectorList*, void*, SectorListNode** out, SectorListNode* node);   // 00572270
-    static SectorListNode** __fastcall End(SectorList*, void*, SectorListNode** out);                          // 0056DEC0
-    static SectorListNode** __fastcall Insert(SectorList*, void*, SectorListNode** out, SectorListNode* position,
-                                              CEngineObject* const& value);                                    // 0056E8A0
-};
-__declspec(naked) SectorListNode** __fastcall GridOpsA::Erase(SectorList*, void*, SectorListNode**, SectorListNode*)
-    EI_ORIGINAL(0x00572270)
-__declspec(naked) SectorListNode** __fastcall GridOpsA::End(SectorList*, void*, SectorListNode**) EI_ORIGINAL(0x0056DEC0)
-SectorListNode** __fastcall GridOpsA::Insert(SectorList* /*list*/, void*, SectorListNode** out, SectorListNode* position,
-                                             CEngineObject* const& value) {
-    *out = SectorList::Insert<stlp::HeldObject>(position, value);   // 0056E8A0
+// erase(out iterator, node), end(out iterator) and insert(out iterator, position, value): the held
+// objects' list (counted values; erase 00572270 / 005755E0, end 0056DEC0 / 00572AF0, insert
+// 0056E8A0 / 00572B00).
+using HeldOps = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
+SectorListNode** __fastcall CellEnd(SectorList* list, void*, SectorListNode** out) {
+    *out = list->End();
     return out;
 }
-
-struct GridOpsB {
-    static SectorListNode** __fastcall Erase(SectorList*, void*, SectorListNode** out, SectorListNode* node);   // 005755E0
-    static SectorListNode** __fastcall End(SectorList*, void*, SectorListNode** out);                          // 00572AF0
-    static SectorListNode** __fastcall Insert(SectorList*, void*, SectorListNode** out, SectorListNode* position,
-                                              CEngineObject* const& value);                                    // 00572B00
+SectorListNode** __fastcall CellInsert(SectorList* list, void*, SectorListNode** out, SectorListNode* position,
+                                       CEngineObject* const& value) {
+    return HeldOps::Insert(list, nullptr, out, position, &value);
+}
+struct GridOpsA {
+    static constexpr auto Erase = HeldOps::Erase;
+    static constexpr auto End = CellEnd;
+    static constexpr auto Insert = CellInsert;
 };
-__declspec(naked) SectorListNode** __fastcall GridOpsB::Erase(SectorList*, void*, SectorListNode**, SectorListNode*)
-    EI_ORIGINAL(0x005755E0)
-__declspec(naked) SectorListNode** __fastcall GridOpsB::End(SectorList*, void*, SectorListNode**) EI_ORIGINAL(0x00572AF0)
-__declspec(naked) SectorListNode** __fastcall GridOpsB::Insert(SectorList*, void*, SectorListNode**, SectorListNode*,
-                                                               CEngineObject* const&) EI_ORIGINAL(0x00572B00)
+using GridOpsB = GridOpsA;
 
 // The counted pointer's copy and destruction, as the original inlines them.
 void HoldRef(CEngineObject* object) {
@@ -257,33 +248,28 @@ const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, st
 namespace {
 
 // The plain STLport lists of pointers (+0xB4 counted, +0xB8 referenced by hand, +0x7BC, +0xF0):
-// end [0056DFA0], insert [0056EA80], begin [0056DF90], erase [0056DFB0] (thiscall on the list).
+// end [0056DFA0], insert [0056EA80], begin [0056DF90], erase [0056DFB0] (thiscall on the list;
+// plain values).
 using PlainList = SectorList;
+using PlainAbi = stlp::ListAbi<CEngineObject*>;
+SectorListNode** __fastcall PlainInsert(PlainList* list, void*, SectorListNode** out, SectorListNode* position,
+                                        CEngineObject* const& value) {
+    return PlainAbi::Insert(list, nullptr, out, position, &value);
+}
 struct PlainOps {
-    static SectorListNode** __fastcall End(PlainList*, void*, SectorListNode** out);
-    static SectorListNode** __fastcall Insert(PlainList*, void*, SectorListNode** out, SectorListNode* position,
-                                              CEngineObject* const& value);
-    static SectorListNode** __fastcall Begin(PlainList*, void*, SectorListNode** out);
-    static SectorListNode** __fastcall Erase(PlainList*, void*, SectorListNode** out, SectorListNode* node);
+    static constexpr auto End = CellEnd;
+    static constexpr auto Insert = PlainInsert;
+    static constexpr auto Erase = PlainAbi::Erase;
 };
-__declspec(naked) SectorListNode** __fastcall PlainOps::End(PlainList*, void*, SectorListNode**) EI_ORIGINAL(0x0056DFA0)
-__declspec(naked) SectorListNode** __fastcall PlainOps::Insert(PlainList*, void*, SectorListNode**, SectorListNode*,
-                                                               CEngineObject* const&) EI_ORIGINAL(0x0056EA80)
-__declspec(naked) SectorListNode** __fastcall PlainOps::Begin(PlainList*, void*, SectorListNode**) EI_ORIGINAL(0x0056DF90)
-__declspec(naked) SectorListNode** __fastcall PlainOps::Erase(PlainList*, void*, SectorListNode**, SectorListNode*)
-    EI_ORIGINAL(0x0056DFB0)
 
-// The sector grid's cell list: remove(counted value) [00570400], push_back [0056DED0], clear
-// [005703C0]; the second grid's clear [00573660].
+// The sector grid's cell list (held objects): remove(counted value) [00570400], push_back
+// [0056DED0], clear [005703C0]; the second grid's clear [00573660].
 struct CellOps {
-    static void __fastcall Remove(SectorList*, void*, CEngineObject* const* value);
-    static void __fastcall PushBack(SectorList*, void*, CEngineObject* const* value);
-    static void __fastcall Clear(SectorList* list) { list->Clear<stlp::HeldObject>(); }
-    static void __fastcall Clear2(SectorList*);
+    static constexpr auto Remove = stlp::ListRemoveHeld;
+    static constexpr auto PushBack = HeldOps::PushBack;
+    static constexpr auto Clear = HeldOps::Clear;
+    static constexpr auto Clear2 = HeldOps::Clear;
 };
-__declspec(naked) void __fastcall CellOps::Remove(SectorList*, void*, CEngineObject* const*) EI_ORIGINAL(0x00570400)
-__declspec(naked) void __fastcall CellOps::PushBack(SectorList*, void*, CEngineObject* const*) EI_ORIGINAL(0x0056DED0)
-__declspec(naked) void __fastcall CellOps::Clear2(SectorList*) EI_ORIGINAL(0x00573660)
 
 // The client's MFC CList<CEngineObject*> (+0xBC): NewNode [00573290], FreeNode [00573300]; the
 // platform list's RemoveAt [0056FDD0] (on the platform set's list, +0x1F0).
@@ -597,8 +583,7 @@ void CWorldClient::ClearMaps() {
     heroes.head->prev = heroes.head;
 
     PlainList& objects = objects_;
-    SectorListNode* node;
-    PlainOps::Begin(&objects, nullptr, &node);
+    SectorListNode* node = objects.head->next;   // begin() (0056DF90)
     SectorListNode* end = objects.head;
     std::uint8_t functor = 0;
     while (node != end) {
@@ -1137,9 +1122,7 @@ __declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIG
 __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
 // Constructors (thiscall; some take a block size or count).
 __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
-__declspec(naked) void __fastcall Construct562A80(void*) EI_ORIGINAL(0x00562A80)
 __declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
-__declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453400)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 
 std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
@@ -1251,7 +1234,7 @@ int CWorldClient::Setup() {
         texts->type_ = 0;
         texts->flags_ = 0;
         texts->owner_ = nullptr;
-        Construct562A80(texts->table);
+        stlp::ListAbi<stlp::Opaque<16>>::ConstructDefault(reinterpret_cast<stlp::list<stlp::Opaque<16>>*>(texts->table));   // 00562A80
         ei::SetVtable(texts, worlddata::kClientTextsVtable);
         Construct4DED20(texts);
     }
@@ -1261,7 +1244,7 @@ int CWorldClient::Setup() {
     // The terrain, its constructor inlined up to the class's own body (006C5620).
     auto* terrain = reinterpret_cast<Terrain*>(New(sizeof(Terrain)));
     if (terrain) {
-        TransformObjectBase(terrain);
+        reinterpret_cast<CTransformObject*>(terrain)->ConstructBase();   // 00453400
         terrain->pageTextures.data = nullptr;
         terrain->pageTextures.growBy = 0;
         terrain->pageTextures.capacity = 0;

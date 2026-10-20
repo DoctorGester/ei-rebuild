@@ -173,7 +173,7 @@ void GuardMode::Execute(AIBrain* brain) {
 
     AIMoveOrder order;
     ConstructOrder(&order);
-    order.Reset();
+    order.Clear();
     if (!brain->FindStandPoint(&point, radius, &order.point)) {
         if (++failures <= 100) {
             DestroyLooks(&order);
@@ -245,7 +245,7 @@ void PatrolMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     std::memcpy(&order.point, &next->position, sizeof(Vector3));
     ConstructOrder(&order);
-    LooksSetSizeAt(&order.looks, nullptr, next->looks.size, -1);
+    order.looks.SetSize(next->looks.size, -1);
     for (int i = 0; i < next->looks.size; ++i) {
         AILook look;
         LooksElementAt(&next->looks, nullptr, &look, i);
@@ -276,7 +276,7 @@ void PatrolMode::Load(CStream* stream) {
         ReadField(stream, &point.position);
         int lookCount;
         ReadField(stream, &lookCount);
-        LooksSetSizeAt(&point.looks, nullptr, lookCount, -1);
+        point.looks.SetSize(lookCount, -1);
         for (int j = 0; j < point.looks.size; ++j) {
             AILook& look = point.looks.data[j];
             ReadField(stream, &look.angle);
@@ -319,7 +319,7 @@ void SentryMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) return;
     AIMoveOrder order;
     ConstructOrder(&order);
-    LooksSetSizeAt(&order.looks, nullptr, 0, -1);
+    order.looks.SetSize(0, -1);
     std::memcpy(&order.point, &point, sizeof(Vector3));
     bool farLook = GameRandom()->Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
@@ -414,7 +414,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     }
     AIMoveOrder order;
     ConstructOrder(&order);
-    order.Reset();
+    order.Clear();
     if (brain->action == AIBrain::kActionNone) {
         if (brain->owner->orderStopped) level -= 50;
         if (!brain->FindStandPoint(&point, kStandRadius, &order.point)) {
@@ -443,7 +443,7 @@ void SuspectionMode::Enter(AIBrain* brain) {
     AIMoveOrder order;
     ConstructOrder(&order);
     order.point = Vector3{0.0f, 0.0f, 0.0f};
-    LooksSetSizeAt(&order.looks, nullptr, 0, -1);
+    order.looks.SetSize(0, -1);
     std::memcpy(&order.point, &point, sizeof(Vector3));
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);

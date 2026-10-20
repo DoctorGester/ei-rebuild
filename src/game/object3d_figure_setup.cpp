@@ -21,6 +21,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "library_trees.h"
 
 #include <bit>
 #include <cfloat>
@@ -249,12 +250,12 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
             loaded = current->LoadPart(&key);
         }
         if (!loaded) return nullptr;   // the part is kept, unreleased (as the original)
-        void* node;
+        const LinkHeaderMap::Node* node;
         {
             stlp::string key(partName, partName + std::strlen(partName));
-            StringMapFindOriginal(&current->headers_, nullptr, &node, &key);
+            node = lib_trees::FindLinkHeader(&current->headers_, &key);   // 005197B0
         }
-        const LinkPartHeader& piece = static_cast<const LinkHeaderMap::Node*>(node)->second;
+        const LinkPartHeader& piece = node->second;
         part->materialValue_ = piece.materialValue;
         part->meshType_ = piece.meshType;
         // The box and the pivot (bounds_, boxPivot_) as one FootprintPart.

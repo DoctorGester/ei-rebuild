@@ -54,6 +54,8 @@
 #include "game_lists.h"
 #include "record_vectors.h"
 #include "game_arrays.h"
+#include "library_containers.h"
+#include "bink_video.h"
 
 #include <cstring>
 #include <new>
@@ -304,9 +306,8 @@ const mfc::CString& MoviesFolder() { return *reinterpret_cast<const mfc::CString
 // 00460DB0 (RET 4). Named float table Remove.
 // 00579830 (RET 0xC). Reads a save file through the file stream into `out` (ECX), checking the
 // header (magic in EDX, version, minimum version); false when it is corrupt.
-// 00596E70 / 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::LoadSave, WakeUnitsAround, Tick and
-// SetZoneExits, through their addresses (rewritten in world_save / world_tick / world_zone).
-__declspec(naked) int __fastcall LoadSaveAt(CWorldServer*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
+// 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::WakeUnitsAround, Tick and SetZoneExits, through their
+// addresses (rewritten in world_tick / world_zone).
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 0058EEA0 (RET 4). CWorldServer::SetTime.
@@ -350,7 +351,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         failed = true;
         return 0;
     }
-    int result = LoadSaveAt(World(), nullptr, &data, mapOverride);
+    int result = World()->LoadSave(&data, mapOverride);   // 00596E70
     file.Close();
 
     int entrance = records->entrance;
@@ -400,7 +401,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
                             reinterpret_cast<const unsigned char*>(game::Text(kMovieZone))) != 0) {
             {
                 mfc::CString movie = MoviesFolder() + game::Text(kMovieFile);
-                PlayMovieFile(movie, 0, 1, 1, 1, 1, 1);
+                PlayMovie(movie, 0, 1, 1, 1, 1, 1);
             }
             variables->Remove(game::Text(kMovieVariable));
         }
@@ -535,7 +536,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         data.Reset();
         bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268),
                                    &file.stream) &&
-                      LoadSaveAt(World(), nullptr, &data, nullptr) != 0;
+                      World()->LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
         ei::SetVtable(&data, kMemoryStreamVtable);
         if (data.data_) gamecrt::operator_delete(data.data_);
@@ -1285,8 +1286,6 @@ constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C
 
 // 004A51C0 (RET 4). A memory stream copies its remaining data into another.
 void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadSized(static_cast<CStream*>(a2)); }
-// 00596E70 (RET 8). CWorldServer::LoadSave through its address.
-__declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
 
 } // namespace
 
@@ -1305,7 +1304,7 @@ int __stdcall LoadMission(void* file) {
         StreamCopyRest(&mission.s, nullptr, GameSaveStream());
         *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.version_;
     }
-    return LoadSaveAt(reinterpret_cast<void*>(0x007AFF60), nullptr, &mission.s, nullptr);
+    return reinterpret_cast<CWorldServer*>(0x007AFF60)->LoadSave(&mission.s, nullptr);   // 00596E70
 }
 
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
@@ -2039,7 +2038,7 @@ void DestroyPartyEntry(SavedPartyEntry* entry) {
     records->variables.Destroy();   // 00663330
     reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(records->array40)->FreeData();   // 006643F0
     DestructPartyMemberArray(reinterpret_cast<PartyMemberArray*>(&records->recordArrayVtable));   // 00664160
-    EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(records));
+    reinterpret_cast<CEngineObject*>(records)->DestructBase();
 }
 
 } // namespace
@@ -2084,7 +2083,9 @@ void SavedParties::Reload() {
                     }
                     ++finish;
                 } else {
-                    PartyEntriesInsertOverflowOriginal(&entries_, nullptr, finish, entry, 1);
+                    libcontainers::InsertHeroRecordsOverflow(   // 00619920
+                        reinterpret_cast<libcontainers::HeroRecords*>(&entries_), nullptr, reinterpret_cast<MpHeroRecord*>(finish),
+                        reinterpret_cast<const MpHeroRecord*>(entry), 1);
                 }
             }
         }

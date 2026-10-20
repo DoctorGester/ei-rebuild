@@ -29,8 +29,6 @@ namespace {
 
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
-// The client base tick (00442AD0).
-__declspec(naked) void __fastcall ClientBaseTick(ClientBase* /*self*/, void*, double /*dt*/) EI_ORIGINAL(0x00442AD0)
 
 // The world (0x7AFF60) and its players (outside this range).
 void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { static_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
@@ -141,7 +139,7 @@ EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
 // mode 3 when player 0 exists with its connection in state 1 and 007B00BC is set.
 void ClientSession::TickImpl(double dt) {
     ClientSession* self = this;
-    ClientBaseTick(self, nullptr, dt);
+    self->ClientBase::TickImpl(dt);   // 00442AD0
     TimedNode* sentinel = self->timers_.End();
     TimedNode* node = sentinel->next;
     if (node != sentinel) {

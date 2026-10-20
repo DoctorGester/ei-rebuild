@@ -118,7 +118,7 @@ PatrolMode* PatrolMode::Clone() {
         PatrolPointCopyAt(&points, nullptr, &temporary, i);
         PatrolPoint& target = clone->points.data[i];
         std::memcpy(&target.position, &temporary.position, sizeof(Vector3));
-        LooksSetSizeAt(&target.looks, nullptr, temporary.looks.size, -1);
+        target.looks.SetSize(temporary.looks.size, -1);
         for (int j = 0; j < temporary.looks.size; ++j) {
             AILook look;
             LooksElementAt(&temporary.looks, nullptr, &look, j);

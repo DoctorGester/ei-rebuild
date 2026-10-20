@@ -82,8 +82,6 @@ const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<
 // storage free [00426860: ECX block, EDX count; 0053BF40: block, count], push_back's copy
 // [004F5DF0: ECX place, EDX string] and overflow [004DCE90: position, string, count], range insert
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
-__declspec(naked) void __fastcall PrototypeTextures(const UnitPrototypeRecord*, const IdList*, const IdList*, void*, void*)
-    EI_ORIGINAL(0x00535CB0)
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 
@@ -274,7 +272,8 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
     const char* const* names = record->names.Start();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
-        PrototypeTextures(prototype, &record->armourIds, &record->weaponIds, &first, &second);
+        CollectArmourPartNames(reinterpret_cast<const char*>(prototype), &record->armourIds, &record->weaponIds, &first,
+                               &second);   // 00535CB0
     } else {
         int count = static_cast<int>(record->names.Finish() - names);
         Reserve(first, static_cast<int>(first.size()) + count);

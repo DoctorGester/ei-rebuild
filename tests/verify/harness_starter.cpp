@@ -148,7 +148,7 @@ std::string ModFileStep(const std::string& argument) {
     const mfc::CString path = *static_cast<const mfc::CString*>(worlddata::TextPathString()) + archive;
     void* memory = ::operator new(sizeof(CMappedResource));
     std::memset(memory, 0, sizeof(CMappedResource));
-    CMappedResource* res = MappedResourceConstructOriginal(memory);
+    CMappedResource* res = reinterpret_cast<CMappedResource*>(memory)->Construct();
     long got = -2;   // the archive did not open
     if (MappedResourceOpenOriginal(res, nullptr, path, 0)) {
         std::uint32_t size = 0;

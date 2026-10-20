@@ -30,8 +30,8 @@ using PointArray = lib::AlignedArray<Vector3>;
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// Element helpers [pointer, count]: the morph frame constructor 00452E20 and destructor 00452DF0.
-__declspec(naked) void __stdcall ConstructMorphFrames(void*, int) EI_ORIGINAL(0x00452E20)
+// Element helpers [pointer, count]: the morph frame constructor 00452E20 (mfc::impl::Plain24's) and
+// destructor 00452DF0.
 constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::BlocksAt8>;
 // Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0; the aligned arrays' (a frame's
 // points 0044F1D0, the children 0044F540; a frame's points copied 0044F410) are their members.
@@ -203,7 +203,7 @@ EI_REPLACE(0x004492F0, BuildBone);
 } // namespace scene
 
 void AnimationMorphFrameElements::Construct(AnimationMorphFrame* frames, int count) {
-    scene::ConstructMorphFrames(frames, count);
+    mfc::impl::Plain24::ConstructElements(reinterpret_cast<mfc::impl::Plain24::Element*>(frames), count);
 }
 void AnimationMorphFrameElements::Destruct(AnimationMorphFrame* frames, int count) {
     scene::DestroyMorphFrames(frames, count);

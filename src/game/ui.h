@@ -155,14 +155,11 @@ public:
     // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
     // 0079BE78 is off and it was not forced. ui_create_screen.cpp.
     void ShowMessage(int force);
-    // 005F86F0 (RET 4; ShowHelp above calls it through its address). The active window's help
+    // 005F86F0 (RET 4). The active window's help
     // topic (its slot 41; none: nothing): the map at +0x98 counts topics seen (an unseen one is
     // entered with 0, giving -1 here); the help window (0x194 bytes, vtables 00740E28 / 00740DF4)
     // opens when forced (`flag`), or when the option 0079BE78 is on and the topic was not seen.
     void OpenHelp(int flag);
-
-    // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
-    void ShowHelp(int flag);
     // 005F7E60 (RET 8; ui_interface_glue.cpp). Plays an interface sound (`name`, e.g.
     // "buttons\battle\click.wav") without position: priority 1000, volume 100, `loop` passed on
     // (sound::CSoundManager::Play2D). The interface object is not used. Returns Play2D's handle.
@@ -1912,7 +1909,6 @@ public:
     // 00649E20 (ui_hud_panels.cpp). Places the panel's parts, the message log and the regions at
     // the current slide offset.
     void Layout();
-    void CallLayout();                             // through 00649E20 (its verify wrapper)
     // 0064A7A0 (ui_hud_panels.cpp). Builds page 1's text: the money ("format_money" with the
     // local party's +0x50, when above 0), then the local player's item list (+0xE0) merged by
     // kind (slot 14; counts added) into the world's copies (0055E940), one item name per line;

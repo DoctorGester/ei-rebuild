@@ -168,8 +168,6 @@ EI_REPLACE_METHOD(0x006488E0, CHudClock::Update);
 
 // --- Top panel ---------------------------------------------------------------------------------
 
-__declspec(naked) void CHudTopPanel::CallLayout() EI_ORIGINAL(0x00649E20)
-
 namespace {
 constexpr float kSlingX = 400.0f;               // the sling button's place: x
 constexpr float kSlingInY = -52.0f;             // y while the panel slides out (turned over)
@@ -197,7 +195,7 @@ void CHudTopPanel::Update() {
         }
         offset_ = static_cast<int>(gamecrt::Ftol(static_cast<double>(travel_) * eased));
         if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f || x87::IsNaN(slide_)) sliding_ = 0;
-        CallLayout();
+        Layout();
         CEngineObject* sling = sceneObjects_.data[2];
         float y;
         if (Bits(slideDirection_) == 0xBF800000) {   // -1: sliding out

@@ -171,7 +171,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.DrawLabelled(10, lines[0]);
     if (outside) {
         if (!IsEmpty(lines[1])) panel.DrawLabelled(11, lines[1]);
-        auto* prototype = static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unitIn));
+        auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unitIn)->GetPrototype());
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         CBattleScreen* group = owner_;
         if (group->party_.size > 0) {

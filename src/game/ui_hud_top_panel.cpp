@@ -80,7 +80,7 @@ void CHudTopPanel::Build(int page, int shown) {
 
     page_ = page;
     ShowPage();
-    CallLayout();
+    Layout();
 }
 EI_REPLACE_METHOD(0x00649AF0, CHudTopPanel::Build);
 

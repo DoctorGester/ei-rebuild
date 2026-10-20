@@ -125,11 +125,10 @@ void CSpell::CopyTo(CSpell* target) {
 }
 EI_REPLACE_METHOD(0x0068B370, CSpell::CopyTo);
 
-__declspec(naked) void CSpell::CallCopyTo(CSpell*) EI_ORIGINAL(0x0068B370)
 
 CSpell* CSpell::Clone(CSpellManager* manager) {
     CSpell* spell = manager->CreateSpellObject(-1);
-    CallCopyTo(spell);
+    CopyTo(spell);   // 0068B370
     return spell;
 }
 EI_REPLACE_METHOD(0x0068B410, CSpell::Clone);

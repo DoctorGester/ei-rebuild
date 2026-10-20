@@ -11,6 +11,11 @@ struct CDXSurface;
 
 // 005DA400. The loading screen's movie at progress step `progress` (bink_video.cpp).
 void __fastcall ShowLoadingMovie(int progress);
+// 005DB3F0: plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space
+// end it, Space skips frames, the screen cleared first, a loading screen step first, unused).
+// Returns 0 when Esc ended it.
+char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
+                          char loadingStep, int unused);
 // 005DA3C0 (the game start 00456440 and the zone load 00567AB0, once loading is over; A-W14). The
 // loading screen's movie closed: BinkClose on its handle (open or not), the handle and the
 // surface holder forgotten, the holder released, the cursor shown again.

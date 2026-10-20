@@ -159,7 +159,6 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
 }
 EI_REPLACE_METHOD(0x005BA5A0, CAIMap::StandsOnCheapCell);
 
-__declspec(naked) void VisibilityGrid::Include(int, int, int) EI_ORIGINAL(0x005C8D40)
 
 namespace {
 // 005B14C0: the byte grid's block and row table for its width and height.
@@ -218,7 +217,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
     int eyeX = CellOf(eye->x);
     int eyeY = CellOf(eye->y);
     int reach = CellOf(radius) + 1;
-    grid->Include(eyeX, eyeY, reach);
+    grid->Grow(eyeX, eyeY, reach);
     bool anyDirection = !(cosLimit > -1.0f);
     bool noLineOfSight = !(targetHeight >= -100.0f);    // 0073FDC4
 

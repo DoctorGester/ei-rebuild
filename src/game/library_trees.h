@@ -48,6 +48,13 @@ struct ZeroedHeader {
 };
 using LinkHeaders = PairTree<stlp::string, ZeroedHeader>;
 static_assert(sizeof(LinkHeaders::Tree) == sizeof(LinkHeaderMap) && sizeof(LinkHeaders::Node) == 0x6C);
+// 005197B0: find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the
+// header for none.
+inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const stlp::string* key) {
+    LinkHeaders::Node* node;
+    LinkHeaders::Find(reinterpret_cast<LinkHeaders::Tree*>(map), nullptr, &node, key);
+    return reinterpret_cast<LinkHeaderMap::Node*>(node);
+}
 // A link mesh's part ranges (LinkRangeMap, 0x4C-byte nodes; plain values).
 using LinkRanges = stlp::TreeAbi<LinkRangeMap>;
 

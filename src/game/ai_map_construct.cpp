@@ -20,8 +20,6 @@
 namespace {
 
 // Constructors of the members (thiscall).
-__declspec(naked) void __fastcall ConstructRegionMap(CRegionMap*, void*) EI_ORIGINAL(0x005AF3D0)
-__declspec(naked) void __fastcall ByteGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCBD0)
 // 005B40F0: resets the dirty rectangle (+4).
 __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 
@@ -69,9 +67,9 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(kAreaListVtable);
     ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::kSmallVtableAddress);
     ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::kLargeVtableAddress);
-    ConstructRegionMap(&self->regionMap, nullptr);
+    ConstructRegionMap(&self->regionMap);   // 005AF3D0
     self->forwardSearch.nodes.Construct(1, 1);
-    ByteGridConstruct(&self->forwardSearch.levels, nullptr, 1, 1);
+    reinterpret_cast<SearchGrid<std::int8_t>*>(&self->forwardSearch.levels)->Construct(1, 1);   // 005BCBD0
     mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&self->forwardSearch.cellRowsVtable);
     self->forwardSearch.map = nullptr;
     self->backwardSearch.Construct(nullptr);

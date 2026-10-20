@@ -7,6 +7,7 @@
 #include "game_lists.h"
 #include "hash_tables_400.h"
 #include "originals_library.h"
+#include "lib/mfc_coll.h"
 
 #include <cstdint>
 
@@ -27,7 +28,7 @@ void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&ei::GameDa
 void __cdecl ReleaseGlobalServer() { ::RefPtrRelease(&ei::GameData<RefPtr>(0x0079B5DC)); }
 void __cdecl ReleaseGlobalClient() { ::RefPtrRelease(&ei::GameData<RefPtr>(0x0079B5D8)); }
 // 0042D900: the CWordArray at 0079B668.
-void __cdecl DestroyGlobalWordArray() { WordArrayDestructOriginal(&ei::GameData<char>(0x0079B668)); }
+void __cdecl DestroyGlobalWordArray() { ei::GameData<mfc::impl::CWordArray>(0x0079B668).Destruct(); }
 // 00432CC0 / 00432D00: the growing buffers at 0079B900 and 0079B8E0, each destroyed once.
 void __cdecl DestroyGlobalBuffer1() {
     std::uint8_t flags = BufferFlags();

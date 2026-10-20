@@ -904,7 +904,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     if (!memory) return nullptr;
     auto* bytes = static_cast<std::uint8_t*>(memory);
     auto* s = static_cast<CParticleSource*>(memory);
-    ConstructEngineObject(s);
+    EngineObjectConstruct(reinterpret_cast<CEngineObject*>(s));
     reinterpret_cast<Quaternion*>(bytes + 0x34)->SetIdentity();
     reinterpret_cast<Quaternion*>(bytes + 0x44)->SetIdentity();
     ei::SetVtable(s, CTransformObject::kVtableAddress);
@@ -950,7 +950,7 @@ void CParticleSource::Destruct() {
     particles.blocks = nullptr;
     if (elements) gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
     ei::SetVtable(this, CTransformObject::kVtableAddress);
-    EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(this));
+    reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }
 EI_REPLACE_METHOD(0x00498310, CParticleSource::Destruct);
 

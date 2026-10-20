@@ -10,6 +10,7 @@
 #include "figure.h"
 #include "maths.h"
 #include "../lib/crt.h"
+#include "lib/mfc_array.h"
 #include "ei/hook.h"
 #include "originals_render.h"
 #include "originals_engine.h"
@@ -29,8 +30,10 @@ void CopyRest(SceneNode* node) {
     std::memcpy(&node->restRotation, &node->rotation, sizeof(Quaternion));
     std::memcpy(&node->restPivot, &node->pivot, sizeof(Vector3));
 }
-// 00453730: constructs n 40-byte frame records [pointer, count].
-__declspec(naked) void __stdcall ConstructFrameRecords(void*, int) EI_ORIGINAL(0x00453730)
+// 00453730: constructs n 40-byte frame records [pointer, count] (mfc::impl::KeyFrames').
+void __stdcall ConstructFrameRecords(void* records, int count) {
+    mfc::impl::KeyFrames::ConstructElements(static_cast<mfc::impl::KeyFrame40*>(records), count);
+}
 
 bool SameAsZero(const Vector3& v) {
     Vector3 zero;

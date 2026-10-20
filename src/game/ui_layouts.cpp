@@ -183,7 +183,7 @@ void CSaveLoadWindow::Build() {
     }
     RefreshList();
     CallShowPicture();
-    if (!sliding_) interface_->ShowHelp(0);
+    if (!sliding_) interface_->OpenHelp(0);
 }
 EI_REPLACE_METHOD(0x00653DD0, CSaveLoadWindow::Build);
 
@@ -249,7 +249,7 @@ void COptionsWindow::Build() {
     BuildBindings();
     shadowsChanged_ = false;
     ShowGroup(0);
-    if (!sliding_) interface_->ShowHelp(0);
+    if (!sliding_) interface_->OpenHelp(0);
 }
 EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
 
@@ -296,7 +296,7 @@ CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
     void* memory = gamecrt::operator_new(sizeof(CSaveLoadWindow));
     if (!memory) return nullptr;
     auto* w = static_cast<CSaveLoadWindow*>(memory);
-    ConstructContainerAt(w, nullptr, ui);
+    static_cast<CUiContainer*>(w)->Construct(ui);
     w->entriesBegin_ = nullptr;   // vector<SaveEntry>() (0062B550)
     w->entriesEnd_ = nullptr;
     w->entriesCapacity_ = nullptr;
@@ -312,7 +312,7 @@ COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     void* memory = gamecrt::operator_new(sizeof(COptionsWindow));
     if (!memory) return nullptr;
     auto* w = static_cast<COptionsWindow*>(memory);
-    ConstructContainerAt(w, nullptr, ui);
+    static_cast<CUiContainer*>(w)->Construct(ui);
     w->bindings_.ConstructEmpty();   // 0062B570
     w->settings_.ConstructEmpty();   // 0062B5E0
     w->sliding_ = false;
@@ -421,7 +421,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // Exit: the exit movie, then quit.
         {
             mfc::CString path = *GameBasePathString() + game::Text(0x0079422C);   // "Movies\Exit.bik"
-            PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
+            PlayMovie(path, 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
         break;
@@ -442,8 +442,8 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ClearSurfaces();
         auto* w = static_cast<CCreditsScreen*>(gamecrt::operator_new(sizeof(CCreditsScreen)));
         if (w) {
-            ConstructContainerAt(w, nullptr, ui);
-            MappedResourceConstructOriginal(w->archive_);
+            reinterpret_cast<CUiContainer*>(w)->Construct(ui);
+            reinterpret_cast<CMappedResource*>(w->archive_)->Construct();
             w->lines_.Construct();   // 00634300
             new (static_cast<void*>(&w->name_)) mfc::CString(game::Text(0x00794250));   // "Titles"
             Screen8Member1D8(&w->player_);
@@ -464,7 +464,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ui->PlaySound(okSound, 0);
         auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));
         if (w) {
-            ConstructContainerAt(w, nullptr, ui);
+            reinterpret_cast<CUiContainer*>(w)->Construct(ui);
             w->hoveredItem_ = nullptr;
             lib_trees::ConstructHeroItemCache(&w->models_);
             lib_trees::ConstructHeroItemCache(&w->textures_);

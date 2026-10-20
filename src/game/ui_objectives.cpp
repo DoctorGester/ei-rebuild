@@ -677,7 +677,7 @@ void CObjectivesWindow::Build() {
         ShowZone(zones->begin()[zoneIndex_]);
         table->~VariableTable();
     }
-    interface_->ShowHelp(0);
+    interface_->OpenHelp(0);
 }
 void CObjectivesWindow::DrawQuestList() {
     CTextManager* texts = Texts();

@@ -34,7 +34,7 @@ void* GetPlayer(int number) { return reinterpret_cast<CWorldServer*>(0x007AFF60)
 CSectorMap* const kSectorMap = reinterpret_cast<CSectorMap*>(0x007B01F4);
 
 // A unit's prototype record (00530930): its name and, at +4, its model name (the race).
-static const UnitPrototypeRecord* UnitPrototype(void* unit) { return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit)); }
+static const UnitPrototypeRecord* UnitPrototype(void* unit) { return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype()); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 

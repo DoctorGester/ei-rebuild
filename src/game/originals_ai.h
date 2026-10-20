@@ -47,9 +47,7 @@ __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*
 // The brain's save-game helpers, called through their addresses so the verify wrappers see the calls
 // (unit_ai_brain.cpp, unit_ai_save.cpp). 005D9010 / 005D91B0: looks load / save (fastcall: ECX the
 // looks, EDX the stream; plain RET). 005CE920: an attack option's Save; 005D9B80: an attack option
-// array's load (fastcall, plain RET). 005D9840: the alarm records' SetSize (RET 8). None
-// returns a result.
-__declspec(naked) inline void __fastcall AlarmRecordsSetSizeOriginal(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)
+// array's load (fastcall, plain RET). None returns a result.
 
 // The Player mode's fighting and party code (rewritten in unit_ai_player.cpp), called through their
 // addresses so the verify wrappers see the calls (all thiscall on the mode; RET 4 / 8 / 8 / 8).

@@ -50,7 +50,7 @@ CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[
 CUnit* AsCUnit(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
 CUnitServer* ServerOf(CEngineObject* unit) { return static_cast<CUnitServer*>(AsCUnit(unit)->controller); }
 const UnitPrototypeRecord* PrototypeOf(CEngineObject* unit) {
-    return static_cast<const UnitPrototypeRecord*>(UnitPrototypeOf(unit));
+    return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype());
 }
 
 // The float bits of `value` as the dword the player messages take.

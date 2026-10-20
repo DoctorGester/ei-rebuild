@@ -195,7 +195,7 @@ void __fastcall LightningDestruct(CLightning* self) {
     if (self->main_.points.data) gamecrt::operator_delete(reinterpret_cast<void**>(self->main_.points.data)[-1]);
     if (self->glowTexture_) self->glowTexture_->Release();
     if (self->texture_) self->texture_->Release();
-    EngineObjectDestructBase(self);
+    static_cast<CEngineObject*>(self)->DestructBase();
 }
 EI_REPLACE(0x00468810, LightningDestruct);
 

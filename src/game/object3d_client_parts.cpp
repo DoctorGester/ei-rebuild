@@ -125,7 +125,7 @@ EI_REPLACE_METHOD(0x0051A370, TextureParts::Destruct);
 // --- Lifetime -------------------------------------------------------------------------------------
 
 CObject3DClientSpecific* CObject3DClientSpecific::Construct() {
-    ConstructEngineObject(this);
+    EngineObjectConstruct(this);
     ei::SetVtable(this, kSpecificBaseVtable);
     object = nullptr;
     textures = {};

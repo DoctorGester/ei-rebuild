@@ -86,7 +86,6 @@ EI_REPLACE_METHOD(0x005B2F40, FootprintCellSet::GetBounds);
 
 // --- Footprints ----------------------------------------------------------------------------------
 
-__declspec(naked) void CAIMap::Refresh(int, int, int, int) EI_ORIGINAL(0x005B8FA0)
 
 namespace {
 // Object model helpers not rewritten yet.
@@ -247,7 +246,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
 
 void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
     if (!batching) {
-        Refresh(minX, maxX, minY, maxY);
+        RefreshArea(minX, maxX, minY, maxY);
         return;
     }
     if (dirtyMinX < minX) minX = dirtyMinX;
@@ -336,7 +335,7 @@ EI_REPLACE_METHOD(0x005B78F0, CAIMap::ClearFootprint);
 
 void CAIMap::BeginRefresh() {
     if (batching) {
-        Refresh(dirtyMinX, dirtyMaxX, dirtyMinY, dirtyMaxY);
+        RefreshArea(dirtyMinX, dirtyMaxX, dirtyMinY, dirtyMaxY);
         batching = false;
     }
     dirtyMaxX = 0;
@@ -348,7 +347,7 @@ void CAIMap::BeginRefresh() {
 EI_REPLACE_METHOD(0x005B8B30, CAIMap::BeginRefresh);
 
 void CAIMap::EndRefresh() {
-    Refresh(dirtyMinX, dirtyMaxX, dirtyMinY, dirtyMaxY);
+    RefreshArea(dirtyMinX, dirtyMaxX, dirtyMinY, dirtyMaxY);
     batching = false;
 }
 EI_REPLACE_METHOD(0x005B8B80, CAIMap::EndRefresh);

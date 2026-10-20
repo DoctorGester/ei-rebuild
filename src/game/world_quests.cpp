@@ -284,7 +284,7 @@ namespace {
 
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
 // 00530930. The unit's prototype record; its first field is the prototype name.
-static const char** UnitPrototype(CEngineObject* object, void*) { return static_cast<const char**>(::UnitPrototypeOf(object)); }
+static const char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_cast<const char**>(static_cast<CUnit*>(object)->GetPrototype()); }
 // 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
 // (name, prototype, extra), remove the member with a text key.
 void __fastcall PartyAddMember(CParty* a0, void*, const char* a2, const char* a3, const char* a4) { a0->AddMember(a2, a3, a4); }

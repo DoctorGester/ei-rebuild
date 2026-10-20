@@ -272,9 +272,7 @@ namespace {
 void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // The handler vectors' destructor (the vector base's: the storage freed).
 constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
-// The clients list: release of a node's counted connection pointer; its nodes and sentinel go
-// back to the pool (00439E60, 0043AB30).
-__declspec(naked) void __fastcall ClientRefRelease(Connection** /*ref*/, void*, int /*flag*/) EI_ORIGINAL(0x0043DCA0)
+// The clients list: its nodes and sentinel go back to the pool (00439E60, 0043AB30).
 } // namespace
 
 void SessionBase::Destruct() {
@@ -305,7 +303,7 @@ void SessionBase::Destruct() {
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        ClientRefRelease(&node->connection, nullptr, 0);
+        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // 0043DCA0 with 0: RefPtr::Destroy
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;

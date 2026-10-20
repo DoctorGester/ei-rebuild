@@ -24,9 +24,6 @@
 
 using terrain::SectorData;
 
-// 006BF8A0: the sector's destructor body (not rewritten).
-__declspec(naked) void SectorData::Destruct() EI_ORIGINAL(0x006BF8A0)
-
 namespace {
 
 // A sector bound: FISTP of the value stored as a float (the original stores it, then loads it back),
@@ -42,7 +39,7 @@ int SectorBound(float value, int count) {
 constexpr int kSectorAge = 240;
 
 void DeleteSector(SectorData* sector) {
-    sector->Destruct();
+    sector->DestructBody();   // 006BF8A0
     gamecrt::operator_delete(sector);
 }
 

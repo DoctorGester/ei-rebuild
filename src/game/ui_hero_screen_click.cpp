@@ -25,6 +25,7 @@
 #include "map_object_figures.h"
 #include "world.h"
 #include "world_glue.h"
+#include "library_containers.h"
 
 #include <cstdint>
 #include <cstring>
@@ -85,7 +86,7 @@ CItem* FirstOf(CEngineObject** const& data, const std::uint32_t& count) {
 CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     auto* camp = static_cast<CCampPages*>(gamecrt::operator_new(sizeof(CCampPages)));
     if (!camp) return nullptr;
-    ConstructContainerAt(camp, nullptr, ui);
+    reinterpret_cast<CUiContainer*>(camp)->Construct(ui);
     camp->hoveredItem_ = nullptr;
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);
@@ -484,7 +485,7 @@ void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
     if (!screen) return nullptr;
-    ConstructContainerAt(screen, nullptr, ui);
+    static_cast<CUiContainer*>(screen)->Construct(ui);
     screen->entries_.Start() = nullptr;
     screen->entries_.Finish() = nullptr;
     screen->entries_.EndOfStorage() = nullptr;
@@ -725,7 +726,8 @@ void CMpHeroScreen::AddNewHero() {
     if (MpHeroesEnd() == MpHeroesCapacity()) {
         BlankHeroRecord blank;
         blank.record.Construct();
-        PartyEntriesInsertOverflowOriginal(&MpHeroesBegin(), nullptr, MpHeroesEnd(), &blank.record, 1);
+        libcontainers::InsertHeroRecordsOverflow(reinterpret_cast<libcontainers::HeroRecords*>(&MpHeroesBegin()), nullptr,
+                                                 MpHeroesEnd(), &blank.record, 1);   // 00619920
         blank.record.Destruct();
     } else {
         if (MpHeroesEnd()) MpHeroesEnd()->Construct();

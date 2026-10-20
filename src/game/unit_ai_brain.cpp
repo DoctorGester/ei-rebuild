@@ -34,8 +34,6 @@ void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
 
 } // namespace
 
-__declspec(naked) void __fastcall CallsSetSizeAt(AICallArray*, void*, int, int) EI_ORIGINAL(0x005CDD60)
-__declspec(naked) void __fastcall ReportsSetSizeAt(AIReportArray*, void*, int, int) EI_ORIGINAL(0x005CD670)
 
 namespace {
 AIBrain* BrainOf(CUnit* unit) {
@@ -147,7 +145,7 @@ void AIBrain::Reset() {
     action = kActionNone;
     ResetMemory();
     actionPoint = Vector3{0.0f, 0.0f, 0.0f};
-    LooksSetSizeAt(&looks, nullptr, 0, -1);
+    looks.SetSize(0, -1);
     if (target) {
         target->Release();
         target = nullptr;
@@ -168,7 +166,7 @@ void AIBrain::Init() {
     action = kActionNone;
     ResetMemory();
     actionPoint = Vector3{0.0f, 0.0f, 0.0f};
-    LooksSetSizeAt(&looks, nullptr, 0, -1);
+    looks.SetSize(0, -1);
     if (target) reinterpret_cast<AIRef*>(&target)->Reset();
     if (seen) reinterpret_cast<AIRef*>(&seen)->Reset();
     owner = nullptr;
@@ -178,7 +176,7 @@ void AIBrain::Init() {
     alarmSlot = 0;
     actionTime = kNoTime;
     seesEnemy = 0;
-    AlarmRecordsSetSizeOriginal(&alarmRecords, nullptr, 0, -1);
+    alarmRecords.SetSize(0, -1);
     callRadius = InitialCallRadius();
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;
@@ -198,8 +196,8 @@ void AIBrain::ResetMemory() {
     noticedY = 0.0f;
     noticedLevel = 0;
     nearbyCountdown = 0;
-    ReportsSetSizeAt(&reports, nullptr, 0, -1);
-    CallsSetSizeAt(&calls, nullptr, 0, -1);
+    reports.SetSize(0, -1);
+    calls.SetSize(0, -1);
     noticedKind = 0;
 }
 
@@ -518,7 +516,7 @@ void __fastcall ReportsAdd(AIReportArray* reports, void*, CEngineObject* object,
     }
     ++object->refCount_;    // the temporary counted reference of the original
     int index = reports->size;
-    ReportsSetSizeAt(reports, nullptr, index + 1, -1);
+    reports->SetSize(index + 1, -1);
     AIReport& entry = reports->data[index];
     if (entry.object != object) {
         if (entry.object) entry.object->Release();
@@ -652,7 +650,7 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&alerted, 1);
     stream->Read(&alarm, 1);
     stream->Read(&count, 4);
-    AlarmRecordsSetSizeOriginal(&alarmRecords, nullptr, count, -1);
+    alarmRecords.SetSize(count, -1);
     for (int i = 0; i < alarmRecords.size; ++i) static_cast<mapspec::Behaviour*>(&alarmRecords.data[i])->Read(stream);
     stream->Read(&alarmCountdown, 4);
     // A radius saved as the default one becomes the configured one (equal, or NaN: FCOMP's C3).

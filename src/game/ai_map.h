@@ -101,13 +101,11 @@ static_assert(sizeof(PassCostContext) == 0x18);
 
 // A growable square of byte marks over map cells (0x18 bytes), filled by MarkVisibleCells.
 struct VisibilityGrid {
-    // 005C8D40 (forwarder). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first
-    // call (x = 0x7FFFFFFF) sizes and clears it.
-    void Include(int x, int y, int n);
-    // The rewrite of 005C8D40 (ai_movement.cpp); Include stays the forwarder to its address.
+    // 005C8D40 (ai_movement.cpp). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the
+    // first call (x = 0x7FFFFFFF) sizes and clears it.
     void Grow(int x, int y, int n);
 
-    int originX, originY;       // cell of data[0]; 0x7FFFFFFF before the first Include
+    int originX, originY;       // cell of data[0]; 0x7FFFFFFF before the first Grow
     std::uint8_t* data;         // +0x08 width * height
     std::uint8_t** rows;        // +0x0C rows[i] = data + i * width
     int width, height;          // +0x10
@@ -512,11 +510,9 @@ void __fastcall BlockSearchPathTo(BlockSearch* search, void*, int x, int y, Path
 
 // The region map at CAIMap + 0x22F8 (0x29C bytes): connected areas of 8x8-cell blocks per size class.
 struct CRegionMap {
-    // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
-    // original leaves it).
-    int RegionAt(int sizeClass, int x, int y);
-    // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
-    // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
+    // 005B0600 (ai_region_reach.cpp): the region of cell (x, y) for a size class, the one most of
+    // the reachable 3x3 blocks around the cell belong to (the first seen on a tie; 0 when none);
+    // EAX's upper half is 0.
     int DominantRegion(int sizeClass, int x, int y);
     // 005B07C0 (ai_region_reach.cpp). Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI
     // map's, CAIMap::marks: 1 yes, 2 no).
@@ -589,6 +585,8 @@ static_assert(offsetof(CRegionMap, progress) == 0x118);
 static_assert(offsetof(CRegionMap, edges) == 0x11C);
 static_assert(offsetof(CRegionMap, regions) == 0x21C);
 static_assert(sizeof(CRegionMap) == 0x29C);
+// 005AF3D0 (ai_region_reach.cpp; thiscall, returns this): the region map's constructor.
+CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
 
 // The region map's constructor (005AF3D0, ai_region_reach.cpp) hands these to the CRT's `eh
 // vector constructor iterator` for its three grid arrays: the grids' constructors 005AF580 /
@@ -963,9 +961,7 @@ public:
     // 005B61B0 / 005B6380 (ai_occluders.cpp). Adds / removes one footprint cell's occluder.
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
-    // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).
-    void Refresh(int minX, int maxX, int minY, int maxY);
-    // The rewrite of 005B8FA0 (ai_refresh.cpp); Refresh stays the forwarder to its address.
+    // 005B8FA0 (ai_refresh.cpp). Recomputes passability in the rectangle (inclusive, grown by 3 cells).
     void RefreshArea(int minX, int maxX, int minY, int maxY);
     // 005B8BA0 (RET 0x14; ai_refresh.cpp). The passability mark of cell (x, y) for a standing
     // level and its height in AI units: from the terrain type, water depth and the occluders over

@@ -45,7 +45,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     // pointer there.
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&count, sizeof(count));
-    EffectArraySetSizeOriginal(&effectsVtable, nullptr, count, -1);
+    SetEffectCount(count);
     for (int i = 0; i < effectCount; ++i) effects[i].Load(stream);
     std::uint32_t flags = flags_;   // the original's local starts as stack garbage
     stream->Read(&flags, sizeof(flags));

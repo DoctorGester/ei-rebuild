@@ -17,8 +17,8 @@
 namespace {
 
 // 005AA5F0: the manager's model of a name; 005A9EF0 (FigureModel::FindAnimation): the model's animation of a name.
-// The figure: set an animation (RET 8: animation, name).
-__declspec(naked) int __fastcall SetAnimation(void*, void*, void*, const char*) EI_ORIGINAL(0x0050DA10)
+// The figure: set an animation (0050DA10, CFigureAnimationState::LoadBoneTracks; the name is the
+// bones' animation).
 // 0044C470: the game's debug message (cdecl, printf-style).
 
 } // namespace
@@ -37,7 +37,8 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
         game::DebugLog(reinterpret_cast<const char*>(0x00790D94), animation, modelName);
         return 0;
     }
-    return SetAnimation(figure, nullptr, found, animation);
+    return static_cast<CFigureAnimationState*>(figure)->LoadBoneTracks(static_cast<CFigureModelPart*>(found),
+                                                                       reinterpret_cast<const FigureAnimation*>(animation));
 }
 
 EI_REPLACE(0x005ACCF0, SetFigureAnimation);

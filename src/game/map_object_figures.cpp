@@ -13,6 +13,7 @@
 #include "ei/x87.h"
 #include "originals_units.h"
 #include "originals_library.h"
+#include "library_trees.h"
 
 #include <concepts>
 #include <bit>
@@ -25,7 +26,6 @@ namespace {
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;   // flags_
 constexpr std::uint32_t kFlagPartsMarked = 0x200;    // flags_ of a non-unit object
 constexpr std::uint32_t kPartFlagStatic = 8;         // flags_ of its parts
-constexpr int kClassUnit = 0x50;
 constexpr std::uint32_t kBoundsValid = 1 | 2;
 
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;      // FLT_MAX / -FLT_MAX: the empty box
@@ -165,7 +165,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
             const LinkHeaderMap::Node* piece;
             {
                 stlp::string key(pieceName);
-                StringMapFindOriginal(&figure->headers_, nullptr, (void**)&piece, &key);
+                piece = lib_trees::FindLinkHeader(&figure->headers_, &key);   // 005197B0
             }
             part = static_cast<CFigureMesh*>(parts.data[i]);
             const ClipBounds& bounds = piece->second.bounds;

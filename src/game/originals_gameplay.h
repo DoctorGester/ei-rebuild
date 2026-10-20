@@ -27,12 +27,6 @@ __declspec(naked) inline CEngineObject* __fastcall ItemManagerCreateItemOriginal
 // two flags are read as bytes; EAX is the item, or null).
 __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, void*, int /*a*/, int /*b*/)
     EI_ORIGINAL(0x00661700)
-// 00619920: the insert overflow of a vector of party file entries (0x74 bytes: the records and a CString file name;
-// the multiplayer heroes 007C82A4, the world's party list): `count` copies of `value` at `position` in a new block
-// (RET 0xC, no result). Rewritten in library_containers.cpp (S12f); through its address so its check runs.
-__declspec(naked) inline void __fastcall PartyEntriesInsertOverflowOriginal(void* /*vector*/, void*, void* /*position*/,
-                                                                            const void* /*value*/, unsigned /*count*/)
-    EI_ORIGINAL(0x00619920)
 
 // C3i part 2. 00613820: the quick item record by name (RET 4). 006AD000: item factory MakeItem (RET 0x10, returns the item);
 // 006AD1E0: CreateSpell(name, owner) (RET 8, returns the spell). 006611D0: party record builder destructor, 00665200: player

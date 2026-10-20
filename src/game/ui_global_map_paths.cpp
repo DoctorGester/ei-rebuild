@@ -19,6 +19,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "library_trees.h"
 
 #include <cstdint>
 
@@ -34,11 +35,7 @@ struct ArrivalPair {
     float time;
 };
 
-// 006316E0 (thiscall, RET 0xC): insert(hint, value) of the arrivals map; the node in `*out`,
-// returns `out`.
-__declspec(naked) Arrivals::Node** __fastcall ArrivalsInsert(Arrivals*, void*, Arrivals::Node** /*out*/,
-                                                             Arrivals::Node* /*hint*/, const ArrivalPair* /*value*/)
-    EI_ORIGINAL(0x006316E0)
+// 006316E0: insert(hint, value) of the arrivals map (lib_trees::Arrivals').
 
 // operator[] as the original inlines it: lower_bound (00631C80), and a new {exit, 0} entry
 // inserted there when the key is not in the map.
@@ -46,7 +43,7 @@ float& Arrival(Arrivals& arrivals, int exit) {
     Arrivals::Node* at = arrivals.lower_bound(exit);
     if (at == arrivals.end() || exit < at->first) {
         ArrivalPair value = {exit, 0.0f};
-        ArrivalsInsert(&arrivals, nullptr, &at, at, &value);
+        lib_trees::Arrivals::InsertHint(&arrivals, nullptr, &at, at, reinterpret_cast<const Arrivals::Value*>(&value));
     }
     return at->second;
 }
