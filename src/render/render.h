@@ -55,6 +55,47 @@ struct SmoothInfo {
 };
 SmoothInfo SmoothState();
 
+// What the new renderer did for the presented frames (R16, docs/notes/renderer.md section 13): the
+// hand-over's commands, the bytes written to the GPU, the draws and state changes, the textures made
+// and the CPU time spent, summed over `frames`. TakeFrameStats returns the sums since its last call
+// and starts new ones (the harness's "renderstats"). The CPU times and the reuse counts are the
+// harness build's only (zero in the product).
+struct FrameStats {
+    enum Upload { Mmp, CpuPixels, MemoryTexture, WindowSurface, Movie, Small, UploadKinds };
+    std::uint32_t frames = 0;
+    int width = 0, height = 0;   // the last frame's size
+    // Hand-over: terrain pages and the batches they became, meshes handed over (BeginMesh with
+    // corners built) and their passes, pre-transformed draws (TlDraw, ScreenDraw), window blits
+    // (SurfaceBlit, movies, cursor, fills), depth clears, the old device's state read per pass.
+    std::uint64_t terrainPages = 0, terrainBatches = 0, meshes = 0, meshPasses = 0, transformedDraws = 0;
+    std::uint64_t blits = 0, depthClears = 0, stateReads = 0, matrices = 0;
+    // Of the meshes: the flat geometry (004EA4A0: object shadows, ground prints, selection markers,
+    // light decals) and its vertex bytes.
+    std::uint64_t flatMeshes = 0, flatVertexBytes = 0;
+    // The vertices handed over against the last frame's of the same terrain page (sector, page) or
+    // mesh (its positions' address): all the same, only the colours changed (relit), positions or
+    // texture coordinates changed (moved), or none last frame (new); meshes whose positions and
+    // texture coordinates equal another's of the same frame (shared: instancing candidates).
+    enum Reuse { Same, Relit, Moved, New, ReuseKinds };
+    std::uint64_t terrainReuse[ReuseKinds] = {}, meshReuse[ReuseKinds] = {}, sharedMeshes = 0;
+    // Bytes appended to the per-frame vertex and index buffers, uniform bytes.
+    std::uint64_t terrainVertexBytes = 0, terrainIndexBytes = 0, meshVertexBytes = 0, meshIndexBytes = 0;
+    std::uint64_t uniformBytes = 0;
+    // Submission: passes, draws, pipeline applies and changes, bindings applies, changes of the
+    // first texture bound.
+    std::uint64_t passes = 0, draws = 0, pipelineApplies = 0, pipelineChanges = 0, bindings = 0, textureChanges = 0;
+    // Images made (or updated in place) per kind and their bytes (every level); bytes compared with
+    // the snapshots of the renderer's memory (window surfaces at every blit, memory textures once a
+    // frame) and converted from it.
+    std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {}, largestUpload[UploadKinds] = {};
+    std::uint64_t comparedBytes = 0;
+    // CPU time (ms): the hand-over (terrain pages, meshes, pre-transformed draws), texture work
+    // (views checked, converted, made), EndFrame (uploads, draws, the present on the window).
+    // (statsMs: these counts' own hashing, left out of the others.)
+    double handOverMs = 0.0, textureMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
+};
+FrameStats TakeFrameStats();
+
 // The new renderer draws: in the standalone image, until it failed (no Direct3D 11 device at the
 // start, a sokol panic, a lost device that could not be made again). Every call below does nothing
 // when it is off.

@@ -188,11 +188,14 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     int dw = b.destination.right - b.destination.left, dh = b.destination.bottom - b.destination.top;
     int sw = b.source.right - b.source.left, sh = b.source.bottom - b.source.top;
     if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
-    sg_apply_pipeline(PassPipeline(false));
+    sg_pipeline pipeline = PassPipeline(false);
+    sg_apply_pipeline(pipeline);
+    CountPipeline(pipeline);
     sg_bindings bind{};
     bind.views[0] = b.texture;
     bind.samplers[0] = g_nearest;
     sg_apply_bindings(&bind);
+    CountBindings(bind);
     VsParams vs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
                  static_cast<float>(b.destination.right), static_cast<float>(b.destination.bottom)},
                 {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
@@ -205,18 +208,22 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(1, &fr);
     sg_draw(0, 6, 1);
+    CountDraw(sizeof(vs) + sizeof(fs));
 }
 
 void DrawClearDepth(const ClearBatch& clear, int width, int height) {
     if (!g_clear.id) return;
     Rect r = clear.rect.right > clear.rect.left ? clear.rect : Rect{0, 0, width, height};
     if (r.bottom <= r.top) return;
-    sg_apply_pipeline(PassPipeline(true));
+    sg_pipeline pipeline = PassPipeline(true);
+    sg_apply_pipeline(pipeline);
+    CountPipeline(pipeline);
     VsParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
                 {static_cast<float>(width), static_cast<float>(height), clear.z, 0.0f}};
     sg_range vr{&vs, sizeof(vs)};
     sg_apply_uniforms(0, &vr);
     sg_draw(0, 6, 1);
+    CountDraw(sizeof(vs));
 }
 
 void BlitParts(sg_shader* shader, sg_pipeline* pipeline, sg_sampler* sampler) {
@@ -358,6 +365,7 @@ void UpdateImage(sg_image image, const std::uint8_t* rgba, int w, int h, ImageUs
     sg_image_data data{};
     data.mip_levels[0] = sg_range{rgba, static_cast<std::size_t>(w) * h * 4};
     CountImage(use, false);
+    CountUpload(use == ImageUse::Movie ? FrameStats::Movie : FrameStats::Small, data.mip_levels[0].size);
     sg_update_image(image, &data);
 #if defined(EI_RENDER_VALIDATION)
     CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor/fill");
@@ -424,6 +432,7 @@ void MovieBlit(const void* key, const Rect& to) {
     if (it == g_movies.end() || !it->second.view.id) return;
     Movie& m = it->second;
     m.blitFrame = FrameNumber();
+    ++Stats().blits;
     Frame& f = CurrentFrame();
     f.blitBatches.push_back(BlitBatch{m.view, m.width, m.height, to, Rect{0, 0, m.width, m.height}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
@@ -518,6 +527,7 @@ void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect&
         desc.pixel_format = SG_PIXELFORMAT_RGBA8;
         desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
         desc.label = "ei-cursor-frame";
+        CountUpload(FrameStats::Small, rgba.size());
         sg_image image = sg_make_image(&desc);
         view = MakeImageView(image);
         if (!view.id) return;
@@ -531,6 +541,7 @@ void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect&
         f.haveCursor = true;
         return;
     }
+    ++Stats().blits;
     f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
@@ -559,6 +570,7 @@ void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source
     int width = 0, height = 0;
     sg_view view = WindowSurfaceView(holder, keyed, key, &width, &height);
     if (!view.id) return;
+    ++Stats().blits;
     Frame& f = CurrentFrame();
     BlitBatch b{view, width, height, destination, source ? *source : Rect{0, 0, width, height}};
     f.blitBatches.push_back(b);

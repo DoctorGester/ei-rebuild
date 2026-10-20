@@ -261,7 +261,8 @@ void RetireBuffers();
 // the last pass of the frame.
 class GeometryStream {
 public:
-    explicit GeometryStream(const char* label) : vertices_(false, label), indices_(true, label) {}
+    // `terrain`: counted as the terrain's uploads (FrameStats), else the meshes'.
+    GeometryStream(const char* label, bool terrain) : vertices_(false, label), indices_(true, label), terrain_(terrain) {}
     bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
     // The vertex and index buffers with the last upload's offsets; false when there is none.
     bool Bind(sg_bindings& b) const;
@@ -269,6 +270,7 @@ public:
 
 private:
     StreamBuffer vertices_, indices_;
+    bool terrain_;
     std::uint32_t frame_ = 0xFFFFFFFFu;
     std::size_t vertexCount_ = 0, indexCount_ = 0;
     int vertexOffset_ = -1, indexOffset_ = -1;
@@ -307,6 +309,32 @@ bool CursorPicturePart(const void* holder, const void* mask, int maskBytes, cons
 // DestroyBlits, and every image kept across frames (movies, the cursor's and fills' cache): the
 // device is lost.
 void DropBlits();
+
+// The counts of the frame being built (render::FrameStats; summed at Present). StatsTimer adds the
+// CPU time of its scope to one of the stats' fields; a timer inside another's scope takes its time
+// out of the outer one's field (each field counts its own work only).
+FrameStats& Stats();
+class StatsTimer {
+public:
+    explicit StatsTimer(double FrameStats::* field);
+    ~StatsTimer();
+    StatsTimer(const StatsTimer&) = delete;
+    StatsTimer& operator=(const StatsTimer&) = delete;
+
+private:
+    double FrameStats::* field_;
+    long long start_;
+    StatsTimer* outer_;
+};
+// Counts an applied pipeline (a change when it differs from the last one applied in the frame), the
+// bindings with their first texture view, a draw with its uniform bytes.
+void CountPipeline(sg_pipeline pipeline);
+void CountBindings(const sg_bindings& b);
+void CountDraw(std::size_t uniformBytes);
+void CountUpload(FrameStats::Upload kind, std::size_t bytes);
+// Compares `count` vertices handed over for `key` (a terrain page: sector and page; a mesh: its
+// positions, page 0) with the last frame's for the same key (FrameStats::Reuse).
+void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices, std::size_t count);
 
 // Counts of the images the renderer made (sg_make_image) and updated in place (sg_update_image)
 // by purpose, logged in the verify build (render_blit.cpp).

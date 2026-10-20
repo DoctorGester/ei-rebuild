@@ -24,6 +24,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace render {
 
@@ -661,6 +663,7 @@ void TexturePixels(const void* holder, const void* pixels, int width, int height
                    std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
     if (!holder || !pixels || !Active() || !EnsureStarted()) return;
     FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
     TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
 }
 
@@ -688,6 +691,7 @@ void EndWorld() {
 
 void ClearDepth(float z, const Rect* rects, int count) {
     if (!Active()) return;
+    Stats().depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
     if (!rects) {
         g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
         g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
@@ -697,6 +701,164 @@ void ClearDepth(float z, const Rect* rects, int count) {
         g_frame.clears.push_back(ClearBatch{z, rects[i]});
         g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
     }
+}
+
+// --- Frame statistics (R16) ----------------------------------------------------------------------------
+
+namespace {
+FrameStats g_stats;         // the frame being built
+FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
+std::uint32_t g_lastPipeline = 0, g_lastTexture = 0;   // ids applied last in this frame
+#if defined(EI_RENDER_VALIDATION)
+// The times and the reuse counts are the harness build's (the product counts only).
+StatsTimer* g_innerTimer = nullptr;
+// CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
+// colours, this frame's and the last; this frame's mesh geometry hashes.
+struct VertexHashes {
+    std::uint64_t geometry, colours;
+};
+std::unordered_map<std::uint64_t, VertexHashes> g_hashes, g_lastHashes;
+std::unordered_set<std::uint64_t> g_frameGeometry;
+
+// FNV-1a over 32-bit words (every field hashed is one or more of them).
+std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
+    const auto* p = static_cast<const std::uint8_t*>(data);
+    for (std::size_t i = 0; i + 4 <= bytes; i += 4) {
+        std::uint32_t word;
+        std::memcpy(&word, p + i, 4);
+        h = (h ^ word) * 0x100000001B3ull;
+    }
+    return h;
+}
+double g_msPerTick = 0.0;
+
+long long Ticks() {
+    LARGE_INTEGER now{};
+    QueryPerformanceCounter(&now);
+    return now.QuadPart;
+}
+#endif
+
+// The frame's counts into the sums; a new frame's counts begin.
+void AddFrameStats() {
+    g_stats.matrices = g_frame.matrices.size();
+    if (g_width > 0) {
+        g_statsSum.width = g_width;
+        g_statsSum.height = g_height;
+    }
+    FrameStats& s = g_statsSum;
+    const FrameStats& f = g_stats;
+    s.frames += 1;
+    for (auto field : {&FrameStats::terrainPages, &FrameStats::terrainBatches, &FrameStats::meshes, &FrameStats::meshPasses,
+                       &FrameStats::transformedDraws, &FrameStats::blits, &FrameStats::depthClears, &FrameStats::stateReads,
+                       &FrameStats::flatMeshes, &FrameStats::flatVertexBytes, &FrameStats::matrices, &FrameStats::terrainVertexBytes, &FrameStats::terrainIndexBytes,
+                       &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
+                       &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
+                       &FrameStats::textureChanges, &FrameStats::comparedBytes})
+        s.*field += f.*field;
+    for (int k = 0; k < FrameStats::UploadKinds; ++k) {
+        s.uploads[k] += f.uploads[k];
+        s.uploadBytes[k] += f.uploadBytes[k];
+        if (f.largestUpload[k] > s.largestUpload[k]) s.largestUpload[k] = f.largestUpload[k];
+    }
+    for (int k = 0; k < FrameStats::ReuseKinds; ++k) {
+        s.terrainReuse[k] += f.terrainReuse[k];
+        s.meshReuse[k] += f.meshReuse[k];
+    }
+    s.sharedMeshes += f.sharedMeshes;
+    s.handOverMs += f.handOverMs;
+    s.textureMs += f.textureMs;
+    s.endFrameMs += f.endFrameMs;
+    s.statsMs += f.statsMs;
+    g_stats = FrameStats{};
+    g_lastPipeline = g_lastTexture = 0;
+#if defined(EI_RENDER_VALIDATION)
+    g_lastHashes.swap(g_hashes);
+    g_hashes.clear();
+    g_frameGeometry.clear();
+#endif
+}
+} // namespace
+
+namespace detail {
+
+FrameStats& Stats() { return g_stats; }
+
+StatsTimer::StatsTimer(double FrameStats::* field) : field_(field), start_(0), outer_(nullptr) {
+#if defined(EI_RENDER_VALIDATION)
+    start_ = Ticks();
+    outer_ = g_innerTimer;
+    g_innerTimer = this;
+#endif
+}
+
+StatsTimer::~StatsTimer() {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_msPerTick == 0.0) {
+        LARGE_INTEGER frequency{};
+        QueryPerformanceFrequency(&frequency);
+        g_msPerTick = frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
+    }
+    double ms = static_cast<double>(Ticks() - start_) * g_msPerTick;
+    g_stats.*field_ += ms;
+    if (outer_) g_stats.*(outer_->field_) -= ms;   // the outer timer counts its own work only
+    g_innerTimer = outer_;
+#endif
+}
+
+void CountPipeline(sg_pipeline pipeline) {
+    ++g_stats.pipelineApplies;
+    if (pipeline.id != g_lastPipeline) ++g_stats.pipelineChanges;
+    g_lastPipeline = pipeline.id;
+}
+
+void CountBindings(const sg_bindings& b) {
+    ++g_stats.bindings;
+    if (b.views[0].id != g_lastTexture) ++g_stats.textureChanges;
+    g_lastTexture = b.views[0].id;
+}
+
+void CountDraw(std::size_t uniformBytes) {
+    ++g_stats.draws;
+    g_stats.uniformBytes += uniformBytes;
+}
+
+void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key, [[maybe_unused]] int page,
+                [[maybe_unused]] const Vertex* vertices, [[maybe_unused]] std::size_t count) {
+#if defined(EI_RENDER_VALIDATION)
+    StatsTimer timer(&FrameStats::statsMs);
+    VertexHashes h{0xCBF29CE484222325ull, 0xCBF29CE484222325ull};
+    for (std::size_t i = 0; i < count; ++i) {
+        const Vertex& v = vertices[i];
+        h.geometry = Fnv(h.geometry, &v.position, sizeof(v.position));
+        h.geometry = Fnv(h.geometry, &v.u, 2 * sizeof(float));
+        h.colours = Fnv(h.colours, &v.colour, 2 * sizeof(std::uint32_t));
+    }
+    std::uint64_t id = (static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(key)) << 8) ^
+                       static_cast<std::uint64_t>(page) ^ (terrain ? 1ull << 63 : 0);
+    auto last = g_lastHashes.find(id);
+    FrameStats::Reuse r = last == g_lastHashes.end()            ? FrameStats::New
+                          : last->second.geometry != h.geometry ? FrameStats::Moved
+                          : last->second.colours != h.colours   ? FrameStats::Relit
+                                                                : FrameStats::Same;
+    ++(terrain ? g_stats.terrainReuse : g_stats.meshReuse)[r];
+    g_hashes[id] = h;
+    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
+#endif
+}
+
+void CountUpload(FrameStats::Upload kind, std::size_t bytes) {
+    ++g_stats.uploads[kind];
+    g_stats.uploadBytes[kind] += bytes;
+    if (bytes > g_stats.largestUpload[kind]) g_stats.largestUpload[kind] = bytes;
+}
+
+} // namespace detail
+
+FrameStats TakeFrameStats() {
+    FrameStats s = g_statsSum;
+    g_statsSum = FrameStats{};
+    return s;
 }
 
 namespace {
@@ -734,6 +896,7 @@ void BeginFramePass() {
     pass.attachments.depth_stencil = g_depthAttachment;
     pass.label = "ei-frame";
     sg_begin_pass(&pass);
+    ++Stats().passes;
     g_passSamples = 1;
     if (afterWorld) CopyDepthFromMultisampled(g_multiDepthTexture);
     g_holder = Holder::Frame;
@@ -754,6 +917,7 @@ void BeginMultisampledPass() {
         copy.attachments.depth_stencil = g_multiDepthAttachment;
         copy.label = "ei-frame-into-multisampled";
         sg_begin_pass(&copy);
+        ++Stats().passes;
         g_passSamples = g_targetSamples;
         CopyIntoMultisampled(g_colourTexture, g_depthTexture);
         sg_end_pass();
@@ -770,6 +934,7 @@ void BeginMultisampledPass() {
     pass.attachments.depth_stencil = g_multiDepthAttachment;
     pass.label = "ei-frame-multisampled";
     sg_begin_pass(&pass);
+    ++Stats().passes;
     g_passSamples = g_targetSamples;
     g_holder = Holder::Multisampled;
     ++g_counts.multisampledPasses;
@@ -963,6 +1128,7 @@ void EndFrame() {
     if (g_frameDrawn || !EnsureStarted()) return;
     g_frameDrawn = true;
     FpuGuard fpu;
+    StatsTimer timer(&FrameStats::endFrameMs);
     if (!DrawPending()) return;
     // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
     // turn with the cursor thread's presents (render_cursor.cpp), which take the frame as it was
@@ -984,6 +1150,7 @@ void EndFrame() {
 void Present() {
     if (!Active()) return;
     EndFrame();
+    AddFrameStats();
     g_drawnCommands = 0;
     g_passes = 0;
     g_frame.matrices.clear();

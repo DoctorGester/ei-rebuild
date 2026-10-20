@@ -238,7 +238,7 @@ static_assert(sizeof(FsParams) == 160);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
-GeometryStream g_geometry("ei-mesh");
+GeometryStream g_geometry("ei-mesh", false);
 
 sg_pipeline Pipeline(const PassState& s, bool lines) {
     int samples = PassSampleCount();
@@ -347,6 +347,7 @@ PassState ReadPassState(char* device) {
         if (stage == 0) s.patch = PatchOf(holder);
     }
     PassDone();
+    ++Stats().stateReads;
     return s;
 }
 
@@ -470,6 +471,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     sg_pipeline pipeline = Pipeline(s, batch.lines);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
+    CountPipeline(pipeline);
     for (int t = 0; t < 2; ++t) {
         const StageState& st = s.stages[t];
         b.views[t] = st.texture.id ? st.texture : SurfaceView(nullptr);
@@ -478,6 +480,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
     b.samplers[2] = b.samplers[0];
     sg_apply_bindings(&b);
+    CountBindings(b);
     VsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
@@ -527,6 +530,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(1, &fr);
     sg_draw(batch.firstIndex, batch.indexCount, 1);
+    CountDraw(sizeof(vs) + sizeof(fs));
 }
 
 void DestroyMeshes() {
@@ -542,6 +546,7 @@ void DestroyMeshes() {
 void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending = Pending{};
     if (!device || !mesh.matrix || !Active() || !Started()) return;
+    StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = CurrentFrame();
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
         if (g_dropped++ == 0) ei::Log("render: too many meshes in one frame; the rest are dropped");
@@ -574,12 +579,20 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
 
 bool MeshPass(void* device) {
     if (!g_pending.active || device != g_pending.device) return true;
+    StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = CurrentFrame();
     if (!g_pending.built) {
         g_pending.built = true;
+        ++Stats().meshes;
+        std::size_t first = f.meshVertices.size();
         if (!Build(f, g_pending)) {
             g_pending.active = false;
             return true;
+        }
+        CountReuse(false, g_pending.mesh.positions, 0, f.meshVertices.data() + first, f.meshVertices.size() - first);
+        if (!g_pending.mesh.corners) {
+            ++Stats().flatMeshes;
+            Stats().flatVertexBytes += (f.meshVertices.size() - first) * sizeof(Vertex);
         }
     }
     if (g_pending.indexCount > 0) {
@@ -595,6 +608,7 @@ bool MeshPass(void* device) {
         batch.unclipped = !g_pending.mesh.clipped;
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
         batch.model = true;
+        ++Stats().meshPasses;
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
@@ -607,6 +621,8 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
             int primitive) {
     if (!device || !vertices || vertexCount <= 0 || !Active() || !Started()) return true;
     if (fvf != 0x1C4 && fvf != 0xC4) return true;   // not a layout the game uses for these
+    StatsTimer timer(&FrameStats::handOverMs);
+    ++Stats().transformedDraws;
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height)) return true;
     Frame& f = CurrentFrame();
@@ -678,6 +694,8 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
 
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
     if (!device || !vertices || count <= 0 || !Active() || !Started()) return true;
+    StatsTimer timer(&FrameStats::handOverMs);
+    ++Stats().transformedDraws;
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height)) return true;
     Frame& f = CurrentFrame();

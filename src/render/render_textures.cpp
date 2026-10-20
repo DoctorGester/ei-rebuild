@@ -207,7 +207,8 @@ std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* 
 
 // An RGBA8 image from `levels` (level 0 first); levels not given are box-filtered from the last one,
 // down to 1x1.
-sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>> levels, const char* label) {
+sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>> levels, const char* label,
+                   FrameStats::Upload kind) {
     int w = width, h = height;
     for (std::size_t i = 1; i < levels.size(); ++i) {
         w = w > 1 ? w / 2 : 1;
@@ -219,9 +220,14 @@ sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>>
     desc.height = height;
     desc.num_mipmaps = static_cast<int>(levels.size());
     desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    for (std::size_t i = 0; i < levels.size(); ++i) desc.data.mip_levels[i] = sg_range{levels[i].data(), levels[i].size()};
+    std::size_t bytes = 0;
+    for (std::size_t i = 0; i < levels.size(); ++i) {
+        desc.data.mip_levels[i] = sg_range{levels[i].data(), levels[i].size()};
+        bytes += levels[i].size();
+    }
     desc.label = label;
     CountImage(ImageUse::Texture, true);
+    CountUpload(kind, bytes);
     return sg_make_image(&desc);
 }
 
@@ -239,7 +245,7 @@ sg_view MakeTextureView(sg_image image) {
 
 const Texture& White() {
     if (!g_white.image.id) {
-        g_white.image = MakeImage(1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white");
+        g_white.image = MakeImage(1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white", FrameStats::Small);
         g_white.view = MakeTextureView(g_white.image);
     }
     return g_white;
@@ -273,6 +279,7 @@ bool MemoryChanged(const Snapshots& snapshots, const void* holder, const Surface
     GdiFlush();
     auto it = snapshots.find(holder);
     if (it == snapshots.end() || it->second.size() != MemoryBytes(m)) return true;
+    Stats().comparedBytes += it->second.size();
     return std::memcmp(it->second.data(), m.bits, it->second.size()) != 0;
 }
 
@@ -301,7 +308,7 @@ void ReadClientTexture(Texture& t, const void* holder, const SurfaceMemory& c) {
     }
     std::vector<std::vector<std::uint8_t>> levels;
     levels.push_back(std::move(pixels));
-    t.image = MakeImage(c.width, c.height, std::move(levels), "ei-client-texture");
+    t.image = MakeImage(c.width, c.height, std::move(levels), "ei-client-texture", FrameStats::MemoryTexture);
     t.view = MakeTextureView(t.image);
     if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
         if (t.view.id) sg_destroy_view(t.view);
@@ -332,6 +339,7 @@ void ReadWindow(Texture& t, const void* holder, const SurfaceMemory& m, bool key
     d.data.mip_levels[0] = sg_range{pixels.data(), pixels.size()};
     d.label = "ei-window-surface";
     CountImage(ImageUse::Window, true);
+    CountUpload(FrameStats::WindowSurface, pixels.size());
     t.image = sg_make_image(&d);
     t.view = MakeTextureView(t.image);
     if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
@@ -347,6 +355,7 @@ void Remake(Texture& t);
 } // namespace
 
 sg_view SurfaceView(const void* holder) {
+    StatsTimer timer(&FrameStats::textureMs);
     auto memory = g_memory.find(holder);
     std::uint32_t frame = FrameNumber();
     if (memory == g_memory.end()) {
@@ -382,11 +391,12 @@ sg_view SurfaceView(const void* holder) {
 // renderer's: that memory is what the texture shows.
 bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                   const char* label, TextureSource source) {
+    FrameStats::Upload kind = source.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp;
     if (!holder || g_memory.count(holder)) return false;
     Texture& t = g_textures[holder];
     t.usedFrame = FrameNumber();
     Retire(t);
-    t.image = MakeImage(width, height, std::move(levels), label);
+    t.image = MakeImage(width, height, std::move(levels), label, kind);
     t.view = MakeTextureView(t.image);
     if (!t.view.id) {
         if (t.image.id) sg_destroy_image(t.image);
@@ -645,7 +655,8 @@ void Remake(Texture& t) {
     } else {
         return;
     }
-    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again");
+    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again",
+                        s.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp);
     t.view = MakeTextureView(t.image);
     if (!t.view.id) {
         if (t.image.id) sg_destroy_image(t.image);
@@ -689,6 +700,7 @@ sg_view TextureView(const void* texture) {
 
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height) {
     *width = *height = 0;
+    StatsTimer timer(&FrameStats::textureMs);
     auto memory = g_memory.find(holder);
     if (memory == g_memory.end()) return sg_view{};
     std::uint32_t frame = FrameNumber();
@@ -866,6 +878,7 @@ namespace render {
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
     if (!holder || !data || !Active() || !detail::Started()) return false;
     detail::FpuGuard fpu;
+    detail::StatsTimer timer(&FrameStats::textureMs);
     return detail::TextureFromMmpData(holder, data, mip, levels);
 }
 

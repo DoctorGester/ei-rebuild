@@ -224,6 +224,10 @@
 //                             fraction of its pixels (by more than 8) within <least>..<most>: the
 //                             world's edges and textures, nothing black or stale. Skipped in a run of
 //                             the original code
+//   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
+//                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
+//                             draws and state changes, images made, CPU time); "-" only starts a new
+//                             count. Skipped in a run of the original code
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
@@ -2863,6 +2867,46 @@ void RunSteps() {
             else if (!info.on || info.targetSamples < 2 || info.targetSamples != info.deviceSamples ||
                      info.multisampledPasses < 1 || info.anisotropicModels < 1 || differing < least || differing > most)
                 g_failures.push_back(text);
+        } else if (s.verb == "renderstats") {
+            if (!render::Active()) {
+                Log("harness: renderstats %s: not the new renderer (the original code): skipped", s.argument.c_str());
+                continue;
+            }
+            render::FrameStats t = render::TakeFrameStats();
+            if (s.argument == "-" || t.frames == 0) continue;   // a new count begins
+            double n = static_cast<double>(t.frames);
+            auto kb = [n](std::uint64_t bytes) { return static_cast<double>(bytes) / 1024.0 / n; };
+            auto per = [n](std::uint64_t count) { return static_cast<double>(count) / n; };
+            using F = render::FrameStats;
+            char text[1800];
+            std::snprintf(
+                text, sizeof(text),
+                "renderstats %s: %u frames of %dx%d, per frame: hand-over %.0f terrain pages -> %.0f batches, %.0f meshes / %.0f "
+                "passes (%.0f flat, %.1f KB), %.0f pre-transformed, %.0f blits, %.0f depth clears, %.0f state reads, "
+                "%.0f matrices; against the last frame (same / relit / moved / new): terrain pages %.0f / %.0f / %.0f / %.0f, meshes %.0f / %.0f / "
+                "%.0f / %.0f, %.0f meshes share another's geometry; upload KB "
+                "terrain %.1f v + %.1f i, meshes %.1f v + %.1f i, uniforms %.1f; %.1f passes, %.0f draws, pipelines %.0f "
+                "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
+                "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
+                "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
+                "CPU ms hand-over %.3f, textures %.3f, end of frame %.3f (counting %.3f)",
+                s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
+                per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
+                per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
+                per(t.terrainReuse[F::Same]), per(t.terrainReuse[F::Relit]), per(t.terrainReuse[F::Moved]),
+                per(t.terrainReuse[F::New]), per(t.meshReuse[F::Same]), per(t.meshReuse[F::Relit]), per(t.meshReuse[F::Moved]),
+                per(t.meshReuse[F::New]), per(t.sharedMeshes),
+                kb(t.terrainVertexBytes), kb(t.terrainIndexBytes), kb(t.meshVertexBytes), kb(t.meshIndexBytes), kb(t.uniformBytes),
+                per(t.passes), per(t.draws), per(t.pipelineApplies), per(t.pipelineChanges), per(t.bindings),
+                per(t.textureChanges), per(t.uploads[F::Mmp]), kb(t.uploadBytes[F::Mmp]), per(t.uploads[F::CpuPixels]),
+                kb(t.uploadBytes[F::CpuPixels]), per(t.uploads[F::MemoryTexture]), kb(t.uploadBytes[F::MemoryTexture]),
+                per(t.uploads[F::WindowSurface]), kb(t.uploadBytes[F::WindowSurface]), per(t.uploads[F::Movie]),
+                kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
+                static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,
+                static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
+                t.handOverMs / n, t.textureMs / n, t.endFrameMs / n, t.statsMs / n);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";
