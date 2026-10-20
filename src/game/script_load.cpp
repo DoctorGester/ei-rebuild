@@ -204,7 +204,7 @@ void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
 template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&values), count, kFloats);
-    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    names.SetSize(count, -1);
     for (int i = 0; i < values.size; ++i) {
         stream->Read(&values.data[i], 4);
         ScriptStringLoad(&names.data[i], stream);
@@ -215,7 +215,7 @@ EI_REPLACE_METHOD(0x004C2D40, ScriptNamedValues<float>::Load);
 template <> void ScriptNamedValues<mfc::CString>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&values), count, kStrings);
-    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    names.SetSize(count, -1);
     for (int i = 0; i < values.size; ++i) {
         ScriptStringLoad(&values.data[i], stream);
         ScriptStringLoad(&names.data[i], stream);
@@ -228,7 +228,7 @@ EI_REPLACE_METHOD(0x004C3200, ScriptNamedValues<mfc::CString>::Load);
 template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&values), count, kRefs);
-    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    names.SetSize(count, -1);
     for (int i = 0; i < values.size; ++i) {
         ScriptObjectRef* ref = &values.data[i];
         int id = 0;
@@ -252,7 +252,7 @@ EI_REPLACE_METHOD(0x004C36B0, ScriptNamedValues<ScriptObjectRef>::Load);
 template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&values), count, kGroups);
-    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    names.SetSize(count, -1);
     for (int i = 0; i < values.size; ++i) {
         ScriptGroup* group = &values.data[i];
         int size = 0;
@@ -283,7 +283,7 @@ void SSCCmd::Load(ScriptStream* stream) {
     floatArgs.SetSize(ReadInt(stream), -1);   // 004C4410
     for (int i = 0; i < floatArgs.size; ++i) stream->Read(&floatArgs.data[i], 4);
 
-    NamesSetSizeOriginal(&stringArgs, nullptr, ReadInt(stream), -1);
+    stringArgs.SetSize(ReadInt(stream), -1);
     for (int i = 0; i < stringArgs.size; ++i) ScriptStringLoad(&stringArgs.data[i], stream);
 
     int objects = ReadInt(stream);
@@ -381,7 +381,7 @@ void ScriptVars::Load(ScriptStream* stream) {
     int slot = 0;
     stream->Read(&slot, 4);
     floats.SetSize(slot, -1);   // 004C2880
-    NamesSetSizeOriginal(&floatNames, nullptr, slot, -1);
+    floatNames.SetSize(slot, -1);
     for (slot = 0; slot < floats.size; ++slot) {
         stream->Read(&floats.data[slot], 4);
         ScriptStringLoad(&floatNames.data[slot], stream);
@@ -389,8 +389,8 @@ void ScriptVars::Load(ScriptStream* stream) {
 
     int count = 0;
     stream->Read(&count, 4);
-    NamesSetSizeOriginal(&strings, nullptr, count, -1);
-    NamesSetSizeOriginal(&stringNames, nullptr, count, -1);
+    strings.SetSize(count, -1);
+    stringNames.SetSize(count, -1);
     for (int i = 0; i < strings.size; ++i) {
         ScriptStringLoad(&strings.data[i], stream);
         ScriptStringLoad(&stringNames.data[i], stream);
@@ -399,7 +399,7 @@ void ScriptVars::Load(ScriptStream* stream) {
     count = 0;
     stream->Read(&count, 4);
     PtrArraySetSize(static_cast<ScriptGroup*>(static_cast<void*>(&objects)), nullptr, count, -1);
-    NamesSetSizeOriginal(&objectNames, nullptr, count, -1);
+    objectNames.SetSize(count, -1);
     for (int i = 0; i < objects.size; ++i) {
         ScriptObjectRef* ref = &objects.data[i];
         stream->Read(&slot, 4);
@@ -415,7 +415,7 @@ void ScriptVars::Load(ScriptStream* stream) {
     count = 0;
     stream->Read(&count, 4);
     GroupValuesSetSize(&groups, nullptr, count, -1);
-    NamesSetSizeOriginal(&groupNames, nullptr, count, -1);
+    groupNames.SetSize(count, -1);
     for (int i = 0; i < groups.size; ++i) {
         ScriptGroup* group = &groups.data[i];
         stream->Read(&slot, 4);

@@ -128,7 +128,7 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     }
     cmd->floatArgs.maxSize = 0;
     cmd->floatArgs.size = 0;
-    NamesSetSizeOriginal(&cmd->stringArgs, nullptr, 0, -1);
+    cmd->stringArgs.SetSize(0, -1);
     cmd->objectArgs.SetSize(0, -1);
     cmd->groupArgs.SetSize(0, -1);
     cmd->localBindings.SetSize(0, -1);

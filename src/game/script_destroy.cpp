@@ -37,7 +37,7 @@ void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructEl
 // and a nested call (004CE230: its command destroyed with 004BF640 and deleted).
 // Out-of-line CArray destructors (__thiscall): CString arrays (004C26A0), object references
 // (004C2290), the ScriptVars floats (004C29C0).
-void __fastcall NamesDestruct(void* a0) { CStringArrayDestructOriginal(a0); }
+void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }   // 004C26A0 is 004BC810's body
 inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29C0)
 

@@ -149,7 +149,7 @@ void InitArray(mfc::CArray<T>* a, void* vtable) {
 // A string array constructed empty, resized with 004C2510, each element assigned from a GetAt copy.
 void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
     InitArray(to, scriptvtable::kStrings);
-    NamesSetSizeOriginal(to, nullptr, from->size, -1);
+    to->SetSize(from->size, -1);
     for (int i = 0; i < from->size; ++i) {
         TempString s;
         StringAt(from, nullptr, &s, i);

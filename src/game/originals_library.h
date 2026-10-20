@@ -22,7 +22,6 @@ namespace stlp { class string; }
 
 __declspec(naked) inline RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/)
     EI_ORIGINAL(0x0042AF80)
-__declspec(naked) inline void __fastcall NamesSetSizeOriginal(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
 __declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
 __declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
 __declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
@@ -124,9 +123,7 @@ __declspec(naked) inline void __fastcall HashEraseOriginal(void* /*map*/, void*,
     EI_ORIGINAL(0x00405720)
 __declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
                                                                     void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
-// 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; the group's destructor body 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
-// (vtable 0073D2F8; plain RET, EAX not a result).
-__declspec(naked) inline void __fastcall CStringArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C26A0)
+// 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; the group's destructor body 004B5EF0 each).
 // 004C3B20 / 004C5AF0: CArray<ScriptGroup> / CArray<ScriptIfThen>::~CArray (plain RET).
 __declspec(naked) inline void __fastcall ScriptGroupArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C3B20)
 __declspec(naked) inline void __fastcall ScriptIfThenArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C5AF0)

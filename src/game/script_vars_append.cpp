@@ -56,7 +56,7 @@ void CopyName(mfc::CArray<mfc::CString>* names, int to, const mfc::CArray<mfc::C
 template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>* other) {
     int old = values.size;
     InlineSetSize(Raw(&values), other->values.size + old, kFloats);
-    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
+    names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         x87::CopyFloat(&values.data[old + i], &other->values.data[i]);
@@ -67,7 +67,7 @@ EI_REPLACE_METHOD(0x004C2B70, ScriptNamedValues<float>::Append);
 template <> void ScriptNamedValues<mfc::CString>::Append(const ScriptNamedValues<mfc::CString>* other) {
     int old = values.size;
     InlineSetSize(Raw(&values), other->values.size + old, kStrings);
-    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
+    names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         TempString value;
@@ -81,7 +81,7 @@ EI_REPLACE_METHOD(0x004C2FE0, ScriptNamedValues<mfc::CString>::Append);
 template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other) {
     int old = values.size;
     InlineSetSize(Raw(&values), other->values.size + old, kRefs);
-    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
+    names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         ScriptObjectRef value;
@@ -100,7 +100,7 @@ EI_REPLACE_METHOD(0x004C3450, ScriptNamedValues<ScriptObjectRef>::Append);
 template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other) {
     int old = values.size;
     InlineSetSize(Raw(&values), other->values.size + old, kGroups);
-    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
+    names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         ScriptGroup copy;
@@ -143,7 +143,7 @@ void FreeValues(ScriptNamedValues<T>* vars, Destroy destroy) {
     }
     vars->values.maxSize = 0;
     vars->values.size = 0;
-    NamesSetSizeOriginal(&vars->names, nullptr, 0, -1);
+    vars->names.SetSize(0, -1);
 }
 
 void DestroyGroups(ScriptGroup* groups, int count) {
@@ -178,11 +178,11 @@ EI_REPLACE(0x004C1760, ScriptGroupsClear);
 // storage is freed inline (each group destroyed first).
 void __fastcall ScriptVarsClear(ScriptVars* vars) {
     vars->floats.SetSize(0, -1);
-    NamesSetSizeOriginal(&vars->floatNames, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars->strings, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars->stringNames, nullptr, 0, -1);
+    vars->floatNames.SetSize(0, -1);
+    vars->strings.SetSize(0, -1);
+    vars->stringNames.SetSize(0, -1);
     PtrArraySetSize(reinterpret_cast<ScriptGroup*>(&vars->objects), nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars->objectNames, nullptr, 0, -1);
+    vars->objectNames.SetSize(0, -1);
     if (vars->groups.data) {
         DestroyGroups(vars->groups.data, vars->groups.size);
         gamecrt::operator_delete(vars->groups.data);
@@ -190,7 +190,7 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
     }
     vars->groups.maxSize = 0;
     vars->groups.size = 0;
-    NamesSetSizeOriginal(&vars->groupNames, nullptr, 0, -1);
+    vars->groupNames.SetSize(0, -1);
 }
 EI_REPLACE(0x004C0020, ScriptVarsClear);
 

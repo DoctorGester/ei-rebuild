@@ -113,7 +113,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         if (FindName(vars.stringNames, text) >= 0) {
             result = 0;
         } else {
-            NamesSetSizeOriginal(&vars.strings, nullptr, vars.strings.size + 1, -1);
+            vars.strings.SetSize(vars.strings.size + 1, -1);
             mfc::CString temp(text);
             ScriptNamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
             result = 1;
@@ -138,7 +138,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
             GroupValuesSetSize(&vars.groups, nullptr, vars.groups.size + 1, -1);
             mfc::CString temp(text);
             int at = vars.groupNames.size;
-            NamesSetSizeOriginal(&vars.groupNames, nullptr, at + 1, -1);
+            vars.groupNames.SetSize(at + 1, -1);
             vars.groupNames.data[at] = temp;
             result = 1;
         }

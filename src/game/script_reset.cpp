@@ -135,13 +135,13 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     definition->ifThen.size = 0;
     ScriptVars& vars = definition->vars;
     vars.floats.SetSize(0, -1);
-    NamesSetSizeOriginal(&vars.floatNames, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.strings, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.stringNames, nullptr, 0, -1);
+    vars.floatNames.SetSize(0, -1);
+    vars.strings.SetSize(0, -1);
+    vars.stringNames.SetSize(0, -1);
     PtrArraySetSize(&vars.objects, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.objectNames, nullptr, 0, -1);
+    vars.objectNames.SetSize(0, -1);
     GroupValuesSetSize(&vars.groups, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.groupNames, nullptr, 0, -1);
+    vars.groupNames.SetSize(0, -1);
     definition->index = 0;
     const char* empty = game::EmptyText();
     definition->params = empty;

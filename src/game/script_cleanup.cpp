@@ -31,7 +31,7 @@ void RemoveAll(mfc::CList<T>& list, Destroy destroy) {
 
 // The group variables (names, then values) of a removed instance or run.
 void DestroyGroupVariables(ScriptVars& vars) {
-    CStringArrayDestructOriginal(&vars.groupNames);
+    ScriptNamesDestruct(&vars.groupNames);
     ScriptGroupArrayDestructOriginal(&vars.groups);
 }
 
@@ -75,15 +75,15 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         gamelists::RunRemoveHead(reinterpret_cast<gamelists::Runs::List*>(&script->runs_), nullptr, reinterpret_cast<ScriptRun*>(element));
         ScriptVars& vars = reinterpret_cast<ScriptRun*>(element)->vars;
         DestroyGroupVariables(vars);
-        CStringArrayDestructOriginal(&vars.objectNames);
+        ScriptNamesDestruct(&vars.objectNames);
         vars.objects.vtable = scriptvtable::kRefsBase;
         if (vars.objects.data) {
             gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
             gamecrt::operator_delete(vars.objects.data);
         }
-        CStringArrayDestructOriginal(&vars.stringNames);
-        CStringArrayDestructOriginal(&vars.strings);
-        CStringArrayDestructOriginal(&vars.floatNames);
+        ScriptNamesDestruct(&vars.stringNames);
+        ScriptNamesDestruct(&vars.strings);
+        ScriptNamesDestruct(&vars.floatNames);
         vars.floats.vtable = scriptvtable::kFloatsBase;
         if (vars.floats.data) gamecrt::operator_delete(vars.floats.data);
     }
