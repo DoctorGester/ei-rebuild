@@ -1,0 +1,12 @@
+{
+  "scenario": "rebirth_fixes_world",
+  "install": "vanilla",
+  "recorded": "2026-10-20",
+  "commit": "03b6ca50",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "SV9a: scenarios that reach Rebirth's other fixes, recorded from the original with addon.dll's fixes",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}
