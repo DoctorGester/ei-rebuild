@@ -44,9 +44,8 @@ __declspec(naked) void __fastcall HeadersSplice(HeaderNode** /*list*/, void*, He
                                                 HeaderNode* /*first*/, HeaderNode* /*last*/) EI_ORIGINAL(0x00438770)
 __declspec(naked) HeaderNode** __fastcall HeaderIteratorCopy(HeaderNode** /*it*/, void*, HeaderNode* const* /*from*/) EI_ORIGINAL(0x004387C0)
 __declspec(naked) HistoryNode** __fastcall ListIteratorDecrement(HistoryNode** /*it*/) EI_ORIGINAL(0x00439A60)
-// Red-black trees: iterator increment, find / lower_bound, insert with a hint, erase by key,
+// Red-black trees: find / lower_bound, insert with a hint, erase by key,
 // operator[].
-void __fastcall TreeIncrement(void** a0) { TreeIncrementOriginal((void*)a0); }
 __declspec(naked) RecordMap::Node** __fastcall RecordsFind(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
                                                            const std::int32_t* /*key*/) EI_ORIGINAL(0x0043CE70)
 __declspec(naked) RecordMap::Node** __fastcall RecordsLowerBound(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
@@ -125,7 +124,7 @@ std::int32_t BufferedSize(GameBuffer* b) {
 // A tree iterator moved on (the library's ++).
 template <typename Node>
 void Increment(Node*& it) {
-    TreeIncrement(reinterpret_cast<void**>(&it));
+    it = Node::From(stlp::rb::Next(it->Base()));
 }
 
 // The handlers registered for message `type` on `channel` (__fastcall: session, message). The end

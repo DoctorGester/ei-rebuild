@@ -5,6 +5,7 @@
 #include "world.h"
 
 #include "ai_map.h"
+#include "hash_tables_400.h"
 #include "core_maths.h"
 #include "map_object.h"
 #include "net_classes.h"
@@ -52,7 +53,6 @@ struct WorldBase {
 CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, static_cast<int>(id)); }
 
 // RemoveObject's callees (not rewritten).
-// 00599A80 (RET 4). An id map's erase(key).
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
 // 005300D0 (RET 4). The unit's controller is replaced (here by none).
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
@@ -218,7 +218,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!object) return;
     if (object->GetClassId() != kClassNoSector) SectorMapRemove(AsSectorMap(sectorMap_), nullptr, *slot);
 
-    IdMapEraseOriginal(&updateMap_, nullptr, &id);
+    hash400::ObjectsRemoveKey(updateMap_.map, id);
     EraseId(objects_, id);
     if (namedObjects_.map.Find(id)) EraseId(namedObjects_, id);
     if (sentObjects_.map.Find(id)) {

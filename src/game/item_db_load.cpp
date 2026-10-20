@@ -145,12 +145,6 @@ namespace {
 __declspec(naked) void __fastcall SpellsResize(void*, void*, unsigned) EI_ORIGINAL(0x00685730)
 __declspec(naked) void __fastcall SpellModifiersResize(void*, void*, unsigned) EI_ORIGINAL(0x006858D0)
 __declspec(naked) void __fastcall SpellListsResize(void*, void*, unsigned) EI_ORIGINAL(0x00684D60)
-// The records' Serialize (rewritten below), called through their addresses so that their verify
-// wrappers run for every record.
-// STLport instantiations: vector<int>::_M_fill_insert(position, count, value) (RET 0xC),
-// vector<string>::erase(first, last) (RET 8) and resize(count) (RET 4).
-__declspec(naked) void __fastcall IntsFillInsert(stlp::vector<int>*, void*, int* /*position*/, unsigned /*count*/,
-                                                 const int* /*value*/) EI_ORIGINAL(0x0055B030)
 
 // A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
 // to the field count first.
@@ -224,7 +218,7 @@ void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
         values->Finish() = values->Start();
         count = CountChunks(1);
         int zero = 0;
-        IntsFillInsert(values, nullptr, values->Finish(), static_cast<unsigned>(count), &zero);
+        values->FillInsert<stlp::PlainElement<int>>(values->Finish(), static_cast<unsigned>(count), zero);
     } else {
         count = static_cast<int>(values->size());
     }

@@ -560,19 +560,27 @@ def loose_index(decls):
     return _LOOSE['idx']
 
 
+def using_namespaces(src):
+    """The namespaces a file opens with `using namespace N;` (as lists of names)."""
+    return [m.group(1).split('::') for m in re.finditer(r'(?<![\w])using\s+namespace\s+([\w:]+)\s*;', src.bare)]
+
+
 def resolve_registered(name, src, decls, simple_index):
     """resolve_target for a registration in `src`: the name as written, then with its aliases written out, then
     by its qualifier-free form."""
     t, why = resolve_target(name, decls, simple_index)
     if t is not None or why != 'target not found in the map':
         return t, why, name
-    ns = [n for n in src.namespaces_at(0)] if False else []
-    expanded = expand_aliases(name, src, ns)
-    if expanded != name:
-        t2, why2 = resolve_target(expanded, decls, simple_index)
-        if t2 is not None or why2 != 'target not found in the map':
-            return t2, why2, expanded
-    for cand in (expanded, name):
+    # The aliases of the file's scope, then of the namespaces it opens with `using namespace`.
+    expansions = []
+    for ns in [[]] + using_namespaces(src):
+        expanded = expand_aliases(name, src, ns)
+        if expanded != name and expanded not in expansions:
+            expansions.append(expanded)
+            t2, why2 = resolve_target(expanded, decls, simple_index)
+            if t2 is not None or why2 != 'target not found in the map':
+                return t2, why2, expanded
+    for cand in expansions + [name]:
         hits = loose_index(decls).get(loose_key(cand), set())
         if len(hits) != 1:
             # Default template arguments the registration leaves out (ArrayAbi<Bytes<8>> for
@@ -872,6 +880,21 @@ def spelled(t, src, offset):
 # does not read must be plain arguments (nullptr, a literal or a name).
 
 _ERASED_LEAF = re.compile(r'^(?:mfc::impl::Bytes|stlp::Opaque|Bytes|Opaque)<\d+>$')
+# Element types a registered instantiation stands for when the caller's container holds another element of
+# the same size and kind (vector<unsigned int> for vector<int> or vector<T*>, CList<void*> for CList<T*>,
+# vector<char> for vector<unsigned char>): the caller's own instantiation of the member is the same code.
+# Never float / double (an x87 copy is not a bit copy) or class types (those are erased leaves above).
+_FOUR_BYTE_INTS = {'int', 'unsigned int', 'long', 'unsigned long'}
+_RETARGET = {
+    'unsigned int': lambda y: y in _FOUR_BYTE_INTS or _plain_pointer(y),
+    'void*': lambda y: _plain_pointer(y),
+    'char': lambda y: y in ('unsigned char', 'signed char'),
+}
+
+
+def _plain_pointer(text):
+    """A data pointer type's text (not a function pointer)."""
+    return text.endswith('*') and '(' not in text
 _BODY_CALL = re.compile(r'^(return\s+)?self\s*->\s*(?:template\s+)?([A-Za-z_]\w*)\s*(<[^()]*>)?\s*\((.*)\)\s*;$', re.S)
 _TYPE_WORDS = {'const', 'void', 'int', 'unsigned', 'char', 'float', 'double', 'bool', 'short', 'long', 'signed'}
 
@@ -994,7 +1017,7 @@ def erased_match(want, have, subst):
             return False
         for x, y in zip(wa, ha):
             xt, yt = tree_text(x), tree_text(y)
-            if _ERASED_LEAF.match(xt):
+            if _ERASED_LEAF.match(xt) or (xt != yt and xt in _RETARGET and _RETARGET[xt](yt)):
                 if subst.setdefault(xt, yt) != yt:
                     return False
             elif not erased_match(x, y, subst):
@@ -1006,7 +1029,7 @@ def substituted(t, subst):
     """A normalised type with the erased types replaced (`Bytes<8>const*` -> `AreaOffset const*`)."""
     for k, v in subst.items():
         t = re.sub(re.escape(k) + r'(?=\w)', v + ' ', t).replace(k, v)
-    return t
+    return normalize_type(t) if subst else t
 
 
 def match_unwrap(fsig, tsig, classes):
@@ -1029,15 +1052,21 @@ def match_unwrap(fsig, tsig, classes):
     member, targs, order, names = body
     subst = {}
     if fbase != tbase:
-        if not erased_match(name_tree(tbase), name_tree(fbase), subst) or not subst or targs:
+        if not erased_match(name_tree(tbase), name_tree(fbase), subst) or not subst:
             return None, f'object {fself} for {tself}'
+        if targs:
+            # The member's element policy follows a retargeted element (PlainElement<unsigned int> ->
+            # PlainElement<int>); an erased element's policy may be the wrapper's own, so not those.
+            if any(_ERASED_LEAF.match(k) for k in subst):
+                return None, f'object {fself} for {tself}'
+            targs = [substituted(normalize_type(x), subst) for x in targs]
     used = {i for i, _ in order}
+    # A parameter is the wrapper's with the element replaced, or (a count, an index) unchanged.
     for i, (a, b) in enumerate(zip(fsig.params[1:], tsig.params[1:]), 1):
-        b = substituted(b, subst)
-        if i in used and not same_params([a], [b]):
-            return None, f'parameter {a} for {b}'
+        if i in used and not same_params([a], [substituted(b, subst)]) and not same_params([a], [b]):
+            return None, f'parameter {a} for {substituted(b, subst)}'
     ret = substituted(tsig.ret, subst)
-    if fsig.ret != 'void' and ret != fsig.ret:
+    if fsig.ret != 'void' and ret != fsig.ret and tsig.ret != fsig.ret:
         return None, f'result {ret} read as {fsig.ret}'
     return 'unwrap', {'member': member, 'targs': targs, 'order': order, 'used': used}
 

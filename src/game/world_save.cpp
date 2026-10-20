@@ -479,7 +479,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 auto* missile = memory ? reinterpret_cast<Projectile*>(static_cast<CSpellEffect*>(memory)->Construct()) : nullptr;
                 reinterpret_cast<CSpellEffect*>(missile)->Load(stream);
                 auto& list = projectiles_;
-                ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
+                ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
                 RefPtrAssign(&node->data, nullptr, missile);
                 if (list.tail) list.tail->next = node;
                 else list.head = node;

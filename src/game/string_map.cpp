@@ -168,8 +168,7 @@ void __fastcall PanelShow(void*, void*, std::uint8_t);
 namespace {
 
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
-// surface's constructor and destructor body, the red-black tree's increment (library).
-void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal(a0); }
+// surface's constructor and destructor body.
 
 // MFC CFont's vtable (0073BFB4) and the panel's font face (007842C8).
 constexpr std::uintptr_t kFontVtable = std::uintptr_t(0x0073BFB4);
@@ -286,7 +285,7 @@ void __fastcall PanelRedraw(void* self) {
         gameapi::OffsetRect(&key, 0, 15);
         gameapi::OffsetRect(&value, 0, 15);
         if (key.bottom > asked.bottom - asked.top) break;
-        TreeIncrement(&it);
+        it = StringMap::Next(it);
     }
     dc->SelectFont(oldFont);
     UiSurfaceReleaseDC(panel->surface_);

@@ -32,11 +32,10 @@ __declspec(naked) void __fastcall AnimFind(AnimationMap*, void*, AnimationMap::I
 __declspec(naked) AnimationMap::Pair* __fastcall AnimIndex(AnimationMap*, void*, const stlp::string*) EI_ORIGINAL(0x005ADC10)
 
 // The STLport hashtable's inlined constructor: the buckets vector's end-of-storage member from an
-// allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8),
-// reserve (RET 4) and insert(pos, n, value) (RET 0xC).
+// allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8) and
+// insert(pos, n, value) (RET 0xC); reserve is the vector's own.
 using BucketVector = stlp::vector<AnimationMap::Node*>;
 __declspec(naked) void __fastcall BucketsEndOfStorage(AnimationMap::Node***, void*, const void*, const void*) EI_ORIGINAL(0x005AD640)
-__declspec(naked) void __fastcall BucketsReserve(BucketVector*, void*, std::uint32_t) EI_ORIGINAL(0x005AD880)
 __declspec(naked) void __fastcall BucketsInsert(BucketVector*, void*, AnimationMap::Node**, std::uint32_t, const void*) EI_ORIGINAL(0x005ADAD0)
 
 // The data of "<name><suffix>" (the manager's GetFile), or null.
@@ -131,7 +130,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     std::uint32_t hint = 100;
     const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
     std::uint32_t n = prime == last ? *reinterpret_cast<const std::uint32_t*>(0x0073B980) : *prime;
-    BucketsReserve(buckets, nullptr, n);
+    buckets->Reserve<stlp::PlainElement<AnimationMap::Node*>>(n);
     void* none = nullptr;
     BucketsInsert(buckets, nullptr, buckets->Finish(), n, &none);
     *count = 0;

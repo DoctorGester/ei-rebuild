@@ -26,9 +26,6 @@ __declspec(naked) void __fastcall ByTypeResize(TypeRegistry::ByType* /*table*/, 
 TypeRegistry::ByVtable::Node* __fastcall ByVtableNewNode(TypeRegistry::ByVtable* a0, void*, const TypeRegistry::ByVtable::Pair* a2) { return (TypeRegistry::ByVtable::Node*)ByVtableNewNodeOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) TypeRegistry::ByType::Node* __fastcall ByTypeNewNode(TypeRegistry::ByType* /*table*/, void*,
                                                                       const TypeRegistry::ByType::Pair* /*pair*/) EI_ORIGINAL(0x0042AA00)
-// vector<handler>::_M_insert_overflow(pos, const value&, n) (library).
-__declspec(naked) void __fastcall HandlersInsertOverflow(HandlerVector* /*v*/, void*, void** /*pos*/,
-                                                         void* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x0043D5F0)
 
 // vector<Replicated>: push_back of a default element (0041F790), _M_insert_overflow (00426B10).
 __declspec(naked) void __fastcall ReplicatedPushDefault(ReplicatedVector* /*v*/) EI_ORIGINAL(0x0041F790)
@@ -134,7 +131,7 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     if (channel < 0 || channel >= kChannels) return;
     HandlerVector& v = handlers_[channel][type & 0xFF];
     if (v.end() == v.EndOfStorage()) {
-        HandlersInsertOverflow(&v, nullptr, v.end(), &handler, 1);
+        v.InsertOverflow<stlp::PlainElement<void*>>(v.end(), handler, 1);
         return;
     }
     if (v.end()) *v.Finish() = handler;

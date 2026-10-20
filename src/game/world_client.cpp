@@ -2,6 +2,7 @@
 #include "texture.h"
 #include "world.h"
 #include "world_data.h"
+#include "hash_tables_400.h"
 
 #include "core_maths.h"
 #include "map_object.h"
@@ -453,7 +454,7 @@ int CWorldClient::Segment() {
             void* position = nullptr;
             if (PendingMapLookup(&dynamicNodes_, nullptr, reinterpret_cast<const std::uint32_t*>(&key), &position)) {
                 PendingListRemoveAt(&dynamicObjects_, nullptr, position);
-                IdMapRemoveKeyOriginal(&dynamicNodes_, nullptr, &key);
+                hash400::PositionsRemoveKey(dynamicNodes_, key);
             }
         }
         for (CEngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())

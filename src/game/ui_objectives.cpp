@@ -169,10 +169,9 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
 __declspec(naked) void __fastcall ExitsSetAtGrow(mfc::CArray<ObjectiveExit>*, void*, int /*index*/,
                                                  const ObjectiveExit&) EI_ORIGINAL(0x0064F160)
 
-// The global map's exit distances (STLport map<int, float>); 0043DBE0 (not rewritten) is the
-// rb-tree iterator increment (thiscall on the iterator).
-using DistanceNode = stlp::map<int, float>::Node;
-void __fastcall TreeIncrement(DistanceNode** a0) { TreeIncrementOriginal((void*)a0); }
+// The global map's exit distances (STLport map<int, float>).
+using DistanceMap = stlp::map<int, float>;
+using DistanceNode = DistanceMap::Node;
 
 // A surface's text (005FDE20, Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
@@ -297,7 +296,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                     }
                     break;
                 }
-                TreeIncrement(&node);
+                node = DistanceMap::Next(node);
             }
         } else {
             mfc::CString name;

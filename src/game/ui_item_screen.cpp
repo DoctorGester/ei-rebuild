@@ -24,13 +24,8 @@ namespace {
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-// The caches' map (STLport, library code): 0043DBE0 steps an iterator, 005F3140 / 005F32A0 erase
-// an entry of the model / texture map (thiscall, iterator by value).
-struct CacheIterator {
-    ItemObjectCache::Node* node;
-    void Next();   // 0043DBE0
-};
-void CacheIterator::Next() { TreeIncrementOriginal((void*)this); }
+// The caches' map (STLport, library code): 005F3140 / 005F32A0 erase an entry of the model /
+// texture map (thiscall, iterator by value).
 __declspec(naked) void __fastcall EraseModel(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F3140)
 __declspec(naked) void __fastcall EraseTexture(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F32A0)
 
@@ -42,14 +37,11 @@ void Trim(ItemObjectCache* cache, EraseFn erase) {
     while (cache->count > cache->limit) {
         std::uint32_t oldestTime = gameapi::timeGetTime();
         ItemObjectCache::Node* oldest = cache->header;
-        CacheIterator it;
-        std::memcpy(&it.node, reinterpret_cast<std::uint8_t*>(cache->header) + 8, 4);   // leftmost
-        while (it.node != cache->header) {
-            if (it.node->lastUse < oldestTime) {
-                oldestTime = it.node->lastUse;
-                oldest = it.node;
+        for (ItemObjectCache::Node* node = cache->header->left; node != cache->header; node = node->Next()) {
+            if (node->lastUse < oldestTime) {
+                oldestTime = node->lastUse;
+                oldest = node;
             }
-            it.Next();
         }
         if (oldest != cache->header) {
             using ReleaseFn = void(__thiscall*)(void*);
@@ -198,12 +190,9 @@ void SetLink(ItemObjectCache::Node* node, int offset, ItemObjectCache::Node* to)
 
 // Releases every cached object (slot 4), in order.
 void ReleaseObjects(ItemObjectCache* cache) {
-    CacheIterator it;
-    it.node = Link(cache->header, 8);   // begin
-    while (it.node != cache->header) {
+    for (ItemObjectCache::Node* node = cache->header->left; node != cache->header; node = node->Next()) {
         using ReleaseFn = void(__thiscall*)(void*);
-        reinterpret_cast<ReleaseFn>((*static_cast<void***>(it.node->object))[4])(it.node->object);
-        it.Next();
+        reinterpret_cast<ReleaseFn>((*static_cast<void***>(node->object))[4])(node->object);
     }
 }
 

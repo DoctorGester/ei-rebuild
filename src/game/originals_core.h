@@ -64,7 +64,3 @@ __declspec(naked) inline void __fastcall TransformSetHeading(CTransformObject* /
 __declspec(naked) inline void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // C3n. 00455930 (rewritten as CEngineObject::DestructBase; thiscall, plain RET): the engine object's destructor body.
 __declspec(naked) inline void __fastcall EngineObjectDestructBase(CEngineObject* /*object*/) EI_ORIGINAL(0x00455930)
-// C3o. 00405350 (rewritten as hash400::PositionsRemoveKey; thiscall, RET 4): an id -> pointer hash map (STLport
-// hash_map<int, T*>) removes `*key`; EAX the removed value, or null when the key was not there.
-__declspec(naked) inline void* __fastcall IdMapRemoveKeyOriginal(void* /*map*/, void*, const int* /*key*/)
-    EI_ORIGINAL(0x00405350)

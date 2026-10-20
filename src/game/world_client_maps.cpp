@@ -7,6 +7,7 @@
 // instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
 // bounds-checked record accessors.
 #include "ground_print.h"
+#include "hash_tables_400.h"
 #include "item.h"
 #include "map_object_shadow.h"
 #include "world.h"
@@ -283,7 +284,6 @@ using DynamicNode = DynamicList::Node;
 DynamicNode* __fastcall DynamicNewNode(DynamicList* list, void*, DynamicNode* prev, DynamicNode* next) {
     return static_cast<DynamicNode*>(PtrListNewNode573290Original(list, nullptr, prev, next));
 }
-__declspec(naked) void __fastcall DynamicFreeNode(DynamicList*, void*, DynamicNode*) EI_ORIGINAL(0x00573300)
 __declspec(naked) void __fastcall PlatformRemoveAt(PlatformList*, void*, PlatformNode*) EI_ORIGINAL(0x0056FDD0)
 
 // The id map +0xD8 (hash_map<unsigned, DynamicNode*>, then the highest key): operator[]
@@ -340,7 +340,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         kept.tail = node;
         DynamicNode* tail = kept.tail;
         int key = object->id_;
-        *HashMapAt(&dynamicNodes_, nullptr, &key) = tail;
+        hash400::PositionAt(dynamicNodes_, key) = tail;
     }
     int kind = object->GetClassId();
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
@@ -420,7 +420,7 @@ bool CWorldClient::QueueSynchronised(CEngineObject* object) {
     kept.tail = node;
     DynamicNode* tail = kept.tail;
     int key = object->id_;
-    *HashMapAt(&dynamicNodes_, nullptr, &key) = tail;
+    hash400::PositionAt(dynamicNodes_, key) = tail;
     return true;
 }
 
@@ -516,7 +516,7 @@ void CWorldClient::RemoveObject(int id) {
             kept.tail = node->prev;
         else
             node->next->prev = node->prev;
-        DynamicFreeNode(&kept, nullptr, node);
+        kept.FreeNode(node);
         if (const PendingMap::Node* again = ids.Find(static_cast<std::uint32_t>(id))) IdMapErase(&ids, nullptr, again, &ids);
     }
     PlainList& objects = objects_;

@@ -30,7 +30,6 @@ __declspec(naked) void __fastcall RecordsResize(stlp::vector<PartyRecord*>* /*v*
 __declspec(naked) void __fastcall TemplatesResize(ClassTemplateVector* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD8D0)
 // hash_map<CString, float>::operator= (the party's variables): clear, then copy_from.
 __declspec(naked) void __fastcall FloatTableAssign(PartyVariableMap* /*table*/, void*, const PartyVariableMap* /*source*/) EI_ORIGINAL(0x004A8AD0)
-__declspec(naked) void __fastcall IdsResize(stlp::vector<int>* /*v*/, void*, unsigned /*n*/, const int* /*value*/) EI_ORIGINAL(0x004AE3A0)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
 // pointers, whose release the original inlines (004A5D70 / 004A7EA0): one reference less, the
@@ -125,7 +124,7 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
                 ids.Finish() = ids.Start();
                 idCount = CountChunks(1);
                 const int zero = 0;
-                IdsResize(&ids, nullptr, static_cast<unsigned>(idCount), &zero);
+                ids.Resize<stlp::PlainElement<int>>(static_cast<unsigned>(idCount), zero);
             } else {
                 idCount = static_cast<int>(ids.size());
             }

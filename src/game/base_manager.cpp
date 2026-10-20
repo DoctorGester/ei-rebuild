@@ -1,6 +1,7 @@
 // CBaseManager (00402B20-004048F0) and the object list iterator. See base_manager.h and
 // docs/notes/core.md.
 #include "base_manager.h"
+#include "hash_tables_400.h"
 
 #include "core_streams.h"
 
@@ -104,11 +105,6 @@ __declspec(naked) int* __fastcall SpareCountAt(SpareCountMap*, void*, const int*
 __declspec(naked) int* __fastcall SpareCountAt2(SpareCountMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00407680)
 __declspec(naked) CountPair* __fastcall MakeCountPair(CountPair*, void*, const int* /*key*/, const int* /*value*/) EI_ORIGINAL(0x00407DE0)
 __declspec(naked) CountPair* __fastcall SpareCountInsert(SpareCountMap*, void*, const CountPair*) EI_ORIGINAL(0x004085E0)
-// CPtrList: RemoveHead, AddTail, RemoveAt, NewNode.
-__declspec(naked) CEngineObject* __fastcall PtrListRemoveHead(ObjectList*) EI_ORIGINAL(0x00404FE0)
-__declspec(naked) ObjectNode* __fastcall PtrListAddTail(ObjectList*, void*, CEngineObject*) EI_ORIGINAL(0x00405040)
-__declspec(naked) void __fastcall PtrListRemoveAt(ObjectList*, void*, ObjectNode* /*position*/) EI_ORIGINAL(0x004050C0)
-__declspec(naked) ObjectNode* __fastcall PtrListNewNode(ObjectList*, void*, ObjectNode* /*prev*/, ObjectNode* /*next*/) EI_ORIGINAL(0x004069A0)
 
 // --- Helpers ------------------------------------------------------------------------------------
 
@@ -163,7 +159,7 @@ void ForEachObject(ObjectMap& objects, F f) {
 
 // CPtrList::AddTail as the manager's code inlines it, with the list's own NewNode.
 ObjectNode* AddTail(ObjectList* list, CEngineObject* object) {
-    ObjectNode* node = PtrListNewNode(list, nullptr, list->tail, nullptr);
+    ObjectNode* node = list->NewNode(list->tail, nullptr);
     node->data = object;
     if (list->tail) list->tail->next = node;
     else list->head = node;
@@ -384,7 +380,7 @@ CEngineObject* CBaseManager::CreateObjectImpl(int type, int id) {
         SparesFind(&spares_, nullptr, &found, &typeKey);
         if (found.node) {
             ObjectList* spares = found.node->value;
-            if (spares->count != 0) object = PtrListRemoveHead(spares);
+            if (spares->count != 0) object = spares->RemoveHead();
         }
     }
     if (!object) {
@@ -398,9 +394,9 @@ CEngineObject* CBaseManager::CreateObjectImpl(int type, int id) {
         CEngineObject* existing = nullptr;
         if (!ObjectsLookup(&objects_, nullptr, &chosen, &existing)) {
             existing = nullptr;
-            PtrListAddTail(&objectList_, nullptr, object);
+            objectList_.AddTail(object);
             ObjectNode* tail = objectList_.tail;
-            *HashMapAt(&positions_, nullptr, &chosen) = tail;
+            hash400::PositionAt(positions_, chosen) = tail;
         }
         ObjectsSetAt(&objects_, nullptr, &chosen, &object);
         object->id_ = chosen;
@@ -411,7 +407,7 @@ CEngineObject* CBaseManager::CreateObjectImpl(int type, int id) {
         ObjectsFindIt(&objects_, nullptr, &hit, &wanted);
         if (!hit.node) {
             ObjectNode* position = AddTail(&objectList_, object);
-            *HashMapAt(&positions_, nullptr, &id) = position;
+            hash400::PositionAt(positions_, id) = position;
         }
         if (id > maxId_) maxId_ = id;
         int slotKey = id;
@@ -513,8 +509,8 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
         CEngineObject* value = nullptr;
         if (ObjectsLookup(&objects_, nullptr, &key, &value)) {
             ObjectsRemoveKey(&objects_, nullptr, &key);
-            if (auto* position = static_cast<ObjectNode*>(IdMapRemoveKeyOriginal(&positions_, nullptr, &key)))
-                PtrListRemoveAt(&objectList_, nullptr, position);
+            if (auto* position = hash400::PositionsRemoveKey(positions_, key))
+                objectList_.RemoveAt(position);
         }
     }
     int typeKey = type;
