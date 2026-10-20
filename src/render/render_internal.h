@@ -335,6 +335,10 @@ void KeepFrameForCursor();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
 sg_sampler StageSampler(const StageState& stage);
+// The terrain pages' sampler for `stage` (stage 0 of the page's pass): with linear filters asked
+// for, anisotropic (kTerrainAnisotropy) with linear mips; point filters as the stage says.
+constexpr std::uint32_t kTerrainAnisotropy = 16;
+sg_sampler TerrainSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a
 // long time dropped.
 void RetireTextures();

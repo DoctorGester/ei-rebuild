@@ -251,6 +251,14 @@ void LoseDevice();
 // everything is made again as for any lost device (on a new removable device). False when the
 // device is not removable.
 bool RemoveDevice();
+// Harness build only (the harness's "terrainlevels", R12): what the ground pages draw. Levels: the
+// texture level the page's sampler reads at each pixel instead of their colours (red = level * 32,
+// mip levels blended as the sampler blends them; green 0x5A and blue 0xA5 mark the pixel as
+// such), from a texture of the page's size and levels with one grey per level; PointMips: the same
+// through the old sampler (bilinear, D3DTFP_POINT mips: the level steps along the tiles' edges
+// that showed as seams). Off: the pages' colours.
+enum class TerrainLevelMode { Off, Levels, PointMips };
+void TerrainLevels(TerrainLevelMode mode);
 // Where the frame shows in the game window's client area: the frame's size and its rectangle there
 // (aspect kept, centred; the rest black). False when the new renderer does not present itself.
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);
