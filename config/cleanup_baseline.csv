@@ -23,10 +23,9 @@ src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/map_spec_effect.cpp,0,0,0,0,3,0,0,0,0,0,0,0,0,0
-src/game/map_spec_unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/menu_rects.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0,0
 src/game/net_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,2
+src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
 src/game/net_server_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,1
 src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0,0
@@ -34,7 +33,7 @@ src/game/net_session_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/options.cpp,0,0,0,0,124,0,0,0,0,0,0,0,0,0
 src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,8
-src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,14
+src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,13
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,12
@@ -49,7 +48,6 @@ src/game/particle_create.cpp,0,0,0,0,85,0,0,0,0,0,0,0,0,0
 src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/random.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/renderer_init.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,1
-src/game/renderer_sprites.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/resource.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0,0,0,0
 src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -87,7 +85,7 @@ src/game/ui_item_view.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ui_layouts.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,4
 src/game/ui_menus.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_saveload.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
+src/game/ui_saveload.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/ui_screens.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_spell_column.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_trade_panel.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -106,7 +104,7 @@ src/game/world_client_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_visual.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_game.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
-src/game/world_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
+src/game/world_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_map_files.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_party.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_quests.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -118,8 +116,6 @@ src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
 src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/lib/mfc_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/lib/mfc_string.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/lib/mfc_time.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/render/render_game.h,0,0,0,0,4,0,0,0,0,0,0,0,0,0
 src/render/render_state.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,0

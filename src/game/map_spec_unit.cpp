@@ -64,7 +64,12 @@ void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { libcrt::Dest
 void PatrolsSetSize(Array<Patrol>* patrols, int size) { mfc::impl::ArrayAs<mfc::impl::OwnedPatrols>(*patrols).SetSize(size, -1); }
 constexpr auto ConstructPatrols = mfc::impl::ConstructElementsAt<mfc::impl::Patrols>;
 constexpr auto DestructPatrols = mfc::impl::DestructElementsAt<mfc::impl::OwnedPatrols>;
-__declspec(naked) Patrol* __fastcall PatrolDelete(Patrol*, void*, unsigned) EI_ORIGINAL(0x0046F160)
+// A patrol's destructor (0045E1E0, also 0046F160 with flags 0): its waypoint array destroyed by the
+// array base class's destructor.
+void DestroyPatrol(Patrol& p) {
+    ei::SetVtable(&p.waypoints, mfc::impl::ArrayBaseClass::Vtable());
+    if (p.waypoints.data) gamecrt::operator_delete(p.waypoints.data);
+}
 // The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection (007B00D0) move and turn an
 // object; the world object's updates.
 
@@ -126,11 +131,7 @@ void __fastcall BehaviourDestruct(Behaviour* self) {
     Patrol* patrols = self->patrols.data;
     ei::SetVtable(&self->patrols, mfc::impl::PatrolArrayClass::Vtable());
     if (!patrols) return;
-    for (int i = 0, n = self->patrols.size; i < n; ++i) {
-        Patrol& p = patrols[i];
-        ei::SetVtable(&p.waypoints, mfc::impl::ArrayBaseClass::Vtable());
-        if (p.waypoints.data) gamecrt::operator_delete(p.waypoints.data);
-    }
+    for (int i = 0, n = self->patrols.size; i < n; ++i) DestroyPatrol(patrols[i]);
     gamecrt::operator_delete(self->patrols.data);
 }
 EI_REPLACE(0x0046C290, BehaviourDestruct);
@@ -141,7 +142,7 @@ void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* fro
     int n = from->size;
     if (n == 0) {
         if (self->data) {
-            for (int i = 0, count = self->size; i < count; ++i) PatrolDelete(self->data + i, nullptr, 0);
+            for (int i = 0, count = self->size; i < count; ++i) DestroyPatrol(self->data[i]);
             gamecrt::operator_delete(self->data);
             self->data = nullptr;
         }

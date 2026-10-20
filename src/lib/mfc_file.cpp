@@ -48,11 +48,6 @@ namespace {
 
 using uchar = unsigned char;
 
-bool InImage() {
-    static const bool standalone = ei::Standalone();
-    return standalone;
-}
-
 mfc::CFileVirtuals* Virtuals(CFile* file) { return reinterpret_cast<mfc::CFileVirtuals*>(file); }
 const mfc::CFileVirtuals* Virtuals(const CFile* file) { return reinterpret_cast<const mfc::CFileVirtuals*>(file); }
 const FindSlots* Virtuals(const CFileFind* find) { return reinterpret_cast<const FindSlots*>(find); }
@@ -70,60 +65,22 @@ const char* ChNil() { return reinterpret_cast<const char*>(0x007C8BA8); }
 
 // ---- The CRT stream calls of CStdioFile -----------------------------------------------------------
 //
-// The hook build calls the game CRT (its FILE table is shared with the exe's remaining CRT code); in
-// the standalone image the game's FILE* is the host CRT's (crt_file.cpp) and these are the host's.
-
-__declspec(naked) int __cdecl GameOpenOsfhandle(long, int) EI_ORIGINAL(0x006ED1A3)                    // _open_osfhandle
-__declspec(naked) gamecrt::CrtFile* __cdecl GameFdopen(int, const char*) EI_ORIGINAL(0x006ED350)      // _fdopen
-__declspec(naked) unsigned long* __cdecl GameDoserrno() EI_ORIGINAL(0x006ED347)                      // __doserrno
-__declspec(naked) int __cdecl GameFputs(const char*, gamecrt::CrtFile*) EI_ORIGINAL(0x006ED484)      // fputs
-__declspec(naked) char* __cdecl GameFgets(char*, int, gamecrt::CrtFile*) EI_ORIGINAL(0x006ED4D2)     // fgets
-__declspec(naked) void __cdecl GameClearerr(gamecrt::CrtFile*) EI_ORIGINAL(0x006ED443)               // clearerr
-__declspec(naked) char* __cdecl GameFullpath(char*, const char*, std::size_t) EI_ORIGINAL(0x006ECA0E) // _fullpath
+// The game's FILE* is the host CRT's (crt_file.cpp): these are the host's.
 
 FILE* Host(gamecrt::CrtFile* stream) { return reinterpret_cast<FILE*>(stream); }
 
-// The game's FILE::_flag (+0x0C): _IOEOF and _IOERR.
-struct GameStream {
-    std::uint8_t unused_00[0x0C];
-    int flags;
-};
-constexpr int kStreamEof = 0x10;
-constexpr int kStreamError = 0x20;
-
-int OpenOsfhandle(HANDLE file, int flags) {
-    if (!InImage()) return GameOpenOsfhandle(reinterpret_cast<long>(file), flags);
-    return _open_osfhandle(reinterpret_cast<intptr_t>(file), flags);
-}
-gamecrt::CrtFile* Fdopen(int fd, const char* mode) {
-    if (!InImage()) return GameFdopen(fd, mode);
-    return reinterpret_cast<gamecrt::CrtFile*>(_fdopen(fd, mode));
-}
-long DosErrno() {
-    if (!InImage()) return static_cast<long>(*GameDoserrno());
-    return static_cast<long>(_doserrno);
-}
-int Fputs(const char* text, gamecrt::CrtFile* stream) { return InImage() ? std::fputs(text, Host(stream)) : GameFputs(text, stream); }
-char* Fgets(char* buffer, int size, gamecrt::CrtFile* stream) {
-    return InImage() ? std::fgets(buffer, size, Host(stream)) : GameFgets(buffer, size, stream);
-}
-void Clearerr(gamecrt::CrtFile* stream) {
-    if (InImage()) std::clearerr(Host(stream));
-    else GameClearerr(stream);
-}
-int Fflush(gamecrt::CrtFile* stream) { return InImage() ? std::fflush(Host(stream)) : libcrt::Fflush(stream); }
-bool AtEnd(gamecrt::CrtFile* stream) {
-    if (InImage()) return std::feof(Host(stream)) != 0;
-    return (reinterpret_cast<const GameStream*>(stream)->flags & kStreamEof) != 0;
-}
-bool Failed(gamecrt::CrtFile* stream) {
-    if (InImage()) return std::ferror(Host(stream)) != 0;
-    return (reinterpret_cast<const GameStream*>(stream)->flags & kStreamError) != 0;
-}
+int OpenOsfhandle(HANDLE file, int flags) { return _open_osfhandle(reinterpret_cast<intptr_t>(file), flags); }
+gamecrt::CrtFile* Fdopen(int fd, const char* mode) { return reinterpret_cast<gamecrt::CrtFile*>(_fdopen(fd, mode)); }
+long DosErrno() { return static_cast<long>(_doserrno); }
+int Fputs(const char* text, gamecrt::CrtFile* stream) { return std::fputs(text, Host(stream)); }
+char* Fgets(char* buffer, int size, gamecrt::CrtFile* stream) { return std::fgets(buffer, size, Host(stream)); }
+void Clearerr(gamecrt::CrtFile* stream) { std::clearerr(Host(stream)); }
+int Fflush(gamecrt::CrtFile* stream) { return std::fflush(Host(stream)); }
+bool AtEnd(gamecrt::CrtFile* stream) { return std::feof(Host(stream)) != 0; }
+bool Failed(gamecrt::CrtFile* stream) { return std::ferror(Host(stream)) != 0; }
 // _fullpath into a caller's buffer: GetFullPathNameA, null when it fails or does not fit (an empty
 // path is the current directory).
 char* Fullpath(char* out, const char* path, std::size_t size) {
-    if (!InImage()) return GameFullpath(out, path, size);
     if (!path || !*path) return _getcwd(out, static_cast<int>(size));
     char* part;
     const DWORD length = gameapi::GetFullPathNameA(path, static_cast<DWORD>(size), out, &part);

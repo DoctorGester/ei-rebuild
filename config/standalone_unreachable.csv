@@ -9,8 +9,6 @@ address,what,reason
 # Lines starting with # are comments. The tool warns about a line that no longer covers anything.
 #
 # --- Hook-build-only forwarders and code reads (behind ei::Standalone()) ---
-006ECA0E 006ED1A3 006ED347 006ED350 006ED443 006ED484 006ED4D2,address,"mfc_file.cpp's forwarders to the exe's _fullpath, _open_osfhandle, __doserrno, _fdopen, clearerr, fputs, fgets: the hook build's CRT file state (the image calls the host's CRT)"
-006EDB02 006EDD02 006EDEE8 006EE39E,address,"mfc_time.cpp's forwarders to the exe's mktime, time, localtime, strftime: hook build only (the image calls the host's CRT)"
 006F00D1,address,"_getptd (originals_library.h CrtThreadDataOriginal): the exe's per-thread CRT data, read in the hook build only; the image keeps its own per thread (crt.cpp)"
 007051A1,address,"CWnd::DestroyWindow (originals_library.h): CWnd::Destruct calls it for a window with a handle that is not one of MFC's four static windows; the image makes no other CWnd and those four have no handle"
 00457314 00457368 00457595 004580D7 004CF69B,address,"S14's code-byte reads (CALL targets in app_main.cpp / app_frame.cpp, the keyword table's immediate in script_parse.cpp): read only when not ei::Standalone()"

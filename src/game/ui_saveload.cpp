@@ -92,7 +92,8 @@ void __fastcall StreamWriteHeader(void* a0, void*, unsigned a2, unsigned a3) { s
 bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int a4) { return static_cast<CStream*>(a0)->ReadHeader(a2, (int)a3, a4); }
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
-__declspec(naked) void __fastcall EntryConstruct(SaveEntry* /*at*/, const SaveEntry* /*from*/) EI_ORIGINAL(0x00657C60)
+// _Construct(p, x) (00657C60).
+void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
 // Its insert that reallocates (006579C0) and erase (006578F0): recordvec::SaveEntryVector's.
 stlp::vector<SaveEntry>* Entries(void* vector) { return static_cast<stlp::vector<SaveEntry>*>(vector); }
 // CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the original calls it.

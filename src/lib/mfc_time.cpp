@@ -13,25 +13,13 @@ namespace mfc::impl {
 
 namespace {
 
-// The game CRT's time functions (32-bit time_t, VC6's struct tm).
-__declspec(naked) long __cdecl GameMktime(std::tm*) EI_ORIGINAL(0x006EDB02)
-__declspec(naked) long __cdecl GameTime(long*) EI_ORIGINAL(0x006EDD02)
-__declspec(naked) std::tm* __cdecl GameLocaltime(const long*) EI_ORIGINAL(0x006EDEE8)
-__declspec(naked) std::size_t __cdecl GameStrftime(char*, std::size_t, const char*, const std::tm*) EI_ORIGINAL(0x006EE39E)
-
-bool InImage() {
-    static const bool standalone = ei::Standalone();
-    return standalone;
-}
-
+// The game CRT's time functions (32-bit time_t, VC6's struct tm) as the host CRT's.
 long Mktime(std::tm* at) {
-    if (!InImage()) return GameMktime(at);
     return static_cast<long>(_mktime32(at));
 }
 
 // VC6's time(): the local time from GetLocalTime, as seconds since 1970 UTC.
 long Now() {
-    if (!InImage()) return GameTime(nullptr);
     SYSTEMTIME local;
     gameapi::GetLocalTime(&local);
     std::tm at{};
@@ -45,16 +33,14 @@ long Now() {
     return static_cast<long>(_mktime32(&at));
 }
 
-// localtime's result (the CRT's static buffer in the hook build), or null.
+// localtime's result (one per thread), or null.
 const std::tm* Localtime(const long* time) {
-    if (!InImage()) return GameLocaltime(time);
     static thread_local std::tm result;
     const __time32_t value = *time;
     return _localtime32_s(&result, &value) == 0 ? &result : nullptr;
 }
 
 std::size_t Strftime(char* buffer, std::size_t size, const char* format, const std::tm* at) {
-    if (!InImage()) return GameStrftime(buffer, size, format, at);
     return std::strftime(buffer, size, format, at);
 }
 

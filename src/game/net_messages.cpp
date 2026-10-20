@@ -9,6 +9,7 @@
 // allocations in the same order. The reset slots end with the inlined placement new's null test
 // of `this`, which cannot fail here and is left out.
 #include "net_messages.h"
+#include "game_lists.h"
 #include "net_connection.h"
 
 #include "ei/hook.h"
@@ -992,7 +993,7 @@ int PartyMessage::OnShutdown() {   // 004177A0
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
-    for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p) RefPtrDestroyAt(p, nullptr, 0);
+    for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p) RefPtrRelease(p);   // 004292A0, flags 0
     stlp::deallocate(members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()) * 4);   // 00425210
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
