@@ -292,7 +292,7 @@ id = "R12a"
 title = "World meshes and edges as the user's dgVoodoo draws the original: anisotropic filtering, 8x MSAA"
 group = "renderer"
 depends = ["R12"]
-note = "R12 found the user's original look: Rebirth's starter\\Engine\\dgVoodoo.conf forces Filtering 16 and Antialiasing 8x (the harness's run\\vanilla dgVoodoo is appdriven). R12 gave the terrain pages anisotropic sampling with linear mips; the meshes (figures, map objects, sky) still sample as the game's stage states say (point mips) and the frame has no MSAA. Decide with the user whether the image should match that look (an option or the default), then sample world meshes the same way and add MSAA to the frame target (interface sprites and window surfaces unchanged)."
+note = "User 2026-10-20: an option, off by default (the default keeps the game's own sampling request); on gives the Rebirth dgVoodoo look: anisotropic sampling for world meshes and 8x MSAA on the frame. Goldens and frame checks run with it off."
 
 [[ticket]]
 id = "R12b"
