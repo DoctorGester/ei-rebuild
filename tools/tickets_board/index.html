@@ -48,6 +48,7 @@ h2 .n { font-family: var(--mono); font-size: 13px; color: var(--muted); font-wei
 .card .meta { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted) }
 .card .title { font-weight: 500; text-wrap: pretty }
 .card .note { font-size: 12.5px; color: var(--muted); margin: 0 }
+.card details[open] summary .short, .card details:not([open]) summary .less { display: none }
 .card details summary { font-size: 12px; color: var(--muted); cursor: pointer; list-style: none }
 .card details summary::-webkit-details-marker { display: none }
 .card details summary::before { content: "B8  "; }
@@ -144,7 +145,7 @@ function render() {
       const blocks = data.tickets.filter(o => (o.depends || []).includes(t.id) && o.state !== 'done')
         .map(o => `<button class="dep s-${o.state}" data-goto="${o.id}" title="${esc(o.title)}">${esc(o.id)}</button>`).join('');
       const long = (t.note || '').length > 160;
-      const note = t.note ? (long ? `<details><summary>${code(t.note.slice(0, 140))}&hellip;</summary><p class="note">${code(t.note)}</p></details>` : `<p class="note">${code(t.note)}</p>`) : '';
+      const note = t.note ? (long ? `<details><summary><span class="short">${code(t.note.slice(0, 140))}&hellip;</span><span class="less">Show less</span></summary><p class="note">${code(t.note)}</p></details>` : `<p class="note">${code(t.note)}</p>`) : '';
       return `<article class="card s-${t.state}" id="t-${esc(t.id)}">
         <div class="top"><span class="id">${esc(t.id)}</span><span class="grp">${esc(groups[t.group].name)}</span><span class="meta">${meta}</span></div>
         <div class="title">${esc(t.title)}</div>${note}
