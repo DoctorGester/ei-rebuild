@@ -34,8 +34,6 @@ address,reason
 00665780,src/game/world_quests.cpp passes a WorldPlayer * as void* (the target is CPlayer's method)
 00665A10,src/game/world_server_life.cpp passes a WorldPlayer * as void* (the target is CPlayer's method)
 00665DE0,src/game/world_update.cpp passes a WorldPlayer * as void* (the target is CPlayer's method)
-006E63E9,src/game/world_game.cpp passes a mfc::CFileFind * as void* (the target is mfc::impl::CFileFind's method)
-006E661A,src/game/ui_saveload.cpp passes a const mfc::CFileFind * as void* (the target is const mfc::impl::CFileFind's method)
 0049A010,src/game/ui_global_map_places.cpp passes a GlobalMapWeather * as void* (the target is CCloudNoise's method)
 0055E940,src/game/ui_hud_panels.cpp passes a CWorldClient * as void* (the target is CParty's method)
 00661FB0,src/game/world_game.cpp passes a PartyRecords * as void* (the target is CParty's method)

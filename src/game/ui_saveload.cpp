@@ -95,12 +95,7 @@ bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int 
 __declspec(naked) void __fastcall EntryConstruct(SaveEntry* /*at*/, const SaveEntry* /*from*/) EI_ORIGINAL(0x00657C60)
 // Its insert that reallocates (006579C0) and erase (006578F0): recordvec::SaveEntryVector's.
 stlp::vector<SaveEntry>* Entries(void* vector) { return static_cast<stlp::vector<SaveEntry>*>(vector); }
-// CFileFind members beyond lib/mfc.h: FindNextFile (006E6653), IsDots (006E661A), Close
-// (006E63E9), and MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the
-// original calls it.
-BOOL FindNext(mfc::CFileFind& find) { return CFileFindNext(&find); }
-BOOL IsDots(const mfc::CFileFind& find) { return CFileFindIsDotsOriginal(&find); }
-void CloseFind(mfc::CFileFind& find) { CFileFindCloseOriginal(&find); }
+// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the original calls it.
 BOOL IsDirectory(const mfc::CFileFind& find) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
 }
@@ -345,9 +340,9 @@ void CSaveLoadWindow::FillEntries() {
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
     BOOL more = find.FindFile(pattern, 0);
     while (more) {
-        found = FindNext(find);
+        found = find.FindNext();
         more = found;
-        if (IsDots(find) || !IsDirectory(find)) continue;
+        if (find.IsDots() || !IsDirectory(find)) continue;
         LocalEntry fresh;
         if (entriesEnd_ != entriesCapacity_) {
             EntryConstruct(entriesEnd_, &fresh.e);
@@ -368,7 +363,7 @@ void CSaveLoadWindow::FillEntries() {
             entry->broken_ = true;
             Str(entry->title_) = game::savewords::BrokenTitle();
         } else {
-            FindNext(infoFind);
+            infoFind.FindNext();
             LocalFileStream info;
             info.Open(FilePath(infoFind), 0, 1);
             if (StreamReadHeader(&info.s, nullptr, kInfoMagic, kInfoVersion, 1)) {
@@ -392,13 +387,13 @@ void CSaveLoadWindow::FillEntries() {
             if (console::Length(Str(entry->title_)) == 0) entry->MakeTitle(1);
             entry->broken_ = false;
         }
-        CloseFind(infoFind);
+        infoFind.Close();
         if (console::Length(Str(entry->folder_)) > 4) {
             int number = libcrt::Atoi(console::Ops(Str(entry->folder_)).Mid(4));
             if (!(highest > number)) highest = number;
         }
     }
-    CloseFind(find);
+    find.Close();
     SaveEntry* first = entriesBegin_;
     SaveEntry* end = entriesEnd_;
     if (first != end) {
@@ -682,10 +677,10 @@ void CSaveLoadWindow::DeleteSave() {
     mfc::CFileFind find;
     BOOL more = find.FindFile(folder + kEveryFile, 0);
     while (more) {
-        more = FindNext(find);
+        more = find.FindNext();
         gameapi::DeleteFileA(FilePath(find));
     }
-    CloseFind(find);
+    find.Close();
     gameapi::RemoveDirectoryA(folder);
     CallFillEntries();
     int count = EntryCount();

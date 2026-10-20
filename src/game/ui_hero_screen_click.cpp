@@ -686,16 +686,15 @@ int HighestFileNumber(const char* pattern) {
     if (find.FindFile(pattern, 0)) {
         int more;
         do {
-            more = CFileFindNext(&find);
-            if (!CFileFindIsDotsOriginal(&find)) {
-                mfc::CString title;
-                CFileFindTitle(&find, nullptr, &title);
+            more = find.FindNext();
+            if (!find.IsDots()) {
+                mfc::CString title = find.GetTitle();
                 int number = libcrt::Atoi(title);
                 if (!(highest > number)) highest = number;
             }
         } while (more);
     }
-    CFileFindCloseOriginal(&find);
+    find.Close();
     return highest;
 }
 } // namespace

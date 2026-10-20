@@ -38,7 +38,7 @@ src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,14
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,12
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,10
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30
@@ -117,7 +117,7 @@ src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
-src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
+src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/lib/mfc_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/lib/mfc_string.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/lib/mfc_time.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4

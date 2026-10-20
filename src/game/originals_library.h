@@ -48,10 +48,6 @@ inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString();
 // (mfc::impl::CWnd, src/lib/mfc_window.cpp) on a window still attached; no game window is a CWnd.
 __declspec(naked) inline int __fastcall CWndDestroyWindow(void* /*wnd*/) EI_ORIGINAL(0x007051A1)
 
-// MFC: CFileFind::FindNextFile / GetFileTitle, CFile::Write (CString::Mid(first) is a member of mfc::CString).
-__declspec(naked) inline int __fastcall CFileFindNext(mfc::CFileFind* /*find*/) EI_ORIGINAL(0x006E6653)
-__declspec(naked) inline mfc::CString* __fastcall CFileFindTitle(const mfc::CFileFind* /*find*/, void*,
-                                                                  mfc::CString* /*out*/) EI_ORIGINAL(0x006E67BA)
 // The CRT's x87 intrinsics _CIacos / _CIasin (argument and result in ST0) and _CIpow (base in ST1,
 // exponent in ST0), here with ordinary double arguments: the same bodies as acos 006E7334 / asin
 // 006E83D4 and libcrt::CiPow.
@@ -109,14 +105,7 @@ inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* out, const mf
 inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, const mfc::CString* left, const char* right) {
     return ::new (out) mfc::CString(*left + right);
 }
-// MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
-// result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
-// 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor, FindFile and GetFilePath are mfc::CFileFind's
-// members.
-__declspec(naked) inline void __fastcall CFileFindCloseOriginal(void* /*find*/) EI_ORIGINAL(0x006E63E9)
-// 006E661A: CFileFind::IsDots (plain RET, EAX 0 / 1).
-__declspec(naked) inline int __fastcall CFileFindIsDotsOriginal(const void* /*find*/) EI_ORIGINAL(0x006E661A)
-// GetFilePath into `out` (raw storage): the CString result is built in place, `out` passed as the hidden result slot.
+// MFC CFileFind: mfc::CFileFind's members (lib/mfc.h). GetFilePath (006E6722) into `out` (raw storage): the CString result is built in place, `out` passed as the hidden result slot.
 inline mfc::CString* __fastcall CFileFindPathOriginal(const void* find, void*, mfc::CString* out) {
     return ::new (out) mfc::CString(static_cast<const mfc::CFileFind*>(find)->GetFilePath());
 }

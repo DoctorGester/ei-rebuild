@@ -142,6 +142,11 @@ public:
     unsigned long GetLength() const;                                // 006E68AA (the found file's size, low dword)
     CString GetFilePath() const;                                    // 006E6722 (RET 4: the result slot)
     CString GetFileName() const;                                    // 006E684B (RET 4: the result slot)
+    // FindNextFile / GetFileTitle (Windows' headers define both names as macros).
+    CString GetTitle() const;                                       // 006E67BA (RET 4: the result slot)
+    BOOL FindNext();                                                // 006E6653
+    BOOL IsDots() const;                                            // 006E661A
+    void Close();                                                   // 006E63E9
 
 private:
     std::uint8_t data_[0x1C - 0];

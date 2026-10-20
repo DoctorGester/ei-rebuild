@@ -20,6 +20,7 @@
 #include "../../src/lib/crt.h"
 #include "../../src/lib/mfc_exception.h"
 #include "../../src/lib/mfc_resource.h"
+#include "../../src/lib/mfc_time.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -103,8 +104,24 @@ void __cdecl libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double __cdecl libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 std::size_t __cdecl libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fwrite")
 
-// The library's exceptions and resources (stlp_string.cpp, mfc_archive.cpp, mfc_string.cpp).
+// The library's exceptions and resources (stlp_string.cpp, mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
+// TRY link, mfc_file.cpp).
 libcrt::Exception* libcrt::Exception::Construct() EI_UNLINKED("libcrt::Exception::Construct")
 void __stdcall libcrt::CxxThrowException(void*, const void*) EI_UNLINKED("libcrt::CxxThrowException")
 void __stdcall mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
 int __stdcall mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")
+mfc::ExceptionLink* __fastcall mfc::ConstructExceptionLink(mfc::ExceptionLink*) EI_UNLINKED("mfc::ConstructExceptionLink")
+void __cdecl mfc::TryCleanup() EI_UNLINKED("mfc::TryCleanup")
+int __stdcall mfc::impl::OsErrorToException(long) EI_UNLINKED("mfc::impl::OsErrorToException")
+void __stdcall mfc::impl::ThrowFileException(int, long, const char*) EI_UNLINKED("mfc::impl::ThrowFileException")
+void __stdcall mfc::impl::ThrowOsError(long, const char*) EI_UNLINKED("mfc::impl::ThrowOsError")
+void __stdcall mfc::impl::ThrowNotSupported() EI_UNLINKED("mfc::impl::ThrowNotSupported")
+void mfc::impl::CFileException::InitEmpty() EI_UNLINKED("mfc::impl::CFileException::InitEmpty")
+// mfc_file.cpp's CFileFind times (mfc_time.cpp) and CStdioFile streams (crt_file.cpp).
+mfc::impl::CTime* mfc::impl::CTime::ConstructFileTime(const FILETIME&, int) EI_UNLINKED("mfc::impl::CTime::ConstructFileTime")
+void __cdecl libcrt::Splitpath(const char*, char*, char*, char*, char*) EI_UNLINKED("libcrt::Splitpath")
+int __cdecl libcrt::Fclose(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fclose")
+int __cdecl libcrt::Fseek(gamecrt::CrtFile*, long, int) EI_UNLINKED("libcrt::Fseek")
+long __cdecl libcrt::Ftell(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Ftell")
+std::size_t __cdecl libcrt::Fread(void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fread")
+int __cdecl libcrt::Fflush(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fflush")

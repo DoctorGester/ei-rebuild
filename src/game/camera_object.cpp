@@ -205,9 +205,8 @@ int CCamera::OpenFile(const char* name) {
         if (find.FindFile(kNumberedRecords, 0)) {
             int more;
             do {
-                more = CFileFindNext(&find);
-                mfc::CString title;
-                CFileFindTitle(&find, nullptr, &title);
+                more = find.FindNext();
+                mfc::CString title = find.GetTitle();
                 {
                     mfc::CString tail = title.Right(4);
                     title = tail;
