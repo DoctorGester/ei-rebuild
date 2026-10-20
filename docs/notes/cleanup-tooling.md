@@ -64,6 +64,25 @@ directly), library code and not yet ported, and lists the "differ" group (declar
 (grep `src/game/ui_`). Batches are 50 addresses taken by site count from the report. Next step after the forwarders: call the rewritten
 ones directly.
 
+## Retiring container forwarders (C13b1, C13b2)
+
+Measure with `python tools/direct_calls.py --report -v --cast --loose --library` after a `build.cmd verify` (it reads the map);
+check_cleanup's "EI_ORIGINAL forwarder" count is the ratchet (C13b2: 1,426 to 798). Forwarders to library containers go once the
+storage is typed; then the call is the container's member or its ABI type's static member. The helpers this uses:
+
+- `mfc::impl::ArrayAs<Abi>(array)` (lib/mfc_array.h) views a `CArray<T>` as the policy instantiation `Abi` registers (same element
+  size, checked); `ConstructHeader` / `DestructHeader<Class>` / `ConstructArrayOf` / `DestructArrayOf` and lib/mfc_list.h's
+  `ConstructListHeader<Class>` replace the per-instantiation constructors and destructors of a header written in place.
+- `PlainElements<CString>` constructs and destroys its elements (`CArray<CString>` is MFC's CStringArray element code).
+- STLport: a `_Vector_base(alloc)` constructor is `ConstructEmpty()` (or the three pointers nulled when the field is raw), an alloc
+  proxy constructor is the null it stores, a node / block deallocation `stlp::deallocate(p, n * size)`, `resize(n)` the instantiation's
+  `VectorAbi::ResizeDefault` (`recordvec::ResizeUntyped<Abi>` where a serialiser holds the vector untyped), a map's constructor /
+  destructor / find / operator[] the `stlp::map` members (the map's key order must be the instantiation's: CInterface3D's help topics
+  are `stlp::map<CString, int, CStringLess>`).
+
+Left on purpose: Rebirth-patched callees, the vector recorders and replay stand-ins, harness-replaced entries, WordsSetAtGrow,
+ViewStackDestroyRange, and anything tests/verify reads (the map object effect array). The rest of the "types differ" rows are C13b3.
+
 ## `__asm` and `float_control` (cleanup ticket C12)
 
 C12 and C12a took `__asm` blocks in `src/` from 221 to 3 and left one `float_control` pair. The build is `/fp:precise` on x87. The rules the
