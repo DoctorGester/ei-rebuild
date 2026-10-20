@@ -38,7 +38,6 @@ inline CTextureManager* TextureManager() { return *reinterpret_cast<CTextureMana
 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
 inline IDirectDraw7* DDraw(const CTextureDevice* device) { return static_cast<IDirectDraw7*>(device->ddraw_); }
-inline IDirectDrawSurface7* Surface(const CDXSurface* holder) { return static_cast<IDirectDrawSurface7*>(holder->surface); }
 inline IDirect3D7* Direct3D(const CTextureDevice* device) { return static_cast<IDirect3D7*>(device->d3d_); }
 
 // A counted holder pointer's assignment: the new holder counted, the old one released.
@@ -50,11 +49,9 @@ inline void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
 }
 
 // Whether two holders stand for the same surface (the original compares their DirectDraw surfaces:
-// a window's holder and the render target's, a movie's and the primary's). Holders without a
-// surface (the switch-over's) are the same only when they are one holder.
-inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) {
-    return a == b || (a->surface && a->surface == b->surface);
-}
+// a window's holder and the render target's, a movie's and the primary's). No holder has a
+// DirectDraw surface: the same only when they are one holder.
+inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) { return a == b; }
 
 // ---- The switch-over device (device_null.cpp; ticket R9a, docs/notes/renderer.md section 9) ----
 //

@@ -703,11 +703,10 @@ void CGlobalMap::Update() {
         CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
         auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
         gameapi::EnterCriticalSection(lock);
-        std::uint32_t desc[0x1F] = {};
-        desc[0] = 0x7C;
-        if (DirectPixels(holder, desc)) {   // (always: the texture has memory)
+        SurfacePixels pixels;
+        if (DirectPixels(holder, &pixels)) {   // (always: the texture has memory)
             float seconds = static_cast<float>(FrameTime(this));
-            reinterpret_cast<CCloudNoise*>(weather_)->Draw(reinterpret_cast<std::uint16_t*>(desc[9]), seconds);   // lpSurface
+            reinterpret_cast<CCloudNoise*>(weather_)->Draw(reinterpret_cast<std::uint16_t*>(pixels.bits), seconds);
         }
         gameapi::LeaveCriticalSection(lock);
     }

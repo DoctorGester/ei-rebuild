@@ -7,6 +7,8 @@
 
 #include <windows.h>
 
+#include "texture.h"   // PixelFormat
+
 #include <cstdint>
 
 struct CDXSurface;
@@ -20,19 +22,23 @@ HBITMAP ClientBitmap(const void* holder);
 // taken back yet (ui_surface_dc.cpp; for the verify build's interface census).
 bool IsSurfaceMemoryDc(HDC dc);
 
-// The pixel code reads and writes the memory of `holder` directly (no Lock / Unlock): fills `desc` (a
-// DDSURFACEDESC2 as dwords, as a Lock would: size, width, height, pitch, memory, pixel format)
-// after flushing GDI; false for a null holder or one without such memory.
-bool DirectPixels(const void* holder, std::uint32_t* desc);
+// A holder's memory as the pixel code reads and writes it (what the original's Lock described).
+struct SurfacePixels {
+    int width = 0;
+    int height = 0;
+    int pitch = 0;                   // bytes from one row to the next
+    std::uint8_t* bits = nullptr;    // the top row
+    int bitsPerPixel = 0;            // 16 or 32
+    std::uint32_t redMask = 0, greenMask = 0, blueMask = 0, alphaMask = 0;
 
-// The same description of the memory of `holder` (false without such memory).
-bool ClientPixels(const void* holder, std::uint32_t* desc);
+    // The format as the game keeps one (a DDPIXELFORMAT: CTexture::format_, ChannelLayout::Split).
+    PixelFormat Format() const;
+};
 
-// Memory (a zeroed DIB section of `width` x `height` pixels in `pixelFormat`, a DDPIXELFORMAT of 16
-// or 32-bit RGB) for a texture's holder that has none. The new renderer reads the memory and
-// 004EFD20 frees it. True when the holder has such memory afterwards (also when it had some
-// already: the textures of NewMemoryTextureHolder, which the save / load screen's pictures are).
-bool AttachTextureMemory(void* holder, int width, int height, const std::uint32_t* pixelFormat);
+// The pixel code reads and writes the memory of `holder` directly (no Lock / Unlock): describes it
+// into `pixels` after flushing GDI; false, with `pixels` empty, for a null holder or one without
+// such memory.
+bool DirectPixels(const void* holder, SurfacePixels* pixels);
 
 // A texture holder as 004EFA60 makes one (vtable, device, width, height, bits; the holder count one
 // higher), allocated on the game's heap, with no DirectDraw surface, only the new renderer's memory

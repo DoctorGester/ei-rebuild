@@ -1,0 +1,12 @@
+{
+  "scenario": "render_blink",
+  "install": "rebirth",
+  "recorded": "2026-10-20",
+  "commit": "9ca417d8",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 2,
+  "reason": "R11d: new scenario (the blink as a texture patch); two agreeing plain --no-hooks --fresh runs",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}

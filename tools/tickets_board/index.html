@@ -48,6 +48,7 @@ h2 .n { font-family: var(--mono); font-size: 13px; color: var(--muted); font-wei
 .card .meta { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted) }
 .card .title { font-weight: 500; text-wrap: pretty }
 .card .note { font-size: 12.5px; color: var(--muted); margin: 0 }
+.card details[open] summary .short, .card details:not([open]) summary .less { display: none }
 .card details summary { font-size: 12px; color: var(--muted); cursor: pointer; list-style: none }
 .card details summary::-webkit-details-marker { display: none }
 .card details summary::before { content: "B8  "; }
@@ -111,6 +112,16 @@ const save = () => { try { localStorage.setItem('ei-board', JSON.stringify({ gro
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const code = s => esc(s).replace(/`([^`]+)`/g, '<code class="mono">$1</code>');
 let data;
+// Elapsed time from the ticket's assignments (tickets.py's `worked`: [started, ended] ISO times, ended null while
+// a worker has it): running counts up to now, review and done show what the work took.
+const worked = t => (t.worked || []).reduce((ms, [s, e]) => ms + Math.max(0, (e ? Date.parse(e) : Date.now()) - Date.parse(s)), 0);
+const dur = ms => { const m = Math.round(ms / 60000);
+  return m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${Math.floor(m / 1440)}d ${Math.floor(m % 1440 / 60)}h`; };
+const elapsed = t => (t.state === 'running' ? '' : 'took ') + dur(worked(t));
+setInterval(() => document.querySelectorAll('.elapsed').forEach(el => {
+  const t = data && data.tickets.find(x => x.id === el.dataset.id);
+  if (t && t.state === 'running') el.textContent = elapsed(t);
+}), 30000);
 
 function render() {
   const byId = Object.fromEntries(data.tickets.map(t => [t.id, t]));
@@ -128,14 +139,15 @@ function render() {
     let list = data.tickets.filter(t => t.state === k && match(t));
     if (k === 'done') list = list.sort((a, b) => (b.done || '').localeCompare(a.done || ''));
     const cards = list.map(t => {
-      const meta = [t.model, t.size ? `${t.size} sess.` : '', t.started && (k === 'running' || k === 'review') ? `since ${t.started.slice(5)}` : '', t.done ? t.done : ''].filter(Boolean).join(' \u00b7 ');
+      const meta = [t.model, t.size ? `${t.size} sess.` : '', t.started && (k === 'running' || k === 'review') ? `since ${t.started.slice(5)}` : '', t.done ? t.done : ''].filter(Boolean).map(esc)
+        .concat(t.worked && (k === 'running' || k === 'review' || k === 'done') ? [`<span class="elapsed" data-id="${esc(t.id)}">${elapsed(t)}</span>`] : []).join(' \u00b7 ');
       const deps = (t.depends || []).map(d => `<button class="dep s-${byId[d].state}" data-goto="${d}" title="${esc(byId[d].title)} (${byId[d].state})">${esc(d)}</button>`).join('');
       const blocks = data.tickets.filter(o => (o.depends || []).includes(t.id) && o.state !== 'done')
         .map(o => `<button class="dep s-${o.state}" data-goto="${o.id}" title="${esc(o.title)}">${esc(o.id)}</button>`).join('');
       const long = (t.note || '').length > 160;
-      const note = t.note ? (long ? `<details><summary>${code(t.note.slice(0, 140))}&hellip;</summary><p class="note">${code(t.note)}</p></details>` : `<p class="note">${code(t.note)}</p>`) : '';
+      const note = t.note ? (long ? `<details><summary><span class="short">${code(t.note.slice(0, 140))}&hellip;</span><span class="less">Show less</span></summary><p class="note">${code(t.note)}</p></details>` : `<p class="note">${code(t.note)}</p>`) : '';
       return `<article class="card s-${t.state}" id="t-${esc(t.id)}">
-        <div class="top"><span class="id">${esc(t.id)}</span><span class="grp">${esc(groups[t.group].name)}</span><span class="meta">${esc(meta)}</span></div>
+        <div class="top"><span class="id">${esc(t.id)}</span><span class="grp">${esc(groups[t.group].name)}</span><span class="meta">${meta}</span></div>
         <div class="title">${esc(t.title)}</div>${note}
         ${deps ? `<div class="deps">after ${deps}</div>` : ''}
         ${blocks ? `<div class="deps">unblocks ${blocks}</div>` : ''}

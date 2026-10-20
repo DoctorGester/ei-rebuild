@@ -1,9 +1,10 @@
 // The blink of the party units' faces (CUnitClientSpecific, unit_client_models.h; A-U3): the face
-// texture holds the open and the closed eyes, which are copied over the eye rectangle of the
-// unit's skin texture with DirectDraw blits down the mip chain.
+// texture ("<model>mouth") holds the open and the closed state, which the original copies over a
+// rectangle of the unit's skin texture with DirectDraw blits down the mip chain.
 //
-// In the switch-over ("present", docs/notes/renderer.md) textures may have no DirectDraw surface
-// (dx_surface.h); the original would then crash on the null surface. Ours copies nothing then.
+// No texture has a DirectDraw surface (dx_surface.h; the skins are decoded by the new renderer):
+// the new renderer draws the face's rectangle over the skin's in its shader instead
+// (render::TexturePatch, R11d; docs/notes/units.md); the skin's texture is not changed.
 #include "unit_client_models.h"
 
 #include "map_object_figures.h"
@@ -14,9 +15,9 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "render/render.h"
 
 #include <windows.h>
-#include <ddraw.h>
 
 #include <cstdint>
 
@@ -28,10 +29,6 @@ constexpr int kSkinUnits = 0x100;
 // _ftol: truncation through a 64-bit integer, of which the low half is kept.
 int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
-IDirectDrawSurface7* SurfaceOf(const CTexture* texture) {
-    if (!texture->surface_) return nullptr;
-    return static_cast<IDirectDrawSurface7*>(texture->surface_->surface);
-}
 
 // The skin texture: the first texture of the unit's client half (its material), or null.
 CTexture* SkinOf(CUnit* unit) {
@@ -62,24 +59,15 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 
 } // namespace
 
-// 00533980 (__fastcall, RET 8). Blits `from` of `source` to `at` of `target`, then the same halved
-// on each next level of both mip chains (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP attachments, whose
-// references are never released) until either has no further level.
+// 00533980 (__fastcall, RET 8). The original blits (Blt, DDBLT_WAIT) `from` of `source` to the
+// rectangle of its size at `at` of `target`, then on each next level of both mip chains
+// (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP attachments, whose references are never released) with each of
+// the eight edges halved (SAR), until either has no further level. Ours hands the first level's
+// rectangles to the new renderer, which shows them over the skin in its shader on every level.
 void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const RECT* from) {
-    IDirectDrawSurface7* to = SurfaceOf(target);
-    IDirectDrawSurface7* fromSurface = SurfaceOf(source);
-    if (!to || !fromSurface) return;
-    RECT sourceRect = *from;
-    RECT targetRect = {at[0], at[1], at[0] + (from->right - from->left), at[1] + (from->bottom - from->top)};
-    for (;;) {
-        to->Blt(&targetRect, fromSurface, &sourceRect, DDBLT_WAIT, nullptr);
-        sourceRect = {sourceRect.left >> 1, sourceRect.top >> 1, sourceRect.right >> 1, sourceRect.bottom >> 1};
-        targetRect = {targetRect.left >> 1, targetRect.top >> 1, targetRect.right >> 1, targetRect.bottom >> 1};
-        DDSCAPS2 caps = {DDSCAPS_TEXTURE | DDSCAPS_MIPMAP, 0, 0, {0}};
-        if (to->GetAttachedSurface(&caps, &to) != DD_OK) return;
-        caps = {DDSCAPS_TEXTURE | DDSCAPS_MIPMAP, 0, 0, {0}};
-        if (fromSurface->GetAttachedSurface(&caps, &fromSurface) != DD_OK) return;
-    }
+    const int to[4] = {at[0], at[1], at[0] + (from->right - from->left), at[1] + (from->bottom - from->top)};
+    const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
+    render::TexturePatch(target->surface_, to, source->surface_, rectangle);
 }
 EI_REPLACE(0x00533980, BlitMipChain);
 

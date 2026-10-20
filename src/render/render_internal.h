@@ -46,6 +46,18 @@ struct StageState {
     bool hasTexture = false;
 };
 
+// A rectangle of stage 0's texture drawn from another texture (render::TexturePatch), in texture
+// coordinates of stage 0 (wrapped into 0..1): inside `to` the shader samples `texture` at
+// uv * map.xy + map.zw, kept inside `inside` (the source rectangle less half a texel). All zero: none.
+struct StagePatch {
+    sg_view texture{};
+    float to[4] = {};       // u0, v0, u1, v1
+    float map[4] = {};
+    float inside[4] = {};   // u0, v0, u1, v1
+};
+// The patch the texture of `holder` has, as of now (render_textures.cpp).
+StagePatch PatchOf(const void* holder);
+
 // The old device's state for one pass of a mesh draw: what the new renderer needs to draw it the
 // same way. Blend, depth and culling make the pipeline; the rest goes to the shader.
 struct PassState {
@@ -61,6 +73,7 @@ struct PassState {
     std::uint32_t fogColour = 0;                   // D3DCOLOR
     std::uint32_t textureFactor = 0xFFFFFFFF;
     StageState stages[2];
+    StagePatch patch;                              // stage 0's texture's patch, if any
 
     std::uint32_t PipelineKey() const {
         return (blend ? 1u : 0u) | (static_cast<std::uint32_t>(sourceBlend & 15) << 1) |
@@ -248,7 +261,8 @@ void RetireBuffers();
 // the last pass of the frame.
 class GeometryStream {
 public:
-    explicit GeometryStream(const char* label) : vertices_(false, label), indices_(true, label) {}
+    // `terrain`: counted as the terrain's uploads (FrameStats), else the meshes'.
+    GeometryStream(const char* label, bool terrain) : vertices_(false, label), indices_(true, label), terrain_(terrain) {}
     bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
     // The vertex and index buffers with the last upload's offsets; false when there is none.
     bool Bind(sg_bindings& b) const;
@@ -256,6 +270,7 @@ public:
 
 private:
     StreamBuffer vertices_, indices_;
+    bool terrain_;
     std::uint32_t frame_ = 0xFFFFFFFFu;
     std::size_t vertexCount_ = 0, indexCount_ = 0;
     int vertexOffset_ = -1, indexOffset_ = -1;
@@ -294,6 +309,32 @@ bool CursorPicturePart(const void* holder, const void* mask, int maskBytes, cons
 // DestroyBlits, and every image kept across frames (movies, the cursor's and fills' cache): the
 // device is lost.
 void DropBlits();
+
+// The counts of the frame being built (render::FrameStats; summed at Present). StatsTimer adds the
+// CPU time of its scope to one of the stats' fields; a timer inside another's scope takes its time
+// out of the outer one's field (each field counts its own work only).
+FrameStats& Stats();
+class StatsTimer {
+public:
+    explicit StatsTimer(double FrameStats::* field);
+    ~StatsTimer();
+    StatsTimer(const StatsTimer&) = delete;
+    StatsTimer& operator=(const StatsTimer&) = delete;
+
+private:
+    double FrameStats::* field_;
+    long long start_;
+    StatsTimer* outer_;
+};
+// Counts an applied pipeline (a change when it differs from the last one applied in the frame), the
+// bindings with their first texture view, a draw with its uniform bytes.
+void CountPipeline(sg_pipeline pipeline);
+void CountBindings(const sg_bindings& b);
+void CountDraw(std::size_t uniformBytes);
+void CountUpload(FrameStats::Upload kind, std::size_t bytes);
+// Compares `count` vertices handed over for `key` (a terrain page: sector and page; a mesh: its
+// positions, page 0) with the last frame's for the same key (FrameStats::Reuse).
+void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices, std::size_t count);
 
 // Counts of the images the renderer made (sg_make_image) and updated in place (sg_update_image)
 // by purpose, logged in the verify build (render_blit.cpp).

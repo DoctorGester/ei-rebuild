@@ -1,0 +1,133 @@
+# What the image's renderer does per frame (R16; docs/notes/renderer.md section 13): "renderstats"
+# logs, and puts into the report, the averages since the last one (hand-over, GPU uploads, draws and
+# state changes, images made, CPU time) for scenes the renderer plan is measured on: the main menu,
+# zone1 outdoors, a fight of many units there, the base bz1g (a town), and the interface screens
+# (camp, global map, escape menu) with the mouse moving over them. Counts only: nothing is required
+# of them.
+# no original: vanilla rebirth (the counts are our renderer's)
+render new,present
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+frames 20
+renderstats -
+move 300 200
+frames 20
+move 500 400
+frames 20
+renderstats menu
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+waitpresent 10
+move 400 300
+frames 10
+renderstats -
+frames 60
+renderstats zone1
+
+# A fight: eight of twelve creatures attack the hero, who cannot die (blood prints, hit effects, many
+# figures and shadows).
+console filter all on
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("F1","WolfTutor","F1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("F2","WolfTutor","F2",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("F3","WolfTutor","F3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
+console @AddUnitToServer("F4","WolfTutor","F4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),4),0)
+console @AddUnitToServer("F5","GoblinF1","F5",Add(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),5),0)
+console @AddUnitToServer("F6","GoblinF1","F6",Sub(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),5),0)
+console @AddUnitToServer("F7","BoarTutor","F7",Add(GSGetVar(0,"hx"),5),Sub(GSGetVar(0,"hy"),5),0)
+console @AddUnitToServer("F8","BoarTutor","F8",Sub(GSGetVar(0,"hx"),5),Sub(GSGetVar(0,"hy"),5),0)
+console @AddUnitToServer("F9","ToadTutor","F9",Add(GSGetVar(0,"hx"),7),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("F10","SkeletonF2","F10",Sub(GSGetVar(0,"hx"),7),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("F11","DeerF0","F11",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),7),0)
+console @AddUnitToServer("F12","WolfGreyF1","F12",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),7),0)
+waitfor 15 IsAlive(GetObjectByName("F12"))
+console @SetPlayer(GetObjectByName("F1"),6)
+console @SetPlayer(GetObjectByName("F2"),6)
+console @SetPlayer(GetObjectByName("F3"),6)
+console @SetPlayer(GetObjectByName("F4"),6)
+console @SetPlayer(GetObjectByName("F5"),6)
+console @SetPlayer(GetObjectByName("F6"),6)
+console @SetPlayer(GetObjectByName("F7"),6)
+console @SetPlayer(GetObjectByName("F8"),6)
+console @Attack(GetObjectByName("F1"),GetLeader())
+console @Attack(GetObjectByName("F2"),GetLeader())
+console @Attack(GetObjectByName("F3"),GetLeader())
+console @Attack(GetObjectByName("F4"),GetLeader())
+console @Attack(GetObjectByName("F5"),GetLeader())
+console @Attack(GetObjectByName("F6"),GetLeader())
+console @Attack(GetObjectByName("F7"),GetLeader())
+console @Attack(GetObjectByName("F8"),GetLeader())
+console @Attack(GetLeader(),GetObjectByName("F1"))
+wait 1500
+renderstats -
+frames 60
+renderstats fight
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @RemoveUnitFromServer(GetObjectByName("F1"))
+console @RemoveUnitFromServer(GetObjectByName("F2"))
+console @RemoveUnitFromServer(GetObjectByName("F3"))
+console @RemoveUnitFromServer(GetObjectByName("F4"))
+console @RemoveUnitFromServer(GetObjectByName("F5"))
+console @RemoveUnitFromServer(GetObjectByName("F6"))
+console @RemoveUnitFromServer(GetObjectByName("F7"))
+console @RemoveUnitFromServer(GetObjectByName("F8"))
+console @RemoveUnitFromServer(GetObjectByName("F9"))
+console @RemoveUnitFromServer(GetObjectByName("F10"))
+console @RemoveUnitFromServer(GetObjectByName("F11"))
+console @RemoveUnitFromServer(GetObjectByName("F12"))
+wait 500
+check IsAlive(GetLeader())
+
+# The camp (a page turned, the mouse moving).
+screen 5
+waitwindow 15 camp
+frames 10
+renderstats -
+move 200 300
+frames 15
+clickregion 6
+frames 15
+move 600 300
+frames 15
+renderstats camp
+key esc
+waitwindow 15 battle
+# A town: the Gipat base bz1g (as zone_base_bz1g); then the global map and its escape menu.
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 1000
+renderstats -
+frames 60
+renderstats town
+
+screen 4
+waitwindow 15 map
+frames 10
+renderstats -
+move 300 300
+frames 20
+move 500 250
+frames 20
+renderstats map
+key esc
+waitwindow 10 escmenu
+frames 10
+renderstats -
+move 395 120
+frames 20
+move 395 200
+frames 20
+renderstats escmenu
+key esc
+waitwindow 10 map
+report
+quit

@@ -260,10 +260,14 @@ address in its source comment (grep the address); the per-function table that us
   the stream pointer; ours starts its local with it) and appends to the list instead of replacing it; the trap constructor
   releases a spell and empties lists it has just set empty; VictimList::Serialize (0052C740, library) writes raw pointers;
   00539CE0 returns junk in EAX.
-- Client effects and figures: the blink's rectangles mix units (closed: top = the face offset itself, unscaled; open: top =
-  (eye height + offset) x scale); `BlitMipChain` never releases the attached mip surfaces it gets and copies nothing when a
-  texture has no DirectDraw surface (the original would crash); integer edges follow `_ftol` of double maths (the
-  original's x87 at 24 bits could differ by one). `HitEffect`'s third argument is a flags word whose stack slot the original
+- Client effects and figures: the "blink" is the speaking mouth: the face texture is "<model>mouth[_NN]", and only the
+  briefing's speakers blink (`blinks` set by 00604C50 while a phrase with lips plays; the faces load when a zone is
+  entered between zones, 0056DE80). Its rectangles mix units (closed: top = the face offset itself, unscaled; open:
+  top = (eye height + offset) x scale); integer edges follow `_ftol` of double maths (the original's x87 at 24 bits
+  could differ by one). `BlitMipChain` (00533980) blits the rectangle into the skin on every level of both mip chains
+  with all eight edges halved (SAR) per level, and never releases the attached mip surfaces it gets. Ours hands the
+  first level's rectangles to `render::TexturePatch` (R11d, renderer.md section 7): the shader draws them over the skin
+  on every level (a lower level's rectangle can be a texel off the original's halved one). Check: `render_blink`. `HitEffect`'s third argument is a flags word whose stack slot the original
   reuses for the material CString; heroes index the armour table 0073EC78 by the hit location without a range check.
   `Say`'s new queue entry has three padding bytes of stack garbage (ours zero); `StopSpeech` frees nodes through
   `stlp::deallocate` where the original pushes them on the 32-byte free list (0079B230). `CObject3D::LoadPart` returns null

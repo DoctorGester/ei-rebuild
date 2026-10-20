@@ -120,8 +120,8 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
 void CSaveLoadWindow::Build() {
     rect_ = RECT{0, 0, 800, 600};
     LoadTexture(game::Text(0x00793380), 3, 0);   // "saveload"
-    // The selected save's picture (5:6:5; game-owned memory with "cpuwindows", ui_saveload.cpp).
-    GivePictureMemory(CreateTexture(0x100, 0x100, 0x1E));
+    // The selected save's picture (5:6:5, in the new renderer's memory: ui_saveload.cpp).
+    CreateTexture(0x100, 0x100, 0x1E);
 
     // The three buttons' faces: OK (left), cancel (right), delete (middle).
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);

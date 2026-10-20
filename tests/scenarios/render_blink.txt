@@ -1,0 +1,32 @@
+# The blink (R11d; docs/notes/units.md, renderer.md section 7): a unit with a face texture
+# ("<model>mouth": the mouth of the briefing's speakers) shows the face's open or closed rectangle
+# over a rectangle of its skin. The original blits it into the skin's DirectDraw texture down the
+# mip chain (00533980); the image's renderer draws it over the skin in its shader
+# (render::TexturePatch). On zone1 (the faces loaded as on entering a zone: `blink faces`), frozen:
+# open, closed and open again through the game's own blink (`blink`, forced, every unit with a face).
+# The two open frames match; the closed one differs from them only at the hero's mouth in the
+# portrait (top left, about 160 pixels of the 3840 x 2160 frame; the original's run the same).
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+blink faces
+move 400 60
+frames 3
+freeze
+blink open
+capture open
+blink close
+capture closed
+blink open
+capture open_again
+samecapture open open_again
+diffcapture open closed 0.000005 0.0002
+unfreeze
+frames 3
+report
+quit

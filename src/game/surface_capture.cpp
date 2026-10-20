@@ -1,13 +1,11 @@
 // Reading a surface back into a bitmap (006D6D40, 006D6FC0; dib.h): the screenshots (Scroll Lock,
-// ui_interface_keys.cpp) and the movie recorder's frames (app_frame.cpp). The surface is locked
-// for reading and its rows copied from the last to the first, as a .bmp keeps them.
+// ui_interface_keys.cpp) and the movie recorder's frames (app_frame.cpp). The original locks the
+// surface for reading and copies its rows from the last to the first, as a .bmp keeps them; no
+// holder has a DirectDraw surface, so the rows come from the new renderer's last frame.
 #include "dib.h"
-#include "game_strings.h"
 
-#include "app.h"
 #include "device.h"
 #include "texture.h"
-#include "ui.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -26,12 +24,6 @@
 
 namespace {
 
-const char* NoPixelFormatText() { return game::Text(0x0078E714); }   // "Can't get pixel format from surface.\n"
-const char* CantLockText() { return game::Text(0x0078E30C); }        // "Can't lock surface.\n"
-const char* CantUnlockText() { return game::Text(0x0078E2F4); }      // "Can't unlock surface.\n"
-
-constexpr DWORD kLockReadWait = DDLOCK_WAIT | DDLOCK_READONLY;   // 0x11
-
 // The pixel sizes the capture copies; a surface of any other depth gives a bitmap with its bits
 // left as allocated.
 int BytesPerPixel(int bits) {
@@ -43,16 +35,17 @@ int BytesPerPixel(int bits) {
     }
 }
 
-// A holder without a DirectDraw surface (the switch-over's render target and primary, device.h):
-// the bitmap is made from the new renderer's last frame (render::ReadFrame), in the depth and
+} // namespace
+
+// The bitmap is made from the new renderer's last frame (render::ReadFrame), in the depth and
 // channel masks the surface would have had (device::ScreenFormat), rows bottom-up, the part of the
 // rectangle outside the frame black. Null (logged) when the new renderer has no frame.
-CDib* CaptureFromFrame(const CDXSurface* self, const RECT* rect) {
+CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     int frameWidth = 0, frameHeight = 0;
     std::vector<std::uint8_t> frame;
     if (!render::ReadFrame(&frameWidth, &frameHeight, &frame)) {
         static bool logged = false;
-        if (!logged) ei::Log("capture: the surface has no DirectDraw surface and the new renderer has no frame: no bitmap");
+        if (!logged) ei::Log("capture: the new renderer has no frame: no bitmap");
         logged = true;
         return nullptr;
     }
@@ -85,45 +78,6 @@ CDib* CaptureFromFrame(const CDXSurface* self, const RECT* rect) {
             }
         }
     }
-    return dib;
-}
-
-} // namespace
-
-// A failed DirectDraw call is reported and the capture goes on, as the original's.
-CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
-    auto* surface = static_cast<IDirectDrawSurface7*>(self->surface);
-    // A holder without a surface (the switch-over's render target, device.h): the new renderer's frame.
-    if (!surface) return CaptureFromFrame(self, rect);
-    DDPIXELFORMAT format;
-    std::memset(&format, 0, sizeof(format));
-    format.dwSize = sizeof(format);
-    self->result = surface->GetPixelFormat(&format);
-    if (self->result != DD_OK) app::FatalErrorCode(self->result, NoPixelFormatText());
-    ChannelLayout layout;
-    layout.Split(&format);   // the original's call; nothing reads the layout
-    EnterCriticalSection(GameDeviceLock());
-    DDSURFACEDESC2 desc;
-    std::memset(&desc, 0, sizeof(desc));
-    desc.dwSize = sizeof(desc);
-    self->result = surface->Lock(const_cast<RECT*>(rect), &desc, kLockReadWait, nullptr);
-    if (self->result != DD_OK) app::FatalErrorCode(self->result, CantLockText());
-    auto* dib = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
-    if (dib) {
-        dib->ConstructSized(rect->right - rect->left, rect->bottom - rect->top, self->bitsPerPixel,
-                         format.dwRBitMask, format.dwGBitMask, format.dwBBitMask);
-    }
-    std::uint8_t* out = dib->AllocateBits();
-    if (const int pixelBytes = BytesPerPixel(self->bitsPerPixel)) {
-        for (int row = rect->bottom - rect->top - 1; row >= 0; --row) {
-            const std::size_t rowBytes = static_cast<std::size_t>((rect->right - rect->left) * pixelBytes);
-            std::memcpy(out, static_cast<const std::uint8_t*>(desc.lpSurface) + desc.lPitch * row, rowBytes);
-            out += rowBytes;
-        }
-    }
-    LeaveCriticalSection(GameDeviceLock());
-    self->result = surface->Unlock(const_cast<RECT*>(rect));
-    if (self->result != DD_OK) app::FatalErrorCode(self->result, CantUnlockText());
     return dib;
 }
 EI_REPLACE(0x006D6D40, CaptureSurfaceRect);

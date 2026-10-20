@@ -123,10 +123,23 @@ def with_status(tickets, statuses):
     return problems
 
 
+def with_worked(db, tickets):
+    """Adds `worked`: the ticket's assignments as [started, ended] ISO times, for the board's elapsed time. An open
+    assignment ends when the ticket went to review (the worker finished) or done; while running it stays null."""
+    changed = dict(db.execute("SELECT ticket, changed FROM ticket_status WHERE status IN ('review', 'done')"))
+    spans = {}
+    for ticket, started, ended in db.execute('SELECT ticket, started, ended FROM assignment ORDER BY id'):
+        spans.setdefault(ticket, []).append([started, ended or changed.get(ticket)])
+    for t in tickets:
+        if t.get('id') in spans:
+            t['worked'] = spans[t['id']]
+
+
 def loaded(db):
     """load() with the database's statuses filled in and the states derived; the toml's problems included."""
     data, groups, tickets, problems = load()
     problems += with_status(tickets, work.ticket_statuses(db))
+    with_worked(db, tickets)
     running = dict(db.execute('SELECT ticket, model FROM assignment WHERE ended IS NULL AND model IS NOT NULL'))
     for t in tickets:   # the model a running worker was actually given (`work.py start --model`) over the planned one
         if t.get('id') in running:
