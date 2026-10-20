@@ -56,7 +56,7 @@ void CInterface3D::Shutdown() {
     }
     if (opened) {
         mfc::CString line;
-        using Topics = stlp::map<mfc::CString, int>;
+        using Topics = decltype(helpTopics_);
         for (Topics::Node* n = helpTopics_.begin(); n != helpTopics_.end(); n = Topics::Next(n)) {
             line.Format(game::TutorialLineFormat(), static_cast<const char*>(n->first), n->second);
             file.WriteString(line);

@@ -265,8 +265,8 @@ struct PatrolPointElements {
 };
 
 // CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
-// Add 005D93B0 and SetAtGrow 005D9F30 are registered on the template (unit_ai_looks.cpp); its
-// SetSize stays 004C9970 (PatrolPointArraySetSizeOriginal).
+// Add 005D93B0 and SetAtGrow 005D9F30 are registered on the template (unit_ai_looks.cpp); SetSize
+// is 004C9970 (mfc::impl::AiLookRecords).
 using PatrolPointArray = mfc::CArray<PatrolPoint, PatrolPointElements>;
 // 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
 void __fastcall PatrolPointsDestruct(PatrolPointArray* points);

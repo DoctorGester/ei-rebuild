@@ -85,31 +85,6 @@ void ChooseKeyboardLayout() {
     gameapi::ActivateKeyboardLayout(chosen, 0);
 }
 
-using Topics = stlp::map<mfc::CString, int>;
-
-int CompareNames(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
-}
-
-// The topic's node, entered with 0 when it is new (the map's operator[], inlined by the original).
-Topics::Node* TopicNode(Topics& topics, const mfc::CString& name) {
-    Topics::Node* at = topics.end();
-    for (Topics::Node* n = at->parent; n;) {
-        if (CompareNames(n->first, name) < 0) {
-            n = n->right;
-        } else {
-            at = n;
-            n = n->left;
-        }
-    }
-    if (at != topics.end() && CompareNames(name, at->first) >= 0) return at;
-    std::pair<mfc::CString, int> entry(name, 0);
-    void* inserted;
-    HelpTopicsInsertOriginal(&topics, nullptr, &inserted, at, &entry);
-    return static_cast<Topics::Node*>(inserted);
-}
-
-static_assert(sizeof(std::pair<mfc::CString, int>) == 8);
 static_assert(sizeof(console::ConsoleWindow) == 0x7C && sizeof(CChatOverlay) == 0x158 && sizeof(CScreenFade) == 0x14);
 
 } // namespace
@@ -186,7 +161,7 @@ void CInterface3D::Create(CTextureDevice* device) {
             text::SplitWords(line, &words, ' ');
             if (words.GetSize() <= 1) continue;
             const char* count = words[1];
-            TopicNode(helpTopics_, words[0])->second = GameAtoi(count);
+            helpTopics_.Subscript(words[0]) = GameAtoi(count);   // operator[], inlined by the original
         }
         file.Close();
     }

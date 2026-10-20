@@ -25,7 +25,6 @@ constexpr int kTorchNetFields = 5;
 // Not rewritten (forwarders):
 // 0050FA30. CArray<DeltaField>::SetSize (growBy -1 keeps the step). Both functions below inline it;
 // the inlined copies do exactly what it does.
-inline void NetFieldsSetSize(DeltaState* state, void*, int size, int growBy) { NetFieldsSetSizeOriginal(state, nullptr, size, growBy); }
 } // namespace
 
 // --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------
@@ -49,7 +48,7 @@ int CMapObject::CreateMapObject() {
     PackedVitals()->Reset();
     animationSpeed = 1.0f;
     PackedVitals()->Reset();
-    NetFieldsSetSize(NetState(), nullptr, kMapObjectNetFields, -1);
+    NetState()->SetFieldCount(kMapObjectNetFields);
     NetState()->Reset();
     changeStamp = -1;
     if (effects) {
@@ -77,7 +76,7 @@ EI_REPLACE_METHOD(0x0050E840, CMapObject::DestroyMapObject);
 int CUnit::CreateUnit() {
     static_cast<CMapObject*>(this)->CreateMapObject();
     Reset();
-    NetFieldsSetSize(MapObject()->NetState(), nullptr, kUnitNetFields, -1);
+    MapObject()->NetState()->SetFieldCount(kUnitNetFields);
     return 1;
 }
 EI_REPLACE_METHOD(0x0052E400, CUnit::CreateUnit);
@@ -88,7 +87,7 @@ int CTorchObject::CreateTorch() {
     spec = nullptr;
     if (old) old->Release();
     DeltaState* state = NetState();
-    NetFieldsSetSize(state, nullptr, kTorchNetFields, -1);
+    state->SetFieldCount(kTorchNetFields);
     state->Reset();
     return 1;
 }

@@ -127,7 +127,7 @@ void CBattleScreen::ToggleMember(int index) {
     UiDwordArray chosen{reinterpret_cast<void*>(0x0073C3D0), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
-        DwordArraySetAtGrowOriginal(&chosen, nullptr, chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
+        chosen.SetAtGrow(chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
     }
     if (interface_->shiftDown_) {
         chosen.data[index] = chosen.data[index] == 0 ? 1u : 0u;
@@ -189,7 +189,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
-        PartyArraySetSizeOriginal(&units, nullptr, n + 1, -1);
+        units.SetSize(n + 1, -1);
         units.data[n] = member;
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
         slot.wobbleTime_ = PortraitDelay(UiRandom().Next());
@@ -211,7 +211,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
         auto* member = party->data[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
-        PartyArraySetSizeOriginal(&units, nullptr, n + 1, -1);
+        units.SetSize(n + 1, -1);
         units.data[n] = member;
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
         slot.wobbleTime_ = PortraitDelay(UiRandom().Next());

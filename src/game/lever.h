@@ -14,13 +14,7 @@ class CStream;   // core_streams.h
 
 // The spots a use order may go to (an MFC CArray<Vector3>, vtable 0073C120; its SetAtGrow is
 // 0052CC50). combat_planning.cpp's SpotArray is the same array.
-struct LeverSpots {
-    void* vtable;
-    Vector3* data;      // +0x04
-    int size;           // +0x08
-    int capacity;       // +0x0C
-    int growBy;         // +0x10
-};
+using LeverSpots = mfc::CArray<Vector3>;
 static_assert(sizeof(LeverSpots) == 0x14);
 
 // A model's record in the lever table (0079C1A0: 0x2C bytes, read from Levers.ldb by 00463030,

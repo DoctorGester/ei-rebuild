@@ -20,6 +20,8 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 
 #include "ei/hook.h"
 #include "originals_effects.h"
@@ -72,14 +74,7 @@ void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, co
 // Containers: 00545750 a path cell list's constructor (blocks of 0x80), 00539890 its destructor,
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
 // 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.
-__declspec(naked) void __fastcall CellListConstruct(void*) EI_ORIGINAL(0x00545750)
-void __fastcall PointArrayConstruct(void* a0) { PointArrayConstructOriginal(a0); }
-__declspec(naked) void __fastcall PointArrayDestroy(void*) EI_ORIGINAL(0x00557250)
-__declspec(naked) void __fastcall MotionPointsConstruct(void*) EI_ORIGINAL(0x00556D70)
-__declspec(naked) void __fastcall MotionWaypointsConstruct(void*) EI_ORIGINAL(0x00556810)
-__declspec(naked) void __fastcall MotionSpeedsConstruct(void*) EI_ORIGINAL(0x004D5990)
-__declspec(naked) void __fastcall MotionCurvesConstruct(void*) EI_ORIGINAL(0x0054E5D0)
-__declspec(naked) void __fastcall MotionSpeedsDestroy(void*) EI_ORIGINAL(0x004CB050)
+void __fastcall PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 
 // The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
@@ -95,13 +90,13 @@ struct LocalPath {
     AIPath* Path() { return reinterpret_cast<AIPath*>(bytes); }
     const AIPath* Path() const { return reinterpret_cast<const AIPath*>(bytes); }
     LocalPath() {
-        CellListConstruct(&Path()->steps);
-        CellListConstruct(&Path()->cells);
+        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->steps, 0x80);
+        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->cells, 0x80);
         PointArrayConstruct(&Path()->excludedBlocks);
         reinterpret_cast<AIPath*>(bytes)->Clear();
     }
     ~LocalPath() {
-        PointArrayDestroy(&Path()->excludedBlocks);
+        mfc::impl::DestructHeader<mfc::impl::PointArrayClass>(&Path()->excludedBlocks);
         CellListDestroy(&Path()->cells);
         CellListDestroy(&Path()->steps);
     }
@@ -120,7 +115,7 @@ struct LocalMotionOrder {
     alignas(4) std::uint8_t steps[sizeof(PathCellList)];
     LocalMotionOrder() {
         std::memset(&order, 0, sizeof(order));
-        CellListConstruct(steps);
+        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(steps, 0x80);
     }
     ~LocalMotionOrder() { CellListDestroy(steps); }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
@@ -134,18 +129,20 @@ static_assert(sizeof(LocalMotionOrder) == 0x3C);
 struct LocalUnitMotion {
     UnitMotion motion;
     LocalUnitMotion() {
-        MotionPointsConstruct(&motion.points);
+        mfc::impl::ConstructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
         motion.points.vtable = reinterpret_cast<void*>(0x0073EB9C);
-        MotionWaypointsConstruct(&motion.waypoints);
-        MotionSpeedsConstruct(&motion.stepSpeeds);
-        MotionCurvesConstruct(&motion.fromX);
+        mfc::impl::ConstructArrayOf<mfc::impl::MotionWaypointArrayClass>(motion.waypoints);
+        mfc::impl::ConstructArrayOf<mfc::impl::ArgFloatArrayClass>(motion.stepSpeeds);
+        motion.curveX = {};   // the segment part (0054E5D0): no curves, no segment
+        motion.curveY = {};
+        motion.segment = -1;
         static_cast<UnitMotion*>(&motion)->Clear();
         motion.speedScale = *reinterpret_cast<const float*>(0x0073EF20);
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
     }
     ~LocalUnitMotion() {
-        MotionSpeedsDestroy(&motion.stepSpeeds);
+        mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(motion.stepSpeeds);
         motion.waypoints.vtable = reinterpret_cast<void*>(0x0073EBB4);
         if (motion.waypoints.data) gamecrt::operator_delete(motion.waypoints.data);
         motion.points.vtable = reinterpret_cast<void*>(0x0073EBA8);

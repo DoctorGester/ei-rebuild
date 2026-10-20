@@ -11,6 +11,7 @@
 
 #include "console.h"
 #include "lib/stlp.h"
+#include "lib/stlp_hash.h"
 
 #include <bit>
 #include <cstddef>
@@ -473,13 +474,14 @@ struct IndexedRecordTable {
     // of 100 buckets (193).
     void Construct();
 
-    // The name index, typed (the materials are filed under their key, +0x00).
+    // The name index as the game's inlined hash_map code sees it (the materials are filed under
+    // their key, +0x00).
     using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
-    NameIndex& ByName() { return *reinterpret_cast<NameIndex*>(index); }
+    NameIndex& ByName() { return *reinterpret_cast<NameIndex*>(&names); }
 
     RecordTable records;            // +0x00 begin, end
     char* capacityEnd;              // +0x08
-    std::uint8_t index[0x14];       // +0x0C
+    stlp::NameMap names;            // +0x0C record by name
 };
 static_assert(sizeof(IndexedRecordTable) == 0x20);
 static_assert(sizeof(IndexedRecordTable::NameIndex) == 0x14);

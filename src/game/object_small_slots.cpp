@@ -1,10 +1,12 @@
 // Small virtual slots of the map objects' companions and the client controller. See unit.h,
 // unit_client_models.h, map_object.h and docs/notes/map_objects.md.
 #include "map_object.h"
+#include "game_arrays.h"
 #include "unit.h"
 #include "unit_client_models.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include "ei/hook.h"
 #include "originals_engine.h"
@@ -40,7 +42,7 @@ EI_REPLACE_METHOD(0x0050F120, CMapObject::FreeArray);
 int CMapObjectClientSpecific::CreateClientCompanion() {
     lightStateA = 0;
     lightStateB = 0;
-    CompanionParticlesSetSizeOriginal(&particles, nullptr, 0, -1);
+    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
     endSound = kNoSound;
     owner = nullptr;
     return 1;

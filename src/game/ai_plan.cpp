@@ -36,7 +36,7 @@ using WaypointNode = WaypointList::Node;
 static_assert(sizeof(WaypointNode) == 0x14);
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
-void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
+void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { mfc::impl::ConstructListHeader<mfc::impl::CellListClass>((void*)a0, a2); }
 // 005BEDB0 (RET 8). The waypoint list's NewNode(prev, next).
 __declspec(naked) WaypointNode* __fastcall WaypointNewNode(WaypointList*, void*, WaypointNode*, WaypointNode*) EI_ORIGINAL(0x005BEDB0)
 // The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
@@ -212,7 +212,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 int y = bad->data.y;
                 BlockPointArray* excluded = &path->excludedBlocks;
                 int size = excluded->size;
-                PointArraySetSizeOriginal(excluded, nullptr, size + 1, -1);
+                excluded->SetSize(size + 1, -1);
                 BlockPoint* data = excluded->data;
                 data[size].x = x;
                 data[size].y = y;

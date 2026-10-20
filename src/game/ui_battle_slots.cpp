@@ -73,7 +73,7 @@ void CBattleScreen::Close() {
     GameCursor()->SetHeld(0);
     GameStopSounds(1);
     GameStopAmbience();
-    PartyArraySetSizeOriginal(&party_, nullptr, 0, -1);
+    party_.SetSize(0, -1);
 }
 EI_REPLACE_METHOD(0x00635E60, CBattleScreen::Close);
 
@@ -187,16 +187,16 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     if (found) {
         int count = party.size;
         if (place >= count) {
-            PartyArraySetSizeOriginal(&party, nullptr, place + 1, -1);
+            party.SetSize(place + 1, -1);
         } else {
-            PartyArraySetSizeOriginal(&party, nullptr, count + 1, -1);
+            party.SetSize(count + 1, -1);
             std::memmove(&party.data[place + 1], &party.data[place], (count - place) * sizeof(party.data[0]));
         }
         party.data[place] = unit;
         selected = player->records[record].selected != 0;
     } else {
         int count = party.size;
-        PartyArraySetSizeOriginal(&party, nullptr, count + 1, -1);
+        party.SetSize(count + 1, -1);
         party.data[count] = unit;
     }
     PortraitsRebuildOriginal(portraits_, nullptr, 0);

@@ -23,23 +23,24 @@ namespace {
 
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.
 
-// The float array resized with `setSize`, then each value copied (the source's size re-read).
-void CopyFloats(mfc::CArray<float>* to, const mfc::CArray<float>* from,
-                void(__fastcall* setSize)(void*, void*, int, int)) {
-    setSize(to, nullptr, from->size, -1);
+// The float array resized (its instantiation's SetSize: 004C2880 the variables, 004C4410 the
+// arguments), then each value copied (the source's size re-read).
+void CopyFloats(mfc::CArray<float>* to, const mfc::CArray<float>* from) {
+    to->SetSize(from->size, -1);
     for (int i = 0; i < from->size; ++i) x87::CopyFloat(&to->data[i], &from->data[i]);
 }
 
-// A plain array resized with `setSize`, then each element copied as raw words.
+// A plain array resized (004C46F0 object, 004C49F0 group arguments, 004C4CE0 bindings), then each
+// element copied as raw words.
 template <typename T>
-void CopyPlain(mfc::CArray<T>* to, const mfc::CArray<T>* from, void(__fastcall* setSize)(void*, void*, int, int)) {
-    setSize(to, nullptr, from->size, -1);
+void CopyPlain(mfc::CArray<T>* to, const mfc::CArray<T>* from) {
+    to->SetSize(from->size, -1);
     for (int i = 0; i < from->size; ++i) to->data[i] = from->data[i];
 }
 
 // ScriptVars::operator= as inlined into ScriptRun::operator= and out of line at 004CBAE0.
 void AssignVars(ScriptVars* to, const ScriptVars* from) {
-    CopyFloats(&to->floats, &from->floats, FloatsSetSize);
+    CopyFloats(&to->floats, &from->floats);
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->floatNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->floatNames));
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->strings));
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->stringNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->stringNames));
@@ -71,12 +72,12 @@ EI_REPLACE_METHOD(0x004CB570, ScriptRun::ScriptRunAssign);
 
 SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     id = other->id;
-    CopyFloats(&floatArgs, &other->floatArgs, FloatArgsSetSize);
+    CopyFloats(&floatArgs, &other->floatArgs);
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&stringArgs), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&other->stringArgs));
-    CopyPlain(&objectArgs, &other->objectArgs, ObjectArgsSetSize);
-    CopyPlain(&groupArgs, &other->groupArgs, GroupArgsSetSize);
-    CopyPlain(&localBindings, &other->localBindings, BindingsSetSize);
-    CopyPlain(&globalBindings, &other->globalBindings, BindingsSetSize);
+    CopyPlain(&objectArgs, &other->objectArgs);
+    CopyPlain(&groupArgs, &other->groupArgs);
+    CopyPlain(&localBindings, &other->localBindings);
+    CopyPlain(&globalBindings, &other->globalBindings);
     recordarrays::SubCallArrayCopy(reinterpret_cast<recordarrays::SubCalls::Array*>(&subCalls), nullptr,   // nested commands deep-copied
                                    reinterpret_cast<const recordarrays::SubCalls::Array*>(&other->subCalls));
     calledScript = other->calledScript;
@@ -148,7 +149,7 @@ void InitArray(mfc::CArray<T>* a, void* vtable) {
 // A string array constructed empty, resized with 004C2510, each element assigned from a GetAt copy.
 void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
     InitArray(to, scriptvtable::kStrings);
-    NamesSetSizeOriginal(to, nullptr, from->size, -1);
+    to->SetSize(from->size, -1);
     for (int i = 0; i < from->size; ++i) {
         TempString s;
         StringAt(from, nullptr, &s, i);
@@ -160,12 +161,12 @@ void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::
 void CopyConstructCmd(SSCCmd* to, const SSCCmd* from) {
     to->id = from->id;
     InitArray(&to->floatArgs, mfc::impl::ArgFloatArrayClass::Vtable());
-    CopyFloats(&to->floatArgs, &from->floatArgs, FloatArgsSetSize);
+    CopyFloats(&to->floatArgs, &from->floatArgs);
     CopyConstructStrings(&to->stringArgs, &from->stringArgs);
     InitArray(&to->objectArgs, mfc::impl::ArgObjectsClass::Vtable());
-    CopyPlain(&to->objectArgs, &from->objectArgs, ObjectArgsSetSize);
+    CopyPlain(&to->objectArgs, &from->objectArgs);
     InitArray(&to->groupArgs, mfc::impl::ArgGroupsClass::Vtable());
-    CopyPlain(&to->groupArgs, &from->groupArgs, GroupArgsSetSize);
+    CopyPlain(&to->groupArgs, &from->groupArgs);
     recordarrays::BindingsCopyConstruct(reinterpret_cast<recordarrays::Bindings::Array*>(&to->localBindings), nullptr,
                                         reinterpret_cast<const recordarrays::Bindings::Array*>(&from->localBindings));
     recordarrays::BindingsCopyConstruct(reinterpret_cast<recordarrays::Bindings::Array*>(&to->globalBindings), nullptr,
@@ -232,7 +233,7 @@ EI_REPLACE(0x004CBA00, ScriptNamesCopyConstruct);
 // reference of its own; the copy is released (all inline in the original).
 template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other) {
     InitArray(&values, scriptvtable::kRefs);
-    PtrArraySetSize(&values, nullptr, other->values.size, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptObjectRef value;
         RefAt(&other->values, nullptr, &value, i);
@@ -252,12 +253,12 @@ EI_REPLACE_METHOD(0x004CBDB0, ScriptNamedValues<ScriptObjectRef>::CopyConstruct)
 // destructor inlined (vtable 0073D11C, each reference destroyed, the array freed).
 template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other) {
     InitArray(&values, scriptvtable::kGroups);
-    GroupValuesSetSize(&values, nullptr, other->values.size, -1);
+    mfc::impl::ArrayAs<gamearrays::Groups>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->values, nullptr, &copy, i);
         ScriptGroup* group = &values.data[i];
-        PtrArraySetSize(group, nullptr, copy.size, -1);
+        group->SetSize(copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
@@ -280,13 +281,13 @@ EI_REPLACE_METHOD(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 // objects through the reference helpers, groups assigned (004C1290) from GetAt copies.
 ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     InitArray(&floats, scriptvtable::kFloats);
-    CopyFloats(&floats, &other->floats, FloatsSetSize);
+    CopyFloats(&floats, &other->floats);
     ScriptNamesCopyConstruct(&floatNames, nullptr, &other->floatNames);
     CopyConstructStrings(&strings, &other->strings);
     ScriptNamesCopyConstruct(&stringNames, nullptr, &other->stringNames);
 
     InitArray(&objects, scriptvtable::kRefs);
-    PtrArraySetSize(&objects, nullptr, other->objects.size, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
         RefAt(&other->objects, nullptr, &value, i);
@@ -298,7 +299,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     ScriptNamesCopyConstruct(&objectNames, nullptr, &other->objectNames);
 
     InitArray(&groups, scriptvtable::kGroups);
-    GroupValuesSetSize(&groups, nullptr, other->groups.size, -1);
+    mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->groups, nullptr, &copy, i);
@@ -330,7 +331,7 @@ EI_REPLACE_METHOD(0x004C00D0, ScriptVars::ScriptVarsConstruct);
 // ScriptNamesCopyConstruct builds them (inlined in the original).
 template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(const ScriptNamedValues<float>* other) {
     InitArray(&values, scriptvtable::kFloats);
-    CopyFloats(&values, &other->values, FloatsSetSize);
+    CopyFloats(&values, &other->values);
     ScriptNamesCopyConstruct(&names, nullptr, &other->names);
     return this;
 }
@@ -350,7 +351,7 @@ ScriptDefinition* ScriptDefinition::ScriptDefinitionAssign(const ScriptDefinitio
     index = other->index;
     name = other->name;
     params = other->params;
-    IfThenArraySetSizeOriginal(&ifThen, nullptr, other->ifThen.size, -1);
+    ifThen.SetSize(other->ifThen.size, -1);   // 004C59C0
     for (int i = 0; i < other->ifThen.size; ++i) ifThen.data[i] = other->ifThen.data[i];
     AssignVars(&vars, &other->vars);
     return this;

@@ -38,6 +38,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/mfc_array.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -461,7 +462,6 @@ int& CampaignMode() { return *reinterpret_cast<int*>(0x007C2CC4); }
 int& SpectatorFlag() { return *reinterpret_cast<int*>(0x0079BE6C); }
 
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
-__declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0x0056FFE0)
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
 // (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
@@ -555,7 +555,7 @@ int __stdcall StartNetworkZone(const char* zone) {
 
     // The zone's exits, all leading to "MPGame1".
     ZoneExitArray exits;
-    ExitArrayConstruct(&exits, nullptr);
+    mfc::impl::ConstructArrayOf<mfc::impl::ExitArrayClass>(exits);
     exits.vtable = reinterpret_cast<void*>(kExitArrayVtable);
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
     ZoneExitsSetSizeOriginal(&exits, nullptr, source->size, -1);
@@ -940,7 +940,6 @@ constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script te
 // pointer); 0042D2C0 / 00598D80 free them; 004D8E10 (RET 4) decodes `input` into `text` and the
 // CString, called through its address so its verify wrapper sees the zone's scripts.
 using CharVector = stlp::vector<char>;
-__declspec(naked) void __fastcall CharVectorConstruct(CharVector*, void*, const char* /*allocator*/) EI_ORIGINAL(0x00598940)
 __declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x0042D2C0)
 __declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
@@ -973,9 +972,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     LocalMemoryStream scripts;
     LocalMemoryStream text;
     MobScriptDecoder decoder;
-    char allocator = 0;
-    CharVectorConstruct(&decoder.text, nullptr, &allocator);
-    CharVectorConstruct(&decoder.input, nullptr, &allocator);
+    decoder.text.ConstructEmpty();   // 00598940
+    decoder.input.ConstructEmpty();
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* path = MapPathInto(this, nullptr, storage, mob);
@@ -1872,8 +1870,6 @@ void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
 using NodeVector = stlp::vector<void*>;
-__declspec(naked) void __fastcall NodeVectorConstruct(NodeVector*, void*, const void*) EI_ORIGINAL(0x00584720)
-__declspec(naked) void __fastcall NodeVectorFree(void**, unsigned) EI_ORIGINAL(0x00584A90)
 
 // A local NamedFloatTable released the way the original's inlined destructor does.
 struct LocalVariables {
@@ -1896,19 +1892,12 @@ struct LocalVariables {
     }
 };
 
-// The client's STLport lists of counted messages (ClientSession::zones_, variables_): a sentinel
-// head, each node's value the message.
-template <typename T>
-struct MessageNode {
-    MessageNode* next;
-    MessageNode* prev;
-    T* message;
-};
-using VariableNode = MessageNode<net::VariableMessage>;
-using ZoneNode = MessageNode<net::ZoneMessage>;
+// The client's STLport lists of counted messages (ClientSession::zones_, variables_).
+using VariableNode = net::RefNode;
+using ZoneNode = net::RefNode;
 // The server's variables (name_, value_ and the stamp serial_).
-VariableNode* VariableList() { return static_cast<VariableNode*>(net::GameClient()->variables_); }
-net::VariableMessage* NodeRecord(VariableNode* node) { return node->message; }
+VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
+net::VariableMessage* NodeRecord(VariableNode* node) { return static_cast<net::VariableMessage*>(node->data.ptr); }
 unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }
 // The value's bits, moved as the dword the original pushes (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
@@ -1970,9 +1959,8 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The briefings the server says were seen.
-    for (ZoneNode* node = static_cast<ZoneNode*>(net::GameClient()->zones_)->next;
-         node != static_cast<ZoneNode*>(net::GameClient()->zones_); node = node->next)
-        MarkBriefing(node->message->text_.data());
+    for (ZoneNode* node = net::GameClient()->zones_.First(); node != net::GameClient()->zones_.End(); node = node->next)
+        MarkBriefing(static_cast<net::ZoneMessage*>(node->data.ptr)->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
         mfc::CString name(NodeRecord(node)->name_.data());
@@ -1996,8 +1984,7 @@ void GameFlow::UpdateFromServer() {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
         NodeVector changed;
-        char allocator;
-        NodeVectorConstruct(&changed, nullptr, &allocator);
+        changed.ConstructEmpty();   // 00584720
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             unsigned stamp = NodeStamp(node);
@@ -2031,7 +2018,7 @@ void GameFlow::UpdateFromServer() {
                 VariableSetBits(variables, record->name_.data(), ValueBits(record));
             }
         } while (!settled);
-        NodeVectorFree(changed.begin(), static_cast<unsigned>(changed.EndOfStorage() - changed.begin()));
+        stlp::deallocate(changed.begin(), static_cast<std::size_t>(changed.EndOfStorage() - changed.begin()) * 4);   // 00584A90
     } else {
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);

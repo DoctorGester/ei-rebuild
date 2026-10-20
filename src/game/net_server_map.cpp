@@ -22,38 +22,14 @@ namespace net {
 
 namespace {
 
-// List teardown of +0x25AC / +0x25B0: element destructors and node deallocation.
-
-// The queued message (vtable 0073BCD0, built by 00418C30): the list push_back (the counted pointer
-// helpers are RefPtrFromRaw / RefPtrClear, core_refcount.h).
-__declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
-
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
 // The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): loading a zone's quests.
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
-// vector<string> (library): the allocator proxy constructor and the block free; the string
-// buffer free the string destructor inlines.
-__declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, stlp::string* const* /*value*/) EI_ORIGINAL(0x004263D0)
-void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { NodeFree12Original((void*)a0, a1); }
-void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
+// vector<string> (library): the block free.
+void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * 12); }
 
 
 std::uint32_t* VariableCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }
-
-// Frees every node of a list (sentinel kept and linked to itself): element destructor, then the node.
-template <typename DestroyElement, typename FreeNode>
-void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
-    void** sentinel = *static_cast<void***>(list);
-    for (void** node = static_cast<void**>(sentinel[0]); node != *static_cast<void***>(list);) {
-        void** next = static_cast<void**>(node[0]);
-        destroy(node + 2, nullptr, 0);
-        freeNode(list, nullptr, node, 1);
-        node = next;
-    }
-    sentinel = *static_cast<void***>(list);
-    sentinel[0] = sentinel;
-    sentinel[1] = sentinel;
-}
 
 } // namespace
 
@@ -64,8 +40,8 @@ void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
 // names (inline, through FindOrAddVariable) and for two paths built from the map name
 // (SetVariable), and queues the host's item awards (004191C0, without the final award).
 void ServerSession::SetMap(const stlp::string* name) {
-    ClearList(&queuedMaps_, Element25ACDestroy, List25ACFree);
-    ClearList(&variables_, Element25B0Destroy, List25B0FreeNode);
+    queuedMaps_.Clear();
+    variables_.Clear();
 
     {
         stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix2Text());
@@ -73,7 +49,7 @@ void ServerSession::SetMap(const stlp::string* name) {
         ZoneMessage* message = memory ? memory->Construct() : nullptr;
         message->text_.AssignFrom(messageName);
         RefPtr ref;
-        List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+        queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
         RefPtrClear(&ref);   // 00421360
     }
 
@@ -105,15 +81,15 @@ void ServerSession::SetMap(const stlp::string* name) {
     std::uint8_t* entry;
     {
         stlp::string registryName = stlp::Plus(*name, game::ZoneSuffix1Text());
-        entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&registryName));
+        entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), registryName);
     }
     if (!entry) return;
 
     for (auto** it = *reinterpret_cast<const char***>(entry + 0x2C); it != *reinterpret_cast<const char***>(entry + 0x30); ++it) {
         stlp::string resourceName(*it);
-        void* added;
+        RefNode* added;
         FindOrAddVariable(&added, &resourceName);
-        auto* record = static_cast<VariableMessage*>(static_cast<void**>(added)[2]);
+        auto* record = static_cast<VariableMessage*>(added->data.ptr);
         const std::uint32_t one = 0x3F800000;   // 1.0f
         std::memcpy(&record->value_, &one, 4);
         record->serial_ = *VariableCounter();
@@ -154,8 +130,7 @@ void ServerSession::QueueMapList() {
     zones.start = nullptr;
     zones.finish = nullptr;
     stlp::string* none = nullptr;
-    std::uint8_t allocator = 0;
-    NamesProxyConstruct(&zones.eos, nullptr, &allocator, &none);
+    zones.eos = none;   // the allocator proxy's constructor
     PickZones(&zones, kind_, mapName_.data());
     for (stlp::string* zone = zones.start; zone != zones.finish; ++zone) {
         {
@@ -168,7 +143,7 @@ void ServerSession::QueueMapList() {
             }
             message->text_.AssignFrom(key);
             RefPtr ref;
-            List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+            queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
             RefPtrClear(&ref);   // 00421360
         }
         FlowLoadZoneQuests(flow, nullptr, zone->data());
@@ -194,14 +169,7 @@ bool ServerSession::FinishMap(const stlp::string* name) {
         holder->ptr->Release();
         holder->Share(nullptr);
     }
-    for (void** node = static_cast<void**>(static_cast<void**>(queuedMaps_)[0]); node != queuedMaps_;) {
-        void** current = node;
-        node = static_cast<void**>(node[0]);
-        reinterpret_cast<RefPtr*>(current + 2)->Destroy();
-        if (current) NodeFree(current, 0xC);
-    }
-    static_cast<void**>(queuedMaps_)[0] = queuedMaps_;
-    static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
+    queuedMaps_.Clear();
 
     stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix3Text());
     auto* message = NewMessageMemory<ZoneMessage>();
@@ -212,7 +180,7 @@ bool ServerSession::FinishMap(const stlp::string* name) {
     }
     message->text_.AssignFrom(messageName);
     RefPtr ref;
-    List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+    queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
     RefPtrClear(&ref);   // 00421360
     return true;
 }

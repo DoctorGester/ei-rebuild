@@ -131,7 +131,7 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     }
     FreeStrings(&vars.stringNames);
     FreeStrings(&vars.strings);
-    CStringArrayDestructOriginal(&vars.floatNames);
+    FreeStrings(&vars.floatNames);   // 004C26A0, the same body
     FreePlain(&vars.floats, scriptvtable::kFloatsBase);
 }
 

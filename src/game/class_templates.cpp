@@ -59,14 +59,10 @@ void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
 // 007C86E4 / 007C851C (a missing name is inserted with a null record); 004ACC10 find_or_insert of
 // the modifier map 007C853C.
-__declspec(naked) void** __fastcall FourthKindAt(void*, void*, const void*) EI_ORIGINAL(0x004ABAA0)
-void** __fastcall SpellAt(void* a0, void*, const void* a2) { return SpellMapAtOriginal(a0, nullptr, a2); }
 void* const kWeapons = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmors = reinterpret_cast<void*>(0x007C8718);
-void* const kQuickItemMap = reinterpret_cast<void*>(0x007C8744);
-void* const kFourthKindMap = reinterpret_cast<void*>(0x007C86E4);
-void* const kSpellMap = reinterpret_cast<void*>(0x007C851C);
-void* const kModifierMap = reinterpret_cast<void*>(0x007C853C);
+stlp::NameMap& QuickItemMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C8744); }
+stlp::NameMap& FourthKindMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C86E4); }
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
@@ -87,12 +83,6 @@ bool Allowed(const ClassTemplate* t, const void* itemRecord) {
 
 void* AllList(ClassTemplate* t) { return &t->allowed; }
 void* MagicList(ClassTemplate* t) { return &t->magic; }
-
-// A modifier map entry: hash_map<string, record*>'s value pair (the inlined operator[]'s key).
-struct ModifierPair {
-    stlp::string name;
-    itemdb::SpellModifierRecord* record;   // +0x0C
-};
 
 } // namespace
 
@@ -116,13 +106,13 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     ListQuickItems(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         stlp::string key(names.data[i]);
-        void* record = *QuickItemMapAtOriginal(kQuickItemMap, nullptr, &key);
+        void* record = stlp::NamedSlot<void>(QuickItemMap(), key);
         if (record && Allowed(t, record)) AddQuickItem(AllList(t), nullptr, record);
     }
     ListFourthKind(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         stlp::string key(names.data[i]);
-        void* record = *FourthKindAt(kFourthKindMap, nullptr, &key);
+        void* record = stlp::NamedSlot<void>(FourthKindMap(), key);
         if (record && Allowed(t, static_cast<itemdb::MaterialRecordHead*>(record)->classMask)) t->allowed.AddMaterial(static_cast<char*>(record), 0x14, 0x32);
     }
 
@@ -131,7 +121,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     for (int i = 0; i < names.size; ++i) {
         const char* code = SpellCodeByName(names.data[i]);
         stlp::string key(code);
-        void* record = *SpellAt(kSpellMap, nullptr, &key);
+        void* record = stlp::NamedSlot<void>(stock::SpellsByName(), key);
         if (record && Allowed(t, static_cast<itemdb::SpellRecord*>(record)->classMask)) {
             AddSpell(MagicList(t), nullptr, record);
             AddSpell(AllList(t), nullptr, record);
@@ -142,9 +132,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         const char* code = SpellModifierCodeByName(names.data[i]);
         // operator[] inlined: the code as a string, a (key, null) pair built from it, find_or_insert.
         stlp::string key(code);
-        ModifierPair pair{key, nullptr};
-        auto* element = static_cast<ModifierPair*>(ModifierMapFindOrInsertOriginal(kModifierMap, nullptr, &pair));
-        itemdb::SpellModifierRecord* record = element->record;
+        auto* record = stlp::NamedSlot<itemdb::SpellModifierRecord>(stock::ModifiersByName(), key);
         if (record && Allowed(t, record->classMask)) {
             AddModifier(MagicList(t), nullptr, record);
             AddModifier(AllList(t), nullptr, record);

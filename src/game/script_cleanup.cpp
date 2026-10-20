@@ -31,8 +31,8 @@ void RemoveAll(mfc::CList<T>& list, Destroy destroy) {
 
 // The group variables (names, then values) of a removed instance or run.
 void DestroyGroupVariables(ScriptVars& vars) {
-    CStringArrayDestructOriginal(&vars.groupNames);
-    ScriptGroupArrayDestructOriginal(&vars.groups);
+    ScriptNamesDestruct(&vars.groupNames);
+    mfc::impl::DestructArrayOf<gamearrays::GroupArrayClass>(mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups));
 }
 
 } // namespace
@@ -66,7 +66,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         ScriptObjectsDestruct(reinterpret_cast<ScriptNamedValues<ScriptObjectRef>*>(&vars.objects));
         ScriptStringsDestruct(reinterpret_cast<ScriptNamedValues<mfc::CString>*>(&vars.strings));
         ScriptFloatsDestruct(reinterpret_cast<ScriptNamedValues<float>*>(&vars.floats));
-        ScriptIfThenArrayDestructOriginal(&instance->ifThen);
+        mfc::impl::DestructHeader<mfc::impl::ScriptIfThenArrayClass>(&instance->ifThen);
         instance->params.~CString();
         instance->name.~CString();
     }
@@ -75,15 +75,15 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         gamelists::RunRemoveHead(reinterpret_cast<gamelists::Runs::List*>(&script->runs_), nullptr, reinterpret_cast<ScriptRun*>(element));
         ScriptVars& vars = reinterpret_cast<ScriptRun*>(element)->vars;
         DestroyGroupVariables(vars);
-        CStringArrayDestructOriginal(&vars.objectNames);
+        ScriptNamesDestruct(&vars.objectNames);
         vars.objects.vtable = scriptvtable::kRefsBase;
         if (vars.objects.data) {
             gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
             gamecrt::operator_delete(vars.objects.data);
         }
-        CStringArrayDestructOriginal(&vars.stringNames);
-        CStringArrayDestructOriginal(&vars.strings);
-        CStringArrayDestructOriginal(&vars.floatNames);
+        ScriptNamesDestruct(&vars.stringNames);
+        ScriptNamesDestruct(&vars.strings);
+        ScriptNamesDestruct(&vars.floatNames);
         vars.floats.vtable = scriptvtable::kFloatsBase;
         if (vars.floats.data) gamecrt::operator_delete(vars.floats.data);
     }

@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include <cmath>
 #include <cstdint>
@@ -29,9 +30,8 @@ void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reint
 // 00455950: the world an engine object belongs to (its frame counter at +0x64).
 // The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the
 // points' exit-time free 004679F0; sprite record constructor 00468F90 [pointer, count]; aligned
-// allocation of 16-byte points 00468F70; atexit 006E727B.
-void __fastcall SpriteArrayConstruct(void* a0) { SpriteArrayConstructOriginal(a0); }
-__declspec(naked) void __stdcall ConstructSprites(void*, int) EI_ORIGINAL(0x00468F90)
+// allocation of 16-byte points 00468F70; atexit 006E727B. The sprite records are zero filled (00468F90).
+void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 float GameFloat(std::uintptr_t address) {
@@ -45,7 +45,7 @@ struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     const float* rect;
 };
 struct SpriteElements {
-    static void Construct(SpriteRecord* records, int count) { ConstructSprites(records, count); }
+    static void Construct(SpriteRecord* records, int count) { mfc::PlainElements<SpriteRecord>::Construct(records, count); }
     static void Destruct(SpriteRecord*, int) {}
 };
 using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584, at 0079C1E0

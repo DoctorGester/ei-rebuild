@@ -42,7 +42,7 @@ void ResetLever(Lever* self) {
     self->endTick = 0.0f;
     self->to = 0.0f;
     self->from = 0.0f;
-    NetFieldsSetSizeOriginal(self->NetState(), nullptr, kLeverNetFields, -1);
+    self->NetState()->SetFieldCount(kLeverNetFields);
     self->lock = LockKey{1, 0, 0};
     self->state = 0;
     self->stateCount = 1;

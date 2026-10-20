@@ -75,6 +75,12 @@ struct TargetRecord {
 };
 using TargetArray = mfc::CArray<TargetRecord>;
 
+// A trap's area circle as the zone file holds it (12 bytes; the magic trap's TrapCircle).
+struct AreaRecord {
+    std::uint8_t bytes[12];
+};
+using AreaArray = mfc::CArray<AreaRecord>;
+
 class SpecRecord;
 
 // The base record (vtable 0073C5C4, 0x4C bytes). Its code is in map_spec.cpp; the slot versions are
@@ -209,7 +215,7 @@ struct TrapSpec {
                                  // owner (+0x6E) is hostile to (relation 2), one bit each
     mfc::CString spell;          // +0x90
     Vector3 origin;              // +0x94 the position when the zone loaded (00481660)
-    PlainArray areas;            // +0xA0 12-byte elements (vtable 0073C68C)
+    AreaArray areas;             // +0xA0 (vtable 0073C68C; SetSize 0046EAD0)
     TargetArray targets;         // +0xB4 8-byte elements (vtable 0073C680)
     std::int32_t interval;       // +0xC8 (15)
     std::uint8_t castOnce;       // +0xCC

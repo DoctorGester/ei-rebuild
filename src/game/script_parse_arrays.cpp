@@ -6,6 +6,8 @@
 // instantiation's element helpers) and the element's assignment operator. See script.h.
 #include "script.h"
 #include "script_array.h"
+#include "game_lists.h"
+#include "record_arrays.h"
 
 #include "lib/crt.h"
 
@@ -19,13 +21,9 @@ namespace {
 
 using namespace scriptarray;
 
-// ConstructElements instantiations (MFC, config/library.csv), __stdcall (first, count): bindings
-// zeroed; each nested call zeroed with a new SSCCmd; each definition with its arrays' vtables.
-__declspec(naked) void __stdcall ConstructBindings(void*, int) EI_ORIGINAL(0x004CCA50)
-__declspec(naked) void __stdcall ConstructSubCalls(void*, int) EI_ORIGINAL(0x004CD130)
-__declspec(naked) void __stdcall ConstructDefinitions(void*, int) EI_ORIGINAL(0x004CEB80)
-// 004CDE10: ConstructElements of 16-byte elements (zeroes).
-__declspec(naked) void __stdcall ConstructLooks(void*, int) EI_ORIGINAL(0x004CDE10)
+// The instantiations' ConstructElements: bindings zeroed (004CCA50); each nested call zeroed with a
+// new SSCCmd (004CD130); each definition with its arrays' vtables (004CEB80); looks zeroed (004CDE10).
+using DefinitionArray = mfc::impl::ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
 
 // The element destructors the inlined SetSize runs when the array empties or shrinks (neither
 // happens in Add or SetAtGrow, whose new size is above the old one).
@@ -37,10 +35,10 @@ void DestroyDefinitions(char* first, int count) {
         ScriptDefinitionDestruct(definition);
 }
 
-const ElementKind kBindings{sizeof(ScriptBinding), ConstructBindings, nullptr, nullptr};
-const ElementKind kSubCalls{sizeof(ScriptSubCall), ConstructSubCalls, DestroySubCalls, DestroySubCalls};
-const ElementKind kDefinitions{sizeof(ScriptDefinition), ConstructDefinitions, DestroyDefinitions, DestroyDefinitions};
-const ElementKind kLooks{sizeof(AILook), ConstructLooks, nullptr, nullptr};
+const ElementKind kBindings{sizeof(ScriptBinding), ConstructAs<mfc::impl::Plain12>, nullptr, nullptr};
+const ElementKind kSubCalls{sizeof(ScriptSubCall), ConstructAs<recordarrays::SubCalls>, DestroySubCalls, DestroySubCalls};
+const ElementKind kDefinitions{sizeof(ScriptDefinition), ConstructAs<DefinitionArray>, DestroyDefinitions, DestroyDefinitions};
+const ElementKind kLooks{sizeof(AILook), ConstructAs<mfc::impl::Plain16>, nullptr, nullptr};
 
 // Grows `array` by one element and returns the old size (the new element's index).
 template <typename T>

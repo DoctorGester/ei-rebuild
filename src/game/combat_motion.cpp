@@ -23,6 +23,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_list.h"
 
 #include "ei/hook.h"
 #include "originals_ai.h"
@@ -77,7 +78,6 @@ constexpr int kMessagePartial = 0x01;
 // 005B1F10 follow a target, 005B2050 turn to a direction, 005B22C0 the path's end point.
 // The step list of a motion order (a CList of path cells, vtable 0073EDB0): 00556D10 constructor
 // (block size), 00556D40 RemoveAll.
-void* __fastcall CellListConstruct(void* a0, void*, int a2) { return CellListConstructOriginal(a0, nullptr, a2); }
 void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 // The world server's timed objects (world_server.cpp).
 // The AI: 005D5E90 the brain's leader (AIBrain::LeaderOrFollowed), 005D4F70 the brain's reset, 005AEA40 the
@@ -91,9 +91,6 @@ void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, co
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
 // blank step; 00544FD0 OrderPlan's reset.
-AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-AnimationSteps* __fastcall StepsConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
-inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
@@ -172,7 +169,7 @@ void AddEmote(AnimationSteps* steps, std::uint8_t value) {
         blank.flags = 0;
         blank.duration = -1;
         blank.kind = 0;
-        StepsSetAtGrow(steps, nullptr, count, &blank);
+        steps->SetAtGrow(count, blank);
     }
     AnimationStep& last = steps->steps[steps->count - 1];
     last.variant = value;
@@ -188,7 +185,7 @@ std::uint32_t WeaponAndModeBits(CUnitServer* self) {
 // The idle animation into `steps` (00550D90's body; 00550F30 / 005474B0 inline it): a walking hero
 // stands with the emote 0xFE, the others with their idle animation for the key, if any.
 void FillIdle(CUnitServer* self, AnimationSteps* steps) {
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     if (self->moveMode.mode == kModeRun && self->moveMode.flag4 == 0) {
         AddEmote(steps, kEmoteStand);
@@ -210,7 +207,7 @@ struct LocalMotionOrder {
     PathCellList steps;     // +0x20
     LocalMotionOrder() {
         std::memset(&header, 0, sizeof(header));
-        CellListConstruct(&steps, nullptr, 0x80);
+        mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&steps, 0x80);
     }
     ~LocalMotionOrder() {
         steps.vtable = PathCellListVtable();
@@ -249,9 +246,9 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     self->unit->UpdateSizeClass();
     DropEffectObject(self);
     AnimationSteps& queue = Queue(self);
-    StepsAppend(&queue, nullptr, &steps);
+    queue.CopySteps(steps);
     QueueTime(self) = steps.extra;
-    StepsAppend(&queue, nullptr, &steps);
+    queue.CopySteps(steps);
     QueueTime(self) = steps.extra;
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
@@ -310,9 +307,9 @@ void CUnitServer::PlayIdle() {
         FillIdle(this, &IdleSteps(this));
     }
     // The idle list into the queue (twice), started (00546C40's body inlined).
-    StepsAppend(&Queue(this), nullptr, &IdleSteps(this));
+    Queue(this).CopySteps(IdleSteps(this));
     QueueTime(this) = IdleTime(this);
-    StepsAppend(&Queue(this), nullptr, &IdleSteps(this));
+    Queue(this).CopySteps(IdleSteps(this));
     QueueTime(this) = IdleTime(this);
     StartQueueIfUnset(this);
     PopFinishedSteps();
@@ -321,7 +318,7 @@ void CUnitServer::PlayIdle() {
 EI_REPLACE_METHOD(0x005474B0, CUnitServer::PlayIdle);
 
 void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     CUnit* self = unit;
     std::uint32_t bits;
@@ -363,7 +360,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
             blank.flags = 0;
             blank.duration = -1;
             blank.kind = 0;
-            StepsSetAtGrow(steps, nullptr, steps->count, &blank);
+            steps->SetAtGrow(steps->count, blank);
             AnimationStep& last = steps->steps[steps->count - 1];
             last.animation = index;
             last.duration = duration;
@@ -408,12 +405,12 @@ AnimationSteps* CUnitServer::NextAnimation() {
             StepsEmote(&steps, nullptr, value);
         } else if (step.variant == 0xFF) {
             AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
-            StepsAdd(&steps, nullptr, blank.Construct());
+            steps.Add(*blank.Construct());
             AnimationStep& last = steps.steps[steps.count - 1];
             last.animation = step.animation;
             last.duration = step.duration;
         } else {
-            StepsSetAtGrow(&steps, nullptr, steps.count, &step);
+            steps.SetAtGrow(steps.count, step);
         }
     }
     loop.vtable = kAnimationStepsBaseVtable;
@@ -558,9 +555,9 @@ bool CUnitServer::ChangeMoveMode() {
             // The transition is played as an animation order (a by-value copy, built as the
             // original does: SetSize, then the steps one by one).
             AnimationSteps copy;
-            StepsConstruct(&copy);
+            copy.ConstructBase();
             copy.vtable = kAnimationStepsVtable;
-            StepsSetSize(&copy, nullptr, transition.count, -1);
+            copy.SetSize(transition.count, -1);
             for (int i = 0; i < transition.count; ++i) copy.steps[i] = transition.steps[i];
             copy.extra = transition.extra;
             PlayAnimationOrder(copy);
@@ -609,15 +606,15 @@ bool CUnitServer::PathTo(const float* point, float range) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
         AnimationSteps* next = NextAnimation();
         AnimationSteps moving;
-        StepsCopyConstruct(&moving, nullptr, next);
+        moving.CopyConstructSteps(*next);
         moving.extra = next->extra;
         AnimationSteps current;
-        StepsConstruct(&current);
+        current.ConstructBase();
         current.vtable = kAnimationStepsVtable;
-        StepsAppend(&current, nullptr, &Queue(this));
+        current.CopySteps(Queue(this));
         current.extra = QueueTime(this);
         if (current.count != 1 || moving.count != 1 || current.steps[0].variant != moving.steps[0].variant) {
-            StepsAppend(&Queue(this), nullptr, &moving);
+            Queue(this).CopySteps(moving);
             QueueTime(this) = moving.extra;
             Queue(this).Assign(moving);   // 005483C0
             StartQueueIfUnset(this);
@@ -715,13 +712,13 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         float ey = half * path->targetY - goal[1];
         float ex = half * path->targetX - goal[0];
         float left = LengthSquared2DUnrounded(ex, ey);
-        bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
+        bool stillFar = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
-            PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, far ? 0 : 1, kFarBits);
+            PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
-        message = far ? kMessagePartial : kMessageCannotDo;
+        message = stillFar ? kMessagePartial : kMessageCannotDo;
     }
     PlayerMessage(PlayerOf(self)->connection_, nullptr, self, message);
 }
@@ -821,11 +818,11 @@ void CUnitServer::ResetController() {
     action2.modifier = 0;
     frozen = 0;
     animationHeld = 0;
-    StepsSetSize(&Queue(this), nullptr, 0, -1);
+    Queue(this).SetSize(0, -1);
     QueueTime(this) = -1;
     static_cast<AIPath*>(Motion(this))->Clear();
     OrderPlan& plan = Plan(this);
-    StepsSetSize(&plan.animation, nullptr, 0, -1);
+    plan.animation.SetSize(0, -1);
     plan.animation.extra = -1;
     plan.targetId = -1;
     plan.endTime = 0;
@@ -837,7 +834,7 @@ void CUnitServer::ResetController() {
     plan.castKind = 8;
     std::memset(&pendingHit, 0, 0x3C);
     pendingHit.multiplier = 1.0f;   // +0x130
-    StepsSetSize(&savedQueue, nullptr, 0, -1);
+    savedQueue.SetSize(0, -1);
     savedQueue.extra = -1;
     state = kStateChasing;
     hitDirection = 0xFFFFFFFFu;
@@ -881,10 +878,10 @@ void CUnitServer::ResetController() {
     claimedHostile = 0;
     sinkSpeed = 0.0f;
     MoveKey(this) = 0x666DEAD;
-    StepsSetSize(&MoveSteps(this), nullptr, 0, -1);
+    MoveSteps(this).SetSize(0, -1);
     MoveSteps(this).extra = -1;
     IdleKey(this) = 0x666DEAD;
-    StepsSetSize(&IdleSteps(this), nullptr, 0, -1);
+    IdleSteps(this).SetSize(0, -1);
     IdleSteps(this).extra = -1;
     boredTicks = 0;
     // The armour spell list (+0x91C) emptied: each element's item released (00552B80, the

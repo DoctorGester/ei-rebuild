@@ -12,6 +12,7 @@
 #include <cstdint>
 
 #include "lib/stlp.h"
+#include "lib/stlp_hash.h"
 
 // STLport vector of record pointers.
 using StockPtrVector = stlp::vector<char*>;
@@ -55,25 +56,16 @@ static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
 // A vector of spell recipes (007C8568 for weapons, 007C855C for armors, 007C8550 for scrolls).
 using SpellRecipeVector = stlp::vector<SpellRecipe>;
 
-// A pair of the recipe map (ItemStock::spellMap, hash_map<string, list<recipe*>>) and its node.
-struct StockRecipeEntry {
-    stlp::string name;              // +0x00
-    StockList recipes;              // +0x0C (its sentinel)
-};
-struct StockRecipeNode {
-    StockRecipeNode* next;          // +0x00
-    StockRecipeEntry entry;         // +0x04 (the list at +0x10)
-};
-static_assert(offsetof(StockRecipeNode, entry) == 0x04);
-static_assert(sizeof(StockRecipeEntry) == 0x10);
+// The recipe map (ItemStock::spellMap, hash_map<string, list<recipe*>>).
+using StockRecipeMap = stlp::hashtable<stlp::StringListTraits>;
+static_assert(sizeof(StockRecipeMap::Value) == 0x10);
 
-// A pair of the modifier map (ItemStock::modifierMap, map<string, modifier*>; 0x10 bytes): the
-// key and the modifier record (itemdb::SpellModifierRecord).
-struct StockModifierEntry {
-    stlp::string key;
-    char* modifier;                 // +0x0C
-};
-static_assert(sizeof(StockModifierEntry) == 0x10);
+// A map of records by name (hash_map<string, record*>; ItemStock::modifierMap, the spells and
+// modifiers by name).
+using RecordNameMap = stlp::NameMap;
+// operator[](name) (e.g. 004ABD00, 00684B20, 0069D1E0): the record slot of `name`, a null one
+// inserted for a new name.
+inline char*& NamedRecord(RecordNameMap& map, const stlp::string& name) { return stlp::NamedSlot<char>(map, name); }
 
 // The globals of the stock generation (the exe's data).
 namespace stock {
@@ -87,12 +79,12 @@ inline StockMaterialVector& TakenMaterials() { return *reinterpret_cast<StockMat
 inline StockPtrVector& TakenSpells() { return *reinterpret_cast<StockPtrVector*>(0x007C8670); }
 inline StockPtrVector& TakenModifiers() { return *reinterpret_cast<StockPtrVector*>(0x007C8660); }
 // The spell recipe vectors for weapons, armors and scrolls (FillSpellMaps' argument).
-inline void* WeaponSpellRecipes() { return reinterpret_cast<void*>(0x007C8568); }
-inline void* ArmorSpellRecipes() { return reinterpret_cast<void*>(0x007C855C); }
-inline void* ScrollSpellRecipes() { return reinterpret_cast<void*>(0x007C8550); }
-// The spell and modifier maps by name (STLport maps; their operator[] inserts a null record).
-inline void* SpellsByName() { return reinterpret_cast<void*>(0x007C851C); }
-inline void* ModifiersByName() { return reinterpret_cast<void*>(0x007C853C); }
+inline const SpellRecipeVector* WeaponSpellRecipes() { return reinterpret_cast<const SpellRecipeVector*>(0x007C8568); }
+inline const SpellRecipeVector* ArmorSpellRecipes() { return reinterpret_cast<const SpellRecipeVector*>(0x007C855C); }
+inline const SpellRecipeVector* ScrollSpellRecipes() { return reinterpret_cast<const SpellRecipeVector*>(0x007C8550); }
+// The spell and modifier maps by name (operator[] inserts a null record: NamedRecord).
+inline RecordNameMap& SpellsByName() { return *reinterpret_cast<RecordNameMap*>(0x007C851C); }
+inline RecordNameMap& ModifiersByName() { return *reinterpret_cast<RecordNameMap*>(0x007C853C); }
 // The material draw's factors of the prototype's price (read from the exe as the original does):
 // 00743D78 (a seventh) and 0073BAD4 (0.2).
 inline float SeventhFactor() { return *reinterpret_cast<const float*>(0x00743D78); }
@@ -109,8 +101,8 @@ struct ItemStock {
     StockMaterialVector materials;  // +0x2C
     StockPtrVector spells;          // +0x38
     StockPtrVector modifiers;       // +0x44
-    std::uint8_t spellMap[0x14];    // +0x50 recipes by spell name (STLport hash_map<string, list>, 0069A480)
-    std::uint8_t modifierMap[0x14]; // +0x64 modifiers by kind key (STLport map<string, modifier*>, 0069A480)
+    StockRecipeMap spellMap;        // +0x50 recipes by spell name (0069A480)
+    RecordNameMap modifierMap;      // +0x64 modifiers by kind key (0069A480)
     float baseLevels[8];            // +0x78 8 floats, set with +0x98 (00699410)
     float scrollLevels[8];          // +0x98 the spell level per school for the scrolls (0069AC20)
 

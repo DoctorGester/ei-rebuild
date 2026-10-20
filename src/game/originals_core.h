@@ -28,14 +28,8 @@ __declspec(naked) inline Vector3* __fastcall Negate(Vector3* /*out*/, const Vect
 __declspec(naked) inline CEngineObject* __fastcall ManagerFindObject(void* /*manager*/, void*, int /*id*/)
     EI_ORIGINAL(0x00403F40)
 __declspec(naked) inline void __fastcall ConstructEngineObject(void* /*object*/) EI_ORIGINAL(0x0040CB20)
-__declspec(naked) inline void __fastcall RefNullBOriginal(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF70)
-__declspec(naked) inline void __fastcall RefNullA(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF80)
 __declspec(naked) inline void* __fastcall RefPtrDestroyAt(RefPtr* /*p*/, void*, unsigned /*flags*/)
     EI_ORIGINAL(0x004292A0)
-__declspec(naked) inline void __fastcall Element25B0Destroy(void* /*element*/, void*, int /*flags*/)
-    EI_ORIGINAL(0x004292C0)
-__declspec(naked) inline void __fastcall Element25ACDestroy(void* /*element*/, void*, int /*flags*/)
-    EI_ORIGINAL(0x0042A5F0)
 
 // 0040A3A0: CRefObject::Release (decrements the 16-bit count at +4, deletes through vtable slot 0 at zero; plain
 // RET, EAX is not a result). 0040F560: Quaternion::AxisY, writes the axis to `out` (RET 4) and returns it.

@@ -162,15 +162,6 @@ constexpr std::uintptr_t kEmitterDestruct = std::uintptr_t(0x006B63E0);
 constexpr std::uintptr_t kSequenceConstruct = std::uintptr_t(0x006B63F0);
 constexpr std::uintptr_t kSequenceDestruct = std::uintptr_t(0x006B6400);
 
-// The two STLport hash maps' members (library instantiations, RET 0x10 / plain RET).
-__declspec(naked) void __fastcall CacheMapConstruct(void* /*map*/, void*, unsigned /*buckets*/, const void* /*hash*/,
-                                                    const void* /*equal*/, const void* /*alloc*/) EI_ORIGINAL(0x006BBF90)
-__declspec(naked) void __fastcall DeferredMapConstruct(void* /*map*/, void*, unsigned /*buckets*/, const void* /*hash*/,
-                                                       const void* /*equal*/, const void* /*alloc*/) EI_ORIGINAL(0x006BC2B0)
-__declspec(naked) void __fastcall CacheMapClear(void* /*map*/) EI_ORIGINAL(0x006BCE00)
-__declspec(naked) void __fastcall DeferredMapClear(void* /*map*/) EI_ORIGINAL(0x006BD100)
-__declspec(naked) void __fastcall CacheBucketsDestruct(void* /*buckets*/) EI_ORIGINAL(0x006BC4D0)
-__declspec(naked) void __fastcall DeferredBucketsDestruct(void* /*buckets*/) EI_ORIGINAL(0x006BC510)
 // Miles (game.exe's imports 0073B7D4 / 0073B7D0).
 using AilVoidFn = void(__stdcall*)();
 AilVoidFn AilStartup() { return *reinterpret_cast<AilVoidFn*>(std::uintptr_t(0x0073B7D4)); }
@@ -240,10 +231,10 @@ CSoundManager* CSoundManager::Construct() {
     EhVectorConstructorIterator(sequences, sizeof(SoundSequence), 8, reinterpret_cast<void*>(kSequenceConstruct),
                                 reinterpret_cast<void*>(kSequenceDestruct));
     ConstructList(cacheList, kCacheListVtable);
-    // The functor and allocator tags are empty objects (the original passes stack bytes).
-    std::uint8_t tags[3] = {};
-    CacheMapConstruct(cache, nullptr, kMapBuckets, &tags[0], &tags[1], &tags[2]);
-    DeferredMapConstruct(&deferred, nullptr, kMapBuckets, &tags[0], &tags[1], &tags[2]);
+    // hashtable(n, hash, equal, allocator) (006BBF90 / 006BC2B0); the functor bytes, never read,
+    // are 0 here (the original's are stack bytes).
+    cache.Construct(kMapBuckets, 0, 0, 0);
+    deferred.Construct(kMapBuckets);
     ei::SetVtable(this, kVtableAddress);
     AilStartup()();
     Reset();
@@ -254,10 +245,8 @@ void CSoundManager::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
     Close();
     AilShutdown()();
-    DeferredMapClear(&deferred);
-    DeferredBucketsDestruct(deferred.BucketVector());
-    CacheMapClear(cache);
-    CacheBucketsDestruct(cacheBuckets);
+    deferred.Destroy();   // clear 006BD100, the buckets 006BC510
+    cache.Destroy();      // clear 006BCE00, the buckets 006BC4D0
     cacheList.vtable = reinterpret_cast<void*>(kCacheListVtable);
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
@@ -788,7 +777,7 @@ void CSoundManager::Close() {
         WaveRecord record = cacheList.RemoveHead();
         record.Name().~string();
     }
-    CacheMapClear(cache);
+    cache.Clear();   // 006BCE00
     if (midiSequence != nullptr) {
         AilEndSequence()(midiSequence);
         AilReleaseSequence()(midiSequence);

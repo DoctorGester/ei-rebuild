@@ -20,14 +20,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall RefNullB(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFD0)
-// The STLport lists (library; their counted pointers come from RefPtrFromRaw): the objects
-// (+0x259C), the offers (+0x25B8), the trades (+0x25BC), the finished trades (+0x25C0).
-__declspec(naked) void** __fastcall ObjectsErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004293F0)
-__declspec(naked) void** __fastcall TradesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420960)
-__declspec(naked) void** __fastcall TradesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00423410)
-__declspec(naked) void __fastcall TradesRemove(void* /*list*/, void*, const RefPtr* /*value*/) EI_ORIGINAL(0x00427320)
-__declspec(naked) void __fastcall FinishedPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00423690)
 
 constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
@@ -43,12 +35,11 @@ void ReleaseInline(CRefObject* object) {
 }
 
 // The offer of `offer`'s partner (its player is our partner and its partner our player), or null.
-PartyMessage* FindPartnerOffer(void* list, PartyMessage* offer) {
-    void** sentinel = *static_cast<void***>(list);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
-        auto* other = static_cast<PartyMessage*>(node[2]);
+PartyMessage* FindPartnerOffer(const stlp::CountedRefList& list, PartyMessage* offer) {
+    for (RefNode* node = list.First(); node != list.End(); node = node->next) {
+        auto* other = static_cast<PartyMessage*>(node->data.ptr);
         if (other->player_.ptr == offer->partner_.ptr && other->partner_.ptr == offer->player_.ptr)
-            return static_cast<PartyMessage*>(node[2]);
+            return static_cast<PartyMessage*>(node->data.ptr);
     }
     return nullptr;
 }
@@ -96,12 +87,11 @@ EI_REPLACE_METHOD(0x00609D40, RefPtr::AssignCounted);
 
 // 0041ACF0: the trade between the two offers (in either order), or null.
 void* ServerSession::FindTrade(void* offer, void* other) {
-    void** sentinel = static_cast<void**>(trades_);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
-        auto* trade = static_cast<TradeMessage*>(node[2]);
+    for (RefNode* node = trades_.First(); node != trades_.End(); node = node->next) {
+        auto* trade = static_cast<TradeMessage*>(node->data.ptr);
         void* first = trade->offer_.ptr;
         if ((first == offer && trade->partnerOffer_.ptr == other) || (first == other && trade->partnerOffer_.ptr == offer))
-            return node[2];
+            return node->data.ptr;
     }
     return nullptr;
 }
@@ -110,14 +100,10 @@ void* ServerSession::FindTrade(void* offer, void* other) {
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428060
-    void* objects = &self->fileRequests_;
-    void** sentinel = static_cast<void**>(self->fileRequests_);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
-        void** next = static_cast<void**>(node[0]);
-        if (node[2] == value->ptr) {
-            void* erased;
-            ObjectsErase(objects, nullptr, &erased, node);
-        }
+    RefNode* sentinel = self->fileRequests_.End();
+    for (RefNode* node = sentinel->next; node != sentinel;) {
+        RefNode* next = node->next;
+        if (node->data.ptr == value->ptr) self->fileRequests_.Erase(node);
         node = next;
     }
 }
@@ -125,15 +111,11 @@ void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
 // 0041B7A0 (offer created): lists the offer; when the partner's offer is listed, a trade of the two
 // is made (both marked paired), else the partner is told of the offer.
 void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
-    void* offers = &self->offers_;
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428070
-    void* end;
-    PartiesEnd(offers, nullptr, &end);
-    void* inserted;
-    ListInsert423190Original(offers, nullptr, &inserted, end, value);
+    self->offers_.Insert(self->offers_.End(), *value);
 
-    PartyMessage* other = FindPartnerOffer(offers, message);
+    PartyMessage* other = FindPartnerOffer(self->offers_, message);
     if (!other) {
         TellPartner(self, message, 10);
         return;
@@ -141,10 +123,10 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     auto* trade = NewMessageMemory<TradeMessage>();
     if (trade) {
         MessageConstructBase(trade);
-        RefNullA(&trade->player_);
-        RefNullA(&trade->partner_);
-        RefNullB(&trade->offer_);
-        RefNullB(&trade->partnerOffer_);
+        trade->player_.ptr = nullptr;   // RefPtr() (0041FF80)
+        trade->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
+        trade->offer_.ptr = nullptr;   // RefPtr() (0041FFD0)
+        trade->partnerOffer_.ptr = nullptr;   // RefPtr() (0041FFD0)
         ei::SetVtable(trade, TradeMessage::kVtableAddress);
         trade->done_ = 0;
         trade->revision_ = 0;
@@ -154,11 +136,9 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     trade->partnerOffer_.Assign(other);
     trade->player_.Assign(message->player_.ptr);
     trade->partner_.Assign(message->partner_.ptr);
-    void* trades = &self->trades_;
     RefPtr tradeRef;
     value = RefPtrFromRaw(&tradeRef, trade);   // 00428080
-    TradesEnd(trades, nullptr, &end);
-    TradesInsert(trades, nullptr, &inserted, end, value);
+    self->trades_.Insert(self->trades_.End(), *value);
     message->trading_ = 1;
     other->trading_ = 1;
 }
@@ -168,7 +148,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
 // done with the two revisions.
 void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
     ++message->version_;
-    PartyMessage* other = FindPartnerOffer(&self->offers_, message);
+    PartyMessage* other = FindPartnerOffer(self->offers_, message);
     auto* trade = static_cast<TradeMessage*>(self->FindTrade(message, other));
     if (!Live(trade)) return;
     auto* first = static_cast<PartyMessage*>(trade->offer_.ptr);
@@ -188,17 +168,13 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) 
 void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428070
-    void* offers = &self->offers_;
-    void** sentinel = static_cast<void**>(self->offers_);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
-        void** next = static_cast<void**>(node[0]);
-        if (node[2] == value->ptr) {
-            void* erased;
-            PartiesErase(offers, nullptr, &erased, node);
-        }
+    RefNode* sentinel = self->offers_.End();
+    for (RefNode* node = sentinel->next; node != sentinel;) {
+        RefNode* next = node->next;
+        if (node->data.ptr == value->ptr) self->offers_.Erase(node);
         node = next;
     }
-    PartyMessage* other = FindPartnerOffer(offers, message);
+    PartyMessage* other = FindPartnerOffer(self->offers_, message);
     auto* trade = static_cast<TradeMessage*>(self->FindTrade(message, other));
     if (!message->trading_) TellPartner(self, message, 11);
     if (!Live(trade)) return;
@@ -206,20 +182,17 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) 
         RefPtr held;
         held.ptr = trade;
         ++trade->refs_;
-        struct {
-            std::uint32_t delay;
-            RefPtr trade;
-        } entry;
-        entry.delay = kFinishedDelay;
-        entry.trade.CopyPlain(&held);
-        FinishedPushBack(&self->finishedTrades_, nullptr, &entry);
-        if (entry.trade.ptr) entry.trade.ptr->Release();
+        TimedEntry entry;
+        entry.key = kFinishedDelay;
+        entry.ref.CopyPlain(&held);
+        self->finishedTrades_.PushBack(entry);
+        if (entry.ref.ptr) entry.ref.ptr->Release();
         ReleaseInline(held.ptr);
     }
     RefPtr removing;
     removing.ptr = trade;
     ++trade->refs_;
-    TradesRemove(&self->trades_, nullptr, &removing);
+    self->trades_.Remove(removing, stlp::SameObject());
     ReleaseInline(removing.ptr);
 }
 

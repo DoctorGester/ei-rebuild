@@ -165,9 +165,7 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
     }
 }
 
-// The window's exit list (CArray<ObjectiveExit> at +0x188): SetAtGrow 0064F160 (thiscall).
-__declspec(naked) void __fastcall ExitsSetAtGrow(mfc::CArray<ObjectiveExit>*, void*, int /*index*/,
-                                                 const ObjectiveExit&) EI_ORIGINAL(0x0064F160)
+// The window's exit list: CArray<ObjectiveExit> at +0x188 (SetAtGrow 0064F160).
 
 // The global map's exit distances (STLport map<int, float>).
 using DistanceMap = stlp::map<int, float>;
@@ -275,7 +273,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             continue;
         int index = exits_.size;
         ObjectiveExit blank = {};
-        ExitsSetAtGrow(exitArray, nullptr, index, blank);
+        exitArray->SetAtGrow(index, blank);
         ObjectiveExit* exit = &exits_[index];
         exit->exit_ = i;
         exit->x_ = static_cast<float>((D(source.deploy[2]) + D(source.deploy[0])) * 0.5f);
@@ -435,12 +433,12 @@ namespace {
 // [0065CFE0].
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
-void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
+QuestDatabase::QuestIndex& QuestIndex() { return *reinterpret_cast<QuestDatabase::QuestIndex*>(0x007C87B4); }
 
 // The quest's record (its experience and money rewards), from the quest database.
 QuestRecord* FindQuestRecord(const char* name) {
     stlp::string key(name);
-    return static_cast<QuestRecord*>(*QuestIndexAt(QuestIndex(), nullptr, &key));
+    return QuestIndex().Subscript(key);
 }
 
 bool SameText(const char* a, const char* b) {

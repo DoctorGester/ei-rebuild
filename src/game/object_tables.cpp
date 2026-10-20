@@ -5,6 +5,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp_alloc.h"
 
 #include "ei/hook.h"
 #include "originals_library.h"
@@ -79,7 +80,6 @@ struct KeyValue {
 };
 __declspec(naked) void __fastcall TableResize(NamedFloatTable*, void*, std::uint32_t) EI_ORIGINAL(0x00461750)
 __declspec(naked) NamedFloatTable::Node* __fastcall TableNewNode(NamedFloatTable*, void*, const KeyValue*) EI_ORIGINAL(0x004615B0)
-__declspec(naked) void __fastcall NodeDeallocate(NamedFloatTable::Node*, int) EI_ORIGINAL(0x00461710)
 // clear (00461540), operator[] (004613C0: returns the value's address), _M_delete_node (004616A0).
 __declspec(naked) float* __fastcall TableIndex(NamedFloatTable*, void*, const mfc::CString*) EI_ORIGINAL(0x004613C0)
 void TableClear(NamedFloatTable* table) { FloatTableClearOriginal(table); }
@@ -91,7 +91,7 @@ std::uint32_t BucketCount(const NamedFloatTable* table) {
 
 void FreeNode(NamedFloatTable* table, NamedFloatTable::Node* node) {
     reinterpret_cast<mfc::CString*>(&node->key)->~CString();
-    NodeDeallocate(node, 1);
+    stlp::deallocate(node, 12);   // 00461710
     --table->count;
 }
 

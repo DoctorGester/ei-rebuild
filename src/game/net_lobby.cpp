@@ -28,31 +28,19 @@ namespace net {
 RefPtr* __fastcall HolderInit(RefPtr*, CRefObject*);
 namespace {
 
-// An STLport list node's links; the value follows them (stlp::list<T>::Node).
-struct Node {
-    Node* next;
-    Node* prev;
-};
-template <typename T>
-T& ValueOf(Node* node) { return reinterpret_cast<typename stlp::list<T>::Node*>(node)->data; }
-Node* Sentinel(void* list) { return static_cast<Node*>(list); }
-ServerEntry* EntryOf(Node* node) { return ValueOf<ServerEntry*>(node); }
+// The nodes of the servers list, the waiting addresses and the server's pending joins.
+using ServerNode = stlp::SharedRefList::Node;
+using AddressNode = stlp::list<NetAddress>::Node;
+using JoinNode = stlp::list<PendingJoin>::Node;
+ServerEntry* EntryOf(ServerNode* node) { return static_cast<ServerEntry*>(node->data.ptr); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
 // Growing buffers.
 
-// STLport containers (library): the servers list (004436C0 end, 004437A0 insert of a counted
-// pointer, 004436D0 erase), the waiting addresses (0041FCD0 end, 00421AF0 insert, 004437D0
-// erase), the server's joins (00443730 erase, 00443800 insert); the query vector (00443E30 construct, 004439C0
-// insert overflow, 00443FF0 copy, 00443BF0 assign, 004442B0 erase, 00444090 resize).
-__declspec(naked) Node** __fastcall ServersEnd(void* /*list*/, void*, Node** /*out*/) EI_ORIGINAL(0x004436C0)
-__declspec(naked) Node** __fastcall ServersInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004437A0)
-__declspec(naked) Node** __fastcall ServersErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004436D0)
-__declspec(naked) Node** __fastcall WaitingErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004437D0)
-__declspec(naked) Node** __fastcall JoinsErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x00443730)
-__declspec(naked) Node** __fastcall JoinsInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const PendingJoin* /*value*/) EI_ORIGINAL(0x00443800)
+// STLport containers (library): the query vector (00443E30 construct, 004439C0 insert overflow,
+// 00443FF0 copy, 00443BF0 assign, 004442B0 erase, 00444090 resize).
 __declspec(naked) void __fastcall QueryConstructAt(Query* /*p*/) EI_ORIGINAL(0x00443E30)
 // The game's stlp::vector<Query> instantiation: 004439C0 _M_insert_overflow(pos, x, n), 00443BF0
 // operator=, 004442B0 erase(first, last), 00444090 resize(n).
@@ -84,9 +72,9 @@ void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
 // The servers list node whose entry has `address`, or the sentinel.
-Node* FindServer(ClientBase* self, const NetAddress* address) {
-    Node* end = Sentinel(self->servers_);
-    Node* node = end->next;
+ServerNode* FindServer(ClientBase* self, const NetAddress* address) {
+    ServerNode* end = self->servers_.End();
+    ServerNode* node = end->next;
     while (node != end && !SameAddress(&EntryOf(node)->address_, address)) node = node->next;
     return node;
 }
@@ -131,10 +119,7 @@ void AppendServer(ClientBase* self, RefPtr& entry) {
     entry.ptr = nullptr;
     RefPtr holder;
     HolderInit(&holder, raw);
-    Node* pos;
-    ServersEnd(&self->servers_, nullptr, &pos);
-    Node* out;
-    ServersInsert(&self->servers_, nullptr, &out, pos, &holder);
+    self->servers_.Insert(self->servers_.End(), holder);
 }
 
 ServerEntry* EntryIn(const RefPtr& entry) { return static_cast<ServerEntry*>(entry.ptr); }
@@ -307,7 +292,7 @@ void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
         entry.Destroy();
         return;
     }
-    Node* node = FindServer(this, from);
+    ServerNode* node = FindServer(this, from);
     CreateEntry(&entry);
     EntryIn(entry)->Read(cursor);
     if (!entry.ptr) {
@@ -329,7 +314,7 @@ void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
         auto count = static_cast<std::uint32_t>(v.list.size());
         e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * GameFloat(0x0073B86C) + GameFloat(0x0073BF98));   // FILD qword
     } else {
-        if (node == Sentinel(servers_)) {
+        if (node == servers_.End()) {
             entry.Destroy();
             return;
         }
@@ -339,10 +324,10 @@ void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
     float echoed;
     std::memcpy(&echoed, &echo, 4);
     e->ping_ = static_cast<float>(time_ - echoed);
-    if (node == Sentinel(servers_)) {
+    if (node == servers_.End()) {
         AppendServer(this, entry);
     } else {
-        RefPtr& slot = ValueOf<RefPtr>(node);
+        RefPtr& slot = node->data;
         if (entry.ptr != slot.ptr) {
             slot.Destroy();
             slot.Share(entry.ptr);
@@ -387,12 +372,11 @@ void ClientBase::Refresh() {
     NetAddress address{};
     for (unsigned i = 0; socket_.Broadcast(&address, i, *reinterpret_cast<const int*>(0x00783E30)); ++i)
         SendPing(&address);
-    Node* sentinel = Sentinel(waiting_);
+    AddressNode* sentinel = waiting_.End();
     if (sentinel->next != sentinel) {
-        Node* first = sentinel->next;
-        NetAddress next = ValueOf<NetAddress>(first);
-        Node* out;
-        WaitingErase(&waiting_, nullptr, &out, first);
+        AddressNode* first = sentinel->next;
+        NetAddress next = first->data;
+        waiting_.Erase(first);
         SendPing(&next);
         return;
     }
@@ -402,10 +386,7 @@ void ClientBase::Refresh() {
     if (index >= static_cast<std::uint32_t>(v.size())) index = 0;
     if (index < static_cast<std::uint32_t>(v.size())) SendPing(&v[index].address);
     if (alwaysAsk_.ip != 0) {
-        Node* pos;
-        ListEndIteratorOriginal(&waiting_, nullptr, (void**)&pos);
-        Node* out;
-        ListInsert421AF0Original(&waiting_, nullptr, (void**)&out, (void*)pos, (const void*)&alwaysAsk_);
+        waiting_.Insert(waiting_.End(), alwaysAsk_);
     }
 }
 EI_REPLACE_METHOD(0x00442180, ClientBase::Refresh);
@@ -422,7 +403,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
     if (v.end() == v.begin()) return;
     for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
         Query* q = v.begin() + i;
-        if (FindServer(this, &q->address) != Sentinel(servers_)) continue;
+        if (FindServer(this, &q->address) != servers_.End()) continue;
         RefPtr entry{nullptr};
         GameBuffer& r = q->reply;
         if (r.cur > r.high) r.high = r.cur;
@@ -482,8 +463,8 @@ void ClientBase::Ask(const NetAddress* address) {
         Send(address, &b);
         GrowingBufferDestruct(&b);
     }
-    Node* node = FindServer(this, address);
-    if (node != Sentinel(servers_)) {
+    ServerNode* node = FindServer(this, address);
+    if (node != servers_.End()) {
         EntryOf(node)->state_ = ServerEntry::kAsked;
         return;
     }
@@ -514,12 +495,10 @@ void ClientBase::Forget(const NetAddress* address) {
         --v.Finish();
         v.end()->QueryDelete(0);
     }
-    Node* node = Sentinel(servers_)->next;
-    while (node != Sentinel(servers_)) {
+    ServerNode* node = servers_.End()->next;
+    while (node != servers_.End()) {
         if (SameAddress(&EntryOf(node)->address_, address)) {
-            Node* out;
-            ServersErase(&servers_, nullptr, &out, node);
-            node = out;
+            node = servers_.Erase(node);
         } else {
             node = node->next;
         }
@@ -529,20 +508,14 @@ EI_REPLACE_METHOD(0x004427F0, ClientBase::Forget);
 
 // Listed (never checked again) unless known, and its address queued to be asked.
 void ClientBase::AddServer(ServerEntry* entry) {
-    if (FindServer(this, &entry->address_) == Sentinel(servers_)) {
+    if (FindServer(this, &entry->address_) == servers_.End()) {
         entry->state_ = ServerEntry::kFromList;
         SetBits(entry->timeout_, kNever);
         RefPtr holder;
         HolderInit(&holder, entry);
-        Node* pos;
-        ServersEnd(&servers_, nullptr, &pos);
-        Node* out;
-        ServersInsert(&servers_, nullptr, &out, pos, &holder);
+        servers_.Insert(servers_.End(), holder);
     }
-    Node* pos;
-    ListEndIteratorOriginal(&waiting_, nullptr, (void**)&pos);
-    Node* out;
-    ListInsert421AF0Original(&waiting_, nullptr, (void**)&out, (void*)pos, (const void*)&entry->address_);
+    waiting_.Insert(waiting_.End(), entry->address_);
 }
 EI_REPLACE_METHOD(0x004428A0, ClientBase::AddServer);
 
@@ -564,8 +537,8 @@ void ClientBase::Join(const NetAddress* address, const GameBuffer* data) {
 EI_REPLACE_METHOD(0x00442980, ClientBase::Join);
 
 ServerEntry* ClientBase::ServerAt(int index) {
-    Node* sentinel = Sentinel(servers_);
-    Node* node = sentinel->next;
+    ServerNode* sentinel = servers_.End();
+    ServerNode* node = sentinel->next;
     for (int i = 0; i < index; ++i) {
         if (node == sentinel) return nullptr;
         node = node->next;
@@ -579,8 +552,8 @@ EI_REPLACE_METHOD(0x00442A40, ClientBase::ServerAt);
 // unless asked directly (then its ping is reset). Then the session's receive step, and while
 // joining the request is repeated with a doubling interval until it passes the limit (0073BAA4).
 void ClientBase::TickImpl(double dt) {
-    Node* node = Sentinel(servers_)->next;
-    while (node != Sentinel(servers_)) {
+    ServerNode* node = servers_.End()->next;
+    while (node != servers_.End()) {
         ServerEntry* e = EntryOf(node);
         if (e->timeout_ > 0.0f) {
             e->timeout_ = static_cast<float>(static_cast<double>(e->timeout_) - dt);
@@ -588,9 +561,7 @@ void ClientBase::TickImpl(double dt) {
             if (!(e->timeout_ > 0.0f)) {
                 ClientQueries& v = queries_;
                 if (v.list.begin() == v.list.end() || FindQuery(v, &e->address_) == v.list.end()) {
-                    Node* out;
-                    ServersErase(&servers_, nullptr, &out, node);
-                    node = out;
+                    node = servers_.Erase(node);
                     continue;
                 }
                 std::memcpy(&e->ping_, reinterpret_cast<const void*>(0x0073BFA0), sizeof(e->ping_));
@@ -669,30 +640,27 @@ bool ServerBase::AdmitImpl(std::uint32_t, const std::uint8_t**, std::uint8_t*) {
 // becomes a connection (with the id and rate of its join), then counts.
 bool ServerBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
     if (SessionBase::OnUpdateImpl(from, cursor)) return true;
-    Node* sentinel = Sentinel(joins_);
-    Node* node = sentinel->next;
-    while (node != sentinel && !SameAddress(&ValueOf<PendingJoin>(node).address, from)) node = node->next;
+    JoinNode* sentinel = joins_.End();
+    JoinNode* node = sentinel->next;
+    while (node != sentinel && !SameAddress(&node->data.address, from)) node = node->next;
     if (node == sentinel) return false;
-    PendingJoin& join = ValueOf<PendingJoin>(node);
+    PendingJoin& join = node->data;
     AddClient(&join.address, join.id, join.rate);
-    Node* out;
-    JoinsErase(&joins_, nullptr, &out, node);
+    joins_.Erase(node);
     return SessionBase::OnUpdateImpl(from, cursor);
 }
 
 // 00443590 (slot 14): ages the pending joins (dropping those older than 0073BF9C, logged), then
 // the session's receive step.
 void ServerBase::TickImpl(double dt) {
-    Node* node = Sentinel(joins_)->next;
-    while (node != Sentinel(joins_)) {
-        float& age = ValueOf<PendingJoin>(node).age;
+    JoinNode* node = joins_.End()->next;
+    while (node != joins_.End()) {
+        float& age = node->data.age;
         double sum = static_cast<double>(age) + dt;
         age = static_cast<float>(sum);
         if (sum > static_cast<double>(GameFloat(0x0073BF9C))) {
-            LogAddressLine(0x00784298, &ValueOf<PendingJoin>(node).address);
-            Node* out;
-            JoinsErase(&joins_, nullptr, &out, node);
-            node = out;
+            LogAddressLine(0x00784298, &node->data.address);
+            node = joins_.Erase(node);
         } else {
             node = node->next;
         }
@@ -741,11 +709,11 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
 
-    Node* sentinel = Sentinel(joins_);
-    Node* node = sentinel->next;
-    while (node != sentinel && !SameAddress(&ValueOf<PendingJoin>(node).address, from)) node = node->next;
+    JoinNode* sentinel = joins_.End();
+    JoinNode* node = sentinel->next;
+    while (node != sentinel && !SameAddress(&node->data.address, from)) node = node->next;
     if (node != sentinel) {
-        PendingJoin& join = ValueOf<PendingJoin>(node);
+        PendingJoin& join = node->data;
         if (id != join.id) {
             join.id = id;
             LogAddressLine(std::uintptr_t(0x00784240), from);   // "WARNING: LinkID mismatch from "
@@ -764,8 +732,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
         join.id = id;
         join.rate = rate;
         join.age = 0.0f;
-        Node* out;
-        JoinsInsert(&joins_, nullptr, &out, Sentinel(joins_), &join);
+        joins_.Insert(joins_.End(), join);
         SendAccepted(this, from, id);
         return;
     }

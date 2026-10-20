@@ -9,63 +9,19 @@
 #include "lib/mfc.h"
 
 #include <cstring>
-#include "originals_library.h"
 
 using Ref = ChunkArchive::Ref;
-using StackNode = ChunkArchive::StackNode;
-using SavedNode = ChunkArchive::SavedNode;
+using Stack = ChunkArchive::Stack;
+using SavedList = ChunkArchive::SavedList;
 using ObjectMap = ChunkArchive::ObjectMap;
+using RefElement = ChunkArchive::RefElement;
 
 namespace {
-
-// The STLport instantiations of the archive's containers (library), called as the original does.
-// The chunk stack (list<Ref>): insert a default Ref {0xFF, 0, 0, 1} before `pos`, erase, destroy a
-// node, push_back of a default Ref, pop_back, clear.
-__declspec(naked) StackNode** __fastcall StackInsertDefault(StackNode** /*list*/, void*, StackNode** /*out*/, StackNode* /*pos*/) EI_ORIGINAL(0x0040A8D0)
-__declspec(naked) StackNode** __fastcall StackErase(StackNode** /*list*/, void*, StackNode** /*out*/, StackNode* /*pos*/) EI_ORIGINAL(0x0040A920)
-__declspec(naked) void __fastcall StackDestroyNode(StackNode** /*list*/, void*, StackNode* /*node*/, int /*n*/) EI_ORIGINAL(0x0040ACE0)
-__declspec(naked) void __fastcall StackPushDefault(StackNode** /*list*/) EI_ORIGINAL(0x0040A6B0)
-__declspec(naked) void __fastcall StackPopBack(StackNode** /*list*/) EI_ORIGINAL(0x0040A6D0)
-__declspec(naked) void __fastcall StackClear(StackNode** /*list*/) EI_ORIGINAL(0x0040B290)
-// The saved-object list (list<CRefObject*>): end, insert, begin, erase, clear.
-__declspec(naked) SavedNode** __fastcall SavedEnd(SavedNode** /*list*/, void*, SavedNode** /*out*/) EI_ORIGINAL(0x0040AA00)
-__declspec(naked) SavedNode** __fastcall SavedInsert(SavedNode** /*list*/, void*, SavedNode** /*out*/, SavedNode* /*pos*/,
-                                                     CRefObject* const* /*value*/) EI_ORIGINAL(0x0040AA10)
-__declspec(naked) SavedNode** __fastcall SavedBegin(SavedNode** /*list*/, void*, SavedNode** /*out*/) EI_ORIGINAL(0x0040A9F0)
-__declspec(naked) SavedNode** __fastcall SavedErase(SavedNode** /*list*/, void*, SavedNode** /*out*/, SavedNode* /*pos*/) EI_ORIGINAL(0x0040AA40)
-__declspec(naked) void __fastcall SavedClear(SavedNode** /*list*/) EI_ORIGINAL(0x0040B390)
-
-// The object map and the registry's maps: operator[] of a (key, value) pair, begin, the iterator's
-// constructor (either map) and increment, clear; the pair's constructor; find; operator[].
-using ClassIdMap = ChunkArchive::ClassRegistry::ClassIdMap;
-using FactoryMap = ChunkArchive::ClassRegistry::FactoryMap;
-using ObjectPair = ObjectMap::Pair;
-using ObjectIterator = ObjectMap::Iterator;
-using ClassIdIterator = ClassIdMap::Iterator;
-__declspec(naked) ObjectPair* __fastcall ObjectsAt(ObjectMap* /*map*/, void*, const ObjectPair* /*pair*/) EI_ORIGINAL(0x0040B2C0)
-__declspec(naked) ObjectIterator* __fastcall ObjectsBegin(ObjectMap* /*map*/, void*, ObjectIterator* /*out*/) EI_ORIGINAL(0x0040A970)
-__declspec(naked) void* __fastcall MapIteratorConstruct(void* /*it*/, void*, void* /*node*/, const void* /*table*/) EI_ORIGINAL(0x0040AD20)
-__declspec(naked) ObjectIterator* __fastcall ObjectIteratorNext(ObjectIterator* /*it*/, void*, ObjectIterator* /*out*/, int /*postfix*/) EI_ORIGINAL(0x0040A700)
-__declspec(naked) void __fastcall ObjectsClear(ObjectMap* /*map*/) EI_ORIGINAL(0x0040B330)
-__declspec(naked) ObjectPair* __fastcall MakeObjectPair(ObjectPair* /*pair*/, void*, const std::uint32_t* /*key*/,
-                                                        CRefObject* const* /*value*/) EI_ORIGINAL(0x0040A9D0)
-__declspec(naked) ClassIdIterator* __fastcall ClassIdFind(ClassIdMap* /*map*/, void*, ClassIdIterator* /*out*/, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0040B400)
-__declspec(naked) ChunkArchive::Factory* __fastcall FactoryAt(FactoryMap* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0040A800)
-// The containers' constructors and destructors an archive on the stack runs (004A8310 / 004A8560):
-// the chunk stack's list(allocator) and destructor, the object map's hashtable(100) and destructor,
-// the saved list's list(allocator) and destructor.
-__declspec(naked) void __fastcall StackConstruct(StackNode** /*list*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x004A94A0)
-__declspec(naked) void __fastcall StackDestroy(StackNode** /*list*/) EI_ORIGINAL(0x004A9650)
-__declspec(naked) void __fastcall ObjectsConstruct(ObjectMap* /*map*/) EI_ORIGINAL(0x004639D0)
-__declspec(naked) void __fastcall ObjectsDestroy(ObjectMap* /*map*/) EI_ORIGINAL(0x004A8B70)
-__declspec(naked) void __fastcall SavedConstruct(SavedNode** /*list*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00463AA0)
-__declspec(naked) void __fastcall SavedDestroy(SavedNode** /*list*/) EI_ORIGINAL(0x004A96A0)
-
 
 // The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
 Ref* PushRecordChunk(ChunkArchive* a) {
     Ref* parent = a->Current();
-    StackPushDefault(&a->stack_);
+    a->PushChunk();
     Ref* fresh = a->Current();
     if (a->loading_) {
         a->FindChild(parent, 1, fresh, parent->occurrence);
@@ -97,8 +53,7 @@ void ChunkArchive::Ref::Reset() {
 EI_REPLACE_METHOD(0x00409E80, ChunkArchive::Ref::Reset);
 
 void ChunkArchive::PopChunk() {
-    StackNode* after;
-    StackErase(&stack_, nullptr, &after, stack_->prev);
+    Stack::Erase<RefElement>(stack_.End()->prev);
 }
 
 bool ChunkArchive::NextChild(const Ref* parent, std::int32_t* cursor, Ref* out) {
@@ -192,8 +147,7 @@ EI_REPLACE_METHOD(0x004092B0, ChunkArchive::Field);
 
 bool ChunkArchive::EnterChunk(int id) {
     Ref* parent = Current();
-    StackNode* inserted;
-    StackInsertDefault(&stack_, nullptr, &inserted, stack_);
+    PushChunk();
     Ref* fresh = Current();
     // A failed search leaves the new chunk pushed (the callers do not pop it).
     if (loading_) return FindChild(parent, id, fresh, parent->occurrence);
@@ -210,9 +164,9 @@ void ChunkArchive::LeaveChunk() {
     }
     // Writing: the chunk becomes a child of its parent (its content was written right after the
     // parent's, 5 bytes on to leave room for the header), then the stream is cut back to the parent.
-    StackNode* node = stack_->prev;
-    const std::uint8_t* content = Data() + node->ref.offset;   // taken before the parent's resize
-    AppendChild(&node->prev->ref, node->ref.id, content, static_cast<std::uint32_t>(node->ref.size));
+    Stack::Node* node = stack_.End()->prev;
+    const std::uint8_t* content = Data() + node->data.offset;   // taken before the parent's resize
+    AppendChild(&node->prev->data, node->data.id, content, static_cast<std::uint32_t>(node->data.size));
     PopChunk();
     Ref* parent = Current();
     dataStream_.Resize(static_cast<std::uint32_t>(parent->size + parent->offset));
@@ -279,13 +233,9 @@ std::uint32_t SavedNumber(const ChunkArchive* a, const CRefObject* object) {
 void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
     std::uint32_t key = reinterpret_cast<std::uint32_t>(object);
     if (!objects_.Find(key)) {   // inlined find
-        SavedNode* end;
-        SavedEnd(&saved_, nullptr, &end);
-        SavedNode* added;
-        SavedInsert(&saved_, nullptr, &added, end, &object);
-        ObjectPair pair{key, nullptr};
-        CRefObject*& value = ObjectsAt(&objects_, nullptr, &pair)->value;
-        value = loading_ ? reinterpret_cast<CRefObject*>(this)
+        SavedList::Insert(saved_.End(), object);
+        ObjectMap::Node* node = objects_.FindOrInsert({key, nullptr});
+        node->value = loading_ ? reinterpret_cast<CRefObject*>(this)
                          : reinterpret_cast<CRefObject*>(static_cast<std::uintptr_t>(objects_.Size()));
     }
     if (!loading_) {
@@ -319,10 +269,9 @@ EI_REPLACE_METHOD(0x0040A5A0, ChunkArchive::ObjectRef);
 void ChunkArchive::ConstructLocal() {
     indexStream_.Construct();
     dataStream_.Construct();
-    char allocator;   // the lists' allocator argument (an empty object; only its address is passed)
-    StackConstruct(&stack_, nullptr, &allocator);
-    ObjectsConstruct(&objects_);
-    SavedConstruct(&saved_, nullptr, &allocator);
+    stack_.Construct();
+    objects_.Construct(100);
+    saved_.Construct();
     version_ = 1;
 }
 
@@ -333,9 +282,9 @@ ChunkArchive* ChunkArchive::Construct() {
 EI_REPLACE_METHOD(0x0053A7B0, ChunkArchive::Construct);
 
 void ChunkArchive::DestructLocal() {
-    SavedDestroy(&saved_);
-    ObjectsDestroy(&objects_);
-    StackDestroy(&stack_);
+    saved_.Release();
+    objects_.Destroy();
+    stack_.Release<RefElement>();
     dataStream_.Destruct();
     indexStream_.Destruct();
 }
@@ -391,19 +340,12 @@ bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
 EI_REPLACE(0x0040A3C0, WriteStreamChunk);
 
 void ChunkArchive::Open(CStream* stream, int loading, int version) {
-    for (StackNode* n = stack_->next; n != stack_;) {
-        StackNode* dead = n;
-        n = n->next;
-        StackDestroyNode(&stack_, nullptr, dead, 1);
-    }
-    stack_->next = stack_;
-    stack_->prev = stack_;
+    stack_.ClearWith([](Ref*) {});
     CMemoryStream* index = &indexStream_;
     CMemoryStream* data = &dataStream_;
     index->Clear();
     data->Clear();
-    StackNode* inserted;
-    StackInsertDefault(&stack_, nullptr, &inserted, stack_);
+    PushChunk();
     loading_ = static_cast<std::uint8_t>(loading);
     if (!static_cast<std::uint8_t>(loading)) {
         version_ = version;
@@ -419,17 +361,10 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         std::uint32_t key = 0;
         index->Read(&classId, 4);
         index->Read(&key, 4);
-        std::uint32_t lookup = classId;
-        Factory factory = *FactoryAt(&Registry().factories, nullptr, &lookup);
+        Factory factory = Registry().factories[classId];
         CRefObject* object = factory ? factory() : nullptr;
-        SavedNode* end;
-        SavedEnd(&saved_, nullptr, &end);
-        SavedNode* added;
-        SavedInsert(&saved_, nullptr, &added, end, &object);
-        CRefObject* none = nullptr;
-        ObjectPair pair;
-        MakeObjectPair(&pair, nullptr, &key, &none);
-        ObjectsAt(&objects_, nullptr, &pair)->value = object;
+        SavedList::Insert(saved_.End(), object);
+        objects_.FindOrInsert({key, nullptr})->value = object;
     }
     if (version == 1) Field(2, &version_, 4);
     else version_ = version;
@@ -446,10 +381,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         } else {
             AppendChild(record, 0, &key, 4);
         }
-        CRefObject* none = nullptr;
-        ObjectPair pair;
-        MakeObjectPair(&pair, nullptr, &key, &none);
-        CRefObject* object = ObjectsAt(&objects_, nullptr, &pair)->value;
+        CRefObject* object = objects_.FindOrInsert({key, nullptr})->value;
         if (object && EnterChunk(1)) {
             object->Serialize(this);
             LeaveChunk();
@@ -468,39 +400,23 @@ void ChunkArchive::Close(CStream* stream) {
     if (loading_) {
         // After a load: each loaded object gets a reference and loses it again (one without other
         // owners is deleted).
-        ObjectIterator it;
-        ObjectsBegin(&objects_, nullptr, &it);
-        ObjectIterator end;
-        MapIteratorConstruct(&end, nullptr, nullptr, &objects_);
-        while (it.node != end.node) {
+        for (ObjectMap::Node* node = objects_.First(); node; node = objects_.After(node)) {
             CRefObject* counted;
-            reinterpret_cast<RefPtr*>(&counted)->FromRawCounted(it.node->value);
+            reinterpret_cast<RefPtr*>(&counted)->FromRawCounted(node->value);
             if (counted) counted->Release();
-            ObjectIterator old;
-            ObjectIteratorNext(&it, nullptr, &old, 0);
-            MapIteratorConstruct(&end, nullptr, nullptr, &objects_);
         }
     } else {
         ResizeToCurrent();   // inlined
         WriteStreamChunk(stream, 1, data);
         data->Clear();
         Current()->Reset();
-        while (saved_->next != saved_) {
-            SavedNode* first;
-            SavedBegin(&saved_, nullptr, &first);
-            CRefObject* object = first->object;
-            SavedNode* position;
-            SavedBegin(&saved_, nullptr, &position);
-            SavedNode* after;
-            SavedErase(&saved_, nullptr, &after, position);
+        while (!saved_.Empty()) {
+            CRefObject* object = saved_.First()->data;
+            SavedList::Erase(saved_.First());
             std::uint32_t vtable;
             std::memcpy(&vtable, object, 4);
-            ClassIdMap* classIds = &Registry().classIds;
-            ClassIdIterator found;
-            ClassIdFind(classIds, nullptr, &found, &vtable);
-            ClassIdIterator none;
-            MapIteratorConstruct(&none, nullptr, nullptr, classIds);
-            std::int32_t classId = found.node == none.node ? -1 : found.node->value;
+            const ClassRegistry::ClassIdMap::Node* found = Registry().classIds.Find(vtable);
+            std::int32_t classId = found ? found->value : -1;
             std::uint32_t number = SavedNumber(this, object);   // the original wrote the address
             index->Write(&classId, 4);
             index->Write(&number, 4);
@@ -517,13 +433,13 @@ void ChunkArchive::Close(CStream* stream) {
                 LeaveChunk();
             }
             if (loading_) {
-                StackPopBack(&stack_);
+                PopChunk();
             } else {
                 // LeaveChunk inlined, with pop_back and ResizeToCurrent.
-                StackNode* node = stack_->prev;
-                const std::uint8_t* content = Data() + node->ref.offset;
-                AppendChild(&node->prev->ref, node->ref.id, content, static_cast<std::uint32_t>(node->ref.size));
-                StackPopBack(&stack_);
+                Stack::Node* node = stack_.End()->prev;
+                const std::uint8_t* content = Data() + node->data.offset;
+                AppendChild(&node->prev->data, node->data.id, content, static_cast<std::uint32_t>(node->data.size));
+                PopChunk();
                 ResizeToCurrent();
             }
         }
@@ -534,8 +450,8 @@ void ChunkArchive::Close(CStream* stream) {
     }
     index->Clear();
     data->Clear();
-    ObjectsClear(&objects_);
-    SavedClear(&saved_);
-    StackClear(&stack_);
+    objects_.Clear();
+    saved_.Clear();
+    stack_.Clear<RefElement>();
 }
 EI_REPLACE_METHOD(0x0040A000, ChunkArchive::Close);

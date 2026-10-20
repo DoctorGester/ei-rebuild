@@ -40,20 +40,6 @@ void HandOverAndFree(StockList* list, CParty* party) {
     stlp::deallocate(head, sizeof(StockListNode));
 }
 
-// The stock's two maps (0x14 bytes each, raw in ItemStock) as an STLport hash_map: only the bucket
-// array and the count are set up here, so the element types do not matter.
-using StockMapView = stlp::hash_map<stlp::string, void*, stlp::StringHash>;
-static_assert(sizeof(StockMapView) == sizeof(ItemStock::spellMap));
-
-// A map's constructor as 004A66C0 inlines it: the bucket vector and the count proxy cleared, then
-// _M_initialize_buckets(100) (004A9FC0 / 004AA270).
-void MapConstruct(std::uint8_t* map) { reinterpret_cast<StockMapView*>(map)->InitBuckets(100); }
-
-// The maps' destructors (library; each clears the nodes and frees the bucket array): 004A9010 the
-// modifier map, 004A8E60 the spell map.
-__declspec(naked) void __fastcall ModifierMapDestroy(std::uint8_t* /*map*/) EI_ORIGINAL(0x004A9010)
-__declspec(naked) void __fastcall SpellMapDestroy(std::uint8_t* /*map*/) EI_ORIGINAL(0x004A8E60)
-
 // The vectors' constructor: no storage.
 template <typename T>
 void VectorConstruct(stlp::vector<T>* v) {
@@ -73,8 +59,10 @@ ItemStock* ItemStock::Construct(void* owner) {
     VectorConstruct(&materials);
     VectorConstruct(&spells);
     VectorConstruct(&modifiers);
-    MapConstruct(spellMap);
-    MapConstruct(modifierMap);
+    // The maps' constructors as 004A66C0 inlines them (_M_initialize_buckets(100): 004A9FC0 /
+    // 004AA270).
+    spellMap.ConstructBuckets(100);
+    modifierMap.ConstructBuckets(100);
     return this;
 }
 EI_REPLACE_METHOD(0x004A66C0, ItemStock::Construct);
@@ -98,8 +86,8 @@ EI_REPLACE_METHOD(0x004A6580, ClassTemplate::Construct);
 
 void ItemStock::Destruct() {
     context = nullptr;
-    ModifierMapDestroy(modifierMap);
-    SpellMapDestroy(spellMap);
+    modifierMap.Destroy();   // 004A9010
+    spellMap.Destroy();      // 004A8E60
     // _Vector_base's destructors: the storage back to the node allocator (operator delete above 128 bytes).
     modifiers.FreeStorage();
     spells.FreeStorage();

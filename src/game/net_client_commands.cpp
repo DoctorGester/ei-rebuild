@@ -23,12 +23,6 @@ namespace net {
 
 namespace {
 
-// STLport (library): the timers list (+0x2604: {seconds, counted object}) end / insert / push_back,
-// string reserve, allocator proxy, block allocation, range assign, erase, append.
-__declspec(naked) void** __fastcall TimersEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004210C0)
-__declspec(naked) void** __fastcall TimersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*entry*/) EI_ORIGINAL(0x00426230)
-__declspec(naked) void __fastcall TimersPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x004246C0)
-
 constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 
 // RefPtr::Destroy as the callers inline it (the release is not null-checked after the shutdown,
@@ -55,14 +49,10 @@ void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
     RefPtr raw;
     RefPtrFromRaw(&raw, object);
     TimedEntry entry;
-    entry.secondsBits = seconds;
-    entry.object.Share(raw.ptr);
-    void* timers = &self->timers_;
-    void* end;
-    TimersEnd(timers, nullptr, &end);
-    void* inserted;
-    TimersInsert(timers, nullptr, &inserted, end, &entry);
-    DestroyInline(&entry.object);
+    entry.key = seconds;
+    entry.ref.Share(raw.ptr);
+    self->timers_.Insert(self->timers_.End(), entry);
+    DestroyInline(&entry.ref);
 }
 EI_REPLACE_METHOD(0x0041D1A0, ClientSession::AddTimed);
 
@@ -84,10 +74,10 @@ void ClientSession::SendCommand(int kind, const char* text) {
     RefPtr raw;
     RefPtrFromRaw(&raw, command);
     TimedEntry entry;
-    entry.secondsBits = kCommandLifetime;
-    entry.object.CopyShared(&raw);
-    TimersPushBack(&self->timers_, nullptr, &entry);
-    entry.object.Destroy();
+    entry.key = kCommandLifetime;
+    entry.ref.CopyShared(&raw);
+    self->timers_.PushBack(entry);
+    entry.ref.Destroy();
     raw.ptr = nullptr;
     raw.Destroy();
 }

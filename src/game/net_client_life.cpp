@@ -4,6 +4,7 @@
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "core_refcount.h"
+#include "record_lists.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -17,35 +18,7 @@ namespace {
 
 // The two parties (00661050 class, outside this range).
 void __fastcall PartyDestruct(void* a0) { PartyRecordsDestructOriginal(a0); }
-// STLport destructors, clears and sentinel frees of the member containers (library).
-__declspec(naked) void __fastcall List2614Destruct(void* /*list*/) EI_ORIGINAL(0x00424A40)
-__declspec(naked) void __fastcall List2608Clear(void* /*list*/) EI_ORIGINAL(0x004275A0)
-__declspec(naked) void __fastcall List2608Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426330)
-__declspec(naked) void __fastcall List2604Clear(void* /*list*/) EI_ORIGINAL(0x00427560)
-__declspec(naked) void __fastcall List2604Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426260)
-__declspec(naked) void __fastcall List25FCClear(void* /*list*/) EI_ORIGINAL(0x00427500)
-__declspec(naked) void __fastcall List25FCFree(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x004261F0)
-__declspec(naked) void __fastcall List25F8Clear(void* /*list*/) EI_ORIGINAL(0x004274C0)
-__declspec(naked) void __fastcall List25F8Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426120)
-__declspec(naked) void __fastcall List25E8Clear(void* /*list*/) EI_ORIGINAL(0x00427480)
-__declspec(naked) void __fastcall List25E8Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426050)
-__declspec(naked) void __fastcall List25E4Clear(void* /*list*/) EI_ORIGINAL(0x00427420)
-__declspec(naked) void __fastcall List25E4Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00425F00)
-__declspec(naked) void __fastcall List25E0Clear(void* /*list*/) EI_ORIGINAL(0x004273E0)
-__declspec(naked) void __fastcall List25E0Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00425E30)
-__declspec(naked) void __fastcall List25DCClear(void* /*list*/) EI_ORIGINAL(0x004273A0)
-__declspec(naked) void __fastcall List25DCFree(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00425D60)
-__declspec(naked) void __fastcall List25D8Clear(void* /*list*/) EI_ORIGINAL(0x00427360)
-__declspec(naked) void __fastcall List25D8FreeNode(void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426960)
 __declspec(naked) void __fastcall Vector25ACDestruct(void* /*vector*/) EI_ORIGINAL(0x0041F7F0)
-__declspec(naked) void __fastcall List25A8Destruct(void* /*list*/) EI_ORIGINAL(0x00421A50)
-
-// A list destroyed as the destructor inlines it: cleared, then its sentinel node freed.
-template <typename Clear, typename Free>
-void DestroyList(void*& list, Clear clear, Free free) {
-    clear(&list);
-    free(&list, nullptr, list, 1);
-}
 
 // The release a counted pointer's destructor inlines: one reference less, deleted at zero.
 void ReleaseInline(void* slot) {
@@ -63,11 +36,11 @@ void ClientSession::Destruct() {
     PartyDestruct(&parties_[1]);
     PartyDestruct(&parties_[0]);
     if (trade_) static_cast<CRefObject*>(trade_)->Release();
-    List2614Destruct(&tradeRecords_);
-    List2610Destruct(&offers_);
+    tradeRecords_.Release<recordlist::TradeElement>();
+    offers_.Release();
     party_.Destroy();
-    DestroyList(awards_, List2608Clear, List2608Free);
-    DestroyList(timers_, List2604Clear, List2604Free);
+    awards_.Release();
+    timers_.Release();
     if (auto* local = player_.ptr) {
         if (local->refs_ != 1) {
             local->flags7_ |= CRefObject::kDetached;
@@ -75,20 +48,19 @@ void ClientSession::Destruct() {
         }
         player_.ptr->Release();
     }
-    DestroyList(variables_, List25FCClear, List25FCFree);
-    DestroyList(zones_, List25F8Clear, List25F8Free);
+    variables_.Release();
+    zones_.Release();
     ReleaseInline(map_);
     ReleaseInline(binding_);
     ReleaseInline(info_);
-    DestroyList(fileRequests_, List25E8Clear, List25E8Free);
-    DestroyList(chunks_, List25E4Clear, List25E4Free);
-    DestroyList(files_, List25E0Clear, List25E0Free);
-    DestroyList(lines_, List25DCClear, List25DCFree);
-    List25D8Clear(&players_);
-    List25D8FreeNode(players_, 1);
-    List25BCClear(&waiting_);
+    fileRequests_.Release();
+    chunks_.Release();
+    files_.Release();
+    lines_.Release();
+    players_.Release();
+    waiting_.Release();
     Vector25ACDestruct(&queries_);
-    List25A8Destruct(&servers_);
+    servers_.Release();
     GrowingBufferDestruct(&joinData_);
     SessionBase::Destruct();
 }
@@ -100,9 +72,9 @@ EI_REPLACE_METHOD(0x0041CA10, ClientSession::Destruct);
 // original inlines the three container destructors (with the same element destructors and node
 // frees as the out-of-line ones called here, which ClientSession::Destruct uses too).
 void ClientBase::DestructBase() {
-    List25BCClear(&waiting_);
+    waiting_.Release();
     Vector25ACDestruct(&queries_);
-    List25A8Destruct(&servers_);
+    servers_.Release();
     GrowingBufferDestruct(&joinData_);
     SessionBase::Destruct();
 }

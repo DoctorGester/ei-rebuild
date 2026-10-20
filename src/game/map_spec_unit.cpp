@@ -64,7 +64,6 @@ __declspec(naked) void __fastcall PatrolsSetSize(Array<Patrol>*, void*, int, int
 __declspec(naked) void __stdcall ConstructPatrols(Patrol*, int) EI_ORIGINAL(0x0045E180)
 __declspec(naked) void __stdcall DestructPatrols(Patrol*, int) EI_ORIGINAL(0x0046F0B0)
 __declspec(naked) Patrol* __fastcall PatrolDelete(Patrol*, void*, unsigned) EI_ORIGINAL(0x0046F160)
-__declspec(naked) Waypoint* __fastcall WaypointAt(const Array<Waypoint>*, void*, Waypoint* /*out*/, int) EI_ORIGINAL(0x0046EFA0)
 // The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection (007B00D0) move and turn an
 // object; the world object's updates.
 
@@ -180,8 +179,7 @@ void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* fro
         to.position = copy->position;
         to.waypoints.SetSize(copy->waypoints.size, -1);
         for (int j = 0; j < copy->waypoints.size; ++j) {
-            Waypoint w;
-            WaypointAt(&copy->waypoints, nullptr, &w, j);
+            Waypoint w = copy->waypoints.data[j];   // GetAt by value (0046EFA0)
             self->data[i].waypoints.data[j] = w;
         }
         ei::SetVtable(&copy->waypoints, mfc::impl::ArrayBaseClass::Vtable());
@@ -455,11 +453,10 @@ EI_REPLACE(0x0046D080, UnitSpecOnChunk);
 namespace {
 void StreamRead(void* stream, void* data, unsigned size) { static_cast<CStream*>(stream)->Read(data, size); }
 void StreamWrite(void* stream, const void* data, unsigned size) { static_cast<CStream*>(stream)->Write(data, size); }
-__declspec(naked) void __stdcall ConstructWaypoints(Waypoint*, int) EI_ORIGINAL(0x0045E130)
 } // namespace
 
 // 0045DE30 (ECX array, EDX stream): the count, the array sized to it (MFC SetSize inlined, new
-// waypoints cleared by 0045E130), then the raw waypoints.
+// waypoints cleared as 0045E130 does), then the raw waypoints.
 void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
     int n;
     StreamRead(stream, &n, 4);
@@ -472,11 +469,11 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
         a->size = 0;
     } else if (!a->data) {
         a->data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Waypoint)));
-        ConstructWaypoints(a->data, n);
+        mfc::PlainElements<Waypoint>::Construct(a->data, n);
         a->maxSize = n;
         a->size = n;
     } else if (n <= a->maxSize) {
-        if (n > a->size) ConstructWaypoints(a->data + a->size, n - a->size);
+        if (n > a->size) mfc::PlainElements<Waypoint>::Construct(a->data + a->size, n - a->size);
         a->size = n;
     } else {
         int grow = a->growBy;
@@ -488,7 +485,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
         if (n >= capacity) capacity = n;
         auto* data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Waypoint)));
         std::memcpy(data, a->data, static_cast<std::size_t>(a->size) * sizeof(Waypoint));
-        ConstructWaypoints(data + a->size, n - a->size);
+        mfc::PlainElements<Waypoint>::Construct(data + a->size, n - a->size);
         gamecrt::operator_delete(a->data);
         a->size = n;
         a->data = data;

@@ -229,7 +229,7 @@ struct SceneNode {
     // +0x0F8 NodeFrame records (elements constructed by 00453730); the loader copies them to the
     // figures' bone links.
     VtArray frames;
-    mfc::CArray<SceneNode*, mfc::RawElements<SceneNode*>> children;                 // +0x10C
+    mfc::CArray<SceneNode*> children;                 // +0x10C (SetSize 00453790)
 };
 static_assert(offsetof(SceneNode, name) == node::kName);
 static_assert(offsetof(SceneNode, spareRotation030) == 0x30 && offsetof(SceneNode, spareRotation040) == 0x40);
@@ -412,6 +412,10 @@ public:
     std::uint16_t flags_;
 };
 
+// 0044B980 (scene_registry.cpp): the figure's .reg file read into the texture links and names.
+int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, VtArray* links, VtArray* names);
+// 00448A40 (scene_skeleton.cpp): the skin's bones built from the scene nodes; 0 without a root node.
+int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames, SceneSkin* skin);
 // 0044C4A0 (scene_weld.cpp): the meshes' vertices welded to the registry's nodes.
 void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes);
 // 0044E3B0 / 0044E8A0 (scene_normals.cpp): the meshes' positions packed; one mesh's bounds.

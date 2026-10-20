@@ -8,6 +8,7 @@
 
 #include "core_streams.h"
 #include "ei/hook.h"
+#include "lib/stlp_vector.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -38,12 +39,10 @@ template <typename F>
 void* Callback(F function) { return reinterpret_cast<void*>(function); }
 
 // Container constructors (allocator / comparison arguments are empty objects passed by address).
-__declspec(naked) void __fastcall ReceivedConstruct(std::int32_t** /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00438CE0)
 __declspec(naked) void __fastcall FreedListConstruct(FreedBatch** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439120)
 __declspec(naked) void __fastcall BySentIdConstruct(SentIdMap* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x004393C0)
 __declspec(naked) void __fastcall HistoryListConstruct(HistoryNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439960)
 __declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
-__declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
 inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
 
 // Reset's container teardown.
@@ -52,23 +51,16 @@ __declspec(naked) void __fastcall HistoryDestroy(HistoryNode** /*list*/) EI_ORIG
 __declspec(naked) void __fastcall BySentIdClear(SentIdMap* /*tree*/) EI_ORIGINAL(0x004394A0)
 __declspec(naked) void __fastcall BySentIdFreeHeader(SentIdMap* /*tree*/) EI_ORIGINAL(0x00439500)
 __declspec(naked) void __fastcall FreedClear(FreedBatch** /*list*/) EI_ORIGINAL(0x0043BA20)
-__declspec(naked) void __fastcall FreedFreeSentinelA(FreedBatch** /*list*/, void*, FreedBatch* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043A410)
-__declspec(naked) void __fastcall ReceivedDeallocate(std::int32_t** /*eos*/, void*, std::int32_t* /*start*/, int /*count*/) EI_ORIGINAL(0x0043A300)
 
 // The destructor's container teardown.
 __declspec(naked) void __fastcall ListDeleteNodes(HeaderNode** /*list*/) EI_ORIGINAL(0x0043D420)
-__declspec(naked) void __fastcall HeaderSentinelFree(HeaderNode** /*list*/, void*, HeaderNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x00439D80)
 __declspec(naked) void __fastcall HistoryClear(HistoryNode** /*list*/) EI_ORIGINAL(0x0043CA40)
-__declspec(naked) void __fastcall HistorySentinelFree(HistoryNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043AAF0)
-__declspec(naked) void __fastcall ByObjectHeaderFree(ObjectMap* /*tree*/, void*, ObjectMap::Node* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A4E0)
-__declspec(naked) void __fastcall BySentIdHeaderFree(SentIdMap* /*tree*/, void*, SentIdMap::Node* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A480)
-__declspec(naked) void __fastcall FreedSentinelFreeB(FreedBatch* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043B180)
 
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
 // The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) {
-    ReceivedDeallocate(&c->receivedEos_, nullptr, c->received_, static_cast<int>(c->receivedEos_ - c->received_));
+    stlp::deallocate(c->received_, static_cast<std::size_t>(c->receivedEos_ - c->received_) * 4);   // 0043A300
 }
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
@@ -87,7 +79,7 @@ void DestroyForReset(Connection* c) {
     BySentIdClear(&c->bySentId_);
     BySentIdFreeHeader(&c->bySentId_);
     FreedClear(&c->freedIds_);
-    FreedFreeSentinelA(&c->freedIds_, nullptr, c->freedIds_, 1);
+    stlp::deallocate(c->freedIds_, 20);   // 0043A410
     VectorDtorIterator(c->idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(c);
 }
@@ -100,7 +92,9 @@ void DestroyForReset(Connection* c) {
 Connection* Connection::Construct(std::uint32_t id) {
     ei::SetVtable(this, CRefObject::kVtableAddress);
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
-    ReceivedConstruct(&received_, nullptr, &tags[2]);
+    received_ = nullptr;   // vector<int>() (00438CE0)
+    receivedEnd_ = nullptr;
+    receivedEos_ = nullptr;
     address_ = NetAddress{};
     VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
     FreedListConstruct(&freedIds_, nullptr, &tags[2]);
@@ -119,8 +113,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     attached_.Count() = 0;
     attached_.EmptyInitialize();
     HeaderListConstruct(&headers_, nullptr, &tags[3]);
-    std::uint32_t zero = 0;
-    IncomingProxyConstruct(&incoming_, nullptr, &tags[3], &zero);
+    // The list's allocator proxy (0043A980) holds null until the sentinel is made.
     auto* sentinel = static_cast<HeaderNode*>(NodeAllocate(sizeof(HeaderNode)));
     incoming_ = sentinel;
     sentinel->next = sentinel;
@@ -179,24 +172,24 @@ void Connection::Destruct() {
     GrowingBufferDestruct(&reliableIn_);
     GrowingBufferDestruct(&reliableOut_);
     ListDeleteNodes(&incoming_);
-    HeaderSentinelFree(&incoming_, nullptr, incoming_, 1);
+    stlp::deallocate(incoming_, 268);   // 00439D80
     ListDeleteNodes(&headers_);
-    HeaderSentinelFree(&headers_, nullptr, headers_, 1);
+    stlp::deallocate(headers_, 268);   // 00439D80
     attached_.Clear<stlp::TreeElement<AttachedMap::Value>>();
     trees::Attached::FreeHeader(&attached_);
     trees::Records::Clear(&records_);
     trees::Records::FreeHeader(&records_);
     HistoryClear(&acknowledged_);
-    HistorySentinelFree(acknowledged_, 1);
+    stlp::deallocate(acknowledged_, 288);   // 0043AAF0
     HistoryClear(&history_);
-    HistorySentinelFree(history_, 1);
+    stlp::deallocate(history_, 288);   // 0043AAF0
     VectorDtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Destroy));
     trees::Objects::Clear(&byObject_);
-    ByObjectHeaderFree(&byObject_, nullptr, byObject_.end(), 1);
+    stlp::deallocate(byObject_.end(), 24);   // 0043A4E0
     BySentIdClear(&bySentId_);
-    BySentIdHeaderFree(&bySentId_, nullptr, bySentId_.end(), 1);
+    stlp::deallocate(bySentId_.end(), 24);   // 0043A480
     FreedClear(&freedIds_);
-    FreedSentinelFreeB(freedIds_, 1);
+    stlp::deallocate(freedIds_, 20);   // 0043B180
     VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -219,7 +212,6 @@ namespace {
 // Copy constructors of the containers (library).
 __declspec(naked) void* __fastcall ReceivedGetAllocator(std::int32_t* const* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00438CC0)
 __declspec(naked) void __fastcall ReceivedReserveConstruct(std::int32_t** /*vector*/, void*, int /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00438D00)
-__declspec(naked) std::int32_t* __fastcall CopyInts(const std::int32_t* /*first*/, const std::int32_t* /*last*/, std::int32_t* /*dest*/) EI_ORIGINAL(0x0043B360)
 __declspec(naked) void __fastcall FreedListCopy(FreedBatch** /*to*/, void*, FreedBatch* const* /*from*/) EI_ORIGINAL(0x00437930)
 __declspec(naked) void __fastcall BySentIdCopy(SentIdMap* /*to*/, void*, const SentIdMap* /*from*/) EI_ORIGINAL(0x00437AA0)
 __declspec(naked) void __fastcall HistoryCopy(HistoryNode** /*to*/, void*, HistoryNode* const* /*from*/) EI_ORIGINAL(0x00437F60)
@@ -237,7 +229,7 @@ Connection* Connection::Clone() {
     std::uint8_t tag = 0;
     void* alloc = ReceivedGetAllocator(&received_, nullptr, &tag);
     ReceivedReserveConstruct(&copy->received_, nullptr, static_cast<int>(receivedEnd_ - received_), alloc);
-    copy->receivedEnd_ = CopyInts(received_, receivedEnd_, copy->received_);
+    copy->receivedEnd_ = stlp::CopyTrivial(received_, receivedEnd_, copy->received_);   // 0043B360
     // id, round trips; timers, clock, budget: copied as dwords.
     std::memcpy(&copy->id_, &id_, offsetof(Connection, address_) - offsetof(Connection, id_));
     copy->address_ = address_;

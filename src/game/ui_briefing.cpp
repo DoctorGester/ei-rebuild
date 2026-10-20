@@ -169,16 +169,16 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         // original then looks the unit up in the server world without using the result.
         int size = party_.size;
         if (place >= size) {
-            PartyArraySetSizeOriginal(&party_, nullptr, place + 1, -1);
+            party_.SetSize(place + 1, -1);
         } else {
-            PartyArraySetSizeOriginal(&party_, nullptr, size + 1, -1);
+            party_.SetSize(size + 1, -1);
             std::memmove(&party_.data[place + 1], &party_.data[place], (size - place) * sizeof(party_.data[0]));
         }
         party_.data[place] = reinterpret_cast<std::uintptr_t>(unit);
     } else {
         // 0060AD50: SetAtGrow(size, unit).
         int size = party_.size;
-        PartyArraySetSizeOriginal(&party_, nullptr, size + 1, -1);
+        party_.SetSize(size + 1, -1);
         party_.data[size] = reinterpret_cast<std::uintptr_t>(unit);
     }
     if (unit->id_ != RecordUnitId(player->records[0])) return;

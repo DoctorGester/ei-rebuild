@@ -128,8 +128,6 @@ float LandscapeDrawRadius() {
 
 // DrawPass's callees.
 __declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
-__declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGINAL(0x0056F700)
-__declspec(naked) void __fastcall NodeFree32(void*, void*, void*, int) EI_ORIGINAL(0x0056F840)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
 
@@ -205,9 +203,9 @@ constexpr auto kDraw = [](CMapObjectVirtuals* object) { object->DrawFigure(Scene
 constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) { object->DrawCollectDirty(SceneContext()); };
 constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(SceneContext()); };
 
-// Empties the deferred unit list: each node's counted pointer released, the node freed with
-// `fastFree` (0056FB40) or 0056F700.
-void EmptyDeferred(bool fastFree) {
+// Empties the deferred unit list: each node's counted pointer released, the node freed (0056FB40
+// or 0056F700).
+void EmptyDeferred() {
     using Node = stlp::list<CEngineObject*>::Node;
     stlp::list<CEngineObject*>* deferred = FrameDeferredUnits();
     Node* head = deferred->head;
@@ -216,8 +214,7 @@ void EmptyDeferred(bool fastFree) {
         Node* current = node;
         node = node->next;
         ObjectHolderDelete(&current->data, nullptr, 0);
-        if (fastFree) NodeFree12Fast(current, 1);
-        else NodeFree12(deferred, nullptr, current, 1);
+        stlp::deallocate(current, sizeof(Node));
         head = deferred->head;
     }
     head->next = head;
@@ -468,7 +465,7 @@ int CWorldClient::DrawPass() {
         sector = &objectGrid_.rows_[rangeY_][rangeX_];
     }
     touched += CollectVisible(FrameDeferredUnits(), view, animTime, now, 1, 0);
-    EmptyDeferred(false);
+    EmptyDeferred();
     touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
@@ -495,7 +492,7 @@ int CWorldClient::DrawPass() {
         while (node != queued.head) {
             Node* current = node;
             node = node->next;
-            NodeFree32(&queued, nullptr, current, 1);
+            stlp::deallocate(current, 32);   // 0056F840
         }
         queued.head->next = queued.head;
         queued.head->prev = queued.head;
@@ -621,7 +618,7 @@ int CWorldClient::DrawPass() {
         }
     }
 
-    EmptyDeferred(true);
+    EmptyDeferred();
     static const FrameList kCopied[] = {FrameList::Visible54,    FrameList::VisibleOther, FrameList::Visible5D,
                                         FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
                                         FrameList::ShadowOther};

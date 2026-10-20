@@ -44,9 +44,6 @@ namespace {
 // Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
 // the copy +0x148), 00556950 append, 00544E40 total duration (-1 if a step is open-ended), 00558920
 // GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
-__declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00556850)
-inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-__declspec(naked) void __fastcall StepsGetAt(const AnimationSteps*, void*, AnimationStep* /*out*/, int) EI_ORIGINAL(0x00558920)
 void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
 void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep((int)a2, a3); }
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
@@ -160,7 +157,7 @@ void SetObstacle(CUnitServer* c, int obstacle) {
 // The motion order's next animation once the current motion is over.
 void QueueNextAnimation(CUnitServer* c) {
     AnimationSteps* next = c->NextAnimation();
-    StepsAppend(Queue(c), nullptr, next);
+    Queue(c)->CopySteps(*next);
     QueueStart(c) = next->extra;
     Queue(c)->Assign(*next);   // 005483C0
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
@@ -173,7 +170,7 @@ void QueueNextAnimation(CUnitServer* c) {
 // it fits. Returns from the tick.
 void HitWhileTurning(CUnitServer* c) {
     AnimationSteps steps;
-    StepsConstruct(&steps);
+    steps.ConstructOwn();
     if (c->moveMode.mode != 0 || c->state != 0) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
@@ -183,7 +180,7 @@ void HitWhileTurning(CUnitServer* c) {
             c->animationHeld = 1;
         }
     }
-    StepsDestroy(&steps);
+    steps.DestructSteps();
 }
 
 // A hit while moving: unless the queue's first animation (an attack, flags 0x200000 under
@@ -200,14 +197,14 @@ void HitWhileMoving(CUnitServer* c) {
         }
     }
     AnimationSteps current;
-    StepsConstruct(&current);
+    current.ConstructOwn();
     AnimationSteps fall;
-    StepsConstruct(&fall);
+    fall.ConstructOwn();
     c->BuildMoveSteps(&current, 0);
     c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
-        StepsGetAt(&current, nullptr, &step, i);
+        step = current.steps[i];   // GetAt by value (00558920)
         if (step.animation == 0xFF) {
             std::uint32_t emote;
             std::memcpy(&emote, reinterpret_cast<const char*>(&step) + 1, 4);
@@ -217,7 +214,7 @@ void HitWhileMoving(CUnitServer* c) {
             std::memcpy(&head, &step, 4);
             StepsAddStep(&fall, nullptr, head, step.duration);
         } else {
-            StepsSetAtGrow(&fall, nullptr, fall.count, &step);
+            fall.SetAtGrow(fall.count, step);
         }
     }
     Queue(c)->Assign(fall);   // 005483C0 (twice, as the original)
@@ -225,8 +222,8 @@ void HitWhileMoving(CUnitServer* c) {
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     c->PopFinishedSteps();
     c->ShowCurrentStep();
-    StepsDestroy(&fall);
-    StepsDestroy(&current);
+    fall.DestructSteps();
+    current.DestructSteps();
 }
 
 // The unit blocking the step: whether to wait for it (2), give way and replan around it (1), or

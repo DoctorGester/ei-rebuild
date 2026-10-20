@@ -11,7 +11,7 @@
 #include "figure_mesh.h"
 #include "originals_engine.h"
 #include "originals_units.h"
-#include "originals_library.h"
+#include "record_arrays.h"
 #include "scene_loader.h"
 #include "world.h"
 #include "lib/mfc_slots.h"
@@ -79,7 +79,7 @@ EI_REPLACE(0x004466D0, FakeUnitConstruct);
 void __fastcall FakeUnitDestruct(FakeUnitScene* self) {
     ei::SetVtable(self, FakeUnitScene::kVtableAddress);
     ReleaseParts(self);
-    FigureArraySetSizeOriginal(&self->figures, nullptr, 0, -1);
+    scene::Typed<recordarrays::FigureParts::Array>(self->figures).SetSize(0, -1);   // 0044FCD0
     FigureArray& figures = Figures(self);
     for (int i = 0; i < figures.size; ++i) --figures.data[i].refCount_;
     DestructArray(Helpers(self), mfc::impl::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });

@@ -22,6 +22,7 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
+#include "lib/stlp_hash.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -57,7 +58,7 @@ const char* NameLine() { return reinterpret_cast<const char*>(0x0079341C); }    
 const char* TextLine() { return reinterpret_cast<const char*>(0x007933BC); }           // "\x07C... %s\n"
 const char* ZonePrefix() { return reinterpret_cast<const char*>(0x00793408); }         // "z"
 const char* QuestSection() { return reinterpret_cast<const char*>(0x00790790); }       // "quest "
-void* BriefingRecords() { return reinterpret_cast<void*>(0x007C87D4); }   // hash_map<string, BriefingRecord*>
+stlp::NameMap& BriefingRecords() { return *reinterpret_cast<stlp::NameMap*>(0x007C87D4); }   // hash_map<string, BriefingRecord*>
 void* ItemManager() { return *reinterpret_cast<void* const*>(0x007AF60C); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
@@ -190,7 +191,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         BriefingRecord* record;
         {
             stlp::string key(topic_);
-            record = *static_cast<BriefingRecord**>(MapRegistryFindOriginal(BriefingRecords(), nullptr, &key));
+            record = stlp::NamedSlot<BriefingRecord>(BriefingRecords(), key);
         }
         if (record) {
             console::CStringArray parts;

@@ -17,6 +17,7 @@
 #include "originals_script.h"
 #include "../lib/crt.h"
 #include "ei/x87.h"
+#include "lib/mfc_array.h"
 
 #include <cstring>
 
@@ -375,7 +376,7 @@ CPlayerServer* CPlayerServer::Construct() {
     sentObjects_.Construct();
     sentTimed_.Construct();
     ConstructGroup(group50F8_);
-    ScriptGroupConstructOriginal(&partyUnits_);
+    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
     partyUnits_.vtable = scriptvtable::kRefs;
     vtable_ = reinterpret_cast<void*>(kServerVtable);
     ClearState();

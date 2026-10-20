@@ -122,7 +122,6 @@ namespace {
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
 void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote(a2); }
-inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
 inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
@@ -413,7 +412,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
-        StepsSetSize(&steps, nullptr, 0, -1);
+        steps.SetSize(0, -1);
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
         int duration = AnimationDuration(animation);
@@ -421,7 +420,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps copy;
         copy.CopyConstruct(steps);   // 0054B260
         PlayAnimationOrder(copy);
-        StepsDestroy(&steps);
+        steps.DestructSteps();
         return true;
     }
 
@@ -430,13 +429,13 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
-        StepsSetSize(&steps, nullptr, 0, -1);
+        steps.SetSize(0, -1);
         steps.extra = -1;
         StepsEmote(&steps, nullptr, static_cast<std::uint8_t>(action.param));
         AnimationSteps copy;
         copy.CopyConstruct(steps);   // 0054B260
         PlayEmoteOrder(copy);
-        StepsDestroy(&steps);
+        steps.DestructSteps();
         return true;
     }
 
@@ -452,7 +451,7 @@ bool CUnitServer::StartQueuedOrder() {
         copy.CopyConstruct(steps);   // 0054B260
         currentPlan.TakeSteps(copy, now, duration);
         StartAction(1, 0);
-        StepsDestroy(&steps);
+        steps.DestructSteps();
         return true;
     }
 

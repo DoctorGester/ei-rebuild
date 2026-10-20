@@ -7,6 +7,7 @@
 // game), and in verify builds each callee then runs through its own wrapper. LoadFunction calls
 // itself directly (its verify wrapper would otherwise run the subtree twice at every level).
 #include "game_arrays.h"
+#include "record_arrays.h"
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
@@ -16,6 +17,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc_string.h"
+#include "lib/mfc_array.h"
 #include "originals_script.h"
 #include "originals_library.h"
 
@@ -60,13 +62,7 @@ Original* Orig(CScript* script) { return static_cast<Original*>(script); }
 // 004D5B50 bindings' Add; 004D5CB0 sub-calls' Add (deep-copies the nested SSCCmd) and 004C4FD0
 // their SetSize (deletes the nested SSCCmds it drops); 004CD2B0 commands' SetSize, 004D65E0
 // SetAtGrow and 004D5ED0 Add (both copy the SSCCmd); 004C59C0 if-then pairs' SetSize.
-void SubCallsSetSize(mfc::CArray<ScriptSubCall>* calls, int size, int growBy) {
-    SubCallArraySetSizeOriginal(calls, nullptr, size, growBy);
-}
-void CmdsSetSize(mfc::CArray<SSCCmd>* cmds, int size, int growBy) { CmdArraySetSizeOriginal(cmds, nullptr, size, growBy); }
-void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) {
-    IfThenArraySetSizeOriginal(pairs, nullptr, size, growBy);
-}
+void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) { pairs->SetSize(size, growBy); }
 
 // 004CA260 (__thiscall): the token list's destructor.
 __declspec(naked) void __fastcall TokensDestruct(ScriptTokenList*) EI_ORIGINAL(0x004CA260)
@@ -283,7 +279,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     InlineSetSize(cmd->groupArgs, CountChar(signature, 'g'), false);
     FreeArray(cmd->localBindings);
     FreeArray(cmd->globalBindings);
-    SubCallsSetSize(&cmd->subCalls, 0, -1);
+    mfc::impl::ArrayAs<recordarrays::SubCalls>(cmd->subCalls).SetSize(0, -1);
 
     BOOL result;
     if (!*pos) {
@@ -470,7 +466,7 @@ BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, co
     LocalToken token;
     mfc::CString text;
     LocalCmd cmd;
-    CmdsSetSize(conditions, 0, -1);
+    mfc::impl::ArrayAs<recordarrays::Cmds>(*conditions).SetSize(0, -1);
     for (;;) {
         if (!*pos) return Error(this, token.line, 1, game::Text(0x0078D740));
         cmd.Get()->Clear();
@@ -630,7 +626,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
     SSCCmd* cmd = local.Get();
     LocalVars empty;
     if (!locals) locals = empty.Get();
-    CmdsSetSize(commands, 0, -1);
+    mfc::impl::ArrayAs<recordarrays::Cmds>(*commands).SetSize(0, -1);
     for (;;) {
         if (!*pos) return Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));
         cmd->Clear();

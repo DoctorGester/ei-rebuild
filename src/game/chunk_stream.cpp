@@ -54,7 +54,6 @@ struct TextDecoder {
     ByteVector text;    // +0x00
     ByteVector input;   // +0x0C
 };
-__declspec(naked) void __fastcall ByteVectorConstruct(ByteVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0042D310)
 // 004D8E10: unpacks the input, unscrambles it and stores it in `out`.
 void __fastcall DecodeText(TextDecoder* a0, void*, mfc::CString* a2) { reinterpret_cast<MobScriptDecoder*>(a0)->Decode(a2); }   // same layout
 
@@ -282,9 +281,8 @@ EI_REPLACE_METHOD(0x0042C580, Chunk::ReadString);
 mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     std::uint32_t length = static_cast<std::uint32_t>(size_ - kHeader);
     TextDecoder decoder;
-    std::uint8_t allocator = 0;
-    ByteVectorConstruct(&decoder.text, nullptr, &allocator);
-    ByteVectorConstruct(&decoder.input, nullptr, &allocator);
+    decoder.text.ConstructEmpty();   // 0042D310
+    decoder.input.ConstructEmpty();
     std::uint8_t zero = 0;
     std::uint32_t had = static_cast<std::uint32_t>(decoder.input.size());
     if (length < had)

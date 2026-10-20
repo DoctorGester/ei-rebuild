@@ -27,7 +27,6 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
 
 // 00404D70: STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
 void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
-__declspec(naked) void __fastcall NodeDeallocate(void*, void*, FigureModel::AnimationMap::Node*, int) EI_ORIGINAL(0x005AE150)
 // 00406590: deallocates `count` pointers (the buckets).
 void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
 
@@ -35,7 +34,6 @@ void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, stat
 // (CResourceManager::Destroy, the base's clean-up), 005AE5D0 (RET 4) the pair destructor, 004FC080
 // (ECX node, EDX count) the node allocator's deallocate, 00674DF0 the base destructor.
 __declspec(naked) void __fastcall ManagerCleanUp(CFigureManager*) EI_ORIGINAL(0x00674F40)
-__declspec(naked) void __fastcall NodeFree(void*, int) EI_ORIGINAL(0x004FC080)
 
 // Visits every node as the game's iterator walks them: the chain, then the head of the next
 // non-empty bucket after the one the node's key hashes to (004298D0).
@@ -79,7 +77,7 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
     // The hash_map's destructor.
     table.ClearWith([&table](Node* n) {
         records::LeadingStringDelete(&n->key, nullptr, 0);
-        NodeDeallocate(table.CountProxy(), nullptr, n, 1);
+        stlp::deallocate(n, 20);   // 005AE150
     });
     stlp::vector<Node*>& buckets = Buckets(table);
     DeallocatePointers(buckets.Start(), static_cast<int>(buckets.EndOfStorage() - buckets.Start()));
@@ -107,7 +105,7 @@ void __fastcall DestroyFigureManager(char* object) {
     ManagerCleanUp(manager);
     table.ClearWith([](Node* n) {
         records::LeadingStringDelete(&n->key, nullptr, 0);
-        NodeFree(n, 1);
+        stlp::deallocate(n, 20);   // 004FC080
     });
     stlp::vector<Node*>& buckets = Buckets(table);
     if (buckets.Start())

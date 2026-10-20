@@ -178,12 +178,10 @@ static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUn
 // (RET 4), 004E2A20 / 005F9880 the destructors of the two instantiations.
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
-__declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x0064B620)
 __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
-__declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
@@ -205,7 +203,7 @@ using PtrArray = mfc::CArray<void*>;
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
     if (ids->Finish() != ids->EndOfStorage()) {
-        IdConstruct(ids->Finish(), value);
+        stlp::ConstructAt(ids->Finish(), value);   // 0064B620
         ++ids->Finish();
     } else {
         DwordVectorInsertOverflowOriginal(ids, nullptr, ids->Finish(), value, 1);
@@ -235,9 +233,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     net::ClientSession* session = *reinterpret_cast<net::ClientSession**>(0x0079B5D8);
     ListNode** players = reinterpret_cast<ListNode**>(&session->players_);
     PartyIds ids;
-    std::uint8_t allocators[2] = {};
-    IdVectorConstructOriginal(&ids.withUnit, nullptr, &allocators[0]);
-    IdVectorConstructOriginal(&ids.without, nullptr, &allocators[1]);
+    ids.Construct();
     ids.camera = -1;
     for (ListNode* node = (*players)->next; node != *players; node = node->next) {
         net::PlayerMessage* player = reinterpret_cast<net::PlayerMessage*>(node->data);
@@ -261,7 +257,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     SortIds(&ids.without);
     if (!ids.Equals(screen->clientParty_)) {
         auto* party = &screen->party_;
-        PartyArraySetSizeOriginal(party, nullptr, 0, -1);
+        party->SetSize(0, -1);
         bool cameraFirst = false;
         for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
             int unitId = *id;
@@ -272,11 +268,11 @@ void RebuildClientParty(CBattleScreen* screen) {
                 // Insert at the front (the original's inlined InsertAt).
                 int n = party->size;
                 if (n <= 0) {
-                    PartyArraySetSizeOriginal(party, nullptr, 1, -1);
+                    party->SetSize(1, -1);
                 } else {
-                    PartyArraySetSizeOriginal(party, nullptr, n + 1, -1);
+                    party->SetSize(n + 1, -1);
                     GameMemmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
-                    PartyConstruct(party->data, 1);
+                    mfc::PlainElements<CUnit*>::Construct(party->data, 1);   // 0060AEC0
                 }
                 party->data[0] = unit;
                 cameraFirst = true;
@@ -352,7 +348,7 @@ void CBattleScreen::Update() {
         mfc::CArray<std::uint8_t*> second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData());
         for (int i = 0; i < data->count; ++i)
-            RecordArraySetAtGrowOriginal(&records, nullptr, records.size, data->records + i * 0x784);
+            records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->records[i]));   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,

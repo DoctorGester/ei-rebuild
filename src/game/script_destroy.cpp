@@ -37,9 +37,8 @@ void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructEl
 // and a nested call (004CE230: its command destroyed with 004BF640 and deleted).
 // Out-of-line CArray destructors (__thiscall): CString arrays (004C26A0), object references
 // (004C2290), the ScriptVars floats (004C29C0).
-void __fastcall NamesDestruct(void* a0) { CStringArrayDestructOriginal(a0); }
+void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }   // 004C26A0 is 004BC810's body
 inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
-__declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29C0)
 
 // Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)
 // and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
@@ -73,7 +72,7 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->groupNames);
     SetBaseVtable(&vars->groups, scriptvtable::kGroupsBase);
     if (ScriptGroup* groups = vars->groups.data) {
-        for (int i = 0; i < vars->groups.size; ++i) GroupDestroy(&groups[i], nullptr, 0);
+        for (int i = 0; i < vars->groups.size; ++i) ScriptGroupDestroy(&groups[i], nullptr, 0);
         gamecrt::operator_delete(vars->groups.data);
     }
     FreeStrings(&vars->objectNames);
@@ -102,7 +101,7 @@ void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     NamesDestruct(&vars.stringNames);
     FreeStrings(&vars.strings);
     NamesDestruct(&vars.floatNames);
-    FloatArrayDestruct(&vars.floats);
+    mfc::impl::DestructHeader<mfc::impl::ScriptFloatsClass>(&vars.floats);
     FreePlain(&definition->ifThen, mfc::impl::ScriptIfThenArrayClass::Vtable());
     definition->params.~CString();
     definition->name.~CString();

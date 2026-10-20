@@ -114,17 +114,17 @@ void CCamera::Destruct() {
     if (viewStack_.map) {
         void** endNode = viewStack_.finish.node + 1;
         for (void** node = viewStack_.start.node; node < endNode; ++node)
-            ViewStackFreeNode(&viewStack_.mapSize, nullptr, *node, 0xE);
-        ViewStackFreeMap(viewStack_.map, static_cast<int>(viewStack_.mapSize));
+            stlp::deallocate(*node, 0xE * 36);   // 00411E20
+        stlp::deallocate(viewStack_.map, static_cast<std::size_t>(viewStack_.mapSize) * 4);   // 00411EA0
     }
     for (CameraShake* node = shakes_->next; node != shakes_;) {
         CameraShake* next = node->next;
-        ShakeNodeFree(node, 1);
+        stlp::deallocate(node, 24);   // 00411B30
         node = next;
     }
     shakes_->next = shakes_;
     shakes_->prev = shakes_;
-    ShakeNodeFree(shakes_, 1);
+    stlp::deallocate(shakes_, 24);   // 00411B30
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     DestructBase();
 }

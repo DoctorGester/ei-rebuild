@@ -130,7 +130,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         }
         if (first) {
             ObjectList quest;
-            ItemListConstructOriginal(&quest, nullptr, 10);
+            mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&quest, 10);
             for (ObjectList::Node* node = items.head; node;) {
                 ObjectList::Node* next = node->next;
                 CEngineObject* item = node->data;
