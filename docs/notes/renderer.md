@@ -585,6 +585,22 @@ resolution must have the machine to themselves and serialised the suites.
   alpha (texture for ground, vertex colour for water) and always adds the specular colour (DrawSectorPage turns
   SPECULARENABLE on around each of its draws, after the hand-over). The harness build logs each new terrain pipeline's
   state ("render: terrain pipeline (first for a ground page): ..."). `--widescreen` matches addon's frames with it.
+- **Terrain sampling (R12)**: the pages are sampled anisotropically (16x) with linear mips (`TerrainSampler`,
+  render_textures.cpp; logged once) when stage 0 asks for linear filters (the options' Filtering 1 / 2; point filters
+  stay point, Mipmapping 0 keeps level 0). The game asks for D3DTFP_POINT mips: through them whole terrain
+  triangles snapped to the next level (a triangle's level follows its texture-coordinate slopes, which change from
+  tile to tile) and the sharpness jumped along the tiles' edges: the seams the user saw moving with the camera. The
+  harness's original (run\vanilla's dgVoodoo, Filtering appdriven) shows the same steps; the user's own original
+  (Rebirth's starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x) does not, and that is the look kept. So the
+  image's terrain differs from the harness original's where a level changes (about 0.5% of a zoomed-out frame).
+- Check (scenario `render_terrain_seams`, verify build): `terrainlevels on|point|off` (`render::TerrainLevels`: the
+  ground pages draw a texture of the page's size and levels with one grey per level, marked green / blue, through the
+  shipped sampler or the old point-mip one) and `levelsteps <frame> <least> <most>` (`capture::LevelSteps`: the
+  fraction of neighbouring level-map pairs whose level jumps). Two frozen views of zone1, vanilla: 0.004% with the
+  shipped sampler (limit 0.05%), 0.32% / 0.38% through point mips (at least 0.1%, so the check sees seams); Rebirth's
+  wide view, further and steeper: 0.10% / 0.15% (limit 0.4%; a triangle's level still jumps where its slopes do, as
+  under dgVoodoo's 16x) against 1.2% / 1.5% (at least 0.6%). The original's run captures its frames and skips both
+  steps.
 
 ### Frame capture
 

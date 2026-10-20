@@ -15,13 +15,12 @@
 //                                  and the standalone image's mod_folders.h) as harness_saves\<folder>;
 //                                  a "# prepare:" tool writes the mod there (tools/make_test_mod.py)
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
-// without those the registry's own values. Rebirth's CtfMon switch is answered 0 in every run (S3e:
-// addon.dll closes ctfmon at start and restarts it from its DLL_PROCESS_DETACH, which hung the exit).
+// without those the registry snapshot's values (harness_settings.h). Rebirth's CtfMon switch is answered
+// 0 in every run (S3e: addon.dll closes ctfmon at start and restarts it from its DLL_PROCESS_DETACH, which
+// hung the exit).
 //
-// The game reads the resolution through its import table (RegQueryValueExA), the rebuild's WideScreen
-// code reads both settings through the same slot (ui_widescreen.cpp), and addon.dll reads them
-// through its own import of RegQueryValueExW when it applies its patches on the WinMain call, i.e.
-// after ei_hook.dll has loaded: both slots are answered.
+// The answers are given by harness_settings.cpp, which answers every read of the game's and the starter's
+// keys (the game's, the image's and addon.dll's), these by value name before its snapshot.
 //
 // A resolution other than the desktop's makes dgVoodoo switch the display mode in its full
 // screen (seen 2026-10-04 with 1280x720), so scenarios use "desktop".
@@ -30,12 +29,16 @@
 
 namespace ei::verify::starter {
 
+// The run's answer for the registry value `name` (any key): its type, data and size (`dword` holds a
+// DWORD answer); false when the run leaves it to the snapshot.
+bool Answer(const char* name, unsigned long* type, const unsigned char** data, unsigned long* size, unsigned long* dword);
+
 // Consumes a "resolution", "widescreen", "fullscreen", "fpscursor" or "addonpath" scenario line; false for any
 // other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 
-// Applies the environment fallbacks and answers the registry reads (once, at harness start; `savesDir`: the
-// run's harness_saves).
+// Applies the environment fallbacks (once, at harness start, before harness_settings' Install; `savesDir`:
+// the run's harness_saves).
 void Install(const char* savesDir);
 
 // The step "modfile <archive> <file> <bytes>": the game's archive <archive> in the text resources' folder opened

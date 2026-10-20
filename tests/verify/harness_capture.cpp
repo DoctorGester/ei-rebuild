@@ -435,6 +435,41 @@ bool Compare(const char* a, const char* b, int tolerance, double* differing, int
     return CompareImages(ia, ib, tolerance, differing, largest, why);
 }
 
+bool LevelSteps(const char* name, double* steps, long long* pairs, const char** why) {
+    Image image;
+    if (!ReadBmp(name, image)) {
+        *why = "the frame is missing or unreadable";
+        return false;
+    }
+    const auto marked = [&](std::size_t i) {
+        int g = image.bgr[i + 1], b = image.bgr[i];
+        return g >= 0x58 && g <= 0x5C && b >= 0xA3 && b <= 0xA7;
+    };
+    long long both = 0, stepped = 0;
+    const std::size_t row = static_cast<std::size_t>(image.width) * 3;
+    for (int y = 0; y < image.height; ++y) {
+        for (int x = 0; x < image.width; ++x) {
+            std::size_t i = static_cast<std::size_t>(y) * row + static_cast<std::size_t>(x) * 3;
+            if (!marked(i)) continue;
+            const std::size_t next[2] = {i + 3, i + row};
+            const bool inside[2] = {x + 1 < image.width, y + 1 < image.height};
+            for (int k = 0; k < 2; ++k) {
+                if (!inside[k] || !marked(next[k])) continue;
+                ++both;
+                int d = image.bgr[i + 2] - image.bgr[next[k] + 2];
+                if (d >= 24 || d <= -24) ++stepped;
+            }
+        }
+    }
+    if (both == 0) {
+        *why = "no pixel of the frame shows the level map";
+        return false;
+    }
+    *steps = static_cast<double>(stepped) / static_cast<double>(both);
+    *pairs = both;
+    return true;
+}
+
 bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,
                  const char** why) {
     Image shot, captured;
