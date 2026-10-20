@@ -772,13 +772,13 @@ frame though most of it did not change (0.5-2.7 MB a frame).
 in one run (a switch between the old and the new path; `samecapture`, tools/compare_frames.py) with a tolerance, never
 across runs; the goldens check the game state.
 
-1. **R16a Window surfaces by change marks, partial uploads.** Replaces the memcmp of every shown surface at every blit
-   and whole-surface uploads with marks set where the game writes the memory (DC release 005FDC60, the pixel code,
-   SwapContents / Freeze, CopyFrameTo, greyscale; N0's census lists the writers) and an upload of the changed rectangle.
-   Gain: 1-3 ms CPU a frame on interface screens, about 0.9 ms in the world, at 4K. Risk: a writer without a mark shows
-   stale pixels; the harness build keeps the memcmp as a check that logs and fails. Check: ui_* and render_* captures
-   at 8 / 0.1% (the pixels are the same, so 0 expected). The native interface (ui-native.md, P1-P8) later removes the
-   surfaces; this is the step that pays now.
+1. **R16a Window surfaces by change marks, partial uploads (done).** How it works: section 6, "Change detection".
+   Measured with render_stats (vanilla, 4K; `renderstats` "window surfaces" ms, the window part of "textures"), before
+   / after: menu 0.5-0.8 / 0.004 ms, zone1 0.4-0.6 / 0.2, fight 0.7 / 0.2, camp 1.6 / 0.6, escape menu 2.3-2.8 /
+   0.006; memory compared menu 5.6 MB / 0.1, zone1 4.7 / 2.9, camp 12.3 / 7.9, escape menu 32.4 / 0 (Rebirth alike).
+   What is still compared is the surfaces the game redraws every frame (the HUD unit panel, the item strip, the camp
+   page: GDI's bounds cover them whole, and 91-99% of the redraws change nothing, ui-census.md); the native interface
+   (ui-native.md, P1-P8) removes those. Checked by the ui_* and render_* scenarios (captures, 0 missed writes).
 2. **R16b Shadow and memory textures updated in place.** The shadow textures (0051CE60 marks the changed one,
    `TextureChanged`) go into one texture array of 64 x 64 slices updated with UpdateSubresource, mips made on the GPU;
    other memory textures (the global map's 341 KB one) are updated in place instead of made again. Gain: 4-15 image and
