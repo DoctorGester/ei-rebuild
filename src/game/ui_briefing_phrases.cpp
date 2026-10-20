@@ -125,15 +125,15 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (count < 2) continue;
         if (Compare(words[0], ShowCommand()) == 0) {
             if (count > 3 && Compare(words[3], WeaponWord()) == 0)
-                ShowItem(words[1], GameAtoi(words[2]) - 1, 0);
+                ShowItem(words[1], libcrt::Atoi(words[2]) - 1, 0);
             if (count > 2)
-                ShowItem(words[1], GameAtoi(words[2]) - 1, 1);
+                ShowItem(words[1], libcrt::Atoi(words[2]) - 1, 1);
             else
                 ShowItem(words[1], -1, 1);
         } else if (Compare(words[0], HideCommand()) == 0) {
             HideSpeaker(words[1], skip, count > 2 ? 1 : 0);
         } else if (Compare(words[0], AnimationCommand()) == 0) {
-            animation = GameAtoi(words[1]);
+            animation = libcrt::Atoi(words[1]);
         } else if (Compare(words[0], CameraCommand()) == 0) {
             if (count >= 5) {
                 angle = static_cast<float>(kRadiansPerDegree * GameAtof(words[2]));
@@ -141,7 +141,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 height = static_cast<float>(GameAtof(words[4]));
                 view = true;
             }
-            preset = GameAtoi(words[1]);
+            preset = libcrt::Atoi(words[1]);
         } else if (Compare(words[0], PhraseCommand()) == 0) {
             spoke = true;
             break;
@@ -171,7 +171,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         voice_ = -1;
         if (!skip) {
             int number;
-            if (words.GetSize() > 2 && (number = GameAtoi(words[2])) > 0) {
+            if (words.GetSize() > 2 && (number = libcrt::Atoi(words[2])) > 0) {
                 mfc::CString file;
                 int folder = gamecrt::rand() * 2 / 0x7FFF % 2;
                 file.Format(VoiceFormat(), VoiceFolders()[folder], static_cast<const char*>(topic_), number);

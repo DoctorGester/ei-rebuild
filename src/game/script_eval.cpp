@@ -597,7 +597,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0xAB: { // GetObjectByID (decimal string)
-        CEngineObject* o = WorldServer()->FindObject(GameAtoi(stringArgs.data[0]));
+        CEngineObject* o = WorldServer()->FindObject(libcrt::Atoi(stringArgs.data[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
                            static_cast<const char*>(stringArgs.data[0]), "GetObjectByID");

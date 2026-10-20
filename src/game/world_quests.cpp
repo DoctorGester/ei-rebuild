@@ -687,7 +687,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
         int following = player->mercCount - i - 1;
         MercRecord(player, i).Destruct();
         if (following)
-            GameMemmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
+            libcrt::Memmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
         --player->mercCount;
         --i;
     }

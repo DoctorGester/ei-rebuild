@@ -134,7 +134,7 @@ void ShowHead(CUnitServer* self) {
 
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    WorldRemoveTimed(WorldServer(), nullptr, self->effectObject->id_);
+    WorldServer()->RemoveTimedObject(self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
     if (effect) effect->Release();

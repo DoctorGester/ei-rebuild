@@ -1,5 +1,6 @@
 #include "stlp.h"
 
+#include "crt.h"
 #include "ei/hook.h"
 #include "game/originals_library.h"
 
@@ -10,7 +11,7 @@
 namespace stlp {
 
 namespace {
-// __node_alloc<true,0>::allocate / deallocate in game.exe (NodeAllocateOriginal / StlNodeFreeOriginal, originals_library.h).
+// __node_alloc<true,0>::allocate / deallocate (00405950 / 00404D70: libcrt::NodeAllocate / NodeDeallocate, crt.h).
 
 constexpr std::size_t kPrimes[28] = {
     53ul, 97ul, 193ul, 389ul, 769ul, 1543ul, 3079ul, 6151ul, 12289ul, 24593ul,
@@ -21,8 +22,8 @@ constexpr std::size_t kPrimes[28] = {
 constexpr char kNul = 0;
 } // namespace
 
-void* allocate(std::size_t bytes) { return bytes ? NodeAllocateOriginal(bytes) : nullptr; }
-void deallocate(void* p, std::size_t bytes) { if (p) StlNodeFreeOriginal(p, bytes); }
+void* allocate(std::size_t bytes) { return bytes ? libcrt::NodeAllocate(bytes) : nullptr; }
+void deallocate(void* p, std::size_t bytes) { if (p) libcrt::NodeDeallocate(p, bytes); }
 
 std::size_t NextPrime(std::size_t n) {
     const std::size_t* p = std::lower_bound(std::begin(kPrimes), std::end(kPrimes), n);

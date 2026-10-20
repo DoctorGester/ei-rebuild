@@ -196,7 +196,7 @@ void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const ch
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
-void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
+void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the 12-byte nodes
 
 // An MFC CArray<void*> as the update builds them on the stack (vtable 0073FAA4).
@@ -273,7 +273,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                     party->SetSize(1, -1);
                 } else {
                     party->SetSize(n + 1, -1);
-                    GameMemmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
+                    libcrt::Memmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
                     mfc::PlainElements<CUnit*>::Construct(party->data, 1);   // 0060AEC0
                 }
                 party->data[0] = unit;

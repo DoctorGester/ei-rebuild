@@ -14,6 +14,7 @@
 #include "../lib/mfc.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_ui.h"
@@ -94,7 +95,7 @@ void __fastcall Help(CStringArray* args) {
 
 void AddonDebug(CStringArray* args) {
     std::string type = args->GetSize() >= 1 ? static_cast<const char*>((*args)[0]) : "";
-    int level = args->GetSize() >= 2 ? GameAtoi((*args)[1]) : -1;
+    int level = args->GetSize() >= 2 ? libcrt::Atoi((*args)[1]) : -1;
     if (type.empty() || type == "help") {
         SayFormat("Usage:\n\taddon debug {type} [level]\n\nSet debug level for type of addon's debugging settings\n"
                   "or show current value if level is not specified\n\nTypes:\n* log      - addon log file (current: %d)\n"
@@ -161,12 +162,12 @@ void __fastcall ListGlobals(CStringArray*) {
 // drawall n: 0079BE6C = (n == 0).
 void __fastcall DrawAll(CStringArray* args) {
     if (args->GetSize() < 1) return;
-    *kSpectator = GameAtoi((*args)[0]) == 0 ? 1 : 0;
+    *kSpectator = libcrt::Atoi((*args)[0]) == 0 ? 1 : 0;
 }
 
 // nogui 0|1|2: GUI and cursor shown / GUI hidden / both hidden.
 void __fastcall NoGui(CStringArray* args) {
-    int mode = args->GetSize() == 1 ? GameAtoi((*args)[0]) : -1;
+    int mode = args->GetSize() == 1 ? libcrt::Atoi((*args)[0]) : -1;
     if (static_cast<unsigned>(mode) > 2) {
         Say("Hide or show GUI in game missions\n\nnogui 0 - show all (default)\nnogui 1 - hide GUI but show cursor\n"
             "nogui 2 - hide GUI and cursor");

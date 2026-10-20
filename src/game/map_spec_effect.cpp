@@ -2,10 +2,12 @@
 // kind 2) and sounds (0073C7B8, kind 3) on their base 0073C728 (map_spec.h). They keep the world
 // object they made at +0x1C and its effect at +0x4C, are kept above the terrain when moved, and
 // save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
+#include "base_manager.h"
 #include "map_spec.h"
 #include "game_strings.h"
 #include "core_transform.h"
 #include "terrain.h"
+#include "world.h"
 #include "world_effect.h"
 
 #include "ei/hook.h"
@@ -63,7 +65,7 @@ void Notify(void* self, std::uintptr_t kind, std::uintptr_t family) {
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
     WorldMakeObjectOriginal(World(), nullptr, &self->base);
-    self->effect = ManagerFindObject(Effects(), nullptr, self->base.id);
+    self->effect = static_cast<CBaseManager*>(Effects())->FindObject(self->base.id);
 }
 
 } // namespace
@@ -100,7 +102,7 @@ EI_REPLACE_METHOD(0x0046DA00, LightSpec::LightSpecDelete);
 
 // 0046D3D0 (slot 2): effects are managed under -3001 - id.
 void* EffectSpec::EffectSpecWorldObject() {
-    return ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, -3001 - base.id);
+    return static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AF5F8))->FindObject(-3001 - base.id);
 }
 EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
 
@@ -376,7 +378,7 @@ void SoundSpec::SoundSpecApply() {
         return;
     }
     std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
-    if (effect.effect) WorldRemoveTimed(World(), nullptr, b.id);
+    if (effect.effect) static_cast<CWorldServer*>(World())->RemoveTimedObject(b.id);
     if (sounds.size > 0) MakeEffect(&effect);
     else effect.effect = nullptr;
 }

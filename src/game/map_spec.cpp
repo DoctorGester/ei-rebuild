@@ -2,6 +2,7 @@
 // (map_spec.h), and the quaternion rotation the editor uses (0046A4B0). Plain float maths
 // (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "ai_map.h"
+#include "base_manager.h"
 #include "map_spec.h"
 #include "game_strings.h"
 #include "map_object.h"
@@ -108,7 +109,7 @@ void Spec::SpecRefresh() { Record()->ApplyObject(); }
 EI_REPLACE_DISPATCH(0x00469E00, Spec::SpecRefresh);
 
 // 00469F20 (slot 2): the object with the record's id.
-void* Spec::SpecWorldObject() { return ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, id); }
+void* Spec::SpecWorldObject() { return static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AF5F8))->FindObject(id); }
 EI_REPLACE_METHOD(0x00469F20, Spec::SpecWorldObject);
 
 // 00469F40 (slot 5): moves the record, then slot 7.

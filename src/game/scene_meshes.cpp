@@ -12,6 +12,7 @@
 #include "../lib/mfc.h"
 #include "ei/hook.h"
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/mfc_list.h"
 #include "originals_library.h"
 
@@ -53,7 +54,7 @@ using RecordArray = mfc::CArray<CornerRecord>;
 
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.
-void __cdecl GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { GameQsortOriginal(a0, a1, a2, a3); }
+void __cdecl GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
 auto* const kCompareRecords = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF00);
 auto* const kComparePairs = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF60);
 

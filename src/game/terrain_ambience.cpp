@@ -165,7 +165,7 @@ void Terrain::PlayAmbience() {
             ++vote.count;
         }
     }
-    GameQsortOriginal(votes, kClasses, sizeof(ClassVotes), ByWeight);
+    libcrt::Qsort(votes, kClasses, sizeof(ClassVotes), ByWeight);
 
     IsaacRandom& random = IsaacRandom::Global();
     int heard = 0;

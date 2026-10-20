@@ -20,7 +20,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"  // GameAtoi
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -147,12 +147,12 @@ void CHelpWindow::ShowPageVanilla() {
     if (texts->FindLine(game::Text(kPositionLine))) {
         texts->Split(&words, 1);
         if (words.GetSize() > 3) {
-            page.left = GameAtoi(words[1]);
-            page.top = GameAtoi(words[2]);
-            page.right = GameAtoi(words[3]);
+            page.left = libcrt::Atoi(words[1]);
+            page.top = libcrt::Atoi(words[2]);
+            page.right = libcrt::Atoi(words[3]);
             int rows = 1;
             if (words.GetSize() > 4) {
-                rows = GameAtoi(words[4]);
+                rows = libcrt::Atoi(words[4]);
                 rowsGiven = true;
             }
             if (page.right - page.left < 300) page.right = page.left + 300;
@@ -196,11 +196,11 @@ void CHelpWindow::ShowPageVanilla() {
         texts->Split(&words, 1);
         if (Same(words[0], kScreenLine)) break;
         if (Same(words[0], kRectangleLine) && words.GetSize() > 4) {
-            const int top = GameAtoi(words[2]);
-            const int bottom = GameAtoi(words[4]);
+            const int top = libcrt::Atoi(words[2]);
+            const int bottom = libcrt::Atoi(words[4]);
             const int shift = TutorialFrameShift(this);
-            const int left = GameAtoi(words[1]) + shift;
-            const int right = GameAtoi(words[3]) + shift;
+            const int left = libcrt::Atoi(words[1]) + shift;
+            const int right = libcrt::Atoi(words[3]) + shift;
             CUiMesh* mark = AddSprite(nullptr);
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);

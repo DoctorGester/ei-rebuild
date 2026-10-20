@@ -540,7 +540,7 @@ void ReadInt(void* stream, void* value) { static_cast<CStream*>(stream)->Read(va
 // The next string of the stream into `name` (through a temporary, as the original).
 void ReadName(void* stream, mfc::CString& name) {
     alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
-    mfc::CString* read = StreamReadString(static_cast<CStream*>(stream), nullptr, temporary);
+    mfc::CString* read = static_cast<CStream*>(stream)->ReadString(temporary);
     name = *read;
     read->~CString();
 }

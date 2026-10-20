@@ -899,7 +899,7 @@ void CUnitServer::ApproachTarget() {
         state = kStateChasing;
         unit->UpdateSizeClass();
         if (effectObject) {
-            WorldRemoveTimed(WorldServer(), nullptr, effectObject->id_);
+            WorldServer()->RemoveTimedObject(effectObject->id_);
             CEngineObject* old = effectObject;
             effectObject = nullptr;
             if (old) old->Release();

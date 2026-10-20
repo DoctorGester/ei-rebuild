@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -264,7 +265,7 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
         }
     }
     // The game's own qsort: it decides the order of the sectors at the same distance.
-    GameQsortOriginal(cells.data, static_cast<std::size_t>(cells.size), sizeof(SpiralCell), ByDistance);
+    libcrt::Qsort(cells.data, static_cast<std::size_t>(cells.size), sizeof(SpiralCell), ByDistance);
     for (int i = 0; i < cells.size; ++i) offsets->data[i] = cells.data[i].offset;
 
     // A length per distinct distance: the offsets up to and including that distance.

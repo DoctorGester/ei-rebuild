@@ -690,7 +690,7 @@ int HighestFileNumber(const char* pattern) {
             if (!CFileFindIsDotsOriginal(&find)) {
                 mfc::CString title;
                 CFileFindTitle(&find, nullptr, &title);
-                int number = GameAtoi(title);
+                int number = libcrt::Atoi(title);
                 if (!(highest > number)) highest = number;
             }
         } while (more);

@@ -1,6 +1,7 @@
 // CPlayerServer's message writers and the party record lookup. See player_messages.h and
 // docs/notes/objects.md.
 
+#include "base_manager.h"
 #include "object_tables.h"
 #include "player_messages.h"
 #include "item.h"
@@ -263,7 +264,7 @@ void CPlayer::Tick() {
         auto* current = node;
         node = node->next;
         int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
-        CEngineObject* object = ManagerFindObject(Party()->ItemManager(), nullptr, id);
+        CEngineObject* object = static_cast<CBaseManager*>(Party()->ItemManager())->FindObject(id);
         if (object == nullptr || object->RunTick() == 0) objects_.RemoveAt(current);
     }
     connection_->TickDone();

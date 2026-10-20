@@ -272,11 +272,11 @@ void ReadCommandLine(const char* commandLine) {
             CommandLineMap() = arguments[i];
         } else if (arguments[i].Find(game::Text(0x007848E0)) == 0) {   // "-benchmark_"
             mfc::CString frames = Tail(arguments[i], 11);
-            options->numberOfFrames_ = GameAtoi(frames);
+            options->numberOfFrames_ = libcrt::Atoi(frames);
             options->createOutputInfo_ = 1;
         } else if (arguments[i].Find(game::Text(0x007848D0)) == 0) {   // "-devicetarget_"
             mfc::CString driver = Tail(arguments[i], 14);
-            options->driverIndex_ = GameAtoi(driver);
+            options->driverIndex_ = libcrt::Atoi(driver);
         }
     }
 }

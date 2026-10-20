@@ -212,7 +212,7 @@ int CCamera::OpenFile(const char* name) {
                     mfc::CString tail = title.Right(4);
                     title = tail;
                 }
-                int number = GameAtoi(title);
+                int number = libcrt::Atoi(title);
                 if (number > last) last = number;
             } while (more);
         }

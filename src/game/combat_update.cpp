@@ -122,7 +122,7 @@ void StartQueueIfUnset(CUnitServer* self) {
 // The effect object (+0x17C, referenced) leaves the world.
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    WorldRemoveTimed(WorldServer(), nullptr, self->effectObject->id_);
+    WorldServer()->RemoveTimedObject(self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
     if (effect) effect->Release();

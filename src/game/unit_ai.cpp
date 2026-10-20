@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <bit>
@@ -438,7 +439,7 @@ void AIBrain::UpdateMove() {
         float end = static_cast<float>(GameTicks()) + looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
         int remaining = looks.size - 1;
-        if (remaining != 0) GameMemmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);
+        if (remaining != 0) libcrt::Memmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);
         --looks.size;
         return;
     }

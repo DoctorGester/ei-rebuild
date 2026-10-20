@@ -1951,6 +1951,21 @@ def vector_sources():
     return _VECTORS
 
 
+_REPLAY = []
+
+
+def replay_defines(t):
+    """True when ei_vectors defines the target itself (tests/vectors/replay_*.cpp: a replay version, or a stand-in
+    that stops the replay naming it, replay_unlinked.cpp), written with its qualified name."""
+    if not _REPLAY:
+        for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'vectors', 'replay_*.cpp'))):
+            with open(path, encoding='utf-8') as fh:
+                _REPLAY.append(Source(path, fh.read()).code)
+        _REPLAY.append('')
+    rx = re.compile(r'(?<![\w:])' + re.escape(t.qname) + r'\s*\(')
+    return any(rx.search(code) for code in _REPLAY)
+
+
 def plan(fwds, classes):
     """Edits per file for every convertible forwarder in scope; sets f.reason for the ones that fail."""
     edits = defaultdict(list)
@@ -1996,7 +2011,8 @@ def plan(fwds, classes):
             if f.kind == 'unwrap':
                 continue        # the container's own member: declared with the container the call uses
             vectors = vector_sources()
-            if site.src.path in vectors and site.src.path != f.target_src_path and vectors.get(f.target_src_path) is not True:
+            if site.src.path in vectors and site.src.path != f.target_src_path and \
+                    vectors.get(f.target_src_path) is not True and not replay_defines(f.target):
                 why = f'ei_vectors links the caller without the target ({site.src.path})'
                 break
             if site.src.path == f.target_src_path:

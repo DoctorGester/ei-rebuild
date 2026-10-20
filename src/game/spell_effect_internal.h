@@ -245,7 +245,7 @@ inline CEngineObject* CreateObject(CSpellEffect* e, int classId) {
 // The counted-pointer assignment the helpers repeat: the old object leaves the world's timed
 // objects and is released, the new one is counted.
 inline void Assign(CSpellEffect* e, CEngineObject** slot, CEngineObject* object) {
-    if (*slot) WorldRemoveTimed(e->world, nullptr, (*slot)->id_);
+    if (*slot) static_cast<CWorldServer*>(e->world)->RemoveTimedObject((*slot)->id_);
     CEngineObject* old = *slot;
     *slot = object;
     if (object) ++object->refCount_;

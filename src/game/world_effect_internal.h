@@ -80,7 +80,7 @@ inline void* ManagerContext(const void* object) { return ManagerContextOf(object
 // 0055FB00 (world). A unit by id, or null.
 inline void* FindUnit(void* world, void*, int id) { return ::WorldFindUnit(world, nullptr, id); }
 // 00403F40 (originals_core.h). An object of a manager by id, or null.
-inline void* FindObject(void* manager, void*, int id) { return ManagerFindObject(manager, nullptr, id); }
+inline void* FindObject(void* manager, void*, int id) { return static_cast<CBaseManager*>(manager)->FindObject(id); }
 // 00532860 (unit). A point of the unit (its effect origin); returns `out`.
 __declspec(naked) inline Vector3* __fastcall UnitEffectPoint(void* /*unit*/, void*, Vector3* /*out*/) EI_ORIGINAL(0x00532860)
 

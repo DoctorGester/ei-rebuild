@@ -375,7 +375,7 @@ void CSaveLoadWindow::FillEntries() {
                 info.Read(&entry->gameTime_, 4);
                 {
                     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-                    mfc::CString* map = StreamReadString(reinterpret_cast<CStream*>(&info.s), nullptr, storage);
+                    mfc::CString* map = reinterpret_cast<CStream*>(&info.s)->ReadString(storage);
                     Str(entry->map_) = *map;
                     map->~CString();
                 }
@@ -394,7 +394,7 @@ void CSaveLoadWindow::FillEntries() {
         }
         CloseFind(infoFind);
         if (console::Length(Str(entry->folder_)) > 4) {
-            int number = GameAtoi(console::Ops(Str(entry->folder_)).Mid(4));
+            int number = libcrt::Atoi(console::Ops(Str(entry->folder_)).Mid(4));
             if (!(highest > number)) highest = number;
         }
     }

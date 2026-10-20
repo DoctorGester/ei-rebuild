@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_world.h"
 #include "world.h"
@@ -109,10 +110,10 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
             self->Ban(connection);
         }
     case kKickBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Kick(self->FindConnectionBySerial(GameAtoi(text->data())));
+        if (self->IsHostConnection(CurrentConnectionObject())) self->Kick(self->FindConnectionBySerial(libcrt::Atoi(text->data())));
         return;
     case kBanBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Ban(self->FindConnectionBySerial(GameAtoi(text->data())));
+        if (self->IsHostConnection(CurrentConnectionObject())) self->Ban(self->FindConnectionBySerial(libcrt::Atoi(text->data())));
         return;
     default:
         return;

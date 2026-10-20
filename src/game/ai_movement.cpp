@@ -5,6 +5,7 @@
 #include "ai_shape_cache.h"
 #include "ai_unit_layer.h"
 #include "core_refcount.h"
+#include "game_hashes.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -20,10 +21,6 @@ namespace {
 // A handle into the cache of unit occupancy shapes (UnitShapes(), ai_shape_cache.h), keyed by
 // standing height rounded to 0.1. 16x16 signed levels start at shape + 8.
 using ShapeHandle = ShapeCacheHandle;
-// 005BCCB0 / 005BD7F0 through their addresses: ei_vectors links this file without the cache's
-// (ai_shape_cache.cpp, game_hashes.cpp).
-__declspec(naked) ShapeHandle* __fastcall ShapeHandleInit(ShapeHandle*, void*) EI_ORIGINAL(0x005BCCB0)
-__declspec(naked) CRefObject* __fastcall ShapeCacheGet(UnitShapeCache*, void*, ShapeHandle*) EI_ORIGINAL(0x005BD7F0)
 
 // 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
@@ -64,7 +61,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         int otherY = CellOf(other->position.y);
         float otherHeight = other->standingHeight;
         ShapeHandle handle;
-        ShapeHandleInit(&handle, nullptr);
+        gamehash::InitShapeHandle(&handle);
         const CUnitShape* shape = nullptr;
         if (!(otherHeight > kShapeMinHeight)) {
             if (handle.ref) handle.ref->Release();
@@ -72,7 +69,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
             std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
-            shape = static_cast<const CUnitShape*>(ShapeCacheGet(UnitShapes(), nullptr, &handle));
+            shape = static_cast<const CUnitShape*>(UnitShapes()->Get(&handle));
             if (CRefObject* ref = handle.ref) {
                 if (--ref->refs_ == 0) delete ref;
             }
@@ -151,7 +148,7 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
         int sizeClass = unit->sizeClass;
         int level = x87::fistp(static_cast<float>(static_cast<double>(ClassHeights()[sizeClass]) * heightScale));
         std::uint32_t passability[6];
-        AIMapCellMarkOriginal(this, nullptr, passability, sizeClass, level, x, y);
+        CellMark(passability, sizeClass, level, x, y);
         return static_cast<int>(passability[3]) < kExpensive;
     }
     int cost = context.costs[(cells[y][x].passable >> (context.shift & 31)) & 0xF];
@@ -253,17 +250,9 @@ EI_REPLACE_METHOD(0x005BC970, CAIMap::MarkVisibleCells);
 
 namespace {
 // The shape cache's map (UnitShapes()->shapes, 007C2F78): an STLport hash_map<ShapeHandle, RefPtr>,
-// called through the game's own instantiation. Node: {next, handle (0x10), value}.
-using ShapeMap = UnitShapeCache::Map;
-using ShapeCacheIterator = ShapeMap::Iterator;
-using ShapePair = ShapeMap::Pair;   // pair<const ShapeHandle, RefPtr> (0x14 bytes)
+// the game's instantiation gamehash::ShapeTable (find 005BE320, find_or_insert 005BE730).
+using ShapePair = UnitShapeCache::Map::Pair;   // pair<const ShapeHandle, RefPtr> (0x14 bytes)
 static_assert(sizeof(ShapePair) == 0x14);
-__declspec(naked) ShapeCacheIterator* __fastcall ShapeMapFind(ShapeMap*, void*, ShapeCacheIterator*, const ShapeHandle*)
-    EI_ORIGINAL(0x005BE320)
-__declspec(naked) ShapeCacheIterator* __fastcall ShapeIteratorInit(ShapeCacheIterator*, void*, ShapeMap::Node*,
-                                                                    const ShapeMap*) EI_ORIGINAL(0x005BE450)
-// hash_map insert_unique_noresize-style lookup or insert; returns the node's pair.
-__declspec(naked) ShapePair* __fastcall ShapeMapInsert(ShapeMap*, void*, const ShapePair*) EI_ORIGINAL(0x005BE730)
 
 void ReleaseHandle(ShapeHandle* handle) {
     if (CRefObject* ref = handle->ref) {
@@ -301,12 +290,9 @@ void* CAIMap::UnitShape(float standingHeight) {
     std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
 
     CRefObject* shape;
-    ShapeCacheIterator found, end;
-    ShapeMap* map = &UnitShapes()->shapes;
-    ShapeMapFind(map, nullptr, &found, &handle);
-    ShapeIteratorInit(&end, nullptr, nullptr, map);
-    if (found.node != end.node) {
-        shape = found.node->value.ptr;
+    gamehash::ShapeTable* map = gamehash::ShapesOf(UnitShapes());
+    if (const gamehash::ShapeTable::Node* found = map->Find(handle)) {
+        shape = found->value.value.ptr;
         handle.cache = UnitShapes();
         reinterpret_cast<RefPtr*>(&handle.ref)->Assign(shape);
     } else {
@@ -315,7 +301,7 @@ void* CAIMap::UnitShape(float standingHeight) {
         RefPtr none = {nullptr};
         ShapePair pair;
         ConstructShapePair(&pair, nullptr, &handle, &none);
-        RefPtr* slot = &ShapeMapInsert(map, nullptr, &pair)->value;
+        RefPtr* slot = &map->FindOrInsert(pair).value;
         DestroyShapePair(&pair);
         none.Destroy();
         if (shape != slot->ptr) {

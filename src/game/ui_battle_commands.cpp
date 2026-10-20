@@ -3,6 +3,7 @@
 // the pending spell or quick item used on a unit or a point (00637500, 00637750).
 // See docs/notes/ui.md ("Battle screen").
 #include "acks_db.h"
+#include "base_manager.h"
 #include "maths.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -282,7 +283,7 @@ EI_REPLACE_METHOD(0x00637750, CBattleScreen::UseAtPoint);
 // --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
 
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
-    auto* unit = reinterpret_cast<CUnit*>(ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, id));
+    auto* unit = reinterpret_cast<CUnit*>(static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AF5F8))->FindObject(id));
     if (!unit) return;
     const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
                                                                   : acks::SayAck(unit, static_cast<int>(event));

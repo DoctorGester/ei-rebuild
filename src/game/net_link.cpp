@@ -41,8 +41,8 @@ void Erase(QueueNode** queue, QueueNode* pos) {
     Queue::Node* next;
     Queue::Erase(AsQueue(queue), nullptr, &next, AsNode(pos));
 }
-inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
-void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
+inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
+void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // 004A5250 (RET 4): writes a stream (its size as a 2- or 4-byte prefix, then its bytes) into the
 // stream in ECX.
 void __fastcall StreamWriteSized(CStream* a0, void*, CStream* a2) { a0->WriteSized(a2); }
@@ -575,7 +575,7 @@ bool FramedLink::ReceiveImpl(CStream* to) {   // 0047BB70
     inbox->Read(stream->data_, length);
     std::uint32_t rest = inbox->Size() - 4 - length;
     std::uint8_t* data = inbox_.data_;
-    GameMemmove(data, data + length + 4, rest);
+    libcrt::Memmove(data, data + length + 4, rest);
     inbox_.Resize(rest);
     return true;
 }

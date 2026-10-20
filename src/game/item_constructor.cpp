@@ -518,7 +518,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
     } else if (gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) == 0 &&
                console::Length(extra) != 0) {
-        constructor->count_ = GameAtoi(extra);
+        constructor->count_ = libcrt::Atoi(extra);
     }
     CItem* item = constructor->EndCreateItem();
     if (!item) {

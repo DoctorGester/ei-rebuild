@@ -24,7 +24,8 @@ __declspec(naked) inline void __fastcall PreMultiplyAt(Quaternion* /*q*/, void*,
 __declspec(naked) inline double __fastcall DotRaw(const Vector3* /*a*/, const Vector3* /*b*/) EI_ORIGINAL(0x00401E00)
 __declspec(naked) inline double __fastcall LengthRaw(const Vector3* /*v*/) EI_ORIGINAL(0x00401E20)
 __declspec(naked) inline Vector3* __fastcall Negate(Vector3* /*out*/, const Vector3* /*v*/) EI_ORIGINAL(0x00402200)
-// 00403F40 (rewritten as CBaseManager::FindObject): the manager's object with this id, or null.
+// 00403F40 (CBaseManager::FindObject): the manager's object with this id, or null. Left for its one caller,
+// world_client_draw.cpp, until the renderer work (R16) there is merged; the others call FindObject.
 __declspec(naked) inline CEngineObject* __fastcall ManagerFindObject(void* /*manager*/, void*, int /*id*/)
     EI_ORIGINAL(0x00403F40)
 __declspec(naked) inline void* __fastcall RefPtrDestroyAt(RefPtr* /*p*/, void*, unsigned /*flags*/)

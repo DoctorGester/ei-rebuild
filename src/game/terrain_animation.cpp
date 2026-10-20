@@ -270,8 +270,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
             sorted[index] = sector;
         }
     }
-    GameQsortOriginal(sorted.data, sorted.size, sizeof(SectorData*),
-                      address_order::ById() ? terrain::CompareSectors : terrain::CompareSlots);
+    libcrt::Qsort(sorted.data, sorted.size, sizeof(SectorData*),
+                  address_order::ById() ? terrain::CompareSectors : terrain::CompareSlots);
     if (sorted.size == 0) return;
     float step = static_cast<float>(static_cast<double>(lightInterval - 1) / sorted.size);
     float at = 0.0f;

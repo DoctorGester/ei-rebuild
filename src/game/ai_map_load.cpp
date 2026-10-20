@@ -16,7 +16,7 @@
 #include "ai_map.h"
 #include "console.h"
 #include "originals_engine.h"    // game::FatalError, MappedResourceOpenOriginal, MappedResourceDestroyOriginal
-#include "originals_library.h"   // GameAtoi, CStringFindCharOriginal
+#include "originals_library.h"   // CStringFindCharOriginal
 #include "registry.h"
 #include "resource.h"
 #include "sector_map.h"
@@ -230,7 +230,7 @@ int ReadTerrainTypes(CAIMap& map) {
         type.noise = 1.0f;
     }
     for (int i = 0; i < sections.size; ++i) {
-        const int index = GameAtoi(sections[i].GetBuffer(0));
+        const int index = libcrt::Atoi(sections[i].GetBuffer(0));
         {
             mfc::CString name = registry.file.GetString(sections[i], "Name", mfc::CString(""));
             const char* text = name.GetBuffer(0);
