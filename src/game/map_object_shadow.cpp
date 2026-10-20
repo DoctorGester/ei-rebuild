@@ -461,6 +461,12 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     if (!ShadowSwitch(object->GetClassId())) return 1;
     if (object->flags_ & kObjectHidden) return 1;
     if (ObjectSlots(object)->InvisibleSlot()) return 1;   // invisible
+    // The game shows this object's shadow: in the new renderer's shadow map its meshes cast (R16j),
+    // a unit as strongly as it has faded in.
+    float strength = 1.0f;
+    if (object->GetClassId() == kClassUnitObject)
+        strength = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller)->fadeIn;
+    render::CastsShadow(static_cast<const CEngineObject*>(object), strength);
 
     if (!texture) {
         AssignTexture(&texture, static_cast<CTextureManager*>(TextureManager())->NewShadowTexture());
@@ -485,6 +491,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
     std::uint8_t lit = static_cast<Terrain*>(LightManager())->EdgeFade(&object->position);
+    render::ClassicShadowDecal();   // drawn only with the classic shadows (the shadow map draws it)
     static_cast<CTextureDevice*>(RenderDevice())
         ->DrawFlatBlocks(vertices.data, reinterpret_cast<const char*>(texCoords.data), vertices.size, indices.data,
                          indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,

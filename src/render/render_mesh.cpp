@@ -12,6 +12,7 @@
 #include "../hook/log.h"
 
 #include <cstring>
+#include <string>
 #include <unordered_map>
 
 namespace render {
@@ -33,6 +34,7 @@ struct Pending {
     bool distanceFog = false;
     float fogNear = 0.0f;
     float fogScale = 0.0f;
+    const void* caster = nullptr;   // render::BeginCaster's object
 };
 Pending g_pending;
 int g_dropped = 0;
@@ -103,6 +105,7 @@ cbuffer vs_params : register(b0) {
     float4 row0; float4 row1; float4 row2; float4 row3;
     float4 distance_fog;   // x: on, y: start, z: 1 / (end - start); w: keep z inside the depth range
     float4 shift;          // xy: the half-pixel shift (render_internal.h); z: depth scale
+    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // model space to the shadow map (R16j)
 };
 cbuffer fs_params : register(b0) {
     float4 fog_colour;     // rgb
@@ -115,9 +118,13 @@ cbuffer fs_params : register(b0) {
     float4 patch_to;       // stage 0's patch (render::TexturePatch): its rectangle (u0, v0, u1, v1), zero: none
     float4 patch_map;      // the patch texture's coordinates: uv * xy + zw
     float4 patch_inside;   // ... kept inside its rectangle (u0, v0, u1, v1)
+    float4 shadow_on;      // the shadow map (render_shadows.cpp, ShadowParams)
+    float4 shadow_scale;
+    float4 shadow_camera;
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
-struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 pos : SV_Position; };
+struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 shadow : TEXCOORD1;
+                float4 pos : SV_Position; };
 vs_out vs_main(vs_in i) {
     float4 p = float4(i.pos, 1.0);
     vs_out o;
@@ -134,6 +141,7 @@ vs_out vs_main(vs_in i) {
     if (distance_fog.x > 0.5 && o.pos.w >= distance_fog.y)
         o.spec.a = min(o.spec.a, 1.0 - min((o.pos.w - distance_fog.y) * distance_fog.z, 1.0));
     o.uv = i.uv;
+    o.shadow = float4(dot(lrow0, p), dot(lrow1, p), dot(lrow2, p), 1.0);
     return o;
 }
 Texture2D<float4> tex0 : register(t0);
@@ -142,6 +150,8 @@ Texture2D<float4> tex2 : register(t2);   // stage 0's patch
 SamplerState smp0 : register(s0);
 SamplerState smp1 : register(s1);
 SamplerState smp2 : register(s2);
+Texture2D<float> shadow_map : register(t3);
+SamplerComparisonState shadow_smp : register(s3);
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;
     float4 v = sel == 0 ? diffuse : sel == 2 ? texel : sel == 3 ? factor : sel == 4 ? spec : current;
@@ -182,6 +192,7 @@ bool passes(int func, float a, int reference) {
     return true;
 }
 float4 ps_main(vs_out i) : SV_Target0 {
+    float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 diffuse = i.col;
     float4 current = diffuse;
     float4 t0 = tex0.Sample(smp0, i.uv);
@@ -211,6 +222,8 @@ float4 ps_main(vs_out i) : SV_Target0 {
     if (switches.z != 0 && !passes(switches.z, current.a, switches.w)) discard;
     float3 rgb = current.rgb;
     if (switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
+    if (shadow_on.x > 0.5)
+        rgb *= 1.0 - shadow_amount(shadow_map, shadow_smp, i.shadow.xyz, dsx, dsy, shadow_on, shadow_scale, shadow_camera);
     if (switches.y != 0) rgb = lerp(fog_colour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);
 }
@@ -220,8 +233,9 @@ struct VsParams {
     Matrix4 matrix;
     float distanceFog[4];
     float shift[4];
+    Matrix4 light;
 };
-static_assert(sizeof(VsParams) == 96);
+static_assert(sizeof(VsParams) == 160);
 struct FsParams {
     float fogColour[4];
     float factor[4];
@@ -233,8 +247,9 @@ struct FsParams {
     float patchTo[4];
     float patchMap[4];
     float patchInside[4];
+    ShadowParams shadow;
 };
-static_assert(sizeof(FsParams) == 160);
+static_assert(sizeof(FsParams) == 208);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
@@ -422,10 +437,12 @@ void ApplyPassState(sg_pipeline_desc& p, const PassState& s) {
 }
 
 bool CreateMeshShader() {
+    // The receivers' shadow function first (R16j), then the mesh shader.
+    static const std::string source = std::string(ShadowHlsl()) + kMeshSource;
     sg_shader_desc s{};
-    s.vertex_func.source = kMeshSource;
+    s.vertex_func.source = source.c_str();
     s.vertex_func.entry = "vs_main";
-    s.fragment_func.source = kMeshSource;
+    s.fragment_func.source = source.c_str();
     s.fragment_func.entry = "ps_main";
     const char* const semantics[4] = {"POSITION", "COLOR", "COLOR", "TEXCOORD"};
     const std::uint8_t indices[4] = {0, 0, 1, 0};
@@ -452,6 +469,7 @@ bool CreateMeshShader() {
         s.texture_sampler_pairs[t].view_slot = static_cast<std::uint8_t>(t);
         s.texture_sampler_pairs[t].sampler_slot = static_cast<std::uint8_t>(t);
     }
+    DescribeShadowMap(s, 3, 3);
     s.label = "ei-mesh";
     g_shader = sg_make_shader(&s);
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
@@ -479,6 +497,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     }
     b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
     b.samplers[2] = b.samplers[0];
+    BindShadowMap(b, 3, 3);
     sg_apply_bindings(&b);
     CountBindings(b);
     VsParams vs{};
@@ -492,7 +511,9 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
     vs.shift[2] = batch.zScale;
+    vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
     FsParams fs{};
+    ShadowUniforms(f, batch.light >= 0, &fs.shadow);
     fs.fogColour[0] = static_cast<float>((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = static_cast<float>((s.fogColour >> 8) & 0xFF) / 255.0f;
     fs.fogColour[2] = static_cast<float>(s.fogColour & 0xFF) / 255.0f;
@@ -533,6 +554,8 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     CountDraw(sizeof(vs) + sizeof(fs));
 }
 
+bool BindMeshGeometry(sg_bindings& b) { return g_geometry.Bind(b); }
+
 void DestroyMeshes() {
     g_geometry.Destroy();
     for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
@@ -546,6 +569,8 @@ void DestroyMeshes() {
 void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending = Pending{};
     if (!device || !mesh.matrix || !Active() || !Started()) return;
+    // An object's shadow decal (0051CE60) is not drawn when the shadow map gives the shadows (R16j).
+    if (!mesh.corners && DropClassicDecal()) return;
     StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = CurrentFrame();
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
@@ -564,6 +589,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending.mesh = mesh;
     g_pending.device = static_cast<char*>(device);
     g_pending.matrix = AddMatrix(clip);
+    g_pending.caster = CurrentCaster();
     // The old path fogs the projected vertices by distance (slot 35 of the transform object at the
     // pipeline's +0xC: range start +0x34, 255 / length +0x3C).
     g_pending.distanceFog = mesh.distanceFog;
@@ -608,6 +634,8 @@ bool MeshPass(void* device) {
         batch.unclipped = !g_pending.mesh.clipped;
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
         batch.model = true;
+        batch.flat = !g_pending.mesh.corners;
+        batch.caster = g_pending.caster;
         ++Stats().meshPasses;
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
@@ -615,7 +643,10 @@ bool MeshPass(void* device) {
     return false;   // taken: the old path draws nothing
 }
 
-void EndMesh() { g_pending = Pending{}; }
+void EndMesh() {
+    g_pending = Pending{};
+    EndClassicDecal();
+}
 
 bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             int primitive) {

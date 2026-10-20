@@ -214,11 +214,42 @@ lines) and listed in `harness_report.txt`. Returning ST0 results as `double` sta
 ### The flags
 
 `include/ei/rebirth.h` (header comment) documents the flags: one `ei::rebirth::Patch` enumerator per patch named as addon.log names it (52) plus one per EI_Plugin
-feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code, all off by default (with a flag off the code behaves exactly as the original, bugs included). Sources, in
-order: `ei_rebirth.ini` next to ei_hook.dll, the `EI_REBIRTH` environment variable (`ei_launch --rebirth <spec>`, `harness.cmd ... --rebirth`), a scenario's `rebirthflags`
-line; in a Rebirth launch with `FollowAddon=1` (the default) every flag then follows what addon.dll applied (any of its sites differs from game.exe on disk at WinMain;
-import slots count only when they point into addon.dll) or EI_Plugin.asi will apply. The detection (`src/hook/rebirth_hook.cpp`) belongs to the hook DLL, the flags
-(`src/lib/rebirth.cpp`) are plain data the standalone exe reuses.
+feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code (with a flag off the code behaves exactly as the original, bugs included). Defaults: the bug fixes on, the
+rest off ("One test profile"). Sources, in order: the defaults, `ei_rebirth.ini` next to ei_hook.dll (`Default=` sets every flag it does not name), the `EI_REBIRTH`
+environment variable (`ei_launch --rebirth <spec>`; `none` is the original 1.06, `defaults`), a scenario's `rebirthflags` line. The flags (`src/lib/rebirth.cpp`)
+are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on) makes a run of the image count as the Rebirth install.
+
+### One test profile (SV9)
+
+User 2026-10-20: Rebirth's obvious bug fixes are the standalone's defaults; scripting / console additions stay flags, off, decided later. The kind of each patch is
+the second argument in `include/ei/rebirth_patches.inc` and the `standalone` column of the CSV:
+- **on** (11): the ten single-player bug fixes and FixProcessLogin (a multiplayer repair ours always had).
+- **flag** (45, off): WideScreen and the draw radii (rendering; our renderer supersedes), the scripting / console patches, the mod-folder and Config* patches,
+  NivalRegistry, SavesPath, the multiplayer features (ExtendedServerName, MQClient, MPSpeedControl, PlayerNumbers, SetDefaultRate, MPConsole, MpZone, ChatLog),
+  the mod content switches (Menu*Disable, PreventZone1Animation, ForceShowTutorial), DisableExitOnCrashReport (the game goes on after FatalError: not a fix) and
+  every EI_Plugin feature (Briefings and Fixes repair multiplayer, but the recording below cannot load EI_Plugin.asi: Miles loads it from the install's folder).
+- **dropped** (8): Rebirth's infrastructure the rebuild replaces (GameExeDebug, BinkPatch, CommandLine, GraphGenPatches, SetEiPluginMode, EiPluginInit,
+  EiPluginGraphGen, EiPluginUnload); the flags stay, nothing implements them.
+
+**Recording "original + fixes"** (`tests/verify/harness_addon.{h,cpp}`): addon.dll has no switch per patch (its main table applies every entry; apply functions
+only return "disabled" for their own settings), so ei_launch loads Rebirth's addon loader (`starter\Engine\dinput.dll`, injected after ei_hook.dll) into every
+harness run of game.exe on the vanilla data (not with `EI_VECTORS=1`, not with `EI_ADDON_FLAGS=0`) and sets `EI_ADDON_FLAGS=1`. When WinMain is entered the
+harness keeps addon's sites of the patches whose flag is on in the run (`tests/verify/addon_sites.inc`, `tools/rebirth/make_addon_sites.py` from the CSV) and
+writes game.exe's bytes back over the others (an import slot gets the import's address). It then fails the run ("addon: ...") unless every kept site is live
+and .text / .rdata hold no other change than the kept sites, addon's `HookWinMain` CALL (006EC301) and the harness's own patches (`NoteHarnessPatch`; non-import
+slots too). ei_hook.log: "addon: kept FixLeversActivate ... (15 sites live), undid 203 site(s) of the other patches; nothing else differs from game.exe".
+addon's log and dumps land in the overlay (`harness_saves\rebirth_install\`). Such a run counts as the vanilla install.
+
+**Goldens** (2026-10-20): every vanilla golden (101) came out the same from the fix profile, so none was re-recorded: the suite reaches no
+fix in a way the digest, console or saves show (addon's logging fixes logged nothing either). `rebirth_fixes` (new) does: the same buff eight
+times keeps 4 effects on the hero where the plain original keeps 11 (FixSpellEffectsOverflow); its golden is the fix profile's, and the
+image with the defaults matches it. Not reached by any golden: FixLeversActivate's signed / level-0 cases, FixSpellSelfCasting, FixMoveObject,
+FixAddMapObject, FixRemoveMapObject, FixCreateItem (rebirth_fixes' GiveItem of unknown names made addon log nothing: to look at),
+FixProgressNames (Rebirth's islands).
+
+**Rebirth's data is a smoke set** (`run_all --rebirth`, before releases; `config/rebirth_scenarios.csv` plus every scenario with a step for
+one install, rebirthflags, addonpath or widescreen): the default suite and `--no-hooks` run the vanilla data only. `--all-rebirth`
+still runs and compares every Rebirth golden.
 
 ### Installing and verifying flagged rewrites
 

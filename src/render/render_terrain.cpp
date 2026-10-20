@@ -12,6 +12,7 @@
 #include "../hook/log.h"
 
 #include <cstring>
+#include <string>
 #include <unordered_map>
 
 namespace render {
@@ -78,9 +79,14 @@ cbuffer params : register(b0) {
     float4 fog;     // rgb: the fog colour
     float4 flags;   // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels),
                     // y: fog on; zw: the half-pixel shift
+    float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // to the shadow map (R16j)
+    float4 shadow_on;   // the shadow map (render_shadows.cpp, ShadowParams)
+    float4 shadow_scale;
+    float4 shadow_camera;
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
-struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 pos : SV_Position; };
+struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 shadow : TEXCOORD1;
+                float4 pos : SV_Position; };
 vs_out vs_main(vs_in i) {
     float4 p = float4(i.pos, 1.0);
     vs_out o;
@@ -89,14 +95,20 @@ vs_out vs_main(vs_in i) {
     o.col = i.col.zyxw;     // D3DCOLOR bytes are B, G, R, A
     o.spec = i.spec.zyxw;
     o.uv = i.uv;
+    o.shadow = float4(dot(lrow0, p), dot(lrow1, p), dot(lrow2, p), 1.0);
     return o;
 }
 Texture2D<float4> tex : register(t0);
 SamplerState smp : register(s0);
+Texture2D<float> shadow_map : register(t1);
+SamplerComparisonState shadow_smp : register(s1);
 float4 ps_main(vs_out i) : SV_Target0 {
+    float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
     if (flags.x > 1.5) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
     float3 c = saturate(t.rgb * i.col.rgb + i.spec.rgb);
+    if (shadow_on.x > 0.5)
+        c *= 1.0 - shadow_amount(shadow_map, shadow_smp, i.shadow.xyz, dsx, dsy, shadow_on, shadow_scale, shadow_camera);
     float a = flags.x > 0.5 ? i.col.a : t.a;
     if (flags.y > 0.5) c = lerp(fog.rgb, c, i.spec.a);
     return float4(c, a);
@@ -107,8 +119,10 @@ struct Params {
     Matrix4 matrix;
     float fog[4];
     float flags[4];
+    Matrix4 light;
+    ShadowParams shadow;
 };
-static_assert(sizeof(Params) == 96);
+static_assert(sizeof(Params) == 208);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
@@ -289,10 +303,12 @@ void GeometryStream::Destroy() {
 }
 
 bool CreateTerrainShader() {
+    // The receivers' shadow function first (R16j), then the terrain shader.
+    static const std::string source = std::string(ShadowHlsl()) + kTerrainSource;
     sg_shader_desc s{};
-    s.vertex_func.source = kTerrainSource;
+    s.vertex_func.source = source.c_str();
     s.vertex_func.entry = "vs_main";
-    s.fragment_func.source = kTerrainSource;
+    s.fragment_func.source = source.c_str();
     s.fragment_func.entry = "ps_main";
     const char* const semantics[4] = {"POSITION", "COLOR", "COLOR", "TEXCOORD"};
     const std::uint8_t indices[4] = {0, 0, 1, 0};
@@ -318,6 +334,7 @@ bool CreateTerrainShader() {
     s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
     s.texture_sampler_pairs[0].view_slot = 0;
     s.texture_sampler_pairs[0].sampler_slot = 0;
+    DescribeShadowMap(s, 1, 1);
     s.label = "ei-terrain";
     g_shader = sg_make_shader(&s);
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
@@ -350,9 +367,14 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
         }
     }
 #endif
+    BindShadowMap(b, 1, 1);
     sg_apply_bindings(&b);
     CountBindings(b);
     Params params{};
+    // The ground receives the objects' shadows (R16j); the water does not (the ground under it does).
+    bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
+    params.light = receives ? f.shadow.lights[0] : f.matrices[static_cast<std::size_t>(batch.matrix)];
+    ShadowUniforms(f, receives, &params.shadow);
     params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     params.fog[0] = static_cast<float>((f.fogColour >> 16) & 0xFF) / 255.0f;
     params.fog[1] = static_cast<float>((f.fogColour >> 8) & 0xFF) / 255.0f;

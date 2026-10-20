@@ -11,6 +11,7 @@
 #include "lib/vecmath.h"
 
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 class CTextureDevice;   // game/texture.h
@@ -112,6 +113,9 @@ struct MeshBatch {
     float zScale;             // the depth is multiplied by it (1: unchanged)
     bool lines;               // a line list (else triangles)
     bool model = false;       // a model's mesh (BeginMesh .. MeshPass), not pre-transformed vertices
+    bool flat = false;        // the flat geometry (004EA4A0: decals, markers), no corners
+    const void* caster = nullptr;   // the object drawing it (render::BeginCaster), if any
+    int light = -1;           // index into Frame::shadow.lights: it samples the shadow map (render_shadows.cpp)
 };
 
 // A window surface's blit: the image read at the blit, the screen and source rectangles.
@@ -133,6 +137,19 @@ struct Command {
     enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth };
     Kind kind;
     int index;                // into terrainBatches / meshBatches / blitBatches / clears
+};
+
+// A frame's object shadows (R16j, render_shadows.cpp): the sun handed over, the objects casting, and
+// what PrepareShadows made of them: the matrices from each receiving mesh's model space (and the
+// terrain's space) to the shadow map's clip space, and the receivers' shader parameters.
+struct ShadowFrame {
+    bool haveSun = false;
+    Vector3 sun{};
+    std::vector<std::pair<const void*, float>> casters;   // object, strength (render::CastsShadow)
+    bool prepared = false;    // PrepareShadows ran for this frame
+    bool on = false;          // the map is made this frame: receivers sample it
+    std::vector<Matrix4> lights;   // [0]: the terrain's
+    float params[3][4] = {};  // ShadowParams (render_shadows.cpp)
 };
 
 struct Frame {
@@ -165,6 +182,7 @@ struct Frame {
     // +1 / width, y by -1 / height, times w) so that the same screen coordinates get the same
     // pixels and the same interpolated texture coordinates and colours. Set by EndFrame.
     float pixelShift[2] = {0.0f, 0.0f};
+    ShadowFrame shadow;
 };
 Frame& CurrentFrame();
 // Counts presented frames (texture caches age their entries by it).
@@ -289,6 +307,39 @@ void UploadMeshes(const Frame& frame);
 // `anisotropic`: both stages through AnisotropicSampler (a world model with the smooth option).
 void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, bool anisotropic);
 void DestroyMeshes();
+
+// The mesh stream's vertex and index buffers of this frame (render_shadows.cpp draws the casters).
+bool BindMeshGeometry(sg_bindings& b);
+
+// Object shadows (R16j, render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
+// frame before its first pass on the world: unless the classic option is on, fits the shadow map
+// around the visible ground seen from the sun and gives every receiving batch its light matrix;
+// DrawShadowMap then draws the casters into the map (a pass of its own). The receivers' shaders
+// include ShadowHlsl (vs: `shadow_position(row0..3)`-style light rows; ps: `shadow_factor`), take
+// ShadowParams in their uniforms and bind the map (or a cleared 1 x 1 one) with BindShadowMap.
+struct ShadowParams {
+    float on[4];       // x: on, y: strength, z: one texel (uv), w: constant depth bias
+    float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
+    float camera[4];   // xyz: the camera in shadow clip space
+};
+static_assert(sizeof(ShadowParams) == 48);
+void PrepareShadows(Frame& frame);
+void DrawShadowMap(Frame& frame);
+const char* ShadowHlsl();
+void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params);
+void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
+// The shader descriptions of the map's texture (a depth view) and comparison sampler at the slots.
+void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot);
+void DestroyShadows();
+// The game's hand-over (render_shadows.cpp): the object whose meshes are being handed over, whether
+// the flat mesh being handed over is a classic shadow decal to drop (until EndClassicDecal, at
+// EndMesh). ShadowFrameEnd: the frame's passes are recorded (the harness build's GPU time);
+// ShadowFrameDone: the frame is presented (ShadowState reports it).
+const void* CurrentCaster();
+bool DropClassicDecal();
+void EndClassicDecal();
+void ShadowFrameEnd();
+void ShadowFrameDone();
 
 // The window surfaces' blits and the depth clear in the middle of the pass (render_blit.cpp).
 bool CreateBlitPipeline();

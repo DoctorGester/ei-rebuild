@@ -2,8 +2,9 @@
 # logs, and puts into the report, the averages since the last one (hand-over, GPU uploads, draws and
 # state changes, images made, CPU time) for scenes the renderer plan is measured on: the main menu,
 # zone1 outdoors, a fight of many units there, the base bz1g (a town), and the interface screens
-# (camp, global map, escape menu) with the mouse moving over them. Counts only: nothing is required
-# of them.
+# (camp, global map, escape menu) with the mouse moving over them. zone1, the fight and the town are
+# measured again with the classic shadows (R16j: the game's decals instead of the shadow map). Counts
+# only: nothing is required of them.
 # no original: vanilla rebirth (the counts are our renderer's)
 render new,present
 timeout 120
@@ -29,6 +30,10 @@ frames 10
 renderstats -
 frames 60
 renderstats zone1
+shadows classic
+frames 60
+renderstats zone1_classic
+shadows map
 
 # A fight: eight of twelve creatures attack the hero, who cannot die (blood prints, hit effects, many
 # figures and shadows).
@@ -70,6 +75,10 @@ wait 1500
 renderstats -
 frames 60
 renderstats fight
+shadows classic
+frames 60
+renderstats fight_classic
+shadows map
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @RemoveUnitFromServer(GetObjectByName("F1"))
 console @RemoveUnitFromServer(GetObjectByName("F2"))
@@ -108,6 +117,10 @@ wait 1000
 renderstats -
 frames 60
 renderstats town
+shadows classic
+frames 60
+renderstats town_classic
+shadows map
 
 screen 4
 waitwindow 15 map

@@ -37,8 +37,8 @@ start the renderer (no Direct3D 11 device).") and WinMain ends the game.
 panic, a lost device not made again: R9c1). Every `render::` entry point checks it itself, so game code does not ask.
 In game.exe (the harness and the vector recorders run inside the original's process) it is false: captures there read
 the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options: `smooth` (the smooth option, R12a, section 11) and the harness build's `removable`
-(R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
+comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `classicshadows` (the game's shadow
+decals instead of the shadow map, R16j, section 13) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
 and change nothing; any other word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
@@ -101,7 +101,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
 | Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (device +0x12C / +0x130) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
-| Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX), ground quad 0056C750, drawn with 004EA4A0 (also selection markers, light decals) | `device_shadow.cpp` -> `render::BeginMesh` without corners; `map_object_shadow.cpp` (0051CE60) tells which texture changed (`TextureChanged`) | drawn; later GPU shadows |
+| Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; classic: 64x64 shadow textures rasterised on the CPU (2DintMMX), ground quad 0056C750, drawn with 004EA4A0 (also selection markers, light decals) | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`, `ClassicShadowDecal`); classic: `device_shadow.cpp` -> `render::BeginMesh` without corners | drawn (map by default, decals with `classicshadows`) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; the old draw (`DrawParticles`) still runs, into the stand-in |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
@@ -164,8 +164,15 @@ and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C i
 (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
 size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, and `DirectPixels`, which
 describes it as a `SurfacePixels`, in `dx_surface.h`) and read by the renderer after GdiFlush.
-Change detection: the renderer keeps a copy of the memory each window texture was made from and converts again only
-when it differs (a memcmp at each blit).
+Change detection (R16a): writers mark what they wrote (`render::SurfaceWritten`): the DC release 005FDC60 marks
+GDI's bounds of the DC (`SetBoundsRect` at 005FDC00, `GetBoundsRect`, 2 pixels wider), `DirectPixels` the whole
+memory unless the caller only reads (`reads`: PixelAt, the copies' sources, SwapContents' save, SurfaceBytes),
+`CopyFrameTo` the whole memory. At a blit only the marked rectangle is compared with the copy of what the texture
+holds, and the differing part is converted and written into the texture (a Direct3D 11 default-usage texture handed
+to sokol, `UpdateSubresource`); a surface already blitted in this frame gets a new texture instead. The harness
+build compares the rest of the memory at every blit: a change outside the marks is logged ("MISSED WRITE") and fails
+the run (`render::MissedSurfaceWrites`; its time counts as "counting"). Memory textures (section 7) are still
+compared once a frame (R16b).
 
 **Holders without a surface**: no holder has a DirectDraw surface (`CDXSurface::surface` is always null; R11b removed
 the code for one): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the cursor's background and
@@ -765,13 +772,13 @@ frame though most of it did not change (0.5-2.7 MB a frame).
 in one run (a switch between the old and the new path; `samecapture`, tools/compare_frames.py) with a tolerance, never
 across runs; the goldens check the game state.
 
-1. **R16a Window surfaces by change marks, partial uploads.** Replaces the memcmp of every shown surface at every blit
-   and whole-surface uploads with marks set where the game writes the memory (DC release 005FDC60, the pixel code,
-   SwapContents / Freeze, CopyFrameTo, greyscale; N0's census lists the writers) and an upload of the changed rectangle.
-   Gain: 1-3 ms CPU a frame on interface screens, about 0.9 ms in the world, at 4K. Risk: a writer without a mark shows
-   stale pixels; the harness build keeps the memcmp as a check that logs and fails. Check: ui_* and render_* captures
-   at 8 / 0.1% (the pixels are the same, so 0 expected). The native interface (ui-native.md, P1-P8) later removes the
-   surfaces; this is the step that pays now.
+1. **R16a Window surfaces by change marks, partial uploads (done).** How it works: section 6, "Change detection".
+   Measured with render_stats (vanilla, 4K; `renderstats` "window surfaces" ms, the window part of "textures"), before
+   / after: menu 0.5-0.8 / 0.004 ms, zone1 0.4-0.6 / 0.2, fight 0.7 / 0.2, camp 1.6 / 0.6, escape menu 2.3-2.8 /
+   0.006; memory compared menu 5.6 MB / 0.1, zone1 4.7 / 2.9, camp 12.3 / 7.9, escape menu 32.4 / 0 (Rebirth alike).
+   What is still compared is the surfaces the game redraws every frame (the HUD unit panel, the item strip, the camp
+   page: GDI's bounds cover them whole, and 91-99% of the redraws change nothing, ui-census.md); the native interface
+   (ui-native.md, P1-P8) removes those. Checked by the ui_* and render_* scenarios (captures, 0 missed writes).
 2. **R16b Shadow and memory textures updated in place.** The shadow textures (0051CE60 marks the changed one,
    `TextureChanged`) go into one texture array of 64 x 64 slices updated with UpdateSubresource, mips made on the GPU;
    other memory textures (the global map's 341 KB one) are updated in place instead of made again. Gain: 4-15 image and
@@ -816,6 +823,33 @@ across runs; the goldens check the game state.
    CPU), figures lit per draw (3DfpFPU slots 39-44) and 64 x 64 CPU-rasterised object shadows; the game's vertex
    colours stay as the fallback behind an option. Check: the user's review of side-by-side frames; with the option off
    the frames match today's at 8 / 0.1%.
+
+10. **R16j Object shadows from a sun shadow map (done; user 2026-10-20).** `render_shadows.cpp`. The game hands over the
+    sun (00569E40: `Terrain::sun`'s direction), the object each figure draw's meshes belong to (0056AFE0's object
+    draws between `BeginCaster` / `EndCaster`) and the objects whose shadow the game draws this frame (0051CE60
+    `CastsShadow` after its option, class switch and visibility tests; a unit only once faded in to half). Once a
+    frame before the first pass (`PrepareShadows`): the camera's matrix is the world's first ground batch's; its
+    inverse times a mesh's clip matrix gives the mesh in the landscape's space; an orthographic view from the sun
+    (tilted to at least 20 degrees as 0051CE60's) is fitted around every second terrain vertex inside the view (x, y
+    in steps of 8 units, origin on whole texels; 160 units of caster room towards the sun), 4096 x 4096 D32. The
+    casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha) go into it
+    in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
+    after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`ShadowHlsl`:
+    3 x 3 bilinear comparisons, receiver-plane depth bias, face normal from screen derivatives so surfaces turned
+    away from the sun stay as the game lit them) and darken by up to half (the old decal's alpha 0x80) before fog.
+    The classic shadows' decal (the flat mesh after `ClassicShadowDecal`) is dropped; the game's own shadow building
+    (`RenderShadow`, the CPU raster) still runs: its decal's bounds feed the shadow lists. The classic option
+    (`classicshadows`, `render::SetClassicShadows`, the harness's `shadows classic|map`) makes no map, samples none
+    and draws the decals as before (frames as before R16j: the shaders' shadow branch is off).
+    Cost (render_stats, vanilla 4K, per frame, map / classic): CPU hand-over + textures + end of frame + map in
+    zone1 1.48 / 1.88 ms, fight 3.24 / 5.82, town 1.78 / 5.84 (no shadow textures uploaded: 4-15 a frame classic); the
+    map's own CPU time 0.3-0.6 ms (the fit over the terrain vertices); GPU (timestamp queries, harness build) frame
+    1.10 / 0.76 ms zone1, 1.16 / 1.07 fight, 0.95 / 0.70 town, of it the map's pass 0.06-0.27 ms.
+    Check: scenario render_shadows (image only): zone1's start, a fight, creatures on a slope, the town bz1g, each
+    frozen with the map, classic and the map again (samecapture, diffcapture, `shadowcheck`: map made, casters and
+    receivers). Open: casters the game does not draw (off screen) cast nothing, so a shadow can appear at the
+    screen's edge with its object; terrain does not cast (R16i); point lights do not cast. `run_all --widescreen`
+    runs with `classicshadows` (addon's frames have the decals).
 
 Not worth a ticket now: pipeline and texture-binding changes (2-13 / 4-66 a frame) and the state reads per pass (part
 of the 0.5-1.6 ms hand-over).

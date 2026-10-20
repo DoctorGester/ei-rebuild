@@ -2,6 +2,7 @@
 // selected mod's folder. See harness_starter.h.
 #include "harness_starter.h"
 
+#include "harness_addon.h"
 #include "../../src/game/originals_engine.h"
 #include "../../src/game/resource.h"
 #include "../../src/game/world_data.h"
@@ -166,6 +167,8 @@ std::string ModFileStep(const std::string& argument) {
 }
 
 bool RebirthInstall() {
+    // addon.dll in the vanilla install's game (EI_ADDON_FLAGS, harness_addon.h) keeps only the bug fixes: vanilla.
+    if (addon::Active()) return false;
     return GetModuleHandleA("addon.dll") != nullptr || (ei::Standalone() && rebirth_hook::RebirthLaunch());
 }
 

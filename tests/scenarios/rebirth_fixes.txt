@@ -1,0 +1,60 @@
+# Rebirth's bug fixes, the standalone's defaults (include/ei/rebirth.h; docs/notes/rebirth.md, "One test profile"),
+# on the vanilla data. The golden comes from the original with addon.dll's fixes (tests/verify/harness_addon.h), so
+# what a fix changes here is in it: the same buff cast eight times and three others on the hero
+# (FixSpellEffectsOverflow: each AddEffect drops the older equal effect), a wolf hit by spells and attacked (the
+# battle music test every update, FixPlaingBattleMusicFromAntimagic), items by name, two unknown (FixCreateItem: no
+# item, where the plain original stops with a fatal error), and the camp's trade and repair pages (FixRepairPrice).
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("speed{d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("infravision{d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("prot_fire{e1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+dump buffed
+
+console @AddUnitToServer("RWolf","WolfTutor","RWolf",Add(GetX(GetLeader()),4),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @Attack(GetLeader(),GetObjectByName("RWolf"))
+wait 3000
+check IsAlive(GetLeader())
+
+console @GiveItem(0,"Axe.steel")
+console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
+console @GiveItem(0,"spell container[strength{d2}]")
+console @GiveItem(0,"no such item")
+console @GiveItem(0,"Axe.no such material")
+frames 5
+
+screen 5
+waitwindow 15 camp
+clickregion 5
+wait 500
+clickregion 9
+frames 10
+clickregion 10
+frames 10
+clickregion 4
+frames 10
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit

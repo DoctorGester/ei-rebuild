@@ -230,6 +230,13 @@
 //                             fraction of its pixels (by more than 8) within <least>..<most>: the
 //                             world's edges and textures, nothing black or stale. Skipped in a run of
 //                             the original code
+//   shadows classic|map       the image's object shadows (render::SetClassicShadows, R16j): the game's
+//                             decals, or the sun's shadow map (the default), from the next frame;
+//                             "render new,present,classicshadows" starts with the classic ones. Ignored
+//                             in a run of the original code
+//   shadowcheck <casters>     require the last frame's shadow map made with at least <casters> objects
+//                             casting into it and the ground and some meshes sampling it (render::
+//                             ShadowState). Skipped in a run of the original code
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time); "-" only starts a new
@@ -274,6 +281,7 @@
 // ends a game that hangs after "quit".
 #include "ei/hook.h"
 #include "game/world_glue.h"
+#include "harness_addon.h"
 #include "harness_capture.h"
 #include "harness_address_order.h"
 #include "harness_clock.h"
@@ -707,6 +715,8 @@ int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void*
 
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
+    // A slot outside the import table (a vtable's) is game data the harness changes (harness_addon.h checks them).
+    if (address < 0x0073B000 || address >= 0x0073B820) ei::NoteHarnessPatch(address, sizeof(T), "a slot the harness takes");
     auto* slot = reinterpret_cast<T*>(address);
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
@@ -767,6 +777,26 @@ const char* SavesPath(const char* path, char (&buffer)[MAX_PATH]) {
 // Nothing under the install is ever modified. Deleting or moving an install file only affects the
 // overlay copy (a move of an install file becomes a copy).
 char g_rootDirs[2][MAX_PATH];   // the working directory at start and the game folder (007AF460)
+char g_addonInstall[MAX_PATH];  // EI_ADDON_FLAGS: the other install named in EI_INSTALL_ROOTS (the Rebirth install)
+
+// The install of EI_INSTALL_ROOTS (ei_launch: the game folder, then both installs) that is not the game's.
+void FindAddonInstall() {
+    char roots[3 * MAX_PATH];
+    const DWORD n = GetEnvironmentVariableA("EI_INSTALL_ROOTS", roots, sizeof(roots));
+    if (n == 0 || n >= sizeof(roots)) return;
+    char* next = nullptr;
+    for (char* root = strtok_s(roots, ";", &next); root; root = strtok_s(nullptr, ";", &next)) {
+        char full[MAX_PATH];
+        if (!GetFullPathNameA(root, MAX_PATH, full, nullptr)) continue;
+        std::size_t length = std::strlen(full);
+        while (length > 3 && full[length - 1] == '\\') full[--length] = '\0';
+        std::size_t own = std::strlen(g_rootDirs[0]);
+        while (own > 3 && g_rootDirs[0][own - 1] == '\\') --own;
+        if (length == own && _strnicmp(full, g_rootDirs[0], own) == 0) continue;
+        strcpy_s(g_addonInstall, full);
+        return;
+    }
+}
 
 bool UnderRoot(const char* full, const char* root, const char** relative) {
     std::size_t n = std::strlen(root);
@@ -796,6 +826,13 @@ const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
         const char* relative = nullptr;
         if (!UnderRoot(full, root, &relative)) continue;
         if (std::snprintf(buffer, MAX_PATH, "%s\\%s", g_savesDir, relative) >= MAX_PATH) return nullptr;
+        return buffer;
+    }
+    // addon.dll loaded into the vanilla install's game (harness_addon.h) writes its log and dumps into the Rebirth
+    // install: those go to a folder of their own in the overlay.
+    const char* relative = nullptr;
+    if (g_addonInstall[0] && UnderRoot(full, g_addonInstall, &relative)) {
+        if (std::snprintf(buffer, MAX_PATH, "%s\\rebirth_install\\%s", g_savesDir, relative) >= MAX_PATH) return nullptr;
         return buffer;
     }
     return nullptr;
@@ -1113,6 +1150,10 @@ void WriteReport() {
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
+    if (std::string patched = addon::Failure(); !patched.empty()) failures.push_back("addon: " + patched);   // harness_addon.h
+    const char* missed = "";
+    if (const int count = render::MissedSurfaceWrites(&missed))   // a window surface's writer without a mark (R16a)
+        failures.push_back(std::to_string(count) + " window surface change(s) without a SurfaceWritten mark, the first: " + missed);
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -2947,6 +2988,35 @@ void RunSteps() {
             else if (!info.on || info.targetSamples < 2 || info.targetSamples != info.deviceSamples ||
                      info.multisampledPasses < 1 || info.anisotropicModels < 1 || differing < least || differing > most)
                 g_failures.push_back(text);
+        } else if (s.verb == "shadows") {
+            if (!render::Active()) {
+                Log("harness: shadows %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "classic" || s.argument == "map") render::SetClassicShadows(s.argument == "classic");
+            else g_failures.push_back("shadows needs classic or map");
+        } else if (s.verb == "shadowcheck") {
+            int least = 1;
+            if (sscanf_s(s.argument.c_str(), "%d", &least) < 1) {
+                g_failures.push_back("shadowcheck needs the least number of casters");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: shadowcheck: not the new renderer (the original code): skipped");
+                continue;
+            }
+            render::ShadowInfo info = render::ShadowState();
+            char text[240];
+            std::snprintf(text, sizeof(text),
+                          "shadowcheck: %s, map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
+                          "ground batches sampling it (at least %d casters)",
+                          info.classic ? "classic" : "shadow map", info.made ? "made" : "not made", info.size,
+                          static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
+                          info.receivingTerrain, least);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1)
+                g_failures.push_back(text);
         } else if (s.verb == "renderstats") {
             if (!render::Active()) {
                 Log("harness: renderstats %s: not the new renderer (the original code): skipped", s.argument.c_str());
@@ -2958,7 +3028,7 @@ void RunSteps() {
             auto kb = [n](std::uint64_t bytes) { return static_cast<double>(bytes) / 1024.0 / n; };
             auto per = [n](std::uint64_t count) { return static_cast<double>(count) / n; };
             using F = render::FrameStats;
-            char text[1800];
+            char text[2000];
             std::snprintf(
                 text, sizeof(text),
                 "renderstats %s: %u frames of %dx%d, per frame: hand-over %.0f terrain pages -> %.0f batches, %.0f meshes / %.0f "
@@ -2969,7 +3039,8 @@ void RunSteps() {
                 "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
                 "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
                 "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
-                "CPU ms hand-over %.3f, textures %.3f, end of frame %.3f (counting %.3f)",
+                "CPU ms hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f); "
+                "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
                 per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
                 per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
@@ -2984,7 +3055,9 @@ void RunSteps() {
                 kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
                 static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,
                 static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
-                t.handOverMs / n, t.textureMs / n, t.endFrameMs / n, t.statsMs / n);
+                t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n,
+                per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
+                t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
         } else if (s.verb == "checkshot") {
@@ -3620,6 +3693,7 @@ struct Harness {
         CreateDirectoryA(g_savesDir, nullptr);
         Log("harness: %lld MB free on the run folder's disk", crash::FreeMegabytes(g_savesDir));
         if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
+        if (addon::Active()) FindAddonInstall();
 
         PatchSlot(kFindWindowASlot, &NoOtherGameWindow, g_findWindow);
         PatchSlot(kSetForegroundWindowSlot, &NoForeground, g_setForegroundWindow);
@@ -3670,6 +3744,7 @@ struct Harness {
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});
+        addon::Install();   // EI_ADDON_FLAGS: addon.dll's patches outside the run's Rebirth flags undone (harness_addon.h)
         if (g_deterministic) {
             clock::InstallVirtual(&g_tickLength);
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)

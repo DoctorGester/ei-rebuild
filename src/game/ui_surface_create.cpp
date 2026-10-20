@@ -39,7 +39,7 @@ namespace {
 // original's GetSurfaceDesc); 0 without memory.
 std::uint32_t SurfaceBytes(CDXSurface* holder) {
     SurfacePixels pixels;
-    DirectPixels(holder, &pixels);
+    DirectPixels(holder, &pixels, true);
     return static_cast<std::uint32_t>(pixels.height) * static_cast<std::uint32_t>(pixels.pitch);
 }
 
