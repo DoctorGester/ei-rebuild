@@ -1665,7 +1665,7 @@ title = "Harness runs read the user's real game settings: pin them"
 group = "harness"
 size = 1
 model = "opus"
-note = "User 2026-10-20: they changed volume, hotkeys and maybe the help tips (Game Specific Settings\\ShowTutorial is now 1, a prime suspect). Find where the hotkeys are stored (not among the registry values) and pin that too."
+note = "SV8 (2026-10-20): key bindings live in <install>\\config\\keyboard.ini, read at start; harness writes go to harness_saves, but reads may come from F:\\games\\EvilIslands\\config\\keyboard.ini, which the user's remap rewrote: pin a committed keyboard.ini per install too. Also RegCreateKeyExA is not skipped (writes no values). Re-record ui_options_remap / ui_options_remap_load if the pinned settings change them."
 
 # ---------------------------------------------------------------- cleanup
 
