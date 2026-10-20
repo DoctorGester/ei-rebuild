@@ -313,6 +313,15 @@ group = "renderer"
 depends = ["R11c"]
 note = "BlitMipChain (00533980, unit_client_blink.cpp) copies the face texture's open / closed eye rectangle onto the skin texture down the mip chain with DirectDraw blits; the skins are .mmp textures the new renderer decodes (no DirectDraw surface, no memory), so since R8 the blink copies nothing and party units never blink. Give the renderer a copy of a rectangle between two decoded textures on every mip level (render:: call keyed by the holders), called from BlitMipChain with the original's rectangles (units.md: closed top unscaled, open top scaled). Check: a scenario with a party unit near the camera and a frame capture of the face before and after a blink; goldens with party faces will change."
 
+[[ticket]]
+id = "R16"
+title = "Renderer architecture plan: draw from GPU-resident data instead of matching the old renderer's calls"
+group = "renderer"
+size = 1
+model = "opus"
+files = ["docs/notes/renderer.md src/render/"]
+note = "User 2026-10-20: stop call-matching the old renderer; modernise it. Examples from the user: no texture blits (composite in shaders), no constant buffer re-uploads, decals on the GPU without re-uploads. Research ticket, no game-code changes: measure what a frame uploads and copies today (vertex / index / constant / texture bytes, blits, per-draw state changes, draw count) on a few scenes (zone1 outdoors, a town, a big fight, the interface), then write a short plan in docs/notes/renderer.md: static meshes, figures and terrain pages in persistent GPU buffers (skinning / morphs on the GPU), dynamic data through one ring buffer, instancing for map objects and particles, texture arrays or atlases, ground decals (prints, shadows, blood, spell marks) as GPU decals instead of re-baked textures, the interface and face / blink overlays composited in shaders, fewer passes. Each item: what it replaces, expected gain, how frame captures check it (tolerance, not bit-exact). End with tickets filed in order (R16a ...)."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
