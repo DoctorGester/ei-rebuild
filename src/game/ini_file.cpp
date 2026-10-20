@@ -42,9 +42,9 @@ using MfcDWords = mfc::CArray<std::uint32_t>;
 __declspec(naked) void __fastcall DWordArrayConstruct(MfcDWords*) EI_ORIGINAL(0x006FF933)
 __declspec(naked) void __fastcall DWordArrayDestroy(MfcDWords*) EI_ORIGINAL(0x006FF966)
 __declspec(naked) void __fastcall DWordArraySetSize(MfcDWords*, void*, int, int) EI_ORIGINAL(0x006FF993)
-void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { ByteArraySetSizeOriginal(a, nullptr, n, -1); }      // 006FF64A
-void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { WordArraySetSizeOriginal(a, nullptr, n, -1); }     // 006FEEFA
-void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { UIntArraySetSizeOriginal(a, nullptr, n, -1); }     // 006FF29A
+void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { a->SetSize(n, -1); }      // 006FF64A
+void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { a->SetSize(n, -1); }     // 006FEEFA
+void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }     // 006FF29A
 
 // 004513A0: SetSize of an aligned int array (CArray<int> with the aligned allocator).
 

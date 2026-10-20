@@ -105,7 +105,7 @@ constexpr float kTile = 0.25f;   // 0073C3B0
 void CRainSnow::PrepareBuffers() {
     positions.SetSize(kDrops);
     vertices.SetSize(kDropVertices);
-    ByteArraySetSizeOriginal(&frames, nullptr, kDrops, -1);
+    frames.SetSize(kDrops, -1);
 
     offsets.SetSize(2 * kRings + 1);
     for (int i = 0; i < kRings; ++i) {
@@ -124,7 +124,7 @@ void CRainSnow::PrepareBuffers() {
         vertex.v = 1.0f - (1.0f - corner.v) * kTile;
     }
 
-    WordArraySetSizeOriginal(&indices, nullptr, kDropVertices, -1);
+    indices.SetSize(kDropVertices, -1);
     for (int i = 0; i < indices.size; ++i) indices.data[i] = static_cast<std::uint16_t>(i);
 }
 EI_REPLACE_METHOD(0x004E3C20, CRainSnow::PrepareBuffers);

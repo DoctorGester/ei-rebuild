@@ -99,12 +99,12 @@ src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,21
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,14
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,123
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,120
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,18
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,44
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
-src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,27
+src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,26
 src/game/particle_callbacks.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
 src/game/particle_create.cpp,0,0,0,0,85,0,0,0,0,0,0,0,0,0
 src/game/party_items.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -150,7 +150,7 @@ src/game/string_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/terrain_animation.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_landscape.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_passes.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/terrain_sector.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
+src/game/terrain_sector.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/text_sources.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_battle_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_setup.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,7

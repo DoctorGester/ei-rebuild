@@ -136,7 +136,7 @@ EI_REPLACE_METHOD(0x0058A140, CScript::Destruct);
 void CWorld::Destruct() {
     ei::SetVtable(this, kBaseVtableAddress);
     DestroyManagers();
-    auto* countdowns = reinterpret_cast<mfc::CArray<int>*>(countdowns_);
+    auto* countdowns = &countdowns_;
     countdowns->vtable = reinterpret_cast<void*>(kCountdownsVtable);
     countdowns->FreeData();
     reinterpret_cast<RefPtr*>(&netSession_)->Destroy();

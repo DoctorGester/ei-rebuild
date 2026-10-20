@@ -13,7 +13,7 @@
 namespace {
 
 // The water levels of a world (CWorld +0x70): a CArray<TweenEntry>.
-TweenArray* WaterLevels(CWorld* world) { return reinterpret_cast<TweenArray*>(world->countdowns_); }
+TweenArray* WaterLevels(CWorld* world) { return &world->countdowns_; }
 
 } // namespace
 

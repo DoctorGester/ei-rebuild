@@ -6,6 +6,7 @@
 // and attached to the world (its slot 13 with the world, or slot 2); a 0x0C-byte helper goes into
 // a counted pointer at +0x5C; then the ISAAC generator is seeded and +0x70 set up.
 #include "world.h"
+#include "model.h"   // TweenArray (countdowns_)
 #include "world_data.h"
 
 #include "base_manager.h"
@@ -94,7 +95,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     }
     world->shared5C_.ShareAssign(helper);
     IsaacRandom::Global().Init();
-    TweenArrayRemoveAllOriginal(world->countdowns_);
+    world->countdowns_.RemoveAll();
     return 1;
 }
 EI_REPLACE(0x0055EE40, WorldCreateManagers);
@@ -104,7 +105,7 @@ CWorld* CWorld::ConstructBase() {
     figureLoader_ = nullptr;
     shared5C_.ptr = nullptr;
     netSession_ = nullptr;
-    reinterpret_cast<mfc::CArray<int>*>(countdowns_)->Construct(kCountdownsVtable);
+    countdowns_.Construct(kCountdownsVtable);
     ei::SetVtable(this, kBaseVtableAddress);
     players_ = nullptr;
     manager3C_ = nullptr;

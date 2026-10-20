@@ -281,7 +281,7 @@ void Loader::ReadGroups(RecordArrays& r, const RecordHeader& h) {
         Read(file_, &gh, sizeof(gh));
         FaceGroup* group = r.Group(g);
         Read(file_, group->name.GetBufferSetLength(gh.nameLength), gh.nameLength);
-        UIntArraySetSizeOriginal(&group->faces, nullptr, static_cast<int>(gh.faceCount), -1);
+        group->faces.SetSize(static_cast<int>(gh.faceCount), -1);
         Read(file_, group->faces.data, gh.faceCount * 4);
     }
 }

@@ -120,17 +120,13 @@ __declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/,
     EI_ORIGINAL(0x004621A0)
 __declspec(naked) inline void __fastcall PtrListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x0052CA10)
 // MFC CArray::SetSize(size, growBy) instantiations (all RET 8, no result): records 005719B0, dwords 0059C660,
-// points 005B16D0, words 006FEEFA, bytes 006FF64A.
+// points 005B16D0.
 __declspec(naked) inline void __fastcall RecordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x005719B0)
 __declspec(naked) inline void __fastcall DwordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x0059C660)
 __declspec(naked) inline void __fastcall PointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x005B16D0)
-__declspec(naked) inline void __fastcall WordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x006FEEFA)
-__declspec(naked) inline void __fastcall ByteArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x006FF64A)
 // MFC CWordArray::~CWordArray 006FEECD and CByteArray::~CByteArray 006FF61D (plain RET): the storage freed.
 __declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
 __declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
@@ -342,10 +338,8 @@ inline mfc::CString* __fastcall CFileFindPathOriginal(const void* find, void*, m
 __declspec(naked) inline void __cdecl GameQsortOriginal(void* /*base*/, std::size_t /*count*/, std::size_t /*size*/,
                                                         int(__cdecl* /*compare*/)(const void*, const void*))
     EI_ORIGINAL(0x006E88FC)
-// 006FF29A: SetSize(count, growBy) of a dword array (RET 8, no result). 00700D4C: CString::operator+=(const char*) (RET 4, returns
+// 00700D4C: CString::operator+=(const char*) (RET 4, returns
 // this). 00700E17: CString::GetBufferSetLength(length) (RET 4, EAX = the buffer). src/lib/mfc.cpp keeps its CString members.
-__declspec(naked) inline void __fastcall UIntArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
-    EI_ORIGINAL(0x006FF29A)
 inline void* __fastcall CStringAppendTextOriginal(void* string, void*, const char* text) {
     *static_cast<mfc::CString*>(string) += text;
     return string;
