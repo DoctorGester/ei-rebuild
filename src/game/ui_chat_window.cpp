@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "lib/stlp_vector_refs.h"
 
 #include <cstdint>
 
@@ -46,8 +47,6 @@ const char* TextKey(int i) {
 constexpr int kTextCount = 6;
 constexpr int kWeOffer = 4, kTheyOffer = 5;
 
-void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }     // hash_map<string, UnitPrototypeRecord*>
-void* FigurePrototypes() { return reinterpret_cast<void*>(0x007AF3A4); }   // hash_map<string, FigurePrototypeRecord*>
 const char* OnOffSound() { return game::Text(0x007935BC); }                    // "buttons\battle\on_off.wav"
 
 constexpr int kSurfaceFormat = 5;
@@ -58,16 +57,8 @@ constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 wit
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
-// pair<const string, T*> of the prototype name maps: the unit map's insert takes one.
-struct PrototypeNamePair {
-    stlp::string name;
-    void* value;
-};
-
-// 0060A120: vector<counted pointer>::_M_insert_overflow(pos, x, n) (RET 0xC): a new block with the
-// elements before `pos`, `n` counted copies of `x`, the rest; the old elements released.
-__declspec(naked) void __fastcall PlayersInsertOverflow(stlp::vector<CRefObject*>* /*vector*/, void*, CRefObject** /*pos*/,
-                                                        CRefObject* const* /*x*/, unsigned /*n*/) EI_ORIGINAL(0x0060A120)
+// 0060A120: vector<counted pointer>::_M_insert_overflow(pos, x, n) (stlp::CountedRefVector's): a new
+// block with the elements before `pos`, `n` counted copies of `x`, the rest; the old elements released.
 
 // The counted pointers' inlined helpers (16-bit count; released through CRefObject::Release).
 void AddRef(CRefObject* object) {
@@ -182,7 +173,8 @@ void CChatWindow::ShowPlayers() {
         bool own = static_cast<net::BindingMessage*>(client->binding_)->PlayerRef().ptr == player;
         CRefObject**& finish = players_.Finish();
         if (finish == players_.EndOfStorage()) {
-            PlayersInsertOverflow(&players_, nullptr, own ? players_.Start() : finish, &node->data.ptr, 1);
+            stlp::AsRefPtrs(players_).InsertOverflow<stlp::CountedRefElement>(
+                stlp::AsRefPtr(own ? players_.Start() : finish), stlp::AsRefPtr(node->data.ptr), 1);
         } else if (!own || players_.Start() == finish) {
             if (finish) {
                 *finish = player;
@@ -210,9 +202,7 @@ void CChatWindow::ShowPlayers() {
         net::PlayerMessage* player = PlayerOf(*p);
         UnitPrototypeRecord* prototype;
         {
-            PrototypeNamePair key{stlp::string(player->text_), nullptr};
-            prototype = static_cast<UnitPrototypeRecord*>(
-                static_cast<PrototypeNamePair*>(NameMapInsertOriginal(UnitPrototypes(), nullptr, &key))->value);
+            prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
             // EI_Plugin's Fixes (006093B7): an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = reinterpret_cast<UnitPrototypeRecord*>(pluginfixes::FallbackPrototype());
@@ -220,7 +210,7 @@ void CChatWindow::ShowPlayers() {
         FigurePrototypeRecord* figure;
         {
             stlp::string key(static_cast<const char*>(prototype->modelName));
-            figure = reinterpret_cast<FigurePrototypeRecord*>(*FigureMapAtOriginal(FigurePrototypes(), nullptr, &key));
+            figure = reinterpret_cast<FigurePrototypeRecord*>(unitdb::ModelNamed(key));
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (00609427): the model's fifth character
         if (fixes ? !pluginfixes::ModelIsFemale(figure->model) : SameText(figure->model, game::Text(0x007908C8)))   // "unhuma"

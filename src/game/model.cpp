@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "record_lists.h"
 
 #include <cstring>
 
@@ -180,21 +181,16 @@ EI_REPLACE_METHOD(0x004F57B0, TriangleIndexArray::SetSize);   // the figure part
 // ---- CLinkFigureLoader ---------------------------------------------------------------------------
 
 namespace {
-struct ListIterator {
-    LinkArchiveNode* node;
-};
-// list<pair<string, CMMIOResource*>> members (STLport instantiations, not rewritten):
-// insert(pos, value_type()) with the string reserved for 8 bytes, and erase(pos).
-__declspec(naked) ListIterator* __fastcall ListInsertDefault(LinkArchiveNode**, void*, ListIterator*, ListIterator) EI_ORIGINAL(0x004FB2E0)
-__declspec(naked) ListIterator* __fastcall ListErase(LinkArchiveNode**, void*, ListIterator*, ListIterator) EI_ORIGINAL(0x004FAE00)
+// list<pair<string, CMMIOResource*>> members (recordlist::LinkArchives'): insert(pos,
+// value_type()) with the string reserved for 8 bytes (004FB2E0), and erase(pos) (004FAE00).
+using Archives = stlp::list<recordlist::LinkArchive>;
 } // namespace
 
 int CLinkFigureLoader::AddArchive(const stlp::string* path) {
     for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next)
         if (n->name == *path) return 1;
 
-    ListIterator inserted;
-    ListInsertDefault(&archives_, nullptr, &inserted, ListIterator{archives_});
+    Archives::InsertDefault<recordlist::LinkArchiveElement>(stlp::AsNode<recordlist::LinkArchive>(archives_));
     LinkArchiveNode* node = archives_->prev;
     // The new string is empty (with room for 8 bytes): STLport's assign appends the whole path.
     if (&node->name != path && path->size() != 0) node->name.Append(path->data(), path->data() + path->size());
@@ -206,9 +202,7 @@ int CLinkFigureLoader::AddArchive(const stlp::string* path) {
 
     // Failure: drop the node again (the resource object is leaked) and log. The original passes
     // the string object by value to "%s", so the three words of the string go on the stack.
-    ListIterator last{archives_->prev};
-    ListIterator next;
-    ListErase(&archives_, nullptr, &next, last);
+    Archives::Erase<recordlist::LinkArchiveElement>(stlp::AsNode<recordlist::LinkArchive>(archives_->prev));
     auto words = reinterpret_cast<const char* const*>(path);
     game::DebugLog("Can't open resource file \"%s\"\n", words[0], words[1], words[2]);
     return 0;

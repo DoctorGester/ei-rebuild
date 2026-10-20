@@ -33,8 +33,6 @@ namespace {
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
 char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
-// 0059D7A0. The timed-object map's clear (nodes freed, buckets kept).
-__declspec(naked) void __fastcall TimedMapClear(void*, void*) EI_ORIGINAL(0x0059D7A0)
 // 0040A3A0. CRefObject::Release (the missiles).
 
 // The timed objects are ended (slot 5, ClearState) and released, then the map is emptied (the
@@ -46,7 +44,7 @@ void EndTimedObjects(CWorldServer* world) {
         object->ClearState();
         object->Release();
     }
-    TimedMapClear(&world->timedObjects_, nullptr);
+    world->timedObjects_.map.Clear();   // 0059D7A0: nodes freed, buckets kept
     world->timedObjects_.maxId = 0;
 }
 
@@ -136,10 +134,8 @@ namespace {
 // counted pointer (flags 0: in place).
 __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
-void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
+void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
-// 0059D6D0. The other id maps' clear.
-__declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D0)
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
@@ -155,7 +151,7 @@ void CWorldServer::ResetZone() {
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     countdowns_.RemoveAll();
-    ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
+    gamearrays::ExitsSetSize(&exitsVtable_, 0);
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ClearMissilePointers(this);
@@ -181,7 +177,7 @@ void CWorldServer::ResetZone() {
     ObjectMapClearOriginal(&objects_);
     ObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (ObjectIdMap* map : maps) {
-        IdMapClear(map, nullptr);
+        map->map.Clear();   // 0059D6D0
         map->maxId = 0;
     }
     ClearMissilePointers(this);
@@ -244,12 +240,6 @@ void CWorldServer::TeardownZone() {
 
 namespace {
 
-mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectListNewNode(
-    mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2,
-    mfc::CTypedPtrList<CEngineObject>::Node* a3) {
-    return (mfc::CTypedPtrList<CEngineObject>::Node*)PtrListNewNode573290Original((void*)a0, nullptr, (void*)a2, (void*)a3);
-}
-__declspec(naked) void __fastcall ObjectListRemoveAll(mfc::CTypedPtrList<CEngineObject>*, void*) EI_ORIGINAL(0x00570470)
 // 0066C180. The player list creates a temporary player (returned).
 WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
@@ -275,7 +265,7 @@ void CWorldServer::SendFreshObjects() {
         if (!mapObjects_.map.Find(id)) continue;
         if (static_cast<CMapObjectVirtuals*>(object)->IsSynchronised()) continue;
         sentObjects_.Set(static_cast<unsigned>(object->id_), object);
-        auto* entry = ObjectListNewNode(&fresh, nullptr, fresh.tail, nullptr);
+        auto* entry = fresh.NewNode(fresh.tail, nullptr);
         entry->data = object;
         if (fresh.tail) fresh.tail->next = entry;
         else fresh.head = entry;
@@ -304,7 +294,7 @@ void CWorldServer::SendFreshObjects() {
     static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(temporary));
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
     fresh.vtable = ObjectPtrListVtable();
-    ObjectListRemoveAll(&fresh, nullptr);
+    fresh.RemoveAll();
 }
 
 void CWorldServer::ResetState() {

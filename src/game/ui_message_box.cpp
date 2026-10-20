@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "bink_video.h"
 
 #include <cstring>
 
@@ -28,7 +29,7 @@ constexpr std::uint32_t kAnswerCancel = 2;
 void PlayExitMovieAndQuit() {
     {
         mfc::CString path = *GameBasePathString() + ExitMovie();
-        PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
+        PlayMovie(path, 0, 0, 0, 1, 1, 1);
     }
     app::QuitGame(0);
 }

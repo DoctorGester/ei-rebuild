@@ -3,6 +3,7 @@
 #include "world.h"    // CWorld
 
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -71,8 +72,6 @@ EI_REPLACE_METHOD(0x0050F1C0, CMapObject::Update);
 // --- Effects ---------------------------------------------------------------------------------
 
 namespace {
-// 0050FE70: CArray<MapEffect>::SetSize(newSize, growBy) (thiscall on the array at +0x194):
-// EffectArraySetSizeOriginal.
 
 constexpr int kRebirthMaxEffects = 20;
 constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
@@ -100,11 +99,15 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
 }
 } // namespace
 
+void CMapObject::SetEffectCount(int count) {
+    mfc::impl::Plain20::SetSize(reinterpret_cast<mfc::impl::Plain20::Array*>(&effectsVtable), nullptr, count, -1);
+}
+
 std::uintptr_t CMapObject::AddEffectImpl(const MapEffect* effect) {
     bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
     if (rebirth && effectCount >= kRebirthMaxEffects) return 0;   // addon.dll drops it (and logs)
     int count = effectCount;
-    EffectArraySetSizeOriginal(&effectsVtable, nullptr, count + 1, -1);
+    SetEffectCount(count + 1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
     changedParts = static_cast<std::uint16_t>(changedParts | 8);   // part 3
     flags_ |= kFlagDirty;
@@ -259,12 +262,13 @@ EI_REPLACE_METHOD(0x0050E8F0, CMapObject::AttachCompanion);
 namespace {
 constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions slot 19 accepts
 
-// 00516D50. The 3D object's slot 19, which attaches type 0x46 objects at +0x94. Not rewritten.
-__declspec(naked) std::uintptr_t __fastcall Object3DAttach(CMapObject*, void*, CEngineObject*) EI_ORIGINAL(0x00516D50)
 } // namespace
 
 std::uintptr_t CMapObject::AttachObjectImpl(CEngineObject* object) {
-    if (!object || object->type_ != kTypeMapCompanion) return Object3DAttach(this, nullptr, object);
+    if (!object || object->type_ != kTypeMapCompanion) {
+        CObject3D::AttachSpecific(object);   // 00516D50, the 3D object's slot 19 (no result)
+        return 0;
+    }
     if (companion) {
         CompanionOwner(companion) = nullptr;
         companion->Release();

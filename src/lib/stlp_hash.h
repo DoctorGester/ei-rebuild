@@ -222,6 +222,16 @@ public:
         count_ = 0;
     }
 
+    // _M_initialize_buckets(n) on a table its owner zeroed (006729E0): NextPrime(n) null buckets in
+    // a fresh block, no elements.
+    void InitZeroedBuckets(std::size_t n) {
+        std::size_t buckets = NextPrime(n);
+        buckets_.ConstructWithCapacity(buckets);
+        std::memset(buckets_.Start(), 0, buckets * sizeof(Node*));
+        buckets_.Finish() = buckets_.EndOfStorage();
+        count_ = 0;
+    }
+
     // resize(hint) (e.g. 00406640): when the hint exceeds the bucket count and the next prime does
     // too, a zeroed bucket vector of that many, each old chain moved head first to the head of its
     // new bucket, the vectors swapped and the old storage freed.

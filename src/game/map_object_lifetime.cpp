@@ -25,6 +25,7 @@
 #include "ei/vcall.h"
 #include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -80,13 +81,8 @@ __declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members (00546230).
 void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
-__declspec(naked) void __fastcall BrainList70Destroy(void*) EI_ORIGINAL(0x005575F0)
 void __fastcall BrainArrayDestroy(void* a0) { CountedRefResetOriginal(a0); }
 void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
-__declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
-// This file's 3D object constructor and destructor bodies, through their game addresses.
-__declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
-__declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
 
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(CEngineObject* object) {
@@ -185,14 +181,14 @@ void CObject3D::DestructBody() {
     effectSources.blocks = nullptr;
     DestroyString(&name);
     SetVtable(this, CTransformObject::kVtableAddress);
-    EngineObjectDestructBase(this);
+    static_cast<CEngineObject*>(this)->DestructBase();
 }
 EI_REPLACE_METHOD(0x00515D70, CObject3D::DestructBody);
 
 // --- CMapObject -------------------------------------------------------------------------------
 
 CMapObject* CMapObject::Construct() {
-    ConstructObject3DAt(this);
+    CObject3D::Construct();   // 00515BD0
     effectsVtable = reinterpret_cast<void*>(kEffectArrayVtable);
     effects = nullptr;
     effectGrowBy = 0;
@@ -244,7 +240,7 @@ void CMapObject::DestructBody() {
     DestroyString(&name2);
     effectsVtable = reinterpret_cast<void*>(kEffectArrayVtable);
     if (effects) gamecrt::operator_delete(effects);
-    DestructObject3DAt(this);
+    CObject3D::DestructBody();   // 00515D70
 }
 EI_REPLACE_METHOD(0x0050E660, CMapObject::DestructBody);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
@@ -255,7 +251,7 @@ EI_REPLACE_METHOD(0x00529B50, CMapObject::DestructBody);
 // --- CUnit ------------------------------------------------------------------------------------
 
 CUnit* CUnit::Construct() {
-    MapObjectConstructOriginal(this);
+    CMapObject::Construct();
     ConstructString(&scriptName);
     // The unit's motion (+0x27C): two arrays, then the step speeds and the segment part.
     UnitMotion* m = Motion();
@@ -351,7 +347,7 @@ void CUnit::DestructBody() {
     DestroyArray(m->waypoints, kMotionWaypointsEndVtable);
     DestroyArray(m->points, kMotionPointsEndVtable);
     DestroyString(&scriptName);
-    DestructMapObjectAt(this);
+    CMapObject::DestructBody();
 }
 EI_REPLACE_METHOD(0x0052E310, CUnit::DestructBody);
 
@@ -388,7 +384,7 @@ void CMapObjectServer::DestructBody() {
     name78.~CString();
     SetVtable(this, CMapObjectCompanion::kVtableAddress);
     owner = nullptr;
-    EngineObjectDestructBase(this);
+    static_cast<CEngineObject*>(this)->DestructBase();
 }
 EI_REPLACE_METHOD(0x00515720, CMapObjectServer::DestructBody);
 
@@ -444,7 +440,7 @@ void CMapObjectClientSpecific::DestructBody() {
     }
     SetVtable(this, CMapObjectCompanion::kVtableAddress);
     owner = nullptr;
-    EngineObjectDestructBase(this);
+    static_cast<CEngineObject*>(this)->DestructBase();
 }
 EI_REPLACE_METHOD(0x00510560, CMapObjectClientSpecific::DestructBody);
 
@@ -460,14 +456,14 @@ void CUnitServer::DestructBody() {
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
     mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
-    BrainList70Destroy(&b->modes);
+    gamelists::OwnedRefs::Destruct<gamelists::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));   // 005575F0
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
     Brain14Destroy(&b->looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
     SetVtable(&armourSpells, kArmourSpellListVtable);
-    Controller91CDestroy(&armourSpells);
+    mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();   // 00558020
     if (CEngineObject* leader = followedLeader) leader->Release();
     if (CEngineObject* target = action2.target) target->Release();
     action2.target = nullptr;
@@ -478,11 +474,11 @@ void CUnitServer::DestructBody() {
     DestroyArray(currentPlan.animation, kServerArrayVtable);
     motion.excludedBlocks.vtable = reinterpret_cast<void*>(AIPath::kExcludedBlocksVtable);
     if (motion.excludedBlocks.data) gamecrt::operator_delete(motion.excludedBlocks.data);
-    CellListDestroy(&motion.cells);
-    CellListDestroy(&motion.steps);
+    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
+    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, kServerArrayVtable);
     SetVtable(this, kControllerVtable);
     unit = nullptr;
-    EngineObjectDestructBase(this);
+    static_cast<CEngineObject*>(this)->DestructBase();
 }
 EI_REPLACE_METHOD(0x00546230, CUnitServer::DestructBody);

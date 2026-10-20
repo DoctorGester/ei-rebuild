@@ -29,15 +29,8 @@ namespace lib { template <typename T> struct AlignedArray; }
 __declspec(naked) inline void __fastcall ObjectMapClearOriginal(void* /*map*/) EI_ORIGINAL(0x0047B670)
 // 00565E40: the client world (007AF5B8) picks the unit drawn at a screen point (thiscall, RET 4: the address of
 // the point's x, y; EAX = the unit or null). The battle screen passes its own (x, y) argument slots.
-// 00512030 (library: STLport list<id>::erase(iterator), the client's selection list +0x7BC; thiscall, RET 8: the result
-// slot, the node).
-__declspec(naked) inline void __fastcall IdListEraseOriginal(void* /*list*/, void*, void** /*result*/, void* /*node*/)
-    EI_ORIGINAL(0x00512030)
 class CTexture;
 class CMaterial;
-// 0056F360 (library: STLport vector<12-byte texture record>::resize(count, value); thiscall, RET 8, no result).
-__declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*vector*/, void*, unsigned /*count*/,
-                                                                      const void* /*value*/) EI_ORIGINAL(0x0056F360)
 // 005927C0 (rewritten as CWorldServer::CreateObject; RET 4): the server makes (or updates) the world object of a .mob
 // record; EAX the object's id. Patched by Rebirth.
 __declspec(naked) inline int __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)
@@ -78,10 +71,6 @@ __declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/
 
 // A quest variable ("q." prefix) changed: 005F7FC0 tells the quest log (007C7D50), 00565380 the client world (007AF5B8)
 // (both RET 8: name, value bits; EAX not a result).
-
-// D3b. 00573080: CArray<ZoneExit>::SetSize(size, growBy) (RET 8, no result; -1 keeps growBy, new records constructed).
-__declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x00573080)
 
 // A-W15. 006C68B0 (RET 0xC; not rewritten): the landscape loads the map file `path` (the old map freed first) with
 // the texture pages of `allod`; `cave` is read as a byte. All of EAX: 0 when the file or a page does not load.

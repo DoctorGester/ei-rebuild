@@ -18,8 +18,6 @@ struct ParticleElement;
 
 // 00455940 (rewritten as CEngineObject::ManagerContext): the object's manager context (+0x14 -> +0xAC, the world).
 __declspec(naked) inline void* __fastcall ManagerContextOf(const void* /*object*/) EI_ORIGINAL(0x00455940)
-__declspec(naked) inline void* __fastcall ObjectWorld(const void* /*object*/) EI_ORIGINAL(0x00455950)
-__declspec(naked) inline void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)
 // Text tables (CTextManager): 004DEFC0 opens a section by key (RET 4, EAX 1 when found and non-empty, else 0);
 // 004E0020 reads a string into a CString (RET 8, EAX 1 when found, else 0).
 __declspec(naked) inline int __fastcall TextsOpenSection(void* /*texts*/, void*, const char* /*key*/)
@@ -29,11 +27,6 @@ __declspec(naked) inline int __fastcall TextsGetString(void* /*texts*/, void*, c
 __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/)
     EI_ORIGINAL(0x00488970)
 
-// Named float table (RET 4 / RET 8): 00460AF0 Get (result in ST0), 00460BC0 Set (the value is the raw dword the
-// original pushes, so no FPU load changes it on the way). 004DF8D0: the texts read the current line into a CString
-// (RET 8, EAX 0/1).
-__declspec(naked) inline float __fastcall NamedTableGet(void* /*table*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x00460AF0)
 // The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
 inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
@@ -41,8 +34,6 @@ inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0
 __declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)
     EI_ORIGINAL(0x004849F0)
 
-// C3l. 00581790: NamedFloatTable constructor (plain RET, returns `this`).
-__declspec(naked) inline void* __fastcall NamedTableConstructOriginal(void* /*table*/) EI_ORIGINAL(0x00581790)
 // 006714A0: CMappedResource's destructor body at its original address. Rebirth patches it (it then runs Rebirth's
 // version); in the vanilla launch the address leads to CMappedResource::Destroy.
 __declspec(naked) inline void __fastcall MappedResourceDestroyOriginal(CMappedResource*) EI_ORIGINAL(0x006714A0)
@@ -60,17 +51,7 @@ __declspec(naked) inline int __fastcall CameraLoadPathOriginal(CCamera* /*camera
 // LoadLightningNoise, lightning_load.cpp): loads the lightning noise table. Its result is not read.
 // Its only caller is the lightning manager's Create (004689D0).
 __declspec(naked) inline void __cdecl LoadLightningNoiseOriginal() EI_ORIGINAL(0x00468A00)
-// A-E1. 00465090 (RET 0xC; rewritten as app::DeviceListArchive, app_device_list.cpp): the lever table's records as
-// chunk `id` of the archive, one chunk 1 per record (the list emptied and resized when loading). The third argument
-// is not read. Through its address so that its verify wrapper runs.
-class ChunkArchive;
-__declspec(naked) inline void __fastcall LeverRecordsArchiveOriginal(ChunkArchive* /*archive*/, void*, int /*id*/,
-                                                                    void* /*records*/, std::uint32_t /*unused*/)
-    EI_ORIGINAL(0x00465090)
 // C3n. 004667F0 (rewritten as IsaacRandom::Next; thiscall on the generator, plain RET): the next 32-bit word. The game's
 // generator is at 007A9D40.
 __declspec(naked) inline std::uint32_t __fastcall RandomNext(IsaacRandom* /*random*/) EI_ORIGINAL(0x004667F0)
 
-// C3n batch 4. CMappedResource at its addresses (the wrappers run; Rebirth patches some): 00671280 (rewritten as
-// CMappedResource::Construct; plain RET) constructs it in `memory` and returns it.
-__declspec(naked) inline CMappedResource* __fastcall MappedResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x00671280)

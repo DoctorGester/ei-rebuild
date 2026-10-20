@@ -50,7 +50,7 @@ CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[
 CUnit* AsCUnit(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
 CUnitServer* ServerOf(CEngineObject* unit) { return static_cast<CUnitServer*>(AsCUnit(unit)->controller); }
 const UnitPrototypeRecord* PrototypeOf(CEngineObject* unit) {
-    return static_cast<const UnitPrototypeRecord*>(UnitPrototypeOf(unit));
+    return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype());
 }
 
 // The float bits of `value` as the dword the player messages take.
@@ -118,7 +118,7 @@ bool GSGetPlayerVar(Call* call) {
     const char* name = Text(call, 0);
     WorldPlayer* player = GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
-    *static_cast<float*>(call->result) = static_cast<float>(static_cast<double>(NamedTableGet(player->variables, nullptr, name)));
+    *static_cast<float*>(call->result) = static_cast<float>(static_cast<double>(player->variables.Get(name)));
     return true;
 }
 
@@ -223,11 +223,12 @@ bool IsFileExists(Call* call) {
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
     WorldPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
-    player->Party()->variables_.ForEach([](const PartyVariableMap::Node* node) {
+    const NamedFloatTable& variables = player->Party()->variables_;
+    for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         mfc::CString line;
-        line.Format("%s = %f", static_cast<const char*>(node->key), static_cast<double>(node->value));
+        line.Format("%s = %f", static_cast<const char*>(node->value.key), static_cast<double>(node->value.mapped));
         (console::Out() << static_cast<const char*>(line) << "\n").Flush();
-    });
+    }
     return true;
 }
 

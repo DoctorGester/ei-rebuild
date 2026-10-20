@@ -37,8 +37,10 @@ static_assert(sizeof(WaypointNode) == 0x14);
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
 void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { mfc::impl::ConstructListHeader<mfc::impl::CellListClass>((void*)a0, a2); }
-// 005BEDB0 (RET 8). The waypoint list's NewNode(prev, next).
-__declspec(naked) WaypointNode* __fastcall WaypointNewNode(WaypointList*, void*, WaypointNode*, WaypointNode*) EI_ORIGINAL(0x005BEDB0)
+// 005BEDB0 (RET 8). The waypoint list's NewNode(prev, next): List12's (the element zeroed).
+WaypointNode* WaypointNewNode(WaypointList* list, WaypointNode* prev, WaypointNode* next) {
+    return mfc::impl::NewNodeAs<mfc::impl::List12>(list, prev, next);
+}
 // The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
 // a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
 bool __fastcall SearchBegin(LocalSearch* a0, void*, CUnit* a2, int a3, int a4, int a5, int a6) { return a0->Begin(a2, a3, a4, a5, a6); }
@@ -70,11 +72,11 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         GameAtExit(reinterpret_cast<void (*)()>(0x005BA3F0));
     }
     int sizeClass = unit->sizeClass;
-    CellListRemoveAllOriginal(&path->cells);
+    path->cells.RemoveAll();   // 00556D40
     bool ok = regionMap.FindRegionChain(sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
     if (!ok || chain.count * 8 > maxCells) {
         chain.vtable = PathCellListVtable();
-        CellListRemoveAllOriginal(&chain);
+        chain.RemoveAll();
         return false;
     }
     ClearMarksAround(&chain);
@@ -94,7 +96,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         std::uint8_t cell = cellRows[node->data.y][node->data.x];
         int px = (cell & 0xF) + node->data.x * 8;
         int py = (cell >> 4) + node->data.y * 8;
-        WaypointNode* w = WaypointNewNode(&waypoints, nullptr, waypoints.tail, nullptr);
+        WaypointNode* w = WaypointNewNode(&waypoints, waypoints.tail, nullptr);
         w->data.x = px;
         w->data.y = py;
         w->data.region = owner;
@@ -104,7 +106,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         node = next;
     }
     {
-        WaypointNode* w = WaypointNewNode(&waypoints, nullptr, waypoints.tail, nullptr);
+        WaypointNode* w = WaypointNewNode(&waypoints, waypoints.tail, nullptr);
         w->data.x = toX;
         w->data.y = toY;
         w->data.region = previous;

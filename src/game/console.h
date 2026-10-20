@@ -226,8 +226,9 @@ using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
 using CommandNode = CommandMap::Node;
 static_assert(sizeof(CommandNode) == 0x18);
 
-// 005E0B20: operator[]: the handler slot for `key`, inserted with a null handler if missing.
-CommandHandler* __fastcall CommandIndex(CommandMap* map, void*, const mfc::CString& key);
+// 005E0B20: operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler
+// if missing.
+CommandHandler& Command(CommandMap* map, const mfc::CString& key);
 
 // 007C7B28: commands always available; 007C7B38: commands after the cheat word.
 inline CommandMap* PublicCommands() { return reinterpret_cast<CommandMap*>(0x007C7B28); }

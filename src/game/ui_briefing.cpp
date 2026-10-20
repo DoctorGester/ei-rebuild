@@ -64,42 +64,15 @@ constexpr int kTopicNameParts = 3;
 // --- The variable copies ------------------------------------------------------------------------
 
 BriefingVariables::BriefingVariables(const char* prefix) {
-    NamedTableConstructOriginal(&table_);
+    table_.ConstructDefault();   // 00581790
     PlayerZeroVariables(prefix, &table_);
 }
 
-BriefingVariables::~BriefingVariables() {
-    std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
-    for (std::size_t b = 0; b < n; ++b) {
-        NamedFloatTable::Node* node = table_.buckets[b];
-        while (node) {
-            NamedFloatTable::Node* next = node->next;
-            reinterpret_cast<mfc::CString*>(&node->key)->~CString();
-            stlp::deallocate(node, sizeof(NamedFloatTable::Node));
-            node = next;
-        }
-        table_.buckets[b] = nullptr;
-    }
-    table_.count = 0;
-    if (table_.buckets)
-        stlp::deallocate(table_.buckets, static_cast<std::size_t>(table_.endOfStorage - table_.buckets) * sizeof(void*));
-}
+BriefingVariables::~BriefingVariables() { table_.Destroy(); }
 
-NamedFloatTable::Node* BriefingVariables::First() const {
-    std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
-    for (std::size_t b = 0; b < n; ++b)
-        if (table_.buckets[b]) return table_.buckets[b];
-    return nullptr;
-}
+NamedFloatTable::Node* BriefingVariables::First() const { return table_.First(); }
 
-NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) const {
-    if (node->next) return node->next;
-    struct {
-        NamedFloatTable::Node* node;
-        const NamedFloatTable* table;
-    } iterator{node, &table_};
-    return static_cast<NamedFloatTable::Node*>(VariableIteratorNextOriginal(&iterator));
-}
+NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) const { return table_.Next(node); }
 
 // --- 00602BB0: slot 26 --------------------------------------------------------------------------
 
@@ -122,7 +95,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
         if (window) {
-            ConstructContainerAt(window, nullptr, interface_);
+            static_cast<CUiContainer*>(window)->Construct(interface_);
             window->entriesBegin_ = nullptr;
             window->entriesEnd_ = nullptr;
             window->entriesCapacity_ = nullptr;
@@ -197,9 +170,9 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     console::CStringArray parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         std::uint32_t bits;
-        std::memcpy(&bits, &node->value, 4);
+        std::memcpy(&bits, &node->value.mapped, 4);
         if (bits != kOneBits) continue;
-        text::Split(node->key, &parts, '.');
+        text::Split(node->value.key, &parts, '.');
         if (parts.size != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;

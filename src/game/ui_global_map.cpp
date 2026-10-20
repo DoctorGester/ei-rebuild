@@ -35,6 +35,7 @@
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "lib/mfc_slots.h"
 
 #include <concepts>
 
@@ -89,49 +90,23 @@ bool NonEmpty(const char* cstring) { return reinterpret_cast<const int*>(cstring
 
 // --- Not rewritten ------------------------------------------------------------------------------
 
-// The links' and the quests' SetSize (00631E70 / 00631FF0, thiscall, RET 8) and their elements'
-// assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
-__declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x00631E70)
-__declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x00631FF0)
+// The links' and the quests' SetSize (00631E70 / 00631FF0, mfc::impl::GlobalMapPointRecords') and
+// their elements' assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
+void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
+    mfc::impl::ArrayAs<mfc::impl::GlobalMapPointRecords>(places).SetSize(size, -1);
+}
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
 }
 
-// The local player's variables, copied by name prefix into a hash_map<CString, float> (constructed
-// with 100 buckets by 00581790).
-struct VariableIterator {
-    NamedFloatTable::Node* node;
-    NamedFloatTable* table;
-    NamedFloatTable::Node* NextBucket();                // 005E0DB0
-};
-NamedFloatTable::Node* VariableIterator::NextBucket() { return (NamedFloatTable::Node*)VariableIteratorNextOriginal((void*)this); }
-
-// A local hash_map<CString, float>, freed the way the original's inlined destructor does: every
-// node's key released and the node returned to the 16-byte free list, then the bucket storage.
+// The local player's variables, copied by name prefix into a local hash_map<CString, float> (100
+// buckets, 00581790), freed the way the original's inlined destructor does.
 class VariableTable {
 public:
-    VariableTable() { NamedTableConstructOriginal(&table_); }
-    ~VariableTable() {
-        std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
-        for (std::size_t b = 0; b < n; ++b) {
-            NamedFloatTable::Node* node = table_.buckets[b];
-            while (node) {
-                NamedFloatTable::Node* next = node->next;
-                reinterpret_cast<mfc::CString*>(&node->key)->~CString();
-                stlp::deallocate(node, sizeof(NamedFloatTable::Node));
-                node = next;
-            }
-            table_.buckets[b] = nullptr;
-        }
-        table_.count = 0;
-        if (table_.buckets)
-            stlp::deallocate(table_.buckets,
-                             static_cast<std::size_t>(table_.endOfStorage - table_.buckets) * sizeof(void*));
-    }
+    VariableTable() { table_.ConstructDefault(); }
+    ~VariableTable() { table_.Destroy(); }
     NamedFloatTable* Table() { return &table_; }
 
 private:
@@ -359,16 +334,15 @@ void CGlobalMap::Create() {
     for (int i = 0; i < zoneCount_; ++i) {
         variable.Format(game::Text(0x00794140), zones_.data[i].name);   // "q.%s"
         GameLocalPlayerVariables(variable, vars.Table());
-        VariableIterator it;
-        FloatTableBeginOriginal(vars.Table(), nullptr, &it);
-        while (NamedFloatTable::Node* node = it.node) {
+        const NamedFloatTable& table = *vars.Table();
+        for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
             std::uint32_t value;
-            std::memcpy(&value, &node->value, 4);
+            std::memcpy(&value, &node->value.mapped, 4);
             if (value == 0x3F800000) {
-                text::Split(node->key, &parts, '.');
+                text::Split(node->value.key, &parts, '.');
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
-                    QuestsSetSize(&quests_, nullptr, quests_.size + 1, -1);
+                    SetPlaceCount(quests_, quests_.size + 1);
                     quests_.data[quests_.size - 1].AssignCopy(questTemplate.Get());
                     GlobalMapPlace& quest = quests_.data[n];
                     *reinterpret_cast<mfc::CString*>(&quest.name) = parts[2];
@@ -396,9 +370,6 @@ void CGlobalMap::Create() {
                     ++questCount_;
                 }
             }
-            NamedFloatTable::Node* next = node->next;
-            if (!next) next = it.NextBucket();
-            it.node = next;
         }
     }
 
@@ -417,7 +388,7 @@ void CGlobalMap::Create() {
             if (!NonEmpty(way->figure)) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
-            LinksSetSize(&links_, nullptr, links_.size + 1, -1);
+            SetPlaceCount(links_, links_.size + 1);
             links_.data[links_.size - 1].Assign(linkTemplate.Get());
             links_.data[n].zone = i;
             *reinterpret_cast<mfc::CString*>(&links_.data[n].name) = *reinterpret_cast<mfc::CString*>(&way->name);
@@ -581,7 +552,7 @@ void CGlobalMap::Create() {
         if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal(game::Text(0x007940F0), 1);   // "saveb"
         autosave_ = false;
     }
-    interface_->ShowHelp(0);
+    interface_->OpenHelp(0);
 }
 
 EI_REPLACE_METHOD(0x0062D350, CGlobalMap::Create);
@@ -733,7 +704,7 @@ void EmptyArray(Array* array, std::uintptr_t vtable) {
 } // namespace
 
 CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
-    ConstructContainerAt(this, nullptr, ui);
+    reinterpret_cast<CUiContainer*>(this)->Construct(ui);
     allodTitle_ = EmptyCString();
     EmptyArray(&zones_, 0x00740BFC);
     EmptyArray(&links_, 0x00740BF0);

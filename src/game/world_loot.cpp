@@ -16,6 +16,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "lib/mfc_list.h"
+#include "game_lists.h"
 
 namespace {
 
@@ -24,16 +25,11 @@ constexpr int kClassQuestItem = 0x14;                     // given to player 0 i
 
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
-// MFC list helpers instantiated in the exe (not rewritten).
-__declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
-inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 // 0059A670 (a byte-identical copy of NextParticle, effects.h): the item at `position`, which moves on.
 CEngineObject* NextItem(ObjectList* list, ObjectList::Node** position) {
     return *reinterpret_cast<CEngineObject**>(
         NextParticle(list, nullptr, reinterpret_cast<mfc::CTypedPtrList<Particle>::Node**>(position)));
 }
-// 0059CAD0 (RET 4). Frees a node of the shared-object list (+0x12E60).
-__declspec(naked) void __fastcall SharedListFreeNode(void*, void*, void* /*node*/) EI_ORIGINAL(0x0059CAD0)
 // 00665470 (RET 8). The player receives the objects of a list.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
@@ -63,16 +59,16 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
     // 00429F10); the others destroy them (00558470 / 00427830).
     auto abandon = [&]() {
         third.vtable = mfc::impl::LootListClass::Vtable();
-        ItemListRemoveAllOriginal(&third);
+        third.RemoveAll();
         second.vtable = mfc::impl::ItemListClass::Vtable();
-        PtrListRemoveAllNodesOriginal(&second);
+        second.RemoveAll();
         items.vtable = mfc::impl::ItemListClass::Vtable();
-        PtrListRemoveAllNodesOriginal(&items);
+        items.RemoveAll();
     };
     auto destroy = [&]() {
-        LootListDestruct(&third, nullptr);
-        PtrListDestructOriginal(&second);
-        PtrListDestructOriginal(&items);
+        mfc::impl::DestructList<mfc::impl::LootListClass>(third);
+        mfc::impl::DestructList<mfc::impl::ItemListClass>(second);
+        mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
     };
 
     if (!player) {
@@ -95,7 +91,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         }
         for (int i = 0; i < node->data.objects.size; ++i) {
             CEngineObject* item = node->data.objects.data[i];
-            ObjectList::Node* entry = PtrListNewNode(&items, nullptr, items.tail, nullptr);
+            ObjectList::Node* entry = items.NewNode(items.tail, nullptr);
             entry->data = item;
             if (items.tail) items.tail->next = entry;
             else items.head = entry;
@@ -107,7 +103,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         else node->prev->next = node->next;
         if (node == list.tail) list.tail = node->prev;
         else node->next->prev = node->prev;
-        SharedListFreeNode(&list, nullptr, node);
+        mfc::impl::FreeNodeAs<gamelists::SharedObjects>(&list, node);   // 0059CAD0
         abandon();
         return true;
     }
@@ -135,7 +131,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
                 ObjectList::Node* next = node->next;
                 CEngineObject* item = node->data;
                 if (item->GetClassId() == kClassQuestItem) {
-                    PtrListAddTailOriginal(&quest, nullptr, item);
+                    quest.AddTail(item);
                     items.RemoveAt(node);
                 }
                 node = next;
@@ -143,7 +139,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             if (quest.count > 0) PlayerGiveItems(first, nullptr, &quest, 0);
             for (ObjectList::Node* position = quest.head; position;)
                 NextItem(&quest, &position)->Release();
-            PtrListDestructOriginal(&quest);
+            mfc::impl::DestructList<mfc::impl::ItemListClass>(quest);
         }
     }
     player->Party()->Money() += gold;

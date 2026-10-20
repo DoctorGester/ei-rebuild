@@ -65,9 +65,6 @@ public:
     // 0068B410. A new spell made by `manager` (CreateSpellObject(-1)) with this spell's contents.
     CSpell* Clone(class CSpellManager* manager);
 
-    // Forwarder to the game's entry of CopyTo (so its verify wrapper sees the call).
-    void CallCopyTo(CSpell* target);
-
     // 0068B860 / 0068B920 (vtable slots 9 / 10, Load / Save; spell_save.cpp): the effect record
     // (+0x1C), +0x30..+0x4C, the modifiers, flags_ and +0x50. Load clears the modifiers first.
     void LoadSpell(CStream* stream);

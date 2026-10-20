@@ -52,8 +52,10 @@
 //                             the same at the centre of clickable region <n> of the window on top
 //                             of the interface (its regions as the screen's code numbers them;
 //                             placed with the game's own scaling, so Rebirth's widescreen layout too)
-//   clickunit <name> [l|r|move] [ctrl]
-//                             left click (default), right click or move the mouse on the unit with
+//   clickunit <name> [l|r|move|dbl] [ctrl]
+//                             left click (default), right click, the second half of a double click
+//                             (double click message and release: what follows a first click that
+//                             missed the unit) or move the mouse on the unit with
 //                             script name <name> (as GetObjectByName) where the game's own picking
 //                             (00565E40) finds it in this frame; modifiers as below. Fails when the unit is not drawn or always hidden
 //                             behind another object. "#<id>" names a map object by id instead (a
@@ -1674,7 +1676,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
 std::string PostUnitMouse(const std::string& argument) {
     char name[64] = "", button[8] = "l";
     if (sscanf_s(argument.c_str(), "%63s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button))) < 1)
-        return "clickunit needs <name> [l|r|move] [ctrl|shift|alt]";
+        return "clickunit needs <name> [l|r|move|dbl] [ctrl|shift|alt]";
     POINT at{};
     void* hit = nullptr;
     std::string error = FindUnitPoint(name, "clickunit", &at, &hit);
@@ -1698,6 +1700,11 @@ std::string PostUnitMouse(const std::string& argument) {
     } else if (std::strcmp(button, "r") == 0) {
         PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, where);
         PostMessageA(GameWindow(), WM_RBUTTONUP, 0, where);
+    } else if (std::strcmp(button, "dbl") == 0) {
+        // The second half of a double click only: the release after it carries the interface's
+        // double-click flag (+0x7F) into the battle screen's SelectUnit (rebirth_fixes_ui).
+        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, where);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, where);
     }
     return "";
 }

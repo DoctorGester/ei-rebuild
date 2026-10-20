@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
+#include "lib/stlp_list_refs.h"
 #include "originals_library.h"
 #include "originals_script.h"
 
@@ -115,9 +116,8 @@ namespace net {
 namespace {
 
 // The clients list (STLport list<RefPtr<Connection>>, +0x28): end 00438830, begin 00438820,
-// erase; the find by peer address (0043D780, an instantiation of find_if over the nodes) is
+// erase (00438840, list<RefPtr>'s with SharedRef); the find by peer address (0043D780, an instantiation of find_if over the nodes) is
 // FindClientByAddress (library_net_lists.h, over its ClientsNode of the same layout).
-__declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/) EI_ORIGINAL(0x00438840)
 
 
 // "<text>\n" and a flush, when there is a network log.
@@ -151,8 +151,7 @@ void SessionBase::RemoveClientImpl(ClientNode* node) {
     if (node == clients_) return;
     if (NetLog()) LogConnection(game::nettexts::RemoveClient(), node->connection, nullptr);
     node->connection->Close();
-    ClientNode* after;
-    ClientsErase(&clients_, nullptr, &after, node);
+    stlp::list<RefPtr>::Erase<stlp::SharedRef>(stlp::AsRefNode(node));
 }
 
 // 00437080 (slot 3, packet kind 0): an update from a client. Unknown senders are logged (returns
@@ -273,9 +272,7 @@ namespace {
 void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // The handler vectors' destructor (the vector base's: the storage freed).
 constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
-// The clients list: release of a node's counted connection pointer; its nodes and sentinel go
-// back to the pool (00439E60, 0043AB30).
-__declspec(naked) void __fastcall ClientRefRelease(Connection** /*ref*/, void*, int /*flag*/) EI_ORIGINAL(0x0043DCA0)
+// The clients list: its nodes and sentinel go back to the pool (00439E60, 0043AB30).
 } // namespace
 
 void SessionBase::Destruct() {
@@ -306,7 +303,7 @@ void SessionBase::Destruct() {
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        ClientRefRelease(&node->connection, nullptr, 0);
+        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // 0043DCA0 with 0: RefPtr::Destroy
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;
@@ -332,9 +329,8 @@ EI_REPLACE_METHOD(0x004368D0, SessionBase::DeletingDestruct);
 namespace net {
 
 namespace {
-// 00439E30: the clients list's insert(pos, value); 00425040: another STLport string destructor.
-__declspec(naked) ClientNode** __fastcall ClientsInsert(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/,
-                                                        Connection* const* /*value*/) EI_ORIGINAL(0x00439E30)
+// 00439E30: the clients list's insert(pos, value) (list<RefPtr>'s with SharedRef); 00425040:
+// another STLport string destructor.
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 } // namespace
 
@@ -350,8 +346,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     Connection* connection = memory ? memory->Construct(id) : nullptr;
     Connection* ref;
     netlists::InitClientRef(&ref, connection);
-    ClientNode* inserted;
-    ClientsInsert(&clients_, nullptr, &inserted, clients_, &ref);
+    stlp::list<RefPtr>::Insert<stlp::SharedRef>(stlp::AsRefNode(clients_), reinterpret_cast<const RefPtr&>(ref));
     Connection* added = clients_->prev->connection;
     added->address_ = *address;
     if (rate <= 500) rate = 500;

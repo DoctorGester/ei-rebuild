@@ -506,7 +506,7 @@ void ClearArray(UiPtrArray<T>& array) {
 } // namespace
 
 CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
-    ConstructEngineObject(this);
+    EngineObjectConstruct(reinterpret_cast<CEngineObject*>(this));
     localRotation_.SetIdentity();   // two identity rotations (0040CB00, inlined here)
     worldRotation_.SetIdentity();
     interface_ = ui;

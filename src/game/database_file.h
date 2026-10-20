@@ -54,19 +54,17 @@ inline int ReportNoDatabase(const mfc::CString& folder) {
     return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(folder + "databases.res"));
 }
 
-// A vector serialiser of the chunk archive through its address (RET 0xC: the chunk id, the vector,
-// an unused argument), so that its verify wrapper runs.
-using SerializeFn = void(__fastcall*)(ChunkArchive*, void*, int, void*, void*);
-
 // One table's pass over the stream: an archive of its own (the out-of-line constructor 0053A7B0)
-// opened for loading, the table's records read as chunk `id`, the archive closed; `index` then
+// opened for loading, the table's records read as chunk `id` by the archive's vector serialiser
+// `serialize` (the chunk id, the vector, an unused argument), the archive closed; `index` then
 // files the records, and the archive is destroyed (004645A0).
-template <typename Index>
-void LoadTable(CMemoryStream* stream, int id, SerializeFn serialize, void* table, void* unused, Index index) {
+template <typename Records, typename Table, typename Index>
+void LoadTable(CMemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*, void*), Table* table,
+               void* unused, Index index) {
     ChunkArchive archive;
     archive.Construct();
     archive.Open(stream, 1, 1);
-    serialize(&archive, nullptr, id, table, unused);
+    (archive.*serialize)(id, table, unused);
     archive.Close(stream);
     index();
     archive.Destruct();

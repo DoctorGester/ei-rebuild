@@ -23,9 +23,7 @@ namespace net {
 
 // A free-list of message ids for one message type (16 bytes): returned ids, then the next new id.
 struct IdPool {
-    std::uint16_t* begin;      // +0x00 vector<uint16_t> of free ids
-    std::uint16_t* end;        // +0x04
-    std::uint16_t* eos;        // +0x08
+    stlp::vector<std::uint16_t> free;   // +0x00 the ids returned
     std::uint16_t next;        // +0x0C the last id handed out new
     std::uint16_t unused_0E;
 
@@ -62,7 +60,8 @@ static_assert(offsetof(ReplicaEntry, version_) == 0x08);
 static_assert(offsetof(ReplicaEntry, object_) == 0x10);
 static_assert(sizeof(ReplicaEntry) == 0x14);
 
-// One item of a history entry: what a packet carried for one entry.
+// One item of a history entry: what a packet carried for one entry (an element of
+// SentPacket::items; its list's element policy is library_net_lists.h's SentRecordElement).
 struct SentItem {
     enum Action : std::uint32_t {
         kChanged = 0,
@@ -71,12 +70,12 @@ struct SentItem {
         kRemovedReliable = 3,
     };
 
-    SentItem* next;
-    SentItem* prev;
-    std::uint32_t action;      // +0x08 Action
-    std::uint32_t version;     // +0x0C the object's version sent
-    ReplicaEntry* entry;       // +0x10 counted pointer
+    std::uint32_t action;      // +0x00 Action
+    std::uint32_t version;     // +0x04 the object's version sent
+    ReplicaEntry* entry;       // +0x08 counted pointer
 };
+using SentItemNode = stlp::list<SentItem>::Node;
+static_assert(sizeof(SentItemNode) == 0x14);
 
 // A chunk of the reliable stream: {uint16 sequence, uint8 size, size bytes}.
 struct ReliableChunk {
@@ -86,47 +85,38 @@ struct ReliableChunk {
     std::uint8_t Size() const { return bytes[2]; }
 };
 
-// A packet in the send history: when it went out and what it carried.
+// A packet in the send history: when it went out and what it carried (its list's element policy is
+// library_net_lists.h's PacketRecordElement).
 struct SentPacket {
     double time;               // +0x00 the connection's clock when sent
     std::uint16_t sequence;    // +0x08
     std::uint16_t unused_0A;
-    SentItem* items;           // +0x0C STLport list sentinel
+    stlp::list<SentItem> items;   // +0x0C
     ReliableChunk header;      // +0x10 the reliable chunk the packet carried
     std::uint8_t rolledBack;   // +0x114
+    std::uint8_t unused_115[3];
 };
 static_assert(offsetof(SentPacket, items) == 0x0C);
 static_assert(offsetof(SentPacket, rolledBack) == 0x114);
 
-// A node of the send history (history_ / acknowledged_: STLport list<SentPacket>).
-struct HistoryNode {
-    HistoryNode* next;
-    HistoryNode* prev;
-    SentPacket data;           // +0x08
-};
+// A node of the send history (history_ / acknowledged_).
+using HistoryNode = stlp::list<SentPacket>::Node;
 static_assert(offsetof(HistoryNode, data) == 0x08);
-static_assert(offsetof(HistoryNode, data) + offsetof(SentPacket, rolledBack) == 0x11C);
+static_assert(sizeof(HistoryNode) == 0x120);
 
 // A node of the chunk lists (headers_: waiting to be sent; incoming_: received out of order).
-struct HeaderNode {
-    HeaderNode* next;
-    HeaderNode* prev;
-    ReliableChunk data;        // +0x08
-};
+using HeaderNode = stlp::list<ReliableChunk>::Node;
+static_assert(sizeof(HeaderNode) == 0x10C);
 
-// A batch of freed ids (a node of freedIds_): STLport vector<{uint16 id, uint8 type}>.
+// A batch of freed ids (an element of freedIds_).
 struct FreedId {
     std::uint16_t id;
     std::uint8_t type;
     std::uint8_t unused_3;
 };
-struct FreedBatch {
-    FreedBatch* next;
-    FreedBatch* prev;
-    FreedId* begin;            // +0x08
-    FreedId* end;
-    FreedId* eos;
-};
+using FreedIds = stlp::vector<FreedId>;
+using FreedBatch = stlp::list<FreedIds>::Node;
+static_assert(sizeof(FreedBatch) == 0x14);
 
 // An object received from the peer (the value of records_).
 struct Record {
@@ -227,9 +217,7 @@ public:
     std::uint16_t unused_000A;
     std::uint32_t lastReceived_;        // +0x000C sequence of the newest packet received
     std::uint32_t sequenceHigh_;        // +0x0010 0x10000: the upper bits of the received sequences
-    std::int32_t* received_;            // +0x0014 vector<int>: sequences received recently
-    std::int32_t* receivedEnd_;
-    std::int32_t* receivedEos_;
+    stlp::vector<std::int32_t> received_;   // +0x0014 sequences received recently
     std::uint32_t id_;                  // +0x0020 the connection id (sent with a leave packet)
     float roundTrip_;                   // +0x0024 average round trip (seconds)
     float roundTripSquare_;             // +0x0028 average of its square
@@ -240,19 +228,19 @@ public:
     double clock_;                      // +0x0048 seconds since the connection started
     std::uint32_t updateBudget_;        // +0x0050 220: bytes per update
     IdPool idPools_[kMessageTypes];     // +0x0054 one per message type
-    FreedBatch* freedIds_;              // +0x1054 list of batches of ids returned to the pools later
+    stlp::list<FreedIds> freedIds_;     // +0x1054 batches of ids returned to the pools later
     float freedTimer_;                  // +0x1058
-    stlp::map<std::uint32_t, RefPtr> bySentId_;   // +0x105C type << 16 | id -> entry
+    stlp::map<std::int32_t, RefPtr> bySentId_;    // +0x105C type << 16 | id -> entry
     stlp::map<CRefObject*, RefPtr> byObject_;     // +0x1068 object -> entry
     EntryMap priorities_[11];           // +0x1074 per priority: entry -> entry
-    HistoryNode* history_;              // +0x10F8 packets sent, waiting for an acknowledgement
-    HistoryNode* acknowledged_;         // +0x10FC lost packets, kept a while for late acknowledgements
+    stlp::list<SentPacket> history_;    // +0x10F8 packets sent, waiting for an acknowledgement
+    stlp::list<SentPacket> acknowledged_;   // +0x10FC lost packets, kept a while for late acknowledgements
     RecordMap records_;                 // +0x1100 objects received (key type << 16 | id)
     stlp::map<CRefObject*, AttachedId> attached_;   // +0x110C received object -> (type, id)
     std::uint16_t headerSequence_;      // +0x1118 sequence of the next reliable chunk sent
     std::uint16_t incomingSequence_;    // +0x111A sequence of the next reliable chunk expected
-    HeaderNode* headers_;               // +0x111C reliable chunks waiting to be sent
-    HeaderNode* incoming_;              // +0x1120 reliable chunks received ahead of their turn
+    stlp::list<ReliableChunk> headers_;    // +0x111C reliable chunks waiting to be sent
+    stlp::list<ReliableChunk> incoming_;   // +0x1120 reliable chunks received ahead of their turn
     std::uint32_t ackMask_;             // +0x1124 bit k: packet ackBase_ - 1 - k acknowledged already
     std::uint16_t ackBase_;             // +0x1128 the peer's newest acknowledged sequence
     std::uint16_t unused_112A;

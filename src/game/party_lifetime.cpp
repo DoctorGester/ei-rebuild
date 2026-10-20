@@ -201,7 +201,7 @@ CParty* CParty::Construct() {
     items_.growBy = 0;
     items_.capacity = 0;
     items_.size = 0;
-    variables_.InitBuckets(100);
+    variables_.InitZeroedBuckets(100);
     new (&zone_) mfc::CString();
     itemManager_ = nullptr;
     spellManager_ = nullptr;

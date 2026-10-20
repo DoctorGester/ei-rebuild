@@ -89,18 +89,17 @@ BOOL CItem::CopyToImpl(CItem* target, CSpellManager* spells) {
     return 1;
 }
 
-__declspec(naked) BOOL CItem::CallCopyTo(CItem*, CSpellManager*) EI_ORIGINAL(0x0069FFC0)
 
-// The subclasses' slot 15: the base copy (through its address), then their own dwords.
+// The subclasses' slot 15: the base copy (0069FFC0), then their own dwords.
 BOOL CItemWeapon::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CallCopyTo(target, spells)) return 0;
+    if (!CItem::CopyToImpl(target, spells)) return 0;
     auto* weapon = static_cast<CItemWeapon*>(target);
     std::memcpy(&weapon->actionValue_, &actionValue_, sizeof(CItemWeapon) - offsetof(CItemWeapon, actionValue_));
     return 1;
 }
 
 BOOL CItemArmor::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CallCopyTo(target, spells)) return 0;
+    if (!CItem::CopyToImpl(target, spells)) return 0;
     auto* armor = static_cast<CItemArmor*>(target);
     std::memcpy(armor->absorb_, absorb_, sizeof(absorb_));
     armor->layerMask_[0] = layerMask_[0];
@@ -109,19 +108,19 @@ BOOL CItemArmor::CopyToImpl(CItem* target, CSpellManager* spells) {
 }
 
 BOOL CItemQuick::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CallCopyTo(target, spells)) return 0;
+    if (!CItem::CopyToImpl(target, spells)) return 0;
     static_cast<CItemQuick*>(target)->actionValue_ = actionValue_;
     return 1;
 }
 
 BOOL CItemQuest::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CallCopyTo(target, spells)) return 0;
+    if (!CItem::CopyToImpl(target, spells)) return 0;
     static_cast<CItemQuest*>(target)->questItemId_ = questItemId_;
     return 1;
 }
 
 BOOL CItemLoot::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CallCopyTo(target, spells)) return 0;
+    if (!CItem::CopyToImpl(target, spells)) return 0;
     auto* loot = static_cast<CItemLoot*>(target);
     loot->kind_ = kind_;
     loot->recordType_ = recordType_;
@@ -130,7 +129,7 @@ BOOL CItemLoot::CopyToImpl(CItem* target, CSpellManager* spells) {
 }
 
 BOOL CItemSpell::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CallCopyTo(target, spells)) return 0;
+    if (!CItem::CopyToImpl(target, spells)) return 0;
     static_cast<CItemSpell*>(target)->actionValue_ = actionValue_;
     return 1;
 }

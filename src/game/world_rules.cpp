@@ -26,7 +26,7 @@ namespace {
 WorldPlayer* LocalPlayer() { return reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player; }
 
 // 00460AF0: a player's named float variable (WorldPlayer::variables).
-float Variable(WorldPlayer* player, const char* name) { return NamedTableGet(player->variables, nullptr, name); }
+float Variable(WorldPlayer* player, const char* name) { return player->variables.Get(name); }
 
 CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }

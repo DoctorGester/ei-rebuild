@@ -72,7 +72,6 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 // 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
 // CPtrList constructor (block size) and destructor.
 inline void* __fastcall PtrListConstruct(void* a0, void*, int a2) { return mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(a0, a2); }
-inline void __fastcall PtrListDestruct(void* a0) { PtrListDestruct4C96F0Original(a0); }
 // The unit controller (+0x240): 00552780 says remark `what`; 00551AE0 tries to be tamed by `tamer`
 // with skill `skill` (0 when it failed).
 // Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
@@ -314,7 +313,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
         node = node->next;
         if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }
-    PtrListDestruct(&units);
+    mfc::impl::DestructList<mfc::impl::PtrListClass>(units);
 }
 
 inline float GroundPlus(CSpellEffect* e, int slot, const Vector3& at, const float* add) {

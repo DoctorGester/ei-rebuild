@@ -16,6 +16,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "lib/stlp_list.h"
 
 #include <cmath>
 #include <limits>
@@ -119,8 +120,7 @@ int CUnitClientSpecific::UpdateClient() {
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);
-            ClientSpeechNode* after;
-            SpeechEraseOriginal(&speech, nullptr, &after, speech->next);
+            stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));   // 005392F0
         }
     }
     if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)

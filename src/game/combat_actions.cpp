@@ -115,8 +115,7 @@ void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->R
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(a2, a3, a4, a5); }
 // 005C1010 / 005C0DF0. CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map (+0x294).
 // 0050F5B0. Map object base: drops all effects (+0x198), marks the object changed.
-// 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists.
-UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, UnitListNode* a3) { return (UnitListNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
+// 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists: UnitList::NewNode.
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
 // 00548DE0 (CUnitServer::PlayAnimationOrder): plays `animation` (taken by value and destroyed).
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
@@ -314,7 +313,7 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         auto* watched = reinterpret_cast<UnitList*>(&controller->brain.visible);
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
-            UnitListNode* added = UnitListNewNode(watched, nullptr, watched->tail, nullptr);
+            UnitListNode* added = watched->NewNode(watched->tail, nullptr);
             if (murderer != added->data) {
                 if (added->data) added->data->Release();
                 added->data = nullptr;

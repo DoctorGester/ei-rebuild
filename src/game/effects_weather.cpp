@@ -10,11 +10,13 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/stlp_hash.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "lib/mfc_coll.h"
 
 #include <bit>
 #include <cstring>
@@ -60,21 +62,20 @@ void* SoundManager() { return *reinterpret_cast<void**>(0x007AF784); }
 using KeyVector = stlp::vector<std::uint32_t>;
 static_assert(sizeof(KeyVector) == 12);
 void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
-    DwordVectorInsertOverflowOriginal(v, nullptr, pos, value, count);
+    v->InsertOverflow<stlp::PlainElement<std::uint32_t>>(pos, *value, count);
 }
 
 KeyVector& DeadCells() { return *reinterpret_cast<KeyVector*>(0x007ABB58); }
 std::uint8_t& DeadCellsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007ABB64); }
 
 // The cell map's own insert (004E2E90: resize, then insert a copy of the pair unless the key
-// exists; returns the pair) and erase by key (004E2F00).
-struct CellMapCalls {
-    std::uint32_t* Insert(const std::uint32_t* pair);
-    int Erase(const std::uint32_t* key);
-};
-__declspec(naked) std::uint32_t* CellMapCalls::Insert(const std::uint32_t*) EI_ORIGINAL(0x004E2E90)
-__declspec(naked) int CellMapCalls::Erase(const std::uint32_t*) EI_ORIGINAL(0x004E2F00)
-CellMapCalls* Calls(CVisibilityFog::CellMap* map) { return reinterpret_cast<CellMapCalls*>(map); }
+// exists; returns the pair) and erase by key (004E2F00): the 28-byte dword-keyed table's.
+using CellTable = stlp::HashtableAbi<stlp::DwordKeyTraits<28>>;
+CellTable::Table* CellTableOf(CVisibilityFog::CellMap* map) { return reinterpret_cast<CellTable::Table*>(map); }
+std::uint32_t* InsertCell(CVisibilityFog::CellMap* map, const std::uint32_t* pair) {
+    return reinterpret_cast<std::uint32_t*>(
+        CellTable::FindOrInsert(CellTableOf(map), nullptr, reinterpret_cast<const CellTable::Value*>(pair)));
+}
 
 } // namespace
 
@@ -178,10 +179,10 @@ void CRainSnow::DestructBody() {
     ei::SetVtable(this, kRainSnowVtable);
     Clear();
     offsets.FreeData();
-    WordArrayDestructOriginal(&indices);
+    reinterpret_cast<mfc::impl::CWordArray*>(&indices)->Destruct();   // 006FEECD
     vertices.FreeData();
-    ByteArrayDestructOriginal(&frames);
-    ByteArrayDestructOriginal(&outcodes);
+    reinterpret_cast<mfc::impl::CByteArray*>(&frames)->Destruct();   // 006FF61D
+    reinterpret_cast<mfc::impl::CByteArray*>(&outcodes)->Destruct();
     positions.FreeData();
     projected.FreeData();
     if (texture) texture->Release();
@@ -198,7 +199,7 @@ EI_REPLACE_METHOD(0x005617E0, CRainSnow::DeletingDestruct);
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
-void* CVisibilityFog::World() { return ObjectWorld(this); }
+void* CVisibilityFog::World() { return ObjectWorld(reinterpret_cast<const CEngineObject*>(this)); }
 
 // The bounding box (0.5 larger than the cell centres) and sphere of all cells, for culling.
 void CVisibilityFog::ComputeBounds() {
@@ -275,7 +276,7 @@ int CVisibilityFog::UpdateCells() {
     std::uint32_t* end = dead.end();
     for (std::uint32_t* key = dead.begin(); key != end; ++key) {
         std::uint32_t copy = *key;
-        Calls(&cells)->Erase(&copy);
+        CellTable::EraseKey(CellTableOf(&cells), nullptr, &copy);
     }
     return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
 }
@@ -297,7 +298,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             // every dword of the new value starts as the key.
             std::uint32_t pair[7];
             for (std::uint32_t& d : pair) d = key;
-            FogCell* cell = reinterpret_cast<FogCell*>(Calls(&cells)->Insert(pair) + 1);
+            FogCell* cell = reinterpret_cast<FogCell*>(InsertCell(&cells, pair) + 1);
             cell->visible = 1;
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);

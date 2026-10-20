@@ -360,7 +360,7 @@ bool CLinkMesh::RemovePartImpl(const stlp::string* name) {
     if (node == ranges_.end()) return false;
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
     LinkPartRanges removed = node->second;
-    LinkRangeMapEraseOriginal(&ranges_, nullptr, node);
+    lib_trees::LinkRanges::EraseAt(&ranges_, nullptr, node);   // 004F4E40
 
     CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count, sizeof(VertexPacket));
     CloseGap(normals_.data, normals_.size, removed.normals.start, removed.normals.count, sizeof(NormalPacket));

@@ -6,6 +6,7 @@
 #include "app.h"
 #include "world.h"
 #include "ui_camp.h"
+#include "ui_briefing.h"
 #include "ui_create_screen.h"
 
 #include "ui.h"
@@ -22,6 +23,7 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "world_glue.h"
+#include "library_trees.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,15 +33,15 @@ namespace {
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
 std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
 
-// Member constructors (thiscall on the member).
-__declspec(naked) void __fastcall Member5F8F30(void*) EI_ORIGINAL(0x005F8F30)
-__declspec(naked) void __fastcall Member5F6080(void*) EI_ORIGINAL(0x005F6080)
-__declspec(naked) void __fastcall Member5F5F90(void*) EI_ORIGINAL(0x005F5F90)
-   // CStringArray
-// STLport containers taking an allocator (by address; empty).
-__declspec(naked) void __fastcall Member5F90E0(void*, void*, const void*) EI_ORIGINAL(0x005F90E0)
-__declspec(naked) void __fastcall Member5F9300(void*, void*, const void*) EI_ORIGINAL(0x005F9300)
-__declspec(naked) void __fastcall Member5F9540(void*, void*, const void*) EI_ORIGINAL(0x005F9540)
+// An empty STLport list whose nodes are `Node` (next, prev, then the element): its sentinel from the
+// node pool, linked to itself (the list constructors 005F90E0 / 005F9300).
+template <typename Node>
+Node* EmptyList() {
+    auto* head = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    head->next = head;
+    head->prev = head;
+    return head;
+}
 
 // The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
@@ -53,45 +55,44 @@ void SetVtables(void* window, void** vtable, void** inputVtable) {
 
 void CInterface3D::CreateScreen(int id) {
     void* screen = nullptr;
-    char allocators[4] = {};
     switch (id) {
     case 0:
         return;
     case 1: {   // the in-game screen (ui_camp.h)
         screen = gamecrt::operator_new(0x230);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
-        SetDword(screen, 0x168, 0x007402AC);
-        SetDword(screen, 0x16C, 0);
-        SetDword(screen, 0x178, 0);
-        SetDword(screen, 0x174, 0);
-        SetDword(screen, 0x170, 0);
-        mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(ei::OffsetPtr(screen, 0x1DC));
-        Member5F8F30(ei::OffsetPtr(screen, 0x1F0));
-        Member5F6080(ei::OffsetPtr(screen, 0x204));
-        Member5F5F90(ei::OffsetPtr(screen, 0x220));
+        static_cast<CUiContainer*>(screen)->Construct(this);
+        auto* battle = static_cast<CBattleScreen*>(screen);
+        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&battle->party_);
+        mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&battle->heroes_);
+        battle->personTexts_.Construct();          // 005F8F30
+        battle->clientParty_.Construct();          // 005F6080
+        battle->itemUseKey_.ConstructItemUseKey();  // 005F5F90
         SetVtables(screen, Vtable(0x00740764), Vtable(0x00740730));
         break;
     }
     case 2:
         screen = gamecrt::operator_new(0x17C);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
+        static_cast<CUiContainer*>(screen)->Construct(this);
         SetVtables(screen, Vtable(0x00740688), Vtable(0x00740654));
         break;
     case 3: {   // the base / briefing screen
         screen = gamecrt::operator_new(0x2A4);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
-        StringArrayConstruct(ei::OffsetPtr(screen, 0x170));
-        SetDword(screen, 0x184, EmptyString());
-        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(ei::OffsetPtr(screen, 0x190));
-        Member5F90E0(ei::OffsetPtr(screen, 0x240), nullptr, &allocators[0]);
-        SetDword(screen, 0x248, EmptyString());
-        Member5F8F30(ei::OffsetPtr(screen, 0x26C));
-        Member5F9300(ei::OffsetPtr(screen, 0x278), nullptr, &allocators[1]);
-        IdVectorConstructOriginal(ei::OffsetPtr(screen, 0x284), nullptr, &allocators[2]);
-        Member5F9540(ei::OffsetPtr(screen, 0x294), nullptr, &allocators[3]);
+        static_cast<CUiContainer*>(screen)->Construct(this);
+        auto* briefing = static_cast<CBriefingScreen*>(screen);
+        StringArrayConstruct(&briefing->topics_);
+        new (&briefing->topic_) mfc::CString();
+        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&briefing->party_);
+        briefing->movers_ = EmptyList<BriefingMover>();
+        new (&briefing->dialogueText_) mfc::CString();
+        briefing->personTexts_.Construct();           // 005F8F30
+        briefing->shown_ = EmptyList<BriefingShownItem>();
+        briefing->people_.ConstructEmpty();           // 005F8F10
+        briefing->speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
+        briefing->speakersEnd_ = nullptr;
+        briefing->speakersCapacity_ = nullptr;
         SetVtables(screen, Vtable(0x007405AC), Vtable(0x00740578));
         break;
     }
@@ -106,7 +107,7 @@ void CInterface3D::CreateScreen(int id) {
     case 7:
         screen = gamecrt::operator_new(0x168);
         if (!screen) break;
-        ConstructContainerAt(screen, nullptr, this);
+        static_cast<CUiContainer*>(screen)->Construct(this);
         SetVtables(screen, Vtable(0x00740840), Vtable(0x0074080C));
         break;
     case 8:
@@ -134,9 +135,7 @@ CCursor* Cursor() { return GameCursor(); }   // 005E5200 SetShape (RET 4)
 // 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
 // The game state's server flag (007AFEA4; 00578D00 reads it, 00578D10 sets it; neither reads ECX).
 
-// 005FA9A0 (thiscall on the window stack, RET 0xC): the vector's insert when it is full.
-__declspec(naked) void __fastcall StackInsertOverflow(void*, void*, CUiWindow** /*at*/, CUiWindow* const* /*value*/,
-                                                      int /*count*/) EI_ORIGINAL(0x005FA9A0)
+// 005FA9A0: the window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
 // IDirect3DDevice7::SetRenderState (COM, slot 20).
 void SetRenderState(UiD3DDevice* device, unsigned long state, unsigned long value) {
@@ -151,7 +150,8 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
         if (ui->stackEnd_) *ui->stackEnd_ = window;
         ++ui->stackEnd_;
     } else {
-        StackInsertOverflow(&ui->stackBegin_, nullptr, ui->stackEnd_, &window, 1);
+        reinterpret_cast<stlp::vector<CUiWindow*>*>(&ui->stackBegin_)
+            ->InsertOverflow<stlp::PlainElement<CUiWindow*>>(ui->stackEnd_, window, 1);
     }
     static const unsigned long kStates[5][2] = {{0x1B, 1}, {0x0F, 1}, {0x13, 5}, {0x14, 6}, {0x18, 0x80}};
     for (const auto& state : kStates) {
@@ -278,7 +278,7 @@ void CInterface3D::ShowMessage(int force) {
     CUiWindow* window = nullptr;
     if (memory) {
         int value = messageFlag_;
-        ConstructContainerAt(memory, nullptr, this);
+        static_cast<CUiContainer*>(memory)->Construct(this);
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = true;
         CStringConstructTextOriginal(&win->text_, nullptr, messageText_);
@@ -326,7 +326,7 @@ void CInterface3D::OpenHelp(int flag) {
     void* memory = gamecrt::operator_new(0x194);
     CUiWindow* window = nullptr;
     if (memory) {
-        ConstructContainerAt(memory, nullptr, this);
+        static_cast<CUiContainer*>(memory)->Construct(this);
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = false;
         CStringConstructTextOriginal(&win->text_, nullptr, topic);
@@ -364,10 +364,10 @@ void FreeNode18(void* node) {
     *FreeList18() = node;
 }
 
-// Members (thiscall): screen 9's two maps (005F9F80 with two allocators, RET 8; 005F98F0);
-// screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
-__declspec(naked) void __fastcall Screen9FirstMap(void*, void*, const void*, const void*) EI_ORIGINAL(0x005F9F80)
-__declspec(naked) void __fastcall Screen9SecondMap(void*) EI_ORIGINAL(0x005F98F0)
+// Members (thiscall): screen 9's two maps are item caches (lib_trees::ItemCache: 005F9F80 with two
+// allocators, 005F98F0); screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
+using ItemCache = lib_trees::ItemCache;
+ItemCache::Tree* CacheAt(void* self, int offset) { return reinterpret_cast<ItemCache::Tree*>(static_cast<std::uint8_t*>(self) + offset); }
 __declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
 
 std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
@@ -376,14 +376,14 @@ std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 
 // 005F6F30 (thiscall, RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
 void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
-    ConstructContainerAt(self, nullptr, ui);
+    static_cast<CUiContainer*>(self)->Construct(ui);
     SetDword(self, 0x168, 0);
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;
     CInterface3D* slot = ui;
-    Screen9FirstMap(Bytes(self) + 0x170, nullptr, &junk, &slot);
+    ItemCache::ConstructWith(CacheAt(self, 0x170), nullptr, &junk, &slot);
     SetDword(self, 0x17C, 50);
-    Screen9SecondMap(Bytes(self) + 0x180);
+    ItemCache::Construct(CacheAt(self, 0x180));
     SetDword(self, 0x18C, 50);
     SetDword(self, 0x1AC, 0);
     SetDword(self, 0x1B0, 0);
@@ -397,8 +397,8 @@ EI_REPLACE(0x005F6F30, Screen9Construct);
 // 005F6D50 (thiscall, RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list
 // at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
 void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
-    ConstructContainerAt(self, nullptr, ui);
-    MappedResourceConstructOriginal(Bytes(self) + 0x170);
+    static_cast<CUiContainer*>(self)->Construct(ui);
+    reinterpret_cast<CMappedResource*>(Bytes(self) + 0x170)->Construct();
     std::uint8_t* list = Bytes(self) + 0x1C8;
     list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten
     SetDword(list, 0, 0);

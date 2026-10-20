@@ -60,7 +60,7 @@ Quaternion DefaultRotation() {
 char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
 // 00530930. CUnit::GetPrototype: the unit's prototype record (its name first).
-static char** UnitPrototype(CEngineObject* object, void*) { return static_cast<char**>(::UnitPrototypeOf(object)); }
+static char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_cast<char**>(static_cast<CUnit*>(object)->GetPrototype()); }
 
 // The unit record AddUnitToServer builds on its stack: a CParty (party.h; constructor 00661050,
 // destructor 006611D0) given one member by 006628D0 (RET 0xC); CreateUnits takes a pointer to the
@@ -101,7 +101,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
                                                   reinterpret_cast<const unsigned char*>(kNoExit)) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
         int index = exits->size;
-        ZoneExitsSetSizeOriginal(exits, nullptr, index + 1, -1);
+        gamearrays::ExitsSetSize(exits, index + 1);
         ZoneExit* to = &exits->data[index];
         auto* src = reinterpret_cast<const std::uint8_t*>(from);
         auto* dst = reinterpret_cast<std::uint8_t*>(to);

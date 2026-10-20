@@ -59,8 +59,8 @@ void CBriefingScreen::FindTopics(int personId) {
     mfc::CString constructor;
     TopicList found;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        if (Bits(node->value) != kOneBits) continue;
-        text::Split(node->key, &parts, '.');
+        if (Bits(node->value.mapped) != kOneBits) continue;
+        text::Split(node->value.key, &parts, '.');
         if (parts.size != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;

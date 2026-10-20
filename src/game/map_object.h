@@ -187,6 +187,8 @@ public:
     // end flag and +0x0C (within 0.001) that last no longer and are no stronger.
     virtual std::uintptr_t AddEffect(const MapEffect* effect);
     std::uintptr_t AddEffectImpl(const MapEffect* effect);   // body of the slot above (registered by member pointer)
+    // 0050FE70: the effect array's SetSize(count, -1) (CArray<MapEffect>, mfc::impl::Plain20's).
+    void SetEffectCount(int count);
     virtual std::uint32_t SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it; units 0052F7F0 (the new flags_)
     virtual int SetVisibilityMode(int mode);    // 47 (0xBC): 004467C0 hands it to the companion
     std::uintptr_t SetVisibilityModeImpl(int mode);   // body of the slot above (registered by member pointer)
@@ -348,7 +350,7 @@ public:
     int updateCountdown;
     float animationSpeed;           // +0x178 the animation's speed factor (CUnit::animationSpeed; 1 after Create)
     UnitVitalsPacked packedVitals;  // +0x17C hit points +0x17E, maximum +0x180, mana +0x182, maximum +0x184
-    void* effectsVtable;            // +0x194 \ CArray<MapEffect> (vtable 0073DBA0; SetSize 0050FE70)
+    void* effectsVtable;            // +0x194 \ CArray<MapEffect> (vtable 0073DBA0; SetSize 0050FE70: SetEffectCount)
     MapEffect* effects;             // +0x198 |
     int effectCount;                // +0x19C |
     int effectCapacity;             // +0x1A0 |

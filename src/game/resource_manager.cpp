@@ -60,14 +60,15 @@ void CResourceManager::Destroy() {
 
 // --- Archives -----------------------------------------------------------------------------------
 
-BOOL CResourceManager::AddArchiveImpl(const char* path) {
-    return AddArchiveOf(path, sizeof(CMappedResource), MappedResourceConstructOriginal);
-}
-
 namespace {
-// CMMIOResource::Construct (006721D0) on the archive's memory.
+// CMappedResource::Construct (00671280) and CMMIOResource::Construct (006721D0) on the archive's memory.
+CMappedResource* __fastcall ConstructMappedResource(void* memory) { return static_cast<CMappedResource*>(memory)->Construct(); }
 CMappedResource* __fastcall ConstructMmioResource(void* memory) { return static_cast<CMMIOResource*>(memory)->Construct(); }
 } // namespace
+
+BOOL CResourceManager::AddArchiveImpl(const char* path) {
+    return AddArchiveOf(path, sizeof(CMappedResource), ConstructMappedResource);
+}
 
 BOOL CResourceManager::AddMmioArchive(const char* path) {
     return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);

@@ -72,7 +72,6 @@ T Global(std::uintptr_t address) {
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
 BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
 void __fastcall UiContainerMouseDown(void* input, void*, int buttons, int x, int y) {
     static_cast<UiContainerInput*>(input)->OnLeftDown(buttons, x, y);
@@ -162,7 +161,7 @@ void CSaveLoadWindow::Update() {
         slide_ = static_cast<float>(slide);
         if (slide > 1.0f) {
             sliding_ = false;
-            interface_->ShowHelp(0);
+            interface_->OpenHelp(0);
         }
     }
     int position;
@@ -321,7 +320,7 @@ void COptionsWindow::Update() {
         slide_ = static_cast<float>(slide);
         if (slide > 1.0f) {
             sliding_ = false;
-            interface_->ShowHelp(0);
+            interface_->OpenHelp(0);
         }
     }
     for (int i = 0; i < kSettingCount; ++i) {

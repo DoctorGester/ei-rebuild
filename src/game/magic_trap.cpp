@@ -28,6 +28,7 @@
 #include "originals_units.h"
 #include "lib/mfc_slots.h"
 #include "game_slots.h"
+#include "game_lists.h"
 
 namespace {
 
@@ -57,11 +58,7 @@ constexpr int kPtrListBlockSize = 10;
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
-VictimNode* __fastcall VictimNewNode(VictimList* a0, void*, VictimNode* a2, VictimNode* a3) { return (VictimNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-__declspec(naked) void __fastcall VictimFreeNode(VictimList*, void*, VictimNode*) EI_ORIGINAL(0x0052CE20)
 void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { AIRef::Of(a0)->Assign(a2); }
-PtrNode* __fastcall PtrNewNode(PtrList* a0, void*, PtrNode* a2, PtrNode* a3) { return (PtrNode*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-inline void __fastcall PtrRemoveAll(PtrList* l) { PtrListRemoveAllOriginal(l); }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
@@ -79,7 +76,7 @@ bool StaysInside(MagicTrap* trap, CEngineObject* unit) {
 }
 
 void Append(PtrList* list, CEngineObject* unit) {
-    PtrNode* node = PtrNewNode(list, nullptr, list->tail, nullptr);
+    PtrNode* node = list->NewNode(list->tail, nullptr);
     node->data = unit;
     if (list->tail) list->tail->next = node;
     else list->head = node;
@@ -98,7 +95,7 @@ void MagicTrap::UpdateVictims() {
             else node->prev->next = node->next;
             if (node == victims->tail) victims->tail = node->prev;
             else node->next->prev = node->prev;
-            VictimFreeNode(victims, nullptr, node);
+            mfc::impl::FreeNodeAs<gamelists::ObjectRefs>(victims, node);   // 0052CE20
         }
         node = next;
     }
@@ -114,7 +111,7 @@ void MagicTrap::UpdateVictims() {
         VictimNode* known = victims->head;
         while (known && known->data != unit) known = known->next;
         if (!known) {
-            VictimNode* added = VictimNewNode(victims, nullptr, victims->tail, nullptr);
+            VictimNode* added = victims->NewNode(victims->tail, nullptr);
             ReferenceSet(&added->data, nullptr, unit);
             if (victims->tail) victims->tail->next = added;
             else victims->head = added;
@@ -124,8 +121,8 @@ void MagicTrap::UpdateVictims() {
         node = next;
     }
     if (newcomers.count) CastAtUnits(&newcomers);
-    PtrRemoveAll(&newcomers);
-    PtrRemoveAll(&found);
+    newcomers.RemoveAll();
+    found.RemoveAll();
 }
 EI_REPLACE_METHOD(0x0052A680, MagicTrap::UpdateVictims);
 
@@ -293,7 +290,7 @@ void SetSpell(MagicTrap* trap, CEngineObject* spell) {
 } // namespace
 
 MagicTrap* MagicTrap::Construct() {
-    MapObjectConstructOriginal(this);
+    CMapObject::Construct();
     spell = nullptr;
     EmptyArray(area);
     area.vtable = mfc::impl::TrapAreasArrayClass::Vtable();   // while constructed
@@ -338,7 +335,7 @@ void MagicTrap::DestructBody() {
     area.vtable = mfc::impl::TrapCircleArrayClass::Vtable();
     if (area.data) gamecrt::operator_delete(area.data);
     if (spell) spell->Release();
-    DestructMapObjectAt(this);
+    CMapObject::DestructBody();
 }
 EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
 

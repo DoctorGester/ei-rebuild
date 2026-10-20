@@ -216,7 +216,7 @@ void CCampPages::ShowPage(int page) {
     // The page buttons (scene objects 2-9) half bright, the current one full.
     for (int i = 2; i < 10; ++i) SetShade(SceneMesh(i), 0.5f);
     SetShade(SceneMesh(page_ + 2), 1.0f);
-    interface_->ShowHelp(0);
+    interface_->OpenHelp(0);
 }
 EI_REPLACE_METHOD(0x0060E9E0, CCampPages::ShowPage);
 
@@ -445,8 +445,6 @@ namespace {
 int Count(const std::uint8_t* item) { return Read<int>(item, 0x48); }
 } // namespace
 
-__declspec(naked) bool CCampPages::CallCanMakeSpell() EI_ORIGINAL(0x00612290)
-__declspec(naked) bool CCampPages::CallCanMakeItem() EI_ORIGINAL(0x00612600)
 
 void CCampPages::UpdateAction() {
     mfc::CString action;
@@ -536,14 +534,14 @@ void CCampPages::UpdateAction() {
         trade(spellParts_[1], 0, spellParts_[2], 1, 0x007936FC);   // "camp_spell_trade"
         break;
     case 3:
-        construct(spellMade_, spellResults_, 2, 0, 3, &IsSpellContainer, &IsSpell, &CCampPages::CallCanMakeSpell,
+        construct(spellMade_, spellResults_, 2, 0, 3, &IsSpellContainer, &IsSpell, &CCampPages::CanMakeSpell,
                   0x00793844, 0x007936E8, 0x67);   // "camp_spell_deconstr", "camp_spell_constr"
         break;
     case 4:
         trade(itemParts_[1], 4, itemParts_[2], 5, 0x007936D8);     // "camp_item_trade"
         break;
     case 5:
-        construct(itemMade_, itemResults_, 6, 4, 7, &IsBlueprint, &IsPart, &CCampPages::CallCanMakeItem,
+        construct(itemMade_, itemResults_, 6, 4, 7, &IsBlueprint, &IsPart, &CCampPages::CanMakeItem,
                   0x0079381C, 0x007936C4, 0x66);    // "camp_item_deconstr", "camp_item_constr"
         break;
     case 6:
@@ -941,8 +939,6 @@ EI_REPLACE_METHOD(0x0060FE40, CCampPages::TakeOff);
 
 // --- 0060FCA0: putting an item on the hero ----------------------------------------------------
 
-__declspec(naked) void CCampPages::CallShowHero() EI_ORIGINAL(0x0060F830)
-
 void CCampPages::PutOn(std::uint8_t* item) {
     interface_->PlaySound(game::PutOnSoundText(), 0);
     PartyUnitRecord* hero = VirtualHeroRecord();
@@ -1221,14 +1217,14 @@ void CCampPages::NextHero() {
     int i = FindHero(hero_, [](int at, int count) { return at + 1 >= count ? 0 : at + 1; });
     if (i == hero_) return;
     hero_ = i;
-    CallShowHero();
+    ShowHero();
     VirtualRefreshWeapons();
 }
 void CCampPages::PreviousHero() {
     int i = FindHero(hero_, [](int at, int count) { return at - 1 < 0 ? count - 1 : at - 1; });
     if (i == hero_) return;
     hero_ = i;
-    CallShowHero();
+    ShowHero();
     VirtualRefreshWeapons();
 }
 EI_REPLACE_METHOD(0x0060F710, CCampPages::NextHero);
@@ -1262,7 +1258,7 @@ EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
 CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
-    ConstructContainerAt(this, nullptr, ui);
+    reinterpret_cast<CUiContainer*>(this)->Construct(ui);
     hoveredItem_ = nullptr;
     // The caches' compare byte is the flag's low byte.
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);

@@ -51,6 +51,8 @@
 #include "originals_render.h"
 #include "originals_ai.h"
 #include "originals_core.h"
+#include "game_lists.h"
+#include "bink_video.h"
 
 #include <cstdint>
 #include <cstring>
@@ -96,18 +98,13 @@ inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) 
     gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
                               reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
 }
-__declspec(naked) void __fastcall GroupRemoveAt(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2200)
 // CList<ScriptDefinition> AddHead (CScript::instances_; despite the AddTail-like shape it links the
 // new node before the head): returns the new node.
 using InstanceList = mfc::CList<ScriptDefinition>;
-__declspec(naked) InstanceList::Node* __fastcall InstanceAddHead(InstanceList*, void*, const ScriptDefinition*) EI_ORIGINAL(0x004C7C90)
 // CList RemoveAt for the particle, FX source and lightning lists.
 using ParticleList = mfc::CList<ScriptParticleSource>;
 using FxSourceList = mfc::CList<ScriptFxSource>;
 using LightningList = mfc::CList<ScriptLightning>;
-__declspec(naked) void __fastcall ParticleRemoveAt(ParticleList*, void*, ParticleList::Node*) EI_ORIGINAL(0x004C6040)
-__declspec(naked) void __fastcall FxSourceRemoveAt(FxSourceList*, void*, FxSourceList::Node*) EI_ORIGINAL(0x004C6370)
-__declspec(naked) void __fastcall LightningRemoveAt(LightningList*, void*, LightningList::Node*) EI_ORIGINAL(0x004C6680)
 // The party records of `player` for a "party name" string (ECX player, EDX string).
 // Object id of a name (ECX = name).
 // 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
@@ -303,7 +300,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->AddToSectors(unit);
     }
     static_cast<CMapObject*>(object)->MarkChanged(2);
-    PtrListDestruct4C96F0Original(&units);
+    mfc::impl::DestructList<mfc::impl::PtrListClass>(units);
 }
 
 void GiveSkill(const SSCCmd* cmd) {
@@ -372,7 +369,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 void PlayMovie(const SSCCmd* cmd) {
     mfc::CString path = *GameBasePathString() + MoviesFolder();
     mfc::CString file = path + cmd->stringArgs.data[0];
-    PlayMovieFile(file, 0, 1, 1, 1, 1, 1);
+    ::PlayMovie(file, 0, 1, 1, 1, 1, 1);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
@@ -476,7 +473,8 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x08: {   // a declared script: start an instance with the call's arguments
             int which = Ftol(f[0]);
             auto* definition = &script->Scripts().data[which];
-            InstanceList::Node* node = InstanceAddHead(&script->instances_, nullptr, definition);
+            auto* node = reinterpret_cast<InstanceList::Node*>(gamelists::InstanceAddHead(
+                mfc::impl::ListAs<gamelists::Definitions>(&script->instances_), nullptr, definition));
             ScriptDefinition* instance = &node->data;
             instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
@@ -546,7 +544,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x23: {   // RemoveObject(group, object)
             ScriptGroup* group = cmd->groupArgs.data[0];
             int at = group->IndexOf(*cmd->objectArgs.data[0]);
-            if (at >= 0) GroupRemoveAt(group, nullptr, at, 1);
+            if (at >= 0) mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*group).RemoveAt(at, 1);   // 004C2200
             break;
         }
 
@@ -568,7 +566,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 ParticleList::Node* current = node;
                 node = node->next;
                 if (current->data.id == id) {
-                    ParticleRemoveAt(&script->particles_, nullptr, current);
+                    mfc::impl::RemoveAtAs<gamelists::ParticleSources>(&script->particles_, current);   // 004C6040
                     break;
                 }
             }
@@ -594,7 +592,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             for (LightningList::Node* node = script->lightning_.head; node;) {
                 LightningList::Node* current = node;
                 node = node->next;
-                if (current->data.id == Ftol(f[0])) LightningRemoveAt(&script->lightning_, nullptr, current);
+                if (current->data.id == Ftol(f[0])) mfc::impl::RemoveAtAs<gamelists::Lightnings>(&script->lightning_, current);   // 004C6680
             }
             break;
         }
@@ -602,7 +600,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             int id = Round(f[0]);
             for (FxSourceList::Node* node = script->fxSources_.head; node; node = node->next) {
                 if (node->data.id == id) {
-                    FxSourceRemoveAt(&script->fxSources_, nullptr, node);
+                    mfc::impl::RemoveAtAs<gamelists::FxSources>(&script->fxSources_, node);   // 004C6370
                     break;
                 }
             }
@@ -1186,7 +1184,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             player->Party()->Money() += Ftol(f[1]);
             PlayerOf(player)->GiveItems(&items, 0);
-            PtrListDestructOriginal(&items);
+            mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x92:     // GiveQuestItem(player, item)
@@ -1197,10 +1195,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
-                PtrListAddTailOriginal(&items, nullptr, item);
+                items.AddTail(item);
                 PlayerOf(player)->GiveItems(&items, 0);
             }
-            PtrListDestructOriginal(&items);
+            mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x93: {   // EraseQuestItem(player, id)

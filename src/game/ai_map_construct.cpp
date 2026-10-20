@@ -15,19 +15,15 @@
 #include "originals_library.h"
 #include "originals_ai.h"
 #include "unit_ai.h"
+#include "lib/mfc_list.h"
 
 namespace {
 
 // Constructors of the members (thiscall).
-__declspec(naked) void __fastcall ConstructBridgeMap(void*, void*) EI_ORIGINAL(0x005BCCD0)
-__declspec(naked) void __fastcall ConstructRegionMap(CRegionMap*, void*) EI_ORIGINAL(0x005AF3D0)
-__declspec(naked) void __fastcall ByteGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCBD0)
 // 005B40F0: resets the dirty rectangle (+4).
 __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 
 // Destructors of the members (thiscall).
-__declspec(naked) void __fastcall DestroyNodeList(void*, void*) EI_ORIGINAL(0x005995E0)
-__declspec(naked) void __fastcall DestroyBridgeMap(void*, void*) EI_ORIGINAL(0x005984A0)
 // 006E859F: the CRT's `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, std::uintptr_t a3) {
     libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3));
@@ -53,7 +49,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->climbLarge.Construct(kArrayVtable);
     self->climbSmall.Construct(kArrayVtable);
     self->materials.Construct();
-    ConstructBridgeMap(self->bridgeHeights, nullptr);
+    self->bridgeHeights.Construct(100);   // 005BCCD0
     mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(self->sectorMap.sectors);
     CSectorMap& sectors = self->sectorMap;
     sectors.vtable = reinterpret_cast<void*>(CSectorMap::kVtableAddress);
@@ -71,9 +67,9 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(kAreaListVtable);
     ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::kSmallVtableAddress);
     ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::kLargeVtableAddress);
-    ConstructRegionMap(&self->regionMap, nullptr);
+    ConstructRegionMap(&self->regionMap);   // 005AF3D0
     self->forwardSearch.nodes.Construct(1, 1);
-    ByteGridConstruct(&self->forwardSearch.levels, nullptr, 1, 1);
+    reinterpret_cast<SearchGrid<std::int8_t>*>(&self->forwardSearch.levels)->Construct(1, 1);   // 005BCBD0
     mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&self->forwardSearch.cellRowsVtable);
     self->forwardSearch.map = nullptr;
     self->backwardSearch.Construct(nullptr);
@@ -110,15 +106,15 @@ void __fastcall DestructAIMap(CAIMap* self) {
     regions.local.Destruct();
     FreeGrid(regions.backward.records);
     FreeGrid(regions.forward.records);
-    DestroyNodeList(&self->unitLayerLarge.nodes, nullptr);
-    DestroyNodeList(&self->unitLayerSmall.nodes, nullptr);
+    mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerLarge.nodes);   // 005995E0
+    mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerSmall.nodes);
     for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(self->areaLists[list]);
     FreeGrid(self->WaterGrid());
     self->bridges.cells.FreeData();
     self->footprint.cells.FreeData();
     self->sectorMap.vtable = reinterpret_cast<void*>(CSectorMap::kVtableAddress);
     CSectorMap::DestructSectors(&self->sectorMap.sectors);
-    DestroyBridgeMap(self->bridgeHeights, nullptr);
+    self->bridgeHeights.Destroy();   // 005984A0
     self->materials.FreeData();
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(self->climbSmall);
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(self->climbLarge);

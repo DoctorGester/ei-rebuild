@@ -23,8 +23,13 @@
 #include "originals_units.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "game_hashes.h"
 
 #include <cstring>
+
+void __fastcall DiffObjectSets(lib::AlignedArray<std::uint32_t>* sent, lib::AlignedArray<std::uint32_t>* current,
+                               lib::AlignedArray<std::uint32_t>* added, lib::AlignedArray<std::uint32_t>* gone,
+                               lib::AlignedArray<std::uint32_t>* same);   // 0047B1F0 (world_object_sets.cpp)
 
 namespace {
 
@@ -80,17 +85,16 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // The player state's (CPlayerServer) messages and updates.
 void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { static_cast<CPlayerServer*>(a0)->SendObjectsAdded(a2); }
 void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
-// 0047B1F0 (RET 0xC). Compares the ids in `known` with the objects in `current`; fills `added`,
-// `kept` and `removed` (ECX known, EDX current).
-__declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
-                                                 StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
+// 0047B1F0 (world_object_sets.cpp). Compares the ids in `known` with the objects in `current`;
+// fills `added`, `kept` and `removed`.
+void DiffSets(void* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept, StaticPtrArray* removed) {
+    using Set = lib::AlignedArray<std::uint32_t>;
+    ::DiffObjectSets(static_cast<Set*>(known), reinterpret_cast<Set*>(current), reinterpret_cast<Set*>(added),
+                     reinterpret_cast<Set*>(kept), reinterpret_cast<Set*>(removed));
+}
 // The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
-// groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860), the unit added with
-// 005593D0 and the set written with 00559E60.
-__declspec(naked) void __fastcall FiguredGroupsConstruct(void*, void*) EI_ORIGINAL(0x005985E0)
-__declspec(naked) void __fastcall FiguredGroupsDestruct(void*, void*) EI_ORIGINAL(0x005986B0)
-__declspec(naked) void __fastcall DressedMapConstruct(void*, void*) EI_ORIGINAL(0x00598790)
-__declspec(naked) void __fastcall DressedMapDestruct(void*, void*) EI_ORIGINAL(0x00598860)
+// groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860: gamehash's tables), the unit
+// added with 005593D0 and the set written with 00559E60.
 
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
@@ -213,7 +217,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         world->Sectors()->FindUnitsInRadius(&MapObject(unit)->position, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::PtrListVtable();
-        PtrListRemoveAllOriginal(&heard);
+        heard.RemoveAll();
     }
     return out;
 }
@@ -278,7 +282,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         SetSize(collected, static_cast<int>(objects_.map.Size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data);
         SetSize(collected, static_cast<int>(end - Collected().data));
-        DiffObjectSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
+        DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
         state->SendObjectsRemoved(&Kept());
         StateObjectsAdded(state, nullptr, &Added());
         state->SendObjectsChanged(&Removed());
@@ -287,7 +291,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         SetSize(collected, static_cast<int>(timedObjects_.map.Size()));
         end = CollectTimedObjects(this, state, collected.data);
         SetSize(collected, static_cast<int>(end - Collected().data));
-        DiffObjectSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
+        DiffSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
         state->SendTimedRemoved(&Kept());
         state->SendTimedAdded(&Added());
         state->SendTimedChanged(&Removed());
@@ -335,13 +339,13 @@ int CWorldServer::SendZone(WorldPlayer* player) {
 
         // The zone's units.
         UnitSet units;
-        FiguredGroupsConstruct(&units.figured, nullptr);
-        DressedMapConstruct(&units.dressed, nullptr);
+        units.figured.Construct(100);   // 005985E0
+        units.dressed.Construct(100);   // 00598790
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
             if (node->value->GetClassId() == world::kClassUnit) units.Add(static_cast<CUnit*>(node->value));
         units.Write(&message);
-        DressedMapDestruct(&units.dressed, nullptr);
-        FiguredGroupsDestruct(&units.figured, nullptr);
+        gamehash::DressedAbi::Destroy(reinterpret_cast<gamehash::DressedTable*>(&units.dressed));
+        gamehash::FiguredGroupsAbi::Destroy(reinterpret_cast<gamehash::FiguredGroupsTable*>(&units.figured));
 
         result = state->SendState02(&message);   // 0066EBD0
         if (result != 0 && sendsStartPosition_ != 0) {

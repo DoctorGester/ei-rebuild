@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "lib/stlp_list_refs.h"
 
 namespace {
 
@@ -65,9 +66,6 @@ struct DrawQueues {
 };
 DrawQueues& Frame() { return *reinterpret_cast<DrawQueues*>(0x007AF508); }
 
-// 00571B00. _M_insert_overflow: grows the storage and inserts n copies of *value at pos.
-__declspec(naked) void __fastcall InsertOverflow(ObjectVector*, void*, CEngineObject**, CEngineObject* const*, int)
-    EI_ORIGINAL(0x00571B00)
 
 // 0056E840 (also inlined by the original): push_back.
 void PushBack(DrawQueue& queue, CEngineObject* const& value) {
@@ -76,7 +74,7 @@ void PushBack(DrawQueue& queue, CEngineObject* const& value) {
         if (v.Finish()) *v.Finish() = value;
         ++v.Finish();
     } else {
-        InsertOverflow(&v, nullptr, v.Finish(), &value, 1);
+        v.InsertOverflow<stlp::PlainElement<CEngineObject*>>(v.Finish(), value, 1);   // 00571B00
     }
 }
 
@@ -85,8 +83,9 @@ using ObjectList = stlp::list<CEngineObject*>;
 using ObjectListNode = ObjectList::Node;
 
 // 0056E8A0. insert(pos, value): new node holding a reference; returns *result.
-ObjectListNode** ObjectListInsert(ObjectList* list, ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value) {
-    return reinterpret_cast<ObjectListNode**>(ListInsert56E8A0Original(list, nullptr, reinterpret_cast<void**>(result), pos, &value));
+ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value) {
+    *result = ObjectList::Insert<stlp::HeldObject>(pos, value);
+    return result;
 }
 ObjectList* DeferredUnits() { return reinterpret_cast<ObjectList*>(0x007AF5B4); }
 

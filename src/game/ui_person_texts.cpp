@@ -10,6 +10,7 @@
 #include "lib/mfc.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "library_trees.h"
 
 namespace {
 
@@ -41,8 +42,8 @@ void LoadPersonTexts(PersonTextMap* map) {
         if (node == map->end() || key < node->first) {
             mfc::CString empty;
             PersonTextPair pair{key, empty};
-            void* inserted;
-            node = static_cast<PersonTextNode*>(*PersonMapInsertHintOriginal(map, nullptr, &inserted, node, &pair));
+            lib_trees::PersonTexts::InsertHint(map, nullptr, &node, node,   // 00609E70
+                                               reinterpret_cast<const lib_trees::PersonTexts::Value*>(&pair));
         }
         node->second = line;
     }

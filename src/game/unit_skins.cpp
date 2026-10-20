@@ -73,7 +73,6 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<const RecordVector*>(table); }
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
 // constructor [0056F570, allocator] and destructor [0056F590].
-__declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F590)
 // The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
 // The texture cache [this +0x18C]: build a composite texture [00693180 ComposeTexture: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
@@ -83,14 +82,7 @@ __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F59
 // storage free [00426860: ECX block, EDX count; 0053BF40: block, count], push_back's copy
 // [004F5DF0: ECX place, EDX string] and overflow [004DCE90: position, string, count], range insert
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
-__declspec(naked) void __fastcall PrototypeTextures(const UnitPrototypeRecord*, const IdList*, const IdList*, void*, void*)
-    EI_ORIGINAL(0x00535CB0)
-__declspec(naked) stlp::string* __fastcall StringsCopy(void*, void*, int, const stlp::string*, const stlp::string*)
-    EI_ORIGINAL(0x0053D7F0)
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
-void __fastcall StringsInsertOverflow(void* a0, void*, stlp::string* a2, const void* a3, int a4) { StringVectorInsertOverflowOriginal(a0, nullptr, a2, a3, static_cast<unsigned>(a4)); }
-__declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*, const stlp::string*, const stlp::string*, int)
-    EI_ORIGINAL(0x00575E50)
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 
 
@@ -242,7 +234,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
     set.names.~CStringArray();
     set.bytes.FreeData();   // 0051E5B0
-    RecordListDestroy(listStorage);
+    list.FreeStorage();   // 0056F590
 }
 
 // --- The other units -----------------------------------------------------------------------------
@@ -257,7 +249,7 @@ void Reserve(StringList& list, int needed) {
     if (!(static_cast<std::uint32_t>(Capacity(list)) < static_cast<std::uint32_t>(needed))) return;
     stlp::string* storage;
     if (list.Start()) {
-        storage = StringsCopy(&list, nullptr, needed, list.Start(), list.Finish());
+        storage = StringList::AllocateAndCopy<stlp::StringElement>(static_cast<std::size_t>(needed), list.Start(), list.Finish());
         for (stlp::string* s = list.Start(); s != list.Finish(); ++s) stlp::StringAbi::DeletingDestructor(s, nullptr, 0);
         StringsFree(list.Start(), Capacity(list));
     } else {
@@ -280,7 +272,8 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
     const char* const* names = record->names.Start();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
-        PrototypeTextures(prototype, &record->armourIds, &record->weaponIds, &first, &second);
+        CollectArmourPartNames(reinterpret_cast<const char*>(prototype), &record->armourIds, &record->weaponIds, &first,
+                               &second);   // 00535CB0
     } else {
         int count = static_cast<int>(record->names.Finish() - names);
         Reserve(first, static_cast<int>(first.size()) + count);
@@ -290,11 +283,11 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
                 stlp::StringAbi::ConstructAt(first.Finish(), &string);
                 ++first.Finish();
             } else {
-                StringsInsertOverflow(&first, nullptr, first.Finish(), &string, 1);
+                first.InsertOverflow<stlp::StringElement>(first.Finish(), string, 1);
             }
         }
     }
-    StringsInsertRange(&first, nullptr, first.Finish(), second.Start(), second.Finish(), 0);
+    first.RangeInsert<stlp::StringElement>(first.Finish(), second.Start(), second.Finish());
 
     {
         stlp::string name(ModelPrefix(model));
@@ -336,7 +329,7 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
     const TextureRecord empty = {0, kNone, kNone};
     const std::uint32_t* ids = items.Start();
     if (body) {
-        TextureRecordsResizeOriginal(list, nullptr, 8, &empty);
+        list->Resize<stlp::PlainElement<TextureRecord>>(8, empty);   // 0056F360
         TextureRecord* out = list->Start();
         out[0].id = record->prototype;
         out[0].kind = kBody;
@@ -349,7 +342,7 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
         }
         return;
     }
-    TextureRecordsResizeOriginal(list, nullptr, 2, &empty);
+    list->Resize<stlp::PlainElement<TextureRecord>>(2, empty);
     TextureRecord* out = list->Start();
     if (ids[0] != kNone) {
         out[0].id = ids[0];

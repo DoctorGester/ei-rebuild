@@ -65,7 +65,7 @@ int CMapObject::CreateMapObject() {
 EI_REPLACE_METHOD(0x0050E770, CMapObject::CreateMapObject);
 
 void CMapObject::DestroyMapObject() {
-    EffectArraySetSizeOriginal(&effectsVtable, nullptr, 0, -1);
+    SetEffectCount(0);
     DetachCompanion(this);
     Destroy3D();
 }

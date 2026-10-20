@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_library.h"
+#include "lib/mfc_coll.h"
 
 #include <cstring>
 #include <new>
@@ -36,12 +37,9 @@ struct TextOps : mfc::CString {
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // 006FD5D0: operator+(TCHAR, const CString&).
 
-// MFC's afxcoll arrays (mfc::CArray layout), through their own code: CDWordArray's constructor,
-// destructor and SetSize, and the byte / word / uint SetSize.
-using MfcDWords = mfc::CArray<std::uint32_t>;
-__declspec(naked) void __fastcall DWordArrayConstruct(MfcDWords*) EI_ORIGINAL(0x006FF933)
-__declspec(naked) void __fastcall DWordArrayDestroy(MfcDWords*) EI_ORIGINAL(0x006FF966)
-__declspec(naked) void __fastcall DWordArraySetSize(MfcDWords*, void*, int, int) EI_ORIGINAL(0x006FF993)
+// MFC's afxcoll arrays (mfc::CArray layout), through their own code: CUIntArray's constructor,
+// destructor and SetSize (006FF933 / 006FF966 / 006FF993), and the byte / word / uint SetSize.
+using MfcDWords = mfc::impl::CUIntArray;
 void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { a->SetSize(n, -1); }      // 006FF64A
 void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { a->SetSize(n, -1); }     // 006FEEFA
 void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }     // 006FF29A
@@ -95,13 +93,13 @@ template <typename T>
 BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray<T>* out,
                 void (*setSize)(mfc::CArray<T>*, int)) {
     MfcDWords temp;
-    DWordArrayConstruct(&temp);
+    temp.Construct();
     BOOL ok;
     {
         console::CStringArray codes;
         ok = ini->GetList(section, key, &codes, kListSeparator);
         if (ok) {
-            DWordArraySetSize(&temp, nullptr, codes.GetSize(), -1);
+            temp.SetSize(codes.GetSize(), -1);
             for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
         }
     }
@@ -109,7 +107,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
         setSize(out, temp.size);
         for (int i = 0; i < temp.size; ++i) out->data[i] = static_cast<T>(temp.data[i]);
     }
-    DWordArrayDestroy(&temp);
+    temp.Destruct();
     return ok;
 }
 
@@ -264,7 +262,7 @@ EI_REPLACE_METHOD(0x00696C50, CIniFile::GetMfcUIntArray);
 BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
     console::CStringArray codes;
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
-    DWordArraySetSize(out, nullptr, codes.GetSize(), -1);
+    reinterpret_cast<MfcDWords*>(out)->SetSize(codes.GetSize(), -1);
     for (int i = 0; i < codes.GetSize(); ++i)
         out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
     return 1;

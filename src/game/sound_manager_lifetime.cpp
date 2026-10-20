@@ -226,10 +226,10 @@ CSoundManager* CSoundManager::Construct() {
     midiArray1F4.Construct();
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(Lock(midiLock));
-    EhVectorConstructorIterator(emitters, sizeof(SoundEmitter), 16, reinterpret_cast<void*>(kEmitterConstruct),
-                                reinterpret_cast<void*>(kEmitterDestruct));
-    EhVectorConstructorIterator(sequences, sizeof(SoundSequence), 8, reinterpret_cast<void*>(kSequenceConstruct),
-                                reinterpret_cast<void*>(kSequenceDestruct));
+    libcrt::ConstructElements(emitters, sizeof(SoundEmitter), 16, reinterpret_cast<libcrt::ElementFunction>(kEmitterConstruct),
+                              reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));
+    libcrt::ConstructElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceConstruct),
+                              reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
     ConstructList(cacheList, kCacheListVtable);
     // hashtable(n, hash, equal, allocator) (006BBF90 / 006BC2B0); the functor bytes, never read,
     // are 0 here (the original's are stack bytes).
@@ -724,8 +724,8 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     if (block != nullptr) {
         *block = kVoiceCount;
         voices = reinterpret_cast<SoundSlot*>(block + 1);
-        EhVectorConstructorIterator(voices, sizeof(SoundSlot), kVoiceCount, reinterpret_cast<void*>(kVoiceConstruct),
-                                    reinterpret_cast<void*>(kVoiceDestruct));
+        libcrt::ConstructElements(voices, sizeof(SoundSlot), kVoiceCount, reinterpret_cast<libcrt::ElementFunction>(kVoiceConstruct),
+                              reinterpret_cast<libcrt::ElementFunction>(kVoiceDestruct));
     }
     slots = voices;
     for (int i = 0; i < kVoiceCount; ++i) {

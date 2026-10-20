@@ -160,7 +160,6 @@ void __fastcall MarkNew(CEngineObject* a0, void*) { static_cast<CEffect*>((void*
 // 0040A3A0. CRefObject::Release.
 // 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
 // pointer's assignment (reference added, old one released through slot 4).
-mfc::CTypedPtrList<CEngineObject>::Node* __fastcall CountedNewNode(mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2, mfc::CTypedPtrList<CEngineObject>::Node* a3) { return (mfc::CTypedPtrList<CEngineObject>::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // Load / Save of the time wheel (+0x2838), the first command queue (+0x12874), the diplomacy
 // tables (+0x12C64) and the countdowns (+0x70).
 __declspec(naked) void __fastcall TimeWheelLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAE30)
@@ -170,8 +169,6 @@ __declspec(naked) void __fastcall CommandQueueSave(void*, void*, WorldStream*) E
 // 006618C0 / 00661C10 (RET 8). A player's party records, read / written.
 __declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
 __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
-// 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
-double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0055FB00 (RET 4). CWorld::FindUnit.
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
@@ -185,9 +182,10 @@ void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) {
 
 namespace {
 void ObjectPtrArrayDestruct(ObjectPtrArray* a) { mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(*a)); }
-__declspec(naked) SharedObjectNode* __fastcall SharedObjectsNewNode(SharedObjectList*, void*, SharedObjectNode* /*prev*/,
-                                                                     SharedObjectNode* /*next*/) EI_ORIGINAL(0x0059CA60)
-__declspec(naked) void __fastcall DwordListAddTail(DwordList*, void*, std::uint32_t) EI_ORIGINAL(0x0059CC60)
+// 0059CA60: the shared-object list's NewNode (the element's array header built).
+SharedObjectNode* SharedObjectsNewNode(SharedObjectList* list, SharedObjectNode* prev, SharedObjectNode* next) {
+    return mfc::impl::NewNodeAs<mfc::impl::SharedObjectNewList>(list, prev, next);
+}
 } // namespace
 
 namespace {
@@ -222,7 +220,7 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
         int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick));
         player->lastTick = now;
         if (elapsed < 0) elapsed = 0;
-        double current = VariableGet(player->variables, nullptr, name);
+        double current = player->variables.Get(name);
         float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
         player->server->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }
@@ -342,14 +340,14 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             if (id == -1) break;
             CEngineObject* object = ManagerFindObject(items, nullptr, id);
             if (!object) continue;
-            PtrListAddTailOriginal(&player->items, nullptr, object);
+            player->items.AddTail(object);
             ++object->refCount_;
         }
         stream->Read(&player->godMode, 1);
         if (stream->version_ >= kVersionPlayerLists) {
             DwordList& ids = player->ids;
             int count = ReadValue<int>(stream);
-            for (int i = 0; i < count; ++i) DwordListAddTail(&ids, nullptr, 0);
+            for (int i = 0; i < count; ++i) ids.AddTail(0);   // 0059CC60
             for (auto* node = ids.head; node;) {
                 auto* next = node->next;
                 stream->Read(&node->data, 4);
@@ -500,7 +498,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (id < 0) break;
                 CEngineObject* item = ManagerFindObject(itemManager_, nullptr, id);
                 if (!item) continue;
-                auto* node = CountedNewNode(&counted_, nullptr, nullptr, counted_.head);
+                auto* node = counted_.NewNode(nullptr, counted_.head);
                 ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
                 if (counted_.head) counted_.head->prev = node;
                 else counted_.tail = node;
@@ -565,7 +563,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     empty.player = 0;
                     empty.money = 0;
                     mfc::impl::ConstructArrayOf<mfc::impl::ObjectPtrArrayClass>(empty.objects);
-                    SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, shared.tail, nullptr);
+                    SharedObjectNode* node = SharedObjectsNewNode(&shared, shared.tail, nullptr);
                     node->data.CopyFrom(&empty);
                     if (shared.tail) shared.tail->next = node;
                     else shared.head = node;
@@ -768,17 +766,14 @@ void ObjectPtrArrayCopy(ObjectPtrArray* to, const ObjectPtrArray* from) {
     gamearrays::ObjectPtrCopy(reinterpret_cast<gamearrays::ObjectPtrs::Array*>(to), nullptr,
                               reinterpret_cast<const gamearrays::ObjectPtrs::Array*>(from));
 }
-// 0059C8C0 (RET 8). CArray<CRefPtr>::SetSize(size, growBy); the same code the original inlines
-// in LoadSharedObject.
-__declspec(naked) void __fastcall ObjectPtrArraySetSize(ObjectPtrArray*, void*, int, int) EI_ORIGINAL(0x0059C8C0)
 // 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
-void __stdcall CountedRangeRelease(CEngineObject** a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
+void __stdcall CountedRangeRelease(CEngineObject** a0, int a1) { gamearrays::ObjectPtrs::DestructElements(a0, a1); }
 // 00403F40 (RET 4). The item manager's (007AFFB4, WorldItemManager) object by id, or null.
 
 // SetAtGrow(size, object) on a CArray<CRefPtr>: the new slot holds a reference.
 void Append(ObjectPtrArray& array, CEngineObject* object) {
     int index = array.size;
-    ObjectPtrArraySetSize(&array, nullptr, index + 1, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(array).SetSize(index + 1, -1);   // 0059C8C0
     CEngineObject* old = array.data[index];
     array.data[index] = object;
     if (object) ++object->refCount_;
@@ -827,7 +822,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     // original leaves unset; they are overwritten below).
     SharedObjectList& shared = sharedObjects_;
     ObjectPtrArray empty{SharedObject::ObjectsVtable(), nullptr, 0, 0, 0};
-    SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, nullptr, shared.head);
+    SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, shared.head);
     ObjectPtrArrayCopy(&node->data.objects, &empty);
     if (shared.head) shared.head->prev = node;
     else shared.tail = node;

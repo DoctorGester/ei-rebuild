@@ -31,14 +31,6 @@ constexpr int kUnitAcksChunk = 1;
 constexpr int kModelAcksChunk = 2;
 constexpr int kExtraAcksChunk = 3;
 
-// The tables' vector serialisers (RET 0xC: id, vector, unused; rewritten in model_db.cpp), through
-// their addresses so that their verify wrappers run.
-__declspec(naked) void __fastcall SerializePrintsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006D23A0)
-__declspec(naked) void __fastcall SerializePrints2At(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006D25F0)
-__declspec(naked) void __fastcall SerializeAcksAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006DB430)
-__declspec(naked) void __fastcall SerializeAcks2At(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006DB680)
-__declspec(naked) void __fastcall SerializeAcks3At(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006DB8D0)
-
 // Every record of `records` filed in `index` under its name (the index's operator[]: a record of
 // a name seen before replaces the earlier one).
 template <typename Record, typename Index, typename Name>
@@ -89,11 +81,11 @@ int PrintsDatabase::Load(const char* folder) {
 
     // The serialisers' unused third argument is the file's data.
     const auto name = [](auto& record) -> const stlp::string& { return record.name; };
-    LoadTable(stream, kBloodChunk, SerializePrintsAt, &blood, data,
+    LoadTable(stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood, data,
               [&] { FileRecords(blood, bloodByName, name); });
-    LoadTable(stream, kFootprintsChunk, SerializePrints2At, &footprints, data,
+    LoadTable(stream, kFootprintsChunk, &ChunkArchive::SerializePrints2, &footprints, data,
               [&] { FileRecords(footprints, footprintsByName, name); });
-    LoadTable(stream, kScorchChunk, SerializePrintsAt, &scorch, data,
+    LoadTable(stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch, data,
               [&] { FileRecords(scorch, scorchByName, name); });
 
     resource.Get()->CMappedResource::CloseFileImpl(data);
@@ -121,11 +113,11 @@ int AckDatabase::Load(const char* folder) {
     // The serialisers' unused third argument: a stack slot the original has not written yet for the
     // first table, the model table's address for the other two.
     const auto name = [](auto& record) -> const stlp::string& { return record.head.name; };
-    LoadTable(stream, kUnitAcksChunk, SerializeAcksAt, &units, nullptr,
+    LoadTable(stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units, nullptr,
               [&] { FileRecords(units.records, units.byName, name); });
-    LoadTable(stream, kModelAcksChunk, SerializeAcks2At, &models, &models,
+    LoadTable(stream, kModelAcksChunk, &ChunkArchive::SerializeAcks2, &models, &models,
               [&] { FileRecords(models.records, models.byName, name); });
-    LoadTable(stream, kExtraAcksChunk, SerializeAcks3At, &extras, &models,
+    LoadTable(stream, kExtraAcksChunk, &ChunkArchive::SerializeAcks3, &extras, &models,
               [&] { FileRecords(extras.records, extras.byName, name); });
 
     resource.Get()->CMappedResource::CloseFileImpl(data);

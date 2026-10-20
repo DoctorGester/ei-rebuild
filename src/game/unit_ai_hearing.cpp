@@ -38,7 +38,7 @@ void RemoveCall(AICallArray* calls, int index) {
 // The inlined Add: SetSize through its address, then the record assigned (the text shared).
 void AppendCall(AICallArray* calls, const Vector3& point, int kind, std::uint32_t mask, const mfc::CString& text) {
     int index = calls->size;
-    CallsSetSizeAt(calls, nullptr, index + 1, -1);
+    calls->SetSize(index + 1, -1);
     AICallRecord& added = calls->data[index];
     added.point = point;
     added.kind = kind;

@@ -47,6 +47,7 @@
 #include "ui.h"
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
+#include "lib/stlp_list_refs.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
 
@@ -128,9 +129,11 @@ float LandscapeDrawRadius() {
 }
 
 // DrawPass's callees.
-__declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
-__declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
-    EI_ORIGINAL(0x00571E30)
+// clear() 0056E870 and the erase's copy 00571E30 of vector<CEngineObject*>.
+void VectorClear(stlp::vector<CEngineObject*>* v) { v->EraseRange<stlp::PlainElement<CEngineObject*>>(v->begin(), v->end()); }
+CEngineObject** VectorCopyBack(CEngineObject** first, CEngineObject** last, CEngineObject** out) {
+    return stlp::CopyElements<CEngineObject*>(first, last, out);
+}
 
 // The object margin around the camera when collecting what to draw (0073BAB0, 100.0).
 float ObjectsDrawMargin() { return *reinterpret_cast<const float*>(0x0073BAB0); }
@@ -437,7 +440,7 @@ int CWorldClient::DrawPass() {
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
-    CountedListClearOriginal(FrameDeferredUnits());
+    FrameDeferredUnits()->Clear<stlp::HeldObject>();   // 005703C0
     static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
                                          FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
                                          FrameList::ShadowOther, FrameList::Shadow5D,     FrameList::ShadowUnits,
@@ -626,8 +629,7 @@ int CWorldClient::DrawPass() {
                         static_cast<CObject3DSpecific*>(object->attached)->Unused25(0);
                         static_cast<CObject3DSpecific*>(object->attached)->SetLit(0);
                     }
-                    void* unused;
-                    IdListEraseOriginal(&selected, nullptr, &unused, node);
+                    stlp::list<void*>::Erase(node);   // 00512030
                 }
             }
             node = next;

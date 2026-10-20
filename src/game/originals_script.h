@@ -33,14 +33,6 @@ __declspec(naked) inline void __fastcall ScriptGroupDestructOriginal(void* /*gro
 // 004F4CE0 the part ranges' operator[] (RET 4, EAX = the value).
 struct LinkPartHeader;
 struct LinkPartRanges;
-// 004F4E40: the part ranges' erase(iterator) (RET 4; the node, a LinkRangeMap::Node, goes back to the node pool).
-__declspec(naked) inline void __fastcall LinkRangeMapEraseOriginal(stlp::map<stlp::string, LinkPartRanges>* /*map*/, void*,
-                                                                   void* /*node*/) EI_ORIGINAL(0x004F4E40)
-
-// A-E1. 004ABA70 (RET 4): hashtable<pair<const int, CParty>>::_M_delete_node on the party manager's map: the node's
-// party destroyed, the node back to the node pool.
-__declspec(naked) inline void __fastcall PartyMapDeleteNodeOriginal(void* /*map*/, void*, void* /*node*/)
-    EI_ORIGINAL(0x004ABA70)
 // C3m. CArray::SetSize (__thiscall (size, growBy)) of the script arrays: 004C3980 group values, 004CD770 definitions
 // (0xC0 records), 004CDB30 areas (ScriptArea).
 

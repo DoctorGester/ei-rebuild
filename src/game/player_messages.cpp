@@ -24,8 +24,8 @@
 namespace {
 
 // The variables table (object_tables.cpp / not rewritten), through the game addresses.
-void __fastcall VariableSet(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
-double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
+void VariableSet(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
+double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 
 void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
@@ -43,7 +43,7 @@ std::uint32_t ItemCharge(const void* object) {
 }
 
 // The world player's party variables (a NamedFloatTable, object_tables.h).
-void* Variables(CPlayer* player) { return &player->Party()->variables_; }
+NamedFloatTable* Variables(CPlayer* player) { return &player->Party()->variables_; }
 
 bool IsNaN(std::uint32_t bits) { return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0; }
 
@@ -52,7 +52,7 @@ bool IsNaN(std::uint32_t bits) { return (bits & 0x7F800000u) == 0x7F800000u && (
 // --- Variables and state -------------------------------------------------------------------------
 
 void CPlayerServer::SetVariable(const char* name, std::uint32_t value) {
-    VariableSet(Variables(Owner()), nullptr, name, value);
+    VariableSet(Variables(Owner()), name, value);
     WriteByte(&out_, 0x81);
     WriteText(&out_, name);
     WriteDword(&out_, value);
@@ -60,7 +60,7 @@ void CPlayerServer::SetVariable(const char* name, std::uint32_t value) {
 
 void CPlayerServer::SetVariableMax(const char* name, float value) {
     // Rounded to float (FST) before any comparison.
-    float stored = static_cast<float>(VariableGet(Variables(Owner()), nullptr, name));
+    float stored = static_cast<float>(VariableGet(Variables(Owner()), name));
     float current = stored;
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);
@@ -71,14 +71,14 @@ void CPlayerServer::SetVariableMax(const char* name, float value) {
     std::memcpy(&result, &resultBits, 4);
     // Nothing to do when it compares equal (or unordered).
     if (IsNaN(resultBits) || IsNaN(currentBits) || result == current) return;
-    VariableSet(Variables(Owner()), nullptr, name, resultBits);
+    VariableSet(Variables(Owner()), name, resultBits);
     WriteByte(&out_, 0x81);
     WriteText(&out_, name);
     WriteDword(&out_, resultBits);
 }
 
 void CPlayerServer::DeleteVariable(const char* name) {
-    VariableRemove(Variables(Owner()), nullptr, name);
+    Variables(Owner())->Remove(name);
     WriteByte(&out_, 0x82);
     WriteText(&out_, name);
 }
@@ -312,7 +312,7 @@ void CPlayerServer::ClearState() {
     possessedId_ = 0xFFFFFFFFu;
     refreshPending_ = 0;
     flag70_ = 0;
-    PlacementsSetSizeOriginal(&placements_, nullptr, 0, -1);
+    mfc::impl::ArrayAs<mfc::impl::Placements>(placements_).SetSize(0, -1);   // 0059C3D0
     compressor_.Reset();
     decompressor_.Reset();
     refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % 0x385u + 0x384u);

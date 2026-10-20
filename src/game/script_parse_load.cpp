@@ -20,6 +20,7 @@
 #include "lib/mfc_array.h"
 #include "originals_script.h"
 #include "originals_library.h"
+#include "game_lists.h"
 
 #include <cstdint>
 #include <cstring>
@@ -64,8 +65,10 @@ Original* Orig(CScript* script) { return static_cast<Original*>(script); }
 // SetAtGrow and 004D5ED0 Add (both copy the SSCCmd); 004C59C0 if-then pairs' SetSize.
 void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) { pairs->SetSize(size, growBy); }
 
-// 004CA260 (__thiscall): the token list's destructor.
-__declspec(naked) void __fastcall TokensDestruct(ScriptTokenList*) EI_ORIGINAL(0x004CA260)
+// 004CA260: the token list's destructor (gamelists::Tokens').
+void TokensDestruct(ScriptTokenList* tokens) {
+    gamelists::Tokens::Destruct<gamelists::TokenListClass>(mfc::impl::ListAs<gamelists::Tokens>(tokens));
+}
 
 // 006FE268 / 006FE296: ConstructElements / DestructElements for CString.
 void __stdcall ConstructStrings(mfc::CString* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>((void*)a0), a1); }

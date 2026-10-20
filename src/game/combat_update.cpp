@@ -695,9 +695,6 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 // 005316F0 CUnit: its items into two lists; 005318B0 CUnit::GetWeapon; the list instantiations
 // 00558C50 / 00429F10 (their destructors), 00558B10 / 00558B80 (NewNode / FreeNode of the spell
 // list), 00558840 (its element's assignment), 00429B50 (a reference's assignment).
-void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
-inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
-__declspec(naked) void __fastcall SpellFreeNode(ArmourSpellList*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
@@ -757,11 +754,11 @@ void CUnitServer::RefreshItemSpells() {
         else current->prev->next = current->next;
         if (current == tail) tail = current->prev;
         else current->next->prev = current->prev;
-        SpellFreeNode(list, nullptr, current);
+        mfc::impl::FreeNodeAs<gamelists::Holders>(list, current);   // 00558B80
     }
     others.vtable = reinterpret_cast<void*>(0x0073F12C);
-    ItemListBDestroy(&others);
+    others.RemoveAll();
     items.vtable = reinterpret_cast<void*>(0x0073BE80);
-    ItemListADestroy(&items);
+    items.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005528F0, CUnitServer::RefreshItemSpells);

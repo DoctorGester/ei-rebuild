@@ -8,6 +8,9 @@ usage: python tools/make_trap_mob.py <saves dir> [--source <zone2.mob>]
   --interval N  sets every trap's interval (field 0xBBAB0005; zone2's are 50 and 150). With 0 the
                 trap's update asks MagicTrap::UpdateVictims for newcomers instead of firing every tick
                 (magic_traps_victims.txt; none of the game's zones has such a trap).
+  --kind K / --first-id N / --count C / --out NAME  copy the records of kind K (hex; B001 a plain map
+                object) instead, numbered from N, only the first C, into NAME (rebirth_fixes_world.txt:
+                one object with a zone1 id).
 
 The full zone2.mob stalls the original game when AddMob loads it into zone1 (one of its other
 objects or units). The .mob object reader (00481F00) walks the children of the root chunk 0xA000:
@@ -77,6 +80,11 @@ def main():
     parser.add_argument('saves')
     parser.add_argument('--source', default=r'F:\games\EvilIslands\Maps\zone2.mob')
     parser.add_argument('--interval', type=int, default=None)
+    parser.add_argument('--first-id', type=int, default=FIRST_ID, help='the first trap\'s object id (default 30001)')
+    parser.add_argument('--count', type=int, default=None, help='keep only the first N traps')
+    parser.add_argument('--kind', type=lambda v: int(v, 16), default=MAGIC_TRAP,
+                        help='the record kind copied, hex (default BBAB0000, a magic trap; B001 a plain map object)')
+    parser.add_argument('--out', default='traps.mob', help='the file name in <saves dir>')
     args = parser.parse_args()
     data = open(args.source, 'rb').read()
     root = next(c for c in chunks(data, 0, len(data)) if c[0] == ROOT_CHUNK)
@@ -87,17 +95,19 @@ def main():
             diplomacy = data[off:off + size]
         elif cid == OBJECTS:
             for c, o, s in chunks(data, off + 8, off + size):
-                if c == MAGIC_TRAP:
-                    traps.append(renumber(data, o, s, FIRST_ID + len(traps)))
+                if c == args.kind:
+                    traps.append(renumber(data, o, s, args.first_id + len(traps)))
+    if args.count is not None:
+        traps = traps[:args.count]
     if args.interval is not None:
         traps = [set_interval(t, args.interval) for t in traps]
     if not diplomacy or not traps:
-        sys.exit(f'{args.source}: no diplomacy chunk or no magic traps')
+        sys.exit(f'{args.source}: no diplomacy chunk or no records of kind {args.kind:X}')
     out = chunk(ROOT_CHUNK, chunk(NO_DIPLOMACY, b'') + diplomacy + chunk(OBJECTS, b''.join(traps)))
     os.makedirs(args.saves, exist_ok=True)
-    path = os.path.join(args.saves, 'traps.mob')
+    path = os.path.join(args.saves, args.out)
     open(path, 'wb').write(out)
-    print(f'{path}: {len(traps)} magic traps, {len(out)} bytes')
+    print(f'{path}: {len(traps)} records of kind {args.kind:X},{len(out)} bytes')
 
 
 if __name__ == '__main__':

@@ -58,13 +58,10 @@ ScriptObjectRef* TempObjectsRemoveTail(mfc::CList<ScriptObjectRef>* list, Script
     return gamelists::ObjectRefRemoveTail(reinterpret_cast<gamelists::ObjectRefs::List*>(list), nullptr, out);
 }
 // ScriptVars constructor / destructor and the value arrays' Copy.
-// FreeNode of the run list and of the instance list (each destroys the element).
-__declspec(naked) void __fastcall RunListFreeNode(RunList*, void*, RunList::Node*) EI_ORIGINAL(0x004CDAB0)
-__declspec(naked) void __fastcall InstanceListFreeNode(InstanceList*, void*, InstanceList::Node*) EI_ORIGINAL(0x004CD9B0)
 // The run list's NewNode(prev, next) (004CDA30): a node from the free list, its ScriptRun
 // constructed (ConstructElements 004CECB0).
 RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node* next) {
-    return static_cast<RunList::Node*>(ScriptRunListNewNodeOriginal(list, nullptr, prev, next));
+    return mfc::impl::NewNodeAs<gamelists::Runs>(list, prev, next);
 }
 // ScriptVars::operator= (all eight arrays).
 
@@ -349,7 +346,7 @@ void __fastcall ScriptTick(CScript* script) {
         nextRun = nextRun->next;
         if (ExecuteOrig(&node->data, nullptr, script)) continue;
         Unlink(runs, node);
-        RunListFreeNode(&runs, nullptr, node);
+        mfc::impl::FreeNodeAs<gamelists::Runs>(&runs, node);   // 004CDAB0 (the run destroyed)
     }
 
     // Script instances: every if-then pair until the instance is killed; killed instances are
@@ -367,7 +364,7 @@ void __fastcall ScriptTick(CScript* script) {
         }
         if (instance->index == 0) continue;
         Unlink(instances, node);
-        InstanceListFreeNode(&instances, nullptr, node);
+        mfc::impl::FreeNodeAs<gamelists::Definitions>(&instances, node);   // 004CD9B0
     }
 
     // Global variables: drop deleted objects.

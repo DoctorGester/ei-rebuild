@@ -27,7 +27,6 @@ constexpr int kSpellKinds[42] = {1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5, 5, 6, 6, 6, 6,
 __declspec(naked) std::uint16_t __fastcall MaxDamage(const std::uint16_t*) EI_ORIGINAL(0x00522B20)
 
 double __fastcall OptionWeight(const AIAttackOption*);
-__declspec(naked) void __fastcall OptionsSetSizeAt(AIAttackOptions*, void*, int, int) EI_ORIGINAL(0x005D9250)
 
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
@@ -121,7 +120,7 @@ void AIAttention::Build(CUnit* unit) {
     if (!(IsTextKey(unit->id_) & 0xFF)) {
         if (server->Combat().naturalWeapon != kNaturalSpellsOnly) {
             float range = server->AttackRange();
-            OptionsSetSizeAt(&weapons, nullptr, weapons.size + 1, -1);
+            weapons.SetSize(weapons.size + 1, -1);
             AIAttackOption& option = weapons.data[weapons.size - 1];
             InitOption(&option, 0, -1, range, 0, 0.0f, 0);
             server->GetDamageByType(reinterpret_cast<std::int16_t*>(option.damage));
@@ -162,7 +161,7 @@ void AIAttention::Build(CUnit* unit) {
             case 1:
             case 2:
             case 3: {
-                OptionsSetSizeAt(&weapons, nullptr, weapons.size + 1, -1);
+                weapons.SetSize(weapons.size + 1, -1);
                 AIAttackOption& option = weapons.data[weapons.size - 1];
                 InitOption(&option, kind, static_cast<int>(slot), range, maxCount, radiusValue, effect);
                 server->GetSpellDamage(slot, reinterpret_cast<std::int16_t*>(option.damage));

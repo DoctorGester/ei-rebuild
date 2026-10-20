@@ -19,6 +19,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_hashes.h"
 
 #include <dinput.h>
 
@@ -126,7 +127,10 @@ void PartyManager::Destruct() {
     records.records.FreeStorage();
     for (PartyManagerEntry* entry = entries.begin(); entry != entries.end(); ++entry) entry->Destruct();
     entries.FreeStorage();
-    parties.ClearWith([this](PartyMap::Node* node) { PartyMapDeleteNodeOriginal(&parties, nullptr, node); });
+    parties.ClearWith([this](PartyMap::Node* node) {   // 004ABA70
+        gamehash::PartyAbi::DeleteNode(reinterpret_cast<gamehash::PartyTable*>(&parties), nullptr,
+                                       reinterpret_cast<gamehash::PartyAbi::Node*>(node));
+    });
     static_cast<stlp::vector<void*>*>(parties.BucketVector())->FreeStorage();
 }
 EI_REPLACE_METHOD(0x004A5700, PartyManager::Destruct);

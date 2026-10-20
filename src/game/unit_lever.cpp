@@ -24,11 +24,6 @@
 
 namespace {
 
-// The model's lever record by name [the map 0079C1AC's operator[] 00464750 (key) returning the
-// stored pointer's slot].
-__declspec(naked) LeverRecord** __fastcall LeverRecordAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x00464750)
-// The lever table's map of records by model name (0079C1A0 + 0xC).
-void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 // The object's world [00455950]; the sector map's units in a radius [005C0BD0: position, list,
 // radius], Remove [005C1010], Add [005C0DF0]; the AI map's refresh [005B8B30 / 005B8B80], cell
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
@@ -42,8 +37,8 @@ CMapObject* AsMapObject(void* unit) { return static_cast<CMapObject*>(AsEngineOb
 void Lever::SetState(int wanted, float duration) {
     // FCOMP + TEST AH,1: a negative (or NaN) duration takes the model's default.
     if (x87::IsNaN(duration) || duration < 0.0f) {
-        stlp::string key(name);
-        const LeverRecord* record = *LeverRecordAt(LeverRecordMap(), nullptr, &key);
+        // The model's record by name: the table's operator[] (00464750; an unknown name gets a null entry).
+        const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(LeverTable()), nullptr, name));
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
     int& current = state;

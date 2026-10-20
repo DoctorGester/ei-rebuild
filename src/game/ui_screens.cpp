@@ -38,7 +38,6 @@ constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
 // Not rewritten (forwarders). Thiscall methods are declared __fastcall with the unused EDX.
-__declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
 BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScrollbar*>(bar)->TakePosition(position); }
@@ -122,7 +121,7 @@ EI_REPLACE(0x005EE130, UiItemKinds::IsBuildable);
 
 
 namespace uiorig {
-void PlayUiSound(CInterface3D* ui, const char* name, int flags) { PlaySoundAt(ui, nullptr, name, flags); }
+void PlayUiSound(CInterface3D* ui, const char* name, int flags) { ui->PlaySound(name, flags); }
 void LeaveGame() { static_cast<GameFlow*>(kGame)->CloseSessions(); }
 } // namespace uiorig
 

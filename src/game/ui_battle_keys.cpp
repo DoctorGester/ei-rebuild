@@ -152,7 +152,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         void* memory = gamecrt::operator_new(kEscMenuSize);
         CUiWindow* menu = nullptr;
         if (memory) {
-            ConstructContainerAt(memory, nullptr, interface_);
+            static_cast<CUiContainer*>(memory)->Construct(interface_);
             menu = static_cast<CUiWindow*>(memory);
             menu->vtable_ = EscMenuVtable();
             menu->inputVtable_ = EscMenuInputVtable();

@@ -439,6 +439,26 @@ depends = ["R16d"]
 files = ["src/render/render_mesh_cache.cpp", "src/game/ui_mesh_draw.cpp"]
 note = "docs/notes/renderer.md section 13 item 4. R16d streams interface sprites (CUiMesh::Draw 005E6D90, render::SetInterfaceDraw): the interface rewrites their quads and texels in place without RefreshBuffers (bars: ui_hud_panels.cpp, ui_hud_portraits.cpp; the minimap's markers and area: ui_hud_map.cpp; ui_hud_slide.cpp's markers; the original's and Rebirth's shape code). The global map uploads 106 + 75 KB of sprites a frame, the HUD a few KB. Signal each writer (render::MeshChanged Positions on the sprite) or keep a sprite's corners and compare its few source corners per draw, then drop SetInterfaceDraw. Check: meshcache check 0 stale in the ui_* and render_* scenarios; render_stats' map upload; frames with meshcache on / off at 8 / 0.1%."
 
+[[ticket]]
+id = "R16j1"
+title = "Shadow map: map objects whose classic shadow shows cast none (the fight's ruin blocks)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16j"]
+files = ["src/render/render_shadows.cpp src/game/world_client_draw.cpp src/game/map_object_shadow.cpp"]
+note = "User 2026-10-20, on the fight preview (render_shadows' fight_map vs fight_classic, build/R16j/full/stone_full.png): 'Looks like the shadow is missing on this stone?'. At full 4K resolution the classic frame shows the ruin's front wall block, and the pillar to its left, throwing dark shadows down and to the right onto the dirt; with the map the dirt below them stays lit, while the figures do cast. Find out why: are those stones in the casters list (0051CE60 CastsShadow) and are their meshes attributed between BeginCaster / EndCaster (world_client_draw.cpp kDraw) or drawn elsewhere (sorted model batches, flat geometry, deferred), cut by kLeastStrength, alpha, the depth bias or the 160-unit caster reach? shadowcheck's counts and RenderDoc (E:\\bin\\renderdoc) on the map pass can tell. Also check the town and slope frames for the same. Fix so every object the classic shadows draw casts into the map; render_shadows passes, frames with the classic option unchanged, and show the user the same crop before / after. Second case, same day (town bz1g, town_map vs town_classic, build/R16j/full/bush_full.png): 'Here the bush shadow seems to be missing as well.' The small fern by the house's corner post casts a soft shadow down-left with classic shadows and none with the map (the house's own shadow shows), so check alpha-tested foliage too: stage 0's alpha cut in the caster pass (alpha reference, texture bound), first-pass-only, and whether bushes reach CastsShadow."
+
+[[ticket]]
+id = "R16j2"
+title = "Shadow map: soft edges like the old shadows (wider near the far end, sharp at contact)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16j1"]
+files = ["src/render/render_shadows.cpp"]
+note = "User 2026-10-20: 'the new shadows are quite a bit harder than the original one, see the shadow of the town gate'. The old shadows are 64 x 64 textures stretched over each object's shadow quad and, with the shadow option on 'blurred' (mode 2, 0079BD0C), blurred twice on the CPU (2DintMMX BlurShadow / BlurShadow2, map_object_shadow.cpp ~358): a penumbra of a few texels of a 64-texel image, so about a tenth of the object's size, wide on a building. The map is 4096 texels over the visible ground (about 72 units) with 3 x 3 PCF, an edge of a few hundredths of a unit. Make the edge soft: contact-hardening (PCSS: blocker search, penumbra from the receiver's distance to the blocker times the sun's chosen angular size, Poisson-disc taps, rotated per pixel) so a shadow is sharp where an object meets the ground and soft away from it; tune the largest penumbra to look like the old one on the town gate (render_shadows' town_map vs town_classic). Keep the classic option unchanged, and the GPU cost of the map pass + sampling within about 0.3 ms at 4K (render_stats). Show the user the town gate, the fight and a slope before / after."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
@@ -1506,6 +1526,16 @@ depends = ["SV9"]
 files = ["tests/scenarios/ tests/golden/ docs/notes/rebirth.md"]
 note = "From SV9: of the 11 Fix-kind patches only FixSpellEffectsOverflow changes a golden (rebirth_fixes). Write scenarios whose vanilla run reaches FixLeversActivate, FixSpellSelfCasting, FixMoveObject, FixAddMapObject, FixRemoveMapObject, FixCreateItem, FixProgressNames, FixRepairPrice, FixPlaingBattleMusicFromAntimagic, FixProcessLogin (addon.log lines or a golden that differs from an EI_ADDON_FLAGS=0 run), record them from the original + fixes, check the image matches. EI_Plugin fixes (Briefings/Fixes) cannot be recorded through addon.dll; list them separately."
 
+[[ticket]]
+id = "SV5d5"
+title = "net_pair_quest takes 130-240 s a run: find where the time goes and shorten it"
+group = "verification"
+size = 1
+model = "opus"
+depends = ["SV5d3"]
+files = ["tests/scenarios/net_pair_quest.txt tests/scenarios/peer/net_pair_quest.txt tests/verify/harness_pair.h"]
+note = "User 2026-10-20 asked whether net_pair_quest's run time had been improved: it has not. work.db's run table: 30 s before SV5d3 added the quest, then 130-240 s every run (standalone 133-238, vanilla 143-214; two games each, timeout 480 against the 60 s default), the longest scenario in both suites. The time goes to: the hero walking across zone9 to the old camp and back (lookat + clickground steps repeated because fights stop the walk, frames 150 each), the ten undead's fights, the briefing clicked through with wait 4000 / 800 steps (twice), and the 60 s of game time before CompleteZone's awards reach the clients (frames 400). Measure each part from the run's ei_hook.log timestamps first, then shorten without losing what the scenario reaches (CompleteZone 00418ED0, kind 0 / 1 awards, ClientOnAward 0041EF90, OnMaster 0041ACA0): e.g. the game's own speed-up (harness speed / the virtual clock if the pair can run on it), fewer and shorter walk steps, waitwindow instead of fixed waits. Only inputs the original handles. Goldens re-recorded only if the steps change; vanilla and image goldens must still agree. It also flakes on the original: C13b3 (2026-10-20) saw net_pair_quest vanilla's golden differ once (random count 233 against 222 at tick 19472; two fresh reruns the same), and R16d reran it on the original again, so workers spend extra 3-minute runs confirming a flake on code they never touched. Find the timing that moves the random count in the two-process pair and make the scenario deterministic (or wait on an event instead of a frame count there)."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -2106,6 +2136,14 @@ group = "cleanup"
 model = "opus"
 depends = ["C13b2"]
 note = "C13b2's leftovers (python tools/direct_calls.py --report -v --cast --loose --library after merging main; 798 forwarders by check_cleanup on 2026-10-20, 804 in the report's scope). (1) 334 'types differ': 18 InsertOverflow push_back slow paths (CountedRefVector over CRefObject* / PartyRecord* storage in ui_chat_window / party_records / class_templates, raw pointer triples in net_connection*, the interface's window stack, ui_saveload, ui_trade_panel, world_game's zone table), 18 CArray SetSize on reinterpreted arrays, ~70 list / hash Clear / NewNode / FreeNode / RemoveAll / Insert / Erase on per-file CList<void*> and Str4 hashtables, 12 CStringArray / CFile / CFileFind members in lib/mfc.cpp (lib's own copies). (2) net_connection.cpp / _life / _tick (50): type received_, freedIds_, incoming_, headers_, history_ and the id pools as stlp containers first. (3) ui_create_screen's screen constructor writes members by offset (ei::OffsetPtr 0x170-0x294): type that screen, then IdVectorConstructOriginal, Member5F9540, Member5F90E0, Member5F9300 go. (4) The map object effect array (EffectArraySetSizeOriginal) once tests/verify/harness_digest.cpp reads it typed. (5) FloatTable: NamedFloatTable and PartyVariableMap share instantiations; one type. (6) The camera's shake list and view stack in camera.h (6; ViewStackDestroyRange stays). (7) tests/verify/harness.cpp:1655 HarnessLoadUnitFaces is convertible (cast), for whoever owns tests/verify. Keep: Rebirth-patched (131), skip list (94), vector recorders (49), ei_vectors link-only (30, e.g. NodeAllocateOriginal / StlNodeFreeOriginal used by lib/stlp.cpp), replay stand-ins, harness-replaced entries, WordsSetAtGrow, ViewStackDestroyRange. Small commits per family, --golden after each."
+
+[[ticket]]
+id = "C13b3x"
+title = "C13b3 leftovers: ei_vectors-linked shapes, mfc.cpp's ei_vectors branch, no-registration rows, render draw forwarders"
+group = "cleanup"
+model = "opus"
+depends = ["C13b3"]
+note = "After C13b3 (364 EI_ORIGINAL forwarders by check_cleanup, 369 in direct_calls.py --report -v --cast --loose --library). Kept on purpose: Rebirth-patched (131 + 4 patched-over), skip list (90), vector recorders (49), replay stand-ins and vector-replay callees (5), harness-replaced entries (2). Convertible with work: (1) ai_movement.cpp's shape cache forwarders (ShapeHandleInit, ShapeMapFind, ShapeIteratorInit, ShapeMapInsert, ShapeCacheGet): ei_vectors links ai_movement without game_hashes.cpp; link it (tests/vectors) or move the calls. (2) The other 'ei_vectors links the caller without the target' rows (30: script_load / script_group / script_destroy / script_reset / script_parse, quaternion, random, the CRT originals in originals_library.h). (3) lib/mfc.cpp CFile / CFileFind / CStringArray / ExceptionLink rows are the ei_vectors #else branch; CFileFindNext / CFileFindTitle (target not found). (4) 20 'no registration' rows (map_spec_unit PatrolDelete, net_lobby QueryConstructAt / QueriesCopy, RefPtrDestroyAt, CWndDestroyWindow, renderer_sprites SetSize4, ui_saveload EntryConstruct, world_map MissilePtrDestruct, the mfc_file / mfc_time CRT calls): rewrite or register first. (5) originals_render.h DrawMesh / DrawMesh2 (CTextureDevice::DrawMeshBlocks / 2, argument lists differ) after the R16 renderer work. (6) PartyRecords::Find (unit.h and party_record_lookup.h declare two PartyRecords structs: one type). (7) CameraUpdateAt (compared as a Rebirth call target), FreeSortedSectors (an atexit entry with no C++ body), ScriptRunWorldScript (replay stand-in). (8) tests/verify forwarders stay: a vanilla (no-hooks) run must call the game's own code, so HarnessLoadUnitFaces, HarnessMappedResourceConstruct and the blink / pick / class-template ones keep their addresses (C13b3 tried world->LoadUnitFaces(): render_blink vanilla crashed at 00533AAE)."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

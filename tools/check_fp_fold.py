@@ -187,7 +187,10 @@ def main(argv):
         while i != -1:
             site = text_va + i - 2                   # opcode, modrm, disp32
             k = bisect.bisect_right(starts, site) - 1
-            if k >= 0 and i >= 2 and 0xD8 <= code[i - 2] <= 0xDF and not skip(funcs[k][2]):
+            # modrm 00 xxx 101: an absolute [disp32] operand (not, say, "fld [ebp+58h]" whose next
+            # bytes, a call's, happen to spell the constant's address)
+            if k >= 0 and i >= 2 and 0xD8 <= code[i - 2] <= 0xDF and code[i - 1] & 0xC7 == 0x05 \
+                    and not skip(funcs[k][2]):
                 start = starts[k]
                 ok = boundary.get(start)
                 if ok is None:

@@ -20,6 +20,7 @@
 #include "originals_world.h"
 #include "originals_effects.h"
 #include "originals_units.h"
+#include "game_lists.h"
 
 namespace {
 
@@ -57,7 +58,6 @@ CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, n
 // 005300D0 (RET 4). The unit's controller is replaced (here by none).
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 // 00599CC0 (RET 4). The missile list's RemoveAt (releases the missile, frees the node).
-__declspec(naked) void __fastcall ProjectileRemoveAt(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x00599CC0)
 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
 
@@ -245,7 +245,7 @@ void CWorldServer::RemoveObject(unsigned id) {
         node = node->next;
         // 0067EF00: 0 when the missile's owner left (the missile is then dropped).
         if (!reinterpret_cast<CSpellEffect*>(current->data)->Forget(object))
-            ProjectileRemoveAt(&projectiles_, nullptr, current);
+            mfc::impl::RemoveAtAs<gamelists::Refs>(&projectiles_, current);   // 00599CC0
     }
     {
         PlayerIterator players;

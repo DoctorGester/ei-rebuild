@@ -17,6 +17,7 @@
 #include "ei/hook.h"
 #include "lib/mfc_list.h"
 #include "originals_library.h"
+#include "lib/mfc_array.h"
 
 #include <cstdint>
 #include <cstring>
@@ -34,9 +35,9 @@ using Registry = CFileRegistry;
 
 // The caller's (type, value) array (SetSize 00453A30).
 using LinkArray = mfc::CArray<TextureLinkRecord>;
-// The (type, name) array's elements: construct `count` at `p` (004553F0), destroy one (00454360,
-// the deleting destructor with flags 0).
-__declspec(naked) void __stdcall ConstructNamed(void* /*p*/, int /*count*/) EI_ORIGINAL(0x004553F0)
+// The (type, name) array's elements: construct `count` at `p` (004553F0, NamedDwords'), destroy one
+// (00454360, the deleting destructor with flags 0).
+constexpr auto ConstructNamed = mfc::impl::ConstructElementsAt<mfc::impl::NamedDwords>;
 
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).

@@ -236,7 +236,7 @@ void CParty::OpenEdgeExits() {
     mfc::CString variable;
     MapRecord* zone = GameMapDatabase()->FindMap(zone_);
     if (zone == nullptr || zone->kind != kZoneKindEdge) return;
-    auto& variables = reinterpret_cast<NamedFloatTable&>(variables_);
+    NamedFloatTable& variables = variables_;
     for (int i = 0; i < zone->exits.size; ++i) {
         MapRecord* target = GameMapDatabase()->FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;

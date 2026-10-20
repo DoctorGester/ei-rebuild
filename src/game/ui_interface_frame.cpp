@@ -134,11 +134,8 @@ void CInterface3D::Update() {
 namespace {
 
 // 00461360 (ECX text). A number from the text (its characters' upper-case codes mixed).
-// The tutorial queue (+0x84, an STLport list of CStrings): end() into `out` (005F97D0) and
-// insert(position, value) returning the new node into `out` (005F97E0).
-__declspec(naked) void __fastcall QueueEnd(void*, void*, void** /*out*/) EI_ORIGINAL(0x005F97D0)
-__declspec(naked) void** __fastcall QueueInsert(void*, void*, void** /*out*/, void* /*position*/, const mfc::CString*)
-    EI_ORIGINAL(0x005F97E0)
+// The tutorial queue (+0x84, an STLport list of CStrings): end() (005F97D0) and insert(position,
+// value) (005F97E0).
 // Rebirth's game over message: the menu object at 007AFEA5 (00578920 with 1, then 00578940), the
 // message window (0x180 bytes, constructor 00634650: interface, title, text, 0x20000, 3, 1) and
 // the interface's ShowWindow (005F7350: window, 1, 1).
@@ -185,11 +182,7 @@ void CInterface3D::OnStringEvent(const char* event) {
             top()->VirtualSpeech(number, static_cast<unsigned>(kind), const_cast<char*>(static_cast<const char*>(words.data[1])));
     } else if (Compare(words.data[0], 0x007930D0) == 0) {   // "tutorial" name: queued
         if (words.size < 2) return;
-        void* queue = &messages_;
-        void* end;
-        QueueEnd(queue, nullptr, &end);
-        void* out;
-        QueueInsert(queue, nullptr, &out, end, &words.data[1]);
+        stlp::list<mfc::CString>::Insert(messages_.End(), words.data[1]);
     } else if (Compare(words.data[0], 0x007930C4) == 0) {   // "briefing" name
         if (words.size < 2 || stackBegin_ == stackEnd_) return;
         top()->VirtualShowBriefing(static_cast<const char*>(words.data[1]));

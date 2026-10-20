@@ -31,18 +31,12 @@ bool IsNaN(float f) {
     return (bits & 0x7FFFFFFF) > 0x7F800000;
 }
 
-// The hash map at CAIMap + 0x10C (an STLport hash_map<int, unsigned short>).
-using BridgeHeightMap = stlp::hash_map<int, std::uint16_t, stlp::IntHash>;
-static_assert(sizeof(BridgeHeightMap) == 0x14);
-
 // The entry of the cell (x, y): the key is (short)x << 16 | (short)y.
-const BridgeHeightMap::Node* FindBridgeHeight(const BridgeHeightMap* map, short x, short y) {
-    return map->Find(x * 0x10000 + y);
+const BridgeMap::Node* FindBridgeHeight(const BridgeMap* map, short x, short y) {
+    return map->Find(static_cast<std::uint32_t>(x * 0x10000 + y));
 }
 
-const BridgeHeightMap* Bridges(const CAIMap* map) {
-    return reinterpret_cast<const BridgeHeightMap*>(map->bridgeHeights);
-}
+const BridgeMap* Bridges(const CAIMap* map) { return &map->bridgeHeights; }
 } // namespace
 
 int __stdcall LevelForSizeClass(int sizeClass) {
@@ -56,9 +50,9 @@ int __stdcall StandingLevel(const CUnit* unit) {
 }
 EI_REPLACE(0x005B7B70, StandingLevel);
 
-int __fastcall BridgeHeight(const void* map, void*, short x, short y) {
-    const auto* node = FindBridgeHeight(static_cast<const BridgeHeightMap*>(map), x, y);
-    return node ? node->value : 0;
+int __fastcall BridgeHeight(const BridgeMap* map, void*, short x, short y) {
+    const auto* node = FindBridgeHeight(map, x, y);
+    return node ? static_cast<std::uint16_t>(node->value) : 0;
 }
 EI_REPLACE(0x005B3160, BridgeHeight);
 
@@ -410,7 +404,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
     int sizeClass = unit->sizeClass;
     int x = WorldToCell(from->x), y = WorldToCell(from->y);
     if (x < 1 || y < 1 || x >= width - 1 || y >= height - 1) return false;
-    short region = static_cast<short>(Regions()->RegionAt(sizeClass, x, y));
+    short region = static_cast<short>(Regions()->DominantRegion(sizeClass, x, y));
 
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
     int count;
@@ -423,7 +417,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         int reason;
         if (!CanStandAt(unit, cx, cy, &reason)) continue;
         if (!((cells[cy][cx].passable >> ((sizeClass * 4) & 31)) & 0xF)) continue;
-        short r = static_cast<short>(Regions()->RegionAt(sizeClass, cx, cy));
+        short r = static_cast<short>(Regions()->DominantRegion(sizeClass, cx, cy));
         if (region != 0 && r != region) continue;
         if (i != 0) {
             target->x = CellToWorld(cx);

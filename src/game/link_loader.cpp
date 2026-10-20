@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "library_trees.h"
 
 #include <cstdint>
 #include <cstring>
@@ -43,9 +44,12 @@ struct CacheValue {
     CLinkMesh* mesh;
 };
 
-// 004FBD80 (RET 8): multimap insert_equal; the node copies the value (one more reference).
-__declspec(naked) void __fastcall CacheInsertEqual(Cache*, void*, Cache::Node** /*result*/, const CacheValue*)
-    EI_ORIGINAL(0x004FBD80)
+// 004FBD80: multimap insert_equal; the node copies the value (one more reference): lib_trees::MeshCache's.
+void CacheInsertEqual(Cache* cache, const CacheValue* value) {
+    lib_trees::MeshCache::Node* inserted;
+    lib_trees::MeshCache::InsertEqual(reinterpret_cast<lib_trees::MeshCache::Tree*>(cache), nullptr, &inserted,
+                                      reinterpret_cast<const lib_trees::MeshCache::Value*>(value));
+}
 
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
 void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const stlp::string* name, const char* data, float s,
@@ -86,8 +90,7 @@ CLinkMesh* FindCached(const Cache& cache, const stlp::string* name, float s, flo
 void AddToCache(Cache* cache, const stlp::string* name, CLinkMesh* mesh) {
     CacheValue value{stlp::string(*name), mesh};
     if (mesh) ++mesh->refCount_;
-    Cache::Node* inserted;
-    CacheInsertEqual(cache, nullptr, &inserted, &value);
+    CacheInsertEqual(cache, &value);
     if (mesh) --mesh->refCount_;   // the value's reference; the node keeps one
 }
 

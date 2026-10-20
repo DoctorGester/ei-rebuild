@@ -17,6 +17,7 @@
 #include "originals_gameplay.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "lib/stlp_vector_refs.h"
 
 #include <bit>
 
@@ -30,13 +31,10 @@ int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); 
 void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Construct(); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
-// 004AB320 vector _M_insert_overflow(pos, x, n).
-__declspec(naked) PartyRecord** __fastcall RecordCopy(PartyRecord**, PartyRecord**, PartyRecord**) EI_ORIGINAL(0x004AB910)
+// 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).
 void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) {
     reinterpret_cast<RefPtr*>(a0)->CopyCounted(reinterpret_cast<const RefPtr*>(a2));
 }
-__declspec(naked) void __fastcall RecordInsertOverflow(NamedPartyRecords*, void*, PartyRecord**, PartyRecord* const*,
-                                                       unsigned) EI_ORIGINAL(0x004AB320)
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
 void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
@@ -72,7 +70,8 @@ const char* NameOf(const PartyRecord* record) { return *reinterpret_cast<const c
 
 void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord** end = list->records.Finish();
-    PartyRecord** newEnd = RecordCopy(end, end, list->records.Start());
+    auto* newEnd = reinterpret_cast<PartyRecord**>(stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(
+        stlp::AsRefPtr(end), stlp::AsRefPtr(end), stlp::AsRefPtr(list->records.Start())));   // 004AB910
     for (PartyRecord** p = newEnd; p != end; ++p) reinterpret_cast<RefPtr*>(p)->DeleteScalar(0);   // 004AB960
     list->records.Finish() = newEnd;
     CStringAssignTextOriginal(&list->text0C, nullptr, game::EmptyText());
@@ -81,7 +80,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord* temp = NewRecord();
     if (temp) ++temp->refCount;
     if (list->records.Finish() == list->records.EndOfStorage()) {
-        RecordInsertOverflow(list, nullptr, list->records.Finish(), &temp, 1);
+        stlp::AsRefPtrs(list->records).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(list->records.Finish()), stlp::AsRefPtr(temp), 1);
     } else {
         if (list->records.Finish()) RecordPtrCopy(list->records.Finish(), nullptr, &temp);
         ++list->records.Finish();
@@ -112,7 +111,7 @@ void NamedPartyRecords::Add(const char* name) {
     PartyRecord* temp = record;
     if (temp) ++temp->refCount;
     if (records.Finish() == records.EndOfStorage()) {
-        RecordInsertOverflow(this, nullptr, records.Finish(), &temp, 1);
+        stlp::AsRefPtrs(records).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(records.Finish()), stlp::AsRefPtr(temp), 1);
     } else {
         if (records.Finish()) {
             *records.Finish() = temp;

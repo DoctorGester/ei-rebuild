@@ -21,6 +21,7 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
+#include "lib/mfc_array.h"
 
 #include <cstring>
 #include <new>
@@ -72,8 +73,8 @@ CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return st
 CEngineObject* __fastcall AddPart(CUnit* unit, void*, const char* name, void* model, std::uint32_t arg) {
     return static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(name, model, arg));
 }
-// 00539580. SkinLayerArray::SetSize.
-__declspec(naked) void __fastcall SetLayerCount(SkinLayerArray*, void*, int, int) EI_ORIGINAL(0x00539580)
+// 00539580. SkinLayerArray::SetSize (the 12-byte path records' instantiation).
+void SetLayerCount(SkinLayerArray* layers, int size) { mfc::impl::ArrayAs<mfc::impl::PathRecords>(*layers).SetSize(size, -1); }
 
 std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
 } // namespace
@@ -343,8 +344,8 @@ EI_REPLACE(0x00535CB0, CollectArmourPartNames);
 void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
     const RecordTable& armours = itemdb::Armors();
     if (!detailed) {
-        SetLayerCount(out, nullptr, 0, -1);
-        SetLayerCount(out, nullptr, kSimpleLayers, -1);
+        SetLayerCount(out, 0);
+        SetLayerCount(out, kSimpleLayers);
         std::uint32_t id = armourIds[0];
         if (id != kNone) {
             if (const char* armour = armours.RecordAt(id >> 16, itemdb::kArmorSize)) {
@@ -363,9 +364,9 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
         }
         return;
     }
-    SetLayerCount(out, nullptr, 0, -1);
+    SetLayerCount(out, 0);
     // The original inlines SetSize(8) here; the array is empty, so it allocates 8 fresh layers.
-    SetLayerCount(out, nullptr, kDetailedLayers, -1);
+    SetLayerCount(out, kDetailedLayers);
     out->data[0].id = static_cast<std::uint32_t>(unit->prototypeId_);
     out->data[0].kind = kLayerSkin;
     out->data[0].slot = -1;

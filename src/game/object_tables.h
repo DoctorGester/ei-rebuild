@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "lib/mfc.h"
+#include "lib/stlp_hash.h"
 
 using BOOL = int;
 
@@ -108,13 +109,17 @@ static_assert(sizeof(CMapDatabase) == 0x28);
 // The game's map database (0079BF00).
 inline CMapDatabase* GameMapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
 
-// An STLport hash_map<CString, float> (hash __stl_hash_string, nodes {next, key, value}).
-struct NamedFloatTable {
-    struct Node {
-        Node* next;
-        char* key;    // CString
-        float value;
-    };
+// The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies):
+// STLport's hashtable over pair<CString, float> (stlp_hash.h; its members are registered in
+// stlp_hash.cpp), nodes {next, key, value}, with the named-variable members the game adds.
+struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
+    // hash_map() (00581790): 100 buckets.
+    void ConstructDefault() { Construct(100, 0, 0, 0); }
+    // operator[] (004613C0): the value under `key`, a new zero one when absent.
+    float& operator[](const mfc::CString& key) {
+        stlp::CStringFloat entry(key);
+        return FindOrInsert(entry).mapped;
+    }
 
     // 00460AF0. Value stored under `name` (_mbscmp), 0 if absent. Builds a CString of the name
     // first, as the original does.
@@ -133,14 +138,8 @@ struct NamedFloatTable {
     // 00461260 (RET 4). Writes each entry (name with its zero, then the value), in bucket order,
     // then an empty name.
     void Save(CStream* stream);
-
-    std::uint32_t functors;
-    Node** buckets;       // +0x04
-    Node** finish;        // +0x08
-    Node** endOfStorage;
-    std::uint32_t count;  // +0x10
 };
-static_assert(sizeof(NamedFloatTable) == 0x14);
+static_assert(sizeof(NamedFloatTable) == 0x14);static_assert(sizeof(NamedFloatTable) == 0x14);
 
 // Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` (00461540) but keeps
 // its "gvar." entries, set again in the order addon's own container gives them.

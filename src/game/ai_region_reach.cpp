@@ -66,7 +66,7 @@ void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainEl
 namespace {
 // The region map's constructor helper: the CRT's `eh vector constructor iterator` (array, size,
 // count, ctor, dtor).
-void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
+void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, void* a3, void* a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
 
 // The region map's per size class grids are allocated for their size by 005B1550 (edge words,
 // +0x11C), 005B15F0 (representative cells, +0x19C) and 005B1680 (regions, +0x21C).

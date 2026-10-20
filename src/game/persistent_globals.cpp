@@ -24,10 +24,6 @@
 
 namespace {
 
-// 00461540 (clear, FloatTableClearOriginal) and 00460BC0 (Set, RET 8: name, value) of the game's table, through
-// their addresses.
-void __fastcall TableSet(NamedFloatTable* a0, void*, const char* a2, float a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, a3); }
-
 // MSVC 2010's std::unordered_map<std::string, float>, insertion order only: the element list,
 // two list positions per bucket (first and last of its range; end() when empty), mask and
 // maximum index.
@@ -137,12 +133,10 @@ private:
 void ClearVariablesKeepingGlobals(NamedFloatTable* table) {
     AddonStringMap kept;
     // addon's iterator: buckets in order, each chain from its head.
-    for (NamedFloatTable::Node** bucket = table->buckets; bucket < table->finish; ++bucket) {
-        for (NamedFloatTable::Node* node = *bucket; node; node = node->next) {
-            if (std::strncmp(node->key, "gvar.", 5) != 0) continue;
-            kept.Find(node->key).value = node->value;
-        }
+    for (const NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
+        if (std::strncmp(node->value.key, "gvar.", 5) != 0) continue;
+        kept.Find(static_cast<const char*>(node->value.key)).value = node->value.mapped;
     }
-    FloatTableClearOriginal(table);
-    for (const AddonStringMap::Element& e : kept.Elements()) TableSet(table, nullptr, e.key.c_str(), e.value);
+    table->Clear();   // 00461540
+    for (const AddonStringMap::Element& e : kept.Elements()) table->Set(e.key.c_str(), e.value);   // 00460BC0
 }

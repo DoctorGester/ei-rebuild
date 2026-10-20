@@ -45,8 +45,6 @@ constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
 // Not rewritten, forwarders:
-// 0051EE50. The light list's SetAtGrow (its storage from aligned::AllocateDwords, 0051EF90).
-__declspec(naked) void __fastcall AddLight(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0051EE50)
 // 006CB020. Light manager: is the point lit, AL.
 // 004EB170. Device: sets the texture of stage 0.
 // 00457720. A temporary texture reference: released.
@@ -115,7 +113,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         if (!InReach(object, static_cast<CLight*>(light))) continue;
         if (light->flags_ & kLightRemoved) continue;
         if (light->flags_ & kLightMoving) object->flags_ &= ~kObjectStatic;
-        AddLight(&list, nullptr, list.size, light);
+        list.SetAtGrow(list.size, light);   // 0051EE50
     }
 
     // The object's matrix, and its extra scale when it has one.

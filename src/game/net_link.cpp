@@ -7,6 +7,7 @@
 #include "core_streams.h"
 #include "net_connection.h"
 #include "net_messages.h"
+#include "record_lists.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -25,16 +26,21 @@ namespace {
 constexpr std::uint32_t kStreamLimit = 2000000000;
 
 // --- Library (STLport list<CMemoryStream> of the queue) and other callees -----------------------
-// List constructors (00478D50 / 00479150, RET 4: the allocator), insert of a default element
-// (00478FF0, RET 8: out iterator, position), erase (004790F0, RET 8), clear (00479570), range
-// insert (004795B0, RET 0xC: position, first, last); the node pool (00405950 / 00404D70) and the
-// header's deallocation (00479530, n nodes).
-__declspec(naked) void __fastcall QueueConstructA(QueueNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00478D50)
-__declspec(naked) void __fastcall QueueConstructB(QueueNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00479150)
-__declspec(naked) QueueNode** __fastcall QueueInsertDefault(QueueNode** /*list*/, void*, QueueNode** /*out*/, QueueNode* /*pos*/) EI_ORIGINAL(0x00478FF0)
-__declspec(naked) QueueNode** __fastcall QueueErase(QueueNode** /*list*/, void*, QueueNode** /*out*/, QueueNode* /*pos*/) EI_ORIGINAL(0x004790F0)
-__declspec(naked) void __fastcall QueueClear(QueueNode** /*list*/) EI_ORIGINAL(0x00479570)
-__declspec(naked) void __fastcall QueueInsertRange(QueueNode** /*list*/, void*, QueueNode* /*pos*/, QueueNode* /*first*/, QueueNode* /*last*/) EI_ORIGINAL(0x004795B0)
+// The queue as recordlist::StreamQueue's list: its constructors (00478D50 / 00479150), insert of a
+// default element (00478FF0), erase (004790F0), clear (00479570) and range insert (004795B0); the
+// node pool (00405950 / 00404D70) and the header's deallocation (00479530, n nodes).
+using Queue = recordlist::StreamQueue;
+Queue::List* AsQueue(QueueNode** queue) { return reinterpret_cast<Queue::List*>(queue); }
+Queue::Node* AsNode(QueueNode* node) { return reinterpret_cast<Queue::Node*>(node); }
+QueueNode* InsertDefault(QueueNode** queue, QueueNode* pos) {
+    Queue::Node* inserted;
+    Queue::InsertDefault(AsQueue(queue), nullptr, &inserted, AsNode(pos));
+    return reinterpret_cast<QueueNode*>(inserted);
+}
+void Erase(QueueNode** queue, QueueNode* pos) {
+    Queue::Node* next;
+    Queue::Erase(AsQueue(queue), nullptr, &next, AsNode(pos));
+}
 inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 // 004A5250 (RET 4): writes a stream (its size as a 2- or 4-byte prefix, then its bytes) into the
@@ -228,8 +234,7 @@ LoopbackLink* LoopbackLink::New() {
     auto* self = net::NewMessageMemory<LoopbackLink>();
     if (!self) return nullptr;
     self->NetLink::Construct();
-    std::uint8_t alloc = 0;
-    QueueConstructA(&self->queue_, nullptr, &alloc);
+    Queue::Construct(AsQueue(&self->queue_), nullptr, nullptr);
     self->peer_ = nullptr;   // 00478FB0, the null counted pointer
     ei::SetVtable(self, kVtableAddress);
     return self;
@@ -288,13 +293,12 @@ EI_REPLACE_METHOD(0x00478780, LoopbackLink::DeletingDestruct);
 int LoopbackLink::OnShutdown() {   // 00478610
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(peer_);
-    QueueClear(&queue_);
+    Queue::Clear(AsQueue(&queue_));
     stlp::deallocate(queue_, 48);   // 00479530
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     NetLink::Construct();
-    std::uint8_t alloc = 0;
-    QueueConstructB(&queue_, nullptr, &alloc);
+    Queue::Construct(AsQueue(&queue_), nullptr, nullptr);
     peer_ = nullptr;
     ei::SetVtable(this, kVtableAddress);
     return 0;
@@ -311,7 +315,7 @@ LoopbackLink* LoopbackLink::Clone() {   // 004784D0
     copy->queue_ = header;
     header->next = header;
     copy->queue_->prev = copy->queue_;
-    QueueInsertRange(&copy->queue_, nullptr, copy->queue_->next, queue_->next, queue_);
+    Queue::InsertRange(AsQueue(&copy->queue_), nullptr, AsNode(copy->queue_->next), AsNode(queue_->next), AsNode(queue_));
     copy->peer_ = peer_;
     if (copy->peer_) ++copy->peer_->refs_;
     ei::SetVtable(copy, kVtableAddress);
@@ -338,8 +342,7 @@ int LoopbackLink::IncomingCount() {   // 00478760
 bool LoopbackLink::SendImpl(CStream* stream) {   // 00478220
     LoopbackLink* peer = peer_;
     if (!IsLive(peer)) return false;
-    QueueNode* inserted;
-    QueueInsertDefault(&peer->queue_, nullptr, &inserted, peer->queue_);
+    InsertDefault(&peer->queue_, peer->queue_);
     CStream* last = &peer_->queue_->prev->stream;
     last->CopyFrom(stream);
     return true;
@@ -350,8 +353,7 @@ bool LoopbackLink::SendImpl(CStream* stream) {   // 00478220
 bool LoopbackLink::ReceiveImpl(CStream* stream) {   // 00478270
     if (queue_->next == queue_) return false;
     stream->CopyFrom(&queue_->next->stream);
-    QueueNode* next;
-    QueueErase(&queue_, nullptr, &next, queue_->next);
+    Erase(&queue_, queue_->next);
     Record(stream);
     return true;
 }

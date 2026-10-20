@@ -24,6 +24,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
+#include "lib/mfc_coll.h"
 
 #include <cstdint>
 #include <cstring>
@@ -90,12 +91,12 @@ void EnsureStatics() {
     }
     if (!(Guards() & 4)) {
         Guards() |= 4;
-        ByteArrayConstruct(&Outcodes());
+        reinterpret_cast<mfc::impl::CByteArray*>(&Outcodes())->Construct();   // 006FF5EA
         GameAtExit(AtExit(0x005039F0));
     }
     if (!(Guards() & 8)) {
         Guards() |= 8;
-        WordArrayConstruct(&Indices());
+        reinterpret_cast<mfc::impl::CWordArray*>(&Indices())->Construct();    // 006FEE9A
         GameAtExit(AtExit(0x005039E0));
     }
 }

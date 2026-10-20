@@ -26,6 +26,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "world.h"
+#include "library_trees.h"
 
 #include <bit>
 #include <cstdint>
@@ -54,7 +55,7 @@ void LightForMaterial(CLight* light, CMaterial* material, std::uint32_t ambient)
 }
 // 005197B0: map<string, LinkPartHeader>::find on a figure's part headers: the node to *out.
 void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, const stlp::string* a3) {
-    StringMapFindOriginal(a0, nullptr, reinterpret_cast<void**>(a2), a3);
+    *a2 = lib_trees::FindLinkHeader(a0, a3);
 }
 
 // The mesh's name: its slot 7, CEngineObject::GetName (the mesh is an engine object; CFigureMesh

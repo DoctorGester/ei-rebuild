@@ -46,8 +46,6 @@ __declspec(naked) void __fastcall QueryConstructAt(Query* /*p*/) EI_ORIGINAL(0x0
 // operator=, 004442B0 erase(first, last), 00444090 resize(n).
 using QueryList = stlp::vector<Query>;
 __declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*/, Query* /*dest*/, const void* /*unused*/, int /*unused*/) EI_ORIGINAL(0x00443FF0)
-// The session's receive step, through its address (rewritten in net_session_tick.cpp).
-__declspec(naked) void __fastcall SessionTickAt(SessionBase*, void*, double) EI_ORIGINAL(0x00437370)
 
 
 // "<text>\n" and a flush.
@@ -569,7 +567,7 @@ void ClientBase::TickImpl(double dt) {
         }
         node = node->next;
     }
-    SessionTickAt(this, nullptr, dt);
+    SessionBase::TickImpl(dt);   // 00437370, the receive step
     if (joinState_ != kAsking) return;
     double left = static_cast<double>(retryTimer_) - dt;
     retryTimer_ = static_cast<float>(left);
@@ -665,7 +663,7 @@ void ServerBase::TickImpl(double dt) {
             node = node->next;
         }
     }
-    SessionTickAt(this, nullptr, dt);
+    SessionBase::TickImpl(dt);   // 00437370, the receive step
 }
 
 namespace {

@@ -30,10 +30,9 @@ void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a
 // 00406590: deallocates `count` pointers (the buckets).
 void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
 
-// The figure manager's helpers: the model destructor (through its original address), 00674F40
-// (CResourceManager::Destroy, the base's clean-up), 005AE5D0 (RET 4) the pair destructor, 004FC080
-// (ECX node, EDX count) the node allocator's deallocate, 00674DF0 the base destructor.
-__declspec(naked) void __fastcall ManagerCleanUp(CFigureManager*) EI_ORIGINAL(0x00674F40)
+// The figure manager's helpers: the model destructor (through its original address), 005AE5D0 (RET 4)
+// the pair destructor, 004FC080 (ECX node, EDX count) the node allocator's deallocate, 00674DF0 the
+// base destructor.
 
 // Visits every node as the game's iterator walks them: the chain, then the head of the next
 // non-empty bucket after the one the node's key hashes to (004298D0).
@@ -102,7 +101,7 @@ void __fastcall DestroyFigureManager(char* object) {
             gamecrt::operator_delete(model);
         }
     });
-    ManagerCleanUp(manager);
+    manager->CResourceManager::Destroy();   // 00674F40, the base's clean-up
     table.ClearWith([](Node* n) {
         records::LeadingStringDelete(&n->key, nullptr, 0);
         stlp::deallocate(n, 20);   // 004FC080

@@ -20,6 +20,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "record_vectors.h"
 
 #include <cstdint>
 
@@ -34,21 +35,11 @@ float Thin() { return GameFloat(0x0073BAD4); }            // 0.2
 float Fat() { return GameFloat(0x0073CCA8); }             // 0.8
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle (ui_hud_portraits.cpp)
 const Quaternion& Identity() { return *reinterpret_cast<const Quaternion*>(0x007C8150); }
-void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }     // hash_map<string, UnitPrototypeRecord*>
-void* FigurePrototypes() { return reinterpret_cast<void*>(0x007AF3A4); }   // hash_map<string, FigurePrototypeRecord*>
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 
 // The slots' STLport vector (CHudPortraits +0x158): 0064AB20 appends a default slot (identity
-// orientations, empty strings; plain RET), 0064AD40 erases [first, last) (RET 8, returns first).
-__declspec(naked) void __fastcall SlotsPushDefault(HudPortraitSlot** /*vector*/) EI_ORIGINAL(0x0064AB20)
-__declspec(naked) HudPortraitSlot* __fastcall SlotsErase(HudPortraitSlot** /*vector*/, void*, HudPortraitSlot* /*first*/,
-                                                         HudPortraitSlot* /*last*/) EI_ORIGINAL(0x0064AD40)
-
-// pair<const string, T*> of the name maps; find_or_insert returns the stored pair.
-struct NamePair {
-    stlp::string name;
-    void* value;
-};
+// orientations, empty strings), 0064AD40 erases [first, last): recordvec::HudPortraitSlotVector's.
+stlp::vector<HudPortraitSlot>* Slots(HudPortraitSlot** vector) { return reinterpret_cast<stlp::vector<HudPortraitSlot>*>(vector); }
 
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
@@ -117,7 +108,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
     CopyImage(objects_.data[objects_.size - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
-    SlotsPushDefault(&slots_);
+    recordvec::HudPortraitSlotVector::PushDefault(Slots(&slots_));
     slots_[count_].hasPlayer_ = player;
     CUiMesh* face = AddSprite(model);
 
@@ -203,7 +194,7 @@ void CHudPortraits::Rebuild(int wide) {
     mfc::CString picture;
     mfc::CString model;
     mfc::CString tip;
-    SlotsErase(&slots_, nullptr, slots_, slotsEnd_);
+    recordvec::HudPortraitSlotVector::EraseRange(Slots(&slots_), nullptr, slots_, slotsEnd_);
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
@@ -249,18 +240,15 @@ void CHudPortraits::Rebuild(int wide) {
 
         UnitPrototypeRecord* prototype;
         {
-            NamePair key{stlp::string(player->text_), nullptr};
-            prototype = static_cast<UnitPrototypeRecord*>(
-                static_cast<NamePair*>(NameMapInsertOriginal(UnitPrototypes(), nullptr, &key))->value);
+            prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
             // EI_Plugin's Fixes (00640C97): an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = reinterpret_cast<UnitPrototypeRecord*>(pluginfixes::FallbackPrototype());
         }
         FigurePrototypeRecord* figure;
         {
-            NamePair key{stlp::string(static_cast<const char*>(prototype->modelName)), nullptr};
-            figure = static_cast<FigurePrototypeRecord*>(
-                static_cast<NamePair*>(FigureMapInsertOriginal(FigurePrototypes(), nullptr, &key))->value);
+            figure = reinterpret_cast<FigurePrototypeRecord*>(
+                unitdb::ModelNamed(stlp::string(static_cast<const char*>(prototype->modelName))));
         }
         SexOf(figure->model, sex);
         build = game::Text(0x007844A8);                              // "me"

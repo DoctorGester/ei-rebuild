@@ -20,6 +20,7 @@
 #include "originals_gameplay.h"
 #include "originals_script.h"
 #include "originals_world.h"
+#include "game_arrays.h"
 
 namespace {
 
@@ -58,7 +59,7 @@ int CWorldServer::Setup() {
     windStrength_ = kWindStrength;
     sessionKind_ = 0;
     scriptsActive_ = 0;
-    ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
+    gamearrays::ExitsSetSize(&exitsVtable_, 0);
     climate_ = 1;
     cave_ = 0;
     sendsStartPosition_ = 0;

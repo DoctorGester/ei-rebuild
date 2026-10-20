@@ -86,6 +86,10 @@ class CBaseManager;   // base_manager.h
 // stubs) on the server. Only the slots the rewritten code calls are named; the classes
 // themselves do not derive from this declaration (their rewritten slots are registered by
 // address), the 3D object reaches its half through CObject3D::Specific().
+class CObject3DSpecific;
+// 0051F240 (object3d_halves.cpp). The server half's constructor (the engine object's fields inline): no
+// object. Returns the half.
+CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self);
 class CObject3DSpecific : public CEngineObject {
 public:
     void IgnoreArgument(int);

@@ -9,6 +9,7 @@
 #include "lib/stlp_vector.h"
 #include "ei/x87.h"
 #include "net_connection_trees.h"
+#include "library_net_lists.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -21,18 +22,11 @@ inline double D(float f) { return f; }
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-// The history / acknowledged lists (STLport list<HistoryNode>): end, splice of one node before
-// `pos`, erase.
-__declspec(naked) HistoryNode** __fastcall HistoryEnd(HistoryNode** /*list*/, void*, HistoryNode** /*out*/) EI_ORIGINAL(0x00437F20)
-__declspec(naked) void __fastcall HistorySplice(HistoryNode** /*list*/, void*, HistoryNode* /*pos*/, HistoryNode** /*from*/,
-                                                HistoryNode* /*node*/) EI_ORIGINAL(0x004380C0)
-// The freed-id queue (list of vector<FreedId>): erase, insert a default element.
-__declspec(naked) FreedBatch** __fastcall FreedErase(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x004390C0)
-// vector<uint16_t> pieces of the id pools: construct in place, insert when full; vector copy of
-// 4-byte elements (returns the end of the copy).
-__declspec(naked) void __fastcall IdInsertOverflow(IdPool* /*pool*/, void*, std::uint16_t* /*pos*/, const void* /*value*/,
-                                                   std::uint32_t /*n*/) EI_ORIGINAL(0x0043B530)
-__declspec(naked) FreedId* __fastcall CopyFreed(FreedId* /*first*/, FreedId* /*last*/, FreedId* /*dest*/) EI_ORIGINAL(0x0043DC80)
+// The history / acknowledged lists and the freed-id queue (library_net_lists.h).
+using Packets = stlp::list<SentPacket>;
+using Batches = stlp::list<FreedIds>;
+using netlists::FreedIdsElement;
+using netlists::PacketRecordElement;
 
 // The clocks are doubles read and written as their 8 bytes.
 double Get(const double* d) {
@@ -79,25 +73,21 @@ bool Connection::Tick(double dt) {
     loss = Select(!(longest >= loss), longest, loss);
     float kept = static_cast<float>(static_cast<double>(CurrentSession()->maxRoundTrip_));
 
-    for (HistoryNode* node = history_->next; node != history_;) {
+    for (HistoryNode* node = history_.First(); node != history_.End();) {
         double age = Get(&clock_) - Get(&node->data.time);
         if (!(D(loss) < age)) break;
         RollBack(&node->data);
         HistoryNode* next = node->next;
-        HistoryNode* end;
-        HistoryEnd(&acknowledged_, nullptr, &end);
-        HistorySplice(&acknowledged_, nullptr, end, &history_, node);
+        Packets::SpliceOne(acknowledged_.End(), node);   // 004380C0
         node = next;
-        if (node == history_) break;
+        if (node == history_.End()) break;
     }
-    for (HistoryNode* node = acknowledged_->next; node != acknowledged_;) {
+    for (HistoryNode* node = acknowledged_.First(); node != acknowledged_.End();) {
         double age = Get(&clock_) - Get(&node->data.time);
         if (!(D(kept) < age)) {
             node = node->next;
         } else {
-            HistoryNode* after;
-            HistoryErase(&acknowledged_, nullptr, &after, node);
-            node = after;
+            node = Packets::Erase<PacketRecordElement>(node);   // 00437F30
         }
     }
 
@@ -106,7 +96,7 @@ bool Connection::Tick(double dt) {
     if (timer > D(sendInterval_)) {
         do {
             sendTimer_ = static_cast<float>(D(sendTimer_) - D(sendInterval_));
-            if (SendUpdate(static_cast<int>(updateBudget_)) && headers_->next == headers_) {
+            if (SendUpdate(static_cast<int>(updateBudget_)) && headers_.Empty()) {
                 if (ReliableSize(&reliableOut_) == 0) break;
             }
         } while (sendTimer_ > sendInterval_);
@@ -123,22 +113,20 @@ bool Connection::Tick(double dt) {
     freedTimer_ = static_cast<float>(freedTime);
     if (freedTime > static_cast<double>(CurrentSession()->idReuseTime_)) {
         freedTimer_ = 0.0f;
-        FreedBatch* oldest = freedIds_->next;
-        for (FreedId* e = oldest->begin; e != oldest->end; ++e) {
-            std::uint32_t value = e->id;
-            IdPool& pool = idPools_[e->type];
-            if (pool.end != pool.eos) {
-                auto id = static_cast<std::uint16_t>(value);
-                stlp::ConstructAt(pool.end, &id);   // 0043D7E0
-                ++pool.end;
+        FreedIds& oldest = freedIds_.First()->data;
+        for (FreedId* e = oldest.begin(); e != oldest.end(); ++e) {
+            auto id = static_cast<std::uint16_t>(e->id);
+            stlp::vector<std::uint16_t>& pool = idPools_[e->type].free;
+            if (pool.end() != pool.EndOfStorage()) {
+                stlp::ConstructAt(pool.end(), &id);   // 0043D7E0
+                ++pool.Finish();
             } else {
-                IdInsertOverflow(&pool, nullptr, pool.end, &value, 1);
+                pool.InsertOverflow<stlp::PlainElement<std::uint16_t>>(pool.end(), id, 1);   // 0043B530
             }
         }
-        oldest->end = CopyFreed(oldest->end, oldest->end, oldest->begin);
-        FreedBatch* out;
-        FreedErase(&freedIds_, nullptr, &out, freedIds_->next);
-        FreedInsert(&freedIds_, nullptr, &out, freedIds_);
+        oldest.Finish() = stlp::CopyElements(oldest.end(), oldest.end(), oldest.begin());   // erase(begin, end), 0043DC80
+        Batches::Erase<FreedIdsElement>(freedIds_.First());   // 004390C0
+        Batches::InsertDefault<FreedIdsElement>(freedIds_.End());   // 00439000
     }
 
     bool alive = false;
@@ -153,12 +141,6 @@ EI_REPLACE_METHOD(0x00433BD0, Connection::Tick);
 namespace net {
 
 namespace {
-__declspec(naked) std::uint32_t __fastcall BySentIdErase(stlp::map<std::uint32_t, RefPtr>* /*map*/, void*,
-                                                         const std::uint32_t* /*key*/) EI_ORIGINAL(0x0043BE60)
-// vector<FreedId> of a freed-id batch: construct in place (4 bytes), insert when full.
-__declspec(naked) void __fastcall FreedConstruct(FreedId* /*at*/, const FreedId* /*value*/) EI_ORIGINAL(0x0043D7F0)
-__declspec(naked) void __fastcall FreedInsertOverflow(FreedId** /*vector*/, void*, FreedId* /*pos*/, const FreedId* /*value*/,
-                                                      std::uint32_t /*n*/) EI_ORIGINAL(0x0043B6C0)
 float RttKeep() { return GameFloat(0x0073BF30); }   // the share of the old average kept per sample
 float One() { return GameFloat(0x0073B84C); }       // 1.0f
 } // namespace
@@ -171,7 +153,8 @@ void Connection::Delivered(SentPacket* packet) {
     double keptSquare = D(RttKeep()) * D(roundTripSquare_);
     roundTripSquare_ = static_cast<float>(keptSquare);
     roundTripSquare_ = static_cast<float>((D(One()) - D(RttKeep())) * sample * sample + keptSquare);
-    for (SentItem* item = packet->items->next; item != packet->items; item = item->next) {
+    for (SentItemNode* node = packet->items.First(); node != packet->items.End(); node = node->next) {
+        SentItem* item = &node->data;
         auto action = static_cast<std::int32_t>(item->action);
         if (action == SentItem::kChangedReliable) {
             std::uint32_t version = item->version;
@@ -184,17 +167,17 @@ void Connection::Delivered(SentPacket* packet) {
             trees::Entries::Find(tree, nullptr, &found, &entry);
             if (found != tree->end()) {
                 entry = item->entry;
-                std::uint32_t key = (static_cast<std::uint32_t>(entry->type_) << 16) + entry->id_;
-                BySentIdErase(&bySentId_, nullptr, &key);
+                std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
+                trees::SentIds::EraseKey(&bySentId_, nullptr, &key);   // 0043BE60
                 FreedId value{};
                 value.id = entry->id_;
                 value.type = entry->type_;
-                FreedBatch* batch = freedIds_->prev;   // the newest batch
-                if (batch->end != batch->eos) {
-                    FreedConstruct(batch->end, &value);
-                    ++batch->end;
+                FreedIds& batch = freedIds_.End()->prev->data;   // the newest batch
+                if (batch.end() != batch.EndOfStorage()) {
+                    stlp::ConstructAt(batch.end(), &value);   // 0043D7F0
+                    ++batch.Finish();
                 } else {
-                    FreedInsertOverflow(&batch->begin, nullptr, batch->end, &value, 1);
+                    batch.InsertOverflow<stlp::PlainElement<FreedId>>(batch.end(), value, 1);   // 0043B6C0
                 }
                 trees::Entries::EraseAt(tree, nullptr, found);
             }

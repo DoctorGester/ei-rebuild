@@ -85,7 +85,7 @@ bool CBattleScreen::PollShown() {
         if (party.size > 0) static_cast<CCamera*>(camera::TheCamera())->SetTarget(party.data[0]);
         if (AutoSaveEnabled()) AutoSaveOriginal(AutoSaveName(), 1);
         hasHero_ = false;
-        interface_->ShowHelp(0);
+        interface_->OpenHelp(0);
     }
     return true;
 }
@@ -228,7 +228,7 @@ void CBattleScreen::OnMessageResult(int result) {
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
         if (window) {
-            ConstructContainerAt(window, nullptr, interface_);
+            static_cast<CUiContainer*>(window)->Construct(interface_);
             window->entriesBegin_ = nullptr;
             window->entriesEnd_ = nullptr;
             window->entriesCapacity_ = nullptr;

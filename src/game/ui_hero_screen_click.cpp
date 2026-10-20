@@ -4,6 +4,8 @@
 #include "ui_screens.h"
 #include "game_strings.h"
 #include "ui_camp.h"
+#include "acks_db.h"
+#include "unit_create.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -23,6 +25,7 @@
 #include "map_object_figures.h"
 #include "world.h"
 #include "world_glue.h"
+#include "library_containers.h"
 
 #include <cstdint>
 #include <cstring>
@@ -83,7 +86,7 @@ CItem* FirstOf(CEngineObject** const& data, const std::uint32_t& count) {
 CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     auto* camp = static_cast<CCampPages*>(gamecrt::operator_new(sizeof(CCampPages)));
     if (!camp) return nullptr;
-    ConstructContainerAt(camp, nullptr, ui);
+    reinterpret_cast<CUiContainer*>(camp)->Construct(ui);
     camp->hoveredItem_ = nullptr;
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);
@@ -429,12 +432,6 @@ EI_REPLACE(0x00618060, MpHeroRename);
 // --- 00619150: the voice's sound ----------------------------------------------------------------
 
 namespace {
-// 00619FB0 (RET 4): the sound sets' hash_map<string, UnitSoundBank*>::operator[] (inserts a null
-// entry for an unknown name); EAX = the value slot.
-__declspec(naked) UnitSoundBank** __fastcall SoundSetAt(void* /*map*/, void*, const stlp::string* /*key*/)
-    EI_ORIGINAL(0x00619FB0)
-void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }
-void* SoundSets() { return reinterpret_cast<void*>(0x007C8A6C); }
 constexpr std::uint32_t kVoiceFlags = 0x2282;
 
 bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) == kVoiceFlags && entry.name; }
@@ -447,13 +444,14 @@ void CMpHeroScreen::PlayVoice() {
     char* prototype;
     {
         stlp::string key(static_cast<const char*>(hero->texts[6]));
-        prototype = static_cast<char*>(*PrototypeMapAtOriginal(UnitPrototypes(), nullptr, &key));
+        prototype = unitdb::PrototypeTable().byName.Subscript(key);
     }
     if (!prototype) return;
     UnitSoundBank* set;
     {
         stlp::string key(*reinterpret_cast<const char* const*>(prototype));
-        set = *SoundSetAt(SoundSets(), nullptr, &key);
+        // The sound sets (the units' acks) by name: operator[] (00619FB0) inserts a null entry for an unknown name.
+        set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
     }
     if (!set) return;
     // The original gathers the voice entries in a temporary vector; here they are counted and
@@ -487,7 +485,7 @@ void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
     if (!screen) return nullptr;
-    ConstructContainerAt(screen, nullptr, ui);
+    static_cast<CUiContainer*>(screen)->Construct(ui);
     screen->entries_.Start() = nullptr;
     screen->entries_.Finish() = nullptr;
     screen->entries_.EndOfStorage() = nullptr;
@@ -728,7 +726,8 @@ void CMpHeroScreen::AddNewHero() {
     if (MpHeroesEnd() == MpHeroesCapacity()) {
         BlankHeroRecord blank;
         blank.record.Construct();
-        PartyEntriesInsertOverflowOriginal(&MpHeroesBegin(), nullptr, MpHeroesEnd(), &blank.record, 1);
+        libcontainers::InsertHeroRecordsOverflow(reinterpret_cast<libcontainers::HeroRecords*>(&MpHeroesBegin()), nullptr,
+                                                 MpHeroesEnd(), &blank.record, 1);   // 00619920
         blank.record.Destruct();
     } else {
         if (MpHeroesEnd()) MpHeroesEnd()->Construct();

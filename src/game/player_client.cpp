@@ -226,9 +226,9 @@ int CPlayerClient::OnSetVariable() {
     }
     std::uint32_t value;
     in_.Read(&value, 4);
-    void* variables = &Owner()->Party()->variables_;
-    NamedTableGet(variables, nullptr, name);
-    static_cast<NamedFloatTable*>(variables)->Set(name, std::bit_cast<float>(value));
+    NamedFloatTable& variables = Owner()->Party()->variables_;
+    variables.Get(name);
+    variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
         static_cast<CInterface3D*>(QuestLog())->OnQuestVariable(name, std::bit_cast<float>(value));
         static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, std::bit_cast<float>(value));
@@ -243,7 +243,7 @@ int CPlayerClient::OnDeleteVariable() {
         in_.ReadString(text.bytes);
         name = *text.Get();
     }
-    VariableRemove(&Owner()->Party()->variables_, nullptr, name);
+    Owner()->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
         static_cast<CInterface3D*>(QuestLog())->OnQuestVariable(name, 0.0f);
         static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, 0.0f);
@@ -358,13 +358,6 @@ bool MarkersShown() { return *reinterpret_cast<const int*>(0x0079BE70) != 0; }
 const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF8); }   // "party received on client"
 
 
-// The STLport table's inlined destructor: every node deleted (004616A0), the buckets cleared, the
-// count zeroed, then the bucket vector destroyed (00609F50).
-void DestroyTable(PartyVariableMap* table) {
-    table->ClearWith([table](PartyVariableMap::Node* node) { FloatTableDeleteNodeOriginal(table, nullptr, node); });
-    BucketVectorDestroyOriginal(table->BucketVector());
-}
-
 } // namespace
 
 int CPlayerClient::OnItemsReceived() {
@@ -396,8 +389,8 @@ int CPlayerClient::OnItemsReceived() {
 
 int CPlayerClient::OnParty() {
     CParty* party = Owner()->Party();
-    PartyVariableMap saved;
-    FloatTableCopyConstructOriginal(&saved, nullptr, &party->variables_);
+    NamedFloatTable saved;
+    saved.CopyConstruct(party->variables_);
     {
         MemoryStream block;
         in_.ReadSized(block.Get());
@@ -416,16 +409,16 @@ int CPlayerClient::OnParty() {
         }
         if (IsMultiplayerClient()) {
             // A multiplayer client keeps its variables (the table's three functor bytes included).
-            PartyVariableMap* variables = &party->variables_;
-            FloatTableClearOriginal(variables);
-            std::memcpy(variables->Functors(), saved.Functors(), 3);
-            FloatTableCopyFromOriginal(variables, nullptr, &saved);
+            NamedFloatTable& variables = party->variables_;
+            variables.Clear();
+            std::memcpy(variables.Functors(), saved.Functors(), 3);
+            variables.CopyFrom(saved);
         }
         WorldClient()->ApplyObjectVariables();
         GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
         Flow()->ReturnLocalParty();
     }
-    DestroyTable(&saved);
+    saved.Destroy();   // inlined: every node deleted (004616A0), then the bucket vector (00609F50)
     return 1;
 }
 
@@ -693,7 +686,7 @@ int CPlayerClient::OnNewObject() {
     if (object->name2[0] != 0) {
         TextBuffer variable;
         static_cast<CWorldClient*>(WorldClient())->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
-        object->SetVisibilityLevel(NamedTableGet(&player->Party()->variables_, nullptr, *variable.Get()));
+        object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)
         static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(created)->controller)->LoadFaceTexture();
@@ -846,19 +839,12 @@ namespace {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-void* PartyIdSet() { return reinterpret_cast<void*>(0x007C8370); }   // hash_set<int>
+// The client's party unit ids (hash_set<int>, 007C8370): insert_unique 0066B400, find 0066B490,
+// clear 0066BA70.
+using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
+IntSet& PartyIdSet() { return *reinterpret_cast<IntSet*>(0x007C8370); }
 // 007AFCA4: read only here (no code writes it); slot 43 runs when it is at least 1.
 int FadeInGate() { return *reinterpret_cast<const int*>(0x007AFCA4); }
-
-// The set's iterator and insert result as the forwarders write them.
-struct IntSetIterator {
-    void* node;
-    void* table;
-};
-struct IntSetInsertResult {
-    IntSetIterator where;
-    std::uint8_t inserted;
-};
 
 int ReadDword(BitStream* in) {
     int value;
@@ -871,8 +857,8 @@ int ReadDword(BitStream* in) {
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();
     for (int i = 0; i < partyUnitIds_.size; ++i) {
-        IntSetInsertResult inserted;
-        IntSetInsertOriginal(PartyIdSet(), nullptr, &inserted, &partyUnitIds_.data[i]);
+        bool inserted;
+        PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_.data[i])}, inserted);
         CEngineObject* unit = WorldFindUnit(player->ManagerContext(), nullptr, partyUnitIds_.data[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
@@ -890,13 +876,11 @@ int CPlayerClient::OnPartyState() {
         auto* unit = static_cast<CUnit*>(WorldFindUnit(player->ManagerContext(), nullptr, id));
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
-        IntSetIterator found;
-        IntSetFindOriginal(PartyIdSet(), nullptr, &found, &id);
-        if (found.node == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
+        if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
             FadeInGate() >= 1)
             unit->Controller()->RestartFadeIn();
     }
-    IntSetClearOriginal(PartyIdSet());
+    PartyIdSet().Clear();
 
     static_cast<CWorldClient*>(player->ManagerContext())->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);

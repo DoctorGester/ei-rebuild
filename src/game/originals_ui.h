@@ -31,15 +31,12 @@ struct NamedFloatTable;
 __declspec(naked) inline void __fastcall SelectUnitAt(void* /*battle screen*/, void*, CUnit*, int, int)
     EI_ORIGINAL(0x00638EF0)
 __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
-__declspec(naked) inline void __fastcall PlayMovieFile(const char*, int, int, int, int, int, int)
-    EI_ORIGINAL(0x005DB3F0)
 __declspec(naked) inline void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
 // CUiSurface::DrawText (RET 0x18; the surface is `this`): text into a rectangle with a format, colour and
 // two more ints. Returns the DrawText result (0 without a DirectDraw surface). RECT is `tagRECT`.
 __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*, const char* /*text*/, tagRECT* /*rect*/,
                                                         int /*format*/, std::uint32_t /*colour*/, int, int)
     EI_ORIGINAL(0x005FDE20)
-__declspec(naked) inline void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) inline void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
 // 00458270 (__fastcall: ECX the section name, DL clears the screen first; then clear-after and two values on
 // the stack, RET 0xC): plays the movies listed under a section (the titles' "<name>fin" / "<name>fout").
@@ -77,8 +74,6 @@ __declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, vo
 __declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
 // 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
 __declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
-// 005E0DB0: variable table iterator: the next node in the bucket chain or null (plain RET, EAX = node).
-__declspec(naked) inline void* __fastcall VariableIteratorNextOriginal(void* /*iterator*/) EI_ORIGINAL(0x005E0DB0)
 
 // 005E44A0 (Rebirth-patched by ImproveConsole; rewritten as ConsoleWindow::OnChar): the console's typed character
 // (thiscall, RET 0xC: key, repeat, flags; no result).
@@ -127,12 +122,7 @@ __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*nam
 // address): a script string event on the interface (007C7D50; RET 4, no result).
 __declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*interface*/, void*, const char* /*event*/)
     EI_ORIGINAL(0x005F8070)
-// 004DEFA0 (the text manager; RET 8): the section names matching `pattern` ("pers *") into a CStringArray. 00609E70
-// (a PersonTextMap; RET 0xC): insert with a hint (an STLport map<int, CString> node, a {key, CString} pair); the
-// node's iterator is written to `result`, which is returned.
-__declspec(naked) inline void** __fastcall PersonMapInsertHintOriginal(void* /*map*/, void*, void** /*result*/,
-                                                                       void* /*hint*/, const void* /*pair*/)
-    EI_ORIGINAL(0x00609E70)
+// 004DEFA0 (the text manager; RET 8): the section names matching `pattern` ("pers *") into a CStringArray.
 // 00615D30 (thiscall on the multiplayer hero screen, RET 4; Rebirth-patched, the vanilla body is
 // CMpHeroScreen::SetModeVanilla): the screen laid out for mode 9, 10 or 11.
 __declspec(naked) inline void __fastcall HeroScreenSetModeOriginal(void* /*screen*/, void*, int /*mode*/) EI_ORIGINAL(0x00615D30)
@@ -204,6 +194,3 @@ __declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, vo
 __declspec(naked) inline CUiWindow* __fastcall InterfaceActiveWindowOriginal(CInterface3D* /*interface*/) EI_ORIGINAL(0x005F7590)
 __declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(const CInterface3D* /*interface*/, void*,
                                                                               tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)
-// 005F8F10: the constructor of CBattleScreen's vector<int> instantiations from an allocator (thiscall, RET 4; no result).
-__declspec(naked) inline void __fastcall IdVectorConstructOriginal(void* /*vector*/, void*, const void* /*allocator*/)
-    EI_ORIGINAL(0x005F8F10)

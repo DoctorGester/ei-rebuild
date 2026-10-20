@@ -21,20 +21,12 @@ namespace {
 
 // The bridge map's node: {next, key, value}; the original reads the low 16 bits of the value and
 // stores a whole dword (ground, object height, occluder kind).
-using BridgeMap = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
 using BridgeNode = BridgeMap::Node;
-static_assert(sizeof(BridgeMap) == 0x14);
-
-BridgeNode* FindBridge(void* map, std::uint32_t key) { return static_cast<BridgeMap*>(map)->Find(key); }
 
 std::uint32_t BridgeKey(int x, int y) {
     return static_cast<std::uint32_t>((static_cast<int>(static_cast<short>(x)) << 16) + static_cast<short>(y));
 }
 
-// 005BCDE0 (RET 4). hash_map::operator[]: the node's value slot for the key (inserted when new).
-__declspec(naked) std::uint32_t* __fastcall BridgeSlot(void*, void*, const std::uint32_t*) EI_ORIGINAL(0x005BCDE0)
-// 005BCE60 (RET 8). hashtable::erase(iterator): the iterator {node, table} by value.
-__declspec(naked) void __fastcall EraseBridge(void*, void*, BridgeNode*, void*) EI_ORIGINAL(0x005BCE60)
 
 std::uint16_t& FlagsWord(AIMapCell* cell) { return *reinterpret_cast<std::uint16_t*>(&cell->flags); }
 
@@ -43,13 +35,13 @@ std::uint16_t& FlagsWord(AIMapCell* cell) { return *reinterpret_cast<std::uint16
 // 005B30B0 (thiscall on the bridge map, RET 0x10; x and y are read as shorts). A cell that has an
 // entry gets back its ground level, its object height (flags & 0x3F) and the occluder word's low
 // five bits; the entry is erased.
-void __fastcall RestoreBridgeCell(void* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
-    BridgeNode* node = FindBridge(map, BridgeKey(x, y));
+void __fastcall RestoreBridgeCell(BridgeMap* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
+    BridgeNode* node = map->Find(BridgeKey(x, y));
     if (!node) return;
     cell->groundLevel = static_cast<std::uint16_t>(node->value);
     FlagsWord(cell) = static_cast<std::uint16_t>((FlagsWord(cell) & 0xFFC0) | ((node->value >> 16) & 0x3F));
     *occluder = (*occluder & 0xFFFFFFE0u) | ((node->value >> 24) & 0x1F);
-    EraseBridge(map, nullptr, node, map);
+    map->Erase(node);   // 005BCE60
 }
 EI_REPLACE(0x005B30B0, RestoreBridgeCell);
 
@@ -65,11 +57,11 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
             int deck;
             if (!BridgeDeckAt(x, y, &deck)) {
                 if (cell->flags & kCellBridge)
-                    RestoreBridgeCell(bridgeHeights, nullptr, x, y, &cells[y][x], &occluders[y][x]);
+                    RestoreBridgeCell(&bridgeHeights, nullptr, x, y, &cells[y][x], &occluders[y][x]);
                 std::uint16_t w = FlagsWord(cell) & 0xFFBF;
                 FlagsWord(cell) = static_cast<std::uint16_t>(((w & 0x3F) ? 0x80 : 0) | (w & 0xFF7F));
             } else {
-                BridgeNode* node = FindBridge(bridgeHeights, BridgeKey(x, y));
+                BridgeNode* node = bridgeHeights.Find(BridgeKey(x, y));
                 int saved = node ? static_cast<std::uint16_t>(node->value) : 0;
                 cell->groundLevel = static_cast<std::uint16_t>(saved > deck ? saved : deck);
             }
@@ -85,10 +77,10 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
         if (!(cell->flags & kCellBridge)) {
             std::uint32_t* occluderRow = occluders[y];
             std::uint32_t key = BridgeKey(x, y);
-            if (!FindBridge(bridgeHeights, key)) {
+            if (!bridgeHeights.Find(key)) {
                 std::uint32_t value = cell->groundLevel | static_cast<std::uint32_t>(cell->flags & 0x3F) << 16 |
                                       static_cast<std::uint32_t>(occluderRow[x] & 0x1F) << 24;
-                *BridgeSlot(bridgeHeights, nullptr, &key) = value;
+                bridgeHeights[key] = value;   // 005BCDE0
             }
         }
         if (!AddOccluderRecord(&c)) return false;
