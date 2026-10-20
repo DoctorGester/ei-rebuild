@@ -46,35 +46,30 @@ void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
 // The thrown error object: operator new (007005AF), its constructor (GameErrorConstruct, 00480250,
 // cdecl: object, format, width, height) and _CxxThrowException with its throw info (originals_engine.h).
 
-constexpr std::uint32_t kDescFlags = 0x1007;    // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT
-constexpr std::uint32_t kPixelFormatFlag = 0x1000;   // DDSD_PIXELFORMAT
-constexpr std::uint32_t kClientMemory = 0x808;  // DDSD_LPSURFACE | DDSD_PITCH
-constexpr std::uint32_t kCaps = 0x840;          // DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY
-constexpr std::uint32_t kAlphaPixels = 0x1, kRgb = 0x40;   // DDPIXELFORMAT flags
-
-// DDSURFACEDESC2 as dwords: +0x04 flags, +0x08 height, +0x0C width, +0x10 pitch, +0x24 memory,
-// +0x48 the pixel format (+0x4C flags, +0x54 bits, +0x58..+0x64 R, G, B, A masks), +0x68 caps.
-enum : int { kFlags = 1, kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kFormat = 18, kBits = 21, kRed = 22,
-             kGreen = 23, kBlue = 24, kAlpha = 25, kCapsWord = 26 };
+// A DDPIXELFORMAT as dwords (PixelFormat): size, flags, FourCC, bits, R, G, B, A masks.
+enum : int { kFormatSize = 0, kFormatFlags = 1, kBits = 3, kRed = 4, kGreen = 5, kBlue = 6, kAlpha = 7 };
+constexpr std::uint32_t kAlphaPixels = 0x1, kRgb = 0x40;   // its flags
 
 // --- The new renderer's memory -----------------------------------------------------------------------
 
 int g_clientFailures = 0;
 
-// Memory of the new renderer's for `holder` in the format `desc` gives (16 or 32-bit RGB): its pitch
-// and address go into the description as the surface's client memory. False when there is none.
-bool AttachClientMemory(const CDXSurface* holder, std::uint32_t* desc) {
-    std::uint32_t bits = desc[kBits];
-    if ((bits != 16 && bits != 32) || !(desc[kFormat + 1] & kRgb)) return false;
-    std::uint32_t alpha = (desc[kFormat + 1] & kAlphaPixels) ? desc[kAlpha] : 0;
-    const render::SurfaceMemory* memory =
-        render::NewSurfaceMemory(holder, static_cast<int>(desc[kWidth]), static_cast<int>(desc[kHeight]),
-                                 static_cast<int>(bits), desc[kRed], desc[kGreen], desc[kBlue], alpha);
-    if (!memory) return false;
-    desc[kFlags] |= kClientMemory;
-    desc[kPitch] = static_cast<std::uint32_t>(memory->pitch);
-    desc[kSurface] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(memory->bits));
-    return true;
+// Memory of the new renderer's for `holder`, `width` x `height` pixels in `format` (16 or 32-bit
+// RGB). False when there is none.
+bool AttachClientMemory(const CDXSurface* holder, int width, int height, const PixelFormat& format) {
+    const std::uint32_t* f = format.words;
+    std::uint32_t bits = f[kBits];
+    if ((bits != 16 && bits != 32) || !(f[kFormatFlags] & kRgb)) return false;
+    std::uint32_t alpha = (f[kFormatFlags] & kAlphaPixels) ? f[kAlpha] : 0;
+    return render::NewSurfaceMemory(holder, width, height, static_cast<int>(bits), f[kRed], f[kGreen], f[kBlue],
+                                    alpha) != nullptr;
+}
+
+// The format of `pixelFormat` (a DDPIXELFORMAT as dwords).
+PixelFormat FormatOf(const std::uint32_t* pixelFormat) {
+    PixelFormat format;
+    std::memcpy(format.words, pixelFormat, sizeof(format.words));
+    return format;
 }
 
 // What DirectDraw's CreateSurface answered for a surface it refused (DDERR_UNSUPPORTED, the
@@ -89,23 +84,22 @@ constexpr long kSurfaceRefused = static_cast<long>(0x80004001);
     }
 }
 
-// The display mode's pixel format into `format` (a DDPIXELFORMAT; IDirectDraw7::GetDisplayMode).
-// False when DirectDraw does not give an RGB one.
-bool ReadDisplayModeFormat(CTextureDevice* device, std::uint32_t* format) {
+// The display mode's pixel format into `format` (IDirectDraw7::GetDisplayMode). False when
+// DirectDraw does not give an RGB one.
+bool ReadDisplayModeFormat(CTextureDevice* device, PixelFormat* format) {
     if (!device->ddraw_) return false;
-    std::uint32_t mode[0x1F] = {};
-    mode[0] = 0x7C;
-    if (device::GetDisplayMode(device::DDraw(device), reinterpret_cast<DDSURFACEDESC2*>(mode)) != 0 ||
-        !(mode[kFormat + 1] & kRgb))
+    DDSURFACEDESC2 mode = {};
+    mode.dwSize = sizeof(mode);
+    if (device::GetDisplayMode(device::DDraw(device), &mode) != 0 || !(mode.ddpfPixelFormat.dwFlags & kRgb))
         return false;
-    std::memcpy(format, &mode[kFormat], 8 * sizeof(std::uint32_t));
+    std::memcpy(format->words, &mode.ddpfPixelFormat, sizeof(format->words));
     return true;
 }
 
-// The screen's pixel format into `format` (a DDPIXELFORMAT): the display mode's (ticket R8: the
-// original reads the primary surface's, which is in the display mode's format; the stand-in always
-// answers with an RGB one). Otherwise the original's report.
-void ReadScreenFormat(CTextureDevice* device, std::uint32_t* format) {
+// The screen's pixel format into `format`: the display mode's (ticket R8: the original reads the
+// primary surface's, which is in the display mode's format; the stand-in always answers with an RGB
+// one). Otherwise the original's report (`format` stays as it was).
+void ReadScreenFormat(CTextureDevice* device, PixelFormat* format) {
     if (ReadDisplayModeFormat(device, format)) return;
     app::FatalErrorCode(kSurfaceRefused, game::Text(0x0078E714));   // "Can't get pixel format from surface"
 }
@@ -122,45 +116,34 @@ HBITMAP ClientBitmap(const void* holder) {
     return memory ? static_cast<HBITMAP>(memory->bitmap) : nullptr;
 }
 
-bool DirectPixels(const void* holder, std::uint32_t* desc) { return holder && ClientPixels(holder, desc); }
-
-bool ClientPixels(const void* holder, std::uint32_t* desc) {
-    const render::SurfaceMemory* m = render::SurfaceMemoryOf(holder);
-    if (!m) return false;
-    ::GdiFlush();   // GDI may still hold drawing for the memory (not imported by the game)
-    std::memset(desc, 0, 0x7C);
-    desc[0] = 0x7C;
-    desc[kFlags] = kDescFlags | kClientMemory;
-    desc[kWidth] = static_cast<std::uint32_t>(m->width);
-    desc[kHeight] = static_cast<std::uint32_t>(m->height);
-    desc[kPitch] = static_cast<std::uint32_t>(m->pitch);
-    desc[kSurface] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(m->bits));
-    desc[kFormat] = 0x20;
-    desc[kFormat + 1] = kRgb | (m->alphaMask ? kAlphaPixels : 0);
-    desc[kBits] = static_cast<std::uint32_t>(m->bitsPerPixel);
-    desc[kRed] = m->redMask;
-    desc[kGreen] = m->greenMask;
-    desc[kBlue] = m->blueMask;
-    desc[kAlpha] = m->alphaMask;
-    desc[kCapsWord] = kCaps;
-    return true;
+PixelFormat SurfacePixels::Format() const {
+    PixelFormat format = {};
+    if (!bitsPerPixel) return format;
+    std::uint32_t* f = format.words;
+    f[kFormatSize] = sizeof(format);
+    f[kFormatFlags] = kRgb | (alphaMask ? kAlphaPixels : 0);
+    f[kBits] = static_cast<std::uint32_t>(bitsPerPixel);
+    f[kRed] = redMask;
+    f[kGreen] = greenMask;
+    f[kBlue] = blueMask;
+    f[kAlpha] = alphaMask;
+    return format;
 }
 
-bool AttachTextureMemory(void* holder, int width, int height, const std::uint32_t* pixelFormat) {
-    if (!holder) return false;
-    if (render::SurfaceMemoryOf(holder)) return true;
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    desc[kFlags] = kDescFlags;
-    desc[kWidth] = static_cast<std::uint32_t>(width);
-    desc[kHeight] = static_cast<std::uint32_t>(height);
-    std::memcpy(&desc[kFormat], pixelFormat, 8 * sizeof(std::uint32_t));
-    if (!AttachClientMemory(static_cast<const CDXSurface*>(holder), desc)) {
-        if (g_clientFailures++ < 5)
-            ei::Log("cpuwindows: no game memory for a %dx%d texture (format flags %08X, %u bits)", width, height,
-                    desc[kFormat + 1], desc[kBits]);
-        return false;
-    }
+bool DirectPixels(const void* holder, SurfacePixels* pixels) {
+    *pixels = {};
+    const render::SurfaceMemory* m = holder ? render::SurfaceMemoryOf(holder) : nullptr;
+    if (!m) return false;
+    ::GdiFlush();   // GDI may still hold drawing for the memory (not imported by the game)
+    pixels->width = m->width;
+    pixels->height = m->height;
+    pixels->pitch = m->pitch;
+    pixels->bits = static_cast<std::uint8_t*>(m->bits);
+    pixels->bitsPerPixel = m->bitsPerPixel;
+    pixels->redMask = m->redMask;
+    pixels->greenMask = m->greenMask;
+    pixels->blueMask = m->blueMask;
+    pixels->alphaMask = m->alphaMask;
     return true;
 }
 
@@ -198,7 +181,7 @@ CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int heigh
     CDXSurface* holder = StartTextureHolder(device);
     if (!holder) return nullptr;
     // (A DDPIXELFORMAT: its bit count, as a surface of that format reports it.)
-    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits - kFormat]));
+    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
     return holder;
 }
 
@@ -206,21 +189,15 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
     if (!device) return nullptr;
     CDXSurface* holder = StartTextureHolder(device);
     if (!holder) return nullptr;
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    desc[kFlags] = kDescFlags;
-    desc[kWidth] = static_cast<std::uint32_t>(width);
-    desc[kHeight] = static_cast<std::uint32_t>(height);
-    std::memcpy(&desc[kFormat], pixelFormat, 8 * sizeof(std::uint32_t));
-    if (!AttachClientMemory(holder, desc)) {
+    if (!AttachClientMemory(holder, width, height, FormatOf(pixelFormat))) {
         if (g_clientFailures++ < 5)
             ei::Log("cpuwindows: no memory for a %dx%d texture (format flags %08X, %u bits)", width, height,
-                    desc[kFormat + 1], desc[kBits]);
+                    pixelFormat[kFormatFlags], pixelFormat[kBits]);
         gamecrt::operator_delete(holder);
         return nullptr;
     }
     // The memory is the surface.
-    FinishTextureHolder(holder, width, height, static_cast<int>(desc[kBits]));
+    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
     return holder;
 }
 
@@ -230,19 +207,14 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
 CDXSurface* CDXSurface::Construct(CTextureDevice* deviceIn, int widthIn, int heightIn) {
     refCount = 0;
     result = 0;
-    std::uint32_t desc[0x1F] = {};
-    desc[kWidth] = static_cast<std::uint32_t>(widthIn);
-    desc[kHeight] = static_cast<std::uint32_t>(heightIn);
     this->device = deviceIn;
     this->surface = nullptr;
     width = 0;
     height = 0;
     bitsPerPixel = 0;
     SetHolderVtable(this);
-    desc[0] = 0x7C;
-    desc[kFlags] = kDescFlags;
-    desc[kCapsWord] = kCaps;
-    ReadScreenFormat(deviceIn, &desc[kFormat]);
+    PixelFormat format = {};
+    ReadScreenFormat(deviceIn, &format);
 
     if (!this->device) {
         // "... Can't create DDSurface - no DXDD." (a report that says go on: the original reads the
@@ -250,12 +222,12 @@ CDXSurface* CDXSurface::Construct(CTextureDevice* deviceIn, int widthIn, int hei
         game::FatalError(game::Text(0x0078E8CC));
         ThrowCreateFailed(widthIn, heightIn);
     }
-    if (!AttachClientMemory(this, desc)) ThrowSurfaceNotMade(this->device, widthIn, heightIn);
+    if (!AttachClientMemory(this, widthIn, heightIn, format)) ThrowSurfaceNotMade(this->device, widthIn, heightIn);
     // The memory is the surface: described by the request, the creation counted as done.
     this->device->lastLoadResult_ = 0;
     width = widthIn;
     height = heightIn;
-    bitsPerPixel = static_cast<int>(desc[kBits]);
+    bitsPerPixel = static_cast<int>(format.words[kBits]);
     ++HolderCount();
     return this;
 }
@@ -270,24 +242,24 @@ const std::uint8_t* PicturePixels(const MmpHeader* picture) {
     return reinterpret_cast<const std::uint8_t*>(picture) + sizeof(MmpHeader) + picture->extraSize;
 }
 
-// The picture's pixels into the memory `desc` describes (locked, or the new renderer's memory), of
-// the surface's pixel format `format` (a DDPIXELFORMAT). The device's pixel converter (2DintMMX's
+// The picture's pixels into the holder's memory `pixels`. The device's pixel converter (2DintMMX's
 // graphics processor): slot 1 takes the target format (0 5:6:5, 1 5:5:5, 2 1:5:5:5, -1 another)
 // and its alpha, red, green and blue masks; slot 2 converts one row of 8888 pixels (out, in,
 // format, count).
-void FillPicture(CDXSurface* holder, const MmpHeader* picture, const std::uint32_t* desc, const std::uint32_t* format) {
+void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixels& pixels) {
     const std::uint8_t* source = PicturePixels(picture);
-    auto* out = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc[kSurface]));
-    std::uint32_t bits = format[kBits - kFormat];
+    std::uint8_t* out = pixels.bits;
+    const std::uint32_t bits = static_cast<std::uint32_t>(pixels.bitsPerPixel);
     if (bits == 32) {
         for (std::uint32_t row = 0; row < picture->height; ++row) {
             std::memcpy(out, source, picture->width * 4);
-            out += static_cast<std::int32_t>(desc[kPitch]);
+            out += pixels.pitch;
             source += picture->width * 4;
         }
     } else if (bits == 16) {
         ChannelLayout layout;
-        layout.Split(format);
+        const PixelFormat format = pixels.Format();
+        layout.Split(&format);
         int target = -1;
         if (layout.redBits == 5) {
             if (layout.greenBits == 5) {
@@ -304,13 +276,13 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const std::uint32
         for (std::uint32_t row = 0; row < picture->height; ++row) {
             converter->ConvertTo16(reinterpret_cast<std::uint16_t*>(out), reinterpret_cast<const std::uint32_t*>(source), target,
                                    picture->width);
-            out += static_cast<std::int32_t>(desc[kPitch]);
+            out += pixels.pitch;
             source += picture->width * 4;
         }
     } else if (bits == 24) {
         game::FatalError(game::Text(0x0078EA10));   // "Can't load picture to 24bit surface! ..."
         // (The surface cleared as if it had no row padding, as the original.)
-        std::memset(out, 0, (bits >> 3) * desc[kHeight] * desc[kWidth]);
+        std::memset(out, 0, (bits >> 3) * static_cast<std::uint32_t>(pixels.height * pixels.width));
     }
 }
 
@@ -334,44 +306,34 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
     if (!picture) return game::FatalError(game::Text(0x0078EB10));                  // "Can't load picture from NULL pointer."
     if (picture->format != kFormat8888) return game::FatalError(game::Text(0x0078EAE4));   // "... from non-8888 format."
     if (!render::SurfaceMemoryOf(this)) {
-        std::uint32_t desc[0x1F] = {};
-        desc[0] = 0x7C;
         // The screen's pixel format. Without a owner the original reads through a null pointer
-        // here; 004EFC60 always passes one.
+        // here; 004EFC60 always passes one. (The low byte of the flag asked for video memory.)
+        PixelFormat format = {};
         gameapi::EnterCriticalSection(DeviceLock());
-        ReadScreenFormat(this->device, &desc[kFormat]);
+        ReadScreenFormat(this->device, &format);
         gameapi::LeaveCriticalSection(DeviceLock());
-        // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH: the format (the primary's) is not passed.
-        desc[kFlags] = 7;
-        desc[kWidth] = picture->width;
-        desc[kHeight] = picture->height;
-        // (The low byte of the flag asked for video memory.)
-        desc[kCapsWord] = kCaps;
         // (The original's "no DXDD" report for a this without a owner is unreachable after the
         // read above, as is its release of an earlier surface: there is none on this path.)
-        if (!AttachClientMemory(this, desc)) {
+        const int pictureWidth = static_cast<int>(picture->width), pictureHeight = static_cast<int>(picture->height);
+        if (!AttachClientMemory(this, pictureWidth, pictureHeight, format)) {
             this->device->lastLoadResult_ = kSurfaceRefused;
             // "Can't create newSurface to load picture %d:%d:%d."
             return game::FatalError(game::Text(0x0078EAB4), picture->width, picture->height, picture->bitsPerPixel);
         }
-        desc[kFlags] |= kPixelFormatFlag;     // the DIB's format, the one DirectDraw would pick
         this->device->lastLoadResult_ = 0;    // the memory is the surface
-        width = static_cast<int>(desc[kWidth]);
-        height = static_cast<int>(desc[kHeight]);
-        bitsPerPixel = static_cast<int>(desc[kBits]);
+        width = pictureWidth;
+        height = pictureHeight;
+        bitsPerPixel = static_cast<int>(format.words[kBits]);
     } else if (picture->width != static_cast<std::uint32_t>(width) ||
                picture->width != static_cast<std::uint32_t>(height)) {
         return game::FatalError(game::Text(0x0078E99C));   // "Dimentions of the DD newSurface are differ from ..."
     }
 
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    std::uint32_t format[8] = {};
+    SurfacePixels pixels;
     // (Always memory here: made above, or the dead loaders' holder.)
-    if (!DirectPixels(this, desc)) return game::FatalError(game::Text(0x0078EA80));   // "Can't get newSurface pixel format to load picture."
-    std::memcpy(format, &desc[kFormat], sizeof(format));
+    if (!DirectPixels(this, &pixels)) return game::FatalError(game::Text(0x0078EA80));   // "Can't get newSurface pixel format to load picture."
     gameapi::EnterCriticalSection(DeviceLock());
-    FillPicture(this, picture, desc, format);
+    FillPicture(this, picture, pixels);
     gameapi::LeaveCriticalSection(DeviceLock());
     return 1;
 }

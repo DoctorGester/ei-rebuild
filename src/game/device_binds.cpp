@@ -60,7 +60,9 @@ int CTextureDevice::BindSurface(int stage, CDXSurface* holder) {
     if (stageSurfaces_[stage] == holder) return 1;
     stageSurfaces_[stage] = holder;
     FlushBatch();
-    lastLoadResult_ = device::SetTexture(device::D3D(this), static_cast<DWORD>(stage), holder ? device::Surface(holder) : nullptr);
+    // (No holder has a DirectDraw surface: the stage's texture is null on the stand-in; the new
+    // renderer draws with the holder in stageSurfaces_.)
+    lastLoadResult_ = device::SetTexture(device::D3D(this), static_cast<DWORD>(stage), nullptr);
     ++textureChanges_;
     return 1;
 }

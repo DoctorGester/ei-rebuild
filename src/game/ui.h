@@ -2724,9 +2724,7 @@ public:
     void CallSaveGame();
     void CallShowPicture();
     void CallFillEntries();
-    // "cpuwindows": game-owned memory for a picture texture of the window (beside its DirectDraw
-    // texture; the new renderer reads it). Nothing without the option or a texture.
-    static void GivePictureMemory(CEngineObject* texture);
+
     // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
 

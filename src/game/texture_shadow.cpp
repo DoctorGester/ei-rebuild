@@ -27,8 +27,6 @@
 namespace {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-constexpr std::uint32_t kDescBytes = 0x7C;        // DDSURFACEDESC2
-enum : int { kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kBits = 21 };
 
 // The shadow textures: CreateObject's kind, 64 pixels square, the device's 4:4:4:4 format (its
 // texture kind 0x21 in the missing-format report).
@@ -122,14 +120,12 @@ EI_REPLACE_METHOD(0x00692140, CTextureManager::ShadowRenderSurface);
 
 // The holder's pixels are the new renderer's memory: described, no Lock / Unlock, the result 0 in
 // the holder.
-int CTexture::LockPixels(std::uint32_t* desc) {
+int CTexture::LockPixels(SurfacePixels* pixels) {
     CDXSurface* holder = surface_;
     if (!holder) return 0;
     gameapi::EnterCriticalSection(DeviceLock());
-    std::memset(desc, 0, kDescBytes);
-    desc[0] = kDescBytes;
     holder->result = 0;
-    return ClientPixels(holder, desc) ? 1 : 0;   // (always memory: CreateBlank made it)
+    return DirectPixels(holder, pixels) ? 1 : 0;   // (always memory: CreateBlank made it)
 }
 EI_REPLACE_METHOD(0x00690FC0, CTexture::LockPixels);
 
@@ -148,9 +144,8 @@ void CTexture::LoadPixelsFrom(CTextureDevice* device, const CTexture* source) {
     const CDXSurface* from = source->surface_;
     // Both in the new renderer's memory (the same size and format), copied row by row.
     device->lastLoadResult_ = 0;
-    std::uint32_t target[kDescBytes / 4];
-    std::uint32_t pixels[kDescBytes / 4];
-    if (!ClientPixels(to, target) || !ClientPixels(from, pixels)) {
+    SurfacePixels target, pixels;
+    if (!DirectPixels(to, &target) || !DirectPixels(from, &pixels)) {
         // (Never: CreateBlank gives both memory or throws.)
         if (!g_mixedLogged) {
             g_mixedLogged = true;
@@ -158,10 +153,8 @@ void CTexture::LoadPixelsFrom(CTextureDevice* device, const CTexture* source) {
         }
         return;
     }
-    std::uint32_t rows = target[kHeight] < pixels[kHeight] ? target[kHeight] : pixels[kHeight];
-    std::uint32_t width = target[kWidth] < pixels[kWidth] ? target[kWidth] : pixels[kWidth];
-    std::uint32_t bytes = width * (target[kBits] / 8);
-    auto* out = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(target[kSurface]));
-    const auto* in = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(pixels[kSurface]));
-    for (std::uint32_t y = 0; y < rows; ++y) std::memcpy(out + y * target[kPitch], in + y * pixels[kPitch], bytes);
+    const int rows = target.height < pixels.height ? target.height : pixels.height;
+    const int width = target.width < pixels.width ? target.width : pixels.width;
+    const std::size_t bytes = static_cast<std::size_t>(width) * (target.bitsPerPixel / 8);
+    for (int y = 0; y < rows; ++y) std::memcpy(target.bits + y * target.pitch, pixels.bits + y * pixels.pitch, bytes);
 }

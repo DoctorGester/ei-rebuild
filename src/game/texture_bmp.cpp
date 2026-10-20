@@ -32,8 +32,6 @@ CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x00
 const char* CantLoadText() { return game::Text(0x00795BB4); }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"
 const char* AlphaNot8BitText() { return game::Text(0x00795B84); }    // "Alpha-file %s must be 8bit gray instead of %d"
 
-// DDSURFACEDESC2 (0x7C bytes) as dwords.
-enum DescIndex { kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kDescWords = 31 };
 
 // The game's .bmp reader (CDib, dib.h): Read takes an open file (a short or non-"BM" file: a message
 // box, nothing read), Size gives 0 x 0 without a header.
@@ -117,12 +115,10 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     surface_ = memory;
     ++memory->refCount;
     if (previous) previous->Release();
-    std::uint32_t desc[kDescWords];
-    ClientPixels(memory, desc);
+    SurfacePixels pixels;
+    DirectPixels(memory, &pixels);
     gameapi::EnterCriticalSection(DeviceLock());
-    WritePixels(reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc[kSurface])),
-                static_cast<int>(desc[kPitch]), width, height, static_cast<int>(desc[kHeight]),
-                static_cast<int>(desc[kWidth]), colour->bits, alphaBits, layout);
+    WritePixels(pixels.bits, pixels.pitch, width, height, pixels.height, pixels.width, colour->bits, alphaBits, layout);
     gameapi::LeaveCriticalSection(DeviceLock());
     flags_ |= kTextureLoaded;
     return 1;

@@ -14,6 +14,7 @@ struct PixelFormat {
 static_assert(sizeof(PixelFormat) == 32);
 
 struct CDXSurface;
+struct SurfacePixels;   // dx_surface.h
 class CTexture;
 struct ClipBounds;   // model.h
 class CTransformPipeline;
@@ -464,9 +465,9 @@ public:
     // memory (NewMemoryTextureHolder, dx_surface.h; one level). Returns 1.
     int CreateBlank(CTextureDevice* device, const MmpHeader* header);
     // 00690FC0 (texture_shadow.cpp). Enters the device lock, which stays held until UnlockPixels,
-    // and describes the holder's memory (the original: Lock) into `desc` (a DDSURFACEDESC2 as
-    // dwords): pitch, pixels, pixel format. 1; 0 without a holder (no lock) or without memory.
-    int LockPixels(std::uint32_t* desc);
+    // and describes the holder's memory (the original: Lock) into `pixels`. 1; 0 without a holder
+    // (no lock) or without memory.
+    int LockPixels(SurfacePixels* pixels);
     // 00691030 (texture_shadow.cpp). Leaves the device lock (the original: and unlocks); nothing
     // without a holder.
     void UnlockPixels();
