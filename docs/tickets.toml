@@ -439,6 +439,16 @@ depends = ["R16j"]
 files = ["src/render/render_shadows.cpp src/game/world_client_draw.cpp src/game/map_object_shadow.cpp"]
 note = "User 2026-10-20, on the fight preview (render_shadows' fight_map vs fight_classic, build/R16j/full/stone_full.png): 'Looks like the shadow is missing on this stone?'. At full 4K resolution the classic frame shows the ruin's front wall block, and the pillar to its left, throwing dark shadows down and to the right onto the dirt; with the map the dirt below them stays lit, while the figures do cast. Find out why: are those stones in the casters list (0051CE60 CastsShadow) and are their meshes attributed between BeginCaster / EndCaster (world_client_draw.cpp kDraw) or drawn elsewhere (sorted model batches, flat geometry, deferred), cut by kLeastStrength, alpha, the depth bias or the 160-unit caster reach? shadowcheck's counts and RenderDoc (E:\\bin\\renderdoc) on the map pass can tell. Also check the town and slope frames for the same. Fix so every object the classic shadows draw casts into the map; render_shadows passes, frames with the classic option unchanged, and show the user the same crop before / after. Second case, same day (town bz1g, town_map vs town_classic, build/R16j/full/bush_full.png): 'Here the bush shadow seems to be missing as well.' The small fern by the house's corner post casts a soft shadow down-left with classic shadows and none with the map (the house's own shadow shows), so check alpha-tested foliage too: stage 0's alpha cut in the caster pass (alpha reference, texture bound), first-pass-only, and whether bushes reach CastsShadow."
 
+[[ticket]]
+id = "R16j2"
+title = "Shadow map: soft edges like the old shadows (wider near the far end, sharp at contact)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16j1"]
+files = ["src/render/render_shadows.cpp"]
+note = "User 2026-10-20: 'the new shadows are quite a bit harder than the original one, see the shadow of the town gate'. The old shadows are 64 x 64 textures stretched over each object's shadow quad and, with the shadow option on 'blurred' (mode 2, 0079BD0C), blurred twice on the CPU (2DintMMX BlurShadow / BlurShadow2, map_object_shadow.cpp ~358): a penumbra of a few texels of a 64-texel image, so about a tenth of the object's size, wide on a building. The map is 4096 texels over the visible ground (about 72 units) with 3 x 3 PCF, an edge of a few hundredths of a unit. Make the edge soft: contact-hardening (PCSS: blocker search, penumbra from the receiver's distance to the blocker times the sun's chosen angular size, Poisson-disc taps, rotated per pixel) so a shadow is sharp where an object meets the ground and soft away from it; tune the largest penumbra to look like the old one on the town gate (render_shadows' town_map vs town_classic). Keep the classic option unchanged, and the GPU cost of the map pass + sampling within about 0.3 ms at 4K (render_stats). Show the user the town gate, the fight and a slope before / after."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
