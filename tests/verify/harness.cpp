@@ -237,7 +237,8 @@
 //                             "render new,present,classicshadows" starts with the classic ones. Ignored
 //                             in a run of the original code
 //   shadowcheck <casters>     require the last frame's shadow map made with at least <casters> objects
-//                             casting into it and the ground and some meshes sampling it (render::
+//                             casting into it, the ground and some meshes sampling it, and every object
+//                             whose shadow the game draws and that was drawn casting into it (render::
 //                             ShadowState). Skipped in a run of the original code
 //   terraincache on|off|check the image's terrain pages kept on the GPU (render::SetTerrainCache, R16c;
 //                             the default) or built and uploaded every frame (off), from the next
@@ -3062,16 +3063,18 @@ void RunSteps() {
                 continue;
             }
             render::ShadowInfo info = render::ShadowState();
-            char text[240];
+            char text[320];
             std::snprintf(text, sizeof(text),
                           "shadowcheck: %s, map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
-                          "ground batches sampling it (at least %d casters)",
+                          "ground batches sampling it (at least %d casters); shadowed objects not drawn %d, drawn but "
+                          "not cast %d",
                           info.classic ? "classic" : "shadow map", info.made ? "made" : "not made", info.size,
                           static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
-                          info.receivingTerrain, least);
+                          info.receivingTerrain, least, info.offScreen, info.lost);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
-            if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1)
+            if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
+                info.lost > 0)
                 g_failures.push_back(text);
         } else if (s.verb == "renderstats") {
             if (!render::Active()) {

@@ -136,7 +136,9 @@ ShadowInfo g_info, g_lastInfo;
 // --- GPU side ---------------------------------------------------------------------------------------
 
 // The casters into the map: positions through the light matrix; a pass with alpha test or blending
-// cut out where its stage-0 texel's alpha is below the reference.
+// cut out where its stage-0 texel's alpha is below the reference. The texel is the texture's own
+// (level 0): seen from the sun at a grazing angle a smaller level's averaged alpha would cut out
+// edges and fronds that the camera's view keeps.
 const char* const kCasterSource = R"(
 cbuffer vs_params : register(b0) { float4 row0; float4 row1; float4 row2; float4 row3; float4 uv_offset; };
 cbuffer fs_params : register(b0) { float4 alpha; };   // x: cut out, y: the least alpha kept
@@ -152,7 +154,7 @@ vs_out vs_main(vs_in i) {
 Texture2D<float4> tex : register(t0);
 SamplerState smp : register(s0);
 void ps_main(vs_out i) {
-    if (alpha.x > 0.5 && tex.Sample(smp, i.uv).a < alpha.y) discard;
+    if (alpha.x > 0.5 && tex.SampleLevel(smp, i.uv, 0.0).a < alpha.y) discard;
 }
 )";
 
@@ -630,6 +632,15 @@ void DrawShadowMap(Frame& f) {
             }
             sg_end_pass();
             g_info.casters = static_cast<int>(counted.size());
+            // The objects the game shadows that cast nothing: not drawn at all, or drawn but lost here.
+            std::unordered_map<const void*, bool> handedOver;
+            for (const MeshBatch& batch : f.meshBatches)
+                if (batch.caster && batch.indexCount > 0) handedOver[batch.caster] = true;
+            for (const auto& c : casters) {
+                if (!(c.second >= kLeastStrength) || counted.count(c.first)) continue;
+                if (handedOver.count(c.first)) ++g_info.lost;
+                else ++g_info.offScreen;
+            }
         }
     }
 #if defined(EI_RENDER_VALIDATION)

@@ -874,7 +874,8 @@ across runs; the goldens check the game state.
     inverse times a mesh's clip matrix gives the mesh in the landscape's space; an orthographic view from the sun
     (tilted to at least 20 degrees as 0051CE60's) is fitted around every second terrain vertex inside the view (x, y
     in steps of 8 units, origin on whole texels; 160 units of caster room towards the sun), 4096 x 4096 D32. The
-    casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha) go into it
+    casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
+    the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away) go into it
     in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
     after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`ShadowHlsl`:
     3 x 3 bilinear comparisons, receiver-plane depth bias, face normal from screen derivatives so surfaces turned
@@ -889,7 +890,20 @@ across runs; the goldens check the game state.
     1.10 / 0.76 ms zone1, 1.16 / 1.07 fight, 0.95 / 0.70 town, of it the map's pass 0.06-0.27 ms.
     Check: scenario render_shadows (image only): zone1's start, a fight, creatures on a slope, the town bz1g, each
     frozen with the map, classic and the map again (samecapture, diffcapture, `shadowcheck`: map made, casters and
-    receivers). Open: casters the game does not draw (off screen) cast nothing, so a shadow can appear at the
+    receivers, and no object the game shadows and drew left out of the map: "drawn but not cast" 0; "not drawn"
+    counts the ones off screen, 1-3 in those frames).
+    Classic against the map (R16j1; the user's ruin block in the fight and fern in the town): every object whose
+    shadow the game draws and which is on screen casts. The two looks differ because (1) the classic decals of
+    overlapping objects stack, each darkening by half (the dirt below the fight's ruin is at 21% of its lit
+    brightness classic, 43% with the map), and a decal is a blurred 64 x 64 silhouette laid on the terrain, also
+    under an object standing higher (the ruin's platform), so it shows wider and darker; the ruin block's own map
+    shadow falls on its sun side, on the platform and the dirt beside it; (2) a decal's direction is the sum of the
+    sun and the point lights in reach (0051CE60's LightDirection: the town's campfire turns the gate's decal
+    down-left, over the fern), the map's the sun's alone; the fern itself casts in neither (the game draws no
+    shadow for it). To tell which object a shadow belongs to: a temporary filter in DrawShadow (0051CE60) by object
+    id, classic and map captured in one run, with kStrength 1 (map shadows black); a dump of the map (a staging copy
+    of its D32 image) showed that adding casters only ever lowers its depths. R16j3 holds what is left (darkness
+    where shadows overlap, point lights). Open: casters the game does not draw (off screen) cast nothing, so a shadow can appear at the
     screen's edge with its object; terrain does not cast (R16i); point lights do not cast. `run_all --widescreen`
     runs with `classicshadows` (addon's frames have the decals).
 
