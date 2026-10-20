@@ -11,8 +11,9 @@
 
 namespace hash400 {
 
-// STLport hashtable (0x14 bytes); the id tables add the highest key inserted.
+// An id table: a hash_map of a one-dword key and value (0x14 bytes) and the highest key inserted.
 struct Table {
+    using Map = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
     void ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value);
     std::uint32_t ObjectsRemoveKey(const std::uint32_t* key);
     int ObjectsLookup(const std::uint32_t* key, std::uint32_t* value);
@@ -20,16 +21,12 @@ struct Table {
     std::uint32_t* ObjectsFind(const std::uint32_t* key);
     std::uint32_t* PositionAt(const std::int32_t* key);
     std::uint32_t* SpareCountAt(const std::int32_t* key);
-    std::uint8_t functors[4];   // +0x00 hasher / key_equal / select1st (empty)
-    void** buckets;             // +0x04
-    void** bucketsEnd;          // +0x08
-    void** bucketsEos;          // +0x0C
-    std::uint32_t count;        // +0x10
-    std::int32_t maxKey;        // +0x14 the id tables only
+    Map map;                    // +0x00
+    std::int32_t maxKey;        // +0x14
 };
-static_assert(offsetof(Table, count) == 0x10);
+static_assert(sizeof(Table::Map) == 0x14 && offsetof(Table, maxKey) == 0x14);
 
-// The registries' two hash_maps are this layout (without the id tables' extra +0x14 word).
+// An owner's hash_map of a one-dword key and value, followed by its highest key, as an id table.
 template <typename Map>
 Table* AsTable(Map* map) {
     static_assert(sizeof(Map) == 0x14);

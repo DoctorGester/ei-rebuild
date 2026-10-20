@@ -49,20 +49,18 @@ public:
     };
     static_assert(sizeof(Ref) == 0x10);
 
-    // A node of the chunk stack (STLport list<Ref>, 24-byte nodes from the node pool).
-    struct StackNode {
-        StackNode* next;
-        StackNode* prev;
-        Ref ref;                 // +0x08
+    // The chunk stack's element policy (STLport list<Ref>, 24-byte nodes from the node pool):
+    // plain records; T() is Reset's {0xFF, 0, 0, occurrence 1} (the three unused bytes are what
+    // the stack held).
+    struct RefElement {
+        static void Copy(Ref* to, const Ref& from) { *to = from; }
+        static void Destroy(Ref*) {}
+        static void Default(Ref* p) { p->Reset(); }
     };
-    static_assert(sizeof(StackNode) == 0x18);
-
-    // A node of the list of objects to save (STLport list<CRefObject*>).
-    struct SavedNode {
-        SavedNode* next;
-        SavedNode* prev;
-        CRefObject* object;      // +0x08
-    };
+    using Stack = stlp::list<Ref>;
+    static_assert(sizeof(Stack::Node) == 0x18);
+    // The objects to save (STLport list<CRefObject*>).
+    using SavedList = stlp::list<CRefObject*>;
 
     // Key -> object: while loading, the objects the index names (by the key their records are
     // stored under); while saving, the objects already listed (value: the object's number by first
@@ -82,7 +80,9 @@ public:
     static ClassRegistry& Registry() { return *reinterpret_cast<ClassRegistry*>(0x0079B270); }
 
     // The current chunk: the top of the stack.
-    Ref* Current() { return &stack_->prev->ref; }
+    Ref* Current() { return &stack_.End()->prev->data; }
+    // A default chunk pushed on the stack (push_back(), 0040A6B0; insert(end()), 0040A8D0).
+    void PushChunk() { Stack::InsertDefault<RefElement>(stack_.End()); }
     std::uint8_t* Data() { return dataStream_.data_; }
     // Drops the current chunk (the stack's erase(--end()), STLport 0040A920), as LeaveChunk does
     // after a load.
@@ -199,11 +199,11 @@ public:
 
     CMemoryStream indexStream_;    // +0x00 chunk 0
     CMemoryStream dataStream_;     // +0x28 the chunk data (chunk 2 while loading the records)
-    StackNode* stack_;             // +0x50 list sentinel; stack_->prev is the current chunk
+    Stack stack_;                  // +0x50 the last chunk is the current one
     std::int32_t version_;         // +0x54 1 when constructed; field 2 of the root chunk
     std::uint8_t loading_;         // +0x58 Open stores the low byte of its argument (+0x59..0x5B unused)
     ObjectMap objects_;            // +0x5C
-    SavedNode* saved_;             // +0x70 list sentinel: the objects whose records Close writes
+    SavedList saved_;              // +0x70 the objects whose records Close writes
 };
 static_assert(offsetof(ChunkArchive, dataStream_) == 0x28);
 static_assert(offsetof(ChunkArchive, stack_) == 0x50);

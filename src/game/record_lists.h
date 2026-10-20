@@ -26,15 +26,9 @@
 
 namespace recordlist {
 
-// The chunk archive's stack (ChunkArchive::StackNode, 24-byte nodes): plain records; T() is
-// Ref::Reset's {0xFF, 0, 0, occurrence 1} (the three unused bytes are what the stack held).
+// The chunk archive's stack (ChunkArchive::Stack).
 using ChunkRef = ChunkArchive::Ref;
-struct ChunkRefElement {
-    static void Copy(ChunkRef* to, const ChunkRef& from) { *to = from; }
-    static void Destroy(ChunkRef*) {}
-    static void Default(ChunkRef* p) { p->Reset(); }
-};
-static_assert(sizeof(stlp::list<ChunkRef>::Node) == sizeof(ChunkArchive::StackNode));
+using ChunkRefElement = ChunkArchive::RefElement;
 
 // The client's finished trades (ClientSession::tradeRecords_, TradeRecordNode; 0x160-byte nodes from
 // operator new): two revisions and three parties. Copied member by member (CParty's copy
