@@ -5,8 +5,10 @@
 // geometry and the colours in streams of their own). A frame hands over the mesh as kept; what is
 // built and uploaded again is what the game says changed:
 // - the colours, when the draw wrote the colour arrays (lit, flat colours, the device's colour) or the
-//   game lit the mesh outside its draw (MeshChanged Colours: the sky, CSkyObject::Light): read and
-//   compared with the kept ones, the changed range uploaded;
+//   game lit the mesh outside its draw (MeshChanged Colours: the sky, CSkyObject::Light; a link
+//   figure's LightPart / FlatColours on the colour array, called by the original code too) or a draw
+//   that wrote them was not kept (NoteMeshDraw): read and compared with the kept ones, the changed
+//   range uploaded;
 // - the positions, when the game moved them (render::MeshChanged Positions: the animation's per-vertex
 //   offsets, CFigureMesh::SetOffsets; a link figure's part morphed again, CLinkMesh::SetPartVertices):
 //   read and compared, the changed range uploaded;
@@ -63,6 +65,7 @@ struct MeshFrom {
     const std::uint16_t* indices = nullptr;
     int indexCount = 0;
     MeshChanges own, link;   // the figure mesh's and the link figure's changes when built
+    std::uint32_t colourWrites = 0;   // the colour array's (MeshChanged on the array's data)
 
     bool SameArrays(const MeshFrom& o) const {
         return shared == o.shared && positions == o.positions && positionCount == o.positionCount && colours == o.colours &&
@@ -73,7 +76,9 @@ struct MeshFrom {
     bool SamePositions(const MeshFrom& o) const {
         return own.positions == o.own.positions && link.positions == o.link.positions;
     }
-    bool SameColours(const MeshFrom& o) const { return own.colours == o.own.colours; }
+    bool SameColours(const MeshFrom& o) const {
+        return own.colours == o.own.colours && colourWrites == o.colourWrites;
+    }
 };
 
 // The draw being handed over (SetMeshSource .. SetMeshSource(null)).
@@ -98,6 +103,7 @@ struct CachedMesh {
     std::uint32_t colourFrom = 0, colourTo = 0;      // corners whose colours to upload
     bool pending = false;                            // in g_pending
     bool drawn = false;                              // handed over in a frame yet
+    bool relightNext = false;                        // a draw not kept wrote the colours (NoteMeshDraw)
     std::uint32_t lastUsed = 0;                      // FrameNumber() of its last hand-over
     std::uint32_t mark = 0;                          // Restart's
 };
@@ -133,6 +139,7 @@ MeshFrom FromOf(const MeshDraw& m) {
     f.indices = m.indices;
     f.indexCount = m.indexCount;
     f.own = ChangesOf(g_source.owner);
+    f.colourWrites = ChangesOf(m.colours).colours;
     f.link = ChangesOf(g_source.shared);
     return f;
 }
@@ -318,14 +325,16 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     CachedMesh& e = found->second;
     bool build = made || !e.valid || !e.from.SameArrays(now);
     bool move = !build && !e.from.SamePositions(now);
-    bool relight = !build && (g_source.coloursWritten || m.coloursWritten || !e.from.SameColours(now));
+    bool relight = !build && (e.relightNext || !e.from.SameColours(now));
     bool check = false;
 #if defined(EI_RENDER_VALIDATION)
     check = !build && FrameNumber() % kCheckEvery == 0;
 #endif
     // Drawn already this frame with the data kept (the GPU reads it at the frame's end): a draw with
     // other data goes into the frame's stream.
+    // (What changed is read at the next draw: e.from and relightNext stay as they are.)
     if (e.drawn && e.lastUsed == FrameNumber() && (build || move || relight || check)) return nullptr;
+    e.relightNext = false;
 
     FrameStats::Reuse reuse = FrameStats::Same;
     if (build) {
@@ -351,6 +360,14 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     }
     ++Stats().meshReuse[reuse];
     return &e;
+}
+
+void NoteMeshDraw(const MeshDraw& m) {
+    if (!g_haveSource || !g_source.owner || !(g_source.coloursWritten || m.coloursWritten)) return;
+    // The colours were written whether or not the draw reaches KeepMesh (a draw outside a frame, without
+    // passes, streamed): the kept mesh reads them at its next draw.
+    auto it = g_meshes.find(g_source.owner);
+    if (it != g_meshes.end()) it->second.relightNext = true;
 }
 
 int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indices.size()); }

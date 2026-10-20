@@ -18,6 +18,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "render/render.h"         // MeshChanged
 #include "render/render_state.h"
 
 #include <d3d.h>
@@ -179,6 +180,7 @@ bool CLinkMesh::FlatColoursImpl(const stlp::string* name, std::uint32_t colour, 
     speculars->SetSizeDiscard(node->second.normals.count * 4);
     Fill(*colours, colour);
     Fill(*speculars, specular);
+    render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps (R16d)
     return true;
 }
 EI_REPLACE_METHOD(0x004F3AD0, CLinkMesh::FlatColoursImpl);
@@ -211,6 +213,7 @@ bool CLinkMesh::LightPartImpl(const stlp::string* name, const FigureLights* ligh
     } else {
         Fill(*speculars, alphaByte << 24);
     }
+    render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps (R16d)
     return true;
 }
 EI_REPLACE_METHOD(0x004F3870, CLinkMesh::LightPartImpl);

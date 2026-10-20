@@ -817,23 +817,27 @@ across runs; the goldens check the game state.
    mirrored, copied, a part added or removed: `MeshChange::Rebuilt`); its positions are read again when the
    animation's per-vertex offsets changed (`SetOffsets` 005A0B10 compares them) or a link figure's part was morphed
    again (004F3800) (`Positions`); its colours when the draw lit or filled them (Light, FlatColours, DrawPlain's fill,
-   the device's colour override, flag 4) or the sky lit itself (CSkyObject::Light, `Colours`). Only the changed range
-   of corners is uploaded. A mesh drawn again in the same frame with other data, interface sprites (CUiMesh::Draw
+   the device's colour override, flag 4; also when that draw was streamed or never reached a pass), the sky lit itself
+   (CSkyObject::Light, `Colours` on the sky) or a link figure lit or filled a part (004F3870 / 004F3AD0, `Colours` on
+   the colour array: the original code calls them outside the figure part draws too, the meshes keeping flag 0x10,
+   "lit"). Only the changed range of corners is uploaded. A mesh drawn again in the same frame with other data, interface sprites (CUiMesh::Draw
    005E6D90: the interface rewrites its quads in place in many places, the original's and Rebirth's code among them;
    `render::SetInterfaceDraw`) and mesh draws without a source are streamed as before. Entries not drawn for 600
    frames are dropped. Measured (render_stats, vanilla 4K, per frame; before = the same scene with `meshcache off`,
    as before R16d): mesh upload KB (vertices + indices) menu 324 + 139 / 35 + 2, zone1 114 + 51 / 42 + 17, fight
    240 + 131 / 64 + 17, town 1648 + 286 / 339 + 6, camp 50 + 25 / 31 + 15, escape menu 73 + 32 / 0, the global map
    106 + 75 unchanged (all interface sprites); with classic shadows (the flat decals still streamed) zone1 208 + 64 /
-   135 + 30, fight 350 + 147 / 185 + 34, town 1997 + 334 / 685 + 56. Hand-over CPU ms (same run, kept / streamed):
-   zone1 0.12 / 0.11, fight 0.27 / 0.26, town 0.24 / 0.46 (the colour comparisons cost what the copies saved in the
-   small scenes). What is still uploaded is relit colours (the town's 68 relit meshes a frame: its figures are lit
+   135 + 30, fight 350 + 147 / 185 + 34, town 1997 + 334 / 685 + 56. Hand-over CPU ms (kept / streamed in the same run, two
+   runs, noisy): zone1 0.12-0.25 / 0.11-0.17, fight 0.27-0.28 / 0.26-0.37, town 0.24-0.26 / 0.46-0.61 (the colour
+   comparisons cost about what the copies saved in the small scenes). What is still uploaded is relit colours (the town's 68 relit meshes a frame: its figures are lit
    again every frame, about 40 K corners), moved figures and the streamed sprites; colours lit on the GPU (R16i) and
    GPU animation (R16h) take the rest. Check: the harness's `meshcache on|off|check` (off: every mesh built and
    streamed every frame); render_scene, render_blink, models and units capture the frozen frame both ways (0 pixels
    differ at 8), and the harness build compares every kept mesh drawn with a fresh build every 16th frame (0 stale in
-   those and render_stats, 4352 checks). Risk: a writer of a mesh's arrays in place that sends no signal (found and
-   signalled: the sky's lighting; streamed: the interface's quads); `meshcache check` reports it.
+   those and render_stats, 4352 checks; no stale mesh logged in any scenario of the image's suite). Risk: a writer of
+   a mesh's arrays in place that sends no signal (found and signalled: the sky's lighting, the link figures' lighting
+   outside the part draws; streamed: the interface's quads); `meshcache check` reports it, and every stale mesh is
+   logged ("a mesh kept on the GPU was stale") in any run of the harness build.
 5. **R16e Ground decals on the GPU.** Footprints, blood, object shadows, selection markers, light pools and spell marks
    are projected on the CPU (ProjectDecal 0056C750) into flat meshes every frame (12-32 a frame, up to 344 KB in the
    town); instead a box per decal projects onto the depth of the ground and platforms in a shader (the game keeps its

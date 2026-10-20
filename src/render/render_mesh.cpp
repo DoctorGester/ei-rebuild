@@ -606,6 +606,7 @@ void DestroyMeshes() {
 
 void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending = Pending{};
+    NoteMeshDraw(mesh);
     if (!device || !mesh.matrix || !Active() || !Started()) return;
     // An object's shadow decal (0051CE60) is not drawn when the shadow map gives the shadows (R16j).
     if (!mesh.corners && DropClassicDecal()) return;

@@ -351,8 +351,9 @@ struct MeshSource {
 void SetMeshSource(const MeshSource* source);
 // The game changed a figure mesh (CFigureMesh) or link figure (CLinkMesh) in place: its vertices'
 // positions (an animation's per-vertex offsets, a part morphed again), its colours outside its draw
-// (the sky's lighting), or its buffers (Rebuilt: loaded, cleared, mirrored, a part added or removed,
-// destroyed).
+// (Colours: the sky's lighting on the sky object; a link figure's part lit or filled, on the colour
+// array's data, which the original code also does outside the figure part draws), or its buffers
+// (Rebuilt: loaded, cleared, mirrored, a part added or removed, destroyed).
 enum class MeshChange { Positions, Colours, Rebuilt };
 void MeshChanged(const void* object, MeshChange change);
 // Mesh draws between SetInterfaceDraw(true) and SetInterfaceDraw(false) (an interface sprite's draw,

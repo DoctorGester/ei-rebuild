@@ -393,6 +393,8 @@ void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly);
 // index. MeshCacheFrameDone (after a present) drops meshes not drawn for a long time; DropMeshCache
 // gives up the pool (the device is lost: the meshes are placed and written again at their next draw).
 constexpr std::size_t kCachedVertexBytes = 20;   // a kept corner's geometry: position, texture coordinates
+// Every mesh draw handed over (BeginMesh), before anything else: what it wrote, for KeepMesh.
+void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
