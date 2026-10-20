@@ -266,10 +266,21 @@ happen (the harness logs "share id" if one does).
   held, and letters and digits make no WM_CHAR (the `key` step posts theirs). Windows' own translation followed the
   user's keyboard layout and held keys, so typed hero names came out doubled ("hhoosstt"), with capitals or with
   letters missing, differently per run.
-- **Install files and registry** (harness.cpp): writes under the game folder (config\keyboard.ini on exit, the skin
-  cache, mp\) go to the run's harness_saves overlay, read back from there; RegSetValueExA (slot 0073B018, the image
-  calls it through the same slot) is skipped, so the options' exit save never reaches the registry. Reads still come
-  from the user's registry (HKCU\Software\Nival Interactive\EvilIslands), so goldens follow its values.
+- **Install files and registry** (harness.cpp, harness_settings.h; WB16): writes under the game folder
+  (config\keyboard.ini on exit, the skin cache, mp\) go to the run's harness_saves overlay, read back from there.
+  No run reads the user's settings: every registry call on HKCU / HKLM `Software\Nival Interactive` and
+  `Software\Gipat.Ru` (the original's settings, Rebirth's game settings and starter switches) from any module
+  (game, image, ei_hook.dll, addon.dll) is answered from the committed snapshot `config/harness/registry.reg`
+  (advapi32's exports are stubs jumping through its own import slots, which the harness takes); such keys are never
+  opened, created or written for real (game.exe's RegCreateKeyExA slot 0073B010 and RegSetValueExA slot 0073B018 too).
+  A value or key a run reads that the snapshot lacks fails the run ("settings: registry value not in the snapshot");
+  `"name"=-` marks one read but absent on purpose. config\keyboard.ini and config\addrbook.ini are read from
+  `config/harness/<vanilla|rebirth>/` unless the run's overlay has its own (a prepare tool's, or the game's write).
+  Why (2026-10-20): the user's play of 2026-10-16 set the original's General Settings\AudioStreaming (music volume) to
+  0, and 13 vanilla goldens (ground_prints, hero_death, levers, magic_traps, net_pair_*, script_fx, world_load, ...)
+  differed in random draw counts in the original and the image alike; the snapshot keeps 0x1c, which reproduces them
+  (AudioSFX / AudioSpeech / ShowTutorial made no difference). To change a setting for every run, edit the snapshot and
+  re-record what it moves; `EI_HARNESS_SETTINGS=<folder>` runs with another snapshot folder (tryouts).
 - **Starter answers** (harness_starter.cpp): resolution, widescreen, and CtfMon answered 0 (addon.dll otherwise closes
   the user's ctfmon at start and restarts it from DLL_PROCESS_DETACH, which hung every Rebirth exit; S3e). A game hung
   after quit is ended after 3 s with `exit_hang.txt` (each thread's EIP and return addresses).
