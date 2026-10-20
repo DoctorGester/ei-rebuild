@@ -431,12 +431,7 @@ CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a
 // (007C8704, 006AD670), armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell
 // (007C851C, 004ABD00) maps, and the modifier map's find_or_insert (007C853C, 004ACC10) of a
 // (name, null) pair.
-struct NamePair {
-    stlp::string name;
-    void* record;
-};
-__declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x006AD670)
-__declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x006A75E0)
+stlp::NameMap& NameMapAt(std::uintptr_t address) { return *reinterpret_cast<stlp::NameMap*>(address); }
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 int TableIndex(const RecordTable& table, const char* record, int stride) {
@@ -449,19 +444,15 @@ int LootTableIndex(int which, const char* name) {
     stlp::string key(name);
     switch (which) {
     case 0:
-        return TableIndex(Weapons(), *WeaponNameAt(reinterpret_cast<void*>(0x007C8704), nullptr, &key), kWeaponSize);
+        return TableIndex(Weapons(), stlp::NamedSlot<char>(NameMapAt(0x007C8704), key), kWeaponSize);
     case 1:
-        return TableIndex(Armors(), *ArmorNameAt(reinterpret_cast<void*>(0x007C8724), nullptr, &key), kArmorSize);
+        return TableIndex(Armors(), stlp::NamedSlot<char>(NameMapAt(0x007C8724), key), kArmorSize);
     case 2:
-        return TableIndex(QuickItems(), *(char**)QuickItemMapAtOriginal(reinterpret_cast<void*>(0x007C8744), nullptr, &key),
-                          kQuickItemSize);
+        return TableIndex(QuickItems(), stlp::NamedSlot<char>(NameMapAt(0x007C8744), key), kQuickItemSize);
     case 3:
-        return TableIndex(Spells(), *(char**)SpellMapAtOriginal(reinterpret_cast<void*>(0x007C851C), nullptr, &key), kSpellSize);
-    default: {
-        NamePair pair{key, nullptr};
-        auto* stored = static_cast<NamePair*>(ModifierMapFindOrInsertOriginal(reinterpret_cast<void*>(0x007C853C), nullptr, &pair));
-        return TableIndex(SpellModifiers(), static_cast<char*>(stored->record), kSpellModifierSize);
-    }
+        return TableIndex(Spells(), stlp::NamedSlot<char>(NameMapAt(0x007C851C), key), kSpellSize);
+    default:
+        return TableIndex(SpellModifiers(), stlp::NamedSlot<char>(NameMapAt(0x007C853C), key), kSpellModifierSize);
     }
 }
 

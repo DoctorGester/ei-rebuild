@@ -9,6 +9,7 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/stlp_hash.h"
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_engine.h"
@@ -35,13 +36,9 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
 // 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
-// 004ACC10: find_or_insert(pair); returns the element.
-struct NameRecordPair {
-    stlp::string name;
-    char* record;
-};
-void* const kSpellNameMap = reinterpret_cast<void*>(0x007C851C);
-void* const kModifierNameMap = reinterpret_cast<void*>(0x007C853C);
+// The spells and modifiers by name (004ABD00 operator[], 004ACC10 find_or_insert of {name, null}).
+stlp::NameMap& SpellNameMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C851C); }
+stlp::NameMap& ModifierNameMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C853C); }
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 
@@ -78,9 +75,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
 // The modifier record named `name` (find_or_insert with a null record).
 char* FindModifier(const char* name) {
     stlp::string key(name);
-    NameRecordPair entry{key, nullptr};
-    char* record = ((NameRecordPair*)ModifierMapFindOrInsertOriginal(kModifierNameMap, nullptr, (const void*)&entry))->record;
-    return record;
+    return stlp::NamedSlot<char>(ModifierNameMap(), key);
 }
 
 } // namespace
@@ -97,7 +92,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     char* prototype;
     {
         stlp::string key(static_cast<const char*>(text));
-        prototype = *(char**)SpellMapAtOriginal(kSpellNameMap, nullptr, (const void*)&key);
+        prototype = stlp::NamedSlot<char>(SpellNameMap(), key);
     }
     if (!constructor->CallBeginConstruct(prototype))
         return reinterpret_cast<CSpell*>(game::FatalError(kCantBegin, static_cast<const char*>(text)));

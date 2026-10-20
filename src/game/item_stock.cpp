@@ -37,29 +37,22 @@ namespace {
 // level (prototype +0x44 + material +0x1C, as a float) and the power limit (prototype +0x40 +
 // material +0x18).
 
-// 0069A480 (RET 4): fills the stock's spell and modifier maps from a spell table (007C8568 for
-// weapons, 007C855C for armors). 0069A780 (RET 0xC): random spells into a list of counted spell
-// pointers, from the maps, with the level per school (8 floats) and a percentage threshold.
-__declspec(naked) void __fastcall CallFillSpellMaps(ItemStock*, void*, void* /*table*/) EI_ORIGINAL(0x0069A480)
+// The vectors' element policies: plain pointers and material entries.
+using PtrElement = stlp::PlainElement<char*>;
+using CandidateElement = stlp::PlainElement<StockMaterial*>;
+using MaterialElement = stlp::PlainElement<StockMaterial>;
 
-// vector<char*> members (thiscall): 0069D9A0 allocate a block of n and copy [first, last) into it, 0069D470
-// _M_insert_overflow(position, &value, n); 0069C990 deallocate (fastcall: block, element count).
-__declspec(naked) char** __fastcall PtrAllocateCopy(StockPtrVector*, void*, std::size_t, char**, char**) EI_ORIGINAL(0x0069D9A0)
-__declspec(naked) void __fastcall PtrInsertOverflow(void*, void*, StockMaterial**, StockMaterial* const*, std::size_t)
-    EI_ORIGINAL(0x0069D470)
-__declspec(naked) void __fastcall PtrDeallocate(char**, std::size_t) EI_ORIGINAL(0x0069C990)
-// vector<StockMaterial> members: 0069ECD0 insert(position, first, last; unused), 0069DB00
-// allocate and copy, 0069C9D0 deallocate.
-__declspec(naked) void __fastcall MaterialInsertRange(StockMaterialVector*, void*, StockMaterial*, StockMaterial*,
-                                                      StockMaterial*, std::size_t) EI_ORIGINAL(0x0069ECD0)
-__declspec(naked) StockMaterial* __fastcall MaterialAllocateCopy(StockMaterialVector*, void*, std::size_t, StockMaterial*,
-                                                                 StockMaterial*) EI_ORIGINAL(0x0069DB00)
-__declspec(naked) void __fastcall MaterialDeallocate(StockMaterial*, std::size_t) EI_ORIGINAL(0x0069C9D0)
-// list<CItem*>::insert(position, value) (RET 0xC; the result iterator by hidden pointer) and the
-// spell list's constructor (0069C440: the sentinel from the node pool; an allocator argument).
-__declspec(naked) void __fastcall ListInsert(StockList*, void*, StockListNode** /*result*/, StockListNode* /*position*/,
-                                             CItem* const* /*value*/) EI_ORIGINAL(0x0069C3D0)
-__declspec(naked) void __fastcall SpellListConstruct(StockList*, void*, const void* /*allocator*/) EI_ORIGINAL(0x0069C440)
+// The output list of counted spells (list<CSpell*>, insert 0069C410): an element is referenced
+// while it is held.
+struct HeldSpell {
+    static void Copy(void** to, void* const& from) {
+        *to = from;
+        if (from) ++static_cast<CEngineObject*>(from)->refCount_;
+    }
+    static void Destroy(void** p) {
+        if (*p) static_cast<CEngineObject*>(*p)->Release();
+    }
+};
 
 // ---- Globals (item_stock.h, namespace stock) -------------------------------------------------------
 
@@ -105,54 +98,14 @@ void Shuffle(T* first, T* last) {
     }
 }
 
-// vector<char*>::operator=, as the original inlines it. The spell and modifier vectors are other
-// instantiations of the same code (allocate and copy 0069DC70 / 0069DDD0, deallocate 004AA810 /
-// 004AA7D0); their copy helpers (0069EB10 / 0069EB40, 0069F560 / 0069F5C0) are the loops below.
-using PtrAllocateCopyFn = char**(__fastcall*)(StockPtrVector*, void*, std::size_t, char**, char**);
-using PtrDeallocateFn = void(__fastcall*)(char**, std::size_t);
-void AssignPointers(StockPtrVector& to, const StockPtrVector& from, PtrAllocateCopyFn allocate = PtrAllocateCopy,
-                    PtrDeallocateFn deallocate = PtrDeallocate) {
-    std::size_t length = from.size();
-    if (length > static_cast<std::size_t>(to.EndOfStorage() - to.begin())) {
-        char** block = allocate(&to, nullptr, length, from.begin(), from.end());
-        deallocate(to.begin(), static_cast<std::size_t>(to.EndOfStorage() - to.begin()));
-        to.Start() = block;
-        to.EndOfStorage() = block + length;
-    } else if (to.size() >= length) {
-        for (std::size_t i = 0; i < length; ++i) to[i] = from[i];
-    } else {
-        std::size_t size = to.size();
-        for (std::size_t i = 0; i < size; ++i) to[i] = from[i];
-        char** dest = to.end();
-        for (char** p = from.begin() + size; p != from.end(); ++p, ++dest) *dest = *p;
-    }
-    to.Finish() = to.begin() + length;
-}
+// vector::operator= as the original inlines it (allocate and copy 0069D9A0 / 0069DB00, the spell
+// and modifier vectors' 0069DC70 / 0069DDD0; deallocate 0069C990 / 0069C9D0 / 004AA810 /
+// 004AA7D0). The callers skip a self-assignment.
+void AssignPointers(StockPtrVector& to, const StockPtrVector& from) { to.AssignVector<PtrElement>(from); }
+void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) { to.AssignVector<MaterialElement>(from); }
 
-// vector<StockMaterial>::operator=, as the original inlines it.
-void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) {
-    std::size_t length = from.size();
-    if (length > static_cast<std::size_t>(to.EndOfStorage() - to.begin())) {
-        StockMaterial* block = MaterialAllocateCopy(&to, nullptr, length, from.begin(), from.end());
-        MaterialDeallocate(to.begin(), static_cast<std::size_t>(to.EndOfStorage() - to.begin()));
-        to.Start() = block;
-        to.EndOfStorage() = block + length;
-    } else if (to.size() >= length) {
-        for (std::size_t i = 0; i < length; ++i) to[i] = from[i];
-    } else {
-        std::size_t size = to.size();
-        for (std::size_t i = 0; i < size; ++i) to[i] = from[i];
-        StockMaterial* dest = to.end();
-        for (StockMaterial* p = from.begin() + size; p != from.end(); ++p, ++dest) *dest = *p;
-    }
-    to.Finish() = to.begin() + length;
-}
-
-// Appends an item to the output list (counted by the caller).
-void Output(StockList* out, CItem* item) {
-    StockListNode* result;
-    ListInsert(out, nullptr, &result, out->head, &item);
-}
+// Appends an item to the output list (list<CItem*>::insert, 0069C3D0; counted by the caller).
+void Output(StockList* out, CItem* item) { StockList::Insert(out->End(), static_cast<void*>(item)); }
 
 // The item's reference count.
 void AddReference(CItem* item) { ++item->refCount_; }
@@ -249,9 +202,9 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
     CItemConstructor* ctor = ConstructorOf(this);
     void* manager = PartyOf(this)->ItemManager();
     if (kind == 0 || kind == 3)
-        CallFillSpellMaps(this, nullptr, stock::WeaponSpellRecipes());
+        FillSpellMaps(stock::WeaponSpellRecipes());
     else if (kind == 1)
-        CallFillSpellMaps(this, nullptr, stock::ArmorSpellRecipes());
+        FillSpellMaps(stock::ArmorSpellRecipes());
 
     int count = RandomCount(minCount, maxCount);
     StockPtrVector& taken = TakenPrototypes();
@@ -275,12 +228,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
             for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
                 if (Compare(MaterialClass(prototype), Material(e)->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
-                if (candidates.end() != candidates.EndOfStorage()) {
-                    if (candidates.end()) *candidates.Finish() = e;
-                    ++candidates.Finish();
-                } else {
-                    PtrInsertOverflow(&candidates, nullptr, candidates.end(), &e, 1);
-                }
+                candidates.PushBack<CandidateElement>(e);   // _M_insert_overflow 0069D470
             }
         }
         StockMaterial* chosen = DrawMaterial(prototype);
@@ -303,8 +251,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
         }
 
         StockList spellList;
-        char allocator = 0;
-        SpellListConstruct(&spellList, nullptr, &allocator);
+        spellList.Construct();   // 0069C440
         if (kind == 1 || kind == 3 || kind == 0) ::AddSpell(this, ctor, spellList);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
@@ -343,8 +290,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (materials.size() > static_cast<std::size_t>(count)) {
         Shuffle(materials.begin(), materials.end());
-        MaterialInsertRange(&taken, nullptr, taken.begin(), materials.begin(), materials.begin() + count,
-                            static_cast<std::size_t>(count));
+        taken.RangeInsert<MaterialElement>(taken.begin(), materials.begin(), materials.begin() + count);   // 0069ECD0
     } else if (&materials != &taken) {
         AssignMaterials(taken, materials);
     }
@@ -423,34 +369,11 @@ EI_REPLACE_METHOD(0x00699A40, ItemStock::GenerateQuickItemInstructions);
 
 namespace {
 
-// The spell recipe hash_map (+0x50, STLport hash_map<string, list<recipe*>>): clear 004AAEB0,
-// find-or-insert of a {name, list} pair 0069D130 (returns the node's pair: the list at +0xC),
-// begin 0069C160 (RET 4: the iterator by hidden pointer) and the first node of the next non-empty
-// bucket 0069D0E0 (thiscall on the iterator, still on the last node). Its list: constructor
-// 0069C680 (an allocator argument), destructor 0069C830, end 0069C2E0 (RET 4: the iterator by
-// hidden pointer), insert 0069C2F0 (result, position, &value); the pair: constructor 0069C1C0
-// (the record, whose name starts it, and &list), destructor 004AD640 (stlp_pair.cpp).
-__declspec(naked) void __fastcall RecipeMapClear(void*) EI_ORIGINAL(0x004AAEB0)
-__declspec(naked) StockRecipeEntry* __fastcall RecipeMapInsert(void*, void*, const void* /*pair*/) EI_ORIGINAL(0x0069D130)
-struct RecipeIterator {
-    StockRecipeNode* node;
-    void* map;
-};
-__declspec(naked) void __fastcall RecipeMapBegin(void*, void*, RecipeIterator*) EI_ORIGINAL(0x0069C160)
-__declspec(naked) StockRecipeNode* __fastcall RecipeMapNextBucket(RecipeIterator*) EI_ORIGINAL(0x0069D0E0)
-__declspec(naked) void __fastcall RecipeListConstruct(StockList*, void*, const void*) EI_ORIGINAL(0x0069C680)
-__declspec(naked) void __fastcall RecipeListDestroy(StockList*) EI_ORIGINAL(0x0069C830)
-__declspec(naked) void __fastcall RecipeListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069C2E0)
-__declspec(naked) void __fastcall RecipeListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)
-    EI_ORIGINAL(0x0069C2F0)
-void __fastcall RecipePairDestroy(void* pair) { stlp::PairAbi::DestroyStringList(static_cast<stlp::StringListPair*>(pair)); }
-// The modifier map (+0x64, STLport map<string, modifier*>): clear 004AB2B0, operator[] with a
-// {key, null} pair 0069D1E0 (returns the node's pair: the value at +0xC).
-__declspec(naked) void __fastcall ModifierMapClear(void*) EI_ORIGINAL(0x004AB2B0)
-__declspec(naked) StockModifierEntry* __fastcall ModifierMapAt(void*, void*, const void* /*pair*/) EI_ORIGINAL(0x0069D1E0)
-// The spell records by name (map 007C851C, stock::SpellsByName; operator[] 004ABD00: inserts a
-// null for a new name).
-char** __fastcall SpellByName(void* a0, void*, const void* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, a2); }
+// The spell recipe map (+0x50): clear 004AAEB0, find-or-insert of a {name, list} pair 0069D130,
+// begin 0069C160 and the next non-empty bucket 0069D0E0. Its lists: constructor 0069C680,
+// destructor 0069C830, end 0069C2E0, insert 0069C2F0; the pair: constructor 0069C1C0 (the record,
+// whose name starts it, and &list), destructor 004AD640 (stlp_pair.cpp). The modifier map
+// (+0x64): clear 004AB2B0, operator[] 0069D1E0 with a {key, null} pair.
 // The spell prototypes by name (thiscall on 007C8510, 00613920) and the spell manager's builder
 // (00689310, RET 8: prototype, modifier list; a new counted spell or null).
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
@@ -458,29 +381,11 @@ itemdb::SpellRecord* FindSpellPrototype(const char* name) {
 }
 __declspec(naked) CEngineObject* __fastcall BuildSpell(void*, void*, itemdb::SpellRecord* /*prototype*/, StockList* /*modifiers*/)
     EI_ORIGINAL(0x00689310)
-// The modifier list (list<modifier*>): constructor 0069BF70 (an allocator argument), end 0068C500,
-// insert 0068C560 (result, position, &value), node free 0068C640 (fastcall: node, count).
-__declspec(naked) void __fastcall ModifierListConstruct(StockList*, void*, const void*) EI_ORIGINAL(0x0069BF70)
-__declspec(naked) void __fastcall ModifierListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0068C500)
-__declspec(naked) void __fastcall ModifierNodesFree(StockListNode*, int) EI_ORIGINAL(0x0068C640)
-// The output list of counted spells: end 0069BE60, insert 0069C410 (result, position, &value).
-__declspec(naked) void __fastcall SpellListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069BE60)
-__declspec(naked) void __fastcall SpellListInsert(StockList*, void*, StockListNode**, StockListNode*, CEngineObject* const*)
-    EI_ORIGINAL(0x0069C410)
-
-// The modifier map's lookup pair: a copied key and a null value (0x10 bytes, a StockModifierEntry).
-struct ModifierKey {
-    stlp::string key;
-    char* value = nullptr;
-    explicit ModifierKey(const stlp::string& s) : key(s) {}
-};
-static_assert(sizeof(ModifierKey) == sizeof(StockModifierEntry));
+// The modifier list (list<modifier*>): constructor 0069BF70, end 0068C500, insert 0068C560, node
+// free 0068C640. The output list of counted spells: end 0069BE60, insert 0069C410.
 
 // The modifier map's entry for `name` (created null when missing, as operator[] does).
-char*& ModifierSlot(ItemStock* stock, const stlp::string& name) {
-    ModifierKey pair(name);
-    return ModifierMapAt(stock->modifierMap, nullptr, &pair)->modifier;
-}
+char*& ModifierSlot(ItemStock* stock, const stlp::string& name) { return NamedRecord(stock->modifierMap, name); }
 
 // A modifier record (itemdb::SpellModifierRecord): its code's first letter the kind, mana the cost
 // added, strength (a cost factor for kind 'm'), skill the level it adds.
@@ -490,34 +395,20 @@ float ModifierCost(char* m) { return Modifier(m)->mana; }
 float ModifierFactor(char* m) { return Modifier(m)->strength; }
 int ModifierLevel(char* m) { return Modifier(m)->skill; }
 
-void AppendModifier(StockList& list, char* modifier) {
-    StockListNode* end;
-    ModifierListEnd(&list, nullptr, &end);
-    StockListNode* result;
-    ListInsert68C560Original(&list, nullptr, (void**)&result, end, &modifier);
-}
+void AppendModifier(StockList& list, char* modifier) { StockList::Insert(list.End(), static_cast<void*>(modifier)); }
 
-void ClearModifierList(StockList& list) {
-    StockListNode* node = list.head->next;
-    while (node != list.head) {
-        StockListNode* next = node->next;
-        ModifierNodesFree(node, 1);
-        node = next;
-    }
-    list.head->next = list.head;
-    list.head->prev = list.head;
-}
+void ClearModifierList(StockList& list) { list.ClearWith([](void**) {}); }
 
 } // namespace
 
 // Original bug kept: the 004ABD00 lookup inserts a null entry into 007C851C for every recipe name
 // it does not know.
 void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
-    RecipeMapClear(spellMap);
-    ModifierMapClear(modifierMap);
+    spellMap.Clear();
+    modifierMap.Clear();
     for (SpellRecipe* recipe = recipes->begin(); recipe != recipes->end(); ++recipe) {
         if (!(recipe->classMask & (1u << (classIndex & 31)))) continue;
-        char* spell = *SpellByName(stock::SpellsByName(), nullptr, &recipe->spell);   // keyed by the recipe's spell name
+        char* spell = NamedRecord(stock::SpellsByName(), recipe->spell);   // keyed by the recipe's spell name
         if (!spell) continue;
         bool offered = false;
         for (char** s = spells.begin(); s != spells.end(); ++s) {
@@ -529,18 +420,14 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         if (!offered) continue;
         char* value = reinterpret_cast<char*>(recipe);   // the recipe lists hold raw record pointers
         StockList list;
-        char allocator = 0;
-        RecipeListConstruct(&list, nullptr, &allocator);
-        alignas(4) std::uint8_t pair[0x10];
+        list.Construct();
+        alignas(StockRecipeMap::Value) std::uint8_t storage[sizeof(StockRecipeMap::Value)];
+        auto* pair = reinterpret_cast<StockRecipeMap::Value*>(storage);
         stlp::PairAbi::ConstructStringList(reinterpret_cast<stlp::StringListPair*>(pair), nullptr, &recipe->spell, &list);
-        StockRecipeEntry* inserted = RecipeMapInsert(spellMap, nullptr, pair);
-        RecipePairDestroy(pair);
-        RecipeListDestroy(&list);
-        StockList* entries = &inserted->recipes;
-        StockListNode* end;
-        RecipeListEnd(entries, nullptr, &end);
-        StockListNode* result;
-        RecipeListInsert(entries, nullptr, &result, end, &value);
+        StockList* entries = &spellMap.FindOrInsert(*pair).mapped;
+        stlp::PairAbi::DestroyStringList(reinterpret_cast<stlp::StringListPair*>(pair));
+        list.Release();
+        StockList::Insert(entries->End(), static_cast<void*>(value));
     }
 
     for (char** p = modifiers.begin(); p != modifiers.end(); ++p) {
@@ -569,12 +456,9 @@ EI_REPLACE_METHOD(0x0069A480, ItemStock::FillSpellMaps);
 void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned threshold) {
     void* spellManager = PartyOf(this)->SpellManager();
     StockList chosen;
-    char allocator = 0;
-    ModifierListConstruct(&chosen, nullptr, &allocator);
-    RecipeIterator it;
-    RecipeMapBegin(spellMap, nullptr, &it);
-    while (it.node) {
-        StockListNode* head = it.node->entry.recipes.head;
+    chosen.Construct();
+    for (StockRecipeMap::Node* recipes = spellMap.First(); recipes; recipes = spellMap.Next(recipes)) {
+        StockListNode* head = recipes->value.mapped.head;
         for (StockListNode* n = head->next; n != head; n = n->next) {
             if (GlobalRandom().Next() % 101 < threshold) continue;
             ClearModifierList(chosen);
@@ -622,14 +506,9 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
             }
             CEngineObject* spell = BuildSpell(spellManager, nullptr, prototype, &chosen);
             if (spell) ++spell->refCount_;
-            StockListNode* end;
-            SpellListEnd(out, nullptr, &end);
-            StockListNode* result;
-            SpellListInsert(out, nullptr, &result, end, &spell);
+            StockList::Insert<HeldSpell>(out->End(), static_cast<void*>(spell));
             if (spell) spell->Release();   // slot 4
         }
-        StockRecipeNode* next = it.node->next;
-        it.node = next ? next : RecipeMapNextBucket(&it);
     }
     ClearModifierList(chosen);
     if (chosen.head) stlp::deallocate(chosen.head, sizeof(StockListNode));
@@ -649,19 +528,10 @@ namespace {
 char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
 char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
 char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
-__declspec(naked) char** __fastcall ModifierByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x00684B20)
-// push_back of the pointer vectors (thiscall, &value): 0069BD30 (the three item lists), 0069BDC0
-// (spells), 0069BDF0 (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20 (position,
-// &value, count).
-__declspec(naked) void __fastcall PushItemRecord(StockPtrVector*, void*, char* const*) EI_ORIGINAL(0x0069BD30)
-__declspec(naked) void __fastcall PushSpellRecord(StockPtrVector*, void*, char* const*) EI_ORIGINAL(0x0069BDC0)
-__declspec(naked) void __fastcall PushModifierRecord(StockPtrVector*, void*, char* const*) EI_ORIGINAL(0x0069BDF0)
-__declspec(naked) void __fastcall MaterialInsertOverflow(StockMaterialVector*, void*, StockMaterial*, const StockMaterial*,
-                                                         std::size_t) EI_ORIGINAL(0x0069CC20)
+// push_back of the pointer vectors: 0069BD30 (the three item lists), 0069BDC0 (spells), 0069BDF0
+// (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20.
 
-using PushFn = void(__fastcall*)(StockPtrVector*, void*, char* const*);
 using FindNamedFn = char*(__fastcall*)(void*, void*, const char*);
-using MapAtFn = char**(__fastcall*)(void*, void*, const void*);
 
 // The counts and the material values are read into locals the original reuses for every section,
 // so a failed read leaves the previous value.
@@ -676,10 +546,10 @@ void ReadName(void* stream, mfc::CString& name) {
 }
 
 // std::find (0069E350..0069E3D0, one instantiation per list), then push_back when missing.
-void AddUnique(StockPtrVector& list, char* record, PushFn push) {
+void AddUnique(StockPtrVector& list, char* record) {
     char** p = list.begin();
     while (p != list.end() && *p != record) ++p;
-    if (p == list.end()) push(&list, nullptr, &record);
+    if (p == list.end()) list.PushBack<PtrElement>(record);
 }
 
 // A record section: a count, then names lower-cased and looked up in `table`.
@@ -690,22 +560,21 @@ void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const Record
         ReadName(stream, name);
         name.MakeLower();
         char* record = find(TableObject(table), nullptr, name);
-        if (record) AddUnique(list, record, &PushItemRecord);
+        if (record) AddUnique(list, record);
     }
 }
 
 // A map section: a count, then names (as read) looked up in an STLport map by string.
-void LoadMapped(void* stream, mfc::CString& name, unsigned& count, void* map, MapAtFn at, StockPtrVector& list,
-                PushFn push) {
+void LoadMapped(void* stream, mfc::CString& name, unsigned& count, RecordNameMap& map, StockPtrVector& list) {
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
         char* record;
         {
             stlp::string key(static_cast<const char*>(name));
-            record = *at(map, nullptr, &key);
+            record = NamedRecord(map, key);
         }
-        if (record) AddUnique(list, record, push);
+        if (record) AddUnique(list, record);
     }
 }
 
@@ -733,16 +602,11 @@ void ItemStock::LoadLists(void* stream) {
         entry.minCount = values[0];
         entry.maxCount = values[1];
         entry.left = values[2];
-        if (materials.end() != materials.EndOfStorage()) {
-            if (materials.end()) *materials.Finish() = entry;
-            ++materials.Finish();
-        } else {
-            MaterialInsertOverflow(&materials, nullptr, materials.end(), &entry, 1);
-        }
+        materials.PushBack<MaterialElement>(entry);
     }
 
-    LoadMapped(stream, name, count, stock::SpellsByName(), &SpellByName, spells, &PushSpellRecord);
-    LoadMapped(stream, name, count, stock::ModifiersByName(), &ModifierByName, modifiers, &PushModifierRecord);
+    LoadMapped(stream, name, count, stock::SpellsByName(), spells);
+    LoadMapped(stream, name, count, stock::ModifiersByName(), modifiers);
 }
 EI_REPLACE_METHOD(0x0069B5B0, ItemStock::LoadLists);
 
@@ -805,23 +669,9 @@ void ItemStock::ResetMaterialUnits() {
 }
 EI_REPLACE_METHOD(0x006993B0, ItemStock::ResetMaterialUnits);
 
-namespace {
-
-// The spell and modifier vectors' allocate-and-copy (thiscall: count, first, last) and deallocate
-// (fastcall: block, element count).
-__declspec(naked) char** __fastcall SpellPtrAllocateCopy(StockPtrVector*, void*, std::size_t, char**, char**)
-    EI_ORIGINAL(0x0069DC70)
-__declspec(naked) void __fastcall SpellPtrDeallocate(char**, std::size_t) EI_ORIGINAL(0x004AA810)
-__declspec(naked) char** __fastcall ModifierPtrAllocateCopy(StockPtrVector*, void*, std::size_t, char**, char**)
-    EI_ORIGINAL(0x0069DDD0)
-__declspec(naked) void __fastcall ModifierPtrDeallocate(char**, std::size_t) EI_ORIGINAL(0x004AA7D0)
-
-} // namespace
-
 void ItemStock::CopyMagic(const ItemStock* other) {
-    if (&other->spells != &spells) AssignPointers(spells, other->spells, SpellPtrAllocateCopy, SpellPtrDeallocate);
-    if (&other->modifiers != &modifiers)
-        AssignPointers(modifiers, other->modifiers, ModifierPtrAllocateCopy, ModifierPtrDeallocate);
+    if (&other->spells != &spells) AssignPointers(spells, other->spells);
+    if (&other->modifiers != &modifiers) AssignPointers(modifiers, other->modifiers);
 }
 EI_REPLACE_METHOD(0x00699440, ItemStock::CopyMagic);
 
@@ -852,14 +702,13 @@ int ModifierIndex(char* record) {
 // The common body of 00699C90 / 00699ED0: the source copied to its scratch vector (007C8670 spells,
 // 007C8660 modifiers), then an item of kind 0x3007 with the class-0x15 prototype named at
 // `prototypeName` per record, +0x54 its index, +0x48 a random count. The scratch is emptied at the end.
-void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, StockPtrVector& taken,
-                               PtrAllocateCopyFn allocate, PtrDeallocateFn deallocate, const char* prototypeName,
+void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, StockPtrVector& taken, const char* prototypeName,
                                int (*indexOf)(char*), int minCount, int maxCount, StockList* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
     void* manager = PartyOf(stock)->ItemManager();
     PartyOf(stock)->SpellManager();   // (fetched and not used)
     taken.Finish() = taken.begin();   // erase(begin, end)
-    if (&source != &taken) AssignPointers(taken, source, allocate, deallocate);
+    if (&source != &taken) AssignPointers(taken, source);
     char* prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Loot())), nullptr, prototypeName));
     for (char** p = taken.begin(); p != taken.end(); ++p) {
         ctor->SetManager(static_cast<CBaseManager*>(manager));
@@ -879,14 +728,12 @@ void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, S
 } // namespace
 
 void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, StockList* out) {
-    GenerateMagicInstructions(this, spells, stock::TakenSpells(), SpellPtrAllocateCopy, SpellPtrDeallocate,
-                              game::PrototypeText(), SpellIndex, minCount, maxCount, out);
+    GenerateMagicInstructions(this, spells, stock::TakenSpells(), game::PrototypeText(), SpellIndex, minCount, maxCount, out);
 }
 EI_REPLACE_METHOD(0x00699C90, ItemStock::GenerateSpellInstructions);
 
 void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, StockList* out) {
-    GenerateMagicInstructions(this, modifiers, stock::TakenModifiers(), ModifierPtrAllocateCopy, ModifierPtrDeallocate,
-                              game::RuneText(), ModifierIndex, minCount, maxCount, out);
+    GenerateMagicInstructions(this, modifiers, stock::TakenModifiers(), game::RuneText(), ModifierIndex, minCount, maxCount, out);
 }
 EI_REPLACE_METHOD(0x00699ED0, ItemStock::GenerateModifierInstructions);
 
@@ -901,10 +748,9 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     CItemConstructor* ctor = ConstructorOf(this);
     void* manager = PartyOf(this)->ItemManager();
     PartyOf(this)->SpellManager();   // (fetched and not used)
-    CallFillSpellMaps(this, nullptr, stock::ScrollSpellRecipes());
+    FillSpellMaps(stock::ScrollSpellRecipes());
     StockList list;
-    char allocator = 0;
-    SpellListConstruct(&list, nullptr, &allocator);
+    list.Construct();
     for (int tries = 0;;) {
         ClearSpellList(list);
         GenerateSpells(&list, scrollLevels, 0x32);
