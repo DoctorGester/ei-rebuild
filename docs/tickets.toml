@@ -429,6 +429,16 @@ group = "renderer"
 depends = ["R16c"]
 note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%."
 
+[[ticket]]
+id = "R16j1"
+title = "Shadow map: map objects whose classic shadow shows cast none (the fight's ruin blocks)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16j"]
+files = ["src/render/render_shadows.cpp src/game/world_client_draw.cpp src/game/map_object_shadow.cpp"]
+note = "User 2026-10-20, on the fight preview (render_shadows' fight_map vs fight_classic, build/R16j/full/stone_full.png): 'Looks like the shadow is missing on this stone?'. At full 4K resolution the classic frame shows the ruin's front wall block, and the pillar to its left, throwing dark shadows down and to the right onto the dirt; with the map the dirt below them stays lit, while the figures do cast. Find out why: are those stones in the casters list (0051CE60 CastsShadow) and are their meshes attributed between BeginCaster / EndCaster (world_client_draw.cpp kDraw) or drawn elsewhere (sorted model batches, flat geometry, deferred), cut by kLeastStrength, alpha, the depth bias or the 160-unit caster reach? shadowcheck's counts and RenderDoc (E:\\bin\\renderdoc) on the map pass can tell. Also check the town and slope frames for the same. Fix so every object the classic shadows draw casts into the map; render_shadows passes, frames with the classic option unchanged, and show the user the same crop before / after."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
