@@ -1,90 +1,10 @@
-# Written by tools/rebirth_coverage.py: whether run_all.py also runs the scenario under Rebirth, and how
-# many of the 115 patched functions the scenarios reach it reaches on vanilla.
-scenario,rebirth,patched_reached
-boot,0,50
-camera,0,88
-combat,0,87
-combat_more,0,87
-console,1,89
-effects,0,87
-effects_bow,1,89
-frames_basic,1,89
-ground_prints,1,90
-hero_death,0,87
-items,1,88
-levers,1,90
-magic_traps,0,90
-map_objects,1,88
-models,0,87
-movement,0,87
-net_lobby,0,52
-objects_more,0,87
-particles,0,88
-party_records,0,87
-rebirth_flags,1,89
-render_cpuwindows,0,89
-render_device_lost,0,88
-render_movie_present,0,87
-render_present,0,89
-render_present_cpuwindows,0,89
-render_present_fullscreen,0,88
-render_present_window,0,56
-render_scene,0,87
-render_titles_present,0,51
-sandbox_actions,0,87
-sandbox_map,0,87
-script_copy,0,89
-script_exec,0,88
-script_fx,0,90
-script_parse,1,89
-script_quest,0,88
-smoke,0,50
-sound,0,87
-spells,0,88
-spells_cast,0,87
-spells_hero,0,89
-terrain_water_load,0,90
-trader_stock,1,89
-ui_base_dialogue,0,88
-ui_battle_commands,0,89
-ui_battle_spells,0,88
-ui_camp,1,90
-ui_camp_deals,1,89
-ui_container_input,0,89
-ui_describe,0,89
-ui_global_map_pick,0,88
-ui_help,1,89
-ui_help_page,1,90
-ui_hero_delete,0,62
-ui_hero_screen,0,62
-ui_hero_stats,0,62
-ui_hud,1,91
-ui_main_menu,0,57
-ui_mp_host,1,79
-ui_objectives,0,88
-ui_options_bind,0,56
-ui_order_move,0,88
-ui_quest_notice,0,87
-ui_quick_items,1,91
-ui_saveload,0,89
-ui_saveload_delete,0,90
-ui_screens,0,92
-ui_trade_hold,1,88
-ui_trade_restore,1,88
-ui_view_screen,0,87
-ui_widescreen,0,89
-ui_widescreen_hud,1,88
-ui_widescreen_more,1,93
-unit_ai,0,87
-unit_ai_fear,0,87
-unit_create,0,87
-units,0,87
-watchdog_dump,0,48
-watchdog_ei_launch,0,48
-watchdog_main,0,48
-world,0,87
-world_client,0,88
-world_load,0,88
-zone_base_bz1g,0,88
-zone_gz2g_traps,0,87
-zone_gz3g,0,87
+# The Rebirth smoke set (SV9; tools/run_all.py rebirth_scenarios, --rebirth): scenarios marked 1 also run on Rebirth's
+# data because its maps, scripts or resources decide what they check. Every scenario with a step for one install
+# ("rebirth ..." / "vanilla ..."), rebirthflags, addonpath or widescreen is in the set without a line here.
+scenario,rebirth,why
+world_load,1,Rebirth's zone 1 map and its objects
+frames_basic,1,Rebirth's textures and models drawn
+items,1,Rebirth's item database
+script_parse,1,Rebirth's scripts parsed (its maps' .mq files)
+ui_camp,1,Rebirth's camp prices and deals
+zone_gz15h_tornado,1,CEffectTornado launches only on Rebirth's data
