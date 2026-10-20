@@ -32,14 +32,11 @@ using PointArray = lib::AlignedArray<Vector3>;
 
 // Element helpers [pointer, count]: the morph frame constructor 00452E20 and destructor 00452DF0.
 __declspec(naked) void __stdcall ConstructMorphFrames(void*, int) EI_ORIGINAL(0x00452E20)
-__declspec(naked) void __stdcall DestroyMorphFrames(void*, int) EI_ORIGINAL(0x00452DF0)
-// Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0, a frame's points 0044F1D0,
-// the children 0044F540; a frame's points copied from a point array 0044F410.
+constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::BlocksAt8>;
+// Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0; the aligned arrays' (a frame's
+// points 0044F1D0, the children 0044F540; a frame's points copied 0044F410) are their members.
 using MorphFrames = mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements>;
 __declspec(naked) void __fastcall MorphFramesSetSize(MorphFrames*, void*, int, int) EI_ORIGINAL(0x0044F7E0)
-__declspec(naked) void __fastcall PointsSetSize(PointArray*, void*, int, int) EI_ORIGINAL(0x0044F1D0)
-__declspec(naked) void __fastcall PointsCopy(PointArray*, void*, const PointArray*) EI_ORIGINAL(0x0044F410)
-__declspec(naked) void __fastcall ChildrenSetSize(lib::AlignedArray<CAnimationNode*>*, void*, int, int) EI_ORIGINAL(0x0044F540)
 // Vector helpers, __fastcall out in ECX: b - a [00448A10 scales instead: v * t, t as float bits],
 // a + b [0040CDC0]. Each component is one rounded operation.
 
@@ -110,7 +107,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             out.frame = frame;
             ++frame;
             out.next = frame;
-            PointsSetSize(&out.points, nullptr, KeyPoints(node, 0).size, -1);
+            out.points.SetSize(KeyPoints(node, 0).size, -1);
             for (int j = 0; j < frames.data[index].points.size; ++j) {
                 Vector3* p = &frames.data[index].points.data[j];
                 if (key <= 0) {
@@ -132,9 +129,9 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
         out.frame = frame;
         ++frame;
         out.next = frame;
-        PointsSetSize(&out.points, nullptr, KeyPoints(node, 0).size, -1);
+        out.points.SetSize(KeyPoints(node, 0).size, -1);
         if (key >= node->morphKeys.size) {
-            PointsCopy(&frames.data[index].points, nullptr, &KeyPoints(node, key - 1));
+            frames.data[index].points.Copy(KeyPoints(node, key - 1));
             continue;
         }
         for (int j = 0; j < frames.data[index].points.size; ++j) {
@@ -187,7 +184,7 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
         if (bone->morphFrames_.size > 0) BuildMorphFrames(bone, node);
     }
 
-    ChildrenSetSize(&bone->children_, nullptr, node->children.size, -1);
+    bone->children_.SetSize(node->children.size, -1);
     for (int i = 0; i < bone->children_.size; ++i) {
         void* block = gamecrt::operator_new(sizeof(CAnimationNode));
         CAnimationNode* child = block ? static_cast<CAnimationNode*>(block)->Construct() : nullptr;

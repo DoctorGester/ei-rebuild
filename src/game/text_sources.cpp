@@ -68,7 +68,7 @@ void __fastcall TextSourcesClear(TextSourceList* list) {
     for (Node* node = sentinel->next; node != sentinel; node = node->next) CloseAndDelete(node->data.source);
     for (Node* node = sentinel->next; node != sentinel;) {
         Node* next = node->next;
-        FreeStringStorage(&node->data.name);
+        node->data.name.~string();   // 004DEAB0: the storage freed
         stlp::deallocate(node, sizeof(Node));
         node = next;
     }

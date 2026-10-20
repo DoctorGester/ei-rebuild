@@ -35,9 +35,6 @@ __declspec(naked) inline void __fastcall IdListEraseOriginal(void* /*list*/, voi
     EI_ORIGINAL(0x00512030)
 class CTexture;
 class CMaterial;
-// 0056F360 (library: STLport vector<12-byte texture record>::resize(count, value); thiscall, RET 8, no result).
-__declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*vector*/, void*, unsigned /*count*/,
-                                                                      const void* /*value*/) EI_ORIGINAL(0x0056F360)
 // 005927C0 (rewritten as CWorldServer::CreateObject; RET 4): the server makes (or updates) the world object of a .mob
 // record; EAX the object's id. Patched by Rebirth.
 __declspec(naked) inline int __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)

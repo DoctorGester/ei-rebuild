@@ -14,7 +14,6 @@ using namespace itemdb;
 
 #pragma warning(disable : 4740) // naked forwarders
 
-__declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x004DEAB0)
 
 namespace {
 
@@ -270,7 +269,7 @@ TextSourceNode** __fastcall TextSourcesErase(TextSourceList*, void*, TextSourceN
     Node* prev = pos->prev;
     prev->next = next;
     next->prev = prev;
-    FreeStringStorage(&pos->data.name);
+    pos->data.name.~string();   // 004DEAB0: the storage freed
     if (pos) {   // the original checks only here, after using the node (always true)
         // The inlined STLport node deallocation: push on the 0x18-byte free list.
         auto*& freeList = *reinterpret_cast<Node**>(0x0079B22C);

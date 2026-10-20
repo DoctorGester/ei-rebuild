@@ -178,7 +178,6 @@ static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUn
 // (RET 4), 004E2A20 / 005F9880 the destructors of the two instantiations.
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
-__declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
@@ -206,7 +205,7 @@ void PushId(IdVector* ids, const int* value) {
         stlp::ConstructAt(ids->Finish(), value);   // 0064B620
         ++ids->Finish();
     } else {
-        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->Finish(), value, 1);
+        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);   // 004E2FA0
     }
 }
 // The same with the construction inlined (as the original's third case).
@@ -215,7 +214,7 @@ void PushIdInline(IdVector* ids, const int* value) {
         if (ids->Finish()) *ids->Finish() = *value;
         ++ids->Finish();
     } else {
-        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->Finish(), value, 1);
+        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);   // 004E2FA0
     }
 }
 
@@ -285,9 +284,9 @@ void RebuildClientParty(CBattleScreen* screen) {
             static_cast<CCamera*>(reinterpret_cast<void*>(0x0079B2A8))->SetTargetId(ids.camera);
             static_cast<CBattleScreen*>(screen)->RefreshSelection();
         }
-        IdsAssign(&screen->clientParty_.withUnit, nullptr, &ids.withUnit);
+        screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);   // 0064AF30
         screen->clientParty_.camera = ids.camera;
-        IdsAssign(&screen->clientParty_.without, nullptr, &ids.without);
+        screen->clientParty_.without.AssignVector<stlp::PlainElement<int>>(ids.without);
     }
     ids.without.FreeStorage();
     ids.withUnit.FreeStorage();

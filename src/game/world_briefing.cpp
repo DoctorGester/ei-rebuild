@@ -311,7 +311,7 @@ void GameFlow::RegisterQuests(const char* folder) {
         new (folders.Finish()) stlp::string(name);
         ++folders.Finish();
     } else {
-        StringVectorInsertOverflowOriginal(&folders, nullptr, folders.Finish(), &name, 1);
+        folders.InsertOverflow<stlp::StringElement>(folders.Finish(), name, 1);   // 004DCE90
     }
 }
 

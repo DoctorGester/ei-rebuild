@@ -1216,11 +1216,7 @@ struct ZoneTable {
     ZoneEntry* finish;
     ZoneEntry* end;
 };
-struct OutStrings {
-    stlp::string* start;
-    stlp::string* finish;
-    stlp::string* end;
-};
+using OutStrings = stlp::vector<stlp::string>;
 
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
@@ -1271,11 +1267,11 @@ void __stdcall PickZones(void* outArg, int id, const char* exclude) {
                 else ++i;
         unsigned pick = RandomNext(reinterpret_cast<IsaacRandom*>(0x007A9D40)) % static_cast<unsigned>(group.count);
         stlp::string name(group.items[pick]->first);
-        if (out->finish != out->end) {
-            new (out->finish) stlp::string(name);
-            ++out->finish;
+        if (out->Finish() != out->EndOfStorage()) {
+            new (out->Finish()) stlp::string(name);
+            ++out->Finish();
         } else {
-            StringVectorInsertOverflowOriginal(out, nullptr, out->finish, &name, 1);
+            out->InsertOverflow<stlp::StringElement>(out->Finish(), name, 1);   // 004DCE90
         }
     }
 }

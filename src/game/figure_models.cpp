@@ -30,7 +30,6 @@ using AnimationMap = FigureModel::AnimationMap;
 // allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8) and
 // insert(pos, n, value) (RET 0xC); reserve is the vector's own.
 using BucketVector = stlp::vector<AnimationMap::Node*>;
-__declspec(naked) void __fastcall BucketsInsert(BucketVector*, void*, AnimationMap::Node**, std::uint32_t, const void*) EI_ORIGINAL(0x005ADAD0)
 
 // The data of "<name><suffix>" (the manager's GetFile), or null.
 void* OpenPart(CFigureManager* manager, const stlp::string* name, std::uintptr_t suffix) {
@@ -113,8 +112,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
     std::uint32_t n = prime == last ? *reinterpret_cast<const std::uint32_t*>(0x0073B980) : *prime;
     buckets->Reserve<stlp::PlainElement<AnimationMap::Node*>>(n);
-    void* none = nullptr;
-    BucketsInsert(buckets, nullptr, buckets->Finish(), n, &none);
+    buckets->FillInsert<stlp::PlainElement<AnimationMap::Node*>>(buckets->Finish(), n, nullptr);   // 005ADAD0
     *count = 0;
     static constexpr CMappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
                                                                     &FigureModel::animations};

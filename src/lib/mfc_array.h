@@ -138,6 +138,17 @@ typename Abi::Array& ArrayAs(CArray<T, E>& a) {
     return reinterpret_cast<typename Abi::Array&>(a);
 }
 
+// An instantiation's ConstructElements / DestructElements (__stdcall, RET 8) over elements declared
+// as another type of the same size, or untyped.
+template <typename Abi>
+void __stdcall ConstructElementsAt(void* elements, int count) {
+    Abi::ConstructElements(static_cast<typename Abi::Element*>(elements), count);
+}
+template <typename Abi>
+void __stdcall DestructElementsAt(void* elements, int count) {
+    Abi::DestructElements(static_cast<typename Abi::Element*>(elements), count);
+}
+
 // The same constructor and destructor on a typed array: the vtable of `Class`; the elements
 // destroyed by the array's policy, the storage freed (ArrayAbi::Destruct).
 template <typename Class, typename T, typename E>

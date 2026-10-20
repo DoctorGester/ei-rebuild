@@ -146,6 +146,3 @@ struct TextSourceIterator {
     CTextManager::SourceNode** CopyTo(CTextManager::SourceNode** out);
 };
 
-// 004DEAB0 (thiscall on an stlp::string, not rewritten): frees the string's storage.
-void __fastcall FreeStringStorage(void* string);
-

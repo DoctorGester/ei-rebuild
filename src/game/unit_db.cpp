@@ -23,7 +23,9 @@ namespace {
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
-void __fastcall StringsClear(CStringVector* a0) { CStringVectorClearOriginal((void*)a0); }
+void StringsClear(CStringVector* strings) {   // 0052E010
+    strings->EraseRange<stlp::ObjectElement<mfc::CString>>(strings->begin(), strings->end());
+}
 
 void Dword(ChunkArchive* ar, int id, void* data) { ar->Field(id, data, 4); }
 

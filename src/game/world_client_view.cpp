@@ -65,9 +65,6 @@ struct DrawQueues {
 };
 DrawQueues& Frame() { return *reinterpret_cast<DrawQueues*>(0x007AF508); }
 
-// 00571B00. _M_insert_overflow: grows the storage and inserts n copies of *value at pos.
-__declspec(naked) void __fastcall InsertOverflow(ObjectVector*, void*, CEngineObject**, CEngineObject* const*, int)
-    EI_ORIGINAL(0x00571B00)
 
 // 0056E840 (also inlined by the original): push_back.
 void PushBack(DrawQueue& queue, CEngineObject* const& value) {
@@ -76,7 +73,7 @@ void PushBack(DrawQueue& queue, CEngineObject* const& value) {
         if (v.Finish()) *v.Finish() = value;
         ++v.Finish();
     } else {
-        InsertOverflow(&v, nullptr, v.Finish(), &value, 1);
+        v.InsertOverflow<stlp::PlainElement<CEngineObject*>>(v.Finish(), value, 1);   // 00571B00
     }
 }
 

@@ -13,6 +13,8 @@
 #include "originals_engine.h"
 #include "originals_ui.h"
 #include "text_reader.h"
+#include "game_arrays.h"
+#include "lib/mfc_array.h"
 
 #include <cstring>
 
@@ -36,14 +38,15 @@ int TextReader::Split(console::CStringArray* words, int flag) {
 mfc::BOOL TextReader::Close() { return TextClose(reinterpret_cast<CTextManager*>(this)); }
 TextReader* TheTextReader() { return *reinterpret_cast<TextReader**>(0x007AF788); }
 
-// Element constructors / destructors of the record arrays (not rewritten).
+// Element constructors / destructors of the record arrays: the allods' (00460720 / 004606F0), the
+// maps' (004607E0 / 004607B0) and the exits' (004606A0 / 00460670) instantiations.
 using ElementFn = void(__stdcall*)(void* elements, int count);
-__declspec(naked) void __stdcall ConstructAllods(void*, int) EI_ORIGINAL(0x00460720)
-__declspec(naked) void __stdcall DestructAllods(void*, int) EI_ORIGINAL(0x004606F0)
-__declspec(naked) void __stdcall ConstructMaps(void*, int) EI_ORIGINAL(0x004607E0)
-__declspec(naked) void __stdcall DestructMaps(void*, int) EI_ORIGINAL(0x004607B0)
-__declspec(naked) void __stdcall ConstructExits(void*, int) EI_ORIGINAL(0x004606A0)
-__declspec(naked) void __stdcall DestructExits(void*, int) EI_ORIGINAL(0x00460670)
+constexpr ElementFn ConstructAllods = mfc::impl::ConstructElementsAt<mfc::impl::Allods>;
+constexpr ElementFn DestructAllods = mfc::impl::DestructElementsAt<mfc::impl::OwnedAllods>;
+constexpr ElementFn ConstructMaps = mfc::impl::ConstructElementsAt<mfc::impl::MapRecords>;
+constexpr ElementFn DestructMaps = mfc::impl::DestructElementsAt<gamearrays::ZoneRecords>;
+constexpr ElementFn ConstructExits = mfc::impl::ConstructElementsAt<mfc::impl::Exits3C>;
+constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Exits>;
 
 // *out = float(GameAtof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
@@ -138,7 +141,7 @@ private:
 void Loader::AddAllod() {
     ArrayBody& allods = *reinterpret_cast<ArrayBody*>(&db_->allods.data);
     int index = allods.size;
-    SetSize(allods, index + 1, allod::kSize, &ConstructAllods, &DestructAllods);
+    SetSize(allods, index + 1, allod::kSize, ConstructAllods, DestructAllods);
     char* a = allods.data + index * allod::kSize;
     StringAt(a, allod::kNames) = words_[1];
     for (int i = 1; i < 6; ++i) {
@@ -149,7 +152,7 @@ void Loader::AddAllod() {
 
 void Loader::AddMap() {
     ArrayBody& maps = *reinterpret_cast<ArrayBody*>(&db_->maps.data);
-    SetSize(maps, maps.size + 1, map::kSize, &ConstructMaps, &DestructMaps);
+    SetSize(maps, maps.size + 1, map::kSize, ConstructMaps, DestructMaps);
     ++map_;
     exit_ = -1;
     StringAt(Map(), map::kName) = words_[1];
@@ -174,7 +177,7 @@ void Loader::AddMap() {
 
 void Loader::AddExit() {
     ArrayBody& exits = Body(Map() + map::kExits);
-    SetSize(exits, exits.size + 1, exit::kSize, &ConstructExits, &DestructExits);
+    SetSize(exits, exits.size + 1, exit::kSize, ConstructExits, DestructExits);
     ++exit_;
     Set<int>(Exit(), exit::kView, 0);
     Set<std::uint8_t>(Exit(), exit::kHasDeployAngle, 0);

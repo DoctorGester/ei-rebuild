@@ -18,6 +18,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_gameplay.h"
+#include "record_vectors.h"
 
 #include <cstring>
 
@@ -26,11 +27,9 @@ namespace net {
 namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
-__declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
 
 // vector<CEngineObject*> with counted elements (library), the party's
 // reset and add (00661050 class, outside this range).
-__declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, void*, CEngineObject** /*pos*/, CEngineObject* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00428A20)
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 inline int __fastcall PartyAdd(void* a0, void*, void* a2, int a3, int a4) { return (int)static_cast<CParty*>(a0)->AddItem(static_cast<CItem*>(a2), a3, a4); }
 
@@ -118,7 +117,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         PartyMessage* current = state();
         if (same != previous.end()) {
             PushBack(&current->members_, same);
-            if (same + 1 != previous.end()) RefPtrCopyRange(same + 1, previous.end(), same);
+            if (same + 1 != previous.end()) stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(same + 1, previous.end(), same);   // 00429080
             --previous.Finish();
             RefPtrDestroyAt(previous.end(), nullptr, 0);
         } else {
@@ -204,7 +203,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
             if (items.Finish()) libcontainers::ConstructHeldObject(items.Finish(), nullptr, &held);
             ++items.Finish();
         } else {
-            ObjectVectorInsertOverflow(&items, nullptr, items.Finish(), &held, 1);
+            items.InsertOverflow<recordvec::EngineObjectRefElement>(items.Finish(), held, 1);   // 00428A20
         }
         if (held) held->Release();
     }

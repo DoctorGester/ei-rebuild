@@ -100,11 +100,8 @@ __declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*byt
 
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
-// 004C98F0: pointer list AddTail (RET 4, EAX not a result). 004DCE90: string vector insert overflow
-// (RET 0xC: pos, first, count). 0041FCD0: list end() iterator written to `out` (RET 4, returns out).
-__declspec(naked) inline void __fastcall StringVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
-                                                                            const void* /*first*/, unsigned /*count*/)
-    EI_ORIGINAL(0x004DCE90)
+// 004C98F0: pointer list AddTail (RET 4, EAX not a result). 0041FCD0: list end() iterator written to `out` (RET 4,
+// returns out).
 // 006FEB61: CStringArray::Copy(source) (RET 4, EAX not a result).
 inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* source) {
     static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
@@ -123,8 +120,6 @@ __declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*arra
 // 005197B0: map find(key) writing the iterator to `out` (RET 8: out, key; EAX = out).
 __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, void*, void** /*out*/, const void* /*key*/)
     EI_ORIGINAL(0x005197B0)
-// vector<CString>: 0052E010 clear (destroys the elements, plain RET); no result.
-__declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
 
 // (The game streams' ostream members are libcrt::Ostream's, lib/crt_iostream.h.)
 // MFC CString operator+(const CString&, const CString&) 00700B9F / (const CString&, const char*) 00700C05 (__stdcall, RET 0xC:
@@ -147,11 +142,6 @@ __declspec(naked) inline void* __fastcall ListConstruct404A70Original(void* /*li
     EI_ORIGINAL(0x00404A70)
 __declspec(naked) inline void** __fastcall ListInsert68C560Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
                                                                     const void* /*value*/) EI_ORIGINAL(0x0068C560)
-// 004E2FA0: vector<dword>::_M_insert_overflow(position, value, count) on the node allocator (ECX = vector; RET 0xC; EAX is not a
-// result).
-__declspec(naked) inline void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
-                                                                           const void* /*value*/, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x004E2FA0)
 // Counted objects (virtual slot 4 releases): 005703C0 clear() of their list (ECX = list; each node's object is released and the
 // node goes back to the node pool; plain RET, no result); 00573290 the same list's NewNode(prev, next) (RET 8, EAX = the node,
 // its data cleared; a CPtrList instance); 0059A100 the pointer array's destructor (releases every element, frees the buffer;

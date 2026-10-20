@@ -16,8 +16,6 @@ namespace {
 // (006ADC10, RET 0xC), the records' destructors (006AF4D0 quests, 006AF5A0 briefings, plain RET)
 // and the vectors' resize (006B2100 / 006B2240, RET 4: new records default-constructed, extra
 // ones destroyed).
-__declspec(naked) void __fastcall FloatsFillInsert(stlp::vector<float>*, void*, float* /*position*/, unsigned /*count*/,
-                                                   const float* /*value*/) EI_ORIGINAL(0x006ADC10)
 void __fastcall QuestDestroy(QuestRecord* record) { static_cast<QuestRecord*>(record)->Destruct(); }
 void __fastcall BriefingDestroy(QuestBriefingRecord* record) { static_cast<QuestBriefingRecord*>(record)->Destruct(); }
 
@@ -66,8 +64,7 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
         // erase(begin, end), then resize(count, 0.0f): the vector is empty, so a fill insert.
         places.Finish() = places.Start();
         count = ar->CountChunks(1);
-        float zero = 0.0f;
-        FloatsFillInsert(&places, nullptr, places.Finish(), static_cast<unsigned>(count), &zero);
+        places.FillInsert<stlp::PlainElement<float>>(places.Finish(), static_cast<unsigned>(count), 0.0f);   // 006ADC10
     } else {
         count = static_cast<int>(places.size());
     }

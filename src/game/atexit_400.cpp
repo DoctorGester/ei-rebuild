@@ -14,7 +14,6 @@ namespace atexit400 {
 
 namespace {
 __declspec(naked) void __fastcall CameraDestruct(void* /*camera*/) EI_ORIGINAL(0x0040CE60)
-__declspec(naked) void __fastcall Vector8Destruct(void* /*vector*/) EI_ORIGINAL(0x004387D0)
 
 // The once-only flags of the two buffers (bit 0: 0079B900, bit 1: 0079B8E0).
 std::uint8_t& BufferFlags() { return *reinterpret_cast<std::uint8_t*>(0x0079B8FC); }
@@ -43,7 +42,7 @@ void __cdecl DestroyGlobalBuffer2() {
     GrowingBufferDestruct(&ei::GameData<char>(0x0079B8E0));
 }
 // 00434980: the vector at 0079B8D0.
-void __cdecl DestroyGlobalVector() { Vector8Destruct(&ei::GameData<char>(0x0079B8D0)); }
+void __cdecl DestroyGlobalVector() { ei::GameData<stlp::vector<stlp::Opaque<8>>>(0x0079B8D0).FreeStorage(); }   // 004387D0
 
 } // namespace atexit400
 

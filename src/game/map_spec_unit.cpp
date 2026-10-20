@@ -60,9 +60,10 @@ void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a
 template <typename Destructor>
 void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // MFC (library): CStringArray, the CArray instantiations of patrols and waypoints.
-__declspec(naked) void __fastcall PatrolsSetSize(Array<Patrol>*, void*, int, int) EI_ORIGINAL(0x0045DAE0)
-__declspec(naked) void __stdcall ConstructPatrols(Patrol*, int) EI_ORIGINAL(0x0045E180)
-__declspec(naked) void __stdcall DestructPatrols(Patrol*, int) EI_ORIGINAL(0x0046F0B0)
+// SetSize 0045DAE0, ConstructElements 0045E180, DestructElements 0046F0B0.
+void PatrolsSetSize(Array<Patrol>* patrols, int size) { mfc::impl::ArrayAs<mfc::impl::OwnedPatrols>(*patrols).SetSize(size, -1); }
+constexpr auto ConstructPatrols = mfc::impl::ConstructElementsAt<mfc::impl::Patrols>;
+constexpr auto DestructPatrols = mfc::impl::DestructElementsAt<mfc::impl::OwnedPatrols>;
 __declspec(naked) Patrol* __fastcall PatrolDelete(Patrol*, void*, unsigned) EI_ORIGINAL(0x0046F160)
 // The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection (007B00D0) move and turn an
 // object; the world object's updates.
@@ -261,7 +262,7 @@ void __fastcall BehaviourChunkOnChunk(TargetChunk* self) {
         PatrolChunk child;
         StartChild(child, &self->chunk);
         auto* behaviour = static_cast<Behaviour*>(self->target);
-        PatrolsSetSize(&behaviour->patrols, nullptr, behaviour->patrols.size + 1, -1);
+        PatrolsSetSize(&behaviour->patrols, behaviour->patrols.size + 1);
         behaviour->patrols.data[behaviour->patrols.size - 1].position = {0.0f, 0.0f, 0.0f};
         child.target = &static_cast<Behaviour*>(self->target)->patrols.data[behaviour->patrols.size - 1];
         child.chunk.ForEachChild();
@@ -509,7 +510,7 @@ void Behaviour::Read(void* stream) {
     StreamRead(stream, &type, 4);
     int n;
     StreamRead(stream, &n, 4);
-    PatrolsSetSize(&patrols, nullptr, n, -1);
+    PatrolsSetSize(&patrols, n);
     for (int i = 0; i < patrols.size; ++i) {
         Patrol* p = &patrols.data[i];
         StreamRead(stream, &p->position, 12);

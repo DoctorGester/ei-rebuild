@@ -60,7 +60,7 @@ void* SoundManager() { return *reinterpret_cast<void**>(0x007AF784); }
 using KeyVector = stlp::vector<std::uint32_t>;
 static_assert(sizeof(KeyVector) == 12);
 void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
-    DwordVectorInsertOverflowOriginal(v, nullptr, pos, value, count);
+    v->InsertOverflow<stlp::PlainElement<std::uint32_t>>(pos, *value, count);
 }
 
 KeyVector& DeadCells() { return *reinterpret_cast<KeyVector*>(0x007ABB58); }

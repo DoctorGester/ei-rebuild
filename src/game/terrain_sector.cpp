@@ -17,6 +17,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_world.h"
+#include "lib/mfc_array.h"
 
 namespace terrain {
 namespace {
@@ -40,11 +41,12 @@ constexpr int kVertices = 33 * 33;      // per layer
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
-// Element helpers of the original (not rewritten; DestroyRecords is in terrain_lights.cpp).
-__declspec(naked) void __stdcall ConstructFlagArrays(FlagArray*, int) EI_ORIGINAL(0x006C4F90)
-__declspec(naked) void __stdcall DestroyFlagArrays(FlagArray*, int) EI_ORIGINAL(0x006C4F60)
-__declspec(naked) void __stdcall ConstructTileLists(TileList*, int) EI_ORIGINAL(0x006C5050)
-__declspec(naked) void __stdcall DestroyTileLists(TileList*, int) EI_ORIGINAL(0x006C5010)
+// Element helpers of the original (DestroyRecords is in terrain_lights.cpp): the flag arrays'
+// (006C4F90 / 006C4F60) and the tile lists' (006C5050 / 006C5010) instantiations.
+constexpr auto ConstructFlagArrays = mfc::impl::ConstructElementsAt<mfc::impl::ByteArrays>;
+constexpr auto DestroyFlagArrays = mfc::impl::DestructElementsAt<mfc::impl::ByteArrays>;
+constexpr auto ConstructTileLists = mfc::impl::ConstructElementsAt<mfc::impl::AlignedArrays>;
+constexpr auto DestroyTileLists = mfc::impl::DestructElementsAt<mfc::impl::AlignedArrays>;
 
 } // namespace
 

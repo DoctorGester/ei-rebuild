@@ -37,4 +37,19 @@ struct SharedRefElement {
     static void Default(RefPtr* p) { p->ptr = nullptr; }
 };
 
+using CountedRefVector = VectorAbi<RefPtr, CountedRefElement>;
+using SharedRefVector = VectorAbi<RefPtr, SharedRefElement>;
+
+// A vector of counted pointers (counted_ptr<T>: the object's pointer alone) as the vector<RefPtr>
+// the game's instantiations share, and its elements likewise.
+template <typename T>
+vector<RefPtr>& AsRefPtrs(vector<T*>& v) {
+    static_assert(sizeof(T*) == sizeof(RefPtr));
+    return reinterpret_cast<vector<RefPtr>&>(v);
+}
+template <typename T>
+RefPtr* AsRefPtr(T** p) { return reinterpret_cast<RefPtr*>(p); }
+template <typename T>
+const RefPtr& AsRefPtr(T* const& p) { return reinterpret_cast<const RefPtr&>(p); }
+
 } // namespace stlp

@@ -23,6 +23,7 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "spell.h"
+#include "lib/stlp_vector_refs.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -30,13 +31,9 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// vector<counted pointer> members: 004A9A00 erase(first, last), 004AB520 _M_insert_overflow(pos,
-// x, n), and the counted pointer's copy constructor (two identical instantiations, 004A5D50 and
-// 004ABE30, both RefPtr::CopyCounted).
-__declspec(naked) ClassTemplate** __fastcall VectorErase(ClassTemplateVector*, void*, ClassTemplate**, ClassTemplate**)
-    EI_ORIGINAL(0x004A9A00)
-__declspec(naked) void __fastcall VectorInsertOverflow(ClassTemplateVector*, void*, ClassTemplate**,
-                                                       ClassTemplate* const*, unsigned) EI_ORIGINAL(0x004AB520)
+// vector<counted pointer> members (stlp::CountedRefVector's): 004A9A00 erase(first, last), 004AB520
+// _M_insert_overflow(pos, x, n), and the counted pointer's copy constructor (two identical
+// instantiations, 004A5D50 and 004ABE30, both RefPtr::CopyCounted).
 using CopyConstructFn = void(__fastcall*)(ClassTemplate**, void*, ClassTemplate* const*);
 void __fastcall CopyConstruct(ClassTemplate** a0, void*, ClassTemplate* const* a2) {
     reinterpret_cast<RefPtr*>(a0)->CopyCounted(reinterpret_cast<const RefPtr*>(a2));
@@ -168,7 +165,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     ClassTemplate* temp = t;
     if (temp) ++temp->refCount;
     if (v->Finish() == v->EndOfStorage()) {
-        VectorInsertOverflow(v, nullptr, v->Finish(), &temp, 1);
+        stlp::AsRefPtrs(*v).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(v->Finish()), stlp::AsRefPtr(temp), 1);
     } else {
         if (v->Finish()) copyConstruct(v->Finish(), nullptr, &temp);
         ++v->Finish();
@@ -179,7 +176,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
 } // namespace
 
 void __fastcall ClassTemplatesBuild(ClassTemplateVector* v, void*, unsigned fourClasses) {
-    VectorErase(v, nullptr, v->begin(), v->end());
+    stlp::CountedRefVector::Clear(&stlp::AsRefPtrs(*v));
     if (static_cast<std::uint8_t>(fourClasses)) {
         AddTemplate(v, 1, 1, 1, kDefaultWeights, CopyConstruct);
         AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstruct);

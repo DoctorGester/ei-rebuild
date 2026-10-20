@@ -127,9 +127,11 @@ float LandscapeDrawRadius() {
 }
 
 // DrawPass's callees.
-__declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
-__declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
-    EI_ORIGINAL(0x00571E30)
+// clear() 0056E870 and the erase's copy 00571E30 of vector<CEngineObject*>.
+void VectorClear(stlp::vector<CEngineObject*>* v) { v->EraseRange<stlp::PlainElement<CEngineObject*>>(v->begin(), v->end()); }
+CEngineObject** VectorCopyBack(CEngineObject** first, CEngineObject** last, CEngineObject** out) {
+    return stlp::CopyElements<CEngineObject*>(first, last, out);
+}
 
 // The object margin around the camera when collecting what to draw (0073BAB0, 100.0).
 float ObjectsDrawMargin() { return *reinterpret_cast<const float*>(0x0073BAB0); }

@@ -34,8 +34,6 @@ using dbfile::LocalStream;
 // 0053DD00).
 template <typename Record>
 using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*);
-// vector<SkillLevelRecord>::clear.
-__declspec(naked) void __fastcall SkillLevelsClear(void* /*vector*/) EI_ORIGINAL(0x00520C20)
 
 // Every record of [begin, end) entered into the name index under its name (operator[]: 0053C8B0,
 // 0053C780, 005335E0, 0053C650; a record of a name seen before replaces the earlier one).
@@ -157,7 +155,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
         if (ar.EnterChunk(kSkillLevelsChunk)) {
             int count;
             if (ar.loading_) {
-                SkillLevelsClear(&levels);
+                recordvec::SkillLevelVector::Clear(&levels);   // 00520C20
                 count = ar.CountChunks(kRecordChunk);
                 recordvec::SkillLevelVector::ResizeDefault(&levels, nullptr, static_cast<std::uint32_t>(count));
             } else {

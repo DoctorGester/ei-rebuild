@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "record_vectors.h"
 #include "game_hashes.h"
+#include "lib/stlp_vector_refs.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -26,8 +27,7 @@ namespace {
 // the entry, record and template vectors (null pointers / empty entries appended), resize(n, x) of
 // an entry's ids.
 __declspec(naked) void __fastcall PartyMapClear(PartyMap* /*map*/) EI_ORIGINAL(0x004AD050)
-__declspec(naked) void __fastcall RecordsResize(stlp::vector<PartyRecord*>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD700)
-__declspec(naked) void __fastcall TemplatesResize(ClassTemplateVector* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD8D0)
+// (The record and template vectors' resize, 004AD700 / 004AD8D0: stlp::CountedRefVector's.)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
 // pointers, whose release the original inlines (004A5D70 / 004A7EA0): one reference less, the
@@ -149,7 +149,7 @@ void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>*
         for (ClassTemplate** p = templates->begin(); p != templates->end(); ++p) Release(*p);
         templates->Finish() = templates->Start();
         count = CountChunks(1);
-        TemplatesResize(templates, nullptr, static_cast<unsigned>(count));
+        stlp::CountedRefVector::ResizeDefault(&stlp::AsRefPtrs(*templates), nullptr, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(templates->size());
     }
@@ -171,7 +171,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
             for (PartyRecord** p = records.Start(); p != records.Finish(); ++p) Release(*p);
             records.Finish() = records.Start();
             count = ar->CountChunks(1);
-            RecordsResize(&records, nullptr, static_cast<unsigned>(count));
+            stlp::CountedRefVector::ResizeDefault(&stlp::AsRefPtrs(records), nullptr, static_cast<unsigned>(count));
         } else {
             count = static_cast<int>(records.size());
         }

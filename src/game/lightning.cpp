@@ -16,7 +16,6 @@
 
 // --- Forwarders (not rewritten) ----------------------------------------------------------------
 
-__declspec(naked) void __fastcall LightningPointsSetSize(LightningPointArray*, void*, int, int) EI_ORIGINAL(0x00468C50)
 __declspec(naked) int CLightning::Draw(void*) EI_ORIGINAL(0x00467AD0)
 
 namespace {
@@ -249,7 +248,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     step.x = static_cast<float>(step.x / n);
     step.y = static_cast<float>(step.y / n);
     step.z = static_cast<float>(step.z / n);
-    LightningPointsSetSize(&points, nullptr, count, -1);
+    points.SetSize(count, -1);   // 00468C50
 }
 EI_REPLACE_METHOD(0x00466820, LightningSegment::Init);
 

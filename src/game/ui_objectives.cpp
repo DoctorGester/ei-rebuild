@@ -96,16 +96,13 @@ private:
 
 using ZoneNames = stlp::vector<mfc::CString>;
 int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
-// 0051F790 (not rewritten): vector<CString>::_M_insert_overflow(pos, x, n).
-__declspec(naked) void __fastcall InsertOverflow(ZoneNames*, void*, mfc::CString* /*pos*/, const mfc::CString&,
-                                                 int /*n*/) EI_ORIGINAL(0x0051F790)
 // push_back as the original inlines it (the instantiation's own overflow).
 void PushBack(ZoneNames* v, const mfc::CString& x) {
     if (v->Finish() != v->EndOfStorage()) {
         new (v->Finish()) mfc::CString(x);
         ++v->Finish();
     } else {
-        InsertOverflow(v, nullptr, v->Finish(), x, 1);
+        v->InsertOverflow<stlp::ObjectElement<mfc::CString>>(v->Finish(), x, 1);   // 0051F790
     }
 }
 
