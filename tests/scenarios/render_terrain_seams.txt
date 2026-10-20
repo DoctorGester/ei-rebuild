@@ -5,6 +5,9 @@
 # terrain's level map through its own sampler (terrainlevels on) and through the old one (point);
 # levelsteps requires few level steps in the first and many in the second (so the check sees seams);
 # Rebirth's wide view looks further over steeper slopes and has more of both.
+# mmplevels (R12b): every .mmp texture's levels, decoded as drawn, must agree with their level 0
+# (averaged to 4 x 4: at most 52 seen); the levels read through the game's overflowing offset formula
+# (bright green strips over the trees here) lay 128 / 149 off.
 # A run of the original code captures its frames and skips the level steps.
 reject Script error
 waitmenu
@@ -41,6 +44,7 @@ vanilla levelsteps far_levels 0 0.0005
 rebirth levelsteps far_levels 0 0.004
 vanilla levelsteps far_point 0.001 1
 rebirth levelsteps far_point 0.006 1
+mmplevels 80
 
 move 0 300
 frames 4

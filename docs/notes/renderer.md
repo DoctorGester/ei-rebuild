@@ -226,6 +226,13 @@ its decoded copy. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 ar
 | 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0); not reached (no .bmp in the installs); loops over the width then the height (a non-square .bmp overruns the surface) |
 | 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
 
+Where an .mmp file's levels are (R12b): the first level the texture takes at `MipOffset` (006908E0's geometric sum),
+each next one right after the last, bits per pixel x width x height / 8 bytes (sizes halved down to 0), as the fill
+00690970 steps. 006908E0's 32-bit product overflows from level 6 of a 1024 x 1024 DXT1 and level 5 of a 2048 x 2048
+DXT3: taken for every level, the decoder read zone1's tree crowns' small levels from the wrong bytes (opaque bright
+green texels, drawn as thin strips where a leaf card is seen edge-on). A DXT level under 4 x 4 gets only those bytes
+(the start of its block) and zeros for the rest.
+
 Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250, options
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
 figure textures); writers 005FFFB0 CopyImage, 005EC020, the global map's weather 0062F050 (00499F10 draws into the
@@ -601,6 +608,12 @@ resolution must have the machine to themselves and serialised the suites.
   wide view, further and steeper: 0.10% / 0.15% (limit 0.4%; a triangle's level still jumps where its slopes do, as
   under dgVoodoo's 16x) against 1.2% / 1.5% (at least 0.6%). The original's run captures its frames and skips both
   steps.
+
+- Check (R12b, same scenario): `mmplevels <most>` (`render::CheckMmpLevels`, verify build): every held .mmp texture's
+  levels, decoded as drawn, against its level 0, both box-filtered to 4 x 4: the largest mean difference per
+  channel. The file's own mips reach 52 (1-bit alpha small levels); the overflowing offsets gave 128 / 149 (vanilla /
+  Rebirth); limit 80. Against the harness original's `far` frame, the tree crowns (2750, 550)-(3250, 950) at
+  3840 x 2160: 1.30% of the pixels differed (tolerance 8, shift 1; largest 150) before, 0.24% after (leaf edges).
 
 ### Frame capture
 
