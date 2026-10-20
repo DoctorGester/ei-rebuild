@@ -73,7 +73,7 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->groupNames);
     SetBaseVtable(&vars->groups, scriptvtable::kGroupsBase);
     if (ScriptGroup* groups = vars->groups.data) {
-        for (int i = 0; i < vars->groups.size; ++i) GroupDestroy(&groups[i], nullptr, 0);
+        for (int i = 0; i < vars->groups.size; ++i) ScriptGroupDestroy(&groups[i], nullptr, 0);
         gamecrt::operator_delete(vars->groups.data);
     }
     FreeStrings(&vars->objectNames);

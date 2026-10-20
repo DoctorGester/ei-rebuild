@@ -6,6 +6,8 @@
 
 #include "script.h"
 
+#include "lib/mfc_array.h"
+
 namespace scriptarray {
 
 // Any CArray (0x14 bytes) seen as bytes; the element size comes from its ElementKind.
@@ -14,6 +16,12 @@ template <typename T>
 RawArray* Raw(mfc::CArray<T>* a) { return reinterpret_cast<RawArray*>(a); }
 
 using RangeFn = void(__stdcall*)(void* first, int count);
+
+// An instantiation's ConstructElements as a RangeFn (the library's ArrayAbi member, called directly).
+template <typename Abi>
+void __stdcall ConstructAs(void* first, int count) {
+    Abi::ConstructElements(static_cast<typename Abi::Element*>(first), count);
+}
 
 // The element helpers of one instantiation, as the inlined SetSize uses them.
 struct ElementKind {

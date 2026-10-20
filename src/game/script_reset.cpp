@@ -134,7 +134,7 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     definition->ifThen.maxSize = 0;
     definition->ifThen.size = 0;
     ScriptVars& vars = definition->vars;
-    FloatsSetSize(&vars.floats, nullptr, 0, -1);
+    vars.floats.SetSize(0, -1);
     NamesSetSizeOriginal(&vars.floatNames, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.strings, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.stringNames, nullptr, 0, -1);

@@ -1018,8 +1018,7 @@ UI_INPUT_HANDLER(0x0063DB20, CHudQuickItems, OnMouseUp);
 
 namespace {
 
-// The CArray<CUnit*> the order takes (vtable kUnitPtrArrayVtable; SetSize 005EBDB0,
-// PartyArraySetSizeOriginal).
+// The CArray<CUnit*> the order takes (vtable kUnitPtrArrayVtable; SetSize 005EBDB0).
 using OrderUnits = mfc::CArray<CUnit*>;
 // The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
 // (CPlayerClient::SendWalk), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
@@ -1063,7 +1062,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
-        PartyArraySetSizeOriginal(&units, nullptr, n + 1, -1);
+        units.SetSize(n + 1, -1);
         units.data[n] = member;
         NodPortrait(this, i);
     }

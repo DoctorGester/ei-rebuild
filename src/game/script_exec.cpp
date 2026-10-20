@@ -1004,7 +1004,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* state = UnitStateArg(cmd);
             if (!state) break;
             void* patrol = BrainOf(state)->FindPatrolMode();
-            if (patrol) PatrolPointArraySetSizeOriginal(&static_cast<PatrolMode*>(patrol)->points, nullptr, 0, -1);
+            if (patrol) static_cast<PatrolMode*>(patrol)->points.SetSize(0, -1);
             break;
         }
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)

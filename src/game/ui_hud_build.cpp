@@ -311,7 +311,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     rect_ = {-shift, 250, 40 - shift, 510};
     for (int y = 470; y > 230; y -= kStep) AddRegion()->CallSetRect(0, y, 40, y + kStep);
     ClearSceneObjects();
-    DwordArraySetSizeOriginal(&actions_, nullptr, 0, -1);
+    actions_.SetSize(0, -1);
     count_ = 0;
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
@@ -335,7 +335,7 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen: 0063F633
     MakePlain(sprite);
     int place = actions_.size;
-    DwordArraySetSizeOriginal(&actions_, nullptr, place + 1, -1);
+    actions_.SetSize(place + 1, -1);
     actions_.data[place] = static_cast<std::uint32_t>(action);
     int index = count_;
     count_ = index + 1;

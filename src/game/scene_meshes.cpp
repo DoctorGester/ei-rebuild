@@ -62,7 +62,6 @@ struct CornerRecord {
     std::int32_t index;
 };
 using RecordArray = mfc::CArray<CornerRecord>;
-__declspec(naked) void __fastcall RecordsSetAtGrow(RecordArray*, void*, int, const CornerRecord*) EI_ORIGINAL(0x00453E00)
 
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.
@@ -136,7 +135,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
             r.position = static_cast<std::int32_t>(static_cast<std::uint32_t>(key >> 16) & 0xFFFF);
             r.texture = static_cast<std::int32_t>(static_cast<std::uint32_t>(key) & 0xFFFF);
             r.index = records.size;
-            RecordsSetAtGrow(&records, nullptr, records.size, &r);
+            records.SetAtGrow(records.size, r);   // 00453E00
             Lookup(indices, key, &IndicesGetAssocAt, &IndicesInitHashTable, &IndicesNewAssoc)->value = static_cast<std::uint32_t>(r.index);
         }
     }

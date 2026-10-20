@@ -413,7 +413,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
-        StepsSetSize(&steps, nullptr, 0, -1);
+        steps.SetSize(0, -1);
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
         int duration = AnimationDuration(animation);
@@ -430,7 +430,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
-        StepsSetSize(&steps, nullptr, 0, -1);
+        steps.SetSize(0, -1);
         steps.extra = -1;
         StepsEmote(&steps, nullptr, static_cast<std::uint8_t>(action.param));
         AnimationSteps copy;

@@ -308,7 +308,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
         }
     }
 
-    StepsSetSize(&plan->animation, nullptr, 0, -1);
+    plan->animation.SetSize(0, -1);
     plan->hitLocation = 1;
     plan->animation.extra = -1;
     plan->targetId = -1;
@@ -447,7 +447,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 plan->targetId = order->target ? order->target->id_ : -1;
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
-                StepsSetSize(&plan->animation, nullptr, steps.count, -1);
+                plan->animation.SetSize(steps.count, -1);
                 for (int i = 0; i < steps.count; ++i) plan->animation.steps[i] = steps.steps[i];
                 plan->animation.extra = steps.extra;
                 plan->notSkill = order->source != kSkillSource;

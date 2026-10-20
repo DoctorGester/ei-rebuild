@@ -46,7 +46,7 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->failed = false;
     path->flag6E = false;
     path->flag6F = true;
-    PointArraySetSizeOriginal(&path->excludedBlocks, nullptr, 0, -1);
+    path->excludedBlocks.SetSize(0, -1);
     path->smoothing = 0;
     path->reached = true;
     double scale = static_cast<double>(GameFloat(0x0073B84C)) /

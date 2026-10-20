@@ -115,7 +115,7 @@ CUnitServer* CUnitServer::Construct() {
     armourSpells.blockSize = kBlockSize;
     moveAnimationKey = kNoAnimationKey;
     InitSteps(moveAnimation);
-    StepsSetSize(&moveAnimation, nullptr, 0, -1);
+    moveAnimation.SetSize(0, -1);
     moveAnimation.extra = -1;
     // 00545FF0: the idle key and list (its SetSize(0) inlined on the empty list).
     idleKey = kNoAnimationKey;
@@ -144,7 +144,7 @@ EI_REPLACE_METHOD(0x00546100, AIPath::Destruct);
 // --- OrderPlan ----------------------------------------------------------------------------------
 
 void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
-    StepsSetSize(&animation, nullptr, 0, -1);
+    animation.SetSize(0, -1);
     animation.extra = -1;
     targetId = -1;
     startTime = start;
@@ -154,7 +154,7 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     notSkill = 0;
     castKind = 8;
     endTime = start + duration;
-    StepsSetSize(&animation, nullptr, steps.count, -1);
+    animation.SetSize(steps.count, -1);
     for (int i = 0; i < steps.count; ++i) animation.steps[i] = steps.steps[i];
     animation.extra = steps.extra;
     isCast = 0;

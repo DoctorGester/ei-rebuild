@@ -21,6 +21,9 @@ void AnimationSteps::Assign(const AnimationSteps& source) {
     mfc::impl::AnimationStepListAbi::Assign(reinterpret_cast<mfc::impl::AnimationStepList*>(this), nullptr,
                                             reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
 }
+void AnimationSteps::SetSize(int newCount, int newGrowBy) {
+    mfc::impl::AnimationSteps::SetSize(reinterpret_cast<mfc::impl::AnimationSteps::Array*>(this), nullptr, newCount, newGrowBy);
+}
 
 namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)
@@ -29,7 +32,7 @@ constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of
 // Appends a blank step (00550A60's values) and returns it.
 AnimationStep& AppendBlank(AnimationSteps* list) {
     int index = list->count;
-    StepsSetSize(list, nullptr, index + 1, -1);
+    list->SetSize(index + 1, -1);
     AnimationStep& step = list->steps[index];
     step.animation = kNone;
     step.variant = kNone;
@@ -89,7 +92,7 @@ void AnimationSteps::Load(CStream* stream) {
     // The original reads the count over its stream argument on the stack.
     int newCount = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&newCount, sizeof(newCount));
-    StepsSetSize(this, nullptr, newCount, -1);
+    SetSize(newCount, -1);
     for (int i = 0; i < count; ++i) stream->Read(&steps[i], sizeof(AnimationStep));
     stream->Read(&extra, sizeof(extra));
 }

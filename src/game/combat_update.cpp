@@ -450,7 +450,7 @@ EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     // The steps are copied in twice (each time resized first), as the original does.
     for (int pass = 0; pass < 2; ++pass) {
-        StepsSetSize(&queue, nullptr, steps->count, -1);
+        queue.SetSize(steps->count, -1);
         for (int i = 0; i < steps->count; ++i) queue.steps[i] = steps->steps[i];
         QueueTime(this) = steps->extra;
     }
@@ -529,7 +529,7 @@ void CUnitServer::EndOrder(char abort) {
                 if (steps[1].kind == 1) {
                     rest.steps.extra = now - steps[0].duration;
                     steps[0].duration += steps[2].duration;
-                    StepsSetSize(&rest.steps, nullptr, 1, -1);
+                    rest.steps.SetSize(1, -1);
                     TakeQueue(this, &rest.steps);
                 }
             } else if (Queue(this).count == 3) {
@@ -538,7 +538,7 @@ void CUnitServer::EndOrder(char abort) {
                 if (steps[1].kind == 1) {
                     steps[0].duration += steps[2].duration;
                     rest.steps.extra = QueueTime(this);
-                    StepsSetSize(&rest.steps, nullptr, 1, -1);
+                    rest.steps.SetSize(1, -1);
                     TakeQueue(this, &rest.steps);
                 } else {
                     rest.steps.extra = QueueTime(this);
@@ -603,7 +603,7 @@ void CUnitServer::TickAction() {
     }
     // The action's moment has come: it is carried out and the plan cleared.
     FinishAction(plan.hitLocation, plan.notSkill);
-    StepsSetSize(&plan.animation, nullptr, 0, -1);
+    plan.animation.SetSize(0, -1);
     plan.animation.extra = -1;
     plan.targetId = -1;
     plan.endTime = 0;

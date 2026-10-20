@@ -269,7 +269,7 @@ EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 void PatrolMode::Load(CStream* stream) {
     int count;
     ReadField(stream, &count);
-    PatrolPointArraySetSizeOriginal(&points, nullptr, count, -1);
+    points.SetSize(count, -1);
     for (int i = 0; i < points.size; ++i) {
         PatrolPoint& point = points.data[i];
         ReadField(stream, &point.position);

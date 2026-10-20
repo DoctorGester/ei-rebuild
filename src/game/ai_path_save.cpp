@@ -37,7 +37,7 @@ void AIPath::LoadPath(CStream* stream) {
     stream->Read(&flag6F, 1);
     BlockPointArray* excluded = &excludedBlocks;
     stream->Read(&count, 4);
-    PointArraySetSizeOriginal(excluded, nullptr, count, -1);
+    excluded->SetSize(count, -1);
     for (int i = 0; i < excluded->size; ++i) {
         stream->Read(&excluded->data[i].x, 4);
         stream->Read(&excluded->data[i].y, 4);

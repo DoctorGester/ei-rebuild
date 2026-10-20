@@ -126,7 +126,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     records.maxSize = 0;
     records.size = 0;
     PartyUnitRecord* record = builder.Record();
-    RecordArraySetSizeOriginal(&records, nullptr, 1, -1);
+    records.SetSize(1, -1);
     records.data[0] = reinterpret_cast<std::uint8_t*>(record);
     record->unitId = id;   // the unit's id
     WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);

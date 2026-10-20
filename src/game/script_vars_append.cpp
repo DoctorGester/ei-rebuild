@@ -177,7 +177,7 @@ EI_REPLACE(0x004C1760, ScriptGroupsClear);
 // ScriptVars::RemoveAll: the out-of-line SetSize(0) of each array except the groups, whose
 // storage is freed inline (each group destroyed first).
 void __fastcall ScriptVarsClear(ScriptVars* vars) {
-    FloatsSetSize(&vars->floats, nullptr, 0, -1);
+    vars->floats.SetSize(0, -1);
     NamesSetSizeOriginal(&vars->floatNames, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars->strings, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars->stringNames, nullptr, 0, -1);

@@ -34,7 +34,6 @@ BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList:
     return static_cast<BlockList::Node*>(ScriptBlockListNewNodeOriginal(list, nullptr, prev, next));
 }
 // CArray<ScriptArea>::SetSize (__thiscall (size, growBy)); CArray<ScriptAreaPart>::Copy.
-__declspec(naked) void __fastcall PartsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CE2F0)
 // SetSize of SSCCmd's arrays (__thiscall (size, growBy)): strings, object pointers, group pointers,
 // bindings (both arrays), nested calls (dropped elements delete their command).
 void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
@@ -80,7 +79,7 @@ mfc::CArray<ScriptAreaPart>* CScript::FindArea(int id) {
     mfc::CArray<ScriptAreaPart> empty{mfc::impl::ScriptAreaPartsClass::Vtable(), nullptr, 0, 0, 0};
     int index = areas.size;
     AreasSetSize(&areas, nullptr, index + 1, -1);
-    PartsCopy(&areas.data[index].parts, nullptr, &empty);
+    areas.data[index].parts.Copy(empty);   // 004CE2F0
     areas.data[areas.size - 1].id = id;
     return &areas.data[areas.size - 1].parts;
 }
@@ -109,7 +108,7 @@ ScriptObjectRef* CScript::NewTempObject() {
     node->next = nullptr;
     ++list.count;
     ScriptObjectRef* ref = &node->data;
-    ConstructRefs(ref, 1);
+    mfc::PlainElements<ScriptObjectRef>::Construct(ref, 1);   // 004CC800
     if (ref->object) ref->object->Release();
     ref->object = nullptr;
     if (list.tail) list.tail->next = node;
@@ -130,10 +129,10 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     cmd->floatArgs.maxSize = 0;
     cmd->floatArgs.size = 0;
     NamesSetSizeOriginal(&cmd->stringArgs, nullptr, 0, -1);
-    ObjectArgsSetSize(&cmd->objectArgs, nullptr, 0, -1);
-    GroupArgsSetSize(&cmd->groupArgs, nullptr, 0, -1);
-    BindingsSetSize(&cmd->localBindings, nullptr, 0, -1);
-    BindingsSetSize(&cmd->globalBindings, nullptr, 0, -1);
+    cmd->objectArgs.SetSize(0, -1);
+    cmd->groupArgs.SetSize(0, -1);
+    cmd->localBindings.SetSize(0, -1);
+    cmd->globalBindings.SetSize(0, -1);
     SubCallsSetSize(&cmd->subCalls, nullptr, 0, -1);
     cmd->calledScript = nullptr;
 }

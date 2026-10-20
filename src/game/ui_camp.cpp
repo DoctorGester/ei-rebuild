@@ -812,7 +812,7 @@ void CCampPages::Close() {
         PartyUnitRecord* record = &player->members_.data[i];
         record->unitId += kRecordBias;
         int index = records.size;
-        RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
+        records.SetSize(index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&player->members_.data[i]);
     }
     GameRemoveUnitsOf(&records);

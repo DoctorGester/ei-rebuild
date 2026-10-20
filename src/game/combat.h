@@ -109,6 +109,9 @@ struct AnimationSteps {
     AnimationSteps* CopyConstruct(const AnimationSteps& source);
     // 005483C0 (RET 4): assignment, Copy of the steps and extra.
     void Assign(const AnimationSteps& source);
+    // 00557B80 (RET 8): the steps' SetSize(count, growBy); new steps are blank (the instantiation
+    // mfc::impl::AnimationSteps).
+    void SetSize(int newCount, int newGrowBy = -1);
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 

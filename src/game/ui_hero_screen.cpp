@@ -184,7 +184,7 @@ void CMpHeroScreen::Close() {
     for (int i = 0; i < party->count; ++i) {
         auto* record = reinterpret_cast<std::uint8_t*>(&party->records[i]);
         int size = records.size;
-        RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+        records.SetSize(size + 1, -1);
         records.data[size] = record;
     }
     GameRemoveUnitsOf(&records);
@@ -355,7 +355,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     }
     PartyUnitRecord* first = player->members_.data;
     int size = records.size;
-    RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+    records.SetSize(size + 1, -1);
     records.data[size] = reinterpret_cast<std::uint8_t*>(first);
     GameCreatePartyUnits(&records, flag);
     auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data->unitId));
@@ -388,7 +388,7 @@ void CMpHeroScreen::ShowHero(int index) {
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     if (player->members_.size > 0) {
         int size = records.size;
-        RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+        records.SetSize(size + 1, -1);
         records.data[size] = reinterpret_cast<std::uint8_t*>(player->members_.data);
         GameRemoveUnitsOf(&records);
     }

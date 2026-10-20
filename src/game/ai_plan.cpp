@@ -212,7 +212,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 int y = bad->data.y;
                 BlockPointArray* excluded = &path->excludedBlocks;
                 int size = excluded->size;
-                PointArraySetSizeOriginal(excluded, nullptr, size + 1, -1);
+                excluded->SetSize(size + 1, -1);
                 BlockPoint* data = excluded->data;
                 data[size].x = x;
                 data[size].y = y;

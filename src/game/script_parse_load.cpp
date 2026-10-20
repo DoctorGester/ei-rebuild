@@ -64,9 +64,7 @@ void SubCallsSetSize(mfc::CArray<ScriptSubCall>* calls, int size, int growBy) {
     SubCallArraySetSizeOriginal(calls, nullptr, size, growBy);
 }
 void CmdsSetSize(mfc::CArray<SSCCmd>* cmds, int size, int growBy) { CmdArraySetSizeOriginal(cmds, nullptr, size, growBy); }
-void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) {
-    IfThenArraySetSizeOriginal(pairs, nullptr, size, growBy);
-}
+void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) { pairs->SetSize(size, growBy); }
 
 // 004CA260 (__thiscall): the token list's destructor.
 __declspec(naked) void __fastcall TokensDestruct(ScriptTokenList*) EI_ORIGINAL(0x004CA260)

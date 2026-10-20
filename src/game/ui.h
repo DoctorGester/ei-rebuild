@@ -1103,13 +1103,11 @@ class CHudPortraits;
 class CHudUnitPanel;
 class CBattleScreen;   // below CUiContainer
 
-// An MFC CDWordArray. Its SetSize is the instantiation's (0059C660, not rewritten; `growBy` -1
-// keeps the step), through UiDwordsSetSize (ui_battle_setup.cpp).
+// An MFC CDWordArray (SetSize 0059C660; `growBy` -1 keeps the step).
 using UiDwordArray = mfc::CArray<std::uint32_t>;
-// The vtable of the game's CArray<CUnit*> (007402AC; SetSize 005EBDB0, PartyArraySetSizeOriginal):
+// The vtable of the game's CArray<CUnit*> (007402AC; SetSize 005EBDB0):
 // the battle screen's party, the order unit lists built on the stack.
 constexpr std::uintptr_t kUnitPtrArrayVtable = std::uintptr_t(0x007402AC);
-void __fastcall UiDwordsSetSize(UiDwordArray* array, void*, int size, int growBy);
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 // The IDirect3DDevice7 as the interface code calls it: each method is the interface's of the same
@@ -2264,7 +2262,7 @@ public:
 
     int spare_;                      // +0x164 0 from Create; nothing in the screen's slots reads it
     // +0x168 the player's units shown as portraits (CArray<CUnit*>, kUnitPtrArrayVtable; SetSize
-    // 005EBDB0, PartyArraySetSizeOriginal).
+    // 005EBDB0).
     mfc::CArray<CUnit*> party_;
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).

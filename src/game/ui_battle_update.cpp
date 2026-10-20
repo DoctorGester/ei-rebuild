@@ -183,7 +183,6 @@ __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) E
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
-__declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
@@ -261,7 +260,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     SortIds(&ids.without);
     if (!ids.Equals(screen->clientParty_)) {
         auto* party = &screen->party_;
-        PartyArraySetSizeOriginal(party, nullptr, 0, -1);
+        party->SetSize(0, -1);
         bool cameraFirst = false;
         for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
             int unitId = *id;
@@ -272,11 +271,11 @@ void RebuildClientParty(CBattleScreen* screen) {
                 // Insert at the front (the original's inlined InsertAt).
                 int n = party->size;
                 if (n <= 0) {
-                    PartyArraySetSizeOriginal(party, nullptr, 1, -1);
+                    party->SetSize(1, -1);
                 } else {
-                    PartyArraySetSizeOriginal(party, nullptr, n + 1, -1);
+                    party->SetSize(n + 1, -1);
                     GameMemmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
-                    PartyConstruct(party->data, 1);
+                    mfc::PlainElements<CUnit*>::Construct(party->data, 1);   // 0060AEC0
                 }
                 party->data[0] = unit;
                 cameraFirst = true;
@@ -352,7 +351,7 @@ void CBattleScreen::Update() {
         mfc::CArray<std::uint8_t*> second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData());
         for (int i = 0; i < data->count; ++i)
-            RecordArraySetAtGrowOriginal(&records, nullptr, records.size, data->records + i * 0x784);
+            records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->records[i]));   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,

@@ -58,7 +58,6 @@ ScriptObjectRef* TempObjectsRemoveTail(mfc::CList<ScriptObjectRef>* list, Script
     return gamelists::ObjectRefRemoveTail(reinterpret_cast<gamelists::ObjectRefs::List*>(list), nullptr, out);
 }
 // ScriptVars constructor / destructor and the value arrays' Copy.
-__declspec(naked) void __fastcall FloatsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1A80)
 // FreeNode of the run list and of the instance list (each destroys the element).
 __declspec(naked) void __fastcall RunListFreeNode(RunList*, void*, RunList::Node*) EI_ORIGINAL(0x004CDAB0)
 __declspec(naked) void __fastcall InstanceListFreeNode(InstanceList*, void*, InstanceList::Node*) EI_ORIGINAL(0x004CD9B0)
@@ -256,7 +255,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     run->block = block;
     if (instance) {
         ScriptVars& from = instance->vars;
-        FloatsCopy(&run->vars.floats, nullptr, &from.floats);
+        run->vars.floats.Copy(from.floats);   // 004C1A80
         mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&run->vars.strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from.strings));
         GroupCopy(reinterpret_cast<ScriptGroup*>(&run->vars.objects), nullptr,
                   reinterpret_cast<const ScriptGroup*>(&from.objects));

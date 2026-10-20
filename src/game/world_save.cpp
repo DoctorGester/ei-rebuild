@@ -80,7 +80,7 @@ constexpr int kSharedObjectNodeSize = 0x28;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-// MFC CArray<int> (vtable 0073C3D0; SetSize 0059C660, DwordArraySetSizeOriginal).
+// MFC CArray<int> (vtable 0073C3D0; SetSize 0059C660).
 using IdArray = mfc::CArray<int>;
 
 // MFC CArray of object pointers (SharedObject::objects, world.h).
@@ -301,7 +301,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
         if (world->AIMap()->CanLeaveCell(static_cast<CUnit*>(object))) continue;
         int id = object->id_;
         int index = stranded.size;
-        DwordArraySetSizeOriginal(&stranded, nullptr, index + 1, -1);
+        stranded.SetSize(index + 1, -1);
         stranded.data[index] = id;
     }
     for (int i = 0; i < stranded.size; ++i) {

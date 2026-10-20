@@ -102,7 +102,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         if (FindName(vars.floatNames, text) >= 0) {
             result = 0;
         } else {
-            FloatsSetSize(&vars.floats, nullptr, vars.floats.size + 1, -1);
+            vars.floats.SetSize(vars.floats.size + 1, -1);
             mfc::CString temp(text);
             ScriptNamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
             result = 1;

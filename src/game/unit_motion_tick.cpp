@@ -46,7 +46,6 @@ namespace {
 // GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00556850)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-__declspec(naked) void __fastcall StepsGetAt(const AnimationSteps*, void*, AnimationStep* /*out*/, int) EI_ORIGINAL(0x00558920)
 void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
 void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep((int)a2, a3); }
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
@@ -207,7 +206,7 @@ void HitWhileMoving(CUnitServer* c) {
     c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
-        StepsGetAt(&current, nullptr, &step, i);
+        step = current.steps[i];   // GetAt by value (00558920)
         if (step.animation == 0xFF) {
             std::uint32_t emote;
             std::memcpy(&emote, reinterpret_cast<const char*>(&step) + 1, 4);

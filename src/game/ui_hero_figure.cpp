@@ -60,7 +60,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
         height = first->height;
         intelligence = stats->stat20;
         int size = records.size;
-        RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+        records.SetSize(size + 1, -1);
         records.data[size] = reinterpret_cast<std::uint8_t*>(first);
         GameRemoveUnitsOf(&records);
     }

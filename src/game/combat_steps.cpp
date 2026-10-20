@@ -152,7 +152,7 @@ int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
 // Appends the first step of `steps` (as the original copies it) to `out`.
 void AppendFirst(AnimationSteps* out, const AnimationSteps* steps) {
     int index = out->count;
-    StepsSetSize(out, nullptr, index + 1, -1);
+    out->SetSize(index + 1, -1);
     out->steps[index] = steps->steps[0];
 }
 
@@ -204,7 +204,7 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
 } // namespace
 
 bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     if (unit->type_ != kUnitTypeHeroes && to->mode != 4 && from->mode != 4) return false;
     if (from->mode == to->mode && (from->mode != 2 || from->flag4 == to->flag4)) return false;
@@ -216,7 +216,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
     int duration = EntryTicks(unit, index, 0x20);
     int last = steps->count;
-    StepsSetSize(steps, nullptr, last + 1, -1);
+    steps->SetSize(last + 1, -1);
     AnimationStep step = BlankStep();
     step.kind = 0;
     steps->steps[last] = step;
@@ -272,7 +272,7 @@ std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const 
 } // namespace
 
 void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind, std::uint32_t source) {
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     std::uint32_t weaponBit;
     bool frame;
@@ -321,7 +321,7 @@ EI_REPLACE_METHOD(0x00550100, CUnitServer::BuildOrderSteps);
 
 void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind, int value) {
     (void)kind;
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     std::uint32_t key;
     if (unit->type_ == kUnitTypeHeroes) {
@@ -585,7 +585,7 @@ std::uint32_t RandomSide(std::uint32_t key) {
 void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direction, int dying, int fall) {
     bool isDying = static_cast<std::uint8_t>(dying) != 0;
     bool isFall = static_cast<std::uint8_t>(fall) != 0;
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     std::uint32_t key = WeaponBit(this) | LeaveBits(&moveMode, unit);
     int mode = moveMode.mode;
@@ -625,7 +625,7 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
         std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
         int duration = EntryTicks(unit, index, 0x20);
         int last = steps->count;
-        StepsSetSize(steps, nullptr, last + 1, -1);
+        steps->SetSize(last + 1, -1);
         AnimationStep step = BlankStep();
         step.kind = 0;
         steps->steps[last] = step;

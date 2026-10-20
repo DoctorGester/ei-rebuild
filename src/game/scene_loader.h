@@ -229,7 +229,7 @@ struct SceneNode {
     // +0x0F8 NodeFrame records (elements constructed by 00453730); the loader copies them to the
     // figures' bone links.
     VtArray frames;
-    mfc::CArray<SceneNode*, mfc::RawElements<SceneNode*>> children;                 // +0x10C
+    mfc::CArray<SceneNode*> children;                 // +0x10C (SetSize 00453790)
 };
 static_assert(offsetof(SceneNode, name) == node::kName);
 static_assert(offsetof(SceneNode, spareRotation030) == 0x30 && offsetof(SceneNode, spareRotation040) == 0x40);

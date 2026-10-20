@@ -47,7 +47,7 @@ float TurnAngle() {
 // Freed with Release (the vtable written back, the data deleted).
 struct OneUnit {
     explicit OneUnit(CUnit* unit) {
-        PartyArraySetSizeOriginal(&units, nullptr, 1, -1);
+        units.SetSize(1, -1);
         units.data[0] = unit;
     }
     ~OneUnit() {
@@ -125,7 +125,7 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
     if (!static_cast<CInterface3D*>(owner_)->ctrlDown_) {
         if (unit) {
             int n = picked_.size;
-            DwordArraySetSizeOriginal(&picked_, nullptr, n + 1, -1);
+            picked_.SetSize(n + 1, -1);
             picked_.data[n] = static_cast<std::uint32_t>(unit->id_);
             static_cast<CWorldClient*>(world)->Select(unit);
             return;

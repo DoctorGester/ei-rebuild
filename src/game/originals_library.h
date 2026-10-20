@@ -23,10 +23,8 @@ namespace stlp { class string; }
 __declspec(naked) inline RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/)
     EI_ORIGINAL(0x0042AF80)
 __declspec(naked) inline void __fastcall NamesSetSizeOriginal(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
-__declspec(naked) inline void __fastcall FloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
 __declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
 __declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
-__declspec(naked) inline void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
 __declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
@@ -107,14 +105,6 @@ inline int __fastcall CStringFindTextOriginal(const void* string, void*, const c
 __declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x004621A0)
 __declspec(naked) inline void __fastcall PtrListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x0052CA10)
-// MFC CArray::SetSize(size, growBy) instantiations (all RET 8, no result): records 005719B0, dwords 0059C660,
-// points 005B16D0.
-__declspec(naked) inline void __fastcall RecordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x005719B0)
-__declspec(naked) inline void __fastcall DwordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0059C660)
-__declspec(naked) inline void __fastcall PointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x005B16D0)
 // MFC CWordArray::~CWordArray 006FEECD and CByteArray::~CByteArray 006FF61D (plain RET): the storage freed.
 __declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
 __declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
@@ -257,12 +247,6 @@ __declspec(naked) inline void* __fastcall ListConstruct404A70Original(void* /*li
     EI_ORIGINAL(0x00404A70)
 __declspec(naked) inline void** __fastcall ListInsert68C560Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
                                                                     const void* /*value*/) EI_ORIGINAL(0x0068C560)
-// SetAtGrow(index, value) of two 4-byte element arrays (the same code, one copy per instantiation): 00460500 (dwords) and
-// 0059D2E0 (pointers to party member records); both RET 8, EAX is not a result.
-__declspec(naked) inline void __fastcall DwordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/,
-                                                                     std::uint32_t /*value*/) EI_ORIGINAL(0x00460500)
-__declspec(naked) inline void __fastcall RecordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, void* /*record*/)
-    EI_ORIGINAL(0x0059D2E0)
 // 004E2FA0: vector<dword>::_M_insert_overflow(position, value, count) on the node allocator (ECX = vector; RET 0xC; EAX is not a
 // result).
 __declspec(naked) inline void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,

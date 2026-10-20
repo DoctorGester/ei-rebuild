@@ -188,7 +188,7 @@ std::uint32_t WeaponAndModeBits(CUnitServer* self) {
 // The idle animation into `steps` (00550D90's body; 00550F30 / 005474B0 inline it): a walking hero
 // stands with the emote 0xFE, the others with their idle animation for the key, if any.
 void FillIdle(CUnitServer* self, AnimationSteps* steps) {
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     if (self->moveMode.mode == kModeRun && self->moveMode.flag4 == 0) {
         AddEmote(steps, kEmoteStand);
@@ -321,7 +321,7 @@ void CUnitServer::PlayIdle() {
 EI_REPLACE_METHOD(0x005474B0, CUnitServer::PlayIdle);
 
 void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
-    StepsSetSize(steps, nullptr, 0, -1);
+    steps->SetSize(0, -1);
     steps->extra = -1;
     CUnit* self = unit;
     std::uint32_t bits;
@@ -560,7 +560,7 @@ bool CUnitServer::ChangeMoveMode() {
             AnimationSteps copy;
             StepsConstruct(&copy);
             copy.vtable = kAnimationStepsVtable;
-            StepsSetSize(&copy, nullptr, transition.count, -1);
+            copy.SetSize(transition.count, -1);
             for (int i = 0; i < transition.count; ++i) copy.steps[i] = transition.steps[i];
             copy.extra = transition.extra;
             PlayAnimationOrder(copy);
@@ -821,11 +821,11 @@ void CUnitServer::ResetController() {
     action2.modifier = 0;
     frozen = 0;
     animationHeld = 0;
-    StepsSetSize(&Queue(this), nullptr, 0, -1);
+    Queue(this).SetSize(0, -1);
     QueueTime(this) = -1;
     static_cast<AIPath*>(Motion(this))->Clear();
     OrderPlan& plan = Plan(this);
-    StepsSetSize(&plan.animation, nullptr, 0, -1);
+    plan.animation.SetSize(0, -1);
     plan.animation.extra = -1;
     plan.targetId = -1;
     plan.endTime = 0;
@@ -837,7 +837,7 @@ void CUnitServer::ResetController() {
     plan.castKind = 8;
     std::memset(&pendingHit, 0, 0x3C);
     pendingHit.multiplier = 1.0f;   // +0x130
-    StepsSetSize(&savedQueue, nullptr, 0, -1);
+    savedQueue.SetSize(0, -1);
     savedQueue.extra = -1;
     state = kStateChasing;
     hitDirection = 0xFFFFFFFFu;
@@ -881,10 +881,10 @@ void CUnitServer::ResetController() {
     claimedHostile = 0;
     sinkSpeed = 0.0f;
     MoveKey(this) = 0x666DEAD;
-    StepsSetSize(&MoveSteps(this), nullptr, 0, -1);
+    MoveSteps(this).SetSize(0, -1);
     MoveSteps(this).extra = -1;
     IdleKey(this) = 0x666DEAD;
-    StepsSetSize(&IdleSteps(this), nullptr, 0, -1);
+    IdleSteps(this).SetSize(0, -1);
     IdleSteps(this).extra = -1;
     boredTicks = 0;
     // The armour spell list (+0x91C) emptied: each element's item released (00552B80, the

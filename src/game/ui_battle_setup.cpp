@@ -107,7 +107,7 @@ void CBattleScreen::Create() {
         stream->Seek(0);
         int count;
         stream->Read(&count, 4);
-        DwordArraySetSizeOriginal(&heroes_, nullptr, count, -1);
+        heroes_.SetSize(count, -1);
         for (int i = 0; i < heroes_.size; ++i) stream->Read(&heroes_.data[i], 4);
         stream->Read(&mapZoom, 4);
         std::uint8_t serverFlag;
@@ -133,7 +133,7 @@ void CBattleScreen::Create() {
             int index = heroes_.size;
             std::uint32_t hero;
             std::memcpy(&hero, *reinterpret_cast<std::uint8_t**>(player + 0x30) + 0x1C, 4);
-            DwordArraySetSizeOriginal(&heroes_, nullptr, index + 1, -1);
+            heroes_.SetSize(index + 1, -1);
             heroes_.data[index] = hero;
             hasHero_ = true;
         }
@@ -273,7 +273,7 @@ void CBattleScreen::Create() {
     pendingSlot_ = -1;
     GameSetWeather(0, 0.0f);   // clear weather
     GameStartAmbience();
-    PartyArraySetSizeOriginal(&party_, nullptr, 0, -1);
+    party_.SetSize(0, -1);
     viewPressed_ = false;
     boxSelecting_ = false;
     std::memset(orderKeys_, 0, 6);   // +0x18D dword and +0x191 word

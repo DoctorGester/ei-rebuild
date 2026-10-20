@@ -112,7 +112,7 @@ PatrolMode* PatrolMode::Clone() {
     clone->points.maxSize = 0;
     clone->points.size = 0;
     clone->points.vtable = aimode::kPatrolPointsVtable;
-    PatrolPointArraySetSizeOriginal(&clone->points, nullptr, points.size, -1);
+    clone->points.SetSize(points.size, -1);
     for (int i = 0; i < points.size; ++i) {
         PatrolPoint temporary;
         PatrolPointCopyAt(&points, nullptr, &temporary, i);

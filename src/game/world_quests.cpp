@@ -439,7 +439,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
         if (ObjectSlots(unit)->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
         int id = unit->id_;
         int index = heroes.size;
-        DwordArraySetSizeOriginal(&heroes, nullptr, index + 1, -1);
+        heroes.SetSize(index + 1, -1);
         heroes.data[index] = id;
     }
     int count = heroes.size;
@@ -580,7 +580,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
         node = next;
     }
     RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
-    for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrowOriginal(&list, nullptr, list.size, &MercRecord(player, i));
+    for (int i = 0; i < player->mercCount; ++i) list.SetAtGrow(list.size, reinterpret_cast<std::uint8_t*>(&MercRecord(player, i)));   // 0059D2E0
     for (int i = 0; i < list.size; ++i) {
         auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
         CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
@@ -696,7 +696,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     }
     for (int i = 0; i < player->mercCount; ++i) {
         int index = list.size;
-        RecordArraySetSizeOriginal(&list, nullptr, index + 1, -1);
+        list.SetSize(index + 1, -1);
         list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
     }
     StoreParty(&list, PartyOf(player), placements);

@@ -113,9 +113,6 @@ __declspec(naked) inline bool __fastcall SpellIsOffensiveOriginal(void* /*spell*
 __declspec(naked) inline void __fastcall AutoSaveOriginal(const char* /*name*/, int /*flag*/) EI_ORIGINAL(0x006570E0)
 // 0040D3B0 (rewritten as CCamera::SetTarget; through its address so the wrapper runs): the camera follows `target`
 // (thiscall on 0079B2A8, RET 4).
-// 005EBDB0: the battle screen's party array (an MFC CArray of unit pointers) SetSize (RET 8; growBy -1 keeps the step).
-__declspec(naked) inline void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x005EBDB0)
 // 006407E0: the portraits rebuild their slots from the battle screen's party (RET 4: camera player first; no result).
 __declspec(naked) inline void __fastcall PortraitsRebuildOriginal(void* /*portraits*/, void*, int /*cameraFirst*/)
     EI_ORIGINAL(0x006407E0)
