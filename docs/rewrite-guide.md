@@ -88,12 +88,14 @@ comes from a bug we already hit.
      return is rounded to float (a store, which changes nothing at the main thread's 24 bits). `/fp:fast` had distributed and refolded sums
      (FearMode's `(30x + d) * (1/31)` became `30/31 x + d/31` and settled on another fixed point) and kept float locals unrounded (unrounded atan2
      angles flipped a facing quaternion's sign at 180 degrees, 1 call in 300k); round with `static_cast<float>` or a float variable.
-   - Under precise, `std::sqrt / sin / cos / atan2 / exp / log / log10` call the modern CRT (SSE2 code paths): use `x87::fsqrt / fsin / fcos /
-     fpatan` (`vecmath::Atan2`) `/ fexp / flog / flog10`, the instructions the original's VC6 code inlines. A product of two constants that the
+   - Under precise, `std::sin / cos / atan2 / exp / log / log10` call the modern CRT (SSE2 code paths): use `x87::fsin / fcos /
+     fpatan` (`vecmath::Atan2`) `/ fexp / flog / flog10`, the instructions the original's VC6 code inlines. `std::sqrt` is FSQRT at the
+     precision control on this target (`x87::fsqrt` is it; C16, docs/notes/cleanup-tooling.md "SSE2 build"). A product of two constants that the
      original computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler folds it at double precision: write it as the
      float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the operation; `tools/check_fp_fold.py` (build.cmd) finds such
      double constants.
-   - Rounding mode matters: FISTP rounds to nearest (use `x87::fistp` or `std::lrint`), a C++ cast truncates, `_ftol` truncates.
+   - Rounding mode matters: FISTP rounds to nearest (use `x87::fistp`; `std::lrint` is the same
+     except for NaN and out-of-range values, where it gives 0 and FISTP 0x80000000), a C++ cast truncates, `_ftol` truncates.
    - The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at every frame boundary in both installs; other
      threads run at 53 bits). A float the original returns unrounded in ST0 must not be rounded on return: declare the function `double` and let
      callers round when they store (see `CItemWeapon::RollDamage`); it is exact at 24 and 53 bits and callers that keep using ST0 need it

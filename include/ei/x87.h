@@ -2,10 +2,14 @@
 
 // x87 transcendental instructions, exactly as the original code used them.
 //
-// The modern CRT's sin/cos/sqrt use SSE2 code paths and do not round the same way as FSIN/FCOS/
-// FSQRT, so game maths must go through these. Arguments arrive as double (exact for the float and
-// 0.5-scaled values the game passes) and the result is returned in ST0 without being rounded.
+// The modern CRT's sin/cos/exp use SSE2 code paths and do not round the same way as FSIN/FCOS/
+// the inlined exp, so game maths goes through these. Arguments arrive as double (exact for the float
+// and 0.5-scaled values the game passes) and the result is returned in ST0 without being rounded.
+// fsqrt and fistp are plain C++: on this x87 target the CRT's sqrt and lrint are FSQRT and FISTP
+// (docs/notes/cleanup-tooling.md, "SSE2 build").
 
+#include <climits>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -74,11 +78,10 @@ __declspec(naked) inline double __cdecl fcos(double) {
     __asm ret
 }
 
-__declspec(naked) inline double __cdecl fsqrt(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm fsqrt
-    __asm ret
-}
+// FSQRT. On /arch:IA32 std::sqrt is the CRT's _CIsqrt, an FSQRT rounded at the precision control (24 bits on the
+// main thread, 53 elsewhere) like the instruction; checked by the goldens (C16). Under /arch:SSE2 it would be SQRTSD
+// (53 bits), which differs on the main thread wherever the result is used before it is stored to a float.
+inline double fsqrt(double value) { return std::sqrt(value); }
 
 // e^x the way VC6 inlines exp: 2^(x log2 e) through FRNDINT / F2XM1 / FSCALE, unrounded in ST0.
 __declspec(naked) inline double __cdecl fexp(double) {
@@ -121,14 +124,13 @@ __declspec(naked) inline double __cdecl fpatan(double /*y*/, double /*x*/) {
     __asm ret
 }
 
-// FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default), unlike
-// a C++ cast, which truncates.
-__declspec(naked) inline int __cdecl fistp(float) {
-    __asm sub esp, 4
-    __asm fld dword ptr [esp + 8]
-    __asm fistp dword ptr [esp]
-    __asm pop eax
-    __asm ret
+// FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default; terrain lighting sets chop),
+// unlike a C++ cast, which truncates. The CRT's lrint is a FISTP that follows the x87 control word (also under
+// /arch:SSE2, C16), but where FISTP stores the integer indefinite 0x80000000 for NaN and values out of int range,
+// lrint returns 0: those keep FISTP's answer.
+inline int fistp(float value) {
+    if (!(value >= -2147483648.0f && value < 2147483648.0f)) return INT_MIN;
+    return static_cast<int>(std::lrint(value));
 }
 
 } // namespace x87
