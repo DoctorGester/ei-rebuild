@@ -31,6 +31,12 @@ this / EDX. 534 "types differ" (431 under --loose) and 102 skip-list rows are le
 the rest: generated definitions for the data addresses, vtables as real virtual classes, imports linked directly,
 plain new / delete; then the image and the read of game.exe go.
 
+**Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_/check_static_init,
+gen_/check_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, check_fp_fold, find_vtables,
+find_dead_code, standalone_gaps, and CMake's `EI_GAME_EXE`) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
+`run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
+checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
+
 String constants of the exe's data need no generated definition: run\vanilla's and run\rebirth's game.exe differ in
 one .text byte (file offset 0x56BB6) and nothing else, and the image runs neither one's code, so a string the code
 passed by address (`game::Text(0x...)`, a table of name addresses) is written as a literal with the same bytes. C11
@@ -116,7 +122,7 @@ each step green on the goldens and removing a measured tie:
   it: the host lays out only headers, .rdata and .rsrc, the loader and the DLL's CRT start-up touch no game data; the log line counts the old range's nonzero bytes (0).
   **The bytes**: the host no longer copies .data (it skips the section at RVA 00383000); the build writes
   .data's file bytes up to the last nonzero dword (`tools/gen_image_cells.py --bytes`, a CMake custom command
-  from `EI_GAME_EXE`, by default the Rebirth install's game.exe; every 1.06 copy has the same .data) into
+  from `EI_GAME_EXE`; empty by default: `tools/exe_path.py` finds it; every 1.06 copy has the same .data) into
   build/<cfg>/image/image_data_bytes.inc, not committed (user 2026-10-21: the interim before named globals);
   image_data.cpp copies them into the storage, the rest is zero.
   **The cells**: 1071 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd

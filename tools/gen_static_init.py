@@ -25,6 +25,7 @@ import argparse, collections, os, re, struct, sys
 import capstone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
 import gen_short_functions as short  # noqa: E402
 import rdata_literals as rdata  # noqa: E402
 
@@ -34,7 +35,6 @@ OUT_EXIT = os.path.join(ROOT, 'src', 'standalone', 'static_exit.cpp')
 SIZES = os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')
 EXTRA_SIZES = os.path.join(ROOT, 'config', 'extra_function_sizes.csv')
 EXTRA_NOTE = 'exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)'
-EXE = short.EXE
 BASE = 0x400000
 LIST_BEGIN, LIST_END = 0x00783004, 0x00783BB0   # inclusive
 ATEXIT = 0x006E727B
@@ -693,8 +693,9 @@ def render(decoded):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--exe', default=EXE)
+    ap.add_argument('--exe')   # default: tools/exe_path.py
     args = ap.parse_args()
+    args.exe = exe_path.resolve(args.exe)
     decoded, bad = decode_all(Image(args.exe))
     if bad:
         print('not decoded (port by hand or teach the interpreter):\n  ' + '\n  '.join(bad))

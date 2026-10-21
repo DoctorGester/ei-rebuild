@@ -87,7 +87,16 @@ target_link_libraries(ei_hook PRIVATE ei_render)
 # game.exe's .data bytes for the image's own copy of the section (src/standalone/image_data.cpp, S18d), written
 # from game.exe at build time into image/ in the build folder (not committed; tools/gen_image_cells.py --bytes).
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(EI_GAME_EXE "F:/games/Evil Islands (Rebirth)/starter/Engine/game.exe" CACHE FILEPATH "game.exe 1.06, the source of the image's data")
+set(EI_GAME_EXE "" CACHE FILEPATH "game.exe 1.06, the source of the image's data (empty: tools/exe_path.py finds it, like every tool that reads game.exe)")
+if(NOT EI_GAME_EXE)
+    execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/exe_path.py
+                    OUTPUT_VARIABLE EI_GAME_EXE_FOUND ERROR_VARIABLE EI_GAME_EXE_ERROR RESULT_VARIABLE EI_GAME_EXE_RESULT
+                    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
+    if(NOT EI_GAME_EXE_RESULT EQUAL 0)
+        message(FATAL_ERROR "${EI_GAME_EXE_ERROR}")
+    endif()
+    file(TO_CMAKE_PATH "${EI_GAME_EXE_FOUND}" EI_GAME_EXE)
+endif()
 set(EI_IMAGE_DATA ${CMAKE_BINARY_DIR}/image/image_data_bytes.inc)
 add_custom_command(OUTPUT ${EI_IMAGE_DATA}
     COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --exe ${EI_GAME_EXE} --bytes ${EI_IMAGE_DATA}

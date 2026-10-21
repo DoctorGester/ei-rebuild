@@ -16,6 +16,7 @@ exit code 1 on any problem
 import argparse, os, re, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
 import gen_short_functions as gen  # noqa: E402
 
 RET_0 = bytes([0xc2, 0, 0])   # RET 0, as MSVC writes RET
@@ -72,10 +73,10 @@ def compiled_code(map_path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--exe', default=gen.EXE)
+    ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--map')
     args = ap.parse_args()
-    exe = open(args.exe, 'rb').read()
+    exe = open(exe_path.resolve(args.exe), 'rb').read()
     sizes = gen.load_sizes()
     starts = sorted(sizes)
     problems = []

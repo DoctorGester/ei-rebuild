@@ -30,7 +30,8 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 from capstone.x86 import X86_OP_IMM, X86_OP_MEM
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check_signatures import ROOT, EXE, candidates_for, load_sizes, registrations, undecorate
+import exe_path
+from check_signatures import ROOT, candidates_for, load_sizes, registrations, undecorate
 from check_registrations import Image
 
 ALLOW = os.path.join(ROOT, 'tools', 'check_fp_fold_allow.txt')
@@ -73,7 +74,7 @@ def fmt(v):
 
 class Exe:
     def __init__(self):
-        self.img = Image(EXE)
+        self.img = Image(exe_path.resolve())
 
     def read(self, va, size):
         rva = va - self.img.base

@@ -14,9 +14,11 @@ usage: python tools/gen_short_functions.py [--exe game.exe]
 """
 import argparse, csv, os, re, struct, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'game', 'short_functions.cpp')
-EXE = r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe'
 BASE = 0x400000
 SHORT = 5
 
@@ -112,9 +114,9 @@ def unported(sizes):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--exe', default=EXE)
+    ap.add_argument('--exe')   # default: tools/exe_path.py
     args = ap.parse_args()
-    exe = open(args.exe, 'rb').read()
+    exe = open(exe_path.resolve(args.exe), 'rb').read()
     sizes = load_sizes()
     slots = vtable_slots(exe)
     lines, bad = [], []
