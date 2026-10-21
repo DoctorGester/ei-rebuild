@@ -146,6 +146,6 @@ struct CMapObjectManager : CResourceManager {
 static_assert(sizeof(CMapObjectManager) == 0xBC);
 
 namespace unitdb {
-inline UnitPrototypeTable& PrototypeTable() { return ei::GameData<UnitPrototypeTable>(0x007AF358); }
-inline NpcPrototypeTable& NpcTable() { return ei::GameData<NpcPrototypeTable>(0x007AF378); }
+UnitPrototypeTable& PrototypeTable();   // the unit database's first table (unit_db_destroy.cpp)
+NpcPrototypeTable& NpcTable();          // its second
 } // namespace unitdb

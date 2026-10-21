@@ -13,6 +13,7 @@
 
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
+#include "item_db.h"
 #include "game_data.h"
 
 // STLport vector of record pointers.
@@ -84,12 +85,19 @@ inline StockMaterialVector& TakenMaterials() { return g_takenMaterials; }
 inline StockPtrVector& TakenSpells() { return g_takenSpells; }
 inline StockPtrVector& TakenModifiers() { return g_takenModifiers; }
 // The spell recipe vectors for weapons, armors and scrolls (FillSpellMaps' argument).
-inline const SpellRecipeVector* WeaponSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C8568); }
-inline const SpellRecipeVector* ArmorSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C855C); }
-inline const SpellRecipeVector* ScrollSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C8550); }
+// (The spell database's three lists of recipes: scrolls, armours and weapons.)
+inline const SpellRecipeVector* WeaponSpellRecipes() {
+    return reinterpret_cast<const SpellRecipeVector*>(&itemdb::TheSpellDatabase().lists[2]);
+}
+inline const SpellRecipeVector* ArmorSpellRecipes() {
+    return reinterpret_cast<const SpellRecipeVector*>(&itemdb::TheSpellDatabase().lists[1]);
+}
+inline const SpellRecipeVector* ScrollSpellRecipes() {
+    return reinterpret_cast<const SpellRecipeVector*>(&itemdb::TheSpellDatabase().lists[0]);
+}
 // The spell and modifier maps by name (operator[] inserts a null record: NamedRecord).
-inline RecordNameMap& SpellsByName() { return ei::GameData<RecordNameMap>(0x007C851C); }
-inline RecordNameMap& ModifiersByName() { return ei::GameData<RecordNameMap>(0x007C853C); }
+inline RecordNameMap& SpellsByName() { return itemdb::NameMapOf(itemdb::TheSpellDatabase().spells); }
+inline RecordNameMap& ModifiersByName() { return itemdb::NameMapOf(itemdb::TheSpellDatabase().modifiers); }
 // The material draw's factors of the prototype's price (read from the exe as the original does):
 // 00743D78 (a seventh) and 0073BAD4 (0.2).
 inline float SeventhFactor() { return 0.14285715f /*00743D78*/; }

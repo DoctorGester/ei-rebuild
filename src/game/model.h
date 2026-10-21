@@ -11,6 +11,7 @@
 
 #include "lib/containers.h"
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -730,7 +731,8 @@ struct PrintsDatabase {
 };
 static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);
 static_assert(offsetof(PrintsDatabase, footprintsByName) == 0x2C && sizeof(PrintsDatabase) == 0x60);
-inline const PrintsDatabase& ThePrintsDatabase() { return ei::GameData<const PrintsDatabase>(0x007C89C8); }
+extern lib::StaticObject<PrintsDatabase> g_printsDatabase;   // 007C89C8, database_globals.cpp
+inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 
 // ---- Water level changes (006D4400): water_tweens.h ----------------------------------------------
 

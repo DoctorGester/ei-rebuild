@@ -39,6 +39,7 @@
 #include "render/render_state.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "party_manager.h"
 
 #include <d3d.h>
 
@@ -86,7 +87,7 @@ constexpr int kActionEquip = 1, kActionSpellParts = 2, kActionItemParts = 3;
 constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
-const ClassTemplateVector* ClassTemplates() { return ei::GamePointer<const ClassTemplateVector>(0x007AA5D8); }
+const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
 CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
 CUiContainer* AsContainer(CCampPages* camp) { return reinterpret_cast<CUiContainer*>(camp); }

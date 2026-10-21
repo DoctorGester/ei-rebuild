@@ -406,6 +406,7 @@
 #include "../../src/game/ui_cursor.h"
 #include "../../src/game/item.h"
 #include "../../src/game/options.h"
+#include "../../src/game/party_manager.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_client_models.h"
@@ -456,7 +457,6 @@ void RequestScreen(int id) { GameSendLeave04(id); }
 void SetCurrentConstructor(float constructor) { GameSetConstructionVariable(std::bit_cast<std::uint32_t>(constructor)); }
 // 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
 __declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
-constexpr std::uintptr_t kClassTemplates = 0x007AA5D8;
 
 // 0066F310 (RET 8): CPlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
 // LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
@@ -3079,7 +3079,7 @@ void RunSteps() {
             int id = 0, constr = 0;
             sscanf_s(s.argument.c_str(), "%d %d", &id, &constr);
             if (id == 5 && constr > 0 &&
-                !FindClassTemplate(ei::GamePointer<void>(kClassTemplates), nullptr, constr)) {
+                !FindClassTemplate(&ThePartyManager()->templates, nullptr, constr)) {
                 std::string error = "screen: no class template " + std::to_string(constr);
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);

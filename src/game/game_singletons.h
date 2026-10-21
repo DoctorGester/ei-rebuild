@@ -71,7 +71,7 @@ inline CSectorMap* TheSectorMap() { return ei::GamePointer<CSectorMap>(0x007B01F
 inline CCamera* TheCamera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
 
 // 007AA5A0: the party manager (the parties by key, the named records and the class templates).
-inline PartyManager* ThePartyManager() { return ei::GamePointer<PartyManager>(0x007AA5A0); }
+PartyManager* ThePartyManager();   // g_partyManager (app_lifetime.cpp)
 
 // The registry key of the options and the game's folders (CStrings; game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()

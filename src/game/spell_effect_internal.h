@@ -12,6 +12,7 @@
 #include "combat.h"
 #include "console.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "map_object.h"
 #include "unit.h"
 #include "world.h"
@@ -77,7 +78,8 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 // with skill `skill` (0 when it failed).
 // Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
 // direction (005B2A00) or a disc (005B2760); then stamped into / cleared from the AI map (ai_footprint.cpp).
-inline FootprintCellSet* SpellFootprint() { return ei::GamePointer<FootprintCellSet>(0x007C8478); }
+extern lib::StaticObject<FootprintCellSet> g_spellFootprint;   // ai_footprint.cpp
+inline FootprintCellSet* SpellFootprint() { return &*g_spellFootprint; }
 // The later states' callees.
 // 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.

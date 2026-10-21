@@ -16,6 +16,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
+#include "world_data.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -63,7 +64,7 @@ const char* NameLine() { return "\007C\377\377\377 %s %s\n"; }
 const char* TextLine() { return "\007C\377\377\377 %s\n"; }
 const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
-stlp::NameMap& BriefingRecords() { return ei::GameData<stlp::NameMap>(0x007C87D4); }   // hash_map<string, BriefingRecord*>
+stlp::NameMap& BriefingRecords() { return worlddata::QuestBriefings(); }   // hash_map<string, BriefingRecord*>
 void* ItemManager() { return ei::GameData<void* const>(0x007AF60C); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.

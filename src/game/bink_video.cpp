@@ -75,26 +75,37 @@ BinkHeader* OpenBink(const char* name, unsigned flags) {
 
 constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
 
-// The loading screen's movie (005DA400): globals from 007C551C on.
+// The loading screen's movie (005DA400): globals from 007C5520 on (its surface holder 007C551C is g_loadingHolder).
 struct LoadingMovie {
-    CDXSurface* holder;         // 007C551C
     RECT screen;                // 007C5520
-    std::uint8_t unused_14[0x30 - 0x14];
+    std::uint8_t unused_10[0x2C - 0x10];
     char off;                   // 007C554C
-    std::uint8_t unused_31[3];
+    std::uint8_t unused_2D[3];
     BinkHeader* bink;           // 007C5550
     unsigned surfaceType;       // 007C5554
 };
-static_assert(offsetof(LoadingMovie, off) == 0x30);
-static_assert(offsetof(LoadingMovie, bink) == 0x34);
-static_assert(offsetof(LoadingMovie, surfaceType) == 0x38);
+static_assert(offsetof(LoadingMovie, off) == 0x2C);
+static_assert(offsetof(LoadingMovie, bink) == 0x30);
+static_assert(offsetof(LoadingMovie, surfaceType) == 0x34);
 
 // Game globals.
 int MoviesMode() { return ei::GameData<int>(0x0079BCBC); }           // 0 off, 1 at size, 2 stretched to the width
 int MovieSound() { return ei::GameData<int>(0x0079BCC0); }
 int MovieVolume() { return ei::GameData<int>(0x0079BCC4); }          // percent
 const char* LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); }
-LoadingMovie& Loading() { return ei::GameData<LoadingMovie>(0x007C551C); }
+LoadingMovie& Loading() { return ei::GameData<LoadingMovie>(0x007C5520); }
+
+// The movie's surface holder: null at the start (the static initialiser 005DA360 stores it); the exit function that
+// initialiser registers releases it once (guard bit in 007C5518). docs/notes/standalone.md, "The static initialisers'
+// objects".
+CDXSurface* g_loadingHolder = /*007C551C*/ {nullptr};
+std::uint8_t g_loadingHolderReleased = /*007C5518*/ 0;
+
+void __cdecl ReleaseLoadingHolder() {   // 005DA380
+    if (g_loadingHolderReleased & 1) return;
+    g_loadingHolderReleased = static_cast<std::uint8_t>(g_loadingHolderReleased | 1);
+    if (g_loadingHolder) g_loadingHolder->Release();
+}
 // 00455F10 (fastcall, CL): sets the byte 00784751 (cleared while a timed movie plays).
 void SetFlag784751(std::uint8_t value) { ei::GameData<std::uint8_t>(0x00784751) = value; }
 
@@ -264,7 +275,7 @@ void __fastcall ShowLoadingMovie(int progress) {
     LoadingMovie& movie = Loading();
     if (movie.off) return;
     CursorShowOriginal(TheCursor(), nullptr, 0);
-    if (!movie.holder) {
+    if (!g_loadingHolder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
         std::string path = DataFolderText();
         path += "Movies\\";
@@ -282,8 +293,8 @@ void __fastcall ShowLoadingMovie(int progress) {
         gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
         CDXSurface* holder =
             NewMovieHolder(TheRenderDevice(), static_cast<int>(movie.bink->width), static_cast<int>(movie.bink->height));
-        CDXSurface* old = movie.holder;
-        movie.holder = holder;
+        CDXSurface* old = g_loadingHolder;
+        g_loadingHolder = holder;
         if (old) old->Release();
         movie.surfaceType = SurfaceType();
         movie.screen = screen;
@@ -308,7 +319,7 @@ void __fastcall ShowLoadingMovie(int progress) {
     }
     TheCursor()->TakeLock();
     bink = movie.bink;
-    CDXSurface* holder = movie.holder;
+    CDXSurface* holder = g_loadingHolder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
     CDXSurface* primary = holder->device->primary_;
     if (!device::SameSurface(primary, holder)) {
@@ -371,12 +382,13 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
 void CloseLoadingMovie() {
     LoadingMovie& movie = Loading();
     BinkClose()(movie.bink);
-    CDXSurface* holder = movie.holder;
+    CDXSurface* holder = g_loadingHolder;
     movie.bink = nullptr;
-    movie.holder = nullptr;
+    g_loadingHolder = nullptr;
     if (holder) holder->Release();
     CursorShowOriginal(TheCursor(), nullptr, 1);
 }
+EI_REPLACE(0x005DA380, ReleaseLoadingHolder);
 
 CBinkVideo* CBinkVideo::Construct() {
     holder = nullptr;

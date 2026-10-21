@@ -21,18 +21,23 @@
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "app.h"
+#include "acks_db.h"
 #include "app_helpers.h"
 #include "camera.h"
 #include "console.h"
+#include "item_db.h"
+#include "lever.h"
 #include "logic_settings.h"
 #include "model.h"
 #include "net_session.h"
 #include "object_tables.h"
 #include "options.h"
+#include "quest_records.h"
 #include "sound.h"
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
+#include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -202,14 +207,14 @@ const char*& LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); 
 // The objects.
 void* ClassRegistry() { return &ei::GameData<char>(0x0079B270); }
 void* LogicSettingsObject() { return &ei::GameData<char>(0x007C53F8); }
-void* QuestDatabaseObject() { return &ei::GameData<char>(0x007C87A8); }
-void* SpellTablesObject() { return &ei::GameData<char>(0x007C8510); }
-void* ItemDatabaseObject() { return &ei::GameData<char>(0x007C86D8); }
-void* LeverTableObject() { return &ei::GameData<char>(0x0079C1A0); }
-void* AckDatabaseObject() { return &ei::GameData<char>(0x007C8A60); }
-void* PrintsDatabaseObject() { return &ei::GameData<char>(0x007C89C8); }
-UnitDatabase* UnitDatabaseObject() { return &ei::GameData<UnitDatabase>(0x007AF358); }
-SkillDatabase* SkillDatabaseObject() { return &ei::GameData<SkillDatabase>(0x007AF268); }
+void* QuestDatabaseObject() { return &TheQuestDatabase(); }
+void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
+void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
+void* LeverTableObject() { return &TheLeverTable(); }
+void* AckDatabaseObject() { return &acks::Database(); }
+void* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
+UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
+SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
 // The game's log stream (the old iostream).
 console::GameOStream& SpeedLog() { return ei::GameData<console::GameOStream>(0x007C56B0); }

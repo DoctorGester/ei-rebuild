@@ -5,6 +5,9 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/static_object.h"
+#include "lib/stlp_hash.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -235,3 +238,18 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
 void GameBuffer::ReserveViewImpl(std::int32_t) {}
 EI_REPLACE_METHOD(0x004DA580, GameBuffer::ReserveViewImpl);
 EI_REPLACE_METHOD(0x004DA590, GameBuffer::ReserveViewImpl);
+
+// A hash_set<int> that nothing of ours reads (game.exe's code near 004DC400 does): empty at the start, built by the
+// static initialiser 004DB870 in the list's order and destroyed by the exit function it registers (004DB890); both
+// ported on the name and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
+constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
+namespace {
+void __cdecl ConstructUnreadSet() {   // 004DB870
+    g_unreadSet->Construct(100, 0, 0, 0);
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x004DB890));
+}
+void __cdecl DestroyUnreadSet() { g_unreadSet->Destroy(); }   // 004DB890
+} // namespace
+EI_REPLACE(0x004DB870, ConstructUnreadSet);
+EI_REPLACE(0x004DB890, DestroyUnreadSet);

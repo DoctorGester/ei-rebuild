@@ -47,7 +47,7 @@ float NewHeroPoints() { return 75.0f /*00741C98*/; }
 // The preview's full turn (2 pi), the modulus of its angle.
 float FullTurn() { return ei::GameData<const volatile float>(0x007C7F10); }
 // The multiplayer heroes object (its vector at +4 is MpHeroes()).
-void* MpHeroesObject() { return ei::GamePointer<void>(0x007C82A0); }
+void* MpHeroesObject() { return &TheSavedParties(); }
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }
 

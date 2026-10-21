@@ -8,6 +8,7 @@
 #include "unit_db.h"   // CStringVector
 
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -105,6 +106,8 @@ struct QuestDatabase {
     QuestBriefingTable briefings;       // +0x20
 };
 static_assert(offsetof(QuestDatabase, briefings) == 0x20 && sizeof(QuestDatabase) == 0x40);
+extern lib::StaticObject<QuestDatabase> g_questDatabase;   // 007C87A8, database_globals.cpp
+inline QuestDatabase& TheQuestDatabase() { return *g_questDatabase; }
 
 // 006AE8E0 (thiscall on the database, RET 4; quest_database.cpp). The quests of a registry file in
 // memory (`image`) filed into the database; false when it is not a registry.
