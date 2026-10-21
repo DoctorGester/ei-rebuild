@@ -12,8 +12,11 @@ What it does, on the built ei_hook.dll and its map:
   2. Each function registered with EI_REPLACE (_METHOD, _DISPATCH, _STANDALONE) is matched to its
      symbol (check_signatures' registrations / candidates_for); the original's body in game.exe gives
      its known values: x87 memory operands and every dword it reads from a fixed address, as float
-     and double, and its 32-bit immediates as float bits and as integers. Functions without a
-     registration are compared with every value the exe's x87 instructions load.
+     and double, and its 32-bit immediates as float bits and as integers. A function without a
+     registration (a helper the compiler did not inline) is compared with the originals of the
+     registered functions that call it, through any chain of unregistered helpers (CALL / JMP rel32
+     in our .text); one that no registered function calls directly (reached through a table or a
+     function pointer) is compared with every value the exe's x87 instructions load, and says so.
   3. A constant whose value (rounded to float, up to a power of two: such folds are exact) the
      original does not have is new. A new double that is not a float is a problem: write the
      constant as the float the original's run-time product gives (static_cast<float> of the product;
@@ -138,6 +141,32 @@ class Exe:
         return out
 
 
+def call_graph(code, text_va, starts, funcs, skip, md):
+    """function index -> indices of the functions with a CALL / JMP rel32 to its start (on an
+    instruction boundary of the caller; our own code only)."""
+    index = {va: k for k, va in enumerate(starts)}
+    boundary = {}
+    callers = {}
+    for m in re.finditer(rb'(?=[\xe8\xe9](....))', code, re.S):
+        i = m.start()
+        target = (text_va + i + 5 + struct.unpack_from('<i', m.group(1))[0]) & 0xFFFFFFFF
+        t = index.get(target)
+        if t is None:
+            continue
+        site = text_va + i
+        k = bisect.bisect_right(starts, site) - 1
+        if k < 0 or k == t or skip(funcs[k][2]):
+            continue
+        ok = boundary.get(k)
+        if ok is None:
+            start = starts[k]
+            lim = starts[k + 1] if k + 1 < len(starts) else text_va + len(code)
+            ok = boundary[k] = {x.address for x in md.disasm(code[start - text_va:lim - text_va], start)}
+        if site in ok:
+            callers.setdefault(t, set()).add(k)
+    return callers
+
+
 def load_allow():
     allow = set()
     if os.path.exists(ALLOW):
@@ -204,10 +233,12 @@ def main(argv):
             i = code.find(pat, i + 1)
 
     # Our functions' names, and the original address of each registered replacement.
-    und = undecorate({funcs[k][1] for k in uses})
+    und = undecorate({f[1] for f in funcs if not skip(f[2])})
     declared = {}
     index_of = {}
-    for k in uses:
+    for k in range(len(funcs)):
+        if skip(funcs[k][2]):
+            continue
         u = und.get(funcs[k][1])
         m = QUALIFIED.search(u) if u else None
         if m:
@@ -223,17 +254,87 @@ def main(argv):
             if c[1].endswith(obj) or QUALIFIED.search(c[0]).group(1) == name:
                 original.setdefault(index_of[c], address)
 
+    callers = call_graph(code, text_va, starts, funcs, skip, md)
+
+    # Every 4 bytes of the image that spell a function's start (at any alignment: x86 immediates), by
+    # the function: ([.text sites], in data).
+    start_set = set(starts)
+    refs = {}
+    top = re.escape(bytes([img.base >> 24]))
+    for name, sva, vsz, rptr, rsz in img.sections:
+        raw = img.data[rptr:rptr + min(vsz, rsz)]
+        for m in re.finditer(rb'(?=(...' + top + rb'))', raw, re.S):
+            v = struct.unpack('<I', m.group(1))[0]
+            if v in start_set:
+                entry = refs.setdefault(bisect.bisect_right(starts, v) - 1, ([], [False]))
+                if name == '.text':
+                    entry[0].append(text_va + m.start())
+                else:
+                    entry[1][0] = True
+
+    def address_taken(k):
+        """(functions of our .text that hold the address of function k, whether data holds it)."""
+        sites, data = refs.get(k, ([], [False]))
+        inside = set()
+        for site in set(sites):
+            j = bisect.bisect_right(starts, site) - 1
+            if j >= 0 and j != k and not skip(funcs[j][2]):
+                inside.add(j)
+        return inside, data[0]
+
+    def registered_callers(k):
+        """(registered functions that reach function k through unregistered helpers, whether some
+        other path reaches it from data: a table, a function pointer, which names no owner,
+        whether some path is live at all)."""
+        found, seen, todo, table, live = set(), {k}, [k], False, False
+        while todo:
+            n = todo.pop()
+            above = set(callers.get(n, ()))
+            if not above:                        # no CALL to it: a pointer to it, or nothing (dead)
+                inside, data = address_taken(n)
+                above |= inside
+                table |= data
+            live |= bool(above) or table
+            for c in above:
+                if c in original:
+                    found.add(c)
+                elif c not in seen:
+                    seen.add(c)
+                    todo.append(c)
+        return found, table, live
+
     exe = Exe()
     known = exe.global_values()
     sizes = load_sizes()
     mdd = Cs(CS_ARCH_X86, CS_MODE_32)
     mdd.detail = True
     allow = load_allow()
-    problems = allowed = 0
+    problems = allowed = helpers = unattached = dead = 0
     for k in sorted(uses, key=lambda k: (funcs[k][2], funcs[k][0])):
         address = original.get(k)
         size = sizes.get(address) if address else None
-        have = exe.function_values(mdd, address, size) if size else known
+        have, via = None, ''
+        if size:
+            have = exe.function_values(mdd, address, size)
+        else:
+            owners, table, live = registered_callers(k)
+            origins = [(original[c], sizes.get(original[c]), c) for c in sorted(owners)]
+            origins = [o for o in origins if o[1]]
+            if not live:
+                dead += 1
+                continue                         # an out-of-line copy nothing calls (inlined everywhere)
+            if origins and not table:
+                have = set()
+                for a, sz, c in origins:
+                    have |= exe.function_values(mdd, a, sz)
+                via = ' via ' + ', '.join(f'{a:08X}' for a, _, _ in origins)
+                helpers += 1
+            else:
+                unattached += 1
+                if args.verbose:
+                    print(f'  unattached: {funcs[k][2]} {und.get(funcs[k][1], funcs[k][1])}')
+        if have is None:
+            have = known
         new = sorted(v for v in uses[k] if not scaled(v, have | {1.0}))
         if not new:
             continue
@@ -243,13 +344,13 @@ def main(argv):
         fresh = [v for v in wide_new if (v, short) not in allow and (v, '*') not in allow]
         allowed += len(wide_new) - len(fresh)
         if fresh or args.verbose:
-            where = f'{address:08X}' if size else 'no original'
+            where = f'{address:08X}' if size else (via.strip() if via else 'no registered caller: every exe constant')
             shown = new if args.verbose else fresh
             print(f'{funcs[k][2]:32} {short} ({where}): ' +
                   ', '.join(fmt(v) + (' (double)' if (k, v) in wide else '') for v in shown))
         problems += len(fresh)
     print(f'check_fp_fold: {len(uses)} function(s) with x87 constants, {len(original)} matched to the original, '
-          f'{allowed} reviewed constant(s), {problems} problem(s); {time.time() - started:.1f} s')
+          f'{helpers} helper(s) against their callers, {unattached} against every exe constant, {dead} uncalled, {allowed} reviewed constant(s), {problems} problem(s); {time.time() - started:.1f} s')
     return 1 if problems else 0
 
 
