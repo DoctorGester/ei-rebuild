@@ -210,9 +210,8 @@ namespace {
 // standing on its own) is too high to reach, else whether the action can be planned (0054C6B0).
 bool CanStillDo(CUnitServer* self, UnitAction* order) {
     if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
-        CEngineObject* target = order->target;
-        if (IsUnit(target) && !IsDead(target)) {
-            auto* other = static_cast<CUnit*>(target);
+        CUnit* other = UnitOrNull(order->target);
+        if (other && !IsDead(other)) {
             if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
                 double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
                 if (height >= kHeightLimit) return false;
@@ -592,9 +591,8 @@ void SetModeInline(CUnit* unit, int mode) {
 
 bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
     if (order->kind != kOrderAttack && order->kind != kOrderSkill) return false;
-    CEngineObject* target = order->target;
-    if (!IsUnit(target) || IsDead(target)) return false;
-    auto* other = static_cast<CUnit*>(target);
+    CUnit* other = UnitOrNull(order->target);
+    if (!other || IsDead(other)) return false;
     if (other->sizeClass != 0) return false;
     if (order->kind == kOrderAttack && self->HasRangedWeapon()) return false;
     double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
@@ -682,9 +680,7 @@ void CUnitServer::ExecuteOrder() {
         } else {
             // The action starts now.
             bool fresh = true;
-            CEngineObject* target = action.target;
-            if (IsUnit(target)) {
-                auto* other = static_cast<CUnit*>(target);
+            if (CUnit* other = UnitOrNull(action.target)) {
                 auto* theirs = reinterpret_cast<CUnitServer*>(other->controller);
                 if (reinterpret_cast<CEngineObject*>(theirs->action.target) == unit) fresh = false;
             }

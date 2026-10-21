@@ -150,6 +150,7 @@ class CObject3D;     // map_object_figures.h
 class CMapObject;    // map_object.h
 class CUnit;
 class CUnitServer;   // combat.h
+class CUnitClientSpecific;   // unit_client_models.h
 
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
@@ -604,6 +605,8 @@ public:
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
     // The controller as the server unit (combat.h; class 0x3E). Defined in combat.h.
     CUnitServer* ServerController() const;
+    // The controller as a party unit's client half (unit_client_models.h; class 0x3D). Defined there.
+    CUnitClientSpecific* ClientController() const;
     // The parameter block at +0x330 (the fields below repeat parts of it).
     UnitParams* Params() { return reinterpret_cast<UnitParams*>(paramsHead); }
     // The unit as the map object it is (map_object.h).
@@ -689,6 +692,11 @@ static_assert(offsetof(CUnit, paramsHead) == 0x330);
 static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
 static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
+
+// The object as a unit when it is one (class id kClassUnit; one GetClassId call), else null.
+inline CUnit* UnitOrNull(CEngineObject* object) {
+    return object && object->GetClassId() == kClassUnit ? static_cast<CUnit*>(object) : nullptr;
+}
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 

@@ -229,9 +229,9 @@ void CWorldServer::RemoveObject(unsigned id) {
     }
 
     object->ClearState();   // slot 5: it leaves the server
-    bool unit = object->GetClassId() == world::kClassUnit;
+    CUnit* unit = UnitOrNull(object);
     ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
-    if (unit) static_cast<CUnit*>(object)->SetPlayer(nullptr);
+    if (unit) unit->SetPlayer(nullptr);
     object->flags_ |= 1;
     ScriptPurgeDeletedObjects(MainScript());     // 004BED90: what refers to removed objects dropped
     ScriptPurgeDeletedObjects(SecondScript());

@@ -232,9 +232,9 @@ int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
 bool IsUnit(CEngineObject* object) { return object->GetClassId() == 0x50; }
 
 CUnitServer* UnitData(const ScriptObjectRef* ref) {
-    if (!ref || !ref->object) return nullptr;
-    if (!IsUnit(ref->object)) return nullptr;
-    return static_cast<CUnit*>(ref->object)->ServerController();
+    if (!ref) return nullptr;
+    CUnit* unit = UnitOrNull(ref->object);
+    return unit ? unit->ServerController() : nullptr;
 }
 
 bool Report(const char*, const char*, ...) { return true; }

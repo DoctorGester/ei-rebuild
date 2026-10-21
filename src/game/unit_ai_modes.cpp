@@ -373,8 +373,8 @@ EI_REPLACE_METHOD(0x005D1E80, FollowMode::Save);
 int SuspectionMode::Evaluate(AIBrain* brain) {
     if (CEngineObject* seen = brain->seen) {
         bool allied = false;
-        if (seen->GetClassId() == kClassUnit) {
-            std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen.object)->side & 31);
+        if (CUnit* seenUnit = UnitOrNull(seen)) {
+            std::uint32_t bit = 1u << (seenUnit->side & 31);
             allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
         }
         if (!allied) {
@@ -474,8 +474,8 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         if (!enemy) {
             if (CEngineObject* seen = brain->seen) {
                 bool allied = false;
-                if (seen->GetClassId() == kClassUnit) {
-                    std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen.object)->side & 31);
+                if (CUnit* seenUnit = UnitOrNull(seen)) {
+                    std::uint32_t bit = 1u << (seenUnit->side & 31);
                     allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
                 }
                 if (!allied && seen != brain->owner->unit && !brain->memory.reports.Contains(seen))

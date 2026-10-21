@@ -165,8 +165,9 @@ EI_REPLACE_METHOD(0x00554740, CUnitServer::OrderMove);
 
 void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledShot, int planArg) {
     if (!target || target == unit) return;
-    if (target->GetClassId() == kClassUnit && location < 6) {
-        auto* controller = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(target)->controller);
+    CUnit* victim = UnitOrNull(target);
+    if (victim && location < 6) {
+        CUnitServer* controller = victim->ServerController();
         if (controller->stats.slots[location].kind != 3) location = 6;
     }
     ResetOrder(&action2);
@@ -176,18 +177,16 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
     action2.modifier = static_cast<std::uint8_t>(calledShot);
     // CanReachTarget (0054C800) inlined on the queued order.
     if (action2.kind == 3 || action2.kind == 6) {
-        CEngineObject* other = action2.target;
-        if (other && other->GetClassId() == kClassUnit && ObjectSlots(other)->IsDead() == 0 &&
-            static_cast<CUnit*>(other)->sizeClass == 0) {
+        CUnit* other = UnitOrNull(action2.target);
+        if (other && ObjectSlots(other)->IsDead() == 0 && other->sizeClass == 0) {
             bool ranged = false;
             if (action2.kind == 3) {
                 auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
                 ranged = weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
             }
             if (!ranged) {
-                auto* victim = static_cast<CUnit*>(other);
                 double height =
-                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(victim)->height)) + victim->position.z;
+                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->position.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;

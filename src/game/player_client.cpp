@@ -448,10 +448,10 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.Read(&value, 4);
     if (kind != kKindNoPath) {
-        CEngineObject* walker = TheObjectManager()->CreateObject(kClassScratchUnit, -1);
+        auto* walker = static_cast<CUnit*>(TheObjectManager()->CreateObject(kClassScratchUnit, -1));
         ++walker->refCount_;
         // The controller's slot 16 (00533DF0 for the client's): its path.
-        AIPath* path = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(walker)->controller)->MotionPath();
+        AIPath* path = walker->ClientController()->MotionPath();
         DeltaField* writing = field->BeginWriteB(0);
         PathWriteOriginal(path, nullptr, writing);
         writing->EndField();
@@ -459,7 +459,7 @@ int CPlayerClient::OnPathMarker() {
         path->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
-            static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
+            walker->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
             auto* source = ParticleManagerObject()->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
@@ -477,7 +477,7 @@ int CPlayerClient::OnPathMarker() {
         marker->position = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
-        if (unit != nullptr) static_cast<CUnitClientSpecific*>(unit->controller)->SetMarkers(pathSource, marker);
+        if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     field->Destruct();
     return 1;
@@ -676,8 +676,8 @@ int CPlayerClient::OnNewObject() {
     if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
     player->knownObjects_[header.id] = created;
     ++created->refCount_;
-    if (created->GetClassId() == kClassUnitObject)
-        ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(created)->GetPrototype())->name);
+    if (CUnit* unit = UnitOrNull(created))
+        ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name);
     else
         ObjectSlots(created)->TakePrototype(model);
     static_cast<CMapObject*>(created)->WriteFullState();
@@ -688,8 +688,9 @@ int CPlayerClient::OnNewObject() {
         TheClientWorld()->ObjectVariableName(variable.Get(), object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
-    if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)
-        static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(created)->controller)->LoadFaceTexture();
+    if (player->sessionKind100_ == kSessionClient) {
+        if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
+    }
     return 1;
 }
 

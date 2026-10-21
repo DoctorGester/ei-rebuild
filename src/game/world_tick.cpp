@@ -202,8 +202,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
     auto* node = objects.First();
     if (!node) return;
     for (CEngineObject* object = node->value; object; object = node->value) {
-        if (object->GetClassId() == world::kClassUnit) {
-            auto* unit = static_cast<CUnit*>(object);
+        if (CUnit* unit = UnitOrNull(object)) {
             if (!unit->player) {
                 AIBrain* brain = reinterpret_cast<CUnitServer*>(unit->controller)->Brain();
                 BrainHearAlarm(brain, nullptr, index);
@@ -280,9 +279,10 @@ void CWorldServer::UpdateUnits() {
             CEngineObject* object = node->value;
             object->RunTick();
             if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
-            if (object->GetClassId() != world::kClassUnit) continue;
+            CUnit* unit = UnitOrNull(object);
+            if (!unit) continue;
             if (--SleepCountdown(object) > 0) continue;
-            auto* controller = reinterpret_cast<const std::uint8_t*>(static_cast<CUnit*>(object)->controller);
+            auto* controller = reinterpret_cast<const std::uint8_t*>(unit->controller);
             if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
                 SleepingIds().SetAtGrow(SleepingIds().size, static_cast<unsigned>(object->id_));
             else

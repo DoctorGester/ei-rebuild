@@ -428,3 +428,7 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
                                        stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames);
+
+#include "unit.h"   // CUnit
+
+inline CUnitClientSpecific* CUnit::ClientController() const { return static_cast<CUnitClientSpecific*>(controller); }

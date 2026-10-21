@@ -126,8 +126,7 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
         out->point.x = out->point.y = out->point.z = 0.0f;
         std::memset(&out->minDistanceSq, 0, sizeof(float));
         out->unit = nullptr;
-        if (IsUnit(target)) {
-            CUnit* other = static_cast<CUnit*>(target);
+        if (CUnit* other = UnitOrNull(target)) {
             out->unit = other;
             double reach = static_cast<double>(unit->standingHeight) + other->standingHeight + kPointThree;
             out->minDistanceSq = static_cast<float>(reach * reach);
@@ -141,10 +140,11 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
         return true;
     }
 
-    if (!IsUnit(target)) return false;
+    CUnit* targetUnit = UnitOrNull(target);
+    if (!targetUnit) return false;
     out->point.x = out->point.y = out->point.z = 0.0f;
     out->minDistanceSq = kNearSq;
-    out->unit = static_cast<CUnit*>(target);
+    out->unit = targetUnit;
     out->eyeHeight = static_cast<float>(unit->BaseSpeed());
     return true;
 }
@@ -370,11 +370,11 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     float reachSq;    // the order's own range, squared
     float outerSq;    // how far the target may be and still be waited for
-    if (!IsUnit(order->target)) {
+    targetUnit = UnitOrNull(order->target);
+    if (!targetUnit) {
         reachSq = static_cast<float>(static_cast<double>(range) * range);
         outerSq = reachSq;
     } else {
-        targetUnit = static_cast<CUnit*>(order->target);
         double speed = targetUnit->MoveSpeed();
         reachSq = static_cast<float>(static_cast<double>(range) * range);
         bool inFront = false;

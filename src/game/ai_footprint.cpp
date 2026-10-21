@@ -278,8 +278,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 
-    if (object->GetClassId() == kClassUnit) {
-        auto* unit = static_cast<CUnit*>(object);
+    if (CUnit* unit = UnitOrNull(object)) {
         if (unit->IsDead()) return true;
         auto* shape = static_cast<const CUnitShape*>(UnitShape(unit->standingHeight));
         if (!shape) return true;

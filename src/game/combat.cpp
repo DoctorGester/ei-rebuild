@@ -359,16 +359,14 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
             float part = static_cast<float>(Radius(target) * kPointThree);
             return static_cast<float>(Radius(unit) + part);
         }
-        if (target->GetClassId() == kClassUnit) {
-            auto* other = static_cast<CUnit*>(target);
+        if (CUnit* other = UnitOrNull(target)) {
             return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + kPointSix);
         }
         float own = Radius(unit);
         return static_cast<float>((Radius(target) + static_cast<double>(own)) - kPointOne);
     }
     // Melee (kinds below 4 and above 6).
-    if (target->GetClassId() == kClassUnit) {
-        auto* other = static_cast<CUnit*>(target);
+    if (CUnit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
         CItemWeapon* weapon = ActiveWeapon(unit);
@@ -385,11 +383,9 @@ EI_REWRITTEN(0x0054C070, CUnitServer::ActionDistance);
 
 bool CUnitServer::CanReachTarget(const UnitAction* order) {
     if (order->kind != 3 && order->kind != 6) return true;
-    CEngineObject* target = order->target;
-    if (!target) return true;
-    if (target->GetClassId() != kClassUnit) return true;
-    if (IsDead(target) != 0) return true;
-    auto* other = static_cast<CUnit*>(target);
+    CUnit* other = UnitOrNull(order->target);
+    if (!other) return true;
+    if (IsDead(other) != 0) return true;
     if (other->sizeClass != 0) return true;
     if (order->kind == 3) {
         CItemWeapon* weapon = ActiveWeapon(unit);

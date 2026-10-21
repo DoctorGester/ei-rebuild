@@ -128,9 +128,7 @@ CWorld* CWorld::ConstructBase() {
 EI_REWRITTEN(0x0055EAB0, CWorld::ConstructBase);
 
 CUnit* CWorld::FindUnit(int id) {
-    CEngineObject* object = ObjectWithId(id);
-    if (!object) return nullptr;
-    return object->GetClassId() == world::kClassUnit ? static_cast<CUnit*>(object) : nullptr;
+    return UnitOrNull(ObjectWithId(id));
 }
 EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
 

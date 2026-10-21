@@ -351,7 +351,7 @@ int CWorldServer::SendZone(CPlayer* player) {
         units.figured.Construct(100);   // 005985E0
         units.dressed.Construct(100);   // 00598790
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
-            if (node->value->GetClassId() == world::kClassUnit) units.Add(static_cast<CUnit*>(node->value));
+            if (CUnit* unit = UnitOrNull(node->value)) units.Add(unit);
         units.Write(&message);
         gamehash::DressedAbi::Destroy(reinterpret_cast<gamehash::DressedTable*>(&units.dressed));
         gamehash::FiguredGroupsAbi::Destroy(reinterpret_cast<gamehash::FiguredGroupsTable*>(&units.figured));

@@ -329,8 +329,8 @@ int CWorldClient::AddObject(CEngineObject* object) {
             }
         }
     }
-    if (object->GetClassId() == world::kClassUnit && Session()->sessionKind100_ == 1) {
-        auto* unit = static_cast<CUnit*>(object);
+    CUnit* unit = UnitOrNull(object);
+    if (unit && Session()->sessionKind100_ == 1) {
         if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
     }
 
@@ -444,7 +444,7 @@ void CWorldClient::LoadUnitFaces() {
         CEngineObject* object = node->data;
         if (object->GetClassId() != world::kClassUnit) continue;
         if (!node->data) continue;   // the original tests the pointer after the class call
-        static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(node->data)->controller)->LoadFaceTexture();
+        static_cast<CUnit*>(node->data)->ClientController()->LoadFaceTexture();
     }
 }
 
@@ -512,7 +512,7 @@ void CWorldClient::RemoveObject(int id) {
             hero = next;
         }
         DropRef(value);
-        if (Session()->sessionKind100_ == 3) static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller)->DropFaceTexture();
+        if (Session()->sessionKind100_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
     if (SectorList* cell = CellFor(objectGrid_, object)) {
         CEngineObject* value = object;

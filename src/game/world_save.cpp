@@ -268,8 +268,8 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         for (int i = 0; i < parts; ++i)
             if (changed != 0 && (1u << (i & 31)) != 0) static_cast<CMapObject*>(object)->MarkChanged(i);
 
-        if (object->GetClassId() == world::kClassUnit &&
-            reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(object)->controller)->Brain()->alwaysUpdated == 0)
+        CUnit* unit = UnitOrNull(object);
+        if (unit && unit->ServerController()->Brain()->alwaysUpdated == 0)
             continue;   // a unit whose controller does not ask for updates (its brain's +0x37)
         AddToUpdateMap(object);
     }
@@ -289,10 +289,10 @@ void RelocateStrandedUnits(CWorldServer* world) {
     stranded.maxSize = 0;
     stranded.size = 0;
     for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
-        CEngineObject* object = node->value;
-        if (object->GetClassId() != world::kClassUnit) continue;
-        if (world->AIMap()->CanLeaveCell(static_cast<CUnit*>(object))) continue;
-        int id = object->id_;
+        CUnit* unit = UnitOrNull(node->value);
+        if (!unit) continue;
+        if (world->AIMap()->CanLeaveCell(unit)) continue;
+        int id = unit->id_;
         int index = stranded.size;
         stranded.SetSize(index + 1, -1);
         stranded.data[index] = id;
@@ -848,10 +848,10 @@ namespace {
 
 void CWorldServer::PrepareSave() {
     for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
-        CEngineObject* unit = node->value;
-        if (unit->GetClassId() != world::kClassUnit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
-        CEngineObject* controller = static_cast<CUnit*>(unit)->controller;
-        UnitStatsRefillSlotsOriginal(&reinterpret_cast<CUnitServer*>(controller)->stats);
+        CUnit* unit = UnitOrNull(node->value);
+        if (!unit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
+        CEngineObject* controller = unit->controller;
+        UnitStatsRefillSlotsOriginal(&unit->ServerController()->stats);
         static_cast<CUnitController*>(controller)->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }

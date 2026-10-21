@@ -122,8 +122,6 @@ float WorldTimeOfDay() {
     return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
-CUnit* AsUnit(CEngineObject* o) { return o && o->GetClassId() == kClassUnit ? static_cast<CUnit*>(o) : nullptr; }
-
 // Release a slot's object and store `object` with a new reference.
 void Store(ScriptObjectRef* slot, CEngineObject* object) {
     if (slot->object) slot->object->Release();
@@ -322,7 +320,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0x61: { // IsEnemy(unit, player)
-        CUnit* unit = AsUnit(objectArgs.data[0]->object);
+        CUnit* unit = UnitOrNull(objectArgs.data[0]->object);
         StoreBits(result, kZero);
         if (!unit) return;
         int player = Ftol(f[0]);
@@ -332,13 +330,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0x65: { // GetPlayer
-        CUnit* unit = AsUnit(objectArgs.data[0]->object);
+        CUnit* unit = UnitOrNull(objectArgs.data[0]->object);
         StoreBits(result, kZero);
         if (unit) *result = static_cast<float>(unit->side);
         return;
     }
     case 0x8F: { // GetAIClass (the unit's size class, +0x324)
-        CUnit* unit = AsUnit(objectArgs.data[0]->object);
+        CUnit* unit = UnitOrNull(objectArgs.data[0]->object);
         StoreBits(result, kMinusOne);
         if (unit) *result = static_cast<float>(unit->sizeClass);
         return;
@@ -698,8 +696,8 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (FILD, FCOMP)
         EI_NAN_AUDIT(floatArgs.data[0]);
         for (CEngineObject* o = objects.First(WorldObjectManager()); o; o = objects.Next()) {
-            if (o->GetClassId() != kClassUnit) continue;
-            if (static_cast<double>(static_cast<CUnit*>(o)->side) == floatArgs.data[0]) (*result)->Insert(o);
+            CUnit* unit = UnitOrNull(o);
+            if (unit && static_cast<double>(unit->side) == floatArgs.data[0]) (*result)->Insert(o);
         }
         break;
     }
