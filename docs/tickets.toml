@@ -3414,7 +3414,7 @@ id = "ST1"
 title = "Settings from a file instead of the registry"
 group = "standalone"
 size = 1
-note = "User wishlist 2026-10-20: the standalone game loads (and saves) its settings from a file instead of HKCU\\Software\\Nival Interactive\\EvilIslands. Import the registry values once if the file is missing. A file per run would also give the harness its pinned settings for free (WB16)."
+note = "User wishlist 2026-10-20: the standalone game loads (and saves) its settings from a file instead of HKCU\\Software\\Nival Interactive\\EvilIslands. Import the registry values once if the file is missing. A file per run would also give the harness its pinned settings for free (WB16). User 2026-10-21: go. The file lives next to the exe; standalone only (game.exe in the hook build keeps the registry). Shape: a settings file behind win_registry.cpp's CWinRegistry / helpers (call sites barely change), one-time import from HKCU\\Software\\Nival Interactive\\EvilIslands when the file is missing, the ~7 direct registry callers (console_addon, mod_folders, script_addon_commands, system_text, ui_widescreen, world_client_draw, hook/paths) switched over, the harness writing a pinned file per standalone run (original-suite game.exe runs keep the registry). Opus."
 
 [[ticket]]
 id = "ST2"
