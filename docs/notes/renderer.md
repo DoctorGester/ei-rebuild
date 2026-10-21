@@ -875,8 +875,8 @@ across runs; the goldens check the game state.
     (tilted to at least 20 degrees as 0051CE60's) is fitted around every second terrain vertex inside the view (x, y
     in steps of 8 units, origin on whole texels; 160 units of caster room towards the sun), 4096 x 4096 D32. The
     casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
-    the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away) go into it
-    in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
+    the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
+    render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
     after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`ShadowHlsl`:
     3 x 3 bilinear comparisons, receiver-plane depth bias, face normal from screen derivatives so surfaces turned
     away from the sun stay as the game lit them) and darken by up to half (the old decal's alpha 0x80) before fog.
