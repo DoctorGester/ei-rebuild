@@ -46,22 +46,32 @@ void PutArray(Writer& w, const void* data, int size, std::uint32_t elementSize) 
     if (size > 0) w.PutBytes(data, static_cast<std::size_t>(size) * elementSize);
 }
 
+using LengthArray = mfc::CArray<int>;
+using OffsetArray = mfc::CArray<SpiralOffset>;
+std::uint32_t AddressOf(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
+
 void OfferTables() {
     static LONG offered = 0;
     if (InterlockedExchange(&offered, 1)) return;
     Writer w;
-    w.Put(static_cast<std::uint32_t>(std::size(kTableRanges)));
+    w.Put(kTableRangeCount);
     for (const Range& r : kTableRanges) {
         w.Put(r);
         w.PutBytes(ei::GamePointer<const void>(r.address), r.size);
     }
-    w.Put(static_cast<std::uint32_t>(std::size(kTableArrays)));
-    for (const Range& r : kTableArrays) {
-        const auto& array = ei::GameData<const mfc::CArray<std::uint8_t>>(r.address);
-        w.Put(r);
-        PutArray(w, array.data, array.size, r.size);
+    // game.exe's own tables (this records in game.exe).
+    const RadiusTree& tree = ei::OriginalGameData<const RadiusTree>(0x007C2FD8);
+    w.Put(Range{AddressOf(&tree.depth), kRadiusTreeBytes});
+    w.PutBytes(&tree.depth, kRadiusTreeBytes);
+    const void* arrays[kTableArrayCount] = {&ei::OriginalGameData<const LengthArray>(0x007C2FC0), &tree.keys,
+                                            &ei::OriginalGameData<const OffsetArray>(0x007C2FF8)};
+    w.Put(kTableArrayCount);
+    for (const void* at : arrays) {
+        const auto& array = *static_cast<const mfc::CArray<std::uint8_t>*>(at);
+        w.Put(Range{AddressOf(at), kTableArrayElementSize});
+        PutArray(w, array.data, array.size, kTableArrayElementSize);
     }
-    const auto* tables = ei::GamePointer<const SmoothTable>(kSmoothTables);
+    const SmoothTable* tables = ei::OriginalGameData<const SmoothTable[kSmoothTableCount]>(0x007C3058);
     for (int i = 0; i < kSmoothTableCount; ++i) {
         PutArray(w, tables[i].copies.data, tables[i].copies.size, kSmoothCopySize);
         PutArray(w, tables[i].steps.data, tables[i].steps.size, kSmoothStepSize);

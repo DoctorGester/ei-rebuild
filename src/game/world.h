@@ -2064,8 +2064,21 @@ inline float FarClipDistance() { return options::TheOptions()->farClipDistance_;
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
 // world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the
-// globals 007AF508 + 0x10 * list, in this order. The deferred unit list follows at 007AF5B4 (an
-// STLport list of counted object pointers; nodes of 12 bytes).
+// globals 007AF508 + 0x10 * list, in this order (defined in world_client_view.cpp; the word after
+// each is no one's). The deferred unit list follows at 007AF5B4 (an STLport list of counted object
+// pointers; nodes of 12 bytes).
+using FrameQueue = stlp::vector<CEngineObject*>;
+extern FrameQueue g_touchedModels;
+extern FrameQueue g_shadow52;
+extern FrameQueue g_shadowUnits;
+extern FrameQueue g_shadow5D;
+extern FrameQueue g_shadowOther;
+extern FrameQueue g_shadow54;
+extern FrameQueue g_visible52;
+extern FrameQueue g_visibleUnits;
+extern FrameQueue g_visible5D;
+extern FrameQueue g_visibleOther;
+extern FrameQueue g_visible54;
 enum class FrameList {
     TouchedModels,   // 007AF508 models to keep loaded (by last use)
     Shadow52,        // 007AF518
@@ -2079,8 +2092,11 @@ enum class FrameList {
     VisibleOther,    // 007AF598
     Visible54,       // 007AF5A8
 };
-inline stlp::vector<CEngineObject*>& FrameObjects(FrameList list) {
-    return *reinterpret_cast<stlp::vector<CEngineObject*>*>(ei::GameAddress(0x007AF508) + 0x10u * static_cast<std::uintptr_t>(list));
+inline FrameQueue& FrameObjects(FrameList list) {
+    static constexpr FrameQueue* kQueues[] = {&g_touchedModels, &g_shadow52,     &g_shadowUnits,  &g_shadow5D,
+                                              &g_shadowOther,   &g_shadow54,     &g_visible52,    &g_visibleUnits,
+                                              &g_visible5D,     &g_visibleOther, &g_visible54};
+    return *kQueues[static_cast<int>(list)];
 }
 extern lib::StaticObject<stlp::list<CEngineObject*>> g_deferredUnits;   // static_lists.cpp
 inline stlp::list<CEngineObject*>* FrameDeferredUnits() { return &*g_deferredUnits; }

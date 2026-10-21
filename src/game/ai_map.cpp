@@ -362,11 +362,16 @@ namespace {
 
 // The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius
 // (compared as raw float bits) to the number of offsets within it.
-int SpiralDepth() { return ei::GameData<const int>(0x007C2FEC); }
-const int* SpiralKeys() { return ei::GameData<const int* const>(0x007C2FDC); }
-std::uint32_t SpiralMask() { return ei::GameData<const std::uint32_t>(0x007C2FF0); }
-const int* SpiralLengthTable() { return ei::GameData<const int* const>(0x007C2FC4); }
-const std::int16_t* SpiralOffsets() { return ei::GameData<const std::int16_t* const>(0x007C2FFC); }
+// (sector_map.h's tables, sector_spiral.cpp).
+int SpiralDepth() { return SpiralRadiusTree()->depth; }
+std::int32_t SpiralKey(std::uint32_t node) {
+    std::int32_t key;
+    std::memcpy(&key, &SpiralRadiusTree()->keys.data[node], sizeof(key));
+    return key;
+}
+std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(SpiralRadiusTree()->mask); }
+const int* SpiralLengthTable() { return SpiralLengthArray()->data; }
+const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data->x; }
 
 SpiralCache g_findFreeSpiral = /*007C2F48*/ {};   // FindFreeCellNear's function-local static
 std::uint8_t g_findFreeGuard = /*007C2F50*/ {};
@@ -383,7 +388,7 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
         // The radius is compared as an integer with the tree's keys.
         int bits;
         std::memcpy(&bits, &r, sizeof(bits));
-        node = node * 2 + (bits > SpiralKeys()[node] ? 1 : 0);
+        node = node * 2 + (bits > SpiralKey(node) ? 1 : 0);
     }
     int found = SpiralLengthTable()[SpiralMask() & node];
     *count = found;

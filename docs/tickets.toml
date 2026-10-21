@@ -2671,7 +2671,7 @@ title = "Named data: static-init STLport containers with exit functions (world c
 group = "cleanup"
 model = "opus"
 depends = ["C18k"]
-note = "C18k's rule for stlp containers: world_client_view's draw queues 007AF508-007AF5A8 (11 DrawQueue = stlp::vector + allocator word, each zeroed by its initialiser 0056A4D0-0056A7F0 and destroyed by 0056E800; one struct, so one definition and eleven exit functions) and the deferred units list 007AF5B4 (constructor 0056A410: a hand-ported initialiser in list order, stlp::list allocates its node), world.h's FrameObjects / FrameDeferredUnits; the sector map / AI map objects 007C2FC0, 007C2FD8, 007C2FF8, 007C3038, 007C3058 (ai_map.cpp, sector_map.*; check each constructor for game.exe's vtable first: those wait for C19)."
+note = "Done: the 11 draw lists 007AF508-007AF5A8 (world_client_view.cpp, plain stlp::vector, exits 0056A510-0056A830 ported; no 16-byte struct: the last list ends at the deferred list 007AF5B4), the sector spiral's tables 007C2FC0/007C2FD8/007C2FF8 (sector_spiral.cpp) and the smoother's pool/tables 007C3038/007C3058 (ai_path_smooth.cpp), initialisers + exits ported. The deferred units list 007AF5B4 was already named by C18k4. Path vectors keep their format (record via OriginalGameData, replay fills ours). 1,190 -> 1,180 after the draw lists (main ~1,248 before). Goldens: 121 / 114 the same."
 
 [[ticket]]
 id = "C18k4"
