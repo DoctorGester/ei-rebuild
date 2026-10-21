@@ -157,6 +157,7 @@ EI_REPLACE_METHOD(0x006A56E0, CItemSpell::Construct);
 // --- The item manager's Create and factory (A-H25) -------------------------------------------------
 
 int CItemManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
+CEngineObject* CItemManager::NewObject(int kind) { return NewObjectImpl(kind); }
 
 static_assert(sizeof(CItemWeapon) == 0x5C && sizeof(CItemArmor) == 0x8C && sizeof(CItemLoot) == 0x58);
 static_assert(sizeof(CItemQuest) == 0x50 && sizeof(CItemSpell) == 0x50);

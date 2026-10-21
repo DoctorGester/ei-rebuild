@@ -15,6 +15,9 @@
 #include "lib/crt.h"
 
 #include <cstdint>
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 // The original drops the world's reference and deletes the manager without testing the count.
@@ -60,14 +63,15 @@ EI_REPLACE_METHOD(0x0055F8E0, CWorld::DestroyManagers);
 
 // ---- The managers' own small slots (0055F310-0055F400, A-U8) -------------------------------------
 // GetClassName (11) / GetClassId (12) and the destructors of the player manager (vtable 0073F328),
-// the effect manager (0073F2C4, the world's +0x48) and the item manager (0073F25C). Each destructor
-// body stores the class's vtable and runs the base's body; slot 0 adds the delete. The item
-// manager's slot 25 (0055F3B0, "items") is a CResourceManager slot not declared yet.
+// the effect manager (0073F2C4, the world's +0x48) and the item manager (a compiler-made vtable,
+// C19; its slot 25, 0055F3B0 "items", is registered in world_class_slots.cpp). Each destructor
+// body stores the class's vtable and runs the base's body; slot 0 adds the delete.
 
 namespace {
 constexpr const char* kPlayerManagerName = "CPlayerManager";
 constexpr const char* kEffectManagerName = "CEffectManager";
 constexpr const char* kItemManagerName = "CItemManager";
+constexpr const char* kItemsFolderName = "items";
 constexpr int kPlayerManagerId = 0x2E;
 constexpr int kEffectManagerId = 0x32;
 constexpr int kItemManagerId = 0x2F;
@@ -112,14 +116,18 @@ EI_REPLACE_METHOD(0x0055F380, CEffectManager::DeleteScalar);
 BOOL __fastcall EffectManagerCreate(CBaseManager* self) { return self->CBaseManager::Create() != 0 ? 1 : 0; }
 EI_REPLACE(0x0067E150, EffectManagerCreate);
 
-const char* __fastcall ItemManagerClassName(CItemManager*) { return kItemManagerName; }
-int __fastcall ItemManagerClassId(CItemManager*) { return kItemManagerId; }
-void __fastcall ItemManagerDestruct(CItemManager* self) {   // 0055F400
-    ei::SetVtable(self, CItemManager::kVtableAddress);
-    self->CResourceManager::Destruct();
-}
+CItemManager::CItemManager() {}
+CItemManager* CItemManager::Construct() { return new (this) CItemManager(); }
+CItemManager::~CItemManager() {}
+const char* CItemManager::GetClassName() { return kItemManagerName; }
+int CItemManager::GetClassId() { return kItemManagerId; }
+const char* CItemManager::GetFolderName() { return kItemsFolderName; }
+
+const char* __fastcall ItemManagerClassName(CItemManager* self) { return self->CItemManager::GetClassName(); }
+int __fastcall ItemManagerClassId(CItemManager* self) { return self->CItemManager::GetClassId(); }
+void __fastcall ItemManagerDestruct(CItemManager* self) { self->CItemManager::~CItemManager(); }   // 0055F400
 CItemManager* CItemManager::DeleteScalar(unsigned flags) {   // 0055F3E0
-    ItemManagerDestruct(this);
+    this->CItemManager::~CItemManager();
     return DeleteIf(this, flags);
 }
 EI_REPLACE(0x0055F3C0, ItemManagerClassName);

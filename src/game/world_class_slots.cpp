@@ -5,6 +5,7 @@
 
 #include "world.h"
 #include "figure_manager.h"
+#include "item.h"
 
 #include "ei/hook.h"
 
@@ -23,7 +24,6 @@ constexpr const char* kFigureManagerName = "CFigureManager";
 constexpr const char* kI3DFigureName = "CI3DFigure";
 constexpr const char* kFigureClientSpecificName = "CFigureClientSpecific";
 constexpr const char* kUiObjectName = "Sorry, no other way.";
-constexpr const char* kItemsFolderName = "items";
 constexpr const char* kFiguresFolderName = "figures";
 
 constexpr int kWorldClientId = 7;
@@ -107,7 +107,7 @@ EI_REPLACE(0x00579560, UiObjectCreate);
 EI_REPLACE(0x00579580, UiObjectClassName);
 EI_REPLACE(0x00579590, UiObjectClassId);
 
-const char* __fastcall ItemManagerResourceName(CItemManager*) { return kItemsFolderName; }
+const char* __fastcall ItemManagerResourceName(CItemManager* self) { return self->CItemManager::GetFolderName(); }
 const char* __fastcall FigureManagerResourceName(CFigureManager* self) { return self->CFigureManager::GetFolderName(); }
 EI_REPLACE(0x0055F3B0, ItemManagerResourceName);
 EI_REPLACE(0x005AA170, FigureManagerResourceName);

@@ -19,6 +19,7 @@ vtable,slots,class,file,note
 0073E850,54,CTorchObject,src/game/torch.h,the tail of 0073E834 (a byte match)
 0073E954,14,CTorchObjectClientSpec,src/game/torch_client_spec.h,
 0073E98C,5,CTorchObjectClientSpec,src/game/torch_client_spec.h,the tail of 0073E954 (a byte match)
+0073F25C,26,CItemManager,src/game/item.h,
 0073F754,3,BloodPrint,src/game/ground_print.h,
 0073F760,3,Footprint,src/game/ground_print.h,
 0073F76C,3,GroundPrint,src/game/ground_print.h,

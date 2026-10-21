@@ -84,8 +84,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->manager4C_, world);
     world->manager58_ = Make(0x34, ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
     world->manager58_->Create();
-    world->itemManager_ = Make<CBaseManager>(CItemManager::kSize, ConstructOn<CResourceManager, &CResourceManager::Construct>,   // 00674D90
-                               ei::GamePointer<void>(CItemManager::kVtableAddress));
+    world->itemManager_ = Make<CBaseManager>(CItemManager::kSize, ConstructOn<CItemManager, &CItemManager::Construct>, nullptr);
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
