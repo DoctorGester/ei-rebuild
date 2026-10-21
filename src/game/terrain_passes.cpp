@@ -14,6 +14,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "options.h"
 
 #include <cstdint>
 
@@ -26,8 +27,8 @@ constexpr std::uint32_t kLit = 4;       // SectorAt's stage: the sector is lit (
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
 // The squared-distance limits of the levels of detail 0 and 1 (0079BD2C / 0079BD30).
-float DetailNear() { return ei::GameData<const float>(0x0079BD2C); }
-float DetailFar() { return ei::GameData<const float>(0x0079BD30); }
+float DetailNear() { return options::TheOptions()->lod1_; }
+float DetailFar() { return options::TheOptions()->lod2_; }
 
 
 // Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is

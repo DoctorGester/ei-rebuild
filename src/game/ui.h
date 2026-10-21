@@ -2790,7 +2790,6 @@ struct OptionDefinition {
     int row_;                        // +0x14 its row there
 };
 static_assert(sizeof(OptionDefinition) == 0x18);
-inline const OptionDefinition* OptionDefinitions() { return ei::GamePointer<const OptionDefinition>(0x00787430); }
 constexpr int kOptionDefinitionCount = 26;
 
 // A key action's definition (0x10 bytes; the exe's table of 59 at 00787080).
@@ -2801,8 +2800,71 @@ struct ActionDefinition {
     int row_;                        // +0x0C
 };
 static_assert(sizeof(ActionDefinition) == 0x10);
-inline const ActionDefinition* ActionDefinitions() { return ei::GamePointer<const ActionDefinition>(0x00787080); }
 constexpr int kActionDefinitionCount = 59;
+// The key actions (the exe's table of 60 at 00787070; the first is a blank id 0): the key bindings file's names and the options
+// window's rows (group, row).
+inline constexpr ActionDefinition kActionDefinitions[60] = /*00787070*/ {
+    {0, "", 0, 0},
+    {1, "pause", 3, 4},
+    {2, "decel", 3, 3},
+    {3, "accel", 3, 2},
+    {4, "obj", 3, 6},
+    {5, "camera_up", 6, 1},
+    {6, "camera_down", 6, 2},
+    {7, "camera_left", 6, 3},
+    {8, "camera_right", 6, 4},
+    {9, "camera_zoom_in", 6, 5},
+    {10, "camera_zoom_out", 6, 6},
+    {11, "camera_track", 6, 0},
+    {12, "camera_norm", 6, 8},
+    {13, "camera1", 6, 9},
+    {14, "camera2", 6, 10},
+    {15, "camera3", 6, 11},
+    {16, "camera4", 6, 12},
+    {17, "cs_head", 9, 0},
+    {18, "cs_body", 9, 1},
+    {19, "cs_rleg", 9, 2},
+    {20, "cs_lleg", 9, 3},
+    {21, "cs_rhand", 9, 4},
+    {22, "cs_lhand", 9, 5},
+    {23, "crawl", 5, 7},
+    {24, "sneak", 5, 6},
+    {25, "walk", 5, 5},
+    {26, "run", 5, 4},
+    {27, "swarm", 5, 2},
+    {28, "follow", 5, 0},
+    {29, "use_science", 5, 1},
+    {30, "spell1", 8, 0},
+    {31, "spell2", 8, 1},
+    {32, "spell3", 8, 2},
+    {33, "spell4", 8, 3},
+    {34, "spell5", 8, 4},
+    {35, "spell6", 8, 5},
+    {36, "spell7", 8, 6},
+    {37, "spell8", 8, 7},
+    {38, "weapon1", 7, 0},
+    {39, "weapon2", 7, 1},
+    {40, "weapon3", 7, 2},
+    {41, "weapon4", 7, 3},
+    {42, "item1", 7, 5},
+    {43, "item2", 7, 6},
+    {44, "item3", 7, 7},
+    {45, "item4", 7, 8},
+    {46, "w_info1", 10, 3},
+    {47, "w_info2", 10, 4},
+    {48, "w_info3", 10, 5},
+    {49, "w_info4", 10, 6},
+    {50, "w_text1", 10, 0},
+    {51, "w_text2", 10, 1},
+    {52, "w_minimap", 10, 8},
+    {53, "quicksave", 3, 8},
+    {54, "quickload", 3, 9},
+    {55, "select1", 4, 0},
+    {56, "select2", 4, 1},
+    {57, "select3", 4, 2},
+    {58, "select_all", 4, 4},
+    {59, "tutorial_script", 10, 10},
+};
 
 // A setting of the options window (0x14 bytes, 26 of them at +0x378; copy constructor 00653100,
 // destructor 00651CE0: the text). The rows of the shown group point at them.
@@ -3353,8 +3415,8 @@ static_assert(sizeof(CDifficultyBox) == 0x184);
 // accumulates, read and cleared by the drag's mouse-move handlers 00630010 / 005EB210).
 inline int& MouseScreenX() { return ei::GameData<int>(0x007C7C50); }
 inline int& MouseScreenY() { return ei::GameData<int>(0x007C7C54); }
-inline int& MouseDragX() { return ei::GameData<int>(0x007C7C60); }
-inline int& MouseDragY() { return ei::GameData<int>(0x007C7C64); }
+inline int g_mouseDragX = /*007C7C60*/ {};
+inline int g_mouseDragY = /*007C7C64*/ {};
 
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
 inline int& GameDifficulty() { return ei::GameData<int>(0x0079BEC0); }

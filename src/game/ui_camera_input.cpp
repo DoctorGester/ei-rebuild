@@ -78,8 +78,8 @@ int EdgeCursor(unsigned edges) {
 constexpr int kScanCodeMask = 0x1FF;
 
 void LetCursorGo() {
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    g_mouseDragY = 0;
+    g_mouseDragX = 0;
     TheCursor()->SetHeld(0);
 }
 
@@ -140,8 +140,8 @@ void CCameraInput::OnRightDown(int, int x, int y) {
     pressLayout_ = POINT{x, y};
     turning_ = true;
     interface_->CallScalePointFromScreen(&pressLayout_);
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    g_mouseDragY = 0;
+    g_mouseDragX = 0;
     TheCursor()->SetHeld(1);
     handled_ = true;
 }
@@ -164,7 +164,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
     CCamera* camera = TheCamera();
     if (turning_) {
         POINT point{x, y};
-        POINT drag{MouseDragX(), MouseDragY()};
+        POINT drag{g_mouseDragX, g_mouseDragY};
         interface_->CallScalePointFromScreen(&point);
         // Rebirth's WideScreen scales the drag without the margin (005EB249: addon's entry 005F7DFE).
         interface_->CallScalePointFromScreenNoMargin(&drag);
@@ -185,8 +185,8 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
             Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
             camera->Pan(&direction);
         }
-        MouseDragY() = 0;
-        MouseDragX() = 0;
+        g_mouseDragY = 0;
+        g_mouseDragX = 0;
         TheCursor()->SetShape(kDragCursor);
         handled_ = true;
         pressLayout_ = point;
@@ -232,8 +232,8 @@ void CCameraInput::OnDeactivate() {
     y_ = 0.0f;
     z_ = 0.0f;
     TheCursor()->SetHeld(0);
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    g_mouseDragY = 0;
+    g_mouseDragX = 0;
     TheCamera()->StopMotion();
 }
 

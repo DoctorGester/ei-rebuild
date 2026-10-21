@@ -21,6 +21,7 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "logic_settings.h"
 
 #include <algorithm>
 #include <bit>
@@ -65,8 +66,8 @@ constexpr float kSamePointSq = 0.01f;               // 0073C548
 
 // 007C5404 / 007C5408: how close a follower stays and how far its goal may drift before it walks
 // again (set at startup).
-float FollowNear() { return ei::GameData<const float>(0x007C5404); }
-float FollowFar() { return ei::GameData<const float>(0x007C5408); }
+float FollowNear() { return GameLogicSettings().followMinDist; }
+float FollowFar() { return GameLogicSettings().followMaxDist; }
 
 CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->position; }

@@ -488,8 +488,8 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
 // 1.61 (the double at 0073E140) ^ (level / 007C5480) * 007C547C through _CIpow, unrounded: the
 // experience a skill or attribute level is worth.
 double LevelWorth(int level) {
-    return libcrt::CiPow(1.61 /*0073E140*/, static_cast<double>(level) / ei::GameData<const float>(0x007C5480)) *
-           ei::GameData<const float>(0x007C547C);
+    return libcrt::CiPow(1.61 /*0073E140*/, static_cast<double>(level) / GameLogicSettings().skillVal[1]) *
+           GameLogicSettings().skillVal[0];
 }
 
 // Raises `levels[index]` by `amount` (a byte) and books what the new level is worth over the old

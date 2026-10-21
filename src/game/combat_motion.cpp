@@ -38,6 +38,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 #include <bit>
 #include <cstdint>
@@ -98,8 +99,8 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
-float HeroWalkLimit() { return ei::GameData<const float>(0x007C5448); }
-float HeroRunLimit() { return ei::GameData<const float>(0x007C5440); }
+float HeroWalkLimit() { return GameLogicSettings().damageLevel2Value; }
+float HeroRunLimit() { return GameLogicSettings().damageLevel1Value; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }

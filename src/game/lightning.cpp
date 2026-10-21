@@ -35,11 +35,11 @@ const float* NoiseTable() { return ei::GamePointer<const float>(0x0079CE78); }
 constexpr int kNoiseRowLength = 400;
 
 // Scratch curves written by LightningSegment::Animate (one float per point, at most 400).
-float* NoiseSide() { return ei::GamePointer<float>(0x0079C1F8); }
-float* NoiseUp() { return ei::GamePointer<float>(0x0079C838); }
+float g_noiseSide[400] = /*0079C1F8*/ {};
+float g_noiseUp[400] = /*0079C838*/ {};
 
 // Branch sway frequencies: six pairs (side, up) at 00787C8C.
-const float* BranchFrequencies() { return ei::GamePointer<const float>(0x00787C8C); }
+constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0.3f, 0.8f, 1.2f, 1.3f, 3.0f, 5.1f, 2.1f, 1.76f};
 
 // World clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
 float GameTickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
@@ -157,8 +157,8 @@ EI_REWRITTEN(0x004662C0, LightningSegment::SampleNoise);
 
 void LightningSegment::Animate(float time, float amplitude) {
     int count = points.size;
-    float* sideNoise = NoiseSide();
-    float* upNoise = NoiseUp();
+    float* sideNoise = g_noiseSide;
+    float* upNoise = g_noiseUp;
     SampleNoise(time, sideNoise, upNoise, amplitude);
     float countF = static_cast<float>(count);
     double sideAt = sideNoise[0];
@@ -336,7 +336,7 @@ void CLightning::Animate() {
         length.z = static_cast<float>(n * main_.step.z);
         Vector3 end;
         AddVectors(&end, main_.start, length);
-        const float* frequency = BranchFrequencies();
+        const float* frequency = kBranchFrequencies;
         for (int i = 0; i < 6; ++i) {
             LightningSegment& branch = branches_[i];
             double reach = static_cast<double>(sway) * branchPos_[i];

@@ -26,7 +26,7 @@ std::uint8_t KeyCharacter(int scan) { return ei::GamePointer<const std::uint8_t>
 // The screen capture (CallCaptureSurface on [007AF080] + 0x18); the picture (dib.h) is written with
 // CDib::Write and deleted through its slot 1.
 
-std::uint32_t& ShotCounter() { return ei::GameData<std::uint32_t>(0x007C7E24); }
+std::uint32_t g_shotCounter = /*007C7E24*/ {};
 
 constexpr int kRepeat = 0x4000;
 
@@ -64,8 +64,8 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         CDib* picture = CaptureSurface(capturer);
         if (!picture) return;
         mfc::CString name;
-        name.Format("shot%.4d.bmp", ShotCounter());
-        ++ShotCounter();
+        name.Format("shot%.4d.bmp", g_shotCounter);
+        ++g_shotCounter;
         alignas(4) std::uint8_t storage[sizeof(mfc::CFile)];
         auto* file = reinterpret_cast<mfc::CFile*>(storage);
         reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name, 0x1001);   // 0070108B: modeCreate | modeWrite

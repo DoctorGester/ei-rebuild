@@ -41,6 +41,7 @@
 #include "ui_cursor.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "options.h"
 
 namespace {
 
@@ -89,9 +90,9 @@ static_assert(offsetof(LoadingMovie, bink) == 0x30);
 static_assert(offsetof(LoadingMovie, surfaceType) == 0x34);
 
 // Game globals.
-int MoviesMode() { return ei::GameData<int>(0x0079BCBC); }           // 0 off, 1 at size, 2 stretched to the width
-int MovieSound() { return ei::GameData<int>(0x0079BCC0); }
-int MovieVolume() { return ei::GameData<int>(0x0079BCC4); }          // percent
+int MoviesMode() { return options::TheOptions()->video_; }           // 0 off, 1 at size, 2 stretched to the width
+int MovieSound() { return options::TheOptions()->audio_; }
+int MovieVolume() { return options::TheOptions()->audioStreaming_; }          // percent
 const char* LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); }
 LoadingMovie& Loading() { return ei::GameData<LoadingMovie>(0x007C5520); }
 

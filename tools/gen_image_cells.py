@@ -87,8 +87,6 @@ REVIEWED_DATA = [
                                  'descriptors (".PAV...")'),
     # .data
     (0x007857B4, 0x0078706C, 88, 'the key bindings\' command table (007857B0, 0x48-byte entries): names'),
-    (0x00787074, 0x0078768C, 86, 'the action definitions (00787070) and the settings table after them: names'),
-    (0x0078B120, 0x0078B414, 64, 'the script\'s particle types (0078B120, 12-byte entries): names'),
     (0x0078BC8C, 0x0078CAA8, 442, 'the script language: comment tokens (0078BC8C) and the keyword / function table '
                                   '(0078BCA0): names and argument type strings'),
     (0x0078F7EC, 0x0078F824, 15, 'a table of folder names ("animals\\", ...; "" at 0079B298)'),
@@ -100,7 +98,6 @@ REVIEWED_DATA = [
     (0x00793378, 0x0079337C, 2, 'two strings read by 00604C50'),
     (0x00793BD4, 0x00793C0C, 15, 'the skill names ("Melee", ... "Encumbrance"), read by 00625880'),
     (0x007947A8, 0x007947D8, 13, 'the log channel names ("video", "debug1", ...), read by 006503C0'),
-    (0x007969D0, 0x00796B38, 16, 'the ambient sound classes (007969D0, 24-byte entries): names ("Grass", ...)'),
     (0x00796CD0, 0x00796CD0, 1, 'CDib\'s CRuntimeClass: the class name'),
     (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
     (0x00797898, 0x007978C8, 5, 'the CRT\'s locale categories (00797888): their locale names'),

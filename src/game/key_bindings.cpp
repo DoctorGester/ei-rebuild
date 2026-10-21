@@ -14,6 +14,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "text_split.h"
+#include "ui.h"
 #include "world_glue.h"
 #include "game_data.h"
 
@@ -30,18 +31,10 @@ struct Key {
     char text[0x40];       // GetKeyNameTextA's text (up to 31 bytes), shown by the options window
 };
 static_assert(sizeof(Key) == 0x48);
-struct Action {
-    int id;
-    const char* name;      // the file's name ("obj", "weapon1", ...)
-    std::uint8_t unused_08[8];
-};
-static_assert(sizeof(Action) == 0x10);
 
-constexpr std::uintptr_t kKeysAddress = ei::DataId(0x007857B0);      // the key table, then the actions' table
-constexpr std::uintptr_t kActionsAddress = ei::DataId(0x00787070);
+constexpr std::uintptr_t kKeysAddress = ei::DataId(0x007857B0);      // the key table (88 entries)
 Key* Keys() { return ei::GamePointer<Key>(kKeysAddress); }
-constexpr int kKeyCount = (kActionsAddress - kKeysAddress) / 0x48;   // 88
-Action* Actions() { return ei::GamePointer<Action>(kActionsAddress); }
+constexpr int kKeyCount = 88;
 constexpr int kActionCount = 60;
 signed char* ActionOfScan() { return ei::GamePointer<signed char>(0x0079BF70); }
 
@@ -85,8 +78,8 @@ void __cdecl LoadKeyBindings() {
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (libcrt::Stricmp(Actions()[action].name, words[1]) != 0) continue;
-            if (known) ActionOfScan()[Keys()[key].scan] = static_cast<signed char>(Actions()[action].id);
+            if (libcrt::Stricmp(kActionDefinitions[action].name_, words[1]) != 0) continue;
+            if (known) ActionOfScan()[Keys()[key].scan] = static_cast<signed char>(kActionDefinitions[action].id_);
             break;
         }
     }
@@ -112,9 +105,9 @@ void __cdecl SaveKeyBindings() {
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (Actions()[action].id != id) continue;
+            if (kActionDefinitions[action].id_ != id) continue;
             if (known) {
-                line.Format("%s %s\n", Keys()[key].name, Actions()[action].name);
+                line.Format("%s %s\n", Keys()[key].name, kActionDefinitions[action].name_);
                 file.WriteString(line);
             }
             break;

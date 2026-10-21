@@ -27,6 +27,7 @@
 #include "originals_ai.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 #include <bit>
 #include <cstring>
@@ -85,12 +86,12 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
-float Global7C5488() { return ei::GameData<const float>(0x007C5488); }
-float Global7C548C() { return ei::GameData<const float>(0x007C548C); }
+float Global7C5488() { return GameLogicSettings().considerModifier; }
+float Global7C548C() { return GameLogicSettings().considerLogBase; }
 // Difficulty (0079BEC0) and the attack factor per difficulty (007C54AC, floats).
 float DifficultyAttackFactor() {
     int difficulty = ei::GameData<const int>(0x0079BEC0);
-    return ei::GamePointer<const float>(0x007C54AC)[difficulty];
+    return GameLogicSettings().attack[difficulty];
 }
 
 // The unit's server object (CUnit + 0x170): its mana.
