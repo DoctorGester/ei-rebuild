@@ -2555,7 +2555,7 @@ title = "Named data: constant static-init objects hand code reads (C18j pattern,
 group = "cleanup"
 model = "sonnet"
 depends = ["C18j"]
-note = "C18j's pattern (docs/notes/standalone.md 'The static initialisers' objects', weather_particles / particle_create): an object a hand-written file reads and whose initialiser only stores constants or folds (kinds stores / float fold, no call, no exit function) becomes a constexpr definition with the value the stores leave (named_data.py compares it with them); named_data.py --update, then gen_static_init.py leaves the stores out. About 140 store statements: camera / core_transform (0079B298, 0079B2A4, 0079B5B8, 0079B5C8), scene_loader 0079B9B0, animation / object3d / map_object lifetime (007AF0E0-007AF110, 007AF1C0-007AF238), unit (007AF280, 007AF284), torch_spec 007AF2D0, combat 007AF3E8, ai / unit_ai (007C2F24, 007C53C4), ui* (007C7B68-007C8988), random 007A9D40, sky_object 007AA890 / 007AA8A0. One area per batch; --refs first (a field of a larger block stays); a product with another constant is static_cast<float> where the original's FMUL rounds to 24 bits (check_fp_fold)."
+note = "Done for the hand-read objects: camera (kHalfPi, kZeroVector, kIdentityRotation), scene_loader zero vector, ground_print / sound_manager / terrain_* constants, player_client_handlers rotation, IsaacRandom g_random 007A9D40; game data addresses 2055 -> 2021, goldens 121 the same. Left: 007AF3E8 / 007C53C4 (a pointer to the constructed stream 007C5810: name that first), 007C2F24 (run-time guard), 0079B2A0 and the per-window folds only game.exe code reads. Waiting for C19 batch 4: sky_object 007AA890/8A0, unit 007AF280/4, animation/object3d/map_object lifetime 007AF0E0-007AF238, torch_spec 007AF2D0."
 
 [[ticket]]
 id = "C18m"
