@@ -25,7 +25,7 @@
 namespace {
 
 void SetSysInfoVtable(CSysInfo* self) { ei::SetVtable(self, 0x0073D644); }
-const char* SysInfoClassNameText() { return reinterpret_cast<const char*>(0x0078DCD8); }   // "CSysInfo"
+const char* SysInfoClassNameText() { return "CSysInfo"; }
 
 constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped when CPUID exists
 

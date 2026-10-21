@@ -8,12 +8,12 @@
 #include "ei/hook.h"
 
 namespace {
-constexpr std::uintptr_t kUnitClassName = std::uintptr_t(0x0078F910);   // "CUnit"
+constexpr const char* kUnitClassName = "CUnit";
 constexpr int kUnitClassId = 0x50;
 } // namespace
 
 // 0052E280 / 0052E290 (slots 11 / 12 of the unit's vtable 0073EA8C).
-const char* __fastcall UnitClassName(CUnit*) { return reinterpret_cast<const char*>(kUnitClassName); }
+const char* __fastcall UnitClassName(CUnit*) { return kUnitClassName; }
 EI_REPLACE(0x0052E280, UnitClassName);
 int __fastcall UnitClassId(CUnit*) { return kUnitClassId; }
 EI_REPLACE(0x0052E290, UnitClassId);

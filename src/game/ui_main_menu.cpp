@@ -60,13 +60,13 @@ constexpr int kRainStartHour = 0;
 constexpr int kRainEndHour = 7;
 constexpr int kLightningBeforeHour = 6;
 
-const char* const kStoneSound = reinterpret_cast<const char*>(0x00793FCC);    // "buttons\menu\stone.wav"
-const char* const kQuitTitle = reinterpret_cast<const char*>(0x0079239C);     // "quit"
-const char* const kQuitText = reinterpret_cast<const char*>(0x00793FE4);      // "quit_msg"
-const char* const kVersionKey = reinterpret_cast<const char*>(0x0079426C);    // "version_name"
-const char* const kCameraPath = reinterpret_cast<const char*>(0x0079421C);    // "MainMenu.cam"
-const char* const kExitMovie = reinterpret_cast<const char*>(0x0079422C);     // "Movies\Exit.bik"
-const char* const kIntroMovie = reinterpret_cast<const char*>(0x0079423C);    // "Movies\Intro.bik"
+const char* const kStoneSound = "buttons\\menu\\stone.wav";
+const char* const kQuitTitle = "quit";
+const char* const kQuitText = "quit_msg";
+const char* const kVersionKey = "version_name";
+const char* const kCameraPath = "MainMenu.cam";
+const char* const kExitMovie = "Movies\\Exit.bik";
+const char* const kIntroMovie = "Movies\\Intro.bik";
 
 // The stone animation each region plays while hovered.
 constexpr int kStoneAnimation[6] = {1, 3, 5, 7, 11, 9};

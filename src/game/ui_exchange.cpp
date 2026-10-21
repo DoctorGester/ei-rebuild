@@ -22,9 +22,9 @@
 #include <cstdint>
 
 namespace {
-const char* const kBuySound = reinterpret_cast<const char*>(0x00793800);       // "buttons\camp\buy.wav"
-const char* const kCancelSound = reinterpret_cast<const char*>(0x007937E4);    // "buttons\messbox\cancel.wav"
-const char* const kTransitSound = reinterpret_cast<const char*>(0x0079372C);   // "buttons\globalmap\transit.wav"
+const char* const kBuySound = "buttons\\camp\\buy.wav";
+const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
+const char* const kTransitSound = "buttons\\globalmap\\transit.wav";
 constexpr int kAcceptRegion = 0, kTakeBackRegion = 1, kLeaveRegion = 2;
 
 // The client's own offer (+0x260C) while it is live (not detached), else null.
@@ -356,8 +356,8 @@ EI_REPLACE_METHOD(0x0062C9C0, CExchangeScreen::Draw);
 // --- 0062D100 / 0062D200: an item clicked in the strip or the grid (slots 42 / 43) -------------------
 
 namespace {
-const char* const kPutOnSound = reinterpret_cast<const char*>(0x007937B0);     // "buttons\camp\put_on.wav"
-const char* const kPutOffSound = reinterpret_cast<const char*>(0x007937C8);    // "buttons\camp\put_off.wav"
+const char* const kPutOnSound = "buttons\\camp\\put_on.wav";
+const char* const kPutOffSound = "buttons\\camp\\put_off.wav";
 constexpr int kSlotCanMove = 43;
 constexpr int kOfferLimit = 8;
 } // namespace

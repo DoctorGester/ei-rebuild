@@ -19,25 +19,22 @@ inline float ExeFloat(std::uintptr_t address) { return *reinterpret_cast<const v
 
 // ---- CreateUnits (0058EF20) --------------------------------------------------------------------
 
-inline const char* StartZoneText() { return reinterpret_cast<const char*>(0x00790950); }      // "zone1"
-inline const char* ScriptBeginText() { return reinterpret_cast<const char*>(0x00790940); }    // "WorldScript("
+inline const char* StartZoneText() { return "zone1"; }
+inline const char* ScriptBeginText() { return "WorldScript("; }
 // AddObject( Heroes, GetObjectByID( "%i" ) )
-inline const char* AddToHeroesFormat() { return reinterpret_cast<const char*>(0x00790914); }
+inline const char* AddToHeroesFormat() { return "AddObject( Heroes, GetObjectByID( \"%i\" ) )"; }
 // PlayAnimation(GetObjectByName( "hero" ),"uspecial25")
-inline const char* HeroArrivalText() { return reinterpret_cast<const char*>(0x007908DC); }
-inline const char* ScriptEndText() { return reinterpret_cast<const char*>(0x0078D71C); }      // ")"
-inline const char* HairFormat() { return reinterpret_cast<const char*>(0x0078FB0C); }         // "hr.%.2d"
-inline const char* HairPartText() { return reinterpret_cast<const char*>(0x0078FB38); }       // "hr"
+inline const char* HeroArrivalText() { return "PlayAnimation(GetObjectByName( \"hero\" ),\"uspecial25\")"; }
+inline const char* ScriptEndText() { return ")"; }
+inline const char* HairFormat() { return "hr.%.2d"; }
+inline const char* HairPartText() { return "hr"; }
 
 // The figure parts of a hero ("hd", "bd", "hp", "hr", "lh1" ... "rl3"), in the original's order.
 constexpr int kHeroPartCount = 16;
 inline const char* HeroPartText(int index) {
-    static constexpr std::uintptr_t kParts[kHeroPartCount] = {
-        std::uintptr_t(0x0078AD74), std::uintptr_t(0x0078AD38), std::uintptr_t(0x007900E4), std::uintptr_t(0x0078FB38),
-        std::uintptr_t(0x007900E0), std::uintptr_t(0x0078AD70), std::uintptr_t(0x007900DC), std::uintptr_t(0x007900D8),
-        std::uintptr_t(0x0078AD6C), std::uintptr_t(0x0078F95C), std::uintptr_t(0x007900D4), std::uintptr_t(0x0078AD68),
-        std::uintptr_t(0x0078B008), std::uintptr_t(0x007900D0), std::uintptr_t(0x0078AD64), std::uintptr_t(0x0078B004)};
-    return reinterpret_cast<const char*>(kParts[index]);
+    static constexpr const char* kParts[kHeroPartCount] = {"hd",  "bd",  "hp",  "hr",  "lh1", "lh2", "lh3", "rh1",
+                                                           "rh2", "rh3", "ll1", "ll2", "ll3", "rl1", "rl2", "rl3"};
+    return kParts[index];
 }
 
 // Floats.
@@ -60,15 +57,15 @@ constexpr std::uintptr_t kBehaviourDestructor = std::uintptr_t(0x0046C290);
 
 // ---- UseQuickItem (0058ECE0) -------------------------------------------------------------------
 
-inline const char* QuickEffectPrototype() { return reinterpret_cast<const char*>(0x007908D0); }   // "st.tr.130"
-inline const char* QuickEffectModel() { return reinterpret_cast<const char*>(0x007908C8); }       // "unhuma"
+inline const char* QuickEffectPrototype() { return "st.tr.130"; }
+inline const char* QuickEffectModel() { return "unhuma"; }
 // The vtable of the object record (mapspec::ObjectSpec) with no members of its own.
 constexpr std::uintptr_t kQuickEffectSpecVtable = std::uintptr_t(0x0073FA58);
 
 // ---- CreateObject (005927C0) -------------------------------------------------------------------
 
-inline const char* CampfireText() { return reinterpret_cast<const char*>(0x00790A54); }
-inline const char* NoWaveNameText() { return reinterpret_cast<const char*>(0x00790A34); }
+inline const char* CampfireText() { return "campfire"; }
+inline const char* NoWaveNameText() { return "Adding sound without wave name"; }
 inline float CampfireHeight() { return ExeFloat(std::uintptr_t(0x0073C538)); }   // 0.7
 inline float TorchLightScale() { return ExeFloat(std::uintptr_t(0x0073BAAC)); }  // the flame's radius factor (10)
 
@@ -77,28 +74,28 @@ inline float TorchLightScale() { return ExeFloat(std::uintptr_t(0x0073BAAC)); } 
 // The game's folders (CStrings): the data folder and the text resources' folder.
 inline const void* DataPathString() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AF460)); }
 inline const void* TextPathString() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AF45C)); }
-inline const char* TexturesFolderText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFE4)); }   // "textures\"
-inline const char* LightsTableText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFD4)); }      // "LightsGipat.ini"
-inline const char* GipathText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFCC)); }           // "gipath"
-inline const char* TextsFileText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFC0)); }        // "texts.res"
-inline const char* TextsLmpFileText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFB0)); }     // "textsLmp.res"
-inline const char* CursorFileText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FF9C)); }       // "wincurs\Df0000.cur"
+inline const char* TexturesFolderText() { return "textures\\"; }
+inline const char* LightsTableText() { return "LightsGipat.ini"; }
+inline const char* GipathText() { return "gipath"; }
+inline const char* TextsFileText() { return "texts.res"; }
+inline const char* TextsLmpFileText() { return "textsLmp.res"; }
+inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
 // sets its flag 0x200.
 inline int ShadowSetting() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD0C)); }
 
 // ---- The client world's zone load (00567AB0) ----------------------------------------------------
 
-inline const char* DefaultAllodText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079014C)); }      // "gipat"
+inline const char* DefaultAllodText() { return "gipat"; }
 // "Can't load terrain or map file "%s"." and a line end
-inline const char* CantLoadTerrainFormat() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790124)); }
-inline const char* CaveSkyText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079011C)); }           // "Sky01"
-inline const char* OpenSkyText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790114)); }           // "Sky00"
-inline const char* LightsPrefixText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079010C)); }      // "Lights"
-inline const char* CaveText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790104)); }              // "Cave"
-inline const char* IniSuffixText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007900FC)); }         // ".ini"
-inline const char* FinalZoneText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007900F4)); }         // "gz20g"
-inline const char* FinalMusicText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007900EC)); }        // "final"
+inline const char* CantLoadTerrainFormat() { return "Can't load terrain or map file \"%s\".\n"; }
+inline const char* CaveSkyText() { return "Sky01"; }
+inline const char* OpenSkyText() { return "Sky00"; }
+inline const char* LightsPrefixText() { return "Lights"; }
+inline const char* CaveText() { return "Cave"; }
+inline const char* IniSuffixText() { return ".ini"; }
+inline const char* FinalZoneText() { return "gz20g"; }
+inline const char* FinalMusicText() { return "final"; }
 // Options (the object at 0079BC70; options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
 // LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
 // DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
@@ -143,9 +140,9 @@ constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 
 // The interface manager (007C7D50; script string events go to it).
 inline CInterface3D* InterfaceManager() { return reinterpret_cast<CInterface3D*>(std::uintptr_t(0x007C7D50)); }
-inline const char* AutosaveEventText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00787704)); }   // "autosave"
+inline const char* AutosaveEventText() { return "autosave"; }
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).
-inline const char* SegmentDisconnectedText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790084)); }
+inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
 // The volume settings the sound manager takes on the client's tenth tick (006B7740 / 006B78A0 /
 // 006B7A00; the last is the movies' volume, bink_video.cpp).
 inline int VolumeSettingA() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC8)); }
@@ -168,21 +165,24 @@ inline float ColourScale() { return ExeFloat(std::uintptr_t(0x0073C370)); }   //
 
 // ---- The world server's quests (world_quests.cpp) -----------------------------------------------
 
-// The zones where the ten mercenaries are briefed (pointers at 007907AC).
-inline const char* MercZoneName(int slot) { return reinterpret_cast<const char* const*>(std::uintptr_t(0x007907AC))[slot]; }
-inline const char* MercNameFormat() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909E4)); }   // "merc%i"
+// The zones where the ten mercenaries are briefed.
+inline const char* MercZoneName(int slot) {
+    static constexpr const char* kZones[10] = {"bz1g", "bz1g", "bz2g", "bz6g", "bz8k", "bz8k", "bz14h", "bz14h", "bz9k", "bz14h"};
+    return kZones[slot];
+}
+inline const char* MercNameFormat() { return "merc%i"; }
 // The briefing variables of a mercenary slot: "b.%s.n<k>_%i" and "amerc_%i".
-inline const char* MercVariableN8Format() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909D8)); }
-inline const char* MercVariableN1Format() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909CC)); }
-inline const char* MercVariableN2Format() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909C0)); }
-inline const char* MercVariableN3Format() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909B4)); }
-inline const char* MercVariableN9Format() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909A8)); }
-inline const char* MercVariableN10Format() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079099C)); }
-inline const char* MercVariableN11Format() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790990)); }
-inline const char* MercHiredFormat() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790984)); }
+inline const char* MercVariableN8Format() { return "b.%s.n8_%i"; }
+inline const char* MercVariableN1Format() { return "b.%s.n1_%i"; }
+inline const char* MercVariableN2Format() { return "b.%s.n2_%i"; }
+inline const char* MercVariableN3Format() { return "b.%s.n3_%i"; }
+inline const char* MercVariableN9Format() { return "b.%s.n9_%i"; }
+inline const char* MercVariableN10Format() { return "b.%s.n10_%i"; }
+inline const char* MercVariableN11Format() { return "b.%s.n11_%i"; }
+inline const char* MercHiredFormat() { return "amerc_%i"; }
 // "WorldScript( GSSetVar( %i,"%s",2 ) #OnBriefingComplete( %i, "%s" ) )"
-inline const char* BriefingCompleteScript() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909EC)); }
-inline const char* HumanHeroText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078B0FC)); }   // "Human Hero"
+inline const char* BriefingCompleteScript() { return "WorldScript( GSSetVar( %i,\"%s\",2 ) #OnBriefingComplete( %i, \"%s\" ) )"; }
+inline const char* HumanHeroText() { return "Human Hero"; }
 // The quest database's briefings by name (an STLport hash_map<string, BriefingRecord*>, ui_briefing.h;
 // operator[] 004297A0: stlp::NamedSlot).
 inline stlp::NameMap& QuestBriefings() { return *reinterpret_cast<stlp::NameMap*>(std::uintptr_t(0x007C87D4)); }
@@ -193,8 +193,8 @@ constexpr std::uintptr_t kShareListVtable = std::uintptr_t(0x0073FAB0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073FAA4);
 
 // ---- Update (world_update.cpp) --------------------------------------------------------------
-inline const char* DisconnectingPlayerText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790894)); }   // "Disconnecting player "
-inline const char* HeroesGroupText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007908C0)); }   // "Heroes"
+inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
+inline const char* HeroesGroupText() { return "Heroes"; }
 inline float HearingScale() { return ExeFloat(std::uintptr_t(0x0073F910)); }   // the units' perception scale (SyncPlayer too)
 inline float WakeMargin() { return ExeFloat(std::uintptr_t(0x0073CCF8)); }     // added to it when units wake others
 // 00435000: the ostream flush manipulator (ostream& flush(ostream&)).

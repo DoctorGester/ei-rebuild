@@ -17,9 +17,9 @@
 
 namespace {
 
-const char* ClickSound() { return reinterpret_cast<const char*>(0x00793394); }       // "buttons\base\click1.wav"
-const char* QuickSaveName() { return reinterpret_cast<const char*>(0x007933AC); }    // "saveq"
-const char* QuestPrefix() { return reinterpret_cast<const char*>(0x00783D7C); }      // "q."
+const char* ClickSound() { return "buttons\\base\\click1.wav"; }
+const char* QuickSaveName() { return "saveq"; }
+const char* QuestPrefix() { return "q."; }
 CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
 
 // The escape menu (0x168 bytes, built inline as the battle screen's key handler does).

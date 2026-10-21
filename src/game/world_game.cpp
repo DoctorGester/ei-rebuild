@@ -160,7 +160,7 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
         const char* name = record->name;
         bool visited;
         {
-            mfc::CString prefix(game::Text(kVisitedPrefix));
+            mfc::CString prefix(kVisitedPrefix);
             mfc::CString variable = prefix + name;
             // The original tests C3 alone (equal or unordered): a NaN counts as not visited.
             double value = VariableGet(variables, variable);
@@ -169,7 +169,7 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
         bool keep = false;
         if (visited) {
             keep = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->name),
-                                   reinterpret_cast<const unsigned char*>(game::Text(kAlwaysCopied))) == 0 ||
+                                   reinterpret_cast<const unsigned char*>(kAlwaysCopied)) == 0 ||
                    gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->allod),
                                    reinterpret_cast<const unsigned char*>(static_cast<const char*>(currentMap))) == 0;
         }
@@ -178,14 +178,14 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
             bool failed;
             {
                 mfc::CString slotPath = slotFolder + zone;
-                mfc::CString slotFile = slotPath + game::Text(kSaveExtension);
+                mfc::CString slotFile = slotPath + kSaveExtension;
                 mfc::CString currentPath = currentFolder + zone;
-                mfc::CString currentFile = currentPath + game::Text(kSaveExtension);
+                mfc::CString currentFile = currentPath + kSaveExtension;
                 failed = gameapi::CopyFileA(currentFile, slotFile, FALSE) == 0;
             }
             if (!failed) continue;
         }
-        mfc::CString prefix(game::Text(kVisitedPrefix));
+        mfc::CString prefix(kVisitedPrefix);
         mfc::CString variable = prefix + record->name;
         VariableSet(variables, variable, 0.0f);
     }
@@ -204,8 +204,8 @@ int GameFlow::SaveGame(const char* slot) {
     if (GameMode() != 1) return 0;
 
     GameCursor()->SetShape(3);
-    slotFolder.Format(game::Text(kSlotFolder), GameFolder(), slot);
-    currentFolder.Format(game::Text(kCurrentFolder), GameFolder());
+    slotFolder.Format(kSlotFolder, GameFolder(), slot);
+    currentFolder.Format(kCurrentFolder, GameFolder());
     ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
         if (WorldPlayer* player = static_cast<WorldPlayer*>(reinterpret_cast<CWorldServer*>(0x007AFF60)->GetPlayer(0)))
@@ -221,12 +221,12 @@ int GameFlow::SaveGame(const char* slot) {
 
     bool opened;
     {
-        mfc::CString path = slotFolder + game::Text(kScenarioFile);
+        mfc::CString path = slotFolder + kScenarioFile;
         opened = file.Open(path, kOpenWrite, 0);
     }
     if (!opened) {
         ToMainMenu() = 1;
-        StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
+        StartZoneAt(this, nullptr, kMainMenu, 2);
         return 0;
     }
 
@@ -264,7 +264,7 @@ int GameFlow::SaveGame(const char* slot) {
     int kind = FindZone(records.party.zone)->kind;
     if (kind == 0 || kind == 2) {
         {
-            mfc::CString path = slotFolder + game::Text(kMissionFile);
+            mfc::CString path = slotFolder + kMissionFile;
             opened = file.Open(path, kOpenWrite, 0);
         }
         if (!opened) return 0;
@@ -284,7 +284,7 @@ int GameFlow::SaveGame(const char* slot) {
     }
 
     GameCursor()->SetShape(0);
-    kConsole->PutText(game::Text(kSaved))->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+    kConsole->PutText(kSaved)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     return 1;
 }
 
@@ -320,8 +320,8 @@ void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { a0->Se
 int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString& zone, mfc::CString& folder,
                 const char* mapOverride, LocalFileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables;
-    folder.Format(game::Text(kCurrentFolder), GameFolder());
-    mfc::CString fileName = zone + game::Text(kSaveExtension);
+    folder.Format(kCurrentFolder, GameFolder());
+    mfc::CString fileName = zone + kSaveExtension;
     bool opened;
     {
         mfc::CString path = folder + fileName;
@@ -347,7 +347,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         }
     } owner{&data};
     if (!SaveFileRead(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
-        game::FatalError(game::Text(kCorruptSave), static_cast<const char*>(fileName));
+        game::FatalError(kCorruptSave, static_cast<const char*>(fileName));
         failed = true;
         return 0;
     }
@@ -356,10 +356,10 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
 
     int entrance = records->entrance;
     if (entrance >= 0 && entrance < zoneRecord->exits.size) {
-        float now = static_cast<float>(VariableGet(variables, game::Text(kGTime)));
+        float now = static_cast<float>(VariableGet(variables, kGTime));
         float left;
         {
-            mfc::CString prefix(game::Text(kLeftPrefix));
+            mfc::CString prefix(kLeftPrefix);
             mfc::CString variable = prefix + zone;
             left = static_cast<float>(VariableGet(variables, variable));
         }
@@ -396,31 +396,31 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
     if (!zoneRecord) return 0;
 
     NamedFloatTable* variables = &records->variables;
-    if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, game::Text(kMovieVariable)))) == 1) {
+    if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
         if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
-                            reinterpret_cast<const unsigned char*>(game::Text(kMovieZone))) != 0) {
+                            reinterpret_cast<const unsigned char*>(kMovieZone)) != 0) {
             {
-                mfc::CString movie = MoviesFolder() + game::Text(kMovieFile);
+                mfc::CString movie = MoviesFolder() + kMovieFile;
                 PlayMovie(movie, 0, 1, 1, 1, 1, 1);
             }
-            variables->Remove(game::Text(kMovieVariable));
+            variables->Remove(kMovieVariable);
         }
     } else {
-        variables->Remove(game::Text(kMovieVariable));
+        variables->Remove(kMovieVariable);
     }
 
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zoneRecord->map),
                         reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) {
         const char* mapOverride = nullptr;
         if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
-                            reinterpret_cast<const unsigned char*>(game::Text(kFrozenZone))) == 0) {
-            double frozen = VariableGet(variables, game::Text(kFrozenVariable));
-            mapOverride = game::Text(kFrozenMap);
-            if (!(frozen < 0.0f || frozen > 0.0f)) mapOverride = game::Text(kThawedMap);   // C3: equal or unordered
+                            reinterpret_cast<const unsigned char*>(kFrozenZone)) == 0) {
+            double frozen = VariableGet(variables, kFrozenVariable);
+            mapOverride = kFrozenMap;
+            if (!(frozen < 0.0f || frozen > 0.0f)) mapOverride = kThawedMap;   // C3: equal or unordered
         }
         bool visited;
         {
-            mfc::CString prefix(game::Text(kVisitedPrefix));
+            mfc::CString prefix(kVisitedPrefix);
             mfc::CString variable = prefix + zone;
             double value = VariableGet(variables, variable);
             visited = value < 0.0f || value > 0.0f;
@@ -430,11 +430,11 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
             result = RestoreZone(records, zoneRecord, zone, folder, mapOverride, file, failed);
             if (failed) return 0;
         } else {
-            mfc::CString map = RecordMap(zoneRecord) + game::Text(kMapExtension);
+            mfc::CString map = RecordMap(zoneRecord) + kMapExtension;
             if (mapOverride) map = mapOverride;
             bool loaded;
             {
-                mfc::CString mob = RecordMob(zoneRecord) + game::Text(kMobExtension);
+                mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
                 loaded = NewZone(World(), nullptr, map, mob, zoneRecord->name) != 0;
             }
             if (!loaded) return 0;
@@ -442,7 +442,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
             WorldSetTime(World(), nullptr, kStartTime);
         }
         if (zoneRecord->kind == 2) {
-            mfc::CString scripts = RecordMob(zoneRecord) + game::Text(kMobExtension);
+            mfc::CString scripts = RecordMob(zoneRecord) + kMobExtension;
             World()->LoadZoneScripts(scripts);
         } else {
             ScriptResetZone(World()->MainScript());   // 004BEB00: the scripts reset for a zone without its own
@@ -519,11 +519,11 @@ int __stdcall StartNetworkZone(const char* zone) {
 
     mfc::CString folder;   // [0x14]
     LocalFileStream file;  // [0x20]
-    folder.Format(game::Text(kCurrentFolder), GameFolder());
+    folder.Format(kCurrentFolder, GameFolder());
     bool opened;
     {
         mfc::CString path = folder + zone;
-        mfc::CString fileName = path + game::Text(kSaveExtension);
+        mfc::CString fileName = path + kSaveExtension;
         opened = file.Open(fileName, kOpenRead, 1);
     }
     if (opened) {
@@ -547,8 +547,8 @@ int __stdcall StartNetworkZone(const char* zone) {
     } else {
         bool loaded;
         {
-            mfc::CString mob = RecordMob(zoneRecord) + game::Text(kMobExtension);
-            mfc::CString map = RecordMap(zoneRecord) + game::Text(kMapExtension);
+            mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
+            mfc::CString map = RecordMap(zoneRecord) + kMapExtension;
             loaded = NewZone(World(), nullptr, map, mob, zone) != 0;
         }
         if (!loaded) return 0;
@@ -568,7 +568,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         reinterpret_cast<mfc::CString*>(&reinterpret_cast<ZoneExit*>(copy)->target)->~CString();
     }
     for (int i = 0; i < exits.size; ++i)
-        *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = game::Text(kNetworkExitTarget);
+        *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = kNetworkExitTarget;
     World()->SetZoneExits(&exits);
     World()->SetClimate(zoneRecord->setting2C);
     World()->SetCave(zoneRecord->setting30);
@@ -579,7 +579,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     if (Active(net::GameServer())) {
         AnnounceHost(zone);
         mfc::CString name(zone);
-        mfc::CString mob = name + game::Text(kMobExtension);
+        mfc::CString mob = name + kMobExtension;
         static_cast<CWorldServer*>(World())->LoadMobFile(mob);
     }
 
@@ -625,13 +625,13 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
 
     if (Campaign() == 1) static_cast<CCamera*>(kGlobals)->SaveView(7);
     else if (Campaign() == 3) static_cast<CCamera*>(kGlobals)->SaveView(6);
-    path.Format(game::Text(kCurrentFolder), GameFolder());
+    path.Format(kCurrentFolder, GameFolder());
     {
-        mfc::CString fileName = zone + game::Text(kSaveExtension);
+        mfc::CString fileName = zone + kSaveExtension;
         path += fileName;
     }
     if (!file.Open(path, kOpenWrite, 0)) {
-        game::FatalError(game::Text(kCantWrite), static_cast<const char*>(path));
+        game::FatalError(kCantWrite, static_cast<const char*>(path));
         return 0;
     }
     World()->PrepareSave();
@@ -649,13 +649,13 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
 
     NamedFloatTable* variables = &records->variables;
     {
-        mfc::CString prefix(game::Text(kVisitedPrefix));
+        mfc::CString prefix(kVisitedPrefix);
         mfc::CString variable = prefix + static_cast<const char*>(zone);
         VariableSet(variables, variable, 1.0f);
     }
-    float now = static_cast<float>(VariableGet(variables, game::Text(kGTime)));
+    float now = static_cast<float>(VariableGet(variables, kGTime));
     {
-        mfc::CString prefix(game::Text(kLeftPrefix));
+        mfc::CString prefix(kLeftPrefix);
         mfc::CString variable = prefix + zone;
         VariableSet(variables, variable, now);
     }
@@ -682,8 +682,8 @@ void GameFlow::UpdateMultiplayerVariable() {
     NamedFloatTable* variables = &player->variables;
     if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
-        if (on) VariableSet(variables, game::Text(kMultiplayerVariable), 1.0f);
-        else variables->Remove(game::Text(kMultiplayerVariable));
+        if (on) VariableSet(variables, kMultiplayerVariable, 1.0f);
+        else variables->Remove(kMultiplayerVariable);
     };
     if (!Active(net::GameServer())) {
         // A client: set while it has no host announcement (info_).
@@ -719,7 +719,7 @@ constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's 
 
 mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
     unsigned type = net::GameClient()->gameType_;
-    return new (out) mfc::CString(game::Text(kMultiplayerZones[type <= 3 ? type : 0]));
+    return new (out) mfc::CString(kMultiplayerZones[type <= 3 ? type : 0]);
 }
 
 void GameFlow::BeginMultiplayerGame() {
@@ -731,7 +731,7 @@ void GameFlow::BeginMultiplayerGame() {
         AsCString(GlobalParty()->zone) = *zone;
         zone->~CString();
     }
-    VariableSet(&GlobalParty()->variables, game::Text(kMultiplayerVariable), 1.0f);
+    VariableSet(&GlobalParty()->variables, kMultiplayerVariable, 1.0f);
     PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, GlobalParty());
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
@@ -917,7 +917,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
         LocalFileStream graph;
         bool opened;
         {
-            mfc::CString path = *base + game::Text(kGraphExtension);
+            mfc::CString path = *base + kGraphExtension;
             opened = graph.Open(path, kOpenRead, 1);
         }
         if (opened) {
@@ -1113,7 +1113,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     // The local client connects to the local server with the password as its hello.
     alignas(4) std::uint8_t address[16] = {};
-    AddressSet(address, nullptr, game::Text(kLocalHost), *reinterpret_cast<const int*>(0x00783E30));
+    AddressSet(address, nullptr, kLocalHost, *reinterpret_cast<const int*>(0x00783E30));
     {
         GameBuffer hello;
         static_cast<GameBuffer*>(&hello)->ConstructGrowing();
@@ -1124,7 +1124,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         GrowingBufferDestruct(&hello);
     }
     LocalLogin()->host_ = 1;
-    const char* shown = name && *name ? name : game::Text(kServerName);
+    const char* shown = name && *name ? name : kServerName;
     net::GameServer()->name_.Assign(shown);
     net::GameServer()->maxPlayers_ = value25E0;
     if (password && *password) net::GameServer()->SetPassword(password);
@@ -1188,7 +1188,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         player->sessionKind = sessionKind_;
         std::memcpy(&player->server->lastPosition_, &startPosition_, 12);
         int id = player->id;
-        kNetLog->PutText(game::Text(kAcceptedPlayer))->PutInt(id)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        kNetLog->PutText(kAcceptedPlayer)->PutInt(id)->PutChar('\n')->Apply(libcrt::FlushManipulator);
         node = next;
     }
     // The list's inlined destructor: every reference released, then the blocks.
@@ -1326,7 +1326,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     int found;
     {
         mfc::CString folder(path);
-        mfc::CString pattern = folder + game::Text(kAllFiles);
+        mfc::CString pattern = folder + kAllFiles;
         found = finder.FindFile(pattern, 0);
     }
     while (found) {
@@ -1377,7 +1377,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     GameCursor()->SetShape(3);
     MapRecord* zoneRecord = nullptr;
     ToMainMenu() = 1;
-    if (libcrt::Stricmp(zone, game::Text(kEndOfGame)) == 0) {
+    if (libcrt::Stricmp(zone, kEndOfGame) == 0) {
         mode = kModeEndOfGame;
     } else {
         zoneRecord = FindZone(zone);
@@ -1400,7 +1400,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     }
     if (!found) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
-        game::FatalError(game::Text(kZoneNotFound), zone);
+        game::FatalError(kZoneNotFound, zone);
         if (Active(net::GameClient())) {
             net::ServerSession*& server = net::GameServer();
             net::ServerSession* oldServer = server;
@@ -1418,7 +1418,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     WorldSetTimeSpeedF(World(), nullptr, static_cast<float>(TimeSpeedSetting()));
     int result;
     if (mode == kModeMainMenu) {
-        NewZone(World(), nullptr, game::Text(kMenuMap), game::Text(kMenuMob), nullptr);
+        NewZone(World(), nullptr, kMenuMap, kMenuMob, nullptr);
         // The menu shows the local time of day.
         SYSTEMTIME now;
         gameapi::GetLocalTime(&now);
@@ -1438,7 +1438,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         EnterZoneAt(&records.party);
         PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
         WorldSetTimeF(World(), nullptr,
-                      HoursOfDay(VariableGet(&records.party.variables, game::Text(kGTime))));
+                      HoursOfDay(VariableGet(&records.party.variables, kGTime)));
         if (zoneRecord) {
             World()->SetClimate(zoneRecord->setting2C);
             World()->SetCave(zoneRecord->setting30);
@@ -1466,11 +1466,11 @@ __declspec(naked) void __fastcall PartyNewGameAt(void*) EI_ORIGINAL(0x004A88A0)
 void GameFlow::StartNewGame() {
     // Rebirth's AutoExec #2 (the CALL at 0057BD30 redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
-    ExecuteAt(game::Text(kExecAutoexec));
+    ExecuteAt(kExecAutoexec);
     ToMainMenu() = 1;
     PartyNewGameAt(kParty);
     mfc::CString folder;
-    folder.Format(game::Text(kCurrentFolder), GameFolder());
+    folder.Format(kCurrentFolder, GameFolder());
     ClearSaveFolder(folder);
     LocalRecords records;
     PartyManagerEndRedeploy(kParty, nullptr, &records.party);
@@ -1528,10 +1528,10 @@ EI_REPLACE(0x0057CB50, SwitchResourceDatabases);
 void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
-        new (&LastResources()) mfc::CString(game::Text(kResourcesSingle));
+        new (&LastResources()) mfc::CString(kResourcesSingle);
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
     }
-    mfc::CString wanted(game::Text(network ? kResourcesNetwork : kResourcesSingle));
+    mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(wanted)),
                         reinterpret_cast<const unsigned char*>(static_cast<const char*>(LastResources()))) == 0)
         return;
@@ -1570,7 +1570,7 @@ void GameFlow::ProcessRequest() {
     switch (state) {
     case kStateMainMenu:
         ToMainMenu() = 1;
-        StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
+        StartZoneAt(this, nullptr, kMainMenu, 2);
         break;
     case kStateLoad:
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(*reinterpret_cast<std::uint8_t**>(0x007AFFBC));
@@ -1582,7 +1582,7 @@ void GameFlow::ProcessRequest() {
         ServerUpdateAt(World());
         LoadGameAt(this, nullptr, requestTarget_);
         if (requestArg_) {
-            const char* autoplay = game::Text(kAutoplay);
+            const char* autoplay = kAutoplay;
             if (autoplay) {
                 reinterpret_cast<CPlayerClient*>(ClientWorldLocalView(clientWorld))->StartRecording(autoplay);
                 AutoplayOn() = 1;
@@ -1610,7 +1610,7 @@ void GameFlow::ProcessRequest() {
                 BeginMultiplayerGame();
             } else {
                 ToMainMenu() = 1;
-                StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
+                StartZoneAt(this, nullptr, kMainMenu, 2);
             }
         }
         ClientWorldLocalView(clientWorld)->sendParty = 1;
@@ -1650,24 +1650,24 @@ int GameFlow::LoadGame(const char* slot) {
     if (GameMode() == 2 || GameMode() == 3) return 0;
     // Rebirth's AutoExec #1 (the CALL at 0057ABE1 redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
-    ExecuteAt(game::Text(kExecAutoexec));
+    ExecuteAt(kExecAutoexec);
     GameCursor()->SetShape(3);
     ToMainMenu() = 1;
     LocalFileStream file;
     mfc::CString zone;          // [0x14]
     mfc::CString slotFolder;    // [0x10]
     mfc::CString currentFolder; // [0x18]
-    slotFolder.Format(game::Text(kSlotFolder), GameFolder(), slot);
-    currentFolder.Format(game::Text(kCurrentFolder), GameFolder());
+    slotFolder.Format(kSlotFolder, GameFolder(), slot);
+    currentFolder.Format(kCurrentFolder, GameFolder());
     ClearSaveFolder(currentFolder);
     bool opened;
     {
-        mfc::CString path = slotFolder + game::Text(kScenarioFile);
+        mfc::CString path = slotFolder + kScenarioFile;
         opened = file.Open(path, kOpenRead, 1);
     }
     if (!opened) {
         ToMainMenu() = 1;
-        StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
+        StartZoneAt(this, nullptr, kMainMenu, 2);
         return 0;
     }
 
@@ -1689,7 +1689,7 @@ int GameFlow::LoadGame(const char* slot) {
     } scenarioOwner{&scenario};
     if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
         ToMainMenu() = 1;
-        StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
+        StartZoneAt(this, nullptr, kMainMenu, 2);
         return 0;
     }
     PartyLoad(kParty, nullptr, &scenario);
@@ -1715,7 +1715,7 @@ int GameFlow::LoadGame(const char* slot) {
         MapRecord* record = ZoneRecords() + i;
         bool visited;
         {
-            mfc::CString prefix(game::Text(kVisitedPrefix));
+            mfc::CString prefix(kVisitedPrefix);
             mfc::CString variable = prefix + record->name;
             // FCOMP with 0 and C3: zero or NaN counts as not visited.
             double value = VariableGet(variables, variable);
@@ -1724,20 +1724,20 @@ int GameFlow::LoadGame(const char* slot) {
         bool restored = false;
         if (visited) {
             bool keep = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->name),
-                                        reinterpret_cast<const unsigned char*>(game::Text(kAlwaysCopied))) == 0 ||
+                                        reinterpret_cast<const unsigned char*>(kAlwaysCopied)) == 0 ||
                         gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->allod),
                                         reinterpret_cast<const unsigned char*>(static_cast<const char*>(currentMap))) == 0;
             if (keep) {
                 zone = RecordName(record);
                 mfc::CString currentPath = currentFolder + zone;
-                mfc::CString currentFile = currentPath + game::Text(kSaveExtension);
+                mfc::CString currentFile = currentPath + kSaveExtension;
                 mfc::CString slotPath = slotFolder + zone;
-                mfc::CString slotFile = slotPath + game::Text(kSaveExtension);
+                mfc::CString slotFile = slotPath + kSaveExtension;
                 restored = gameapi::CopyFileA(slotFile, currentFile, FALSE) != 0;
                 if (restored) continue;
             }
         }
-        mfc::CString prefix(game::Text(kVisitedPrefix));
+        mfc::CString prefix(kVisitedPrefix);
         mfc::CString variable = prefix + record->name;
         VariableSet(variables, variable, 0.0f);
     }
@@ -1750,7 +1750,7 @@ int GameFlow::LoadGame(const char* slot) {
         StartZoneAt(this, nullptr, records.party.zone, 0);
     } else {
         {
-            mfc::CString path = slotFolder + game::Text(kMissionFile);
+            mfc::CString path = slotFolder + kMissionFile;
             opened = file.Open(path, kOpenRead, 1);
         }
         if (!opened) return 0;
@@ -1758,7 +1758,7 @@ int GameFlow::LoadGame(const char* slot) {
         file.Close();
         World()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
     }
-    kConsole->PutText(game::Text(kLoadedText))->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+    kConsole->PutText(kLoadedText)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     return 1;
 }
 
@@ -1782,7 +1782,7 @@ EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
 
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
-    folder.Format(game::Text(kCurrentFolder), GameFolder());
+    folder.Format(kCurrentFolder, GameFolder());
     ClearSaveFolder(folder);
     AsCString(zone7C_) = zone;
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZoneAt(zone);
@@ -1792,7 +1792,7 @@ EI_REPLACE_METHOD(0x0057ED60, GameFlow::SetNetworkZone);
 int CurrentSaveSize() {
     mfc::CFileFind find;
     mfc::CString pattern;
-    pattern.Format(game::Text(kCurrentFiles), GameFolder());
+    pattern.Format(kCurrentFiles, GameFolder());
     int total = 1000000;
     if (find.FindFile(pattern, 0)) {
         int more;
@@ -1830,8 +1830,8 @@ void GameFlow::AfterServerStart() {
         LocalLogin()->text_.Assign(names[5]);
         LocalLogin()->name_.Assign(names[0]);
     } else {
-        LocalLogin()->text_.Assign(game::Text(kDefaultHeroName));
-        LocalLogin()->name_.Assign(game::Text(kDefaultPartyName));
+        LocalLogin()->text_.Assign(kDefaultHeroName);
+        LocalLogin()->name_.Assign(kDefaultPartyName);
     }
     LocalLogin()->state_ = 1;
 }
@@ -1897,14 +1897,14 @@ void GameFlow::UpdateFromServer() {
     NamedFloatTable* variables = &player->variables;
     // The local player's variables are replaced by the server's; "constr.current" survives.
     // Rebirth's PersistentGlobalVars (the CALL at 00580177 redirected) keeps the "gvar." ones.
-    float construction = static_cast<float>(VariableGet(variables, game::Text(kConstructionVariable)));
+    float construction = static_cast<float>(VariableGet(variables, kConstructionVariable));
     LocalVariables unusedCopy;
     unusedCopy.table.CopyConstruct(*variables);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
         variables->Clear();
-    VariableSet(variables, game::Text(kConstructionVariable), construction);
+    VariableSet(variables, kConstructionVariable, construction);
     if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
         if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.data());
     }
@@ -1913,13 +1913,13 @@ void GameFlow::UpdateFromServer() {
     mfc::CString briefing;
     unsigned type = net::GameClient()->gameType_;
     if (type <= 3) {
-        VariableSet(variables, game::Text(kTypeVariables[type]), 1.0f);
-        briefing = game::Text(kTypeBriefings[type]);
+        VariableSet(variables, kTypeVariables[type], 1.0f);
+        briefing = kTypeBriefings[type];
     }
     alignas(mfc::CString) std::uint8_t questSlot[sizeof(mfc::CString)];
     alignas(mfc::CString) std::uint8_t kSlot[sizeof(mfc::CString)];
-    BriefingVariableInto(reinterpret_cast<mfc::CString*>(questSlot), briefing + game::Text(kBriefingSuffixQuest));
-    BriefingVariableInto(reinterpret_cast<mfc::CString*>(kSlot), briefing + game::Text(kBriefingSuffixK));
+    BriefingVariableInto(reinterpret_cast<mfc::CString*>(questSlot), briefing + kBriefingSuffixQuest);
+    BriefingVariableInto(reinterpret_cast<mfc::CString*>(kSlot), briefing + kBriefingSuffixK);
     mfc::CString& questVariable = *reinterpret_cast<mfc::CString*>(questSlot);
     mfc::CString& kVariable = *reinterpret_cast<mfc::CString*>(kSlot);
     mfc::CString* const names[2] = {&questVariable, &kVariable};
@@ -1942,11 +1942,11 @@ void GameFlow::UpdateFromServer() {
         {
             mfc::CString prefix = name.Left(2);
             quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
-                                    reinterpret_cast<const unsigned char*>(game::Text(kQuestVariablePrefix))) == 0;
+                                    reinterpret_cast<const unsigned char*>(kQuestVariablePrefix)) == 0;
         }
         if (!quest) continue;
         mfc::CString rest = name.Right(console::Length(name) - 2);
-        int dot = rest.Find(game::Text(kDot));
+        int dot = rest.Find(kDot);
         if (dot > 0) {
             mfc::CString folder = rest.Left(dot);
             RegisterQuests(folder);
@@ -2053,7 +2053,7 @@ void SavedParties::Reload() {
     WIN32_FIND_DATAA found;
     HANDLE search;
     {
-        mfc::CString pattern = AsCString(folder_) + game::Text(kPartyFilePattern);
+        mfc::CString pattern = AsCString(folder_) + kPartyFilePattern;
         search = gameapi::FindFirstFileA(pattern, &found);
     }
     if (search == INVALID_HANDLE_VALUE) return;
@@ -2098,7 +2098,7 @@ void SavedParties::Reload() {
 
 namespace {
 
-constexpr std::uintptr_t kQuestFilePattern = std::uintptr_t(0x007906D4);   // "*.mq"
+constexpr const char* kQuestFilePattern = "*.mq";
 // The map names of the three allods, each list ended by an empty name.
 constexpr std::uintptr_t kGipatMaps = std::uintptr_t(0x00790270);       // zone2 .. zone9
 constexpr std::uintptr_t kIngosMaps = std::uintptr_t(0x00790298);       // zone12, zone13
@@ -2148,9 +2148,9 @@ void GameFlow::BuildZoneTable() {
     int more;
     {
         mfc::CString folder;
-        modfolders::SelectMaps(reinterpret_cast<const char*>(kQuestFilePattern), modfolders::MapsSite::ZoneTable);
+        modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
         MapsFolderAt(&folder);
-        mfc::CString pattern = folder + reinterpret_cast<const char*>(kQuestFilePattern);
+        mfc::CString pattern = folder + kQuestFilePattern;
         more = find.FindFile(pattern, 0);
     }
     while (more) {

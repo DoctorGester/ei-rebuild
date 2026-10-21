@@ -16,8 +16,8 @@ namespace {
 void Set(GameOptions* self, std::size_t offset, std::uint32_t value) {
     std::memcpy(reinterpret_cast<std::uint8_t*>(self) + offset, &value, 4);
 }
-void Text(GameOptions* self, std::size_t offset, std::uintptr_t text) {
-    *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(self) + offset) = reinterpret_cast<const char*>(text);
+void Text(GameOptions* self, std::size_t offset, const char* text) {
+    *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(self) + offset) = text;
 }
 
 constexpr std::uint32_t kOne = 0x3F800000;     // 1.0f
@@ -30,13 +30,13 @@ constexpr std::uint32_t k30 = 0x41F00000;
 } // namespace
 
 void __fastcall OptionsResetDefaults(GameOptions* self) {
-    Text(self, 0x00, 0x00784B20);   // "Statistics Output Settings"
-    Text(self, 0x04, 0x00784B08);   // "Game Specific Settings"
-    Text(self, 0x08, 0x00784AF4);   // "Terrain Settings"
-    Text(self, 0x0C, 0x00784AE0);   // "General Settings"
-    Text(self, 0x10, 0x00784AD0);   // "Camera Settings"
-    Text(self, 0x14, 0x00784AC0);   // "Shadow Settings"
-    Text(self, 0x18, 0x00784AB0);   // "Path Settings"
+    Text(self, 0x00, "Statistics Output Settings");
+    Text(self, 0x04, "Game Specific Settings");
+    Text(self, 0x08, "Terrain Settings");
+    Text(self, 0x0C, "General Settings");
+    Text(self, 0x10, "Camera Settings");
+    Text(self, 0x14, "Shadow Settings");
+    Text(self, 0x18, "Path Settings");
     Set(self, 0x2C, 0);
     Set(self, 0x30, 0x280);
     Set(self, 0x34, 0x1E0);
@@ -68,9 +68,9 @@ void __fastcall OptionsResetDefaults(GameOptions* self) {
     Set(self, 0xCC, 1);
     Set(self, 0xC8, 1);
     for (std::size_t o = 0xD0; o <= 0xE4; o += 4) Set(self, o, 1);
-    Text(self, 0x20, 0x00784A98);   // "."
-    Text(self, 0x24, 0x00784A90);   // ".\res\"
-    Text(self, 0x28, 0x00784A98);
+    Text(self, 0x20, ".\\");
+    Text(self, 0x24, ".\\res\\");
+    Text(self, 0x28, ".\\");
     Set(self, 0xEC, 0);
     Set(self, 0xF0, 0xFFFFFFFF);
     Set(self, 0xFC, kMinus100);
@@ -117,11 +117,11 @@ void __fastcall OptionsResetDefaults(GameOptions* self) {
     Set(self, 0x240, 0x3F48C8C9);
     Set(self, 0x244, kOne);
     Set(self, 0x248, kOne);
-    Text(self, 0x258, 0x007846F0);
-    Text(self, 0x25C, 0x007846F0);
+    Text(self, 0x258, "none");
+    Text(self, 0x25C, "none");
     Set(self, 0x260, 0x42480000);   // 50
     Set(self, 0x264, 0x42B40000);   // 90
-    Text(self, 0x268, 0x00784B3C);  // "a3master.nival.com"
+    Text(self, 0x268, "a3master.nival.com");
 }
 EI_REPLACE(0x00458DA0, OptionsResetDefaults);
 

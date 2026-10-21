@@ -16,8 +16,8 @@
 
 namespace {
 
-const char* FiguresArchive() { return reinterpret_cast<const char*>(0x0078EC24); }   // "figures.res"
-const char* MenusArchive() { return reinterpret_cast<const char*>(0x0078EC18); }     // "menus.res"
+const char* FiguresArchive() { return "figures.res"; }
+const char* MenusArchive() { return "menus.res"; }
 constexpr std::size_t kFigureSetBuckets = 100;   // the hint the figure sets' table is created with
 
 } // namespace

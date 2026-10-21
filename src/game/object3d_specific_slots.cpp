@@ -43,7 +43,7 @@ constexpr std::uint32_t kPartOwnMesh = 0x40;    // CFigureMesh::flags_: the part
 constexpr int kClientClassId = 0x37;
 constexpr std::uintptr_t kSpecificBaseVtable = std::uintptr_t(0x0073DEFC);
 // 0078F47C: "CObject3DClientSpecific".
-const char* ClientClassName() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078F47C)); }
+const char* ClientClassName() { return "CObject3DClientSpecific"; }
 
 POINT AsPoint(const long* point) { return POINT{point[0], point[1]}; }
 const RECT* PartRect(const CFigureMesh* part) { return &part->drawer_->screen_; }

@@ -243,7 +243,7 @@ static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));
 #define EI_SCALE_0_08 GameDouble(0x0073CE98)       // ~0.08 * 2^-32
 
 const std::int32_t* FadeAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A774); }
-const char* NoCarrierMessage() { return reinterpret_cast<const char*>(0x0078AFA4); }
+const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
 // 0044C470: the game's debug message (cdecl, one argument).
 void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }

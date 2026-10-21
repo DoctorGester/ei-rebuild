@@ -28,13 +28,13 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     stlp::string key(modelName);
     void* model = static_cast<CFigureManager*>(manager)->FindModel(&key);
     if (!model) {
-        game::DebugLog(reinterpret_cast<const char*>(0x00790DC0), modelName);
+        game::DebugLog("Can't open model \"%s\"\n", modelName);
         return 0;
     }
     stlp::string name(animation);
     void* found = static_cast<FigureModel*>(model)->FindAnimation(&name);
     if (!found) {
-        game::DebugLog(reinterpret_cast<const char*>(0x00790D94), animation, modelName);
+        game::DebugLog("Can't open animation \"%s\" for model \"%s\"\n", animation, modelName);
         return 0;
     }
     return static_cast<CFigureAnimationState*>(figure)->LoadBoneTracks(static_cast<CFigureModelPart*>(found),

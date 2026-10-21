@@ -121,7 +121,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
 namespace {
 // The texture quality setting (0 best .. 3).
 int TextureQuality() { return *reinterpret_cast<const int*>(0x0079BCDC); }
-const char* CantGetDeviceDescriptionText() { return reinterpret_cast<const char*>(0x0078EE20); }
+const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
 } // namespace
 
 void CTextureManager::SetDevice(CTextureDevice* device) {

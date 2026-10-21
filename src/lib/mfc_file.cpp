@@ -58,8 +58,8 @@ void* FileClass() { return reinterpret_cast<void*>(0x00745DB0); }
 void* StdioFileClass() { return reinterpret_cast<void*>(0x007464C8); }
 void* FileFindClass() { return reinterpret_cast<void*>(0x00745EC0); }
 // "*.*", FindFile's pattern when given none; "file://", GetFileURL's prefix.
-const char* AllFiles() { return reinterpret_cast<const char*>(0x007905B4); }
-const char* FileUrlPrefix() { return reinterpret_cast<const char*>(0x00745F34); }
+const char* AllFiles() { return "*.*"; }
+const char* FileUrlPrefix() { return "file://"; }
 // afxChNil: the empty text ReadString starts a line from.
 const char* ChNil() { return reinterpret_cast<const char*>(0x007C8BA8); }
 

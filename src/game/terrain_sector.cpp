@@ -111,8 +111,8 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
         (*reinterpret_cast<GetFileFn* const*>(archive))[5](archive, name, &size));
     data = file;
 
-    const char* unableToLocate = reinterpret_cast<const char*>(0x00791774);   // "Unable to locate resource "
-    const char* wrongFormat = reinterpret_cast<const char*>(0x0079175C);      // "Wrong format resource "
+    const char* unableToLocate = "Unable to locate resource: ";
+    const char* wrongFormat = "Wrong format resource: ";
     // The message is passed to FatalError as its format string, as the original does.
     auto fail = [&](const char* text) {
         mfc::CString n(name);

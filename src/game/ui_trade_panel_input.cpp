@@ -15,7 +15,7 @@
 
 namespace {
 
-const char* const kPerkSound = reinterpret_cast<const char*>(0x00793DF0);   // "buttons\camp\perk.wav"
+const char* const kPerkSound = "buttons\\camp\\perk.wav";
 // The skill database (levels by record name).
 SkillDatabase* Skills() { return reinterpret_cast<SkillDatabase*>(0x007AF268); }
 

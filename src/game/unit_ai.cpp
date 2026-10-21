@@ -71,21 +71,21 @@ void DestructRefs(CEngineObject** refs, int count) {
 // The mode names of the "new motivation" message (the original pushes these addresses).
 const char* ModeName(int type) {
     switch (type) {
-    case kModeGuard: return reinterpret_cast<const char*>(0x0078D354);          // "Guard"
-    case kModePatrol: return reinterpret_cast<const char*>(0x00791E8C);         // "Patrol"
-    case kModeSentry: return reinterpret_cast<const char*>(0x0078D0CC);         // "Sentry"
-    case kModeSuspection: return reinterpret_cast<const char*>(0x00791E80);     // "Suspection"
-    case kModeAggression: return reinterpret_cast<const char*>(0x00791E74);     // "Aggression"
-    case kModeCorpseWatcher: return reinterpret_cast<const char*>(0x00791E64);  // "CorpseWatcher"
-    case kModePlayer: return reinterpret_cast<const char*>(0x00791E54);         // "Player"
-    case kModeFear: return reinterpret_cast<const char*>(0x00791E5C);           // "Fear"
-    case kModeTamed: return reinterpret_cast<const char*>(0x00791E4C);          // "Tamed"
-    case kModeFollow: return reinterpret_cast<const char*>(0x0078D458);         // "Follow"
+    case kModeGuard: return "Guard";
+    case kModePatrol: return "Patrol";
+    case kModeSentry: return "Sentry";
+    case kModeSuspection: return "Suspection";
+    case kModeAggression: return "Aggression";
+    case kModeCorpseWatcher: return "CorpseWatcher";
+    case kModePlayer: return "Player";
+    case kModeFear: return "Fear";
+    case kModeTamed: return "Tamed";
+    case kModeFollow: return "Follow";
     default: return nullptr;    // 9 and anything else: the name stays empty
     }
 }
 // 00791E20: "Unit %i new motivation %s with power of %i".
-const char* MotivationFormat() { return reinterpret_cast<const char*>(0x00791E20); }
+const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
 } // namespace
 
 // --- Forwarders ----------------------------------------------------------------------------------

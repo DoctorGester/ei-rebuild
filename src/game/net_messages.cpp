@@ -31,7 +31,7 @@ namespace {
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
 
 // 00783D6C: the empty text the server entry's reset assigns.
-const char* EmptyText() { return reinterpret_cast<const char*>(0x00783D6C); }
+const char* EmptyText() { return "?"; }
 
 // The header of a clone (the base constructors inlined) and of a fresh or rebuilt message.
 void CloneHeader(Message* copy, const Message* source) {

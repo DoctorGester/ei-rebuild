@@ -12,7 +12,7 @@
 
 namespace {
 
-const char* ChangeSound() { return reinterpret_cast<const char*>(0x00793D08); }   // "buttons\camp\change.wav"
+const char* ChangeSound() { return "buttons\\camp\\change.wav"; }
 
 constexpr int kWeaponSlots = 4;
 constexpr int kQuickSlots = 8;

@@ -39,7 +39,7 @@ namespace {
 #define EI_SIZE_BASE GameFloat(0x0073CEB8)
 #define EI_POINT_THREE GameFloat(0x0073C54C)        // 0.3
 
-const char* NoCarrierCasting() { return reinterpret_cast<const char*>(0x0078AFD0); }
+const char* NoCarrierCasting() { return "Particle effect CastingElemental without carrier\n"; }
 const std::int32_t* CastAlphaByCountdown() { return reinterpret_cast<const std::int32_t*>(0x0078A964); }
 const std::int32_t* CastAlphaByLifeWide() { return reinterpret_cast<const std::int32_t*>(0x0078A980); }   // 0x202A
 const std::int32_t* CastAlphaByLife() { return reinterpret_cast<const std::int32_t*>(0x0078A9BC); }
@@ -262,7 +262,7 @@ namespace {
 #define EI_SHELL GameFloat(0x0073CE08)              // 0.65
 #define EI_AIR_SIZE GameFloat(0x0073CC80)           // 1.6
 
-const char* NoCarrierSphere() { return reinterpret_cast<const char*>(0x0078AF7C); }
+const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
 const float* SphereSizeByLife() { return reinterpret_cast<const float*>(0x0073CB38); }
 const float* AntimagicSizeByLife() { return reinterpret_cast<const float*>(0x0073CB78); }
 
@@ -425,8 +425,8 @@ namespace {
 #define EI_HEAL_SPREAD GameFloat(0x0073CD18)        // 0.15
 #define EI_HEAL_SPARK_SIZE GameFloat(0x0073CDB0)    // 0.07
 
-const char* NoCarrierRing() { return reinterpret_cast<const char*>(0x0078AF24); }
-const char* NoCarrierHealing() { return reinterpret_cast<const char*>(0x0078AF50); }
+const char* NoCarrierRing() { return "Particle effect Casting without carrier\n"; }
+const char* NoCarrierHealing() { return "Particle effect Healing without carrier\n"; }
 constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's last phase)
 
 // The rings around the carrier (emitCount of them, already allocated): stacked from the carrier's
@@ -2008,7 +2008,7 @@ namespace {
 #define EI_GAS_SPEED_UP GameFloat(0x0073CDE4)        // 1.02
 #define EI_GAS_SWELL GameFloat(0x0073CD40)           // 1.01
 
-const char* NoCarrierGas() { return reinterpret_cast<const char*>(0x0078AF7C); }
+const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 
 } // namespace
 
@@ -3534,9 +3534,9 @@ Vector3* FigurePartPosition(void* unit, Vector3* out, void* part) {
     return reinterpret_cast<Fn>(0x005188B0)(unit, out, part);
 }
 
-const char* kLeftFoot = reinterpret_cast<const char*>(0x0078B008);     // "ll3"
-const char* kRightFoot = reinterpret_cast<const char*>(0x0078B004);    // "rl3"
-const char* kBody = reinterpret_cast<const char*>(0x0078AD38);         // "bd"
+const char* kLeftFoot = "ll3";
+const char* kRightFoot = "rl3";
+const char* kBody = "bd";
 
 } // namespace
 

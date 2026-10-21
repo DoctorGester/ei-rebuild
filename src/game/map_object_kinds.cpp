@@ -6,10 +6,10 @@
 #include "lib/crt.h"
 
 namespace {
-const char* const kTreeName = reinterpret_cast<const char*>(0x0078F6F8);       // "CTree"
-const char* const kBuildingName = reinterpret_cast<const char*>(0x0078F700);   // "CBuilding"
-const char* const kStoneName = reinterpret_cast<const char*>(0x0078F70C);      // "CStone"
-const char* const kStuffName = reinterpret_cast<const char*>(0x0078F714);      // "CStuffObject"
+const char* const kTreeName = "CTree";
+const char* const kBuildingName = "CBuilding";
+const char* const kStoneName = "CStone";
+const char* const kStuffName = "CStuffObject";
 constexpr int kClassTree = 0x52;
 constexpr int kClassStone = 0x53;
 constexpr int kClassBuilding = 0x54;

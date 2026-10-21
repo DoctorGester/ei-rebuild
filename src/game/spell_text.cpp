@@ -19,9 +19,9 @@
 namespace {
 
 // The game's messages, passed by address as the original does.
-const char* const kNoSpellConstructor = reinterpret_cast<const char*>(0x00795990);
-const char* const kCantBegin = reinterpret_cast<const char*>(0x0079595C);   // ... "%s"
-const char* const kCantEnd = reinterpret_cast<const char*>(0x0079593C);
+const char* const kNoSpellConstructor = "No valid spell constructor\n";
+const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
+const char* const kCantEnd = "Can't end spell construction\n";
 
 // MFC CString members not in lib/mfc.h, called on existing strings.
 struct TextOps : mfc::CString {

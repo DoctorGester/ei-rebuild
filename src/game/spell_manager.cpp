@@ -16,10 +16,10 @@ namespace {
 constexpr int kClassSpell = 0x3002;
 constexpr int kClassSpellContainer = 0x3003;
 
-constexpr std::uintptr_t kNoSequenceMessage = std::uintptr_t(0x00795908);    // "Can't find spell sequence ..."
-constexpr std::uintptr_t kSpellManagerClassName = std::uintptr_t(0x007958F8);  // "CSpellManager"
-constexpr std::uintptr_t kSpellManagerFolder = std::uintptr_t(0x007947FC);     // "spells"
-constexpr std::uintptr_t kSpellContainerClassName = std::uintptr_t(0x007959E0);  // "CSpellContainer"
+constexpr const char* kNoSequenceMessage = "Can't find spell sequence to create child spell.\n";
+constexpr const char* kSpellManagerClassName = "CSpellManager";
+constexpr const char* kSpellManagerFolder = "spells";
+constexpr const char* kSpellContainerClassName = "CSpellContainer";
 
 // Every container of a sequence loses a reference (slot 4), in iterator order; the walk stops at
 // the first entry without a container.
@@ -65,7 +65,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
     if (key > maxSequenceKey_) maxSequenceKey_ = key;
     SpellSequence* sequence = sequences_[key];
     if (!sequence) {
-        game::FatalError(reinterpret_cast<const char*>(kNoSequenceMessage));
+        game::FatalError(kNoSequenceMessage);
         return spell;
     }
     if (low > sequence->maxLow) sequence->maxLow = low;
@@ -136,12 +136,12 @@ EI_REPLACE(0x00688B30, SpellManagerCreateHook);
 EI_REPLACE(0x00688B40, SpellManagerDestroyHook);
 EI_REPLACE_METHOD(0x00688CD0, CSpellManager::NewObjectImpl);
 
-const char* __fastcall SpellManagerClassName(CSpellManager*) { return reinterpret_cast<const char*>(kSpellManagerClassName); }
+const char* __fastcall SpellManagerClassName(CSpellManager*) { return kSpellManagerClassName; }
 int __fastcall SpellManagerClassId(CSpellManager*) { return 0x33; }
 EI_REPLACE(0x00688950, SpellManagerClassName);
 EI_REPLACE(0x00688960, SpellManagerClassId);
 // 00688940: slot 25, the folder "spells" (A-H24).
-const char* __fastcall SpellManagerFolder(CSpellManager*) { return reinterpret_cast<const char*>(kSpellManagerFolder); }
+const char* __fastcall SpellManagerFolder(CSpellManager*) { return kSpellManagerFolder; }
 EI_REPLACE(0x00688940, SpellManagerFolder);
 
 // 00689570 / 00689610 (A-H25). The array takes the table's count, then element i the name of record
@@ -208,7 +208,7 @@ CSpellContainer* CSpellContainer::DeletingDestruct(unsigned flags) {
 EI_REPLACE_METHOD(0x0068BC30, CSpellContainer::DeletingDestruct);
 
 const char* __fastcall SpellContainerClassName(CSpellContainer*) {
-    return reinterpret_cast<const char*>(kSpellContainerClassName);
+    return kSpellContainerClassName;
 }
 int __fastcall SpellContainerClassId(CSpellContainer*) { return 0x1A; }
 EI_REPLACE(0x0068BC10, SpellContainerClassName);

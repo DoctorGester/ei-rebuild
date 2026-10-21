@@ -226,7 +226,7 @@ EI_REPLACE_METHOD(0x006620F0, CParty::RemoveMember);
 // --- A-H17 -----------------------------------------------------------------------------------
 
 namespace {
-const char* ZoneVariableFormat() { return reinterpret_cast<const char*>(0x00794148); }   // "z.%s"
+const char* ZoneVariableFormat() { return "z.%s"; }
 constexpr int kZoneKindGame = 0;
 constexpr int kZoneKindEdge = 1;
 constexpr float kOpened = 1.0f;

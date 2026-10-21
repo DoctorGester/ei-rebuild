@@ -51,10 +51,10 @@ constexpr int kStateLeaving = 3;
 // The stream the received packets are decompressed into (007C83D0).
 CMemoryStream& ReceivedMessages() { return *reinterpret_cast<CMemoryStream*>(0x007C83D0); }
 // The receive errors' formats ("Serv pkt read error prevID=%x curID=%x", ...), read from the exe.
-const char* TextReadPastEnd() { return reinterpret_cast<const char*>(0x00794F0C); }
-const char* TextNoHandler() { return reinterpret_cast<const char*>(0x00794EDC); }
-const char* TextHandlerFailed() { return reinterpret_cast<const char*>(0x00794EA4); }
-const char* TextUnknownType() { return reinterpret_cast<const char*>(0x00794E7C); }
+const char* TextReadPastEnd() { return "Serv pkt read error prevID=%x curID=%x"; }
+const char* TextNoHandler() { return "Serv packet has no handler prevID=%x curID=%x"; }
+const char* TextHandlerFailed() { return "Serv error during parsing command prevID=%x curID=%x"; }
+const char* TextUnknownType() { return "Serv wrong packet ID prevID=%x curID=%x"; }
 
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessedId_
 
@@ -66,8 +66,8 @@ float LowLevel() { return *reinterpret_cast<const float*>(0x0073CDB8); }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
 libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(0x007C56B0); }
-const char* TextServerToClient() { return reinterpret_cast<const char*>(0x00794E50); }
-const char* TextSqueezedTo() { return reinterpret_cast<const char*>(0x00794E6C); }
+const char* TextServerToClient() { return "server to client, size = "; }
+const char* TextSqueezedTo() { return " squeezed to "; }
 // The empty string the original sends in place of a non-unit's name.
 const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 

@@ -32,11 +32,11 @@
 
 namespace {
 
-const char* const kLevelUpKey = reinterpret_cast<const char*>(0x0079386C);       // "camp_level_up"
-const char* const kSignedFormat = reinterpret_cast<const char*>(0x00793818);     // "%+d"
-const char* const kCurrentExpKey = reinterpret_cast<const char*>(0x00793858);    // "camp_current_exp"
-const char* const kLabelFormat = reinterpret_cast<const char*>(0x00792F14);      // "%s %d"
-const char* const kSelectVoiceKey = reinterpret_cast<const char*>(0x00793A10);   // "lmp_select_voice"
+const char* const kLevelUpKey = "camp_level_up";
+const char* const kSignedFormat = "%+d";
+const char* const kCurrentExpKey = "camp_current_exp";
+const char* const kLabelFormat = "%s %d";
+const char* const kSelectVoiceKey = "lmp_select_voice";
 
 // The points a new hero's three attributes must add up to before it can be created.
 float NewHeroPoints() { return *reinterpret_cast<const volatile float*>(0x00741C98); }
@@ -249,7 +249,7 @@ EI_REPLACE(0x00633260, HeroScreenDestroy);
 // --- 006167C0 / 00616560: the hero list and the voices drawn -----------------------------------------
 
 namespace {
-const char* const kVoicesKey = reinterpret_cast<const char*>(0x00793A24);   // "lmp_voices"
+const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
 float VoiceFrameTop() { return *reinterpret_cast<const volatile float*>(0x00741C94); }
 constexpr int kSelectionFrame = 2;           // scene object
@@ -324,8 +324,8 @@ EI_REPLACE(0x00616560, HeroScreenDrawVoices);
 // --- 00616E20: the preview's unit -------------------------------------------------------------
 
 namespace {
-const char* const kHeroName = reinterpret_cast<const char*>(0x0078B0F4);         // "Hero"
-const char* const kHumanHero = reinterpret_cast<const char*>(0x0078B0FC);        // "Human Hero"
+const char* const kHeroName = "Hero";
+const char* const kHumanHero = "Human Hero";
 const char* const kEmptyText = reinterpret_cast<const char*>(0x0079B298);        // ""
 constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview plays
 } // namespace

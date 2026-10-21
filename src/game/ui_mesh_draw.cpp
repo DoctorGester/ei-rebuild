@@ -29,8 +29,8 @@ constexpr int kStackView = 2;
 const Quaternion& IdentityOrientation() { return *reinterpret_cast<const Quaternion*>(0x007C7CD8); }
 constexpr float kSpriteDepth = 10.0f;
 constexpr std::uint32_t kOpaqueBlack = 0xFF000000;
-const char* SetTextureFailed() { return reinterpret_cast<const char*>(0x00792E38); }   // "CI3DFigure::Draw: SetTexture fai..."
-const char* DrawFailed() { return reinterpret_cast<const char*>(0x00792E0C); }         // "CI3DFigure::Draw: CFigure::Draw f..."
+const char* SetTextureFailed() { return "CI3DFigure::Draw.\n SetTexture failed.\n"; }
+const char* DrawFailed() { return "CI3DFigure::Draw.\n CFigure::Draw failed.\n"; }
 
 // One component of the tint as a colour byte: the product stored as a float, then FISTP.
 std::uint32_t ColourByte(float factor) { return static_cast<std::uint32_t>(x87::fistp(factor * kColourScale)); }

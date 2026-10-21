@@ -39,10 +39,10 @@ void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) {
 // variable (+0x54 table).
 void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
 
-const char* const kHero = reinterpret_cast<const char*>(0x0078B0F4);           // "Hero"
-const char* const kHumanHero = reinterpret_cast<const char*>(0x0078B0FC);      // "Human Hero"
-const char* const kFirstZone = reinterpret_cast<const char*>(0x0078B0EC);      // "gz1g"
-const char* const kGameTime = reinterpret_cast<const char*>(0x0073D0BC);       // "gtime"
+const char* const kHero = "Hero";
+const char* const kHumanHero = "Human Hero";
+const char* const kFirstZone = "gz1g";
+const char* const kGameTime = "gtime";
 constexpr std::uint32_t kSix = 0x40C00000;                                     // 6.0f
 
 // The record's inlined constructor (operator new's result may be null; the caller then writes

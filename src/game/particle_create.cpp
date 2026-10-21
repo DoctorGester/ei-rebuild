@@ -963,7 +963,7 @@ CParticleSource* CParticleSource::DeletingDestruct(int flags) {
 EI_REPLACE_METHOD(0x004982F0, CParticleSource::DeletingDestruct);
 
 // 004982D0 / 004982E0 (slots 11 / 12): the exe's "CParticle" (0078B020) and class id 12.
-const char* __fastcall ParticleSourceClassName(CParticleSource*) { return reinterpret_cast<const char*>(0x0078B020); }
+const char* __fastcall ParticleSourceClassName(CParticleSource*) { return "CParticle"; }
 int __fastcall ParticleSourceClassId(CParticleSource*) { return 12; }
 EI_REPLACE(0x004982D0, ParticleSourceClassName);
 EI_REPLACE(0x004982E0, ParticleSourceClassId);

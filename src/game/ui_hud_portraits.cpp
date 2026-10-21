@@ -214,11 +214,11 @@ void CHudPortraits::Update() {
         float build = unit->scale.y;
         if (slot.build_ < build || slot.build_ > build) {
             slot.build_ = build;
-            mfc::CString name(reinterpret_cast<const char*>(0x007844A8));   // "me"
+            mfc::CString name("me");
             if (!(build >= kThin))
-                name = reinterpret_cast<const char*>(0x007945AC);           // "th"
+                name = "th";
             else if (build > kFat)
-                name = reinterpret_cast<const char*>(0x007945A8);           // "fa"
+                name = "fa";
             {
                 const auto& prefix = *reinterpret_cast<const mfc::CString*>(&slot.modelPrefix_);
                 const auto& suffix = *reinterpret_cast<const mfc::CString*>(&slot.modelSuffix_);

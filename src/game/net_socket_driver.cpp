@@ -91,14 +91,14 @@ stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
         void* h = libcrt::imports::GetHostByAddr(this, 0x10, 2);
         if (h && *static_cast<char**>(h)) {
             std::uint16_t value = libcrt::imports::Ntohs(port);
-            gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784054), *static_cast<char**>(h), value & 0xFFFF);
+            gamecrt::sprintf(text, "%s:%i", *static_cast<char**>(h), value & 0xFFFF);
             named = true;
         }
     }
     if (!named) {
         std::uint16_t value = libcrt::imports::Ntohs(port);
         auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
-        gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784044), bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
+        gamecrt::sprintf(text, "%i.%i.%i.%i:%i", bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     }
     // Made in `out` (raw storage): a block of length + 1 bytes, the text, the terminator.
     new (out) stlp::string(text, text + std::strlen(text));

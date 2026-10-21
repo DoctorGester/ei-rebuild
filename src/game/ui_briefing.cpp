@@ -55,7 +55,7 @@ int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record
 
 CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
-const char* ZoneTopicFormat() { return reinterpret_cast<const char*>(0x0079338C); }   // "b.%s"
+const char* ZoneTopicFormat() { return "b.%s"; }
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kTopicNameParts = 3;
 

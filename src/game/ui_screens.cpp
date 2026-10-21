@@ -72,7 +72,7 @@ namespace {
 const CItemLoot* AsLoot(const CItem* item) {
     return item->type_ == kTypeQuick ? static_cast<const CItemLoot*>(item) : nullptr;
 }
-const unsigned char* NoMaterial() { return reinterpret_cast<const unsigned char*>(0x007846F0); }   // "none"
+const unsigned char* NoMaterial() { return reinterpret_cast<const unsigned char*>(game::NoneText()); }
 } // namespace
 
 // The predicates are thiscall in the original (on the camp or a strip's owner) but never read ECX:

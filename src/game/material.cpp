@@ -15,9 +15,9 @@
 
 namespace {
 
-constexpr std::uintptr_t kMaterialClassName = std::uintptr_t(0x00795A60);   // "CMaterial"
-constexpr std::uintptr_t kManagerClassName = std::uintptr_t(0x00795ACC);    // "CMaterialManager"
-constexpr std::uintptr_t kManagerFolder = std::uintptr_t(0x00795AC0);       // "materials"
+constexpr const char* kMaterialClassName = "CMaterial";
+constexpr const char* kManagerClassName = "CMaterialManager";
+constexpr const char* kManagerFolder = "materials";
 constexpr std::size_t kColorTableHint = 100;
 
 // The names, alpha and the two ints the constructor and Create reset (in their order).
@@ -76,7 +76,7 @@ void CMaterial::Destroy() {
     entries.PopAll();
 }
 
-const char* __fastcall MaterialClassName(CMaterial*) { return reinterpret_cast<const char*>(kMaterialClassName); }
+const char* __fastcall MaterialClassName(CMaterial*) { return kMaterialClassName; }
 int __fastcall MaterialClassId(CMaterial*) { return 5; }
 EI_REPLACE(0x0068DD00, MaterialClassName);
 EI_REPLACE(0x0068DD10, MaterialClassId);
@@ -188,9 +188,9 @@ int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
 }
 EI_REPLACE_METHOD(0x0068EAF0, CMaterialManager::FillMaterial);
 
-const char* __fastcall MaterialManagerFolder(CMaterialManager*) { return reinterpret_cast<const char*>(kManagerFolder); }
+const char* __fastcall MaterialManagerFolder(CMaterialManager*) { return kManagerFolder; }
 const char* __fastcall MaterialManagerClassName(CMaterialManager*) {
-    return reinterpret_cast<const char*>(kManagerClassName);
+    return kManagerClassName;
 }
 int __fastcall MaterialManagerClassId(CMaterialManager*) { return 0x27; }
 EI_REPLACE(0x0068E4F0, MaterialManagerFolder);

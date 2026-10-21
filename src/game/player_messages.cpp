@@ -335,7 +335,7 @@ namespace {
 constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x00743280);
 constexpr std::uintptr_t kPlacementsVtable = std::uintptr_t(0x0073D2C8);
-constexpr std::uintptr_t kClassNameAddress = std::uintptr_t(0x00794E40);   // "CPlayerServer"
+constexpr const char* kClassNameAddress = "CPlayerServer";
 constexpr int kClassId = 0x3B;
 
 void ConstructGroup(ScriptGroup& group) {
@@ -408,7 +408,7 @@ CPlayerServer* CPlayerServer::DeletingDestruct(unsigned flags) {
     return this;
 }
 
-const char* __fastcall PlayerServerClassName(CPlayerServer*) { return reinterpret_cast<const char*>(kClassNameAddress); }
+const char* __fastcall PlayerServerClassName(CPlayerServer*) { return kClassNameAddress; }
 int __fastcall PlayerServerClassId(CPlayerServer*) { return kClassId; }
 
 void CPlayerServer::ForgetSentObjects() {

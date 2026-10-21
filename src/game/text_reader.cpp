@@ -31,8 +31,8 @@ const TextString& Ops(const mfc::CString& s) { return static_cast<const TextStri
 
 // 004DBE40 (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
 
-const char* const kComment = reinterpret_cast<const char*>(0x0078DCF8);   // "##"
-const char* const kHeader = reinterpret_cast<const char*>(0x0078DCFC);    // "#"
+const char* const kComment = "##";
+const char* const kHeader = "#";
 
 // The cursor `p` is inside the text (signed compare, as every inlined test).
 bool Inside(const CTextManager* t, const char* p) {

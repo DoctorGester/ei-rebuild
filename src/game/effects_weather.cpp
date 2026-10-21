@@ -135,8 +135,8 @@ constexpr int kWeatherTextureKind = 6;
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
 // 0078AE48 "RainSnow" and 0078DFA4 "nature\rain\circle.wav".
-const char* WeatherTextureName() { return reinterpret_cast<const char*>(0x0078AE48); }
-const char* RainSoundName() { return reinterpret_cast<const char*>(0x0078DFA4); }
+const char* WeatherTextureName() { return "RainSnow"; }
+const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
 } // namespace
 
 void CRainSnow::Clear() {
@@ -352,7 +352,7 @@ int __fastcall FogCreate(CVisibilityFog* self) {
     return 1;
 }
 void __fastcall FogDestroy(CVisibilityFog* self) { self->ClearCells(); }
-const char* __fastcall FogClassName(CVisibilityFog*) { return reinterpret_cast<const char*>(0x0078DE80); }
+const char* __fastcall FogClassName(CVisibilityFog*) { return "CVisibilityFog"; }
 int __fastcall FogClassId(CVisibilityFog*) { return kFogClassId; }
 EI_REPLACE(0x004E23D0, FogCreate);
 EI_REPLACE(0x004E2440, FogDestroy);

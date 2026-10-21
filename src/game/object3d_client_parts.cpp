@@ -25,9 +25,9 @@ namespace {
 
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073DE90);
 constexpr std::uintptr_t kSpecificBaseVtable = std::uintptr_t(0x0073DEFC);
-constexpr std::uintptr_t kNoneText = std::uintptr_t(0x007846F0);            // "none"
+constexpr const char* kNoneText = "none";
 // "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n"
-constexpr std::uintptr_t kSecondPrimarySetText = std::uintptr_t(0x0078F494);
+constexpr const char* kSecondPrimarySetText = "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n";
 constexpr int kTypeBuildingLike = 0x35;             // CObject3D::type_: its textures get flag 0x2000
 constexpr std::uint32_t kTextureFlag2000 = 0x2000;
 
@@ -246,7 +246,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         textures[count] = set->texture;
         ++set->texture->refCount_;
     } else {
-        if (k == 0) game::DebugLog(game::Text(kSecondPrimarySetText), object->name, object->id_);
+        if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name, object->id_);
         partSets[k]->texture->type_ = kind;
         set = partSets[k];
     }
@@ -368,7 +368,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         bool named;
         {
             mfc::CString copy(name);
-            named = libcrt::Mbsicmp(Bytes(copy), Bytes(game::Text(kNoneText))) != 0;
+            named = libcrt::Mbsicmp(Bytes(copy), Bytes(kNoneText)) != 0;
         }
         if (!named) continue;
         TextureParts* set = partSets[k];
@@ -402,7 +402,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
             material = materials[materialCursor];
         }
     }
-    if (gamecrt::mbscmp(Bytes(secondSkinName), Bytes(game::Text(kNoneText))) == 0)
+    if (gamecrt::mbscmp(Bytes(secondSkinName), Bytes(kNoneText)) == 0)
         SetSkins(skinName, nullptr);
     else
         SetSkins(skinName, secondSkinName);

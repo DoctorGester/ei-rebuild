@@ -45,7 +45,7 @@ __declspec(naked) void __fastcall DrawHeroFaceAt(CUiWindow* /*owner*/, void*, in
     EI_ORIGINAL(0x005ED7B0)
 
 // "buttons\battle\on_off.wav": the sound system keeps the game's own string pointer.
-const char* OnOffSound() { return reinterpret_cast<const char*>(0x007935BC); }
+const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
 
 // The owner's virtual slot 52 (the hero screen: the figure chosen for the new hero).
 void ChooseFigure(CUiWindow* owner, const char* name) {
