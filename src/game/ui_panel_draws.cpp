@@ -187,8 +187,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             hasContainer = true;
         } else if (UiItemKinds::IsSpell(item)) {
             // A record out of range is read through null, as in the original.
-            auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
-                itemdb::Spells().RecordAt(reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellSize));
+            const itemdb::SpellRecord* spell = itemdb::SpellAt(reinterpret_cast<const CItemLoot*>(item)->index_);
             needed += spell->skill;
             manaSum = static_cast<float>(static_cast<double>(manaSum) + spell->mana);
             lastMana = spell->mana;
@@ -198,8 +197,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             DrawItem(owner_, pass, &cell);
             hasSpell = true;
         } else if (UiItemKinds::IsModifier(item)) {
-            auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(itemdb::SpellModifiers().RecordAt(
-                reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellModifierSize));
+            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(reinterpret_cast<const CItemLoot*>(item)->index_);
             manaSum = static_cast<float>(static_cast<double>(manaSum) + modifier->mana);
             needed += modifier->skill;
             cell.x = static_cast<float>(column) + 450.0f;

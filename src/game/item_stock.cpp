@@ -189,8 +189,7 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockList& spells) {
     StockListNode* node = spells.head->next;
     for (unsigned i = 0; i < index; ++i) node = node->next;
     void* spell = node->data;
-    float spellPower;   // CSpell +0x40, the prototype's +0x18 as float bits
-    std::memcpy(&spellPower, &static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->manaCost_, 4);
+    float spellPower = static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->manaCost_;
     EI_NAN_AUDIT(spellPower, power);
     if (spellPower <= power) ctor->SetSpellObject(static_cast<CSpell*>(spell));
 }
@@ -507,8 +506,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
                 }
             }
             CEngineObject* spell = static_cast<CSpellManager*>(spellManager)
-                                       ->CreateSpell(reinterpret_cast<char*>(prototype),
-                                                     reinterpret_cast<SpellModifierNode**>(&chosen));
+                                       ->CreateSpell(prototype, reinterpret_cast<SpellModifierNode**>(&chosen));
             if (spell) ++spell->refCount_;
             StockList::Insert<HeldSpell>(out->End(), static_cast<void*>(spell));
             if (spell) spell->Release();   // slot 4
@@ -679,24 +677,17 @@ EI_REWRITTEN(0x00699440, ItemStock::CopyMagic);
 
 namespace {
 
-
-// A record's index in `table` (signed division), or -1 for null.
-int TableIndex(const char* record, const RecordTable& table, int recordSize) {
-    if (!record) return -1;
-    std::intptr_t offset = reinterpret_cast<std::intptr_t>(record) - reinterpret_cast<std::intptr_t>(table.begin);
-    return static_cast<int>(offset) / recordSize;
-}
-
 // The offered spells' and modifiers' records (from the maps by name) have the tables' layouts:
 // the spell's code a CString at +4, the modifier's inline at +4.
 int SpellIndex(char* record) {
     const char* code = reinterpret_cast<const itemdb::SpellRecord*>(record)->code;
-    return TableIndex(static_cast<itemdb::CodeIndexedTable*>(TableObject(itemdb::Spells()))->FindByCode(code), itemdb::Spells(), itemdb::kSpellSize);
+    itemdb::SpellTable& spells = itemdb::TheSpellDatabase().spells;
+    return spells.IndexOf(spells.FindByCode(code));
 }
 int ModifierIndex(char* record) {
     const char* code = Modifier(record)->code;
-    return TableIndex(static_cast<itemdb::CodeIndexedTable*>(TableObject(itemdb::SpellModifiers()))->FindByCode(code), itemdb::SpellModifiers(),
-                      itemdb::kSpellModifierSize);
+    itemdb::SpellModifierTable& modifiers = itemdb::TheSpellDatabase().modifiers;
+    return modifiers.IndexOf(modifiers.FindByCode(code));
 }
 
 // The common body of 00699C90 / 00699ED0: the source copied to its scratch vector (007C8670 spells,

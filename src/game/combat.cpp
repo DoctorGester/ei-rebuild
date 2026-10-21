@@ -117,9 +117,9 @@ double Unsigned(std::uint32_t value) {
 
 // A CSpell's dword fields that hold floats: +0x24 (prototype +0x2C, the damage), +0x34 (+0x24,
 // the range) and +0x40 (+0x18, the mana cost).
-float SpellDamage(const CSpell* spell) { return std::bit_cast<float>(spell->damage_); }
-float SpellRange(const CSpell* spell) { return std::bit_cast<float>(spell->range_); }
-float SpellCost(const CSpell* spell) { return std::bit_cast<float>(spell->manaCost_); }
+float SpellDamage(const CSpell* spell) { return spell->damage_; }
+float SpellRange(const CSpell* spell) { return spell->range_; }
+float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 } // namespace

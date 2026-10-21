@@ -67,7 +67,7 @@ Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
 
 // 3: the fireball, a particle source flying at the target point; it explodes in state 1.
 Next StartFireball(CSpellEffect* e, const Vector3& from) {
-    float speed = e->speed;
+    float speed = e->Spell()->speed_;
     Vector3 velocity;
     velocity.x = e->targetPoint.x - e->position.x;
     velocity.y = e->targetPoint.y - e->position.y;
@@ -109,7 +109,7 @@ Next StartLightStrike(CSpellEffect* e) {
     e->SetVisual(bolt);
 
     float alpha = Power(e);
-    e->CreateParticle(0, 0x2030, &e->targetPoint, e->radius, alpha, &kZeroVector, nullptr);
+    e->CreateParticle(0, 0x2030, &e->targetPoint, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
     e->CreateSound(0, "magic\\InvokeLight\\start.wav", &e->position, &kZeroVector, kLoud, kLoud);
     e->targetPoint.z = e->targetPoint.z + ConstAt(worlddata::LightAbove());
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
@@ -153,13 +153,13 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     e->CreateParticle(1, 0x2010, &centre, size, alpha, &kZeroVector, nullptr);
     Vector3 direction = WallDirection(centre, from);
     Vector3 span;
-    WallSpan(&direction, &e->radius, &span);
+    WallSpan(&direction, &e->Spell()->radius_, &span);
     if (e->visual) static_cast<CEffectWall*>(e->visual)->SetDirection(&span);
     e->position = centre;
-    e->timer = e->targetCount;
+    e->timer = static_cast<int>(e->Spell()->duration_);
     e->state = 2;
     centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
-    float radius = e->radius;
+    float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
     e->CreateSoundSequence(&centre, &kZeroVector, "magic\\Firewall\\start.wav", "magic\\Firewall\\circle.wav", -1, kVolume, kHearing);
@@ -171,7 +171,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     Vector3 centre = e->targetPoint;
     Vector3 direction = WallDirection(centre, from);
     Vector3 span;
-    WallSpan(&direction, &e->radius, &span);
+    WallSpan(&direction, &e->Spell()->radius_, &span);
     Vector3 a, b;
     a.x = e->targetPoint.x - span.x;
     a.y = e->targetPoint.y - span.y;
@@ -185,10 +185,10 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     static_cast<CEffectLightning*>(bolt)->SetEnds(&a, &b, 0.0f);
     e->SetVisual(bolt);
     e->position = centre;
-    e->timer = e->targetCount;
+    e->timer = static_cast<int>(e->Spell()->duration_);
     e->state = 2;
     centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
-    float radius = e->radius;
+    float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
     e->CreateSoundSequence(&centre, &kZeroVector, game::EmptyText(), "magic\\Lightwall\\circle.wav", -1, kVolume, kHearing);
@@ -200,9 +200,9 @@ Next StartPoisonCloud(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float alpha = Power(e);
-    e->CreateParticle(1, 0x2007, &centre, e->radius, alpha, &kZeroVector, nullptr);
+    e->CreateParticle(1, 0x2007, &centre, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
     e->CreateSoundSequence(&centre, &kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1, kVolume, kHearing);
-    float radius = e->radius;
+    float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
     e->position = centre;
@@ -215,9 +215,9 @@ Next ApplyBuff(CSpellEffect* e) {
     if (!e->target) return Next::Done;
     MapEffect record;
     record.Construct();
-    std::memcpy(&record, &e->effectRecord, sizeof(record));
+    std::memcpy(&record, &e->Spell()->Effect(), sizeof(record));
     record.power = static_cast<std::uint8_t>(
-        PowerScaledToInt(&e->damage, reinterpret_cast<const float*>(&Prototype(e)->effectValues[4]), ConstPtr(worlddata::BuffScale())));
+        PowerScaledToInt(&e->Spell()->damage_, &Prototype(e)->damage, ConstPtr(worlddata::BuffScale())));
     record.ending = e->silentEnd;
     ObjectSlots(e->target)->AddEffect(&record);
     return Next::Done;
@@ -240,8 +240,8 @@ Next StartClairvoyance(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
-    e->CreateParticle(0, 0x2018, &e->targetPoint, e->radius, 1.0f, &kZeroVector, nullptr);
-    PrototypeLight(e, &centre, e->radius, &kZeroVector);
+    e->CreateParticle(0, 0x2018, &e->targetPoint, e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
+    PrototypeLight(e, &centre, e->Spell()->radius_, &kZeroVector);
     e->CreateSound(0, "magic\\Clairvoyence\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
@@ -275,7 +275,7 @@ Next StartHealing(CSpellEffect* e) {
     // Controller slot 21, Heal: the original pushes the amount's bits (MOV/PUSH), which a float
     // argument would load and store through the FPU, so the slot takes the bits.
     auto* unit = static_cast<CUnit*>(e->target);
-    unit->Controller()->Heal(Bits(e->damage));
+    unit->Controller()->Heal(Bits(e->Spell()->damage_));
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
     bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;
@@ -328,7 +328,7 @@ Next StartTeleport(CSpellEffect* e) {
     e->CreateParticle(0, 0x2019, &point, -1.0f, 1.0f, &kZeroVector, nullptr);
     e->CreateSound(0, "magic\\Teleport\\start.wav", &point, &kZeroVector, kVolume, kHearing);
     PrototypeLight(e, &point, PrototypeRange(e), &kZeroVector);
-    int duration = e->targetCount;
+    int duration = static_cast<int>(e->Spell()->duration_);
     if (duration < 1) duration = 1;
     e->state = 2;
     e->timer = duration + 0x1E;
@@ -342,7 +342,7 @@ Next StartCharm(CSpellEffect* e) {
     if (!IsUnit(e->caster)) return Next::Leave;
     CUnitServer* tamed = ControllerOf(e->target);
     CUnitServer* tamer = ControllerOf(e->caster);
-    float skill = tamer->stats.stat20 + e->damage;
+    float skill = tamer->stats.stat20 + e->Spell()->damage_;
     auto side = [](CUnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
         if (tamed->TryTame(e->caster, skill) == 0) {
@@ -410,7 +410,7 @@ void CSpellEffect::Start(int type) {
         state = 3;
     } else if (next == Next::Set && durationTail) {
         state = 2;
-        timer = targetCount;
+        timer = static_cast<int>(Spell()->duration_);
     }
     UpdateFootprint(type, 1);
 }
@@ -439,7 +439,7 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
         break;
     }
     case 8:
-    case 0x27: SpellFootprint()->DiscAt(aiMap, &position, radius); break;
+    case 0x27: SpellFootprint()->DiscAt(aiMap, &position, Spell()->radius_); break;
     default: return;
     }
     if (stamp) {

@@ -49,7 +49,7 @@ void CSpellEffect::Load(CStream* stream) {
     Spell()->Load(stream);
     auto packed = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&packed, 4);
-    spellId = packed;
+    Spell()->prototypeId_ = packed;
     CWorld* server = world;
     auto id = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(this));
     LoadEffectObject(stream, server, id, visual);
@@ -58,7 +58,7 @@ void CSpellEffect::Load(CStream* stream) {
     stream->Read(&timer, 4);
     stream->Read(&flags, 4);
     stream->Read(&position, 12);
-    UpdateFootprint(static_cast<int>(spellId >> 16), 1);
+    UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 1);
 }
 EI_REWRITTEN(0x0067E7D0, CSpellEffect::Load);
 
@@ -69,7 +69,7 @@ void CSpellEffect::Save(CStream* stream) {
     stream->Write(&targetPoint, 12);
     stream->Write(&state, 4);
     Spell()->Save(stream);
-    stream->Write(&spellId, 4);
+    stream->Write(&Spell()->prototypeId_, 4);
     SaveEffectObject(stream, visual);
     SaveEffectObject(stream, sound);
     SaveEffectObject(stream, light);

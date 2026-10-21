@@ -102,14 +102,14 @@ void CUnitServer::FinishCast() {
         std::memcpy(&at, action.target->AimPoint(&point), sizeof(at));
     }
     if (carrier) {
-        float cost = std::bit_cast<float>(spell->manaCost_);
+        float cost = spell->manaCost_;
         if (cost > carrier->charge_) {
             action.source = kNoSource;
             return;
         }
         UseItemCharge(carrier, cost);
     } else if (unit->player) {     // 005301A0
-        float cost = std::bit_cast<float>(spell->manaCost_);
+        float cost = spell->manaCost_;
         UnitVitals* vitals = ServerStatsOf(unit);
         double needed = static_cast<double>(stats.Period20()) * cost;
         float maximum;

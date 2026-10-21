@@ -203,8 +203,7 @@ EI_REWRITTEN(0x006218F0, CUiItemStrip::ItemTab);
 int CUiItemStrip::SpellTab(const char* item) {
     if (UiItemKinds::IsSpell(AsItem(item))) {
         // A record out of range is read through null, as in the original.
-        auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
-            itemdb::Spells().RecordAt(ItemRecord(item), itemdb::kSpellSize));
+        const itemdb::SpellRecord* spell = itemdb::SpellAt(ItemRecord(item));
         switch (spell->castType) {
         case 0: return 0;
         case 1: return 1;
@@ -213,8 +212,7 @@ int CUiItemStrip::SpellTab(const char* item) {
         }
     }
     if (UiItemKinds::IsModifier(AsItem(item))) {
-        auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(
-            itemdb::SpellModifiers().RecordAt(ItemRecord(item), itemdb::kSpellModifierSize));
+        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(ItemRecord(item));
         return (static_cast<int>(modifier->kind) > 5) + 3;
     }
     return 5;
@@ -423,7 +421,7 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
     bool ok = true;
     int required = static_cast<int>(spell->skillNeeded_);
     if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
-    float cost = std::bit_cast<float>(spell->manaCost_);
+    float cost = spell->manaCost_;
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(gamecrt::Ftol(cost))) ok = false;
     return ok;

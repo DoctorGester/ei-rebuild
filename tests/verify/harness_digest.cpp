@@ -496,7 +496,7 @@ std::string DescribeMissile(const Projectile* p) {
         std::snprintf(text, sizeof(text), "vtable 0x%08X", unsigned(ei::OriginalAddress(vtable)));
         return text;
     }
-    return "spell " + std::to_string(e->spellId >> 16);
+    return "spell " + std::to_string(e->Spell()->prototypeId_ >> 16);
 }
 
 void ReadMissile(const Projectile* p, Builder& b) {
@@ -511,9 +511,9 @@ void ReadMissile(const Projectile* p, Builder& b) {
     b.Int("caster", IdOf(e->caster));
     b.Vector("targetPoint.x", "targetPoint.y", "targetPoint.z", e->targetPoint);
     b.Int("timer", e->timer);
-    b.Float("damage", e->damage);
-    b.Float("radius", e->radius);
-    b.Int("targets", e->targetCount);
+    b.Float("damage", e->Spell()->damage_);
+    b.Float("radius", e->Spell()->radius_);
+    b.Int("targets", static_cast<int>(e->Spell()->duration_));
     b.Int("visual", IdOf(e->visual));
     b.Int("sound", IdOf(e->sound));
     b.Int("light", IdOf(e->light));

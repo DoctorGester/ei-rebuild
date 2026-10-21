@@ -516,6 +516,9 @@ struct CodeIndexedTable {
     Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
     // The index of `record` in the table, -1 for null.
     int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.begin()) : -1; }
+    // The records as the untyped tables (begin, end) of the item tables, for the code that walks
+    // any of them by stride (Spells(), SpellModifiers()).
+    const RecordTable& Bytes() const { return reinterpret_cast<const RecordTable&>(records); }
 
     stlp::vector<Record> records;   // +0x00 begin, end, end of storage
     stlp::hash_map<stlp::string, Record*, stlp::StringHash> byCode;   // +0x0C
@@ -605,8 +608,8 @@ inline const RecordTable& Armors() { return TheItemDatabase().armors.records; }
 inline const RecordTable& QuickItems() { return TheItemDatabase().quickItems.records; }
 inline const RecordTable& QuestItems() { return TheItemDatabase().questItems.records; }
 inline const RecordTable& Loot() { return TheItemDatabase().loot.records; }
-inline SpellTable& Spells() { return TheSpellDatabase().spells; }
-inline SpellModifierTable& SpellModifiers() { return TheSpellDatabase().modifiers; }
+inline const RecordTable& Spells() { return TheSpellDatabase().spells.Bytes(); }
+inline const RecordTable& SpellModifiers() { return TheSpellDatabase().modifiers.Bytes(); }
 
 // The records of those tables typed (null when the index is out of range).
 inline MaterialRecordHead* MaterialAt(std::uint32_t index) {
@@ -621,7 +624,7 @@ inline QuestItemRecord* QuestItemAt(std::uint32_t index) {
     return reinterpret_cast<QuestItemRecord*>(QuestItems().RecordAt(index, kQuestItemSize));
 }
 inline LootItemRecord* LootAt(std::uint32_t index) { return reinterpret_cast<LootItemRecord*>(Loot().RecordAt(index, kLootSize)); }
-inline SpellRecord* SpellAt(std::uint32_t index) { return Spells().At(index); }
-inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) { return SpellModifiers().At(index); }
+inline SpellRecord* SpellAt(std::uint32_t index) { return TheSpellDatabase().spells.At(index); }
+inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) { return TheSpellDatabase().modifiers.At(index); }
 
 } // namespace itemdb

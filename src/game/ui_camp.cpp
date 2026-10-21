@@ -250,8 +250,8 @@ std::uint32_t RecordType(const CItem* item) { return static_cast<const CItemLoot
 const char* Record(const RecordTable& table, std::uint32_t index, int stride) {
     return table.RecordAt(index, stride);
 }
-const char* SpellRecord(const CItem* item) { return Record(itemdb::Spells(), Index(item), 0x84); }
-const char* ModifierRecord(const CItem* item) { return Record(itemdb::SpellModifiers(), Index(item), 0x24); }
+itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
+itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
 const char* BlueprintRecord(const CItem* item) { return Record(itemdb::Materials(), Index(item), 0x50); }
 // A part's prototype record by the loot's record type (+0x50): weapon, armour, quick item.
 const char* PartRecord(const CItem* item, int recordType) {
@@ -347,11 +347,11 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         if (IsSpellContainer(item)) return CountOf(spellResults_) <= 0;
         if (IsSpell(item)) {
             if (CountOf(spellResults_) > 0) return false;
-            const char* record = SpellRecord(item);
+            const itemdb::SpellRecord* record = SpellRecordOf(item);
             int skill = 0, mana = 0;
-            VirtualBestPartySkill(Read<int>(record, 0x14), &skill, &mana);
-            if (mana < static_cast<int>(gamecrt::Ftol(D(Read<float>(record, 0x18))))) return false;
-            return skill >= Read<int>(record, 0x44);
+            VirtualBestPartySkill(record->school, &skill, &mana);
+            if (mana < static_cast<int>(gamecrt::Ftol(D(record->mana)))) return false;
+            return skill >= record->skill;
         }
         if (!IsModifier(item)) return false;
         int modifiers = 0, skillSum = 0;
@@ -362,24 +362,24 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             if (IsSpellContainer(ItemOf(spellResults_, i))) return false;
             if (IsSpell(ItemOf(spellResults_, i))) {
                 hasSpell = true;
-                const char* record = SpellRecord(ItemOf(spellResults_, i));
-                skillSum += Read<int>(record, 0x44);
-                school = Read<int>(record, 0x14);
-                manaSum = static_cast<float>(D(manaSum) + D(Read<float>(record, 0x18)));
-                // The modifier must suit the spell (its kind +0xC, flags at +0x78 of the spell).
-                std::uint32_t kind = Read<std::uint32_t>(ModifierRecord(item), 0x0C);
-                if (kind < 5 && record[0x78 + kind] == 0) return false;
+                const itemdb::SpellRecord* record = SpellRecordOf(ItemOf(spellResults_, i));
+                skillSum += record->skill;
+                school = record->school;
+                manaSum = static_cast<float>(D(manaSum) + D(record->mana));
+                // The modifier must suit the spell (the spell's flag byte for the modifier's kind).
+                std::uint32_t kind = ModifierRecordOf(item)->kind;
+                if (kind < 5 && record->bytes78[kind] == 0) return false;
             } else if (IsModifier(ItemOf(spellResults_, i))) {
                 ++modifiers;
-                const char* modifier = ModifierRecord(ItemOf(spellResults_, i));
-                manaSum = static_cast<float>(D(manaSum) + D(Read<float>(modifier, 0x10)));
-                skillSum += Read<int>(modifier, 0x18);
+                const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(ItemOf(spellResults_, i));
+                manaSum = static_cast<float>(D(manaSum) + D(modifier->mana));
+                skillSum += modifier->skill;
             }
         }
         if (!hasSpell || modifiers >= 8) return false;
-        const char* modifier = ModifierRecord(item);
-        float manaTotal = static_cast<float>(D(manaSum) + D(Read<float>(modifier, 0x10)));
-        int skillTotal = skillSum + Read<int>(modifier, 0x18);
+        const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(item);
+        float manaTotal = static_cast<float>(D(manaSum) + D(modifier->mana));
+        int skillTotal = skillSum + modifier->skill;
         int skill = 0, mana = 0;
         VirtualBestPartySkill(school, &skill, &mana);
         if (skill < skillTotal) return false;
@@ -424,7 +424,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         if (ItemType(itemMade_) != 0x3006 && !spell->HasCastFlagModifier()) return false;
         if (spell->skillNeeded_ > itemMade_->magicLevel_) return false;
         // The container's charge maximum below the spell's mana cost fails.
-        float need = std::bit_cast<float>(spell->manaCost_);
+        float need = spell->manaCost_;
         float room = itemMade_->chargeMax_;
         EI_NAN_AUDIT(room, need);
         if (room < need) return false;
@@ -688,27 +688,27 @@ bool CCampPages::CanMakeSpell() {
     CSpellConstructor* constructor = spellResults_->SpellConstructor();
     CResourceManager* factory = spellResults_->ItemManager();
     CSpellManager* manager = spellResults_->SpellManager();
-    const char* spell = nullptr;
+    const itemdb::SpellRecord* spell = nullptr;
     // The original keeps the modifiers in an 8-entry stack array (more would overwrite its
     // frame; CanEquip allows at most eight).
-    const char* modifiers[32];
+    itemdb::SpellModifierRecord* modifiers[32];
     int modifierCount = 0;
     if (CountOf(spellResults_) <= 0) return false;
     for (int i = 0; i < CountOf(spellResults_); ++i) {
         CItem* item = ItemOf(spellResults_, i);
         if (IsSpell(item))
-            spell = SpellRecord(item);
+            spell = SpellRecordOf(item);
         else if (IsModifier(item) && modifierCount < 32)
-            modifiers[modifierCount++] = ModifierRecord(item);
+            modifiers[modifierCount++] = ModifierRecordOf(item);
     }
     if (!spell) return false;
     constructor->CallSetManager(manager);
-    if (!constructor->CallBeginConstruct(RecordText(spell))) {
+    if (!constructor->CallBeginConstruct(spell)) {
         constructor->CallSetManager(nullptr);
         return false;
     }
     for (int i = 0; i < modifierCount; ++i) {
-        if (!constructor->CallAddModifier(RecordText(modifiers[i]))) {
+        if (!constructor->CallAddModifier(modifiers[i])) {
             constructor->CallSetManager(nullptr);
             return false;
         }
@@ -728,8 +728,8 @@ bool CCampPages::CanMakeSpell() {
     if (!container) return false;
     ++container->refCount_;
     int skill = 0, mana = 0;
-    VirtualBestPartySkill(Read<int>(spell, 0x14), &skill, &mana);
-    if (mana < static_cast<int>(gamecrt::Ftol(D(std::bit_cast<float>(made->manaCost_))))) return false;
+    VirtualBestPartySkill(spell->school, &skill, &mana);
+    if (mana < static_cast<int>(gamecrt::Ftol(D(made->manaCost_)))) return false;
     return skill >= static_cast<int>(made->skillNeeded_);
 }
 EI_REWRITTEN(0x00612290, CCampPages::CanMakeSpell);

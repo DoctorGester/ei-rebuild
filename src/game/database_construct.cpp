@@ -33,8 +33,8 @@ void CodeIndexedTable<Record>::Construct() {
     new (&records) stlp::vector<Record>();
     byCode.InitBuckets(kBuckets);
 }
-template struct CodeIndexedTable<SpellRecord>;
-template struct CodeIndexedTable<SpellModifierRecord>;
+template void CodeIndexedTable<SpellRecord>::Construct();
+template void CodeIndexedTable<SpellModifierRecord>::Construct();
 
 SpellDatabase* SpellDatabase::Construct() {
     spells.Construct();

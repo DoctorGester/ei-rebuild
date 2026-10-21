@@ -149,7 +149,7 @@ void CItem::AttachSpell(CSpell* spell) {
     spell_ = spell;
     if (spell) ++spell->refCount_;
     if (previous) previous->Release();
-    if (spell_) price_ = std::bit_cast<float>(spell_->price_) + price_;
+    if (spell_) price_ = spell_->price_ + price_;
 }
 EI_REPLACE_METHOD(0x006A04D0, CItem::AttachSpell);
 

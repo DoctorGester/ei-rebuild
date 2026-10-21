@@ -11,7 +11,7 @@ Record* itemdb::CodeIndexedTable<Record>::FindByCode(const char* code) {
     typename decltype(byCode)::Pair pair{key, nullptr};
     return byCode[pair.key];
 }
-template struct itemdb::CodeIndexedTable<itemdb::SpellRecord>;
-template struct itemdb::CodeIndexedTable<itemdb::SpellModifierRecord>;
+template itemdb::SpellRecord* itemdb::SpellTable::FindByCode(const char*);
+template itemdb::SpellModifierRecord* itemdb::SpellModifierTable::FindByCode(const char*);
 EI_REWRITTEN(0x0068C820, itemdb::SpellTable::FindByCode);
 EI_REWRITTEN(0x0068C920, itemdb::SpellModifierTable::FindByCode);

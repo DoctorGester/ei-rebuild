@@ -163,7 +163,8 @@ BOOL CSpellContainer::Build() {
     spell->prototypeField14_ = proto->value3C;
     spell->effectPower_ = 0x10;
 
-    int index = itemdb::Spells().IndexOf(itemdb::Spells().FindByCode(proto->code));
+    itemdb::SpellTable& spells = itemdb::TheSpellDatabase().spells;
+    int index = spells.IndexOf(spells.FindByCode(proto->code));
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
     spell->damage_ = proto->damage;
@@ -226,7 +227,8 @@ BOOL CSpellContainer::Build() {
         spell->manaCost_ = modifier->mana + spell->manaCost_;
         spell->price_ = modifier->price + spell->price_;
 
-        int modifierIndex = itemdb::SpellModifiers().IndexOf(itemdb::SpellModifiers().FindByCode(modifier->code));
+        itemdb::SpellModifierTable& modifiers = itemdb::TheSpellDatabase().modifiers;
+        int modifierIndex = modifiers.IndexOf(modifiers.FindByCode(modifier->code));
         char code = static_cast<char>(modifierIndex + 1);
         // push_back on the STLport string: grow to size + max(size, 1) when full.
         if (codesEnd_ + 1 == codesCapacity_) {
