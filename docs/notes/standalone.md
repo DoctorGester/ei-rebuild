@@ -325,6 +325,15 @@ kinds given.
   0079BCF0 and 0079BEC8 are GameOptions members (0079BC70 +0x80, +0x258), read as `options::TheOptions()->...`, not named.
   A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
   `void* g_hook = /*addr*/ {nullptr};` cast at the call.
+- **Global objects (C18n)**: `--check` refuses a named range inside a singleton the code reaches by field offset
+  (config/global_objects.csv: address, size, name, class; TheServerWorld 007AFF60 +0x12E7C, TheClientWorld, TheGameFlow,
+  TheInterface, TheCursor, TheCamera, TheSceneRenderer, ...) and says which object and field: C18i's 007C2CC4 is
+  `TheServerWorld + 0x12D64 (CWorldServer::sessionKind_)`; the world also holds TheMissionScript 007C27D4 (commandsA_),
+  007C29CC (commandsB_), TheSectorMap 007B01F4 (sectorMap_), the AI map 007B00D0 and the diplomacy 007C2BC4. Naming the
+  whole object is allowed. `python tools/named_data.py --owner BEGIN [END]` asks the same of any address. The CSV's sizes
+  come from `static_assert(sizeof(T) == N)` where the sources have one (checked against it); CWorldServer 0x12E7C,
+  CCamera 0x308 and CSceneRenderer 0x5C have none and were read off the compiler. A new GamePointer<T>(addr) accessor in
+  game_singletons.h must lie in a listed object. Before naming a lone address, `--owner` it.
 - **C18h (the small areas)**: three kinds of reads went away. (1) Members of blocks read by their base: the logic
   settings 007C53F8 (`GameLogicSettings()`: guard / follow radii, the hit point curve's hpVal, skillVal, lost money /
   experience, durability, absorption / attack / defence per difficulty; 25 literals in unit*, combat*, player_server_handlers)

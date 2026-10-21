@@ -2739,7 +2739,7 @@ group = "cleanup"
 size = 0.5
 model = "sonnet"
 files = ["tools/named_data.py"]
-note = "From C18i (2026-10-21): 007C2CC4 was named as a separate global but is CWorldServer::sessionKind_ inside TheServerWorld (007AFF60 + 0x12D64); UpdateWeather kept reading the old location and every image run stopped before the main menu. named_data.py should refuse a named range that falls inside a known global object (TheServerWorld at 007AFF60 sized by sizeof(CWorldServer), and the other big singletons), listing the owner and field offset instead."
+note = "Done: tools/named_data.py --check refuses a named range (definitions and unread objects) inside a global object of config/global_objects.csv (10 singletons: TheServerWorld 007AFF60+0x12E7C, TheClientWorld, TheGameFlow, TheInterface, TheCursor, TheCamera, TheSceneRenderer, TheMapDatabase, ThePartyManager, TheDeviceLock) and names owner + field via the sources' offsetof static_asserts (007C2CC4 -> TheServerWorld + 0x12D64 (CWorldServer::sessionKind_)); --owner BEGIN [END] queries any address. Sizes are checked against static_assert(sizeof) where present; CWorldServer 0x12E7C, CCamera 0x308, CSceneRenderer 0x5C have none (read off the compiler). Every GamePointer<T>(addr) accessor in game_singletons.h must lie in a listed object. Existing 335 names: 0 inside such objects. Nested world members TheMissionScript 007C27D4 (commandsA_), 007C29CC (commandsB_), TheSectorMap 007B01F4, 007B00D0 aiMap_, 007C2BC4 diplomacy_ are covered by TheServerWorld. Verify build green; no C++ changes. Optional follow-up: add static_assert(sizeof) for CWorldServer/CCamera/CSceneRenderer."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
