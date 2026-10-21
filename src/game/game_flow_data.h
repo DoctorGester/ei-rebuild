@@ -33,7 +33,6 @@ constexpr const char* kLeftPrefix = "zt.";      // the time the zone was left
 constexpr const char* kGTime = "gtime";
 constexpr const char* kMapExtension = ".mpr";
 constexpr const char* kMobExtension = ".mob";
-constexpr std::uintptr_t kHalf = std::uintptr_t(0x0073B86C);            // 0.5f
 
 // ---- StartNetworkZone --------------------------------------------------------------------------
 constexpr const char* kNetworkExitTarget = "MPGame1";   // where every exit leads

@@ -28,7 +28,7 @@ src/game/engine_object.h,rdata,1
 src/game/figure_bone_lifetime.cpp,rdata,1
 src/game/figure_manager.h,rdata,1
 src/game/figure_mesh.h,rdata,4
-src/game/game_flow_data.h,rdata,2
+src/game/game_flow_data.h,rdata,1
 src/game/global_map_clouds.h,rdata,1
 src/game/ground_print.h,rdata,4
 src/game/item.h,rdata,9

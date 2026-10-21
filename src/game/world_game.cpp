@@ -297,7 +297,6 @@ constexpr float kCatchUpRadius = 70.0f;
 constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 CWorldServer* World() { return ei::GamePointer<CWorldServer>(0x007AFF60); }
 const mfc::CString& MoviesFolder() { return ei::GameData<const mfc::CString>(0x007AF458); }
@@ -370,8 +369,8 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         // The centre of the exit's deploy rectangle.
         const MapExit* exit = zoneRecord->exits.data + entrance;
         Vector3 point;
-        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * GameFloat(kHalf));
-        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * GameFloat(kHalf));
+        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f /*0073B86C*/);
+        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f /*0073B86C*/);
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
             World()->WakeUnitsAround(&point, kCatchUpRadius);
