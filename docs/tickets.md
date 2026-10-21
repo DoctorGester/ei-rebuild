@@ -71,8 +71,7 @@ Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with th
 
 Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14).
 
-- **N4** ui_gallery scenario: every window family captured (running since 2026-10-21; 1 session). Files: `tests/scenarios/`. After: SV1.
-- **P1** Surface plumbing: a canvas per native surface (ready; 2 sessions). Blit, Get/ReleaseDC, fills and frames, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen and Greyscale on the GPU. First surfaces: backdrop, FPS, status. After: N1, N3.
+- **P1** Surface plumbing: a canvas per native surface (running since 2026-10-21; 2 sessions). Blit, Get/ReleaseDC, fills and frames, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen and Greyscale on the GPU. First surfaces: backdrop, FPS, status. After: N1, N3.
 - **P7** CPU-written textures and clouds on the GPU (optional) (ready; 1.5 sessions).
 - **P2** Text through the glyph atlas (waiting on P1; 1 session). Files: `src/game/ui_text_draw.cpp`.
 - **P3a** Native menus and dialogs (waiting on P2; 1 session). Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture.
@@ -87,6 +86,7 @@ Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src
 - **N1** 2D canvas layer (done 2026-10-21; 2 sessions). Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too). Files: `src/render/render_ui.{h,cpp}`, `src/render/render.cpp`, `src/render/render_internal.h`. After: SV1.
 - **N2** Font loading, glyph atlas and DrawText-compatible layout (done 2026-10-14; 2 sessions). render::text (stb_truetype with Liberation Serif / Mono, GlyphAtlas, Layout, TextExtent, DecodeCp1251); ei_text_check has --rules, --gdi and --report; not pixel-exact with GDI. Files: `src/render/render_text.{h,cpp}`, `third_party/stb`, `third_party/fonts`.
 - **N3** Comparison harness: uinative / uiboth, per-surface diff (done 2026-10-21; 1.5 sessions). Text compared with a tolerance (own fonts). One registration line in harness.cpp after SV1 and W2 merge. Files: `tests/verify/harness_ui.cpp`, `tools/compare_frames.py`, `src/render/render_ui.cpp`. After: N1, SV1, W2.
+- **N4** ui_gallery scenario: every window family captured (done 2026-10-21; 1 session). Files: `tests/scenarios/`. After: SV1.
 - **N5** Cursor and per-frame images cached (done 2026-10-14; sonnet, 0.5 sessions). Cursor and per-frame images are cached (up to 64 dynamic images updated in place, one per movie): image creations per scenario 40-135 down to 1-2. Files: `src/render/render_blit.cpp`.
 - **N0a** Census coverage: help page, chat, connect list, escape-menu capture, save picture, global-map pick (done 2026-10-14; 0.5 sessions). Census coverage extended to the help page, chat, connect list, escape-menu capture, save picture and global-map pick; see docs/notes/ui-census.md (Coverage). Files: `tests/scenarios/`, `tests/verify/ui_census.cpp`.
 - **N2a** Line heights matching GDI's hinted Times New Roman (optional) (done 2026-10-14; 0.3 sessions). Dropped: the user is fine with Liberation's wrapping and line heights (screenshots from ei_text_check --pictures). After: N2.
