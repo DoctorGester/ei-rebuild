@@ -31,9 +31,6 @@ double Unsigned(std::uint32_t value) {
 
 #define EI_ONE 1.0f /*0073B84C*/
 
-// x87 FCOMP; FNSTSW; C0: "a < b or unordered".
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
-
 ParticleVertexArray& Vertices() { return ei::GameData<ParticleVertexArray>(0x007A9BD0); }
 ParticleSpriteArray& Sprites() { return ei::GameData<ParticleSpriteArray>(0x007A9BE0); }
 std::uint8_t& ArraysConstructed() { return ei::GameData<std::uint8_t>(0x007A9BF4); }
@@ -71,8 +68,8 @@ float Interpolation() {
     float one;
     std::uint32_t oneBits = 0x3F800000;
     std::memcpy(&one, &oneBits, sizeof(one));
-    float clamped = LessOrUnordered(one, fraction) ? one : fraction;
-    return LessOrUnordered(clamped, 0.0) ? 0.0f : clamped;
+    float clamped = fraction <= one ? fraction : one;
+    return clamped >= 0.0f ? clamped : 0.0f;
 }
 
 // One colour channel (at `shift`) between the previous and the current colour, truncated.

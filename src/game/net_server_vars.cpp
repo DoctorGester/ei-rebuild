@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -17,8 +18,6 @@ namespace net {
 namespace {
 
 std::uint32_t& VariableCounter() { return ei::GameData<std::uint32_t>(0x0079B608); }
-// FCOMP then TEST AH,0x40 (C3): equal, or unordered.
-bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
 
 VariableMessage* VariableAt(RefNode* node) { return static_cast<VariableMessage*>(node->data.ptr); }
 
@@ -67,10 +66,11 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
     return out;
 }
 
-// 00419730: sets the variable; a zero (or NaN) value removes it instead. A set bumps the version
+// 00419730: sets the variable; a zero value removes it instead. A set bumps the version
 // and takes the next serial.
 void ServerSession::SetVariable(const stlp::string* name, float value) {
-    if (!EqualOrUnordered(value, 0.0f /*0073B858*/)) {
+    EI_NAN_AUDIT(value);
+    if (value != 0.0f /*0073B858*/) {
         RefNode* found;
         FindOrAddVariable(&found, name);
         VariableMessage* variable = VariableAt(found);
@@ -103,7 +103,8 @@ void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     VariableAt(found)->serial_ = VariableCounter();
     ++VariableCounter();
     ++VariableAt(found)->version_;
-    if (EqualOrUnordered(VariableAt(found)->value_, 0.0f /*0073B858*/)) {
+    EI_NAN_AUDIT(VariableAt(found)->value_);
+    if (VariableAt(found)->value_ == 0.0f /*0073B858*/) {
         RefNode* node = FindNode(variables_, name);
         if (node != variables_.End()) variables_.Erase(node);
     }

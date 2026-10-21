@@ -23,6 +23,7 @@
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
+#include "lib/nan_audit.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -380,9 +381,8 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
             brain->Notice(&where, 1000, -2);
         }
     }
-    // TEST AH,0x40: equal or unordered.
-    auto same = [](float a, float b) { return !(a < b) && !(a > b); };
-    if (same(brain->noticedX, point.x) && same(brain->noticedY, point.y)) {
+    EI_NAN_AUDIT(brain->noticedX, point.x, brain->noticedY, point.y);
+    if (brain->noticedX == point.x && brain->noticedY == point.y) {
         int value = level;
         if (!(value < brain->noticedLevel)) value = brain->noticedLevel;
         level = value;

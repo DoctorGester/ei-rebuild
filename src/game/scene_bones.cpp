@@ -19,6 +19,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -43,13 +44,6 @@ using MorphFrames = mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements
 
 // (a - b) / (c - b) as FILD (a - b), FIDIV (c - b), FSTP: one rounded division of exact integers.
 void FrameRatio(int numerator, int denominator, float* out) { *out = static_cast<float>(static_cast<double>(numerator) / denominator); }
-
-// FCOMP with 0.0 (0073B858) and C3: equal, or unordered.
-bool ZeroOrNaN(float v) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &v, 4);
-    return (bits & 0x7FFFFFFFu) == 0 || ((bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0);
-}
 
 // --- The steps -----------------------------------------------------------------------------------
 
@@ -193,7 +187,8 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
     }
 
     const Vector3& pivot = node->offset;
-    if (!ZeroOrNaN(pivot.x) || !ZeroOrNaN(pivot.y) || !ZeroOrNaN(pivot.z)) {
+    EI_NAN_AUDIT(pivot.x, pivot.y, pivot.z);
+    if (pivot.x != 0.0f || pivot.y != 0.0f || pivot.z != 0.0f) {
         game::FatalError(NonNullPivotText(), static_cast<const char*>(bone->name_), static_cast<double>(pivot.x),
                          static_cast<double>(pivot.y), static_cast<double>(pivot.z));
     }

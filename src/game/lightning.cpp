@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <concepts>
 #include <cstring>
@@ -110,7 +111,6 @@ float NoiseAmplitude(float power) {
     return power < 0.0f ? 1.0f : 2.0f;
 }
 
-bool IsNonZero(float f) { return f > 0.0f || f < 0.0f; }   // false for 0 and NaN
 
 } // namespace
 
@@ -325,7 +325,8 @@ void CLightning::Animate() {
     float sway = amplitude_;
     float time = static_cast<float>((static_cast<double>(GameTicks()) + GameTickFraction()) / 4.0);
     main_.Animate(time, NoiseAmplitude(power_));
-    if (IsNonZero(power_)) {
+    EI_NAN_AUDIT(power_);
+    if (power_ != 0.0f) {
         // The branches follow the main segment: each starts at its point of the bolt and ends near
         // the bolt's end, swaying on two sines.
         double n = main_.points.size;
@@ -379,7 +380,8 @@ EI_REPLACE_METHOD(0x004672E0, CLightning::Animate);
 
 void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
     main_.Init(from, to);
-    if (IsNonZero(power_)) {
+    EI_NAN_AUDIT(power_);
+    if (power_ != 0.0f) {
         // Each branch runs from its point of the bolt to the end.
         for (int i = 0; i < 6; ++i) {
             double along = branchPos_[i];

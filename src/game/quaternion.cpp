@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,9 +30,6 @@ double StoreDouble(double v) {
 #define EI_ZERO_D 0.0 /*0073C340*/       // 0.0
 #define EI_ONE_D 1.0 /*0073BAC8*/        // 1.0
 #define EI_SLERP_LINEAR 0.0001 /*0073D078*/ // 1e-4: below this 1 - cos interpolates linearly
-
-// FCOM: "a < b or unordered" (C0), as `TEST AH,1` reads it.
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
 // The shared body of the two angle/axis setters: w = cos(angle / 2), (x, y, z) = axis * sin(angle
 // / 2) / |axis|, the factor rounded to float.
@@ -107,7 +105,8 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     Quaternion c;
     std::memcpy(&c, &b, sizeof(c));
     double stored = StoreDouble(cosine);
-    if (LessOrUnordered(cosine, EI_ZERO_D)) {
+    EI_NAN_AUDIT(cosine);
+    if (cosine < EI_ZERO_D) {
         cosine = -cosine;
         stored = StoreDouble(cosine);
         c.x = static_cast<float>(-D(b.x));

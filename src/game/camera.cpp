@@ -45,17 +45,14 @@ float AbsBits(float f) {
     return f;
 }
 
-// FCOMP 0; FNSTSW; TEST AH,0x40 not taken: neither zero nor NaN.
-bool NonZero(double v) { return v < 0.0 || v > 0.0; }
-
 void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
 
 // The original's branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN
 // limit wins.
 float ClampToMap(float v, float last) {
-    float low = !(v >= 0.0f) ? 0.0f : v;
+    float low = v >= 0.0f ? v : 0.0f;
     float limit = static_cast<float>(last - 1.0f);
-    return !(limit >= low) ? limit : low;
+    return low <= limit ? low : limit;
 }
 
 // Moves `rate` towards `target` by (target - rate) * response * dt; snaps to the target when the
@@ -162,7 +159,8 @@ int CCamera::PlaybackStep(float time) {
     float start = static_cast<float>(D(a.time) + timeOffset_);
     double span = next - start;
     float u = 0.0f;
-    if (NonZero(span)) u = static_cast<float>((D(time) - start) / span);
+    EI_NAN_AUDIT(span);
+    if (span != 0.0) u = static_cast<float>((D(time) - start) / span);
     double dx = D(b.position.x) - a.position.x;
     float dy = static_cast<float>(D(b.position.y) - a.position.y);
     float dz = static_cast<float>(D(b.position.z) - a.position.z);
@@ -382,7 +380,8 @@ void CCamera::Update(float dt) {
 
     // Tilt (pitch in degrees, clamped to the settings' range).
     Approach(&tiltRate_, &tiltTarget_, tiltResponse_, dt);
-    if (NonZero(tiltRate_)) {
+    EI_NAN_AUDIT(tiltRate_);
+    if (tiltRate_ != 0.0f) {
         double pitch = D(dt) * tiltRate_ + pitch_;
         pitch_ = static_cast<float>(pitch);
         bool alternate = (flags_ & kAlternate) != 0;
@@ -394,7 +393,8 @@ void CCamera::Update(float dt) {
 
     // Turn about Z.
     Approach(&turnRate_, &turnTarget_, turnResponse_, dt);
-    if (NonZero(turnRate_)) {
+    EI_NAN_AUDIT(turnRate_);
+    if (turnRate_ != 0.0f) {
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Quaternion q;
         q.SetAxisAngle(up, static_cast<float>(D(dt) * turnRate_));
@@ -413,7 +413,8 @@ void CCamera::Update(float dt) {
     float zoomTarget;
     std::memcpy(&zoomTarget, &zoomTarget_, sizeof(float));
     Approach(&zoomRate_, &zoomTarget, zoomResponse_, dt);
-    if (NonZero(zoomRate_)) distance_ = static_cast<float>(D(dt) * zoomRate_ + distance_);
+    EI_NAN_AUDIT(zoomRate_);
+    if (zoomRate_ != 0.0f) distance_ = static_cast<float>(D(dt) * zoomRate_ + distance_);
 
     const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
     if (!(distance_ >= limits.hardMin)) {

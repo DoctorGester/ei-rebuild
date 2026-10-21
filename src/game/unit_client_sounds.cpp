@@ -169,9 +169,9 @@ struct LocalView {
 // 0079BE6C: footprints show for every unit (else only for units with flags_ 0x400000).
 bool AllFootprintsShown() { return ei::GameData<const int>(0x0079BE6C) == 0; }
 
-// The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; a NaN
-// `now` counts as passed).
-bool PassedFrame(double frame, float last, float now) { return frame > last && !(frame > now); }
+// The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
+// callers have returned on a NaN `now`).
+bool PassedFrame(double frame, float last, float now) { return frame > last && frame <= now; }
 
 void Shake(CUnit* unit) {
     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());

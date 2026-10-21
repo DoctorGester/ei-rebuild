@@ -4,13 +4,9 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
-
-namespace {
-// x87 FCOM + "TEST AH,1" is true for "less than" and for unordered (NaN) operands.
-bool LessOrUnordered(float v) { return !(v >= 0.0f); }
-} // namespace
 
 const float* Terrain::VertexAt(int ix, int iy, int layer) {
     if (ix < 0 || iy < 0) return nullptr;
@@ -75,12 +71,14 @@ float Terrain::HeightAt(float x, float y, int layer) {
             // Lower-right triangle (v00, v10, v11); step to a neighbour if the point is outside it.
             if (iteration >= 10) return PlaneHeight(v00, v10, x, y, v11);
             if (s1 * u1 - s4 * u2 > 0.0f) { --iy0; --iy1; continue; }
-            if (!LessOrUnordered(s3 * u1 - s2 * u2)) return PlaneHeight(v00, v10, x, y, v11);
+            if (s3 * u1 - s2 * u2 >= 0.0f) return PlaneHeight(v00, v10, x, y, v11);
             ++ix0; ++ix1;
         } else {
             // Upper-left triangle (v00, v11, v01).
             if (iteration >= 10) return PlaneHeight(v00, v11, x, y, v01);
-            if (LessOrUnordered(t3 * w1 - t2 * w2)) { --ix0; --ix1; continue; }
+            float across = t3 * w1 - t2 * w2;
+            EI_NAN_AUDIT(across);
+            if (across < 0.0f) { --ix0; --ix1; continue; }
             if (!(t1 * w1 - t4 * w2 > 0.0f)) return PlaneHeight(v00, v11, x, y, v01);
             ++iy0; ++iy1;
         }

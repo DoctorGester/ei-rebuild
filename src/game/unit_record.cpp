@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -73,9 +74,6 @@ void SetFloat(char* p, std::size_t offset, float v) { std::memcpy(p + offset, &v
 const std::uint32_t* Ids(const char* r, std::size_t offset) { return *reinterpret_cast<const std::uint32_t* const*>(r + offset); }
 int Count(const char* r, std::size_t offset) { return static_cast<int>(Dword(r, offset + 4)); }
 
-// Equal or unordered: the original's FCOMP; TEST AH,0x40.
-bool EqualOrNaN(float a, float b) { return !(a < b) && !(a > b); }
-
 // The unit's fields (CUnit, ai_map.h owns the layout).
 constexpr std::size_t kUnitStats = 0x170;
 constexpr std::size_t kUnitController = 0x240;
@@ -105,7 +103,8 @@ void UnitRecord::ApplyTo(CUnit* target) {
     float f10, f14;
     std::memcpy(&f10, r + field::kNoStats0, 4);
     std::memcpy(&f14, r + field::kNoStats2, 4);
-    bool noStats = EqualOrNaN(f10, k0) && Dword(r, field::kNoStats1) == 0 && EqualOrNaN(f14, k0);
+    EI_NAN_AUDIT(f10, f14);
+    bool noStats = f10 == k0 && Dword(r, field::kNoStats1) == 0 && f14 == k0;
     if (noStats || Dword(r, field::kApplyStats) == 0) {
         AddItems(r, unit, factory);
         return;

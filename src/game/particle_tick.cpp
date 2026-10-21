@@ -17,6 +17,7 @@
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -39,9 +40,6 @@ IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // The world's wind (007AF5DC: direction, then strength), copied as four dwords.
 const void* WorldWind() { return ei::GamePointer<const void>(0x007AF5DC); }
 
-// x87 FCOMP; FNSTSW; C0: "a < b or unordered".
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
-
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, sizeof(f)); }
 
 // sqrt((x*x + y*y) + z*z), all on the FPU.
@@ -61,12 +59,12 @@ void Normalize(Vector3& v, double length) {
 // The bounding-box fold of the tick and AddParticle: the minimum takes the particle when it is
 // smaller (or unordered), the maximum when the current maximum is smaller (or unordered).
 void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
-    low.x = LessOrUnordered(p.x, low.x) ? p.x : low.x;
-    low.y = LessOrUnordered(p.y, low.y) ? p.y : low.y;
-    low.z = LessOrUnordered(p.z, low.z) ? p.z : low.z;
-    high.x = LessOrUnordered(high.x, p.x) ? p.x : high.x;
-    high.y = LessOrUnordered(high.y, p.y) ? p.y : high.y;
-    high.z = LessOrUnordered(high.z, p.z) ? p.z : high.z;
+    low.x = p.x >= low.x ? low.x : p.x;
+    low.y = p.y >= low.y ? low.y : p.y;
+    low.z = p.z >= low.z ? low.z : p.z;
+    high.x = high.x >= p.x ? high.x : p.x;
+    high.y = high.y >= p.y ? high.y : p.y;
+    high.z = high.z >= p.z ? high.z : p.z;
 }
 
 // Saves the fields the update callback may change, so a rejected update can be undone (dword
@@ -163,7 +161,8 @@ struct TickSteps {
         s->side.y = static_cast<float>(zero - D(m.x));
         SetBits(s->side.z, 0);
         double length = LengthDouble(s->side);
-        if (LessOrUnordered(length, EI_DEGENERATE)) {
+        EI_NAN_AUDIT(length);
+        if (length < EI_DEGENERATE) {
             float mx = m.x;
             s->side.x = static_cast<float>(D(m.y) - D(m.z));
             s->side.y = static_cast<float>(-D(mx));

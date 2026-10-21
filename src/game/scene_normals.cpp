@@ -154,7 +154,7 @@ EI_REPLACE(0x0044E3B0, PackMeshPositions);
 
 namespace {
 // The original's branchless select after FCOMP: `b` when a < b or unordered, else `a`.
-float SelectBelow(float a, float b) { return !(a >= b) ? b : a; }
+float SelectBelow(float a, float b) { return a >= b ? a : b; }
 } // namespace
 
 // 0044E8A0 (Ghidra: PrepareMesh; ECX: the mesh): the bounding box of the positions (+0x168 min,

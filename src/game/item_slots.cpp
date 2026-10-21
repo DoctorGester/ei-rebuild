@@ -4,6 +4,7 @@
 #include "spell.h"
 
 #include "ei/hook.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -11,14 +12,11 @@ using namespace itemdb;
 
 namespace {
 
-// FCOMP; TEST AH,40h: ZF is set when the values are equal or unordered (a NaN compares "equal").
-bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
-// The same for a value the item keeps as raw dword bits.
-bool EqualOrUnordered(std::uint32_t a, std::uint32_t b) {
-    float x, y;
-    std::memcpy(&x, &a, 4);
-    std::memcpy(&y, &b, 4);
-    return EqualOrUnordered(x, y);
+// A value the item keeps as raw dword bits.
+float FloatOf(std::uint32_t bits) {
+    float f;
+    std::memcpy(&f, &bits, 4);
+    return f;
 }
 
 } // namespace
@@ -35,10 +33,12 @@ ItemUse* CItemQuest::GetUseImpl(ItemUse* out) {
 BOOL CItem::IsSameAsImpl(CItem* other) {
     if (other == this) return 1;
     if (type_ != other->type_ || prototypeId_ != other->prototypeId_) return 0;
-    if (!EqualOrUnordered(condition_, other->condition_) || !EqualOrUnordered(conditionMax_, other->conditionMax_) ||
-        !EqualOrUnordered(charge_, other->charge_) || !EqualOrUnordered(chargeMax_, other->chargeMax_) ||
-        !EqualOrUnordered(weight_, other->weight_) || !EqualOrUnordered(price_, other->price_) ||
-        !EqualOrUnordered(value3C_, other->value3C_))
+    EI_NAN_AUDIT(FloatOf(condition_), FloatOf(other->condition_), FloatOf(conditionMax_), FloatOf(other->conditionMax_), charge_,
+                 other->charge_, chargeMax_, other->chargeMax_, FloatOf(weight_), FloatOf(other->weight_), price_, other->price_,
+                 FloatOf(value3C_), FloatOf(other->value3C_));
+    if (FloatOf(condition_) != FloatOf(other->condition_) || FloatOf(conditionMax_) != FloatOf(other->conditionMax_) ||
+        charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || FloatOf(weight_) != FloatOf(other->weight_) ||
+        price_ != other->price_ || FloatOf(value3C_) != FloatOf(other->value3C_))
         return 0;
     if (magicLevel_ != other->magicLevel_) return 0;
     const CSpell* spell = spell_;

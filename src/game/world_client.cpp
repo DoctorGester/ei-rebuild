@@ -348,14 +348,9 @@ namespace {
 // 00665A10 CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
 
-bool NaN(double v) {
-    std::uint64_t bits;
-    std::memcpy(&bits, &v, 8);
-    return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
-}
 // FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (the original's bit trick).
 float SelectLess(float a, float b, float ifLess, float otherwise) {
-    return (NaN(a) || NaN(b) || a < b) ? ifLess : otherwise;
+    return a >= b ? otherwise : ifLess;
 }
 
 // One effect list: the records whose slot 0 returns 0 are erased (through the list's own erase).
@@ -499,7 +494,7 @@ int CWorldClient::Segment() {
                         double dx = static_cast<double>(light->position_.x) - nodeX;
                         double squared = LengthSquared2DUnrounded(dx, dy);
                         double radius = light->rangeSquared_;
-                        if (!NaN(squared) && !NaN(radius) && squared > radius) continue;
+                        if (squared > radius) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
                         point.z = static_cast<float>(terrain_->HeightAt(nodeX, nodeY, 0));
                         float intensity = light->GetIntensityAt(&point);

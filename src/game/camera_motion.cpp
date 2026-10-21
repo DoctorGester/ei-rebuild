@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_library.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -19,9 +20,6 @@
 namespace {
 
 using camera::D;
-
-// FCOMP then TEST AH,0x40 (C3): equal, or unordered.
-bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
 
 } // namespace
 
@@ -38,7 +36,8 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     float ny = static_cast<float>(D(invRounded) * dy);
     float elevation = static_cast<float>(CIasin(-(D(invRounded) * dz)));
     float heading = static_cast<float>(CIacos(D(ny) / libcrt::Hypot(nx, ny)));
-    if (EqualOrUnordered(nx, CAM_ZERO) || EqualOrUnordered(heading, CAM_ZERO)) {
+    EI_NAN_AUDIT(nx, heading);
+    if (nx == CAM_ZERO || heading == CAM_ZERO) {
         std::memcpy(&viewRotation_, &camera::IdentityRotation(), sizeof(Quaternion));
     } else {
         double side = -D(nx);

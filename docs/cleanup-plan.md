@@ -146,7 +146,7 @@ the standalone build they turn into review items:
   simply wrote the comparison, and NaN was never meant to reach these places. They are plain
   comparisons now (a behaviour change for NaN only), with `EI_NAN_AUDIT` (`src/lib/nan_audit.h`)
   logging the first NaN per site in the verify and debug builds; each NaN that does show up is a
-  real bug upstream (see the next item). Left: the `!(a >= b)`-style NaN-aware helpers (C16e).
+  real bug upstream (see the next item). The `!(a >= b)`-style helpers followed (C16e); left: the inline forms (C16f).
 - **NaN that actually happens (an original bug).** An object with a NaN view depth makes the unit
   sort's comparator treat `Less(x, x)` as true, and STLport's unguarded partition then walks off
   the array: the rare Rebirth crash in `docs/open-questions.md`. Fix candidate for the fixes
