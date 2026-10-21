@@ -173,6 +173,7 @@ void CMusicSystem::Stop() {
     state = 0;
     TheSoundManager()->StopStream(4);
 }
+EI_REWRITTEN(0x006B4F70, CMusicSystem::Stop);
 
 namespace {
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
@@ -313,6 +314,7 @@ CMusicSystem::CMusicSystem() {
 }
 
 CMusicSystem* CMusicSystem::Construct() { return new (this) CMusicSystem(); }
+EI_REWRITTEN(0x006B4350, CMusicSystem::Construct);
 
 void CMusicSystem::ResetThemes() {
     state = 0;
@@ -347,6 +349,8 @@ EI_REWRITTEN(0x006B4490, CMusicSystem::DeletingDestruct);
 
 void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
 void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }
+EI_REWRITTEN(0x006B4E10, CMusicSystem::FadeOut);
+EI_REWRITTEN(0x006B4E20, CMusicSystem::FadeIn);
 
 void MusicTheme::Assign(const MusicTheme* from) {
     name = from->name;

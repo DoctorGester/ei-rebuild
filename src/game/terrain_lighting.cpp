@@ -171,6 +171,8 @@ void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y
     if (!skipSun) relightCountdown = -1;
 }
 
+EI_REWRITTEN(0x006C3A00, SectorData::Light);
+EI_REWRITTEN(0x006C36B0, SectorData::ShadeSun);
 EI_REWRITTEN(0x006C31C0, SectorData::LightVertex);
 
 } // namespace terrain

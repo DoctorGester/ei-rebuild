@@ -349,6 +349,7 @@ void CRegionMap::SaveBlocks(CStream* stream) {
         }
     }
 }
+EI_REWRITTEN(0x005B1380, CRegionMap::SaveBlocks);
 
 void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     for (int c = 0; c < 8; ++c) {
@@ -685,4 +686,19 @@ void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, Block
     }
 }
 
+EI_REWRITTEN(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REWRITTEN(0x005AFF10, CRegionMap::FloodRegionFrom);
+EI_REWRITTEN(0x005AF7B0, CRegionMap::CellSuitsBlockAt);
+EI_REWRITTEN(0x005AF3D0, ConstructRegionMap);
+EI_REWRITTEN(0x005B0C00, CRegionMap::Attach);
+EI_REWRITTEN(0x005AFAE0, CRegionMap::MeasureBlockEdges);
 void BlockSearch::PathTo(int x, int y, PathCellList* path) { BlockSearchPathToOf(this, x, y, path); }
+EI_REWRITTEN(0x005AF1C0, BlockSearch::PathTo);
+EI_REWRITTEN(0x005AF5F0, CRegionMap::JoinBlockSearches);
+EI_REWRITTEN(0x005B0600, CRegionMap::DominantRegion);
+EI_REWRITTEN(0x005B0D90, CRegionMap::FindRegionChain);
+EI_REWRITTEN(0x005AF900, CRegionMap::PickRepresentatives);
+EI_REWRITTEN(0x005B1180, CRegionMap::LoadBlocks);
+EI_REWRITTEN(0x005B0F70, CRegionMap::ClampEdgeCosts);
+EI_REWRITTEN(0x005B0370, CRegionMap::NearbyBlocks);
+EI_REWRITTEN(0x005B0050, CRegionMap::LabelRegions);

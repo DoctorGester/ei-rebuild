@@ -100,4 +100,5 @@ double CWorldClient::ClientRawSurfaceHeight(float x, float y) {
 
 EI_REPLACE_METHOD(0x00564070, CWorldClient::ClientRawSurfaceHeight);
 EI_REWRITTEN(0x006C8680, Terrain::HeightAt);
+EI_REWRITTEN(0x006C85A0, Terrain::VertexAt);
 EI_REWRITTEN(0x006BE3A0, PlaneHeight);

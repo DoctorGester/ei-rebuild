@@ -45,3 +45,4 @@ void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
     lines.packets.FreeData();
 }
 
+EI_REWRITTEN(0x005A7290, FigureMeshDrawer::DrawBounds);

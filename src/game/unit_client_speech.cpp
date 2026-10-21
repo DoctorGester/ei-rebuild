@@ -80,6 +80,7 @@ void EraseWhere(ClientSpeechNode*& queue, Pick pick) {
 int SpeechFilter::Replaced(const ClientSpeech* queued) const {
     return Replaces(kind, queued->kind) ? 1 : 0;
 }
+EI_REWRITTEN(0x00537F60, SpeechFilter::Replaced);
 
 bool SpeechFilter::Finished(const ClientSpeech* queued) const {
     if (queued->sound == -1 || SoundBusy(queued->sound)) return false;

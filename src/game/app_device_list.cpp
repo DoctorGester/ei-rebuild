@@ -39,6 +39,7 @@ void __fastcall RecordDestruct(LeverRecord* self) {
     self->text20.~CString();
     self->name.~CString();
 }
+EI_REWRITTEN(0x004652A0, RecordDestruct);
 } // namespace app
 
 // 00463030: the record's fields 0 .. 7 (strings 0, 5, 6, 7).
@@ -52,6 +53,7 @@ void LeverRecord::Archive(ChunkArchive* archive) {
     archive->CStringField(6, &sound);
     archive->CStringField(7, &text28);
 }
+EI_REWRITTEN(0x00463030, LeverRecord::Archive);
 
 // 004657E0: the deleting destructor.
 LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
@@ -59,6 +61,7 @@ LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
+EI_REWRITTEN(0x004657E0, LeverRecord::DeleteScalar);
 
 // 00465A70 / 00465BC0: copy constructor and assignment; both return this.
 LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
@@ -69,6 +72,7 @@ LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
     new (&text28) mfc::CString(from->text28);
     return this;
 }
+EI_REWRITTEN(0x00465A70, LeverRecord::CopyConstruct);
 LeverRecord* LeverRecord::Assign(const LeverRecord* from) {
     name = from->name;
     app::CopyPlain(this, from);
@@ -77,6 +81,7 @@ LeverRecord* LeverRecord::Assign(const LeverRecord* from) {
     text28 = from->text28;
     return this;
 }
+EI_REWRITTEN(0x00465BC0, LeverRecord::Assign);
 
 namespace app {
 
@@ -87,6 +92,7 @@ LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++result) result->Assign(first);
     return result;
 }
+EI_REWRITTEN(0x00465B20, RecordsCopyForward);
 
 // 00465090: the list in chunk `id` of the archive, one chunk 1 per record (emptied and resized
 // to the number of chunks when loading).
@@ -113,5 +119,6 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVecto
     }
     ar->LeaveChunk();
 }
+EI_REWRITTEN(0x00465090, DeviceListArchive);
 
 } // namespace app

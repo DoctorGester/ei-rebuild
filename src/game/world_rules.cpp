@@ -161,4 +161,12 @@ float __stdcall PlayerZeroVariable(const char* name) {
     return Variable(player, name);
 }
 
+EI_REWRITTEN(0x00573A60, DepthLess::Less);
+EI_REWRITTEN(0x00574300, UnitOrderLess::Less);
+EI_REWRITTEN(0x00589580, EntryIdLess::Less);
+EI_REWRITTEN(0x0057F440, IsMultiplayerClient);
+EI_REWRITTEN(0x00578B40, GameTime);
+EI_REWRITTEN(0x00578BA0, LocalPlayerData);
 EI_REWRITTEN(0x00578A90, LocalPlayerName);
+EI_REWRITTEN(0x00578B50, LocalPlayerVariable);
+EI_REWRITTEN(0x00578BE0, PlayerZeroVariable);

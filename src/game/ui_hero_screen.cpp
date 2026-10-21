@@ -73,12 +73,14 @@ int CTradePanel::Experience() const {
     const TradeRecord& record = Record();
     return static_cast<int>(static_cast<double>(record.pendingExperience) + record.experience - record.spentExperience);
 }
+EI_REWRITTEN(0x00625530, CTradePanel::Experience);
 
 int CTradePanel::PurchaseCost() {
     using HeroFn = char*(__thiscall*)(CUiWindow*);
     char* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
     return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
 }
+EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
 
 // --- 006159E0: Draw (slot 20) ------------------------------------------------------------------
 
@@ -214,6 +216,8 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
     for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node))
         static_cast<CEngineObject*>(node->second.object)->Release();
 }
+EI_REWRITTEN(0x00634500, ReleaseCachedObjects);
+EI_REWRITTEN(0x00634560, ReleaseCachedObjects);
 
 // --- 00633260: the destructor body -------------------------------------------------------------
 

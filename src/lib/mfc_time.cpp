@@ -95,4 +95,9 @@ CString CTime::Format(const char* format) const {
     return CString(buffer);
 }
 
+EI_REWRITTEN(0x006FE3BB, CTime::Construct);
+EI_REWRITTEN(0x006FE470, CTime::ConstructSystemTime);
+EI_REWRITTEN(0x006FE4BC, CTime::ConstructFileTime);
+EI_REWRITTEN(0x006FE508, CTime::CurrentTime);
+EI_REWRITTEN(0x006FE795, CTime::Format);
 } // namespace mfc::impl

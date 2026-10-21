@@ -82,25 +82,30 @@ bool __stdcall UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 3;
 }
+EI_REWRITTEN(0x005EE050, UiItemKinds::IsSpell);
 
 bool __stdcall UiItemKinds::IsModifier(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 4;
 }
+EI_REWRITTEN(0x005EE080, UiItemKinds::IsModifier);
 
 BOOL __stdcall UiItemKinds::IsSpellContainer(const CItem* item) {
     return item->type_ == kTypeSpellContainer;
 }
+EI_REWRITTEN(0x005EE0B0, UiItemKinds::IsSpellContainer);
 
 bool __stdcall UiItemKinds::IsPart(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
 }
+EI_REWRITTEN(0x005EE0D0, UiItemKinds::IsPart);
 
 bool __stdcall UiItemKinds::IsKindOne(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 1;
 }
+EI_REWRITTEN(0x005EE110, UiItemKinds::IsKindOne);
 
 bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
     auto* object = const_cast<CItem*>(item);
@@ -113,6 +118,7 @@ bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
     return prototype &&
            gamecrt::mbsicmp(prototype->materialClass_, game::NoneText()) != 0;
 }
+EI_REWRITTEN(0x005EE130, UiItemKinds::IsBuildable);
 
 
 namespace uiorig {
@@ -164,10 +170,12 @@ void CUiItemStrip::SetFilter(int filter) {
         window.regions_.data[i]->SetTip(tipBase + i, 1, 0);
     }
 }
+EI_REWRITTEN(0x00621420, CUiItemStrip::SetFilter);
 
 void CUiItemStrip::SelectTab(int tab) {
     if (TabKeysEnabled()) SetTab(tab);
 }
+EI_REWRITTEN(0x00621510, CUiItemStrip::SelectTab);
 
 void CUiItemStrip::CycleTab(int first, int count) {
     if (!TabKeysEnabled()) return;
@@ -178,6 +186,7 @@ void CUiItemStrip::CycleTab(int first, int count) {
     }
     SetTab(next);
 }
+EI_REWRITTEN(0x00621530, CUiItemStrip::CycleTab);
 
 int CUiItemStrip::ItemTab(const char* item) {
     if (UiItemKinds::IsPart(AsItem(item)) || UiItemKinds::IsKindOne(AsItem(item))) return 0;
@@ -187,6 +196,7 @@ int CUiItemStrip::ItemTab(const char* item) {
     if (type == kTypeQuick) return 3;
     return (type != 0x3009) + 4;
 }
+EI_REWRITTEN(0x006218F0, CUiItemStrip::ItemTab);
 
 int CUiItemStrip::SpellTab(const char* item) {
     if (UiItemKinds::IsSpell(AsItem(item))) {
@@ -207,6 +217,7 @@ int CUiItemStrip::SpellTab(const char* item) {
     }
     return 5;
 }
+EI_REWRITTEN(0x006219A0, CUiItemStrip::SpellTab);
 
 int CUiItemStrip::ArmorTab(const char* item) {
     if (UiItemKinds::IsPart(AsItem(item))) {
@@ -224,6 +235,7 @@ int CUiItemStrip::ArmorTab(const char* item) {
     if (ItemType(item) == kTypeArmor) return 3;
     return UiItemKinds::IsKindOne(AsItem(item)) ? 4 : 5;
 }
+EI_REWRITTEN(0x00621A80, CUiItemStrip::ArmorTab);
 
 void CUiItemStrip::RebuildList() {
     list_.SetSize(0, -1);
@@ -490,6 +502,7 @@ void CMpHeroScreen::ClampHeroSelection() {
     TakeScrollPos(heroScroll_, nullptr, &heroTop_);
     CallShowHero(heroIndex_);
 }
+EI_REWRITTEN(0x00618FF0, CMpHeroScreen::ClampHeroSelection);
 
 void CMpHeroScreen::ClampVoiceSelection() {
     if (voiceIndex_ < 0) voiceIndex_ = 0;

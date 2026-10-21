@@ -374,6 +374,7 @@ __declspec(naked) std::int64_t __cdecl FtolEntry() {
         ret
     }
 }
+EI_REWRITTEN(0x006E853C, libcrt::FtolEntry);
 
 __declspec(naked) double __cdecl CiAcosEntry() {
     __asm {
@@ -388,6 +389,7 @@ __declspec(naked) double __cdecl CiAcosEntry() {
         ret
     }
 }
+EI_REWRITTEN(0x006E7320, libcrt::CiAcosEntry);
 
 __declspec(naked) double __cdecl CiAsinEntry() {
     __asm {
@@ -402,6 +404,11 @@ __declspec(naked) double __cdecl CiAsinEntry() {
         ret
     }
 }
+EI_REWRITTEN(0x006E7334, libcrt::CiAcos);
+EI_REWRITTEN(0x006E83D4, libcrt::CiAsin);
+EI_REWRITTEN(0x006E95A0, libcrt::StackFmod);
+EI_REWRITTEN(0x006FD026, libcrt::Hypot);
+EI_REWRITTEN(0x006E83C0, libcrt::CiAsinEntry);
 
 // ST1 = x, ST0 = y.
 __declspec(naked) double __cdecl CiPowEntry() {
@@ -418,6 +425,7 @@ __declspec(naked) double __cdecl CiPowEntry() {
         ret
     }
 }
+EI_REWRITTEN(0x006E81A0, libcrt::CiPowEntry);
 
 __declspec(naked) double __cdecl CiFmodEntry() {
     __asm {
@@ -433,5 +441,6 @@ __declspec(naked) double __cdecl CiFmodEntry() {
         ret
     }
 }
+EI_REWRITTEN(0x006E95AA, libcrt::CiFmodEntry);
 
 } // namespace libcrt

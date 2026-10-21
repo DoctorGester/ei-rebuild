@@ -80,6 +80,7 @@ void PartyRecord::Destruct() {
     PartyOf(this)->DestructBody();
     vtable = kCountedRootVtable;
 }
+EI_REWRITTEN(0x004577E0, PartyRecord::Destruct);
 
 PartyRecord* PartyRecord::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -98,6 +99,7 @@ void CDirectInputMouse::Destruct() {
     if (input_) input_->Release();
     vtable_ = kMouseRootVtable;
 }
+EI_REWRITTEN(0x004578D0, CDirectInputMouse::Destruct);
 
 CDirectInputMouse* CDirectInputMouse::DeletingDestruct(unsigned flags) {
     Destruct();

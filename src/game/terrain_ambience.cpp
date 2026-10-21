@@ -276,3 +276,4 @@ int terrain::AmbientVariants(int soundClass) { return SoundClasses()[soundClass]
 
 EI_REWRITTEN(0x006CB390, Terrain::PlayAmbience);
 EI_REWRITTEN(0x006CBC00, CWorldClient::AmbienceTimeOfDay);
+EI_REWRITTEN(0x006CBCD0, Terrain::StopAmbience);

@@ -460,3 +460,13 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
     print->Destruct();
 }
 
+EI_REWRITTEN(0x006CEDE0, GroundPrint::Draw);
+EI_REWRITTEN(0x006CF960, GroundPrint::Destruct);
+EI_REWRITTEN(0x0056D080, GroundPrint::Destruct);
+EI_REWRITTEN(0x0056D400, GroundPrint::Destruct);
+EI_REWRITTEN(0x0056D680, GroundPrint::Destruct);
+EI_REWRITTEN(0x00575560, GroundPrint::DeletingDestruct);
+EI_REWRITTEN(0x00575580, GroundPrint::DeletingDestruct);
+EI_REWRITTEN(0x0056CE90, CWorldClient::AddBloodPrint);
+EI_REWRITTEN(0x0056D150, CWorldClient::AddFootprint);
+EI_REWRITTEN(0x0056D4C0, CWorldClient::AddScorchMark);

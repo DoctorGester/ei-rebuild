@@ -36,3 +36,10 @@ FiguredGroupsTable::Value* __fastcall ConstructGroupPair(FiguredGroupsTable::Val
 
 } // namespace gamehash
 
+EI_REWRITTEN(0x005BCCB0, gamehash::InitShapeHandle);
+EI_REWRITTEN(0x005BE090, gamehash::ShapeTable::At);
+EI_REWRITTEN(0x005BE320, gamehash::ShapeAbi::Find);
+EI_REWRITTEN(0x005BE730, gamehash::ShapeAbi::FindOrInsert);
+EI_REWRITTEN(0x004A91B0, gamehash::PartyTable::At);
+EI_REWRITTEN(0x004ABA70, gamehash::PartyAbi::DeleteNode);
+EI_REWRITTEN(0x004AD050, gamehash::PartyAbi::Clear);

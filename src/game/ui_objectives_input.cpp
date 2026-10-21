@@ -229,6 +229,7 @@ void CObjectivesWindow::RefreshQuests() {
     DrawQuestList();
     ShowQuest();
 }
+EI_REWRITTEN(0x0064E8B0, CObjectivesWindow::RefreshQuests);
 
 void CObjectivesWindow::Update() {
     UpdateBase();

@@ -138,6 +138,7 @@ void* ScriptObjectRef::DestroyElement(int flags) {
     return Finish(this, flags);
 }
 EI_REWRITTEN(0x004CE1E0, ScriptObjectRef::DestroyElement);
+EI_REWRITTEN(0x0052D030, ScriptObjectRef::DestroyElement);
 
 void* ScriptGroup::DestroyElement(int flags) {
     DestructBody();

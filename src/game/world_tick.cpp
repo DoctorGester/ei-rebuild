@@ -314,4 +314,6 @@ void CWorldServer::TickSleepingEffects() {
 
 EI_REWRITTEN(0x0058DCD0, CWorldServer::Tick);
 EI_REWRITTEN(0x0058D3D0, CWorldServer::WakeUnitsAround);
+EI_REWRITTEN(0x00593FC0, CWorldServer::InvokeAlarm);
+EI_REWRITTEN(0x0058DC90, CWorldServer::SetGameResult);
 EI_REPLACE_METHOD(0x0058D670, CWorldServer::UpdateUnits);

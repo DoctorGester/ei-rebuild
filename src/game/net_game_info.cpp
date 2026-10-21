@@ -47,6 +47,7 @@ GameBuffer* GameBuffer::CopyOut(void* to, unsigned size) {
     return this;
 }
 
+EI_REWRITTEN(0x00401310, GameBuffer::CopyOut);
 // 00401340: reads `size` bytes: past the highest written position through 004DA170, from memory
 // when they lie before `end`, otherwise through slot 3. Returns `size` or what the callee left.
 unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
@@ -59,6 +60,7 @@ unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
 }
 
 namespace net {
+EI_REWRITTEN(0x00401340, GameBuffer::ReadBytes);
 
 // 00401000: writes the record: +0x1C, +0x20, the two strings, the bytes +0x18, +0x19, +0x1B,
 // +0x1A, then +0x24.

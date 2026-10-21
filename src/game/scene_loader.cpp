@@ -608,6 +608,7 @@ void __stdcall FaceGroup::ConstructElements(FaceGroup* groups, int count) {
         Dwords(&groups->faces)->Construct();
     }
 }
+EI_REWRITTEN(0x00454DB0, FaceGroup::ConstructElements);
 
 void FaceGroup::Destruct() {
     Dwords(&faces)->SetSize(0, -1);

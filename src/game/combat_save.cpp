@@ -128,16 +128,19 @@ void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {
     steps->SetSize(count, -1);
     for (int i = 0; i < steps->count; ++i) stream->Read(&steps->steps[i], sizeof(AnimationStep));
 }
+EI_REWRITTEN(0x005582A0, LoadStepList);
 
 void __fastcall SaveStepList(const AnimationSteps* steps, CStream* stream) {
     WriteCopy(stream, steps->count);
     for (int i = 0; i < steps->count; ++i) stream->Write(&steps->steps[i], sizeof(AnimationStep));
 }
+EI_REWRITTEN(0x00558420, SaveStepList);
 
 void ArmourSpell::Save(CStream* stream) const {
     WriteCopy(stream, IdOrNone(item));
     WriteCopy(stream, countdown);
 }
+EI_REWRITTEN(0x00545430, ArmourSpell::Save);
 
 void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
     int count = 0;
@@ -161,6 +164,7 @@ void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
         stream->Read(&current->data.countdown, 4);
     }
 }
+EI_REWRITTEN(0x005585F0, LoadArmourSpells);
 
 void CUnitServer::LoadServer(CStream* stream) {
     aiPresence = nullptr;

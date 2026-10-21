@@ -31,6 +31,7 @@ void __stdcall CxxThrowException(void* object, const void* throwInfo) {
                                      reinterpret_cast<ULONG_PTR>(throwInfo)};
     gameapi::RaiseException(kCxxExceptionCode, EXCEPTION_NONCONTINUABLE, 3, parameters);
 }
+EI_REWRITTEN(0x006E7819, libcrt::CxxThrowException);
 
 Exception* Exception::Construct() {
     vtable = ExceptionVtable();
@@ -38,6 +39,7 @@ Exception* Exception::Construct() {
     ownsText = 0;
     return this;
 }
+EI_REWRITTEN(0x006E7CD5, libcrt::Exception::Construct);
 
 // The text is copied when the source owns its copy (a failed allocation leaves the pointer null, still
 // marked owned), otherwise the pointer is shared.
@@ -63,11 +65,13 @@ Exception* Exception::Assign(const Exception& source) {
     }
     return this;
 }
+EI_REWRITTEN(0x006E7D89, libcrt::Exception::Assign);
 
 void Exception::Destruct() {
     vtable = ExceptionVtable();
     if (ownsText) gamecrt::operator_delete(const_cast<char*>(text));
 }
+EI_REWRITTEN(0x006E7DA8, libcrt::Exception::Destruct);
 
 Exception* Exception::DeletingDestruct(unsigned flags) {
     Destruct();

@@ -40,6 +40,7 @@ bool ZoneExit::Contains(float x, float y) const {
     if (y1 > turnedY) return false;
     return turnedY <= y2;
 }
+EI_REWRITTEN(0x004E59F0, ZoneExit::Contains);
 
 ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
     for (int i = 0; i < 5; ++i) passTimeDeploy[i] = from->passTimeDeploy[i];
@@ -55,6 +56,7 @@ ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
     deployAngle = from->deployAngle;
     return this;
 }
+EI_REWRITTEN(0x00583B50, ZoneExit::Assign);
 
 // ---- Stream form (004E5750 / 004E58A0) and the CString reader 004E5840 (A-S10) ------------------
 
@@ -68,6 +70,7 @@ void CStream::ReadInto(mfc::CString* out) {
     *out = *text;
     text->~CString();
 }
+EI_REWRITTEN(0x004E5840, CStream::ReadInto);
 
 void ZoneExit::Read(CStream* stream) {
     for (std::uint32_t& word : passTimeDeploy) stream->Read(&word, 4);
@@ -108,3 +111,4 @@ void ZoneExit::Write(CStream* stream) const {
     put(&deployAngle, 4);
     put(&angle, 4);
 }
+EI_REWRITTEN(0x004E58A0, ZoneExit::Write);

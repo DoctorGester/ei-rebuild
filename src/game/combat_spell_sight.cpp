@@ -37,3 +37,4 @@ bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* c
     // The original compares the unrounded ST0 result (TEST AH,1: below or unordered fails).
     return world->AIMap()->LineOfSight(&eye, &to) >= kMinSight;
 }
+EI_REWRITTEN(0x0054BBC0, SpellHasLineOfSight);

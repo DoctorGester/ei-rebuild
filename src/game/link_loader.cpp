@@ -27,8 +27,10 @@ void __fastcall ReadLinkString(stlp::string* out, const char** cursor) {
     out->Assign(text, zero ? static_cast<const char*>(zero) : text + length);
     *cursor += length;
 }
+EI_REWRITTEN(0x004DB9C0, ReadLinkString);
 
 stlp::string* CLinkMesh::CopyName(stlp::string* out) const { return new (out) stlp::string(name_); }
+EI_REWRITTEN(0x004F7370, CLinkMesh::CopyName);
 
 namespace {
 
@@ -331,6 +333,7 @@ void* CLinkFigureLoader::DeleteThisImpl(unsigned flags) {
     return this;
 }
 
+EI_REWRITTEN(0x004F6BD0, CLinkFigureLoader::Destruct);
 bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const stlp::string* name, float s, float t,
                                     float u) {
     const char* data;
@@ -354,6 +357,12 @@ bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const stl
     return true;
 }
 
+EI_REWRITTEN(0x004F9E50, CLinkFigureLoader::RemorphPart);
+EI_REWRITTEN(0x004F77C0, CLinkFigureLoader::LoadLinkFile);
+EI_REWRITTEN(0x004FAB00, CLinkFigureLoader::FindFigureSet);
+EI_REWRITTEN(0x004F7B10, CLinkFigureLoader::MakeFigure);
+EI_REWRITTEN(0x004F7480, CLinkFigureLoader::LoadPartInto);
+EI_REWRITTEN(0x004F7D20, CLinkFigureLoader::LoadArchivePart);
 // The virtual slots, registered through shims (rewrite guide rule 4).
 namespace {
 void __fastcall ClearCacheHook(CLinkFigureLoader* self) { self->CLinkFigureLoader::ClearCache(); }

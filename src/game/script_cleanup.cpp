@@ -125,5 +125,6 @@ void __fastcall ScriptResetZone(CScript* script) {
     }
 }
 
+EI_REWRITTEN(0x004BED90, ScriptPurgeDeletedObjects);
 EI_REWRITTEN(0x004BE490, ScriptDropInstancesAndRuns);
 EI_REWRITTEN(0x004BEB00, ScriptResetZone);

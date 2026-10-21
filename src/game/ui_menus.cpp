@@ -445,6 +445,7 @@ void CUiScrollbar::OnMouseUp(int, int, int) {
     inputHandled_ = true;
 }
 
+EI_REWRITTEN(0x0065B090, CUiScrollbar::TakePosition);
 EI_REPLACE_METHOD(0x0065B360, CUiScrollbar::Update);
 EI_REPLACE_METHOD(0x0065B240, InputForward<&CUiScrollbar::OnMouseDown>::Call);
 EI_REPLACE_METHOD(0x0065B340, InputForward<&CUiScrollbar::OnMouseUp>::Call);

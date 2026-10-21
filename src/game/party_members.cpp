@@ -93,6 +93,9 @@ PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
 }
 EI_REWRITTEN(0x00664950, PartyUnitRecord::Assign);
 
+EI_REWRITTEN(0x00664490, AlignedPtrArray::SetAtGrow);
+EI_REWRITTEN(0x006645D0, AlignedPtrArray::SetAtGrow);
+EI_REWRITTEN(0x00664710, AlignedPtrArray::SetAtGrow);
 // --- CParty -------------------------------------------------------------------------------------
 
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
@@ -199,6 +202,9 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
 }
 EI_REWRITTEN(0x006625B0, CParty::EquipFromPrototype);
 
+EI_REWRITTEN(0x00663E40, AlignedPtrArray::Add);
+EI_REWRITTEN(0x00663F60, AlignedPtrArray::RemoveRange);
+EI_REWRITTEN(0x00663A70, AlignedPtrArray::RemoveRange);
 BOOL CParty::RemoveMember(int key) {
     for (int i = 0; i < members_.size; ++i) {
         PartyUnitRecord* record = &members_.data[i];
@@ -211,6 +217,7 @@ BOOL CParty::RemoveMember(int key) {
     }
     return 0;
 }
+EI_REWRITTEN(0x006620F0, CParty::RemoveMember);
 
 // --- A-H17 -----------------------------------------------------------------------------------
 

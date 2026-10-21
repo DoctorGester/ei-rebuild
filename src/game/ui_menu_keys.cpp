@@ -332,3 +332,4 @@ EI_REPLACE_METHOD(0x006548A0, InputForward<&CSaveLoadWindow::OnKeyDown>::Call);
 EI_REPLACE_METHOD(0x00650E40, InputForward<&COptionsWindow::OnKeyDown>::Call);
 EI_REPLACE_METHOD(0x00655050, InputForward<&CSaveLoadWindow::OnChar>::Call);
 EI_REWRITTEN(0x00655430, CSaveLoadWindow::ShowSelection);
+EI_REWRITTEN(0x00657820, CSaveLoadWindow::IsReservedSave);

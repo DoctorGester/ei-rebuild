@@ -55,3 +55,4 @@ void* QuestTable::Find(const char* name) {
     return byName.FindOrInsert(pair)->value;   // 004CE110
 }
 EI_REWRITTEN(0x004C9C90, QuestTable::Find);
+EI_REWRITTEN(0x0064F550, QuestTable::Find);

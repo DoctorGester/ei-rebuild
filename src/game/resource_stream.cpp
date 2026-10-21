@@ -255,15 +255,22 @@ CMMIOResource* CMMIOResource::DeletingDestroy(unsigned flags) {
 
 // --- Hooks ---------------------------------------------------------------------------------------
 
+EI_REWRITTEN(0x00674790, CResourceBase::Construct);
 EI_REWRITTEN(0x00674810, CResourceBase::Destruct);
 EI_REPLACE_METHOD(0x006747C0, CResourceBase::DeletingDestruct);
 EI_REWRITTEN(0x00674A90, CResourceBase::FreeAccelTable);
 
+EI_REWRITTEN(0x00674280, CResourceStream::Construct);
 EI_REWRITTEN(0x006742C0, CResourceStream::Destruct);
 EI_REPLACE_METHOD(0x006742A0, CResourceStream::DeletingDestruct);
 EI_REWRITTEN(0x00674430, CResourceStream::Close);
+EI_REWRITTEN(0x006744C0, CResourceStream::OpenFile);
+EI_REWRITTEN(0x006746B0, CResourceStream::Read);
+EI_REWRITTEN(0x006746F0, CResourceStream::Seek);
 
+EI_REWRITTEN(0x00674CE0, WildcardMatch);
 EI_REWRITTEN(0x00674AC0, CMappedResource::ListFiles);
 
+EI_REWRITTEN(0x006721D0, CMMIOResource::Construct);
 EI_REWRITTEN(0x006722F0, CMMIOResource::Destroy);
 EI_REWRITTEN(0x006722D0, CMMIOResource::DeletingDestroy);

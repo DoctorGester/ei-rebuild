@@ -165,6 +165,7 @@ float* __fastcall StripDirection(float* out, int index, int mode, const void* ar
     }
     return out;
 }
+EI_REWRITTEN(0x00502B90, StripDirection);
 EI_REWRITTEN(0x00502AC0, EmitSection);
 
 // 00502A20 (thiscall on the device holder, the renderer's device_). Draws an indexed triangle list
@@ -187,6 +188,7 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
     drawCount_ += 1;
     return 1;
 }
+EI_REWRITTEN(0x00502A20, CTextureDevice::DrawTlTriangles);
 
 // 00501D90 (thiscall, RET 0x18). `points` is an array {data, count} of world points (16 bytes each:
 // x, y, z and one more); `width` scales the ribbon's screen width; `mode` 0 projects, 1 projects and
@@ -301,3 +303,4 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
 }
 EI_REPLACE_METHOD(0x00501D90, CSceneRenderer::DrawStripImpl);
 
+EI_REWRITTEN(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);

@@ -59,4 +59,15 @@ void SessionBase::RegisterTradeHandler(int channel, void* handler) {   // 004288
     RegisterHandler(this, channel, handler, TradeMessage::Create);
 }
 
+EI_REWRITTEN(0x004279B0, SessionBase::RegisterRequestHandler);
+EI_REWRITTEN(0x00427AC0, SessionBase::RegisterPartyHandler);
+EI_REWRITTEN(0x00428690, SessionBase::RegisterPartyHandler);
+EI_REWRITTEN(0x00427C40, SessionBase::RegisterMemberHandler);
+EI_REWRITTEN(0x004287D0, SessionBase::RegisterMemberHandler);
+EI_REWRITTEN(0x00428090, SessionBase::RegisterMapHandler);
+EI_REWRITTEN(0x004281C0, SessionBase::RegisterVariableHandler);
+EI_REWRITTEN(0x004282F0, SessionBase::RegisterFileHandler);
+EI_REWRITTEN(0x00428440, SessionBase::RegisterChunkHandler);
+EI_REWRITTEN(0x00428550, SessionBase::RegisterAwardHandler);
+EI_REWRITTEN(0x004288E0, SessionBase::RegisterTradeHandler);
 } // namespace net

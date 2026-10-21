@@ -33,10 +33,12 @@
 const mfc::CString* GameDataPathString() {
     return &TheDataFolder();
 }
+EI_REWRITTEN(0x00578DB0, GameDataPathString);
 
 const mfc::CString* GameBasePathString() {
     return static_cast<const mfc::CString*>(worlddata::BaseFolderString());
 }
+EI_REWRITTEN(0x00578DC0, GameBasePathString);
 
 int __stdcall FinishQuestMap(const char* name) {
     net::ServerSession* server = net::GameServer();
@@ -112,8 +114,10 @@ void __stdcall GameSetConstructionVariable(std::uint32_t value) {
     WorldPlayer* player = TheServerWorld()->GetPlayer(0);
     if (player) player->server->SetVariable(kConstructionVariable, value);
 }
+EI_REWRITTEN(0x00578560, GameSetConstructionVariable);
 
 void __stdcall GameSetWeather(int weather, float strength) { TheServerWorld()->SetWeather(weather, strength); }
+EI_REWRITTEN(0x005786A0, GameSetWeather);
 
 double GameServerTimeOfDay() {
     CWorldServer* world = TheServerWorld();
@@ -125,10 +129,13 @@ void __stdcall GamePassTime(float offset) {
     // FCOMP 0 with TEST AH,1: nothing for a negative offset or a NaN.
     if (offset >= 0.0f) TheServerWorld()->UpdatePlayerTimes(offset);
 }
+EI_REWRITTEN(0x00578700, GamePassTime);
 
 void __stdcall GameEnsureZone(const char* map, const char* mob) { TheServerWorld()->EnsureZone(map, mob); }
+EI_REWRITTEN(0x00578730, GameEnsureZone);
 
 void* GameObject7C2D60() { return ei::GamePointer<void>(0x007C2D60); }
+EI_REWRITTEN(0x00578750, GameObject7C2D60);
 
 void __stdcall GameSetUnitHeight(int id, float z) {
     CWorldServer* world = TheServerWorld();
@@ -144,8 +151,10 @@ void __stdcall GameSetUnitHeight(int id, float z) {
 EI_REWRITTEN(0x00578760, GameSetUnitHeight);
 
 std::uint8_t GameServerPaused() { return TheServerWorld()->paused_; }
+EI_REWRITTEN(0x00578D00, GameServerPaused);
 
 void __stdcall GameSetServerPaused(int paused) { TheServerWorld()->SetServerPaused(static_cast<std::uint8_t>(paused)); }
+EI_REWRITTEN(0x00578D10, GameSetServerPaused);
 
 void GameStopCameraRecording() {
     CWorldClient* world = TheClientWorld();
@@ -181,36 +190,47 @@ int __stdcall GameShowCameraPath(const char* name) {
 EI_REWRITTEN(0x00578880, GameShowCameraPath);
 
 std::uint32_t GameCameraPathPlaying() { return TheClientWorld()->camera_->flags_ & CCamera::kPlaying; }
+EI_REWRITTEN(0x005788B0, GameCameraPathPlaying);
 
 // 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
 int GameRender() { return ClientRenderOriginal(TheClientWorld()); }
 EI_REWRITTEN(0x00578910, GameRender);
 
 void __stdcall GameStopSounds(int stopStream) { TheClientWorld()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
+EI_REWRITTEN(0x00578920, GameStopSounds);
 
 void GameStopAmbience() { TheClientWorld()->terrain_->StopAmbience(); }
+EI_REWRITTEN(0x00578940, GameStopAmbience);
 
 void GameStartAmbience() { TheClientWorld()->terrain_->landscapeFlags |= kTerrainAmbience; }
+EI_REWRITTEN(0x00578950, GameStartAmbience);
 
 int __stdcall GamePlayMusic(const char* name) {
     return TheClientWorld()->sounds_->RequestStream(name ? name : DefaultMusic(), 4);
 }
+EI_REWRITTEN(0x00578960, GamePlayMusic);
 
 CUnit* __stdcall GameFindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
+EI_REWRITTEN(0x00578980, GameFindClientUnit);
 
 void __stdcall GameCreatePartyUnits(const mfc::CArray<std::uint8_t*>* party, int allArmour) {
     TheClientWorld()->CreatePartyUnits(party, static_cast<char>(allArmour));
 }
+EI_REWRITTEN(0x005789C0, GameCreatePartyUnits);
 
 void __stdcall GameRemoveUnitsOf(const mfc::CArray<std::uint8_t*>* records) { TheClientWorld()->RemoveUnitsOf(records); }
+EI_REWRITTEN(0x005789E0, GameRemoveUnitsOf);
 
 int __stdcall GameFindExitAt(const float* point, int* index) { return TheClientWorld()->FindExitAt(point, index); }
+EI_REWRITTEN(0x00578A00, GameFindExitAt);
 
 int __stdcall GamePartyInExit(const mfc::CArray<std::uint8_t*>* records, int exit, mfc::CArray<std::uint8_t*>* inExit) {
     return TheClientWorld()->PartyInExit(records, exit, inExit);
 }
+EI_REWRITTEN(0x00578A20, GamePartyInExit);
 
 const char* __stdcall GameExitTarget(int index) { return TheClientWorld()->ExitTarget(index); }
+EI_REWRITTEN(0x00578A40, GameExitTarget);
 
 void __stdcall GameLeaveThroughExit(int exit) {
     if (IsMultiplayerClient())
@@ -218,27 +238,35 @@ void __stdcall GameLeaveThroughExit(int exit) {
     else
         LocalClient()->TakeExit(exit);
 }
+EI_REWRITTEN(0x00578AC0, GameLeaveThroughExit);
 
 void __stdcall GameSendLeave04(int value) {
     CloseAllRequested() = 1;
     LocalClient()->SendLeave04(value);
 }
+EI_REWRITTEN(0x00578B00, GameSendLeave04);
 
 void GameRejoin() {
     CloseAllRequested() = 1;
     LocalClient()->Rejoin();
 }
+EI_REWRITTEN(0x00578B20, GameRejoin);
 
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out) {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     player->variables.CopyPrefixed(prefix, out);
 }
+EI_REWRITTEN(0x00578B70, GameLocalPlayerVariables);
 
 std::uint8_t* GameLocalView() { return TheClientWorld()->LocalView(); }
+EI_REWRITTEN(0x00578BC0, GameLocalView);
 
 int __stdcall GameSendFlag10(int value) { return TheClientWorld()->SendFlag10(value); }
+EI_REWRITTEN(0x00578D30, GameSendFlag10);
 
 std::uint8_t GameClientPaused() { return TheClientWorld()->paused_; }
+EI_REWRITTEN(0x00578D50, GameClientPaused);
 
 ClientTexts* GameClientTexts() { return TheClientWorld()->texts_; }
+EI_REWRITTEN(0x00578E20, GameClientTexts);
 

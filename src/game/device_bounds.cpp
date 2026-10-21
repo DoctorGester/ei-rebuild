@@ -57,6 +57,7 @@ int CTextureDevice::BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices
     }
     return bounds.Store(this);
 }
+EI_REWRITTEN(0x004E86B0, CTextureDevice::BoundsOfVertices);
 
 // 004E8900 (thiscall, RET 8): the same of projected positions, whole blocks of four at a time (a
 // size that is not a multiple of four reads to the end of its last block).
@@ -72,3 +73,4 @@ int CTextureDevice::BoundsOfProjected(const lib::AlignedArray<devicebuffers::Pro
     }
     return bounds.Store(this);
 }
+EI_REWRITTEN(0x004E8900, CTextureDevice::BoundsOfProjected);

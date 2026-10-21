@@ -370,3 +370,6 @@ EI_REWRITTEN(0x0056BF30, CWorldClient::PickGround);
 EI_REPLACE_METHOD(0x0056C350, CWorldClient::PickSurface);
 EI_REPLACE(0x005740D0, IntroSortByModel);
 EI_REPLACE(0x00574390, FinalSortByModel);
+EI_REWRITTEN(0x00573D50, IntroSortByModelUse);
+EI_REWRITTEN(0x00573F10, FinalSortByModelUse);
+EI_REWRITTEN(0x00573EE0, ModelUseLess::Less);

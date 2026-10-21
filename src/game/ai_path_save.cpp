@@ -102,3 +102,7 @@ void AIPath::SaveOrder(CStream* stream) {
     }
 }
 
+EI_REWRITTEN(0x005B2430, AIPath::LoadPath);
+EI_REWRITTEN(0x005B2570, AIPath::SavePath);
+EI_REWRITTEN(0x005C8230, AIPath::LoadOrder);
+EI_REWRITTEN(0x005C8370, AIPath::SaveOrder);

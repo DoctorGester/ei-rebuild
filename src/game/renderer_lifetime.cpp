@@ -54,6 +54,7 @@ CSceneRenderer* CSceneRenderer::ConstructBase() {
     sun_ = nullptr;
     return this;
 }
+EI_REWRITTEN(0x00500440, CSceneRenderer::ConstructBase);
 
 void CSceneRenderer::DestroyBase() {
     CLight* sun = sun_;
@@ -74,6 +75,7 @@ void CSceneRenderer::DestructBase() {
     ei::SetVtable(this, kBaseVtable);
     DestroyBase();
 }
+EI_REWRITTEN(0x00500480, CSceneRenderer::DestructBase);
 
 CSceneRenderer* CSceneRenderer::DeleteBase(unsigned flags) {
     DestructBase();
@@ -100,6 +102,7 @@ void CSceneRenderer::SetSun(CLight* light) {
     if (old) old->Release();
     if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
 }
+EI_REWRITTEN(0x005007C0, CSceneRenderer::SetSun);
 
 void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
@@ -115,6 +118,7 @@ EI_REWRITTEN(0x00500800, CSceneRenderer::SetSunAndAmbient);
 
 // 00500960 (cdecl, no arguments). The renderer.
 CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
+EI_REWRITTEN(0x00500960, SceneRenderer);
 
 CSceneRenderer* CSceneRenderer::ConstructRenderer() {
     ConstructBase();
@@ -234,6 +238,7 @@ void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevic
     if (device) device->AddRef();
     if (old) old->Release();
 }
+EI_REWRITTEN(0x00504E20, DeviceHolderAssign);
 
 // --- Texture holders -----------------------------------------------------------------------------
 
@@ -261,3 +266,6 @@ void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char
 }
 EI_REWRITTEN(0x00500A00, TextureHolderLoad);
 
+EI_REWRITTEN(0x00504F60, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x00505140, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x00505260, lib::AlignedArray<std::uint32_t>::Construct);

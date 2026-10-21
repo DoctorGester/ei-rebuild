@@ -49,6 +49,7 @@ CUiScrollbar* CUiScrollbar::Construct(CInterface3D* ui, RECT rect, float depth, 
     accumulated_ = 0.0f;
     return this;
 }
+EI_REWRITTEN(0x0065AEA0, CUiScrollbar::Construct);
 
 void CUiScrollbar::SetPosition(int position) {
     if (position < 0) position = 0;
@@ -106,6 +107,7 @@ CUiSlider* CUiSlider::Construct(CInterface3D* ui, RECT rect, float depth, int ma
     inputVtable_ = ei::GamePointer<void*>(kSliderInputVtable);
     return this;
 }
+EI_REWRITTEN(0x0065BC30, CUiSlider::Construct);
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 

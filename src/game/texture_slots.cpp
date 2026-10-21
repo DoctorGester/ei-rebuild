@@ -23,6 +23,7 @@ void MmpHeader::SetNoFormat() {
     bitsPerPixel = 0;
     format = 0;
 }
+EI_REWRITTEN(0x00693820, MmpHeader::SetNoFormat);
 
 void MmpHeader::SetFormat5551() {
     alphaMask = 0x8000, alphaKind = 1, alphaShift = 15;
@@ -32,6 +33,7 @@ void MmpHeader::SetFormat5551() {
     bitsPerPixel = 16;
     format = 0x5551;
 }
+EI_REWRITTEN(0x00693850, MmpHeader::SetFormat5551);
 
 void MmpHeader::SetFormat4444() {
     alphaMask = 0xF000, alphaKind = 4, alphaShift = 12;
@@ -41,6 +43,7 @@ void MmpHeader::SetFormat4444() {
     bitsPerPixel = 16;
     format = 0x4444;
 }
+EI_REWRITTEN(0x006938B0, MmpHeader::SetFormat4444);
 
 void MmpHeader::SetFormat8888() {
     alphaMask = 0xFF000000, alphaKind = 8, alphaShift = 24;
@@ -50,6 +53,7 @@ void MmpHeader::SetFormat8888() {
     bitsPerPixel = 32;
     format = 0x8888;
 }
+EI_REWRITTEN(0x00693910, MmpHeader::SetFormat8888);
 
 // --- CTexture --------------------------------------------------------------------------------------
 
@@ -140,8 +144,10 @@ EI_REWRITTEN(0x00691A70, TextureDestroyHook);
 // --- CTextureManager -------------------------------------------------------------------------------
 
 void* CTextureManager::GetFileData(const char* name) { return GetFile(name, nullptr); }
+EI_REWRITTEN(0x00691CF0, CTextureManager::GetFileData);
 
 CTexture* CTextureManager::NewTextureOfType(int type) { return static_cast<CTexture*>(CreateObject(type, -1)); }
+EI_REWRITTEN(0x00691D40, CTextureManager::NewTextureOfType);
 
 CTexture* CTextureManager::FindOrCreate(int type, const char* name) {
     CTexture* texture = FindTypedTexture(type, name);
@@ -180,6 +186,7 @@ bool CTextureManager::ReloadAll() {
     if (registered.manager) --registered.manager->refCount_;
     return ok;
 }
+EI_REWRITTEN(0x00693F60, CTextureManager::ReloadAll);
 
 void CTextureManager::TrimCache() {
     const auto overLimit = [this] { return cachedBytes_ > static_cast<int>(videoMemoryTenth_); };

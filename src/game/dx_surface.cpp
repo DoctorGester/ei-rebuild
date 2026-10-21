@@ -233,6 +233,7 @@ CDXSurface* CDXSurface::Construct(CTextureDevice* deviceIn, int widthIn, int hei
     ++HolderCount();
     return this;
 }
+EI_REWRITTEN(0x004EF7B0, CDXSurface::Construct);
 
 namespace {
 
@@ -338,6 +339,7 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
     gameapi::LeaveCriticalSection(TheDeviceLock());
     return 1;
 }
+EI_REWRITTEN(0x004F0060, CDXSurface::LoadPictureData);
 
 
 // 004EFC60 (thiscall, RET 0xC): a holder whose surface shows an .mmp picture (the software cursor's
@@ -363,6 +365,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
     ++HolderCount();
     return this;
 }
+EI_REWRITTEN(0x004EFC60, CDXSurface::ConstructFromPicture);
 
 // 004EFD20. Releases the new renderer's memory (the original: the surface), clears the device,
 // counts the holder out and leaves the base class's vtable.
@@ -373,3 +376,4 @@ void __fastcall DXSurfaceDestroy(CDXSurface* holder) {
     --HolderCount();
     SetBaseVtable(holder);
 }
+EI_REWRITTEN(0x004EFD20, DXSurfaceDestroy);

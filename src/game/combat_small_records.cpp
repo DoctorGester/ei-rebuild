@@ -43,6 +43,7 @@ ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     worn = other->worn;
     return this;
 }
+EI_REWRITTEN(0x00558840, ArmourSpell::Assign);
 
 // 00558CA0 / 00558CC0 (the counted reference and the call record deleting destructors) are in
 // world_deleting_destructors.cpp.
