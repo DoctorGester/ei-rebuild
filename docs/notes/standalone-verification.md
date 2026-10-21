@@ -400,7 +400,10 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   own (under 1 ms); InstallHooks' 9,350 "hooked" lines go to ei_hook.log in one write (each Log line is flushed:
   15-25 ms); the renderer's Direct3D 11 device is made on a thread of its own from the image's start
   (render::PrepareDevice, standalone.cpp) while the game's own start-up runs: its first use waits 4-10 ms instead
-  of 70-190 ms (boot alternately with and without it, 6 each: the probe no slower beside it).
+  of 70-190 ms (boot alternately with and without it, 6 each: the probe no slower beside it). Suites with the
+  scheduler's 16 slots full, the image's 121 runs: start-up median 3.0 s, mean 2.9 s, 10-90% 1.9-3.9 s before (main,
+  2026-10-21 03:05); median 1.9 s, mean 2.0 s, 10-90% 1.0-2.8 s after (124 runs in 134 s, goldens the same):
+  ~0.9 s a run, ~110 s of slot time a suite. Boot alone, few games on the machine: first frame 0.9-1.7 s.
 - **What start-up is now** (boot, profiled): ~25 ms to the hook DLL, ~35 ms hook set-up, then GetDxVersion's probe
   0.45-1.3 s (the most of it, and the most sensitive to load: it runs through run\vanilla's dgVoodoo DDraw.dll,
   because the image runs in the vanilla install's folder, where PF3's native-run skip does not apply; the game's
