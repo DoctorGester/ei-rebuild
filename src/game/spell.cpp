@@ -188,9 +188,9 @@ float CLight::GetIntensityAt(const Vector3* point) {
     if (type_ != kPointLight) {
         return color_[2] * kLumaBlue + color_[1] * kLumaGreen + color_[0] * kLumaRed;
     }
-    float dx = point->x - position_.x;
-    float dy = point->y - position_.y;
-    float dz = point->z - position_.z;
+    float dx = point->x - localPosition_.x;
+    float dy = point->y - localPosition_.y;
+    float dz = point->z - localPosition_.z;
     float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
     EI_NAN_AUDIT(distanceSquared, rangeSquared_);
     if (distanceSquared < rangeSquared_) {

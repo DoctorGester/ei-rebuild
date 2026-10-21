@@ -65,7 +65,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
         ambient.x = static_cast<float>(dim * ambient.x);
         ambient.y = static_cast<float>(dim * ambient.y);
         ambient.z = static_cast<float>(dim * ambient.z);
-        float height = sun->position_.z;
+        float height = sun->localPosition_.z;
         attenuation = AtLeastZero(static_cast<float>(1.0 - Product(height, height, loss)));
         colour.x = Max(water.materialColour.x, record->materialColour.x);
         colour.y = Max(water.materialColour.y, record->materialColour.y);
@@ -95,7 +95,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
         LightRef* next = ref->next;
         CLight* light = ref->light;
         float attenuation = 1.0f;
-        Vector3 offset = light->position_ - at;
+        Vector3 offset = light->localPosition_ - at;
         offset.y = static_cast<float>(offset.y);
         offset.z = static_cast<float>(offset.z);
         float distance = Length<Sum3::ZYX>(offset);

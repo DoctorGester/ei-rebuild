@@ -49,7 +49,6 @@ EI_REWRITTEN(0x00539280, UnitModelAt);
 
 // 0053AD30 (thiscall on the prototype table, RET 4): prototype `index`, or null.
 UnitPrototypeRecord* UnitPrototypeTable::At(std::uint32_t index) {
-    return RecordAt(reinterpret_cast<UnitPrototypeRecord*>(begin),
-                    reinterpret_cast<UnitPrototypeRecord*>(end), index);
+    return RecordAt(begin, end, index);
 }
 EI_REWRITTEN(0x0053AD30, UnitPrototypeTable::At);

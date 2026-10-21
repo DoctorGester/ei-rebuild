@@ -317,17 +317,17 @@ EI_REWRITTEN(0x00688EB0, CSpellManager::NewContainer);
 
 CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifiers) {
     CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
-    if (!constructor) return reinterpret_cast<CSpell*>(game::FatalError(kNoSpellConstructor));
+    if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->CallSetManager(this);
     if (!constructor->CallBeginConstruct(prototype))
-        return reinterpret_cast<CSpell*>(game::FatalError(kCantBegin, *reinterpret_cast<char**>(prototype + 4)));
+        return game::FatalErrorAs<CSpell>(kCantBegin, *reinterpret_cast<char**>(prototype + 4));
     int added = 0;
     for (SpellModifierNode* node = (*modifiers)->next; node != *modifiers; node = node->next) {
         if (added >= 8) break;
         constructor->CallAddModifier(node->modifier);
         ++added;
     }
-    if (!constructor->EndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
+    if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);
     CSpell* spell = constructor->container_->Spell()->Clone(this);
     constructor->CallSetManager(nullptr);
     return spell;

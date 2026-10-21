@@ -43,7 +43,7 @@ CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion)
 // The sound system (global 007AF784); thiscall.
 
 // The light's position (a point light of the light factory, class 0x31).
-float* PositionOf(CLight* light) { return &light->position_.x; }
+float* PositionOf(CLight* light) { return &light->localPosition_.x; }
 
 bool IsScaleEffect(int type) {
     return type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||

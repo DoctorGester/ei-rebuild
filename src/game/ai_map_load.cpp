@@ -28,6 +28,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -121,12 +122,12 @@ struct Archive {
     Archive() { Get()->Construct(); }
     ~Archive() { MappedResourceDestroyOriginal(Get()); }
     Archive(const Archive&) = delete;
-    CMappedResource* Get() { return reinterpret_cast<CMappedResource*>(storage); }
+    CMappedResource* Get() { return storage.Get(); }
     bool Open(const char* path) { return MappedResourceOpenOriginal(Get(), nullptr, path, 0) != 0; }
     void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFileImpl(name, size); }
     void Close(void* file) { Get()->CMappedResource::CloseFileImpl(file); }
 
-    alignas(void*) unsigned char storage[sizeof(CMappedResource)];
+    lib::InPlace<CMappedResource> storage;
 };
 
 // A registry as a local (00694520 / 00694540).

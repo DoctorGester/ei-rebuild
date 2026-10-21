@@ -409,7 +409,7 @@ EI_REWRITTEN(0x005F6F30, Screen9Construct);
 // at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
 void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
     static_cast<CUiContainer*>(self)->Construct(ui);
-    reinterpret_cast<CMappedResource*>(Bytes(self) + 0x170)->Construct();
+    static_cast<CCreditsScreen*>(self)->archive_->Construct();
     std::uint8_t* list = Bytes(self) + 0x1C8;
     list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten
     SetDword(list, 0, 0);
@@ -453,7 +453,7 @@ void __fastcall Screen8Destroy(void* self) {
     SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
     header = headerOf();
     if (header) FreeNode18(header);
-    MappedResourceDestroyOriginal(reinterpret_cast<CMappedResource*>(Bytes(self) + 0x170));
+    MappedResourceDestroyOriginal(static_cast<CCreditsScreen*>(self)->archive_.Get());
     DestroyContainerBody(self);
 }
 EI_REWRITTEN(0x005F6E40, Screen8Destroy);

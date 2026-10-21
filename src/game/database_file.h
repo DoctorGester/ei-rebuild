@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"   // MappedResourceOpenOriginal / DestroyOriginal
 #include "resource.h"
+#include "lib/static_object.h"
 
 #include "lib/mfc.h"
 
@@ -23,9 +24,9 @@ namespace dbfile {
 struct LocalResource {
     LocalResource() { Get()->Construct(); }
     ~LocalResource() { MappedResourceDestroyOriginal(Get()); }
-    CMappedResource* Get() { return reinterpret_cast<CMappedResource*>(storage); }
+    CMappedResource* Get() { return storage.Get(); }
     int Open(const char* path) { return MappedResourceOpenOriginal(Get(), nullptr, path, 0); }
-    alignas(void*) unsigned char storage[sizeof(CMappedResource)];
+    lib::InPlace<CMappedResource> storage;
 };
 
 // The memory stream the database file is copied into, built and destroyed as the originals

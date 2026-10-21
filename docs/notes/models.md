@@ -71,7 +71,7 @@ Facts not in the code comments:
   time; transform object slots 1 SetViewportSize, 2 AddSun, 4 SetProjection, 5 SetDepthRange, 40 LightMesh.
 - **Layouts** (C9): the figure at CObject3D +0xF0 is a `CLinkMesh` (slots 7-12 draw a mesh part, 13 / 14 project /
   rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the CFigureMesh, +0x20 its screen rect);
-  CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight +0x28 / +0x108 position / direction
+  CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight (a CTransformObject) +0x28 worldPosition_ / +0x108 position / direction
   in the lit mesh's space, +0xD4 the direction; *007AF748 is `CLightFactory` (spell.h). FigurePart (map_object_figures.h)
   and CFigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. Debug panel 0079B930: file-local
   `CDebugPanel` in string_map.cpp. map_object_shadow.cpp (C9b): the rasterise target is `RasterTarget : RasterTriangle` (texture.h), the locked surface a

@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "originals_units.h"
 #include "unit_create.h"
+#include "unit_db.h"
 
 #include <bit>
 #include <cstring>
@@ -158,12 +159,12 @@ std::uintptr_t CUnit::SendEquipment() {
 EI_REPLACE_METHOD(0x00531110, CUnit::SendEquipment);
 
 std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
-    char* record = unitdb::PrototypeTable().FindByName(prototypeName);
+    UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(prototypeName);
     if (!record) {
         prototype23C = -1;
         return 0xFFFFFFFFu;
     }
-    int offset = static_cast<int>(record - unitdb::Prototypes().begin);
+    int offset = unitdb::PrototypeByteOffset(record);
     prototype23C = offset / unitdb::kPrototypeSize;
     // EAX keeps the low half of the original's IMUL by the reciprocal of 0x120.
     return static_cast<std::uint32_t>(static_cast<std::int64_t>(offset) * 0x38E38E39);

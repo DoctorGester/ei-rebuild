@@ -206,7 +206,7 @@ EI_REWRITTEN(0x006BF580, LightAreaFromBounds);
 
 void Terrain::LightAreaOf(CLight* light, const Vector3* delta, LightArea* area) {
     float range = light->range_;
-    Vector3 position = light->position_;
+    Vector3 position = light->localPosition_;
     float minX = position.x - range;
     float minY = position.y - range;
     float maxX = position.x + range;
@@ -244,7 +244,7 @@ void Terrain::AddLight(CLight* light) {
     int id = light->id_;
     if (id > maxLightId) maxLightId = id;
     lights[id] = entry;
-    Vector3 position = light->position_;
+    Vector3 position = light->localPosition_;
     UpdateArea(this, light, &position, &entry.area, 0);
     RelightArea(&entry.area);
 }
@@ -259,7 +259,7 @@ void Terrain::RemoveLight(CLight* light) {
         area = node->value.area;
         lights.Erase(node);
     }
-    Vector3 position = light->position_;
+    Vector3 position = light->localPosition_;
     UpdateArea(this, light, &position, &area, 1);
     RelightArea(&area);
     light->Release();
@@ -273,14 +273,14 @@ void Terrain::MoveLight(CLight* light, const Vector3* delta) {
     LightTable::Node* node = lights.Find(light->id_);
     LightArea* area = node ? &node->value.area : nullptr;
     LightAreaOf(light, delta, area);
-    Vector3 position = light->position_;
+    Vector3 position = light->localPosition_;
     if (delta) position = position + *delta;
     UpdateArea(this, light, &position, area, 0);
-    Vector3 old = light->position_;
-    light->position_ = old + *delta;
+    Vector3 old = light->localPosition_;
+    light->localPosition_ = old + *delta;
     RelightArea(area);
     LightAreaOf(light, nullptr, area);
-    light->position_ = old;
+    light->localPosition_ = old;
 }
 EI_REWRITTEN(0x006CA830, Terrain::MoveLight);
 
@@ -289,7 +289,7 @@ void Terrain::LightSector(SectorData* sector) {
         const LightArea& area = node->value.area;
         if (area.firstSectorX <= sector->sx && sector->sx <= area.lastSectorX && area.firstSectorY <= sector->sy &&
             sector->sy <= area.lastSectorY)
-            terrain::UpdateVertexLights(sector, node->value.light, &node->value.light->position_, &area, 0);
+            terrain::UpdateVertexLights(sector, node->value.light, &node->value.light->localPosition_, &area, 0);
     }
 }
 EI_REWRITTEN(0x006CA9C0, Terrain::LightSector);
