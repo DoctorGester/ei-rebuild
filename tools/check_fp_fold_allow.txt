@@ -5,3 +5,4 @@
 3.141592653589793 ::ArcCosineOrSine  # the same: acos(-1) = pi
 0.7071067811865476 libcrt::CiPow  # _CIpow (006E81C2) normalises the mantissa to [sqrt(1/2), sqrt(2)): the routine's own bound (our reformulation of FYL2X's 64-bit product), not a fold
 0.001 ::RemoveOutdatedEffects  # the same addon.dll double (100181D5) when the verify build does not inline it into AddEffectImpl
+0.46511627906976744 ::TimeGain  # R18's smooth camera: kGainReference, (2000 / 55) / (1000 / 55 + 60), the option's own time per call (not in the original), not a fold

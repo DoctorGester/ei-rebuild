@@ -48,7 +48,7 @@ panic, a lost device not made again: R9c1). Every `render::` entry point checks 
 In game.exe (the harness and the vector recorders run inside the original's process) it is false: captures there read
 the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
 comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `classicshadows` (the game's shadow
-decals instead of the shadow map, R16j, section 13) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
+decals instead of the shadow map, R16j, section 13), `smoothcamera` (the smooth camera, R18, section 14) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
 and change nothing; any other word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
@@ -1167,3 +1167,53 @@ of the 0.5-1.6 ms hand-over).
   of the pixels differ with the .bmp pages against 2.6% without them (the renderers' own differences: the hero, the
   shadows, filtering), so the quadrants sit where the original draws them (a flipped or channel-swapped page would
   differ over the 60% of the frame the pages cover).
+
+## 14. The smooth camera (R18)
+
+User 2026-10-21: at 1x speed on a 120 Hz screen the battle camera moved jerkily. Why: the world ticks every 55 ms
+(0078FF34). The main loop (`RunPass`, src/game/app_main.cpp) moves the camera once a frame by the frame's real time
+(cut into whole ticks), and `RunWorlds` moves it again by a whole tick after each client tick, so half of every pan,
+turn and zoom arrives in jumps of 55 ms of motion about 18 times a second. `CCamera::Update`'s tracking drift (a fifth
+of the way to the tracked object, kTrackGain 0073BAD4) and focus height lag (a tenth, kHeightLag 0073B850) are per
+call, so they grow with the frame rate, and a followed unit's position changes only at its ticks.
+
+- **The option**, off by default (goldens and every scenario run without it): EI_RENDER's word `smoothcamera` (read at
+  the first use, like `smooth`) or `render::SetSmoothCamera` (from the next pass; ST2's options screen can call it,
+  ST1 keep it); `render::SmoothCamera()` reads it. It lives with the renderer's options although only the main loop
+  and `CCamera::Update` read it. In a run: `render new,present,smoothcamera` or the harness step `smoothcamera on`.
+- **One update a frame by time.** RunWorlds no longer updates the camera at a client tick
+  (`camera::NoteTargetTick` instead, below). The main loop keeps a clock of the client's time of its own
+  (`ClientClockMs`: a tick for each client tick run plus the backlog, up to a tick; never the game's state) and gives
+  the frame's update the real time plus what that clock advanced since the last frame's update: over any stretch the
+  camera gets the same time as without the option (each client tick's 55 ms), spread over the frames by the
+  backlog. A backlog reset (0x4000000) gives nothing; a stalled client (multiplayer, mode 2: its backlog past a tick)
+  holds the clock at a tick and the ticks it then runs arrive at once, as without the option. The frame's time is
+  still cut into whole ticks.
+- **Gains by time:** 1 - (1 - g)^(dt / reference) (`TimeGain`, camera.cpp; x87::fexp / flog), dt in camera time (1 a
+  tick). The reference (`kGainReference`, 0.465 ticks = 25.6 ms) is the time one call took in the original at 60
+  frames a second (a second's 1000 / 55 ticks and 60 frames share 2000 / 55 ticks of camera time over 78 calls): at
+  60 Hz the drift and lag match the original's, at 120 Hz they are as at 60 (the original's were faster there). A
+  choice, not a measurement: the developers' frame rate is unknown. Only these two gains were per call; the pan, turn,
+  tilt, zoom and their easing (`Approach`, the pan's velocity) were already per time. The pan scale's `+ kTrackGain`
+  is not a gain and stays.
+- **Following between ticks:** after each client tick `camera::NoteTargetTick` keeps the camera target's
+  `localPosition_` and `position.z` (the height lag's ground) after its last two ticks (`TargetTicks`, reset when the
+  target changes or is gone). `Update` uses them blended by the client's `tickFraction_` (clamped to 0..1): the
+  tracking drift, the follow mode's (flag 0x8) position and the height lag's target height. Not blended (the live
+  position): fewer than two ticks kept, the target no longer where its last tick left it, or a jump of more than 8
+  map units in one tick (a teleport). The followed place lags the unit's by up to a tick; R19 draws the unit itself
+  between its ticks, and until then a followed unit moves on the screen by its tick steps while the ground stays
+  smooth.
+- **Check** (scenario `camera_smooth`, image only, vanilla and Rebirth): on the virtual clock at a fixed frame time of
+  8 ms (`frametime 8`, a 120 Hz screen) the camera pans (`keydown left`, 110 frames = 16 ticks, then 60 frames to
+  rest), turns (Ctrl held) and zooms (Page Down, 55 frames) once without the option and once with it, each undone
+  before the next. `camtrace` records the focus, heading and distance after each frame's last update (the per-frame
+  call the harness takes over, HeldCameraUpdate); the frames' update time doubles with the option (24.7 -> 49.5 ticks
+  over 170 frames: the ticks' share moved into the frames). `camsame` (3%): pan 13.91 / 13.63 map units (2.0% apart:
+  the pan velocity's explicit easing runs in steps of 0.15 and 1 tick without the option, of 0.29 with it), turn
+  2.358 / 2.367 rad (0.4%), zoom 14.71 / 14.69 (0.2%). `camsmooth`: a jump is a frame whose step is more than twice
+  both neighbours'; without the option pan 23, turn 20, zoom 16 jumps (every tick), with it none, and none while the
+  camera follows the walking hero (`follow_smooth`; without the option that showed 1).
+- Harness for it: `keydown` / `keyup` (a key held over frames; the navigation keys extended as from a keyboard, which
+  the game's key table needs: held without the bit, the arrows did not pan at all), `frametime <ms>`,
+  `smoothcamera on|off`, `camtrace` / `camsame` / `camsmooth` (tests/verify/harness_camera.h).

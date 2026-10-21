@@ -56,6 +56,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "render/render.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -564,6 +565,19 @@ WorldUpdate ClientSegment() {
     return reinterpret_cast<WorldUpdate>(&ClientSegmentOriginal);
 }
 
+// The smooth camera's clock (R18, render::SmoothCamera; docs/notes/renderer.md section 14): the
+// client's time in ms, a tick for each client tick run plus the part of the next tick it has
+// (its backlog, up to a tick). Without the option each client tick moves the camera by a tick (in
+// RunWorlds) on top of the frame's real time: half of every pan, turn and zoom arrives in jumps of
+// a tick 18 times a second. With it the frame moves the camera by its real time plus what this
+// clock advanced since the last frame's camera update: the same time in all, spread over the frames.
+std::uint32_t g_clientTicksMs = 0;     // our own state, not the game's
+std::uint32_t g_cameraClientMs = 0;    // the clock at the last frame's camera update
+std::uint32_t ClientClockMs() {
+    const std::uint32_t tick = TickLength();
+    return g_clientTicksMs + (g_clientBacklog < tick ? g_clientBacklog : tick);
+}
+
 // A change of the window's activation taken up: active again, every surface is restored (when the
 // renderer was created) and the renderer runs; inactive, the renderer stops and the desktop is
 // repainted.
@@ -603,7 +617,8 @@ std::uint32_t TimeSinceLastPass() {
 
 // The worlds run for the time that has passed: the server a tick at a time while it has a whole
 // tick, the client likewise while it has one and either server updates wait or its view is not in
-// mode 2 (each client tick also moves the camera by a tick). False when a world stops the frame.
+// mode 2 (each client tick also moves the camera by a tick; with the smooth camera it notes the
+// camera target's place instead). False when a world stops the frame.
 bool RunWorlds() {
     for (;;) {
         bool settled = true;
@@ -617,7 +632,11 @@ bool RunWorlds() {
             if (!ClientSegment()(TheClientWorld(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
-            TheCamera()->Update(CameraSeconds(tick));
+            g_clientTicksMs += tick;
+            if (render::SmoothCamera())
+                camera::NoteTargetTick(TheCamera());
+            else
+                TheCamera()->Update(CameraSeconds(tick));
             net::Pump();
             continue;
         }
@@ -691,7 +710,12 @@ bool RunPass() {
         g_clientSpeed = SpeedForBalance(balance, roundedBalance);
         if (ShowClientSpeed()) PrintClientSpeed(g_clientSpeed, roundedBalance);
 
-        // The camera runs on the real time of the pass, a tick at a time.
+        // The camera runs on the real time of the pass, a tick at a time (the smooth camera: also on
+        // the client time that passed, which the client's ticks moved it by without the option).
+        const std::uint32_t clientClock = ClientClockMs();
+        std::uint32_t clientTime = clientClock - g_cameraClientMs;
+        g_cameraClientMs = clientClock;
+        if (render::SmoothCamera() && clientTime < 0x80000000u) elapsed += clientTime;   // not after a backlog reset
         CCamera* camera = TheCamera();
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {

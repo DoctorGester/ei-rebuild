@@ -16,11 +16,13 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
+#include "render/render.h"
 
 #include <cstring>
 
@@ -75,6 +77,47 @@ void Approach(float* rate, const float* target, float response, float dt) {
         CopyFloat(rate, target);
 }
 
+// ---- The smooth camera (R18, render::SmoothCamera; docs/notes/renderer.md section 14) ----------------
+
+// The camera's time per call that the per-call gains (kTrackGain, kHeightLag) were tuned for, in
+// camera time (1: a world tick, 55 ms): what one call took in the original at 60 frames a second,
+// where a second's 1000 / 55 ticks and its frames each move the camera by the time they take (2000
+// / 55 in all) over 1000 / 55 + 60 calls. At 60 frames a second the option's drift and height lag
+// match the original's; the original's grow faster with the frame rate, the option's do not.
+constexpr double kGainReference = (2000.0 / 55.0) / (1000.0 / 55.0 + 60.0);
+// A target that moved farther than this (map units) in one tick jumped: it is followed to its new
+// place at once.
+constexpr float kTargetJump = 8.0f;
+
+// The part of the way that a gain of `gain` per call covers in `dt`: 1 - (1 - gain)^(dt / reference).
+float TimeGain(float gain, float dt) {
+    if (!(dt > 0.0f)) return 0.0f;
+    return static_cast<float>(1.0 - x87::fexp(D(dt) / kGainReference * x87::flog(1.0 - D(gain))));
+}
+
+// The camera target's place after its last two client ticks (camera::NoteTargetTick).
+struct TargetTicks {
+    int id = -1;
+    int count = 0;                                     // ticks kept for `id`: 2 when `previous` is one too
+    Vector3 previous{}, current{};                     // CTransformObject::localPosition_
+    float previousGround = 0.0f, currentGround = 0.0f; // CObject3D::position.z
+};
+TargetTicks g_targetTicks;
+
+// Where the camera follows its target (id `id`, now at `at`, its ground `ground`) to in this frame:
+// between its last two ticks by the client's tickFraction_, when both are kept for it, it is still
+// where its last tick left it and it did not jump; else where it is.
+void TargetPlace(int id, Vector3* at, float* ground) {
+    const TargetTicks& ticks = g_targetTicks;
+    if (ticks.id != id || ticks.count < 2) return;
+    if (std::memcmp(at, &ticks.current, sizeof(Vector3)) != 0 || *ground != ticks.currentGround) return;
+    if (DistanceSquaredXY(ticks.previous, ticks.current) > kTargetJump * kTargetJump) return;
+    float fraction = TheClientWorld()->tickFraction_;
+    fraction = fraction > 0.0f ? (fraction < 1.0f ? fraction : 1.0f) : 0.0f;
+    *at = Lerp(ticks.previous, ticks.current, fraction);
+    *ground = Lerp(ticks.previousGround, ticks.currentGround, fraction);
+}
+
 void ResetMotion(CCamera* c) {
     std::memcpy(&c->offset98_, &camera::kZeroVector, sizeof(Vector3));
     std::memcpy(&c->offsetA4_, &camera::kZeroVector, sizeof(Vector3));
@@ -88,6 +131,21 @@ void ResetMotion(CCamera* c) {
 }
 
 } // namespace
+
+void camera::NoteTargetTick(const CCamera* camera) {
+    TargetTicks& ticks = g_targetTicks;
+    const CEngineObject* target = TheObjectManager()->FindObject(static_cast<unsigned>(camera->targetId_));
+    if (!target) {
+        ticks = TargetTicks{};
+        return;
+    }
+    if (ticks.id != camera->targetId_) ticks = TargetTicks{camera->targetId_};
+    ticks.previous = ticks.current;
+    ticks.previousGround = ticks.currentGround;
+    std::memcpy(&ticks.current, &static_cast<const CTransformObject*>(target)->localPosition_, sizeof(Vector3));
+    ticks.currentGround = static_cast<const CObject3D*>(target)->position.z;
+    if (ticks.count < 2) ++ticks.count;
+}
 
 void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
@@ -290,15 +348,24 @@ void CCamera::Update(float dt) {
     if (flags_ & kPlaced) return;
 
     CEngineObject* target = TheObjectManager()->FindObject(static_cast<unsigned>(targetId_));
+    // The smooth camera (R18): the gains below by time, the target between its last two ticks.
+    const bool smooth = render::SmoothCamera();
+    Vector3 targetAt = {0.0f, 0.0f, 0.0f};
+    float targetGround = 0.0f;
+    if (target) {
+        std::memcpy(&targetAt, &static_cast<const CTransformObject*>(target)->localPosition_, sizeof(Vector3));
+        CopyFloat(&targetGround, &static_cast<const CObject3D*>(target)->position.z);
+        if (smooth) TargetPlace(targetId_, &targetAt, &targetGround);
+    }
     if (flags_ & kFollowing) {
         if (target) {
             // Behind the target, looking along its heading.
             const CTransformObject* t = static_cast<const CTransformObject*>(target);
             const CObject3D* body = static_cast<const CObject3D*>(target);
             double lift = D(body->above.z) + body->center.z;
-            std::memcpy(&localPosition_.x, &t->localPosition_.x, sizeof(float));
-            std::memcpy(&localPosition_.y, &t->localPosition_.y, sizeof(float));
-            localPosition_.z = static_cast<float>(lift + t->localPosition_.z);
+            std::memcpy(&localPosition_.x, &targetAt.x, sizeof(float));
+            std::memcpy(&localPosition_.y, &targetAt.y, sizeof(float));
+            localPosition_.z = static_cast<float>(lift + targetAt.z);
             Vector3 side;
             t->localRotation_.AxisY(&side);
             double nx = -D(side.x);
@@ -313,13 +380,14 @@ void CCamera::Update(float dt) {
             return;
         }
     } else if (target) {
-        // Drift the focus a fifth of the way to the tracked object.
-        const CTransformObject* t = static_cast<const CTransformObject*>(target);
-        double dx = D(t->localPosition_.x) - focus_.x;
-        float dy = static_cast<float>(D(t->localPosition_.y) - focus_.y);
+        // Drift the focus a fifth of the way to the tracked object (the smooth camera: as far as a
+        // call went in the time a call was tuned for).
+        const float gain = smooth ? TimeGain(kTrackGain, dt) : kTrackGain;
+        double dx = D(targetAt.x) - focus_.x;
+        float dy = static_cast<float>(D(targetAt.y) - focus_.y);
         float width = camera::TheTerrain()->width;
-        float dyStep = static_cast<float>(D(dy) * kTrackGain);
-        focus_.x = ClampToMap(static_cast<float>(dx * kTrackGain + focus_.x), width);
+        float dyStep = static_cast<float>(D(dy) * gain);
+        focus_.x = ClampToMap(static_cast<float>(dx * gain + focus_.x), width);
         float height = camera::TheTerrain()->height;
         focus_.y = ClampToMap(static_cast<float>(D(dyStep) + focus_.y), height);
     }
@@ -375,12 +443,14 @@ void CCamera::Update(float dt) {
         }
     }
 
-    // The focus height follows the target's or the ground's, a tenth of the way per frame.
+    // The focus height follows the target's or the ground's, a tenth of the way per call (the
+    // smooth camera: as far as a call went in the time a call was tuned for).
     float average, low, high;
     SampleTerrain(&focus_, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(),
                   &average, &low, &high);
-    double ground = target ? D(static_cast<const CObject3D*>(target)->position.z) : D(average);
-    focus_.z = static_cast<float>(((ground + focusHeight_) - focus_.z) * kHeightLag + focus_.z);
+    double ground = target ? D(targetGround) : D(average);
+    const float lag = smooth ? TimeGain(kHeightLag, dt) : kHeightLag;
+    focus_.z = static_cast<float>(((ground + focusHeight_) - focus_.z) * lag + focus_.z);
 
     // Tilt (pitch in degrees, clamped to the settings' range).
     Approach(&tiltRate_, &tiltTarget_, tiltResponse_, dt);

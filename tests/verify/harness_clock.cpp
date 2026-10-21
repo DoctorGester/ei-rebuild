@@ -115,6 +115,7 @@ const void* CallerOf(const void* returnAddress) { return t_tracedCaller ? t_trac
 constexpr std::uintptr_t kMainLoopTimeReturn = 0x004571E2;   // after the main loop's timeGetTime call
 // As many as the main loop runs in one pass (kLongestPassTicks, app_main.cpp): fewer frames to draw.
 constexpr unsigned kUpdatesPerFrame = 5;
+unsigned g_frameMs = 0;   // "frametime": the advance at each frame instead (0: kUpdatesPerFrame updates)
 
 bool g_virtual = false;
 volatile bool g_frozen = false;
@@ -349,7 +350,7 @@ DWORD WINAPI VirtualTimeGetTime() {
     if (!OnMainThread()) return OtherThreadsNow();
     if (IsMainLoopTime(CallerOf(_ReturnAddress()))) {
         g_sleepsSinceFrame = 0;
-        Advance(kUpdatesPerFrame * *g_tickLength);
+        Advance(g_frameMs ? g_frameMs : kUpdatesPerFrame * *g_tickLength);
         // The random trace notes every move of the clock (here, sleeps, timed waits) and every sound
         // stopped or ended, so two runs show where their virtual times part (SV1g).
         RandomNote("clock frame time %lu", g_now);
@@ -682,6 +683,8 @@ void InstallVirtual(const unsigned* tickLength) {
 }
 
 bool Virtual() { return g_virtual; }
+
+void SetFrameTime(unsigned ms) { g_frameMs = ms; }
 
 void InstallHeld() {
     PatchSlot(kTimeGetTimeSlot, &HeldTimeGetTime, g_heldTimeGetTime.base);
