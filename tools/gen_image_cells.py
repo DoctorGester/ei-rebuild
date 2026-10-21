@@ -16,7 +16,7 @@ bytes zero, and tools/named_data.py --check compares each such cell with the poi
 string literal, another named range, a function of ours with a registration).
 
 Each cell found must be reviewed: a cell into .rdata is either part of a structure the tool walks (STRUCTURES: the C++
-exception tables, RTTI, MFC's runtime classes) or in a REVIEWED_RDATA group; a cell into .data is in a REVIEWED_DATA
+exception tables, RTTI) or in a REVIEWED_RDATA group; a cell into .data is in a REVIEWED_DATA
 group; a candidate that is text after all (a short word the filters keep) is in TEXT and left out. Each group says what
 the cells are and how many there are: a new cell (another exe, a scan change) or a changed count fails until someone
 has looked at it. Every game.exe 1.06 has the same .rdata and .data (vanilla's and Rebirth's differ in one code byte).
@@ -49,7 +49,6 @@ import exe_path  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'standalone', 'image_cells.inc')
 CODE_OUT = os.path.join(ROOT, 'src', 'standalone', 'image_code_cells.inc')
-RUNTIME_CLASSES = os.path.join(ROOT, 'config', 'runtime_classes.csv')
 VTABLES = os.path.join(ROOT, 'config', 'vtables.csv')
 FUNCTIONS = os.path.join(ROOT, 'config', 'functions.csv')
 LIBRARY = os.path.join(ROOT, 'config', 'library.csv')
@@ -98,7 +97,6 @@ REVIEWED_DATA = [
     (0x00793378, 0x0079337C, 2, 'two strings read by 00604C50'),
     (0x00793BD4, 0x00793C0C, 15, 'the skill names ("Melee", ... "Encumbrance"), read by 00625880'),
     (0x007947A8, 0x007947D8, 13, 'the log channel names ("video", "debug1", ...), read by 006503C0'),
-    (0x00796CD0, 0x00796CD0, 1, 'CDib\'s CRuntimeClass: the class name'),
     (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
     (0x00797898, 0x007978C8, 5, 'the CRT\'s locale categories (00797888): their locale names'),
     (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),
@@ -138,8 +136,6 @@ STRUCTURES = [
     ('rtti-hierarchy', 53, 'RTTI: complete object locator -> class hierarchy descriptor'),
     ('rtti-bases', 53, 'RTTI: class hierarchy descriptor -> base class array'),
     ('rtti-base', 128, 'RTTI: base class array -> base class descriptors'),
-    ('mfc-name', 40, "MFC CRuntimeClass (config/runtime_classes.csv): the class name"),
-    ('mfc-base', 40, 'MFC CRuntimeClass: the base class\'s CRuntimeClass'),
 ]
 
 # Cells into .rdata outside those structures, as looked at in game.exe: as REVIEWED_DATA.
@@ -167,7 +163,6 @@ CODE_STRUCTURES = [
     ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet): not code cells'),
     ('eh-throw', 2, "C++ EH: ThrowInfo: the thrown object's destructor"),
     ('eh-copy', 5, "C++ EH: ThrowInfo -> catchable type: the thrown object's copy constructor"),
-    ('mfc-create', 13, "MFC CRuntimeClass (config/runtime_classes.csv): CreateObject"),
     ('static-init', 748, 'the C++ initialiser list (00783004-00783BB0, __xc_a..__xc_z): the static initialisers'),
 ]
 
@@ -369,12 +364,6 @@ def structures(img):
         mark(hierarchy + 12, 'rtti-bases')
         for i in range(dw(hierarchy + 8)):
             mark(bases + 4 * i, 'rtti-base')
-    # MFC's CRuntimeClass: lpszClassName, size, schema, pfnCreateObject, pBaseClass, pNextClass.
-    with open(RUNTIME_CLASSES, newline='') as f:
-        for row in csv.DictReader(f):
-            c = int(row['runtime_class'], 16)
-            mark(c, 'mfc-name')
-            mark(c + 16, 'mfc-base')
     return kinds
 
 
@@ -438,9 +427,6 @@ def code_structures(img):
                 mark(a + 4, 'eh-throw')
                 for i in range(n):
                     mark(dw(array + 4 + 4 * i) + 24, 'eh-copy')
-    with open(RUNTIME_CLASSES, newline='') as f:
-        for row in csv.DictReader(f):   # lpszClassName, size, schema, pfnCreateObject, ...
-            mark(int(row['runtime_class'], 16) + 12, 'mfc-create')
     for a in range(STATIC_INIT_LIST[0], STATIC_INIT_LIST[1] + 4, 4):
         mark(a, 'static-init')
     return kinds

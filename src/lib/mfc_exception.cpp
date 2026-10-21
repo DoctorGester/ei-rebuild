@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "mfc_resource.h"
+#include "mfc_runtime_class.h"
 #include "mfc_window.h"
 #include "game/game_data.h"
 
@@ -21,10 +22,6 @@ void* SimpleNotSupportedException() { return ei::GamePointer<void>(0x007C8D50); 
 // _simpleMemoryException and _simpleResourceException (static, not auto-deleted).
 void* SimpleMemoryException() { return ei::GamePointer<void>(0x007C8DE8); }
 void* SimpleResourceException() { return ei::GamePointer<void>(0x007C8C58); }
-
-// The two classes' CRuntimeClass records.
-void* FileExceptionClass() { return ei::GamePointer<void>(0x00746820); }
-void* ArchiveExceptionClass() { return ei::GamePointer<void>(0x007467D8); }
 
 mfc::CObjectVirtuals* Virtuals(CException* exception) { return reinterpret_cast<mfc::CObjectVirtuals*>(exception); }
 CExceptionVirtuals* Slots(CException* exception) { return reinterpret_cast<CExceptionVirtuals*>(exception); }
@@ -274,8 +271,8 @@ void __stdcall ThrowResourceException() {
     throw static_cast<::CResourceException*>(SimpleResourceException());
 }
 
-void* __fastcall FileExceptionRuntimeClass(const void*) { return FileExceptionClass(); }
-void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return ArchiveExceptionClass(); }
+const void* __fastcall FileExceptionRuntimeClass(const void*) { return &kClassCFileException; }
+const void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return &kClassCArchiveException; }
 
 EI_REWRITTEN(0x00702053, CException::Construct);
 EI_REWRITTEN(0x0070205D, CException::ConstructAutoDelete);

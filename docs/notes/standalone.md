@@ -161,9 +161,9 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 1604 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 1523 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text and the cells inside named ranges (C18, below); 865 point into .data, 739 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 864 point into .data, 659 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
@@ -173,8 +173,7 @@ each step green on the goldens and removing a measured tie:
   -> try block map 378, try block -> handler array 380, handler -> the caught type's type descriptor 26 (these four
   are counted but no cells, C20b, below), ThrowInfo -> catchable type array 10, array -> catchable
   types 41; RTTI, a vtable's slot -1 -> complete object locator 53, locator -> class hierarchy 53, hierarchy ->
-  base class array 53, array -> base class descriptors 128; MFC's CRuntimeClass from config/runtime_classes.csv,
-  class name 40 and base class 40) or in a REVIEWED_RDATA group: CCmdTarget's maps and CWnd's / CWinApp's message
+  base class array 53, array -> base class descriptors 128) or in a REVIEWED_RDATA group: CCmdTarget's maps and CWnd's / CWinApp's message
   maps (11), the type descriptors' vtable (type_info's, 74, in .data), and the CRT's string tables in .data (the
   locale category names, __lc_time_c, the math functions' names, "(null)", setlocale's language / country tables
   (142), the run-time error messages). Cells into .data are in REVIEWED_DATA groups (cell range, count, what it
@@ -315,7 +314,8 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
-2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas). C18 turns them into named C++
+2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
+after C18e's runtime classes and throws). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -405,20 +405,34 @@ kinds given.
     (8 `{kind, "x.mat"}` rows). Keep the original's bound on an index the data
     gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
     array where the original read the neighbouring .rdata; no database has one).
-  - Tables that hold pointers to game.exe's records (not done; C18e): src/lib's MFC CRuntimeClass records
-    (mfc_file's CFile 00745DB0 / CStdioFile 007464C8 / CFileFind 00745EC0, mfc_gdi's CTempDC 00745FB0 /
-    CTempGdiObject 00745F88, mfc_exception's CFileException 00746820 / CArchiveException 007467D8): each one's
-    m_pBaseClass points at a record that other game records point at too (CObject, CDC, CGdiObject, CException; CFile
-    is the base of CStdioFile's and CMemFile's records), so naming one names the whole hierarchy (41 records), and
-    CObject's is also the base of the five serializable records in .data (CDib, CByteArray, CDWordArray,
-    CStringArray, CWordArray) that the generated static initialisers link (AfxClassInit writes m_pNextClass). The
-    create functions would be names of ours (CreateTempDC, CreateTempGdiObject are registered). The EH ThrowInfo
-    records (mfc_exception's file / archive / not supported / memory / resource exceptions, dx_surface's and
-    render_helper's game error 00759908, stlp_string's out_of_range 0074C640) share their catchable types (CException*,
-    CObject*, void*) with the ThrowInfos of game.exe's other throws, and each catchable type points at a type
-    descriptor in .data (a type_info object, whose vtable cell is fixed up): their form is our compiler's own
-    `throw`, once the thrown classes are C++ classes with the original's decorated names (our catch handlers match
-    by the name), not named data.
+  - **Pointers to game.exe's records** (C18e): MFC's 41 CRuntimeClass records are named as one piece
+    (lib/mfc_runtime_class.h: the 36 in .rdata as `inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {...}`;
+    the 5 serializable ones in .data, which AfxClassInit links into the module state's list: CStringArray / CWordArray /
+    CDWordArray / CByteArray in mfc_coll.cpp, CDib in game/dib.cpp, `constinit CRuntimeClass g_classCDib`; TYPES has
+    `CRuntimeClass`, 'PiIPPP'). Each record names its base's record and its create function. **All or none**: a
+    base pointer is a named range, game.exe's data holds no pointer into one, and every record derives from CObject
+    (whose record the 5 .data ones point at, as do all the others), so the first name needed the whole tree, and each
+    create function it points at had to be ours (the check compares the registration): the ten that were unported
+    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays) are small ports registered at their
+    addresses with a row in config/extra_function_sizes.csv and src/hook/function_sizes.inc (nothing calls them in
+    the game: `unreached` in the coverage); the 5 initialisers that called AfxClassInit with a record's address
+    (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
+    name and registered at the list's address (`d.Cdecl(address)` in static_init.cpp). Do not run
+    gen_function_sizes.py for new rows: it rewrites every size from the Ghidra database, which has moved from the
+    committed file (check_fp_fold fails on the compiled doubles); add the rows by hand in order.
+    config/runtime_classes.csv (the cell tool's list of the records) went with them: their cells are inside named
+    ranges.
+    **The throws**: mfc_exception's file / archive / not supported / memory / resource exceptions and the device
+    layer's GameError are this compiler's `throw` of a pointer to a class of the game's name (lib/mfc_try.h:
+    CObject, CException, CSimpleException, CFileException, CArchiveException, CNotSupportedException,
+    CMemoryException, CResourceException; dx_errors.h: CGameException, CDXException), cast from the game's object.
+    The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
+    (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
+    types stay in the image as dead data with their cells (ThrowInfo -> array 10 and array -> types 41 are counted
+    over all of game.exe; a cell of the dead ones cannot be left out without breaking out_of_range's). **Left**:
+    stlp_string's out_of_range 0074C640, thrown by value: its object carries game.exe's vtables (C19) and the
+    ThrowInfo names the original's copy constructor and destructor (0041F760, 00429130 ...), so it still goes
+    through `CxxThrowException` with the original's record.
   - .data and .bss objects (C18d did particle*: 25 .data tables for 29 addresses, the bag's ball sizes 007A9BFC and the draw
     arrays' guard 007A9BF4). The form is the same; **const follows our code, not the section**: a .data table no
     code of ours writes is `constexpr` like an .rdata one (most are: the original's arrays lacked const;
@@ -921,8 +935,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   control word in 437k of 4.9M calls, never in the return value or MXCSR (probably start words whose reserved bits the
   round trip changes, which the UCRT version skipped setting: the original always loads the converted word).
   Mutations (_PC_53 mapped to 24 bits; the FLDCW test ignoring bit 3, the overflow mask) differ in 69M / 2.9M cases.
-- **Exceptions** (crt_except.cpp): _CxxThrowException 006E7819 raises 0xE06D7363 with the thrower's ThrowInfo, so
-  the exe's catch tables and ours match; MSVC 6 std::exception (vtable 00747290, "Unknown exception").
+- **Exceptions** (crt_except.cpp): _CxxThrowException 006E7819 raises 0xE06D7363 with the thrower's ThrowInfo (only
+  stlp's out_of_range uses it now; the pointer throws are the compiler's, "Named data (C18)"); MSVC 6 std::exception (vtable 00747290, "Unknown exception").
 - **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers
   through the game's sprintf with VC6's formats: "%%%s.%.0ug", precision capped at 15), endl 004BA9F0, the streams'
   constructors and destructors. The eight ostreams 007C55A8-007C5810 all write to console streambufs (console.h).

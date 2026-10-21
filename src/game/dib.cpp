@@ -4,6 +4,8 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc_runtime_class.h"
+#include "lib/mfc_state.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -13,7 +15,6 @@
 namespace {
 
 const void* DibVtable() { return ei::GamePointer<const void>(0x00744288); }
-const void* DibRuntimeClass() { return ei::GamePointer<const void>(0x00796CD0); }
 
 constexpr int kMaskBytes = 3 * sizeof(std::uint32_t);   // the channel masks of a BI_BITFIELDS header
 constexpr std::uint16_t kPaletteVersion = 0x300;
@@ -31,11 +32,21 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
 }
 
 // 006D49E0: the runtime class's CreateObject.
-CDib* CreateDib() {
+void* __stdcall CreateDib() {
     auto* dib = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
     return dib ? dib->Construct() : nullptr;
 }
 EI_REPLACE(0x006D49E0, CreateDib);
+
+using mfc::impl::CRuntimeClass;
+using mfc::impl::kClassCObject;
+
+// IMPLEMENT_SERIAL (schema 0): linked into the module state's class list by the static initialiser below.
+constinit CRuntimeClass g_classCDib = /*00796CD0*/ {"CDib", 0x3C, 0, &CreateDib, &kClassCObject, nullptr};
+
+// 006D4A70: the static initialiser that links the record in.
+void __cdecl LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
+EI_REPLACE(0x006D4A70, LinkDibClass);
 
 } // namespace
 
@@ -82,7 +93,7 @@ CDib* CDib::Delete(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x006D4B10, CDib::Delete);
 
-const void* CDib::GetRuntimeClass() const { return DibRuntimeClass(); }
+const void* CDib::GetRuntimeClass() const { return &g_classCDib; }
 EI_REPLACE_METHOD(0x006D4A60, CDib::GetRuntimeClass);
 
 void CDib::Serialize(mfc::CArchive* archive) {

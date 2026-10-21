@@ -71,6 +71,7 @@ struct CWnd {
     COleControlSite* controlSite;   // +0x38 m_pCtrlSite
 
     static void* Vtable() { return ei::GamePointer<void>(0x00746DA8); }
+    static void* TempVtable() { return ei::GamePointer<void>(0x00746EC4); }   // CTempWnd's
 
     // 00704546 CWnd(HWND): CCmdTarget's constructor, CWnd's vtable, CWnd's members cleared and the
     // handle kept (returns this). The static initialisers build MFC's four static windows with it
@@ -84,6 +85,16 @@ struct CWnd {
     void Destruct();
 };
 static_assert(sizeof(CWnd) == 0x3C);
+
+// CMenu (8 bytes, vtable 007471FC): vtable, m_hMenu.
+struct CMenu {
+    void* vtable;
+    HMENU menu;         // +0x04 m_hMenu
+
+    static void* Vtable() { return ei::GamePointer<void>(0x007471FC); }
+    static void* TempVtable() { return ei::GamePointer<void>(0x00747214); }   // CTempMenu's
+};
+static_assert(sizeof(CMenu) == 8);
 
 // AfxMessageBox(LPCTSTR, UINT type, UINT helpId): MessageBoxA's answer. MB_ICONEXCLAMATION is added
 // to an OK, OK / Cancel, Yes / No / Cancel or Yes / No box that names no icon.

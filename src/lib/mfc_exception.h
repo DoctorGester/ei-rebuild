@@ -137,9 +137,9 @@ __declspec(noreturn) void __stdcall ThrowMemoryException();                     
 // AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).
 __declspec(noreturn) void __stdcall ThrowResourceException();                       // 0070A29E
 
-// GetRuntimeClass of the two exception classes (their CRuntimeClass in the exe's data).
-void* __fastcall FileExceptionRuntimeClass(const void* self);     // 0070CF4C
-void* __fastcall ArchiveExceptionRuntimeClass(const void* self);  // 0070CF46
+// GetRuntimeClass of the two exception classes (mfc_runtime_class.h's records).
+const void* __fastcall FileExceptionRuntimeClass(const void* self);     // 0070CF4C
+const void* __fastcall ArchiveExceptionRuntimeClass(const void* self);  // 0070CF46
 
 } // namespace mfc::impl
 

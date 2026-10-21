@@ -5,6 +5,7 @@
 #include "crt.h"
 #include "gameapi.h"
 #include "mfc_exception.h"
+#include "mfc_runtime_class.h"
 #include "mfc_string.h"
 #include "game/game_data.h"
 
@@ -18,9 +19,7 @@ namespace mfc::impl {
 
 namespace {
 
-// The runtime classes of the temporary objects, their fixed allocators and CTempDC's vtable.
-CRuntimeClass* TempDCClass() { return ei::GamePointer<CRuntimeClass>(0x00745FB0); }
-CRuntimeClass* TempGdiObjectClass() { return ei::GamePointer<CRuntimeClass>(0x00745F88); }
+// The fixed allocators of the temporary objects and their vtables.
 CFixedAlloc& TempDCAlloc() { return ei::GameData<CFixedAlloc>(0x007C8D18); }
 CFixedAlloc& TempGdiObjectAlloc() { return ei::GameData<CFixedAlloc>(0x007C8CF0); }
 void* TempDCVtable() { return ei::GamePointer<void>(0x007463E4); }
@@ -28,7 +27,7 @@ void* TempGdiObjectVtable() { return ei::GamePointer<void>(0x0074645C); }
 
 // A map of the image's thread, made as afxMapHDC / afxMapHGDIOBJ make it (under the critical new
 // handler). The thread state's destructor frees MFC's; the image's live until the process ends.
-CHandleMap* MakeMap(CHandleMap*& map, BOOL create, CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
+CHandleMap* MakeMap(CHandleMap*& map, BOOL create, const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
     if (!map && create) {
         const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandlerAt());
         void* memory = gamecrt::operator_new(sizeof(CHandleMap));
@@ -44,12 +43,12 @@ CHandleMap* MakeMap(CHandleMap*& map, BOOL create, CRuntimeClass* objectClass, u
 
 CHandleMap* __stdcall MapHDC(BOOL create) {
     static thread_local CHandleMap* map = nullptr;
-    return MakeMap(map, create, TempDCClass(), offsetof(CDC, hdc), 2);
+    return MakeMap(map, create, &kClassCTempDC, offsetof(CDC, hdc), 2);
 }
 
 CHandleMap* __stdcall MapHGDIOBJ(BOOL create) {
     static thread_local CHandleMap* map = nullptr;
-    return MakeMap(map, create, TempGdiObjectClass(), offsetof(CGdiObject, handle), 1);
+    return MakeMap(map, create, &kClassCTempGdiObject, offsetof(CGdiObject, handle), 1);
 }
 
 EI_REWRITTEN(0x00708D07, MapHDC);
@@ -80,6 +79,14 @@ HGDIOBJ CGdiObject::Detach() {
 BOOL CGdiObject::DeleteObject() {
     if (!handle) return FALSE;
     return gameapi::DeleteObject(Detach());
+}
+
+void* __stdcall CreateCGdiObject() {
+    auto* object = static_cast<CGdiObject*>(gamecrt::operator_new(sizeof(CGdiObject)));
+    if (!object) return nullptr;
+    object->vtable = CGdiObject::Vtable();
+    object->handle = nullptr;
+    return object;
 }
 
 void* __stdcall CreateTempGdiObject() {
@@ -145,6 +152,7 @@ EI_REWRITTEN(0x0070A075, CGdiObject::Attach);
 EI_REWRITTEN(0x0070A0A2, CGdiObject::Detach);
 EI_REWRITTEN(0x0070A0CC, CGdiObject::DeleteObject);
 EI_REPLACE(0x0070C028, CreateTempGdiObject);
+EI_REPLACE(0x0070BF93, CreateCGdiObject);
 EI_REWRITTEN(0x0070A0E2, CPen::Construct);
 EI_REWRITTEN(0x0070BBE5, CFont::CreatePointFont);
 EI_REWRITTEN(0x0070BC2A, CFont::CreatePointFontIndirect);
@@ -161,6 +169,11 @@ CDC* CDC::Construct() {
 
 CDC* __stdcall CDC::FromHandle(HDC dc) {
     return static_cast<CDC*>(mfc::impl::MapHDC(TRUE)->FromHandle(dc));
+}
+
+void* __stdcall CreateCDC() {
+    auto* dc = static_cast<CDC*>(gamecrt::operator_new(sizeof(CDC)));
+    return dc ? dc->Construct() : nullptr;
 }
 
 void* __stdcall CreateTempDC() {
@@ -227,6 +240,7 @@ void CDC::FillSolidArea(int x, int y, int cx, int cy, COLORREF colour) {
 EI_REWRITTEN(0x00708CD7, CDC::Construct);
 EI_REWRITTEN(0x00708D79, CDC::FromHandle);
 EI_REPLACE(0x0070BFD7, CreateTempDC);
+EI_REPLACE(0x0070BF64, CreateCDC);
 EI_REWRITTEN(0x00708F5A, CDC::SelectObject);
 EI_REPLACE_METHOD(0x00708FE6, CDC::SelectObject);
 EI_REPLACE_METHOD(0x0070917A, CDC::SetTextColor);

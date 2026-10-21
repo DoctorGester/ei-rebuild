@@ -23,17 +23,18 @@
 
 namespace mfc::impl {
 
-// CRuntimeClass (the members used here).
+// CRuntimeClass: a class's record (mfc_runtime_class.h has the game's 41).
 struct CRuntimeClass {
     const char* className;          // +0x00 m_lpszClassName
     int objectSize;                 // +0x04 m_nObjectSize
-    unsigned schema;                // +0x08 m_wSchema
+    unsigned schema;                // +0x08 m_wSchema (0xFFFF: not serializable)
     void*(__stdcall* create)();     // +0x0C m_pfnCreateObject (null: not creatable)
-    CRuntimeClass* baseClass;       // +0x10 m_pBaseClass
+    const CRuntimeClass* baseClass; // +0x10 m_pBaseClass
+    CRuntimeClass* nextClass;       // +0x14 m_pNextClass (the module state's class list; AfxClassInit links it)
 
     // 0070061B: a new object through `create`, or null (no create function, or a CException thrown
     // on the way, which is deleted).
-    void* CreateObject();
+    void* CreateObject() const;
 };
 
 // The new handler operator new calls when an allocation fails (_afxNewHandler).
@@ -85,13 +86,13 @@ struct CHandleMap {
     void* vtable;
     CMapPtrToPtr permanentMap;      // +0x04 (blocks of 10)
     CMapPtrToPtr temporaryMap;      // +0x20 (blocks of 4, 7 buckets)
-    CRuntimeClass* objectClass;     // +0x3C what FromHandle makes for an unknown handle
+    const CRuntimeClass* objectClass;   // +0x3C what FromHandle makes for an unknown handle
     unsigned handleOffset;          // +0x40 where the object keeps its handle
     int handleCount;                // +0x44 1, or 2 (a DC's output and attribute handles)
 
     static void* Vtable() { return ei::GamePointer<void>(0x0074685C); }
 
-    CHandleMap* Construct(CRuntimeClass* objectClass, unsigned handleOffset, int handleCount);   // 00703617
+    CHandleMap* Construct(const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount);   // 00703617
     // 0070367C: the object of `handle` (null for null): the permanent one, else the temporary one,
     // else a new temporary object of objectClass (under the critical new handler; a CMemoryException
     // when none could be made). A temporary object's handles are (re)written.

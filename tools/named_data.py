@@ -72,6 +72,7 @@ TYPES = {
     'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
+    'CRuntimeClass': 'PiIPPP',   # lib/mfc_handle_map.h: name, size, schema, create, base, next
     'MaterialKindFile': 'iP',
     'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
     'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
@@ -584,8 +585,6 @@ def split(img, wanted):
         for r in csv.DictReader(f):
             v = int(r['vtable'], 16)
             vtable_slots.update(v + 4 * i for i in range(int(r['slots'] or 1)))
-    with open(os.path.join(ROOT, 'config', 'runtime_classes.csv'), newline='') as f:
-        runtime_classes = {int(r['runtime_class'], 16) for r in csv.DictReader(f)}
 
     def kind(a):
         if IMPORTS[0] <= a < IMPORTS[1]:
@@ -593,7 +592,7 @@ def split(img, wanted):
         if a in vtable_slots:
             return 'vtable'
         if RDATA[0] <= a < RDATA[1]:
-            if dw(a) == 0x19930520 or a in runtime_classes:
+            if dw(a) == 0x19930520:
                 return 'eh/rtti/runtime class'
             return 'rdata constant'
         if DATA[0] <= a < DATA_RAW_END:
