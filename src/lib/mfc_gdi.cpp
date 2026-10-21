@@ -30,8 +30,8 @@ void* TempGdiObjectVtable() { return ei::GamePointer<void>(0x0074645C); }
 CHandleMap* MakeMap(CHandleMap*& map, BOOL create, const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
     if (!map && create) {
         const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandlerAt());
-        void* memory = gamecrt::operator_new(sizeof(CHandleMap));
-        map = memory ? static_cast<CHandleMap*>(memory)->Construct(objectClass, handleOffset, handleCount) : nullptr;
+        CHandleMap* memory = gamecrt::operator_new_as<CHandleMap>();
+        map = memory ? memory->Construct(objectClass, handleOffset, handleCount) : nullptr;
         SetAfxNewHandler(old);
     }
     return map;

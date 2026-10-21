@@ -541,12 +541,12 @@ void CObjectivesWindow::Build() {
     }
 
     // The quest log (left, below the list) and the list's scroll bar.
-    void* memory = gamecrt::operator_new(0x1C8);
-    AddChild(memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f)
-                    : nullptr);
-    memory = gamecrt::operator_new(0x18C);
-    bar_ = memory ? static_cast<CUiScrollbar*>(memory)->Construct(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f)
-                  : nullptr;
+    CUiScrollText* questLog = gamecrt::operator_new_as<CUiScrollText>();   // 0x1C8 bytes
+    AddChild(questLog ? questLog->Construct(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f)
+                      : nullptr);
+    CUiScrollbar* bar = gamecrt::operator_new_as<CUiScrollbar>();   // 0x18C bytes
+    bar_ = bar ? bar->Construct(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f)
+               : nullptr;
     AddChild(bar_);
 
     LoadTexture("saveload", 3, 0);

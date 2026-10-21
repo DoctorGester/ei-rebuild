@@ -72,6 +72,12 @@ namespace {
 
 using namespace flowdata;
 
+// net::NewRefObject (counted net object memory) for a T.
+template <typename T>
+T* NewRefObjectAs() {
+    return static_cast<T*>(net::NewRefObject(sizeof(T)));
+}
+
 
 // ---- Data -------------------------------------------------------------------------------------
 
@@ -480,7 +486,7 @@ void AnnounceHost(const char* zone) {
     stlp::string text;
     mfc::CString formatted(address.ToString(&text)->data());   // 00435010
     // (the count cleared before the null test)
-    auto* memory = static_cast<net::HostMessage*>(net::NewRefObject(sizeof(net::HostMessage)));
+    auto* memory = NewRefObjectAs<net::HostMessage>();
     net::HostMessage* record = nullptr;
     if (memory) {
         net::MessageConstructBase(memory);   // 004186E0
@@ -783,8 +789,8 @@ void GameFlow::RecreateClientSession() {
     net::ClientSession* old = global;
     global = nullptr;
     ReleaseSession(old);
-    void* memory = net::NewRefObject(sizeof(net::ClientSession));
-    net::ClientSession* session = memory ? static_cast<net::ClientSession*>(memory)->Construct() : nullptr;
+    auto* memory = NewRefObjectAs<net::ClientSession>();
+    net::ClientSession* session = memory ? memory->Construct() : nullptr;
     net::ClientSession* previous = global;
     global = session;
     if (session) ++session->refs_;
@@ -1080,13 +1086,13 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     FlowBeforeServer(this, nullptr);
     net::NetLog() = ei::GamePointer<net::LogStream>(kNetLogStream);
     {
-        void* memory = net::NewRefObject(sizeof(net::ServerSession));
-        net::ServerSession* server = memory ? static_cast<net::ServerSession*>(memory)->Construct(gameType) : nullptr;
+        auto* memory = NewRefObjectAs<net::ServerSession>();
+        net::ServerSession* server = memory ? memory->Construct(gameType) : nullptr;
         RefPtrAssign(&net::GameServer(), nullptr, server);
     }
     {
-        void* memory = net::NewRefObject(sizeof(net::ClientSession));
-        net::ClientSession* client = memory ? static_cast<net::ClientSession*>(memory)->Construct() : nullptr;
+        auto* memory = NewRefObjectAs<net::ClientSession>();
+        net::ClientSession* client = memory ? memory->Construct() : nullptr;
         RefPtrAssign(&net::GameClient(), nullptr, client);
     }
     // The local client connects to the local server with the password as its hello.
@@ -1115,8 +1121,8 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 void GameFlow::StartClient() {
     net::NetLog() = ei::GamePointer<net::LogStream>(kNetLogStream);
     RefPtrAssign(&net::GameServer(), nullptr, nullptr);
-    void* memory = net::NewRefObject(sizeof(net::ClientSession));
-    net::ClientSession* client = memory ? static_cast<net::ClientSession*>(memory)->Construct() : nullptr;
+    auto* memory = NewRefObjectAs<net::ClientSession>();
+    net::ClientSession* client = memory ? memory->Construct() : nullptr;
     RefPtrAssign(&net::GameClient(), nullptr, client);
     FlowAfterServer(this, nullptr);
 }
