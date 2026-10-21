@@ -164,7 +164,7 @@ void Connection::QueueHeader(int budget) {
         std::memmove(reliableOut_.begin, reliableOut_.begin + size, static_cast<std::size_t>(remaining));
         reliableOut_.cur = reliableOut_.begin;
         reliableOut_.high = reliableOut_.begin + remaining;
-        if (reliableOut_.high > reliableOut_.end) static_cast<GameBuffer*>(&reliableOut_)->Grow(static_cast<std::uint32_t>(remaining));
+        if (reliableOut_.high > reliableOut_.end) reliableOut_.Grow(static_cast<std::uint32_t>(remaining));
         headerSequence_ = static_cast<std::uint16_t>(headerSequence_ + size);
         return;
     }

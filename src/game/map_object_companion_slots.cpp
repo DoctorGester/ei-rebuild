@@ -76,7 +76,7 @@ EI_REPLACE_METHOD(0x00510540, CMapObjectClientSpecific::DeleteClientCompanion);
 void CMapObjectClientSpecific::ShowHit(int damage, int kind) {
     if (ObjectSlots(owner)->IsDead() != 0) return;
     if (!(owner->flags_ & kShowsNumbers)) return;
-    static_cast<CWorldClient*>(ManagerContext())->ShowNumber(owner->id_, damage, kind);
+    ClientWorld()->ShowNumber(owner->id_, damage, kind);
 }
 EI_REPLACE_METHOD(0x005117F0, CMapObjectClientSpecific::ShowHit);
 

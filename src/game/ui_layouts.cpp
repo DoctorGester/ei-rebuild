@@ -81,9 +81,9 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 
 // A surface of the window over the layout rectangle (left, top, right, bottom).
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     if (!memory) return nullptr;
-    return static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, 5, 1);
+    return memory->Construct(ui, left, top, right, bottom, 5, 1);
 }
 
 CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -303,10 +303,10 @@ void SetVtables(CUiWindow* window, std::uintptr_t main, std::uintptr_t input) {
 
 // What the original's inlined CSaveLoadWindow constructor does. Null when allocation failed.
 CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
-    void* memory = gamecrt::operator_new(sizeof(CSaveLoadWindow));
+    CSaveLoadWindow* memory = gamecrt::operator_new_as<CSaveLoadWindow>();
     if (!memory) return nullptr;
-    auto* w = static_cast<CSaveLoadWindow*>(memory);
-    static_cast<CUiContainer*>(w)->Construct(ui);
+    auto* w = memory;
+    w->CUiContainer::Construct(ui);
     w->entriesBegin_ = nullptr;   // vector<SaveEntry>() (0062B550)
     w->entriesEnd_ = nullptr;
     w->entriesCapacity_ = nullptr;
@@ -319,10 +319,10 @@ CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
 
 // The inlined COptionsWindow constructor.
 COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
-    void* memory = gamecrt::operator_new(sizeof(COptionsWindow));
+    COptionsWindow* memory = gamecrt::operator_new_as<COptionsWindow>();
     if (!memory) return nullptr;
-    auto* w = static_cast<COptionsWindow*>(memory);
-    static_cast<CUiContainer*>(w)->Construct(ui);
+    auto* w = memory;
+    w->CUiContainer::Construct(ui);
     w->bindings_.ConstructEmpty();   // 0062B570
     w->settings_.ConstructEmpty();   // 0062B5E0
     w->sliding_ = false;
@@ -749,15 +749,15 @@ void CCreditsScreen::Build() {
         textSurface_->Freeze(0, 0);
     }
     {
-        void* memory = gamecrt::operator_new(0x38);
+        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
         RECT rect = {10, 0x6E, 0x316, 0x8C};
-        headerSurface_ = window.AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(ui, &rect, 5) : nullptr);
+        headerSurface_ = window.AddSurface(memory ? memory->ConstructOnRect(ui, &rect, 5) : nullptr);
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) GameSetServerPaused(0);
     savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
     TitlesDisplay()->fogColour_ = 0;
-    static_cast<CBinkVideo*>(&player_)->Open(mfc::operator+(mfc::operator+(mfc::operator+(*GameBasePathString(), "Movies\\"), name),
+    player_.Open(mfc::operator+(mfc::operator+(mfc::operator+(*GameBasePathString(), "Movies\\"), name),
                                                             ".bik"),   // "<folder>Movies\<name>.bik"
                                              0);
     finished_ = false;

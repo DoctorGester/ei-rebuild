@@ -281,7 +281,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             if (ux != tx || uy != ty) {
                 if (BeginLocalSearch(&forwardSearch, unit, ux, uy, tx, ty)) {
                     if (!BeginLocalSearch(&backwardSearch, unit, tx, ty, ux, uy)) {
-                        static_cast<LocalSearch*>(&forwardSearch)->Reset();
+                        forwardSearch.Reset();
                     } else {
                         found = JoinLocalSearches(&pathCells, nullptr);
                         tried = found;

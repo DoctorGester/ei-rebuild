@@ -90,8 +90,8 @@ void ReturnResults(CCampPages* camp, CParty* results, void* constructorList, CUi
         CItem* item = ItemAt(results, 0);
         bool made = MadeByConstructor(item);
         void* to = made ? constructorList : static_cast<void*>(PlayerParty());
-        CItem* moved = static_cast<CItemScreen*>(camp)->MoveItem(item, static_cast<CParty*>(to), results, 0, 1, 0);
-        static_cast<CUiItemStrip*>(made ? constructorStrip : camp->itemStrip_)->ScrollToItem(moved);
+        CItem* moved = camp->CItemScreen::MoveItem(item, static_cast<CParty*>(to), results, 0, 1, 0);
+        (made ? constructorStrip : camp->itemStrip_)->ScrollToItem(moved);
     }
 }
 
@@ -213,7 +213,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
         if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
             char* prototype = item->spell_->GetPrototype();
             const char* name = *reinterpret_cast<const char* const*>(prototype + 4);
-            static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(static_cast<char*>(stlp::RecordNamed(SpellTable(), nullptr, name))));
+            static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(stlp::RecordNamed(SpellTable(), nullptr, name)));
         } else if (UiItemKinds::IsSpell(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
             static_cast<ItemStock*>(stock)->AddSpell(itemdb::Spells().RecordAt(index, itemdb::kSpellSize));

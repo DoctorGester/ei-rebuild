@@ -81,7 +81,7 @@ void CObject3D::Destroy3D() {
         animation = nullptr;
     }
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<CEngineObject*>(parts.data[i]);
+        CEngineObject* part = parts.data[i];
         if (part) {
             --part->refCount_;   // no release (sic)
             parts.data[i] = nullptr;
@@ -89,7 +89,7 @@ void CObject3D::Destroy3D() {
     }
     parts.SetSize(0, -1);
     for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = static_cast<CEngineObject*>(pendingParts.data[i]);
+        CEngineObject* part = pendingParts.data[i];
         if (part) {
             part->Release();
             pendingParts.data[i] = nullptr;

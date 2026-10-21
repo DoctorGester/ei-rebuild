@@ -46,8 +46,8 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
     ObjectListIterator it;
     it.manager = nullptr;
     for (CEngineObject* object = it.First(WorldObjectManager()); object; object = it.Next()) {
-        if (object->GetClassId() != kClassUnit) continue;
-        CUnit* unit = static_cast<CUnit*>(object);
+        CUnit* unit = UnitOrNull(object);
+        if (!unit) continue;
         if (FieldAt<int>(unit, unitfield::kPlayer) != player) continue;
         std::uint32_t mask = FieldAt<std::uint32_t>(unit, unitfield::kHostileMask);
         mask = relation == kRelationHostile ? mask | Bit(other) : mask & ~Bit(other);

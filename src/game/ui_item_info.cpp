@@ -1099,9 +1099,9 @@ EI_REPLACE(0x005EE680, InfoPanelKeyUp);
 void CItemInfoPanel::Build(int x, int y) {
     x_ = x;
     y_ = y;
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     CUiSurface* surface = nullptr;
-    if (memory) surface = static_cast<CUiSurface*>(memory)->Construct(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1);
+    if (memory) surface = memory->Construct(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1);
     AddSurface(surface);
     Texts* texts = TextManager();
     mfc::CString text, key;

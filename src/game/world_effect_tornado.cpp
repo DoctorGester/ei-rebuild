@@ -57,7 +57,7 @@ bool SnapshotReadToEnd() {
     return position == snapshot->Size();
 }
 
-CWorld* WorldOf(const CEngineObject* object) { return static_cast<CWorld*>(object->ManagerContext()); }
+CWorld* WorldOf(const CEngineObject* object) { return object->WorldContext(); }
 
 } // namespace
 
@@ -128,7 +128,7 @@ int CEffectTornado::Tick() {
     CWorld* world = WorldOf(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
         mfc::CTypedPtrList<CUnit> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-        static_cast<CWorldServer*>(WorldOf(this))->Sectors()->FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
+        ServerWorld()->Sectors()->FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
         DamageInfo hit = TornadoHit();
         for (auto* node = units.head; node != nullptr;) {
             auto* unit = node->data;

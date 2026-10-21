@@ -97,8 +97,8 @@ EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 
 void CMainMenu::AddVersionLine() {
     CUiSurface* surface = nullptr;
-    if (void* memory = gamecrt::operator_new(sizeof(CUiSurface)))
-        surface = static_cast<CUiSurface*>(memory)->Construct(interface_, 100, 480, 780, 600, 5, 1);
+    if (CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>())
+        surface = memory->Construct(interface_, 100, 480, 780, 600, 5, 1);
     UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     mfc::CString text;
@@ -120,7 +120,7 @@ void CMainMenu::Create() {
         inert->vtable_ = InertInputVtable();
         inert->owner_ = interface_;
     }
-    static_cast<CUiContainer*>(this)->AddInput(inert);
+    AddInput(inert);
     hovered_ = -1;
     rect_ = RECT{0, 0, 800, 600};
     AddVersionLine();
@@ -232,8 +232,8 @@ EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
-    void* box = gamecrt::operator_new(0x180);
-    if (box) box = static_cast<CMessageBox*>(box)->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
-    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+    CMessageBox* box = gamecrt::operator_new_as<CMessageBox>();
+    if (box) box = box->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
+    interface_->PushWindow(box, 1, 1);
 }
 EI_REPLACE_METHOD(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);

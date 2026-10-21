@@ -95,11 +95,11 @@ static void SetBoxCount(CObject3D* object, int count) {
 }
 
 void CObject3D::SetUpAnimatedFigure(const char* model) {
-    CEngineObject* manager = static_cast<CWorld*>(ManagerContext())->FigureManager();
+    CEngineObject* manager = WorldContext()->FigureManager();
     Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
     if (animation) {
-        static_cast<CFigureAnimationState*>(animation)->Rescale(scale.x, scale.y, scale.z);
+        animation->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
         animation->Play(nullptr);
         animation->UpdatePose();
@@ -172,9 +172,8 @@ void CObject3D::UpdatePartBounds() {
     float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
     for (int i = 0; i < parts.size; ++i) {
         // A part is a figure mesh (figure_mesh.h) on a CTransformObject.
-        static_cast<CTransformObject*>(parts.data[i])
-            ->UpdateWorld(orientation, position);
-        static_cast<const CFigureMesh*>(parts.data[i])->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
+        parts.data[i]->UpdateWorld(orientation, position);
+        parts.data[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
     // The x sum stays on the FPU stack; the y and z sums are stored first.
     float centreX = static_cast<float>((highX + lowX) * kHalf);
@@ -227,7 +226,7 @@ constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create 
 using PartNameArray = mfc::CStringArray;
 
 CEngineObject* FigureManagerOf(const CObject3D* object) {
-    return static_cast<CWorld*>(object->ManagerContext())->FigureManager();
+    return object->WorldContext()->FigureManager();
 }
 } // namespace
 
@@ -275,7 +274,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
         parts.Add(part);
         ++part->refCount_;
         part->SetObject(this);
-        if (animation) static_cast<CFigureAnimationState*>(animation)->AttachMesh(part);
+        if (animation) animation->AttachMesh(part);
         if (attached) Specific()->OnPartAdded(part);
     }
     part->boxPivot_.x = part->localPosition_.x;
@@ -332,14 +331,14 @@ void FreePieceNames(stlp::vector<stlp::string>& pieces) {
 }
 
 CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
-    return static_cast<CWorld*>(object->ManagerContext())->FigureLoader();
+    return object->WorldContext()->FigureLoader();
 }
 } // namespace
 
 int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) {
     name = model;
     if (animation) {
-        static_cast<CFigureAnimationState*>(animation)->Rescale(scale.x, scale.y, scale.z);
+        animation->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
     }
     auto* names = static_cast<const PartNameArray*>(partList);

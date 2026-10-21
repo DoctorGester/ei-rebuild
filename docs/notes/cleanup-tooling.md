@@ -33,6 +33,22 @@ Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.p
 the files agree and sorted into already rewritten (a direct call replaces the forwarders), library code, and not yet ported. "Rewritten" means
 an `EI_REPLACE(0x...)` / `EI_REPLACE_METHOD(0x...)` with a literal address, or a `UI_INPUT_HANDLER` / `UI_WHEEL_HANDLER` (`ui_hud.cpp`).
 
+## Redundant pointer casts (`cast_scan.py`, C21)
+
+`python tools/cast_scan.py --jobs 4` lists the pointer `static_cast`s the compiler finds redundant: the operand already
+has the type (SAME), only const is added (CONST), or an implicit upcast (UP). It builds a rewritten copy of the tree
+under `build/cast_scan` (every `static_cast<T*>(` becomes a call whose overloads for the three kinds are deleted, so
+each one is an error at its call site) and writes `build/cast_scan/sites.txt`; the worktree is not touched. MSVC folds
+repeated diagnostics with the same text and location, so the deleted overloads (an error at the call site) are what
+makes every site show, not a `static_assert` or `[[deprecated]]` in the header. Dropping them:
+- SAME: always (`(&x)->f()` becomes `x.f()`).
+- CONST: not the ones adding `volatile` (the x87 reads of `effects.cpp`, `particle_common.h`), nor ones that pick a
+  const overload.
+- UP: only when no class between declares the called name. The UI constructors hide `CUiContainer::Construct`
+  (write `w->CUiContainer::Construct(ui)`), `CCampPages::MoveItem` hides the item screen's
+  (`camp->CItemScreen::MoveItem(...)`); an `auto*` local keeps the base type it had (`CEngineObject* texture = ...`).
+- A cast in a template body shows for one instantiation only: leave it.
+
 ## Shared forwarder headers (cleanup ticket C3)
 
 One declaration per forwarded address in `src/game/originals_<area>.h` (`core`, `engine`, `script`, `render`, `units`, `world`, `ai`, `ui`,

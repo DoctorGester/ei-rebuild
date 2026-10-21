@@ -126,7 +126,7 @@ void AIAttention::Build(CUnit* unit) {
             server->GetDamageByType(reinterpret_cast<std::int16_t*>(option.damage));
         }
         for (std::uint32_t slot = 0; slot < 8; ++slot) {
-            auto* spell = static_cast<const CSpell*>(unit->GetSpellObject(slot));
+            const CSpell* spell = unit->GetSpellObject(slot);
             if (!spell) continue;
             int kind = SpellKind(spell);
             if (kind == kNoKind) continue;

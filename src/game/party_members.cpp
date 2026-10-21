@@ -27,7 +27,7 @@
 namespace {
 
 // The spell manager of an item's manager context (slot 22 of the world or the party).
-CSpellManager* SpellManagerOf(CItem* item) { return static_cast<CWorld*>(item->ManagerContext())->SpellManager(); }
+CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
 // A counted copy of `item` (CItem::Clone with its context's spell manager); `item` is held
 // meanwhile and released after.
@@ -150,7 +150,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     const CStringVector& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = static_cast<CItem*>(static_cast<CItemManager*>(ItemManager())->CreateSpellItem(spellNames.begin()[i], owner));
+        auto* spell = static_cast<CItemManager*>(ItemManager())->CreateSpellItem(spellNames.begin()[i], owner);
         CItem* copy = CountedClone(spell);
         PartyItemArray& list = ItemList(record->spells);
         int index = list.size;
@@ -177,7 +177,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     const CStringVector& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = static_cast<CItem*>(static_cast<CItemManager*>(ItemManager())->CreateSpellItem(spellNames.begin()[i], owner));
+        auto* spell = static_cast<CItemManager*>(ItemManager())->CreateSpellItem(spellNames.begin()[i], owner);
         ItemList(record->spells).Add(CountedClone(spell));
         Drop(spell);
     }

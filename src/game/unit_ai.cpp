@@ -552,8 +552,8 @@ void AIBrain::SetSeen(CEngineObject* object) {
     seen.Assign(object);
     if (object) {
         bool allied = false;
-        if (seen && seen->GetClassId() == kClassUnit) {
-            std::uint32_t bit = 1u << (static_cast<CUnit*>(seen.object)->side & 31);
+        if (CUnit* seenUnit = UnitOrNull(seen)) {
+            std::uint32_t bit = 1u << (seenUnit->side & 31);
             allied = (Diplomacy()[owner->unit->side] & bit) != 0;
         }
         if (!allied) CallAllies(&static_cast<CMapObject*>(object)->position);
@@ -561,6 +561,6 @@ void AIBrain::SetSeen(CEngineObject* object) {
         CallAllies(&owner->unit->position);
     }
     if (!alerted && alertMode == 1) alerted = 1;
-    if (object && object->GetClassId() == kClassUnit) memory.ForceSee(owner->unit, static_cast<CUnit*>(object));
+    if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);
 }
 EI_REWRITTEN(0x005D7E90, AIBrain::SetSeen);

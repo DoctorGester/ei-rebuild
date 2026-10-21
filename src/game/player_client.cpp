@@ -448,10 +448,10 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.Read(&value, 4);
     if (kind != kKindNoPath) {
-        CEngineObject* walker = TheObjectManager()->CreateObject(kClassScratchUnit, -1);
+        auto* walker = static_cast<CUnit*>(TheObjectManager()->CreateObject(kClassScratchUnit, -1));
         ++walker->refCount_;
         // The controller's slot 16 (00533DF0 for the client's): its path.
-        AIPath* path = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(walker)->controller)->MotionPath();
+        AIPath* path = walker->ClientController()->MotionPath();
         DeltaField* writing = field->BeginWriteB(0);
         PathWriteOriginal(path, nullptr, writing);
         writing->EndField();
@@ -459,9 +459,8 @@ int CPlayerClient::OnPathMarker() {
         path->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
-            static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
-            auto* source = static_cast<CParticleSource*>(
-                ParticleManagerObject()->CreateSource(kPathParticles));
+            walker->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
+            auto* source = ParticleManagerObject()->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
@@ -474,11 +473,11 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
+        auto* marker = ParticleManagerObject()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->position = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
-        if (unit != nullptr) static_cast<CUnitClientSpecific*>(unit->controller)->SetMarkers(pathSource, marker);
+        if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     field->Destruct();
     return 1;
@@ -604,7 +603,7 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&prototypeValue, 4);
 
     // The world's slot 19 is its object manager (+0x40).
-    auto* world = static_cast<CWorld*>(Owner()->ManagerContext());
+    auto* world = Owner()->WorldContext();
     CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;
     auto* object = static_cast<CMapObject*>(created);
@@ -648,7 +647,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(kWispParticles));
+            ParticleManagerObject()->CreateSource(kWispParticles);
         source->Attach(created);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
@@ -657,8 +656,8 @@ int CPlayerClient::OnNewObject() {
         for (int i = 0; i < figure->parts.size; ++i) figure->parts.data[i]->flags_ |= kPartFlagFigure;   // 00517910
         created->flags_ |= kFlagNoParts;
     }
-    CEngineObject* attached = figure->attached;
-    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
+    CObject3DClientSpecific* attached = figure->ClientSpecific();
+    attached->RegisterPartMaterials();
     // (The client world's 00566310 and 00566320 around the texture swap are empty.)
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
@@ -669,7 +668,7 @@ int CPlayerClient::OnNewObject() {
     } else if (Same(textureTo, TextNone())) {
         to = nullptr;
     }
-    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(textureFrom, to);
+    attached->SetSkins(textureFrom, to);
     if (isUnit) ObjectSlots(created)->SetScriptName(scriptName);
 
     // The player keeps it, counted.
@@ -677,8 +676,8 @@ int CPlayerClient::OnNewObject() {
     if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
     player->knownObjects_[header.id] = created;
     ++created->refCount_;
-    if (created->GetClassId() == kClassUnitObject)
-        ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(created)->GetPrototype())->name);
+    if (CUnit* unit = UnitOrNull(created))
+        ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name);
     else
         ObjectSlots(created)->TakePrototype(model);
     static_cast<CMapObject*>(created)->WriteFullState();
@@ -689,8 +688,9 @@ int CPlayerClient::OnNewObject() {
         TheClientWorld()->ObjectVariableName(variable.Get(), object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
-    if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)
-        static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(created)->controller)->LoadFaceTexture();
+    if (player->sessionKind100_ == kSessionClient) {
+        if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
+    }
     return 1;
 }
 
@@ -875,7 +875,7 @@ int CPlayerClient::OnPartyState() {
 
     std::uint8_t paused;
     in_.Read(&paused, 1);
-    static_cast<CWorldClient*>(player->ManagerContext())->paused_ = paused != 0 ? 1 : 0;
+    player->ClientWorld()->paused_ = paused != 0 ? 1 : 0;
     ReadDword(&in_);   // the server's +0x24, not used
 
     int count = ReadDword(&in_);
@@ -892,7 +892,7 @@ int CPlayerClient::OnPartyState() {
     }
     PartyIdSet().Clear();
 
-    static_cast<CWorldClient*>(player->ManagerContext())->partyDanger_ = ReadDword(&in_);
+    player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
     otherUnitIds_.SetSize(others);
     for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);

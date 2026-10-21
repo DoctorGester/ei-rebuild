@@ -121,10 +121,10 @@ void CInterface3D::Update() {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
                 static_cast<unsigned>(net::GameClient()->joinState_));
-        void* memory = gamecrt::operator_new(0x180);
-        void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(this, "disconnect", "disconnect_msg", 0x990000, 1, 1)
+        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+        CMessageBox* box = memory ? memory->Construct(this, "disconnect", "disconnect_msg", 0x990000, 1, 1)
                            : nullptr;
-        PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+        PushWindow(box, 1, 1);
     } else if (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->VirtualUpdate();
     }
@@ -164,9 +164,9 @@ void CInterface3D::OnStringEvent(const char* event) {
         PlaySound("buttons\\gameover.wav", 0);
         const char* title = words.size > 1 ? static_cast<const char*>(words.data[1]) : "game_over";
         const char* message = words.size > 2 ? static_cast<const char*>(words.data[2]) : "game_over_msg";
-        void* memory = gamecrt::operator_new(0x180);
-        void* window = memory ? static_cast<CMessageBox*>(memory)->Construct(this, title, message, 0x20000, 3, 1) : nullptr;
-        PushWindow(static_cast<CUiWindow*>(window), 1, 1);
+        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+        CMessageBox* window = memory ? memory->Construct(this, title, message, 0x20000, 3, 1) : nullptr;
+        PushWindow(window, 1, 1);
         return;
     }
     auto top = [this]() { return stackEnd_[-1]; };

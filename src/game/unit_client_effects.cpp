@@ -155,7 +155,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     mfc::CString sound;
     if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound.Format(format, static_cast<const char*>(material));
     if (sound.GetLength() != 0) {
-        auto* world = static_cast<CWorldClient*>(ManagerContext());
+        auto* world = ClientWorld();
         world->sounds_->Play3D(sound, kSoundPriority, &unit->position.x, kSoundNear, kSoundFar, 0, 0);
     }
 
@@ -165,8 +165,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     if (!part || !(unit->flags_ & kFiguresLoaded)) return;
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
-        auto* source = static_cast<CParticleSource*>(
-            ParticleManagerObject()->CreateSource(kBloodParticles[blood - 1]));
+        auto* source = ParticleManagerObject()->CreateSource(kBloodParticles[blood - 1]);
         source->position = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->bounds_.radius * kBloodScale);
         source->typeParam = kBloodRate;
@@ -196,13 +195,13 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
 EI_REPLACE_METHOD(0x00537500, CUnitClientSpecific::HitEffect);
 
 void CUnitClientSpecific::SparkEffect(int) {
-    auto* source = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(kSparks));
+    auto* source = ParticleManagerObject()->CreateSource(kSparks);
     source->position = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->radius);
     source->alpha = kSparkAlpha;
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
-    auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+    auto* half = unit->Object3D()->ClientSpecific();
     if (flashCountdown == 0) half->SetLit(1);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }

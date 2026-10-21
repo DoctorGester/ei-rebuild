@@ -330,8 +330,8 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     }
 
     // The text surface.
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 20, 0, 180, 220, 5, 1) : nullptr);
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(memory ? memory->Construct(interface_, 20, 0, 180, 220, 5, 1) : nullptr);
 
     bodyPart_ = bodyPart;
     for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
@@ -502,8 +502,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
     // The surface: one white pixel at the map's centre.
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    CUiSurface* dot = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 700, 80, 705, 85, 5, 1) : nullptr;
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    CUiSurface* dot = memory ? memory->Construct(interface_, 700, 80, 705, 85, 5, 1) : nullptr;
     AddSurface(dot);
     ui_gdi::GameDC* dc = UiSurfaceGetDC(dot);
     gameapi::SetPixel(dc->hdc, 0, 0, 0xFFFFFF);

@@ -117,9 +117,6 @@ mfc::CString* StringArrayGetAt(const recordarrays::PartNames* names, mfc::CStrin
     return out;
 }
 
-// The map objects and units the footprint code reads share the CObject3D layout.
-CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
-
 // "Bodypart \"%s\" for object \"%s\" not found\n"
 const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
 
@@ -137,7 +134,7 @@ void ResetCellSet(FootprintCellSet* set) {
 
 bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
     // The object's transform: rotation from its orientation, translation from its position.
-    CMapObject* mapObject = MapObject(object);
+    CMapObject* mapObject = ObjectSlots(object);
     float* matrix = mapObject->worldMatrix.m;
     QuaternionToMatrixOriginal(&mapObject->orientation, nullptr, (float*)matrix);
     std::memcpy(&matrix[11], &mapObject->position.z, 4);
@@ -276,13 +273,12 @@ void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
 }
 
 bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
-    int cellX = WorldToCell(MapObject(object)->position.x);
-    int cellY = WorldToCell(MapObject(object)->position.y);
+    int cellX = WorldToCell(ObjectSlots(object)->position.x);
+    int cellY = WorldToCell(ObjectSlots(object)->position.y);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 
-    if (object->GetClassId() == kClassUnit) {
-        auto* unit = static_cast<CUnit*>(object);
+    if (CUnit* unit = UnitOrNull(object)) {
         if (unit->IsDead()) return true;
         auto* shape = static_cast<const CUnitShape*>(UnitShape(unit->standingHeight));
         if (!shape) return true;
@@ -304,7 +300,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     int maxY = a[3] > b[3] ? a[3] : b[3];
 
     bool savedRefreshUnits = refreshUnits;
-    refreshUnits = savedRefreshUnits && MapObject(object)->KeepsMapFlag();
+    refreshUnits = savedRefreshUnits && ObjectSlots(object)->KeepsMapFlag();
     QueueRefresh(minX - 3, maxX + 3, minY - 3, maxY + 3);
     refreshUnits = savedRefreshUnits;
     return fits;

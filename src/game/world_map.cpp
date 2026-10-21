@@ -144,7 +144,7 @@ void ClearMissilePointers(CWorldServer* world) {
 
 void CWorldServer::ResetZone() {
     SharedObjectList& shared = sharedObjects_;
-    for (auto* node = shared.head; node; node = node->next) static_cast<SharedObject*>(&node->data)->DeletingDestruct(0);
+    for (auto* node = shared.head; node; node = node->next) node->data.DeletingDestruct(0);
     shared.RemoveAll();
     mobFiles_.SetSize(0, -1);
     countdowns_.RemoveAll();

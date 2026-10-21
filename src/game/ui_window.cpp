@@ -309,11 +309,10 @@ void CUiWindow::ClearSurfaces() {
 EI_REWRITTEN(0x005FFC50, CUiWindow::ClearSurfaces);
 
 CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
-    void* manager = TheTextureManager();
-    auto* texture = static_cast<CEngineObject*>(static_cast<CTextureManager*>(manager)->FindOrCreate(kind, name));
+    CTextureManager* manager = TheTextureManager();
+    CTexture* texture = manager->FindOrCreate(kind, name);
     if (!texture) return nullptr;
-    int loaded = directory ? static_cast<CTextureManager*>(manager)->LoadTextureFrom(static_cast<CTexture*>(texture), directory)
-                           : static_cast<CTextureManager*>(manager)->LoadTexture(static_cast<CTexture*>(texture));
+    int loaded = directory ? manager->LoadTextureFrom(texture, directory) : manager->LoadTexture(texture);
     if (!loaded) return nullptr;
     objects_.Add(texture);
     ++texture->refCount_;

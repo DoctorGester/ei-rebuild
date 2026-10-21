@@ -64,7 +64,6 @@ ShadowPixels& Pixels() { return ei::GameData<ShadowPixels>(0x007AF1E0); }
 ShadowQuads& Quads() { return ei::GameData<ShadowQuads>(0x007AF208); }
 
 constexpr int kTypePointLight = 0x31;
-constexpr int kClassUnitObject = 0x50;
 constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: render the texture again
 constexpr std::uint32_t kObjectHidden = 0x48;       // object->flags_
 constexpr std::uint32_t kLightOff = 0x400;          // light->flags_
@@ -230,7 +229,7 @@ int KeyedParts(const CObject3D* object) {
 // in *failure) when the render surface cannot be locked.
 bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
     // Rasterise into the render surface.
-    void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
+    void* surface = self->WorldContext()->TextureManager()->ShadowRenderSurface();
     SurfacePixels description;
     if (!static_cast<CTexture*>(surface)->LockPixels(&description)) {
         *failure = game::FatalError("Can't lock render surface for texture \"%s\"\n", self->GetName());
@@ -497,9 +496,8 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     // The game shows this object's shadow: in the new renderer's shadow map its meshes cast (R16j),
     // a unit as strongly as it has faded in.
     float strength = 1.0f;
-    if (object->GetClassId() == kClassUnitObject)
-        strength = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller)->fadeIn;
-    render::CastsShadow(static_cast<const CEngineObject*>(object), strength);
+    if (CUnit* unit = UnitOrNull(object)) strength = unit->ClientController()->fadeIn;
+    render::CastsShadow(object, strength);
 
     if (!texture) {
         AssignTexture(&texture, TheTextureManager()->NewShadowTexture());
@@ -529,8 +527,8 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
 
     if (vertices.size == 0) return 1;
     std::uint32_t colour = kDefaultColour;
-    if (object->GetClassId() == kClassUnitObject) {
-        auto* half = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
+    if (CUnit* unit = UnitOrNull(object)) {
+        CUnitClientSpecific* half = unit->ClientController();
         float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }

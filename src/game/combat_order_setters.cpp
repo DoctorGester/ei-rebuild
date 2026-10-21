@@ -145,7 +145,7 @@ void CUnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;
     {
         mfc::CString figure(unit->name);
-        auto* world = static_cast<CWorld*>(ManagerContext());
+        auto* world = WorldContext();
         entry = (world->MapObjectManager())->FindFigureAnimation(figure, name);
     }
     if (!entry) return;

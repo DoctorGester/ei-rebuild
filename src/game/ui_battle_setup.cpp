@@ -262,7 +262,7 @@ void CBattleScreen::Create() {
     topPanel_->Build(interface_->hudTopPage_, interface_->hudPanelsIn_[1]);
     {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.
-        auto* top = static_cast<CHudTopPanel*>(topPanel_);
+        auto* top = topPanel_;
         mfc::CString& panelText = top->pageTexts_[0];
         const char* text = savedText;
         panelText += text;

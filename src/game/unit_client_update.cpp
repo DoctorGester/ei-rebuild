@@ -88,14 +88,14 @@ int CUnitClientSpecific::UpdateClient() {
 
     EI_NAN_AUDIT(fadeIn);
     if (fadeIn < 1.0f) {
-        auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+        auto* half = unit->Object3D()->ClientSpecific();
         for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
         float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
         fadeIn = next >= 1.0f ? 1.0f : next;   // the original's select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->SetLit(0);
+        unit->Object3D()->ClientSpecific()->SetLit(0);
 
     if (blinks) {
         if (blinkTimer > 0) {
@@ -138,10 +138,6 @@ namespace {
 float LevelBase() { return ei::GameData<const float>(0x007C5488); }
 float LevelFactor() { return ei::GameData<const float>(0x007C548C); }
 
-CObject3DClientSpecific* ClientHalf(CUnit* unit) {
-    return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-}
-
 // The drawn parts take `alpha`.
 void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
     for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = alpha;
@@ -149,14 +145,14 @@ void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
 } // namespace
 
 int CUnitClientSpecific::FiguresLoaded() {
-    SetPartsAlpha(ClientHalf(unit), fadeIn);
+    SetPartsAlpha(unit->ClientSpecific(), fadeIn);
     return 1;
 }
 EI_REPLACE_METHOD(0x005344E0, CUnitClientSpecific::FiguresLoaded);
 
 int CUnitClientSpecific::RestartFadeIn() {
     fadeIn = 0.0f;
-    SetPartsAlpha(ClientHalf(unit), fadeIn);
+    SetPartsAlpha(unit->ClientSpecific(), fadeIn);
     return 0;
 }
 EI_REPLACE_METHOD(0x005344A0, CUnitClientSpecific::RestartFadeIn);
@@ -175,9 +171,9 @@ int CUnitClientSpecific::RefreshWounds() {
     if (ComposeWoundsTexture()) {
         char name[0x80];
         gamecrt::sprintf(name, "mo%dw", unit->id_);
-        ClientHalf(unit)->ShowWounds(name);
+        unit->ClientSpecific()->ShowWounds(name);
     } else {
-        ClientHalf(unit)->HideWounds();
+        unit->ClientSpecific()->HideWounds();
     }
     return 1;
 }

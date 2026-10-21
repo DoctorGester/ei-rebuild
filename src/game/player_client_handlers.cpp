@@ -157,7 +157,7 @@ int CPlayerClient::OnWorldValue() {
     in_.Read(bytes, 5);
     int value;
     std::memcpy(&value, bytes + 1, 4);
-    static_cast<CWorldClient*>(Owner()->ManagerContext())->SetWorldValue(value);
+    Owner()->ClientWorld()->SetWorldValue(value);
     return 1;
 }
 
@@ -224,7 +224,7 @@ int CPlayerClient::OnObjectChanged() {
     if (static_cast<CMapObject*>(object)->ReadState(1, &in_) == 0) return 0;
     const int classId = object->GetClassId();
     if (classId == kPlatformClassA || classId == kPlatformClassB)
-        static_cast<CWorldClient*>(ManagerContext())->RefreshPlatforms(object);   // the client's own
+        ClientWorld()->RefreshPlatforms(object);   // the client's own
     return 1;
 }
 
@@ -256,7 +256,7 @@ int CPlayerClient::OnTimedObjectAdded() {
     in_.Read(message, 8);
     const int id = message[0];
     CPlayer* player = Owner();
-    CBaseManager* manager = static_cast<CWorld*>(player->ManagerContext())->TimedObjectManager();
+    CBaseManager* manager = player->WorldContext()->TimedObjectManager();
     auto* object = static_cast<CEffect*>(manager->CreateObject(message[1], id));
     if (!object) return 0;
     if (!object->Receive(0, &in_)) return 0;

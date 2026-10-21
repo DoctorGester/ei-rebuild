@@ -38,9 +38,9 @@ using GivenItems = mfc::CTypedPtrList<CItem>;
 
 constexpr int kClassQuestItem = 0x14;
 
-void* World() { return TheServerWorld(); }
+CWorldServer* World() { return TheServerWorld(); }
 // 00594180: player 0 of the world (the local player), or null.
-CPlayer* LocalPlayer() { return static_cast<CWorldServer*>(World())->GetPlayer(0); }
+CPlayer* LocalPlayer() { return World()->GetPlayer(0); }
 std::int32_t GameMode() { return ei::GameData<const std::int32_t>(0x007C2CC4); }
 std::uint32_t Unknown7B00BC() { return ei::GameData<const std::uint32_t>(0x007B00BC); }
 
@@ -72,7 +72,7 @@ void ClientSession::ApplyAwards() {
         case 0: {
             std::uint32_t bits;
             std::memcpy(&bits, &award->value_, 4);
-            static_cast<CWorldServer*>(World())->AwardExperience(nullptr, std::bit_cast<float>(bits));
+            World()->AwardExperience(nullptr, std::bit_cast<float>(bits));
             break;
         }
         case 1: {

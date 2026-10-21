@@ -371,7 +371,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || current->id_ != id) {
-            CPlayerClient* view = static_cast<CWorldClient*>(ManagerContextOf(unit))->LocalView();
+            CPlayerClient* view = unit->ClientWorld()->LocalView();
             CPlayer* local = view->player_;
             if ((local->id_ == id || view->localSession_) && unit->player != local) {
                 CPlayer* old = unit->player;

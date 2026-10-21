@@ -325,7 +325,7 @@ void CBattleScreen::Update() {
             quickItems_->SetUnit(nullptr);
             spellColumn_->SetUnit(nullptr);
             actionColumn_->SetUnit(nullptr, 0);
-            CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
+            CHudUnitPanel* panel = unitPanel_;
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
                 ShowPanelView(panel, first);
@@ -348,10 +348,10 @@ void CBattleScreen::Update() {
         for (int i = 0; i < data->members_.size; ++i)
             records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->members_.data[i]));   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
-            void* memory = gamecrt::operator_new(0x180);
-            void* box = memory ? reinterpret_cast<CMessageBox*>(memory)->Construct(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1)
+            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+            CMessageBox* box = memory ? memory->Construct(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1)
                                : nullptr;
-            interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+            interface_->PushWindow(box, 1, 1);
             exitPending_ = 0;
         }
         second.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
@@ -443,7 +443,7 @@ namespace {
 
 // The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
 // (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
-CUnit* UnitAtPoint(void* world, void*, int* point) { return static_cast<CUnit*>(static_cast<CWorldClient*>(world)->UnitAt(reinterpret_cast<const long*>(point))); }
+CUnit* UnitAtPoint(CWorldClient* world, void*, int* point) { return static_cast<CUnit*>(world->UnitAt(reinterpret_cast<const long*>(point))); }
 
 } // namespace
 
@@ -454,7 +454,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         return;
     }
     viewPressed_ = false;
-    void* world = TheClientWorld();
+    CWorldClient* world = TheClientWorld();
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};
@@ -469,7 +469,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     int first = -1;
     List units;
     units.Construct();   // 00411850
-    static_cast<CWorldClient*>(world)->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_),
+    world->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_),
                                                   reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
     List inside;
     inside.Construct();   // 00404A70
@@ -482,11 +482,11 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             }
         }
         if (first >= 0) {
-            static_cast<CWorldClient*>(world)->Deselect(nullptr);
+            world->Deselect(nullptr);
             using MarkFn = void(__thiscall*)(void*, int);
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
             auto marker = [&](int i) { return portraits_->SceneMesh(i * 5 + 4); };
-            auto slot = [&](int i) -> HudPortraitSlot& { return static_cast<CHudPortraits*>(portraits_)->slots_[i]; };
+            auto slot = [&](int i) -> HudPortraitSlot& { return portraits_->slots_[i]; };
             for (int i = 0; i < party->size; ++i) {
                 CUnit* unit = unitAt(i);
                 std::uint32_t flags = unit->flags_;
@@ -507,7 +507,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
-                static_cast<CWorldClient*>(world)->Select(unitAt(static_cast<int>(node->data)));
+                world->Select(unitAt(static_cast<int>(node->data)));
             }
             int id = unitAt(first)->id_;
             using EventFn = void(__thiscall*)(void*, int, int, int);
@@ -611,14 +611,14 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     }
     text = text + "\007C\344\327\247\n";   // colour code and a line end
 
-    CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);
+    CHudTopPanel* top = topPanel_;
     const char* line = text;
     top->PageText(0) += line;
     if (top->page_ == 0) {
         CBattleScreen* screen = top->owner_;
         static_cast<CUiScrollText*>((void*)screen->children_[9])->AddText(line);
     }
-    static_cast<CHudClock*>(clock_)->highlight_ = true;
+    clock_->highlight_ = true;
     int sound = static_cast<int>(value);
     if (questSound_ > sound) sound = questSound_;
     questSound_ = sound;
@@ -654,7 +654,7 @@ void CBattleScreen::RefreshSelection() {
     actionColumn_->SetUnit(shown, selected > 0 ? 1 : 0);
 
     // The unit panel shows the first selected unit (also a dead one, or the first of several).
-    CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
+    CHudUnitPanel* panel = unitPanel_;
     if (first != panel->shownUnit_) {
         panel->shownUnit_ = first;
         if (first) {
@@ -667,13 +667,13 @@ void CBattleScreen::RefreshSelection() {
     pendingSlot_ = -1;
     pendingAction_ = 0;
     pendingItem_ = -1;
-    CHudQuickItems* quick = static_cast<CHudQuickItems*>(quickItems_);
+    CHudQuickItems* quick = quickItems_;
     for (int i = 0; i < 8; ++i) quick->Highlight(i, 0);
     quick->selected_ = -1;
-    CHudSpellColumn* spells = static_cast<CHudSpellColumn*>(spellColumn_);
+    CHudSpellColumn* spells = spellColumn_;
     for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
     spells->selected_ = -1;
-    CHudActionColumn* actions = static_cast<CHudActionColumn*>(actionColumn_);
+    CHudActionColumn* actions = actionColumn_;
     for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
     actions->selected_ = -1;
 }

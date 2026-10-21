@@ -70,7 +70,7 @@ char* PrototypeByName(const char* name) {
 }
 
 // The world the unit belongs to (its manager's context).
-CWorld* ContextWorld(CUnit* unit) { return static_cast<CWorld*>(unit->ManagerContext()); }
+CWorld* ContextWorld(CUnit* unit) { return unit->WorldContext(); }
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
@@ -136,7 +136,7 @@ void SetCarriedSize(CUnit* unit, int size) {
 void* PlayerById(CUnit* unit, int id) {
     void* player = nullptr;
     if (ContextWorld(unit)->GetClassId() == kWorldServerClassId)
-        player = static_cast<CWorldServer*>(unit->ManagerContext())->GetPlayer(id);
+        player = unit->ServerWorld()->GetPlayer(id);
     return player;
 }
 } // namespace

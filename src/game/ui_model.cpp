@@ -26,7 +26,7 @@ void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int res
 }
 // 00512B20 (thiscall on the object manager 007AF5F8, RET 8): the object of `kind` named `name`.
 FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
-    return static_cast<FigureAnimation*>(static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind));
+    return static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind);
 }
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
@@ -126,12 +126,12 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object->position.x = 0.0f;
     object->position.y = 0.0f;
     object->position.z = 3.0f;
-    CEngineObject* specific = object->attached;
+    CObject3DClientSpecific* specific = object->ClientSpecific();
     console::CStringArray parts;
     object->MakeFigure(name, &parts, 1);
-    static_cast<CObject3DClientSpecific*>(specific)->RegisterPartMaterials();
+    specific->RegisterPartMaterials();
     object->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     object->RestartPose();
-    static_cast<CObject3DClientSpecific*>(specific)->SetSkins(from, to);
+    specific->SetSkins(from, to);
 }
 EI_REWRITTEN(0x005FC1F0, CUiModel::Load);

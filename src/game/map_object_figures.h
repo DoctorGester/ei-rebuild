@@ -93,6 +93,7 @@ class CBaseManager;   // base_manager.h
 // themselves do not derive from this declaration (their rewritten slots are registered by
 // address), the 3D object reaches its half through CObject3D::Specific().
 class CObject3DSpecific;
+class CObject3DClientSpecific;   // map_object_shadow.h
 // 0051F240 (object3d_halves.cpp). The server half's constructor (the engine object's fields inline): no
 // object. Returns the half.
 CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self);
@@ -606,6 +607,8 @@ public:
 
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
+    // The same half on the client: the CObject3DClientSpecific (defined in map_object_shadow.h).
+    CObject3DClientSpecific* ClientSpecific() const;
     // The figure (+0xF0) as the counted reference 00519580 assigns.
     CountedRef<CLinkMesh>& FigureRef() { return *reinterpret_cast<CountedRef<CLinkMesh>*>(&figure); }
     // The object as the CTransformObject it starts with (core_transform.h).

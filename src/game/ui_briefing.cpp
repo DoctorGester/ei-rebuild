@@ -89,7 +89,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
         if (window) {
-            static_cast<CUiContainer*>(window)->Construct(interface_);
+            window->CUiContainer::Construct(interface_);
             window->entriesBegin_ = nullptr;
             window->entriesEnd_ = nullptr;
             window->entriesCapacity_ = nullptr;
@@ -194,11 +194,11 @@ EI_REPLACE_METHOD(0x00603010, CBriefingScreen::OnUnitLeft);
 
 void CBriefingScreen::OnGameOver(int) {
     interface_->PlaySound("buttons\\gameover.wav", 0);
-    void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-    void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, "game_over",
+    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+    CMessageBox* box = memory ? memory->Construct(interface_, "game_over",
                                                      "game_over_msg", kGameOverResult, 3, 1)
                        : nullptr;
-    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+    interface_->PushWindow(box, 1, 1);
 }
 EI_REPLACE_METHOD(0x00608C70, CBriefingScreen::OnGameOver);
 

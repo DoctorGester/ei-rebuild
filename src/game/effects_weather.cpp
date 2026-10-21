@@ -309,7 +309,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             r = IsaacRandom::Global().Next();
             cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * (kFogCellSize * kHalf));
             // The world's slot 30: the water surface height, used unrounded from ST0.
-            double ground = static_cast<CWorld*>(World())->SurfaceHeightAt(Load(cell->pos.x), Load(cell->pos.y));
+            double ground = World()->SurfaceHeightAt(Load(cell->pos.x), Load(cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = static_cast<float>(ground + kHalf);
             cell->frame = static_cast<std::int8_t>(IsaacRandom::Global().Next() % 15);

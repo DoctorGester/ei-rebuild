@@ -40,7 +40,7 @@ CParty* LocalParty() { return LocalPlayerData(); }
 // --- 0062C8F0 / 0062C920: closing, message box answers -----------------------------------------------
 
 void CExchangeScreen::Close() {
-    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
+    descPanel_->Describe(nullptr);
     delete scratch_;   // slot 0 with 1 (the game's deleting destructor)
 }
 EI_REPLACE_METHOD(0x0062C8F0, CExchangeScreen::Close);
@@ -147,8 +147,8 @@ T* NewChild(std::size_t size, CInterface3D* ui, VtablePair vtables) {
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    return memory ? static_cast<CUiSurface*>(memory)->Construct(ui, 0, top, 200, bottom, kSurfaceFormat, 1) : nullptr;
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    return memory ? memory->Construct(ui, 0, top, 200, bottom, kSurfaceFormat, 1) : nullptr;
 }
 
 CUiContainer* AsContainer(CExchangeScreen* screen) { return reinterpret_cast<CUiContainer*>(screen); }
@@ -240,7 +240,7 @@ void CExchangeScreen::Create() {
     moneyField_ = memory ? static_cast<CUiEditField*>(memory)->Construct(interface_, RECT{0, 0x15E, 200, 0x16E}) : nullptr;
     AsContainer(this)->AddChild(moneyField_);
     moneyField_->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
-    static_cast<CUiEditField*>(moneyField_)->SetText("");
+    moneyField_->SetText("");
 
     AddSurface(NewSurface(interface_, 0x19A, 0x1C2));
     AddSurface(NewSurface(interface_, 0x136, 0x15E));
@@ -276,11 +276,11 @@ BOOL CExchangeScreen::Draw(int pass) {
     if (!hoveredItem_ && !topic)
         hoveredItem_ = reinterpret_cast<CItem*>(grid_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic));
     if (hoveredItem_) {
-        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->Describe(hoveredItem_);
+        if (descPanel_) descPanel_->Describe(hoveredItem_);
     } else if (topic) {
-        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
+        if (descPanel_) descPanel_->ShowHelp(topic);
     } else if (descPanel_) {
-        static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
+        descPanel_->Describe(nullptr);
     }
 
     auto* texts = reinterpret_cast<CTextManager*>(GameClientTexts());
@@ -376,7 +376,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (mode == kStripActionTake) {
         uiorig::PlayUiSound(interface_, kPutOnSound, 0);
         CParty* local = LocalParty();
-        static_cast<CItemScreen*>(this)->MoveItem(item, ownOffer_, local, kOfferLimit, 1, 0);
+        MoveItem(item, ownOffer_, local, kOfferLimit, 1, 0);
         net::ClientPublishParty(net::GameClient());
         return;
     }
@@ -386,8 +386,8 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         if (offered.data[i] != item) continue;
         uiorig::PlayUiSound(interface_, kPutOffSound, 0);
         CParty* offer = ownOffer_;
-        CItem* held = static_cast<CItemScreen*>(this)->MoveItem(item, LocalParty(), offer, 0, 1, 0);
-        static_cast<CUiItemStrip*>(strip_)->ScrollToItem(held);
+        CItem* held = MoveItem(item, LocalParty(), offer, 0, 1, 0);
+        strip_->ScrollToItem(held);
         net::ClientPublishParty(net::GameClient());
         return;
     }

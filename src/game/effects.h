@@ -481,7 +481,7 @@ public:
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);
 
     CEngineObject* texture;         // +0x01C counted texture ("RainSnow")
-    class CWorld* world;            // +0x020 the client world (set after construction)
+    class CWorldClient* world;      // +0x020 the client world (set after construction)
     int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
     // The draws' work arrays.
     lib::AlignedArray<Vector4> projected;       // +0x028 the positions projected (four per packet)

@@ -44,7 +44,7 @@ int CUnitClientSpecific::RefreshSkins() {
     mfc::CString name;
     // EI_Plugin's Fixes (00536132): the test for a hero is gone, every unit is refreshed.
     if (unit->type_ != kUnitTypeHero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return 1;
-    auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+    auto* half = unit->Object3D()->ClientSpecific();
     CTexture* detailed = SkinTexture(half->partSets[0]);
     if (NeedsReload(ComposeSkin(1, &name), detailed, name, false)) Reload(detailed, name);
     CTexture* simple = SkinTexture(half->partSets[1]);
@@ -56,7 +56,7 @@ EI_REPLACE_METHOD(0x00536100, CUnitClientSpecific::RefreshSkins);
 int CUnitClientSpecific::RefreshSimpleSkin() {
     if (unit->type_ != kUnitTypeHero) return 1;
     mfc::CString name;
-    auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+    auto* half = unit->Object3D()->ClientSpecific();
     CTexture* simple = SkinTexture(half->partSets[1]);
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
     return 1;

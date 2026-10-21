@@ -149,14 +149,14 @@ void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* b
     ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing);
     ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing);
     for (int i = 2; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingReject(), game::questwords::ListKey(i), List(briefing, i));
-    static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
+    db->briefings.Add(briefing);
 }
 
 // "briefing complete": the name assigned as a C string, all six lists by 006AE740.
 void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete());
     for (int i = 0; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
-    static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
+    db->briefings.Add(briefing);
 }
 
 } // namespace

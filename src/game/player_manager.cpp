@@ -38,9 +38,9 @@ int CPlayerManager::Create() { return CreatePlayers(); }
 CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
 
 CEngineObject* CPlayerManager::NewPlayer(int type) {
-    void* memory = gamecrt::operator_new(sizeof(CPlayer));
+    CPlayer* memory = gamecrt::operator_new_as<CPlayer>();
     if (!memory) return nullptr;
-    CPlayer* player = static_cast<CPlayer*>(memory)->Construct();
+    CPlayer* player = memory->Construct();
     if (!player) return nullptr;
     player->type_ = type;
     return player;
@@ -66,7 +66,7 @@ int NextPlayerNumber(CPlayer* self, int id) {
 CEngineObject* CPlayerManager::CreateSessionPlayer() {
     auto* player = static_cast<CPlayer*>(CBaseManager::CreateObjectImpl(kPlayerType, -1));
     if (!player) return nullptr;
-    CBaseManager* specific = static_cast<CWorld*>(context_)->SpecificManager();
+    CBaseManager* specific = ContextAsWorld()->SpecificManager();
     player->SetConnection(static_cast<CPlayerConnection*>(specific->CreateObject(kConnectionType, -1)));
     ++player->refCount_;
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers))

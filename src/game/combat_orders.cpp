@@ -38,7 +38,7 @@ constexpr float kReachHeight = 1.5f;    // 0073C51C
 constexpr int kMessageOutOfReach = 0x0C;
 constexpr int kMessageCannotCast = 0x13;
 
-AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
+AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 
 // The prototype records behind a spell and a unit.
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
@@ -80,7 +80,7 @@ void TellParty(CUnit* unit, int message) {
 // 00527EB0. UnitStats: the unit's skill value for spell school `school`, in ST0 (declared double).
 
 void CUnitServer::FinishCast() {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     std::uint32_t source = action.source;
     CItem* carrier = nullptr;
     CSpell* spell;
@@ -91,7 +91,7 @@ void CUnitServer::FinishCast() {
         carrier = item;
         spell = item->spell_;
     } else {
-        spell = static_cast<CSpell*>(unit->GetSpellObject(source));
+        spell = unit->GetSpellObject(source);
     }
     if (!spell) return;
     Vector3 at;
@@ -124,7 +124,7 @@ void CUnitServer::FinishCast() {
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);
     }
-    static_cast<CWorldServer*>(world)->CastSpell(spell, unit, &unit->position, action.target, &at, 0);
+    world->CastSpell(spell, unit, &unit->position, action.target, &at, 0);
     if (SpellPrototype(spell)->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
         reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
@@ -144,7 +144,7 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
 EI_REPLACE_METHOD(0x005546B0, CUnitServer::OrderTurn);
 
 void CUnitServer::OrderMove(const float* point, int run, int walk, float range) {
-    const char* world = static_cast<const char*>(ManagerContext());
+    const CWorld* world = WorldContext();
     ResetOrder(&action2);
     action2.kind = 1;
     std::memcpy(&action2.point, point, sizeof(action2.point));
@@ -155,7 +155,7 @@ void CUnitServer::OrderMove(const float* point, int run, int walk, float range) 
     action2.param = 0;
     if (!unit->player) return;
     if (std::bit_cast<std::uint32_t>(point[2]) == kNoPointZ) return;
-    if (world[0x6C] == 0) {
+    if (world->paused_ == 0) {
         action2.param = 1;
         return;
     }
@@ -165,8 +165,9 @@ EI_REPLACE_METHOD(0x00554740, CUnitServer::OrderMove);
 
 void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledShot, int planArg) {
     if (!target || target == unit) return;
-    if (target->GetClassId() == kClassUnit && location < 6) {
-        auto* controller = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(target)->controller);
+    CUnit* victim = UnitOrNull(target);
+    if (victim && location < 6) {
+        CUnitServer* controller = victim->ServerController();
         if (controller->stats.slots[location].kind != 3) location = 6;
     }
     ResetOrder(&action2);
@@ -176,18 +177,16 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
     action2.modifier = static_cast<std::uint8_t>(calledShot);
     // CanReachTarget (0054C800) inlined on the queued order.
     if (action2.kind == 3 || action2.kind == 6) {
-        CEngineObject* other = action2.target;
-        if (other && other->GetClassId() == kClassUnit && ObjectSlots(other)->IsDead() == 0 &&
-            static_cast<CUnit*>(other)->sizeClass == 0) {
+        CUnit* other = UnitOrNull(action2.target);
+        if (other && ObjectSlots(other)->IsDead() == 0 && other->sizeClass == 0) {
             bool ranged = false;
             if (action2.kind == 3) {
                 auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
                 ranged = weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
             }
             if (!ranged) {
-                auto* victim = static_cast<CUnit*>(other);
                 double height =
-                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(victim)->height)) + victim->position.z;
+                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->position.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;
@@ -215,7 +214,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
         if (!carrier) return !(self->unit->flags_ & kFlagSpellBlocked);
         spell = carrier->spell_;
     } else {
-        spell = static_cast<CSpell*>(self->unit->GetSpellObject(source));
+        spell = self->unit->GetSpellObject(source);
     }
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->skillNeeded_);
@@ -236,13 +235,13 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
         if (item && item->GetClassId() == kClassQuickItem &&
             (item->GetCategory() == kCategoryCharged || item->GetCategory() == kCategoryScroll) &&
             item->GetCategory() == kCategoryScroll) {
-            void* world = ManagerContext();
+            CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(slot);
             if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
-            static_cast<CWorldServer*>(world)->CastSpell(carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
-            static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
+            world->CastSpell(carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
+            world->UseItemUp(unit, scroll);
             return;
         }
     }
@@ -270,14 +269,14 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
     if (source & kQuickItemSource) {
         CItem* carrier = SpellCarrier(source);
         if (carrier && carrier->GetCategory() == kCategoryScroll) {
-            void* world = ManagerContext();
+            CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(source & ~kQuickItemSource);
             if (!scroll || !scroll->count_) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
-            static_cast<CWorldServer*>(world)->CastSpell(spellCarrier->spell_, unit, &unit->position, target,
+            world->CastSpell(spellCarrier->spell_, unit, &unit->position, target,
                                    &reinterpret_cast<CUnit*>(target)->position, 0);
-            static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
+            world->UseItemUp(unit, scroll);
             return;
         }
     }

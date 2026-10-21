@@ -94,7 +94,7 @@ void CBriefingScreen::StartPhrases() {
     lookAt_.z = static_cast<float>(axisZ + savedCamera_.z);
 
     dialogueText_.Empty();
-    static_cast<CUiScrollText*>(text_)->SetText(game::EmptyText());
+    text_->SetText(game::EmptyText());
     state_ = kStatePhrases;
     firstPhrase_ = true;
     NextPhrase(0);

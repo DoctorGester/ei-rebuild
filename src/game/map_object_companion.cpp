@@ -84,7 +84,7 @@ std::uintptr_t CMapObjectServer::SetData(const void* data) {
 EI_REPLACE_METHOD(0x00515950, CMapObjectServer::SetData);
 
 BOOL CMapObjectServer::TakeHit(const void* hit) {
-    if (!static_cast<UnitVitals*>(&vitals)->TakeHit(static_cast<const DamageInfo*>(hit))) return 0;
+    if (!vitals.TakeHit(static_cast<const DamageInfo*>(hit))) return 0;
     owner->MarkChanged(0);
     if (CompanionSlots(this)->IsDead()) {
         owner->ClearEffects();

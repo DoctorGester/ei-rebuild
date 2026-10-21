@@ -364,8 +364,8 @@ CUiRegion* AddRect(CUiWindow* window, const RECT& rect) {
 
 void CTradePanel::Build() {
     rect_ = RECT{200, 100, 600, 500};
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 100, 600, 500, 5, 1) : nullptr);
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(memory ? memory->Construct(interface_, 200, 100, 600, 500, 5, 1) : nullptr);
     recordIndex_ = 0;
     perkTop_ = 0;
     learnableTop_ = 0;

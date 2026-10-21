@@ -139,14 +139,14 @@ CUiItemStrip* NewStrip(CInterface3D* ui, CUiWindow* owner) {
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    return memory ? static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    return memory ? memory->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
 }
 
 // An item list of the constructors: made through its slot 2 (not checked, as in the original).
 CParty* NewItemList() {
-    void* memory = gamecrt::operator_new(sizeof(CParty));
-    CParty* list = memory ? static_cast<CParty*>(memory)->Construct() : nullptr;
+    CParty* memory = gamecrt::operator_new_as<CParty>();
+    CParty* list = memory ? memory->Construct() : nullptr;
     list->Create();
     return list;
 }
@@ -264,7 +264,7 @@ void CCampPages::BuildPages() {
     CItemInfoPanel* info = NewInfoPanel(interface_, this);
     descPanel_ = info;
     AsContainer(this)->AddChild(info);
-    static_cast<CItemInfoPanel*>(descPanel_)->Build(600, 100);
+    descPanel_->Build(600, 100);
 
     // The hero's statistics.
     auto* stats = reinterpret_cast<CHeroStatsPanel*>(NewPanel(sizeof(CHeroStatsPanel), interface_, this, ItemPanelVtables()));
@@ -282,7 +282,7 @@ void CCampPages::BuildPages() {
     info = NewInfoPanel(interface_, this);
     helpPanel_ = info;
     AsContainer(this)->AddChild(info);
-    static_cast<CItemInfoPanel*>(helpPanel_)->Build(0, 100);
+    helpPanel_->Build(0, 100);
 
     // The party's items.
     CUiItemStrip* strip = NewStrip(interface_, this);

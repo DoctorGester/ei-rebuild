@@ -398,7 +398,7 @@ public:
     ClientSpeechNode* speech;       // +0x9C the speech queue (STLport list header node)
     std::uint32_t armourIds[7];     // +0xA0 packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];     // +0xBC
-    CEngineObject* faceTexture;     // +0xCC the face texture the blink changes (counted)
+    CTexture* faceTexture;          // +0xCC the face texture the blink changes (counted)
     std::uint8_t blinks;            // +0xD0
     std::uint8_t unused_0D1[3];
     int blinkTimer;                 // +0xD4 ticks to the next blink change
@@ -428,3 +428,7 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
                                        stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames);
+
+#include "unit.h"   // CUnit
+
+inline CUnitClientSpecific* CUnit::ClientController() const { return static_cast<CUnitClientSpecific*>(controller); }

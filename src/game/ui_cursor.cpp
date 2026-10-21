@@ -50,8 +50,8 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     void* picture = manager->GetFile(name, nullptr);
     // (The original frees the holder's memory when 004EFC60 throws and passes the exception on; that
     // ends the game.)
-    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    holder = memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromPicture(TheRenderDevice(), picture, flag))
+    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
+    holder = memory ? memory->ConstructFromPicture(TheRenderDevice(), picture, flag)
                     : nullptr;
     if (holder) ++holder->refCount;
     // (The original releases a holder kept before here; there is none: it was cleared above.)

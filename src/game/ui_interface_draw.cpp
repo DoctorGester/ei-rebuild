@@ -70,7 +70,7 @@ void CallSlot(void* window, int slot) {
 // the full-size one the mode's size in pixels, unscaled (addon's operands at 005F546A..005F5473
 // and 005F5568..005F5571: 1 -> 0, 600 -> height, 800 -> width).
 void MakeBackdrop(CInterface3D* ui) {
-    auto* surface = static_cast<CUiSurface*>(gamecrt::operator_new(sizeof(CUiSurface)));
+    auto* surface = gamecrt::operator_new_as<CUiSurface>();
     if (SmallBackdrops()) {
         ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, 400, 300, 6, 1) : nullptr;
         ui->backdrop_->SetRect(0, 0, 800, 600);

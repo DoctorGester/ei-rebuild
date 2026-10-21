@@ -75,7 +75,7 @@ MmpHeader ShadowHeader() {
 // their texture (`*missing` set).
 CTexture* MakeShadowTexture(CTextureManager* manager, std::uint32_t keep, std::uint32_t flag, bool* missing) {
     *missing = false;
-    auto* texture = static_cast<CTexture*>(manager->CreateObject(kShadowKind, -1));
+    CTexture* texture = manager->NewTextureOfType(kShadowKind);
     MmpHeader header = ShadowHeader();
     texture->width_ = kShadowSize;
     texture->height_ = kShadowSize;

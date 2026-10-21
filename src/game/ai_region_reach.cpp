@@ -94,7 +94,7 @@ void DestroyPathList(PathCellList& list) {
     list.free = nullptr;
     list.tail = nullptr;
     list.head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list.blocks));
+    mfc::PlexFreeDataChain(list.blocks);
 }
 
 void ResetChain(BlockRecord* record) {
@@ -244,7 +244,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
     out->free = nullptr;
     out->tail = nullptr;
     out->head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(out->blocks));
+    mfc::PlexFreeDataChain(out->blocks);
     out->blocks = nullptr;
 
     local.backward = flag;
@@ -480,7 +480,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
     path->free = nullptr;
     path->tail = nullptr;
     path->head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(path->blocks));
+    mfc::PlexFreeDataChain(path->blocks);
     path->blocks = nullptr;
     int columns = search.records.width;
     int rows = search.records.height;

@@ -133,7 +133,7 @@ void ShowRainBolt(CWorldServer* world) {
 } // namespace
 
 void CWorldServer::UpdateWeather() {
-    float day = static_cast<float>(static_cast<CWorld*>((void*)this)->NightLevel());
+    float day = static_cast<float>(NightLevel());
     std::memcpy(&nightLevel_, &day, 4);
     if (sessionKind_ == kKindSinglePlayer) {
         if (climate_ != 0) {

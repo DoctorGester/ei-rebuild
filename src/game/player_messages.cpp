@@ -266,7 +266,7 @@ void CPlayer::Tick() {
         auto* current = node;
         node = node->next;
         int id = static_cast<int>(current->data);
-        CEngineObject* object = static_cast<CBaseManager*>(Party()->ItemManager())->FindObject(id);
+        CEngineObject* object = Party()->ItemManager()->FindObject(id);
         if (object == nullptr || object->RunTick() == 0) recharging_.RemoveAt(current);
     }
     connection_->TickDone();

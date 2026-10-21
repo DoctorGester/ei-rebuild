@@ -349,7 +349,7 @@ int Terrain::SetupPages(int count) {
             pageTextures.SetAtGrow(pageTextures.size, nullptr);
             pageMaterials.SetAtGrow(pageMaterials.size, nullptr);
         }
-        CTexture* texture = static_cast<CTexture*>(TheTextureManager()->FindOrCreate(kPageTexture, name));
+        CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name);
         pageTextures[i] = texture;
         ++texture->refCount_;
         CMaterial* material = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(Materials())->NewMaterial(kPageMaterial));

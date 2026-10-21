@@ -228,8 +228,8 @@ EI_REWRITTEN(0x00440BE0, SocketDriver::Receive);
 
 // 00440C60: a non-blocking TCP socket connecting to `address` (state 1), or state 0.
 MasterLink* MasterLink::Construct(const void* address) {
-    static_cast<GameBuffer*>(&out)->ConstructGrowing();
-    static_cast<GameBuffer*>(&in)->ConstructGrowing();
+    out.ConstructGrowing();
+    in.ConstructGrowing();
     socket = libcrt::imports::Socket(2, 1, 6);
     if (socket == kNoSocket) {
         state = 0;

@@ -190,10 +190,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
                               std::string_view(phrase, static_cast<std::size_t>(phrase.GetLength())))) *
                           kSecondsPerCharacter;
             if (firstPhrase_) phraseTime_ += 1.0f;
-            static_cast<CUiScrollText*>(text_)->AddText(phrase);
+            text_->AddText(phrase);
         }
     } else if (!skip) {
-        static_cast<CUiScrollText*>(text_)->AddText(phrase);
+        text_->AddText(phrase);
     }
 
     if (last) {
@@ -211,7 +211,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             mfc::CString label;
             auto add = [&] {
                 dialogueText_ += line;
-                if (!skip) static_cast<CUiScrollText*>(text_)->AddText(line);
+                if (!skip) text_->AddText(line);
             };
             auto addItems = [&](const BriefingRecord::NameList& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
@@ -338,7 +338,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     firstPhrase_ = false;
     if (skip && last) {
         // Skipped to the end: the whole text at once, scrolled to its end; everyone listens.
-        static_cast<CUiScrollText*>(text_)->SetText(dialogueText_);
+        text_->SetText(dialogueText_);
         text_->CallSetPosition(text_->maxPosition_);
         text_->moved_ = true;
         for (BriefingSpeaker* p = speakers_; p != speakersEnd_; ++p) {

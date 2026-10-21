@@ -110,7 +110,7 @@ void PushObjectMatrix(MatrixDevice* device, float* matrix) {
 
 CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
 CObject3DClientSpecific* ModelOf(CEngineObject* object) {
-    return static_cast<CObject3DClientSpecific*>(Object3D(object)->attached);
+    return Object3D(object)->ClientSpecific();
 }
 
 } // namespace

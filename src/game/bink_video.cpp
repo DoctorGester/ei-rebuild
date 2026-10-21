@@ -158,9 +158,9 @@ namespace {
 // (device.h) the video-memory surface would be refused and its throw end the game, so the holder is
 // 004EF7B0's (only the new renderer's memory, ticket R9a2).
 CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
-    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
+    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
     CDXSurface* holder = nullptr;
-    if (memory) holder = static_cast<CDXSurface*>(memory)->Construct(device, width, height);
+    if (memory) holder = memory->Construct(device, width, height);
     if (holder) ++holder->refCount;
     return holder;
 }
