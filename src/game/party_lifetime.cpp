@@ -161,13 +161,12 @@ CSpellConstructor* CSpellConstructor::Construct() {
 }
 EI_REPLACE_METHOD(0x00683FF0, CSpellConstructor::Construct);
 
-CSpellManager* CSpellManager::Construct() {
-    CResourceManager::Construct();
+CSpellManager::CSpellManager() {
     sequences_.InitBuckets(100);
     maxSequenceKey_ = 0;
-    ei::SetVtable(this, kVtableAddress);
-    return this;
 }
+
+CSpellManager* CSpellManager::Construct() { return new (this) CSpellManager(); }
 EI_REPLACE_METHOD(0x00688840, CSpellManager::Construct);
 
 // --- CParty -------------------------------------------------------------------------------------

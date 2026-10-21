@@ -11,6 +11,8 @@
 #include "maths.h"
 #include "game_data.h"
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 class CStream;              // core_streams.h
 class CWorldServer;         // world.h
 struct MapEffect;           // map_object.h
@@ -349,14 +351,24 @@ static_assert(sizeof(SpellSequence) == 0x18);
 using SpellContainerWalk = stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash>::Iterator;
 CSpellContainer* __fastcall NextSpellContainer(SpellContainerWalk* walk);
 
-// The spell manager (GetClassName "CSpellManager", vtable 00743A14, 0xD4 bytes). Only what the
-// construction code uses; the context (context_, +0xAC) gives the spell constructor (its slot 17).
+// The spell manager (GetClassName "CSpellManager", 0xD4 bytes; a real virtual class: the compiler
+// makes its vtable, C19, game.exe's 00743A14 is retired). Only what the construction code uses;
+// the context (context_, +0xAC) gives the spell constructor (its slot 17).
 class CSpellManager : public CResourceManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743A14);
+    // 00688840 (party_lifetime.cpp). CResourceManager's constructor, an empty map with
+    // NextPrime(100) buckets, +0xD0 0.
+    CSpellManager();
+    // 00688990. The sequences destroyed (006886F0 per sequence) and deleted, the map emptied and
+    // freed, CResourceManager::Destroy, then CResourceManager's destructor.
+    ~CSpellManager() override;
+    const char* GetClassName() override;     // 11: 00688950 "CSpellManager"
+    int GetClassId() override;               // 12: 00688960 (0x33)
+    const char* GetFolderName() override;    // 25: 00688940 "spells"
 
-    // 00688840 (party_lifetime.cpp). Constructor body: CResourceManager's, an empty map with
-    // NextPrime(100) buckets, +0xD0 0, the vtable. Returns this.
+    // The registrations (C20 retires them): 00688840 the constructor in place (returns this),
+    // 00688990 the destructor, 00688970 (slot 0) the destructor, then operator delete when bit 0
+    // of `flags` is set (returns this).
     CSpellManager* Construct();
 
     // 00688EB0. A new CSpellContainer (manager slot 23 with class 0x3003, key -1).
@@ -377,9 +389,6 @@ public:
     // 14: 00688CD0. A new CSpell (0x3002) or CSpellContainer (0x3003), constructed; else null.
     CEngineObject* NewObject(int type) override;
     CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
-    // 00688990. The destructor body: the sequences destroyed (00688990's 006886F0 per sequence)
-    // and deleted, the map emptied and freed, CResourceManager::Destroy and Destruct.
-    // 00688970: slot 0.
     void Destruct();
     CSpellManager* DeletingDestruct(unsigned flags);
 

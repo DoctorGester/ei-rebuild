@@ -11,6 +11,8 @@
 
 #include <new>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 constexpr int kClassSpell = 0x3002;
@@ -99,8 +101,7 @@ void CSpellManager::Destroy() {
     CResourceManager::Destroy();
 }
 
-void CSpellManager::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+CSpellManager::~CSpellManager() {
     for (auto* node = sequences_.First(); node && node->value; node = sequences_.After(node)) {
         SpellSequence* sequence = node->value;
         sequence->Destruct();
@@ -110,12 +111,13 @@ void CSpellManager::Destruct() {
     maxSequenceKey_ = 0;
     CResourceManager::Destroy();
     sequences_.Destroy();
-    CResourceManager::Destruct();
 }
+
+void CSpellManager::Destruct() { this->CSpellManager::~CSpellManager(); }
 EI_REPLACE_METHOD(0x00688990, CSpellManager::Destruct);
 
 CSpellManager* CSpellManager::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CSpellManager::~CSpellManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -136,12 +138,17 @@ EI_REPLACE(0x00688B30, SpellManagerCreateHook);
 EI_REPLACE(0x00688B40, SpellManagerDestroyHook);
 EI_REPLACE_METHOD(0x00688CD0, CSpellManager::NewObjectImpl);
 
-const char* __fastcall SpellManagerClassName(CSpellManager*) { return kSpellManagerClassName; }
-int __fastcall SpellManagerClassId(CSpellManager*) { return 0x33; }
+CEngineObject* CSpellManager::NewObject(int type) { return NewObjectImpl(type); }
+const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
+int CSpellManager::GetClassId() { return 0x33; }
+const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
+
+const char* __fastcall SpellManagerClassName(CSpellManager* self) { return self->CSpellManager::GetClassName(); }
+int __fastcall SpellManagerClassId(CSpellManager* self) { return self->CSpellManager::GetClassId(); }
 EI_REPLACE(0x00688950, SpellManagerClassName);
 EI_REPLACE(0x00688960, SpellManagerClassId);
 // 00688940: slot 25, the folder "spells" (A-H24).
-const char* __fastcall SpellManagerFolder(CSpellManager*) { return kSpellManagerFolder; }
+const char* __fastcall SpellManagerFolder(CSpellManager* self) { return self->CSpellManager::GetFolderName(); }
 EI_REPLACE(0x00688940, SpellManagerFolder);
 
 // 00689570 / 00689610 (A-H25). The array takes the table's count, then element i the name of record

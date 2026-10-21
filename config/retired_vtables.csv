@@ -33,6 +33,7 @@ vtable,slots,class,file,note
 007432E0,7,CMappedResource,src/game/resource.h,
 007432FC,9,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,
+00743A14,26,CSpellManager,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
 00743CB0,26,CTextureManager,src/game/texture.h,
 00743D24,13,CTexture,src/game/texture.h,
