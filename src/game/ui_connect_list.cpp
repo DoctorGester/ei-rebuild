@@ -5,6 +5,7 @@
 // servers' names and the new game's row drawn shortened with an ellipsis, the selected server's name
 // wrapped); the screen's other members call it through its address. See ui_screens.h and
 // docs/notes/ui.md, section 5.
+#include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
@@ -77,10 +78,11 @@ void Draw(CUiSurface* surface, const char* text, RECT* rect, int format) {
     SurfaceDrawText(surface, nullptr, text, rect, kFont, TextColour(), format, 1);
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
-// would hit the CRT's invalid parameter handler, here it is cut) and is drawn with an ellipsis.
+// would hit the CRT's invalid parameter handler, here it is cut; with EI_UTF8 at a character's end) and
+// is drawn with an ellipsis.
 void DrawEllipsis(CUiSurface* surface, const char* text, RECT* rect, int format) {
     char buffer[kExtendedTextSize];
-    strncpy_s(buffer, kExtendedTextSize, text, _TRUNCATE);
+    text::CopyFitting(buffer, kExtendedTextSize, text);
     Draw(surface, buffer, rect, format | kFormatEllipsis);
 }
 void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }

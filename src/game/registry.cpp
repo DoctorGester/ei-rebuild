@@ -220,11 +220,18 @@ EI_REWRITTEN(0x00694D20, CFileRegistry::GetString);
 void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
                                     const char* defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        // EI_UTF8: the UTF-8 text is cut to the buffer by bytes (docs/notes/standalone.md section 4, U5).
+        // EI_UTF8: the UTF-8 text is cut to the buffer at a character's end (U5; without it the bytes, the
+        // asset's 16-bit length).
         const std::string string = text::FromAssetText(std::string_view(reinterpret_cast<const char*>(value + 2), U16(value)));
-        std::uint16_t count = static_cast<std::uint16_t>(string.size());
-        if (static_cast<int>(count) >= *length) count = static_cast<std::uint16_t>(*length - 1);
-        gamecrt::strncpy(buffer, string.data(), count);
+        int count;
+        if constexpr (text::kUtf8) {
+            count = static_cast<int>(text::FittingBytes(string, static_cast<std::size_t>(*length - 1)));
+        } else {
+            std::uint16_t bytes = static_cast<std::uint16_t>(string.size());
+            if (static_cast<int>(bytes) >= *length) bytes = static_cast<std::uint16_t>(*length - 1);
+            count = bytes;
+        }
+        gamecrt::strncpy(buffer, string.data(), static_cast<std::size_t>(count));
         buffer[count] = '\0';
         *length = count;
         return;

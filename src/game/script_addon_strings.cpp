@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "system_text.h"
 
 #include <windows.h>
 
@@ -51,8 +52,8 @@ void Assign(Call* call, const std::string& text) { *StringResult(call) = text.c_
 // A NUL-terminated copy changed in place by CharLowerA / CharUpperA (the user's code page).
 std::string CaseConverted(const char* text, bool upper) {
     std::vector<char> buffer(text, text + std::strlen(text) + 1);
-    if (upper) CharUpperA(buffer.data());
-    else CharLowerA(buffer.data());
+    if (upper) text::sys::CharUpperA(buffer.data());
+    else text::sys::CharLowerA(buffer.data());
     return std::string(buffer.data());
 }
 
@@ -100,8 +101,9 @@ bool StrCat(Call* call) {
     return true;
 }
 
+// The length in characters (U5: with EI_UTF8 a UTF-8 sequence counts once; without it the bytes).
 bool StrLen(Call* call) {
-    Store(FloatResult(call), static_cast<float>(Length(Arg(call, 0))));
+    Store(FloatResult(call), static_cast<float>(text::CharacterCount(Arg(call, 0))));
     return true;
 }
 
@@ -118,10 +120,11 @@ bool StrHas(Call* call) {
 }
 
 // StrMid(text, start, count): start counts from 1 (from the end when negative: -1 is the last
-// character), count 0 means the rest; a negative count leaves the result as it was.
+// character), count 0 means the rest; a negative count leaves the result as it was. Start and count are
+// characters (U5: with EI_UTF8 the bytes of each character's UTF-8 sequence; without it one byte each).
 bool StrMid(Call* call) {
-    const char* text = Arg(call, 0);
-    int length = Length(Arg(call, 0));
+    const mfc::CString& string = Arg(call, 0);
+    int length = text::CharacterCount(string);
     int start = Ftol(call->cmd->floatArgs.data[0]);
     int count = Ftol(call->cmd->floatArgs.data[1]);
     if (start < 0) start += length + 1;
@@ -132,8 +135,9 @@ bool StrMid(Call* call) {
     else if (length < start) start = length;
     int available = length - start + 1;
     if (count >= available) count = available;
-    const char* first = text + start - 1;
-    const char* last = text + start - 1 + count;
+    const char* bytes = string;
+    const char* first = bytes + text::CharacterBytes(string, start - 1);
+    const char* last = bytes + text::CharacterBytes(string, start - 1 + count);
     std::string part;
     if (first != last) part.assign(first, static_cast<std::size_t>(last - first));
     Assign(call, part);

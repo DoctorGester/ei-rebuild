@@ -47,6 +47,25 @@ bool ToAssetText(std::string_view text, std::string* out, unsigned codepage = kA
 int CharacterCount(std::string_view text);
 int CharacterCount(const mfc::CString& text);
 
+// --- Lengths and cuts by character (U5) -----------------------------------------------------------
+//
+// Where the original limits or indexes text by bytes (one byte one character in the asset code page),
+// with EI_UTF8 these count characters as CharacterCount does and never cut inside a UTF-8 sequence.
+// Without EI_UTF8 each is the original's byte count.
+
+// The bytes of the character at `p` (not its terminator): with EI_UTF8 its lead byte and the continuation
+// bytes after it, else 1.
+int CharacterLength(const char* p);
+// The bytes of `text`'s first `characters` characters (all of it when it has fewer; 0 for none).
+int CharacterBytes(std::string_view text, int characters);
+int CharacterBytes(const mfc::CString& text, int characters);
+// The longest start of `text` that fits `room` bytes (`room` without the terminator) and ends at a
+// character's end: `text`'s size when it fits, else `room` without EI_UTF8.
+std::size_t FittingBytes(std::string_view text, std::size_t room);
+// `from` copied into `to` (`size` bytes, a terminator always written; nothing when `size` is 0), cut to fit
+// at a character's end (strncpy_s with _TRUNCATE without EI_UTF8).
+void CopyFitting(char* to, std::size_t size, const char* from);
+
 // --- Typing (U4) ---------------------------------------------------------------------------------
 //
 // With EI_UTF8 the game window is a Unicode one (system_text.h), so a typed character reaches the editors
