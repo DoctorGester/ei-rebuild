@@ -73,6 +73,7 @@ Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src
 
 - **P1** Surface plumbing: a canvas per native surface (running since 2026-10-21; 2 sessions). Blit, Get/ReleaseDC, fills and frames, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen and Greyscale on the GPU. First surfaces: backdrop, FPS, status. After: N1, N3.
 - **P7** CPU-written textures and clouds on the GPU (optional) (ready; 1.5 sessions).
+- **N4a** Gallery: the camp pieces no scenario reaches (repair grid, trade click, constructor builds) (ready; opus). N4's gallery and ui.md section 5 leave these unreached: the repair grid's draw, the trade panel's click, CanMakeSpell / CanMakeItem, the constructor / grid Builds, DeconstructItem (needs a made item), FindPaths (a zone / link click), CGlobalMap::Close, and the hero list's arrow tooltip that never showed. Reach what the original reaches with menus, keys and clicks; add frames to ui_gallery_camp or a new ui_gallery_* file; goldens from 3 agreeing original runs; record in ui-native.md and ui.md what is still out of reach and why. After: N4.
 - **P2** Text through the glyph atlas (waiting on P1; 1 session). Files: `src/game/ui_text_draw.cpp`.
 - **P3a** Native menus and dialogs (waiting on P2; 1 session). Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture.
 - **P3b** Native HUD (waiting on P2; 1 session). Unit-panel name, top panel and message log, tooltips, quick strip, clock. 006462A0 native only in vanilla until W3.

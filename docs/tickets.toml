@@ -717,6 +717,14 @@ size = 0.25
 files = ["tests/verify/ui_census.cpp"]
 note = "Census call chains walk from the helper's own return address, so the pixel helpers' rows no longer name stale callers (ui-census.md Readers)."
 
+[[ticket]]
+id = "N4a"
+title = "Gallery: the camp pieces no scenario reaches (repair grid, trade click, constructor builds)"
+group = "native-ui"
+model = "opus"
+depends = ["N4"]
+note = "N4's gallery and ui.md section 5 leave these unreached: the repair grid's draw, the trade panel's click, CanMakeSpell / CanMakeItem, the constructor / grid Builds, DeconstructItem (needs a made item), FindPaths (a zone / link click), CGlobalMap::Close, and the hero list's arrow tooltip that never showed. Reach what the original reaches with menus, keys and clicks; add frames to ui_gallery_camp or a new ui_gallery_* file; goldens from 3 agreeing original runs; record in ui-native.md and ui.md what is still out of reach and why."
+
 # ---------------------------------------------------------------- widescreen
 
 [[ticket]]
