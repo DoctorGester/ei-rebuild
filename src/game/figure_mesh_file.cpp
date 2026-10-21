@@ -184,9 +184,9 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     m[2] = static_cast<float>(static_cast<double>(xz) - wy);
     m[6] = static_cast<float>(static_cast<double>(yz) + wx);
     m[10] = static_cast<float>(One() - (static_cast<double>(yy) + xx));
-    x87::CopyFloat(&m[12], &moved[0]);
-    x87::CopyFloat(&m[13], &moved[1]);
-    x87::CopyFloat(&m[14], &moved[2]);
+    std::memcpy(&m[12], &moved[0], sizeof(float));
+    std::memcpy(&m[13], &moved[1], sizeof(float));
+    std::memcpy(&m[14], &moved[2], sizeof(float));
 }
 
 EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigure);

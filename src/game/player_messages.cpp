@@ -21,6 +21,7 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
@@ -38,10 +39,9 @@ void WriteText(BitStream* out, const char* text) {
 
 std::uint32_t ObjectId(const void* object) { return static_cast<std::uint32_t>(static_cast<const CEngineObject*>(object)->id_); }
 
-// An item's charge (the float at +0x28; the client's 0x0C / 0x14 handlers store it there), copied
-// through FLD / FSTP as the original does.
+// An item's charge (the float at +0x28; the client's 0x0C / 0x14 handlers store it there), as its bits.
 std::uint32_t ItemCharge(const void* object) {
-    return x87::LoadStoreBits(&static_cast<const CItem*>(static_cast<const CEngineObject*>(object))->charge_);
+    return std::bit_cast<std::uint32_t>(static_cast<const CItem*>(static_cast<const CEngineObject*>(object))->charge_);
 }
 
 // The world player's party variables (a NamedFloatTable, object_tables.h).

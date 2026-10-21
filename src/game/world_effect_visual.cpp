@@ -156,22 +156,22 @@ void CEffectPointLight::Start(int update) {
         CEngineObject* created = LightFactory()->CreateObject(0x31, -1);
         ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&light_), nullptr, created);
         Vector3 position;
-        x87::CopyFloat(&position.x, &localPosition_.x);
-        x87::CopyFloat(&position.y, &localPosition_.y);
-        x87::CopyFloat(&position.z, &localPosition_.z);
+        std::memcpy(&position.x, &localPosition_.x, sizeof(float));
+        std::memcpy(&position.y, &localPosition_.y, sizeof(float));
+        std::memcpy(&position.z, &localPosition_.z, sizeof(float));
         Vector3 color;
-        x87::CopyFloat(&color.x, &color_.x);
-        x87::CopyFloat(&color.y, &color_.y);
-        x87::CopyFloat(&color.z, &color_.z);
+        std::memcpy(&color.x, &color_.x, sizeof(float));
+        std::memcpy(&color.y, &color_.y, sizeof(float));
+        std::memcpy(&color.z, &color_.z, sizeof(float));
         light_->SetPoint(&color, &position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
         static_cast<Terrain*>(LightManager())->AddLight(light_);
         if (moving_ != 0) LightFlags(light_) |= 0x100;
     } else {
-        x87::CopyFloat(&light_->color_[0], &color_.x);
-        x87::CopyFloat(&light_->color_[1], &color_.y);
-        x87::CopyFloat(&light_->color_[2], &color_.z);
+        std::memcpy(&light_->color_[0], &color_.x, sizeof(float));
+        std::memcpy(&light_->color_[1], &color_.y, sizeof(float));
+        std::memcpy(&light_->color_[2], &color_.z, sizeof(float));
         float range = FromBits(Bits(range_) & 0x7FFFFFFFu);
         float shownRange;
         std::memcpy(&shownRange, &light_->range_, 4);
@@ -326,8 +326,8 @@ void CEffectParticle::Spawn() {
         float baseSize;
         std::memcpy(&baseSize, &source_->baseSize, 4);
         ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
-        x87::CopyFloat(&source_->alpha, &alpha_);
-        x87::CopyFloat(&source_->typeParam, &param164_);
+        std::memcpy(&source_->alpha, &alpha_, sizeof(float));
+        std::memcpy(&source_->typeParam, &param164_, sizeof(float));
         Attach();
         return;
     }
@@ -339,8 +339,8 @@ void CEffectParticle::Spawn() {
     std::memcpy(&baseSize, &source_->baseSize, 4);
     ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
     ParticleSourceAttachOriginal(source_, nullptr, nullptr);
-    x87::CopyFloat(&source_->alpha, &alpha_);
-    x87::CopyFloat(&source_->typeParam, &param164_);
+    std::memcpy(&source_->alpha, &alpha_, sizeof(float));
+    std::memcpy(&source_->typeParam, &param164_, sizeof(float));
     Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).

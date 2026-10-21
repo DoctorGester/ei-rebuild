@@ -67,8 +67,8 @@ void CopyDword(To& to, const From& from) {
 
 // FLD [src]; FST [a]; FSTP [b]: a float copied through the FPU to two places.
 void FpuCopy2(float* a, float* b, const float* src) {
-    x87::CopyFloat(a, src);
-    x87::CopyFloat(b, src);
+    std::memcpy(a, src, sizeof(float));
+    std::memcpy(b, src, sizeof(float));
 }
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }

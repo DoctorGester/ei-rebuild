@@ -502,7 +502,7 @@ EI_REPLACE_METHOD(0x0047F3D0, DeltaField::ReadFloat16);
 
 void DeltaField::WriteFloat16x3(const float* values) {
     for (int i = 0; i < 3; ++i) {
-        std::uint16_t h = delta::PackFloat16(x87::LoadStoreBits(&values[i]));
+        std::uint16_t h = delta::PackFloat16(std::bit_cast<std::uint32_t>(values[i]));
         WriteDelta(&h, 2);
     }
 }

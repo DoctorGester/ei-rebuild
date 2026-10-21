@@ -201,7 +201,8 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
     MapAssoc* assoc = Map32::GetAssocAt(&m.seen, nullptr, &key, &hash);
     if (!assoc || assoc->value == 0) {
         const std::uint32_t* point = r.Point(face->position[corner]);
-        std::uint32_t x = x87::LoadStoreBits(&point[0]);
+        std::uint32_t x;
+        std::memcpy(&x, &point[0], 4);
         std::uint32_t u = 0, v = 0;
         if (r.texCoords.size) {
             const std::uint32_t* uv = r.texCoords.data[face->texture[corner]].v;
@@ -275,9 +276,12 @@ void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* nod
         const FileRotationKey& from = r.rotKeys.data[k];
         NodeRotationKey& to = rot.data[k];
         to.frame = static_cast<std::int16_t>(from.frame);
-        std::uint32_t z = x87::LoadStoreBits(&from.value[2]);
-        std::uint32_t y = x87::LoadStoreBits(&from.value[1]);
-        std::uint32_t x = x87::LoadStoreBits(&from.value[0]);
+        std::uint32_t z;
+        std::memcpy(&z, &from.value[2], 4);
+        std::uint32_t y;
+        std::memcpy(&y, &from.value[1], 4);
+        std::uint32_t x;
+        std::memcpy(&x, &from.value[0], 4);
         SetBits(to.value.x, x);
         SetBits(to.value.y, y);
         SetBits(to.value.z, z);
@@ -290,9 +294,12 @@ void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* nod
         const FilePositionKey& from = r.posKeys.data[k];
         NodePositionKey& to = pos.data[k];
         to.frame = static_cast<std::int16_t>(from.frame);
-        std::uint32_t z = x87::LoadStoreBits(&from.axis[2]);
-        std::uint32_t y = x87::LoadStoreBits(&from.axis[1]);
-        std::uint32_t x = x87::LoadStoreBits(&from.axis[0]);
+        std::uint32_t z;
+        std::memcpy(&z, &from.axis[2], 4);
+        std::uint32_t y;
+        std::memcpy(&y, &from.axis[1], 4);
+        std::uint32_t x;
+        std::memcpy(&x, &from.axis[0], 4);
         SetBits(to.axis.x, x);
         SetBits(to.axis.y, y);
         SetBits(to.axis.z, z);
@@ -307,9 +314,12 @@ void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* nod
     for (int k = 0; k < normals.size; ++k) {
         const FileNormal& from = r.normals.data[k];
         Vector3& to = normals.data[k];
-        std::uint32_t z = x87::LoadStoreBits(&from.value[2]);
-        std::uint32_t y = x87::LoadStoreBits(&from.value[1]);
-        std::uint32_t x = x87::LoadStoreBits(&from.value[0]);
+        std::uint32_t z;
+        std::memcpy(&z, &from.value[2], 4);
+        std::uint32_t y;
+        std::memcpy(&y, &from.value[1], 4);
+        std::uint32_t x;
+        std::memcpy(&x, &from.value[0], 4);
         SetBits(to.x, x);
         SetBits(to.y, y);
         SetBits(to.z, z);
@@ -423,9 +433,12 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     Read(file_, &h, sizeof(h));
     SceneNode* node = &Typed<NodeArray>(*nodes).data[i];
     SceneMesh* mesh = &Typed<MeshArray>(*meshes).data[i];
-    std::uint32_t x = x87::LoadStoreBits(&h.offset[0]);
-    std::uint32_t y = x87::LoadStoreBits(&h.offset[1]);
-    std::uint32_t z = x87::LoadStoreBits(&h.offset[2]);
+    std::uint32_t x;
+    std::memcpy(&x, &h.offset[0], 4);
+    std::uint32_t y;
+    std::memcpy(&y, &h.offset[1], 4);
+    std::uint32_t z;
+    std::memcpy(&z, &h.offset[2], 4);
     SetBits(node->offset.x, x);
     SetBits(node->offset.y, y);
     SetBits(node->offset.z, z);

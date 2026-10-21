@@ -259,7 +259,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     CResourceManager* items = player->Party()->ItemManager();
     auto* copy = static_cast<CItem*>(items->FindObject(link->value));
     if (!copy) return;
-    x87::CopyFloat(&copy->charge_, &item->charge_);
+    std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
     reinterpret_cast<CPlayer*>(player)->ItemUsed(copy);   // 00665BE0
 }
 EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);

@@ -139,12 +139,14 @@ void UnitRecord::ApplyTo(CUnit* target) {
                          model + 0x6C + k * 4);
     }
     for (std::size_t i = 0; i < 6; ++i) {
-        std::uint32_t v = x87::LoadStoreBits(r + field::kPairsA + i * 4);
+        std::uint32_t v;
+        std::memcpy(&v, r + field::kPairsA + i * 4, 4);
         SetDword(controller, 0x290 + i * 8, v);
         SetDword(controller, 0x294 + i * 8, v);
     }
     for (std::size_t i = 0; i < 6; ++i) {
-        std::uint32_t v = x87::LoadStoreBits(r + field::kPairsB + i * 4);
+        std::uint32_t v;
+        std::memcpy(&v, r + field::kPairsB + i * 4, 4);
         SetDword(controller, 0x2C0 + i * 8, v);
         SetDword(controller, 0x2C4 + i * 8, v);
     }

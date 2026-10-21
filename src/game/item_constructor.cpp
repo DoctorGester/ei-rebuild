@@ -131,11 +131,11 @@ std::uint32_t IndexIn(const RecordTable& table, const ItemRecordHead* record, in
 void CItem::InitFromRecordImpl(const ItemRecordHead* head) {
     // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
     // quiets a signalling NaN; the other fields are copied as dwords.
-    x87::CopyFloat(&conditionMax_, &head->condition);
-    x87::CopyFloat(&condition_, &head->condition);
+    std::memcpy(&conditionMax_, &head->condition, sizeof(float));
+    std::memcpy(&condition_, &head->condition, sizeof(float));
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
-    x87::CopyFloat(&chargeMax_, &head->charge);
-    x87::CopyFloat(&charge_, &head->charge);
+    std::memcpy(&chargeMax_, &head->charge, sizeof(float));
+    std::memcpy(&charge_, &head->charge, sizeof(float));
     std::memcpy(&weight_, &head->value38, 4);
     std::memcpy(&price_, &head->price, 4);
     value3C_ = head->value3C;

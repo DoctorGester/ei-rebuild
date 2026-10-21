@@ -216,7 +216,7 @@ int Ftol(float value) {
 
 int Status(float a, float b) { return x87::CompareStatus(a, b); }
 
-void Store(float* dst, float value) { x87::CopyFloat(dst, &value); }
+void Store(float* dst, float value) { std::memcpy(dst, &value, sizeof(float)); }
 
 // The game's _ftol: truncation of the 64-bit value, its low 32 bits.
 int TruncateX87(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
