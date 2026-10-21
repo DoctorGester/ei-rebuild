@@ -262,7 +262,7 @@ void CEffectMoshka::Follow(int objectId) {
     FindPerch(&perch, &PositionOf(followed));
     std::memcpy(&bird->position, &perch, sizeof(bird->position));
     console::CStringArray parts;
-    static_cast<CObject3D*>(bird)->MakeFigure(model, &parts, 1);
+    bird->MakeFigure(model, &parts, 1);
     static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     bird->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     bird->RestartPose();

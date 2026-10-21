@@ -86,14 +86,14 @@ void DropColumn(Column* panel, bool inlinePanels) {
 }
 
 void DropPendingAction(CBattleScreen* self, bool inlinePanels) {
-    CHudQuickItems* quick = static_cast<CHudQuickItems*>(self->quickItems_);
+    CHudQuickItems* quick = self->quickItems_;
     self->pendingSlot_ = -1;
     self->pendingAction_ = 0;
     self->pendingItem_ = -1;
     for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
     quick->selected_ = -1;
-    DropColumn(static_cast<CHudSpellColumn*>(self->spellColumn_), inlinePanels);
-    DropColumn(static_cast<CHudActionColumn*>(self->actionColumn_), inlinePanels);
+    DropColumn(self->spellColumn_, inlinePanels);
+    DropColumn(self->actionColumn_, inlinePanels);
 }
 
 // Member i's portrait nods after a random delay (as the orders' nod).

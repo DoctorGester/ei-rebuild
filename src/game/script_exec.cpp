@@ -141,9 +141,6 @@ CPlayer* PlayerOf(WorldPlayer* player) { return reinterpret_cast<CPlayer*>(playe
 // add 004A5E90, remove 004A5FA0.
 NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
-// A party's items (00661DB0 add, 00661F30 remove).
-int PartyAddItem(CParty* party, CEngineObject* item, int a, int b) { return (int)party->AddItem(static_cast<CItem*>(item), a, b); }
-void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { party->RemoveItem(static_cast<CItem*>(item), a); }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
@@ -320,7 +317,7 @@ void RedeployParty(const SSCCmd* cmd) {
     PartyArray slots;
     mfc::impl::ConstructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
     TheWorld()->CollectParty(player, &slots);
-    void* party = player->Party();
+    CParty* party = player->Party();
     ThePartyManager()->BeginRedeploy(party);
     ThePartyManager()->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
@@ -334,14 +331,14 @@ void RedeployParty(const SSCCmd* cmd) {
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
     if (!TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]))) return;
-    CParty* from = static_cast<CParty*>(Parties()->Find(Text(cmd, 0)));
-    CParty* to = static_cast<CParty*>(Parties()->Find(Text(cmd, 1)));
+    CParty* from = Parties()->Find(Text(cmd, 0));
+    CParty* to = Parties()->Find(Text(cmd, 1));
     if (!from || !to) return;
     if (replace) {
-        while (to->items_.size != 0) PartyRemoveItem(to, static_cast<CEngineObject*>(to->items_.data[0]), 1);
+        while (to->items_.size != 0) to->RemoveItem(to->items_.data[0], 1);
     }
     for (int i = 0; i < from->items_.size; ++i)
-        PartyAddItem(to, static_cast<CEngineObject*>(from->items_.data[i]), 1, 1);
+        to->AddItem(from->items_.data[i], 1, 1);
     if (replace) to->Money() = from->Money();
     else to->Money() += from->Money();
 }
@@ -814,7 +811,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xAF: {   // GiveUnitQuestItem(unit, item)
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
+            CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item && item->GetClassId() == kClassQuestItem) unit->AddCarried(item);
             break;
         }
@@ -1118,7 +1115,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CString name(cmd->stringArgs.data[0]);
-            auto* records = static_cast<CParty*>(PartyForScript(player, &name));
+            CParty* records = PartyForScript(player, &name);
             if (records) {
                 if (cmd->id == 0x86)
                     records->AddMember(name, Text(cmd, 1), game::EmptyText());
@@ -1133,8 +1130,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!player) break;
             mfc::CString from(cmd->stringArgs.data[0]);
             mfc::CString to(cmd->stringArgs.data[1]);
-            auto* fromRecords = static_cast<CParty*>(PartyForScript(player, &from));
-            auto* toRecords = static_cast<CParty*>(PartyForScript(player, &to));
+            CParty* fromRecords = PartyForScript(player, &from);
+            CParty* toRecords = PartyForScript(player, &to);
             PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyFromName(from));
             PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyFromName(to));
             if (source && target) {

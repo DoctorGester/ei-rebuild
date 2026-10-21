@@ -221,7 +221,7 @@ using UnitList = mfc::CTypedPtrList<CUnit>;
 
 // A player's party: CPlayer::units_ (+0x40), walked as 00455830 (begin) and 004558B0 (the next
 // bucket's head) do: stlp::hash_map::First / After.
-using PartyMap = CPlayer::ObjectMap;
+using PartyMap = CPlayer::UnitMap;
 
 } // namespace
 
@@ -672,7 +672,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
     const PartyMap* party = &player->units_;
     for (PartyMap::Node* node = party->First(); node; node = party->After(node)) {
-        auto* member = static_cast<CUnit*>(node->value);
+        CUnit* member = node->value;
         if (!member) break;
         if (member == unit) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(member->controller);
@@ -857,7 +857,7 @@ void CUnitServer::ResetController() {
     orderStopped = 0;
     deathReported = 0;
     followsLeader = 0;
-    CEngineObject* waited = followedLeader;
+    CUnit* waited = followedLeader;
     followedLeader = nullptr;
     if (waited) waited->Release();
     searchingTarget = 0;

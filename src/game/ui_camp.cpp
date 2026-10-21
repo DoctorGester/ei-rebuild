@@ -51,7 +51,7 @@ namespace {
 CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 
 // Item `i` of a party's item list, and the list's count.
-std::uint8_t* ItemOf(CParty* list, int i) { return static_cast<std::uint8_t*>(list->items_.data[i]); }
+std::uint8_t* ItemOf(CParty* list, int i) { return reinterpret_cast<std::uint8_t*>(list->items_.data[i]); }
 int CountOf(CParty* list) { return list->items_.size; }
 CItem* AsItem(std::uint8_t* item) { return reinterpret_cast<CItem*>(item); }
 CEngineObject* AsObject(std::uint8_t* item) { return reinterpret_cast<CEngineObject*>(item); }
@@ -752,7 +752,7 @@ bool CCampPages::CanMakeItem() {
     for (int i = 0; i < CountOf(itemResults_); ++i) {
         std::uint8_t* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
-            CSpell* copy = static_cast<CSpell*>(AsItem(item)->spell_)->Clone(manager);
+            CSpell* copy = AsItem(item)->spell_->Clone(manager);
             ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&spell), nullptr, copy);   // 0052C690
         } else if (IsPart(item)) {
             switch (Read<int>(item, 0x50)) {

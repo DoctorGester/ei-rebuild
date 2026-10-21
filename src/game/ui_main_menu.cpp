@@ -219,7 +219,7 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
                 animation = reinterpret_cast<CMapObjectManager*>(TheObjectManager())->FindAnimation(&name, kRestPoseKind);
-            static_cast<CObject3D*>(stones)->PlayAnimation(static_cast<FigureAnimation*>(animation), 1);
+            stones->PlayAnimation(static_cast<FigureAnimation*>(animation), 1);
             interface_->PlaySound(kStoneSound, 0);
         }
         hovered_ = region;

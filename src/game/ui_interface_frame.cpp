@@ -91,8 +91,8 @@ void CInterface3D::Update() {
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
-            static_cast<GameFlow*>(TheGameFlow())->DropSessions();
-            static_cast<GameFlow*>(TheGameFlow())->CloseSessions();
+            TheGameFlow()->DropSessions();
+            TheGameFlow()->CloseSessions();
         }
         mouseCapture_ = nullptr;
         SetCursorShape(0);

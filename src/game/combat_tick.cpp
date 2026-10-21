@@ -796,15 +796,15 @@ void CUnitServer::ApproachTarget() {
     // Chase: the target, or the unit the party leader is attacking it with.
     CEngineObject* chased = target;
     if (followsLeader) {
-        CEngineObject* leader = followedLeader;
-        auto* theirs = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(leader)->controller);
+        CUnit* leader = followedLeader;
+        auto* theirs = reinterpret_cast<CUnitServer*>(leader->controller);
         if (theirs->action.target == target &&
             (theirs->action.kind == kOrderAttack || theirs->action.kind == kOrderCast || theirs->action.kind == kOrderCastAt) &&
             theirs->state != kStateCasting) {
             chased = leader;
         } else {
             followsLeader = 0;
-            CEngineObject* old = followedLeader;
+            CUnit* old = followedLeader;
             followedLeader = nullptr;
             if (old) old->Release();
         }

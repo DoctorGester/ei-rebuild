@@ -14,12 +14,12 @@ constexpr int kPartItems = 5;     // MarkChanged part
 
 } // namespace
 
-CEngineObject* CUnit::TakeRandomItem() {
+CItem* CUnit::TakeRandomItem() {
     if (carriedCount != 0) {
         // CArray::RemoveAt(0) inlined: the rest move down (no memmove when it was the only one).
-        CEngineObject* item = carried[0];
+        CItem* item = carried[0];
         int rest = carriedCount - 1;
-        if (rest != 0) std::memmove(carried, carried + 1, rest * sizeof(CEngineObject*));
+        if (rest != 0) std::memmove(carried, carried + 1, rest * sizeof(CItem*));
         --carriedCount;
         MarkChanged(kPartItems);
         return item;
@@ -32,7 +32,7 @@ CEngineObject* CUnit::TakeRandomItem() {
         if (quickItems[i]) filled[count++] = i;
     if (count == 0) return nullptr;
     int slot = filled[IsaacRandom::Global().Next() % count];   // the draw is inlined in the original
-    CEngineObject* item = quickItems[slot];
+    CItem* item = quickItems[slot];
     quickItems[slot] = nullptr;
     MarkChanged(kPartItems);
     return item;

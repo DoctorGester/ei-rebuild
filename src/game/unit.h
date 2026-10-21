@@ -271,7 +271,7 @@ public:
     void ObjectDeletedImpl(CEngineObject* object);
     // Body of the slot at 004467F0 (registered by member pointer).
     int TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source);
-    CEngineObject* CarriedItem(int index) const;
+    CItem* CarriedItem(int index) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
 
 
@@ -457,7 +457,7 @@ public:
     void ReleaseAllItems();
     // 00531220. Adds `item` (referenced) to the carried items (an MFC CArray grown like
     // CArray::SetSize).
-    void AddCarried(CEngineObject* item);
+    void AddCarried(CItem* item);
     // 005313B0. Releases carried item `index` and closes the gap.
     // Returns the new count (EAX).
     int RemoveCarried(int index);
@@ -527,7 +527,7 @@ public:
     // 00531400. Stealing: takes the first carried item (the rest move down), or else a random
     // filled quick item slot (one IsaacRandom draw) is emptied; marks part 5 changed. Returns the
     // item, null when there is none (nothing changes then).
-    CEngineObject* TakeRandomItem();
+    CItem* TakeRandomItem();
 
     // map_object_create.cpp (U6).
     // 0052E400. Virtual slot 2 (Create; a different name so it is no override): the map object's
@@ -639,7 +639,7 @@ public:
     CItem* spells[8];               // +0x460
     CItem* armor[7];                // +0x480
     std::uint32_t carriedVtable;        // +0x49C the vtable of the carried items' CArray
-    CEngineObject** carried;        // +0x4A0 CArray of further items
+    CItem** carried;                // +0x4A0 CArray of further items
     int carriedCount;               // +0x4A4
     int carriedCapacity;            // +0x4A8
     int carriedGrowBy;              // +0x4AC (0: an eighth of the count, 4..1024)

@@ -148,7 +148,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
             quick->selected_ = -1;
             hud->spellColumn_->ClearHighlights();
-            static_cast<CHudActionColumn*>(hud->actionColumn_)->ClearHighlights();
+            hud->actionColumn_->ClearHighlights();
             return;
         }
         void* memory = gamecrt::operator_new(kEscMenuSize);
@@ -334,7 +334,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
         if ((interface_->ctrlDown_ || interface_->altDown_) && hud->party_.size > member)
-            static_cast<CCamera*>(camera)->SetTarget(hud->party_[member]);
+            camera->SetTarget(hud->party_[member]);
         return;
     }
     case kActionSelectAll:

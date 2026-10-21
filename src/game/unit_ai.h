@@ -552,7 +552,7 @@ struct PlayerMode : AIMode {
     // 005D3DE0 (RET 8). Follow `leader` (counted): none when it is the unit itself. When the chain
     // of leaders from `leader` (each unit's first Player mode) comes back to this unit, this unit's
     // own Player mode stops following first. A walk in progress (action 1) is dropped (state 0).
-    void SetLeader(AIBrain* brain, CEngineObject* leader);
+    void SetLeader(AIBrain* brain, CUnit* leader);
 
     // unit_ai_player.cpp.
     // 005D4170 (RET 4). Only for units whose +0x438 is 1: the mode's target when it can be reached
@@ -578,7 +578,7 @@ struct PlayerMode : AIMode {
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
 
     CEngineObject* target;          // +0x08
-    CEngineObject* leader;          // +0x0C
+    CUnit* leader;                  // +0x0C
     Vector3 point;                  // +0x10 (z: 1.0 while walking there in state 2)
     int state;                      // +0x1C
     std::uint8_t run;               // +0x20
@@ -1034,7 +1034,7 @@ struct AIBrain {
     AIMode* FindPatrolMode();
     AIMode* FindPlayerMode();
     // 005D5EE0. The Player mode's target (+0x0C of the mode), or null.
-    CEngineObject* PlayerModeLeader();
+    CUnit* PlayerModeLeader();
     // 005D5E90. The same, or the action target while following (action 6).
     CEngineObject* LeaderOrFollowed();
     // 005D5F20. The Aggression mode's enemy while that mode is in charge, else null.

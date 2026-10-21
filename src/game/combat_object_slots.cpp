@@ -71,7 +71,7 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
     BrainOf(this)->OnObjectDeleted(object);
     if (followedLeader == object) {
         followsLeader = 0;
-        CEngineObject* old = followedLeader;
+        CUnit* old = followedLeader;
         followedLeader = nullptr;
         if (old) old->Release();
     }

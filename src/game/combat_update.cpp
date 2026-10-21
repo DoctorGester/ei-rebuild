@@ -670,7 +670,7 @@ void CUnitServer::TickItemSpells() {
         }
         auto* item = static_cast<CItem*>(current->item);
         if (!item) continue;
-        auto* spell = static_cast<CSpell*>(item->spell_);
+        auto* spell = item->spell_;
         float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
         if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
@@ -726,7 +726,7 @@ void CUnitServer::RefreshItemSpells() {
     for (ItemList::Node* node = items.head; node;) {
         CEngineObject* item = node->data;
         node = node->next;
-        if (item) spell = static_cast<CSpell*>(static_cast<CItem*>(item)->spell_);
+        if (item) spell = static_cast<CItem*>(item)->spell_;
         if (!spell || (spell->targetFlags_ & kSpellPeriodic) == 0) continue;
         SpellEntry* found = nullptr;
         for (SpellEntry* entry = head; entry; entry = entry->next) {

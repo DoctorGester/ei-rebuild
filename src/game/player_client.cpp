@@ -306,9 +306,9 @@ int CPlayerClient::OnQuestItemsChanged() {
 int CPlayerClient::OnExperienceAll() {
     float amount;
     in_.Read(&amount, 4);
-    CPlayer::ObjectMap& units = Owner()->units_;
-    for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
-        auto* unit = static_cast<CUnit*>(node->value);
+    CPlayer::UnitMap& units = Owner()->units_;
+    for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
+        CUnit* unit = node->value;
         TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
@@ -638,7 +638,7 @@ int CPlayerClient::OnNewObject() {
             break;
         }
     }
-    if (static_cast<CObject3D*>(figure)->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
+    if (figure->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());

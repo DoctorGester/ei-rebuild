@@ -440,7 +440,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         std::memcpy(&sprite->textureOffsetV_, &old->textureOffsetV_, sizeof(float));
         std::memcpy(&sprite->localRotation_, &old->localRotation_, 16);
         sprite->texture_ = old->texture_;
-        float scale = static_cast<CUiMesh*>(old)->GetScaleX();
+        float scale = old->GetScaleX();
         static_cast<CUiMesh*>(made)->SetScale(scale);
         sceneObjects_.RemoveAt(i);
         using ReleaseFn = void(__thiscall*)(void*);

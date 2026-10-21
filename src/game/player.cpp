@@ -153,8 +153,8 @@ void CPlayer::Clear() {
     ObjectMapClearOriginal(&knownObjects_);
     // Each unit leaves (its SetPlayer erases it here) until the map is empty or its first entry
     // holds no unit.
-    for (ObjectMap::Node* first = units_.First(); first != nullptr && first->value != nullptr; first = units_.First())
-        static_cast<CUnit*>(first->value)->SetPlayer(nullptr);
+    for (UnitMap::Node* first = units_.First(); first != nullptr && first->value != nullptr; first = units_.First())
+        first->value->SetPlayer(nullptr);
     units_.Clear();
     maxUnitId_ = 0;
     objects_.RemoveAll();
@@ -247,8 +247,8 @@ EI_REPLACE_METHOD(0x00665550, CPlayer::TakeAllItems);
 BOOL CPlayer::HasLoot(int kind) {
     for (auto* node = items_.head; node != nullptr; node = node->next)
         if (node->data->type_ == kItemQuest && ItemWord4C(node->data) == static_cast<std::uint32_t>(kind)) return 1;
-    for (ObjectMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
-        auto* unit = static_cast<CUnit*>(node->value);
+    for (UnitMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
+        CUnit* unit = node->value;
         for (int i = 0; i < unit->carriedCount; ++i)
             if (ItemWord4C(unit->carried[i]) == static_cast<std::uint32_t>(kind)) return 1;
     }
@@ -299,7 +299,7 @@ EI_REPLACE_METHOD(0x00665A70, CPlayer::AddUnit);
 
 void CPlayer::RemoveUnit(CUnit* unit) {
     if (unit == nullptr) return;
-    ObjectMap::Node* node = units_.Find(unit->id_);
+    UnitMap::Node* node = units_.Find(unit->id_);
     if (node == nullptr) return;
     units_.Erase(node);
     unit->Release();
@@ -323,8 +323,8 @@ EI_REPLACE_METHOD(0x00665CC0, CPlayer::AssignParty);
 void CPlayer::ReleaseTamedUnits() {
     // The walk goes on from the node of a unit that has just left (and been erased), as the
     // original's does.
-    for (ObjectMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
-        auto* unit = static_cast<CUnit*>(node->value);
+    for (UnitMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
+        CUnit* unit = node->value;
         if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);
     }
 }

@@ -739,15 +739,15 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
-            static_cast<CUnit*>(unit)->AddWeapon(record->weapons[j]);
+            unit->AddWeapon(record->weapons[j]);
         CUnitController* controller = unit->Controller();
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CItem* armour = record->armor[j];
-            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) static_cast<CUnit*>(unit)->EquipArmour(armour);
+            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) unit->EquipArmour(armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
-            static_cast<CUnit*>(unit)->AddQuickItem(record->quickItems[j]);
+            unit->AddQuickItem(record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
         slots->SetScriptName(record->texts[0]);
@@ -1252,7 +1252,7 @@ int CWorldClient::Setup() {
         ::new (&terrain->textAE0) mfc::CString;
         mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
-        static_cast<Terrain*>(terrain)->Reset();
+        terrain->Reset();
     }
     terrain_ = terrain;
     ++terrain->refCount_;

@@ -704,13 +704,13 @@ void CMpHeroScreen::AddNewHero() {
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon_)
-            static_cast<PartyUnitRecord*>(hero)->RemoveWeapon(hero->weapons[i]);
+            hero->RemoveWeapon(hero->weapons[i]);
     for (int i = static_cast<int>(hero->quickItemCount) - 1; i >= 0; --i)
         if (hero->quickItems[i] != armor_)
-            static_cast<PartyUnitRecord*>(hero)->RemoveQuickItem(hero->quickItems[i]);
+            hero->RemoveQuickItem(hero->quickItems[i]);
     for (int i = static_cast<int>(hero->spellCount) - 1; i >= 0; --i)
         if (hero->spells[i] != spellContainer_)
-            static_cast<PartyUnitRecord*>(hero)->RemoveSpell(hero->spells[i]);
+            hero->RemoveSpell(hero->spells[i]);
     hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
     if (static_cast<int>(hero->spellCount) > 0) {
         auto* container = hero->spells[0];

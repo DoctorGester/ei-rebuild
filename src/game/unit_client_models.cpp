@@ -112,18 +112,18 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         CEngineObject* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
         armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), ItemHead(armour)->number);
         if (static_cast<const CMappedResource*>(*static_cast<void**>(model))->FindEntry(armourPart) != -1) {
-            static_cast<CEngineObject*>(unit->LoadPart(armourPart, model, FiguresFlag(unit)));
+            unit->LoadPart(armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(static_cast<CFigureMesh*>(current));
         } else if (current) {
             if (SameName(plain, kHair)) {
                 unit->RemovePart(static_cast<CFigureMesh*>(current));
             } else if (gamecrt::mbscmp(static_cast<const char*>(part),
                                        current->GetName()) != 0) {
-                static_cast<CEngineObject*>(unit->LoadPart(part, model, FiguresFlag(unit)));
+                unit->LoadPart(part, model, FiguresFlag(unit));
                 unit->RemovePart(static_cast<CFigureMesh*>(current));
             }
         } else {
-            static_cast<CEngineObject*>(unit->LoadPart(part, model, FiguresFlag(unit)));
+            unit->LoadPart(part, model, FiguresFlag(unit));
         }
     }
     return true;
@@ -172,11 +172,11 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
             // One part of that name: replaced only when it is not the plain part already.
             if (CompareNames(part, parts.data[0]->GetName()) != 0) {
                 unit->RemovePart(static_cast<CFigureMesh*>(parts.data[0]));
-                static_cast<CEngineObject*>(unit->LoadPart(part, model, FiguresFlag(unit)));
+                unit->LoadPart(part, model, FiguresFlag(unit));
             }
         } else {
             for (int k = 0; k < parts.size; ++k) unit->RemovePart(static_cast<CFigureMesh*>(parts.data[k]));
-            static_cast<CEngineObject*>(unit->LoadPart(part, model, FiguresFlag(unit)));
+            unit->LoadPart(part, model, FiguresFlag(unit));
         }
         if (parts.data) gamecrt::operator_delete(reinterpret_cast<void**>(parts.data)[-1]);
     }
@@ -213,7 +213,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     if (next != kNone) {
         WeaponModelParts(next >> 16, &names);
         for (int i = 0; i < names.GetSize(); ++i) {
-            CEngineObject* part = static_cast<CEngineObject*>(unit->LoadPart(names[i], model, FiguresFlag(unit)));
+            CEngineObject* part = unit->LoadPart(names[i], model, FiguresFlag(unit));
             if (part) unit->AttachPartMesh(part);
         }
         arrowHidden = 0;

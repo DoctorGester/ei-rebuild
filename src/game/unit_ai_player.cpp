@@ -210,7 +210,7 @@ void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     do {
         added = false;
         for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-            CUnit* member = static_cast<CUnit*>(node->value);
+            CUnit* member = node->value;
             CUnit* followed = LeaderOf(member);
             if (!party->Find(followed) || party->Find(member)) continue;
             party->AddTail(member);
@@ -227,7 +227,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     CPlayer* player = PlayerOf(unit);
     if (!player) return true;
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-        auto* member = static_cast<CUnit*>(node->value);
+        CUnit* member = node->value;
         PlayerMode* mode = nullptr;
         for (auto* entry = BrainOf(member)->modes.head; entry; entry = entry->next) {
             if (entry->data->GetType() == kModePlayer) {

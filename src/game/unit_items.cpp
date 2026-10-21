@@ -96,7 +96,7 @@ void CUnit::ReleaseAllItems() {
 }
 EI_REPLACE_METHOD(0x005315B0, CUnit::ReleaseAllItems);
 
-void CUnit::AddCarried(CEngineObject* item) {
+void CUnit::AddCarried(CItem* item) {
     ++item->refCount_;
     int count = carriedCount;
     int size = count + 1;
@@ -109,7 +109,7 @@ void CUnit::AddCarried(CEngineObject* item) {
         carriedCapacity = 0;
         carriedCount = 0;
     } else if (!carried) {
-        carried = static_cast<CEngineObject**>(gamecrt::operator_new(static_cast<std::size_t>(size) * 4));
+        carried = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(size) * 4));
         std::memset(carried, 0, static_cast<std::size_t>(size) * 4);
         carriedCapacity = size;
         carriedCount = size;
@@ -128,7 +128,7 @@ void CUnit::AddCarried(CEngineObject* item) {
         }
         int capacity = carriedCapacity + grow;
         if (!(size < capacity)) capacity = size;
-        auto* grown = static_cast<CEngineObject**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
+        auto* grown = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
         std::memcpy(grown, carried, static_cast<std::size_t>(carriedCount) * 4);
         std::memset(grown + carriedCount, 0, static_cast<std::size_t>(size - carriedCount) * 4);
         gamecrt::operator_delete(carried);
