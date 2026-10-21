@@ -143,7 +143,7 @@ public:
     // +0x08 the save version): +0x89..+0x8B, +0x8C, +0x90; from version 0x47 +0x94; from 0x56 an
     // obsolete list (count, then name and value pairs, discarded) and the CString +0xA4; from 0x5D
     // +0xA8; from 0x5F the CString +0xAC. ui_interface_save.cpp.
-    void LoadState(void* stream);
+    void LoadState(CStream* stream);
     // 005F8C90 (RET 0xC; on 007C7D50; multiplayer messages). The text of message `id` (0-12:
     // "lmp_player_connected" .. "reserved_02"; others an empty key) from the text table,
     // formatted with `value` when it is not 0, constructed into `out`; returns `out`

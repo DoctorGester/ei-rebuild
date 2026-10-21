@@ -455,13 +455,13 @@ EI_REPLACE(0x0046D080, UnitSpecOnChunk);
 // The stream (CStream, core_streams.h) reads and writes through its vtable (slots 1 and 2).
 
 namespace {
-void StreamRead(void* stream, void* data, unsigned size) { static_cast<CStream*>(stream)->Read(data, size); }
-void StreamWrite(void* stream, const void* data, unsigned size) { static_cast<CStream*>(stream)->Write(data, size); }
+void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
+void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
 } // namespace
 
 // 0045DE30 (ECX array, EDX stream): the count, the array sized to it (MFC SetSize inlined, new
 // waypoints cleared as 0045E130 does), then the raw waypoints.
-void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
+void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
     int n;
     StreamRead(stream, &n, 4);
     if (n == 0) {
@@ -500,7 +500,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
 EI_REWRITTEN(0x0045DE30, WaypointsRead);
 
 // 0045DFB0 (ECX array, EDX stream): the count, then the raw waypoints.
-void __fastcall WaypointsWrite(const Array<Waypoint>* a, void* stream) {
+void __fastcall WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
     int n = a->size;
     StreamWrite(stream, &n, 4);
     for (int i = 0; i < a->size; ++i) StreamWrite(stream, &a->data[i], sizeof(Waypoint));
@@ -509,7 +509,7 @@ EI_REWRITTEN(0x0045DFB0, WaypointsWrite);
 
 // 0045D610: the record from a stream. Files before version 0x53 have no alarm level: it follows
 // from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). +0x30 is not stored.
-void Behaviour::Read(void* stream) {
+void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &type, 4);
     int n;
     StreamRead(stream, &n, 4);
@@ -528,7 +528,7 @@ void Behaviour::Read(void* stream) {
     StreamRead(stream, &callRadius, 4);
     StreamRead(stream, &alertMode, 4);
     StreamRead(stream, &alarmDelay, 4);
-    if (static_cast<std::int32_t>(static_cast<CStream*>(stream)->version_) >= 0x53) {
+    if (static_cast<std::int32_t>(stream->version_) >= 0x53) {
         StreamRead(stream, &alarm, 4);
         return;
     }
@@ -542,7 +542,7 @@ void Behaviour::Read(void* stream) {
 EI_REWRITTEN(0x0045D610, Behaviour::Read);
 
 // 0045D760: the record to a stream (the same fields).
-void Behaviour::Write(void* stream) const {
+void Behaviour::Write(CStream* stream) const {
     StreamWrite(stream, &type, 4);
     int n = patrols.size;
     StreamWrite(stream, &n, 4);

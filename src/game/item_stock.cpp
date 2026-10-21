@@ -537,12 +537,12 @@ char* FindNamed(const RecordTable& table, const char* name) {
 
 // The counts and the material values are read into locals the original reuses for every section,
 // so a failed read leaves the previous value.
-void ReadInt(void* stream, void* value) { static_cast<CStream*>(stream)->Read(value, 4u); }
+void ReadInt(CStream* stream, void* value) { stream->Read(value, 4u); }
 
 // The next string of the stream into `name` (through a temporary, as the original).
-void ReadName(void* stream, mfc::CString& name) {
+void ReadName(CStream* stream, mfc::CString& name) {
     alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
-    mfc::CString* read = static_cast<CStream*>(stream)->ReadString(temporary);
+    mfc::CString* read = stream->ReadString(temporary);
     name = *read;
     read->~CString();
 }
@@ -555,7 +555,7 @@ void AddUnique(StockPtrVector& list, char* record) {
 }
 
 // A record section: a count, then names lower-cased and looked up in `table`.
-void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const RecordTable& table, StockPtrVector& list) {
+void LoadRecords(CStream* stream, mfc::CString& name, unsigned& count, const RecordTable& table, StockPtrVector& list) {
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
@@ -566,7 +566,7 @@ void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const Record
 }
 
 // A map section: a count, then names (as read) looked up in an STLport map by string.
-void LoadMapped(void* stream, mfc::CString& name, unsigned& count, RecordNameMap& map, StockPtrVector& list) {
+void LoadMapped(CStream* stream, mfc::CString& name, unsigned& count, RecordNameMap& map, StockPtrVector& list) {
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
@@ -583,7 +583,7 @@ void LoadMapped(void* stream, mfc::CString& name, unsigned& count, RecordNameMap
 
 // Original behaviour kept: a material entry is pushed even when its material is not found (null
 // record), and the two map lookups insert null entries for unknown names.
-void ItemStock::LoadLists(void* stream) {
+void ItemStock::LoadLists(CStream* stream) {
     PartyOf(this)->SpellManager();   // (the spell and item managers, fetched and not used)
     PartyOf(this)->ItemManager();
     mfc::CString name;
@@ -629,8 +629,7 @@ void SaveItemRecords(CStream* stream, const StockPtrVector& list) {
 
 } // namespace
 
-void ItemStock::SaveLists(void* stream) {
-    auto* out = static_cast<CStream*>(stream);
+void ItemStock::SaveLists(CStream* out) {
     SaveItemRecords(out, armors);
     SaveItemRecords(out, weapons);
     SaveItemRecords(out, quickItems);

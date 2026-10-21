@@ -274,13 +274,13 @@ Next StartHealing(CSpellEffect* e) {
     if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Done;   // no null check
     // Controller slot 21, Heal: the original pushes the amount's bits (MOV/PUSH), which a float
     // argument would load and store through the FPU, so the slot takes the bits.
-    static_cast<CUnit*>(e->target)->Controller()->Heal(Bits(e->damage));
-    CEngineObject* unit = e->target;
+    auto* unit = static_cast<CUnit*>(e->target);
+    unit->Controller()->Heal(Bits(e->damage));
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
-    bool full = static_cast<CUnit*>(e->target)->packedVitals.hitPoints == static_cast<CUnit*>(e->target)->packedVitals.maxHitPoints;
+    bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;
     if (e->silentEnd == 0 || !full) {
-        e->CreateSound(0, "magic\\Healing\\start.wav", &static_cast<CUnit*>(e->target)->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, "magic\\Healing\\start.wav", &unit->position, &kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
@@ -319,7 +319,7 @@ Next StartLink(CSpellEffect* e) {
 
 // 0x1C: teleport: a particle where the caster stands and an inverted one at the target point.
 Next StartTeleport(CSpellEffect* e) {
-    const Vector3* source = e->caster ? &static_cast<CUnit*>(e->caster)->position : &e->position;
+    const Vector3* source = e->caster ? &e->caster->position : &e->position;
     Vector3 point = *source;
     point.z = GroundPlus(e, kWorldSlotGridHeight, point, &point.z);
     e->CreateParticle(1, 0x2019, &point, 1.0f, 1.0f, &kZeroVector, nullptr);
@@ -345,7 +345,7 @@ Next StartCharm(CSpellEffect* e) {
     float skill = tamer->stats.stat20 + e->damage;
     auto side = [](CUnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
-        if (tamed->TryTame(reinterpret_cast<CUnit*>(e->caster), skill) == 0) {
+        if (tamed->TryTame(e->caster, skill) == 0) {
             if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x1A);
             return Next::Done;
         }
@@ -495,8 +495,9 @@ EI_REWRITTEN(0x0067F260, CSpellEffect::CreateParticle);
 void CSpellEffect::CreateLightning(const Vector3* from, CEngineObject* boltTarget, CEngineObject* source, float power,
                                    int flag) {
     if (!boltTarget) return;
-    Vector3 to = static_cast<CUnit*>(boltTarget)->position;
-    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &static_cast<CUnit*>(boltTarget)->above.z,
+    auto* hit = static_cast<CUnit*>(boltTarget);
+    Vector3 to = hit->position;
+    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &hit->above.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
     CEngineObject* bolt = CreateObject(this, kClassLightning);
     static_cast<CEffectLightning*>(bolt)->SetEnds(from, &to, power * ConstAt(worlddata::BoltWidthScale()));
