@@ -23,6 +23,7 @@
 #include "maths.h"
 #include "originals_core.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 using BOOL = int;
 
@@ -1969,7 +1970,6 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
-inline GameFlow* TheGameFlow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 
 struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
 

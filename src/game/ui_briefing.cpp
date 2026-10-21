@@ -21,6 +21,7 @@
 #include "world.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 #include <new>
@@ -29,7 +30,6 @@ namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
 float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
-void* TheGame() { return ei::GamePointer<void>(0x007AFE20); }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
 void** SaveLoadVtable() { return ei::GamePointer<void*>(0x00741388); }
@@ -116,7 +116,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        static_cast<GameFlow*>(TheGame())->DropSessions();
+        static_cast<GameFlow*>(TheGameFlow())->DropSessions();
         uiorig::LeaveGame();
         break;
     default:

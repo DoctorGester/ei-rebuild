@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "ui.h"
 #include "world_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -49,7 +50,7 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     CRefObject* partner = offer->partner_.ptr;
     const char* name = static_cast<PlayerMessage*>(offer->player_.ptr)->name_.data();
     std::uint32_t line = 0;   // CString
-    void* formatted = worlddata::InterfaceManager()->MessageText(&line, text, name);
+    void* formatted = TheInterface()->MessageText(&line, text, name);
     self->Announce(*static_cast<const char**>(formatted), partner);
     CStringDestroy(&line);
 }

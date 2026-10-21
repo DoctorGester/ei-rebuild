@@ -31,6 +31,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 #include <cstdint>
@@ -135,7 +136,7 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = reinterpret_cast<CUnit*>(WorldFindUnit(ei::GamePointer<void>(0x007AF5B8), nullptr, serverUnit->id_));
     if (!unit) return;
-    auto* screen = static_cast<CBriefingScreen*>(InterfaceActiveWindowOriginal(ei::GamePointer<CInterface3D>(0x007C7D50)));
+    auto* screen = static_cast<CBriefingScreen*>(InterfaceActiveWindowOriginal(TheInterface()));
     for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }

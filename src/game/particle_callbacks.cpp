@@ -267,8 +267,22 @@ namespace {
 #define EI_AIR_SIZE 1.6f /*0073CC80*/           // 1.6
 
 const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
-const float* SphereSizeByLife() { return ei::GamePointer<const float>(0x0073CB38); }
-const float* AntimagicSizeByLife() { return ei::GamePointer<const float>(0x0073CB78); }
+const float* SphereSizeByLife() {
+    static const float kValues[16] = {
+        0.01f /*0073CB38*/, 0.02f /*0073CB3C*/, 0.03f /*0073CB40*/, 0.035f /*0073CB44*/,
+        0.035f /*0073CB48*/, 0.035f /*0073CB4C*/, 0.035f /*0073CB50*/, 0.035f /*0073CB54*/,
+        0.035f /*0073CB58*/, 0.035f /*0073CB5C*/, 0.035f /*0073CB60*/, 0.035f /*0073CB64*/,
+        0.035f /*0073CB68*/, 0.03f /*0073CB6C*/, 0.02f /*0073CB70*/, 0.01f /*0073CB74*/,
+    };
+    return kValues;
+}
+const float* AntimagicSizeByLife() {
+    static const float kValues[6] = {
+        0.01f /*0073CB78*/, 0.015f /*0073CB7C*/, 0.02f /*0073CB80*/, 0.03f /*0073CB84*/,
+        0.015f /*0073CB88*/, 0.01f /*0073CB8C*/,
+    };
+    return kValues;
+}
 
 // A random point in the unit ball (ten tries), the squared length summed z, y, x.
 void RandomInBallZYX(float& x, float& y, float& z) {
@@ -1623,8 +1637,29 @@ namespace {
 #define EI_BAG_KICK 0.05f /*0073C52C*/            // 0.05
 
 float* BagSizes() { return ei::GamePointer<float>(0x007A9BFC); }     // 12 entries
-const std::int32_t* BagColours() { return ei::GamePointer<const std::int32_t>(0x0073CBA4); }   // r, g, b
-const std::int32_t* BagAlpha() { return ei::GamePointer<const std::int32_t>(0x0073CC34); }
+const std::int32_t* BagColours() {   // r, g, b per age
+    static const std::int32_t kValues[36] = {
+        251 /*0073CBA4*/, 254 /*0073CBA8*/, 143 /*0073CBAC*/, 252 /*0073CBB0*/,
+        227 /*0073CBB4*/, 149 /*0073CBB8*/, 252 /*0073CBBC*/, 201 /*0073CBC0*/,
+        154 /*0073CBC4*/, 255 /*0073CBC8*/, 176 /*0073CBCC*/, 154 /*0073CBD0*/,
+        255 /*0073CBD4*/, 155 /*0073CBD8*/, 163 /*0073CBDC*/, 252 /*0073CBE0*/,
+        152 /*0073CBE4*/, 176 /*0073CBE8*/, 250 /*0073CBEC*/, 150 /*0073CBF0*/,
+        195 /*0073CBF4*/, 247 /*0073CBF8*/, 149 /*0073CBFC*/, 212 /*0073CC00*/,
+        243 /*0073CC04*/, 147 /*0073CC08*/, 237 /*0073CC0C*/, 239 /*0073CC10*/,
+        144 /*0073CC14*/, 249 /*0073CC18*/, 239 /*0073CC1C*/, 144 /*0073CC20*/,
+        249 /*0073CC24*/, 239 /*0073CC28*/, 144 /*0073CC2C*/, 249 /*0073CC30*/,
+    };
+    return kValues;
+}
+const std::int32_t* BagAlpha() {
+    static const std::int32_t kValues[16] = {
+        0 /*0073CC34*/, 64 /*0073CC38*/, 112 /*0073CC3C*/, 255 /*0073CC40*/,
+        255 /*0073CC44*/, 255 /*0073CC48*/, 255 /*0073CC4C*/, 255 /*0073CC50*/,
+        255 /*0073CC54*/, 255 /*0073CC58*/, 255 /*0073CC5C*/, 255 /*0073CC60*/,
+        255 /*0073CC64*/, 255 /*0073CC68*/, 255 /*0073CC6C*/, 255 /*0073CC70*/,
+    };
+    return kValues;
+}
 constexpr int kBagGone = -13;
 
 std::uint32_t BagRgb(int kind) {

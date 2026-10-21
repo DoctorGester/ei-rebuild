@@ -39,6 +39,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 #include <cstring>
@@ -86,9 +87,7 @@ struct TextBuffer {
     mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
 };
 
-GameFlow* Flow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 CMusicSystem* Music() { return ei::GameData<CMusicSystem*>(0x007AF760); }
-void* QuestLog() { return ei::GamePointer<void>(0x007C7D50); }
 const char* QuestPrefix() { return "q."; }
 
 // A memory stream on the stack, as the original builds (0041DD70 inlined) and destroys it.
@@ -109,7 +108,7 @@ constexpr int kListBlockSize = 10;
 // The quest log refreshed with an empty CPtrList built and destroyed on the stack.
 void RefreshQuestLog() {
     mfc::CTypedPtrList<void> none{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
-    static_cast<CInterface3D*>(QuestLog())->OnItemsPicked(&none, 0, 0);
+    static_cast<CInterface3D*>(TheInterface())->OnItemsPicked(&none, 0, 0);
     // The list's inlined destructor (RemoveAll; nothing was added).
     none.head = none.tail = nullptr;
     none.count = 0;
@@ -232,7 +231,7 @@ int CPlayerClient::OnSetVariable() {
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
-        static_cast<CInterface3D*>(QuestLog())->OnQuestVariable(name, std::bit_cast<float>(value));
+        static_cast<CInterface3D*>(TheInterface())->OnQuestVariable(name, std::bit_cast<float>(value));
         static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
@@ -247,7 +246,7 @@ int CPlayerClient::OnDeleteVariable() {
     }
     Owner()->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
-        static_cast<CInterface3D*>(QuestLog())->OnQuestVariable(name, 0.0f);
+        static_cast<CInterface3D*>(TheInterface())->OnQuestVariable(name, 0.0f);
         static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, 0.0f);
     }
     return 1;
@@ -258,7 +257,7 @@ int CPlayerClient::OnZoneChange() {
     ReadText(zone.bytes);
     int entrance;
     in_.Read(&entrance, 4);
-    Flow()->RequestZoneChange(*zone.Get(), entrance);
+    TheGameFlow()->RequestZoneChange(*zone.Get(), entrance);
     return 1;
 }
 
@@ -383,7 +382,7 @@ int CPlayerClient::OnItemsReceived() {
     }
     if (result != 0) {
         Owner()->GiveItems(&items, flag);
-        static_cast<CInterface3D*>(QuestLog())->OnItemsPicked(&items, money - before, flag);
+        static_cast<CInterface3D*>(TheInterface())->OnItemsPicked(&items, money - before, flag);
     }
     items.RemoveAll();   // the list's inlined destructor
     return result;
@@ -418,7 +417,7 @@ int CPlayerClient::OnParty() {
         }
         WorldClient()->ApplyObjectVariables();
         GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
-        Flow()->ReturnLocalParty();
+        TheGameFlow()->ReturnLocalParty();
     }
     saved.Destroy();   // inlined: every node deleted (004616A0), then the bucket vector (00609F50)
     return 1;
@@ -488,7 +487,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     TextBuffer text;
     ReadText(text.bytes);
-    InterfaceStringEventOriginal(QuestLog(), nullptr, *text.Get());
+    InterfaceStringEventOriginal(TheInterface(), nullptr, *text.Get());
     return 1;
 }
 

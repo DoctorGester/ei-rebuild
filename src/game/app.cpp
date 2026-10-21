@@ -27,6 +27,7 @@
 #include "ui.h"
 #include "world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <ddraw.h>
 
@@ -48,7 +49,6 @@ bool QuitOnClose() { return Global<std::uint8_t>(0x00784751) != 0; }   // Alt+F4
 
 // The interface (007C7D50) takes the input: pending windows closed before and after each message
 // (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
-CInterface3D* TheInput() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 
 // The console's ostream (007C55A8).
 libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8); }
@@ -102,7 +102,7 @@ LRESULT OnActivate(WPARAM wParam) {
     }
     TheCursor()->ShowImage(1);
     if (sounds) sounds->ResumeAll();
-    TheInput()->ResetInput();
+    TheInterface()->ResetInput();
     return 1;
 }
 
@@ -128,7 +128,7 @@ UINT AutoPlayMessage() {
 }
 
 LRESULT Handled() {
-    TheInput()->CloseAllPending();
+    TheInterface()->CloseAllPending();
     return 1;
 }
 
@@ -177,7 +177,7 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
     // (present_window.h; unchanged otherwise). The game's own wheel message (0xCC54) is not mapped.
     lParam = present_window::MouseToGame(message, lParam);
-    CInterface3D* input = TheInput();
+    CInterface3D* input = TheInterface();
     input->CloseAllPending();
     int w = static_cast<int>(wParam);
     switch (message) {
@@ -256,8 +256,8 @@ int __cdecl StartFirstMap() {
     map = Length(cmdMap) != 0 ? cmdMap : Global<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
                         reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0) {
-        static_cast<GameFlow*>(ei::GamePointer<void>(0x007AFE20))->CloseSessions();
-        MenuOpen(ei::GamePointer<void>(0x007AFE20));
+        TheGameFlow()->CloseSessions();
+        MenuOpen(TheGameFlow());
         return 1;
     }
     void* world = ei::GamePointer<void>(0x007AFF60);

@@ -24,6 +24,7 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -40,8 +41,6 @@ constexpr std::uint32_t kUnitFlagLit = 0x100;
 constexpr int kKeyEnter = 0xD;
 constexpr float kSpecialZoneDistance = 23.0f;
 
-CInterface3D* TheInterface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
-GameFlow* Flow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 int& WorldTick() { return ei::GameData<int>(0x007AF61C); }
 CBaseManager* ItemManager() { return ei::GameData<CBaseManager* const>(0x007AF60C); }
 void* Weather() { return ei::GamePointer<void>(0x007AFCAC); }   // "RainSnow"
@@ -113,7 +112,7 @@ int CPlayerClient::OnGameState() {
     if (state == kGameStateBetweenZones) WorldClient()->LoadUnitFaces();
     for (CPlayer::ObjectMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
         AsConnection(this)->UnitChanged(static_cast<CUnit*>(node->value));
-    if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(Flow());
+    if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(TheGameFlow());
     return 1;
 }
 

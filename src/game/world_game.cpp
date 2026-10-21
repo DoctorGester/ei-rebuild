@@ -58,6 +58,7 @@
 #include "bink_video.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 #include <cstring>
 #include <new>
@@ -86,7 +87,6 @@ std::uint8_t& ToMainMenu() { return ei::GameData<std::uint8_t>(0x007C7D94); }
 std::uint8_t& SessionsOpen() { return ei::GameData<std::uint8_t>(0x007C7DD8); }
 
 void* const kParty = ei::GamePointer<void>(0x007AA5A0);
-void* const kInput = ei::GamePointer<void>(0x007C7D50);
 void* const kScripts = ei::GamePointer<void>(0x007AFDF8);
 void* const kGlobals = ei::GamePointer<void>(0x0079B2A8);
 libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
@@ -253,9 +253,9 @@ int GameFlow::SaveGame(const char* slot) {
         }
     } scenarioOwner{&scenario};
     PartySave(kParty, nullptr, &scenario);
-    static_cast<CInterface3D*>(kInput)->SaveState(&scenario);
+    static_cast<CInterface3D*>(TheInterface())->SaveState(&scenario);
     ScriptsReset(kScripts);
-    static_cast<CInterface3D*>(kInput)->SaveWindowState();
+    static_cast<CInterface3D*>(TheInterface())->SaveWindowState();
     StreamSaveScripts(&scenario, nullptr, kScripts);
     ScriptsReset(kScripts);
     static_cast<CCamera*>(kGlobals)->SaveState(&scenario);
@@ -1303,7 +1303,7 @@ int __stdcall LoadMission(void* file) {
     if (static_cast<int>(mission.s.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
-        static_cast<CInterface3D*>(ei::GamePointer<void>(0x007C7D50))->LoadState(&mission.s);
+        TheInterface()->LoadState(&mission.s);
         StreamCopyRest(&mission.s, nullptr, GameSaveStream());
         ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
     }
@@ -1564,7 +1564,7 @@ void GameFlow::ProcessRequest() {
         LocalRecords records;
         LeaveZoneAt(&records.party);
     }
-    InterfaceCloseAll(ei::GamePointer<void>(0x007C7D50));
+    InterfaceCloseAll(TheInterface());
     World()->TeardownZone();
     // (0057DEE0's body is inlined here in the original, with the databases' switch 0057CB50 out of line.)
     UseResources(Active(net::GameClient()));
@@ -1699,7 +1699,7 @@ int GameFlow::LoadGame(const char* slot) {
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(kScripts);
-        static_cast<CInterface3D*>(kInput)->LoadState(&scenario);
+        static_cast<CInterface3D*>(TheInterface())->LoadState(&scenario);
         StreamLoadScripts(&scenario, nullptr, kScripts);
         version = static_cast<int>(scenario.version_);
         LoadedScriptsVersion() = version;

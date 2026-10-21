@@ -24,6 +24,7 @@
 #include "world_glue.h"
 #include "../hook/log.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -37,7 +38,6 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 // a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
 void SetCursorShape(int shape) { static_cast<CCursor*>(ei::GamePointer<void>(0x007C7BD8))->ChangeShape(shape); }
-void* Session() { return ei::GamePointer<void>(0x007AFE20); }
 
 // 00458220: dispatches the window messages waiting in the queue.
 
@@ -91,8 +91,8 @@ void CInterface3D::Update() {
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
-            static_cast<GameFlow*>(Session())->DropSessions();
-            static_cast<GameFlow*>(Session())->CloseSessions();
+            static_cast<GameFlow*>(TheGameFlow())->DropSessions();
+            static_cast<GameFlow*>(TheGameFlow())->CloseSessions();
         }
         mouseCapture_ = nullptr;
         SetCursorShape(0);

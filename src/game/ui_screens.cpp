@@ -20,6 +20,7 @@
 #include "originals_units.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 namespace {
 const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
@@ -49,7 +50,6 @@ BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScro
 __declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
 
 void* MultiplayerClient() { return ei::GameData<void*>(0x0079B5D8); }
-void* const kGame = ei::GamePointer<void>(0x007AFE20);
 // 0079BE84: the camp's tab keys are active.
 bool TabKeysEnabled() { return ei::GameData<const int>(0x0079BE84) != 0; }
 
@@ -124,7 +124,7 @@ EI_REPLACE(0x005EE130, UiItemKinds::IsBuildable);
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { ui->PlaySound(name, flags); }
-void LeaveGame() { static_cast<GameFlow*>(kGame)->CloseSessions(); }
+void LeaveGame() { static_cast<GameFlow*>(TheGameFlow())->CloseSessions(); }
 } // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------

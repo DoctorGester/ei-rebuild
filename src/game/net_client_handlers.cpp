@@ -24,6 +24,7 @@
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -47,8 +48,6 @@ inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 
-void* TextTable() { return worlddata::InterfaceManager(); }
-void* Flow() { return TheGameFlow(); }
 bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
 }
@@ -229,17 +228,17 @@ void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&s
 // The players on +0x25D8, with the interface's player list refreshed.
 void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {   // 0041E490
     AppendRaw(self->players_, message);
-    static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(1);
+    static_cast<CInterface3D*>(TheInterface())->OnPlayersChanged(1);
 }
-void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(0); }   // 0041E510
+void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { static_cast<CInterface3D*>(TheInterface())->OnPlayersChanged(0); }   // 0041E510
 void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {   // 0041E520
     RemoveCounted(self->players_, message);
-    static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(1);
+    static_cast<CInterface3D*>(TheInterface())->OnPlayersChanged(1);
 }
 // The chat lines on +0x25DC, each shown with its number.
 void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {   // 0041E5D0
     AppendCounted(self->lines_, message);
-    static_cast<CInterface3D*>(TextTable())->OnChatLine(message->text_.data(), message->number_);
+    static_cast<CInterface3D*>(TheInterface())->OnChatLine(message->text_.data(), message->number_);
 }
 void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }   // 0041E690
 // The host message kept at +0x25EC.
@@ -248,36 +247,36 @@ void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
     AppendCounted(self->zones_, message);
-    static_cast<GameFlow*>(Flow())->MarkBriefing(message->text_.data());
+    static_cast<GameFlow*>(TheGameFlow())->MarkBriefing(message->text_.data());
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
     RemoveCounted(self->zones_, message);
-    static_cast<GameFlow*>(Flow())->ForgetBriefing(message->text_.data());
+    static_cast<GameFlow*>(TheGameFlow())->ForgetBriefing(message->text_.data());
 }
 // The current map at +0x25F4; without a server of our own the flow loads it.
 void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 0041E900
     AssignRef(&self->map_, message);
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
-    FlowLoadZoneQuests(Flow(), nullptr, message->text_.data());
-    static_cast<GameFlow*>(Flow())->RegisterQuests(message->text_.data());
+    FlowLoadZoneQuests(TheGameFlow(), nullptr, message->text_.data());
+    static_cast<GameFlow*>(TheGameFlow())->RegisterQuests(message->text_.data());
 }
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables on +0x25FC; the flow is told of every change.
 void __fastcall ClientOnVariable(ClientSession* self, Message* message) {   // 0041E990
     AppendRaw(self->variables_, message);
-    FlowVariablesChanged(Flow());
+    FlowVariablesChanged(TheGameFlow());
 }
-void __fastcall ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(Flow()); }   // 0041EA10
+void __fastcall ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(TheGameFlow()); }   // 0041EA10
 void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {   // 0041EA20
     RemoveRaw(self->variables_, message);
-    FlowVariablesChanged(Flow());
+    FlowVariablesChanged(TheGameFlow());
 }
 // The shared files on +0x25E0; for a file the flow lacks, a request holding the file goes on
 // +0x25E8.
 void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0041EAC0
     AppendRaw(self->files_, message);
-    if (FlowHasFile(Flow(), nullptr, message->name_.data())) return;
+    if (FlowHasFile(TheGameFlow(), nullptr, message->name_.data())) return;
     auto* request = NewMessageMemory<FileRequestMessage>();
     if (request) {
         RefValueConstructBase(request);
@@ -343,7 +342,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         const std::int32_t size = file->size_;
         buffer.high = buffer.begin + size;
         if (buffer.high > buffer.end) buffer.Grow(static_cast<std::uint32_t>(size));
-        FlowWriteMapFile(Flow(), nullptr, file->name_.data(), &buffer);
+        FlowWriteMapFile(TheGameFlow(), nullptr, file->name_.data(), &buffer);
         DropRequestsFor(self, file);
         buffer.DestructGrowing();
     }
@@ -393,7 +392,7 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
     for (TradeRecordNode* node = self->tradeRecords_.First(); node != self->tradeRecords_.End(); node = node->next) {
         TradeRecord& record = node->data;
         if (record.revision == b && record.acceptedRevision == a) {
-            static_cast<CInterface3D*>(TextTable())->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
+            static_cast<CInterface3D*>(TheInterface())->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
             break;
         }
     }

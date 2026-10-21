@@ -5,6 +5,7 @@
 #include "object_tables.h"
 #include "player_messages.h"
 #include "item.h"
+#include "game_singletons.h"
 #include "party.h"
 #include "random.h"
 #include "unit.h"
@@ -89,7 +90,7 @@ void CPlayerServer::SendGameTime() {
     std::uint32_t value = static_cast<std::uint32_t>(Owner()->sessionKind100_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
-    WriteDword(&out_, ei::GameData<const std::uint32_t>(0x007AFFC4));
+    WriteDword(&out_, static_cast<std::uint32_t>(CurrentWorldTick()));
     Owner()->dirty_ &= ~0x10;
 }
 

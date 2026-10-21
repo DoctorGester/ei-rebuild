@@ -9,6 +9,7 @@
 #include "game_strings.h"
 #include "world.h"
 #include "world_data.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "originals_core.h"
@@ -36,7 +37,7 @@ inline void* ObjectManager() { return ei::GameData<void*>(0x007AF5F8); }    // C
 inline void* CameraObject() { return ei::GameData<void*>(0x007AF7C8); }
 inline int ChangeStamp() { return ei::GameData<const int>(0x007AFFC8); }
 inline int GameTick() { return ei::GameData<const int>(0x007AF61C); }
-inline std::uint8_t FrameCounter() { return ei::GameData<const std::uint8_t>(0x007AFFC4); }
+inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(CurrentWorldTick()); }
 // While unpacking: the snapshot the field is read against (delta::ReadSnapshot in net_delta.h).
 inline BitStream* ReadSnapshot() { return ei::GameData<BitStream*>(0x007A9794); }
 

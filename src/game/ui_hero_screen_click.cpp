@@ -28,6 +28,7 @@
 #include "library_containers.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -107,9 +108,9 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
     TextsGetString(ei::GamePointer<TextGlue>(0x007AFEA4)->Table(), nullptr, "reserved_04", &text);
-    static_cast<CInterface3D*>(ei::GamePointer<void>(0x007C7D50))->ShowStatusText(text);
+    TheInterface()->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-    static_cast<GameFlow*>(ei::GamePointer<void>(0x007AFE20))->EndSession();
+    TheGameFlow()->EndSession();
     ui->SetPendingValue(0);
 }
 

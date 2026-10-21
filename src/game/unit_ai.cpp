@@ -24,6 +24,7 @@
 #include "lib/mfc_array.h"
 #include "game_arrays.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -36,7 +37,6 @@ constexpr float kArrivedDistanceSq = 1.0f;                              // 0073F
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
 
-int GameTicks() { return ei::GameData<const int>(0x007AFFC4); }
 
 // CEngineObject::Release through the object's vtable, then clear the slot (inlined everywhere).
 void ReleaseRef(CEngineObject*& ref) {
@@ -436,14 +436,14 @@ void AIBrain::UpdateMove() {
     }
     if (actionTime == kLookStarted) {
         if (looks.data->stopFirst) o->StopQueued();
-        float end = static_cast<float>(GameTicks()) + looks.data->wait;     // FILD + FADD, FSTP float
+        float end = static_cast<float>(CurrentWorldTick()) + looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
         int remaining = looks.size - 1;
         if (remaining != 0) libcrt::Memmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);
         --looks.size;
         return;
     }
-    if (GameTicks() > actionTime) actionTime = kNoTime;
+    if (CurrentWorldTick() > actionTime) actionTime = kNoTime;
 }
 EI_REPLACE_METHOD(0x005D7520, AIBrain::UpdateMove);
 

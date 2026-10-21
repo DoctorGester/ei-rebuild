@@ -20,6 +20,7 @@
 #include "ini_file.h"
 #include "bink_video.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,7 +32,6 @@ namespace {
 template <typename T>
 T& Global(std::uintptr_t address) { return ei::GameData<T>(address); }
 
-void* Interface() { return ei::GamePointer<void>(0x007C7D50); }
 void* Game() { return ei::GamePointer<void>(0x007AF060); }
 void* Screen() { return ei::GamePointer<void>(0x007C7BD8); }
 bool Running() { return Global<std::uint8_t>(0x0079BC5C) != 0 && Global<std::uint8_t>(0x00784750) != 0; }
@@ -83,14 +83,14 @@ void ClearScreen() {
 // no window of the interface is active).
 void __fastcall FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
-    if (!InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(Interface()))) {
+    if (!InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(TheInterface()))) {
         gameapi::Sleep(50);
         return;
     }
     if (!static_cast<CSceneRenderer*>(Game())->BeginScene()) return;
-    static_cast<CInterface3D*>(Interface())->Draw();
+    static_cast<CInterface3D*>(TheInterface())->Draw();
     static_cast<CSceneRenderer*>(Game())->EndScene();
-    if (cursor) InterfaceDrawCursor(Interface());
+    if (cursor) InterfaceDrawCursor(TheInterface());
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(Screen());
     CursorDrawFrame(static_cast<CCursor*>(Screen()));   // 005E54A0

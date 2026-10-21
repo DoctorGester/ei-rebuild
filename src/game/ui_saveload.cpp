@@ -45,6 +45,7 @@
 #include "record_vectors.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -59,10 +60,8 @@ CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007A
 const char* GameFolder() { return ei::GameData<char* const>(0x007AF460); }
 CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 
-void* const kFlow = ei::GamePointer<void>(0x007AFE20);         // the game flow (world_game.cpp)
 CMapDatabase* const kMapDatabase = ei::GamePointer<CMapDatabase>(0x0079BF00);
 void* const kCursor = ei::GamePointer<void>(0x007C7BD8);
-void* const kInterface = ei::GamePointer<void>(0x007C7D50);
 
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
@@ -266,7 +265,7 @@ void CSaveLoadWindow::SaveGame() {
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0) {
-        int needed = SaveSpaceNeeded(kFlow);
+        int needed = SaveSpaceNeeded(TheGameFlow());
         if (static_cast<double>(needed) > space) {
             void* memory = gamecrt::operator_new(0x180);
             CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(),
@@ -280,8 +279,8 @@ void CSaveLoadWindow::SaveGame() {
     folder.Format(flowdata::kSlotFolder, GameFolder(), entry->folder_);
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
-    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
-    static_cast<GameFlow*>(kFlow)->SaveGameThunk(entry->folder_);
+    static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
+    static_cast<GameFlow*>(TheGameFlow())->SaveGameThunk(entry->folder_);
     CursorSetShape(kCursor, nullptr, 3);
 
     // info.sav: the new save's entry (the first) with the title being given.
@@ -475,8 +474,8 @@ constexpr const char* kNotifyLoading = "notify_loading";
 constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
 constexpr int kShotWidth = 256, kShotHeight = 192;
 
-CInterface3D* Interface() { return static_cast<CInterface3D*>(kInterface); }
-GameFlow* Flow() { return static_cast<GameFlow*>(kFlow); }
+CInterface3D* Interface() { return static_cast<CInterface3D*>(TheInterface()); }
+GameFlow* Flow() { return static_cast<GameFlow*>(TheGameFlow()); }
 
 // The save folder saves\<slot>\ under the game's folder.
 mfc::CString SlotFolder(const char* slot) {
@@ -491,7 +490,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     double space = app::DiskFreeSpace(GameFolder());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
-    if (space != 0.0 && static_cast<double>(SaveSpaceNeeded(kFlow)) > space) return;
+    if (space != 0.0 && static_cast<double>(SaveSpaceNeeded(TheGameFlow())) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -504,8 +503,8 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
-    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
-    static_cast<GameFlow*>(kFlow)->SaveGameThunk(slot);
+    static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
+    static_cast<GameFlow*>(TheGameFlow())->SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     mfc::CString title;
@@ -554,7 +553,7 @@ void __fastcall QuickLoad(const char* slot) {
     if (libcrt::Access(folder, 0) == -1) return;
     mfc::CString notice;
     Texts()->GetString(kNotifyLoading, &notice);
-    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
+    static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
@@ -667,7 +666,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (entriesBegin_[selected].broken_) return;
     mfc::CString notice;
     Texts()->GetString(kNotifyLoading, &notice);
-    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
+    static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entriesBegin_[selected_].folder_, 0);

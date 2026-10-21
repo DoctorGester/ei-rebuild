@@ -26,6 +26,7 @@
 #include "originals_ui.h"
 #include "game_flow_data.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 #include <new>
@@ -256,7 +257,7 @@ void GameFlow::OnVariableChanged(const void* event) {
                                 reinterpret_cast<const unsigned char*>(flowdata::kQuestVariablePrefix)) == 0;
     }
     if (quest) {
-        static_cast<CInterface3D*>(ei::GamePointer<void>(0x007C7D50))->OnQuestVariable(name, std::bit_cast<float>(value));
+        TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
         static_cast<CWorldClient*>(ei::GamePointer<void>(0x007AF5B8))->OnQuestVariable(name, std::bit_cast<float>(value));
     }
 }
