@@ -151,6 +151,16 @@ struct Command {
     int index;                // into terrainBatches / meshBatches / blitBatches / clears
 };
 
+// The receivers' shader parameters of the shadow map (render_shadows.cpp, ShadowHlsl).
+struct ShadowParams {
+    float on[4];       // x: on, y: strength, z: one texel (uv), w: constant depth bias
+    float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
+    float camera[4];   // xyz: the camera in shadow clip space
+    float soft[4];     // x: filter radius (uv) per unit of blocker distance (clip z), y: the blocker
+                       // search's radius (uv, the widest filter), z: the narrowest filter (uv), w: texels a side
+};
+static_assert(sizeof(ShadowParams) == 64);
+
 // A frame's object shadows (R16j, render_shadows.cpp): the sun handed over, the objects casting, and
 // what PrepareShadows made of them: the matrices from each receiving mesh's model space (and the
 // terrain's space) to the shadow map's clip space, and the receivers' shader parameters.
@@ -161,7 +171,7 @@ struct ShadowFrame {
     bool prepared = false;    // PrepareShadows ran for this frame
     bool on = false;          // the map is made this frame: receivers sample it
     std::vector<Matrix4> lights;   // [0]: the terrain's
-    float params[3][4] = {};  // ShadowParams (render_shadows.cpp)
+    ShadowParams params{};
 };
 
 struct Frame {
@@ -405,21 +415,17 @@ void DropMeshCache();
 // Object shadows (R16j, render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
 // frame before its first pass on the world: unless the classic option is on, fits the shadow map
 // around the visible ground seen from the sun and gives every receiving batch its light matrix;
-// DrawShadowMap then draws the casters into the map (a pass of its own). The receivers' shaders
+// DrawShadowMap then draws the casters into the map (a pass of its own) and its depth range per cell
+// (two small passes: the receivers' early end and blocker search). The receivers' shaders
 // include ShadowHlsl (vs: `shadow_position(row0..3)`-style light rows; ps: `shadow_factor`), take
 // ShadowParams in their uniforms and bind the map (or a cleared 1 x 1 one) with BindShadowMap.
-struct ShadowParams {
-    float on[4];       // x: on, y: strength, z: one texel (uv), w: constant depth bias
-    float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
-    float camera[4];   // xyz: the camera in shadow clip space
-};
-static_assert(sizeof(ShadowParams) == 48);
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
 const char* ShadowHlsl();
 void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params);
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
-// The shader descriptions of the map's texture (a depth view) and comparison sampler at the slots.
+// The shader descriptions of the map's texture (a depth view) and comparison sampler at the slots,
+// and of its depth range per cell (RGBA32F, Load) with a point sampler at the slots after them.
 void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot);
 void DestroyShadows();
 // The game's hand-over (render_shadows.cpp): the object whose meshes are being handed over, whether

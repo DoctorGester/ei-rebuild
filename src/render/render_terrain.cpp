@@ -312,6 +312,7 @@ cbuffer params : register(b0) {
     float4 shadow_on;   // the shadow map (render_shadows.cpp, ShadowParams)
     float4 shadow_scale;
     float4 shadow_camera;
+    float4 shadow_soft;
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
 struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 shadow : TEXCOORD1;
@@ -331,13 +332,16 @@ Texture2D<float4> tex : register(t0);
 SamplerState smp : register(s0);
 Texture2D<float> shadow_map : register(t1);
 SamplerComparisonState shadow_smp : register(s1);
+Texture2D<float4> shadow_range : register(t2);
+SamplerState shadow_point : register(s2);
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
     if (flags.x > 1.5) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
     float3 c = saturate(t.rgb * i.col.rgb + i.spec.rgb);
     if (shadow_on.x > 0.5)
-        c *= 1.0 - shadow_amount(shadow_map, shadow_smp, i.shadow.xyz, dsx, dsy, shadow_on, shadow_scale, shadow_camera);
+        c *= 1.0 - shadow_amount(shadow_map, shadow_smp, shadow_range, i.shadow.xyz, dsx, dsy, shadow_on, shadow_scale, shadow_camera,
+                                shadow_soft, i.pos.xy);
     float a = flags.x > 0.5 ? i.col.a : t.a;
     if (flags.y > 0.5) c = lerp(fog.rgb, c, i.spec.a);
     return float4(c, a);
@@ -351,7 +355,7 @@ struct Params {
     Matrix4 light;
     ShadowParams shadow;
 };
-static_assert(sizeof(Params) == 208);
+static_assert(sizeof(Params) == 224);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey

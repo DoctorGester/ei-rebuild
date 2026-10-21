@@ -125,6 +125,7 @@ cbuffer fs_params : register(b0) {
     float4 shadow_on;      // the shadow map (render_shadows.cpp, ShadowParams)
     float4 shadow_scale;
     float4 shadow_camera;
+    float4 shadow_soft;
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
 struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 shadow : TEXCOORD1;
@@ -156,6 +157,8 @@ SamplerState smp1 : register(s1);
 SamplerState smp2 : register(s2);
 Texture2D<float> shadow_map : register(t3);
 SamplerComparisonState shadow_smp : register(s3);
+Texture2D<float4> shadow_range : register(t4);
+SamplerState shadow_point : register(s4);
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;
     float4 v = sel == 0 ? diffuse : sel == 2 ? texel : sel == 3 ? factor : sel == 4 ? spec : current;
@@ -227,7 +230,8 @@ float4 ps_main(vs_out i) : SV_Target0 {
     float3 rgb = current.rgb;
     if (switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
     if (shadow_on.x > 0.5)
-        rgb *= 1.0 - shadow_amount(shadow_map, shadow_smp, i.shadow.xyz, dsx, dsy, shadow_on, shadow_scale, shadow_camera);
+        rgb *= 1.0 - shadow_amount(shadow_map, shadow_smp, shadow_range, i.shadow.xyz, dsx, dsy, shadow_on, shadow_scale, shadow_camera,
+                                  shadow_soft, i.pos.xy);
     if (switches.y != 0) rgb = lerp(fog_colour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);
 }
@@ -254,7 +258,7 @@ struct FsParams {
     float patchInside[4];
     ShadowParams shadow;
 };
-static_assert(sizeof(FsParams) == 208);
+static_assert(sizeof(FsParams) == 224);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
