@@ -113,8 +113,8 @@ comes from a bug we already hit.
    builds. Where an equally plain form keeps the original's NaN result (`a > b`; `x < low ? x : low` for a bound a NaN never
    replaces; `if (!(gap > limit)) break;` for a loop a NaN must still end), prefer it. addon.dll was built by an IEEE
    compiler (its tests read C2): its status tests are exact plain comparisons. A select whose C0 mask picks `ifLess` is
-   `a >= b ? otherwise : ifLess` (exact for NaN). Not yet converted: the inline `!(a >= b)` forms of the earlier
-   port in the engine, network, terrain, device and render files, ticket C16g.
+   `a >= b ? otherwise : ifLess` (exact for NaN). The audit is complete (C16c-C16g; docs/notes/cleanup-tooling.md
+   names the few original tests kept and why).
 9. **Rebirth's patches are flags.** The standalone image never loads Rebirth's addon.dll or
    EI_Plugin.asi; what they change in game.exe is our code's to reproduce. (Until S21e rewrites also
    ran inside game.exe, where the installer skipped functions addon.dll had patched and rewritten

@@ -248,7 +248,7 @@ double __cdecl CiPow(double x, double y) {
     const double mPart = y * logM;
     const double mError = std::fma(y, logM, -mPart);
     const double exponent = kPart + mPart;
-    if (!(std::fabs(exponent) < 4096.0)) {   // far out of the double range (FYL2X itself does not overflow)
+    if (std::fabs(exponent) >= 4096.0) {   // far out of the double range (FYL2X itself does not overflow); never NaN
         if (exponent > 0.0) return control.Overflow(negate);
         return negate ? FromBits(kSign) : 0.0;
     }

@@ -19,8 +19,8 @@ float CellSize() { return 1.0f /*007441D0*/; }
 
 // The original's select idioms (FCOMP; C0 picks): the lower of `a` and `b` (a when unordered), and
 // `a` raised to `bound` (bound when unordered).
-float Lower(float a, float b) { return !(a >= b) ? a : b; }
-float Raised(float a, float bound) { return !(a >= bound) ? bound : a; }
+float Lower(float a, float b) { return a >= b ? b : a; }
+float Raised(float a, float bound) { return a >= bound ? a : bound; }
 
 // A cell bound: FISTP of (v -/+ the margin) / cell size, stored as a float first.
 int CellBound(double v) { return x87::fistp(static_cast<float>(v / CellSize())); }
@@ -65,7 +65,7 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
         for (int y = y0; y <= y1; ++y) {
             for (int x = x0; x <= x1; ++x) lowest = Lower(VertexAt(x, y, 0)[2], lowest);
         }
-        if (!(previous < lowest) && !(previous > lowest)) break;   // equal or unordered
+        if (!(lowest < previous)) break;   // it no longer drops (Lower never raises it); a NaN ends it too
     }
     builder->Reserve(((x1 - x0 + 1) * (y1 - y0 + 1) + (y1 - y0 + x1 - x0 + 1) * 5) * 4);
     for (int y = y0; y < y1; ++y) {

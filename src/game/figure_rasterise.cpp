@@ -3,8 +3,8 @@
 // scaled by 0073C370 to integers in a function-local static array (007C2E00, guard 007C2E10 bit
 // 1, freed at exit by 005A1170; resized without keeping its contents); each triangle (three corner
 // indices of buffers_.indices, corners of buffers_.corners: position index, -, texture index) gets
-// its three projected points (from `points`, 8 bytes each) and texture coordinates into
-// `triangle`, which goes to the pixel converter's slot 9 when its colour key is set, else slot 8.
+// its three projected points (from `points`) and texture coordinates into `target`'s triangle,
+// which goes to the pixel converter's slot 9 when its colour key is set, else slot 8.
 // Returns 4 * the vertex packet count. See docs/notes/models.md.
 #include "core_maths.h"
 #include "figure_mesh.h"
@@ -31,7 +31,7 @@ std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E10); }
 } // namespace
 
 int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser, const IntPoint* points,
-                                   RasterTriangle* triangle) {
+                                   RasterTarget* target) {
     const MeshBuffers& buffers = mesh->buffers_;
     PointArray& uv = TexturePoints();
     if (!(Guard() & 1)) {
@@ -50,11 +50,11 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
         for (int k = 0; k < 3; ++k) {
             std::uint16_t corner = static_cast<const std::uint16_t*>(buffers.indices)[t + k];
             const MeshCorner& record = static_cast<const MeshCorner*>(buffers.corners)[corner];
-            std::memcpy(&triangle->corners[k].screen, &points[record.index[0]], 8);
-            std::memcpy(&triangle->corners[k].texture, &TexturePoints().data[record.index[2]], 8);
+            std::memcpy(&target->corners[k].screen, &points[record.index[0]], sizeof(IntPoint));
+            std::memcpy(&target->corners[k].texture, &TexturePoints().data[record.index[2]], sizeof(IntPoint));
         }
-        if (triangle->keyTexels) rasteriser->RasteriseKeyedTriangle(triangle);
-        else rasteriser->RasteriseTriangle(triangle);
+        if (target->keyTexels) rasteriser->RasteriseKeyedTriangle(target);
+        else rasteriser->RasteriseTriangle(target);
     }
     return buffers.vertexCount * 4;
 }

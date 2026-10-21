@@ -145,7 +145,7 @@ public:
     // slot 29: `matrix`, the points out, the bounds grown) with the vertices moved by offsets_ when
     // there are any (into the shared buffer at 007C2E18). Returns the vertex count (4 per packet).
     // RET 0x10.
-    int DrawOffset(CTransformPipeline* pipeline, const float* matrix, float* points, float* bounds);
+    int DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds);
     // 0059F710 / 0059F8F0 (vtable slots, RET 4; figure_mesh_file.cpp): write the mesh to / read it
     // from an MFC CFile: the name (+0x120, length then characters), each array as a count and its
     // elements, a 0, then centre, box, radius and +0x158 / +0x15C.

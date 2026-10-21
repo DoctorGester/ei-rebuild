@@ -20,6 +20,7 @@
 #include "record_vectors.h"
 #include "../hook/log.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -550,7 +551,8 @@ void ClientBase::TickImpl(double dt) {
         if (e->timeout_ > 0.0f) {
             e->timeout_ = static_cast<float>(static_cast<double>(e->timeout_) - dt);
             e = EntryOf(node);
-            if (!(e->timeout_ > 0.0f)) {
+            EI_NAN_AUDIT(e->timeout_);
+            if (e->timeout_ <= 0.0f) {
                 ClientQueries& v = queries_;
                 if (v.list.begin() == v.list.end() || FindQuery(v, &e->address_) == v.list.end()) {
                     node = servers_.Erase(node);

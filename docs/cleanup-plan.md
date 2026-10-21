@@ -146,7 +146,7 @@ the standalone build they turn into review items:
   simply wrote the comparison, and NaN was never meant to reach these places. They are plain
   comparisons now (a behaviour change for NaN only), with `EI_NAN_AUDIT` (`src/lib/nan_audit.h`)
   logging the first NaN per site in the verify and debug builds; each NaN that does show up is a
-  real bug upstream (see the next item). The `!(a >= b)`-style helpers followed (C16e); the inline forms in the gameplay, AI, UI, camera and effects files (C16f); left: the engine, network, terrain, device and render files (C16g).
+  real bug upstream (see the next item). The `!(a >= b)`-style helpers followed (C16e), then the inline forms (C16f, C16g): the audit is complete.
 - **NaN that actually happens (an original bug).** An object with a NaN view depth makes the unit
   sort's comparator treat `Less(x, x)` as true, and STLport's unguarded partition then walks off
   the array: the rare Rebirth crash in `docs/open-questions.md`. Fix candidate for the fixes

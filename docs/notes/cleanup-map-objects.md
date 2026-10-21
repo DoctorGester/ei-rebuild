@@ -47,6 +47,5 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   `CompanionNothing`, `CompanionQuery`, `CompanionHit`).
 - Forwarders that could become direct calls: `LightViewMatrix` / `LightRotation` (004F1440 / 004F15C0) in the shadow; `CallCreate3D` is kept
   deliberately so the verify wrapper runs.
-- The shadow's key texels: `RasterTriangle::keyTexels` takes `CTexture::block_` directly (models.md, Layouts). `CLinkMesh::ProjectPart` /
-  `RasterisePart` and 005A0CD0 / 005A0E80 take `float*` points and `int*` pixels; typing them (`Vector2*`, `RasterTriangle::Point*`, a
-  `RasterTarget*` target) changes their signatures.
+- The shadow's key texels: `RasterTriangle::keyTexels` takes `CTexture::block_` directly (models.md, Layouts). The shadow callees take typed
+  points, pixels and a `RasterTarget*` (C9d).

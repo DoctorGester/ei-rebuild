@@ -6,7 +6,7 @@
 // the inlined exp, so game maths goes through these. Arguments arrive as double (exact for the float
 // and 0.5-scaled values the game passes) and the result is returned in ST0 without being rounded.
 // Square roots are plain std::sqrt (FSQRT at the precision control on this target; docs/notes/cleanup-tooling.md, "SSE2 build").
-// fistp stays an instruction: the CRT's lrint is a FISTP too, but reads the FP environment on every call (SV10j).
+// fistp stays an instruction, inlined (R16c4): the CRT's lrint is a FISTP too, but reads the FP environment on every call (SV10j).
 
 #include <cmath>
 #include <cstdint>
@@ -120,13 +120,15 @@ __declspec(naked) inline void __cdecl SetControlWord(std::uint32_t /*word*/) {
 }
 
 // FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default), unlike
-// a C++ cast, which truncates.
-__declspec(naked) inline int __cdecl fistp(float) {
-    __asm sub esp, 4
-    __asm fld dword ptr [esp + 8]
-    __asm fistp dword ptr [esp]
-    __asm pop eax
-    __asm ret
+// a C++ cast, which truncates. Inlined at each call (R16c4): the same FLD / FISTP dword under the same
+// control word as the naked function it replaced, without the call (a quarter of SectorData::Animate's
+// time with the water waves on). An __asm block is opaque to the compiler, which keeps the FPU stack
+// as across a call; `value` is the float the call pushed.
+__forceinline int fistp(float value) {
+    int result;
+    __asm fld value
+    __asm fistp result
+    return result;
 }
 
 // std::lrint the way the original rounds: FLD of the value, FISTP dword under the FPU's current rounding
@@ -135,20 +137,14 @@ __declspec(naked) inline int __cdecl fistp(float) {
 // round-to-nearest (the game's) and every precision both give the same value and x87 flags. Where they
 // differ, this is the original: NaN, an infinity or a value rounding outside the int range gives FISTP's
 // 0x80000000 and IE (lrint: 0 and errno EDOM); at round down / up lrint follows MXCSR's rounding.
-__declspec(naked) inline int __cdecl RoundToInt(float) {
-    __asm sub esp, 4
-    __asm fld dword ptr [esp + 8]
-    __asm fistp dword ptr [esp]
-    __asm pop eax
-    __asm ret
-}
+// Inlined like fistp.
+__forceinline int RoundToInt(float value) { return fistp(value); }
 
-__declspec(naked) inline int __cdecl RoundToInt(double) {
-    __asm sub esp, 4
-    __asm fld qword ptr [esp + 8]
-    __asm fistp dword ptr [esp]
-    __asm pop eax
-    __asm ret
+__forceinline int RoundToInt(double value) {
+    int result;
+    __asm fld value
+    __asm fistp result
+    return result;
 }
 
 } // namespace x87

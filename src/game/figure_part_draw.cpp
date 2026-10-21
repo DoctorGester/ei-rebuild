@@ -28,6 +28,7 @@
 #include "world.h"
 #include "library_trees.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -69,14 +70,14 @@ const char* MeshName(CFigureMesh* mesh) { return reinterpret_cast<CEngineObject*
 // 3): out[0..11] three rows of four. Column 0's cofactors make the determinant and the inverse's
 // column 0; the doubles are what the original keeps on the FPU stack (the cofactor of m4, 1 / det,
 // out[2]); the others and the outputs are rounded to floats, and the translations reload the
-// rounded outputs. Returns 0 (out untouched) when the determinant compares equal to 0 or is NaN
-// (FCOM 0.0, TEST AH,40h).
+// rounded outputs. Returns 0 (out untouched) when the determinant is 0 (FCOM 0.0, TEST AH,40h).
 int InvertModelMatrix(const float* m, float* out) {
     const double cofactor4 = static_cast<double>(m[2]) * m[9] - static_cast<double>(m[10]) * m[1];
     const float cofactor8 = static_cast<float>(static_cast<double>(m[6]) * m[1] - static_cast<double>(m[2]) * m[5]);
     const float cofactor0 = static_cast<float>(static_cast<double>(m[10]) * m[5] - static_cast<double>(m[9]) * m[6]);
     const double det = DotUnrounded<Sum3::ZYX, double>(cofactor0, cofactor4, cofactor8, m[0], m[4], m[8]);
-    if (!(det < 0.0) && !(det > 0.0)) return 0;
+    EI_NAN_AUDIT(det);
+    if (det == 0.0) return 0;
     const double inverse = 1.0 / det;
     out[0] = static_cast<float>(cofactor0 * inverse);
     out[1] = static_cast<float>(cofactor4 * inverse);

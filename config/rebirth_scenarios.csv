@@ -8,3 +8,4 @@ items,1,Rebirth's item database
 script_parse,1,Rebirth's scripts parsed (its maps' .mq files)
 ui_camp,1,Rebirth's camp prices and deals
 zone_gz15h_tornado,1,CEffectTornado launches only on Rebirth's data
+terrain_water_waves,1,Rebirth's zone 1 and town maps (their water) under SectorData::Animate's waves

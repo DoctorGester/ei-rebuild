@@ -8,6 +8,7 @@
 #include "originals_library.h"
 #include "game_data.h"
 #include "ei/vcall.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -319,7 +320,9 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
             CEngineObject* unit = node->data;
             node = node->next;
             float dx = PosX(unit) - px, dy = PosY(unit) - py;
-            if (!(LengthSquared2DUnrounded(dy, dx) >= radiusSquared)) result->AddHead(unit);
+            const auto distance = LengthSquared2DUnrounded(dy, dx);
+            EI_NAN_AUDIT(distance);
+            if (distance < radiusSquared) result->AddHead(unit);
         }
     }
 }

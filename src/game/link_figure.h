@@ -8,6 +8,7 @@
 
 #include "figure_mesh.h"   // AlignedArray, VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
+#include "texture.h"       // RasterTarget
 
 #include "lib/stlp.h"
 
@@ -184,11 +185,11 @@ public:
     // projected points `pixels` rasterised into the shadow target. Both return the point count (0
     // when there is no such part).
     virtual int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
-                            float* points, float* bounds);
+                            Vector2* points, float* bounds);
     int ProjectPartImpl(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
-                            float* points, float* bounds);   // body of the slot above (registered by member pointer)
-    virtual int RasterisePart(const stlp::string* name, int* pixels, void* target);
-    int RasterisePartImpl(const stlp::string* name, int* pixels, void* target);   // body of the slot above (registered by member pointer)
+                            Vector2* points, float* bounds);   // body of the slot above (registered by member pointer)
+    virtual int RasterisePart(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target);
+    int RasterisePartImpl(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target);   // body of the slot above (registered by member pointer)
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D790);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073D7CC);   // the part-header base

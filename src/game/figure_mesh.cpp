@@ -561,10 +561,10 @@ inline float FarLimit() { return 100000000.0f /*0073FAFC*/; }
 
 namespace {
 // Grows [min, max] by one transformed point. The original selects with the FCOMP status bit C0
-// ("less or unordered") as a mask on the float bits, so a NaN on either side takes the point.
+// as a mask on the float bits, so a NaN on either side takes the point.
 void Extend(float& max, float& min, float v) {
-    if (!(max >= v)) max = v;
-    if (!(v >= min)) min = v;
+    max = max >= v ? max : v;
+    min = v >= min ? min : v;
 }
 } // namespace
 
@@ -676,7 +676,7 @@ void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
 void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
 EI_REPLACE_METHOD(0x005A0B10, CFigureMesh::SetOffsets);
 
-int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, float* points, float* bounds) {
+int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds) {
     void* vertices = buffers_.vertices;
     if (offsets_.size != 0) {
         const VertexPacket* source = static_cast<const VertexPacket*>(buffers_.vertices);

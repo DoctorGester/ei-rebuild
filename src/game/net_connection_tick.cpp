@@ -12,6 +12,7 @@
 #include "library_net_lists.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -43,9 +44,6 @@ std::int32_t ReliableSize(GameBuffer* b) {
            static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->high));
 }
 
-// Float bit select as the original writes min / max: `pick` when the flag holds, else `other`.
-float Select(bool flag, float pick, float other) { return flag ? pick : other; }
-
 } // namespace
 
 // 00433BD0: advances the idle time and the clock by `dt`. Packets older than the loss timeout
@@ -68,14 +66,15 @@ bool Connection::Tick(double dt) {
     float tenth;
     const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&tenth, &tenthBits, 4);
-    loss = Select(!(loss >= tenth), tenth, loss);
+    loss = loss >= tenth ? loss : tenth;
     float longest = static_cast<float>(static_cast<double>(CurrentSession()->maxRoundTrip_));
-    loss = Select(!(longest >= loss), longest, loss);
+    loss = longest >= loss ? loss : longest;
     float kept = static_cast<float>(static_cast<double>(CurrentSession()->maxRoundTrip_));
 
     for (HistoryNode* node = history_.First(); node != history_.End();) {
         double age = Get(&clock_) - Get(&node->data.time);
-        if (!(D(loss) < age)) break;
+        EI_NAN_AUDIT(loss, age);
+        if (D(loss) >= age) break;
         RollBack(&node->data);
         HistoryNode* next = node->next;
         Packets::SpliceOne(acknowledged_.End(), node);   // 004380C0
@@ -84,10 +83,10 @@ bool Connection::Tick(double dt) {
     }
     for (HistoryNode* node = acknowledged_.First(); node != acknowledged_.End();) {
         double age = Get(&clock_) - Get(&node->data.time);
-        if (!(D(kept) < age)) {
-            node = node->next;
-        } else {
+        if (D(kept) < age) {
             node = Packets::Erase<PacketRecordElement>(node);   // 00437F30
+        } else {
+            node = node->next;   // also NaN
         }
     }
 

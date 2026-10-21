@@ -1,0 +1,12 @@
+{
+  "scenario": "terrain_water_waves",
+  "install": "rebirth",
+  "recorded": "2026-10-21",
+  "commit": "32da11e8",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 3,
+  "reason": "R16c4: water waves on (SectorData::Animate) on Rebirth's data, digest water group",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 3 runs"
+}

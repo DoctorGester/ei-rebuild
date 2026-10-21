@@ -523,7 +523,7 @@ void PrepareShadows(Frame& f) {
     D3 d{sh.sun.x, sh.sun.y, sh.sun.z};
     double horizontal = std::sqrt(LengthSquared2DUnrounded<double>(d.x, d.y));
     double down = std::fabs(d.z);
-    if (!(horizontal + down > 1e-9)) return;
+    if (horizontal + down <= 1e-9) return;
     double least = horizontal * std::tan(kLeastElevation);
     if (down < least) down = least;
     double length = std::sqrt(LengthSquared2DUnrounded<double>(horizontal, down));
@@ -689,7 +689,7 @@ void DrawShadowMap(Frame& f) {
             for (const MeshBatch& batch : f.meshBatches) {
                 if (batch.light < 0 || !batch.caster || batch.indexCount <= 0) continue;
                 auto it = casters.find(batch.caster);
-                if (it == casters.end() || !(it->second >= kLeastStrength)) continue;
+                if (it == casters.end() || it->second < kLeastStrength) continue;
                 if (batch.cached == lastMesh && batch.firstIndex == lastFirst) continue;   // a later pass of the same mesh
                 lastMesh = batch.cached;
                 lastFirst = batch.firstIndex;
@@ -731,7 +731,7 @@ void DrawShadowMap(Frame& f) {
             for (const MeshBatch& batch : f.meshBatches)
                 if (batch.caster && batch.indexCount > 0) handedOver[batch.caster] = true;
             for (const auto& c : casters) {
-                if (!(c.second >= kLeastStrength) || counted.count(c.first)) continue;
+                if (c.second < kLeastStrength || counted.count(c.first)) continue;
                 if (handedOver.count(c.first)) ++g_info.lost;
                 else ++g_info.offScreen;
             }

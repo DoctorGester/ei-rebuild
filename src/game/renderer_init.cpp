@@ -20,6 +20,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "lib/nan_audit.h"
 
 #include <d3d.h>
 
@@ -314,8 +315,9 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     std::memcpy(&zNear, &cam->nearDistance_, 4);
     std::memcpy(&zFar, &cam->farDistance_, 4);
     std::memcpy(&fov, &cam->fieldOfView_, 4);
-    // Any field of view but 0 (and NaN) replaces the camera's.
-    if (fieldOfView < 0.0f || fieldOfView > 0.0f) std::memcpy(&fov, &fieldOfView, 4);
+    // Any field of view but 0 replaces the camera's.
+    EI_NAN_AUDIT(fieldOfView);
+    if (fieldOfView != 0.0f) std::memcpy(&fov, &fieldOfView, 4);
     const int width = screen->right - screen->left;
     const int height = screen->bottom - screen->top;
     Matrix4 m;

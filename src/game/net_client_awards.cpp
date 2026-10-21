@@ -21,6 +21,7 @@
 #include "world.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -150,7 +151,8 @@ void ClientSession::TickImpl(double dt) {
             float& seconds = current->data.seconds;
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
-            if (!(left >= 0.0f /*0073B858*/)) self->timers_.Erase(current);
+            EI_NAN_AUDIT(left);
+            if (left < 0.0f /*0073B858*/) self->timers_.Erase(current);
         } while (node != sentinel);
     }
     if (self->awards_.First() == self->awards_.End() || GameMode() != 3) return;

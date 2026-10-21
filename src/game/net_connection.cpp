@@ -121,7 +121,7 @@ int Connection::Silent() const {
     float factor;
     std::memcpy(&factor, ei::GamePointer<const void>(0x0073BAA4), sizeof(factor));   // 3.0
     float limit = roundTrip_ * factor;
-    return !(limit >= idleTime_) ? 1 : 0;
+    return limit >= idleTime_ ? 0 : 1;   // a NaN is silent
 }
 EI_REPLACE_METHOD(0x00433B10, Connection::Silent);
 

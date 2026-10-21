@@ -354,7 +354,7 @@ bool CheckDrives(const console::CStringArray& messages) {
     mfc::CString discFolder(DiscFolder());
     mfc::CString dataFolder(DataFolder());
     double freeBytes;
-    if (FreeDiskSpace(dataFolder, &freeBytes) && !(freeBytes == 0.0 /*0073C340*/) && freeBytes < 314572800.0 /*0073C358*/) {
+    if (FreeDiskSpace(dataFolder, &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
     if (GameMbscmp(dataFolder, discFolder) != 0) {
@@ -589,13 +589,13 @@ float SpeedForBalance(double balance, float rounded) {
     double speed;
     if (balance < 0.0f /*0073B858*/) {
         speed = x87::fexp(Step(rounded * 0.1f /*0073B850*/));
-    } else if (!(rounded > 1.0f /*0073B84C*/)) {
-        speed = 1.0f /*0073B84C*/;
-    } else {
+    } else if (rounded > 1.0f /*0073B84C*/) {
         speed = Step(Step(std::sqrt(rounded) * 0.1f /*0073B850*/) + 1.0f /*0073B84C*/) - 0.1f /*0073B850*/;
+    } else {
+        speed = 1.0f /*0073B84C*/;   // also NaN
     }
     float result = static_cast<float>(speed);
-    if (!(result >= kSlowest)) result = kSlowest;
+    result = result >= kSlowest ? result : kSlowest;
     if (kFastest < result) result = kFastest;
     return result;
 }

@@ -149,15 +149,15 @@ void CTransformObject::TiltTowards(const Vector3& target) {
     Vector3 axis = MakeVector(static_cast<float>(nz * b - D(ny) * c), static_cast<float>(c * nx - nz * a), static_cast<float>(D(ny) * a - b * nx));
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
     double angle;
-    if (!(length >= EI_MIN_AXIS)) {
-        axis = MakeVector(1.0f, 0.0f, 0.0f);
-        angle = EI_ZERO;
-    } else {
+    if (length >= EI_MIN_AXIS) {
         double dot = (nz * c + D(ny) * b) + a * nx;
         if (dot > D(EI_ONE)) dot = EI_ONE;
-        else if (!(dot >= D(EI_MINUS_ONE))) dot = EI_MINUS_ONE;
+        else dot = dot >= D(EI_MINUS_ONE) ? dot : EI_MINUS_ONE;   // -1 also for NaN
         // The original clamps a second time while storing the float; the value is in range by now.
         angle = gamecrt::acos(static_cast<float>(dot));
+    } else {   // also NaN
+        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        angle = EI_ZERO;
     }
     Quaternion turn;
     turn.SetAngleAxis(static_cast<float>(angle * D(EI_TILT_STEP)), axis);
@@ -182,17 +182,17 @@ void CTransformObject::TurnTowards(const Vector3& target) {
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(r));
     Vector3 axis;
     float angle;
-    if (!(length >= EI_MIN_AXIS)) {
-        axis = MakeVector(1.0f, 0.0f, 0.0f);
-        angle = 0.0f;
-    } else {
+    if (length >= EI_MIN_AXIS) {
         double invLength = D(EI_ONE) / length;
         axis = MakeVector(static_cast<float>(invLength * r.x), static_cast<float>(D(r.y) * invLength), static_cast<float>(D(r.z) * invLength));
         double dot = (nz * c + D(ny) * b) + a * nx;
         float clamped = static_cast<float>(dot);
         if (dot > D(EI_ONE)) clamped = 1.0f;
-        else if (!(D(clamped) >= D(EI_MINUS_ONE))) clamped = -1.0f;
+        else clamped = D(clamped) >= D(EI_MINUS_ONE) ? clamped : -1.0f;   // -1 also for NaN
         angle = static_cast<float>(gamecrt::acos(clamped));
+    } else {   // also NaN
+        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        angle = 0.0f;
     }
     Quaternion turn;
     turn.SetAngleAxis(angle, axis);
@@ -208,11 +208,11 @@ void CTransformObject::RollTowards(const Vector3& dir) {
     Vector3 toward, axis;
     TowardsAxis(forward, dir, down, &toward, &axis);
     float angle;
-    if (!(LengthRaw(&axis) >= EI_MIN_AXIS)) {
+    if (LengthRaw(&axis) >= EI_MIN_AXIS) {
+        angle = AngleBetween(down, toward);
+    } else {   // also NaN
         axis = MakeVector(1.0f, 0.0f, 0.0f);
         angle = 0.0f;
-    } else {
-        angle = AngleBetween(down, toward);
     }
     Rotate(axis, angle);
 }
@@ -243,10 +243,10 @@ void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     Vector3 toward, axis;
     TowardsAxis(forward, dir, from, &toward, &axis);
     float angle = 0.0f;
-    if (!(LengthRaw(&axis) >= EI_MIN_AXIS)) {
-        axis = MakeVector(1.0f, 0.0f, 0.0f);
-    } else {
+    if (LengthRaw(&axis) >= EI_MIN_AXIS) {
         angle = AngleBetween(from, toward);
+    } else {   // also NaN
+        axis = MakeVector(1.0f, 0.0f, 0.0f);
     }
     if (D(angle) > EI_PI) {
         angle = static_cast<float>((EI_PI + EI_PI) - D(angle));

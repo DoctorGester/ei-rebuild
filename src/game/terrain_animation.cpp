@@ -52,18 +52,18 @@ float GameTickFraction() { return ei::GameData<const float>(0x007AFCA8); }
 float SunStepScale() { return ei::GameData<const float>(0x007C8964); }
 float CellSize() { return 1.0f /*007441D0*/; }
 
-bool SignClear(float v) {
+inline bool SignClear(float v) {
     std::uint32_t bits;
     std::memcpy(&bits, &v, sizeof(bits));
     return (bits & 0x80000000u) == 0;
 }
 
 // The sine table entry at `phase` radians: FISTP of (phase * 256 / pi) stored as a float, mod 512.
-float Sine(const Terrain* owner, double phase) {
+inline float Sine(const Terrain* owner, double phase) {
     return owner->sine[x87::fistp(static_cast<float>(phase * kSineIndex)) & 0x1FF];
 }
 
-std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
+inline std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
 
 // The circling waves' sine per column (and per row: the same values) at the world time. The original
 // reads the time and looks both up per vertex; the same expressions once per call (R16c3).
