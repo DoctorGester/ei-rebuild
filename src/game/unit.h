@@ -18,6 +18,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 class CItem;   // item.h
 class CParty;   // party.h
 struct UnitStats;
@@ -277,6 +279,34 @@ public:
 
     // The overrides of CMapObject's slots are registered through __fastcall ...Hook shims (rewrite
     // guide rule 4); calls that meant this body and not the slot are qualified (CUnit::...).
+    // Every slot game.exe's 0073EA8C changes is declared (C19); the slots whose bodies are
+    // registered by address under other names call them (unit_update.cpp).
+    int Create() override;                   // 2: 0052E400 CreateUnit
+    void Destroy() override;                 // 3: 0052E590 DestroyUnit
+    void ClearState() override;              // 5: 0052E740 ReleaseUnit
+    int RunTick() override;                  // 6: 0052F7D0 Tick
+    const char* GetName() override;          // 7: 00446820 the script name
+    void Load(void* stream) override;        // 9: 00531A80 LoadUnit
+    void Save(void* stream) override;        // 10: 005321C0 SaveUnit
+    const char* GetClassName() override;     // 11: 0052E280 "CUnit"
+    int GetClassId() override;               // 12: 0052E290 (0x50)
+    bool IsSynchronised() override;          // 29: 004467E0 (true)
+    // 31: 004467F0 TakeHitImpl (the controller's TakeHit).
+    void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) override;
+    Vector3* EyePoint(Vector3* out) override;              // 48: 005303A0 StandPoint
+    std::uint32_t ReadNetState(int first) override;        // 49: 0052EF90 (net_state.cpp)
+    void WriteNetState() override;                         // 50: 0052EC70 (net_state.cpp)
+    Vector3* PositionAt(Vector3* out, int time) override;  // 52: 0052FCC0 PositionAtImpl
+    Vector3* AimPoint(Vector3* out) override;              // 53: 0052FDF0 AimPointImpl
+    int IsLargeUnit() override;              // 54: 00446890 obstacle
+    int IsDead() override;                   // 55: 00446880 dead
+    // 56: 00446850 ObjectDeletedImpl (the controller's slot 42). Nothing reads the result (0).
+    int ForgetObject(CEngineObject* object) override;
+    void UpdateMoveFactors() override;       // 57: 00446870 the controller's slot 53
+    void RefreshWounds() override;           // 58: 00446810 the controller's slot 31
+    double MoveSpeed() override;             // 59: 004468B0 the forward speed (GetMoveSpeeds)
+    float Radius() override;                 // 60: 004468A0 unitRadius
+    void SetScriptName(const char* newName) override;   // 61: 00446830 SetScriptNameImpl
 
     // unit_vision.cpp (A-U3). 0052FC40, virtual slot 25: the world time moved on to `time`. The
     // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
