@@ -933,8 +933,27 @@ across runs; the goldens check the game state.
    their pose updated: CollectVisible 0056A990), so the game reads the projection whatever draws the decal.
    What the numbers do show: with the shadow map (the default) the whole classic shadow build runs every frame for
    the moving objects though only that sphere is read: projection, build and the decal's flat draw (which BeginMesh
-   drops) are 0.72 ms of zone1's frame, 1.40 of the fight's and 2.1 of the town's. R16e1 skips the raster, blur,
-   copy and flat draw with the map (the same game state); R16e2 (the user's call) would take a sphere around the
+   drops) are 0.72 ms of zone1's frame, 1.40 of the fight's and 2.1 of the town's.
+   **R16e1 (done): with the map the classic texture and the decal's draw are left out.** DrawShadow 0051CE60
+   (map_object_shadow.cpp) asks `render::ClassicShadowSkipped()` (Active() and not ClassicShadows(); the harness's
+   `shadowbuild full` makes them as before, for A/B frames and timings): RenderShadow still projects the parts'
+   points (bounds, quad), reads whether a part is keyed (`KeyedParts`, which the original read in the raster's loop)
+   and projects the decal (its sphere), but MakeTexture (lock, RasterisePart / RasteriseFigureMesh, BlurShadow /
+   BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`) and, after SetTexture and EdgeFade, the
+   ClassicShadowDecal / DrawFlatBlocks pair are skipped. A switch to classic needs the textures again, and objects
+   with flags 0x600 (animated, then static: class 0x54 map objects, 2 at zone1's start, 4-8 in bz1g) are not rebuilt
+   by the game: a table of the shadows whose texture is made, with the generation it was made in
+   (`g_madeTextures`; a shadow built without the texture leaves it), makes DrawShadow build a shadow again when the
+   texture is needed and missing or older than `render::ShadowTextureGeneration()` (moved by the harness's `shadows
+   rebuild`, RebuildShadowTextures). Classic from the start, every build makes the texture as before. renderstats'
+   "shadow builds" counts the builds that made the texture and those made only for it. Measured (render_stats, 4K,
+   per frame, the `_shadowfull` stretch with them made against `_shadowskip` right after; shadow builds ms + the
+   shadows' flat draws ms): vanilla zone1 0.30 + 0.063 / 0.08 + 0, fight 0.81 + 0.092 / 0.22 + 0, town 1.10 +
+   0.19 / 0.35 + 0; Rebirth 0.61 + 0.084 / 0.11, 0.96 + 0.115 / 0.28, 1.19 + 0.32 / 0.34 (what stays is the
+   points' projection; the decal projections, 0.3-0.9 ms, are counted apart and stay). Check: render_shadows (at
+   the start and in the town the map's frame with and without them, 0 pixels differ; the classic frame after the
+   switch against the one after `shadows rebuild`, 8 / 0.01%: 0 differ, and 0.12% without the switch's rebuild),
+   render_options_shadows, goldens. R16e2 (the user's call) would take a sphere around the
    decal's box instead of the projected mesh, dropping the projection too, but lists more objects out of view for
    shadows. Facts for a later GPU decal path: the CPU volume is a prism along the direction through the quad's u, v
    in [0, 1], cut by one plane at the point minus depth * 0.33 along the direction and open beyond it (a print

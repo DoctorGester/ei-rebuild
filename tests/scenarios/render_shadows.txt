@@ -7,6 +7,11 @@
 # only where shadows fall; shadowcheck requires the map made with casters and receivers. R16b: the
 # classic frame matches the one with the shadow textures made again as new images with their levels
 # made on the CPU (memorytextures remake, as before R16b) at 8 / 0.5% (the GPU's levels differ a little).
+# R16e1: with the map the shadows' classic textures and decals are not made (shadowbuild skip); at the
+# start and in the town the map's frame matches the one with them made (shadowbuild full, as before),
+# and the classic frame after the switch from the map (every shadow whose texture was not made built
+# again: renderstats' "only for the texture") matches the one with every texture made again (shadows
+# rebuild) at 8 / 0.01% (without the rebuild at the switch: 0.12% at the start, two static objects).
 # no original: vanilla rebirth (the shadow map is our renderer's)
 render new,present,checkall
 timeout 120
@@ -24,15 +29,24 @@ frames 5
 freeze
 capture start_map
 shadowcheck 1
+renderstats -
 shadows classic
 capture start_classic
+renderstats start_switch
+shadows rebuild
+capture start_classic_rebuilt
 memorytextures remake
 capture start_classic_remade
 memorytextures inplace
 shadows map
 capture start_map2
+shadowbuild full
+capture start_map_full
+shadowbuild skip
 unfreeze
 samecapture start_map start_map2
+samecapture start_map start_map_full
+samecapture start_classic start_classic_rebuilt 8 0.0001
 samecapture start_classic start_classic_remade 8 0.005
 diffcapture start_map start_classic 0.0005 0.2
 
@@ -120,15 +134,24 @@ frames 5
 freeze
 capture town_map
 shadowcheck 4
+renderstats -
 shadows classic
 capture town_classic
+renderstats town_switch
+shadows rebuild
+capture town_classic_rebuilt
 memorytextures remake
 capture town_classic_remade
 memorytextures inplace
 shadows map
 capture town_map2
+shadowbuild full
+capture town_map_full
+shadowbuild skip
 unfreeze
 samecapture town_map town_map2
+samecapture town_map town_map_full
+samecapture town_classic town_classic_rebuilt 8 0.0001
 samecapture town_classic town_classic_remade 8 0.005
 diffcapture town_map town_classic 0.0005 0.3
 report

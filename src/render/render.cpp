@@ -807,6 +807,14 @@ void EndShadowBuildTime() {
     g_shadowBuildTimer.End();
 #endif
 }
+void CountShadowTexture(bool stale) {
+#if defined(EI_RENDER_VALIDATION)
+    ++detail::Stats().shadowTextures;
+    if (stale) ++detail::Stats().staleShadowTextures;
+#else
+    (void)stale;
+#endif
+}
 bool MeshCornersSkipped() { return Active() && !g_meshCornersFull; }
 void SetMeshCornersFull(bool full) {
 #if defined(EI_RENDER_VALIDATION)
@@ -937,7 +945,8 @@ void AddFrameStats() {
                        &FrameStats::textureChanges, &FrameStats::comparedBytes, &FrameStats::morphMeshes,
                        &FrameStats::morphCorners, &FrameStats::decalShadows, &FrameStats::decalPrints,
                        &FrameStats::decalVertices, &FrameStats::flatShadowDraws, &FrameStats::flatOtherDraws,
-                       &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds})
+                       &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds, &FrameStats::shadowTextures,
+                       &FrameStats::staleShadowTextures})
         s.*field += f.*field;
     for (int k = 0; k < FrameStats::UploadKinds; ++k) {
         s.uploads[k] += f.uploads[k];
