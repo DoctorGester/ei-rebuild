@@ -648,7 +648,7 @@ int CPlayerClient::OnNewObject() {
     if (Same(model, TextWisp())) {
         auto* source =
             ParticleManagerObject()->CreateSource(kWispParticles);
-        source->Attach(created);
+        source->Attach(object);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
     }
@@ -674,7 +674,7 @@ int CPlayerClient::OnNewObject() {
     // The player keeps it, counted.
     CPlayer* player = Owner();
     if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
-    player->knownObjects_[header.id] = created;
+    player->knownObjects_[header.id] = object;
     ++created->refCount_;
     if (CUnit* unit = UnitOrNull(created))
         object->TakePrototype(unit->GetPrototype()->name);
@@ -682,7 +682,7 @@ int CPlayerClient::OnNewObject() {
         object->TakePrototype(model);
     object->WriteFullState();
     if (object->ReadState(0, &in_) == 0) return 0;
-    TheClientWorld()->AddObject(created);
+    TheClientWorld()->AddObject(object);
     if (object->name2[0] != 0) {
         TextBuffer variable;
         TheClientWorld()->ObjectVariableName(variable.Get(), object->name2);

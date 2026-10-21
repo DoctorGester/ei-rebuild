@@ -171,7 +171,7 @@ void CChatWindow::ShowPlayers() {
     for (auto* node = players.First(); node != players.End(); node = node->next) {
         if (!Live(client->binding_)) continue;
         CRefObject* player = node->data.ptr;
-        bool own = static_cast<net::BindingMessage*>(client->binding_)->PlayerRef().ptr == player;
+        bool own = client->binding_->PlayerRef().ptr == player;
         CRefObject**& finish = players_.Finish();
         if (finish == players_.EndOfStorage()) {
             stlp::AsRefPtrs(players_).InsertOverflow<stlp::CountedRefElement>(
@@ -252,7 +252,7 @@ void CChatWindow::Update() {
         default: break;
         }
         offer.Empty();
-        auto* own = static_cast<net::PartyMessage*>(client->party_.ptr);
+        auto* own = client->party_.Get();
         if (own && own->partner_.ptr == *p) offer = texts_.data[kWeOffer];
         const stlp::CountedRefList& offers = client->offers_;
         for (auto* node = offers.First(); node != offers.End(); node = node->next) {
@@ -295,8 +295,8 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
     net::ClientSession* client = net::GameClient();
     CRefObject* player = players_[index];
     // The binding is not checked for null here.
-    if (static_cast<net::BindingMessage*>(client->binding_)->PlayerRef().ptr == player) return;
-    auto* own = static_cast<net::PartyMessage*>(client->party_.ptr);
+    if (client->binding_->PlayerRef().ptr == player) return;
+    auto* own = client->party_.Get();
     if (own && own->partner_.ptr == player) {
         net::ClientDropParty(client);
         return;

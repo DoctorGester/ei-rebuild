@@ -281,8 +281,8 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     const int length = name.GetLength();
     const int second = name.Find(dot, name.Find(dot) + 1);
     name = name.Right(length - second - 1);
-    for (SectorListNode* node = objects_.First(); node != objects_.End(); node = node->next) {
-        auto* object = static_cast<CMapObject*>(node->data);
+    for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
+        CMapObject* object = node->data;
         if (GameMbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // FCOMP + TEST AH,0x40.
@@ -302,8 +302,8 @@ mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* na
 
 void CWorldClient::ApplyObjectVariables() {
     NamedFloatTable* variables = &session_->Party()->variables_;
-    for (SectorListNode* node = objects_.First(); node != objects_.End(); node = node->next) {
-        auto* object = static_cast<CMapObject*>(node->data);
+    for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
+        CMapObject* object = node->data;
         const char* name = object->name2;
         if (!name || !*name) continue;
         mfc::CString variable(mfc::CString::kUnset);

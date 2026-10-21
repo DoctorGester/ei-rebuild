@@ -139,7 +139,7 @@ CObject3DClientSpecific* CObject3DClientSpecific::Construct() {
     new (&secondSkinName) mfc::CString();
     ei::SetVtable(this, kClientVtable);
     materialCursor = -1;
-    AssignCounted<CEngineObject>(&texture, nullptr);
+    AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     ClearWoundsMaterial();
     bounds[3] = 0.0f;
@@ -154,7 +154,7 @@ EI_REPLACE_METHOD(0x0051AB00, CObject3DClientSpecific::Construct);
 int CObject3DClientSpecific::CreateClient() {
     materialCursor = -1;
     flags_ = 0;
-    AssignCounted<CEngineObject>(&texture, nullptr);
+    AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     ClearWoundsMaterial();
     bounds[3] = 0.0f;
@@ -173,7 +173,7 @@ int CObject3DClientSpecific::CreateClient() {
 EI_REPLACE_METHOD(0x0051AEC0, CObject3DClientSpecific::CreateClient);
 
 void CObject3DClientSpecific::DestroyClient() {
-    AssignCounted<CEngineObject>(&texture, nullptr);
+    AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     AsCountedRef(woundsMaterial).Assign(nullptr);   // the call to 0051E570
     for (int k = 0; k < 2; ++k) {

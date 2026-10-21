@@ -83,9 +83,15 @@ void ReleaseRef(CRefObject* object) {
     --object->refs_;
     if (object->refs_ == 0 && object) delete object;
 }
-void AssignRef(CRefObject** slot, CRefObject* object) {
-    CRefObject*& holder = *slot;
-    CRefObject* previous = holder;
+template <typename T>
+struct SlotOf {
+    using Type = T;
+};
+// The counted slot `slot` holds `object` (one more reference); the previous object released.
+template <typename T>
+void AssignRef(T** slot, typename SlotOf<T>::Type* object) {
+    T*& holder = *slot;
+    T* previous = holder;
     holder = object;
     if (object) ++object->refs_;
     if (previous) {
@@ -94,9 +100,10 @@ void AssignRef(CRefObject** slot, CRefObject* object) {
     }
 }
 void AssignRef(RefPtr* slot, CRefObject* object) { AssignRef(&slot->ptr, object); }
-void ClearRef(CRefObject** slot) {
-    CRefObject*& holder = *slot;
-    CRefObject* previous = holder;
+template <typename T>
+void ClearRef(T** slot) {
+    T*& holder = *slot;
+    T* previous = holder;
     holder = nullptr;
     if (previous) {
         --previous->refs_;
@@ -161,7 +168,7 @@ void ClientSession::RecordTrade(const void* party) {
     auto* remote = static_cast<PartyMessage*>(ClientFindParty(this));
     if (!remote) return;
     if (!party_.ptr) return;
-    auto* ours = static_cast<PartyMessage*>(party_.ptr);
+    auto* ours = party_.Get();
     ours->accepted_ = 1;
     ours->acceptedRevision_ = remote->revision_;
     ++ours->version_;
@@ -182,7 +189,7 @@ EI_REWRITTEN(0x0041E0A0, ClientSession::RecordTrade);
 // 0041E270: starts our trade offer to `partner` when the binding (+0x25F0) and its player are
 // live: kept at +0x260C, from the binding's player.
 void ClientSession::StartParty(CRefObject* partner) {
-    auto* binding = static_cast<BindingMessage*>(binding_);
+    BindingMessage* binding = binding_;
     if (!Live(binding)) return;
     if (!Live(binding->PlayerRef().ptr)) return;
     auto* party = NewMessageMemory<PartyMessage>();
@@ -211,8 +218,8 @@ void ClientSession::StartParty(CRefObject* partner) {
         }
         holder->Share(party);
     }
-    AssignRef(&static_cast<PartyMessage*>(party_.ptr)->player_, static_cast<BindingMessage*>(binding_)->PlayerRef().ptr);
-    AssignRef(&static_cast<PartyMessage*>(party_.ptr)->partner_, partner);
+    AssignRef(&party_.Get()->player_, binding_->PlayerRef().ptr);
+    AssignRef(&party_.Get()->partner_, partner);
 }
 EI_REWRITTEN(0x0041E270, ClientSession::StartParty);
 
@@ -227,7 +234,7 @@ EI_REWRITTEN(0x0041E3E0, ClientDropParty);
 // come before the binding; their refresh then listed nobody (ShowPlayers lists only with the binding)
 // and the original's binding does not refresh: the base screen's faces followed the heap (UB1). By id
 // (address_order.h) the binding refreshes the list when players came before it, as if it came first.
-void __fastcall ClientOnBinding(ClientSession* self, Message* message) {
+void __fastcall ClientOnBinding(ClientSession* self, BindingMessage* message) {
     AssignRef(&self->binding_, message);
     if (address_order::ById() && !self->players_.Empty()) TheInterface()->OnPlayersChanged(1);
 }
@@ -249,7 +256,7 @@ void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {   // 0
 }
 void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }   // 0041E690
 // The host message kept at +0x25EC.
-void __fastcall ClientOnInfo(ClientSession* self, Message* message) { AssignRef(&self->info_, message); }   // 0041E730
+void __fastcall ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }   // 0041E730
 void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }   // 0041E760
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
@@ -309,7 +316,7 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0
 // server is written. The constructor registers the handler by its address.
 void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     AppendRaw(self->chunks_, message);
-    auto* file = static_cast<FileMessage*>(message->file_.ptr);
+    auto* file = message->file_.Get();
     const char* none = game::EmptyText();
     const std::size_t noneLength = std::strlen(none);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::MQClient)) return;
@@ -378,7 +385,7 @@ void __fastcall ClientOnMember(ClientSession* self, Message*) {   // 0041F150 / 
     ClientApplyParty(self);
 }
 // The trade at +0x2618: a new one empties the trade records and resets both parties.
-void __fastcall ClientOnTrade(ClientSession* self, Message* message) {   // 0041F1E0
+void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {   // 0041F1E0
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);
     PartyResetOriginal(&self->parties_[0], nullptr, 1, 0);   // parties (00661050 class)

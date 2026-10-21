@@ -5,6 +5,7 @@
 #include "../../src/game/engine_object.h"
 #include "../../src/game/game_data.h"
 #include "../../src/game/net_classes.h"
+#include "../../src/game/net_messages.h"
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_briefing.h"
 #include "harness_objects.h"
@@ -92,7 +93,7 @@ __declspec(naked) void MergeStep() {
 // 0041E430 (the client's binding handler; ECX the client, EDX the binding, plain RET): the original's
 // counted assignment, then, when players came before the binding, the interface's refresh 005F82D0
 // (RET 4) on game.exe's interface 007C7D50, as ours does (net_client_handlers.cpp ClientOnBinding, UB1).
-void __fastcall OnBindingForOriginal(net::ClientSession* self, CRefObject* binding) {
+void __fastcall OnBindingForOriginal(net::ClientSession* self, net::BindingMessage* binding) {
     CRefObject* previous = self->binding_;
     self->binding_ = binding;
     if (binding) ++binding->refs_;

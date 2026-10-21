@@ -281,7 +281,7 @@ Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
     case 6:
     case 7: {
         Vector3 y;
-        static_cast<const CObject3D*>(s->attachedTo)->localRotation_.AxisY(&y);
+        s->attachedTo->localRotation_.AxisY(&y);
         std::memcpy(&axis, &y, sizeof(axis));
         break;
     }

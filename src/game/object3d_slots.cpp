@@ -32,7 +32,7 @@ void CObject3D::AttachSpecific(CEngineObject* half) {
         Specific()->object = nullptr;
         attached->Release();
     }
-    attached = half;
+    attached = static_cast<CObject3DSpecific*>(half);
     Specific()->object = this;
     ++attached->refCount_;
 }

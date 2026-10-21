@@ -26,7 +26,7 @@ namespace {
 
 CDeviceMaterial* CurrentMaterial(CTextureDevice* device) { return device->material_; }
 int PassCount(const CRenderPreset* preset) { return static_cast<int>(preset->blocks_.size()); }
-CDXSurface* TextureSurface(CEngineObject* texture) { return static_cast<CTexture*>(texture)->surface_; }
+CDXSurface* TextureSurface(CTexture* texture) { return texture->surface_; }
 
 void SetRenderState(CTextureDevice* device, D3DRENDERSTATETYPE state, std::uint32_t value) {
     device::SetRenderState(device::D3D(device), state, value);
@@ -34,8 +34,8 @@ void SetRenderState(CTextureDevice* device, D3DRENDERSTATETYPE state, std::uint3
 }
 
 // *slot = texture with counted references, the old one released through its slot 4 [004EBE60].
-void AssignTexture(CEngineObject** slot, CEngineObject* value) {
-    CEngineObject* previous = *slot;
+void AssignTexture(CTexture** slot, CTexture* value) {
+    CTexture* previous = *slot;
     *slot = value;
     if (value) ++value->refCount_;
     if (previous) previous->Release();
@@ -110,7 +110,7 @@ void SetFirstPassStage(CTextureDevice* device, int stage, MaterialStage& s) {
         device->BindSurface(stage, TextureSurface(s.texture));
     } else if (!s.name.empty()) {
         AssignTexture(&s.texture, TheTextureManager()->FindTexture(s.name.data()));
-        device->BindTexture(stage, static_cast<CTexture*>(s.texture));
+        device->BindTexture(stage, s.texture);
     } else {
         device->BindSurface(stage, nullptr);
     }

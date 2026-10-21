@@ -3,6 +3,7 @@
 // their STLport destructors and the counted pointers' releases, then the session base. See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "net_messages.h"
 #include "core_refcount.h"
 #include "record_lists.h"
 
