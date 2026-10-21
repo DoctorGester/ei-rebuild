@@ -225,7 +225,7 @@ float Distance(float x0, float y0, float x1, float y1) {
     const float deltaX = x1 - x0;
     const float deltaY = y1 - y0;
     const float squared = static_cast<float>(LengthSquared2DUnrounded<double>(deltaY, deltaX));
-    return static_cast<float>(x87::fsqrt(squared));
+    return static_cast<float>(std::sqrt(squared));
 }
 
 int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }

@@ -206,7 +206,7 @@ void CEffectMoshka::Update(float now) {
         // Approach the point 1.5 to the side of the followed object, 3.2 above it.
         float sideX = toFollowed.y;
         float sideY = static_cast<float>(-toFollowed.x);
-        float scale = static_cast<float>(kCircleRadius / x87::fsqrt(LengthSquared2DUnrounded(sideY, sideX)));
+        float scale = static_cast<float>(kCircleRadius / std::sqrt(LengthSquared2DUnrounded(sideY, sideX)));
         target.x = static_cast<float>(target.x + static_cast<float>(scale * sideX));
         target.y = static_cast<float>(target.y + static_cast<float>(scale * sideY));
         target.z = static_cast<float>(kCircleHeight + target.z);
@@ -218,12 +218,12 @@ void CEffectMoshka::Update(float now) {
     float floor = static_cast<float>(WorldClient()->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
     float z = !(target.z >= floor) ? floor : target.z;
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
-    float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
+    float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
     if (!SameOrNaN(distance, 0.0f)) {
         float gx = birdAt.x - followed.x;
         float gy = birdAt.y - followed.y;
         float gz = birdAt.z - followed.z;
-        double range = x87::fsqrt(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
+        double range = std::sqrt(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
         double speed = (range * kSpeedFactor + kSpeedBase) * frames;
         if (distance > speed) {
             double scale = speed / distance;

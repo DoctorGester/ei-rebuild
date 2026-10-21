@@ -128,7 +128,7 @@ std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     // ((top^2 + right^2) + bottom^2) + left^2, the partial sums rounded to float (as at 24 bits).
     float sum = static_cast<float>(top * top + right * right);
     sum = static_cast<float>(sum + bottom * bottom);
-    float depth = static_cast<float>(x87::fsqrt(sum + left * left));
+    float depth = static_cast<float>(std::sqrt(sum + left * left));
     if (!(fade >= depth)) depth = fade;
     int amount = x87::fistp(static_cast<float>(depth / fade * 255.0f));
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));

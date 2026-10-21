@@ -57,7 +57,7 @@ int Compare(float a, float b) { return x87::CompareStatus(a, b); }
 float Distance(float x0, float y0, float x1, float y1) {
     const double dx = static_cast<double>(x0) - x1;
     const double dy = static_cast<double>(y0) - y1;
-    return static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
+    return static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
 }
 
 // FCOM status of (dy * dy + dx * dx) against r2, as IsInArea tests circles.

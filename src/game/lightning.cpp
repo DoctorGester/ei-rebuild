@@ -68,7 +68,7 @@ void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
         key.weight[i] = static_cast<float>(v);
         sum = static_cast<float>(v * v + sum);
     }
-    double scale = 1.0 / x87::fsqrt(sum);
+    double scale = 1.0 / std::sqrt(sum);
     for (int i = 0; i < 2; ++i) {
         if (amplitudeFirst)
             key.weight[i] = static_cast<float>(scale * amplitude * key.weight[i]);
@@ -203,7 +203,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     step.x = static_cast<float>(static_cast<double>(to->x) - from->x);
     step.y = static_cast<float>(static_cast<double>(to->y) - from->y);
     step.z = static_cast<float>(static_cast<double>(to->z) - from->z);
-    float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step)));
+    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step)));
 
     // Point count and the length the displacement axes are scaled to.
     int count;
@@ -231,7 +231,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     up.z = upZ;
 
     for (Vector3* axis : {&side, &up}) {
-        double norm = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*axis));
+        double norm = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*axis));
         if (norm > 0.0) {
             double factor = scale / norm;
             axis->x = static_cast<float>(factor * axis->x);
@@ -317,7 +317,7 @@ void CLightning::UpdateBounds() {
     boundsMax_.y = static_cast<float>(static_cast<double>(boundsMax_.y) - center_.y);
     boundsMax_.z = static_cast<float>(static_cast<double>(boundsMax_.z) - center_.z);
     boundsKind_ = 3;
-    radius_ = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(boundsMax_)));
+    radius_ = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(boundsMax_)));
 }
 EI_REPLACE_METHOD(0x00467150, CLightning::UpdateBounds);
 
@@ -403,7 +403,7 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
             double dx = static_cast<double>(from->x) - to->x;
             double dy = static_cast<double>(from->y) - to->y;
             double dz = static_cast<double>(from->z) - to->z;
-            double reachExt = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * kOffsetFactor;
+            double reachExt = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * kOffsetFactor;
             float reach = static_cast<float>(reachExt);
             float low = static_cast<float>(-reachExt);
             std::uint32_t r1 = Rng()->Next();

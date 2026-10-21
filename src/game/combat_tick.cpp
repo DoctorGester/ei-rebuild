@@ -826,7 +826,7 @@ void CUnitServer::ApproachTarget() {
         double length = dz * vz;
         length = length + static_cast<double>(vy) * vy;
         length = length + static_cast<double>(vx) * vx;
-        length = x87::fsqrt(length);
+        length = std::sqrt(length);
         if (length > kZero) {
             vx = static_cast<float>(vx / length);
             vy = static_cast<float>(vy / length);

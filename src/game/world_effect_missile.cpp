@@ -75,7 +75,7 @@ int CEffectMissile::Steer() {
         velocity_.y = target->position.y - localPosition_.y;
         velocity_.z = aimZ - localPosition_.z;
         float speed = kMissileSpeed;
-        float distance = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
+        float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
         if (GetClassId() == kClassArrowFigure) speed = speed + speed;
         if (!(distance >= speed)) {   // within one step (or NaN)
             flying = 0;

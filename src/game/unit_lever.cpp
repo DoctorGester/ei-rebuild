@@ -138,7 +138,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
         Vector3 at{position.x, position.y, position.z};
         float along = spot[0];
         float across = spot[1];
-        float length = static_cast<float>(x87::fsqrt(across * across + along * along));
+        float length = static_cast<float>(std::sqrt(across * across + along * along));
         // FCOM 0.0; TEST AH,0x41: normalised only for a length above zero.
         if (length > 0.0f) {
             along = along / length;

@@ -281,9 +281,9 @@ void CUiItemStrip::Update() {
             speed = (limited + velocity_) * half;
         } else if (pending_ > zero) {
             // Near: the speed that eases out (sqrt(0.5 d) / 0.25).
-            speed = static_cast<float>(x87::fsqrt(static_cast<double>(nearDistance * pending_)) / easeDivisor);
+            speed = static_cast<float>(std::sqrt(static_cast<double>(nearDistance * pending_)) / easeDivisor);
         } else {
-            speed = -static_cast<float>(x87::fsqrt(static_cast<double>(-(nearDistance * pending_))) / easeDivisor);
+            speed = -static_cast<float>(std::sqrt(static_cast<double>(-(nearDistance * pending_))) / easeDivisor);
         }
         velocity_ = static_cast<float>(speed);
         float step = static_cast<float>(speed * dt);

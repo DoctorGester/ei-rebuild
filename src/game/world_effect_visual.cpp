@@ -62,8 +62,8 @@ Vector3& LightPosition(CLight* light) { return light->position_; }
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
 int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
-    const double speed = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*velocity));
-    const double dist = x87::fsqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
+    const double speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*velocity));
+    const double dist = std::sqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
     // FCOM 0073B858; TEST AH,0x41: on only when above.
     if (!(dist > 0.0f /*0073B858*/)) return 0;
     // FCOM ST(1); TEST AH,1: the speed when the distance is below it or they are unordered.
@@ -107,7 +107,7 @@ std::uint32_t InlineRandom() {
 // sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in the original's x87 order.
 void WallScorchShape(const Vector3* direction, const float* half, float* angleAndOuter) {
     angleAndOuter[0] = static_cast<float>(x87::fpatan(direction->y, direction->x));
-    const double outer = x87::fsqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
+    const double outer = std::sqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
     angleAndOuter[1] = static_cast<float>((outer + *half) + 0.3f /*0073C54C*/);
 }
 

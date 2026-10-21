@@ -185,7 +185,7 @@ void Terrain::PlayAmbience() {
                 vote.offset.z = static_cast<float>(dz + vote.offset.z);
             }
         }
-        vote.volume = x87::fistp(static_cast<float>(x87::fsqrt(vote.weightSum)));
+        vote.volume = x87::fistp(static_cast<float>(std::sqrt(vote.weightSum)));
         if (vote.volume > 100) vote.volume = 100;
         const AmbientSoundClass& kind = classes[vote.soundClass];
         float pan = PanOf(vote.offset, axis);

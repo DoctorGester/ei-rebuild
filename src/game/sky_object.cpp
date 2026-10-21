@@ -92,7 +92,7 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
         distances_.SetSize(count);
         for (int i = 0; i < distances_.size; ++i) {
             const float z = Row(vertices_, i, 2);
-            distances_.data[i] = static_cast<float>(!(z >= kHorizon) ? 0.0f : x87::fsqrt(-Row(normals_, i, 2)));
+            distances_.data[i] = static_cast<float>(!(z >= kHorizon) ? 0.0f : std::sqrt(-Row(normals_, i, 2)));
         }
     }
     for (int i = 0; i < diffuse_.size; ++i) {

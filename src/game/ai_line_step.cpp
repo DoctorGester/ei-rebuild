@@ -18,7 +18,7 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     float dx = static_cast<float>(to->x - from->x);
     float dy = static_cast<float>(to->y - from->y);
     double dz = static_cast<double>(to->z) - from->z;
-    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     double cell = static_cast<double>(worlddata::CellSize()) * worlddata::Half();
     double steps = length / cell;
     float stepsF = static_cast<float>(steps);

@@ -22,7 +22,7 @@
 // them). On the game's main thread (x87 at 24-bit precision) every operation already rounds to a
 // float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,
 // not the original's (code there stays written out, docs/notes/vector-math.md). Square roots use
-// x87::fsqrt (std::sqrt, which is FSQRT at the precision control on this x87 target).
+// std::sqrt (FSQRT at the precision control on this x87 target; cast a float argument to double first: std::sqrt(float) is sqrtf).
 //
 // Transcendentals (Atan2, Acos, Asin) return the x87 result unrounded as `double`, like FPATAN and
 // the game's CRT; where the original stores the result to a float, round it with static_cast<float>
@@ -137,7 +137,7 @@ __forceinline Vector2& operator/=(Vector2& a, float s) { a = a / s; return a; }
 // 2-term sums have one result whatever the order.
 __forceinline float Dot2D(const Vector2& a, const Vector2& b) { return a.x * b.x + a.y * b.y; }
 __forceinline float LengthSquared2D(const Vector2& v) { return v.x * v.x + v.y * v.y; }
-__forceinline float Length2D(const Vector2& v) { return static_cast<float>(x87::fsqrt(LengthSquared2D(v))); }
+__forceinline float Length2D(const Vector2& v) { return static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2D(v)))); }
 __forceinline float DistanceSquared2D(const Vector2& a, const Vector2& b) { return LengthSquared2D(a - b); }
 __forceinline float Distance2D(const Vector2& a, const Vector2& b) { return Length2D(a - b); }
 
@@ -201,7 +201,7 @@ template <Sum3 O>
 __forceinline float LengthSquared(const Vector3& v) { return SumOfProducts<O>(v.x, v.y, v.z, v.x, v.y, v.z); }
 
 template <Sum3 O>
-__forceinline float Length(const Vector3& v) { return static_cast<float>(x87::fsqrt(LengthSquared<O>(v))); }
+__forceinline float Length(const Vector3& v) { return static_cast<float>(std::sqrt(LengthSquared<O>(v))); }
 
 template <Sum3 O>
 __forceinline float DistanceSquared(const Vector3& a, const Vector3& b) { return LengthSquared<O>(a - b); }

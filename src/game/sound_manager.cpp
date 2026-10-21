@@ -182,7 +182,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         slot->volume = 0;
         return;
     }
-    double dist = x87::fsqrt(dist2);
+    double dist = std::sqrt(dist2);
     float distF = static_cast<float>(dist);
     float h = listener.z;
     int level;
@@ -258,7 +258,7 @@ void CSoundManager::SetListener(const float* position, const float* axis) {
     if (enabled == 0) return;
     std::memcpy(&listener, position, sizeof(listener));
     std::memcpy(&listenerAxis, axis, sizeof(listenerAxis));
-    double len = x87::fsqrt(LengthSquared2DUnrounded<double>(listenerAxis.x, listenerAxis.y));
+    double len = std::sqrt(LengthSquared2DUnrounded<double>(listenerAxis.x, listenerAxis.y));
     if (!NonZero(len)) {
         listenerAxis.x = 1.0f;
         listenerAxis.y = 0.0f;
@@ -723,7 +723,7 @@ void CSoundManager::Tick() {
         if (e->active == 0) continue;
         double dx = D(listener.x) - e->position.x;
         double dy = D(listener.y) - e->position.y;
-        double dist = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
+        double dist = std::sqrt(LengthSquared2DUnrounded(dy, dx));
         float distF = static_cast<float>(dist);
         std::uint32_t minInterval, maxInterval;
         if (!(dist >= e->innerRadius)) {

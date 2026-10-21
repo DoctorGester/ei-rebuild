@@ -364,7 +364,7 @@ CUnitServer* ControllerOf(CEngineObject* unit) { return static_cast<CUnitServer*
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its
 // controller's statistics (+0x8E0, +0x1E4).
 double Weight(CUnitServer* controller) {
-    return x87::fsqrt(static_cast<double>(controller->stats.pendingExperience) + controller->stats.experience);
+    return std::sqrt(static_cast<double>(controller->stats.pendingExperience) + controller->stats.experience);
 }
 
 // Without a player: the single heroes of every player share `amount` in proportion to their

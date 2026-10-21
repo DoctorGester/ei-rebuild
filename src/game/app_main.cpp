@@ -589,7 +589,7 @@ float SpeedForBalance(double balance, float rounded) {
     } else if (!(rounded > 1.0f /*0073B84C*/)) {
         speed = 1.0f /*0073B84C*/;
     } else {
-        speed = Step(Step(x87::fsqrt(rounded) * 0.1f /*0073B850*/) + 1.0f /*0073B84C*/) - 0.1f /*0073B850*/;
+        speed = Step(Step(std::sqrt(rounded) * 0.1f /*0073B850*/) + 1.0f /*0073B84C*/) - 0.1f /*0073B850*/;
     }
     float result = static_cast<float>(speed);
     if (!(result >= kSlowest)) result = kSlowest;

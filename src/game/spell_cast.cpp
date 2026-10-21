@@ -49,7 +49,7 @@ void CodesReserve(char** codes, unsigned n) { stlp::StringAbi::Reserve(reinterpr
 int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(gamecrt::Ftol(x87::FromUnsigned(value) * factor)); }
 
 // sqrt(area / pi) on the FPU stack, as FLD, FDIV [0x00743A7C], FSQRT (returned unrounded in ST0).
-double AreaToRadius(float area) { return x87::fsqrt(area / 3.1415927f /*00743A7C*/); }
+double AreaToRadius(float area) { return std::sqrt(area / 3.1415927f /*00743A7C*/); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t u;

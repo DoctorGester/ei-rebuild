@@ -55,7 +55,7 @@ void WeatherNoiseCurve::Build(float amplitude) {
 
     double squares = Zero();
     for (const float sample : samples) squares += static_cast<double>(sample) * sample;
-    const double scale = amplitude / x87::fsqrt(squares * SampleShare());
+    const double scale = amplitude / std::sqrt(squares * SampleShare());
     for (float& sample : samples) sample = static_cast<float>(scale * sample);
 
     const double half = Half();

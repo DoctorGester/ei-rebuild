@@ -216,7 +216,7 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
     double nx;
     double ny;
     if (length2 >= kTinyLength2) {
-        float length = static_cast<float>(x87::fsqrt(length2));
+        float length = static_cast<float>(std::sqrt(length2));
         nx = D(dirX) / D(length);
         ny = D(dirY) / D(length);
     } else {
@@ -415,7 +415,7 @@ void CHudMap::UpdateView() {
     }
     double length2 = LengthSquared2DUnrounded<double>(facingX_, facingY_);
     if (length2 >= kTinyLength2) {
-        double length = x87::fsqrt(length2);
+        double length = std::sqrt(length2);
         facingX_ = static_cast<float>(D(facingX_) / length);
         facingY_ = static_cast<float>(D(facingY_) / length);
     } else {

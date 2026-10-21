@@ -121,7 +121,7 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
     float span = database->length;
     if (!(x87::IsNaN(span) || span == 0.0f))
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
-    double moved = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction.x, direction.y, direction.z));
+    double moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction.x, direction.y, direction.z));
     double numerator = moved * speed * kAnimationRate;
     double denominator = (1.0f / (kCellScale * kHalf)) * (static_cast<double>(frames) * length);
     unit->animationSpeed = static_cast<float>(numerator / denominator);

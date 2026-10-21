@@ -39,7 +39,7 @@ CUnitShape* CUnitShape::Construct(float newRadius) {
     for (int dy = -kMiddle; dy < kMiddle; ++dy) {
         int rowSquared = dy * dy;
         for (int dx = -kMiddle; dx < kMiddle; ++dx) {
-            double distance = x87::fsqrt(static_cast<double>(dx * dx + rowSquared));
+            double distance = std::sqrt(static_cast<double>(dx * dx + rowSquared));
             float level = static_cast<float>(((kMargin + radius) - distance * kHalfCell) * kLevelsPerUnit);
             int value = x87::fistp(level);
             if (value > 0) levels[dy + kMiddle][dx + kMiddle] = static_cast<std::uint8_t>(value);

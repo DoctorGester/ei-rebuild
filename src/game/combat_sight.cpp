@@ -86,7 +86,7 @@ int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a /
 // The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15.0 / flight - 3.0), on the FPU
 // stack throughout (the double constants at 0073F0A8 / 0073F0A0).
 int CastDelayTicks(double distanceSq, double flight) {
-    return static_cast<int>(gamecrt::Ftol(x87::fsqrt(distanceSq) * 15.0 / flight - 3.0));
+    return static_cast<int>(gamecrt::Ftol(std::sqrt(distanceSq) * 15.0 / flight - 3.0));
 }
 
 // The spell a cast order's source names: a quick item's spell (+0x44), or the unit's own. The
@@ -184,7 +184,7 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
     float uy = static_cast<float>(dy / lengthSq);
     float uz = static_cast<float>(dz / lengthSq);
     double negX = -static_cast<double>(ux);
-    float side = static_cast<float>(x87::fsqrt(negX * negX + static_cast<double>(uy) * uy));
+    float side = static_cast<float>(std::sqrt(negX * negX + static_cast<double>(uy) * uy));
     float vx = static_cast<float>(uy / side);
     float vy = static_cast<float>(negX / side);
     float vz = static_cast<float>(kZero / side);
@@ -375,7 +375,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
         bool inFront = false;
         if (!Greater(distanceSq, reachSq)) {
             double dot = DotUnrounded<Sum3::ZYX, double>(delta.x, delta.y, delta.z, facing.x, facing.y, facing.z);
-            double cone = x87::fsqrt(distanceSq) * kFrontCosine;
+            double cone = std::sqrt(distanceSq) * kFrontCosine;
             inFront = LessOrUnordered(cone, dot);
         }
         if (inFront) {

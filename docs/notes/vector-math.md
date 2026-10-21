@@ -21,7 +21,7 @@ stripped) at V1; treat them as +-10%. "Site" = one source line.
 
 The V1 survey counted the patterns the porting workers had written out by hand (before V3 replaced them with the helpers of
 section 5; the counts are gone, the kinds are what matters): sums of squares (length / distance squared; 2-term in any order,
-3-term ZYX `(z+y)+x`, XYZ `(x+y)+z`, ZXY `(z+x)+y`), 3D and 2D dot products (ZYX most), sqrt calls (`x87::fsqrt` / `std::sqrt`),
+3-term ZYX `(z+y)+x`, XYZ `(x+y)+z`, ZXY `(z+x)+y`), 3D and 2D dot products (ZYX most), sqrt calls (`std::sqrt`),
 normalise (divide by the length, or times 1/length), cross products, quaternion products, quaternion rotated axes
 (`w*w - (..) + 2zz`), rotate vector by quaternion, matrix x point / normal, matrix x matrix (004D9880, 004D9B80), lerps
 (`(b-a)*t + a`; `(1-t)*a + t*b` in unit_client_path.cpp and Slerp's linear branch), atan2 (FPATAN), acos / asin (`_CIacos`),
@@ -99,7 +99,7 @@ All `__forceinline`, by value:
 | `Cross(a, b)` | `(y*z' - z*y', z*x' - x*z', x*y' - y*x')` |
 | `Lerp(a, b, t)` (float, Vector3), `LerpWeighted(a, b, t)` (float) | `(b - a) * t + a`, `(1 - t) * a + t * b` |
 | `DotXYZ / DotZYX / DotZXY`, `vecmath::Dot<Sum3>` | the named grouping of the three products |
-| `LengthSquared<Sum3>`, `Length<Sum3>` (+ `...XYZ / ZYX / ZXY`) | grouped sum of squares; FSQRT (`x87::fsqrt`) |
+| `LengthSquared<Sum3>`, `Length<Sum3>` (+ `...XYZ / ZYX / ZXY`) | grouped sum of squares; FSQRT (`std::sqrt` of a double) |
 | `DistanceSquared<Sum3>`, `Distance<Sum3>` (+ named) | of `a - b` |
 | `Normalised<Sum3>`, `NormalisedReciprocal<Sum3>` | `v / len`, `v * (1 / len)` |
 | `TransformRow<OX, OY, OZ>`, `TransformRowNormal<...>` | `v * M`: grouped `x*m[i], y*m[4+i], z*m[8+i]`, then `+ m[12+i]`; one grouping per component (OY defaults to OX, OZ to OY) |
@@ -124,7 +124,7 @@ quaternion products and AxisX/Y/Z stay written out at each site (only `Conjugate
 src/render, not compared bit for bit, may add a plain product). The generic dot is `vecmath::Dot<Sum3>`: a global template
 named `Dot` would make `&Dot` (the hooked 00401E00 in `EI_REPLACE`) ambiguous. Atan2 is not `std::atan2`: that becomes
 FPATAN only under /fp:fast; inlined into a `float_control(precise)` function it calls the modern CRT's `_CIatan2` (the same
-holds for `std::sqrt`, hence `x87::fsqrt`).
+holds for `std::sqrt`, except that on this /arch:IA32 build it is FSQRT, so game code writes `std::sqrt`, C16a).
 
 **/fp:fast regroups; the helpers are compiled precise.** Measured with cl 14.43 /O2 /arch:IA32: a fast-compiled inline
 `(z*z' + y*y') + x*x'` followed by the caller's `* 2.0f + 1.0f` became `(2x*x' + 1) + 2(z*z' + y*y')`-style code (the `* 2`

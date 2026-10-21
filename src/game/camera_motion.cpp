@@ -32,7 +32,7 @@ bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
 bool CCamera::LookDirection(float dx, float dy, float dz) {
     double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
     if (!(lengthSquare > CAM_LOOK_EPSILON)) return false;
-    double inv = CAM_ONE_D / x87::fsqrt(lengthSquare);
+    double inv = CAM_ONE_D / std::sqrt(lengthSquare);
     float invRounded = static_cast<float>(inv);
     float nx = static_cast<float>(inv * dx);
     float ny = static_cast<float>(D(invRounded) * dy);
@@ -87,7 +87,7 @@ void CCamera::AlignToTarget() {
     double negZx = -D(zAxis.x);
     float hy = static_cast<float>(negZx);
     float hz = 0.0f;
-    double inv = D(CAM_ONE) / x87::fsqrt(negZx * hy + D(zAxis.y) * zAxis.y);
+    double inv = D(CAM_ONE) / std::sqrt(negZx * hy + D(zAxis.y) * zAxis.y);
     float invRounded = static_cast<float>(inv);
     float hx = static_cast<float>(inv * zAxis.y);
     hy = static_cast<float>(D(hy) * invRounded);
@@ -105,12 +105,12 @@ void CCamera::AlignToTarget() {
     float cx = static_cast<float>(D(xAxis.y) * hz - D(xAxis.z) * hy);
     float cy = static_cast<float>(D(xAxis.z) * hx - D(hz) * xAxis.x);
     float cz = static_cast<float>(D(hy) * xAxis.x - D(xAxis.y) * hx);
-    double invC = D(CAM_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cx, cy, cz));
+    double invC = D(CAM_ONE) / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cx, cy, cz));
     Vector3 axis;
     axis.x = static_cast<float>(D(cx) * invC);
     axis.y = static_cast<float>(D(cy) * invC);
     axis.z = static_cast<float>(D(cz) * invC);
-    double axisLength = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
+    double axisLength = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
     if (axisLength > CAM_ALIGN_EPSILON) {
         Quaternion turn;
         const Quaternion& r = *turn.SetAngleAxis(static_cast<float>(D(angle) * D(CAM_TENTH)), axis);
@@ -152,7 +152,7 @@ void CCamera::ClampAboveObjects() {
         double dx = D(cx) - p->x;
         double dy = D(cy) - p->y;
         double dz = D(cz) - p->z;
-        float outside = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) - radius);
+        float outside = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) - radius);
         double factor = CAM_ZERO;
         if (!(outside > CAM_ZERO)) factor = CAM_ONE;
         else if (!(outside > CAM_OBJECT_FADE)) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);

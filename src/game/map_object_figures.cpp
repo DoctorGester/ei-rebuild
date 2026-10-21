@@ -135,7 +135,7 @@ std::uint32_t CObject3D::ComputeBounds() {
     below.x = belowXf;
     below.y = belowY;
     below.z = belowZ;
-    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(belowX, belowY, belowZ));
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(belowX, belowY, belowZ));
     above.x = aboveX;
     above.y = aboveY;
     above.z = aboveZ;

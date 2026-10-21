@@ -38,7 +38,7 @@ bool LessOrUnordered(double a, double b) { return !(a >= b); }
 void FromAngle(Quaternion* q, const Vector3& axis, float angle) {
     double half = D(angle) * D(EI_HALF_F);
     // The squared length stays unrounded (LengthSquaredXYZ would round it: the same at 24 bits).
-    float factor = static_cast<float>(x87::fsin(half) / x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(axis)));
+    float factor = static_cast<float>(x87::fsin(half) / std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(axis)));
     q->w = static_cast<float>(x87::fcos(half));
     Vector3 v = factor * axis;
     q->x = v.x;

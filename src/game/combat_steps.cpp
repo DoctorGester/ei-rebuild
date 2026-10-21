@@ -454,7 +454,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     double dz = static_cast<double>(z) - aim.z;
     double dy = static_cast<double>(y) - aim.y;
     double dx = static_cast<double>(x) - aim.x;
-    float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
+    float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
     float orderDistance = static_cast<float>(ActionDistance(&order));
     float reach = Select(distance, orderDistance, distance, orderDistance);
 

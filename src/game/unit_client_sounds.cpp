@@ -275,7 +275,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         unit->Object3D()->PartWorldPosition(&footAt.x, foot);
         Vector3 facing;
         unit->orientation.AxisY(&facing);
-        double length = x87::fsqrt(LengthSquared2DUnrounded(facing.y, facing.x));
+        double length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
         float cosine = static_cast<float>(facing.y / length);
         float clamped = cosine;
