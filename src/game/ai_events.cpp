@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -190,8 +191,8 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     }
     std::memset(cells, 0, static_cast<std::size_t>(height * width) * sizeof(AIEventCell));
 
-    alignas(CMappedResource) std::uint8_t storage[sizeof(CMappedResource)];
-    auto* archive = reinterpret_cast<CMappedResource*>(storage);
+    lib::InPlace<CMappedResource> storage;
+    CMappedResource* archive = storage.Get();
     archive->Construct();
     bool failed;
     {

@@ -7,6 +7,7 @@
 #include "core_streams.h"
 #include "originals_engine.h"   // MappedResourceDestroyOriginal
 #include "resource.h"
+#include "lib/static_object.h"
 
 #include <cstdint>
 
@@ -17,8 +18,8 @@ struct LocalResource {
     ~LocalResource() { MappedResourceDestroyOriginal(Get()); }
     LocalResource(const LocalResource&) = delete;
     LocalResource& operator=(const LocalResource&) = delete;
-    CMappedResource* Get() { return reinterpret_cast<CMappedResource*>(storage); }
-    alignas(void*) unsigned char storage[sizeof(CMappedResource)];
+    CMappedResource* Get() { return storage.Get(); }
+    lib::InPlace<CMappedResource> storage;
 };
 
 // The memory stream a file is copied into (or an archive is read from or written to), built and

@@ -60,7 +60,7 @@ BOOL CCreditsScreen::Draw(int pass) {
             finished_ = true;
         } else {
             const TitleLine& line = currentLine_->data;
-            textSurface_->Load(reinterpret_cast<CMappedResource*>(archive_), line.style);
+            textSurface_->Load(archive_.Get(), line.style);
             textSurface_->Start(0.0f, 0);
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);

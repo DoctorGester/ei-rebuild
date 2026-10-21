@@ -450,7 +450,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         auto* w = gamecrt::operator_new_as<CCreditsScreen>();
         if (w) {
             w->CUiContainer::Construct(ui);
-            reinterpret_cast<CMappedResource*>(w->archive_)->Construct();
+            w->archive_->Construct();
             w->lines_.Construct();   // 00634300
             new (static_cast<void*>(&w->name_)) mfc::CString("Titles");
             Screen8Member1D8(&w->player_);
@@ -691,7 +691,7 @@ void CCreditsScreen::Build() {
     gameapi::SystemParametersInfoA(0x4B, 0, nullptr, 0);   // SPI_SETFONTSMOOTHING
 
     // The script: one record per line, words separated by spaces.
-    auto* archive = reinterpret_cast<CMappedResource*>(archive_);
+    CMappedResource* archive = archive_.Get();
     archive->OpenResource(mfc::operator+(options::TheOptions()->resourcesPath_, "outro.res"),
                           0);   // "outro.res"
     std::uint32_t size = 0;

@@ -88,7 +88,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     ParseSpellText(text, codes);
 
     CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
-    if (!constructor) return reinterpret_cast<CSpell*>(game::FatalError(kNoSpellConstructor));
+    if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->CallSetManager(this);
 
     char* prototype;
@@ -97,7 +97,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
         prototype = stlp::NamedSlot<char>(SpellNameMap(), key);
     }
     if (!constructor->CallBeginConstruct(prototype))
-        return reinterpret_cast<CSpell*>(game::FatalError(kCantBegin, static_cast<const char*>(text)));
+        return game::FatalErrorAs<CSpell>(kCantBegin, static_cast<const char*>(text));
 
     for (int i = 0; i < codes.GetSize(); ++i) {
         const mfc::CString& code = codes[i];
@@ -105,7 +105,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
         constructor->CallAddModifier(FindModifier(code));
     }
 
-    if (!constructor->EndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
+    if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);
     CSpell* spell = constructor->container_->Spell()->Clone(this);
     constructor->CallSetManager(nullptr);
     return spell;
