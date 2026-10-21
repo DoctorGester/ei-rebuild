@@ -443,5 +443,23 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   the last-but-one record's map nodes (~20% of its time). Suites after: image 124 runs in 173 s (sum 1,033 s,
   net_pair_quest 153 s); original 114 runs in 227 s (sum 1,192 s, net_pair_quest 176 s), with other workers'
   games on the machine. Suite times move with that load by ±15%, so the per-frame numbers are the measure.
+- **The scheduler's slots (SV10h, user 2026-10-21: fewer than 16 games within a batch).** A slot is for a game on
+  the GPU; it was held through the run's whole runner call. From build/live/scheduler.log (2026-10-21 03:00-04:15,
+  2,790 runs): log time minus start minus game seconds 5.5 s a run on average, median 2, p90 18, worst 107; a
+  124-run suite held 1,500-2,300 slot-seconds for 780-1,320 game-seconds (5-9 s a run beyond its game), games running
+  on average 5.5-7.7 a second of its wall while 9-13 slots were taken. Where it went (four runs at once, each phase
+  timed): frame packing, frame_store.pack_folder in the runner thread: 25-30 s for runs of 5-15 4K frames (1.2 s a
+  frame alone: 0.1 s XOR delta and 0.3 s zlib, then 0.5-0.9 s undoing the XOR to check it, big-number arithmetic that
+  holds the GIL); with it running, another run's set-up (clean_run_dir, prepare_scenario, otherwise 0.0-0.1 s) took
+  4-10 s, all in the one Python process's GIL. The rest (report parse, reference key, retries) was small. Now:
+  run_all.run(slots=) gives the slots back when ei_launch returns (or when the reference cache has the run) and takes
+  them again before a retry's game (work_sched.GameSlots; docs/notes/work-board.md, "Runs"); frames are packed by a
+  python process of its own (frame_store.pack_run: at most 4 at once per Python process, two frames each, below
+  normal priority), the check compares the compressed bytes read back (0.34 s a frame; the packed files are the same
+  bytes). A run is still reported after its packing. Driving the Scheduler class directly, 24 frame-heavy image
+  runs, 4 slots, machine shared with other suites: batch 104 / 196 s before, 27 / 32 s after; slot beyond the game
+  8.4 / 11.7 s a run before, 0.03 s after; games running 0.8 / 0.5 of 4 before, 3.7 / 3.1 after; report after the
+  game 8.5 / 12.1 s before, 1.9 / 2.1 s after (packing, outside the slot). For a 124-run suite that is ~900 instead
+  of ~1,750 slot-seconds; a lone suite's wall stays net_pair_quest's, the freed slots go to other batches.
 - Proposals (tickets SV10a-SV10e): the pair's frame step run while the other game takes its turn, start-up,
   more world updates per drawn frame, drawing only frames a step reads, the harness build's renderer checks.

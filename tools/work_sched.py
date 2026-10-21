@@ -16,7 +16,9 @@ collides:
   the earliest batch with runs left: a later batch's alone run never stops the backfill;
 - an alone run waits until none of ours runs, holds the alone gate and every slot, and runs by itself;
 - each game is run_all.run() pointed at the batch's checkout and build (run folders and run_times.json
-  stay where run_all puts them), retried as run_all.run_with_retries() does, in the same slot;
+  stay where run_all puts them), retried as run_all.run_with_retries() does; its slots go back as soon as its game
+  ends (frame packing and the reference copy run without them, SV10h) and a retry's game takes slots again before
+  anything new starts;
 - results go into the run rows, the summary and exit code into the batch row;
 - every finished game adds a row to the timing table (expected times: work.expected_times, WB6);
 - when main's tools/work_sched.py, run_all.py or work.py change, no new game starts and, once its own games
