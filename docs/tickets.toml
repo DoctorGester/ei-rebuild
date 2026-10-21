@@ -3010,7 +3010,7 @@ group = "standalone"
 size = 2
 model = "opus"
 depends = ["S18b", "S18c"]
-note = "As S18b for 00783000-0079C000: initial bytes generated at build time from game.exe (not committed), pointer cells into .data / .bss relocated (generated list), old range guarded; the host stops copying .data. Checked: goldens both installs, guard."
+note = "As S18b for 00783000-0079C000: initial bytes generated at build time from game.exe (not committed; user 2026-10-21: 'just pick the easiest way if we are getting rid of it anyway', as the interim before named globals; same for .rdata in S18h), pointer cells into .data / .bss relocated (generated list), old range guarded; the host stops copying .data. Checked: goldens both installs, guard."
 
 [[ticket]]
 id = "S18e"
