@@ -792,7 +792,7 @@ void Read(CWorldServer* w, Snapshot& s) {
     // Map objects are those in the zone's maps (units, levers, traps, torches; the rest after the
     // zone's start in sentObjects_); other world objects (spells, effects, ...) get the base fields.
     std::set<unsigned> mapObjects;
-    for (const ObjectIdMap* map : {&w->mapObjects_, &w->sentObjects_, &w->otherMapObjects_})
+    for (const MapObjectIdMap* map : {&w->mapObjects_, &w->sentObjects_, &w->otherMapObjects_})
         map->map.ForEach([&](const auto* n) { mapObjects.insert(n->key); });
     std::vector<std::pair<unsigned, CEngineObject*>> objects;
     w->objects_.map.ForEach([&](const auto* n) {

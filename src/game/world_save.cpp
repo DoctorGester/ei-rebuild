@@ -227,29 +227,28 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
-        CEngineObject* object = manager40_->FindObject(id);
-        auto* mapObject = static_cast<CMapObject*>(object);
+        CMapObject* object = ObjectSlots(manager40_->FindObject(id));   // a map object (manager40_)
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
-            mapObject->TakePrototype(static_cast<const char*>(name));
+            object->TakePrototype(static_cast<const char*>(name));
         }
-        mapObject->WriteFullState();
+        object->WriteFullState();
         object->Load(stream);
         int changed = ReadValue<int>(stream);
         if (!object) continue;   // (the object was already used above)
 
         ++object->refCount_;
-        mapObject->MarkChanged(-1);
+        object->MarkChanged(-1);
         if (object->type_ != 0x3B) {
-            mapObject->SetUpAnimatedFigure(mapObject->name);
+            object->SetUpAnimatedFigure(object->name);
             SectorMapAdd(Sectors(), nullptr, object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit)
             otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (*mapObject->name2 != '\0')
+        if (*object->name2 != '\0')
             namedObjects_.Set(static_cast<unsigned>(object->id_), object);
 
         if (CUnit* unit = UnitOrNull(object)) {
@@ -262,9 +261,9 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
 
         // Every part is marked changed when any change was saved (the original tests the part's
         // bit 1 << i itself, never `changed & bit`).
-        int parts = mapObject->NetState()->fieldCount_;
+        int parts = object->NetState()->fieldCount_;
         for (int i = 0; i < parts; ++i)
-            if (changed != 0 && (1u << (i & 31)) != 0) mapObject->MarkChanged(i);
+            if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
 
         CUnit* unit = UnitOrNull(object);
         if (unit && unit->ServerController()->Brain()->alwaysUpdated == 0)

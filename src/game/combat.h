@@ -269,7 +269,7 @@ struct ArmourSpell {
     // and worn byte. Returns this.
     ArmourSpell* Assign(const ArmourSpell* other);
 
-    CEngineObject* item;
+    CItem* item;
     int countdown;
     std::uint8_t worn;
     std::uint8_t unused_9[3];

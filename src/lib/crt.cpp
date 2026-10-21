@@ -1,4 +1,5 @@
 #include "crt.h"
+#include "crt_locale_data.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -49,8 +50,7 @@ struct CaseFold {
     int fold[256];
 };
 
-unsigned CtypeHandle() { return ei::GameData<const unsigned>(0x007CABF0); }   // __lc_handle[LC_CTYPE]
-unsigned CodePage() { return ei::GameData<const unsigned>(0x007CAC00); }      // __lc_codepage
+unsigned CtypeHandle() { return libcrt::g_lcHandle[2]; }   // __lc_handle[LC_CTYPE]
 
 CaseFold caseFold;
 
@@ -59,7 +59,7 @@ CaseFold caseFold;
 const int* CaseFoldTable() {
     CaseFold& table = caseFold;
     const unsigned handle = CtypeHandle();
-    const unsigned codePage = CodePage();
+    const unsigned codePage = libcrt::g_lcCodePage;
     if (!table.built || table.localeHandle != handle || table.codePage != codePage) {
         for (int c = 0; c < 256; ++c) table.fold[c] = tolower(c);
         table.localeHandle = handle;
@@ -95,11 +95,11 @@ namespace libcrt {
 namespace {
 
 // The CRT's character class table pointer _pctype (00797DD8; the C locale's table + 1 entry, so -1 is
-// EOF) and its multibyte flags _mbctype + 1 (007CC181; no lead bytes for a single-byte code page, the
-// single-byte case bits still set), with _mbcasemap (007CC080), each byte's other case.
+// EOF) and its multibyte flags _mbctype + 1 (no lead bytes for a single-byte code page, the single-byte case
+// bits still set), with _mbcasemap, each byte's other case.
 const unsigned short* CharClasses() { return ei::GameData<const unsigned short* const>(0x00797DD8); }
-const unsigned char* MultibyteFlags() { return ei::GamePointer<const unsigned char>(0x007CC181); }
-const unsigned char* MultibyteCaseMap() { return ei::GamePointer<const unsigned char>(0x007CC080); }
+const unsigned char* MultibyteFlags() { return g_mbCtype + 1; }
+const unsigned char* MultibyteCaseMap() { return g_mbCaseMap; }
 constexpr unsigned char kMbSingleUpper = 0x10;   // _SBUP in _mbctype
 
 constexpr unsigned short kDigit = 0x4;      // _DIGIT
@@ -129,10 +129,9 @@ bool IsDoubleByteLead(unsigned char c) {
     }
 }
 
-// The LC_CTYPE locale: its handle (__lc_handle[LC_CTYPE] 007CABF0; zero for "C") and code page
-// (__lc_codepage 007CAC00).
-unsigned LocaleHandle() { return ei::GameData<const unsigned>(0x007CABF0); }
-unsigned LocaleCodePage() { return ei::GameData<const unsigned>(0x007CAC00); }
+// The LC_CTYPE locale: its handle (__lc_handle[LC_CTYPE]; zero for "C") and code page (__lc_codepage).
+unsigned LocaleHandle() { return g_lcHandle[2]; }
+unsigned LocaleCodePage() { return g_lcCodePage; }
 
 // __crtLCMapStringA (006F1FDE) on its LCMapStringW path: the bytes (up to a zero, at most `count`)
 // to UTF-16 in the code page, mapped, and back; the bytes written, or 0.

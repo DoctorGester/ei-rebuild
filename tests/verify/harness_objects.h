@@ -8,6 +8,7 @@
 #include "../../src/game/game_data.h"
 #include "../../src/game/game_singletons.h"
 #include "../../src/game/options.h"
+#include "../../src/game/world.h"   // CWorldServer::sessionKind_
 #include "ei/hook.h"
 
 inline CCursor* HarnessCursor() {
@@ -24,4 +25,10 @@ inline GameFlow* HarnessFlow() {
 
 inline CInterface3D* HarnessInterface() {
     return ei::Standalone() ? TheInterface() : &ei::OriginalGameData<CInterface3D>(0x007C7D50);
+}
+
+// The campaign mode: the server world's session kind (007C2CC4), which GameFlow::StartZone sets. The server world
+// is not named, so its game data address serves both runs.
+inline int HarnessCampaignMode() {
+    return TheServerWorld()->sessionKind_;
 }

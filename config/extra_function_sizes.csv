@@ -42,6 +42,8 @@ address,size,note
 0041B0C0,242,game server login message handler (registered by 00412D80; no Ghidra function)
 0040C8A0,10,exit-time destructor of a global (registered with atexit by a static initialiser; no Ghidra function)
 00408D50,10,exit-time destructor of a global (registered with atexit by a static initialiser; no Ghidra function)
+00412230,22,static initialiser of the game server pointer 0079B5DC (no Ghidra function)
+00412280,22,static initialiser of the game client pointer 0079B5D8 (no Ghidra function)
 00412250,10,exit-time destructor of a global (registered with atexit by a static initialiser; no Ghidra function)
 004122A0,10,exit-time destructor of a global (registered with atexit by a static initialiser; no Ghidra function)
 0042D900,10,exit-time destructor of a global (registered with atexit by a static initialiser; no Ghidra function)

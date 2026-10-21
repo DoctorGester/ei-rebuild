@@ -175,8 +175,8 @@ void CBattleScreen::Create() {
     AddChild(actionColumn_);
     actionColumn_->AddObject(objects_.data[1]);
 
-    memory = gamecrt::operator_new(0x164);
-    portraits_ = memory ? static_cast<CHudPortraits*>(memory)->Construct(interface_, this) : nullptr;
+    CHudPortraits* portraits = gamecrt::operator_new_as<CHudPortraits>();   // 0x164 bytes
+    portraits_ = portraits ? portraits->Construct(interface_, this) : nullptr;
     AddChild(portraits_);
     portraits_->AddObject(objects_.data[2]);
 
@@ -232,10 +232,9 @@ void CBattleScreen::Create() {
     using CreateFn = void(__thiscall*)(CUiWindow*);
     ei::VirtualSlot<CreateFn>(movePanel_->vtable_, 18)(movePanel_);   // slot 18 (+0x48)
 
-    memory = gamecrt::operator_new(0x1C8);
-    messageLog_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(),
-                                                                          RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
-                         : nullptr;
+    CUiScrollText* messageLog = gamecrt::operator_new_as<CUiScrollText>();   // 0x1C8 bytes
+    messageLog_ = messageLog ? messageLog->Construct(interface_, game::EmptyText(), RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
+                             : nullptr;
     AddChild(messageLog_);
     messageLog_->align_ = 1;
 

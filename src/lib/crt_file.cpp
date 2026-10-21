@@ -23,9 +23,9 @@ namespace {
 
 // The game CRT's settings in the exe's data: _fmode (the translation when neither _O_TEXT nor _O_BINARY
 // is asked for), _umaskval (permission bits a new file does not get) and _commode (fopen's commit flag).
-int GameFileMode() { return ei::GameData<const int>(0x007CAC80); }
-int GameUmask() { return ei::GameData<const int>(0x007CAADC); }
-int GameCommitMode() { return ei::GameData<const int>(0x007CADA4); }
+constexpr int kGameFileMode = /*007CAC80*/ 0;
+constexpr int kGameUmask = /*007CAADC*/ 0;
+constexpr int kGameCommitMode = /*007CADA4*/ 0;
 constexpr int kStreamCommit = 0x4000;   // _IOCOMMIT
 
 // &_iob[0..2]: the game's stdin, stdout and stderr (0x20-byte FILEs).
@@ -70,7 +70,7 @@ bool DropTrailingCtrlZ(int fd) {
 // maps them; the handle becomes a host descriptor in the same translation mode.
 int Sopen(const char* path, int flags, int share, int permissions) {
     SECURITY_ATTRIBUTES security{sizeof(SECURITY_ATTRIBUTES), nullptr, (flags & _O_NOINHERIT) ? FALSE : TRUE};
-    const bool text = !(flags & _O_BINARY) && ((flags & _O_TEXT) || GameFileMode() != _O_BINARY);
+    const bool text = !(flags & _O_BINARY) && ((flags & _O_TEXT) || kGameFileMode != _O_BINARY);
     DWORD access;
     switch (flags & (_O_RDONLY | _O_WRONLY | _O_RDWR)) {
     case _O_RDONLY: access = GENERIC_READ; break;
@@ -97,7 +97,7 @@ int Sopen(const char* path, int flags, int share, int permissions) {
     default: disposition = OPEN_EXISTING; break;   // none, or _O_EXCL alone
     }
     DWORD attributes = FILE_ATTRIBUTE_NORMAL;
-    if ((flags & _O_CREAT) && !(permissions & ~GameUmask() & _S_IWRITE)) attributes = FILE_ATTRIBUTE_READONLY;
+    if ((flags & _O_CREAT) && !(permissions & ~kGameUmask & _S_IWRITE)) attributes = FILE_ATTRIBUTE_READONLY;
     if (flags & _O_TEMPORARY) {
         attributes |= FILE_FLAG_DELETE_ON_CLOSE;
         access |= DELETE;
@@ -226,7 +226,7 @@ gamecrt::CrtFile* __cdecl Fopen(const char* path, const char* mode) {
     case 'a': flags = _O_WRONLY | _O_CREAT | _O_APPEND; break;
     default: return nullptr;
     }
-    bool commit = (GameCommitMode() & kStreamCommit) != 0;
+    bool commit = (kGameCommitMode & kStreamCommit) != 0;
     bool commitGiven = false;
     bool accessGiven = false;
     for (const char* p = mode + 1; *p; ++p) {

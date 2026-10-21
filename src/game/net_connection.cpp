@@ -3,7 +3,6 @@
 #include "net_connection.h"
 #include "net_connection_trees.h"
 #include "library_net_lists.h"
-#include "at_exit_functions.h"
 #include "game_strings.h"
 
 #include "core_refcount.h"
@@ -41,15 +40,18 @@ using Packets = stlp::list<SentPacket>;
 using Items = stlp::list<SentItem>;
 // The static vector of 004346D0: constructor, erase of a range (00439DD0), introsort loop and final
 // insertion sort by object, atexit.
-// 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
-ReplicatedVector& StaticReplicated() { return ei::GameData<ReplicatedVector>(0x0079B8D0); }
-std::uint8_t& StaticReplicatedGuard() { return ei::GameData<std::uint8_t>(0x0079B8DC); }
+// CollectChanges's static vector of {object, priority} and its guard; its exit function (00434980) frees the
+// storage (004387D0).
+constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
+std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
+void __cdecl FreeReplicated() { g_replicated.FreeStorage(); }
+EI_REPLACE(0x00434980, FreeReplicated);
 
 
 
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(const char* text) {
-    if (LogStream* log = NetLog()) log->Put(text)->PutChar('\n')->Flush();
+    if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
 }
 
 // 00419CC0 (inlined helper of the buffers): `high` follows `cur` upwards.
@@ -329,7 +331,7 @@ bool Connection::SendUpdate(int budget) {
     }
     c.End();
 
-    if (CurrentSession()->socket_.SendTo(&address_, out)) return complete;
+    if (g_currentSession->socket_.SendTo(&address_, out)) return complete;
     // Not sent: undo what the history entry recorded and drop it.
     RollBack(&history_.End()->prev->data);
     Packets::Erase<PacketRecordElement>(history_.End()->prev);   // 00437F30
@@ -346,7 +348,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
     RecordMap::Node* found;
     static_cast<trees::Records*>(&records_)->Find(&found, key);
-    SessionBase* session = CurrentSession();
+    SessionBase* session = g_currentSession;
 
     if (!created) {
         // Removal.
@@ -363,7 +365,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
             CRefObject* object = slot->ptr;
             attached_.EraseKey<stlp::TreeElement<AttachedMap::Value>>(object);
             object = slot->ptr;
-            session = CurrentSession();
+            session = g_currentSession;
             CallHandlers(session, 2, type, object);
         }
         if (slot->ptr) {
@@ -384,7 +386,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         AttachRecord(object, type, key);
         ReadObject(object, cursor);
         node->second.version = version;
-        CallHandlers(CurrentSession(), 0, type, object);
+        CallHandlers(g_currentSession, 0, type, object);
         return true;
     }
 
@@ -392,7 +394,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
         LogLine(game::nettexts::SkipUpdate());
         RefPtr scratch;
-        scratch.Share(CurrentSession()->types_.Create(type & 0xFF));
+        scratch.Share(g_currentSession->types_.Create(type & 0xFF));
         ReadObject(scratch.ptr, cursor);
         scratch.Destroy();
         return true;
@@ -400,7 +402,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 
     RefPtr* slot = &found->second.object;
     if (!slot->ptr) {
-        CRefObject* object = CurrentSession()->types_.Create(type & 0xFF);
+        CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
         if (object) {
             slot->AssignObject(object);
             found->second.version = 0;
@@ -414,7 +416,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     }
     ReadObject(slot->ptr, cursor);
     CRefObject* object = slot->ptr;
-    CallHandlers(CurrentSession(), found->second.version == 0 ? 0 : 1, type, object);
+    CallHandlers(g_currentSession, found->second.version == 0 ? 0 : 1, type, object);
     found->second.version = version;
     return true;
 }
@@ -425,7 +427,7 @@ void Connection::Track(Replicated* item) {
     if (!object || (object->flags7_ & CRefObject::kDetached)) return;
     std::uint32_t objectVtable;
     std::memcpy(&objectVtable, object, 4);
-    TypeRegistry::ByVtable::Node* found = CurrentSession()->types_.byVtable.Find(objectVtable);   // 0042A810
+    TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(objectVtable);   // 0042A810
     std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
 
     // A new entry (vtable 0073BF4C) with no version and no id yet.
@@ -479,21 +481,21 @@ void Connection::Track(Replicated* item) {
     if (entry->object_.ptr) ++entry->object_.ptr->refs_;
     if (previous) previous->Release();
     entry->flags_ = static_cast<std::uint8_t>((entry->flags_ & 1) | (item->priority << 1));
-    std::uint8_t reliable = CurrentSession()->reliable_[type];
+    std::uint8_t reliable = g_currentSession->reliable_[type];
     entry->flags_ = static_cast<std::uint8_t>(((reliable ^ entry->flags_) & 1) ^ entry->flags_);
 }
 EI_REWRITTEN(0x00434110, Connection::Track);
 
 void Connection::CollectChanges() {
-    ReplicatedVector& items = StaticReplicated();
-    if (!(StaticReplicatedGuard() & 1)) {
-        StaticReplicatedGuard() |= 1;
+    ReplicatedVector& items = g_replicated;
+    if (!(g_replicatedGuard & 1)) {
+        g_replicatedGuard |= 1;
         items.ConstructEmpty();   // 00439E10
-        GameAtExit(atexit400::DestroyGlobalVector);
+        GameAtExit(FreeReplicated);
     }
     items.EraseRange<stlp::PlainElement<Replicated>>(items.begin(), items.end());
     ReplicatedVector* target = &items;
-    CurrentSession()->CollectReplicated(&target);
+    g_currentSession->CollectReplicated(&target);
     if (items.begin() != items.end()) {
         int depth = 0;
         for (std::int32_t n = static_cast<std::int32_t>(items.size()); n != 1; n >>= 1) ++depth;
@@ -647,7 +649,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     static_cast<trees::Records*>(&records_)->Find(&found, key);
     if (found == records_.end()) {
         Record* record = static_cast<trees::Records*>(&records_)->Subscript(key);
-        CRefObject* object = CurrentSession()->types_.Create(type & 0xFF);
+        CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
         if (!object) return nullptr;
         if (object != record->object.ptr) {
             record->object.Destroy();
@@ -659,7 +661,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     }
     if (Usable(found->second.object.ptr)) return found->second.object.ptr;
     std::uint32_t typeKey = type & 0xFF;
-    MessageFactory factory = CurrentSession()->types_.byType[typeKey];   // 00439EA0
+    MessageFactory factory = g_currentSession->types_.byType[typeKey];   // 00439EA0
     CRefObject* object = factory ? factory() : nullptr;
     if (!object) return nullptr;
     RefPtr* slot = &found->second.object;
@@ -731,7 +733,7 @@ EI_REWRITTEN(0x00434D70, Connection::ReadAcks);
 bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived_;
     if (sequence + 0x20 < newest) {
-        if (LogStream* log = NetLog())
+        if (LogStream* log = g_netLog)
             log->Put(game::nettexts::TooOld())->PutInt(static_cast<int>(newest - sequence))->PutChar('\n')->Flush();
         return false;
     }
@@ -739,10 +741,10 @@ bool Connection::Accept(std::uint32_t sequence) {
     lastReceived_ = newest;
     for (std::int32_t* it = received_.begin(); it != received_.end(); ++it) {
         if (*it == static_cast<std::int32_t>(sequence)) {
-            if (NetLog()) {
+            if (g_netLog) {
                 stlp::string peer;
                 const char* text = address_.ToString(&peer)->data();
-                NetLog()->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
+                g_netLog->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
             }
             return false;
         }
@@ -791,7 +793,7 @@ void Connection::ProcessHeaders() {
 EI_REWRITTEN(0x00434AE0, Connection::ProcessHeaders);
 
 bool Connection::ReadUpdate(BufferCursor* cursor) {
-    CurrentConnection() = this;
+    g_currentConnection = this;
     idleTime_ = 0.0f;
     std::uint16_t low;
     std::memcpy(&low, cursor->p, 2);
@@ -806,7 +808,7 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
         sequenceHigh_ += 0x10000;
     }
     if (!Accept(sequence)) {
-        CurrentConnection() = nullptr;
+        g_currentConnection = nullptr;
         return true;
     }
     ReadAcks(cursor);
@@ -823,23 +825,23 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     std::uint8_t count = *cursor->p++;
     for (std::uint8_t i = 0; i < count; ++i) {
         if (!ReadRecord(cursor, sequence)) {
-            CurrentConnection() = nullptr;
+            g_currentConnection = nullptr;
             return false;
         }
     }
-    CurrentConnection() = nullptr;
+    g_currentConnection = nullptr;
     return true;
 }
 EI_REWRITTEN(0x00436470, Connection::ReadUpdate);
 
 void Connection::Close() {
-    CurrentConnection() = this;
+    g_currentConnection = this;
     RecordMap::Node* it = records_.begin();
     while (it != records_.end()) {
         RefPtr* slot = &it->second.object;
         if (CRefObject* object = slot->ptr) {
             std::uint32_t objectVtable = *reinterpret_cast<const std::uint32_t*>(object);
-            SessionBase* session = CurrentSession();
+            SessionBase* session = g_currentSession;
             TypeRegistry::ByVtable::Node* found = session->types_.byVtable.Find(objectVtable);
             std::uint32_t type = found ? found->value : 0xFFFFFFFFu;
             CallHandlers(session, 2, type, object);
@@ -850,7 +852,7 @@ void Connection::Close() {
         }
         Increment(it);
     }
-    CurrentConnection() = nullptr;
+    g_currentConnection = nullptr;
 }
 EI_REWRITTEN(0x00436620, Connection::Close);
 

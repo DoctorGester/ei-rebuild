@@ -172,8 +172,8 @@ void CWorldServer::ResetZone() {
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
         node->value->ClearState();
     ObjectMapClearOriginal(&objects_);
-    ObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
-    for (ObjectIdMap* map : maps) {
+    MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
+    for (MapObjectIdMap* map : maps) {
         map->map.Clear();   // 0059D6D0
         map->maxId = 0;
     }
@@ -253,10 +253,10 @@ void CWorldServer::SendFreshObjects() {
 
     // The map objects that are not part of the map itself (slot 29): also kept in sentObjects_.
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
-        CEngineObject* object = node->value;
+        CMapObject* object = node->value;
         unsigned id = static_cast<unsigned>(object->id_);
         if (!mapObjects_.map.Find(id)) continue;
-        if (static_cast<CMapObjectVirtuals*>(object)->IsSynchronised()) continue;
+        if (object->IsSynchronised()) continue;
         sentObjects_.Set(static_cast<unsigned>(object->id_), object);
         auto* entry = fresh.NewNode(fresh.tail, nullptr);
         entry->data = object;

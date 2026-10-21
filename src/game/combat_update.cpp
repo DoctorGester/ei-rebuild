@@ -668,7 +668,7 @@ void CUnitServer::TickItemSpells() {
             --current->countdown;
             continue;
         }
-        auto* item = static_cast<CItem*>(current->item);
+        CItem* item = current->item;
         if (!item) continue;
         auto* spell = item->spell_;
         float cost = std::bit_cast<float>(spell->manaCost_);
@@ -691,7 +691,8 @@ EI_REWRITTEN(0x00552B90, CUnitServer::TickItemSpells);
 namespace {
 // The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (vtables 0073BE80
 // and 0073F12C, blocks of 10; 005316F0) and the armour spell list (+0x91C, ArmourSpellList).
-using ItemList = mfc::CTypedPtrList<CEngineObject>;
+using ItemList = mfc::CTypedPtrList<CItem>;
+using SpellList = mfc::CTypedPtrList<CSpell>;
 using SpellEntry = ArmourSpellList::Node;
 constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
@@ -702,13 +703,13 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 
 void CUnitServer::RefreshItemSpells() {
     ItemList items{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    ItemList others{mfc::impl::LootListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    unit->CollectItems(&items, reinterpret_cast<mfc::CTypedPtrList<void>*>(&others));
+    SpellList others{mfc::impl::LootListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    unit->CollectItems(&items, &others);
     // Weapons other than the one in use do not count.
     for (ItemList::Node* node = items.head; node;) {
         ItemList::Node* current = node;
         node = node->next;
-        CEngineObject* item = current->data;
+        CItem* item = current->data;
         if (item->GetClassId() != kClassWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
         if (current == items.head) items.head = current->next;
         else current->prev->next = current->next;
@@ -724,9 +725,9 @@ void CUnitServer::RefreshItemSpells() {
     // previous item's spell (as the original does).
     CSpell* spell = nullptr;
     for (ItemList::Node* node = items.head; node;) {
-        CEngineObject* item = node->data;
+        CItem* item = node->data;
         node = node->next;
-        if (item) spell = static_cast<CItem*>(item)->spell_;
+        if (item) spell = item->spell_;
         if (!spell || (spell->targetFlags_ & kSpellPeriodic) == 0) continue;
         SpellEntry* found = nullptr;
         for (SpellEntry* entry = head; entry; entry = entry->next) {
@@ -745,7 +746,10 @@ void CUnitServer::RefreshItemSpells() {
         if (tail) tail->next = added;
         else head = added;
         tail = added;
-        ObjectHolderAssign(&added->data.item, nullptr, item);
+        CItem* previous = added->data.item;   // a reference's assignment (00429B50)
+        added->data.item = item;
+        if (item) ++item->refCount_;
+        if (previous) previous->Release();
         added->data.worn = 1;
     }
     // Entries of items no longer worn go.

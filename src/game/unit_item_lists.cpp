@@ -7,28 +7,26 @@
 #include "ei/hook.h"
 
 // 0069FB60 (A-H24; the original's loop runs once when the item has a spell).
-void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells,
-                           CItem* item) {
+void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
     if (!item) return;
     items->AddTail(item);
-    void* spell = item->spell_;
+    CSpell* spell = item->spell_;
     if (spell) spells->AddTail(spell);
 }
 EI_REWRITTEN(0x0069FB60, GatherItem);
 
 namespace {
 // Empty slots add nothing.
-void AddItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CItem* item) {
+void AddItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
     GatherItem(items, spells, item);
 }
 
-void AddSlots(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CItem* const* slots,
-              int count) {
+void AddSlots(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* const* slots, int count) {
     for (int i = 0; i < count; ++i) AddItem(items, spells, slots[i]);
 }
 } // namespace
 
-void CUnit::CollectItems(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* itemSpells) {
+void CUnit::CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* itemSpells) {
     items->RemoveAll();
     itemSpells->RemoveAll();
     AddSlots(items, itemSpells, weapons, 4);

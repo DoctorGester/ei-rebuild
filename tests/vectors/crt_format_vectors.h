@@ -4,7 +4,8 @@
 // (src/lib/crt_format.cpp, S4a). Recorded by record_crt_format.cpp, replayed by replay_crt_format.cpp.
 //
 // "@CrtFormatLocale" (fixture): what the conversions read of the CRT's locale, the decimal point
-// (00797FE8) and the class words of _pctype (00797DD8) for 0..255. Taken at the first call after the
+// (game.exe's __decimal_point 00797FE8; ours libcrt::g_decimalPoint) and the class words of _pctype (00797DD8)
+// for 0..255. Taken at the first call after the
 // game has set its LC_CTYPE locale; a call while the locale differs from it is not recorded.
 //
 // "vsprintf" (sprintf's calls too: both are _output on an unbounded string FILE): the format, the
@@ -23,7 +24,6 @@
 
 namespace ei::vectors::crt_format {
 
-constexpr std::uintptr_t kDecimalPoint = 0x00797FE8;   // __decimal_point[0]
 constexpr std::uintptr_t kCharClasses = 0x00797DD8;    // _pctype
 
 // Longest format, text argument or atof text, and output kept.

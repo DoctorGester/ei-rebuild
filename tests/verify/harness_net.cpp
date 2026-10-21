@@ -8,7 +8,9 @@
 #include "harness_pair.h"
 
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 #include "game/game_data.h"
+#include "game/net_classes.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,7 +24,6 @@ namespace ei::verify::netlocal {
 
 namespace {
 
-constexpr std::uintptr_t kGamePort = 0x00783E30;   // int, 8888 in game.exe's .data
 constexpr int kFirstPort = 20000;                   // below the dynamic range (49152 and up)
 constexpr int kPortCount = 20000;
 
@@ -266,13 +267,14 @@ void InstallPort() {
         Log("harness: no free UDP port found; the game keeps its own");
         return;
     }
-    auto* target = ei::GamePointer<int>(kGamePort);
+    // Ours in the image; game.exe's own in --no-hooks runs (the original code reads its copy).
+    int* target = ei::Standalone() ? &net::g_gamePort : &ei::OriginalGameData<int>(0x00783E30);
     int before = *target;
     DWORD old;
     if (!VirtualProtect(target, sizeof(int), PAGE_READWRITE, &old)) return;
     *target = port;
     VirtualProtect(target, sizeof(int), old, &old);
-    Log("harness: the game's UDP port is %d (00783E30, was %d): one per game, so parallel runs do not meet", port,
+    Log("harness: the game's UDP port is %d (was %d): one per game, so parallel runs do not meet", port,
         before);
 }
 

@@ -76,6 +76,9 @@ TYPES = {
     'MaterialKindFile': 'iP',
     'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
     'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
+    'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
+    'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
+    'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
@@ -182,6 +185,9 @@ class Definition:
             return
         count = len(values) // len(fmt)
         dims = re.findall(r'\[\s*([^\]]*?)\s*\]', self.dims)
+        if any(re.match(r'0[xX]', d) for d in dims):   # [0x22] would read as no bound: the listed elements only
+            self.problem = f'{self.dims.strip()}: write the bound as a decimal number'
+            return
         if all(d.isdigit() for d in dims):   # no bound: one element
             want = 1
             for d in dims:

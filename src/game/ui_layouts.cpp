@@ -732,10 +732,10 @@ void CCreditsScreen::Build() {
 
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
-        void* memory = gamecrt::operator_new(0x58);
+        CUiScrollingSurface* memory = gamecrt::operator_new_as<CUiScrollingSurface>();   // 0x58 bytes
         RECT rect = {10, 0x96, 0x316, 0x1C2};
         textSurface_ = static_cast<CUiScrollingSurface*>(
-            AddSurface(memory ? static_cast<CUiScrollingSurface*>(memory)->Construct(ui, &rect) : nullptr));
+            AddSurface(memory ? memory->Construct(ui, &rect) : nullptr));
         textSurface_->Freeze(0, 0);
     }
     {

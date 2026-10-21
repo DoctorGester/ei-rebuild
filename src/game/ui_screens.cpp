@@ -5,6 +5,7 @@
 #include "ui.h"
 #include "ui_screens.h"
 #include "ui_camp.h"
+#include "net_classes.h"
 #include "game_strings.h"
 
 #include "core_maths.h"
@@ -50,7 +51,7 @@ BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScro
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
 __declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
 
-void* MultiplayerClient() { return ei::GameData<void*>(0x0079B5D8); }
+void* MultiplayerClient() { return net::GameClient(); }
 // 0079BE84: the camp's tab keys are active.
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
 

@@ -50,14 +50,14 @@ using QueryList = stlp::vector<Query>;
 
 // "<text>\n" and a flush.
 void LogLine(const char* text) {
-    if (LogStream* log = NetLog()) log->Put(text)->PutChar('\n')->Flush();
+    if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
 }
 // "<text><address>\n" and a flush; the address string is freed again.
 void LogAddressLine(const char* text, const NetAddress* address) {
-    if (!NetLog()) return;
+    if (!g_netLog) return;
     stlp::string s;
     address->ToString(&s);
-    NetLog()->Put(text)->Put(s.data())->PutChar('\n')->Flush();
+    g_netLog->Put(text)->Put(s.data())->PutChar('\n')->Flush();
 }
 
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
@@ -356,10 +356,10 @@ EI_REPLACE_METHOD(0x004420E0, ClientBase::RemoveClientImpl);
 
 // ---- Client: the lobby's requests ---------------------------------------------------------------
 
-// Pings go to the game port (00783E30).
+// Pings go to the game port (net::g_gamePort).
 void ClientBase::Refresh() {
     NetAddress address{};
-    for (unsigned i = 0; socket_.Broadcast(&address, i, ei::GameData<const int>(0x00783E30)); ++i)
+    for (unsigned i = 0; socket_.Broadcast(&address, i, g_gamePort); ++i)
         SendPing(&address);
     AddressNode* sentinel = waiting_.End();
     if (sentinel->next != sentinel) {

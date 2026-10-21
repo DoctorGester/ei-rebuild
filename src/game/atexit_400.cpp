@@ -24,9 +24,6 @@ std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
 void __cdecl DestroyGlobalCamera() { CameraDestruct(&ei::GameData<char>(0x0079B2A8)); }
 // 00408D50: the chunk archive's class registry at 0079B270.
 void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&ei::GameData<ChunkArchive::ClassRegistry>(0x0079B270)); }
-// 00412250 / 004122A0: the counted pointers to the game server (0079B5DC) and client (0079B5D8).
-void __cdecl ReleaseGlobalServer() { ::RefPtrRelease(&ei::GameData<RefPtr>(0x0079B5DC)); }
-void __cdecl ReleaseGlobalClient() { ::RefPtrRelease(&ei::GameData<RefPtr>(0x0079B5D8)); }
 // 0042D900: the CWordArray at 0079B668.
 void __cdecl DestroyGlobalWordArray() { ei::GameData<mfc::impl::CWordArray>(0x0079B668).Destruct(); }
 // 00432CC0 / 00432D00: the growing buffers at 0079B900 and 0079B8E0, each destroyed once.
@@ -42,16 +39,11 @@ void __cdecl DestroyGlobalBuffer2() {
     g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
     GrowingBufferDestruct(&ei::GameData<char>(0x0079B8E0));
 }
-// 00434980: the vector at 0079B8D0.
-void __cdecl DestroyGlobalVector() { ei::GameData<stlp::vector<stlp::Opaque<8>>>(0x0079B8D0).FreeStorage(); }   // 004387D0
 
 } // namespace atexit400
 
 EI_REPLACE(0x0040C8A0, atexit400::DestroyGlobalCamera);
 EI_REPLACE(0x00408D50, atexit400::DestroyClassRegistry);
-EI_REPLACE(0x00412250, atexit400::ReleaseGlobalServer);
-EI_REPLACE(0x004122A0, atexit400::ReleaseGlobalClient);
 EI_REPLACE(0x0042D900, atexit400::DestroyGlobalWordArray);
 EI_REPLACE(0x00432CC0, atexit400::DestroyGlobalBuffer1);
 EI_REPLACE(0x00432D00, atexit400::DestroyGlobalBuffer2);
-EI_REPLACE(0x00434980, atexit400::DestroyGlobalVector);

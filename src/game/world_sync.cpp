@@ -187,7 +187,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         return out;
     }
 
-    ObjectIdMap& source = world->sessionKind_ == kKindSinglePlayer ? world->otherMapObjects_ : world->mapObjects_;
+    MapObjectIdMap& source = world->sessionKind_ == kKindSinglePlayer ? world->otherMapObjects_ : world->mapObjects_;
     if (world->sessionKind_ == kKindNoRangeTest) {
         for (auto* node = source.map.First(); node && node->value; node = source.map.After(node)) {
             CEngineObject* object = node->value;

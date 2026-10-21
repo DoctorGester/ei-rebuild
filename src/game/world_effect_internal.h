@@ -9,6 +9,7 @@
 #include "game_strings.h"
 #include "world.h"
 #include "world_data.h"
+#include "net_delta.h"
 #include "game_singletons.h"
 
 #include "ei/hook.h"
@@ -35,8 +36,6 @@ inline CLightningManager* BoltFactory() { return ei::GameData<CLightningManager*
 inline void* CameraObject() { return ei::GameData<void*>(0x007AF7C8); }
 inline int ChangeStamp() { return ei::GameData<const int>(0x007AFFC8); }
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(CurrentWorldTick()); }
-// While unpacking: the snapshot the field is read against (delta::ReadSnapshot in net_delta.h).
-inline BitStream* ReadSnapshot() { return ei::GameData<BitStream*>(0x007A9794); }
 
 // Constants the original reads from memory (read the same way so nothing is folded).
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
@@ -95,7 +94,7 @@ inline void EmptyField(DeltaField* f) {
 
 // Every Unpack ends by checking that the snapshot was read to its end (Position, then Size).
 inline bool SnapshotReadToEnd() {
-    BitStream* s = ReadSnapshot();
+    BitStream* s = delta::g_readSnapshot;
     std::uint32_t position = s->Position();
     return position == s->Size();
 }

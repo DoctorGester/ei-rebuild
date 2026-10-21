@@ -229,7 +229,7 @@ public:
     std::uint8_t host_;          // +0x28 the hosting player
     std::uint8_t unused_29[3];
     std::int32_t id_;            // +0x2C -1 when made (from the login)
-    std::int32_t serial_;        // +0x30 from the counter at 0079B60C (not sent)
+    std::int32_t serial_;        // +0x30 from the server's player serial (not sent)
     std::int32_t number_;        // +0x34 the lowest number free when joining (not sent)
     std::uint32_t firstLine_;    // +0x38 the first chat line it receives (not sent)
 };
@@ -349,7 +349,7 @@ public:
 
     stlp::string name_;             // +0x0C
     float value_;                // +0x18
-    std::uint32_t serial_;       // +0x1C from the counter at 0079B608
+    std::uint32_t serial_;       // +0x1C from g_variableSerial
 };
 static_assert(offsetof(VariableMessage, value_) == 0x18);
 static_assert(sizeof(VariableMessage) == 0x20);
@@ -451,5 +451,8 @@ static_assert(offsetof(TradeMessage, offer_) == 0x14);
 static_assert(offsetof(TradeMessage, done_) == 0x1C);
 static_assert(offsetof(TradeMessage, partnerRevision_) == 0x24);
 static_assert(sizeof(TradeMessage) == 0x28);
+
+// The serial the next variable or map record of the server gets (net_server_vars.cpp, net_server_map.cpp).
+inline std::uint32_t g_variableSerial = /*0079B608*/ {};
 
 } // namespace net

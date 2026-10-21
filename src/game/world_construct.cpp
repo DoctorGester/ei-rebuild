@@ -90,8 +90,9 @@ CWorldServer* CWorldServer::Construct() {
     diplomacy_.Reset();
     new (&mobName_) mfc::CString();
     new (&mapName_) mfc::CString();
-    for (ObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_, &timedObjects_})
+    for (MapObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_})
         map->Construct();
+    timedObjects_.Construct();
     zoneHeader_.ConstructQueueStream();
     ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
     ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());

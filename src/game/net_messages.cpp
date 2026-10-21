@@ -109,8 +109,8 @@ void TakeString(BufferCursor* cursor, stlp::string& s) {
     cursor->p += length + 1;
 }
 // Object references through the connection being written or read.
-void PutObject(BufferCursor* cursor, const RefPtr& ref) { CurrentConnection()->WriteObjectRef(cursor, ref.ptr); }
-void TakeObject(BufferCursor* cursor, RefPtr& ref) { AssignCounted(ref, CurrentConnection()->ReadObjectRef(cursor)); }
+void PutObject(BufferCursor* cursor, const RefPtr& ref) { g_currentConnection->WriteObjectRef(cursor, ref.ptr); }
+void TakeObject(BufferCursor* cursor, RefPtr& ref) { AssignCounted(ref, g_currentConnection->ReadObjectRef(cursor)); }
 
 } // namespace
 
@@ -1017,7 +1017,7 @@ void PartyMessage::Read(BufferCursor* cursor) {   // 00412B70
     static_cast<stlp::VectorAbi<RefPtr, stlp::CountedRefElement>*>(&members_)->ResizeDefault(static_cast<std::size_t>(count));
     for (std::int32_t i = 0; i < count; ++i) {
         RefPtr& slot = members_.begin()[i];
-        AssignCounted(slot, CurrentConnection()->ReadObjectRef(cursor));
+        AssignCounted(slot, g_currentConnection->ReadObjectRef(cursor));
     }
     Take(cursor, money_);
     Take(cursor, accepted_);

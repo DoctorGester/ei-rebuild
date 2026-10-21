@@ -16,7 +16,6 @@
 
 namespace {
 
-constexpr std::size_t kPipelineSize = 0x94;
 constexpr const char* kNoMmxText = "MMX required in this version !!!.\n";
 constexpr const char* kLibraryLoadedText = "MMX graphics release library loaded.\n";
 constexpr const char* kAcquiringText = "Acquiring graphics processor from graphics library.\n";
@@ -29,8 +28,8 @@ constexpr const char* kNoFunctionText = "CVisualizator::Create.\n Loaded 2D grap
 void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* settings) {
     const mfc::CString& workPath = settings->workPath_;
 
-    void* memory = gamecrt::operator_new(kPipelineSize);
-    CTransformPipeline* pipeline = memory ? static_cast<CTransformPipeline*>(memory)->TransformPipelineConstruct(workPath) : nullptr;
+    CTransformPipeline* memory = gamecrt::operator_new_as<CTransformPipeline>();   // 0x94 bytes
+    CTransformPipeline* pipeline = memory ? memory->TransformPipelineConstruct(workPath) : nullptr;
     CTransformPipeline* old = pipeline_;
     pipeline_ = pipeline;
     if (pipeline) ++pipeline->refs_;

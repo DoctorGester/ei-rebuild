@@ -23,7 +23,8 @@ namespace {
 
 constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
-const void* SelectTimeout() { return ei::GamePointer<const void>(0x0079B928); }
+// The timeval the socket steps' select waits at most: 0 s, 0 µs (a poll).
+constexpr std::int32_t kSelectTimeout[2] = /*0079B928*/ {};
 // STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n) (00441180, plain elements).
 
 // A hostent's first address (h_addr_list[0]).
@@ -261,7 +262,7 @@ EI_REWRITTEN(0x00440D40, MasterLinkDestruct);
 
 // 00440DE0: one step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing
 // buffer at once, blocking (then 2); receiving (2) into the incoming buffer until the peer closes
-// (3). An error closes the socket (0). Each step waits at most the timeout at 0079B928. Returns the
+// (3). An error closes the socket (0). Each step waits at most kSelectTimeout (a poll). Returns the
 // state.
 int __fastcall MasterLinkTick(MasterLink* self) {
     struct {
@@ -275,15 +276,15 @@ int __fastcall MasterLinkTick(MasterLink* self) {
     };
     switch (self->state) {
     case 1:
-        if (libcrt::imports::Select(0, nullptr, &set, nullptr, SelectTimeout()) == 1) {
+        if (libcrt::imports::Select(0, nullptr, &set, nullptr, kSelectTimeout) == 1) {
             self->state = 4;
             return self->state;
         }
-        if (libcrt::imports::Select(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
+        if (libcrt::imports::Select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
         return self->state;
     case 2: {
-        if (libcrt::imports::Select(0, &set, nullptr, nullptr, SelectTimeout()) != 1) {
-            if (libcrt::imports::Select(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
+        if (libcrt::imports::Select(0, &set, nullptr, nullptr, kSelectTimeout) != 1) {
+            if (libcrt::imports::Select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
             return self->state;
         }
         std::uint8_t data[0x800];
@@ -316,8 +317,8 @@ int __fastcall MasterLinkTick(MasterLink* self) {
         return self->state;
     }
     case 4: {
-        if (libcrt::imports::Select(0, nullptr, &set, nullptr, SelectTimeout()) != 1) {
-            if (libcrt::imports::Select(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
+        if (libcrt::imports::Select(0, nullptr, &set, nullptr, kSelectTimeout) != 1) {
+            if (libcrt::imports::Select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
             return self->state;
         }
         self->state = 2;

@@ -215,6 +215,7 @@ add_executable(ei_vectors
     src/game/unit_stats.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
+    src/lib/crt_locale_data.cpp
     src/lib/mfc.cpp
     src/lib/mfc_archive.cpp
     src/lib/mfc_array.cpp

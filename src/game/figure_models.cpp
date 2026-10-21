@@ -79,8 +79,8 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
     if (const AnimationMap::Node* found = map->Find(*name)) return found->value;
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
-        void* memory = gamecrt::operator_new(0x6C);
-        CMappedResource* animation = memory ? static_cast<CMMIOResource*>(memory)->Construct() : nullptr;
+        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();   // 0x6C bytes
+        CMappedResource* animation = memory ? memory->Construct() : nullptr;
         *AnimationSlot(map, name) = animation;
         (*AnimationSlot(map, name))->OpenFromMemory(data);
     }
@@ -124,8 +124,8 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     static constexpr CMappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
                                                                     &FigureModel::animations};
     for (CMappedResource* FigureModel::*archive : kArchives) {
-        void* memory = gamecrt::operator_new(0x6C);
-        model->*archive = memory ? static_cast<CMMIOResource*>(memory)->Construct() : nullptr;
+        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();   // 0x6C bytes
+        model->*archive = memory ? memory->Construct() : nullptr;
     }
     return model;
 }

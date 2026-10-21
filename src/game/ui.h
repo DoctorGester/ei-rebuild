@@ -1502,6 +1502,7 @@ public:
     HudPortraitSlot* slotsCapacity_; // +0x160
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
+static_assert(sizeof(CHudPortraits) == 0x164);
 
 // A 2D mesh of the interface (the sprite objects 005E70E0 and its siblings set up): a figure
 // mesh (CFigureMesh, figure_mesh.h) whose arrays it fills with these views of their elements.
@@ -2605,6 +2606,7 @@ inline CUiScrollText* CBattleScreen::MessageLog() const { return static_cast<CUi
 static_assert(offsetof(CUiScrollText, tokens_) == 0x19C);
 static_assert(offsetof(CUiScrollText, lines_) == 0x1B0);
 static_assert(offsetof(CUiScrollText, align_) == 0x1C4);
+static_assert(sizeof(CUiScrollText) == 0x1C8);
 
 // A spin control of the options window (vtables 00742D5C / 00742D28, 0x174 bytes): a window
 // stepping through its texts (the on / off settings). DR-H16: was UiSpinValue, with the rows'

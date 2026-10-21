@@ -220,9 +220,9 @@ void CBriefingScreen::Create() {
     topicBar_ = bar ? bar->Construct(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f)
                        : nullptr;
     AddChild(topicBar_);
-    void* memory = gamecrt::operator_new(0x1C8);
-    text_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(), RECT{165, 426, 635, 570}, 10.0f)
-                   : nullptr;
+    CUiScrollText* scrollText = gamecrt::operator_new_as<CUiScrollText>();   // 0x1C8 bytes
+    text_ = scrollText ? scrollText->Construct(interface_, game::EmptyText(), RECT{165, 426, 635, 570}, 10.0f)
+                       : nullptr;
     AddChild(text_);
 
     SetMeshesVisible(this, 0);
@@ -252,7 +252,7 @@ void CBriefingScreen::Create() {
         input->owner_ = interface_;
     }
     AddInput(input);
-    memory = gamecrt::operator_new(0x2C);
+    void* memory = gamecrt::operator_new(0x2C);
     AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
