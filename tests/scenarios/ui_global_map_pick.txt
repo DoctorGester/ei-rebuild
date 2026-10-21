@@ -16,7 +16,6 @@ waitwindow 15 battle
 wait 500
 screen 4
 waitwindow 15 map
-frames 5
 freeze
 capture map
 memorytextures remake
