@@ -1,0 +1,23 @@
+# A-I23: the game's frame recorder (0079BC54, which nothing in the shipped game sets) in a running game, on the
+# game's own renderer. While it is on, each pass of WinMain's loop counts 1000 / the options' movie fps (15: 67 ms,
+# rounded up) instead of the clock's time (app_main.cpp, docs/notes/app.md), so the worlds advance about one update
+# a frame instead of five; each present writes capture\shotNNNN.bmp (00458010 -> the surface capture 006D6D40 ->
+# CDib::Write 006D5AC0; the overlay keeps it). The digest follows the world through it.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+frames 10
+record on
+frames 40
+record off
+frames 20
+record on
+frames 10
+record off
+frames 10
+check IsAlive(GetLeader())
+report
+quit

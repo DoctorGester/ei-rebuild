@@ -147,7 +147,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `tests/vectors/data`, and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
   game (docs/notes/standalone-verification.md, section 3).
 - Coverage (`tools/coverage.py`): `tests/coverage/reach.txt` holds which scenarios reached each rewrite in
-  the last hook build's runs; `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector, suite
+  runs of the original with EI_COVER (`coverage.py addresses` / `collect`); `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector, suite
   only or unreached, with a risk rank) and `coverage.py top` lists the largest gaps.
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`

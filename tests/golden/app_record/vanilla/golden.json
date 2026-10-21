@@ -1,0 +1,12 @@
+{
+  "scenario": "app_record",
+  "install": "vanilla",
+  "recorded": "2026-10-21",
+  "commit": "d5e62271",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 3,
+  "reason": "A-I23: the frame recorder in a game (WinMain's recorded-frame pass length, the recorder's files)",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 3 runs"
+}

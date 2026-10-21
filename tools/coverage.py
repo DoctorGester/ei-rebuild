@@ -1,12 +1,17 @@
 """The coverage list (SV5, docs/notes/standalone-verification.md): which rewritten functions the suite
 reaches, and whether a golden run (SV3) or function vectors (SV4) check them without the original exe.
 
-Reach (tests/coverage/reach.txt) came from coverage runs of game.exe with our hooks (retired): with
-`EI_COVER=hooks` every installed hook address and the first byte of its plain replacement (our function) got a one-shot INT3 (src/hook/cover.cpp),
-and the run's ei_hook.log named each game address the run executed (game code calling a rewrite, our code calling
-it directly; not a call the compiler inlined, so "reached" is a lower bound for small functions). Those runs were
-game.exe with our hooks, which no tool starts since S21c (docs/notes/standalone.md section 5): reach.txt keeps
-what the suite reached then (`collect` is gone), and scenarios added since are not in it.
+Reach (tests/coverage/reach.txt): which scenarios run each rewritten function's original. Since A-I23 it comes
+from runs of the original code (--no-hooks) with `EI_COVER=<file>`: every address the file lists (`addresses`
+writes every rewrite's) gets a one-shot INT3 (src/hook/cover.cpp) and the run's ei_hook.log names each one the
+run executed (a call the original inlined is not seen, so "reached" is a lower bound for small functions).
+Scenarios collected before S21c came from game.exe with our hooks (EI_COVER=hooks: the hook addresses and our
+replacements' first bytes); `collect --add` keeps them until their scenarios run again.
+
+    python tools\\coverage.py addresses build\\cover.txt       (the watch list: every rewrite's address)
+    set EI_COVER=<full path of that file>
+    python tools\\work.py test <ID> [scenarios] --no-hooks --vanilla-only --fresh
+    python tools\\coverage.py collect build\\verify\\runs --add  (reach.txt: these runs' scenarios replaced)
 
     python tools\\coverage.py list                          (writes tests/coverage/coverage.csv from
                                                             reach.txt, the sources, goldens and vectors)
@@ -154,7 +159,7 @@ def golden_scenarios():
 
 def read_reach():
     if not os.path.exists(REACH):
-        sys.exit(f'{rel(REACH)} is missing (git checkout it: the build that collected it is gone, S21c)')
+        sys.exit(f'{rel(REACH)} is missing (restore it from the repository, or collect the whole suite)')
     scenarios, rows = [], {}
     for line in open(REACH, encoding='utf-8'):
         if line.startswith('# scenarios:'):
@@ -164,6 +169,55 @@ def read_reach():
             mask = int(bits, 16)
             rows[int(addr, 16)] = (name, {s for i, s in enumerate(scenarios) if mask >> i & 1})
     return scenarios, rows
+
+
+def write_addresses(args):
+    """The watch list for EI_COVER: every rewrite's address and every address reach.txt has."""
+    found = set(rewrites())
+    if os.path.exists(REACH):
+        found |= set(read_reach()[1])
+    os.makedirs(os.path.dirname(os.path.abspath(args.file)), exist_ok=True)
+    with open(args.file, 'w', encoding='ascii', newline='\n') as f:
+        f.write('# tools/coverage.py addresses: the rewritten functions, for EI_COVER (src/hook/cover.cpp)\n')
+        f.writelines(f'{a:08X}\n' for a in sorted(found))
+    print(f'{len(found)} addresses; wrote {args.file}')
+
+
+def collect(args):
+    """reach.txt from runs of the original made with EI_COVER=<an addresses file>: the <scenario>-vanilla folders
+    under args.runs; a pair's second game (peer\\) counts for its scenario."""
+    cover_line = re.compile(r'\] cover ([0-9A-F]{8})\b')
+    reached = {}
+    for folder in sorted(glob.glob(os.path.join(args.runs, f'*-{INSTALL}'))):
+        logs = [os.path.join(folder, 'ei_hook.log'), os.path.join(folder, 'peer', 'ei_hook.log')]
+        texts = [open(p, encoding='cp1251', errors='replace').read() for p in logs if os.path.exists(p)]
+        if not texts or not re.search(r'cover: \d+ address\(es\) from', texts[0]):
+            continue
+        scenario = os.path.basename(folder)[:-len(INSTALL) - 1]
+        reached[scenario] = {int(a, 16) for t in texts for a in cover_line.findall(t)}
+    if not reached:
+        sys.exit(f'no {INSTALL} run under {args.runs} was made with EI_COVER')
+    collected = len(reached)
+    names = {a: n for a, (n, _) in rewrites().items()}
+    if args.add and os.path.exists(REACH):
+        old_scenarios, old = read_reach()
+        for s in old_scenarios:
+            if s not in reached:
+                reached[s] = {a for a, (_, who) in old.items() if s in who}
+        for a, (name, _) in old.items():
+            names.setdefault(a, name)
+    scenarios = sorted(reached)
+    with open(REACH, 'w', encoding='utf-8', newline='\n') as f:
+        f.write('# Written by tools/coverage.py collect from runs of the original (--no-hooks, vanilla) with EI_COVER=<the\n'
+                "# rewrites' addresses>; scenarios last collected before S21c came from the hook build (EI_COVER=hooks).\n"
+                '# ADDRESS NAME BITS: a rewritten function, and a hex bitset over the scenarios below (bit i: scenario i\n'
+                '# reaches it). tools/coverage.py list turns it into coverage.csv.\n')
+        f.write('# scenarios: ' + ' '.join(scenarios) + '\n')
+        for a in sorted(names):
+            mask = sum(1 << i for i, s in enumerate(scenarios) if a in reached[s])
+            f.write(f'{a:08X} {names[a]} {mask:x}\n')
+    hit = sum(1 for a in names if any(a in r for r in reached.values()))
+    print(f'{len(scenarios)} scenarios ({collected} collected now), {len(names)} functions, {hit} reached; wrote {rel(REACH)}')
 
 
 # ---- the list -------------------------------------------------------------------------------------
@@ -263,13 +317,18 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('list')
+    a = sub.add_parser('addresses')
+    a.add_argument('file', help='where to write the watch list (EI_COVER names it)')
+    c = sub.add_parser('collect')
+    c.add_argument('runs', help='folder of runs (build\\verify\\runs)')
+    c.add_argument('--add', action='store_true', help='keep the scenarios of reach.txt these runs do not have')
     w = sub.add_parser('who')
     w.add_argument('function', help='address (hex) or part of a name')
     t = sub.add_parser('top')
     t.add_argument('count', nargs='?', type=int, default=40)
     t.add_argument('--area', help='only files whose path contains this')
     args = ap.parse_args()
-    {'list': write_list, 'who': who, 'top': top}[args.cmd](args)
+    {'list': write_list, 'addresses': write_addresses, 'collect': collect, 'who': who, 'top': top}[args.cmd](args)
 
 
 if __name__ == '__main__':

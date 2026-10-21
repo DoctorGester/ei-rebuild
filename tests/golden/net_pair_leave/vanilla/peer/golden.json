@@ -1,12 +1,12 @@
 {
   "scenario": "net_pair_leave",
   "install": "vanilla",
-  "recorded": "2026-10-20",
-  "commit": "dff556aa",
+  "recorded": "2026-10-21",
+  "commit": "d5e62271",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 3,
-  "reason": "SV5d3: mp folder read from the run's overlay only (the user's own hero Yob had been listed); net_pair_quest new",
+  "reason": "SV5d2 + A-I23: the vanilla peer lacks z7q2.mq (an offered quest file) and receives it (ClientOnFileChunk, WriteMapFile)",
   "side": "peer"
 }

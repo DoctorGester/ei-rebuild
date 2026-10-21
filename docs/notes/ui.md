@@ -175,7 +175,7 @@ compares ours with that (never settled: not compared). Used by DrawWrappedText, 
 **A-I22 (2026-10): 005E0000-00640000 finished.** Every hookable game function of the range is ported, in library.csv or in
 dead_code.csv; what is left are 31 stubs of 1-3 bytes (plain RET / RET n, too short to hook). Groups verified O with the
 state read back, by `verify_ui_small_members.cpp` and friends: the unpatched small members (default slot answers, setters,
-constructors, handlers, exchange slots 42 / 43), the text and sprite draws (005FDE20 surface DrawText, 005F8340, 005E3700,
+constructors, handlers, exchange slots 42 / 43: net_pair_zone reaches both), the text and sprite draws (005FDE20 surface DrawText, 005F8340, 005E3700,
 005E6FA0 sprite Place, the shapes 005E70E0 / 005E7680 / 005E7D60 / 005E99D0; 005F8340 and 005E6FA0 S), `CInterface3D::Create`
 and `DrawOverlays`, the battle camera / global map mouse moves (005EB210 S, 00630010 S, 0062F950 O), the battle panel builders
 (0063BAB0 .. 0063F500, 0063A560 key-down; 0063C050 S), `CCampPages::Create` (0060C870), the hero screen (00613EA0 Create,

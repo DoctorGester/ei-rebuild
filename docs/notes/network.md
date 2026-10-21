@@ -305,7 +305,8 @@ messages inline.
   (0041B25B, disabled in this install). NewMaster's sites are reproduced behind its flag (net_second_master.cpp); ChatLog's is not, so
   0041B1C0 is not hooked where it is applied. `net_second_master` reaches 0041AA10 (a public game with `masterhost` on 127.0.0.1); `net_pair_quest`
   reaches 0041ACA0 (the harness's fake master); nothing reaches 0041B1C0 where ChatLog is applied.
-- A-E2 (vanilla bodies, vanilla launch only; no scenario reaches them): 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`) collects a
+- A-E2 (vanilla bodies; A-I23: `net_pair_leave` reaches 0041ECC0 and 005813A0 on vanilla, its peer lacking z7q2.mq, and
+  `samefile` checks the written file; every pair's join reaches 00443080): 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`) collects a
   file's chunks, sorts and joins them and hands the file to the game flow (005813A0). 00443080 `ServerBase::OnLogin` (`net_lobby.cpp`): a
   wrong magic is ignored; the rate is cut to the address's limit; a connected client's login is ignored ("ERROR: Ignoring login..."); a
   pending join is accepted again (a new id replaces the old with "WARNING: LinkID mismatch"); otherwise `Admit` decides: accepted (a
