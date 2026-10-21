@@ -47,32 +47,8 @@ void MatrixMultiply(float* out, const float* a, const float* b) { MatrixMultiply
 
 // Terrain::HeightAt (006C8680) declared double: the original adds the unrounded ST0.
 
-// The frame's draw lists: STLport vector<CEngineObject*> globals 0x10 apart (0056AFE0 clears them).
-using ObjectVector = stlp::vector<CEngineObject*>;
-struct DrawQueue {
-    ObjectVector objects;
-    std::uint32_t allocator;
-};
-static_assert(sizeof(DrawQueue) == 0x10);
-struct DrawQueues {
-    DrawQueue touchedModels;   // 007AF508 models to keep loaded (by last use)
-    DrawQueue shadow52;        // 007AF518
-    DrawQueue shadowUnits;     // 007AF528
-    DrawQueue shadow5D;        // 007AF538
-    DrawQueue shadowOther;     // 007AF548
-    DrawQueue shadow54;        // 007AF558
-    DrawQueue visible52;       // 007AF568
-    DrawQueue visibleUnits;    // 007AF578
-    DrawQueue visible5D;       // 007AF588
-    DrawQueue visibleOther;    // 007AF598
-    DrawQueue visible54;       // 007AF5A8
-};
-DrawQueues& Frame() { return ei::GameData<DrawQueues>(0x007AF508); }
-
-
 // 0056E840 (also inlined by the original): push_back.
-void PushBack(DrawQueue& queue, CEngineObject* const& value) {
-    ObjectVector& v = queue.objects;
+void PushBack(FrameQueue& v, CEngineObject* const& value) {
     if (v.Finish() != v.EndOfStorage()) {
         if (v.Finish()) *v.Finish() = value;
         ++v.Finish();
@@ -166,35 +142,34 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
                 if (device->objectDepth != 0) --device->objectDepth;
 
                 CEngineObject* const& entry = object;
-                DrawQueues& frame = Frame();
                 if (where != 2) {
                     object->flags_ |= kFlagVisible;
                     // View-space position: x summed ZYX, y and z XYZ, each rounded.
                     o3d->worldPosition_ = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition_);
                     switch (object->GetClassId()) {
                     case 0x50:
-                        PushBack(frame.visibleUnits, entry);
-                        PushBack(frame.shadowUnits, entry);
+                        PushBack(g_visibleUnits, entry);
+                        PushBack(g_shadowUnits, entry);
                         break;
                     case 0x52:
-                        PushBack(frame.visible52, entry);
-                        PushBack(frame.shadow52, entry);
+                        PushBack(g_visible52, entry);
+                        PushBack(g_shadow52, entry);
                         break;
                     case 0x54:
-                        PushBack(frame.visible54, entry);
-                        PushBack(frame.shadow54, entry);
+                        PushBack(g_visible54, entry);
+                        PushBack(g_shadow54, entry);
                         break;
                     case 0x5D:
-                        PushBack(frame.visible5D, entry);
-                        PushBack(frame.shadow5D, entry);
+                        PushBack(g_visible5D, entry);
+                        PushBack(g_shadow5D, entry);
                         break;
                     default:
-                        PushBack(frame.visibleOther, entry);
-                        PushBack(frame.shadowOther, entry);
+                        PushBack(g_visibleOther, entry);
+                        PushBack(g_shadowOther, entry);
                         break;
                     }
                     if ((object->flags_ & kFlagTouchModel) && now - ModelOf(object)->touchTime > g_modelTouchDelay) {
-                        PushBack(frame.touchedModels, entry);
+                        PushBack(g_touchedModels, entry);
                         ++touched;
                     }
                 } else {
@@ -203,11 +178,11 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
                     if (ModelOf(object)->ShadowInView()) {
                         if (o3d->animation) o3d->animation->UpdatePose();
                         switch (object->GetClassId()) {
-                        case 0x50: PushBack(frame.shadowUnits, entry); break;
-                        case 0x52: PushBack(frame.shadow52, entry); break;
-                        case 0x54: PushBack(frame.shadow54, entry); break;
-                        case 0x5D: PushBack(frame.shadow5D, entry); break;
-                        default: PushBack(frame.shadowOther, entry); break;
+                        case 0x50: PushBack(g_shadowUnits, entry); break;
+                        case 0x52: PushBack(g_shadow52, entry); break;
+                        case 0x54: PushBack(g_shadow54, entry); break;
+                        case 0x5D: PushBack(g_shadow5D, entry); break;
+                        default: PushBack(g_shadowOther, entry); break;
                         }
                     }
                 }
@@ -365,6 +340,49 @@ void __fastcall FinalSortByModelUse(CEngineObject** first, CEngineObject** last,
 BOOL ModelUseLess::Less(CEngineObject* a, CEngineObject* b) {
     return ModelOf(b)->touchTime < ModelOf(a)->touchTime;
 }
+
+// ---- The frame's draw lists (world.h) ------------------------------------------------------------
+
+// Empty at the start, as the static initialisers 0056A4D0-0056A7F0 leave them (in the list's order: the last list
+// first); the exit functions they register free their storage through ~vector() 0056E800 (docs/notes/standalone.md,
+// "The static initialisers' objects").
+constinit stlp::vector<CEngineObject*> g_touchedModels = /*007AF508*/ {};
+constinit stlp::vector<CEngineObject*> g_shadow52 = /*007AF518*/ {};
+constinit stlp::vector<CEngineObject*> g_shadowUnits = /*007AF528*/ {};
+constinit stlp::vector<CEngineObject*> g_shadow5D = /*007AF538*/ {};
+constinit stlp::vector<CEngineObject*> g_shadowOther = /*007AF548*/ {};
+constinit stlp::vector<CEngineObject*> g_shadow54 = /*007AF558*/ {};
+constinit stlp::vector<CEngineObject*> g_visible52 = /*007AF568*/ {};
+constinit stlp::vector<CEngineObject*> g_visibleUnits = /*007AF578*/ {};
+constinit stlp::vector<CEngineObject*> g_visible5D = /*007AF588*/ {};
+constinit stlp::vector<CEngineObject*> g_visibleOther = /*007AF598*/ {};
+constinit stlp::vector<CEngineObject*> g_visible54 = /*007AF5A8*/ {};
+
+namespace {
+void __cdecl FreeTouchedModels() { g_touchedModels.FreeStorage(); }   // 0056A830
+void __cdecl FreeShadow52() { g_shadow52.FreeStorage(); }             // 0056A7E0
+void __cdecl FreeShadowUnits() { g_shadowUnits.FreeStorage(); }       // 0056A790
+void __cdecl FreeShadow5D() { g_shadow5D.FreeStorage(); }             // 0056A740
+void __cdecl FreeShadowOther() { g_shadowOther.FreeStorage(); }       // 0056A6F0
+void __cdecl FreeShadow54() { g_shadow54.FreeStorage(); }             // 0056A6A0
+void __cdecl FreeVisible52() { g_visible52.FreeStorage(); }           // 0056A650
+void __cdecl FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }     // 0056A600
+void __cdecl FreeVisible5D() { g_visible5D.FreeStorage(); }           // 0056A5B0
+void __cdecl FreeVisibleOther() { g_visibleOther.FreeStorage(); }     // 0056A560
+void __cdecl FreeVisible54() { g_visible54.FreeStorage(); }           // 0056A510
+} // namespace
+
+EI_REPLACE(0x0056A830, FreeTouchedModels);
+EI_REPLACE(0x0056A7E0, FreeShadow52);
+EI_REPLACE(0x0056A790, FreeShadowUnits);
+EI_REPLACE(0x0056A740, FreeShadow5D);
+EI_REPLACE(0x0056A6F0, FreeShadowOther);
+EI_REPLACE(0x0056A6A0, FreeShadow54);
+EI_REPLACE(0x0056A650, FreeVisible52);
+EI_REPLACE(0x0056A600, FreeVisibleUnits);
+EI_REPLACE(0x0056A5B0, FreeVisible5D);
+EI_REPLACE(0x0056A560, FreeVisibleOther);
+EI_REPLACE(0x0056A510, FreeVisible54);
 
 EI_REWRITTEN(0x0056A990, CWorldClient::CollectVisible);
 EI_REWRITTEN(0x0056BF30, CWorldClient::PickGround);

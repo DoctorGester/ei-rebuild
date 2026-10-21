@@ -124,19 +124,25 @@ bool SameArray(const mfc::CArray<T>& a, const mfc::CArray<T>& b) {
 // The game's tables into the stand-in; then the smoother's tables as ours builds them, against the
 // game's.
 bool CheckTables(Reader& r, char* d, std::size_t n) {
+    // The plain ranges into the stand-in; the last one (the radius tree's depth and mask) into ours.
     const std::uint32_t ranges = r.Get<std::uint32_t>();
     for (std::uint32_t i = 0; i < ranges && r.ok(); ++i) {
         const Range range = r.Get<Range>();
         const std::uint8_t* bytes = r.Bytes(range.size);
-        if (bytes) std::memcpy(ei::ReplayGameData(range.address, range.size), bytes, range.size);
+        if (!bytes) continue;
+        if (i + 1 == kTableRangeCount && range.size == kRadiusTreeBytes) std::memcpy(&g_spiralRadii->depth, bytes, kRadiusTreeBytes);
+        else std::memcpy(ei::ReplayGameData(range.address, range.size), bytes, range.size);
     }
+    // The three CArrays, in the record's order, into ours.
+    void* const named[kTableArrayCount] = {&*g_spiralLengths, &g_spiralRadii->keys, &*g_spiralOffsets};
     const std::uint32_t arrays = r.Get<std::uint32_t>();
     for (std::uint32_t i = 0; i < arrays && r.ok(); ++i) {
         const Range range = r.Get<Range>();
         std::uint32_t count = 0;
         const std::uint8_t* bytes = GetArray(r, range.size, &count);
         if (!bytes && count) break;
-        auto& array = ei::GameData<mfc::CArray<std::uint8_t>>(range.address);
+        if (i >= kTableArrayCount) continue;
+        auto& array = *static_cast<mfc::CArray<std::uint8_t>*>(named[i]);
         array.vtable = nullptr;
         array.data = nullptr;
         array.size = array.maxSize = static_cast<int>(count);
@@ -146,7 +152,7 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
             std::memcpy(array.data, bytes, count * range.size);
         }
     }
-    auto* tables = ei::GameData<SmoothTable[kSmoothTableCount]>(kSmoothTables);
+    SmoothTable* tables = g_smoothTables.Get();
     for (int i = 0; i < kSmoothTableCount && r.ok(); ++i) {
         std::uint32_t count = 0;
         const std::uint8_t* bytes = GetArray(r, kSmoothCopySize, &count);
