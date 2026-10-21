@@ -26,6 +26,7 @@ import capstone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_short_functions as short  # noqa: E402
+import rdata_literals as rdata  # noqa: E402
 
 ROOT = short.ROOT
 OUT = os.path.join(ROOT, 'src', 'standalone', 'static_init.cpp')
@@ -76,6 +77,17 @@ class Image:
 
     def dword(self, a):
         return struct.unpack('<I', self.read(a, 4))[0]
+
+
+class RdataView:
+    """The image as tools/rdata_literals.py reads it (S18e1): a float fold's operand in constant .rdata is
+    its tagged literal; one in .data (an earlier fold's result) stays a read. The folds are exact at
+    the original's 53 bits and in float alike (check_static_init), so the compiler may fold them."""
+
+    def __init__(self, img):
+        self.bytes, self.written = img.read, [(a, a + n) for a, n in rdata.addon_sites()]
+
+    readable = rdata.Exe.readable
 
 
 class Unknown(Exception):
@@ -419,7 +431,9 @@ class Interpreter:
             mem = MEM.match(op)
             if not mem or mem.group(1) not in ('dword', 'qword'):
                 raise Unknown(f'{x.address:08X}: x87 operand {op}')
-            return ('d.Float' if mem.group(1) == 'dword' else 'd.Double') + f'({hexa(int(mem.group(2), 16))})'
+            a = int(mem.group(2), 16)
+            literal = rdata.literal_of(RdataView(self.img), a, 'float' if mem.group(1) == 'dword' else 'double')
+            return literal or ('d.Float' if mem.group(1) == 'dword' else 'd.Double') + f'({hexa(a)})'
 
         if m == 'fldln2':
             f.append('ln2')

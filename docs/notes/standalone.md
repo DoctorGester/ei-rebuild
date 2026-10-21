@@ -177,6 +177,15 @@ each step green on the goldens and removing a measured tie:
   doubles that come out of it and its `-v` list of new float constants was compared with main's (all of this ticket's new entries
   reviewed). The pi * (1/180) of two doubles is `ei::kRadiansPerDegree` (src/game/angles.h, float, checked against exact
   arithmetic); a chain rounds after each product (`static_cast<float>(kRadiansPerDegree * 90.0)`).
+  **The static initialisers' folds** (S18e1): gen_static_init writes a float fold's .rdata operands as the same tagged literals
+  (`d.StoreFloat(0x0079B1B8, 3.1415927f /*0073B848*/ * 0.5f /*0073B86C*/)`; 243 operands; the one operand in .data, an earlier
+  fold's result 007C896C, stays `d.Float`), so the compiler folds them. The original computes them at run time at 53 bits:
+  VC6's `_FPinit` (006E72BC, through the pointer 007975A0 that `_cinit` 006E8D7A calls) runs `_controlfp(_PC_53, _MCW_PC)`
+  (006EEF7C) before `_initterm`, so they are not at the main thread's later 24 bits. check_static_init evaluates each fold of
+  literals in x87 order at 53 bits and in C++ precedence at 53 bits and in float, and fails when the three floats differ: all 118
+  agree (single operations of floats round the same through 53 bits; the three chains give 40 and 30 exactly). The `d.Log` of a
+  literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
+  cells 0073D720, 0073D728) stay.
 | Sub-ticket | Step | Tie it removes |
 |---|---|---|
 | S18a | the seam, the check, .bss sealed, the casts of the other sections | raw uses: .bss 883 -> 0, .data 495 -> 64, .rdata 2028 -> 381, IAT 563 -> 76 |
@@ -184,6 +193,7 @@ each step green on the goldens and removing a measured tie:
 | S18c | .data sealed | raw .data uses |
 | S18d | .data moves whole with .bss (one range, one shift): bytes from the build, 1071 cells, guarded | the host's copy of .data |
 | S18e | .rdata constants (floats, doubles, integers no code writes) as literals | .rdata uses 2288 -> 1295 (helper 968 -> 88, seam 603 -> 507, raw 381 -> 367) |
+| S18e1 | the static initialisers' float fold operands as literals | .rdata uses 1541 -> 1298 (generated 255 -> 12) |
 | S18f | own import table: generated slots resolved by the DLL into the storage (one shift with .data); gameapi.h and the harness's routes through it; old slots trap; iat sealed | the host's import resolution, the IAT |
 | S18g | .rdata sealed: vtables, RTTI and throw infos, tables, the harness's vtable tables | raw .rdata uses |
 | S18h | .rdata moves | the host's copy of .rdata |
@@ -240,8 +250,9 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
   kind against game.exe and our code. A few were added by hand (particle element callbacks 00485530,
   00492FB0-004965D0: `EI_REPLACE_SHORT(Ret4)`).
 - **Static initialisers** (S3): src/standalone/static_init.cpp by `tools/gen_static_init.py`. A small symbolic
-  interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X), calls
-  (cdecl, stdcall, thiscall, through an import slot), `atexit` and the once-only guard bit; a single-use decodable
+  interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X; .rdata
+  operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
+  once-only guard bit; a single-use decodable
   callee is inlined, everything else is called at its address. One template, `StaticInitialisers(Do&)`
   (static_init.h), with visitors `Run` (the image) and `Targets` (logs call targets that are still INT3).
   `tools/check_static_init.py` (build.cmd) re-decodes game.exe: when a helper gets registered later the output
