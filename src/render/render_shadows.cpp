@@ -457,6 +457,7 @@ namespace detail {
 const void* CurrentCaster() { return g_caster; }
 
 bool DropClassicDecal() { return g_classicDecal && !ClassicShadows(); }
+bool ClassicDecalPending() { return g_classicDecal; }
 
 void EndClassicDecal() { g_classicDecal = false; }
 

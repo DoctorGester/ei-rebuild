@@ -279,7 +279,8 @@
 //                             original code
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
-//                             draws and state changes, images made, CPU time, morphed meshes) and the
+//                             draws and state changes, images made, CPU time, morphed meshes; R16e: the
+//                             ground decals' projections, flat draws and object shadow builds) and the
 //                             main thread's CPU and wall time per frame; "-" only starts a new
 //                             count. Skipped in a run of the original code
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
@@ -3342,6 +3343,8 @@ void RunSteps() {
                 "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
                 "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
                 "CPU ms terrain %.3f, hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f), device mesh draws %.3f; "
+                "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f shadows %.3f ms, "
+                "%.1f others %.3f ms (%.0f vertices); shadow builds %.1f, %.3f ms; "
                 "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
                 "(%.0f corners); main thread ms CPU %.2f / wall %.2f",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
@@ -3359,6 +3362,9 @@ void RunSteps() {
                 static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,
                 static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
                 t.terrainMs / n, t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n, t.deviceMeshMs / n,
+                per(t.decalShadows), t.decalShadowMs / n, per(t.decalPrints), t.decalPrintMs / n, per(t.decalVertices),
+                per(t.flatShadowDraws), t.flatShadowMs / n, per(t.flatOtherDraws), t.flatOtherMs / n,
+                per(t.flatDrawVertices), per(t.shadowBuilds), t.shadowBuildMs / n,
                 per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
                 t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
                 frameWallMs / n);

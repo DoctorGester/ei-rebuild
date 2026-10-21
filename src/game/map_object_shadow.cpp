@@ -480,7 +480,10 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     std::uint32_t objectFlags = object->flags_;
     if ((objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh)) {
         int failure;
-        if (!RenderShadow(this, context, &failure)) return failure;
+        render::BeginShadowBuildTime();
+        bool built = RenderShadow(this, context, &failure);
+        render::EndShadowBuildTime();
+        if (!built) return failure;
     }
 
     if (vertices.size == 0) return 1;

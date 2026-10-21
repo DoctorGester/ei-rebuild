@@ -249,8 +249,8 @@ fails the run like a window surface's. `memorytextures remake` (harness) makes t
 levels as before, for frame comparisons: render_scene, render_shadows (start, fight, town, classic),
 render_options_shadows (each moment classic too) and ui_global_map_pick capture both at one frozen moment, 8 / 0.5%
 (the GPU's levels round differently from the CPU box filter). The plan's texture array of shadow slices was not
-needed for the CPU gain (each holder keeps its texture; objects that go free theirs through HolderGone); R16e can put
-the shadows into one when its instanced decal draw wants them in one binding.
+needed for the CPU gain (each holder keeps its texture; objects that go free theirs through HolderGone); a GPU decal
+path could put the shadows into one if an instanced decal draw wants them in one binding (R16e: not built).
 
 | Address | Name / change |
 |---|---|
@@ -907,13 +907,44 @@ across runs; the goldens check the game state.
    main-thread frame, and nothing on the GPU (the same draws; 181 KB a frame is about 11 MB/s at 60 frames, 170 MB/s
    for 16 games). Not worth a signal at every writer (the original's and Rebirth's shape code among them) or a check
    per draw; SetInterfaceDraw stays. Revisit if an interface draws far more sprites (the native interface, ui-native.md).
-5. **R16e Ground decals on the GPU.** Footprints, blood, object shadows, selection markers, light pools and spell marks
-   are projected on the CPU (ProjectDecal 0056C750) into flat meshes every frame (12-32 a frame, up to 344 KB in the
-   town); instead a box per decal projects onto the depth of the ground and platforms in a shader (the game keeps its
-   lists, lifetimes and textures; the shadow textures from R16b). Gain: the CPU projection and clipping and the flat
-   uploads; all decals in one instanced draw. Risk: the look changes at steep slopes, platform edges and under water;
-   draw order (after ground and platforms, before figures). Check: ground_prints, render_scene, effects frames at
-   16 / 2% plus a side-by-side (frame_preview.py) for the user.
+5. **R16e Ground decals on the GPU (measured, not built: under 0.07 ms a frame to gain with the shadow map).** The
+   plan: a box per decal projecting onto the depth of the ground and platforms in a shader instead of ProjectDecal
+   0056C750 (CPU projection and clipping) and the device's flat draws 004EA4A0. Measured with `renderstats`' decal
+   timers (harness build: "decals projected" by ProjectDecal for object shadows and ground prints, "flat draws" of
+   the shadows' decals and the rest (prints, selection markers), "shadow builds": RenderShadow in 0051CE60 around
+   its projection: the parts' points, the 64 x 64 raster, its blur, the texture's copy). render_stats, vanilla 4K,
+   ms a frame (count a frame), the machine shared with other workers' runs:
+
+   | Scene | shadow projections | print projections | flat draws: shadows | flat draws: others | shadow builds | main thread CPU |
+   |---|---|---|---|---|---|---|
+   | zone1 | 0.34 (11) | 0 | 0.065 (12) | 0.000 (1) | 0.31 | 6.2 |
+   | fight | 0.60 (18) | 0.004 (0.2) | 0.072 (19) | 0.005 (7) | 0.73 | 18.6 |
+   | town | 0.48-0.63 (23-25) | 0.004-0.013 (1) | 0.17-0.21 (27-29) | 0.015-0.06 (45-210, more as prints pile up) | 1.15-1.30 | 6.6-7.5 |
+
+   Classic shadows add the decals' hand-over: 13 / 20 / 28 flat meshes, 94 / 126 / 288 KB, hand-over CPU +0.02 /
+   +0.03 / +0.06 ms. EI_PROFILE=1 agrees (the town with the map, 7.3 ms frames): DrawShadow 30% of the samples,
+   RenderShadow 25% (ProjectDecal 7.7: Terrain::AddDecalTriangles 7.2, DecalBuilder::ClipStage 6.3,
+   AddTerrainTriangle 5.4; CLinkMesh::RasterisePartImpl 6.8), DrawFlatBlocks 5.4; zone1 9.5 / 9.2 / 4.2, fight
+   7.0 / 6.7 / 3.5. A ground print is projected once (GroundPrint::Draw's `built_`), so what a GPU decal path takes
+   in the default look is the prints' and markers' flat draws: under 0.07 ms. In the classic look it would take the
+   shadow decals' flat draws and hand-over too, at most about 0.3 ms in the town. The object shadows' projection
+   (0.34-0.63 ms) stays either way: its mesh's bounds are the shadow's sphere (`CObject3DClientSpecific::sphere`,
+   FitBounds in RenderShadow), which ShadowInView 0051E300 tests for objects out of view (listed for shadows,
+   their pose updated: CollectVisible 0056A990), so the game reads the projection whatever draws the decal.
+   What the numbers do show: with the shadow map (the default) the whole classic shadow build runs every frame for
+   the moving objects though only that sphere is read: projection, build and the decal's flat draw (which BeginMesh
+   drops) are 0.72 ms of zone1's frame, 1.40 of the fight's and 2.1 of the town's. R16e1 skips the raster, blur,
+   copy and flat draw with the map (the same game state); R16e2 (the user's call) would take a sphere around the
+   decal's box instead of the projected mesh, dropping the projection too, but lists more objects out of view for
+   shadows. Facts for a later GPU decal path: the CPU volume is a prism along the direction through the quad's u, v
+   in [0, 1], cut by one plane at the point minus depth * 0.33 along the direction and open beyond it (a print
+   lands on the ground under a bridge too, unless `skipOnPlatform` and the point is on a platform); receivers are
+   the terrain and, with `objects`, the platform objects' link-figure parts (an object shadow with keyed parts:
+   the terrain only); DrawPass 0056AFE0 draws all objects and figures, then the prints, the shadows and the
+   selection markers, then water and particles come after; the frame's depth is D32 without stencil (kDepthFormat),
+   so keeping decals off figures and other objects needs a stencil format or a receiver mask, and reading depth
+   needs a pass break (and the multisampled depth with the smooth option). Revisit if decals become many more or
+   the classic look the default.
 6. **R16f The present without a frame copy (done).** The frame was copied whole every frame for the cursor thread
    (33 MB of GPU traffic at 4K) before the cursor was drawn into it. Now the present shader draws the cursor over the
    frame as it applies the gamma ramp (section 9, R9c2), the frame target never holds the cursor and the cursor thread
@@ -963,7 +994,7 @@ across runs; the goldens check the game state.
    CPU / wall ms per frame, renderstats): fight 18.6 / 19.0, mostly the server's AI path search (LocalSearch,
    CAIMap::FindPath); town 8.8 / 9.1: by profile figure lighting in 3DfpFPU (17% of the samples; R16i), the x87
    control word set around every libcrt math call (the CRT's ctrlfp 9%: Hypot in the camera's ClampAboveObjects;
-   gone with SV10i, Hypot 1.6% after), the ground decals' projection and clipping (DecalBuilder; R16e) and the device's per-corner work for meshes
+   gone with SV10i, Hypot 1.6% after), the ground decals' projection and clipping (DecalBuilder; R16e: the object shadows' build, item 5) and the device's per-corner work for meshes
    the new renderer draws from the hand-over anyway (FillCorners, the clipper, fog: R16k, measured smaller than the
    profile suggested: 0.1-0.5 ms a frame for the whole device mesh path, item 11). The renderer's own CPU
    (terrain, hand-over, textures, end of frame, shadow map) is 2.0 ms of the fight's frame and 1.0 of the town's; GPU frame
