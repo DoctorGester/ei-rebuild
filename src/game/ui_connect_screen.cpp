@@ -550,7 +550,7 @@ void CMpConnectScreen::MasterRequest() {
     CMasterRequestBox* box =
         memory ? static_cast<CMasterRequestBox*>(memory)->Construct(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra)
                : nullptr;
-    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+    interface_->PushWindow(box, 1, 1);
 }
 EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
 

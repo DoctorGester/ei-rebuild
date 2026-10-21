@@ -126,7 +126,7 @@ void CCampPages::DebugFill() {
             mfc::CString name(MaterialWord());
             name += Dot();
             name += names.data[i];
-            auto* item = static_cast<CItem*>(ItemManagerCreateItemOriginal(items->ItemManager(), nullptr, name));
+            auto* item = ItemManagerCreateItemOriginal(items->ItemManager(), nullptr, name);
             item->count_ = kMaterialCount;
             AddCounted(items, item);
         }

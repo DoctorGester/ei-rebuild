@@ -101,7 +101,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     if (length != 0.0f) towards /= length;
     float scaled = position->x * 15.0f /*0073C518*/;   // 15
     int shift = x87::fistp(scaled);
-    int frame = (static_cast<CWorld*>(ObjectWorld(this))->tick_ + shift) % 15;
+    int frame = (ObjectWorld(this)->tick_ + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * 0.125f /*0073C520*/;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
@@ -149,7 +149,7 @@ int CLightning::DrawImpl(void* device) {
     Vector3 start = main_.start;
     Vector3 run{count * main_.step.x, count * main_.step.y, count * main_.step.z};
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
-    int frameCounter = static_cast<int*>(ObjectWorld(this))[0x64 / 4];
+    int frameCounter = ObjectWorld(this)->tick_;
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
     float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f /*0073C528*/);   // 0.11
     int phase = (frameCounter / 2) % 15;

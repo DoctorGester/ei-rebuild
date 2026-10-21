@@ -133,26 +133,24 @@ Vector3* MatrixRows::Transform(Vector3* out, const Vector3* v) const {
 
 // ---- Units and players ---------------------------------------------------------------------------
 
-CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
+CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     CPlayerClient* view = Session()->LocalClient();
     if (!view || !unit) return nullptr;
-    auto* self = static_cast<CUnit*>(unit);
     float best = 1e38f;
-    CEngineObject* nearest = nullptr;
+    CUnit* nearest = nullptr;
     for (int i = 0; i < view->partyUnitIds_.size; ++i) {
-        CEngineObject* found = WorldFindUnit(this, nullptr, view->partyUnitIds_[i]);
+        CUnit* found = WorldFindUnit(this, nullptr, view->partyUnitIds_[i]);
         if (!found || found->GetClassId() != world::kClassUnit) continue;
         if (ObjectSlots(found)->IsDead() != 0) continue;
-        auto* other = static_cast<CUnit*>(found);
-        std::uint32_t side = 1u << (self->side & 31);
-        if ((other->relationsA & (side & other->relationsB)) == 0) continue;
-        float dy = other->position.y - self->position.y;
-        float dx = other->position.x - self->position.x;
+        std::uint32_t side = 1u << (unit->side & 31);
+        if ((found->relationsA & (side & found->relationsB)) == 0) continue;
+        float dy = found->position.y - unit->position.y;
+        float dx = found->position.x - unit->position.x;
         float distance = LengthSquared2DUnrounded(dx, dy);
         EI_NAN_AUDIT(distance, best);
         if (distance < best) {
             best = static_cast<float>(distance);
-            nearest = other;
+            nearest = found;
         }
     }
     return nearest;
@@ -230,7 +228,7 @@ void CWorldClient::CreateExitMarkers() {
             continue;
         }
         auto* source = static_cast<CParticleSource*>(
-            static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kExitParticles));
+            ParticleManagerObject()->CreateSource(kExitParticles));
         auto* marker = reinterpret_cast<CEngineObject*>(source);
         AssignCounted(&countedA0_[i], marker);
         const ZoneExit& exit = exits_[i];
@@ -250,12 +248,12 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
     inExit->SetSize(0);
     for (int i = 0; i < records->size; ++i) {
         std::uint8_t* record = (*records)[i];
-        CEngineObject* found =
+        CUnit* found =
             WorldFindUnit(this, nullptr, static_cast<int>(reinterpret_cast<PartyUnitRecord*>(record)->unitId));
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;
-        if (!FindExitAt(&static_cast<CUnit*>(found)->position.x, &index) || index != exit) {
+        if (!FindExitAt(&found->position.x, &index) || index != exit) {
             result = 0;
             continue;
         }

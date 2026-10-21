@@ -16,8 +16,8 @@ namespace {
 // (006ADC10, RET 0xC), the records' destructors (006AF4D0 quests, 006AF5A0 briefings, plain RET)
 // and the vectors' resize (006B2100 / 006B2240, RET 4: new records default-constructed, extra
 // ones destroyed).
-void __fastcall QuestDestroy(QuestRecord* record) { static_cast<QuestRecord*>(record)->Destruct(); }
-void __fastcall BriefingDestroy(QuestBriefingRecord* record) { static_cast<QuestBriefingRecord*>(record)->Destruct(); }
+void __fastcall QuestDestroy(QuestRecord* record) { record->Destruct(); }
+void __fastcall BriefingDestroy(QuestBriefingRecord* record) { record->Destruct(); }
 
 // The vectors' serialiser (one instantiation per record type in the original): chunk `id`
 // holding one chunk 1 per record; loading destroys the old records (erase(begin, end): the tail

@@ -156,7 +156,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (spoke) {
         // "#phrase <speaker> [voice]": the speaker's name (its unit's name, else its "pers" text,
         // else the word itself), then the text up to the next '#'.
-        auto* unit = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(words[1])));
+        auto* unit = GameFindClientUnit(TextKeyFromName(words[1]));
         if (!unit) {
             speaker = words[1];
         } else {
@@ -243,7 +243,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && topic_.GetLength() > 0 && Compare(topic_.Left(1), ZonePrefix()) == 0) {
-                if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(0))) {
+                if (auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0))) {
                     for (auto* node = player->items.head; node; node = node->next) {
                         CEngineObject* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;
@@ -314,7 +314,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_))) {
+                if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
                     auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
                     controller->StopAction();
                     controller->actionDone = SpeakerActionDone();

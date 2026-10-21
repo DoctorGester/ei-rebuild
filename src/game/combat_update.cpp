@@ -217,8 +217,8 @@ int CUnitServer::UpdateServer() {
     if (self->dead == 0) {
         if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != 0 ? 1 : 0)) {
             stats.Recompute(ServerStatsOf(unit), unit);
-            static_cast<CMapObject*>(unit)->MarkChanged(0);
-            static_cast<CMapObject*>(unit)->MarkChanged(4);
+            unit->MarkChanged(0);
+            unit->MarkChanged(4);
         }
         // Every (speedClass + 1) updates the unit's step noise (005C9770 returns 0: no record).
         if ((static_cast<std::uint32_t>(TheServerWorld()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
@@ -234,7 +234,7 @@ int CUnitServer::UpdateServer() {
         if (unit->player != nullptr) {   // 005301A0
             // A party unit: its perception memory, and now and then a bored remark.
             Brain()->memory.MeasureExposure(this, unit->levels4C8);
-            static_cast<CMapObject*>(unit)->MarkChanged(0xC);
+            unit->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
             if (bored > kBoredTicks && IsaacRandom::Global().Next() % kBoredChance == 0) {
@@ -273,14 +273,14 @@ int CUnitServer::UpdateServer() {
         self->position.z = self->position.z - sinking;
         float z = unit->position.z;
         unit->position.z = z <= 0.0f ? 0.0f : z;   // a NaN z is kept
-        static_cast<CMapObject*>(unit)->MarkChanged(2);
+        unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
     if (reported == 0 && Queue(this).count == 0) {
         reported = 1;
         static_cast<CWorldServer*>(world)->TellPartiesGone(unit);
         char* player = unit->player;
-        static_cast<CUnit*>(unit)->SetPlayer(nullptr);
+        unit->SetPlayer(nullptr);
         if (player && reinterpret_cast<CPlayer*>(player)->IsLeader(unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {

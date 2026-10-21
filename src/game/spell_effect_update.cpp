@@ -275,7 +275,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
             for (auto* node = units.head; node;) {
                 CEngineObject* unit = node->data;
                 node = node->next;
-                static_cast<ScriptGroup*>(group)->Insert(unit);
+                group->Insert(unit);
             }
         }
         float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
@@ -302,7 +302,7 @@ void Possession(CSpellEffect* e) {
         CEngineObject* target = e->target;
         CUnitServer* server = ControllerOf(target);
         ScriptGroup* group = &ServerOf(player)->group50F8_;
-        static_cast<ScriptGroup*>(group)->Insert(target);
+        group->Insert(target);
         group->InsertAll(&server->Brain()->memory.visible);   // 004B31D0
         group->InsertAll(&server->Brain()->memory.seenCorpses);
         ServerOf(player)->possessedId_ = target->id_;
@@ -359,7 +359,7 @@ void Teleport(CSpellEffect* e) {
     if (e->timer != arrival) return;
     CEngineObject* caster = e->caster;
     std::memcpy(&e->targetPoint.z, &static_cast<CTransformObject*>(caster)->localPosition_.z, 4);
-    if (!static_cast<CAIMap*>(e->world->AIMap())->IsPassableWithoutSelf(static_cast<CUnit*>(caster), &e->targetPoint)) {
+    if (!e->world->AIMap()->IsPassableWithoutSelf(static_cast<CUnit*>(caster), &e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
     }

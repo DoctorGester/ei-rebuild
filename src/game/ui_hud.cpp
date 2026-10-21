@@ -668,10 +668,10 @@ Vector3 PositionOf(const CUnit* unit) {
 // The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
 __declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
 void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
-    static_cast<CBattleScreen*>(screen)->UseOnUnit(target, quick, ctrl);
+    screen->UseOnUnit(target, quick, ctrl);
 }
 void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
-    static_cast<CBattleScreen*>(screen)->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
+    screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
@@ -711,7 +711,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = static_cast<CWorldClient*>(TheClientWorld())->PickSurface(&out, x, y);
+        Vector3* p = TheClientWorld()->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
@@ -731,14 +731,14 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         for (int i = 0; i < kQuickSlots; ++i) reinterpret_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
         quick->selected_ = -1;
         CHudSpellColumn* spells = spellColumn_;
-        for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>(spells)->Highlight(i, 0);
+        for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
         spells->selected_ = -1;
         CHudActionColumn* actions = actionColumn_;
         if (!actionLoop) {
             ActionPanelReset(actions);
             return;
         }
-        for (int i = 0; i < actions->count_; ++i) static_cast<CHudActionColumn*>(actions)->Highlight(i, 0);
+        for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
         actions->selected_ = -1;
     };
     auto order = [this](CUnit* first, CUnit* target, int a, int b) {
@@ -972,10 +972,10 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
         for (int i = 0; i < kQuickSlots; ++i) reinterpret_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
         quick->selected_ = value;
         CHudSpellColumn* spells = screen->spellColumn_;
-        for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>(spells)->Highlight(i, 0);
+        for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
         spells->selected_ = value;
         CHudActionColumn* actions = screen->actionColumn_;
-        for (int i = 0; i < actions->count_; ++i) static_cast<CHudActionColumn*>(actions)->Highlight(i, 0);
+        for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
         actions->selected_ = value;
     };
     if (selected_ != region) {

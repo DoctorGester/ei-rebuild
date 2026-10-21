@@ -206,7 +206,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
         }
         if (held) held->Release();
     }
-    for (std::uint32_t i = 0; i < count(); ++i) static_cast<CParty*>(party)->AddItem(static_cast<CItem*>(items[i]), 1, 1);
+    for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<CItem*>(items[i]), 1, 1);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision_);
     TradeRecordNode* sentinel = self->tradeRecords_.End();

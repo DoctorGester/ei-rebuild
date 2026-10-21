@@ -41,7 +41,7 @@ __declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's
 // destructor; 004C2050 SetSize.
-void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(static_cast<ScriptObjectRef*>(a0), a1); }
+void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, WorldPlayer* player) {

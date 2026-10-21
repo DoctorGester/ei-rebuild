@@ -43,7 +43,7 @@ constexpr int kClassArrowFigure = 0x5B;
 // The missile base's vtable, stored while the base part is built.
 std::uintptr_t MissileVtable() { return ei::DataId(0x00743754); }
 
-CWorld* WorldOf(const CEngineObject* object) { return static_cast<CWorld*>(ObjectWorld(object)); }
+CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 std::uint32_t Bits(const float& f) {
     std::uint32_t u;
@@ -187,7 +187,7 @@ int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = static_cast<CUnit*>(WorldFindUnit(ObjectWorld(this), nullptr, casterId_));
+        auto* caster = WorldFindUnit(ObjectWorld(this), nullptr, casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
@@ -367,7 +367,7 @@ int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = static_cast<CUnit*>(WorldFindUnit(ObjectWorld(this), nullptr, casterId_));
+        auto* caster = WorldFindUnit(ObjectWorld(this), nullptr, casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);

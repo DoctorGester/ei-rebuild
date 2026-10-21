@@ -46,6 +46,7 @@ void __cdecl StoreStartFolder();
 #include <cstdint>
 
 class CEngineObject;
+class CUnit;   // unit.h
 struct ClientTexts;
 
 // The server world's (007AFF60).
@@ -97,7 +98,7 @@ void GameStartAmbience();
 // 0079BECC), mode 4; RequestStream's result.
 int __stdcall GamePlayMusic(const char* name);
 // 00578980 (RET 4). CWorld::FindUnit on the client world.
-CEngineObject* __stdcall GameFindClientUnit(int id);
+CUnit* __stdcall GameFindClientUnit(int id);
 // 005789C0 (RET 8) / 005789E0 (RET 4). CWorldClient::CreatePartyUnits / RemoveUnitsOf.
 void __stdcall GameCreatePartyUnits(const mfc::CArray<std::uint8_t*>* party, int allArmour);
 void __stdcall GameRemoveUnitsOf(const mfc::CArray<std::uint8_t*>* records);

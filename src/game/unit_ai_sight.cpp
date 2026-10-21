@@ -109,7 +109,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
         if (!units) continue;
         for (auto* node = units->head; node; node = node->next) {
             CEngineObject* other = node->data;
-            if (other == static_cast<CEngineObject*>(self)) continue;
+            if (other == self) continue;
             // At the head, holding a reference (the original's inlined AddHead): See walks the list
             // from the head, so the units of the last sector come first.
             memory->nearby.AddHead(other);
@@ -223,13 +223,13 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = ControllerOf(other);
             AIBrain* theirBrain = theirs->Brain();
-            if (theirs->Busy() && theirBrain->target == static_cast<CEngineObject*>(self)) continue;
+            if (theirs->Busy() && theirBrain->target == self) continue;
             double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.valuesE0[0].current *
                            owner->stats.valuesB0[0].current * reachFactor;
             if (sight > distance) continue;
             double sense = static_cast<double>(theirs->stats.valuesE0[2].current) * owner->stats.valuesB0[2].current * reachFactor;
             if (sense > distance) continue;
-            if (theirBrain->AggressionEnemy() == static_cast<CEngineObject*>(self)) continue;
+            if (theirBrain->AggressionEnemy() == self) continue;
         }
         console::EndLine(LogPair(self, " lost from sight unit ", other));
         if (self->IsHostileTo(other) && memory->noticedLevel < kLostLevel) NoticeAt(memory, other, kLostLevel, kLostKind);
@@ -247,7 +247,7 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     seer->orientation.AxisY(&axis);
     Vector3 look{-axis.x, -axis.y, -axis.z};
     Vector3 eye;
-    static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(seer))->EyePoint(&eye);
+    static_cast<CMapObjectVirtuals*>(seer)->EyePoint(&eye);
     grid->originX = kNoGridOrigin;
     grid->originY = kNoGridOrigin;
     reinterpret_cast<SearchGrid<std::uint8_t>*>(&grid->data)->Resize(1, 1);   // the cells (+8) as a SearchGrid

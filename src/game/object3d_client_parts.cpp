@@ -371,7 +371,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         if (!named) continue;
         TextureParts* set = partSets[k];
         if (set && set->texture) {
-            auto* found = static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindTypedTexture(set->texture->type_, name));
+            auto* found = manager->FindTypedTexture(set->texture->type_, name);
             if (found) {
                 ReplaceTexture(found);
                 continue;

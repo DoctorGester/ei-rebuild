@@ -556,7 +556,7 @@ public:
     int Draw(class CSceneRenderer* renderer);
 
     // Not rewritten (forwarders).
-    void* World();                                  // 00455950 (CEngineObject)
+    CWorld* World();                                // 00455950 (CEngineObject)
 
     void* vtable_;                  // +0x00
     int refCount_;                  // +0x04

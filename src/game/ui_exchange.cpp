@@ -375,7 +375,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (mode == kStripActionTake) {
         uiorig::PlayUiSound(interface_, kPutOnSound, 0);
         CParty* local = LocalParty();
-        static_cast<CItemScreen*>(this)->MoveItem(item, static_cast<CParty*>(ownOffer_), static_cast<CParty*>(local), kOfferLimit, 1, 0);
+        static_cast<CItemScreen*>(this)->MoveItem(item, static_cast<CParty*>(ownOffer_), local, kOfferLimit, 1, 0);
         net::ClientPublishParty(net::GameClient());
         return;
     }
@@ -385,7 +385,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         if (offered.data[i] != item) continue;
         uiorig::PlayUiSound(interface_, kPutOffSound, 0);
         CParty* offer = ownOffer_;
-        CItem* held = static_cast<CItemScreen*>(this)->MoveItem(item, static_cast<CParty*>(LocalParty()), static_cast<CParty*>(offer), 0, 1, 0);
+        CItem* held = static_cast<CItemScreen*>(this)->MoveItem(item, LocalParty(), offer, 0, 1, 0);
         static_cast<CUiItemStrip*>(strip_)->ScrollToItem(held);
         net::ClientPublishParty(net::GameClient());
         return;

@@ -160,12 +160,12 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
 
     if (location < 0 || location > 5) return;
     const HitPart& hit = kHitParts[location];
-    auto* part = static_cast<CFigureMesh*>(static_cast<CObject3D*>(unit)->FindPartByPrefix(hit.name));
+    auto* part = unit->FindPartByPrefix(hit.name);
     if (!part || !(unit->flags_ & kFiguresLoaded)) return;
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
         auto* source = static_cast<CParticleSource*>(
-            static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kBloodParticles[blood - 1]));
+            ParticleManagerObject()->CreateSource(kBloodParticles[blood - 1]));
         source->position = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->bounds_.radius * kBloodScale);
         source->typeParam = kBloodRate;
@@ -195,7 +195,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
 EI_REPLACE_METHOD(0x00537500, CUnitClientSpecific::HitEffect);
 
 void CUnitClientSpecific::SparkEffect(int) {
-    auto* source = static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kSparks));
+    auto* source = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(kSparks));
     source->position = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->radius);
     source->alpha = kSparkAlpha;
@@ -213,7 +213,7 @@ void CUnitClientSpecific::DeathEffect() {
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;
     float size;
-    if (auto* body = static_cast<CFigureMesh*>(static_cast<CObject3D*>(unit)->FindPartByPrefix("bd"))) {
+    if (auto* body = unit->FindPartByPrefix("bd")) {
         float stored = (body->bounds_.boxMax.y + body->bounds_.boxMax.x) * kHalf;
         size = stored;
         unit->PartWorldPosition(&at.x, body);

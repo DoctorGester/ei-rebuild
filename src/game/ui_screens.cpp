@@ -123,7 +123,7 @@ EI_REPLACE(0x005EE130, UiItemKinds::IsBuildable);
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { ui->PlaySound(name, flags); }
-void LeaveGame() { static_cast<GameFlow*>(TheGameFlow())->CloseSessions(); }
+void LeaveGame() { TheGameFlow()->CloseSessions(); }
 } // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------

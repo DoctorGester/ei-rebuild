@@ -109,7 +109,7 @@ using LightningList = mfc::CList<ScriptLightning>;
 void* __cdecl Renderer() { return SceneRenderer(); }
 
 // The world server.
-CWorldServer* TheWorld() { return static_cast<CWorldServer*>(TheServerWorld()); }
+CWorldServer* TheWorld() { return TheServerWorld(); }
 
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
@@ -132,8 +132,6 @@ SuspectionMode* ConstructSuspicion(SuspectionMode* mode) {
     mode->ClearFields();
     return mode->ScriptSuspectionModeConstruct();
 }
-
-CUnit* UnitOf(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
 
 // A player (CWorldServer::GetPlayer): the world's view of the CPlayer it is.
 CPlayer* PlayerOf(WorldPlayer* player) { return reinterpret_cast<CPlayer*>(player); }
@@ -190,7 +188,7 @@ __declspec(naked) void __fastcall ResetDamageInfoAt(void*) EI_ORIGINAL(0x00522B4
 // ---- Small accessors the original calls out of line (004B9F20-004BAA30) -------------------------
 
 // The unit's server half (CUnit::controller).
-void* UnitState(CEngineObject* unit) { return static_cast<CUnit*>(unit)->controller; }
+void* UnitState(CUnit* unit) { return unit->controller; }
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
 AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
 // The brain's patrol mode, null when it has none.
@@ -203,7 +201,7 @@ const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
 
 // The unit's server half when argument 0 is a unit that has one, else null.
 void* UnitStateArg(const SSCCmd* cmd) {
-    CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
+    CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
     return unit ? UnitState(unit) : nullptr;
 }
 
@@ -259,7 +257,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
         map->MoveInSectors(object, &point);
-        if (object->GetClassId() == kClassUnit) Controller(UnitState(object))->ResyncWithUnit();
+        if (object->GetClassId() == kClassUnit) Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
         map->SetRefreshUnits(1);
         static_cast<CMapObject*>(object)->MarkChanged(2);
         return;
@@ -268,7 +266,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     Vector3 point = {f[0], f[1], f[2]};
     map->MoveInSectors(object, &point);
     if (object->GetClassId() == kClassUnit) {
-        Controller(UnitState(object))->ResyncWithUnit();
+        Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
         if (oldZ != Position(object)->z) static_cast<CMapObject*>(object)->MarkChanged(2);
         return;
@@ -280,17 +278,17 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     float radius = static_cast<CMapObject*>(object)->radius + static_cast<CMapObject*>(object)->radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
     for (PtrList::Node* pos = units.head; pos;) {
-        auto* unit = static_cast<CEngineObject*>(pos->data);
+        auto* unit = static_cast<CUnit*>(pos->data);
         pos = pos->next;
         map->RemoveFromSectors(unit);
     }
     for (PtrList::Node* pos = units.head; pos;) {
         Vector3 free;
-        auto* unit = static_cast<CEngineObject*>(pos->data);
+        auto* unit = static_cast<CUnit*>(pos->data);
         pos = pos->next;
-        if (!map->CanLeaveCell(static_cast<CUnit*>(unit))) {
+        if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
-            map->FindFreeCellNear(static_cast<CUnit*>(unit), Position(unit), &free);
+            map->FindFreeCellNear(unit, Position(unit), &free);
             *Position(unit) = free;
             Controller(UnitState(unit))->ResyncWithUnit();
         }
@@ -462,8 +460,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (IsZero(f[0])) cont = 0;
             break;
         case 0xB9: {   // SleepUntilIdle(unit): while the brain has an action (+0x984)
-            CEngineObject* unit = Arg(cmd, 0);
-            if (unit && unit->GetClassId() == kClassUnit && Controller(UnitState(unit))->Brain()->action != 0) cont = 0;
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            if (unit && Controller(UnitState(unit))->Brain()->action != 0) cont = 0;
             break;
         }
         case 0x08: {   // a declared script: start an instance with the call's arguments
@@ -665,7 +663,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            static_cast<CWorldServer*>(TheServerWorld())->LoadMobFile(Text(cmd, 0));
+            TheServerWorld()->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             GamePlayCameraPath(Text(cmd, 0), 0);
@@ -754,18 +752,18 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x36: {   // SetPlayer(unit, player)
-            CEngineObject* unit = Arg(cmd, 0);
-            if (!unit || unit->GetClassId() != kClassUnit) break;
-            UnitOf(unit)->SetHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy())->GetHostileMask(Ftol(f[0])));
-            static_cast<CUnit*>(unit)->SetSide(Ftol(f[0]));
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            if (!unit) break;
+            unit->SetHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy())->GetHostileMask(Ftol(f[0])));
+            unit->SetSide(Ftol(f[0]));
             break;
         }
         case 0x38: {   // SetEnemy(unit, player): adds the player to the hostile mask (+0x244)
-            CEngineObject* unit = Arg(cmd, 0);
-            if (!unit || unit->GetClassId() != kClassUnit) break;
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            if (!unit) break;
             int player = Ftol(f[0]);
-            std::uint32_t mask = (1u << (player & 31)) | static_cast<CUnit*>(unit)->relationsA;
-            static_cast<CUnit*>(unit)->AddHostileMask(mask);
+            std::uint32_t mask = (1u << (player & 31)) | unit->relationsA;
+            unit->AddHostileMask(mask);
             break;
         }
         case 0x35: {   // KillUnit(object)
@@ -791,44 +789,44 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
-            if (player && unit) UnitOf(unit)->SetPlayer(reinterpret_cast<char*>(player));
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            if (player && unit) unit->SetPlayer(reinterpret_cast<char*>(player));
             break;
         }
         case 0x84: {   // RemoveUnitFromControl(player, unit)
-            CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
-            if (unit) UnitOf(unit)->SetPlayer(nullptr);
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            if (unit) unit->SetPlayer(nullptr);
             break;
         }
         case 0x42:   // SetSpellAggression(unit, value): reads the unit's +0x170 and does nothing
             break;
         case 0xAE: {   // RemoveQuestItem(unit, id): the first quest item (+0x4A0, count +0x4A4) with the id
-            CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            int count = static_cast<CUnit*>(unit)->carriedCount;
+            int count = unit->carriedCount;
             int id = Ftol(f[0]);
             for (int i = 0; i < count; ++i) {
-                auto* item = static_cast<CItemQuest*>(static_cast<CUnit*>(unit)->carried[i]);
+                auto* item = static_cast<CItemQuest*>(unit->carried[i]);
                 if (static_cast<int>(item->questItemId_) == id) {
-                    static_cast<CUnit*>(unit)->RemoveCarried(i);
+                    unit->RemoveCarried(i);
                     break;
                 }
             }
             break;
         }
         case 0xAF: {   // GiveUnitQuestItem(unit, item)
-            CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
             CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
-            if (item && item->GetClassId() == kClassQuestItem) UnitOf(unit)->AddCarried(item);
+            if (item && item->GetClassId() == kClassQuestItem) unit->AddCarried(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)
-            CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
             CEngineObject* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
-            UnitOf(unit)->AddSpell(spell);
+            unit->AddSpell(spell);
             void* state = UnitState(unit);
             ServerSlots(Controller(state))->RefreshEquipment();
             break;

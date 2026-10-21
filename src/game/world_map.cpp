@@ -283,7 +283,7 @@ void CWorldServer::SendFreshObjects() {
         node = next;
     }
     state->SendObjectsAdded(&objects);
-    static_cast<CPlayerServer*>(state)->WriteTo(header);
+    state->WriteTo(header);
     static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(temporary));
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
     fresh.vtable = ObjectPtrListVtable();

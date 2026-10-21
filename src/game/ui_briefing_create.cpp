@@ -96,7 +96,7 @@ WorldPlayer* LocalViewPlayer() {
     return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
 }
 
-CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, id)); }
+CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
@@ -185,7 +185,7 @@ void CBriefingScreen::Create() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
-        static_cast<CMemoryStream*>(GameSaveStream())->Resize(0);
+        GameSaveStream()->Resize(0);
     else if (LocalViewPlayer()->lastScreen != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();

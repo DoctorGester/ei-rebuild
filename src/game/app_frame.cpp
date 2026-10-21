@@ -72,7 +72,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
         return;
     }
     if (!TheSceneRenderer()->BeginScene()) return;
-    static_cast<CInterface3D*>(TheInterface())->Draw();
+    TheInterface()->Draw();
     TheSceneRenderer()->EndScene();
     if (cursor) InterfaceDrawCursor(TheInterface());
     if (!draw || !Running()) return;

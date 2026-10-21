@@ -329,13 +329,13 @@ int CWorldClient::Render() {
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
         CParticleManager* particles = ClientParticleManager();
-        static_cast<CParticleManager*>(particles)->DrawAll(TheSceneRenderer());
+        particles->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         LightningDraw(listManager_, nullptr, TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        static_cast<CRainSnow*>(RainSnow())->DrawImpl(TheSceneRenderer());
+        RainSnow()->DrawImpl(TheSceneRenderer());
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, StateBlockScene());

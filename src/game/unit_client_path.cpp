@@ -64,8 +64,8 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     float toWorld = kCellScale * kHalf;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
-    position.z = static_cast<float>(static_cast<CUnit*>((void*)unit)->GroundHeight(position.x, position.y) + unit->heightOffset);
-    static_cast<CWorld*>(ObjectWorld(self))->MoveObject(unit, &position.x);   // the world's slot 41
+    position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + unit->heightOffset);
+    ObjectWorld(self)->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;
         reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);

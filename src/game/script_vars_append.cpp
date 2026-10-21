@@ -125,7 +125,7 @@ namespace {
 
 void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 // 004B5EF0: a group's destructor body (references released, array freed).
-void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
+void __fastcall GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
 // The value array's storage freed after `destroy` ran on its elements (CArray::SetSize(0) as the
 // game inlines it), then the names emptied.

@@ -310,7 +310,7 @@ public:
     void SetWind(const Vector3* direction, float strength);
     // 0055FB00 (RET 4; world_create.cpp). The world object with this id (slot 40) when it is a
     // unit (class 0x50), else null.
-    CEngineObject* FindUnit(int id);
+    CUnit* FindUnit(int id);
     // 0055FC50 (world_time.cpp; the units' sight, the weather, the HUD's unit panel). How dark the
     // time of day is, in ST0: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by
     // midnight ((hours - 20) / 4).
@@ -1364,7 +1364,7 @@ public:
     mfc::CString* AmbienceTimeOfDay(mfc::CString* out);
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see
     // (relation masks +0x244/+0x248 of the candidate); null when none or `unit` is null.
-    CEngineObject* NearestVisibleUnit(CEngineObject* unit);
+    CUnit* NearestVisibleUnit(CUnit* unit);
     // 005699F0. The local view (session +0x20; its +0x1C is the local WorldPlayer), or null.
     std::uint8_t* LocalView();
     // 00566EC0. Whether the local view is in mode 2 (+0x20).

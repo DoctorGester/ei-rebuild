@@ -101,7 +101,7 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
 int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
 // The world time of an object's world (00455950).
-int WorldTick(const void* object) { return static_cast<CWorld*>(ObjectWorld(static_cast<const CEngineObject*>(object)))->tick_; }
+int WorldTick(const void* object) { return ObjectWorld(static_cast<const CEngineObject*>(object))->tick_; }
 // The prototype's height offset (UnitPrototypeRecord +0x24).
 float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height); }
 // The messages of a unit's player (CPlayer::connection_).
@@ -332,7 +332,7 @@ bool CUnitServer::StartMove() {
     // Plan the way with the units near the goal lifted off the sector map.
     LiftNearby(&lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
-    unit->altPassCosts = static_cast<CAIMap*>(map)->CellFlag80At(&unit->position);
+    unit->altPassCosts = map->CellFlag80At(&unit->position);
     bool found = PathTo(&action.point.x, action.point.z);
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
@@ -889,7 +889,7 @@ void CUnitServer::ApproachTarget() {
     if (static_cast<double>(reach) * reach < LengthSquared2DUnrounded(fx, fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
-        static_cast<AIPath*>(path)->Clear();
+        path->Clear();
         int time = WorldTick(this);
         Vector3 axis;
         unit->orientation.AxisY(&axis);

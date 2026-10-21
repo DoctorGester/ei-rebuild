@@ -272,9 +272,9 @@ constexpr int kFontSlots = 10;
 // The tokeniser and the layout through their addresses (their verify wrappers run).
 void TokenizeText(CUiScrollText* self, const char* text) {
     mfc::CString copy(text);
-    static_cast<CUiScrollText*>(self)->Tokenize(&copy);
+    self->Tokenize(&copy);
 }
-void LayOut(CUiScrollText* self) { static_cast<CUiScrollText*>(self)->Layout(); }
+void LayOut(CUiScrollText* self) { self->Layout(); }
 } // namespace
 
 CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT rect, float depth) {

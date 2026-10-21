@@ -18,7 +18,7 @@ void* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
     auto* player = static_cast<CPlayer*>(playerArg);
     if (!player) return nullptr;
     mfc::CString owner;
-    int split = static_cast<const mfc::CString*>(name)->Find("::");
+    int split = name->Find("::");
     if (split >= 0) {
         owner = console::Ops(*name).Mid(0, split);
         *name = console::Ops(*name).Mid(split + 2, console::Length(*name) - split - 2);

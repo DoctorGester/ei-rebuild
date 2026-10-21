@@ -248,7 +248,7 @@ void CBattleScreen::OnMessageResult(int result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        static_cast<GameFlow*>(TheGameFlow())->DropSessions();
+        TheGameFlow()->DropSessions();
         uiorig::LeaveGame();
         break;
     default:

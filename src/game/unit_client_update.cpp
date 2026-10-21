@@ -76,7 +76,7 @@ int CUnitClientSpecific::UpdateClient() {
     if (current) ShowWeaponParts((current->key & kKeyLowBits) == 0);
 
     bool drawn;
-    if (unit->dead && static_cast<CWorld*>(ObjectWorld(this))->tick_ >
+    if (unit->dead && ObjectWorld(this)->tick_ >
                           static_cast<std::uint8_t>(unit->animationEntry) + kDeadShownTicks) {
         drawn = false;
     } else {

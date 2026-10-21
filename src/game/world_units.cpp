@@ -250,12 +250,12 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             PlaceInLine(message, position, rotation, i);
         }
 
-        CEngineObject* unit = WorldFindUnit(this, nullptr, WorldMakeObjectOriginal(this, nullptr, message));
+        CUnit* unit = WorldFindUnit(this, nullptr, WorldMakeObjectOriginal(this, nullptr, message));
         if (!unit) continue;
         CMapObjectVirtuals* slots = ObjectSlots(unit);
 
         // A player-controlled AI, standing on a free cell near the requested position.
-        CEngineObject* controller = AsUnit(unit)->controller;
+        CEngineObject* controller = unit->controller;
         void* brain = &static_cast<CUnitServer*>(controller)->brain;
         static_cast<AIBrain*>(brain)->ClearModes();
         void* memory = gamecrt::operator_new(0x24);
@@ -264,58 +264,58 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         static_cast<AIBrain*>(brain)->StopAction();
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
-        std::memcpy(&free, &AsUnit(unit)->position.x, sizeof(free));
-        AIMap()->FindFreeCellNear(AsUnit(unit), position, &free);
-        std::memcpy(&AsUnit(unit)->position.x, &free, sizeof(free));
+        std::memcpy(&free, &unit->position.x, sizeof(free));
+        AIMap()->FindFreeCellNear(unit, position, &free);
+        std::memcpy(&unit->position.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
-        static_cast<CUnit*>(unit)->SetPlayer(reinterpret_cast<char*>(player));
+        unit->SetPlayer(reinterpret_cast<char*>(player));
         slots->SetScriptName(record->texts[0]);
-        static_cast<CUnit*>(unit)->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
-        static_cast<CMapObject*>(unit)->ClearProtectionBases();
+        unit->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
+        unit->ClearProtectionBases();
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
-        AsUnit(unit)->ReleaseAllItems();
+        unit->ReleaseAllItems();
 
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
         // (UnitEquipArmourOriginal), quick items (two fields copied from the record's), spells.
         for (int n = 0; n < static_cast<int>(record->weaponCount); ++n)
-            static_cast<CUnit*>(unit)->AddWeapon(static_cast<CEngineObject*>(MakeItem(this, record->weapons[n], false)));
-        AsUnit(unit)->Controller()->ShowWeapon(0);
+            unit->AddWeapon(static_cast<CEngineObject*>(MakeItem(this, record->weapons[n], false)));
+        unit->Controller()->ShowWeapon(0);
         for (int n = 0; n < static_cast<int>(record->armorCount); ++n)
-            static_cast<CUnit*>(unit)->EquipArmour(MakeItem(this, record->armor[n], true));
+            unit->EquipArmour(MakeItem(this, record->armor[n], true));
         for (int n = 0; n < static_cast<int>(record->quickItemCount); ++n) {
             auto* item = static_cast<CItem*>(MakeItem(this, record->quickItems[n], true));
             item->count_ = static_cast<CItem*>(record->quickItems[n])->count_;
             std::memcpy(&item->charge_, &item->chargeMax_, 4);
-            static_cast<CUnit*>(unit)->AddQuickItem(item);
+            unit->AddQuickItem(item);
         }
         for (int n = 0; n < static_cast<int>(record->spellCount); ++n)
-            static_cast<CUnit*>(unit)->AddSpell(MakeItem(this, record->spells[n], true));
+            unit->AddSpell(MakeItem(this, record->spells[n], true));
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
-        AsUnit(unit)->SetPrototype23CByName(record->texts[6]);
+        unit->SetPrototype23CByName(record->texts[6]);
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
-        if (sessionKind_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
+        if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
-            bool flagged = AIMap()->IsPassableForClass(1, &AsUnit(unit)->position);
-            if (flagged) static_cast<CUnit*>(unit)->SetMoveModes(placement->value20, placement->value20);
-            else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
+            bool flagged = AIMap()->IsPassableForClass(1, &unit->position);
+            if (flagged) unit->SetMoveModes(placement->value20, placement->value20);
+            else unit->moveMode2 = static_cast<int>(placement->value20);
         }
         static_cast<CUnitServer*>(controller)->ResyncWithUnit();
         if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
-            AsUnit(unit)->pendingWeapon = static_cast<int>(record->weaponIndex);
-        if (placement && sessionKind_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
+            unit->pendingWeapon = static_cast<int>(record->weaponIndex);
+        if (placement && sessionKind_ != kKindNoRangeTest) unit->pendingWeapon = static_cast<int>(placement->value24);
     }
 
     // Followers follow their leaders.
     if (sessionKind_ == kKindSinglePlayer) {
         for (int i = 0; i < records->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(records->data[i]);
-            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
+            CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
             if (!unit) continue;
-            CEngineObject* controller = AsUnit(unit)->controller;
+            CEngineObject* controller = unit->controller;
             if (record->leaderId <= 0) continue;
             void* brain = &static_cast<CUnitServer*>(controller)->brain;
             void* follow = static_cast<AIBrain*>(brain)->FindPlayerMode();
@@ -366,7 +366,7 @@ namespace {
 // Object setup, through the original addresses (thiscall as fastcall).
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
-void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { static_cast<CUnit*>((void*)a0)->SetHostileMask((std::uint32_t)a2); }
+void __fastcall UnitSetDiplomacy(CUnit* a0, void*, int a2) { a0->SetHostileMask((std::uint32_t)a2); }
 
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
@@ -414,7 +414,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         const char* prototype = spec->base.kind == 5 ? static_cast<const char*>(reinterpret_cast<UnitSpec*>(spec)->prototype)
                                                      : static_cast<const char*>(spec->primaryTexture);
         ObjectSlots(object)->TakePrototype(prototype);
-        static_cast<CMapObject*>((void*)object)->WriteFullState();
+        object->WriteFullState();
     };
     auto place = [spec](CMapObject* object) {
         ObjectSetFigureScaleOriginal(object, nullptr, &spec->scale.x);
@@ -472,8 +472,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         torch->SetFlameSlot(&flame->offset.x, radius, reinterpret_cast<const float*>(colour));
         torch->SetNameSlot(flame->sound);
         place(object);
-        static_cast<CMapObject*>(object)->MarkChanged(2);
-        static_cast<CMapObject*>(object)->MarkChanged(4);
+        object->MarkChanged(2);
+        object->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
         if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
@@ -486,7 +486,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
-        if (object->flags_ & 2) static_cast<CMapObject*>(object)->WriteChangedState();
+        if (object->flags_ & 2) object->WriteChangedState();
         return result;
     }
     case 7: {   // a magic trap: updated every tick (no texts, not in the sector map)
@@ -497,8 +497,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (base.id == -1) base.id = id;
         base.object = object;
         ++object->refCount_;
-        static_cast<CMapObject*>((void*)object)->WriteFullState();
-        static_cast<CMapObject*>(object)->MarkChanged(2);
+        object->WriteFullState();
+        object->MarkChanged(2);
         object->flags_ |= 8;
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -506,7 +506,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
-        if (object->flags_ & 2) static_cast<CMapObject*>(object)->WriteChangedState();
+        if (object->flags_ & 2) object->WriteChangedState();
         static_cast<MagicTrap*>(object)->SetUp(reinterpret_cast<const MagicTrapRecord*>(&reinterpret_cast<mapspec::TrapSpec*>(message)->diplomacy));
         return result;
     }
@@ -533,17 +533,18 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         int type = base.kind;
         if (type == 5) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
-            static_cast<CUnit*>(object)->SetPlayer(nullptr);
-            reinterpret_cast<CUnit*>(object)->SetSide(spec->side);
-            UnitSetDiplomacy(object, nullptr, diplomacy_.GetHostileMask(spec->side));
+            auto* unit = static_cast<CUnit*>(object);
+            unit->SetPlayer(nullptr);
+            unit->SetSide(spec->side);
+            UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
-            reinterpret_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(static_cast<CUnit*>(object), unitSpec->prototype);
+            reinterpret_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(unit, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->lists[1];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
-                static_cast<CUnit*>(object)->AddQuickItem(ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
+                unit->AddQuickItem(ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
             }
-            reinterpret_cast<unitrecord::UnitRecord*>(unitSpec->stats)->ApplyTo(static_cast<CUnit*>(object));
+            reinterpret_cast<unitrecord::UnitRecord*>(unitSpec->stats)->ApplyTo(unit);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
             const char* prototypeName = unitSpec->prototype;
             UnitPrototypeRecord* prototype;
@@ -564,21 +565,21 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
                     index = 0;
             }
             auto* model = reinterpret_cast<const UnitModelRecord*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
-            std::memcpy(AsUnit(object)->actionSpeeds, model->actionSpeeds, 24);
-            static_cast<CMapObject*>(object)->MarkChanged(5);
-            static_cast<CMapObject*>(object)->MarkChanged(6);
-            static_cast<CMapObject*>(object)->MarkChanged(0xB);
+            std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
+            object->MarkChanged(5);
+            object->MarkChanged(6);
+            object->MarkChanged(0xB);
         } else if (type == 8) {
             static_cast<Lever*>(object)->SetUp(reinterpret_cast<const LeverSetup*>(reinterpret_cast<mapspec::LeverSpec*>(message)->stats));
-            static_cast<CMapObject*>(object)->MarkChanged(5);
+            object->MarkChanged(5);
         } else {
             ManagerRegister(MapObjectManager(), nullptr, object);
         }
         place(object);
-        static_cast<CMapObject*>(object)->MarkChanged(2);
-        static_cast<CMapObject*>(object)->MarkChanged(6);
-        static_cast<CMapObject*>(object)->MarkChanged(7);
-        static_cast<CMapObject*>(object)->MarkChanged(8);
+        object->MarkChanged(2);
+        object->MarkChanged(6);
+        object->MarkChanged(7);
+        object->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
         static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
@@ -588,7 +589,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
-        if (object->flags_ & 2) static_cast<CMapObject*>(object)->WriteChangedState();
+        if (object->flags_ & 2) object->WriteChangedState();
         if (type >= 8 && type <= 9) {
             object->updateCountdown = UpdateCountdown(object);
             updateMap_.Set(static_cast<unsigned>(object->id_), object);
