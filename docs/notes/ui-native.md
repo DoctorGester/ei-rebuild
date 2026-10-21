@@ -188,6 +188,32 @@ CopyFrameTo's, and five frame blits (keyed, stretched, a source part, split, hoi
 The text font must outlive its queued runs (`GetTextFont`'s are process-wide). The atlas texture is remade whenever the atlas's
 generation changes (every new glyph); a partial update is a later optimisation.
 
+### N3 done (2026-10-21): the switch and the comparison harness
+
+**The switch** (`render_ui.h`, read by render.cpp's `ParseSpec`): EI_RENDER's `uiboth` (GDI and the canvas both drawn) and
+`uinative` (the canvas only), each optionally `=<family>+<family>` (`ui::Listed(name)`; P1 names the families, e.g. backdrop,
+fps, status). No word: today's path. `ui::SetPath` picks what the blits show under `uiboth`; `ui::DrawsCanvas(holder)` is the
+blit's test. `ui::Image(holder, rect, rgb, pitch)` writes pixels into a canvas (quantised): the fallback for drawing the canvas
+cannot record (GDI text before P2, RichEdit, code not ported). `ui::Canvases` (version, the glyph runs' clip rectangles) and
+`ui::DrawnCanvasRects` (the last drawn frame's canvas blits) are the harness's view. `ei_ui_check` gates them too (73 checks).
+
+**The diff** (`tests/verify/harness_ui.{h,cpp}`, steps and settings in the header): under `uiboth`, after each frame every
+canvas whose version or memory changed is read back (`ReadPixels`) and compared with its holder's memory widened the canvas's
+way. Outside the glyph runs' rectangles exactly (`uidiff tolerance`), inside them by `block` averages within `text` (default 24),
+each with its own fraction limit. A differing surface is logged by name (`W<window vtable>#<index>`, or backdrop, backdrop2,
+fps, status, console), its pair written as `frames\uidiff<n>_<name>_gdi.bmp` / `_canvas.bmp`, and fails the run unless
+`uidiffcheck <least> [most]` expected it. `uipath native|cpu` plus `capture` and `uimask <name>` (white where canvases were
+blitted) give the frame A/B: `python tools\compare_frames.py <a>.bmp <b>.bmp --mask-file <name>.uimask.bmp`.
+
+**Proof before P1** (`tests/scenarios/ui_compare.txt`): `uimirror on` feeds a canvas for every named surface from its memory;
+the menu and options window's checks all match exactly, a `uifault` square is found once and the next check passes, the two
+paths' captures are identical and the mask is empty (nothing calls `DrawCanvas` yet).
+
+**For P1:** make the canvas where the surface's memory is made and record at the GDI boundary; under `uiboth` call GDI too;
+for text until P2, `Image` the DrawText rectangle from the memory after GDI draws (or the diff will flag every text surface);
+mirror `SwapContents` (a swapped-out holder has no memory to compare). The UI scenarios then run with `render new,present,uiboth`.
+P2 tunes `uidiff text / block / textlimit` for our own fonts (whole-word shifts need wider blocks or a looser limit).
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -200,8 +226,8 @@ they depend on.
   The census's call chains keep a scanned stack address only when its call leads into the function holding the frame before it
   (method in ui-census.md "How it was measured").
 - **N1** the 2D canvas layer (done, section 3 "N1 done"; `src/render/render_ui.{h,cpp}`, checked offline by `ei_ui_check`). **N2** glyph atlas and DrawText layout (done, section 2).
-  **N3** comparison harness (`uinative` / `uiboth` / `uipath`, the per-surface diff (a), UI mask capture, `compare_frames.py
-  --mask-file`; `tests/verify/harness_ui.cpp`). **N4** `ui_gallery` scenario (every window family captured frozen; needs the virtual
+  **N3** comparison harness (done, section 3 "N3 done"; `uinative` / `uiboth` / `uipath`, the per-surface diff (a), UI mask
+  capture, `compare_frames.py --mask-file`; `tests/verify/harness_ui.cpp`). **N4** `ui_gallery` scenario (every window family captured frozen; needs the virtual
   clock). **N5** cursor and per-frame images cached (`render_blit.cpp`).
 - **P1** surface plumbing (canvas per native surface, blit, Get/ReleaseDC as the metrics DC, Fill / Clear / FrameRect, readback for
   PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs

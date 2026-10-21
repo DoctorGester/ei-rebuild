@@ -1,0 +1,41 @@
+# The interface's GDI and canvas paths compared (N3; tests/verify/harness_ui.h, docs/notes/ui-native.md
+# section 3). Nothing is native before P1, so the harness's mirror gives every named surface a canvas fed
+# from its memory: each check must match GDI's drawing exactly (the read-back and the formats' round trip),
+# a fault drawn on one canvas must be found (its pair written to frames\uidiff1_*), and the two paths' frames
+# must match where canvases were blitted (none yet: an empty UI mask). The original's run skips these steps.
+render new,present,uiboth
+reject Script error
+waitmenu
+uimirror on
+frames 3
+uidiffcheck 0
+
+# The options window: its surfaces drawn, fed and compared as it opens.
+clickregion 3
+waitwindow 10 options
+frames 3
+uidiffcheck 0
+uifault
+frames 2
+uidiffcheck 1
+frames 2
+uidiffcheck 0
+
+# The same frozen moment through both paths.
+uipath native
+freeze
+capture options_native
+unfreeze
+uipath cpu
+freeze
+capture options_cpu
+unfreeze
+uimask options
+samecapture options_cpu options_native 0 0
+
+clickregion 1
+waitwindow 10 menu
+frames 3
+uidiffcheck 0
+report
+quit

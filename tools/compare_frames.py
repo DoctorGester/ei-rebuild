@@ -1,7 +1,7 @@
 """Compares frames captured by the harness ("capture <name>": <run folder>\\frames\\<name>.bmp).
 
 usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--block N] [--worst N]
-                                          [--diff OUT] [--mask M1 M2 [--mask-background]]
+                                          [--diff OUT] [--mask M1 M2 [--mask-background]] [--mask-file M ...]
                                           [--exclude E1 E2 ...] [--exclude-grow N] [--exclude-mask M ...]
                                           [--exclude-rect X0 Y0 X1 Y1 ...] [--write-skip OUT] [--shift N]
                                           [--max-block F]
@@ -20,6 +20,9 @@ usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--
                     the fraction is then of the masked pixels
   --mask-background keep only the masked pixels where M2 shows its background (clear) colour: the
                     feature with nothing in front of it (no interface panel, shadow or object)
+  --mask-file M     compare only the pixels that are not black in the frame M (repeatable: where all
+                    of them are), e.g. the harness's "uimask" (<name>.uimask.bmp: where the frame
+                    blitted interface canvases) to compare the GDI and the canvas paths
   --exclude E1 E2   leave out the pixels where the frames E1 and E2 differ (repeatable; with or
                     without --mask), e.g. the old frame with and without its objects to compare
                     only the terrain around them
@@ -265,16 +268,25 @@ def compare_pair(name, path_a, path_b, args, diff_path, mask_paths=None, exclude
         masks = [read_bmp(p) for p in mask_paths] if mask_paths else []
         excludes = [(read_bmp(p), read_bmp(q)) for p, q in exclude_paths] if exclude_paths else []
         skips = [read_bmp(p) for p in getattr(args, 'exclude_mask', None) or []]
+        keeps = [read_bmp(p) for p in getattr(args, 'mask_file', None) or []]
     except (OSError, ValueError) as e:
         print(f'{name}: {e}')
         return 2
-    others = masks + [m for pair in excludes for m in pair] + skips
+    others = masks + [m for pair in excludes for m in pair] + skips + keeps
     if any((m.width, m.height) != (a.width, a.height) for m in [b] + others):
         print(f'{name}: sizes differ ({", ".join(f"{m.width}x{m.height}" for m in [a, b] + others)})')
         return 2
     mask = make_mask(masks[0], masks[1], args.tolerance, args.mask_background) if masks else None
     if excludes:
         mask = apply_excludes(mask, excludes, a.width, a.height, args.tolerance, args.exclude_grow)
+    for keep in keeps:
+        if mask is None:
+            mask = [bytearray(b'\x01' * a.width) for _ in range(a.height)]
+        for y in range(a.height):
+            r, row = keep.rows[y], mask[y]
+            for x in range(a.width):
+                if not (r[3 * x] or r[3 * x + 1] or r[3 * x + 2]):
+                    row[x] = 0
     rects = getattr(args, 'exclude_rect', None) or []
     if skips or rects:
         mask = apply_skips(mask, skips, rects, a.width, a.height)
@@ -344,14 +356,15 @@ def main():
     ap.add_argument('--exclude-grow', type=int, default=0)
     ap.add_argument('--shift', type=int, default=0)
     ap.add_argument('--exclude-mask', action='append', metavar='M')
+    ap.add_argument('--mask-file', action='append', metavar='M')
     ap.add_argument('--exclude-rect', nargs=4, type=int, action='append', metavar=('X0', 'Y0', 'X1', 'Y1'))
     ap.add_argument('--write-skip')
     args = ap.parse_args()
     if args.block < 1:
         ap.error('--block must be positive')
 
-    if (args.mask or args.exclude) and (os.path.isdir(args.a) or os.path.isdir(args.b)):
-        ap.error('--mask and --exclude need two files')
+    if (args.mask or args.exclude or args.mask_file) and (os.path.isdir(args.a) or os.path.isdir(args.b)):
+        ap.error('--mask, --mask-file and --exclude need two files')
     if os.path.isdir(args.a) and os.path.isdir(args.b):
         da, db = frames_dir(args.a), frames_dir(args.b)
         names_a = set(frame_store.frame_names(da))

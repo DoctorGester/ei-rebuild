@@ -18,6 +18,7 @@
 #include "render.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace render::text {
@@ -84,5 +85,46 @@ bool ReadBack(const void* holder);
 // `source` (null: all of it) onto `destination`, stretched when the sizes differ, and with `keyed`
 // leaving out pixels equal to `key` (a pixel of the canvas's format).
 void DrawCanvas(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
+
+// `rgb` (0x00RRGGBB rows from the top, `pitch` pixels apart) written over `destination` of the canvas
+// (clipped to it), quantised to the format: a picture, or the surface's memory as drawing the canvas
+// cannot record left it (GDI, code not ported).
+void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb, int pitch);
+
+// ---- The switch between the two paths (ticket N3) ----------------------------------------------------------
+
+// EI_RENDER's interface words (render::Configure): no word, the native surfaces draw as today (GDI into
+// their memory, blitted from it); "uiboth": GDI and the canvas both drawn, the blit showing the path
+// SetPath chose (the verify build compares the two per surface: tests/verify/harness_ui.h); "uinative":
+// the canvas only (GDI kept for the metrics). "uiboth=<a>+<b>" / "uinative=<a>+<b>" limit it to the
+// surface families named (Listed).
+enum class Mode { Cpu, Both, Native };
+enum class Path { Cpu, Native };
+// render.cpp's ParseSpec: the defaults before a spec's words, then each word (true when it was one of these).
+void ResetOptions();
+bool ParseOption(const std::string& word);
+Mode CurrentMode();
+// Whether surfaces of the family `name` go native: Both or Native, and no list or `name` in it.
+bool Listed(const char* name);
+// Under Both, which of the two the blits show (default Cpu: the frame as without the canvases).
+void SetPath(Path path);
+Path CurrentPath();
+// Whether the blit of `holder` draws its canvas (DrawCanvas) instead of its memory (SurfaceBlit): it has a
+// canvas, and the mode is Native, or Both with the path Native.
+bool DrawsCanvas(const void* holder);
+
+// ---- What the comparison harness reads (verify build) -----------------------------------------------------
+
+struct CanvasInfo {
+    const void* holder = nullptr;
+    int width = 0, height = 0;
+    PixelFormat format;
+    unsigned version = 0;     // changes whenever a command for the canvas is queued (or it is made)
+    std::vector<Rect> text;   // where glyph runs drew since the last fill of the whole canvas: their clip
+                              // rectangles (unclipped, their bounds), at most 64 (then their union)
+};
+void Canvases(std::vector<CanvasInfo>* out);
+// The destinations of the canvas blits of the frame drawn last (between frames: the last presented one).
+void DrawnCanvasRects(std::vector<Rect>* out);
 
 } // namespace render::ui

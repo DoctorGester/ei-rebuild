@@ -12,9 +12,11 @@
 //           pass under the text) against the CPU rule, and over black against text::ComposeAgainstBlack.
 //   grey    greying against 005FE440's formulas on the packed pixels.
 //   copy    screen copies of a frame texture against CopyFrameTo's stretch and packing.
+//   image   pixels written into canvases (clipped, quantised) exactly; the switch's words and paths; the
+//           comparison's view (versions, the glyph runs' rectangles).
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
 //           rule, and the pass split: drawing into a canvas blitted and not drawn yet draws the frame
-//           first, so the blit shows the canvas as it was.
+//           first, so the blit shows the canvas as it was; the blits' rectangles kept for the UI mask.
 // Any sokol error or warning and any ei::Log line fails the check. Exit code 0 when all pass.
 #define NOMINMAX
 #include <windows.h>
@@ -430,6 +432,7 @@ void CheckGlyphs() {
         {"Clipped text that runs past the right edge of its rectangle", text::kNoPrefix, {-6, 30, 90, 44}, true, 13},
         {"Right &aligned\r\nsecond line", text::kRight, {0, 20, 175, 71}, false, 16},
     };
+    int textAreasWrong = 0;
     for (const Format& f : kFormats) {
         int caseIndex = 0;
         for (const Case& c : cases) {
@@ -460,6 +463,13 @@ void CheckGlyphs() {
             const COLORREF colour = RGB(250, 220, 120 + caseIndex * 30);
             ui::GlyphRun(holder, *font, layout, colour);
             RefGlyphRun(expected, w, h, *font, layout, colour, f.format);
+            // The comparison's text areas: the two runs' clip rectangles within the canvas.
+            std::vector<ui::CanvasInfo> canvases;
+            ui::Canvases(&canvases);
+            const Rect clip{std::max(0, layout.clip.left), std::max(0, layout.clip.top), std::min(w, layout.clip.right), std::min(h, layout.clip.bottom)};
+            textAreasWrong += !(canvases.size() == 1 && canvases[0].text.size() == 2 && layout.clipped &&
+                                canvases[0].text[1].left == clip.left && canvases[0].text[1].top == clip.top &&
+                                canvases[0].text[1].right == clip.right && canvases[0].text[1].bottom == clip.bottom);
             std::vector<std::uint32_t> got;
             std::string example;
             int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
@@ -470,6 +480,7 @@ void CheckGlyphs() {
             ++caseIndex;
         }
     }
+    Check(textAreasWrong == 0, "glyph runs' text areas (ui::Canvases): " + std::to_string(textAreasWrong) + " cases wrong");
     // Over black in 8:8:8 the run is ComposeAgainstBlack (render_text's CPU reference).
     {
         const void* holder = &w;
@@ -533,6 +544,58 @@ void CheckGrey() {
         Check(before && after && differ == 0, std::string(f.name) + " greyscale: " + std::to_string(differ) + " pixels differ from 005FE440's");
         ui::DropCanvas(holder);
     }
+    sg_commit();
+}
+
+// ---- image: Image, the switch, the comparison's view -------------------------------------------------------
+
+void CheckImage() {
+    if (g_verbose) std::printf("image:\n");
+    for (const Format& f : kFormats) {
+        const int w = 37, h = 29;
+        const void* holder = &f.name;
+        ui::Canvas(holder, w, h, f.format);
+        std::vector<ui::CanvasInfo> canvases;
+        ui::Canvases(&canvases);
+        const unsigned made = canvases.size() == 1 ? canvases[0].version : 0;
+        ui::Fill(holder, Rect{0, 0, w, h}, RGB(30, 60, 90));
+        // A picture larger than the canvas, placed partly outside it: only the part inside is written.
+        const int pw = 30, ph = 20;
+        std::mt19937 random(7);
+        std::vector<std::uint32_t> picture(static_cast<std::size_t>(pw) * ph);
+        for (std::uint32_t& p : picture) p = random() & 0xFFFFFF;
+        const Rect at{20, -5, 20 + pw, -5 + ph};
+        ui::Image(holder, at, picture.data(), pw);
+        std::vector<std::uint32_t> expected(static_cast<std::size_t>(w) * h, RefQuantise(0x1E3C5A, f.format));
+        for (int y = std::max(0, at.top); y < std::min(h, at.bottom); ++y)
+            for (int x = std::max(0, at.left); x < std::min(w, at.right); ++x)
+                expected[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)] =
+                    RefQuantise(picture[static_cast<std::size_t>(y - at.top) * pw + static_cast<std::size_t>(x - at.left)], f.format);
+        std::vector<std::uint32_t> got;
+        std::string example;
+        int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
+        Check(differ == 0, std::string(f.name) + " image, clipped: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
+        ui::Canvases(&canvases);
+        Check(canvases.size() == 1 && canvases[0].version > made && canvases[0].text.empty() && canvases[0].width == w,
+              std::string(f.name) + " canvas listed, its version moved by the commands");
+        ui::DropCanvas(holder);
+    }
+    // The switch: EI_RENDER's words, the path, which blits draw the canvas.
+    int a = 0;
+    ui::Canvas(&a, 4, 4, kFormats[2].format);
+    ui::ResetOptions();
+    bool cpu = ui::CurrentMode() == ui::Mode::Cpu && !ui::Listed("fps") && !ui::DrawsCanvas(&a);
+    bool both = ui::ParseOption("uiboth") && ui::CurrentMode() == ui::Mode::Both && ui::Listed("fps") && !ui::DrawsCanvas(&a);
+    ui::SetPath(ui::Path::Native);
+    both = both && ui::DrawsCanvas(&a) && !ui::DrawsCanvas(&cpu);
+    ui::SetPath(ui::Path::Cpu);
+    bool listed = ui::ParseOption("uinative=fps+status") && ui::CurrentMode() == ui::Mode::Native && ui::Listed("fps") &&
+                  ui::Listed("status") && !ui::Listed("backdrop") && ui::DrawsCanvas(&a);
+    bool other = !ui::ParseOption("uinatives") && !ui::ParseOption("smooth");
+    ui::ResetOptions();
+    Check(cpu && both && listed && other && ui::CurrentMode() == ui::Mode::Cpu,
+          "the switch: no word, uiboth with both paths, uinative=fps+status, other words left alone");
+    ui::DropCanvas(&a);
     sg_commit();
 }
 
@@ -708,6 +771,9 @@ void CheckFrame() {
     std::string example;
     int differ = ReadTarget(&got) ? Differ(expected, got, g_targetWidth, &example) : -1;
     Check(differ == 0, "frame with five canvas blits: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
+    std::vector<Rect> drawn;
+    ui::DrawnCanvasRects(&drawn);
+    Check(drawn.size() == 5 && drawn[0].left == 5 && drawn[4].right == 140 && drawn[4].bottom == 90, "the frame's five canvas blit rectangles kept");
     // A canvas dropped with commands queued, and its blit, leave nothing behind.
     ui::Fill(second, Rect{0, 0, 5, 5}, RGB(9, 9, 9));
     ui::DropCanvas(second);
@@ -756,6 +822,7 @@ int main(int argc, char** argv) {
     CheckGdi();
     CheckGlyphs();
     CheckGrey();
+    CheckImage();
     CheckCopy();
     CheckFrame();
     detail::DropCanvases();
