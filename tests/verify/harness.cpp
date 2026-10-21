@@ -40,6 +40,10 @@
 //                             world script command and "#<expression>" prints a script expression.
 //   newgame                   start a new single-player game, as the main menu does (no intro)
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
+//   keydown <key>, keyup <key>
+//                             only the key's press or release (as "key" names it; no WM_CHAR): a key
+//                             held over frames, e.g. an arrow key's camera pan (camera_smooth). The
+//                             navigation keys come extended, as from a keyboard (see PostKey)
 //   key <key>                 press and release a key in the game window: a letter or digit,
 //                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus,
 //                             grave (the console key), backspace, delete, home, end, pgup, pgdn, ctrl,
@@ -152,6 +156,14 @@
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   waitexpect <seconds> <text>  like expect, but waits up to <seconds> for <text> to appear (for
 //                             output that follows posted keys, which a busy machine handles later)
+//   frametime <ms>            on the virtual clock: each main loop frame takes <ms> (default 0: five
+//                             world updates, the most one pass runs); e.g. 8 for a 120 Hz screen's frames
+//   smoothcamera on|off       the image's smooth camera (render::SetSmoothCamera, R18: the camera moved
+//                             once a frame by time, its target followed between ticks), from the next
+//                             pass; "render new,present,smoothcamera" turns it on from the start. Ignored in
+//                             a run of the original code
+//   camtrace start|stop <name>, camsame <a> <b> <kind> <fraction>, camsmooth <name> <kind> [jerky]
+//                             the camera's motion frame by frame and its checks (harness_camera.h, R18)
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
 //   waitfor <seconds> <expression>
@@ -370,6 +382,7 @@
 #include "game/world_glue.h"
 #include "game/game_singletons.h"
 #include "harness_addon.h"
+#include "harness_camera.h"
 #include "harness_capture.h"
 #include "harness_address_order.h"
 #include "harness_clock.h"
@@ -1358,14 +1371,18 @@ void WINAPI FixedTime(LPSYSTEMTIME t) {
 // effects) is not held; the harness's own waits use real time (in deterministic mode the virtual
 // clock, which stops too: use "capture", not "wait", while frozen there).
 bool g_freezeUsed = false;
+// The scenario records the camera's motion (camtrace, harness_camera.h): the same call is taken over.
+bool g_cameraTraceUsed = false;
 
 // The main loop's per-frame camera update: CALL 0040FB30 at 00457595 (thiscall on the camera
-// 0079B2A8, one float, RET 4), redirected here when the scenario freezes.
+// 0079B2A8, one float, RET 4), redirected here when the scenario freezes or records the camera's
+// motion (camtrace: sampled after the call).
 constexpr std::uintptr_t kFrameCameraUpdateCall = 0x00457595;
 constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
 void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
     if (clock::Frozen()) return;
     ei::Code<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
+    camera_trace::Frame(camera, dt);
 }
 
 // A pass's frame step (CL draw, DL cursor): a pair's game ends its turn first, so that it draws while
@@ -1543,7 +1560,10 @@ BOOL WINAPI HarnessTranslateMessage(const MSG* message) {
     return TRUE;
 }
 
-void PostKey(const std::string& name) {
+// Which messages PostKey posts: the press and release ("key"), or only one of them ("keydown" / "keyup").
+enum class KeyPart { Both, Down, Up };
+
+void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
     UINT vk = 0;
     if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
     else if (name == "esc") vk = VK_ESCAPE;
@@ -1572,10 +1592,20 @@ void PostKey(const std::string& name) {
         return;
     }
     UINT scan = vk == VK_OEM_3 ? 0x29 : MapVirtualKeyA(vk, MAPVK_VK_TO_VSC);
-    PostMessageA(GameWindow(), WM_KEYDOWN, vk, 1 | (scan << 16));
-    if (vk >= '0' && vk <= 'Z') PostMessageA(GameWindow(), WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
-    if (name == "enterchar") PostMessageA(GameWindow(), WM_CHAR, 0x0D, 1 | (scan << 16));
-    PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
+    // keydown / keyup mark the navigation keys extended (lParam bit 24) as Windows does: the game's key
+    // table (0079BF70) is indexed by the scan code with that bit, and the camera keys of keyboard.ini
+    // (arrows, Page Up / Down, Home) are the extended ones. "key" posts them without it, as it always
+    // has (its scenarios' goldens; the arrows then read as the numeric keypad's).
+    const bool extended = vk == VK_UP || vk == VK_DOWN || vk == VK_LEFT || vk == VK_RIGHT || vk == VK_PRIOR ||
+                          vk == VK_NEXT || vk == VK_HOME || vk == VK_END || vk == VK_DELETE;
+    if (part != KeyPart::Both && extended) scan |= 0x100;
+    if (part != KeyPart::Up) {
+        PostMessageA(GameWindow(), WM_KEYDOWN, vk, 1 | (scan << 16));
+        if (part == KeyPart::Both && vk >= '0' && vk <= 'Z')
+            PostMessageA(GameWindow(), WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
+        if (part == KeyPart::Both && name == "enterchar") PostMessageA(GameWindow(), WM_CHAR, 0x0D, 1 | (scan << 16));
+    }
+    if (part != KeyPart::Down) PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
 }
 
 // The client area mouse steps aim at: the game window's, or in the switch-over the frame's
@@ -2234,7 +2264,7 @@ std::string DescribeTopWindow() {
 
 // The steps that post input messages to the game window.
 bool IsInputStep(const std::string& verb) {
-    return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
+    return verb == "key" || verb == "keydown" || verb == "keyup" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "dblclickregion" || verb == "moveregion" ||
            verb == "clickunit" ||
@@ -3031,6 +3061,8 @@ void RunSteps() {
         } else if (s.verb == "key") {
             HeldModifiers held(&s.argument);
             PostKey(s.argument);
+        } else if (s.verb == "keydown" || s.verb == "keyup") {
+            PostKey(s.argument, s.verb == "keydown" ? KeyPart::Down : KeyPart::Up);
         } else if (s.verb == "click" || s.verb == "rclick" || s.verb == "move" || s.verb == "dblclick" ||
                    s.verb == "rdblclick" || s.verb == "ldown" || s.verb == "lup" || s.verb == "rdown" || s.verb == "rup") {
             int x = 0, y = 0;
@@ -3202,6 +3234,18 @@ void RunSteps() {
             g_checkDeadline.Set(3000);
             ConsoleExecute(("#" + s.argument).c_str());
             return;
+        } else if (s.verb == "frametime") {
+            if (!clock::Virtual()) g_failures.push_back("frametime needs the virtual clock (deterministic)");
+            else clock::SetFrameTime(std::strtoul(s.argument.c_str(), nullptr, 10));
+        } else if (s.verb == "smoothcamera") {
+            if (!ei::Standalone())
+                Log("harness: smoothcamera %s: the original code: ignored", s.argument.c_str());
+            else if (s.argument == "on" || s.argument == "off")
+                render::SetSmoothCamera(s.argument == "on");
+            else
+                g_failures.push_back("smoothcamera needs on or off");
+        } else if (camera_trace::UsedBy(s.verb)) {
+            camera_trace::Step(s.verb, s.argument, &g_failures, &g_capturedFrames);
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
             if (g_heldTickLength) g_tickLength = g_heldTickLength;
@@ -4236,6 +4280,7 @@ bool LoadScenario(const char* path) {
         const Step& last = g_steps.back();
         if (last.verb == "freeze" || ((last.verb == "vanilla" || last.verb == "rebirth") && last.argument == "freeze"))
             g_freezeUsed = true;
+        if (camera_trace::UsedBy(last.verb)) g_cameraTraceUsed = true;
     }
     std::fclose(f);
     // EI_RENDER_EXTRA's words also reach a scenario without a "render" step (on top of EI_RENDER).
@@ -4378,7 +4423,7 @@ struct Harness {
         ei::mainloop::HarnessHooks& hooks = ei::mainloop::g_harnessHooks;
         const bool hookPointsOnly = HookPointsOnly();
         if (hookPointsOnly) Log("harness: the main loop and the frame step through the rewritten callers' hook points only");
-        if (g_freezeUsed && (hookPointsOnly || RedirectCall(kFrameCameraUpdateCall, kCameraUpdate,
+        if ((g_freezeUsed || g_cameraTraceUsed) && (hookPointsOnly || RedirectCall(kFrameCameraUpdateCall, kCameraUpdate,
                                                             reinterpret_cast<const void*>(&HeldCameraUpdate))))
             hooks.frameCameraUpdate = &HeldCameraUpdate;
         if (hookPointsOnly || RedirectCall(kServerUpdateCall, kServerUpdate, reinterpret_cast<const void*>(&HeldServerUpdate)))

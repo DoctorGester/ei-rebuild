@@ -172,7 +172,8 @@ Layout is in `camera.h` (named members). Not obvious from it: flags 0x8 follow t
 bounded, 0x200 briefing limits; the view stack at +0x1E0 is a deque (push 00410E70 / pop 00410EF0, no Ghidra functions); keys at +0x2F0 are 0x24 bytes (time, ?,
 position, rotation); +0x2E0..+0x2E8 near / far / fov are read by `renderer_init`; pitch is kept in degrees (+0x104, settings +0x1D8 / +0x1DC).
 
-Rewritten (grep the address): `Update(dt)` 0040FB30 (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes),
+Rewritten (grep the address): `Update(dt)` 0040FB30 (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes;
+the smooth camera option changes its drift, height lag and followed position: renderer.md section 14),
 `ApplyView` 0040F8B0, `SampleTerrain` 0040D9B0 (`__stdcall`, 9 args: average / min / max surface height on a grid), `SetFocus` 0040F5C0,
 `Pan` 0040F230, `StopMotion` 0040F430, `ZoomBy` 004107A0 (mouse wheel, 1.05^steps via `_CIpow`), `GroundPoint` 0040E810,
 `SetTurnRate` / `SetTiltRate` / `SetZoomTarget` 0040F360 / 0040F3C0 / 0040F420, `SetTarget` / `SetTargetId` 0040D3B0 / 0040D420,

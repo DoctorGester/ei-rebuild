@@ -45,6 +45,8 @@ bool g_presentsItself = false;   // StartPresenting succeeded: the game has no D
 bool g_smooth = false;
 // The classic shadows (R16j, off by default): EI_RENDER's "classicshadows", render::SetClassicShadows.
 bool g_classicShadows = false;
+// The smooth camera (R18, off by default): EI_RENDER's "smoothcamera", render::SetSmoothCamera.
+bool g_smoothCamera = false;
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12 (R9c5)
 bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs (SV10e); else the first few of each kind, then every 16th
@@ -53,9 +55,11 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
 // and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
 // the smooth option on (render::SetSmooth), "classicshadows" the game's shadow decals instead of the
-// shadow map (render::SetClassicShadows, R16j); "uiboth" / "uinative" the interface canvases (render_ui.h).
+// shadow map (render::SetClassicShadows, R16j), "smoothcamera" the smooth camera (render::SetSmoothCamera,
+// R18); "uiboth" / "uinative" the interface canvases (render_ui.h).
 void ParseSpec(const char* spec) {
     g_smooth = false;
+    g_smoothCamera = false;
     ui::ResetOptions();
     bool classicShadows = false;
 #if defined(EI_RENDER_VALIDATION)
@@ -72,6 +76,7 @@ void ParseSpec(const char* spec) {
         if (word == "new" || word == "present" || word == "cpuwindows") {}
         else if (word == "smooth") g_smooth = true;
         else if (word == "classicshadows") classicShadows = true;
+        else if (word == "smoothcamera") g_smoothCamera = true;
         else if (ui::ParseOption(word)) {}
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
@@ -868,6 +873,17 @@ void SetClassicShadows(bool on) {
 bool ClassicShadows() {
     EnsureConfigured();
     return g_classicShadows;
+}
+
+void SetSmoothCamera(bool on) {
+    EnsureConfigured();
+    if (on != g_smoothCamera) ei::Log("render: the smooth camera turned %s", on ? "on" : "off");
+    g_smoothCamera = on;
+}
+
+bool SmoothCamera() {
+    EnsureConfigured();
+    return g_smoothCamera;
 }
 
 void BeginWorld() {
