@@ -45,14 +45,6 @@ constexpr std::size_t kMasterServerName = 0x268;        // CString
 constexpr std::size_t kLoadedSize = 0x26C;    // the bytes the loader reads or writes
 } // namespace field
 
-// The CString fields of the loaded range.
-constexpr std::size_t kStringFields[] = {
-    field::kKeyGeneral, field::kKeyGame, field::kKeyRender, field::kKeyVideo, field::kKeyCamera,
-    field::kKeyShadows, field::kKeyPaths, field::kKeyNetwork, field::kWorkPath, field::kResourcesPath,
-    field::kCdRomPath, field::kCdLabels, field::kCdLabels + 4, field::kCdLabels + 8, field::kFontCharSet,
-    field::kDefaultMapName, field::kDefaultStreamingSound, field::kMasterServerName,
-};
-
 // One camera movement's three settings ("CameraDefault<Scroll|Rotate|Pitch|Zoom>Speed",
 // "...PowerMouse", "...PowerKeyboard").
 struct CameraMotionOptions {
