@@ -1,6 +1,6 @@
 // 005ACE80: the main menu's and the escape menu's button rectangles from "menus.reg" (each entry
 // four integers; a missing or malformed one is a fatal error). See docs/notes/world.md.
-#include "base_manager.h"
+#include "figure_manager.h"
 #include "registry.h"
 #include "game_strings.h"
 
@@ -49,13 +49,13 @@ SetRectFn ImportSetRect() { return ei::GameData<SetRectFn const>(0x0073B478); }
 
 } // namespace
 
-int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
+int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
     // The .reg reader (0x18 bytes on the stack, constructed and destroyed by hand).
     alignas(4) std::uint8_t storage[sizeof(CFileRegistry)];
     auto* reg = reinterpret_cast<CFileRegistry*>(storage);
     reg->Construct();
-    // The owning manager's GetFile (slot 19): the resource file's data.
-    void* file = static_cast<CBaseManager*>(owner)->GetFile(game::menutexts::MenusReg(), nullptr);
+    // The manager's GetFile (slot 19): the resource file's data.
+    void* file = GetFile(game::menutexts::MenusReg(), nullptr);
     if (!file || !reg->Attach(file)) {
         int result = game::FatalError(file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
         reg->Destroy();
@@ -79,4 +79,4 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     return 1;
 }
 
-EI_REWRITTEN(0x005ACE80, LoadMenuRects);
+EI_REWRITTEN(0x005ACE80, CFigureManager::LoadMenuRects);

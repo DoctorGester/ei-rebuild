@@ -18,9 +18,6 @@ struct AnimationTrack;
 class CFigureAnimationState;
 struct FigureBone;
 
-// 005ACCF0 (figure_animation.cpp; RET 0xC). The figure manager sets `animation` (an entry, read as
-// its name) of the model `modelName` on `figure` (a CFigureAnimationState); 0 when it cannot.
-int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char* modelName, const char* animation);
 
 // 005AA8E0 (figure_factory.cpp): the figure object factory, also the figure manager's slot 14.
 void* __stdcall CreateFigureObject(int classId);
@@ -53,6 +50,13 @@ public:
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
     FigureModel* FindModel(const stlp::string* name);
+    // 005ACCF0 (figure_animation.cpp; RET 0xC). Sets `animation` (an entry, read as its name) of the
+    // model `modelName` on `figure`; 0 when it cannot.
+    int SetFigureAnimation(CFigureAnimationState* figure, const char* modelName, const char* animation);
+    // 005ACE80 (menu_rects.cpp; RET 4; CreateWithArchives): the main menu's and the escape menu's
+    // button rectangles from "menus.reg" into `rects`. 1; FatalError's result when the file or an
+    // entry cannot be read.
+    int LoadMenuRects(std::uint8_t* rects);
 
     // 005AA070 (figure_mesh_life.cpp, A-W13). The constructor in place (a registration); returns
     // this.

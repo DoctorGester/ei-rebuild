@@ -161,10 +161,10 @@ void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord*
 
 } // namespace
 
-// 006AE8E0 (thiscall on the database, RET 4). `image` is the quest's registry file in memory.
-// Returns false when it is not a registry, true otherwise.
-bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image) {
-    auto* db = reinterpret_cast<QuestDatabase*>(database);
+// 006AE8E0 (RET 4). `image` is the quest's registry file in memory. Returns false when it is not a
+// registry, true otherwise.
+bool QuestDatabase::LoadRegistry(const void* image) {
+    QuestDatabase* db = this;
     Registry reg;
     reg.Construct();
     if (!reg.Attach(image)) {
@@ -194,7 +194,7 @@ bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image) {
     reg.Destroy();
     return true;
 }
-EI_REWRITTEN(0x006AE8E0, QuestDatabaseLoad);
+EI_REWRITTEN(0x006AE8E0, QuestDatabase::LoadRegistry);
 
 // 006AE740 (A-H19). The original inlines the vector's erase, reserve and push_back; the same
 // template members are called here.

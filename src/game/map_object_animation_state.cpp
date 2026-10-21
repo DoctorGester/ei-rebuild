@@ -31,14 +31,13 @@ AnimationTrack* AnimatorOf(FigureBone* bone) {
 // The model name of the figure the state animates.
 const char* ModelName(const CFigureAnimationState* state) { return state->owner->name; }
 
-CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {
-    return state->WorldContext()->FigureManager();
+CFigureManager* FigureManagerOf(const CFigureAnimationState* state) {
+    return static_cast<CFigureManager*>(state->WorldContext()->FigureManager());
 }
 
 // The figure manager or else each bone takes `animation`.
 void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
-    CEngineObject* manager = FigureManagerOf(state);
-    if (SetFigureAnimation(manager, nullptr, state, ModelName(state), animation ? animation->name : nullptr)) return;
+    if (FigureManagerOf(state)->SetFigureAnimation(state, ModelName(state), animation ? animation->name : nullptr)) return;
     for (auto* node = state->bones.head; node;) {
         FigureBone* bone = node->data;
         node = node->next;
@@ -71,8 +70,7 @@ void CFigureAnimationState::Play(FigureAnimation* animation) {
         node = node->next;
         bone->pose = AnimatorOf(bone);
     }
-    CEngineObject* manager = FigureManagerOf(this);
-    if (!SetFigureAnimation(manager, nullptr, this, ModelName(this), animation ? animation->name : nullptr)) {
+    if (!FigureManagerOf(this)->SetFigureAnimation(this, ModelName(this), animation ? animation->name : nullptr)) {
         for (auto* node = bones.head; node;) {
             FigureBone* bone = node->data;
             node = node->next;

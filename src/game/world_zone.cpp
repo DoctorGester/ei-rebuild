@@ -140,8 +140,8 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     // The root chunk with its MFC CFile (the original's inlined constructor, game.exe's vtable
     // 0073FAD4: RootChunk's slots).
-    RootChunk rootChunk;
-    RootChunk* root = &rootChunk;
+    mapspec::MobFile rootChunk;
+    mapspec::MobFile* root = &rootChunk;
     auto* fileObject = reinterpret_cast<mfc::CFileVirtuals*>(&root->file_);
 
     mfc::CString path;
@@ -150,7 +150,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     if (!root->Open(path, 0x8020)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
-        bool read = mapspec::LoadMobFile(root, nullptr, this, keepIds);
+        bool read = root->Load(this, keepIds);
         fileObject->Close();
         result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
