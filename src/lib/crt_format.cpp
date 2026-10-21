@@ -4,6 +4,7 @@
 // rounding of that digit string, and __strgtold12 / _ld12cvt back. All integer arithmetic, so the
 // results are the same bytes as the original's in either build. docs/notes/standalone.md, S4a.
 #include "crt.h"
+#include "crt_locale_data.h"
 
 #include "ei/hook.h"
 #include "game/game_data.h"
@@ -19,17 +20,17 @@ namespace libcrt {
 
 namespace {
 
-// ---- The CRT data the conversions read (the same addresses as crt.cpp's) ----
+// ---- The CRT data the conversions read (as crt.cpp's) ----
 
-// Read through GameData (src/game/game_data.h): ei_vectors replays the conversions with the locale
-// recorded in the game (tests/vectors/crt_format_vectors.h).
-// The decimal point of the LC_NUMERIC locale (__decimal_point[0], 00797FE8).
-char DecimalPoint() { return ei::GameData<char>(0x00797FE8); }
+// The locale state is crt_locale_data.h's, _pctype game.exe's data (src/game/game_data.h): ei_vectors replays the
+// conversions with the decimal point and class words recorded in the game (tests/vectors/crt_format_vectors.h).
+// The decimal point of the LC_NUMERIC locale (__decimal_point[0]).
+char DecimalPoint() { return g_decimalPoint[0]; }
 // _pctype (00797DD8): the class word of a byte; a negative char indexes the bytes before.
 unsigned short CharClass(int c) { return ei::GameData<const unsigned short*>(0x00797DD8)[c]; }
-unsigned LocaleHandle() { return ei::GameData<unsigned>(0x007CABF0); }   // __lc_handle[LC_CTYPE]
-unsigned LocaleCodePage() { return ei::GameData<unsigned>(0x007CAC00); } // __lc_codepage
-int MbCurMax() { return ei::GameData<int>(0x00797FE4); }                  // __mb_cur_max
+unsigned LocaleHandle() { return g_lcHandle[2]; }   // __lc_handle[LC_CTYPE]
+unsigned LocaleCodePage() { return g_lcCodePage; }  // __lc_codepage
+int MbCurMax() { return g_mbCurMax; }               // __mb_cur_max
 constexpr unsigned short kDigit = 0x4;
 constexpr unsigned short kSpace = 0x8;
 constexpr unsigned short kLeadByte = 0x8000;

@@ -1,6 +1,7 @@
 // MFC 4.2's resource strings and their formatting, registered at their library addresses
 // (mfc_resource.h).
 #include "mfc_resource.h"
+#include "crt_locale_data.h"
 
 #include "ei/hook.h"
 #include "gameapi.h"
@@ -12,7 +13,7 @@ namespace mfc::impl {
 namespace {
 
 // The game CRT's multibyte flags (_mbctype + 1); _istlead is the lead-byte bit.
-const unsigned char* MultibyteFlags() { return ei::GamePointer<const unsigned char>(0x007CC181); }
+const unsigned char* MultibyteFlags() { return libcrt::g_mbCtype + 1; }
 constexpr unsigned char kMbLead = 0x4;   // _M1
 bool IsLeadByte(char c) { return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0; }
 

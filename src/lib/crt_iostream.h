@@ -95,7 +95,7 @@ struct Ios {
     void Unlock();
 
     // ios() (006FCDB1): no streambuf (badbit), precision 6, fill ' ', locked; the first ios alive also
-    // initialises the shared lock 007CAE90 (the count at 007CAEC8). Returns this.
+    // initialises the shared lock (the count of live ios beside it). Returns this.
     Ios* Construct();
     // ~ios (006FCEDC): the vtable back to ios's, the locks deleted (the shared one with the last ios), the
     // streambuf deleted when the ios owns it (deleteBuffer), then no streambuf and badbit.

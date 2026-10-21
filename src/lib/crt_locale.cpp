@@ -13,6 +13,7 @@
 // _ismbcdigit / _ismbcspace keep no state: both builds. verify_crt_locale.cpp compared all of
 // it with the originals (until S21d).
 #include "crt.h"
+#include "crt_locale_data.h"
 
 #include "ei/hook.h"
 #include "gameapi.h"
@@ -40,52 +41,43 @@ struct LocaleCategory {
 };
 LocaleCategory* Categories() { return ei::GamePointer<LocaleCategory>(0x00797888); }
 const char* StaticC() { return ei::GamePointer<const char>(0x00797778); }
-// __lc_handle (007CABE8): each category's language id (0 for "C"); __lc_id (007CAC30): its LC_ID.
-unsigned* Handles() { return ei::GamePointer<unsigned>(0x007CABE8); }
-LocaleId* Ids() { return ei::GamePointer<LocaleId>(0x007CAC30); }
-// __lc_codepage (007CAC00) and __lc_collate_cp (007CAC04).
-unsigned& CtypeCodePage() { return ei::GameData<unsigned>(0x007CAC00); }
-unsigned& CollateCodePage() { return ei::GameData<unsigned>(0x007CAC04); }
-// getqloc's cache: the last name resolved, qualified (00797800) and as asked for (0079777C), its LC_ID
-// (007CAB24) and code page (007CAB2C).
-char* QualifiedCache() { return ei::GamePointer<char>(0x00797800); }
-char* RequestedCache() { return ei::GamePointer<char>(0x0079777C); }
-LocaleId& CachedId() { return ei::GameData<LocaleId>(0x007CAB24); }
-unsigned& CachedCodePage() { return ei::GameData<unsigned>(0x007CAB2C); }
+// The state setlocale writes (__lc_handle, __lc_id, the code pages, getqloc's cache): crt_locale_data.h.
 
-// The class tables: _pctype / _pwctype (00797DD8 / 00797DDC; the C locale's table + 1 entry is 00797DE2),
-// the heap blocks behind them (007CAC28 / 007CAC2C, null for "C") and __mb_cur_max (00797FE4).
+// The class tables: _pctype / _pwctype (00797DD8 / 00797DDC; the C locale's table + 1 entry is 00797DE2); the
+// heap blocks behind them and __mb_cur_max are crt_locale_data.h's.
 const unsigned short*& CtypeTable() { return ei::GameData<const unsigned short*>(0x00797DD8); }
 const unsigned short*& WideCtypeTable() { return ei::GameData<const unsigned short*>(0x00797DDC); }
 const unsigned short* StaticCtype() { return ei::GamePointer<const unsigned short>(0x00797DE2); }
-unsigned short*& CtypeBlock() { return ei::GameData<unsigned short*>(0x007CAC28); }
-unsigned short*& WideCtypeBlock() { return ei::GameData<unsigned short*>(0x007CAC2C); }
-int& MbCurMax() { return ei::GameData<int>(0x00797FE4); }
 
-// The multibyte code page: _mbctype (007CC180, 257 bytes, a byte's flags at + 1), _mbcasemap (007CC080),
-// __mbcodepage (007CC058), __ismbcodepage (007CC06C), __mblcid (007CC284), __mbulinfo (007CC060, three
-// dwords), fSystemSet (007CAB20: the code page came from the system) and __initmbctable's flag (007CC28C).
-unsigned char* MbFlags() { return ei::GamePointer<unsigned char>(0x007CC180); }
-unsigned char* MbCaseMap() { return ei::GamePointer<unsigned char>(0x007CC080); }
-unsigned& MbCodePage() { return ei::GameData<unsigned>(0x007CC058); }
-int& IsMbCodePage() { return ei::GameData<int>(0x007CC06C); }
-unsigned& MbLcid() { return ei::GameData<unsigned>(0x007CC284); }
-unsigned* MbUlInfo() { return ei::GamePointer<unsigned>(0x007CC060); }
-int& SystemSet() { return ei::GameData<int>(0x007CAB20); }
-int& MbTableReady() { return ei::GameData<int>(0x007CC28C); }
+// The multibyte code page's tables and state (_mbctype, _mbcasemap, ...): crt_locale_data.h.
 constexpr unsigned kMbFlagsSize = 257;
 
-// __rgcode_page_info (00797688): the four DBCS code pages and Johab, each with its lead / trail byte
-// ranges per class (pairs, ended by a zero) and __rgctypeflag (00797680) the class flags.
+// __rgcode_page_info: the four DBCS code pages and Johab, each with its lead / trail byte ranges per class
+// (pairs, ended by a zero), and __rgctypeflag the class flags.
 struct CodePageInfo {
     unsigned codePage;
     unsigned ulInfo[3];
     unsigned char ranges[4][8];
 };
 static_assert(sizeof(CodePageInfo) == 0x30);
-const CodePageInfo* CodePageInfos() { return ei::GamePointer<const CodePageInfo>(0x00797688); }
 constexpr int kCodePageInfos = 5;
-const unsigned char* ClassFlags() { return ei::GamePointer<const unsigned char>(0x00797680); }
+constexpr CodePageInfo kCodePageTable[5] = /*00797688*/ {
+    {932, {0x82798260, 0x21, 0x0},
+     {{0xA6, 0xDF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0xA1, 0xA5, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+      {0x81, 0x9F, 0xE0, 0xFC, 0x00, 0x00, 0x00, 0x00}, {0x40, 0x7E, 0x80, 0xFC, 0x00, 0x00, 0x00, 0x00}}},
+    {936, {0xA3DAA3C1, 0x20, 0x0},
+     {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+      {0x81, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x40, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
+    {949, {0xA3DAA3C1, 0x20, 0x0},
+     {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+      {0x81, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x41, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
+    {950, {0xA2E4A2CF, 0xA2E5001A, 0x5BA2E8},
+     {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+      {0x81, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x40, 0x7E, 0xA1, 0xFE, 0x00, 0x00, 0x00, 0x00}}},
+    {1361, {0xDA5EDA51, 0xDA5F0020, 0x32DA6A},
+     {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+      {0x81, 0xD3, 0xD8, 0xDE, 0xE0, 0xF9, 0x00, 0x00}, {0x31, 0x7E, 0x81, 0xFE, 0x00, 0x00, 0x00, 0x00}}}};
+constexpr std::uint8_t kClassFlags[4] = /*00797680*/ {0x1, 0x2, 0x4, 0x8};
 
 constexpr unsigned char kMbLead = 0x4;    // _M1
 constexpr unsigned char kMbTrail = 0x8;   // _M2
@@ -94,7 +86,7 @@ constexpr unsigned char kSbLower = 0x20;  // _SBLOW
 
 // The language and country abbreviation tables (__rg_language 007989E0, 65 entries; __rg_country
 // 00798928, 23 entries; sorted for stricmp) and the language ids that are not their country's default
-// (00798914, 10).
+// (kNonDefaultCountryIds).
 struct NameAbbreviation {
     const char* name;
     char abbreviation[4];
@@ -103,7 +95,8 @@ const NameAbbreviation* LanguageTable() { return ei::GamePointer<const NameAbbre
 const NameAbbreviation* CountryTable() { return ei::GamePointer<const NameAbbreviation>(0x00798928); }
 constexpr int kLastLanguage = 0x40;
 constexpr int kLastCountry = 0x16;
-const unsigned short* NonDefaultCountries() { return ei::GamePointer<const unsigned short>(0x00798914); }
+constexpr std::uint16_t kNonDefaultCountryIds[10] = /*00798914*/ {0xC0C, 0xC1A, 0x1007, 0x436, 0x80C,
+                                                                    0x42D, 0x403, 0x100C, 0x810, 0x81D};
 constexpr int kNonDefaultCountries = 10;
 
 // strcpy / strcat as VC6's (no bound).
@@ -114,7 +107,7 @@ void AppendText(char* to, const char* from) { CopyText(to + std::strlen(to), fro
 
 // 006F3CC5: the bytes to UTF-16 in the code page (the locale's when 0), then GetStringTypeW.
 BOOL StringTypeA(DWORD type, const char* text, int count, WORD* types, unsigned codePage, bool rejectInvalid) {
-    if (codePage == 0) codePage = CtypeCodePage();
+    if (codePage == 0) codePage = g_lcCodePage;
     const int wideLength = gameapi::MultiByteToWideChar(
         codePage, MB_PRECOMPOSED | (rejectInvalid ? MB_ERR_INVALID_CHARS : 0), text, count, nullptr, 0);
     wchar_t wide[512] = {};
@@ -129,7 +122,7 @@ BOOL StringTypeA(DWORD type, const char* text, int count, WORD* types, unsigned 
 int MapStringA(LCID locale, DWORD flags, const char* text, int count, char* to, int room, unsigned codePage) {
     int length = 0;
     while (length < count && text[length] != '\0') ++length;
-    if (codePage == 0) codePage = CtypeCodePage();
+    if (codePage == 0) codePage = g_lcCodePage;
     const int wideLength = gameapi::MultiByteToWideChar(codePage, MB_PRECOMPOSED, text, length, nullptr, 0);
     wchar_t wide[512];
     wchar_t mapped[1024];
@@ -245,7 +238,7 @@ void TranslateName(const NameAbbreviation* table, int high, const char** name) {
 // 006F517A: false for a language id that is not its country's default.
 bool IsDefaultCountry(LCID lcid) {
     for (int i = 0; i < kNonDefaultCountries; ++i)
-        if (static_cast<unsigned short>(lcid) == NonDefaultCountries()[i]) return false;
+        if (static_cast<unsigned short>(lcid) == kNonDefaultCountryIds[i]) return false;
     return true;
 }
 
@@ -449,18 +442,18 @@ const char* ExpandLocale(const char* name, char* out, LocaleId* id, unsigned* co
         if (codePage) *codePage = 0;
         return out;
     }
-    if (std::strcmp(QualifiedCache(), name) != 0 && std::strcmp(RequestedCache(), name) != 0) {
+    if (std::strcmp(g_cacheOut, name) != 0 && std::strcmp(g_cacheIn, name) != 0) {
         LocaleNames names;
-        if (ParseLocaleName(names, name) != 0 || !QualifyNames(names, CachedId())) return nullptr;
-        CachedCodePage() = CachedId().codePage;
-        JoinNames(QualifiedCache(), names);
-        if (*name == '\0') name = QualifiedCache();
-        CopyText(RequestedCache(), name);
+        if (ParseLocaleName(names, name) != 0 || !QualifyNames(names, g_cachedId)) return nullptr;
+        g_cachedCodePage = g_cachedId.codePage;
+        JoinNames(g_cacheOut, names);
+        if (*name == '\0') name = g_cacheOut;
+        CopyText(g_cacheIn, name);
     }
-    if (id) *id = CachedId();
-    if (codePage) *codePage = CachedCodePage();
-    CopyText(out, QualifiedCache());
-    return QualifiedCache();
+    if (id) *id = g_cachedId;
+    if (codePage) *codePage = g_cachedCodePage;
+    CopyText(out, g_cacheOut);
+    return g_cacheOut;
 }
 
 // _setlocale_set_cat (006EA47A): the category's name, handle, LC_ID (and code page) set and its tables
@@ -475,20 +468,20 @@ char* SetCategory(int category, const char* name) {
     if (!copy) return nullptr;
     LocaleCategory& entry = Categories()[category];
     char* const oldLocale = entry.locale;
-    const unsigned oldHandle = Handles()[category];
-    const unsigned oldCodePage = CtypeCodePage();
+    const unsigned oldHandle = g_lcHandle[category];
+    const unsigned oldCodePage = g_lcCodePage;
     CopyText(copy, qualified);
     entry.locale = copy;
-    Handles()[category] = id.language;
-    Ids()[category] = id;
-    if (category == kCtype) CtypeCodePage() = codePage;
-    if (category == kCollate) CollateCodePage() = codePage;
+    g_lcHandle[category] = id.language;
+    g_lcId[category] = id;
+    if (category == kCtype) g_lcCodePage = codePage;
+    if (category == kCollate) g_lcCollateCodePage = codePage;
     const int failed = category == kCtype ? InitCtype() : entry.init();
     if (failed) {
         entry.locale = oldLocale;
         gamecrt::free(copy);
-        Handles()[category] = oldHandle;
-        CtypeCodePage() = oldCodePage;
+        g_lcHandle[category] = oldHandle;
+        g_lcCodePage = oldCodePage;
         return nullptr;
     }
     if (oldLocale != StaticC()) gamecrt::free(oldLocale);
@@ -499,11 +492,11 @@ char* SetCategory(int category, const char* name) {
 
 // getSystemCP (006E9FDD): _MB_CP_OEM, _MB_CP_ANSI and _MB_CP_LOCALE to a code page.
 unsigned SystemCodePage(int codePage) {
-    SystemSet() = 1;
+    g_mbSystemSet = 1;
     if (codePage == -2) return gameapi::GetOEMCP();
     if (codePage == -3) return gameapi::GetACP();
-    if (codePage == -4) return CtypeCodePage();
-    SystemSet() = 0;
+    if (codePage == -4) return g_lcCodePage;
+    g_mbSystemSet = 0;
     return static_cast<unsigned>(codePage);
 }
 
@@ -520,18 +513,18 @@ unsigned CodePageLcid(unsigned codePage) {
 
 // setSBCS (006EA05A).
 void SetSingleByte() {
-    std::memset(MbFlags(), 0, kMbFlagsSize);
-    MbCodePage() = 0;
-    IsMbCodePage() = 0;
-    MbLcid() = 0;
-    MbUlInfo()[0] = MbUlInfo()[1] = MbUlInfo()[2] = 0;
+    std::memset(g_mbCtype, 0, kMbFlagsSize);
+    g_mbCodePage = 0;
+    g_isMbCodePage = 0;
+    g_mbLcid = 0;
+    g_mbUlInfo[0] = g_mbUlInfo[1] = g_mbUlInfo[2] = 0;
 }
 
 // setSBUpLow (006EA083): the single-byte case flags and _mbcasemap (each byte's other case), from the
 // code page's classes and case maps; ASCII without the code page.
 void SetSingleByteCase() {
     CPINFO info;
-    if (gameapi::GetCPInfo(MbCodePage(), &info) == TRUE) {
+    if (gameapi::GetCPInfo(g_mbCodePage, &info) == TRUE) {
         char bytes[256];
         for (unsigned i = 0; i < 256; ++i) bytes[i] = static_cast<char>(i);
         bytes[0] = ' ';
@@ -540,31 +533,31 @@ void SetSingleByteCase() {
         WORD types[256] = {};
         char lower[256] = {};
         char upper[256] = {};
-        StringTypeA(CT_CTYPE1, bytes, 256, types, MbCodePage(), false);
-        MapStringA(MbLcid(), LCMAP_LOWERCASE, bytes, 256, lower, 256, MbCodePage());
-        MapStringA(MbLcid(), LCMAP_UPPERCASE, bytes, 256, upper, 256, MbCodePage());
+        StringTypeA(CT_CTYPE1, bytes, 256, types, g_mbCodePage, false);
+        MapStringA(g_mbLcid, LCMAP_LOWERCASE, bytes, 256, lower, 256, g_mbCodePage);
+        MapStringA(g_mbLcid, LCMAP_UPPERCASE, bytes, 256, upper, 256, g_mbCodePage);
         for (unsigned i = 0; i < 256; ++i) {
             if (types[i] & C1_UPPER) {
-                MbFlags()[i + 1] |= kSbUpper;
-                MbCaseMap()[i] = static_cast<unsigned char>(lower[i]);
+                g_mbCtype[i + 1] |= kSbUpper;
+                g_mbCaseMap[i] = static_cast<unsigned char>(lower[i]);
             } else if (types[i] & C1_LOWER) {
-                MbFlags()[i + 1] |= kSbLower;
-                MbCaseMap()[i] = static_cast<unsigned char>(upper[i]);
+                g_mbCtype[i + 1] |= kSbLower;
+                g_mbCaseMap[i] = static_cast<unsigned char>(upper[i]);
             } else {
-                MbCaseMap()[i] = 0;
+                g_mbCaseMap[i] = 0;
             }
         }
         return;
     }
     for (unsigned i = 0; i < 256; ++i) {
         if (i >= 'A' && i <= 'Z') {
-            MbFlags()[i + 1] |= kSbUpper;
-            MbCaseMap()[i] = static_cast<unsigned char>(i + 0x20);
+            g_mbCtype[i + 1] |= kSbUpper;
+            g_mbCaseMap[i] = static_cast<unsigned char>(i + 0x20);
         } else if (i >= 'a' && i <= 'z') {
-            MbFlags()[i + 1] |= kSbLower;
-            MbCaseMap()[i] = static_cast<unsigned char>(i - 0x20);
+            g_mbCtype[i + 1] |= kSbLower;
+            g_mbCaseMap[i] = static_cast<unsigned char>(i - 0x20);
         } else {
-            MbCaseMap()[i] = 0;
+            g_mbCaseMap[i] = 0;
         }
     }
 }
@@ -574,21 +567,21 @@ void SetSingleByteCase() {
 // --- __init_ctype (006F47FB). ----------------------------------------------------------------------------
 
 int InitCtype() {
-    if (Handles()[kCtype] == 0) {
+    if (g_lcHandle[kCtype] == 0) {
         CtypeTable() = StaticCtype();
         WideCtypeTable() = StaticCtype();
-        gamecrt::free(CtypeBlock());
-        gamecrt::free(WideCtypeBlock());
-        CtypeBlock() = nullptr;
-        WideCtypeBlock() = nullptr;
+        gamecrt::free(g_ctypeBlock);
+        gamecrt::free(g_wideCtypeBlock);
+        g_ctypeBlock = nullptr;
+        g_wideCtypeBlock = nullptr;
         return 0;
     }
     // Not reached by setlocale (the code page is set with the handle): __getlocaleinfo's LC_INT_TYPE.
-    if (CtypeCodePage() == 0) {
+    if (g_lcCodePage == 0) {
         char number[128];
-        if (!gameapi::GetLocaleInfoA(Ids()[kCtype].language, LOCALE_IDEFAULTANSICODEPAGE, number, sizeof number))
+        if (!gameapi::GetLocaleInfoA(g_lcId[kCtype].language, LOCALE_IDEFAULTANSICODEPAGE, number, sizeof number))
             return 1;
-        CtypeCodePage() = static_cast<unsigned>(Atol(number));
+        g_lcCodePage = static_cast<unsigned>(Atol(number));
     }
     auto* classes = static_cast<unsigned short*>(gamecrt::malloc(0x202));
     auto* wideClasses = static_cast<unsigned short*>(gamecrt::malloc(0x202));
@@ -598,9 +591,9 @@ int InitCtype() {
     CPINFO info;
     if (classes && wideClasses && bytes && wide) {
         for (int i = 0; i < 256; ++i) bytes[i] = static_cast<unsigned char>(i);
-        if (gameapi::GetCPInfo(CtypeCodePage(), &info) && info.MaxCharSize < 3) {
-            MbCurMax() = static_cast<unsigned short>(info.MaxCharSize);
-            if (MbCurMax() > 1)
+        if (gameapi::GetCPInfo(g_lcCodePage, &info) && info.MaxCharSize < 3) {
+            g_mbCurMax = static_cast<unsigned short>(info.MaxCharSize);
+            if (g_mbCurMax > 1)
                 for (const BYTE* lead = info.LeadByte; lead[0] != 0 && lead[1] != 0; lead += 2)
                     for (unsigned c = lead[0]; c <= lead[1]; ++c) bytes[c] = 0;
             if (StringTypeA(CT_CTYPE1, reinterpret_cast<const char*>(bytes), 256, classes + 1, 0, false)) {
@@ -608,15 +601,15 @@ int InitCtype() {
                 for (int i = 0; i < 256; ++i) wide[i] = static_cast<wchar_t>(i);
                 if (gameapi::GetStringTypeW(CT_CTYPE1, wide, 256, wideClasses + 1)) {
                     wideClasses[0] = 0;
-                    if (MbCurMax() > 1)
+                    if (g_mbCurMax > 1)
                         for (const BYTE* lead = info.LeadByte; lead[0] != 0 && lead[1] != 0; lead += 2)
                             for (unsigned c = lead[0]; c <= lead[1]; ++c) classes[c + 1] = 0x8000;   // _LEADBYTE
                     CtypeTable() = classes + 1;
                     WideCtypeTable() = wideClasses + 1;
-                    if (CtypeBlock()) gamecrt::free(CtypeBlock());
-                    CtypeBlock() = classes;
-                    if (WideCtypeBlock()) gamecrt::free(WideCtypeBlock());
-                    WideCtypeBlock() = wideClasses;
+                    if (g_ctypeBlock) gamecrt::free(g_ctypeBlock);
+                    g_ctypeBlock = classes;
+                    if (g_wideCtypeBlock) gamecrt::free(g_wideCtypeBlock);
+                    g_wideCtypeBlock = wideClasses;
                     built = true;
                 }
             }
@@ -642,48 +635,48 @@ EI_REWRITTEN(0x006EA234, libcrt::Setlocale);
 
 int __cdecl Setmbcp(int codePage) {
     const unsigned page = SystemCodePage(codePage);
-    if (page == MbCodePage()) return 0;
+    if (page == g_mbCodePage) return 0;
     if (page == 0) {
         SetSingleByte();
         SetSingleByteCase();
         return 0;
     }
     for (int i = 0; i < kCodePageInfos; ++i) {
-        const CodePageInfo& known = CodePageInfos()[i];
+        const CodePageInfo& known = kCodePageTable[i];
         if (known.codePage != page) continue;
-        std::memset(MbFlags(), 0, kMbFlagsSize);
+        std::memset(g_mbCtype, 0, kMbFlagsSize);
         // The ranges are read as VC6 reads them: pairs until a zero (a full row runs into the next).
         for (int kind = 0; kind < 4; ++kind)
             for (const unsigned char* range = known.ranges[kind]; range[0] != 0 && range[1] != 0; range += 2)
-                for (unsigned c = range[0]; c <= range[1]; ++c) MbFlags()[c + 1] |= ClassFlags()[kind];
-        IsMbCodePage() = 1;
-        MbCodePage() = page;
-        MbLcid() = CodePageLcid(page);
-        MbUlInfo()[0] = known.ulInfo[0];
-        MbUlInfo()[1] = known.ulInfo[1];
-        MbUlInfo()[2] = known.ulInfo[2];
+                for (unsigned c = range[0]; c <= range[1]; ++c) g_mbCtype[c + 1] |= kClassFlags[kind];
+        g_isMbCodePage = 1;
+        g_mbCodePage = page;
+        g_mbLcid = CodePageLcid(page);
+        g_mbUlInfo[0] = known.ulInfo[0];
+        g_mbUlInfo[1] = known.ulInfo[1];
+        g_mbUlInfo[2] = known.ulInfo[2];
         SetSingleByteCase();
         return 0;
     }
     CPINFO info;
     if (gameapi::GetCPInfo(page, &info) == TRUE) {
-        MbLcid() = 0;
-        std::memset(MbFlags(), 0, kMbFlagsSize);
-        MbCodePage() = page;
+        g_mbLcid = 0;
+        std::memset(g_mbCtype, 0, kMbFlagsSize);
+        g_mbCodePage = page;
         if (info.MaxCharSize < 2) {
-            IsMbCodePage() = 0;
+            g_isMbCodePage = 0;
         } else {
             for (const BYTE* lead = info.LeadByte; lead[0] != 0 && lead[1] != 0; lead += 2)
-                for (unsigned c = lead[0]; c <= lead[1]; ++c) MbFlags()[c + 1] |= kMbLead;
-            for (unsigned c = 1; c < 0xFF; ++c) MbFlags()[c + 1] |= kMbTrail;
-            MbLcid() = CodePageLcid(page);
-            IsMbCodePage() = 1;
+                for (unsigned c = lead[0]; c <= lead[1]; ++c) g_mbCtype[c + 1] |= kMbLead;
+            for (unsigned c = 1; c < 0xFF; ++c) g_mbCtype[c + 1] |= kMbTrail;
+            g_mbLcid = CodePageLcid(page);
+            g_isMbCodePage = 1;
         }
-        MbUlInfo()[0] = MbUlInfo()[1] = MbUlInfo()[2] = 0;
+        g_mbUlInfo[0] = g_mbUlInfo[1] = g_mbUlInfo[2] = 0;
         SetSingleByteCase();
         return 0;
     }
-    if (!SystemSet()) return -1;
+    if (!g_mbSystemSet) return -1;
     SetSingleByte();
     SetSingleByteCase();
     return 0;
@@ -691,9 +684,9 @@ int __cdecl Setmbcp(int codePage) {
 EI_REWRITTEN(0x006E9E30, libcrt::Setmbcp);
 
 void InitMultibyteTable() {
-    if (MbTableReady() == 0) {
+    if (g_mbTableReady == 0) {
         Setmbcp(-3);
-        MbTableReady() = 1;
+        g_mbTableReady = 1;
     }
 }
 
@@ -709,10 +702,10 @@ int IsMultibyteClass(unsigned c, WORD mask) {
         if (c >= 0x80) return 0;
     }
     if (c < 0x100) return CtypeTable()[c] & mask & 0xFF;
-    if (!IsMbCodePage()) return 0;
+    if (!g_isMbCodePage) return 0;
     const char bytes[2] = {static_cast<char>(c >> 8), static_cast<char>(c)};
     WORD types[2] = {};
-    if (StringTypeA(CT_CTYPE1, bytes, 2, types, MbCodePage(), true) && types[1] == 0 && (types[0] & mask)) return 1;
+    if (StringTypeA(CT_CTYPE1, bytes, 2, types, g_mbCodePage, true) && types[1] == 0 && (types[0] & mask)) return 1;
     return 0;
 }
 

@@ -4,6 +4,7 @@
 
 #include "game/game_data.h"
 #include "lib/crt.h"
+#include "lib/crt_locale_data.h"
 
 #include <cstdio>
 #include <cstring>
@@ -18,7 +19,7 @@ using namespace ei::vectors::crt_format;
 unsigned short g_classes[256];   // _pctype points here once the fixture ran
 
 bool CheckLocale(Reader& r, char*, std::size_t) {
-    ei::GameData<char>(kDecimalPoint) = r.Get<char>();
+    libcrt::g_decimalPoint[0] = r.Get<char>();
     for (unsigned short& word : g_classes) word = r.Get<unsigned short>();
     ei::GameData<const unsigned short*>(kCharClasses) = g_classes;
     return true;
