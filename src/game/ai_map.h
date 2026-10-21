@@ -86,6 +86,10 @@ struct FootprintPart {
     Vector3 boxMin;         // +0x14
     Vector3 boxMax;         // +0x20
     Vector3 pivot;          // +0x2C
+
+    // 005174E0 (RET 4; object3d_small_methods.cpp): marked ignored (0x800) or not (the "EMPTY"
+    // pieces, CObject3D::LoadPart).
+    void SetIgnored(bool ignored);
 };
 static_assert(sizeof(FootprintPart) == 0x38);
 

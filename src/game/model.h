@@ -353,6 +353,9 @@ public:
     // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
     virtual int SetTexture(int stage, void* texture);
     int SetTextureImpl(int stage, void* texture);   // body of the slot above (registered by member pointer)
+    // 00497CE0 (RET 8; particle_render.cpp). Makes sure the texture in `holder` is loaded
+    // (00500970) and binds it to `stage` through slot 11.
+    int BindHeldTexture(int stage, CTexture** holder);
     // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
     // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);

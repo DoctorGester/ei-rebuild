@@ -203,18 +203,15 @@ BOOL __fastcall HasElementalDamage(const DamageInfo* info) {
 }
 EI_REPLACE(0x00522B80, HasElementalDamage);
 
-// 00522AE0 (thiscall on the damage words, RET 4). The sum over words 1..7 of what exceeds the
-// matching protection word (a difference with its top bit set counts 0), as 16 bits; the
-// original leaves leftovers in the upper half of EAX (callers read AX).
-std::uint32_t __fastcall ExcessDamage(const std::uint16_t* damage, void*, const std::uint16_t* protection) {
+std::uint32_t DamageWords::ExcessOver(const DamageWords* protection) const {
     std::uint16_t sum = 0;
     for (int i = 1; i <= kDamageWords; ++i) {
-        const std::uint16_t difference = static_cast<std::uint16_t>(damage[i] - protection[i]);
+        const std::uint16_t difference = static_cast<std::uint16_t>(words[i] - protection->words[i]);
         if (!(difference & 0x8000)) sum = static_cast<std::uint16_t>(sum + difference);
     }
     return sum;
 }
-EI_REPLACE(0x00522AE0, ExcessDamage);
+EI_REPLACE_METHOD(0x00522AE0, DamageWords::ExcessOver);
 
 // 00522B20 (thiscall on the damage words). The largest of words 1..7 (unsigned), in AX.
 std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage) {

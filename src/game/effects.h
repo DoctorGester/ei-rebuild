@@ -425,9 +425,7 @@ using ParticleSpriteArray = mfc::CArray<ParticleSprite>;   // SetSize 00497D50 i
 
 // (00497D40, the list position's particle with the position advanced, is the list's GetNext.)
 
-// 00497CE0. Makes sure the texture in `holder` is loaded (00500970) and binds it to `stage`
-// through the renderer (slot 11). __thiscall on the renderer.
-int __fastcall BindParticleTexture(void* renderer, void*, int stage, CTexture** holder);
+// (00497CE0, the renderer's bind of a held texture, is CSceneRenderer::BindHeldTexture, model.h.)
 
 // 00497EB0 (particle_emitters.cpp). Room for `count` elements, 32-byte aligned, the allocated block
 // stored just below; __fastcall.

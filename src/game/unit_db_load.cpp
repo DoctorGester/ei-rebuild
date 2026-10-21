@@ -117,9 +117,9 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     for (int i = 0; i < static_cast<int>(models.end - models.begin); ++i) {
         for (int slot = 0; slot < kModelSlots; ++slot) {
             const auto at = static_cast<std::uint32_t>(i);
-            UnitLevelRecord* level = levels.FindByName(UnitModelAt(&models.begin, nullptr, at)->slots[slot].levelName);
+            UnitLevelRecord* level = levels.FindByName(models.At(at)->slots[slot].levelName);
             const int index = level ? static_cast<int>(level - levels.begin) : -1;
-            UnitModelAt(&models.begin, nullptr, at)->slots[slot].levelIndex = index;
+            models.At(at)->slots[slot].levelIndex = index;
         }
     }
     return 1;

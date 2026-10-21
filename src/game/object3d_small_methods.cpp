@@ -33,15 +33,13 @@ void CObject3D::SetSpecific(CObject3DSpecific* half) {
 }
 EI_REPLACE_METHOD(0x005161A0, CObject3D::SetSpecific);
 
-// 005174E0 (ECX = a part box's flags, RET 4): the box is marked ignored (0x800) or not (the "EMPTY"
-// pieces, CObject3D::LoadPart).
-void __fastcall BoxSetIgnored(std::uint32_t* flags, void*, bool ignored) {
+void FootprintPart::SetIgnored(bool ignored) {
     if (ignored)
-        *flags |= kBoxIgnored;
+        flags |= kBoxIgnored;
     else
-        *flags &= ~kBoxIgnored;
+        flags &= ~kBoxIgnored;
 }
-EI_REPLACE(0x005174E0, BoxSetIgnored);
+EI_REPLACE_METHOD(0x005174E0, FootprintPart::SetIgnored);
 
 void CObject3D::SetPartFlags(std::uint32_t mask) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ |= mask;

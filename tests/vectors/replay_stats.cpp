@@ -14,8 +14,7 @@
 #include <cstring>
 #include <vector>
 
-// The two damage word functions are not declared in a header (unit_stats.cpp).
-std::uint32_t __fastcall ExcessDamage(const std::uint16_t* damage, void*, const std::uint16_t* protection);
+// MaxDamage is not declared in a header (unit_stats.cpp); the excess is DamageWords::ExcessOver (unit_db.h).
 std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage);
 int __fastcall SchoolPrice(int from, int to);   // unit_skill_price.cpp
 
@@ -127,10 +126,10 @@ bool CheckElemental(const ElementalCall& v, char* d, std::size_t n) {
 EI_VECTOR_CHECK("HasElementalDamage", ElementalCall, CheckElemental);
 
 bool CheckExcess(const ExcessCall& v, char* d, std::size_t n) {
-    std::uint16_t damage[8] = {}, protection[8] = {};
-    std::memcpy(damage + 1, v.damage, sizeof(v.damage));
-    std::memcpy(protection + 1, v.protection, sizeof(v.protection));
-    std::uint32_t result = ExcessDamage(damage, nullptr, protection) & 0xFFFF;
+    DamageWords damage = {}, protection = {};
+    std::memcpy(damage.words + 1, v.damage, sizeof(v.damage));
+    std::memcpy(protection.words + 1, v.protection, sizeof(v.protection));
+    std::uint32_t result = damage.ExcessOver(&protection) & 0xFFFF;
     if (result == v.result) return true;
     std::snprintf(d, n, "ours %u, original %u", result, v.result);
     return false;

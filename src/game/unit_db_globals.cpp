@@ -16,7 +16,7 @@ UnitPrototypeTable& PrototypeTable() { return g_unitDatabase->prototypes; }
 NpcPrototypeTable& NpcTable() { return g_unitDatabase->npcs; }
 namespace {
 // Element `index` of the records between `begin` and `end`, or null past the end (what
-// UnitPrototypeTable::At and UnitModelAt answer, inline: the vector replay links this file alone).
+// UnitPrototypeTable::At and UnitModelTable::At answer, inline: the vector replay links this file alone).
 template <typename T>
 T* RecordAt(T* begin, T* end, std::uint32_t index) {
     return index < static_cast<std::uint32_t>(end - begin) ? begin + index : nullptr;

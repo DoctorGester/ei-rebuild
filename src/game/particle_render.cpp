@@ -89,14 +89,11 @@ EI_REPLACE_METHOD(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REPLACE_METHOD(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REPLACE_METHOD(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
 
-// 00497CE0.
-int __fastcall BindParticleTexture(void* renderer, void*, int stage, CTexture** holder) {
+int CSceneRenderer::BindHeldTexture(int stage, CTexture** holder) {
     TextureHolderEnsureLoaded(holder);
-    using BindFn = int(__fastcall*)(void*, void*, int, void*);
-    BindFn bind = ei::ObjectSlot<BindFn>(renderer, 11);
-    return bind(renderer, nullptr, stage, *holder);
+    return SetTexture(stage, *holder);
 }
-EI_REPLACE(0x00497CE0, BindParticleTexture);
+EI_REPLACE_METHOD(0x00497CE0, CSceneRenderer::BindHeldTexture);
 
 // 00497D50. CArray::SetSize for the 8-byte sprites: new elements are zeroed.
 EI_REPLACE_METHOD(0x00497D50, ParticleSpriteArray::SetSize);
@@ -118,7 +115,7 @@ int CParticleSource::Draw(void* renderer) {
     Vertices().SetSize(kReserve);   // SetSize inlined by the original
     Sprites().SetSize(particles.count, -1);
     Vertices().SetSize(particles.count);
-    if (!BindParticleTexture(renderer, nullptr, 0, &texture)) return 0;
+    if (!static_cast<CSceneRenderer*>(renderer)->BindHeldTexture(0, &texture)) return 0;
 
     ParticleSprite* sprite = Sprites().data;
     mfc::CTypedPtrList<Particle>::Node* cursor = particles.head;

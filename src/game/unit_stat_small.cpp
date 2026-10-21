@@ -41,11 +41,8 @@ EI_REWRITTEN(0x00526FF0, SkillDatabase::SkillAt);
 SkillLevelRecord* SkillDatabase::LevelAt(std::uint32_t index) { return RecordAt(levels.begin(), levels.end(), index); }
 EI_REWRITTEN(0x00524FA0, SkillDatabase::LevelAt);
 
-// 00539280 (thiscall on the unit database's model vector, RET 4): model `index`, or null.
-UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::uint32_t index) {
-    return RecordAt(models[0], models[1], index);
-}
-EI_REWRITTEN(0x00539280, UnitModelAt);
+UnitModelRecord* UnitModelTable::At(std::uint32_t index) { return RecordAt(begin, end, index); }
+EI_REWRITTEN(0x00539280, UnitModelTable::At);
 
 // 0053AD30 (thiscall on the prototype table, RET 4): prototype `index`, or null.
 UnitPrototypeRecord* UnitPrototypeTable::At(std::uint32_t index) {

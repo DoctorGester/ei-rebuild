@@ -250,6 +250,8 @@ struct UnitModelTable {
     // operator[] on the name index, so an unknown name is inserted with a null record (and null
     // is returned).
     UnitModelRecord* FindByName(const char* name);
+    // 00539280 (RET 4; unit_stat_small.cpp): record `index`, or null past the end.
+    UnitModelRecord* At(std::uint32_t index);
 
     UnitModelRecord* begin;
     UnitModelRecord* end;
@@ -318,9 +320,17 @@ inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
 inline UnitModelRecord* ModelNamed(const stlp::string& name) { return Database().models.byName.Subscript(name); }
 } // namespace unitdb
 
-// unit_stat_small.cpp (A-U12). 00539280 (thiscall on the model table's vector, RET 4) / 0053AD30
-// (UnitPrototypeTable::At; thiscall on the prototype table, RET 4): record `index`, or null past the end.
-UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::uint32_t index);
+// Eight damage or protection words (an AI attack option's damage, a combat controller's
+// protection): word 0 apart, words 1..7 per damage type.
+struct DamageWords {
+    std::uint16_t words[8];
+
+    // 00522AE0 (RET 4; unit_stats.cpp). The sum over words 1..7 of what exceeds the matching
+    // protection word (a difference with its top bit set counts 0), as 16 bits; the original
+    // leaves leftovers in the upper half of EAX (callers read AX).
+    std::uint32_t ExcessOver(const DamageWords* protection) const;
+};
+static_assert(sizeof(DamageWords) == 0x10);
 
 // The skill (perk) database (global 007AF268; loaded from "perks.pdb" at startup by 00520220,
 // Rebirth-patched): the skills, then the skill level records (three per skill: levels 1..3).

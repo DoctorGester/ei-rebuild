@@ -691,7 +691,7 @@ constexpr int kSkillLevelSize = 0x44;
 // Prototype record `index` of the unit database, or null past the end (UnitPrototypeTable::At;
 // unit_db_globals.cpp).
 UnitPrototypeRecord* PrototypeRecord(std::uint32_t index);
-// Model record `index`, or null past the end (UnitModelAt).
+// Model record `index`, or null past the end (UnitModelTable::At).
 UnitModelRecord* ModelRecord(std::uint32_t index);
 // The weight of a body slot's protection by slot type (head 10, body 30, ...): UnitParams::ProtectionBlock.
 inline constexpr int kSlotTypes = 5;
