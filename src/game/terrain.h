@@ -73,7 +73,7 @@ static_assert(sizeof(LandscapeLight) == 0x24);
 
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but
 // vertices can be displaced sideways, so a point may lie in a neighbouring cell. A counted engine
-// object (0xAFC bytes, vtable 0073F6A8) on a CTransformObject base (00453400); the client world's
+// object (0xAFC bytes, Vtable()) on a CTransformObject base (00453400); the client world's
 // Setup inlines its constructor up to 006C5620, so the members it initialises are declared.
 class Terrain : public CTransformObject {
 public:
@@ -256,6 +256,8 @@ public:
     void Destruct();
     // 00562B60 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
     Terrain* DeletingDestruct(unsigned flags);
+    // The compiled table (TerrainClass, world_client_class.h; game.exe's 0073F6A8).
+    static void* Vtable();
 
     Matrix4 drawMatrix;             // +0x054 the draw passes' matrix (rotation, position in the last column)
     // +0x094 1 water waves, 2 animated tiles, 4 fade the light at the map edges, 8 ambient sounds,

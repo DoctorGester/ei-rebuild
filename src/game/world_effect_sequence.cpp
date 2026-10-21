@@ -107,5 +107,5 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00676C00, CEffectSoundSeq::Start);
-EI_REPLACE_METHOD(0x00676FD0, CEffectSoundSeq::Unpack);
+EI_REWRITTEN(0x00676C00, CEffectSoundSeq::Start);
+EI_REWRITTEN(0x00676FD0, CEffectSoundSeq::Unpack);

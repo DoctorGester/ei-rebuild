@@ -1,6 +1,7 @@
 // Lights and the light manager (A-H23): CLight's lifetime and setters, CLightFactory
 // ("CLightManager") lifetime and object creation. See spell.h and docs/notes/items_spells.md.
 #include "spell.h"
+#include "spell_class.h"
 
 #include "core_transform.h"
 
@@ -39,7 +40,7 @@ CLight* CLight::Construct() {
     ClearFields();
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     std::memset(&kind_, 0, offsetof(CLight, unused_FC) - offsetof(CLight, kind_));
     unused_FC = 0;
     unused_E8 = 1.0f;
@@ -66,7 +67,7 @@ CLight* CLight::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0068CFC0, CLight::DeletingDestruct);
+EI_REWRITTEN(0x0068CFC0, CLight::DeletingDestruct);
 
 BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     kind_ = kKindPoint;
@@ -141,10 +142,10 @@ int __fastcall LightCreate(CLight*) { return 1; }
 void __fastcall LightDestroy(CLight* light) { light->flags_ &= ~kFlagDestroyed; }
 const char* __fastcall LightClassName(CLight*) { return kLightClassName; }
 int __fastcall LightClassId(CLight*) { return 10; }
-EI_REPLACE(0x0068CFF0, LightCreate);
-EI_REPLACE(0x0068D000, LightDestroy);
-EI_REPLACE(0x0068CFA0, LightClassName);
-EI_REPLACE(0x0068CFB0, LightClassId);
+EI_REWRITTEN(0x0068CFF0, LightCreate);
+EI_REWRITTEN(0x0068D000, LightDestroy);
+EI_REWRITTEN(0x0068CFA0, LightClassName);
+EI_REWRITTEN(0x0068CFB0, LightClassId);
 
 // --- CLightFactory -------------------------------------------------------------------------------
 

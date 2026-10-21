@@ -492,7 +492,7 @@ ItemSourceRef* NewItemRecord(bool refValueBase) {
     if (!memory) return nullptr;
     if (!refValueBase) return reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
     RefValueConstructBase(memory);
-    memory->vtable = ei::GamePointer<void>(worlddata::kItemSourceRefVtable);
+    memory->vtable = CItemLink::Vtable();
     return memory;
 }
 

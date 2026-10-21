@@ -35,6 +35,11 @@ void OfferTables() {
     g_tables.Offer(v, ControlWord());
 }
 
+// game.exe's tables of the growing buffer and the fixed view: the recording runs the original, whose buffers hold
+// them (our image's are the compiled tags, net_coder.h).
+std::uintptr_t GrowingTable() { return reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const std::uint8_t>(0x0073D624)); }
+std::uintptr_t ViewTable() { return reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const std::uint8_t>(0x0073CA64)); }
+
 BufferState StateOf(const GameBuffer* b) {
     auto s = Zeroed<BufferState>();
     s.cur = static_cast<std::int32_t>(b->cur - b->begin);
@@ -43,7 +48,7 @@ BufferState StateOf(const GameBuffer* b) {
     s.flags = b->flags;
     std::uintptr_t vtable;
     std::memcpy(&vtable, b, sizeof(vtable));
-    s.growing = vtable == ei::GameAddress(GameBuffer::kGrowingVtableAddress);
+    s.growing = vtable == GrowingTable();
     return s;
 }
 
@@ -52,7 +57,7 @@ bool Recordable(const GameBuffer* in, const GameBuffer* out) {
     std::memcpy(&vin, in, sizeof(vin));
     std::memcpy(&vout, out, sizeof(vout));
     auto known = [](std::uintptr_t v) {
-        return v == ei::GameAddress(GameBuffer::kGrowingVtableAddress) || v == ei::GameAddress(kBufferViewVtable);
+        return v == GrowingTable() || v == ViewTable();
     };
     return in != out && in->base == 0 && out->base == 0 && known(vin) && known(vout);
 }

@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -18,7 +19,17 @@ constexpr double kHalfCell = 1.0 * 0.5;
 constexpr double kLevelsPerUnit = 16.0;
 constexpr int kMiddle = 8;
 
-void SetVtable(CUnitShape* shape, std::uintptr_t vtable) { ei::SetVtable(static_cast<void*>(shape), ei::GamePointer<const void>(vtable)); }
+// The shape's compiled table (C19) in place of game.exe's 0073FD5C: CRefObject's four slots.
+class CUnitShapeClass final : public ei::CompiledTag<CUnitShapeClass> {
+public:
+    virtual void* DeleteScalar(unsigned flags) { return Shape()->RootDeletingDestruct(flags); }   // 0: 005B3570
+    virtual void Serialize(ChunkArchive*) {}                     // 1: 00412580 (empty)
+    virtual int OnShutdown() { return Shape()->Empty(); }        // 2: 005B3540
+    virtual CRefObject* Clone() { return Shape()->Copy(); }      // 3: 005B34F0
+
+private:
+    CUnitShape* Shape() { return reinterpret_cast<CUnitShape*>(this); }
+};
 
 // operator new and the counted header's constructor: no references, no flags (the original
 // writes them before it tests the allocation).
@@ -32,9 +43,11 @@ CUnitShape* NewShape() {
 
 } // namespace
 
+void* CUnitShape::Vtable() { return CUnitShapeClass::Vtable(); }
+
 CUnitShape* CUnitShape::Construct(float newRadius) {
     radius = newRadius;
-    SetVtable(this, kUnitShapeVtable);
+    ei::SetVtable(this, Vtable());
     std::memset(levels, 0, sizeof(levels));
     for (int dy = -kMiddle; dy < kMiddle; ++dy) {
         int rowSquared = dy * dy;
@@ -50,22 +63,22 @@ CUnitShape* CUnitShape::Construct(float newRadius) {
 EI_REWRITTEN(0x005B3440, CUnitShape::Construct);
 
 int CUnitShape::Empty() {
-    SetVtable(this, kUnitShapeVtable);
+    ei::SetVtable(this, Vtable());
     std::memset(levels, 0, sizeof(levels));
     radius = -1.0f;
     return 0;
 }
-EI_REPLACE_METHOD(0x005B3540, CUnitShape::Empty);
+EI_REWRITTEN(0x005B3540, CUnitShape::Empty);
 
 CUnitShape* CUnitShape::Copy() {
     CUnitShape* copy = NewShape();
     if (!copy) return nullptr;
     std::memcpy(copy->levels, levels, sizeof(levels));
     copy->radius = radius;
-    SetVtable(copy, kUnitShapeVtable);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
-EI_REPLACE_METHOD(0x005B34F0, CUnitShape::Copy);
+EI_REWRITTEN(0x005B34F0, CUnitShape::Copy);
 
 CUnitShape* __stdcall CreateUnitShape(const UnitShapeHandle* handle) {
     CUnitShape* shape = NewShape();

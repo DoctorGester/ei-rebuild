@@ -159,7 +159,7 @@ public:
 };
 // The counted record an item's link_ (a RefPtr slot) points at when the world
 // server builds a unit's items from its party record (0058EF20): a reference value (constructor
-// 00419720 then vtable 0073FA88, or 0058FBB0) holding the id of the record's item.
+// 00419720 then CItemLink::Vtable(), or 0058FBB0) holding the id of the record's item.
 struct ItemSourceRef {
     void* vtable;                 // +0x00
     std::uint32_t refs;           // +0x04 CRefCounted's count and flags (written as one dword)
@@ -173,10 +173,10 @@ static_assert(offsetof(CItem, spell_) == 0x44);
 static_assert(sizeof(CItem) == 0x4C);
 
 // The record an item's link (CItem::link_) points at as the world server makes it (0xC
-// bytes, vtable 0073FA88): a counted value with a 16-bit count and the dword the world's save keeps
+// bytes): a counted value with a 16-bit count and the dword the world's save keeps
 // per item (world_save.cpp, world_units.cpp, world_quests.cpp).
 struct CItemLink {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FA88); }
+    static void* Vtable();   // the compiled table (CItemLinkClass, item_link.cpp; game.exe's 0073FA88)
 
     // item_link.cpp (A-W14). 0058FBB0: the constructor's last step, the vtable stored (the counted
     // value's 00419720 ran before); returns this. The world server's CreateUnits and

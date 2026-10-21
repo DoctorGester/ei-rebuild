@@ -324,5 +324,5 @@ EI_REWRITTEN(0x006C3E30, SectorData::ScheduleRelight);
 EI_REWRITTEN(0x006C3E50, SectorData::RelightTick);
 EI_REWRITTEN(0x006C3E80, SectorData::Animate);
 EI_REWRITTEN(0x006C8ED0, Terrain::SetSun);
-EI_REPLACE_METHOD(0x006CB1E0, Terrain::RunTickImpl);
+EI_REWRITTEN(0x006CB1E0, Terrain::RunTickImpl);
 EI_REPLACE(0x006C9270, terrain::FreeSortedSectors);

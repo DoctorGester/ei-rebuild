@@ -679,44 +679,44 @@ int CEffectLightning::Tick() {
 
 // --- Hooks ---------------------------------------------------------------------------------------
 
-EI_REPLACE_METHOD(0x006780C0, CEffectPointLight::Reset);
-EI_REPLACE_METHOD(0x006781B0, CEffectPointLight::Tick);
-EI_REPLACE_METHOD(0x006782D0, CEffectPointLight::Start);
-EI_REPLACE_METHOD(0x00678520, CEffectPointLight::Unpack);
-EI_REPLACE_METHOD(0x00678610, CEffectPointLight::Pack);
-EI_REPLACE_METHOD(0x00678690, CEffectPointLight::LoadState);
-EI_REPLACE_METHOD(0x00678740, CEffectPointLight::SaveState);
-EI_REPLACE_METHOD(0x00677F70, CEffectPointLight::Radius);
+EI_REWRITTEN(0x006780C0, CEffectPointLight::Reset);
+EI_REWRITTEN(0x006781B0, CEffectPointLight::Tick);
+EI_REWRITTEN(0x006782D0, CEffectPointLight::Start);
+EI_REWRITTEN(0x00678520, CEffectPointLight::Unpack);
+EI_REWRITTEN(0x00678610, CEffectPointLight::Pack);
+EI_REWRITTEN(0x00678690, CEffectPointLight::LoadState);
+EI_REWRITTEN(0x00678740, CEffectPointLight::SaveState);
+EI_REWRITTEN(0x00677F70, CEffectPointLight::Radius);
 
-EI_REPLACE_METHOD(0x00678A90, CEffectParticle::Reset);
-EI_REPLACE_METHOD(0x00678BA0, CEffectParticle::Position);
-EI_REPLACE_METHOD(0x00678CF0, CEffectParticle::Start);
-EI_REPLACE_METHOD(0x00678D30, CEffectParticle::Unpack);
+EI_REWRITTEN(0x00678A90, CEffectParticle::Reset);
+EI_REWRITTEN(0x00678BA0, CEffectParticle::Position);
+EI_REWRITTEN(0x00678CF0, CEffectParticle::Start);
+EI_REWRITTEN(0x00678D30, CEffectParticle::Unpack);
 EI_REWRITTEN(0x00678EC0, CEffectParticle::Spawn);
-EI_REPLACE_METHOD(0x006791A0, CEffectParticle::Pack);
+EI_REWRITTEN(0x006791A0, CEffectParticle::Pack);
 EI_REWRITTEN(0x00679280, CEffectParticle::SetAttachedTo);
 EI_REWRITTEN(0x006792B0, CEffectParticle::SetSize);
 EI_REWRITTEN(0x006792E0, CEffectParticle::SetColors);
 EI_REWRITTEN(0x00679310, CEffectParticle::SetTarget);
 EI_REWRITTEN(0x00679350, CEffectParticle::Attach);
-EI_REPLACE_METHOD(0x006793E0, CEffectParticle::LoadState);
-EI_REPLACE_METHOD(0x006794E0, CEffectParticle::SaveState);
-EI_REPLACE_METHOD(0x006795C0, CEffectParticle::Tick);
+EI_REWRITTEN(0x006793E0, CEffectParticle::LoadState);
+EI_REWRITTEN(0x006794E0, CEffectParticle::SaveState);
+EI_REWRITTEN(0x006795C0, CEffectParticle::Tick);
 
-EI_REPLACE_METHOD(0x00679AF0, CEffectWall::Reset);
+EI_REWRITTEN(0x00679AF0, CEffectWall::Reset);
 EI_REWRITTEN(0x00679C30, CEffectWall::SetDirection);
-EI_REPLACE_METHOD(0x00679C70, CEffectWall::Unpack);
-EI_REPLACE_METHOD(0x00679DB0, CEffectWall::Pack);
-EI_REPLACE_METHOD(0x00679EA0, CEffectWall::LoadState);
-EI_REPLACE_METHOD(0x00679ED0, CEffectWall::SaveState);
+EI_REWRITTEN(0x00679C70, CEffectWall::Unpack);
+EI_REWRITTEN(0x00679DB0, CEffectWall::Pack);
+EI_REWRITTEN(0x00679EA0, CEffectWall::LoadState);
+EI_REWRITTEN(0x00679ED0, CEffectWall::SaveState);
 
-EI_REPLACE_METHOD(0x0067A1B0, CEffectLightning::Reset);
-EI_REPLACE_METHOD(0x0067A370, CEffectLightning::Start);
-EI_REPLACE_METHOD(0x0067A490, CEffectLightning::Unpack);
-EI_REPLACE_METHOD(0x0067A600, CEffectLightning::Pack);
+EI_REWRITTEN(0x0067A1B0, CEffectLightning::Reset);
+EI_REWRITTEN(0x0067A370, CEffectLightning::Start);
+EI_REWRITTEN(0x0067A490, CEffectLightning::Unpack);
+EI_REWRITTEN(0x0067A600, CEffectLightning::Pack);
 EI_REWRITTEN(0x0067A6B0, CEffectLightning::SetEnds);
-EI_REPLACE_METHOD(0x0067A770, CEffectLightning::LoadState);
-EI_REPLACE_METHOD(0x0067A7F0, CEffectLightning::SaveState);
+EI_REWRITTEN(0x0067A770, CEffectLightning::LoadState);
+EI_REWRITTEN(0x0067A7F0, CEffectLightning::SaveState);
 EI_REWRITTEN(0x0067A890, CEffectLightning::SetObjects);
 EI_REWRITTEN(0x0067A8C0, CEffectLightning::SetFlag);
-EI_REPLACE_METHOD(0x0067A8F0, CEffectLightning::Tick);
+EI_REWRITTEN(0x0067A8F0, CEffectLightning::Tick);

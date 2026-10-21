@@ -1,6 +1,7 @@
 // Constructor and destructor bodies of the spell objects: the effect record (MapEffect), the spell
 // (CSpell) and the cast spell (CSpellEffect). See spell.h.
 #include "spell.h"
+#include "spell_class.h"
 
 #include "map_object.h"
 #include "unit.h"
@@ -41,7 +42,7 @@ EI_REWRITTEN(0x00688510, MapEffect::Construct);
 CSpell* CSpell::Construct() {
     ClearFields();
     Effect().Construct();
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     speed_ = 0;
     range_ = 0;
     targetCount_ = 0;
@@ -57,7 +58,7 @@ CSpell* CSpell::Construct() {
 EI_REWRITTEN(0x0068B1F0, CSpell::Construct);
 
 void CSpell::Destruct() {
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     ClearModifiers();
     DestructBase();
 }
@@ -68,7 +69,7 @@ CSpell* CSpell::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0068B2A0, CSpell::DeletingDestruct);
+EI_REWRITTEN(0x0068B2A0, CSpell::DeletingDestruct);
 
 // --- CSpellEffect --------------------------------------------------------------------------------
 

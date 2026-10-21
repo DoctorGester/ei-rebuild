@@ -71,7 +71,7 @@ struct LocalBuffer {
 
 void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data) {
     LocalCoder coder;
-    // A view over the data (vtable 0073CA64, flags 2).
+    // A view over the data (flags 2).
     std::uint8_t* begin = data->data_;
     std::uint8_t* last = begin + data->Size();
     GameBuffer view;
@@ -113,7 +113,7 @@ void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemor
             }
         }   // the decoder's cursor ends here, then `check` and `packed` go
     }
-    ei::SetVtable(&view, GameBuffer::kViewBaseVtableAddress);
+    ei::SetVtable(&view, GameBuffer::ViewBaseVtable());
 }
 
 bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file) {

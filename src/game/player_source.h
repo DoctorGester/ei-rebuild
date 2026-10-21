@@ -11,7 +11,8 @@
 
 class CPlayerSource : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F38C);
+    // The compiled table (world_sessions.cpp; game.exe's 0073F38C).
+    static void* Vtable();
 
     // 0: 0055F2F0 (DeletingDestructBase); 2 / 3 / 4 / 6 pure in the base.
     virtual bool Query();               // 4: the helpers 0055F250 / 005626F0 AL 0, the session 0047A220 AL 1

@@ -15,6 +15,8 @@
 #include "object_diplomacy.h"
 #include "originals_world.h"
 #include "registry.h"
+#include "world_class_slots.h"
+#include "engine_object_class.h"
 #include "script.h"
 
 #include "ei/hook.h"
@@ -30,7 +32,6 @@ namespace {
 // The instantiations' vtables the constructors write.
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
-constexpr std::uintptr_t kPlatformSetVtable = std::uintptr_t(0x0073F4FC);       // CBridgeManager
 constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);         // CByteArray
 constexpr std::uintptr_t kWordArrayVtable = std::uintptr_t(0x00745F78);         // CWordArray
 
@@ -61,6 +62,19 @@ void ConstructEngineObject(CEngineObject* object, std::uintptr_t vtable) {
     object->ClearFields();
     ei::SetVtable(object, vtable);
 }
+void ConstructEngineObject(CEngineObject* object, void* vtable) {
+    object->ClearFields();
+    ei::SetVtable(object, vtable);
+}
+
+// The client world's platform set as the engine's CBridgeManager (game.exe's 0073F4FC).
+class BridgeManagerClass final : public EngineObjectClass<BridgeManagerClass, PlatformSet> {
+public:
+    int Create() override { return As<PlatformSet>()->Clear(); }                         // 2: 00561800
+    void Destroy() override { gameslots::BridgeManagerDestroy(As<PlatformSet>()); }      // 3: 00561840
+    const char* ClassName() override { return BridgeManagerClassName(As<PlatformSet>()); }   // 11: 00561870
+    int ClassId() override { return BridgeManagerClassId(As<PlatformSet>()); }               // 12: 00561880
+};
 
 // The ground print lists' sentinels come from operator new (their nodes are larger than the node
 // allocator's 128 bytes): 0xA4, 0x9C and 0x94 bytes.
@@ -131,7 +145,7 @@ CWorldClient* CWorldClient::Construct() {
     scorchMarks_.Construct();
     handle_.ptr = nullptr;
 
-    ConstructEngineObject(platforms_.Engine(), kPlatformSetVtable);
+    ConstructEngineObject(platforms_.Engine(), BridgeManagerClass::Vtable());
     ConstructList(platforms_.list, mfc::impl::PlatformListClass::Vtable());
     new (&texturePath_) mfc::CString();
 

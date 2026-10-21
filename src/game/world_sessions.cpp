@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
+#include "lib/compiled_vtable.h"
 
 #include <cstdint>
 
@@ -67,6 +68,68 @@ void ReleaseCounted(CRefObject* object) {
 
 } // namespace
 
+// ---- The player sources' compiled tables (C19) ----------------------------------------------------
+
+extern "C" int __cdecl _purecall();
+
+namespace {
+
+// The base's (0073F38C): slots 2, 3, 4 and 6 pure.
+class CPlayerSourceClass final : public ei::CompiledTag<CPlayerSourceClass> {
+public:
+    virtual void* DeleteScalar(unsigned flags) { return Object()->DeletingDestructBase(flags); }   // 0: 0055F2F0
+    virtual void Serialize(ChunkArchive*) {}                                    // 1: 00412580 (empty)
+    virtual int OnShutdown() { return _purecall(); }                            // 2: pure
+    virtual CRefObject* Clone() {                                               // 3: pure
+        _purecall();
+        return nullptr;
+    }
+    virtual bool Query() { return _purecall() != 0; }                           // 4: pure
+    virtual void Pump() {}                                                      // 5: 0055F190 (empty)
+    virtual void TakeNew(void*) { _purecall(); }                                // 6: pure
+
+private:
+    CPlayerSource* Object() { return reinterpret_cast<CPlayerSource*>(this); }
+};
+
+// The server world's counted helper's (0073F240).
+class CWorldHandleClass final : public ei::CompiledTag<CWorldHandleClass> {
+public:
+    virtual void* DeleteScalar(unsigned flags) { return Object()->DeletingDestruct(flags); }   // 0: 0055F260
+    virtual void Serialize(ChunkArchive*) {}                                    // 1: 00412580 (empty)
+    virtual int OnShutdown() { return Object()->CWorldHandle::OnShutdown(); }  // 2: 0055F1E0
+    virtual CRefObject* Clone() { return Object()->CWorldHandle::Clone(); }    // 3: 0055F1A0
+    virtual bool Query() { return false; }                                      // 4: 0055F250
+    virtual void Pump() {}                                                      // 5: 0055F190 (empty)
+    virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }      // 6: 00478880
+
+private:
+    CWorldHandle* Object() { return reinterpret_cast<CWorldHandle*>(this); }
+};
+
+// The client world's player source's (0073F628).
+class CClientHandleClass final : public ei::CompiledTag<CClientHandleClass> {
+public:
+    virtual void* DeleteScalar(unsigned flags) {                                // 0: 00562750
+        return reinterpret_cast<CRefObject*>(this)->ValueDeletingDestruct(flags);
+    }
+    virtual void Serialize(ChunkArchive*) {}                                    // 1: 00412580 (empty)
+    virtual int OnShutdown() { return Object()->CClientHandle::OnShutdown(); } // 2: 005626D0
+    virtual CRefObject* Clone() { return Object()->CClientHandle::Clone(); }   // 3: 005626B0
+    virtual bool Query() { return false; }                                      // 4: 005626F0
+    virtual void Pump() {}                                                      // 5: 0055F190 (empty)
+    virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }      // 6: 00562700
+
+private:
+    CClientHandle* Object() { return reinterpret_cast<CClientHandle*>(this); }
+};
+
+} // namespace
+
+void* CPlayerSource::Vtable() { return CPlayerSourceClass::Vtable(); }
+void* CWorldHandle::Vtable() { return CWorldHandleClass::Vtable(); }
+void* CClientHandle::Vtable() { return CClientHandleClass::Vtable(); }
+
 // ---- CPlayerSource (0073F38C) ---------------------------------------------------------------------
 
 void CPlayerSource::DestructBase() { ei::SetVtable(this, CRefCounted::kVtableAddress); }   // 0055F2E0
@@ -77,7 +140,7 @@ CPlayerSource* CPlayerSource::DeletingDestructBase(unsigned flags) {   // 0055F2
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0055F2F0, CPlayerSource::DeletingDestructBase);
+EI_REWRITTEN(0x0055F2F0, CPlayerSource::DeletingDestructBase);
 
 // ---- CWorldHandle (0073F240) ----------------------------------------------------------------------
 
@@ -89,10 +152,10 @@ CWorldHandle* CWorldHandle::Clone() {   // 0055F1A0
     copy->refs_ = 0;
     copy->flags6_ = 0;
     copy->flags7_ = 0;
-    ei::SetVtable(copy, CPlayerSource::kVtableAddress);
+    ei::SetVtable(copy, CPlayerSource::Vtable());
     copy->pendingLink_ = pendingLink_;
     if (copy->pendingLink_) ++copy->pendingLink_->refs_;
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 
@@ -100,12 +163,12 @@ CWorldHandle* CWorldHandle::Clone() {   // 0055F1A0
 int CWorldHandle::OnShutdown() {   // 0055F1E0
     Destruct();
     pendingLink_ = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 
 void CWorldHandle::Destruct() {   // 0055F280
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(pendingLink_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -116,14 +179,14 @@ CWorldHandle* CWorldHandle::DeletingDestruct(unsigned flags) {   // 0055F260
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0055F260, CWorldHandle::DeletingDestruct);
+EI_REWRITTEN(0x0055F260, CWorldHandle::DeletingDestruct);
 
 namespace {
 int __fastcall HandleShutdownHook(CWorldHandle* self) { return self->CWorldHandle::OnShutdown(); }
 CWorldHandle* __fastcall HandleCloneHook(CWorldHandle* self) { return self->CWorldHandle::Clone(); }
 } // namespace
-EI_REPLACE(0x0055F1E0, HandleShutdownHook);
-EI_REPLACE(0x0055F1A0, HandleCloneHook);
+EI_REWRITTEN(0x0055F1E0, HandleShutdownHook);
+EI_REWRITTEN(0x0055F1A0, HandleCloneHook);
 
 // ---- CClientHandle (0073F628) ---------------------------------------------------------------------
 
@@ -134,13 +197,13 @@ CClientHandle* CClientHandle::Clone() {   // 005626B0
     copy->refs_ = 0;
     copy->flags6_ = 0;
     copy->flags7_ = 0;
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 
 int CClientHandle::OnShutdown() {   // 005626D0
     ei::SetVtable(this, CRefCounted::kVtableAddress);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 
@@ -154,9 +217,9 @@ namespace {
 int __fastcall ClientHandleShutdownHook(CClientHandle* self) { return self->CClientHandle::OnShutdown(); }
 CClientHandle* __fastcall ClientHandleCloneHook(CClientHandle* self) { return self->CClientHandle::Clone(); }
 } // namespace
-EI_REPLACE(0x005626D0, ClientHandleShutdownHook);
-EI_REPLACE(0x005626B0, ClientHandleCloneHook);
-EI_REPLACE_METHOD(0x00562700, CClientHandle::TakeNewImpl);
+EI_REWRITTEN(0x005626D0, ClientHandleShutdownHook);
+EI_REWRITTEN(0x005626B0, ClientHandleCloneHook);
+EI_REWRITTEN(0x00562700, CClientHandle::TakeNewImpl);
 
 // ---- netlink::DriverSession (0073F3A8) ------------------------------------------------------------
 
@@ -164,7 +227,7 @@ namespace netlink {
 
 DriverSession* DriverSession::ConstructAt(void* memory) {
     auto* session = static_cast<DriverSession*>(RefValueConstructBase(memory));
-    ei::SetVtable(session, CPlayerSource::kVtableAddress);
+    ei::SetVtable(session, CPlayerSource::Vtable());
     session->drivers_ = NewSentinel();
     session->holders_ = NewSentinel();
     ei::SetVtable(session, Vtable());
@@ -179,7 +242,7 @@ DriverSession* DriverSession::Clone() {   // 0055F550
     copy->refs_ = 0;
     copy->flags6_ = 0;
     copy->flags7_ = 0;
-    ei::SetVtable(copy, CPlayerSource::kVtableAddress);
+    ei::SetVtable(copy, CPlayerSource::Vtable());
     copy->drivers_ = NewSentinel();
     InsertRange<stlp::SharedRef>(copy->drivers_->next, drivers_->next, drivers_);
     copy->holders_ = NewSentinel();
@@ -196,7 +259,7 @@ int DriverSession::OnShutdown() {   // 0055F6B0
     ClearDrivers(drivers_);
     stlp::deallocate(drivers_, sizeof(DriverNode));
     ei::SetVtable(this, CRefCounted::kVtableAddress);
-    ei::SetVtable(this, CPlayerSource::kVtableAddress);
+    ei::SetVtable(this, CPlayerSource::Vtable());
     drivers_ = NewSentinel();
     holders_ = NewSentinel();
     ei::SetVtable(this, Vtable());

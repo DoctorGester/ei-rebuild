@@ -410,19 +410,20 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
 }
 EI_REPLACE_METHOD(0x00430960, CoderState::Decompress);
 
-// --- The fixed view (0073CA64) and its base (0073CA48) --------------------------------------------
+// --- The fixed view and its base (BufferViewClass, BufferViewBaseClass; net_coder.h) ------------------
 
-namespace {
-void SetVtable(GameBuffer* b, std::uintptr_t vtable) { ei::SetVtable(b, ei::GamePointer<const void>(vtable)); }
-} // namespace
+// 004DA580 / 004DA590 (slots 0 / 1 of the view, RET 4): nothing to reserve.
+void GameBuffer::ReserveViewImpl(std::int32_t) {}
+EI_REPLACE_METHOD(0x004DA580, GameBuffer::ReserveViewImpl);
+EI_REPLACE_METHOD(0x004DA590, GameBuffer::ReserveViewImpl);
 
 std::uint8_t* GameBuffer::SeekView(std::int32_t position) {
     cur = begin + position;
     return cur;
 }
-EI_REPLACE_METHOD(0x0047D930, GameBuffer::SeekView);
+EI_REWRITTEN(0x0047D930, GameBuffer::SeekView);
 
-void __fastcall BufferViewDestruct(GameBuffer* self) { SetVtable(self, GameBuffer::kViewBaseVtableAddress); }
+void __fastcall BufferViewDestruct(GameBuffer* self) { ei::SetVtable(self, GameBuffer::ViewBaseVtable()); }
 EI_REWRITTEN(0x0047D960, BufferViewDestruct);
 EI_REWRITTEN(0x004DA850, BufferViewDestruct);
 
@@ -431,11 +432,11 @@ void* GameBuffer::DeleteView(unsigned deleteFlags) {
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0047D940, GameBuffer::DeleteView);
+EI_REWRITTEN(0x0047D940, GameBuffer::DeleteView);
 
 void* GameBuffer::DeleteViewBase(unsigned deleteFlags) {
-    SetVtable(this, GameBuffer::kViewBaseVtableAddress);
+    ei::SetVtable(this, ViewBaseVtable());
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0047D910, GameBuffer::DeleteViewBase);
+EI_REWRITTEN(0x0047D910, GameBuffer::DeleteViewBase);

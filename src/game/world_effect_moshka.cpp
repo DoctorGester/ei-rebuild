@@ -4,6 +4,7 @@
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
+#include "world_effect_class.h"
 #include "game_data.h"
 
 #include "ai_map.h"
@@ -75,7 +76,6 @@ Vector3& PositionOf(CEngineObject* object) { return static_cast<CTransformObject
 
 } // namespace
 
-std::uintptr_t CEffectMoshka::Vtable() { return ei::DataId(0x0074387C); }
 
 CEffectMoshka* CEffectMoshka::Construct() {
     ConstructEffect();
@@ -288,10 +288,10 @@ int CEffectMoshka::Unpack(int, DeltaField*) { return 1; }
 
 EI_REWRITTEN(0x0067C950, CEffectMoshka::Construct);
 EI_REWRITTEN(0x0067CAF0, CEffectMoshka::Destruct);
-EI_REPLACE_METHOD(0x0067CAD0, CEffectMoshka::DeletingDestruct);
-EI_REPLACE_METHOD(0x0067CC90, CEffectMoshka::Reset);
-EI_REPLACE_METHOD(0x0067CD70, CEffectMoshka::Tick);
+EI_REWRITTEN(0x0067CAD0, CEffectMoshka::DeletingDestruct);
+EI_REWRITTEN(0x0067CC90, CEffectMoshka::Reset);
+EI_REWRITTEN(0x0067CD70, CEffectMoshka::Tick);
 EI_REWRITTEN(0x0067CD90, CEffectMoshka::FindPerch);
 EI_REWRITTEN(0x0067CEF0, CEffectMoshka::Update);
 EI_REWRITTEN(0x0067D420, CEffectMoshka::Follow);
-EI_REPLACE_METHOD(0x0067D640, CEffectMoshka::Unpack);
+EI_REWRITTEN(0x0067D640, CEffectMoshka::Unpack);

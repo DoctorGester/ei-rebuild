@@ -12,6 +12,7 @@
 #include "lightning.h"
 #include "map_object_shadow.h"
 #include "world.h"
+#include "world_client_class.h"
 #include "world_data.h"
 
 #include "sky_object.h"   // before windows.h (GetClassName)
@@ -1226,7 +1227,7 @@ int CWorldClient::Setup() {
         texts->flags_ = 0;
         texts->owner_ = nullptr;
         stlp::ListAbi<stlp::Opaque<16>>::ConstructDefault(reinterpret_cast<stlp::list<stlp::Opaque<16>>*>(texts->table));   // 00562A80
-        ei::SetVtable(texts, worlddata::kClientTextsVtable);
+        ei::SetVtable(texts, CTextManager::Vtable());
         Construct4DED20(texts);
     }
     texts_ = texts;
@@ -1255,7 +1256,7 @@ int CWorldClient::Setup() {
         terrain->visibleColumnLast.Construct();
         ::new (&terrain->textAE0) mfc::CString;
         mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
-        ei::SetVtable(terrain, worlddata::kTerrainVtable);
+        ei::SetVtable(terrain, Terrain::Vtable());
         terrain->Reset();
     }
     terrain_ = terrain;
@@ -1286,7 +1287,7 @@ int CWorldClient::Setup() {
     CRefObject* created = nullptr;
     if (handle) {
         RefValueConstructBase(handle);
-        ei::SetVtable(handle, worlddata::kClientHandleVtable);
+        ei::SetVtable(handle, CClientHandle::Vtable());
         created = handle;
     }
     if (created != handle_.ptr) {
@@ -1456,7 +1457,7 @@ int PlatformSet::Clear() {
     list.RemoveAll();
     return 1;
 }
-EI_REPLACE_METHOD(0x00561800, PlatformSet::Clear);
+EI_REWRITTEN(0x00561800, PlatformSet::Clear);
 
 void PlatformSet::DestructBody() {
     list.vtable = mfc::impl::PlatformListClass::Vtable();
@@ -1470,7 +1471,7 @@ PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00561AE0, PlatformSet::DeletingDestruct);
+EI_REWRITTEN(0x00561AE0, PlatformSet::DeletingDestruct);
 
 // 0055E8A0 (ECX the list, EDX the stream; the items a player is given, CPlayerServer::SendItemsGiven).
 // What LoadManagerObjects reads back: per object a 1, its id, type and +0x18, then its own Save;

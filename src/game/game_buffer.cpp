@@ -1,4 +1,4 @@
-// The growing byte buffer (vtable 0073D624): constructors, destructor, assignment, its slots and the
+// The growing byte buffer (GrowingBufferClass, net_coder.h): constructors, destructor, assignment, its slots and the
 // cursor binding (004DA170-004DAAF0). See net_coder.h and docs/notes/network.md, "Compression".
 #include "net_coder.h"
 
@@ -51,7 +51,7 @@ void CopyContents(GameBuffer* self, const GameBuffer* from) {
 
 GameBuffer* GameBuffer::ConstructGrowing() {
     base = 0;
-    SetVtable(this, GameBuffer::kGrowingVtableAddress);
+    SetVtable(this, GrowingVtable());
     flags = kGrowingFlags;
     auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(kInitialBytes));
     end = block + kInitialBytes;
@@ -64,7 +64,7 @@ EI_REPLACE_METHOD(0x004DA7F0, GameBuffer::ConstructGrowing);
 
 GameBuffer* GameBuffer::ConstructCopy(const GameBuffer* from) {
     base = 0;
-    SetVtable(this, GameBuffer::kGrowingVtableAddress);
+    SetVtable(this, GrowingVtable());
     CopyContents(this, from);
     return this;
 }
@@ -78,9 +78,9 @@ GameBuffer* GameBuffer::AssignFrom(const GameBuffer* from) {
 EI_REWRITTEN(0x004DAA80, GameBuffer::AssignFrom);
 
 void GameBuffer::DestructGrowing() {
-    SetVtable(this, GameBuffer::kGrowingVtableAddress);
+    SetVtable(this, GrowingVtable());
     gamecrt::operator_delete(begin);
-    SetVtable(this, GameBuffer::kViewBaseVtableAddress);
+    SetVtable(this, ViewBaseVtable());
 }
 EI_REPLACE_METHOD(0x004DA910, GameBuffer::DestructGrowing);
 
@@ -89,7 +89,7 @@ GameBuffer* GameBuffer::DeleteGrowing(unsigned deleteFlags) {
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004DA8F0, GameBuffer::DeleteGrowing);
+EI_REWRITTEN(0x004DA8F0, GameBuffer::DeleteGrowing);
 
 // --- Growing -------------------------------------------------------------------------------------
 
@@ -110,8 +110,8 @@ EI_REWRITTEN(0x004DA5C0, GameBuffer::Grow);
 void GameBuffer::ReserveGrowing(std::int32_t size) {
     Reallocate(GrownCapacity(this, static_cast<std::uint32_t>(size)));
 }
-EI_REPLACE_METHOD(0x004DA630, GameBuffer::ReserveGrowing);
-EI_REPLACE_METHOD(0x004DA6B0, GameBuffer::ReserveGrowing);   // byte-identical copy (slot 1)
+EI_REWRITTEN(0x004DA630, GameBuffer::ReserveGrowing);
+EI_REWRITTEN(0x004DA6B0, GameBuffer::ReserveGrowing);   // byte-identical copy (slot 1)
 
 int GameBuffer::WriteMoreGrowing(const void* from, std::uint32_t size) {
     Reallocate(GrownCapacity(this, size));
@@ -119,7 +119,7 @@ int GameBuffer::WriteMoreGrowing(const void* from, std::uint32_t size) {
     cur += size;
     return static_cast<int>(size);
 }
-EI_REPLACE_METHOD(0x004DA740, GameBuffer::WriteMoreGrowing);
+EI_REWRITTEN(0x004DA740, GameBuffer::WriteMoreGrowing);
 
 std::uint8_t* GameBuffer::SeekGrowing(std::int32_t position) {
     if (cur > high) high = cur;
@@ -129,12 +129,12 @@ std::uint8_t* GameBuffer::SeekGrowing(std::int32_t position) {
     Reallocate(capacity);
     return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(capacity));
 }
-EI_REPLACE_METHOD(0x004DA860, GameBuffer::SeekGrowing);
+EI_REWRITTEN(0x004DA860, GameBuffer::SeekGrowing);
 
 int GameBuffer::NothingMore(const void*, std::uint32_t) { return 0; }
-EI_REPLACE_METHOD(0x004DA5A0, GameBuffer::NothingMore);   // the view's slot 3
-EI_REPLACE_METHOD(0x004DA5B0, GameBuffer::NothingMore);   // the view's slot 4
-EI_REPLACE_METHOD(0x004DA730, GameBuffer::NothingMore);   // the growing buffer's slot 3
+EI_REWRITTEN(0x004DA5A0, GameBuffer::NothingMore);   // the view's slot 3
+EI_REWRITTEN(0x004DA5B0, GameBuffer::NothingMore);   // the view's slot 4
+EI_REWRITTEN(0x004DA730, GameBuffer::NothingMore);   // the growing buffer's slot 3
 
 // --- Reading past the end and the cursor binding -------------------------------------------------
 

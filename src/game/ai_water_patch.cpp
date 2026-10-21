@@ -35,7 +35,7 @@ CUnitShape* NewPatch() {
     const std::uint32_t noReferences = 0;
     std::memcpy(&shape->refs_, &noReferences, sizeof(noReferences));
     static_assert(offsetof(CUnitShape, flags7_) - offsetof(CUnitShape, refs_) == 3);
-    ei::SetVtable(shape, kUnitShapeVtable);
+    ei::SetVtable(shape, CUnitShape::Vtable());
     std::memset(shape->levels, 0, sizeof(shape->levels));
     shape->radius = -1.0f;
     return shape;

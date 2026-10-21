@@ -9,6 +9,7 @@
 // GetClassName macro would rename them per file).
 
 #include "base_manager.h"
+#include "core_transform.h"
 #include "engine_object.h"
 
 #include "lib/compiled_vtable.h"
@@ -45,4 +46,22 @@ protected:
     template <typename U>
     U* As() { return reinterpret_cast<U*>(this); }
     CEngineObject* Object() { return reinterpret_cast<CEngineObject*>(this); }
+};
+
+// CTransformObject's slots 13-17 over CEngineObject's (game.exe's 0073BA38 has the base's bodies there).
+template <typename Self, typename T>
+class TransformObjectClass : public EngineObjectClass<Self, T> {
+public:
+    virtual CTransformObject* CopyTransform(const CTransformObject& other) {   // 13: 00401490
+        return Transform()->CopyTransformImpl(other);
+    }
+    virtual void CombineRotation(const Quaternion& parent) { Transform()->CombineRotationImpl(parent); }   // 14: 0040CB80
+    virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {   // 15: 0040CC30
+        Transform()->UpdateWorldImpl(parentRotation, parentPosition);
+    }
+    virtual void SaveTransform(void* file) { Transform()->SaveTransformImpl(file); }   // 16: 00401510
+    virtual void LoadTransform(void* file) { Transform()->LoadTransformImpl(file); }   // 17: 00401540
+
+protected:
+    CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
 };
