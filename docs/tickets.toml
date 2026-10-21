@@ -617,7 +617,7 @@ title = "Performance overlay in the standalone, switched by the settings file"
 group = "renderer"
 size = 1
 model = "opus"
-note = "User 2026-10-22: a small performance overlay in the standalone game; the setting comes from config, no UI needed. Default: a value in ei_settings.ini (e.g. key Software\\Nival Interactive\\EvilIslands\\Standalone, \"PerfOverlay\"=dword:1), off when absent; never on in harness runs (their pinned file lacks it, and it must not reach any capture or golden). Show at least FPS and frame time (average / worst over the last second), plus what is cheap and useful: GPU time of the main passes (timestamp queries), draw calls, the shadow pass's cost. Drawn by our renderer on top of everything, small, in a corner."
+note = "Done 2026-10-22: render_perf.{h,cpp} + shaders/perf_overlay.hlsl; switch [Software\\Nival Interactive\\EvilIslands\\Standalone] \"PerfOverlay\"=dword:1 in ei_settings.ini (directdraw_holder.cpp, not read in the harness build); shows FPS, frame avg/worst, GPU shadow/world/UI/present (timestamps), CPU submit/shadow, draws; drawn into the back buffer only. Checked by ei_perf_check (WARP, build.cmd). renderer.md section 15."
 
 [[ticket]]
 id = "R22"
