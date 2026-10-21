@@ -29,6 +29,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
@@ -77,8 +78,22 @@ struct UiTexts {
 int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 int FindText(const char* key) { return reinterpret_cast<UiTexts*>(TheTextManager())->Find(key); }
 
-// The quest the window last selected (a global CString).
-mfc::CString& LastQuest() { return ei::GameData<mfc::CString>(0x007C8178); }
+// The quest the window last selected (a global CString): built empty by the static initialiser 0064BE00 in the list's
+// order, destroyed once by the exit function it registers (guard bit in 007C8174). Both are ported on the names and
+// registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<mfc::CString> g_lastQuest = /*007C8178*/ {};
+constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
+mfc::CString& LastQuest() { return *g_lastQuest; }
+
+void __cdecl ConstructLastQuest() {   // 0064BE00
+    g_lastQuest.Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
+}
+void __cdecl DestroyLastQuest() {   // 0064BE20
+    if (g_lastQuestDestroyed & 1) return;
+    g_lastQuestDestroyed = static_cast<std::uint8_t>(g_lastQuestDestroyed | 1);
+    g_lastQuest.Destroy();
+}
 
 // 004DBE40 (not rewritten): splits `text` at `separator` into `out`.
 
@@ -715,6 +730,8 @@ void CObjectivesWindow::DrawQuestList() {
     UiSurfaceReleaseDC(surface);
 }
 
+EI_REPLACE(0x0064BE00, ConstructLastQuest);
+EI_REPLACE(0x0064BE20, DestroyLastQuest);
 EI_REPLACE_METHOD(0x0064BE80, CObjectivesWindow::Build);
 EI_REPLACE_METHOD(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REPLACE_METHOD(0x0064CC10, CObjectivesWindow::ShowZone);

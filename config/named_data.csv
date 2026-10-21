@@ -96,6 +96,10 @@ address,size,name,file
 007AFDC0,12,g_questFolders,src/game/world_briefing.cpp
 007AFDD0,12,g_questFiles,src/game/world_briefing.cpp
 007AFDE0,12,g_zoneTable,src/game/world_game.cpp
+007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
+007C551C,4,g_loadingHolder,src/game/bink_video.cpp
+007C8174,1,g_lastQuestDestroyed,src/game/ui_objectives.cpp
+007C8178,4,g_lastQuest,src/game/ui_objectives.cpp
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
 007C8640,12,g_takenMaterials,src/game/item_stock.cpp
 007C8650,12,g_candidates,src/game/item_stock.cpp

@@ -871,3 +871,5 @@ address,size,note
 0055E7E0,22,static initialiser of the game's folder strings (no Ghidra function)
 0055E820,22,static initialiser of the game's folder strings (no Ghidra function)
 0055E860,22,static initialiser of the game's folder strings (no Ghidra function)
+0064BE00,22,static initialiser of the objectives window's last quest name (no Ghidra function)
+005DA360,22,static initialiser of the loading movie's surface holder (no Ghidra function)
