@@ -26,6 +26,7 @@
 #include "game_lists.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "game_slots.h"
 
 #include <cstdint>
 #include <cstring>
@@ -505,7 +506,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
     for (int i = 0; i < count; ++i) {
         // A temporary empty block (vtable 0073D3DC, id unset) is copied into the node.
         ScriptDecl temp{};
-        temp.commands.vtable = ei::GamePointer<void>(0x0073D3DC);
+        temp.commands.vtable = mfc::impl::ScriptCommandsClass::Vtable();
         AppendNode(list, NewBlockNode, [&](char* data) {
             auto* block = reinterpret_cast<ScriptDecl*>(data);
             block->commands.CopyFrom(temp.commands);

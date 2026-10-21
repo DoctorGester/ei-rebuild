@@ -41,7 +41,7 @@ void FreeStrings(mfc::CArray<mfc::CString>* a) {
 
 // Each reference released and cleared (the inlined DestructElements<ScriptObjectRef>).
 void FreeRefs(mfc::CArray<ScriptObjectRef>* a) {
-    a->vtable = scriptvtable::kRefsBase;
+    a->vtable = mfc::impl::ObjectRefArrayClass::Vtable();
     if (a->data) {
         ScriptObjectRef* ref = a->data;
         for (int n = a->size; n != 0; --n, ++ref) {
@@ -69,7 +69,7 @@ ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsConstruct(ScriptNamedVa
     return Construct(vars, scriptvtable::kStrings);
 }
 ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars) {
-    return Construct(vars, scriptvtable::kRefs);
+    return Construct(vars, mfc::impl::ScriptGroupClass::Vtable());
 }
 ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars) {
     return Construct(vars, scriptvtable::kGroups);
@@ -105,7 +105,7 @@ void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
     if (!groups->data) return;
     ScriptGroup* group = groups->data;
     for (int n = groups->size; n != 0; --n, ++group) {
-        group->vtable = scriptvtable::kRefsBase;
+        group->vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (!group->data) continue;
         ScriptObjectRef* ref = group->data;
         for (int k = group->size; k != 0; --k, ++ref) ref->Reset();
@@ -124,7 +124,7 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
         gamecrt::operator_delete(vars.groups.data);
     }
     FreeStrings(&vars.objectNames);
-    vars.objects.vtable = scriptvtable::kRefsBase;
+    vars.objects.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
     if (vars.objects.data) {
         gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
         gamecrt::operator_delete(vars.objects.data);
@@ -144,7 +144,7 @@ void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
     if (!groups.data) return;
     ScriptGroup* group = groups.data;
     for (int n = groups.size; n != 0; --n, ++group) {
-        group->vtable = scriptvtable::kRefsBase;
+        group->vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (!group->data) continue;
         ScriptObjectRef* ref = group->data;
         for (int k = group->size; k != 0; --k, ++ref) ref->DestroyElement(0);

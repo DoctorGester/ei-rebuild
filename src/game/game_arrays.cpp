@@ -115,3 +115,18 @@ void EngineObjectPtrs::CopyFrom(const EngineObjectPtrs& source) {
     }
 }
 EI_REWRITTEN(0x0059B8F0, EngineObjectPtrs::CopyFrom);
+
+// The lib templates over tags the game's headers define (C19): the registrations that need the complete tag.
+namespace mfc::impl {
+
+EI_REWRITTEN(0x004C2030, ArrayHeader<ObjectRefArrayClass>::Construct);
+EI_REWRITTEN(0x0056FFE0, ArrayHeader<ExitArrayClass>::Construct);
+EI_REWRITTEN(0x005985C0, ArrayHeader<ObjectPtrArrayClass>::Construct);
+EI_REWRITTEN(0x004CC9B0, ScriptGroups::ConstructElements);
+EI_REWRITTEN(0x004607E0, MapRecords::ConstructElements);
+EI_REWRITTEN(0x0059E330, SharedObjectArray::ConstructElements);
+EI_REWRITTEN(0x0059CA60, SharedObjectNewList::NewNode);
+EI_REWRITTEN(0x00460490, ExitTargets::Destruct<ExitArrayClass>);
+EI_REWRITTEN(0x00460A80, ExitTargets::Destruct<ExitArrayClass>);
+
+} // namespace mfc::impl

@@ -74,7 +74,7 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
         gamecrt::operator_delete(vars->groups.data);
     }
     FreeStrings(&vars->objectNames);
-    SetBaseVtable(&vars->objects, scriptvtable::kRefsBase);
+    SetBaseVtable(&vars->objects, mfc::impl::ObjectRefArrayClass::Vtable());
     if (vars->objects.data) {
         DestructRefs(vars->objects.data, vars->objects.size);
         gamecrt::operator_delete(vars->objects.data);

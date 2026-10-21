@@ -36,8 +36,6 @@ EI_REWRITTEN(0x0045E090, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REWRITTEN(0x0045FBD0, OwnedAllods::Destruct<AllodArrayClass>);
 EI_REWRITTEN(0x004BE430, ScriptAreas::Destruct<ScriptAreaArrayClass>);
 EI_REWRITTEN(0x00451A00, TextureNames::Destruct<TextureNameArrayClass>);
-EI_REWRITTEN(0x00460490, ExitTargets::Destruct<ExitArrayClass>);
-EI_REWRITTEN(0x00460A80, ExitTargets::Destruct<ExitArrayClass>);
 EI_REWRITTEN(0x00556B70, MemoryRecords::Destruct<MemoryRecordArrayClass>);
 EI_REWRITTEN(0x00556FE0, MemoryRecords::Destruct<MemoryRecordArrayClass>);
 EI_REWRITTEN(0x005FB2F0, GlobalMapPoints::Destruct<GlobalMapPointArrayClass>);
@@ -125,8 +123,6 @@ EI_REWRITTEN(0x00476D70, ScalarDelete<&SceneObjects::Destruct<SceneObjectArrayCl
 EI_REWRITTEN(0x00452950, ScalarDelete<&AlignedAt4Records::Destruct<AlignedAt4ArrayClass>>);
 EI_REWRITTEN(0x0050A410, ScalarDelete<&AlignedAt8Records::Destruct<AlignedAt8ArrayClass>>);
 EI_REWRITTEN(0x00452A30, ScalarDelete<&TextureNames::Destruct<TextureNameArrayClass>>);
-EI_REPLACE(0x00460470, ScalarDelete<&ExitTargets::Destruct<ExitArrayClass>>);
-EI_REPLACE(0x00460A60, ScalarDelete<&ExitTargets::Destruct<ExitArrayClass>>);
 EI_REPLACE(0x00556B50, ScalarDelete<&MemoryRecords::Destruct<MemoryRecordArrayClass>>);
 EI_REWRITTEN(0x00558720, ScalarDelete<&MemoryRecords::Destruct<MemoryRecordArrayClass>>);
 EI_REPLACE(0x004CB790, ScalarDelete<&NamedRecords::Destruct<NamedRecordArrayClass>>);

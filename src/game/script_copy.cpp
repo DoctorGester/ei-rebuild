@@ -215,7 +215,7 @@ EI_REWRITTEN(0x004CBA00, ScriptStrings::CopyConstruct);
 // Object values: each slot drops its (null) object and takes the GetAt copy's object with a
 // reference of its own; the copy is released (all inline in the original).
 template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other) {
-    InitArray(&values, scriptvtable::kRefs);
+    InitArray(&values, mfc::impl::ScriptGroupClass::Vtable());
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptObjectRef value;
@@ -249,7 +249,7 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
             group->data[k].Construct(member);
             member.Reset();
         }
-        copy.vtable = scriptvtable::kRefsBase;
+        copy.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (copy.data) {
             for (int k = 0; k < copy.size; ++k) copy.data[k].DestroyElement(0);
             gamecrt::operator_delete(copy.data);
@@ -269,7 +269,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     CopyConstructStrings(&strings, &other->strings);
     stringNames.CopyConstruct(&other->stringNames);
 
-    InitArray(&objects, scriptvtable::kRefs);
+    InitArray(&objects, mfc::impl::ScriptGroupClass::Vtable());
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
@@ -301,7 +301,7 @@ ScriptVars* ScriptVars::ScriptVarsConstruct() {
     InitArray(&floatNames, scriptvtable::kStrings);
     InitArray(&strings, scriptvtable::kStrings);
     InitArray(&stringNames, scriptvtable::kStrings);
-    InitArray(&objects, scriptvtable::kRefs);
+    InitArray(&objects, mfc::impl::ScriptGroupClass::Vtable());
     InitArray(&objectNames, scriptvtable::kStrings);
     InitArray(&groups, scriptvtable::kGroups);
     InitArray(&groupNames, scriptvtable::kStrings);

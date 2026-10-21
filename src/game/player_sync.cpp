@@ -304,13 +304,13 @@ int CPlayerServer::SendPartyState() {
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&shared);
-    shared.vtable = scriptvtable::kRefs;
+    shared.vtable = mfc::impl::ScriptGroupClass::Vtable();
     if (IsMultiplayerClient() && player->Party()->members_.size == 1)
         TheServerWorld()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unitId), &shared);
     int sharedCount = shared.size;
     WriteDword(&out_, static_cast<std::uint32_t>(sharedCount));
     for (int i = 0; i < sharedCount; ++i) WriteDword(&out_, static_cast<std::uint32_t>(shared.data[i].AsUnit()->id_));
-    shared.vtable = scriptvtable::kRefsBase;
+    shared.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
     if (shared.data != nullptr) {
         for (int i = 0; i < shared.size; ++i) shared.data[i].Reset();
         gamecrt::operator_delete(shared.data);
@@ -383,10 +383,10 @@ int CPlayerServer::ReceiveMessages() {
 void CPlayerServer::UpdatePartyUnits() {
     ScriptGroup known;
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&known);
-    known.vtable = scriptvtable::kRefs;
+    known.vtable = mfc::impl::ScriptGroupClass::Vtable();
     ScriptGroup party;
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&party);
-    party.vtable = scriptvtable::kRefs;
+    party.vtable = mfc::impl::ScriptGroupClass::Vtable();
     party.CopyFrom(group50F8_);
     CPlayer::UnitMap& units = Owner()->units_;
     if (possessedId_ == kNoPartyCopy) {
@@ -411,12 +411,12 @@ void CPlayerServer::UpdatePartyUnits() {
         }
         possessedId_ = kNoPartyCopy;
     }
-    party.vtable = scriptvtable::kRefsBase;
+    party.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
     if (party.data != nullptr) {
         gamearrays::ObjectRefs::DestructElements(party.data, party.size);
         gamecrt::operator_delete(party.data);
     }
-    known.vtable = scriptvtable::kRefsBase;
+    known.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
     if (known.data != nullptr) {
         for (int i = 0; i < known.size; ++i) known.data[i].DestroyElement(0);
         gamecrt::operator_delete(known.data);

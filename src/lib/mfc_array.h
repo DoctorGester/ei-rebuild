@@ -184,12 +184,8 @@ struct FloatArrayClass {   // CArray<float>
     static void* Vtable() { return ei::GamePointer<void>(0x0073D3E8); }
 };
 struct ArgFloatArrayClass;   // the script commands' float arguments (a CArray<float> subclass)
-struct ObjectRefArrayClass {   // CArray<ScriptObjectRef> (a script group's base)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D11C); }
-};
-struct ScriptGroupClass {   // a script group (game/script.h ScriptGroup)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D110); }
-};
+struct ObjectRefArrayClass;   // CArray<ScriptObjectRef> (a script group's base)
+struct ScriptGroupClass;   // a script group (game/script.h ScriptGroup)
 struct ScriptFloatsClass;   // the script's float variables
 struct ScriptAreaClass;   // a script area's parts
 struct ScriptIfThenArrayClass;   // the script's if-then blocks
@@ -198,25 +194,15 @@ struct AiLookArrayClass;   // the AI's look records
 struct SpriteArrayClass;   // the weather and lightning sprites
 struct BoneLinkArrayClass;   // a figure's bone links
 struct WaypointArrayClass;   // a patrol's waypoints
-struct ExitArrayClass {   // a zone's exits
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C3F4); }
-};
-struct MapRecordItemsClass {   // the array inside a map record
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C400); }
-};
+struct ExitArrayClass;   // a zone's exits
+struct MapRecordItemsClass;   // the array inside a map record
 struct PointArrayClass;   // a unit's point lists
 struct AttackOptionArrayClass;   // a unit's attack options
 struct AnimationStepsClass;   // a unit's animation steps
 struct AnimationStepsCopyClass;   // the animation steps a motion copies
-struct ClientMapArrayClass {   // the client map arrays (world_client_maps)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F730); }
-};
-struct ObjectPtrArrayClass {   // a save's shared object pointers
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FAC8); }
-};
-struct SectorArrayClass {   // the AI map's sectors
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F9EC); }
-};
+struct ClientMapArrayClass;   // the client map arrays (world_client_maps)
+struct ObjectPtrArrayClass;   // a save's shared object pointers
+struct SectorArrayClass;   // the AI map's sectors
 struct CellRowArrayClass;   // the AI map's cell rows
 struct AreaListClass { static void* Vtable() { return ei::GamePointer<void>(0x0073F9E0); } };   // the AI map's area lists (stays raw: game.exe's CSectorMap table 0073F9DC overlaps its slots)
 struct ScriptAreaPartsClass;   // the array a script area element holds (base ScriptAreaClass)
@@ -388,17 +374,12 @@ using Exits3C = ArrayAbi<WithString<0x3C, 0x28>, InitElements<WithString<0x3C, 0
 using Allods = ArrayAbi<StringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
                         InitElements<StringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
                                      InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>>>;
-using MapRecords = ArrayAbi<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
-                            InitElements<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
-                                         InitStringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>>>;
 using BoneLinkArrays = ArrayAbi<WithArray<0x14, 0, BoneLinkArrayClass>,
                                 InitElements<WithArray<0x14, 0, BoneLinkArrayClass>, InitWithArray<0x14, 0, BoneLinkArrayClass>>>;
 using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
                          InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
 
 using QuestObjectives = ArrayAbi<WithString<12, 4>, InitElements<WithString<12, 4>, InitWithString<12, 4>>>;
-using ScriptGroups = ArrayAbi<WithArray<0x14, 0, ScriptGroupClass>,
-                              InitElements<WithArray<0x14, 0, ScriptGroupClass>, InitWithArray<0x14, 0, ScriptGroupClass>>>;
 using Particles = ArrayAbi<Particle16, InitElements<Particle16, InitParticle16>>;
 using Placements = ArrayAbi<Placement40, InitElements<Placement40, InitPlacement40>>;
 using PathRecords = ArrayAbi<PathRecord12, InitElements<PathRecord12, InitPathRecord12>>;

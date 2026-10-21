@@ -236,9 +236,7 @@ struct AiMapListClass;   // the AI map's lists
 struct WaypointListClass;   // the AI plan's waypoint lists
 struct StaticListClass;   // the list a static initialiser builds (005CDAD0)
 struct DwordMapClass;   // the scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
-struct ScriptCommandsClass {   // CArray<SSCCmd> (a script block, a CList element)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3DC); }
-};
+struct ScriptCommandsClass;   // CArray<SSCCmd> (a script block, a CList element)
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -257,10 +255,6 @@ inline void InitLightning8(Lightning8* p) {
 using LightningElements = InitElements<Lightning8, InitLightning8>;
 using FxSourceElement = WithString<0x34, 8>;   // the FX source: its name (+8) empty
 using FxSourceElements = InitElements<FxSourceElement, InitWithString<0x34, 8>>;
-using CommandBlock = WithArray<0x18, 0, ScriptCommandsClass>;
-using CommandBlocks = InitElements<CommandBlock, InitWithArray<0x18, 0, ScriptCommandsClass>>;
-using SharedObjectElement = WithArray<0x20, 0xC, ObjectPtrArrayClass>;   // game/world.h SharedObject
-using SharedObjectElements = InitElements<SharedObjectElement, InitWithArray<0x20, 0xC, ObjectPtrArrayClass>>;
 
 using PtrList = ListAbi<void*>;
 using List8 = ListAbi<Bytes<8>>;
@@ -270,16 +264,12 @@ using List1C = ListAbi<Bytes<0x1C>>;
 using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
 using FxSourceList = ListAbi<FxSourceElement, FxSourceElements>;
-using CommandBlockList = ListAbi<CommandBlock, CommandBlocks>;
-using SharedObjectNewList = ListAbi<SharedObjectElement, SharedObjectElements>;
 
 // The ConstructElements helpers those NewNodes call (__stdcall, RET 8).
 using ParticleSourceArray = ArrayAbi<Bytes<0x24>>;   // 0x24-byte particle sources: the zero fill
 using Plain4C = ArrayAbi<Bytes<0x4C>>;
 using LightningArray = ArrayAbi<Lightning8, LightningElements>;
 using FxSourceArray = ArrayAbi<FxSourceElement, FxSourceElements>;
-using CommandBlockArray = ArrayAbi<CommandBlock, CommandBlocks>;
-using SharedObjectArray = ArrayAbi<SharedObjectElement, SharedObjectElements>;
 
 using Map32 = MapAbi<std::uint32_t, std::uint32_t>;
 using Map64x32 = MapAbi<std::uint64_t, std::uint32_t>;

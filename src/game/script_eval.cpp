@@ -656,7 +656,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     PrepareArguments(script, vars);
     {
         ScriptGroup empty;   // 004B5ED0
-        empty.vtable = scriptvtable::kRefs;
+        empty.vtable = mfc::impl::ScriptGroupClass::Vtable();
         empty.data = nullptr;
         empty.size = 0;
         empty.maxSize = 0;

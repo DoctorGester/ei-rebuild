@@ -31,7 +31,6 @@ void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 namespace {
 
 // The members' vtables the destructors store back before emptying them.
-constexpr std::uintptr_t kWaterLevelsVtable = std::uintptr_t(0x0073F730);    // CArray<CArray<float>>
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
 
@@ -177,7 +176,7 @@ EI_REWRITTEN(0x005627A0, CParticleManager::DeletingDestruct);
 void Terrain::Destruct() {
     ei::SetVtable(this, worlddata::kTerrainVtable);
     Terrain::DestroyImpl();
-    waterLevels.vtable = ei::GamePointer<void>(kWaterLevelsVtable);
+    waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
     waterLevels.FreeData();
     textAE0.~CString();
     visibleColumnLast.FreeData();

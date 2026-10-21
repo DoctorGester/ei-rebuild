@@ -7,6 +7,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "record_arrays.h"
 #include "ei/vcall.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -96,12 +97,13 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
 EI_REWRITTEN(0x005C06F0, CSectorMap::Init);
 
 void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>* sectors) {
-    sectors->vtable = ei::GamePointer<void>(kSectorArrayVtable);
+    sectors->vtable = mfc::impl::SectorArrayClass::Vtable();
     if (!sectors->data) return;
     SectorElements::Destruct(sectors->data, sectors->size);
     gamecrt::operator_delete(sectors->data);
 }
 EI_REWRITTEN(0x00599330, CSectorMap::DestructSectors);
+EI_REWRITTEN(0x005BD1C0, mfc::impl::ArrayHeader<mfc::impl::SectorArrayClass>::Construct);   // the sectors array's constructor (SectorArrayClass is built from DestructSectors: not in ei_vectors)
 
 void CSectorMap::DestructBody() {
     vtable = ei::GamePointer<void>(kVtableAddress);

@@ -63,10 +63,10 @@ void ReadVars(Reader& r, ScriptVars* v) {
     ReadTexts(r, &v->floatNames);
     ReadTexts(r, &v->strings);
     ReadTexts(r, &v->stringNames);
-    ReadShape(r, &v->objects, scriptvtable::kRefs);
+    ReadShape(r, &v->objects, mfc::impl::ScriptGroupClass::Vtable());
     ReadTexts(r, &v->objectNames);
     ReadShape(r, &v->groups, scriptvtable::kGroups);
-    for (int i = 0; i < v->groups.size; ++i) v->groups.data[i].vtable = scriptvtable::kRefs;
+    for (int i = 0; i < v->groups.size; ++i) v->groups.data[i].vtable = mfc::impl::ScriptGroupClass::Vtable();
     ReadTexts(r, &v->groupNames);
 }
 

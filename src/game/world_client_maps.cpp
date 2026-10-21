@@ -66,6 +66,7 @@
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
 #include "game/game_slots.h"
+#include "game/record_arrays.h"
 
 #include <new>
 #include <windows.h>

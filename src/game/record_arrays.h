@@ -180,3 +180,15 @@ void __fastcall DestroyWaterLevel(WaterLevelElement* p);   // 005755C0
 using Sectors = ArrayAbi<Sector, SectorElements>;
 
 } // namespace recordarrays
+
+// The tags lib/mfc_array.h only declares (their slots need the game's elements).
+namespace mfc::impl {
+
+// The client world's water levels (destructor 005711E0).
+struct ClientMapArrayClass final
+    : CompiledCollection<ClientMapArrayClass, &recordarrays::WaterLevels::Destruct<ClientMapArrayClass>, &SerializeCArray<recordarrays::WaterLevels>> {};
+// The AI map's sectors (destructor 00599330, the sector map's DestructSectors).
+struct SectorArrayClass final
+    : CompiledCollection<SectorArrayClass, &CSectorMap::DestructSectors, &SerializeCArray<recordarrays::Sectors>> {};
+
+} // namespace mfc::impl

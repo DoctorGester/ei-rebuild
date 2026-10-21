@@ -23,6 +23,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "game_arrays.h"
 
 #include <bit>
 #include <cstring>
@@ -345,7 +346,7 @@ void ConstructGroup(ScriptGroup& group) {
     group.size = 0;
     group.maxSize = 0;
     group.growBy = 0;
-    group.vtable = scriptvtable::kRefs;
+    group.vtable = mfc::impl::ScriptGroupClass::Vtable();
 }
 
 // A delta field on the stack (four memory streams), as 0066D490 builds and destroys it inline.
@@ -377,7 +378,7 @@ CPlayerServer* CPlayerServer::Construct() {
     sentTimed_.Construct();
     ConstructGroup(group50F8_);
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
-    partyUnits_.vtable = scriptvtable::kRefs;
+    partyUnits_.vtable = mfc::impl::ScriptGroupClass::Vtable();
     ei::SetVtable(this, kServerVtable);
     ClearServerState();
     return this;

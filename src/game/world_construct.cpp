@@ -28,7 +28,6 @@
 namespace {
 
 // The instantiations' vtables the constructors write.
-constexpr std::uintptr_t kZoneExitArrayVtable = std::uintptr_t(0x0073C400);     // CArray<ZoneExit> (both worlds)
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
 constexpr std::uintptr_t kPlatformSetVtable = std::uintptr_t(0x0073F4FC);       // CBridgeManager
@@ -80,7 +79,7 @@ void ObjectIdMap::Construct() {
 
 CWorldServer* CWorldServer::Construct() {
     ConstructBase();
-    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->Construct(kZoneExitArrayVtable);
+    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->Construct(mfc::impl::MapRecordItemsClass::Vtable());
     updateMap_.Construct();
     new (&zoneName_) mfc::CString();
     mobFiles_.Construct();
@@ -107,7 +106,7 @@ EI_REPLACE_METHOD(0x00589ED0, CWorldServer::Construct);
 
 CWorldClient* CWorldClient::Construct() {
     ConstructBase();
-    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->Construct(kZoneExitArrayVtable);
+    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->Construct(mfc::impl::MapRecordItemsClass::Vtable());
     countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     heroes_.Construct();
     objects_.Construct();

@@ -308,7 +308,7 @@ void __fastcall ScriptFreeTemporaries(CScript* script) {
     while (groups.count > 1) {
         ScriptGroup group;
         groups.PopTail(&group);
-        group.vtable = scriptvtable::kRefsBase;
+        group.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (group.data) {
             DestructRefs(group.data, group.size);
             gamecrt::operator_delete(group.data);

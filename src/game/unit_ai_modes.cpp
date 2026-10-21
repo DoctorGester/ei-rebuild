@@ -27,6 +27,7 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
 #include "logic_settings.h"
+#include "game_arrays.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -893,7 +894,7 @@ void PlayerMode::Load(CStream* stream) {
     stream->Read(&state, 4);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {
         ScriptGroup group;
-        group.vtable = scriptvtable::kRefs;
+        group.vtable = mfc::impl::ScriptGroupClass::Vtable();
         group.data = nullptr;
         group.size = 0;
         group.maxSize = 0;

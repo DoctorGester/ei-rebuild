@@ -91,10 +91,10 @@ void* __fastcall PlatformListDelete(void* self, void*, unsigned flags) { return 
 EI_REWRITTEN(0x00571E50, PlatformListDelete);
 
 void* __fastcall ClientArrayDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, ClientArrayDestruct); }
-EI_REPLACE(0x00571ED0, ClientArrayDelete);
+EI_REWRITTEN(0x00571ED0, ClientArrayDelete);
 
 void* __fastcall SectorArrayDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, SectorArrayDestruct); }
-EI_REPLACE(0x0059B430, SectorArrayDelete);
+EI_REWRITTEN(0x0059B430, SectorArrayDelete);
 
 void* __fastcall ArrayElementListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, ArrayElementListDestruct); }
 EI_REWRITTEN(0x0059B4F0, ArrayElementListDelete);

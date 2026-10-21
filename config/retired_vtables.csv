@@ -36,6 +36,8 @@ vtable,slots,class,file,note
 0073C3A0,3,WaypointArrayClass,src/lib/mfc_slots.h,CArray (a patrol's waypoints; derived from ArrayBaseClass)
 0073C3D0,3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
 0073C3DC,3,AllodArrayClass,src/lib/mfc_slots.h,CArray (the map database's allods)
+0073C3F4,3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
+0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073C584,3,SpriteArrayClass,src/lib/mfc_slots.h,CArray (the weather and lightning sprites)
 0073C680,3,TrapTargetsArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's targets; derived from 0073C6A4)
@@ -57,6 +59,8 @@ vtable,slots,class,file,note
 0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
+0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
+0073D11C,3,ObjectRefArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290)
 0073D2C8,3,PartySlotArrayClass,src/lib/mfc_slots.h,CArray (the script's party slots)
 0073D2EC,3,ScriptFloatsClass,src/lib/mfc_slots.h,CArray (the script's float variables)
 0073D2F8,3,StringArrayClass,src/lib/mfc_slots.h,CArray (CArray<CString> (the script's string variables))
@@ -74,6 +78,7 @@ vtable,slots,class,file,note
 0073D3B8,3,DefinitionArrayClass,src/game/record_arrays.h,CArray (the script's definitions)
 0073D3C4,3,ScriptAreaArrayClass,src/lib/mfc_slots.h,CArray (the script's areas)
 0073D3D0,3,CommandArrayClass,src/game/game_slots.h,CArray (a command block)
+0073D3DC,3,ScriptCommandsClass,src/game/game_slots.h,CArray (CArray<SSCCmd> of a script block; derived from CommandArrayClass)
 0073D3F4,3,ArgObjectsBaseClass,src/lib/mfc_slots.h,CArray (a script command's object arguments)
 0073D400,3,ArgGroupsBaseClass,src/lib/mfc_slots.h,CArray (a script command's group arguments)
 0073D40C,3,BindingsBaseClass,src/lib/mfc_slots.h,CArray (a script command's bindings)
@@ -155,6 +160,7 @@ vtable,slots,class,file,note
 0073F61C,3,ClientObjectList2Class,src/game/game_slots.h,CList (engine objects in the client maps)
 0073F644,25,CParticleManager,src/game/effects.h,
 0073F724,3,ClientList2Class,src/lib/mfc_slots.h,CList (00570EA0's list)
+0073F730,3,ClientMapArrayClass,src/game/record_arrays.h,CArray (the client world's water levels)
 0073F73C,3,ClientList3Class,src/lib/mfc_slots.h,CList (005715D0's list)
 0073F754,3,BloodPrint,src/game/ground_print.h,
 0073F760,3,Footprint,src/game/ground_print.h,
@@ -165,12 +171,14 @@ vtable,slots,class,file,note
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073F9D0,3,RefListBClass,src/game/game_slots.h,CList (the world server's counted pointers)
+0073F9EC,3,SectorArrayClass,src/game/record_arrays.h,CArray (the AI map's sectors)
 0073F9F8,3,NodeListClass,src/lib/mfc_slots.h,CList (the AI map's node lists)
 0073FA04,3,CellRowArrayClass,src/lib/mfc_slots.h,CArray (the AI map's cell rows)
 0073FA10,3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)
 0073FABC,3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
+0073FAC8,3,ObjectPtrArrayClass,src/game/game_arrays.h,CArray (a save's shared object pointers; derived from ObjectPtrArrayBaseClass)
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FB10,13,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)

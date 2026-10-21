@@ -18,6 +18,7 @@
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "record_arrays.h"
 
 namespace {
 

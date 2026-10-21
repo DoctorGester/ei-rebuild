@@ -372,8 +372,6 @@ struct EngineObjectPtrs : mfc::CArray<CEngineObject*> {
 // (vtable 0073FAC8, base gamearrays::ObjectPtrArrayBaseClass; constructor 005985C0, destructor 0059A100 releases the objects
 // through slot 4 and frees the data).
 struct SharedObject {
-    static void* ObjectsVtable() { return ei::GamePointer<void>(0x0073FAC8); }
-
     int objectId;
     int player;
     std::uint32_t money;                    // +0x08 gold the loot adds to the finder's party

@@ -41,8 +41,6 @@ using ScriptStream = CStream;
 namespace scriptvtable {
 inline void* const kFloats = ei::GamePointer<void>(0x0073D2E0);       // ScriptVars float values
 inline void* const kStrings = ei::GamePointer<void>(0x0073D2D4);      // CString arrays (strings, names)
-inline void* const kRefs = ei::GamePointer<void>(0x0073D110);         // object references (ScriptGroup)
-inline void* const kRefsBase = ei::GamePointer<void>(0x0073D11C);
 inline void* const kGroups = ei::GamePointer<void>(0x0073D304);       // ScriptVars group values
 inline void* const kIfThen = ei::GamePointer<void>(0x0073D430);       // CArray<ScriptIfThen>
 // The CScript members' (the constructor 004BDE40 installs them; A-E1).
