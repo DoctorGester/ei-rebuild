@@ -6,6 +6,7 @@
 #include "lib/vecmath.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "game_data.h"
 
 #include <cmath>
@@ -58,7 +59,8 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     const double y = normal.y;
     const double z = normal.z;
     const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
-    if (length == 0.0 || x87::IsNaN(static_cast<float>(length))) {   // FCOM 0; C3: equal or unordered
+    EI_NAN_AUDIT(length);
+    if (length == 0.0) {   // FCOM 0; C3
         std::memcpy(&normal, &DegenerateNormal(), sizeof(Vector3));
     } else {
         double inverse = 1.0 / length;

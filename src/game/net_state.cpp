@@ -233,10 +233,10 @@ float StatFraction(CUnit* unit, int k) {
     return static_cast<float>(static_cast<double>(part.durability) / part.maxDurability);
 }
 
-// fabs(v) > epsilon with an ordered compare (FCOMP + TEST AH,0x41: a NaN is not greater).
+// fabs(v) > epsilon (FCOMP + TEST AH,0x41).
 bool Exceeds(float v) {
     float a = v < 0 ? -v : v;
-    return !x87::IsNaN(a) && a > kStatEpsilon;
+    return a > kStatEpsilon;
 }
 
 } // namespace
@@ -272,7 +272,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         float maxHp = static_cast<float>(unit->packedVitals.maxHitPoints);
         float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
         // FCOMP + TEST AH,0x41: a drop (before > now, ordered), or flag 0x10 otherwise.
-        bool dropped = !x87::IsNaN(hpBefore) && !x87::IsNaN(hpNow) && hpBefore > hpNow;
+        bool dropped = hpBefore > hpNow;
         if ((dropped || (unit->Params()->flags & 0x10)) && first != 0) {
             std::uint8_t flags = unit->Params()->flags;   // +0x437
             int kind = (flags & 2) ? 2 : 0;

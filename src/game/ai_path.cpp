@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/mfc.h"
 #include "originals_ai.h"
 #include "originals_units.h"
@@ -36,12 +37,6 @@ const Vector3& PositionOf(const CUnit* unit) { return *&unit->position; }
 
 bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
     return ((map->cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
-}
-
-bool IsNaN(float f) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
-    return (bits & 0x7FFFFFFF) > 0x7F800000;
 }
 
 float Abs(float f) {
@@ -112,7 +107,8 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     // The step rotated by -45 and +45 degrees, scaled so that no component exceeds 1.
     float p = sx * kDiagonal - sy * kDiagonal;
     float q = (sy + sx) * kDiagonal;
-    float scale = 1.0f / (Abs(q) < Abs(p) || IsNaN(p) || IsNaN(q) ? Abs(p) : Abs(q));   // FCOMPP: C0 if less or NaN
+    EI_NAN_AUDIT(p, q);
+    float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));   // FCOMPP: C0 if less
     if (!(scale >= 1.0f)) {
         p = scale * p;
         q = scale * q;

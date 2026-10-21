@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
@@ -42,12 +43,6 @@ float AbsBits(float f) {
     bits &= 0x7FFFFFFF;
     std::memcpy(&f, &bits, sizeof(f));
     return f;
-}
-
-bool IsNaN(float f) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
-    return (bits & 0x7FFFFFFF) > 0x7F800000;
 }
 
 // FCOMP 0; FNSTSW; TEST AH,0x40 not taken: neither zero nor NaN.
@@ -216,11 +211,13 @@ void CCamera::StopMotion() {
     Vector3 sum;
     AddVectors(&sum, right, up);
     std::memcpy(&offsetA4_, &sum, sizeof(Vector3));
-    // SetTiltRate(0) / SetTurnRate(0) inlined: the rate is replaced only when it is NaN.
+    // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
+    // target's (never, for 0; the original's FCOM replaced a NaN rate).
+    EI_NAN_AUDIT(tiltRate_, turnRate_);
     tiltTarget_ = 0.0f;
-    if (IsNaN(tiltRate_)) CopyFloat(&tiltRate_, &tiltTarget_);
+    if (std::fabs(tiltRate_) < std::fabs(tiltTarget_)) CopyFloat(&tiltRate_, &tiltTarget_);
     turnTarget_ = 0.0f;
-    if (IsNaN(turnRate_)) CopyFloat(&turnRate_, &turnTarget_);
+    if (std::fabs(turnRate_) < std::fabs(turnTarget_)) CopyFloat(&turnRate_, &turnTarget_);
     zoomTarget_ = 0;
 }
 EI_REPLACE_METHOD(0x0040F430, CCamera::StopMotion);

@@ -11,6 +11,7 @@
 #include "unit_looks.h"
 
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/stlp_hash.h"
 
 #include <cstdint>
@@ -62,7 +63,8 @@ struct ShapeTraits {
     static const Key& KeyOf(const Value& v) { return v.key; }
     static std::uint32_t Hash(const Key& k) { return k.key; }
     static bool Equal(const Key& a, const Key& b) {
-        return a.height == b.height || x87::IsNaN(a.height) || x87::IsNaN(b.height);
+        EI_NAN_AUDIT(a.height, b.height);
+        return a.height == b.height;
     }
     static void Construct(Value* to, const Value& from) { ConstructShapePair(to, nullptr, &from.key, &from.value); }
     static void Destroy(Value* p) { DestroyShapePair(p); }

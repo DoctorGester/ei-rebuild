@@ -75,7 +75,7 @@ float CHeroStatsPanel::PartArmour(int part) {
     // The largest of the first six (a branch-free select that keeps the old value on a NaN).
     float largest = 0.0f;
     for (int type = 0; type < kShownTypes; ++type)
-        if (!x87::IsNaN(sums[type]) && !(sums[type] < largest)) largest = sums[type];
+        if (sums[type] >= largest) largest = sums[type];
     return largest;
 }
 

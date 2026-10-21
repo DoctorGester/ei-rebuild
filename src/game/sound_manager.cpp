@@ -1088,7 +1088,7 @@ int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech)
     double v = volume;
     if (heightFade != 0) {
         float h = m->listener.z;
-        if (!(h < kHeightSilent) && !x87::IsNaN(h)) v = 0.0;
+        if (h >= kHeightSilent) v = 0.0;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
     v = v * I(speech != 0 ? m->speechVolume : m->effectsVolume);

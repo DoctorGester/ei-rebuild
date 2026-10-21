@@ -112,6 +112,8 @@ if(EI_HARNESS)
     file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
     target_sources(ei_hook PRIVATE ${EI_HARNESS_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)
 endif()
+# The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
+target_compile_definitions(ei_hook PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 # Hooks register themselves via static objects; keep them even if nothing references them.
 # /MAP: ei_hook.map lets the harness crash log (ei_hook+offset) be resolved to functions.
 target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)

@@ -18,6 +18,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
@@ -60,11 +61,12 @@ int Compare(const char* a, const char* b) {
     return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
-// A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
+// A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 Normalised(float x, float y, float z) {
     Vector3 out{x, y, z};
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)));
-    if (length == 0.0f || x87::IsNaN(length)) return out;
+    EI_NAN_AUDIT(length);
+    if (length == 0.0f) return out;
     float inverse = 1.0f / length;
     out.x = static_cast<float>(x * inverse);
     out.y = static_cast<float>(y * inverse);

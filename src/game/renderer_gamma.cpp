@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "render/render.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 #include <ddraw.h>
 
@@ -24,19 +25,26 @@ constexpr float kRampScale = 65280.0f;                         // 0073D9A8
 constexpr int kLevels = 256;
 
 // The original's branchless minimum / maximum (FCOMP; FNSTSW; the C0 bit as a mask): `limit` when
-// it is below / above `v` or `v` is NaN.
-float AtMost(float v, float limit) { return x87::IsNaN(v) || limit < v ? limit : v; }
-float AtLeast(float v, float limit) { return x87::IsNaN(v) || limit < v ? v : limit; }
+// it is below / above `v`.
+float AtMost(float v, float limit) {
+    EI_NAN_AUDIT(v);
+    return limit < v ? limit : v;
+}
+float AtLeast(float v, float limit) {
+    EI_NAN_AUDIT(v);
+    return limit < v ? v : limit;
+}
 float Clamp(float v, float lo, float hi) { return AtLeast(AtMost(v, hi), lo); }
 
 // The ramp of the clamped, halved settings: every channel the same.
 void BuildRamp(DDGAMMARAMP& ramp, float brightness, float contrast, float gamma) {
     float scale = std::fabs(contrast) * 4.0f + 1.0f;
-    if (x87::IsNaN(contrast) || contrast < 0.0f) scale = 1.0f / scale;
+    EI_NAN_AUDIT(contrast, gamma);
+    if (contrast < 0.0f) scale = 1.0f / scale;
     float offset = (1.0f - scale) * 0.5f;
     float exponent = 1.0f;
     if (gamma > 0.0f) exponent = 1.0f / (gamma * 5.0f + 1.0f);
-    else if (x87::IsNaN(gamma) || gamma < 0.0f) exponent = 1.0f / (gamma * 0.5f + 1.0f);
+    else if (gamma < 0.0f) exponent = 1.0f / (gamma * 0.5f + 1.0f);
 
     for (int i = 0; i < kLevels; ++i) {
         float value = static_cast<float>(std::pow(static_cast<double>(i) * kLevelStep, static_cast<double>(exponent)) *

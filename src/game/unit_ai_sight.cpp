@@ -16,6 +16,7 @@
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -46,8 +47,11 @@ CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServ
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
-// FCOMP 0; TEST AH,0x40: zero or unordered.
-bool ZeroOrUnordered(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
+// FCOMP 0; TEST AH,0x40: zero.
+bool IsZero(double v) {
+    EI_NAN_AUDIT(v);
+    return v == 0.0;
+}
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
     return *reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(&os)->PutInt(value));
@@ -258,14 +262,15 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     float cone = mine->stats.sightCone;
     float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
                                theirs->stats.valuesE0[0].current * mine->stats.valuesB0[0].current);
-    // The larger of 0 and the sight (NaN kept).
-    float radius = (kZero < sight || x87::IsNaN(sight)) ? sight : kZero;
+    // The larger of 0 and the sight.
+    EI_NAN_AUDIT(sight);
+    float radius = kZero < sight ? sight : kZero;
     float height = static_cast<float>(observer->ModeSpeed());
     CAIMap* map = WorldServer()->AIMap();
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.valuesB0[2].current) * theirs->stats.valuesE0[2].current;
-    if (!ZeroOrUnordered(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);
+    if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);
     float peripheral = mine->stats.peripheralRange;
-    if (!ZeroOrUnordered(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
+    if (!IsZero(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
 }
 EI_REPLACE(0x005CD210, MarkSightCells);

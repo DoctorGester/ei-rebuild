@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_units.h"
@@ -60,11 +61,10 @@ static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
 }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
 
-// fcomp with 0.0 and C3: true for zero (either sign) and for NaN.
-bool ZeroOrNaN(float value) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
-    return (bits & 0x7FFFFFFFu) == 0 || x87::IsNaN(value);
+// fcomp with 0.0 and C3: true for zero (either sign).
+bool IsZero(float value) {
+    EI_NAN_AUDIT(value);
+    return value == 0.0f;
 }
 
 } // namespace
@@ -163,8 +163,9 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                 name = mfc::CString("z.") + name;
                 double value = LocalPlayerVariable(name);
                 const float one = 1.0f /*0073B84C*/;
-                // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
-                if (!x87::IsNaN(static_cast<float>(value)) && value != one) SetCursor(kCursorExit);
+                // FCOMP; TEST AH,0x40; JNZ: equal skips.
+                EI_NAN_AUDIT(value);
+                if (value != one) SetCursor(kCursorExit);
             }
             return;
         }
@@ -184,7 +185,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     case 2:   // a spell on a point
     case 4: {   // a quick item on a point
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
-        if ((ZeroOrNaN(at.x) && ZeroOrNaN(at.y)) || !first) {
+        if ((IsZero(at.x) && IsZero(at.y)) || !first) {
             shape = kCursorCantCast;
             break;
         }

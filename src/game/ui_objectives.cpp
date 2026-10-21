@@ -23,6 +23,7 @@
 #include "lib/stlp_hash.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
@@ -203,7 +204,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     LoadTexture(map->picture2, 3, 0);
     float width = static_cast<float>(static_cast<double>(map->sizeX));
     float height = static_cast<float>(static_cast<double>(map->sizeY));
-    float larger = width < height || x87::IsNaN(width) || x87::IsNaN(height) ? height : width;
+    float larger = width < height ? height : width;
     double widthShare = D(width) / D(larger);
     float heightShare = static_cast<float>(D(height) / D(larger));
     float halfHeight = static_cast<float>(D(heightShare) * kPictureHalf);
@@ -262,8 +263,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         // Position on the picture (world cells are 32 units).
         float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
         float worldHeight = static_cast<float>(static_cast<double>(map->sizeY << 5));
-        float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
-                                                                                                   : worldWidth;
+        float span = worldWidth < worldHeight ? worldHeight : worldWidth;
         exit = &exits_[index];
         double dx = D(exit->x_) - D(worldWidth) * 0.5f;
         float dy = static_cast<float>(D(exit->y_) - D(worldHeight) * 0.5f);
@@ -323,7 +323,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         table->Fill(prefix);
         ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            if (node->value.mapped == 0.0f || x87::IsNaN(node->value.mapped)) continue;
+            EI_NAN_AUDIT(node->value.mapped);
+            if (node->value.mapped == 0.0f) continue;
             text::Split(node->value.key, &parts, '.');
             if (parts.GetSize() == 3) PushBack(&found, parts[2]);
         }
@@ -493,8 +494,7 @@ void CObjectivesWindow::ShowQuest() {
     for (unsigned i = 0; i < static_cast<unsigned>(questPlaces_.end() - questPlaces_.begin()); ++i) {
         float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
         float worldHeight = static_cast<float>(static_cast<double>(map->sizeY << 5));
-        float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
-                                                                                                   : worldWidth;
+        float span = worldWidth < worldHeight ? worldHeight : worldWidth;
         const UiPointF& place = questPlaces_[i];
         float x = static_cast<float>((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
         float y = static_cast<float>(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));

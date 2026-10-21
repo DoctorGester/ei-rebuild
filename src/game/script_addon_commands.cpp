@@ -61,8 +61,8 @@ std::uint32_t Bits(float value) {
     return bits;
 }
 
-// FUCOMPP of 1 (or 0) against the argument: only an ordered equal sets C3 alone.
-bool Equals(float constant, float value) { return (Status(constant, value) & 0x45) == 0x40; }
+// FUCOMPP of 1 (or 0) against the argument (TEST AH,0x45: an ordered equal).
+bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.
 CPlayerServer* FirstPlayerState() {

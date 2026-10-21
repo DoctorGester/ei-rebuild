@@ -44,6 +44,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
@@ -168,9 +169,9 @@ float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::
         double dy = marker.y - y;
         double distance = libcrt::Hypot(dx, dy);
         float limit = marker.radius * scale;
-        // FCOMPP + TEST AH,0x41: marked unless the distance is greater (a NaN marks too).
-        bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(limit);
-        if (unordered || !(distance > static_cast<double>(limit))) marker.marked = 1;
+        // FCOMPP + TEST AH,0x41: marked unless the distance is greater.
+        EI_NAN_AUDIT(distance, limit);
+        if (distance <= static_cast<double>(limit)) marker.marked = 1;
     }
     out[0] = x;
     out[1] = y;
@@ -779,9 +780,15 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
 namespace {
 
 // The original's branch-free selects after FCOMP + FNSTSW (C0 shifted into a mask): `a < b`
-// (true when unordered) picks one side.
-float MaxZero(float b) { return (x87::IsNaN(b) || 0.0f < b) ? b : 0.0f; }   // (0 < b) ? b : 0
-float MinOf(float a, float b) { return (x87::IsNaN(a) || x87::IsNaN(b) || a < b) ? a : b; }
+// picks one side.
+float MaxZero(float b) {
+    EI_NAN_AUDIT(b);
+    return 0.0f < b ? b : 0.0f;
+}
+float MinOf(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a < b ? a : b;
+}
 
 // _ftol: truncation to a 64-bit integer, the low word kept.
 std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
@@ -821,8 +828,7 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
             double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
             double limit = reach * reach;
             // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).
-            bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(static_cast<float>(limit));
-            if (!unordered && !(limit < distance)) {
+            if (limit >= distance) {
                 SectorListNode* end;
                 SectorListNode* inserted;
                 PlainOps::Insert(list, nullptr, &inserted, *PlainOps::End(list, nullptr, &end), node->data);
@@ -844,8 +850,9 @@ constexpr float kSteepest = 0.8f;   // 0073CCA8: the smallest normal z of a face
 
 int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out) {
     *out = nullptr;
-    // FCOMP + TEST AH,1: steeper faces (and a NaN z) are left out.
-    if (x87::IsNaN(normal->z) || normal->z < kSteepest) return 0;
+    // FCOMP + TEST AH,1: steeper faces are left out.
+    EI_NAN_AUDIT(normal->z);
+    if (normal->z < kSteepest) return 0;
     // AddHead with the instantiation's NewNode.
     PlatformNode* last = list.head;
     PlatformNode* node = list.NewNode(nullptr, last);

@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 namespace {
 constexpr int kAnimatorClass = 0x300B;            // AnimationTrack's class id
@@ -87,7 +88,8 @@ void* CFigureAnimationState::Queue(FigureAnimation* animation) { return queue.Ad
 EI_REPLACE_METHOD(0x0050CBA0, CFigureAnimationState::Queue);
 
 void CFigureAnimationState::SetTime(float frame) {
-    if (!x87::IsNaN(time) && !x87::IsNaN(frame) && time != frame) changed = 1;   // FCOMP; TEST AH,0x40
+    EI_NAN_AUDIT(time, frame);
+    if (time != frame) changed = 1;   // FCOMP; TEST AH,0x40
     const FigureAnimation* before = current;
     time = frame;
     if (!current && queue.count != 0) {

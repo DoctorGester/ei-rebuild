@@ -23,6 +23,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/stlp_list.h"
 #include "game_data.h"
@@ -171,8 +172,9 @@ int GroundPrint::TickImpl() {
     halfWidth_ = halfWidth_ + growth_;
     halfLength_ = halfLength_ + growth_;
     float t = static_cast<float>(static_cast<double>(lifetime_ - life_) / lifetime_);
-    // max(t, 0) by FCOMP: an unordered t is kept.
-    float spent = (t > 0.0f || x87::IsNaN(t)) ? t : 0.0f;
+    // max(t, 0) by FCOMP.
+    EI_NAN_AUDIT(t);
+    float spent = t > 0.0f ? t : 0.0f;
     alpha_ = (kOne - spent) * alphaScale_;
     return life_;
 }
