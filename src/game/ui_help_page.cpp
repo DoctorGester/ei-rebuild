@@ -42,7 +42,7 @@ constexpr const char* kLineEnds = "\n\r";
 constexpr const char* kHelpKeyText = "show_tutorial_key";
 constexpr const char* kSpace = " ";
 // One texel of the 256-pixel picture texture.
-float Texel() { return ei::GameData<const float>(0x0073EEB8); }
+float Texel() { return 0.00390625f /*0073EEB8*/; }
 
 constexpr char kHelpAction = ';';                  // the help key's action (KeyActions)
 constexpr std::uint32_t kPlainColour = 0x100;      // CUiMesh::flags_: drawn in flatColour_

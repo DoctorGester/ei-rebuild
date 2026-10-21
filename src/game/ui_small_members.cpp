@@ -23,7 +23,6 @@ namespace {
 mfc::CString& String(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 const mfc::CString& String(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 void* Vtable(std::uintptr_t address) { return ei::GamePointer<void>(address); }
 
 // Slot `slot` of `object`'s vtable, as a function of the object alone returning EAX.
@@ -90,7 +89,7 @@ EI_REPLACE_METHOD(0x005F63A0, CItemScreen::BestPartySkillDefault);
 void* CItemScreen::HeroUnitDefault(int) { return nullptr; }
 EI_REPLACE_METHOD(0x005F6400, CItemScreen::HeroUnitDefault);
 
-float CItemScreen::WeightDefault() { return GameFloat(0x0073B858); }
+float CItemScreen::WeightDefault() { return 0.0f /*0073B858*/; }
 EI_REPLACE_METHOD(0x005F6430, CItemScreen::WeightDefault);
 
 int CItemScreen::PriceDefault(CItem*, int) { return 0; }

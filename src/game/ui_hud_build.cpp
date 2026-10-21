@@ -24,13 +24,12 @@
 namespace {
 
 void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
-float Pi() { return GameFloat(0x007423F8); }
+float Pi() { return 3.1415927f /*007423F8*/; }
 // A texel as a texture offset: 1 / 256 (0073EEB8).
-float TexelStep() { return GameFloat(0x0073EEB8); }
+float TexelStep() { return 0.00390625f /*0073EEB8*/; }
 // The layout y the columns' bottom button sits at (00742948, 490).
-float ColumnBottom() { return GameFloat(0x00742948); }
+float ColumnBottom() { return 490.0f /*00742948*/; }
 
 constexpr std::uintptr_t kQuickEntriesVtable = std::uintptr_t(0x007428A0);
 constexpr std::uintptr_t kDwordArrayVtable = std::uintptr_t(0x0073C3D0);
@@ -137,7 +136,7 @@ void CHudWeaponBar::HighlightVanilla(int index, int on) {
     const int left = (index * 5 + 10) * 8;
     const int right = (index * 5 + 15) * 8;
     if (on) {
-        float x = static_cast<float>(index) * GameFloat(0x0073D72C) + GameFloat(0x0073BAB0);   // 40, 100
+        float x = static_cast<float>(index) * 40.0f /*0073D72C*/ + 100.0f /*0073BAB0*/;   // 40, 100
         sprite->Place(x, 540.0f, 12.0f);
         sprite->SetScale(0.65f);
         sprite->flatSpecular_ = kColourOn;
@@ -146,10 +145,10 @@ void CHudWeaponBar::HighlightVanilla(int index, int on) {
         return;
     }
     // The more weapons, the larger each: 1.2 (0073CDF4) per slot in use, 24 (0073CE28) deep at scale 1.
-    float scale = GameFloat(0x0073B84C);
-    for (int i = count_; i > 0; --i) scale *= GameFloat(0x0073CDF4);
-    float depth = scale * GameFloat(0x0073CE28);
-    float x = static_cast<float>(index) * GameFloat(0x0073D72C) + GameFloat(0x0073BAB0);
+    float scale = 1.0f /*0073B84C*/;
+    for (int i = count_; i > 0; --i) scale *= 1.2f /*0073CDF4*/;
+    float depth = scale * 24.0f /*0073CE28*/;
+    float x = static_cast<float>(index) * 40.0f /*0073D72C*/ + 100.0f /*0073BAB0*/;
     sprite->Place(x, 560.0f, depth);
     sprite->SetScale(scale);
     sprite->flatSpecular_ = kColourOff;
@@ -169,10 +168,10 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
         // Turned about z, then y, then z again: pi * -0.05 (00742804), pi * -1/3 (00742800) and
         // pi * 0.75 (0073C524).
         Quaternion first, second, third;
-        first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * GameFloat(0x00742804));
-        second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * GameFloat(0x00742800));
+        first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * (-0.05f /*00742804*/));
+        second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * (-0.33333334f /*00742800*/));
         Quaternion both = ProductFirst(first, second);
-        third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * GameFloat(0x0073C524));
+        third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * 0.75f /*0073C524*/);
         sprite->localRotation_ = ProductSecond(both, third);
     } else {
         sprite = AddSprite(nullptr);
@@ -180,8 +179,8 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
         // written over 005FC9F4, 0063BF71 / 0063BF80).
         float offset = static_cast<float>(count_ * kStep);
         const float shift = static_cast<float>(widescreen::EdgeShift());
-        sprite->SetRectangle(12.0f, 40.0f, offset + (GameFloat(0x00741F1C) - shift), 520.0f,
-                             offset + (GameFloat(0x00740094) - shift), 600.0f, 0, 0, kWeaponWidth, kWeaponHeight);
+        sprite->SetRectangle(12.0f, 40.0f, offset + (80.0f /*00741F1C*/ - shift), 520.0f,
+                             offset + (120.0f /*00740094*/ - shift), 600.0f, 0, 0, kWeaponWidth, kWeaponHeight);
     }
     SetOffsets(sprite, x, y + kWeaponHeight);
     MakePlain(sprite);

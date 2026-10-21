@@ -113,7 +113,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     if (session) {
         roundTrip_ = static_cast<float>(static_cast<double>(session->maxRoundTrip_));
     } else {
-        roundTrip_ = ei::GameData<const float>(0x0073BF34);
+        roundTrip_ = 5.0f /*0073BF34*/;
     }
     double old = roundTripSquare_;   // never written before: whatever the allocation held
     sendSequence_ = static_cast<std::uint16_t>(tick);

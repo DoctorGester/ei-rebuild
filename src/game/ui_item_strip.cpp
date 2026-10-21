@@ -22,7 +22,6 @@ void __fastcall StripRectangle(CUiMesh* a0, void*, float a2, float a3, float a4,
 void __fastcall StripFrame(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, float a8, int a9, int a10, int a11, int a12) { UiMeshFramedOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12); }
 void __fastcall StripCells(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11, int a12, int a13) { UiMeshCellsOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13); }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 
 // A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
@@ -87,15 +86,15 @@ void CUiItemStrip::Build(char top) {
     AddRect(&window, 50, top_, 750, top_ + 100);
 
     const float y = static_cast<float>(top_);
-    const float hundred = GameFloat(0x0073BAB0);   // 100.0
+    const float hundred = 100.0f /*0073BAB0*/;   // 100.0
     // The ends' faces.
-    float depth = scale_ * GameFloat(0x0073CCA8);  // 0.8
+    float depth = scale_ * 0.8f /*0073CCA8*/;  // 0.8
     StripRectangle(window.AddSprite(0), nullptr, depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
-    depth = scale_ * GameFloat(0x0073CCA8);
+    depth = scale_ * 0.8f /*0073CCA8*/;
     StripRectangle(window.AddSprite(0), nullptr, depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
     // The tab buttons (y + 5, 35, 65, 95; depth scale * 0.6).
-    const float y5 = GameFloat(0x0073BF34), y35 = GameFloat(0x007403E0), y65 = GameFloat(0x00741350),
-                y95 = GameFloat(0x00741F08);
+    const float y5 = 5.0f /*0073BF34*/, y35 = 35.0f /*007403E0*/, y65 = 65.0f /*00741350*/,
+                y95 = 95.0f /*00741F08*/;
     struct Tab {
         float left, right;
         int u0, u1;
@@ -106,14 +105,14 @@ void CUiItemStrip::Build(char top) {
         const float bottoms[3] = {y35, y65, y95};
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
-            depth = scale_ * GameFloat(0x0073CDE0);   // 0.6
+            depth = scale_ * 0.6f /*0073CDE0*/;   // 0.6
             StripRectangle(window.AddSprite(0), nullptr, depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i],
                            tab.u0, kV[i][0], tab.u1, kV[i][1]);
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     CUiMesh* frame = window.AddSprite(0);
-    StripFrame(frame, nullptr, scale_ * GameFloat(0x0073CD70), 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100,
+    StripFrame(frame, nullptr, scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100,
                0x100);
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
@@ -122,7 +121,7 @@ void CUiItemStrip::Build(char top) {
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
     StripCells(window.AddSprite(0), nullptr, scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72,
                8, 1);
-    const float fifty = GameFloat(0x0074023C), hundredFifty = GameFloat(0x0073D618);
+    const float fifty = 50.0f /*0074023C*/, hundredFifty = 150.0f /*0073D618*/;
     for (int x = 0; x < 800; x += 100) {
         CUiMesh* cell = window.AddSprite(0);
         const float fx = static_cast<float>(x);
@@ -141,12 +140,12 @@ BOOL CUiItemStrip::Draw(int pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);
     const float frac = static_cast<float>(position - static_cast<float>(first));
-    const float hundred = GameFloat(0x0073BAB0), fifty = GameFloat(0x0074023C), one = GameFloat(0x0073B84C);
+    const float hundred = 100.0f /*0073BAB0*/, fifty = 50.0f /*0074023C*/, one = 1.0f /*0073B84C*/;
     CEngineObject** sprites = window.sceneObjects_.data;
     const std::uint32_t dim = 0x3E480000;   // 0.1953125
     auto* left = reinterpret_cast<std::uint8_t*>(sprites[0]);
     auto* right = reinterpret_cast<std::uint8_t*>(sprites[1]);
-    *reinterpret_cast<std::uint32_t*>(left + 0xCC) = position_[tab_] > GameFloat(0x0073B858) ? dim : 0u;
+    *reinterpret_cast<std::uint32_t*>(left + 0xCC) = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0u;
     *reinterpret_cast<std::uint32_t*>(right + 0xCC) =
         static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0u;
 
@@ -171,7 +170,7 @@ BOOL CUiItemStrip::Draw(int pass) {
         cell.mode = actionMode_;
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
         cell.y = static_cast<float>(top_) + fifty;
-        cell.depth = scale_ * GameFloat(0x0073C51C);   // 1.5
+        cell.depth = scale_ * 1.5f /*0073C51C*/;   // 1.5
         reinterpret_cast<CItemScreen*>(owner_)->DrawItem(pass, &cell);   // the owner screen's item cell draw
     }
 
@@ -228,17 +227,17 @@ bool EqualOrNaN(float a, float b) { return !(a < b) && !(a > b); }
 } // namespace
 
 void CUiItemStrip::Update() {
-    const float zero = GameFloat(0x0073B858);
-    const float repeat = GameFloat(0x00741EC0);      // 0.1 s per slot while an arrow is held
-    const float nearDistance = GameFloat(0x00741EB4);  // 0.5 slot: closer than this the scroll eases out
-    const float easeDivisor = GameFloat(0x00741EB8); // 0.25
-    const float accel = GameFloat(0x00741EBC);       // 15 slots/s^2
-    const float maxSpeed = GameFloat(0x00741EB0);    // 7 slots/s
-    const float half = GameFloat(0x0073B86C);
-    const float snapLow = GameFloat(0x0073C548);     // 0.01
-    const float snapPending = GameFloat(0x0073CCD8); // 0.02
-    const float snapHigh = GameFloat(0x00741F0C);    // 0.99
-    const float one = GameFloat(0x0073B84C);
+    const float zero = 0.0f /*0073B858*/;
+    const float repeat = 0.1f /*00741EC0*/;      // 0.1 s per slot while an arrow is held
+    const float nearDistance = 0.5f /*00741EB4*/;  // 0.5 slot: closer than this the scroll eases out
+    const float easeDivisor = 0.25f /*00741EB8*/; // 0.25
+    const float accel = 15.0f /*00741EBC*/;       // 15 slots/s^2
+    const float maxSpeed = 7.0f /*00741EB0*/;    // 7 slots/s
+    const float half = 0.5f /*0073B86C*/;
+    const float snapLow = 0.01f /*0073C548*/;     // 0.01
+    const float snapPending = 0.02f /*0073CCD8*/; // 0.02
+    const float snapHigh = 0.99f /*00741F0C*/;    // 0.99
+    const float one = 1.0f /*0073B84C*/;
     const float dt = static_cast<float>(StripFrameTime(this));
 
     // An arrow held: one slot at once, then one more every `repeat` seconds.

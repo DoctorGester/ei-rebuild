@@ -18,7 +18,7 @@
 
 namespace {
 
-float Pi() { return ei::GameData<const volatile float>(0x007423F8); }
+float Pi() { return 3.1415927f /*007423F8*/; }
 
 float FloatFromBits(std::uint32_t bits) {
     float f;

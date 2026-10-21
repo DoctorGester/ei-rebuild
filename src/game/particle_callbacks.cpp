@@ -3,6 +3,7 @@
 // and the types (see Create, particle_create.cpp) that use it.
 #include "particle_common.h"
 
+#include "angles.h"
 #include "core_maths.h"
 #include "map_object_figures.h"
 #include "object_maths.h"
@@ -408,9 +409,6 @@ namespace {
 
 #define EI_FULL_TURN 360.0f /*0073CD08*/          // 360.0
 #define EI_PI 3.141592653589793 /*0073CAE8*/                // pi
-#define EI_PER_DEGREE 0.005555555555555556 /*0073BA30*/        // 1/180
-// pi / 180 as the FPU makes it: the product of the two constants rounded to 24 bits (the compiler would fold it at 53).
-constexpr float kRadiansPerDegree = static_cast<float>(EI_PI * EI_PER_DEGREE);
 #define EI_RING_WIDEN 1.1f /*0073BAC4*/         // 1.1
 #define EI_PER_36 0.027777778f /*0073CD04*/             // 1/36
 #define EI_RISE_LOW (-0.1f /*0073CD00*/)           // -0.1
@@ -437,7 +435,7 @@ constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's las
 // the radius growth per tick (Healing also sets the flame growth). Each ring counts down from
 // `countdown`.
 void PlaceRings(CParticleSource* s, int countdown) {
-    float step = static_cast<float>(kRadiansPerDegree * (D(EI_FULL_TURN) / static_cast<double>(s->emitCount)));
+    float step = static_cast<float>(ei::kRadiansPerDegree * (D(EI_FULL_TURN) / static_cast<double>(s->emitCount)));
     Vector3 offset;
     float radius;
     s->AttachmentOffset(&offset, &radius);
@@ -525,7 +523,7 @@ void FollowRing(CParticleSource* s, Particle* p, int ring) {
 void TurnRing(ParticleElement* e) {
     float* radius = ElementFloat(e, 0x0C);
     float* angle = ElementFloat(e, 0x10);
-    double turned = static_cast<float>(kRadiansPerDegree * EI_TURN_SPEED) + D(*angle);
+    double turned = static_cast<float>(ei::kRadiansPerDegree * EI_TURN_SPEED) + D(*angle);
     *angle = static_cast<float>(turned);
     e->pos.x = static_cast<float>(x87::fsin(turned) * D(*radius) + D(*ElementFloat(e, 0x18)));
     e->pos.y = static_cast<float>(x87::fcos(D(*angle)) * D(*radius) + D(*ElementFloat(e, 0x1C)));
@@ -1367,8 +1365,6 @@ namespace {
 #define EI_GEYSER_TILT_LOW 10.0f /*0073BAAC*/     // 10.0
 #define EI_GEYSER_JET_SCALE 4.656612943550534e-11 /*0073CD58*/   // ~0.2 * 2^-32
 #define EI_GEYSER_JET_LOW 0.1f /*0073B850*/      // 0.1
-#define EI_GEYSER_PI 3.141592653589793 /*0073CAE8*/          // pi
-#define EI_GEYSER_PER_DEGREE 0.005555555555555556 /*0073BA30*/  // 1/180
 #define EI_GEYSER_DROP 0.2f /*0073BAD4*/         // 0.2
 #define EI_GEYSER_HALF 0.5f /*0073B86C*/         // 0.5
 #define EI_GEYSER_MIST 0.01f /*0073C548*/         // 0.01
@@ -1410,7 +1406,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
     p->size = drop;
     if (e.ticks > 0) {
         p->life = 0x7FFFFFFF;
-        double radian = EI_GEYSER_PI * EI_GEYSER_PER_DEGREE;
+        double radian = ei::kRadiansPerDegree;
         float yaw = static_cast<float>((Unsigned(Next()) * EI_GEYSER_YAW_SCALE - D(EI_GEYSER_YAW_LOW)) * radian + D(e.pos.x));
         float tilt = static_cast<float>((Unsigned(Next()) * EI_GEYSER_TILT_SCALE - D(EI_GEYSER_TILT_LOW)) * radian + D(e.pos.y));
         double power = Unsigned(Next()) * EI_GEYSER_JET_SCALE + D(e.pos.z) - D(EI_GEYSER_JET_LOW);
@@ -1477,7 +1473,7 @@ void CParticleSource::TickGeyser(ParticleElement* e) {
     }
     if (--*ElementInt(e, 0x30) > 0) return;
     e->ticks = static_cast<int>(Next() % 7) + 1;
-    double radian = EI_GEYSER_PI * EI_GEYSER_PER_DEGREE;
+    double radian = ei::kRadiansPerDegree;
     float yaw = static_cast<float>(Unsigned(Next()) * EI_GEYSER_ANGLE_SCALE * radian);
     float tilt = static_cast<float>(Unsigned(Next()) * EI_GEYSER_TILT_RANGE * radian);
     float power = static_cast<float>(Unsigned(Next()) * EI_GEYSER_POWER_SCALE + D(EI_GEYSER_POWER_BASE));
@@ -3157,8 +3153,6 @@ namespace {
 #define EI_FALL_SIZE_SCALE 2.328306471775267e-11 /*0073CE68*/    // ~0.1 * 2^-32
 #define EI_FALL_SIZE_BASE 0.1f /*0073B850*/      // 0.1
 #define EI_FALL_HALF 0.5f /*0073B86C*/           // 0.5
-#define EI_FALL_PI 3.141592653589793 /*0073CAE8*/            // pi
-#define EI_FALL_PER_DEGREE 0.005555555555555556 /*0073BA30*/    // 1/180
 #define EI_FALL_TEN 10.0 /*0073CD10*/           // 10.0
 #define EI_FALL_DROP_SCALE 2.7939676620469117e-11 /*0073CE60*/    // ~0.12 * 2^-32
 #define EI_FALL_DROP 0.06f /*0073CCB8*/           // 0.06
@@ -3180,7 +3174,7 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(elementCount)];
     const float* g = &gust.value[0];
     float reach = static_cast<float>(D(g[0]) * D(EI_FALL_HALF));
-    int spread = static_cast<int>(gamecrt::Ftol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TEN));
+    int spread = static_cast<int>(gamecrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TEN)));
     float turn = static_cast<float>(static_cast<double>(spread) * D(g[1]));
     float lowReach = static_cast<float>(-D(reach));
     float x = static_cast<float>(Unsigned(Next()) * (D(reach) - D(lowReach)) * EI_P_SCALE_1 + D(g[0]) + D(lowReach));
@@ -3203,7 +3197,7 @@ void CParticleSource::TickFalling(ParticleElement* e) {
     int age = *ElementInt(e, 0x30);
     if (age == 0) {
         *ElementFloat(e, 0x0C) = static_cast<float>(Unsigned(Next()) * EI_FALL_REACH_SCALE + D(EI_FALL_SIZE_BASE));
-        float whole = static_cast<float>(static_cast<double>(static_cast<int>(gamecrt::Ftol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN))));
+        float whole = static_cast<float>(static_cast<double>(static_cast<int>(gamecrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TURN)))));
         *ElementFloat(e, 0x10) = static_cast<float>(Unsigned(Next()) * D(whole) * EI_P_SCALE_1);
         age = *ElementInt(e, 0x30);
     }
@@ -3231,7 +3225,7 @@ namespace {
 int CParticleSource::EmitVulkan(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->frame = 0;
-    double radian = EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN;
+    double radian = static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TURN);
     if (Next() % 100 + 1 <= 60) {
         p->state = 8;
         p->life = lifetime * 8;

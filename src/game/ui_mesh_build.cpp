@@ -90,7 +90,7 @@ void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
 // the FILD'd n), never stored. The FCOS / FSIN result is used unrounded in the same expression.
 
 double CircleAngle(int j, int n) {
-    const double turn = static_cast<double>(j) * ei::GameData<const float>(0x00740154);
+    const double turn = static_cast<double>(j) * 3.1415927f /*00740154*/;
     return (turn + turn) / n;
 }
 
@@ -109,9 +109,9 @@ float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w,
 // 1 - (sin * R + c) / 256 (the scale is the float at 0073EEB8, the one the float at 0073B84C).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
     const double angle = CircleAngle(j, n);
-    const double scale = ei::GameData<const float>(0x0073EEB8);
+    const double scale = 0.00390625f /*0073EEB8*/;
     if (!sine) return static_cast<float>((x87::fcos(angle) * radius + centre) * scale);
-    return static_cast<float>(ei::GameData<const float>(0x0073B84C) - (x87::fsin(angle) * radius + centre) * scale);
+    return static_cast<float>(1.0f /*0073B84C*/ - (x87::fsin(angle) * radius + centre) * scale);
 }
 
 } // namespace

@@ -48,7 +48,6 @@
 namespace {
 
 void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }          // CUiItemPanel
 VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }          // CItemInfoPanel
@@ -94,7 +93,7 @@ CUiContainer* AsContainer(CCampPages* camp) { return reinterpret_cast<CUiContain
 
 // Whether the local player's variable `name` is 1 (0073B84C). The original's FCOMP also takes an
 // unordered result (a NaN variable) as equal.
-bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == GameFloat(0x0073B84C); }
+bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f /*0073B84C*/; }
 
 void SetVtables(CUiWindow* window, VtablePair vtables) {
     window->vtable_ = vtables.main;
@@ -160,7 +159,7 @@ UiPtrArray<char>* ItemsOf(void* list) { return reinterpret_cast<UiPtrArray<char>
 
 // The time in animation frames: milliseconds / 1024 (0073BB24) * 15 (0073C518).
 double FramesNow() {
-    return x87::FromUnsigned(gameapi::timeGetTime()) * GameFloat(0x0073BB24) * GameFloat(0x0073C518);
+    return x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f /*0073BB24*/ * 15.0f /*0073C518*/;
 }
 
 } // namespace

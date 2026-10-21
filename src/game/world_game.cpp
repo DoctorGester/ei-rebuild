@@ -364,7 +364,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
             mfc::CString variable = prefix + zone;
             left = static_cast<float>(VariableGet(variables, variable));
         }
-        int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * GameFloat(kTicksPerTime)));
+        int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * 100.0f /*0073BAB0*/));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
@@ -1425,7 +1425,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         gameapi::GetLocalTime(&now);
         int minute = now.wMinute;
         int hour = now.wHour;
-        WorldSetTimeF(World(), nullptr, static_cast<float>(minute) * GameFloat(kMinuteHours) + static_cast<float>(hour));
+        WorldSetTimeF(World(), nullptr, static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
         // queue runs in the menu too.

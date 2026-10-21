@@ -41,7 +41,7 @@ const char* const kLabelFormat = "%s %d";
 const char* const kSelectVoiceKey = "lmp_select_voice";
 
 // The points a new hero's three attributes must add up to before it can be created.
-float NewHeroPoints() { return ei::GameData<const volatile float>(0x00741C98); }
+float NewHeroPoints() { return 75.0f /*00741C98*/; }
 // The preview's full turn (2 pi), the modulus of its angle.
 float FullTurn() { return ei::GameData<const volatile float>(0x007C7F10); }
 // The multiplayer heroes object (its vector at +4 is MpHeroes()).
@@ -253,7 +253,7 @@ EI_REPLACE(0x00633260, HeroScreenDestroy);
 namespace {
 const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
-float VoiceFrameTop() { return ei::GameData<const volatile float>(0x00741C94); }
+float VoiceFrameTop() { return 332.5f /*00741C94*/; }
 constexpr int kSelectionFrame = 2;           // scene object
 constexpr std::uint32_t kListColour = 0xA7D7E4;
 constexpr int kListFormat = 0x800;

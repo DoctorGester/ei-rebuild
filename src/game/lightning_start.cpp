@@ -23,16 +23,6 @@ namespace {
 // 00500A00: releases the texture in `holder` and loads `name` (kind 6).
 
 IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
-float GameFloat(std::uintptr_t address) {
-    float f;
-    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
-    return f;
-}
-double GameDouble(std::uintptr_t address) {
-    double d;
-    std::memcpy(&d, ei::GamePointer<const void>(address), sizeof(d));
-    return d;
-}
 float Absolute(float f) {
     std::uint32_t bits;
     std::memcpy(&bits, &f, 4);
@@ -60,17 +50,17 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool demon) {
     int ticks = ei::GameData<const volatile int>(0x007AF61C);
     float fraction = ei::GameData<const volatile float>(0x007AFCA8);
-    float time = static_cast<float>((static_cast<double>(ticks) + fraction) / GameFloat(0x0073C4F8));   // 4
+    float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f /*0073C4F8*/);   // 4
     power_ = power;
     const float strength = Absolute(power);
-    amplitude_ = power_ > GameFloat(0x0073B858) ? GameFloat(0x0073C52C) : GameFloat(0x0073C54C);   // 0.05 : 0.3
+    amplitude_ = power_ > 0.0f /*0073B858*/ ? 0.05f /*0073C52C*/ : 0.3f /*0073C54C*/;   // 0.05 : 0.3
     // A bolt about 30 units high sways less.
-    if (!(Absolute(Absolute(to->z - from->z) - GameFloat(0x0073BAF0)) >= GameFloat(0x0073C548))) amplitude_ = 0.05f;
+    if (!(Absolute(Absolute(to->z - from->z) - 30.0f /*0073BAF0*/) >= 0.01f /*0073C548*/)) amplitude_ = 0.05f;
 
     main_.Init(from, to);
     FreshKeys(main_, time, KeyAmplitude(power_));
     main_.width = strength;
-    if (!(power_ >= GameFloat(0x0073B858))) main_.width = strength * GameFloat(0x0073C51C);   // 1.5
+    if (!(power_ >= 0.0f /*0073B858*/)) main_.width = strength * 1.5f /*0073C51C*/;   // 1.5
 
     if (strength > 0.0f || strength < 0.0f) {
         const float positions[6] = {0.2f, 0.3f, 0.5f, 0.8f, 0.9f, 0.9f};
@@ -86,16 +76,16 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
             branches_[i].Init(&origin, to);
             FreshKeys(branches_[i], time, amplitude);
             double random = x87::FromUnsigned(Rng()->Next());
-            branches_[i].width = static_cast<float>((random * GameDouble(0x0073C540) + GameFloat(0x0073C538)) * strength *
-                                                    GameFloat(0x0073B86C));
+            branches_[i].width = static_cast<float>((random * 1.8626451774202136e-10 /*0073C540*/ + 0.7f /*0073C538*/) * strength *
+                                                    0.5f /*0073B86C*/);
         }
     } else {
         main_.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
             float dx = from->x - to->x, dy = from->y - to->y, dz = from->z - to->z;
-            float reach = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C52C));
+            float reach = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f /*0073C52C*/);
             float low = -reach;
-            const double scale = GameDouble(0x0073C468);
+            const double scale = 2.3283064370807974e-10 /*0073C468*/;
             float offsetY = static_cast<float>((reach - low) * x87::FromUnsigned(Rng()->Next()) * scale + low);
             float offsetX = static_cast<float>((reach - low) * x87::FromUnsigned(Rng()->Next()) * scale + low);
             float offsetZ = static_cast<float>((reach - low) * x87::FromUnsigned(Rng()->Next()) * scale + low);
@@ -105,8 +95,8 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
             branches_[i].Init(&shiftedFrom, &shiftedTo);
             FreshKeys(branches_[i], time, amplitude);
             double random = x87::FromUnsigned(Rng()->Next());
-            branches_[i].width = static_cast<float>(random * GameDouble(0x0073C540) * GameFloat(0x0073C534) +
-                                                    GameFloat(0x0073C530));   // 2.45 .. 3.25
+            branches_[i].width = static_cast<float>(random * 1.8626451774202136e-10 /*0073C540*/ * 3.5f /*0073C534*/ +
+                                                    2.45f /*0073C530*/);   // 2.45 .. 3.25
         }
     }
 

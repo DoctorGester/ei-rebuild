@@ -122,8 +122,8 @@ constexpr int kNumberExperience = 8;
 // The experience shown for `amount`: amount * 0073E128 ^ (+0x33E - 0073E124), stored to a float,
 // then rounded to the nearest integer (FISTP).
 int ScaledExperience(const CUnit* unit, float amount) {
-    double base = ei::GameData<const double>(0x0073E128);
-    float offset = ei::GameData<const float>(0x0073E124);
+    double base = 1.04 /*0073E128*/;
+    float offset = 25.0f /*0073E124*/;
     float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->attackRate) - offset) * amount);
     return static_cast<int>(std::lrint(scaled));
 }

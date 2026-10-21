@@ -26,7 +26,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 template <typename T>
 T Read(const std::uint8_t* p, int offset) {
@@ -150,14 +149,14 @@ void CHeroStatsPanel::DrawStats() {
         DrawRow(&rect, "Intelligence", intelligence, -1);
         Down(&rect);
         float sumF = static_cast<float>(static_cast<double>(sum));
-        DrawRow(&rect, texts_[5], static_cast<int>(gamecrt::Ftol(D(GameFloat(0x00741F04)) - D(sumF))), -1);
+        DrawRow(&rect, texts_[5], static_cast<int>(gamecrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
         Down(&rect);
         Down(&rect);
         DrawRow(&rect, texts_[6], points_, -1);
 
         // "-": while above 15 (the integer compared before it is stored as float).
         rect = RECT{0x8C, 0x41, 0xA0, 0x50};
-        double minimum = D(GameFloat(0x00741EFC));
+        double minimum = D(15.0f /*00741EFC*/);
         int values[3] = {strength, dexterity, intelligence};
         float storedStats[3];
         for (int i = 0; i < 3; ++i) {
@@ -172,9 +171,9 @@ void CHeroStatsPanel::DrawStats() {
         draw->Text("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
 
         // "+": while below 35 and points are left.
-        int left = static_cast<int>(gamecrt::Ftol(D(GameFloat(0x00741F04)) - D(sumF)));
+        int left = static_cast<int>(gamecrt::Ftol(D(75.0f /*00741F04*/) - D(sumF)));
         rect = RECT{0xA0, 0x41, 0xB4, 0x50};
-        double maximum = D(GameFloat(0x00741F00));
+        double maximum = D(35.0f /*00741F00*/);
         for (int i = 0; i < 3; ++i) {
             bool below = !(D(storedStats[i]) >= maximum);   // FCOMP; TEST AH,1 (below or unordered)
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
@@ -330,7 +329,7 @@ void BuildCellGrid(CUiWindow* window) {
             AddRect(window, RECT{left, top, right, bottom});
             u = 0x9C - u;
         }
-        depth = static_cast<float>(D(depth) * D(GameFloat(0x0073B86C)));   // * 0.5
+        depth = static_cast<float>(D(depth) * D(0.5f /*0073B86C*/));   // * 0.5
         v = 0x9C - v;
     }
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -355,7 +354,7 @@ void CHeroEquipPanel::Build(bool body) {
         frame->visible_ = 0;
     }
     // The slots' frames: four on the left half, four on the right, each half with its strip.
-    float cell = GameFloat(0x0073BAB0);   // 100
+    float cell = 100.0f /*0073BAB0*/;   // 100
     for (int i = 0; i < 4; ++i)
         Builder(AddSprite(0))->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);

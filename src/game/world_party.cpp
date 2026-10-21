@@ -34,8 +34,8 @@
 namespace {
 
 // Values and vtables read from the exe's memory as the original does (rule 9).
-float Half() { return ei::GameData<const volatile float>(0x0073B86C); }            // 0.5f
-float CellSize() { return ei::GameData<const volatile float>(0x0073F904); }        // the map cell size
+float Half() { return 0.5f /*0073B86C*/; }            // 0.5f
+float CellSize() { return 1.0f /*0073F904*/; }        // the map cell size
 float FacingOffset() { return ei::GameData<const volatile float>(0x007AFED8); }
 const void* NoRotation() { return ei::GamePointer<const void>(0x007C2DE0); }           // 16 bytes: the identity rotation
 void* PtrListVtable() { return ei::GamePointer<void>(0x0073BE80); }                    // the item lists' CPtrList

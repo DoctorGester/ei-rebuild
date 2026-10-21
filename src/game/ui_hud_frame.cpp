@@ -33,25 +33,25 @@ float FloatFromBits(std::uint32_t bits) {
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-float Pi() { return GameFloat(0x007423F8); }
+float Pi() { return 3.1415927f /*007423F8*/; }
 float BlinkRate() { return GameFloat(0x007C8140); }   // radians per blink phase unit (a global)
 // The original reads its constants from memory at run time; Rebirth rewrites some of them
 // (00742B08, the clock's x, for its widescreen layout), so they are read the same way.
-float PausedHand() { return GameFloat(0x00742B18); }   // hand angle while paused, in pi
-float FastHand() { return GameFloat(0x00742B14); }   // at fast speed
-float NormalHand() { return GameFloat(0x0073C524); }   // at normal speed
-float Half() { return GameFloat(0x0073B86C); }   // 0.5
-float DialStep() { return GameFloat(0x0073CE40); }   // dial notches, in pi
-float FaceStep() { return GameFloat(0x00741438); }   // one hour of the face, in pi
-float FaceOffset() { return GameFloat(0x0073C518); }   // 15 hours
-float HandRadius() { return GameFloat(0x00742B10); }   // 73
-float DialRadius() { return GameFloat(0x0073BAF0); }   // 30
+float PausedHand() { return 0.9166667f /*00742B18*/; }   // hand angle while paused, in pi
+float FastHand() { return 0.5833333f /*00742B14*/; }   // at fast speed
+float NormalHand() { return 0.75f /*0073C524*/; }   // at normal speed
+float Half() { return 0.5f /*0073B86C*/; }   // 0.5
+float DialStep() { return 0.16666667f /*0073CE40*/; }   // dial notches, in pi
+float FaceStep() { return 0.083333336f /*00741438*/; }   // one hour of the face, in pi
+float FaceOffset() { return 15.0f /*0073C518*/; }   // 15 hours
+float HandRadius() { return 73.0f /*00742B10*/; }   // 73
+float DialRadius() { return 30.0f /*0073BAF0*/; }   // 30
 float CentreX() { return GameFloat(0x00742B08); }   // the clock centre (800; Rebirth writes the widescreen width here)
-float CentreY() { return GameFloat(0x00742B0C); }   // 600
-float BlinkBase() { return GameFloat(0x0073CDF8); }   // 1.4
-float PulseAmplitude() { return GameFloat(0x0073C54C); }   // 0.3
-float PulseMiddle() { return GameFloat(0x0073C538); }   // 0.7
-float SlideTime() { return GameFloat(0x00742428); }   // 0.3 seconds for a full slide
+float CentreY() { return 600.0f /*00742B0C*/; }   // 600
+float BlinkBase() { return 1.4f /*0073CDF8*/; }   // 1.4
+float PulseAmplitude() { return 0.3f /*0073C54C*/; }   // 0.3
+float PulseMiddle() { return 0.7f /*0073C538*/; }   // 0.7
+float SlideTime() { return 0.3f /*00742428*/; }   // 0.3 seconds for a full slide
 bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
 
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f

@@ -1,5 +1,0 @@
-# Reviewed double constants (tools/check_fp_fold.py): "<value> <function or *>  # reason".
-# pi / 180 rounded to 24 bits (the FMUL of 0073CAE8 by 0073BA30 on the 24-bit main thread; exact rational check, S18e),
-# loaded as a double operand because the other operand is a double.
-0.01745329238474369 CParticleSource::EmitGeyser  # pi * (1/180) at 24 bits
-0.01745329238474369 CParticleSource::TickGeyser  # pi * (1/180) at 24 bits

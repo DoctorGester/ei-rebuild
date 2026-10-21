@@ -28,7 +28,6 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 constexpr int kKindSinglePlayer = 1;
 constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // spell +0x3C: also hits the target itself
@@ -82,7 +81,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
     if (static_cast<const CSpell*>(spell)->targetFlags_ & kSpellAreaFlag) target = nullptr;
-    end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + GameFloat(0x0073C54C));
+    end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f /*0073C54C*/);
     if (caster) std::memcpy(&from, &static_cast<CUnit*>(caster)->position, sizeof(from));
 
     void* memory = gamecrt::operator_new(0xA8);

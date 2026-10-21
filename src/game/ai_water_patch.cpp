@@ -25,7 +25,6 @@ namespace {
 CUnitShape*& Patch() { return ei::GameData<CUnitShape*>(0x007C2F64); }
 std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2F68); }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // An empty unit shape (as CUnitShape::Empty leaves one), built inline. The counted header (count
 // and flags) is cleared with one dword store, as the original does.
@@ -44,8 +43,8 @@ CUnitShape* NewPatch() {
 } // namespace
 
 void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
-    double scale = static_cast<double>(GameFloat(0x0073B84C)) /
-                   (static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
+    double scale = static_cast<double>(1.0f /*0073B84C*/) /
+                   (static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
     int x = static_cast<int>(scale * position->x);
     int y = static_cast<int>(scale * position->y);
     if (!(Guard() & 1)) {

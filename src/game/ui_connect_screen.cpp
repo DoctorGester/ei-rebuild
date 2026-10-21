@@ -69,12 +69,12 @@ constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0, 0073B858), on (-0.08984375, 00741DA0); the selected game
 // type tab's frame is an immediate in the code.
-float FrameOff() { return GameFloat(0x0073B858); }
-float FrameOn() { return GameFloat(0x00741DA0); }
-float RefreshPeriod() { return GameFloat(0x0073B86C); }   // 0.5 s
-float MillisecondsPerSecond() { return GameFloat(0x0073C34C); }
-float BarWidth() { return GameFloat(0x00741E84); }        // 355
-float BarLeft() { return GameFloat(0x00741E80); }         // 225
+float FrameOff() { return 0.0f /*0073B858*/; }
+float FrameOn() { return (-0.08984375f /*00741DA0*/); }
+float RefreshPeriod() { return 0.5f /*0073B86C*/; }   // 0.5 s
+float MillisecondsPerSecond() { return 1000.0f /*0073C34C*/; }
+float BarWidth() { return 355.0f /*00741E84*/; }        // 355
+float BarLeft() { return 225.0f /*00741E80*/; }         // 225
 constexpr float kTabSelected = 0.08984375f;               // 0x3DB80000
 
 constexpr int kRegionConnect = 0, kRegionBack = 1, kRegionMaster = 2, kRegionAddress = 3, kRegionUnlisted = 4,
@@ -144,7 +144,7 @@ const char* AllodNameFormat() { return "lmp_allod_name_%d"; }
 const char* ConnectionTextFormat() { return "lmp_connection_%d"; }
 const char* NameEnd() { return "|"; }
 // The model's turn about x: 007C7F40 (an angle set at start) times 1.2 (0073CDF4).
-float MenuTurn() { return GameFloat(0x007C7F40) * GameFloat(0x0073CDF4); }
+float MenuTurn() { return GameFloat(0x007C7F40) * 1.2f /*0073CDF4*/; }
 // The interface's text colour (the list draw changes it per row).
 std::uint32_t TextColour() { return ei::GameData<const volatile std::uint32_t>(0x00793AD8); }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;

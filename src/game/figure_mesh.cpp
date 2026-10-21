@@ -556,7 +556,7 @@ EI_REPLACE_METHOD(0x005A4D60, CFigureMesh::LoadOldShared);
 namespace {
 
 // The limit on the squared distance of the position from the origin (the float 1e8 at 0073FAFC).
-inline float FarLimit() { return ei::GameData<const float>(0x0073FAFC); }
+inline float FarLimit() { return 100000000.0f /*0073FAFC*/; }
 } // namespace
 
 namespace {

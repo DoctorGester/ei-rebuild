@@ -78,11 +78,10 @@ constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
 // The constants the movement panel's marker is placed with, read where the original reads them.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
-float Pi() { return GameFloat(0x007423F8); }
-float Sixteenth() { return GameFloat(0x0073D040); }      // 0.0625
-float MarkerRadius() { return GameFloat(0x00742B10); }   // 73
-float MarkerCentreY() { return GameFloat(0x00742B0C); }  // 600
+float Pi() { return 3.1415927f /*007423F8*/; }
+float Sixteenth() { return 0.0625f /*0073D040*/; }      // 0.0625
+float MarkerRadius() { return 73.0f /*00742B10*/; }   // 73
+float MarkerCentreY() { return 600.0f /*00742B0C*/; }  // 600
 constexpr float kMarkerDepth = 8.0f;
 
 // The map's centre in the layout, and the camera flag a click on the map clears.
@@ -698,7 +697,7 @@ void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scale
 constexpr int kCategoryWand = 8;
 IsaacRandom& UiRandom() { return IsaacRandom::Global(); }
 // 00742760: the factor turning a random dword into the portraits' negative start delay.
-double PortraitDelayScale() { return ei::GameData<const volatile double>(0x00742760); }
+double PortraitDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
 // A random value times ~-2^-34 * 0.3 (00742760), as the original stores it.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
@@ -1025,7 +1024,7 @@ using OrderUnits = mfc::CArray<CUnit*>;
 // (CPlayerClient::SendWalk), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
 // 0073B84C: the constant 1.0f the zone variable is compared with.
-float GameOne() { return ei::GameData<const volatile float>(0x0073B84C); }
+float GameOne() { return 1.0f /*0073B84C*/; }
 
 } // namespace
 

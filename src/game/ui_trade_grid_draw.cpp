@@ -22,7 +22,6 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
@@ -58,7 +57,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
     for (int i = 0; i < count; ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
-        ItemCell cell{items[i], static_cast<float>(x) + GameFloat(0x0073BF48), static_cast<float>(y) + yOffset,
+        ItemCell cell{items[i], static_cast<float>(x) + 250.0f /*0073BF48*/, static_cast<float>(y) + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
         reinterpret_cast<CItemScreen*>(grid->owner_)->DrawItem(pass, &cell);
         int pieces = static_cast<int>(cell.item->count_);
@@ -97,9 +96,9 @@ int CTradeGrid::DrawGrid(int pass) {
     auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
-    DrawItems(this, pass, bought_, surface, text, GameFloat(0x0073D618), 48.0f, 24.0f, 0x0F, 0x41,
+    DrawItems(this, pass, bought_, surface, text, 150.0f /*0073D618*/, 48.0f, 24.0f, 0x0F, 0x41,
               buyKind_);
-    DrawItems(this, pass, sold_, surface, text, GameFloat(0x00741F18), 12.0f, 6.0f, 0xD7, 0x109,
+    DrawItems(this, pass, sold_, surface, text, 350.0f /*00741F18*/, 12.0f, 6.0f, 0xD7, 0x109,
               sellKind_);
     surface->End();
     ui = interface_;

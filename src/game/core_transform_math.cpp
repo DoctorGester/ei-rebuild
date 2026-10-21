@@ -23,14 +23,13 @@ inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
-#define EI_ONE GameFloat(0x0073B84C)          // 1.0f
-#define EI_MINUS_ONE GameFloat(0x0073B854)    // -1.0f
-#define EI_ZERO GameFloat(0x0073B858)         // 0.0f
-#define EI_TILT_STEP GameFloat(0x0073B850)    // 0.1f: TiltTowards turns a tenth of the way
-#define EI_HALF_TURN GameFloat(0x0073B868)    // 0.4f: TurnUpTowards' reduced step
-#define EI_MIN_AXIS GameDouble(0x0073B860)    // 1e-5: shorter rotation axes count as none
-#define EI_PI GameDouble(0x0073B840)          // pi
+#define EI_ONE 1.0f /*0073B84C*/          // 1.0f
+#define EI_MINUS_ONE (-1.0f /*0073B854*/)    // -1.0f
+#define EI_ZERO 0.0f /*0073B858*/         // 0.0f
+#define EI_TILT_STEP 0.1f /*0073B850*/    // 0.1f: TiltTowards turns a tenth of the way
+#define EI_HALF_TURN 0.4f /*0073B868*/    // 0.4f: TurnUpTowards' reduced step
+#define EI_MIN_AXIS 0.00001 /*0073B860*/    // 1e-5: shorter rotation axes count as none
+#define EI_PI 3.141592653589793 /*0073B840*/          // pi
 #define EI_HEADING_OFFSET GameFloat(0x0079B1B8)   // 0.0f (a .data float nothing writes)
 
 // The vector helpers as the original calls them, results unrounded in ST0.

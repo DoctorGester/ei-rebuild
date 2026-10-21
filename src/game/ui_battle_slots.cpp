@@ -47,7 +47,7 @@ void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 void* TheGame() { return ei::GamePointer<void>(0x007AFE20); }
 // The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
 float SelectedFaceAngle() {
-    return ei::GameData<const volatile float>(0x007C8144) * ei::GameData<const volatile float>(0x0073CDCC);
+    return ei::GameData<const volatile float>(0x007C8144) * 0.14285715f /*0073CDCC*/;
 }
 
 // The load window the game-over box opens (0x194 bytes, built inline).

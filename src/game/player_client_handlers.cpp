@@ -3,6 +3,7 @@
 #include "effects.h"
 #include "player_client.h"
 
+#include "angles.h"
 #include "camera.h"
 #include "item.h"
 #include "map_object.h"
@@ -49,7 +50,6 @@ const char* FixedViewZone() { return "gz20g"; }
 // 007C8388: an identity rotation (set by the static initialiser 00666CC0).
 const Quaternion& FixedViewRotation() { return ei::GameData<const Quaternion>(0x007C8388); }
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
-double ExeDouble(std::uintptr_t address) { return ei::GameData<const double>(address); }
 
 CEngineObject* FindClientUnit(int id) { return WorldFindUnit(WorldClient(), nullptr, id); }
 
@@ -87,7 +87,7 @@ int CPlayerClient::OnCameraPlacement() {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = FixedViewRotation();
-        view.pitch = static_cast<float>(ExeDouble(0x00743148) * ExeDouble(0x0073BA30) * ExeDouble(0x0073DF70));
+        view.pitch = static_cast<float>(ei::kRadiansPerDegree * 30.0 /*0073DF70*/);
         camera->SetDistancePitch(&view);
     } else {
         camera->RestoreView(mode == 3 ? 6 : 7);

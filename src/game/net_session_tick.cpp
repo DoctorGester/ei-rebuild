@@ -336,7 +336,6 @@ namespace net {
 namespace {
 // 00439E30: the clients list's insert(pos, value) (list<RefPtr>'s with SharedRef); 00425040:
 // another STLport string destructor.
-float GameFloatAt(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 } // namespace
 
 // The send interval is the constant at 0073BF48 over the rate clamped to [500, 50000].
@@ -356,7 +355,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     added->address_ = *address;
     if (rate <= 500) rate = 500;
     else if (rate >= 50000) rate = 50000;
-    added->sendInterval_ = static_cast<float>(static_cast<double>(GameFloatAt(0x0073BF48)) / static_cast<double>(rate));
+    added->sendInterval_ = static_cast<float>(static_cast<double>(250.0f /*0073BF48*/) / static_cast<double>(rate));
 }
 EI_REPLACE_METHOD(0x00436DD0, SessionBase::AddClient);
 

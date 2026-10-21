@@ -35,7 +35,6 @@ void FacingFromQuaternion(const float* q, float* out) {
 }
 
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The common part; `time` is read after the reset (005B2190 passes the path's own +0x10).
 void StandAt(AIPath* path, const int* time, const CMapObject* object) {
@@ -50,8 +49,8 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->excludedBlocks.SetSize(0, -1);
     path->smoothing = 0;
     path->reached = true;
-    double scale = static_cast<double>(GameFloat(0x0073B84C)) /
-                   (static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
+    double scale = static_cast<double>(1.0f /*0073B84C*/) /
+                   (static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
     path->targetX = static_cast<float>(scale * object->position.x);
     path->targetY = static_cast<float>(scale * object->position.y);
     Vector3 facing;

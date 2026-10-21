@@ -22,11 +22,6 @@ namespace {
 // position, and position_ (the rest position in the parent's frame).
 using RotationKey = AnimationRotationKey;
 
-float GameFloat(std::uintptr_t address) {
-    float f;
-    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
-    return f;
-}
 
 Quaternion AxisAngle(const Vector3& axis, float angle) {
     Quaternion q;
@@ -38,13 +33,13 @@ Quaternion AxisAngle(const Vector3& axis, float angle) {
 // length; (1, 0, 0) and 0 when the squared length is at most 1e-8 (0073BAE0) or NaN.
 float ToAxisAngle(const Quaternion& q, Vector3* axis) {
     float squared = LengthSquaredUnrounded<Sum3::ZYX>(q.x, q.y, q.z);
-    if (!(squared > GameFloat(0x0073BAE0))) {
+    if (!(squared > 1e-8f /*0073BAE0*/)) {
         *axis = {1.0f, 0.0f, 0.0f};
-        return GameFloat(0x0073B858);
+        return 0.0f /*0073B858*/;
     }
     double angle = std::acos(static_cast<double>(q.w));
     angle += angle;
-    double inverse = GameFloat(0x0073B84C) / x87::fsqrt(static_cast<double>(squared));
+    double inverse = 1.0f /*0073B84C*/ / x87::fsqrt(static_cast<double>(squared));
     axis->x = static_cast<float>(q.x * inverse);
     axis->y = static_cast<float>(q.y * inverse);
     axis->z = static_cast<float>(q.z * inverse);
@@ -70,8 +65,8 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
             Vector3 d{from.x - origin.x, from.y - origin.y, from.z - origin.z};
             bone->position_ = d;
             const Quaternion& p = parent->restRotation_;
-            const float k = GameFloat(0x0073C168);
-            const float one = GameFloat(0x0073B84C);
+            const float k = (-2.0f /*0073C168*/);
+            const float one = 1.0f /*0073B84C*/;
             float a = p.x * k, b = p.y * k, c = p.z * k;
             float xw = a * p.w, yw = b * p.w, zw = c * p.w;
             float xx = -(a * p.x), xy = -(b * p.x), xz = -(c * p.x);
@@ -115,7 +110,7 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
         Quaternion now = Keys(bone)[frame].rotation;
         Quaternion step;
         MultiplyByConjugate(&step, now, before);
-        if (!(step.w >= GameFloat(0x0073B858))) {   // the shorter way round (or NaN)
+        if (!(step.w >= 0.0f /*0073B858*/)) {   // the shorter way round (or NaN)
             step.w = -step.w;
             step.x = -step.x;
             step.y = -step.y;

@@ -37,9 +37,9 @@ namespace {
 // ---- Data -------------------------------------------------------------------------------------
 
 // Distance limits, read from the exe's memory as the original does (rule 9).
-float ViewRange() { return ei::GameData<const float>(0x0073F91C); }        // objects seen around the camera
-float HearingScale() { return ei::GameData<const float>(0x0073F910); }     // unit perception scale
-float HearingMargin() { return ei::GameData<const float>(0x0073BF34); }    // added to it
+float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around the camera
+float HearingScale() { return 2.0f /*0073F910*/; }     // unit perception scale
+float HearingMargin() { return 5.0f /*0073BF34*/; }    // added to it
 // Non-zero in a multiplayer game seen from a spectator (no camera-range test for map objects).
 int SpectatorView() { return ei::GameData<const int>(0x0079BE6C); }
 

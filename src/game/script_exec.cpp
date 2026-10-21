@@ -87,7 +87,7 @@ constexpr int kClassQuestItem = 0x14;
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";   // 0078B904
 const char* MoviesFolder() { return "Movies\\"; }
 // 0073C36C: 1 / 255, the background colour scale.
-float ColourScale() { return ei::GameData<const float>(0x0073C36C); }
+float ColourScale() { return 0.003921569f /*0073C36C*/; }
 // 0079BE5C: the configured world time speed (an int).
 int ConfiguredTimeSpeed() { return ei::GameData<const int>(0x0079BE5C); }
 

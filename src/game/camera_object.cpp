@@ -22,7 +22,7 @@ namespace {
 
 // The default pitch (degrees as radians: pi / 180 * 45) and the default field of view
 // (pi * 2/7), computed at run time as the original does.
-float DefaultPitch() { return static_cast<float>((CAM_PI * CAM_PER_180) * CAM_FORTY_FIVE); }
+float DefaultPitch() { return static_cast<float>(CAM_DEGREE * CAM_FORTY_FIVE); }
 float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 
 

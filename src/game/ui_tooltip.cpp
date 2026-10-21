@@ -54,7 +54,7 @@ constexpr int kSurfaceFormat = 5;
 // (0.0 in the exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by
 // the static initialiser 0065E310).
 float ShowDelay() { return ei::GameData<const float>(0x0079BE80); }
-float AppearTime() { return ei::GameData<const float>(0x00742F2C); }
+float AppearTime() { return 0.0f /*00742F2C*/; }
 POINT CursorOffset() { return ei::GameData<const POINT>(0x007C8258); }
 
 // The extent of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it

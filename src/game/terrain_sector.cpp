@@ -24,19 +24,18 @@
 namespace terrain {
 namespace {
 
-double GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The constants of this code (all floats in .rdata).
-double One() { return GameFloat(0x00744160); }          // 1: vertex spacing
-double SectorCells() { return GameFloat(0x0073CA90); }  // 32
-double Half() { return GameFloat(0x0073B86C); }         // 0.5
-double MinusHalf() { return GameFloat(0x0073CDC8); }    // -0.5
-double OffsetScale() { return GameFloat(0x00744190); }  // 1/126: vertex displacement per unit
-double HeightUnit() { return GameFloat(0x0073FD84); }   // 1/65534 (37800100)
-double NormalScale() { return GameFloat(0x0074040C); }  // 0.001
-double NormalBias() { return GameFloat(0x0073C34C); }   // 1000
-double VOne() { return GameFloat(0x0073B84C); }         // 1: v = 1 - v
-double Zero() { return GameFloat(0x0073B858); }         // 0
+double One() { return 1.0 /*00744160 f*/; }          // 1: vertex spacing
+double SectorCells() { return 32.0 /*0073CA90 f*/; }  // 32
+double Half() { return 0.5 /*0073B86C f*/; }         // 0.5
+double MinusHalf() { return (-0.5 /*0073CDC8 f*/); }    // -0.5
+double OffsetScale() { return 0.007936508394777775 /*00744190 f*/; }  // 1/126: vertex displacement per unit
+double HeightUnit() { return 0.000015259254723787308 /*0073FD84 f*/; }   // 1/65534 (37800100)
+double NormalScale() { return 0.0010000000474974513 /*0074040C f*/; }  // 0.001
+double NormalBias() { return 1000.0 /*0073C34C f*/; }   // 1000
+double VOne() { return 1.0 /*0073B84C f*/; }         // 1: v = 1 - v
+double Zero() { return 0.0 /*0073B858 f*/; }         // 0
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
@@ -497,7 +496,7 @@ const float* Terrain::TileUv(int rotation, int index, int page) {
 }
 
 int Terrain::SurfaceClass(float x, float y) {
-    double unit = terrain::GameFloat(0x007441D0);
+    double unit = 1.0 /*007441D0 f*/;
     int ix = x87::fistp(static_cast<float>(x / unit));
     int iy = x87::fistp(static_cast<float>(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;

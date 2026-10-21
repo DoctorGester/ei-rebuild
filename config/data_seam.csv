@@ -94,8 +94,6 @@ src/game/ui_camp_create.cpp,rdata,1
 src/game/ui_create_screen.cpp,rdata,2
 src/game/ui_exchange.cpp,rdata,1
 src/game/ui_global_map.cpp,rdata,7
-src/game/ui_item_info.cpp,rdata,10
-src/game/ui_item_view.cpp,rdata,3
 src/game/ui_layouts.cpp,rdata,8
 src/game/ui_widescreen.cpp,rdata,2
 src/game/unit.h,rdata,3

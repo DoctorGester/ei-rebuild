@@ -33,7 +33,7 @@ RDATA = (0x0073B820, 0x00783000)
 IAT = (0x0073B000, 0x0073B820)
 EXE = DEFAULT_EXES[0]
 
-TYPES = {'float': ('f', 4), 'double': ('d', 8), 'int': ('i', 4), 'std::uint32_t': ('I', 4),
+TYPES = {'float': ('f', 4), 'double': ('d', 8), 'int': ('i', 4), 'std::uint32_t': ('I', 4), 'std::size_t': ('I', 4),
          'unsigned': ('I', 4), 'std::int32_t': ('i', 4), 'std::int8_t': None}
 TAG = re.compile(r'(\(?-?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?[fFuU]?\)?|\(?-?0[xX][0-9A-Fa-f]+[uU]?\)?)\s*/\*([0-9A-F]{8})( f)?\*/')
 
@@ -181,9 +181,10 @@ def includes_of(tree, path):
 
 def make_patterns(tree):
     names = '|'.join(sorted((re.escape(n) for n, h in tree.helpers.items() if len(h['read']) == 1), key=len, reverse=True))
-    arg = r'\s*(0[xX][0-9A-Fa-f]{1,8}|(?:[\w]+::)*k\w+)\s*'
+    addr = r'(0[xX][0-9A-Fa-f]{1,8}|(?:[\w]+::)*k\w+)'
+    arg = r'\s*(?:(?:std::uintptr_t|static_cast<std::uintptr_t>)\s*\(\s*' + addr + r'\s*\)|' + addr + r')\s*'
     helper = re.compile(r'(?<![\w.])((?:::)?(?:[A-Za-z_]\w*::)*)(' + names + r')\s*\(' + arg + r'\)')
-    data = re.compile(r'(?<![\w])((?:ei::)?GameData)\s*<\s*((?:const\s+|volatile\s+)+)(float|double|int|std::uint32_t|unsigned|std::int32_t)\s*>\s*\(' + arg + r'\)')
+    data = re.compile(r'(?<![\w])((?:ei::)?GameData)\s*<\s*((?:const\s+|volatile\s+)+)(float|double|int|std::uint32_t|std::size_t|unsigned|std::int32_t)\s*>\s*\(' + arg + r'\)')
     return helper, data
 
 
@@ -208,7 +209,7 @@ def rewrite(tree, exe, path, stats):
         ret = h['ret'].get(path) or next(iter(h['ret'].values()))
         if ret[1]:
             pass   # a reference result: the literal is a temporary, fine for reads
-        address = resolve(tree, m.group(3))
+        address = resolve(tree, (m.group(3) or m.group(4)))
         if address is None:
             stats['unresolved'] += 1
             continue
@@ -218,10 +219,10 @@ def rewrite(tree, exe, path, stats):
         if lit is None:
             stats['kept'].append((path, address))
             continue
-        edits.append((m.start(), m.end(), lit, m.group(3).split('::')[-1] if not m.group(3).lower().startswith('0x') else None, name))
+        edits.append((m.start(), m.end(), lit, (m.group(3) or m.group(4)).split('::')[-1] if not (m.group(3) or m.group(4)).lower().startswith('0x') else None, name))
     for m in data_re.finditer(code):
         kind = m.group(3)
-        address = resolve(tree, m.group(4))
+        address = resolve(tree, (m.group(4) or m.group(5)))
         if address is None:
             continue
         if not RDATA[0] <= address < RDATA[1]:
@@ -230,7 +231,7 @@ def rewrite(tree, exe, path, stats):
         if lit is None:
             stats['kept'].append((path, address))
             continue
-        edits.append((m.start(), m.end(), lit, m.group(4).split('::')[-1] if not m.group(4).lower().startswith('0x') else None, None))
+        edits.append((m.start(), m.end(), lit, (m.group(4) or m.group(5)).split('::')[-1] if not (m.group(4) or m.group(5)).lower().startswith('0x') else None, None))
     return edits
 
 

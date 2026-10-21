@@ -34,9 +34,8 @@ constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped w
 constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
-float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 float& GameFloatAt(std::uintptr_t address) { return ei::GameData<float>(address); }
-float Pi() { return GameFloat(0x0073D640); }
+float Pi() { return 3.1415927f /*0073D640*/; }
 
 // The guard of a function-local static with an empty destructor (bit 0 of 007CAEE4).
 std::uint8_t& EmptyStaticGuard() { return ei::GameData<std::uint8_t>(0x007CAEE4); }
@@ -230,11 +229,11 @@ EI_REPLACE(0x004DDD60, SysInfoAtExit);
 // pi rounded to a float by the store.
 void __cdecl SysInfoInitTwoPi() { GameFloatAt(0x007AB8F0) = static_cast<float>(Pi() + Pi()); }
 EI_REPLACE(0x004DDCBA, SysInfoInitTwoPi);
-void __cdecl SysInfoInitHalfPi() { GameFloatAt(0x007ABA00) = static_cast<float>(Pi() / GameFloat(0x0073CDB8)); }
+void __cdecl SysInfoInitHalfPi() { GameFloatAt(0x007ABA00) = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
 EI_REPLACE(0x004DDCD7, SysInfoInitHalfPi);
-void __cdecl SysInfoInitQuarterPi() { GameFloatAt(0x007ABA04) = static_cast<float>(Pi() / GameFloat(0x0073BAA0)); }
+void __cdecl SysInfoInitQuarterPi() { GameFloatAt(0x007ABA04) = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
 EI_REPLACE(0x004DDCF8, SysInfoInitQuarterPi);
-void __cdecl SysInfoInitInversePi() { GameFloatAt(0x007ABA08) = static_cast<float>(GameFloat(0x0073B84C) / Pi()); }
+void __cdecl SysInfoInitInversePi() { GameFloatAt(0x007ABA08) = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
 EI_REPLACE(0x004DDD19, SysInfoInitInversePi);
 
 // 004DDCB0 / 004DDCCD / 004DDCEE / 004DDD0F: the table's entries for them.
