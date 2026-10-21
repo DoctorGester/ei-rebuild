@@ -215,6 +215,9 @@
 //                             checks of the composed frames must have found no difference, and its
 //                             rectangle must sit at the mouse less the cursor's hot spot (within the
 //                             distance the mouse covers in two steps of the cursor thread)
+//   windowicon <name>         require the game window's class icons to be icon 105 of the process's own
+//                             module (game.exe, or the image's host with game.exe's resources built in)
+//                             and draw them to frames\<name>.bmp
 //   render <spec>             the new renderer's options for a run of the image (src/render/render.h;
 //                             the format of EI_RENDER: "removable", "checkall"). Read before the game starts.
 //                             Ignored in a run of the original code (game.exe), which never runs it
@@ -1612,6 +1615,65 @@ std::string CursorCheck(const std::string& argument) {
                       info.lastTo.left, info.lastTo.top, dx, dy, fx, fy, image->hotX, image->hotY);
         return what;
     }
+    return {};
+}
+
+// "windowicon <name>": the game window's class icons (big and small) are the game's icon 105 (0x69) of the
+// process's own module (game.exe; the image's host, which has game.exe's resources built in, S18j), drawn
+// side by side at their sizes on grey into frames\<name>.bmp, and not blank.
+std::string WindowIconStep(const std::string& name) {
+    constexpr int kGameIcon = 0x69;   // app_main.cpp's kIcon
+    HWND window = GameWindow();
+    const auto bigIcon = reinterpret_cast<HICON>(GetClassLongPtrA(window, GCLP_HICON));
+    const auto smallIcon = reinterpret_cast<HICON>(GetClassLongPtrA(window, GCLP_HICONSM));
+    const HICON own = LoadIconA(GetModuleHandleA(nullptr), MAKEINTRESOURCEA(kGameIcon));
+    Log("harness: windowicon: class icons %p / %p, the module's icon %d %p", static_cast<void*>(bigIcon), static_cast<void*>(smallIcon),
+        kGameIcon, static_cast<void*>(own));
+    if (!own) return "windowicon: the process's module has no icon 105";
+    if (bigIcon != own || smallIcon != own) return "windowicon: the window's class icons are not the module's icon 105";
+    const int bigSize = GetSystemMetrics(SM_CXICON), smallSize = GetSystemMetrics(SM_CXSMICON);
+    const int width = bigSize + smallSize + 12, height = bigSize + 8;
+    BITMAPINFO info{};
+    info.bmiHeader.biSize = sizeof(info.bmiHeader);
+    info.bmiHeader.biWidth = width;
+    info.bmiHeader.biHeight = -height;   // top-down
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = 24;
+    info.bmiHeader.biCompression = BI_RGB;
+    void* bits = nullptr;
+    HDC dc = CreateCompatibleDC(nullptr);
+    HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!dc || !bitmap) {
+        if (dc) DeleteDC(dc);
+        return "windowicon: no bitmap to draw on";
+    }
+    HGDIOBJ old = SelectObject(dc, bitmap);
+    RECT all{0, 0, width, height};
+    HBRUSH grey = CreateSolidBrush(RGB(128, 128, 128));
+    FillRect(dc, &all, grey);
+    DeleteObject(grey);
+    const bool drawn = DrawIconEx(dc, 4, 4, bigIcon, bigSize, bigSize, 0, nullptr, DI_NORMAL) &&
+                       DrawIconEx(dc, bigSize + 8, 4, smallIcon, smallSize, smallSize, 0, nullptr, DI_NORMAL);
+    GdiFlush();
+    const int stride = (width * 3 + 3) & ~3;
+    std::vector<std::uint8_t> bgr(static_cast<std::size_t>(width) * height * 3);
+    int notGrey = 0;
+    for (int y = 0; y < height; ++y) {
+        const auto* row = static_cast<const std::uint8_t*>(bits) + static_cast<std::size_t>(y) * stride;
+        std::memcpy(&bgr[static_cast<std::size_t>(y) * width * 3], row, static_cast<std::size_t>(width) * 3);
+        for (int x = 0; x < width * 3; x += 3)
+            notGrey += row[x] != 128 || row[x + 1] != 128 || row[x + 2] != 128;
+    }
+    SelectObject(dc, old);
+    DeleteObject(bitmap);
+    DeleteDC(dc);
+    if (!drawn) return "windowicon: DrawIconEx failed";
+    std::string path;
+    if (!capture::WriteFrame(name.c_str(), width, height, bgr, &path)) return "windowicon: cannot write " + name;
+    g_capturedFrames.push_back(path + " (the window's class icons)");
+    Log("harness: windowicon: %s, %d x %d and %d x %d, %d pixel(s) drawn", path.c_str(), bigSize, bigSize, smallSize,
+        smallSize, notGrey);
+    if (notGrey < bigSize * bigSize / 4) return "windowicon: the icons are blank";
     return {};
 }
 
@@ -3500,6 +3562,12 @@ void RunSteps() {
             Log("harness: cursormark: %u presents by the cursor thread so far", g_cursorMark);
         } else if (s.verb == "cursorcheck") {
             std::string error = CursorCheck(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
+        } else if (s.verb == "windowicon") {
+            std::string error = WindowIconStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);

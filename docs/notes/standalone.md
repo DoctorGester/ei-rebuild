@@ -57,10 +57,16 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 ### How it runs
 
 - **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is linked below
-  0x400000 and reserves 0x400000-0x7D7000. It copies game.exe's headers from disk into place and no section
-  (.rsrc stays zero and PAGE_NOACCESS since S18h: a reader would end the run with `ei_standalone: read of game.exe's
-  .rsrc at ...`; the resource imports read game.exe loaded as a data file), guards .text (PAGE_NOACCESS since S18i)
-  and loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
+  0x400000 and reserves 0x400000-0x7D7000. Nothing of game.exe is copied there (S18j): the host reads the file's
+  headers (the 1.06 timestamp, the sections' places) and guards the headers' page, .text (since S18i) and .rsrc
+  PAGE_NOACCESS (a reader ends the run with `ei_standalone: read of game.exe's headers|.rsrc at ... by ...`).
+  **Resources** (S18j): game.exe's are the host's own: `tools/gen_resources.py` writes every leaf of game.exe's .rsrc
+  tree (two cursors and MFC's cursor group, five bitmaps, the icon group 105 and its three icons, two dialogs, twelve
+  string blocks) as a .res at build time (build/<cfg>/image/game_resources.res, from `EI_GAME_EXE`, not committed)
+  that the linker builds in. WinMain's hInstance and GetModuleHandleA(NULL) are the host, so the resource calls,
+  DirectInput and MFC's null resource handle need no wrapper; GetModuleFileNameA(NULL) names ei_standalone.exe (the
+  message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw).
+  Then it loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
   and resolves game.exe's imports as it initialises (S18f: DDraw, mss32 and binkw32 from game.exe's folder or the
   working directory, the rest from System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
   then `InstallHooks` takes the registrations as the code for their addresses ("Code", below). Nothing runs in or
@@ -193,8 +199,8 @@ each step green on the goldens and removing a measured tie:
   `--check`) and gameapi.h. Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (game.exe's folder from the host's export
   `EiStandaloneExe`, then the working directory, else System32; dinput always the system's) and fills our slots;
-  the ten resource / module / command-line / DirectInput imports get their wrappers there (`ImageRoute`,
-  hook/standalone.cpp). Everything that calls through a slot by its address reaches our table through the seam:
+  GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone.cpp; the resource, module and DirectInput
+  wrappers went with S18j). Everything that calls through a slot by its address reaches our table through the seam:
   gameapi.h, the static initialisers' `Import`, Bink's slots, the harness's `PatchSlot` / `WatchWrites` (in game.exe
   all of them are the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0; data_seam.py's
   helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
@@ -262,7 +268,7 @@ each step green on the goldens and removing a measured tie:
 | S18g | .rdata sealed: vtables (SetVtable through the seam), tables, the harness's vtable tables | raw .rdata uses 365 -> 0 |
 | S18h | .rdata moves into the storage with .data (one range, one shift): bytes from the build, 5531 cells (4460 into .rdata: walked EH / RTTI / MFC structures, reviewed string tables), guarded, old import slots under the guard | the host's copy of .rdata |
 | S18i | code pointers in our sections fixed up to our functions (21,636 code cells; a stub reports an unregistered one), static init calls, forwarders and code literals through CodeAddress, .text guarded | the jumps in .text |
-| S18j | game.exe's resources built into ei_standalone.exe, the module handle the host's | the read of game.exe's .rsrc |
+| S18j | game.exe's resources built into ei_standalone.exe (a .res from the build), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
 | S18k | no reserved range, no read of game.exe | the address image |
 
 Not on this path: named, typed globals in place of a section's bytes and vtables as real virtual classes
@@ -270,12 +276,15 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
-- **Resources**: the image's import slots of LoadIconA, LoadCursorA, LoadBitmapA, LoadStringA, FindResourceA and
-  LoadResource lead to wrappers that map hInstance 0x400000 (and NULL for the string / resource calls) to game.exe
-  loaded with `LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE`. GetModuleHandleA(NULL) gives 0x400000,
-  GetModuleFileNameA game.exe's path. Calls our src/lib code makes through its own imports are not routed. MFC's
-  module state has null instance and resource handles in the original too (the game never runs AfxWinInit), so
-  LoadStringA(NULL) is right in both.
+- **Resources** (S18j): built into the host from game.exe ("How it runs"); the game's module is the host's.
+  MFC's module state has null instance and resource handles in the original too (the game never runs AfxWinInit),
+  so LoadStringA(NULL) loads from the process's own module in both. Checked by `render_cursor_present`'s
+  `windowicon menu_icon` (the window class's icons are the module's icon 105, drawn to frames\menu_icon.bmp; its
+  `cursorcheck` frames show the game's cursor, which is game data, not a resource).
+- **What the image still reads of game.exe at run time** (S18j; S18k removes it): the host reads the file's headers
+  (version, section places, SizeOfImage for the guards); InstallHooks reads the file for the timestamp, the function
+  starts' bounds and the dispatch-only functions' bytes (`SameDispatch`); ResolveImageImports takes game.exe's folder
+  as the first place for DDraw, mss32 and binkw32. Nothing is copied into the reserved range.
 - **Command line**: `ei_standalone ... -- <game args>` is WinMain's line and GetCommandLineA's after `"<game.exe>"`.
 - **Code bytes read as data**: app_main's `CallTarget` (camera 00457595, server update 00457314, client segment
   00457368) and app_frame's cursor lock (004580D7) call our rewrites directly in the image; the harness reaches those

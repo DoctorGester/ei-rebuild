@@ -3,8 +3,8 @@
 // tools/gen_iat.py from game.exe's import directory: slot, DLL, function or ordinal) is resolved here into the
 // storage at the data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so everything that
 // calls through a slot by its address (gameapi.h, the static initialisers' Import, Bink's slots, the harness's
-// slot routes) reaches our table. The image's resource, module, command-line and DirectInput imports get their
-// wrappers in place of the export (ImageRoute, hook/standalone.cpp).
+// slot routes) reaches our table. The image's command-line import gets its wrapper in place of the export
+// (ImageRoute, hook/standalone.cpp); the resource and module imports take the host's module as it is (S18j).
 //
 // game.exe's own table is guarded with the rest of the old .rdata (S18h, image_data.cpp): the image runs none of
 // game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's import
@@ -27,8 +27,8 @@ namespace ei {
 
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);   // hook/standalone.cpp
 void ReportImageFailure(const char* what);                                // hook/standalone.cpp
-// The wrapper the image takes in place of `dll`!`function` (`real` its export), or nullptr.
-const void* ImageRoute(const char* dll, const char* function, const void* real);   // hook/standalone.cpp
+// The wrapper the image takes in place of `dll`!`function`'s export, or nullptr.
+const void* ImageRoute(const char* dll, const char* function);   // hook/standalone.cpp
 
 namespace {
 
@@ -154,7 +154,7 @@ void ResolveImageImports() {
             ++g_missing;
             continue;
         }
-        const void* route = i.function ? ImageRoute(i.dll, i.function, real) : nullptr;
+        const void* route = i.function ? ImageRoute(i.dll, i.function) : nullptr;
         ours = route ? route : real;
         ++resolved;
         routed += route != nullptr;

@@ -214,7 +214,7 @@ static const unsigned char* FileBytesAt(const std::vector<unsigned char>& file, 
 // region instead of two per hook) and puts the protections back afterwards.
 class TextUnprotect {
 public:
-    explicit TextUnprotect(IMAGE_NT_HEADERS32* nt) {
+    explicit TextUnprotect(const IMAGE_NT_HEADERS32* nt) {
         const IMAGE_SECTION_HEADER* sec = IMAGE_FIRST_SECTION(nt);
         for (WORD i = 0; i < nt->FileHeader.NumberOfSections; ++i) {
             if (!(sec[i].Characteristics & IMAGE_SCN_MEM_EXECUTE)) continue;
@@ -295,17 +295,17 @@ int InstallHooks() {
         }
         Log("EI_VECTORS set: the original game code with the vector recorders only");
     }
-    auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(kImageBase);
-    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(kImageBase + dos->e_lfanew);
+    // game.exe's headers as the file holds them (the image lays out none at 0x400000, S18j).
+    std::vector<unsigned char> file;
+    if (!ReadExeFromDisk(file) || file.size() < 0x1000) {
+        Log("could not read game.exe from disk, no hooks installed");
+        return 0;
+    }
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(file.data());
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(file.data() + dos->e_lfanew);
     if (nt->FileHeader.TimeDateStamp != kExpectedTimestamp) {
         Log("game.exe timestamp %08lX does not match expected %08lX, no hooks installed",
             nt->FileHeader.TimeDateStamp, kExpectedTimestamp);
-        return 0;
-    }
-
-    std::vector<unsigned char> file;
-    if (!ReadExeFromDisk(file)) {
-        Log("could not read game.exe from disk, no hooks installed");
         return 0;
     }
 
