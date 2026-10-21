@@ -1,0 +1,12 @@
+  netstate: no server
+  netstate: the client's join state 0, 0 servers listed
+  netstate: no server
+  netstate: the client's join state 0, 0 servers listed
+  netstate: no server
+  netstate: the client's join state 0, 1 servers listed
+  netstate: server 127.0.0.1:8888 state 0 kind 0 "host" "" players 1/6 password 0 foreign 0
+  netstate: no server
+  netstate: the client's join state 2, 1 servers listed
+  netstate: server 127.0.0.1:8888 state 0 kind 0 "host" "" players 1/6 password 0 foreign 0
+  netstate: no server
+  netstate: the client's join state 2, 0 servers listed

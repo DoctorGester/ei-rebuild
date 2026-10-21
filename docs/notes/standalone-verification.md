@@ -176,7 +176,12 @@ until S21c); `EI_COVER=<addr,...>` on the original still watches single addresse
   the host back to the base and the map's reject topic: LeaveZone and its award). SV5d3: `net_pair_quest` (a
   prepared strong hero, `make_mp_hero.py`, finishes z9q2 and the sheriff's "_3" topic: CompleteZone and its awards
   to both games; a public game whose `fakemaster` answers: OnMaster). Walks in the zone: `lookat` (a minimap click
-  under the target) before each `clickground`.
+  under the target) before each `clickground`. SV5d4: `net_pair_master` (vanilla; the peer's lobby without
+  broadcasts, `nolan`, asks the fake master three times: a bad size, a short record, the list with the host's
+  game, which it joins: ReadServerListImpl, GameInfoRecord::Read; then its `badupdate`: the host's server drops
+  it as a bad client, 2 -> 1 connections, its later updates from an unknown host). Vanilla only: on Rebirth's
+  original EI_Plugin's NewMaster probes the master with its own real TCP connect and may fall back to
+  hat.gipath.org.
 - Still unreached: TryTame (SV5a1), SuspectionMode
   Enter / Execute, patrol points, CTrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
   update after 500 bored ticks).
@@ -266,8 +271,16 @@ happen (the harness logs "share id" if one does).
   file read as missing in one game until it writes it (a peer without the host's quest file). The report's
   `PAIR:` line. A pair takes two machine slots (run_all's machine_slot(count=2), work_sched's games_of; ei_launch takes
   the second itself when its caller held only one). Goldens keep both games (golden.py: the golden's peer\).
-  `fakemaster <port>` (SV5d3): datagrams to that virtual port are the master's: each announcement is answered with a
-  master packet (kind -1, the announcement's key, a new token); the report's `MASTER:` line.
+  `fakemaster <port> [list|badsize|short]` (SV5d3, SV5d4): datagrams to that virtual port are the master's: each
+  announcement is answered with a master packet (kind -1, the announcement's key, a new token) and kept in the
+  shared state (listed from its segment on, from the next when sent in the frame step); a TCP connect to the port
+  (the master request's link) is the harness's (connect, select, send and recv routed for its socket only) and gets
+  the list: size, then the coder's all-literal stream of {127.0.0.1:<announcer's port>, its last announcement}
+  (badsize / short: the bad replies). The report's `MASTER:` line. `nolan`: the game's broadcasts are lost (only
+  the master's list finds a server); `badupdate`: its next update to the other game has its records replaced by
+  one of type 0xFF (unregistered), so the receiver drops it as a bad client. `netstate` (any game) writes the
+  server's connection count and the lobby client's join state and listed servers as console lines, so the golden
+  checks what ReadServerListImpl listed and that the bad client was dropped (the world digest shows neither).
 - **Typed text** (SV5d2): the game's TranslateMessage (slot 0073B450) is the harness's: the US layout with no key
   held, and letters and digits make no WM_CHAR (the `key` step posts theirs). Windows' own translation followed the
   user's keyboard layout and held keys, so typed hero names came out doubled ("hhoosstt"), with capitals or with

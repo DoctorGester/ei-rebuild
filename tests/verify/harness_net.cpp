@@ -31,15 +31,28 @@ constexpr std::uintptr_t kBindSlot = 0x0073B6DC;     // bind, ordinal 2
 constexpr std::uintptr_t kSendToSlot = 0x0073B70C;   // sendto, ordinal 20
 constexpr std::uintptr_t kRecvFromSlot = 0x0073B6CC;      // recvfrom, ordinal 17 (a pair's games only)
 constexpr std::uintptr_t kCloseSocketSlot = 0x0073B6E4;   // closesocket, ordinal 3 (a pair's games only)
+// The master link's (MasterLink 00440C60 / 00440DE0; a pair's games only, SV5d4).
+constexpr std::uintptr_t kConnectSlot = 0x0073B6C8;   // connect, ordinal 4
+constexpr std::uintptr_t kSelectSlot = 0x0073B6C4;    // select, ordinal 18
+constexpr std::uintptr_t kSendSlot = 0x0073B6D0;      // send, ordinal 19
+constexpr std::uintptr_t kRecvSlot = 0x0073B6D8;      // recv, ordinal 16
 
 using BindFn = int(WINAPI*)(SOCKET, const sockaddr*, int);
 using SendToFn = int(WINAPI*)(SOCKET, const char*, int, int, const sockaddr*, int);
 using RecvFromFn = int(WINAPI*)(SOCKET, char*, int, int, sockaddr*, int*);
 using CloseSocketFn = int(WINAPI*)(SOCKET);
+using ConnectFn = int(WINAPI*)(SOCKET, const sockaddr*, int);
+using SelectFn = int(WINAPI*)(int, fd_set*, fd_set*, fd_set*, const timeval*);
+using SendFn = int(WINAPI*)(SOCKET, const char*, int, int);
+using RecvFn = int(WINAPI*)(SOCKET, char*, int, int);
 BindFn g_bind;
 SendToFn g_sendTo;
 RecvFromFn g_recvFrom;
 CloseSocketFn g_closeSocket;
+ConnectFn g_connect;
+SelectFn g_select;
+SendFn g_send;
+RecvFn g_recv;
 
 // What the binds and the endpoint checks saw (the game's thread binds, the watchdog's checks).
 SRWLOCK g_lock = SRWLOCK_INIT;
@@ -148,7 +161,8 @@ int WINAPI LoopbackSendTo(SOCKET s, const char* data, int length, int flags, con
     sockaddr_in destination{};
     if (pair::Active() && to && toLength == sizeof(destination) && to->sa_family == AF_INET && IsUdp(s)) {
         std::memcpy(&destination, to, sizeof(destination));
-        return pair::SendTo(s, data, length, ntohs(destination.sin_port));   // the pair's network
+        const bool broadcast = (ntohl(destination.sin_addr.s_addr) & 0xFF) == 0xFF;
+        return pair::SendTo(s, data, length, ntohs(destination.sin_port), broadcast);   // the pair's network
     }
     if (to && toLength == sizeof(destination) && to->sa_family == AF_INET) {
         std::memcpy(&destination, to, sizeof(destination));
@@ -178,6 +192,36 @@ int WINAPI PairRecvFrom(SOCKET s, char* data, int length, int flags, sockaddr* f
 int WINAPI PairCloseSocket(SOCKET s) {
     pair::Close(s);
     return g_closeSocket(s);
+}
+
+// connect, select, send and recv of a pair's game: a TCP link to the fake master is the harness's (SV5d4).
+int WINAPI PairConnect(SOCKET s, const sockaddr* name, int length) {
+    sockaddr_in address{};
+    if (name && length == sizeof(address) && name->sa_family == AF_INET && !IsUdp(s)) {
+        std::memcpy(&address, name, sizeof(address));
+        if (pair::MasterConnect(s, ntohs(address.sin_port))) {
+            WSASetLastError(WSAEWOULDBLOCK);   // as a nonblocking connect under way
+            return SOCKET_ERROR;
+        }
+    }
+    return g_connect(s, name, length);
+}
+
+int WINAPI PairSelect(int count, fd_set* read, fd_set* write, fd_set* except, const timeval* timeout) {
+    int ready = 0;
+    if (pair::MasterSelect(read, write, except, &ready)) return ready;
+    return g_select(count, read, write, except, timeout);
+}
+
+int WINAPI PairSend(SOCKET s, const char* data, int length, int flags) {
+    if (pair::MasterSend(s, data, length)) return length;
+    return g_send(s, data, length, flags);
+}
+
+int WINAPI PairRecv(SOCKET s, char* data, int length, int flags) {
+    int received = 0;
+    if (pair::MasterRecv(s, data, length, &received)) return received;
+    return g_recv(s, data, length, flags);
 }
 
 // A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f).
@@ -252,6 +296,10 @@ void Install() {
         // The pair's network has ports of its own: the game keeps its 8888 (harness_pair.h).
         PatchSlot(kRecvFromSlot, &PairRecvFrom, g_recvFrom);
         PatchSlot(kCloseSocketSlot, &PairCloseSocket, g_closeSocket);
+        PatchSlot(kConnectSlot, &PairConnect, g_connect);
+        PatchSlot(kSelectSlot, &PairSelect, g_select);
+        PatchSlot(kSendSlot, &PairSend, g_send);
+        PatchSlot(kRecvSlot, &PairRecv, g_recv);
     } else {
         InstallPort();
     }

@@ -1,0 +1,58 @@
+# SV5d4: the master server's list (a pair of games, harness_pair.h). This game hosts a public game whose
+# announcements (AnnounceToMaster 0041AA10) the fake master on the pair's virtual port 28124 answers and keeps;
+# the peer (peer/net_pair_master.txt), whose broadcasts are lost ("nolan": the lobby's ping never finds this
+# game), asks the master three times from its connection screen (region 2, CMpConnectScreen::MasterRequest
+# 0061D0D0: a TCP link, MasterLink 00440C60 / 00440DE0, which the harness answers):
+# - a reply whose size is one more than sent: ClientSession::ReadServerListImpl 0041D600 reads nothing;
+# - a reply whose record is cut short: GameInfoRecord::Read 00401170 runs out, no entry is added;
+# - the list: this game's address and announcement, the entry in row 1, which the peer joins.
+# On the base the peer's next update carries a record of an unknown type ("badupdate"): this game's server
+# finds it bad (SessionBase::OnUpdate 00437080 -> Connection::ReadRecord 00435F30 makes no object), reports
+# the peer lost (ReportDeparture 0041A700, text 4) and drops it; the peer's later updates come from an unknown
+# host.
+timeout 180
+peer net_pair_master
+reject Script error
+waitmenu
+masterhost 127.0.0.1:28124
+fakemaster 28124
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+# Public (region 4), row 0 (the new game), host; a few announcements before the peer asks.
+clickregion 4
+frames 5
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+frames 40
+peersignal hosted
+
+peerwait 90 joined
+frames 20
+netstate
+peerwait 60 bad
+frames 60
+netstate
+report
+quit

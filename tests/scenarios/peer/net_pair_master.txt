@@ -1,0 +1,59 @@
+# The peer of net_pair_master: no broadcasts (nolan), so its connection screen lists only what the master
+# sends. Three master requests (region 2): a bad size, a short record, the list; row 1 is then the host's
+# game from the master's list, joined. On the base its next update is a bad one (badupdate): the host drops it.
+timeout 180
+reject Script error
+waitmenu
+masterhost 127.0.0.1:28124
+fakemaster 28124 badsize
+nolan
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+peerwait 90 hosted
+frames 20
+clickregion 2
+frames 10
+netstate
+fakemaster 28124 short
+clickregion 2
+frames 10
+netstate
+fakemaster 28124 list
+clickregion 2
+frames 10
+netstate
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal joined
+
+frames 40
+netstate
+badupdate
+frames 20
+peersignal bad
+frames 20
+netstate
+report
+quit

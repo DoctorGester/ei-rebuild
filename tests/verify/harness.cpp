@@ -117,8 +117,15 @@
 //                             (net_second_master: 127.0.0.1 only)
 //   waterwaves 0|1            the options' EnableWaterWaves (0079BD38) for this run, not saved (the
 //                             harness's settings have it off); before newgame, which reads it
-//   fakemaster <port>         in a pair's game: a master server on the pair's virtual port <port> answers
-//                             this game's announcements (harness_pair.h; with "masterhost 127.0.0.1:<port>")
+//   fakemaster <port> [list|badsize|short]
+//                             in a pair's game: a master server on the pair's virtual port <port> answers
+//                             this game's announcements and its master requests with the announced games'
+//                             list (or a bad one: harness_pair.h; with "masterhost 127.0.0.1:<port>")
+//   nolan                     in a pair's game: its broadcasts are lost (the lobby's ping finds nothing)
+//   netstate                  the server's connections, the lobby client's join state and listed servers as
+//                             console lines "netstate: ..." (harness_pair.h; a golden keeps them)
+//   badupdate                 in a pair's game: its next update to the other game carries a record of an
+//                             unknown type (harness_pair.h): the other game drops its connection
 //   peer <name>               ei_launch's: start a second game beside this one on tests/scenarios/peer/<name>.txt,
 //                             the two in lockstep on a network of their own (harness_pair.h; net_pair_*.txt)
 //   peersignal <tag>, peerwait <seconds> <tag>
@@ -3081,10 +3088,22 @@ void RunSteps() {
             if (s.argument == "0" || s.argument == "1") options::TheOptions()->enableWaterWaves_ = s.argument == "1";
             else g_failures.push_back("waterwaves needs 0 or 1");
         } else if (s.verb == "fakemaster") {
-            const int port = std::atoi(s.argument.c_str());
+            int port = 0;
+            char reply[16] = "list";
+            sscanf_s(s.argument.c_str(), "%d %15s", &port, reply, unsigned(sizeof(reply)));
             if (!pair::Active()) g_failures.push_back("fakemaster: not a pair's game (a \"peer\" line starts the other)");
             else if (port <= 0 || port > 0xFFFF) g_failures.push_back("fakemaster needs <port>");
-            else pair::FakeMaster(static_cast<std::uint16_t>(port));
+            else if (!pair::FakeMaster(static_cast<std::uint16_t>(port), reply))
+                g_failures.push_back("fakemaster: the reply is list, badsize or short");
+        } else if (s.verb == "netstate") {
+            for (std::string& line : pair::NetState()) {
+                Log("harness: %s", line.c_str());
+                g_console.push_back(std::move(line));
+            }
+        } else if (s.verb == "nolan" || s.verb == "badupdate") {
+            if (!pair::Active()) g_failures.push_back(s.verb + ": not a pair's game (a \"peer\" line starts the other)");
+            else if (s.verb == "nolan") pair::NoLan();
+            else pair::BadUpdate();
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";
