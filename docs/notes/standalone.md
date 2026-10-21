@@ -668,10 +668,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
 - **Batch 6's families**: the figure classes 0x41 (CSharedFigureMesh, 0073FBF0), 0x42 (CPlainFigureMesh, 0073C1C4: the
   factory's attached parts and the scene loader's figure records 00453240) and 0x43 (CUiMesh, "CI3DFigure", 0073FC48),
   and the scene's meshes (scene::SceneMesh, "CFakeFigure", 0073C274): 4 rows, 6,855 -> 6,767 code cells. Next: the
-  factory's other classes (AnimationTrack 0073D9D8, FigureBone and the animation state: 0x300C / 0x300D), CObject3D
-  (0073DDD4), link_figure.h's classes (0073FB10, 0073FB44, 0073D790), the containers by template (CArray<FaceGroup> 0073C2BC, the unit's member tables
-  0073EB84 / 90 / 9C / A8 / B4), network messages, interface (needs the harness id); the bases' own tables
-  (0073B870, 00743338, 0073C224) with C20.
+  factory's other classes and link_figure.h's (batch 7), the containers by template (CArray<FaceGroup> 0073C2BC, the
+  unit's member tables 0073EB84 / 90 / 9C / A8 / B4), network messages, interface (needs the harness id); the bases'
+  own tables (0073B870, 00743338, 0073C224) with C20.
   - **CFigureMesh** is the abstract base ("CFigure"): it declares slots 18-21 (CopyFigure, LoadFromMemory, LoadFig,
     LoadOld; 20 / 21 pure) and overrides 2, 3, 7, 11, 12, 15, 16 as game.exe's base table 0073C224 has them (19 is
     LoadNothing there). CPlainFigureMesh adds 22 / 23 (MirrorX / MirrorY) and overrides 3, 17, 19-21; CSharedFigureMesh
@@ -681,9 +680,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     LoadOldImpl, MirrorXImpl, MirrorYImpl). CFigureObjectVirtuals / FigureSlots are gone.
   - **0073C224 stays** (as CBaseManager's 0073B870): only ConstructBase / DestructBase store it, which no code of ours
     calls; nothing ever has the base as its final class (game.exe's other two stores, 00476FB0 / 004A0350, are dead code).
-  - **A C++ class bigger than its object**: class 0x41 is allocated 0x1E0 bytes but CSharedFigureMesh is 0x220 (the
-    shared layout). Placement new is fine while the constructors and destructors touch nothing past 0x1E0: the members
-    after normals_ are AlignedArrays (trivial), only the constructor bodies write fields.
+  - **Sizes**: CFigureMesh is class 0x41's 0x1E0 bytes; the four arrays only class 0x42 and its derived classes have
+    (corners, words, indices, texture coordinates) and the bodies that use them are CPlainFigureMesh's (batch 7). The
+    factory allocates `sizeof(T)`, static_asserted against the game's size for the class.
   - **Value-initialisation**: the factory's `new (o) T()` zero-fills a class whose default constructor is not
     user-provided before running it; every class it constructs declares one (CUiMesh's is empty), so the memory is
     left as operator new gave it, as in the original.
@@ -693,6 +692,28 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **SceneMesh** (no scenario makes a fake unit's scene: builds only) overrides 2 (1), 3, 7, 11, 12, 16, 17 (empty).
   - Registrations whose only reader was a retired table's code cell became EI_REWRITTEN
     (`registration_readers.py --drop --only`), batch 5's sky ones with them.
+- **Batch 7's families**: the figure factory's other classes AnimationTrack (0x300B, 0073D9D8), FigureBone (0x300C,
+  0073DA0C) and CFigureAnimationState (0x300D, 0073DA4C; also the map object factory's class 0x300D), the figure mesh
+  drawer (FigureMeshDrawer, class 0x36 "CFigureClientSpecific", 0073FB10) over its base (FigureDrawerBase, 0073FB44)
+  and the figure's mesh (CLinkMesh, 0073D790) over its base (CLinkMeshBase, 0073D7CC): 7 rows, 6,767 -> 6,672 code
+  cells; the 37 registrations only those cells read are EI_REWRITTEN. Before them, class 0x41's size (above).
+  - **Engine objects again** (as batch 2's): C++ constructor and virtual destructor sharing the registered bodies'
+    work, `operator delete` into the game's heap, the changed slots overridden (2 / 3 call the registered reset
+    bodies CreateTrack, DestroyBone, ...; 11 / 12 return the small_slots_500.cpp / world_class_slots.cpp constants).
+    Members that keep game.exe's container tables (the bone's child list and the state's lists, CPtrList 0073DA40 /
+    0073DA80) still store them: they go with the containers.
+  - **A base with only pure slots** (0073FB44, 0073D7CC: every slot but 0 is `_purecall`) is an abstract C++ class
+    with a protected constructor; its registered destructor bodies (005A70C0 / 005A70A0, 004F2D40 / 004F2E00) call its
+    destructor qualified. CLinkMeshBase declares the 14 slots pure (their comments live there); CLinkMesh overrides
+    each with a call of its `...Impl` body. The counted root under CLinkMeshBase (0073C368, one slot, no fields) is not
+    a class of ours: other classes' destructors still store it (`kRootVtableAddress`).
+  - **Counted deletes**: the figure's last reference goes with `delete mesh` (the virtual deleting destructor), where
+    the code called slot 0 with 1 by name (`DeleteThis(1)`).
+  - **CObject3D (0073DDD4) waits for C20** with the bases' own tables: only CObject3D::Construct / DestructBody store
+    it, reached from CMapObject's (0073DAA0, the same case) and CObject3D::DeleteObject3D, none of which our code
+    calls; every class under it has a C++ constructor. Its row in config/vtables.csv is 5 slots: find_vtables split the
+    table at 0073DDE8 (006E0437 reads that address), and gen_image_cells.py lists the other 22 slots as a reviewed
+    range (`CODE_REVIEWED`), so retiring it also needs the row widened to 27 and that range dropped.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
