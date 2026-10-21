@@ -37,7 +37,7 @@ public:
     BOOL Clear();   // vtable slot 2; deliberately not named Create (that would override CEngineObject::Create)
 
     // 0068B430. Copies the parameters from a spell prototype record. Returns 1.
-    BOOL InitFromPrototype(const char* prototype);
+    BOOL InitFromPrototype(const itemdb::SpellRecord* prototype);
 
     // 0068BA20. The spell's prototype record, or null if the index is out of range.
     itemdb::SpellRecord* GetPrototype();
@@ -83,16 +83,16 @@ public:
     std::uint8_t effectPower_;      // +0x1D the effect record's power, set to 0x10
     std::uint16_t unused_1E;
     std::uint32_t duration_;        // +0x20 prototype +0x38
-    std::uint32_t damage_;          // +0x24 prototype +0x2C (float bits)
-    std::uint32_t radius_;          // +0x28 prototype +0x28 (float bits; the area)
+    float damage_;                  // +0x24 prototype +0x2C
+    float radius_;                  // +0x28 prototype +0x28 (the area; Build makes it a radius)
     std::uint32_t unused_2C;
-    std::uint32_t speed_;           // +0x30 prototype +0x20 (float bits; missile speed)
-    std::uint32_t range_;           // +0x34 prototype +0x24 (float bits)
+    float speed_;                   // +0x30 prototype +0x20 (missile speed)
+    float range_;                   // +0x34 prototype +0x24
     std::uint32_t targetCount_;     // +0x38 prototype +0x34
     std::uint32_t targetFlags_;     // +0x3C low 16 bits: target restrictions (see CanAffect)
-    std::uint32_t manaCost_;        // +0x40 prototype +0x18 (float bits)
+    float manaCost_;                // +0x40 prototype +0x18
     std::uint32_t complexity_;      // +0x44 prototype +0x1C, +1 per modifier
-    std::uint32_t price_;           // +0x48 prototype +0x0C (float, copied as a dword)
+    float price_;                   // +0x48 prototype +0x0C
     std::uint32_t prototypeField14_;  // +0x4C prototype +0x3C, only loaded and saved
     std::uint32_t skillNeeded_;     // +0x50 prototype +0x44 plus the modifiers' +0x18
     std::int8_t modifiers_[8];      // +0x54 spell modifier index + 1 each, 0 ends the list
@@ -129,7 +129,9 @@ struct DamageInfo {
 static_assert(sizeof(DamageInfo) == 0x3C);
 
 // A spell being applied (the object built by 00682650 and friends). Only the fields read here.
-// It embeds the CSpell it applies at +0x34, so spellId..radius are that spell's +0x18..+0x28.
+// It embeds the CSpell it applies at +0x34 (Spell()): the effect reads the spell's packed id,
+// effect record, damage, radius (area), missile speed and duration (also the number of targets the
+// damage is split between, and the lasting effects' ticks).
 struct CSpellEffect {
     // 00683950. Fills `out` with the damage this effect deals; split between the targets when
     // there are several. Returns 1.
@@ -237,15 +239,7 @@ struct CSpellEffect {
     CUnit* caster;              // +0x20 the casting unit (counted; null for traps and scripts)
     Vector3 targetPoint;        // +0x24
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
-    std::uint8_t spell_[0x18];  // +0x34 the CSpell (vtable .. +0x17 of it)
-    std::uint32_t spellId;      // +0x4C prototype index << 16
-    std::uint32_t effectRecord; // +0x50 the spell's +0x1C (index byte, ...), a buff copies 0x14
-    int targetCount;            // +0x54
-    float damage;               // +0x58
-    float radius;               // +0x5C
-    std::uint32_t unused_60;
-    float speed;                // +0x64 the spell's +0x30: missile speed
-    std::uint8_t spellTail[0x90 - 0x68];  // +0x68 the spell's +0x34..+0x5B (Spell())
+    std::uint8_t spell_[0x5C];  // +0x34 the CSpell (Spell())
     CEngineObject* visual;      // +0x90 particle source, wall, lightning or missile (counted)
     CEngineObject* sound;       // +0x94 (counted)
     CEngineObject* light;       // +0x98 (counted)
@@ -256,14 +250,12 @@ struct CSpellEffect {
     std::uint8_t unused_A5[3];
 
     CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
+    const CSpell* Spell() const { return reinterpret_cast<const CSpell*>(spell_); }
 };
 static_assert(offsetof(CSpellEffect, world) == 0x08);
 static_assert(offsetof(CSpellEffect, caster) == 0x20);
 static_assert(offsetof(CSpellEffect, state) == 0x30);
 static_assert(offsetof(CSpellEffect, spell_) == 0x34);
-static_assert(offsetof(CSpellEffect, damage) == 0x58);
-static_assert(offsetof(CSpellEffect, radius) == 0x5C);
-static_assert(offsetof(CSpellEffect, speed) == 0x64);
 static_assert(offsetof(CSpellEffect, visual) == 0x90);
 static_assert(offsetof(CSpellEffect, timer) == 0xA0);
 static_assert(sizeof(CSpellEffect) == 0xA8);
@@ -276,7 +268,7 @@ int __fastcall IsSpellTarget(CUnit* unit);
 struct SpellModifierNode {
     SpellModifierNode* next;
     SpellModifierNode* prev;
-    char* modifier;             // spell modifier record (item_db.h, 0x24 bytes)
+    itemdb::SpellModifierRecord* modifier;
 };
 
 // A spell under construction (GetClassName "CSpellContainer", vtable 00743AC8, 0x90 bytes,
@@ -296,12 +288,12 @@ public:
 
     // 0068BE30. Appends `modifier` (a modifier record) to the list. Null is a fatal error (its
     // result is returned). Returns 1.
-    BOOL AddModifier(char* modifier);
+    BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
 
     // 0068BEC0. Whether the prototype accepts a modifier of `modifier`'s kind (its first code
     // letter: a, d, e, r, t read the prototype's flag bytes +0x7A, +0x7C, +0x7B, +0x78, +0x79;
     // others are accepted). 0 without a prototype or modifier.
-    int AllowsModifier(const char* modifier);
+    int AllowsModifier(const itemdb::SpellModifierRecord* modifier);
 
     // 0068BF60. Computes the spell (+0x30) from the prototype and the modifiers: area (a),
     // effect (e), mana (m), range (r) scale with the modifier's strength, duration (d) and t add
@@ -321,7 +313,7 @@ public:
     CSpellContainer* DeletingDestruct(unsigned flags);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AC8);
 
-    char* prototype_;               // +0x1C spell prototype record
+    const itemdb::SpellRecord* prototype_;   // +0x1C
     SpellModifierNode* modifiers_;  // +0x20 list sentinel
     char* codes_;                   // +0x24 STLport string: modifier index + 1 per modifier
     char* codesEnd_;                // +0x28
@@ -397,7 +389,7 @@ public:
     // 00689310. Builds a spell from `prototype` and up to 8 modifier records of `modifiers` (an
     // STLport list<char*>, passed as a pointer to its sentinel pointer) through the context's
     // spell constructor. Returns the new spell, or a fatal error's result.
-    CSpell* CreateSpell(char* prototype, SpellModifierNode** modifiers);
+    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, SpellModifierNode** modifiers);
 
     // 00689030. Builds a spell from text such as "healing{e2;e2}": the trimmed text before '{' is
     // the prototype name, the ';'-separated names inside the braces are modifiers (empty ones
@@ -446,18 +438,18 @@ public:
 
     // 006841E0. Starts a spell from `prototype` in a new container. Returns 1, or a fatal error's
     // result without a manager or prototype.
-    BOOL BeginConstruct(char* prototype);
+    BOOL BeginConstruct(const itemdb::SpellRecord* prototype);
 
     // 00684250. Builds the container's spell. Returns 1, or a fatal error's result.
     BOOL EndConstruct();
 
     // 006842A0. Adds `modifier` and rebuilds when the prototype accepts it. Returns 0/1.
-    BOOL AddModifier(char* modifier);
+    BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
 
     // Forwarders to the game's entries (so the verify wrappers see the calls).
     void CallSetManager(CSpellManager* manager);
-    BOOL CallBeginConstruct(char* prototype);
-    BOOL CallAddModifier(char* modifier);
+    BOOL CallBeginConstruct(const itemdb::SpellRecord* prototype);
+    BOOL CallAddModifier(itemdb::SpellModifierRecord* modifier);
 
     CSpellManager* manager_;        // +0x1C counted (+4) but never released
     CSpellContainer* container_;    // +0x20

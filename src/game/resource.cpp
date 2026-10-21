@@ -14,7 +14,7 @@
 #include <cstring>
 #include <new>
 
-int CMappedResource::FindEntry(const char* name) const {
+int CResourceBase::FindEntry(const char* name) const {
     std::uint32_t count = header_.count;
     if (count == 0) return -1;
 
@@ -34,12 +34,6 @@ int CMappedResource::FindEntry(const char* name) const {
 }
 
 CMappedResource::CMappedResource() {
-    // CResourceBase part.
-    header_ = ResHeader{};
-    entries_ = nullptr;
-    names_ = nullptr;
-    accelTable_ = nullptr;
-    accelCount_ = 0;
     // The loaded-file maps, 193 buckets each (STLport's first prime >= 100).
     std::memset(&filesByData_, 0, sizeof(filesByData_));
     filesByData_.InitBuckets(100);
@@ -70,16 +64,7 @@ CMappedResource::~CMappedResource() {
     header_ = ResHeader{};
     filesByName_.Destroy();
     filesByData_.Destroy();
-
-    // ~CResourceBase.
-    header_ = ResHeader{};
-    entries_ = nullptr;
-    names_ = nullptr;
-    if (accelTable_) {
-        gamecrt::operator_delete(accelTable_);
-        accelTable_ = nullptr;
-        accelCount_ = 0;
-    }
+    // ~CResourceBase follows.
 }
 
 void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
@@ -89,8 +74,6 @@ CMappedResource* CMappedResource::DeletingDestroy(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-
-void CMappedResource::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // The slots whose bodies are registered by member pointer (the Impl members), and slot 4.
 BOOL CMappedResource::OpenResource(const char* path, BOOL writable) { return OpenResourceImpl(path, writable); }
@@ -268,7 +251,7 @@ void __fastcall CloseResourceHook(CMappedResource* self) { self->CMappedResource
 void __fastcall FreeAllFilesHook(CMappedResource* self) { self->CMappedResource::FreeAllFiles(); }
 } // namespace
 
-EI_REWRITTEN(0x00674850, CMappedResource::FindEntry);
+EI_REWRITTEN(0x00674850, CResourceBase::FindEntry);
 EI_REPLACE_METHOD(0x00671280, CMappedResource::Construct);
 EI_REPLACE_METHOD(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
 EI_REWRITTEN(0x006713A0, CMappedResource::DeletingDestroy);

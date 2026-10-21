@@ -671,14 +671,14 @@ void CUnitServer::TickItemSpells() {
         CItem* item = current->item;
         if (!item) continue;
         auto* spell = item->spell_;
-        float cost = std::bit_cast<float>(spell->manaCost_);
+        float cost = spell->manaCost_;
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
         if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
         }
-        UseItemCharge(item, std::bit_cast<float>(spell->manaCost_));
+        UseItemCharge(item, spell->manaCost_);
         CUnit* self = unit;
         world->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 1);
         int countdown = static_cast<int>(spell->duration_) - 3;

@@ -1,45 +1,31 @@
 #pragma once
 
-// The rest of the resource code (00672190-00675050): the archive readers' common base
-// CResourceBase, the sound system's file reader (vtable 00743320), the name listing of an archive
-// and the constructors and destructors of CMMIOResource. Names provisional; the class name
-// CResourceBase is from the game's own error messages.
+// The rest of the resource code (00672190-00675050): the sound system's file reader (vtable
+// 00743320), the name listing of an archive and the constructors and destructors of
+// CMMIOResource (the readers' base CResourceBase is in resource.h). Names provisional.
 
 #include "resource.h"
-#include "lib/compiled_vtable.h"
 
 #include <cstdint>
 
-// The base of the archive readers (ResourceBaseClass; slot 0 is the scalar deleting destructor). The
-// archive header and tables, and an index table (accelerator) from numbers to entries built by
-// CreateAccelTable (00674910, only called by the unused 00674310).
-struct CResourceBase {
-    void* vtable_;
-    ResHeader header_;          // +0x04
-    ResEntry* entries_;         // +0x14
-    char* names_;               // +0x18
-    int* accelTable_;           // +0x1C
-    std::uint32_t accelCount_;  // +0x20
-
-    CResourceBase* Construct();                     // 00674790: fields cleared; returns this
-    void Destruct();                                // 00674810: fields cleared, accelerator freed
-    CResourceBase* DeletingDestruct(unsigned flags);    // 006747C0 (slot 0)
-    void FreeAccelTable();                          // 00674A90
-};
-static_assert(sizeof(CResourceBase) == 0x24);
-
-// Opens files for the sound system (created by 006B6040): a loose file through mmioOpen, or an
+// Opens files for the sound system (a member of CSoundManager): a loose file through mmioOpen, or an
 // entry of an archive opened with mmio (the archive part is never opened: its Open, 00674310, has no
-// callers). ResourceStreamClass (slot 0 the deleting destructor). 0x34 bytes.
+// callers). ResourceStreamClass (slot 0 the deleting destructor). 0x34 bytes. A real virtual class:
+// the compiler makes its vtable (C19; game.exe's 00743320 is retired).
 struct CResourceStream : CResourceBase {
+    CResourceStream();                              // 00674280: no file, no archive
+    ~CResourceStream() override;                    // 006742C0 (006742A0 slot 0): Close, then CResourceBase's
+
     void* archive_;             // +0x24 HMMIO of the archive
     std::int32_t offset_;       // +0x28 start of the open entry in the archive; 1 for a loose file; 0: none
     std::int32_t size_;         // +0x2C size of the open entry (only the unused 006745C0 sets it)
     void* file_;                // +0x30 HMMIO of a loose file
 
-    CResourceStream* Construct();                   // 00674280: returns this
-    void Destruct();                                // 006742C0
-    CResourceStream* DeletingDestruct(unsigned flags);  // 006742A0 (slot 0)
+    // The registrations (C20 retires them): the constructor in place (returns this), the
+    // destructor, the destructor then operator delete when bit 0 of `flags` is set (returns this).
+    CResourceStream* Construct();
+    void Destruct();
+    CResourceStream* DeletingDestruct(unsigned flags);
     void Close();                                   // 00674430: closes the file and the archive
     // 006744C0. Opens `name`: a loose file when one is readable, else the archive entry. Stores
     // the size when `size` is not null. Returns 1 on success.
@@ -48,11 +34,6 @@ struct CResourceStream : CResourceBase {
     long Seek(long offset, int origin);             // 006746F0: mmioSeek relative to the entry
 };
 static_assert(sizeof(CResourceStream) == 0x34);
-
-// The compiled tables (C19, lib/compiled_vtable.h) of the base and the reader, one slot each (the deleting
-// destructor), in place of game.exe's 00743324 / 00743320.
-struct ResourceBaseClass final : ei::CompiledDeleter<ResourceBaseClass, &CResourceBase::DeletingDestruct> {};
-struct ResourceStreamClass final : ei::CompiledDeleter<ResourceStreamClass, &CResourceStream::DeletingDestruct> {};
 
 // 00674CE0. Matches `name` against `pattern` (* ends the match successfully, ? matches any
 // character, other characters compare through toupper). An empty pattern matches an empty name,

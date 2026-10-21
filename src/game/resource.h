@@ -71,19 +71,48 @@ struct LoadedFile {
 };
 static_assert(sizeof(LoadedFile) == 0x1C);
 
+// The base of the archive readers (ResourceBaseClass in the game's messages; slot 0 is the scalar
+// deleting destructor): the archive header and tables, and an index table (accelerator) from
+// numbers to entries built by CreateAccelTable (00674910, only called by the unused 00674310).
+// A real virtual class: the compiler makes its vtable (C19; game.exe's 00743324 is retired).
+class CResourceBase {
+public:
+    CResourceBase();                                // 00674790: fields cleared
+    // 00674810 (006747C0 the scalar deleting destructor): fields cleared, accelerator freed.
+    virtual ~CResourceBase();
+    // The deleting destructors free into the game's heap (resource_stream.cpp).
+    static void operator delete(void* block);
+
+    // The registrations (C20 retires them): 00674790 the constructor in place (returns this),
+    // 00674810 the destructor, 006747C0 (slot 0) the destructor, then operator delete when bit 0
+    // of `flags` is set (returns this).
+    CResourceBase* Construct();
+    void Destruct();
+    CResourceBase* DeletingDestruct(unsigned flags);
+    void FreeAccelTable();                          // 00674A90
+
+    // 00674850 (resource.cpp). Index of the entry named `name` (case-insensitive), or -1.
+    int FindEntry(const char* name) const;
+
+    ResHeader header_;          // +0x04
+    ResEntry* entries_;         // +0x14
+    char* names_;               // +0x18
+    int* accelTable_;           // +0x1C
+    std::uint32_t accelCount_;  // +0x20
+};
+static_assert(sizeof(CResourceBase) == 0x24);
+
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
 // A real virtual class: the compiler makes its vtable (C19; game.exe's 007432E0 is retired).
-class CMappedResource {
+class CMappedResource : public CResourceBase {
 public:
     // 00671280. An empty, closed archive: CResourceBase's fields cleared, the loaded-file maps with
     // 193 buckets each, no image, no file.
     CMappedResource();
     // Virtual methods, in vtable order.
     // 0: 006714A0 (006713A0 the scalar deleting destructor). The loaded files freed, the archive
-    // closed, the maps destroyed, then CResourceBase's part (the accelerator table freed).
-    virtual ~CMappedResource();
-    // The deleting destructor frees into the game's heap (resource.cpp).
-    static void operator delete(void* block);
+    // closed, the maps destroyed, then CResourceBase's (the accelerator table freed).
+    ~CMappedResource() override;
     virtual BOOL OpenResource(const char* path, BOOL writable);       // 1: 00671730
     BOOL OpenResourceImpl(const char* path, BOOL writable);   // body of the slot above (registered by member pointer)
     virtual BOOL OpenFromMemory(const void* image);                   // 2: 00671A40
@@ -106,8 +135,6 @@ public:
     void Destroy();
     CMappedResource* DeletingDestroy(unsigned flags);
 
-    // 00674850. Index of the entry named `name` (case-insensitive), or -1.
-    int FindEntry(const char* name) const;
     // 00674AC0 (resource_stream.cpp). Fills an MFC CStringArray with the names of the entries that
     // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
     // with every name when `pattern` is null.
@@ -115,14 +142,7 @@ public:
     // ListFiles without Rebirth's ResOverride (see GetFilePlain).
     void ListFilesPlain(mfc::CStringArray* stringArray, const char* pattern) const;
 
-    ResHeader header_;           // +0x04
-    ResEntry* entries_;          // +0x14
-    char* names_;                // +0x18
-    // +0x1C, +0x20: accelerator table of the CResourceBase base class (vtable 00743324); freed by
-    // its destructor.
-    void* accelTable_;           // +0x1C
-    std::uint32_t accelCount_;   // +0x20
-    int fd_;                     // +0x24 CRT file descriptor, -1 when closed
+    int fd_;                    // +0x24 CRT file descriptor, -1 when closed
     const void* image_;          // +0x28 archive image when opened with OpenFromMemory
     std::uint32_t writable_;     // +0x2C
     stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;         // +0x30

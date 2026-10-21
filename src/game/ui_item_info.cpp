@@ -606,10 +606,9 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Number(14, record->skill);
     w.School(record->castType);
     bool known = record->bytes78[3] != 0;
-    // The dwords +0x20 power, +0x24, +0x28 radius, +0x2C level (floats), +0x34, +0x38 duration.
-    const std::uint32_t* values = record->effectValues;
-    SpellLevelLine(w, known, known ? FtolOf(FloatOf(values[4])) : 0);
-    float power = FloatOf(values[1]);
+    // The level (damage), power (speed), range, radius (area), duration and target count.
+    SpellLevelLine(w, known, known ? FtolOf(record->damage) : 0);
+    float power = record->speed;
     EI_NAN_AUDIT(power);
     if (power < 1.0f)
         w.line.Format("%s %s", static_cast<const char*>(w.T(9)), static_cast<const char*>(w.T(21)));
@@ -617,11 +616,11 @@ void CItemInfoPanel::DescribeSpellRecord() {
         w.line.Format("%s %d", static_cast<const char*>(w.T(9)), FtolOf(power));
     w.Text(w.line);
     w.Down();
-    w.line.Format("%s %d%s", static_cast<const char*>(w.T(10)), FtolOf(FloatOf(values[2])),
+    w.line.Format("%s %d%s", static_cast<const char*>(w.T(10)), FtolOf(record->range),
                   static_cast<const char*>(w.T(26)));   // "%s %d%s"
     w.Text(w.line);
     w.Down();
-    float radius = FloatOf(values[3]);
+    float radius = record->area;
     EI_NAN_AUDIT(radius);
     if (radius < 1.0f)
         w.line.Format("%s %s", static_cast<const char*>(w.T(11)), static_cast<const char*>(w.T(22)));
@@ -630,8 +629,8 @@ void CItemInfoPanel::DescribeSpellRecord() {
                       static_cast<const char*>(w.T(26)));   // "%s %.1f%s"
     w.Text(w.line);
     w.Down();
-    DurationLine(w, values[7]);
-    w.Number(13, static_cast<int>(values[6]));
+    DurationLine(w, record->duration);
+    w.Number(13, static_cast<int>(record->targetCount));
     w.Down();
     w.Wrapped(description, 4);
     w.Draw()->End();
@@ -746,9 +745,9 @@ void CItemInfoPanel::DescribeCarriedSpell() {
             w.line += " ";
             text = "?";
             std::uint32_t index = static_cast<std::uint32_t>(Read<signed char>(spell, 0x54 + i) - 1);
-            const char* modifier = itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize);
+            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(index);
             mfc::CString key("modifier ");
-            key += reinterpret_cast<const char*>(reinterpret_cast<std::uintptr_t>(modifier) + 4);
+            key += modifier->code;
             if (texts->Open(key)) {
                 texts->NextLine();
                 texts->NextLine();

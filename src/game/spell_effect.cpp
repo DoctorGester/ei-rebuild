@@ -74,7 +74,7 @@ void CSpellEffect::HitUnitsInRadius() {
     InitList(list);
     DamageInfo hit;
     CallGetDamage(&hit);
-    SectorMapOf(this)->FindUnitsInRadius(&position, &list, radius);
+    SectorMapOf(this)->FindUnitsInRadius(&position, &list, Spell()->radius_);
     for (UnitList::Node* node = list.head; node;) {
         CUnit* unit = node->data;
         node = node->next;
@@ -101,7 +101,7 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    SectorMapOf(this)->FindUnitsInRadius(&position, &list, radius);
+    SectorMapOf(this)->FindUnitsInRadius(&position, &list, Spell()->radius_);
     for (UnitList::Node* node = list.head; node;) {
         CUnit* unit = node->data;
         node = node->next;

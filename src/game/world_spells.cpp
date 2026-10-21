@@ -145,7 +145,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     }
     Vector3 center;
     std::memcpy(&center, caster ? &caster->localPosition_ : from, sizeof(center));
-    float radius = std::bit_cast<float>(spell->range_);
+    float radius = spell->range_;
     Sectors()->FindUnitsInRadius(&center, &units, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
         UnitList::Node* found = nullptr;
