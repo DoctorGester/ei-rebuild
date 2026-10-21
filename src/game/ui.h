@@ -2338,7 +2338,6 @@ struct UiContainerInput : UiInputSide {
 };
 
 // The default handlers of a container's input side (`input` = window + 0x94).
-void __fastcall UiContainerMouseDown(void* input, void* unused, int buttons, int x, int y);    // 00601110
 
 // A scroll bar (vtables 00742C18 / 00742BE4, constructor 0065AEA0; the battle screen's message
 // log 0065CC00 derives from it). Regions: 0 the up arrow, 1 the down arrow, 2 the track.

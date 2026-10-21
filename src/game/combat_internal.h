@@ -32,6 +32,5 @@ inline UnitVitals* ServerStatsOf(CUnit* unit) { return &static_cast<CMapObjectSe
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code);
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source`.
-void __fastcall AIEventsNoise(void* events, void*, CUnitServer* source, float loudness, int kind, const Vector3* at);
 
 // 005D7E90: the AI's memory of attackers (CUnitServer + 0x980) remembers `attacker`: AIBrain::SetSeen.

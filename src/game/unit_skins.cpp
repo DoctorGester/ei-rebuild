@@ -133,7 +133,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
         ArmorModelName(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name, buffer);
     }
-    StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
+    reinterpret_cast<mfc::CStringArray*>(&set.names)->SetAtGrow(set.names.GetSize(), buffer);
 }
 
 // The weapons (items 1 and 2): the one whose armour layer (+0xB8) is lower first when both exist.
@@ -172,7 +172,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
                               reinterpret_cast<const itemdb::MaterialRecordHead*>(material));
         AppendName(model, name, buffer);
     }
-    StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
+    reinterpret_cast<mfc::CStringArray*>(&set.names)->SetAtGrow(set.names.GetSize(), buffer);
 }
 
 // The texture cache is the client world's texture manager (+0x18C).
@@ -200,13 +200,13 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
         mfc::CString skin;
-        StringArraySetSize(&set.names, nullptr, 0, -1);
+        reinterpret_cast<mfc::CStringArray*>(&set.names)->SetSize(0, -1);
         if (prototype) {
             skin.Format("%sskin_%.2d.mmp", ModelPrefix(model), prototype->skin);
         } else {
             skin.Format("%sskin_00.mmp", ModelPrefix(model));
         }
-        StringArraySetAtGrowStringOriginal(&set.names, nullptr, set.names.GetSize(), &skin);
+        reinterpret_cast<mfc::CStringArray*>(&set.names)->SetAtGrow(set.names.GetSize(), skin);
         for (int slot = 3; slot <= 6; ++slot) {
             if (items[slot] != kNone) AddItem(set, model, items[slot]);
         }
@@ -222,7 +222,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
         UnitTextureRecords(0, record, &list);
         CopyRecords(set, list);
-        StringArraySetSize(&set.names, nullptr, 0, -1);
+        reinterpret_cast<mfc::CStringArray*>(&set.names)->SetSize(0, -1);
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {

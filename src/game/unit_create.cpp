@@ -34,9 +34,6 @@ constexpr int kPtrListBlockSize = 10;
 // Called through their game addresses (rewritten elsewhere; config/direct_calls_skip.csv): 00525AF0
 // UnitStats::RefillSlots in unit_vitals.cpp, 0066D6E0 a player's message writer in player_messages.cpp.
 // 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
-void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) {
-    reinterpret_cast<CPlayer*>(a0)->GiveItems(static_cast<const mfc::CTypedPtrList<CEngineObject>*>(a2), a3);
-}
 
 // The player's message writer (CPlayerServer, player + 0x20).
 void* PlayerMessages(const char* player) { return *reinterpret_cast<void* const*>(player + 0x20); }
@@ -129,7 +126,7 @@ void CUnit::DropBrokenEquipment() {
     if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (broken.count != 0) {
-        PlayerReceiveItems(owner, nullptr, &broken, 1);
+        reinterpret_cast<CPlayer*>(owner)->GiveItems(reinterpret_cast<const mfc::CTypedPtrList<CEngineObject>*>(&broken), 1);
         for (ItemList::Node* node = broken.head; node;) {
             ItemList::Node* next = node->next;
             node->data->Release();

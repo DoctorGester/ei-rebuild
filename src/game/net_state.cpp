@@ -331,7 +331,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     if (DeltaField* field = state->BeginField(9)) {
         void* text;
         void* read = field->ReadString(&text);
-        CStringAssignOriginal(&unit->scriptName, nullptr, read);
+        unit->scriptName = *reinterpret_cast<const mfc::CString*>(read);
         CStringDestroy(&text);
         complete &= SnapshotConsumed();
         field->EndField();

@@ -98,9 +98,6 @@ void* const kPtrListVtable = ei::GamePointer<void>(0x0073BE80);   // CPtrList
 // 0058ECE0. CWorldServer: applies the quick item `item` (a potion) to `unit`.
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
 // 00665470. Player: receives the items in `list` (a CPtrList).
-void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) {
-    reinterpret_cast<CPlayer*>(a0)->GiveItems(static_cast<const mfc::CTypedPtrList<CEngineObject>*>(a2), a3);
-}
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code) {
     PlayerSendObject0BOriginal(messages, nullptr, unit, code);
@@ -110,7 +107,6 @@ void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code) {
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
-void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(a2, a3, a4, a5); }
 // 005C1010 / 005C0DF0. CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map (+0x294).
 // 0050F5B0. Map object base: drops all effects (+0x198), marks the object changed.
 // 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists: UnitList::NewNode.
@@ -206,7 +202,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
-        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
+        reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
     }
 }
 EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
@@ -433,7 +429,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
         if (char* player = unit->player) static_cast<CWorldServer*>(TheServerWorld())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
         WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
-        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
+        reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
         return;
     }
     std::uint32_t skill = action.source;
@@ -501,7 +497,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
                 list.free = nullptr;
                 list.blockSize = 10;
                 list.AddHead(item);
-                PlayerReceiveItems(player, nullptr, &list, 0);
+                reinterpret_cast<CPlayer*>(player)->GiveItems(reinterpret_cast<const mfc::CTypedPtrList<CEngineObject>*>(&list), 0);
                 list.vtable = kPtrListVtable;
                 list.RemoveAll();
             }

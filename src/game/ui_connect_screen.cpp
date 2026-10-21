@@ -420,7 +420,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         }
         break;
     }
-    UiContainerMouseDown(InputSide(), nullptr, buttons, x, y);
+    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
 }
 
 void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {

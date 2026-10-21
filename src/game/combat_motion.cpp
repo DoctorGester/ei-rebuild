@@ -86,9 +86,6 @@ constexpr int kMessagePartial = 0x01;
 // alarm's reset.
 // 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
-void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, std::uint32_t a7) {
-    static_cast<CPlayerServer*>(a0)->SendPathMessage(a2, const_cast<void*>(a3), a4, a5, a6, a7);
-}
 // Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
@@ -702,7 +699,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
     LocalMotionOrder end;
     int message;
     if (!partial) {
-        if (self->player) PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 3, 1, kFarBits);
+        if (self->player) reinterpret_cast<CPlayerServer*>(PlayerOf(self)->connection_)->SendPathMessage(self, &end, goal, 3, 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -718,7 +715,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         float left = LengthSquared2DUnrounded(ex, ey);
         bool stillFar = reached * 0.010000001f /*0073F0B8*/ > left;   // unordered: not far
         if (self->player)
-            PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
+            reinterpret_cast<CPlayerServer*>(PlayerOf(self)->connection_)->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;

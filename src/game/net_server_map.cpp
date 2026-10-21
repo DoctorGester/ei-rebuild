@@ -26,7 +26,6 @@ namespace {
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
 // The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): loading a zone's quests.
-inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // vector<string> (library): the block free.
 void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * 12); }
 
@@ -122,7 +121,6 @@ void ServerSession::SetMap(const stlp::string* name) {
 // 0073BCD0) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
-    void* flow = TheGameFlow();
     UnloadQuestTexts();
     struct {
         stlp::string* start;
@@ -148,7 +146,7 @@ void ServerSession::QueueMapList() {
             queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
             RefPtrClear(&ref);   // 00421360
         }
-        FlowLoadZoneQuests(flow, nullptr, zone->data());
+        FlowLoadQuestsOriginal(zone->data());
     }
     for (stlp::string* zone = zones.start; zone != zones.finish; ++zone) zone->~string();
     NamesFree(zones.start, static_cast<std::size_t>(zones.eos - zones.start));

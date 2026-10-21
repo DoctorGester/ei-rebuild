@@ -74,7 +74,6 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
 // Placement on the maps.
 // The unit's setup.
-inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
@@ -108,10 +107,10 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
         if (std::strcmp(part, worlddata::HairPartText()) == 0) {
             if (hairStyle != -1) {
                 scratch.Format(worlddata::HairFormat(), hairStyle);
-                StringArraySetAtGrowStringOriginal(parts, nullptr, parts->size, &scratch);
+                reinterpret_cast<mfc::CStringArray*>(parts)->SetAtGrow(parts->size, scratch);
             }
         } else {
-            StringArraySetAtGrowTextOriginal(parts, nullptr, parts->size, part);
+            reinterpret_cast<mfc::CStringArray*>(parts)->SetAtGrow(parts->size, part);
         }
     }
 }
@@ -225,7 +224,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         object.side = 0;
         object.parentIname = record->texts[3];
         object.skinTexture = record->texts[4];
-        StringArraySetSize(&object.parts, nullptr, 0, -1);
+        reinterpret_cast<mfc::CStringArray*>(&object.parts)->SetSize(0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeObjectClass(prototypeName);
         object.parentId = type;   // +0x50: the object's type
@@ -270,7 +269,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         std::memcpy(&AsUnit(unit)->position.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
-        UnitSetController(unit, nullptr, player);
+        static_cast<CUnit*>(unit)->SetPlayer(reinterpret_cast<char*>(player));
         slots->SetScriptName(record->texts[0]);
         static_cast<CUnit*>(unit)->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
         static_cast<CMapObject*>(unit)->ClearProtectionBases();
@@ -406,9 +405,9 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         return -1;
     };
     auto companionTexts = [spec](CMapObjectServer* companion) {
-        CStringAssignOriginal(&companion->name78, nullptr, &spec->parentIname);
-        CStringAssignOriginal(&companion->name7C, nullptr, &spec->skinTexture);
-        StringArrayCopyOriginal(&companion->stringsVtable, nullptr, &spec->parts);
+        companion->name78 = spec->parentIname;
+        companion->name7C = spec->skinTexture;
+        reinterpret_cast<mfc::CStringArray*>(&companion->stringsVtable)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&spec->parts));
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
@@ -464,7 +463,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         base.object = object;
         CTorchObjectSpecSlots* torch = TorchSpecSlots(static_cast<CTorchObject*>(object)->spec);
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
-        CStringAssignTextOriginal(NameString(object), nullptr, spec->texture);
+        *NameString(object) = spec->texture;
         companionTexts(companion);
         race(object);
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
@@ -526,7 +525,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (base.id == -1) base.id = id;
         base.object = object;
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
-        CStringAssignTextOriginal(NameString(object), nullptr, spec->texture);
+        *NameString(object) = spec->texture;
         object->SetSecondName(spec->model);
         companionTexts(companion);
         race(object);
@@ -534,7 +533,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         int type = base.kind;
         if (type == 5) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
-            UnitSetController(object, nullptr, nullptr);
+            static_cast<CUnit*>(object)->SetPlayer(nullptr);
             reinterpret_cast<CUnit*>(object)->SetSide(spec->side);
             UnitSetDiplomacy(object, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
@@ -602,7 +601,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         auto* sound = reinterpret_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
-            StringArrayCopyOriginal(&ambient->names_, nullptr, &sound->sounds);
+            reinterpret_cast<mfc::CStringArray*>(&ambient->names_)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&sound->sounds));
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->volume);
             ambient->radius_ = static_cast<float>(sound->radius);

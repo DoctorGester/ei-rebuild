@@ -31,7 +31,6 @@ namespace {
 
 // vector<CEngineObject*> with counted elements (library), the party's
 // reset and add (00661050 class, outside this range).
-inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 
 // The received offers (+0x2610): an STLport list of counted PartyMessages.
 using OfferNode = stlp::list<RefPtr>::Node;
@@ -175,7 +174,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
 
     CParty* party = self->parties_[1].Party();
-    PartyReset(party, nullptr, 1, 0);
+    PartyResetOriginal((void*)party, nullptr, 1, 0);
     party->Money() = static_cast<int>(remote->money_);
     stlp::vector<CEngineObject*> items;
     items.ConstructEmpty();   // 00424B40

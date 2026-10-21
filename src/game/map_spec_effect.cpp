@@ -291,7 +291,7 @@ SoundSpec* SoundSpec::SoundSpecConstruct() {
     StringArrayConstruct(&sounds);
     ei::SetVtable(this, kVtableAddress);
     effect.base.kind = 3;
-    StringArraySetSize(&sounds, nullptr, 0, -1);
+    reinterpret_cast<mfc::CStringArray*>(&sounds)->SetSize(0, -1);
     volume = 10;
     radius = 15;
     unused_70 = 1;
@@ -358,7 +358,7 @@ void SoundSpec::SoundSpecOnChunk() {
     case 0xCC07: maxInterval = c.ReadInt(); break;
     case 0xCC08: ReadInto(c, effect.base.comment); break;
     case 0xCC0A:
-        StringArraySetSize(&sounds, nullptr, 0, -1);
+        reinterpret_cast<mfc::CStringArray*>(&sounds)->SetSize(0, -1);
         c.ReadStringArray(&sounds);
         break;
     case 0xCC0B: radius = c.ReadInt(); break;

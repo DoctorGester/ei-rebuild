@@ -378,7 +378,7 @@ EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
 void CMapObjectServer::DestructBody() {
     SetVtable(this, CMapObjectServer::kVtableAddress);
     vitals.Reset();
-    StringArraySetSize(&stringsVtable, nullptr, 0, -1);
+    reinterpret_cast<mfc::CStringArray*>(&stringsVtable)->SetSize(0, -1);
     owner = nullptr;
     StringArrayDestruct(&stringsVtable);
     name7C.~CString();

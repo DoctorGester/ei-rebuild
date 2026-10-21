@@ -675,16 +675,12 @@ void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int qui
 }
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
-void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>(a0)->Highlight(a2, a3); }
 void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)->ClearHighlights(); }
 // The client world (TheClientWorld(), 007AF5B8): the object under a screen point (x, y pair), the
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
 // CPlayerClient::SendFollow, through its address).
 // The sprite's SetScale with the scale's bits (CUiMesh::SetScale).
-void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
-    static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(scaleBits));
-}
 
 constexpr int kCategoryWand = 8;
 // 00742760: the factor turning a random dword into the portraits' negative start delay.
@@ -732,7 +728,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         pendingAction_ = 0;
         pendingSlot_ = -1;
         pendingItem_ = -1;
-        for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
+        for (int i = 0; i < kQuickSlots; ++i) reinterpret_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
         quick->selected_ = -1;
         CHudSpellColumn* spells = spellColumn_;
         for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>(spells)->Highlight(i, 0);
@@ -903,7 +899,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             int slot = quick->regionItem_[i];
             if (slot < 0 || slot >= quick->shownCount_) continue;
             CEngineObject* sprite = quick->sceneObjects_.data[slot];
-            SpriteSetScale(sprite, nullptr, i < 4 ? kScaleSmall : kScaleLarge);
+            static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(i < 4 ? kScaleSmall : kScaleLarge));
             reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
         }
         quick->selected_ = -1;
@@ -911,7 +907,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         auto unhighlight = [](auto* panel) {
             for (int i = 0; i < panel->count_; ++i) {
                 CEngineObject* sprite = panel->sceneObjects_.data[i];
-                SpriteSetScale(sprite, nullptr, kScaleOne);
+                static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(kScaleOne));
                 reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
                 panel->selected_ = i;
             }
@@ -973,7 +969,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     CBattleScreen* screen = owner_;
     auto clearPanels = [screen](int value) {
         CHudQuickItems* quick = screen->quickItems_;
-        for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
+        for (int i = 0; i < kQuickSlots; ++i) reinterpret_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
         quick->selected_ = value;
         CHudSpellColumn* spells = screen->spellColumn_;
         for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>(spells)->Highlight(i, 0);
@@ -992,7 +988,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
         screen->pendingSlot_ = region;
         screen->pendingAction_ = 6;
         clearPanels(-1);
-        QuickPanelSet(screen->quickItems_, nullptr, region, 1);
+        reinterpret_cast<CHudQuickItems*>(screen->quickItems_)->Highlight(region, 1);
         return;
     }
     // The highlighted one again: back to plain selection.

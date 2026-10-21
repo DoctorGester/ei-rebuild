@@ -167,8 +167,6 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
-// 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
-void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { a0->UnitName(a2, static_cast<mfc::CString*>(a3)); }
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
@@ -189,7 +187,6 @@ using PartyIds = CBattleScreen::PartyIds;
 // next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
 // message box's constructor.
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
-void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 // STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
@@ -331,8 +328,7 @@ void CBattleScreen::Update() {
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
                 ShowPanelView(panel, first);
-                ShowPanelUnit(panel->owner_, nullptr, panel->shownUnit_,
-                              panel->strings_);
+                panel->owner_->UnitName(panel->shownUnit_, reinterpret_cast<mfc::CString*>(panel->strings_));
             }
         }
     }
@@ -352,10 +348,7 @@ void CBattleScreen::Update() {
             records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->records[i]));   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
-            void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,
-                                                     "leave_zone",
-                                                     "leave_zone_msg",
-                                                     0x10000, 3, 1)
+            void* box = memory ? reinterpret_cast<CMessageBox*>(memory)->Construct(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1)
                                : nullptr;
             interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             exitPending_ = 0;
@@ -667,8 +660,7 @@ void CBattleScreen::RefreshSelection() {
         panel->shownUnit_ = first;
         if (first) {
             ShowPanelView(panel, first);
-            ShowPanelUnit(panel->owner_, nullptr, panel->shownUnit_,
-                          panel->strings_);
+            panel->owner_->UnitName(panel->shownUnit_, reinterpret_cast<mfc::CString*>(panel->strings_));
         }
     }
 

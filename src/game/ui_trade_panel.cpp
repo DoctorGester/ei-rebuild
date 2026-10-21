@@ -413,11 +413,11 @@ void CTradePanel::Build() {
         void* titles = &texts_;
         int* size = &texts_.size;
         TextsGetString(table, nullptr, "skills", &text);
-        StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
+        reinterpret_cast<mfc::CStringArray*>(titles)->SetAtGrow(*size, text);
         TextsGetString(table, nullptr, "perks", &text);
-        StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
+        reinterpret_cast<mfc::CStringArray*>(titles)->SetAtGrow(*size, text);
         TextsGetString(table, nullptr, "perks_av", &text);
-        StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
+        reinterpret_cast<mfc::CStringArray*>(titles)->SetAtGrow(*size, text);
 
         // One statistics record per party member (inlined in the original; 00625430's body).
         ResetRecords();

@@ -163,9 +163,6 @@ using NameList = BriefingRecord::NameList;
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
-void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) {
-    reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3);
-}
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
@@ -207,7 +204,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         else items.head = node;
         items.tail = node;
     }
-    if (items.count) PlayerGiveItems(player, nullptr, &items, 0);
+    if (items.count) reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
 
     for (const mfc::CString* name = record->removeItems.begin(); name != record->removeItems.end(); ++name) {
         CEngineObject* item = CreateNamedItem(*name, false);
@@ -473,7 +470,6 @@ constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
-inline int __fastcall PartyAddItem(CParty* a0, void*, void* a2, int a3, int a4) { return (int)a0->AddItem(static_cast<CItem*>(a2), a3, a4); }
 // The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
 // ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
 // 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
@@ -565,7 +561,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
     CParty* party = PartyOf(player);
     for (auto* node = player->items.head; node;) {
         auto* next = node->next;
-        PartyAddItem(party, nullptr, node->data, 1, 1);
+        party->AddItem(reinterpret_cast<CItem*>(node->data), 1, 1);
         node = next;
     }
     RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};

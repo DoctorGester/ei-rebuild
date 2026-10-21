@@ -58,9 +58,9 @@ void Attach(CEngineObject* manager, CWorld* world) { static_cast<CBaseManager*>(
 
 int __fastcall WorldCreateManagers(CWorld* world) {
     world->paused_ = 0;
-    CStringAssignTextOriginal(&TheDataFolder(), nullptr, worlddata::ConfiguredDataPath());
-    CStringAssignTextOriginal(worlddata::TextFolderString(), nullptr, worlddata::ConfiguredTextPath());
-    CStringAssignTextOriginal(worlddata::BaseFolderString(), nullptr, worlddata::ConfiguredBasePath());
+    TheDataFolder() = worlddata::ConfiguredDataPath();
+    *reinterpret_cast<mfc::CString*>(worlddata::TextFolderString()) = worlddata::ConfiguredTextPath();
+    *reinterpret_cast<mfc::CString*>(worlddata::BaseFolderString()) = worlddata::ConfiguredBasePath();
     world->tick_ = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};

@@ -102,8 +102,7 @@ void FireballFlight(CSpellEffect* e) {
         Vector3 color = PrototypeColor(e);
         e->CreatePointLight(&at, &color, range * ConstAt(worlddata::RiseScale()), &velocity);
         if (IsUnit(e->caster)) {
-            AiNoise(e->world->timeWheel_, nullptr, ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())),
-                    &e->targetPoint);
+            reinterpret_cast<AIViewer*>(e->world->timeWheel_)->Noise(reinterpret_cast<CUnitServer*>(ControllerOf(e->caster)), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), &e->targetPoint);
         }
         e->timer = 0x23;
         e->state = 2;

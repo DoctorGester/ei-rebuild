@@ -51,8 +51,6 @@ constexpr std::uint32_t kRainHeavy = 0x42200000;   // 40.0f
 constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
-// 0055FC50. CWorld's day-time value (ST0).
-double __fastcall WorldDayTime(CWorldServer* a0, void*) { return static_cast<CWorld*>((void*)a0)->NightLevel(); }
 // 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * scale); }
@@ -134,7 +132,7 @@ void ShowRainBolt(CWorldServer* world) {
 } // namespace
 
 void CWorldServer::UpdateWeather() {
-    float day = static_cast<float>(WorldDayTime(this, nullptr));
+    float day = static_cast<float>(static_cast<CWorld*>((void*)this)->NightLevel());
     std::memcpy(&nightLevel_, &day, 4);
     if (sessionKind_ == kKindSinglePlayer) {
         if (climate_ != 0) {

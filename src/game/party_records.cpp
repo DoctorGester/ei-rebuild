@@ -35,7 +35,6 @@ void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Con
 // 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
-void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -72,8 +71,8 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
         stlp::AsRefPtr(end), stlp::AsRefPtr(end), stlp::AsRefPtr(list->records.Start())));   // 004AB910
     for (PartyRecord** p = newEnd; p != end; ++p) reinterpret_cast<RefPtr*>(p)->DeleteScalar(0);   // 004AB960
     list->records.Finish() = newEnd;
-    CStringAssignTextOriginal(&list->text0C, nullptr, game::EmptyText());
-    CStringAssignTextOriginal(&list->text10, nullptr, game::EmptyText());
+    list->text0C = game::EmptyText();
+    list->text10 = game::EmptyText();
 
     PartyRecord* temp = NewRecord();
     if (temp) ++temp->refCount;
@@ -87,9 +86,9 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
 
     char* party = (*list->records.Start())->party;
     reinterpret_cast<CParty*>(party)->AddMember(kHero, kHumanHero, game::EmptyText());
-    CStringAssignTextOriginal(party + 0x68, nullptr, kFirstZone);
+    *reinterpret_cast<mfc::CString*>(party + 0x68) = kFirstZone;
     *reinterpret_cast<int*>(party + 0x6C) = 0;
-    PartySetVar(party + 0x54, nullptr, kGameTime, kSix);
+    reinterpret_cast<NamedFloatTable*>(party + 0x54)->Set(kGameTime, std::bit_cast<float>(kSix));
 }
 EI_REPLACE(0x004A5BD0, PartyRecordsReset);
 
@@ -105,7 +104,7 @@ EI_REPLACE_METHOD(0x004A5E10, NamedPartyRecords::Find);
 
 void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
-    CStringAssignTextOriginal(&record->name, nullptr, name);
+    record->name = name;
     PartyRecord* temp = record;
     if (temp) ++temp->refCount;
     if (records.Finish() == records.EndOfStorage()) {
@@ -147,7 +146,6 @@ EI_REPLACE_METHOD(0x004A5FA0, NamedPartyRecords::Remove);
 namespace {
 
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
-inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 
 char* Field(void* manager, std::size_t offset) { return static_cast<char*>(manager) + offset; }
 
@@ -200,7 +198,7 @@ EI_REPLACE(0x004A8910, PartyNextId);
 
 bool __fastcall PartyMapLoad(const void* map, void*, int, int, const int* key, void* target) {
     if (*key == 0) {
-        PartyReset(target, nullptr, 1, 0);
+        PartyResetOriginal((void*)target, nullptr, 1, 0);
         return true;
     }
     MapNode* node = FindNode(map, *key);
