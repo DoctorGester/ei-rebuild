@@ -1965,8 +1965,6 @@ void GameFlow::UpdateFromServer() {
         AppliedStamp() = 0;
     }
     UpdateMultiplayerVariable();
-    kVariable.~CString();
-    questVariable.~CString();
 }
 
 // ---- The saved multiplayer parties (00662FB0) ---------------------------------------------------
