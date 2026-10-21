@@ -52,8 +52,15 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   default standard under the same `/FI`. One site does not build (`world_server.cpp`, a volatile
   pointer-to-pointer CONST cast); the scan lists the rest.
 - Downcasts that stay should go through one named accessor where the class is known by construction
-  (`CMapObject::ServerCompanion()`, `CUnit::GetWeapon` / `AsWeapon`, `FindItem`, `UnitOrNull` after a class
-  test, `ObjectSlots` where a generic lookup is a map object), not a cast at each use.
+  (`CMapObject::ServerCompanion()`, `CUnit::GetWeapon` / `AsWeapon` (item.h), `FindItem`, `UnitWithId` for a
+  unit's id, `CLightFactory::LightWithId`, `AIBrain::FindPlayerMode` / `FindPatrolMode`,
+  `CBattleScreen::MessageLog()`, `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
+  map object; `CWorld::ObjectWithId` and `CWorldServer::FindObject` already return `CMapObject*`), not a cast
+  at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
+  pointer is never null there (the null test it adds changes nothing); keep the cast where the original
+  calls something between the test and the use.
+- `static_cast<T*>(gamecrt::operator_new(sizeof(T)))` is `gamecrt::operator_new_as<T>()`; a literal size
+  stays where the original passes one.
 
 ## Shared forwarder headers (cleanup ticket C3)
 
