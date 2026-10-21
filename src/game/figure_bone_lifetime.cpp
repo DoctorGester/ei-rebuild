@@ -1,4 +1,4 @@
-// The skeleton bone's lifetime (class 0x300C, vtable 0073DA0C, 0xA0 bytes; FigureBone in
+// The skeleton bone's lifetime (class 0x300C, 0xA0 bytes; FigureBone in
 // map_object_figures.h): constructor, reset (slot 2), Destroy (slot 3), destructor and deleting
 // destructor. The figure factory (005AAB57) makes bones; the animation state links them (0050CC60).
 // See docs/notes/map_objects.md.
@@ -15,7 +15,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kBoneVtable = std::uintptr_t(0x0073DA0C);
 constexpr std::uintptr_t kChildListVtable = std::uintptr_t(0x0073DA40);
 constexpr int kChildBlockSize = 10;
 
@@ -28,12 +27,9 @@ void ReleaseMesh(CFigureMesh* mesh) { reinterpret_cast<CEngineObject*>(mesh)->Re
 
 } // namespace
 
-FigureBone* FigureBone::Construct() {
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
+// The names are members (empty strings before the body).
+FigureBone::FigureBone() {
     ClearFields();
-    new (&name) mfc::CString();
-    new (&name2) mfc::CString();
-    new (&name3) mfc::CString();
     children.vtable = ei::GamePointer<void>(kChildListVtable);
     children.count = 0;
     children.free = nullptr;
@@ -46,10 +42,10 @@ FigureBone* FigureBone::Construct() {
     matrices.growBy = 0;
     matrices.capacity = 0;
     matrices.size = 0;
-    ei::SetVtable(this, kBoneVtable);
     CreateBone();
-    return this;
 }
+
+FigureBone* FigureBone::Construct() { return new (this) FigureBone(); }
 EI_REWRITTEN(0x0050AF40, FigureBone::Construct);
 
 int FigureBone::CreateBone() {
@@ -72,7 +68,7 @@ int FigureBone::CreateBone() {
     morphU = 0.0f;
     return 1;
 }
-EI_REPLACE_METHOD(0x0050B370, FigureBone::CreateBone);
+EI_REWRITTEN(0x0050B370, FigureBone::CreateBone);
 
 void FigureBone::DestroyBone() {
     CFigureMesh* placed = mesh;
@@ -87,27 +83,28 @@ void FigureBone::DestroyBone() {
     counted58 = nullptr;
     CreateBone();
 }
-EI_REPLACE_METHOD(0x0050B510, FigureBone::DestroyBone);
+EI_REWRITTEN(0x0050B510, FigureBone::DestroyBone);
 
-void FigureBone::DestructBody() {
-    ei::SetVtable(this, kBoneVtable);
+// The names go after the body (name3, name2, name), then the engine object's part.
+FigureBone::~FigureBone() {
     DestroyBone();   // its reset empties the matrices through 0050DD40 here, the same SetSize
     if (matrices.data) lib::AlignedArray<Matrix4>::Free(matrices.data);
     // The child list's destructor: its vtable, RemoveAll again.
     children.vtable = ei::GamePointer<void>(kChildListVtable);
     children.RemoveAll();
-    name3.~CString();
-    name2.~CString();
-    name.~CString();
-    DestructBase();
 }
+
+void FigureBone::DestructBody() { this->FigureBone::~FigureBone(); }
 EI_REWRITTEN(0x0050B1D0, FigureBone::DestructBody);
 
 FigureBone* FigureBone::DeleteBone(unsigned flags) {
-    DestructBody();
+    this->FigureBone::~FigureBone();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0050B1B0, FigureBone::DeleteBone);
+EI_REWRITTEN(0x0050B1B0, FigureBone::DeleteBone);
+
+int FigureBone::Create() { return CreateBone(); }
+void FigureBone::Destroy() { DestroyBone(); }
 
 EI_REWRITTEN(0x0050DD40, lib::AlignedArray<Matrix4>::SetSizeDiscardStep);

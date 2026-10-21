@@ -53,7 +53,7 @@ void ChooseFigure(CUiWindow* owner, const char* name) {
     ei::VirtualSlot<Fn>(owner->vtable_, 52)(owner, name);
 }
 
-CUiMesh* Sprite(CUiWindow& w, int index) { return reinterpret_cast<CUiMesh*>(w.sceneObjects_.data[index]); }
+CUiMesh* Sprite(CUiWindow& w, int index) { return w.SceneMesh(index); }
 
 } // namespace
 
@@ -78,7 +78,7 @@ void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTip
         window.regions_.data[1]->SetTip(0x9DD1, 1, 0);
     }
     tabsEnabled_ = false;
-    for (int i = 2; i < 8; ++i) reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[i])->visible_ = 0;
+    for (int i = 2; i < 8; ++i) window.SceneMesh(i)->visible_ = 0;
 }
 EI_REPLACE_METHOD(0x00629A40, CUiItemStrip::SetupFigures);
 

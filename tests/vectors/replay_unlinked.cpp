@@ -53,7 +53,7 @@ void ScriptFxSource::ScriptFxSourceDestruct() EI_UNLINKED("ScriptFxSource::Scrip
 void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::ScriptLightningDestruct")
 
 // record_arrays.cpp's other element types.
-void recordarrays::InitFigurePart(CFigureMesh*) EI_UNLINKED("recordarrays::InitFigurePart")
+void recordarrays::InitFigurePart(CPlainFigureMesh*) EI_UNLINKED("recordarrays::InitFigurePart")
 CMaterial* CMaterial::Construct() EI_UNLINKED("CMaterial::Construct")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")

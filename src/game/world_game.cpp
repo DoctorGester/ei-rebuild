@@ -139,14 +139,13 @@ struct LocalFileStream {
     void Close() { stream.Close(); }
 };
 
-// The record builder of the party (PartyRecords, unit.h), built and torn down by the originals
-// (a union member, so the compiler neither constructs nor destroys it).
+// The record builder's party (a CParty, party.h), built and torn down by the originals (its
+// bytes, so the compiler neither constructs nor destroys it).
 struct LocalRecords {
-    union {
-        PartyRecords party;
-    };
-    LocalRecords() { reinterpret_cast<CParty*>(&party)->Construct(); }
-    ~LocalRecords() { PartyRecordsDestructOriginal(&party); }
+    alignas(4) std::uint8_t bytes[sizeof(CParty)];
+    CParty* Party() { return reinterpret_cast<CParty*>(bytes); }
+    LocalRecords() { Party()->Construct(); }
+    ~LocalRecords() { PartyRecordsDestructOriginal(Party()); }
     LocalRecords(const LocalRecords&) = delete;
     LocalRecords& operator=(const LocalRecords&) = delete;
 };
@@ -213,12 +212,12 @@ int GameFlow::SaveGame(const char* slot) {
             ThePartyManager()->BeginRedeploy(player->Party());
     }
     LocalRecords records;
-    ThePartyManager()->EndRedeploy(&records.party);
+    ThePartyManager()->EndRedeploy(records.Party());
     mfc::CString currentMap;    // [0x1C]
-    currentMap = RecordAllod(FindZone(records.party.zone));
+    currentMap = RecordAllod(FindZone(records.Party()->zone_));
 
-    CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.party.variables);
-    ThePartyManager()->BeginRedeploy(&records.party);
+    CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.Party()->variables_);
+    ThePartyManager()->BeginRedeploy(records.Party());
 
     bool opened;
     {
@@ -262,7 +261,7 @@ int GameFlow::SaveGame(const char* slot) {
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
-    int kind = FindZone(records.party.zone)->kind;
+    int kind = FindZone(records.Party()->zone_)->kind;
     if (kind == 0 || kind == 2) {
         {
             mfc::CString path = slotFolder + kMissionFile;
@@ -313,9 +312,9 @@ const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 // catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
 // around the entrance). Returns LoadSave's result, 0 when the file cannot be opened or is
 // corrupt.
-int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString& zone, mfc::CString& folder,
+int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone, mfc::CString& folder,
                 const char* mapOverride, LocalFileStream& file, bool& failed) {
-    NamedFloatTable* variables = &records->variables;
+    NamedFloatTable* variables = &records->variables_;
     folder.Format(kCurrentFolder, DataFolderText());
     mfc::CString fileName = zone + kSaveExtension;
     bool opened;
@@ -350,7 +349,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
     int result = TheServerWorld()->LoadSave(&data, mapOverride);   // 00596E70
     file.Close();
 
-    int entrance = records->entrance;
+    int entrance = records->entrance_;
     if (entrance >= 0 && entrance < zoneRecord->exits.size) {
         float now = static_cast<float>(VariableGet(variables, kGTime));
         float left;
@@ -382,16 +381,15 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
 // pending "movie", restores the zone from saves\current when it was visited (zs.<zone>), otherwise
 // loads it fresh (NewZone; gz6g picks its frozen or thawed map), then the zone's scripts and its
 // exits. Returns 0 on failure, else the restore's result (1 for a fresh zone).
-int __stdcall EnterZone(std::uint8_t* recordsBytes) {
-    auto* records = reinterpret_cast<PartyRecords*>(recordsBytes);
+int __stdcall EnterZone(CParty* records) {
     LocalFileStream file;
     int result = 1;
     mfc::CString folder;                                // [0x14]
-    mfc::CString zone(records->zone);                   // [0x10]
+    mfc::CString zone(records->zone_);                   // [0x10]
     MapRecord* zoneRecord = FindZone(zone);
     if (!zoneRecord) return 0;
 
-    NamedFloatTable* variables = &records->variables;
+    NamedFloatTable* variables = &records->variables_;
     if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
         if (gamecrt::mbscmp(static_cast<const char*>(zone),
                             kMovieZone) != 0) {
@@ -607,8 +605,7 @@ mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
 // saves\current\<zone>.sav (SaveWorld, header 0x102) and records in the party's variables that
 // it was visited (zs.<zone> = 1) and when it was left (zt.<zone> = gtime). Returns 1, 0 when the
 // file cannot be written (after FatalError).
-int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
-    auto* records = reinterpret_cast<PartyRecords*>(recordsBytes);
+int __stdcall LeaveZone(CParty* records) {
     LocalFileStream file;
     mfc::CString path;   // [0x04]
     mfc::CString zone(mfc::CString::kUnset);   // [0x08]
@@ -639,7 +636,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &data);
     file.Close();
 
-    NamedFloatTable* variables = &records->variables;
+    NamedFloatTable* variables = &records->variables_;
     {
         mfc::CString prefix(kVisitedPrefix);
         mfc::CString variable = prefix + static_cast<const char*>(zone);
@@ -699,10 +696,9 @@ namespace {
 // begins a redeploy of a party.
 
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
-PartyRecords* GlobalParty() { return reinterpret_cast<PartyRecords*>(TheSavedParties().outsideGame_); }
-// A CParty seen as its records (PartyRecords) or through an untyped pointer; Assign / CopyConstruct
-// (00661300 / 006613C0) read the source non-const.
-CParty* AsParty(PartyRecords* records) { return reinterpret_cast<CParty*>(records); }
+CParty* GlobalParty() { return reinterpret_cast<CParty*>(TheSavedParties().outsideGame_); }
+// A CParty through an untyped pointer; Assign / CopyConstruct (00661300 / 006613C0) read the
+// source non-const.
 CParty* AsParty(const void* party) { return static_cast<CParty*>(const_cast<void*>(party)); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
@@ -715,12 +711,12 @@ mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
 
 void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(ThePartyManager());
-    if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
+    if (GlobalParty()->members_.size == 1) GlobalParty()->members_.data->unitId = kMultiplayerHeroId;
     {
         mfc::CString zone(mfc::CString::kUnset);
-        GlobalParty()->zone = *MultiplayerZoneInto(&zone);
+        GlobalParty()->zone_ = *MultiplayerZoneInto(&zone);
     }
-    VariableSet(&GlobalParty()->variables, kMultiplayerVariable, 1.0f);
+    VariableSet(&GlobalParty()->variables_, kMultiplayerVariable, 1.0f);
     ThePartyManager()->BeginRedeploy(GlobalParty());
     {
         mfc::CString zone(mfc::CString::kUnset);
@@ -751,10 +747,10 @@ void GameFlow::ReturnLocalParty() {
     if (!Active(net::GameClient())) return;
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     CParty* party = player->Party();
-    AsParty(GlobalParty())->Assign(party);
+    GlobalParty()->Assign(party);
     ThePartyManager()->BeginRedeploy(party);
     // 00662AC0: the global party record (007C82B0) written into the heroes' folder (007C82A0).
-    reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(TheSavedParties().folder_);
+    TheSavedParties().OutsideGame()->WriteFile(TheSavedParties().folder_);
     FlowUpdateFromServerOriginal(this);
 }
 
@@ -856,13 +852,13 @@ void GameFlow::RequestZoneChange(const char* zone, int entrance) {
 void GameFlow::RequestPartyZone5(const char* zone, const void* party) {
     state_ = 5;
     requestTarget_ = zone;
-    AsParty(RequestParty())->Assign(AsParty(party));
+    RequestParty()->Assign(AsParty(party));
 }
 
 void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
     state_ = 6;
     requestTarget_ = zone;
-    AsParty(RequestParty())->Assign(AsParty(party));
+    RequestParty()->Assign(AsParty(party));
 }
 
 void GameFlow::DisconnectClient() { TheClientWorld()->DisconnectLocalPlayer(); }
@@ -1038,25 +1034,25 @@ void GameFlow::SwitchMultiplayerZone() {
     WorldPlayer* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
     if (player && player->server->flag70_) {
         TheServerWorld()->SyncPartyRecords(player);
-        AsParty(&records.party)->Assign(player->Party());
+        records.Party()->Assign(player->Party());
         TheServerWorld()->ClearPlayerItems(player);
     } else {
-        AsParty(&records.party)->Assign(AsParty(GlobalParty()));
+        records.Party()->Assign(GlobalParty());
     }
-    records.party.zone = zone7C_;
+    records.Party()->zone_ = zone7C_;
     RequestKind(3);
     if (Active(net::GameServer())) {
         state_ = 6;
         requestTarget_ = zone7C_;
-        AsParty(RequestParty())->Assign(AsParty(&records.party));
+        RequestParty()->Assign(records.Party());
     } else {
         auto* host = static_cast<net::HostMessage*>(net::GameClient()->info_);
-        if (Active(host)) records.party.zone = host->zone_.data();
+        if (Active(host)) records.Party()->zone_ = host->zone_.data();
         host = static_cast<net::HostMessage*>(net::GameClient()->info_);
         if (Active(host)) {
             state_ = 5;
             requestTarget_ = host->address_.data();
-            AsParty(RequestParty())->Assign(AsParty(&records.party));
+            RequestParty()->Assign(records.Party());
         }
     }
     flag80_ = 1;
@@ -1333,7 +1329,7 @@ constexpr int kResultMainMenu = 4;
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
 inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(client)->LocalView()); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
-__declspec(naked) int __stdcall EnterZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A060)
+__declspec(naked) int __stdcall EnterZoneAt(CParty*) EI_ORIGINAL(0x0057A060)
 
 // `value` mod 24 through the game's _CIfmod (006E95AA), stored as float.
 float HoursOfDay(double value) { return static_cast<float>(libcrt::CiFmod(value, 24.0)); }
@@ -1401,10 +1397,10 @@ void GameFlow::StartZone(const char* zone, int mode) {
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
         LocalRecords records;
-        ThePartyManager()->EndRedeploy(&records.party);
-        EnterZoneAt(&records.party);
-        ThePartyManager()->BeginRedeploy(&records.party);
-        TheServerWorld()->SetTimeImpl(HoursOfDay(VariableGet(&records.party.variables, kGTime)));
+        ThePartyManager()->EndRedeploy(records.Party());
+        EnterZoneAt(records.Party());
+        ThePartyManager()->BeginRedeploy(records.Party());
+        TheServerWorld()->SetTimeImpl(HoursOfDay(VariableGet(&records.Party()->variables_, kGTime)));
         if (zoneRecord) {
             TheServerWorld()->SetClimate(zoneRecord->setting2C);
             TheServerWorld()->SetCave(zoneRecord->setting30);
@@ -1439,8 +1435,8 @@ void GameFlow::StartNewGame() {
     folder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     LocalRecords records;
-    ThePartyManager()->EndRedeploy(&records.party);
-    StartZoneAt(this, nullptr, records.party.zone, 0);
+    ThePartyManager()->EndRedeploy(records.Party());
+    StartZoneAt(this, nullptr, records.Party()->zone_, 0);
 }
 
 // ---- The flow's requests (0057C700) -------------------------------------------------------------
@@ -1450,7 +1446,7 @@ namespace {
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
               kStateNetworkZone = 6;
 
-__declspec(naked) int __stdcall LeaveZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A780)
+__declspec(naked) int __stdcall LeaveZoneAt(CParty*) EI_ORIGINAL(0x0057A780)
 __declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x0057BDF0)
 __declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
 // 005F74F0 (the interface 007C7D50): closes its windows for the zone change.
@@ -1519,13 +1515,13 @@ void GameFlow::ProcessRequest() {
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (GameMode() == 1 && (Campaign() == 1 || Campaign() == 3) && state == kStateZone) {
         LocalRecords records;
-        ThePartyManager()->EndRedeploy(&records.party);
-        LeaveZoneAt(&records.party);
-        ThePartyManager()->BeginRedeploy(&records.party);
+        ThePartyManager()->EndRedeploy(records.Party());
+        LeaveZoneAt(records.Party());
+        ThePartyManager()->BeginRedeploy(records.Party());
     }
     if (GameMode() == 2 && Campaign() == 1 && state == kStateZone) {
         LocalRecords records;
-        LeaveZoneAt(&records.party);
+        LeaveZoneAt(records.Party());
     }
     InterfaceCloseAll(TheInterface());
     TheServerWorld()->TeardownZone();
@@ -1569,7 +1565,7 @@ void GameFlow::ProcessRequest() {
     case kStatePartyZone: {
         const char* zone = requestTarget_;
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
-        reinterpret_cast<CPlayer*>(player)->AssignParty(reinterpret_cast<CParty*>(RequestParty()));
+        reinterpret_cast<CPlayer*>(player)->AssignParty(RequestParty());
         TheServerWorld()->TeardownZone();
         if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
             if (Active(net::GameClient())) {
@@ -1585,7 +1581,7 @@ void GameFlow::ProcessRequest() {
     case kStateNetworkZone: {
         StartNetworkZoneAt(requestTarget_);
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
-        reinterpret_cast<CPlayer*>(player)->AssignParty(reinterpret_cast<CParty*>(RequestParty()));
+        reinterpret_cast<CPlayer*>(player)->AssignParty(RequestParty());
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty = 1;
         break;
@@ -1673,10 +1669,10 @@ int GameFlow::LoadGame(const char* slot) {
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
     LocalRecords records;
-    ThePartyManager()->EndRedeploy(&records.party);
+    ThePartyManager()->EndRedeploy(records.Party());
     mfc::CString currentMap;    // [0x1C]
-    currentMap = RecordAllod(FindZone(records.party.zone));
-    NamedFloatTable* variables = &records.party.variables;
+    currentMap = RecordAllod(FindZone(records.Party()->zone_));
+    NamedFloatTable* variables = &records.Party()->variables_;
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
         bool visited;
@@ -1707,13 +1703,13 @@ int GameFlow::LoadGame(const char* slot) {
         mfc::CString variable = prefix + record->name;
         VariableSet(variables, variable, 0.0f);
     }
-    ThePartyManager()->BeginRedeploy(&records.party);
+    ThePartyManager()->BeginRedeploy(records.Party());
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
-    MapRecord* zoneRecord = FindZone(records.party.zone);
+    MapRecord* zoneRecord = FindZone(records.Party()->zone_);
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {
-        StartZoneAt(this, nullptr, records.party.zone, 0);
+        StartZoneAt(this, nullptr, records.Party()->zone_, 0);
     } else {
         {
             mfc::CString path = slotFolder + kMissionFile;
@@ -1732,7 +1728,7 @@ int GameFlow::LoadGame(const char* slot) {
 
 GameFlow* GameFlow::Construct() {
     new (&requestTarget_) mfc::CString();
-    RequestPartyObject()->Construct();
+    RequestParty()->Construct();
     new (&zone7C_) mfc::CString();
     state_ = 0;
     return this;
@@ -1741,7 +1737,7 @@ EI_REPLACE_METHOD(0x00578460, GameFlow::Construct);
 
 void GameFlow::Destruct() {
     zone7C_.~CString();
-    RequestPartyObject()->DestructBody();
+    RequestParty()->DestructBody();
     requestTarget_.~CString();
 }
 EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
@@ -1777,15 +1773,15 @@ void GameFlow::AfterServerStart() {
     UseResources(true);
     // The variables of the party outside a game (007C82B0 + 0x54) start empty. Rebirth's
     // PersistentGlobalVars (the CALL at 0057EB25 redirected) keeps the "gvar." ones.
-    NamedFloatTable* variables = &GlobalParty()->variables;
+    NamedFloatTable* variables = &GlobalParty()->variables_;
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
         variables->Clear();
     PartyResetItems(GlobalParty());
     // The client's player record gets the hero's and the party's names (or the defaults).
-    if (GlobalParty()->count == 1) {
-        const mfc::CString* names = GlobalParty()->records->texts;
+    if (GlobalParty()->members_.size == 1) {
+        const mfc::CString* names = GlobalParty()->members_.data->texts;
         LocalLogin()->text_.Assign(names[5]);
         LocalLogin()->name_.Assign(names[0]);
     } else {
@@ -1964,45 +1960,36 @@ void GameFlow::UpdateFromServer() {
 
 // ---- The saved multiplayer parties (00662FB0) ---------------------------------------------------
 
-// An entry of SavedParties' vector: the party records and the name of their file.
-struct SavedPartyEntry {
-    PartyRecords records;           // +0x00
-    mfc::CString fileName;          // +0x70
-};
-static_assert(offsetof(SavedPartyEntry, fileName) == 0x70);
-static_assert(sizeof(SavedPartyEntry) == 0x74);
-
 namespace {
 
 // An entry is a multiplayer hero record (ui_screens.h): the vector's element copy loop is
 // MpHeroRecord::CopyRange (00664410), its element destructor DeletingDestruct (00664AE0, flag 0);
 // the records' copy constructor (006613C0) and the insert overflow (00619920) are in
 // originals_gameplay.h.
-MpHeroRecord* AsHero(SavedPartyEntry* entry) { return reinterpret_cast<MpHeroRecord*>(entry); }
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).
 
-void DestroyPartyEntry(SavedPartyEntry* entry) {
-    PartyRecords* records = &entry->records;
-    entry->fileName.~CString();
+void DestroyPartyEntry(MpHeroRecord* entry) {
+    CParty* records = entry->Party();
+    entry->file.~CString();
     ei::SetVtable(records, kRecordsVtable);
     PartyResetOriginal(records, nullptr, 1, 1);
-    AsParty(records)->DestroyParty();   // 00661640
-    records->zone.~CString();
-    records->variables.Destroy();   // 00663330
-    reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(records->array40)->FreeData();   // 006643F0
-    DestructPartyMemberArray(reinterpret_cast<PartyMemberArray*>(&records->recordArrayVtable));   // 00664160
-    reinterpret_cast<CEngineObject*>(records)->DestructBase();
+    records->DestroyParty();   // 00661640
+    records->zone_.~CString();
+    records->variables_.Destroy();   // 00663330
+    records->items_.FreeData();   // 006643F0
+    DestructPartyMemberArray(&records->members_);   // 00664160
+    records->DestructBase();
 }
 
 } // namespace
 
 void SavedParties::Reload() {
     // Empty the list.
-    SavedPartyEntry*& finish = finish_;
-    SavedPartyEntry* end = reinterpret_cast<SavedPartyEntry*>(MpHeroRecord::CopyRange(AsHero(finish), AsHero(finish), AsHero(entries_)));
-    for (SavedPartyEntry* entry = end; entry != finish; ++entry) AsHero(entry)->DeletingDestruct(0);
+    MpHeroRecord*& finish = finish_;
+    MpHeroRecord* end = MpHeroRecord::CopyRange(finish, finish, entries_);
+    for (MpHeroRecord* entry = end; entry != finish; ++entry) entry->DeletingDestruct(0);
     finish = end;
 
     WIN32_FIND_DATAA found;
@@ -2014,13 +2001,13 @@ void SavedParties::Reload() {
     if (search == INVALID_HANDLE_VALUE) return;
     do {
         // The party records and the file name, side by side as the list's entries are.
-        alignas(SavedPartyEntry) std::uint8_t storage[sizeof(SavedPartyEntry)];
-        auto* entry = reinterpret_cast<SavedPartyEntry*>(storage);
-        reinterpret_cast<CParty*>(&entry->records)->Construct();
-        new (&entry->fileName) mfc::CString();
-        entry->fileName = found.cFileName;
-        if (reinterpret_cast<MpHeroRecord*>(&entry->records)->ReadFile(folder_)) {   // 00662DD0
-            NamedFloatTable* variables = &entry->records.variables;
+        alignas(MpHeroRecord) std::uint8_t storage[sizeof(MpHeroRecord)];
+        auto* entry = reinterpret_cast<MpHeroRecord*>(storage);
+        entry->Party()->Construct();
+        new (&entry->file) mfc::CString();
+        entry->file = found.cFileName;
+        if (entry->ReadFile(folder_)) {   // 00662DD0
+            NamedFloatTable* variables = &entry->Party()->variables_;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
                 // Rebirth's PersistentGlobalVars: the JNE at 00663083 skips the inlined clear and
                 // the hook at 00663170 (whose instruction, count = 0, is dropped) clears the table
@@ -2029,18 +2016,17 @@ void SavedParties::Reload() {
             } else {
                 variables->Clear();   // inlined: each chain's nodes freed (004616A0), the count zeroed
             }
-            if (entry->records.count == 1) {
-                SavedPartyEntry* eos = eos_;
+            if (entry->Party()->members_.size == 1) {
+                MpHeroRecord* eos = eos_;
                 if (finish != eos) {
                     if (finish) {
-                        AsParty(&finish->records)->CopyConstruct(AsParty(&entry->records));
-                        new (&finish->fileName) mfc::CString(entry->fileName);
+                        finish->Party()->CopyConstruct(entry->Party());
+                        new (&finish->file) mfc::CString(entry->file);
                     }
                     ++finish;
                 } else {
                     libcontainers::HeroRecordAbi::InsertOverflow(   // 00619920
-                        reinterpret_cast<libcontainers::HeroRecords*>(&entries_), nullptr, reinterpret_cast<MpHeroRecord*>(finish),
-                        reinterpret_cast<const MpHeroRecord*>(entry), 1);
+                        reinterpret_cast<libcontainers::HeroRecords*>(&entries_), nullptr, finish, entry, 1);
                 }
             }
         }

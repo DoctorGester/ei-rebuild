@@ -64,7 +64,7 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 
 BOOL CHeroQuickStrip::Draw(int pass) {
     PartyUnitRecord* hero = ShownHero(owner_);
-    auto* frame = static_cast<CUiMesh*>(static_cast<void*>(sceneObjects_.data[0]));
+    auto* frame = SceneMesh(0);
     int count = static_cast<int>(hero->spellCount);
     if (selected_ >= 0 && selected_ < count) {
         frame->visible_ = 1;
@@ -161,7 +161,7 @@ void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
     sprite->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
 }
 
-CUiMesh* Highlight(CUiWindow* window) { return static_cast<CUiMesh*>(static_cast<void*>(window->sceneObjects_.data[4])); }
+CUiMesh* Highlight(CUiWindow* window) { return window->SceneMesh(4); }
 
 struct SpellSlots {
     std::uint8_t unused_00[0x40];

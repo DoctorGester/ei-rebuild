@@ -11,6 +11,7 @@
 
 #include "console.h"
 #include "item_db_text.h"
+#include "party.h"
 #include "world.h"
 #include "model.h"
 
@@ -137,11 +138,10 @@ void CBattleScreen::Create() {
         stream->Resize(0);
     } else {
         // A new game: the local player's first hero.
-        if (*reinterpret_cast<const int*>(LocalPlayerData() + 0x34) > 0) {
-            std::uint8_t* player = LocalPlayerData();
+        if (LocalPlayerData()->members_.size > 0) {
+            CParty* player = LocalPlayerData();
             int index = heroes_.size;
-            std::uint32_t hero;
-            std::memcpy(&hero, *reinterpret_cast<std::uint8_t**>(player + 0x30) + 0x1C, 4);
+            std::uint32_t hero = player->members_.data[0].unitId;
             heroes_.SetSize(index + 1, -1);
             heroes_.data[index] = hero;
             hasHero_ = true;

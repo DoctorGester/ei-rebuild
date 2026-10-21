@@ -130,6 +130,8 @@ public:
     // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied),
     // else 1.
     BOOL EquipFromPrototype(PartyUnitRecord* record);
+    // 006621B0 (player_messages.cpp). The record of the unit with id `unitId`, or null.
+    PartyUnitRecord* Find(int unitId) const;
     // 006620F0 (RET 4). Destroys the first record whose key (+0x1C) is `key` and closes the gap;
     // 1 when there was one, else 0.
     BOOL RemoveMember(int key);

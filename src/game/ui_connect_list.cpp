@@ -88,7 +88,7 @@ void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }
 } // namespace
 
 void CMpConnectScreen::DrawListVanilla() {
-    auto sprite = [this](int index) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); };
+    auto sprite = [this](int index) { return SceneMesh(index); };
     auto label = [this](int index) -> const char* { return texts_[index]; };
     auto allod = [this](int index) -> const char* { return allodNames_[index]; };
 

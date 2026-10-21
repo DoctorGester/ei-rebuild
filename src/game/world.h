@@ -97,7 +97,6 @@ static_assert(sizeof(UnitIdMap) == 0x18);
 // (SendFreshObjects, world_map.cpp; world_zone.cpp).
 inline void* ObjectPtrListVtable() { return ei::GamePointer<void>(0x0073F530); }
 
-struct PartyRecords;   // unit.h
 
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
@@ -1849,7 +1848,7 @@ BOOL IsMultiplayerClient();
 // 00578B40. Game clock: whole ticks + fraction.
 float GameTime();
 // 00578BA0. The local player's data block at +0x70.
-std::uint8_t* LocalPlayerData();
+class CParty* LocalPlayerData();
 // 00578A90. The local player's name (copy constructed into `out`, returned).
 mfc::CString* __stdcall LocalPlayerName(mfc::CString* out);
 // 00578B50. Float variable `name` of the local player as the client sees it.
@@ -1993,10 +1992,9 @@ struct GameFlow {
     // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
     void UpdateFromServer();
 
-    // The party records of a request (PartyRecords, unit.h; RequestPartyZone5 / 6 copy one in).
-    PartyRecords* RequestParty() { return reinterpret_cast<PartyRecords*>(requestParty_); }
-    // The same bytes as the party object they are (party.h): the constructor and destructor run on it.
-    class CParty* RequestPartyObject() { return reinterpret_cast<class CParty*>(requestParty_); }
+    // The party of a request (party.h; RequestPartyZone5 / 6 copy one in; the constructor and
+    // destructor run on these bytes).
+    class CParty* RequestParty() { return reinterpret_cast<class CParty*>(requestParty_); }
 
     // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
     // function call them). The constructor body: empty names, the party constructed (00661050), no
@@ -2010,7 +2008,7 @@ struct GameFlow {
 
     int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
     mfc::CString requestTarget_;          // +0x04 the request's zone or save name
-    std::uint8_t requestParty_[0x70];     // +0x08 PartyRecords: RequestParty()
+    std::uint8_t requestParty_[0x70];     // +0x08 a CParty: RequestParty()
     int requestArg_;                      // +0x78 the entrance (4) or the load flag (2)
     mfc::CString zone7C_;                 // +0x7C the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // +0x80 set by SwitchMultiplayerZone, cleared by the game's start
@@ -2019,7 +2017,7 @@ static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78 && offsetof(GameFlow, zone7C_) == 0x7C);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
 
-struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
+struct MpHeroRecord;   // ui_screens.h: a party (0x70 bytes) and its file name
 
 // The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
 struct SavedParties {
@@ -2040,12 +2038,13 @@ struct SavedParties {
     SavedParties* Construct();
 
     mfc::CString folder_;        // +0x00
-    SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
-    SavedPartyEntry* finish_;       // +0x08
-    SavedPartyEntry* eos_;          // +0x0C
+    MpHeroRecord* entries_;         // +0x04 vector<MpHeroRecord>: start, finish, end of storage
+    MpHeroRecord* finish_;          // +0x08
+    MpHeroRecord* eos_;             // +0x0C
     // +0x10 the party outside a game (CParty, 0x70 bytes; 007C82B0) and a file name: an MpHeroRecord
     // (ui_screens.h).
     std::uint8_t outsideGame_[0x74];
+    MpHeroRecord* OutsideGame() { return reinterpret_cast<MpHeroRecord*>(outsideGame_); }
 };
 static_assert(offsetof(SavedParties, outsideGame_) == 0x10);
 static_assert(offsetof(SavedParties, entries_) == 0x04);

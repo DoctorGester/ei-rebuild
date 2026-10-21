@@ -135,7 +135,7 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 int& Opt24() { return options::TheOptions()->reverseStereo_; }
 int& OptDifficultyCopy() { return ei::GameData<int>(0x0079BEC4); } // setting 25 (with GameDifficulty 0079BEC0)
 
-CUiMesh* SceneSprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
+CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
 // A row text into the surface (005FDE20, Rebirth-patched: through its address).
 void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format) {

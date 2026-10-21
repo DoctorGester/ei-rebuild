@@ -68,7 +68,7 @@ float TimeOfDay() {
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
 
-CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
+CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 void SetTint(CEngineObject* object, float value) {
     float* tint = Sprite(object)->tint_;

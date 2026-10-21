@@ -17,6 +17,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
+#include "party.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -160,7 +161,7 @@ void StepTurning(BriefingMover* node) {
 
 void SetMeshesVisible(CUiWindow* window, int visible) {
     for (int i = 0; i < window->sceneObjects_.size; ++i)
-        reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[i])->visible_ = visible;
+        window->SceneMesh(i)->visible_ = visible;
 }
 
 // The speaker's lips stop (CUnitClientSpecific's blink: eyes open).
@@ -319,8 +320,8 @@ void CBriefingScreen::Update() {
     switch (state_) {
     case kChoosing: {
         surfaces_.data[kTopicsSurface]->Freeze(1, 0);
-        reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicBackdrop])->visible_ = 1;
-        reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicFrame])->visible_ = 1;
+        SceneMesh(kTopicBackdrop)->visible_ = 1;
+        SceneMesh(kTopicFrame)->visible_ = 1;
         topicBar_->SetEnabled(1, 1);
         int position;
         if (topicBar_->TakePosition(&position)) {
@@ -401,13 +402,8 @@ void CBriefingScreen::MarkPeople() {
 }
 
 void CBriefingScreen::LeaveIfExitOpen() {
-    struct PartyRecords {
-        std::uint8_t unused_00[0x30];
-        void* records;               // +0x30 the unit records (0x784 bytes each)
-        int count;                   // +0x34
-    };
-    const auto* party = reinterpret_cast<const PartyRecords*>(LocalPlayerData());
-    if (!exitPending_ || party->count <= 0) return;
+    CParty* party = LocalPlayerData();
+    if (!exitPending_ || party->members_.size <= 0) return;
     mfc::CString zone(GameExitTarget(exit_));
     if (Compare(zone, NoZone()) == 0) return;
     mfc::CString variable(ZoneVariablePrefix());
@@ -418,7 +414,7 @@ void CBriefingScreen::LeaveIfExitOpen() {
     mfc::CArray<std::uint8_t*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
     mfc::CArray<std::uint8_t*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
     records.SetSize(1);
-    records[0] = static_cast<std::uint8_t*>(party->records);
+    records[0] = reinterpret_cast<std::uint8_t*>(party->members_.data);
     if (GamePartyInExit(&records, exit_, &second)) {
         InterfaceHasScreen() = false;
         GameLeaveThroughExit(exit_);

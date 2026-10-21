@@ -106,9 +106,9 @@ void CItemIconWindow::PlaceBars(int y) {
     constexpr int kLeftBar = 25, kRightBar = 26;   // after the cell strip and the 4 x 6 column pieces
     float top = static_cast<float>(y - 20);
     float bottom = static_cast<float>(y + 20);
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kLeftBar])
+    SceneMesh(kLeftBar)
         ->SetRectangle(7.8f, 100.0f, 0.0f, top, 100.0f, bottom, 0xFE, 0x22, 0x9A, 0x4A);
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kRightBar])
+    SceneMesh(kRightBar)
         ->SetRectangle(7.8f, 100.0f, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
 }
 EI_REWRITTEN(0x005F2E00, CItemIconWindow::PlaceBars);

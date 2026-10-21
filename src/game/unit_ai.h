@@ -32,6 +32,35 @@ class CUnitServer;      // combat.h (the unit controller of AI units, the brain'
 
 using AIObjectList = mfc::CTypedPtrList<CUnit>;
 
+// A counted reference (CEngineObject refcount at +4, released through vtable slot 4). The AI's
+// reference fields (orders, modes, the brain's target, the reports) are AIRefs: reads see the
+// object (the conversion and ->); Assign / Reset count, a plain store (`ref = p`) does not.
+struct AIRef {
+    AIRef* DeleteScalar(unsigned flags);
+    // 0052B030. Release and clear.
+    void Reset();
+    // 0052A8F0. Hold `object` (released first unless it is already held).
+    void Assign(CEngineObject* object);
+    // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
+    void Load(CStream* stream, void* world);
+    void Save(CStream* stream);
+    // A counted object pointer of another type (a unit list's element, a missile's figure) seen as
+    // the reference it is.
+    template <typename T>
+    static AIRef* Of(T** slot) { return reinterpret_cast<AIRef*>(slot); }
+
+    operator CEngineObject*() const { return object; }
+    CEngineObject* operator->() const { return object; }
+    // A plain store (no reference taken or released), as the original's constructors and copies.
+    AIRef& operator=(CEngineObject* plain) {
+        object = plain;
+        return *this;
+    }
+
+    CEngineObject* object;
+};
+static_assert(sizeof(AIRef) == 4);
+
 // An order as the controller's order checks take it (0x1C bytes, built on the stack).
 struct AIOrder {
     // 00545F40. Kind 9 (none): the object released and cleared, the flag cleared.
@@ -49,7 +78,7 @@ struct AIOrder {
 
     int kind;                       // +0x00
     int what;                       // +0x04 6 for an attack, the spell for a cast
-    CEngineObject* object;          // +0x08 counted
+    AIRef object;                   // +0x08 counted
     Vector3 point;                  // +0x0C left uninitialised by the AI's orders
     std::uint8_t flag;              // +0x18
     std::uint8_t unused_19[3];
@@ -354,7 +383,7 @@ struct FollowMode : AIMode {
     FollowMode* FollowDeletingDestruct(int flags);   // 004BA590
     void FollowDestruct();                           // 004BA5B0
 
-    CEngineObject* leader;          // +0x08
+    AIRef leader;                   // +0x08
 };
 static_assert(sizeof(FollowMode) == 0x0C);
 
@@ -420,7 +449,7 @@ struct AggressionMode : AIMode {
     AggressionMode* AggressionDeletingDestruct(int flags);   // 004BA8A0
     void AggressionDestruct();                               // 004BA8C0
 
-    CEngineObject* enemy;           // +0x08
+    AIRef enemy;                    // +0x08
     std::uint8_t fixed;             // +0x0C enemy set by the script (no searching)
     std::uint8_t unused_0D[3];
     int enemyPart;                  // +0x10 -1: the whole unit
@@ -577,7 +606,7 @@ struct PlayerMode : AIMode {
     // 0.1 (2D), else a path search with the unit moved to `from` for it (range twice the distance).
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
 
-    CEngineObject* target;          // +0x08
+    AIRef target;                   // +0x08
     CUnit* leader;                  // +0x0C
     Vector3 point;                  // +0x10 (z: 1.0 while walking there in state 2)
     int state;                      // +0x1C
@@ -586,22 +615,6 @@ struct PlayerMode : AIMode {
 };
 static_assert(sizeof(PlayerMode) == 0x24);
 
-// A counted reference (CEngineObject refcount at +4, released through vtable slot 4).
-struct AIRef {
-    AIRef* DeleteScalar(unsigned flags);
-    // 0052B030. Release and clear.
-    void Reset();
-    // 0052A8F0. Hold `object` (released first unless it is already held).
-    void Assign(CEngineObject* object);
-    // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
-    void Load(CStream* stream, void* world);
-    void Save(CStream* stream);
-    // A counted object pointer (a member of another object) seen as the reference it is.
-    template <typename T>
-    static AIRef* Of(T** slot) { return reinterpret_cast<AIRef*>(slot); }
-
-    CEngineObject* object;
-};
 
 // 0052AF20 (counted_ref.cpp; fastcall, RET 4): a count read from `stream`, then that many counted
 // references appended to `list`, each loaded in `context` (the trap's units, the brain's lists).
@@ -681,7 +694,7 @@ struct AIAlarmRecordElements {
 using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, AIAlarmRecordElements>;
 // An object the memory reported (8 bytes; the object is a counted reference).
 struct AIReport {
-    CEngineObject* object;
+    AIRef object;
     int what;
 };
 static_assert(sizeof(AIReport) == 8);
@@ -1162,8 +1175,8 @@ struct AIBrain {
     Vector3 actionPoint;            // +0x008
     AILookArray looks;              // +0x014 what to look at after arriving
     int actionTime;                 // +0x028 game time the current look ends (or kNoTime / kLookStarted)
-    CEngineObject* target;          // +0x02C
-    CEngineObject* seen;            // +0x030
+    AIRef target;                   // +0x02C
+    AIRef seen;                     // +0x030
     std::uint8_t alerted;           // +0x034
     std::int8_t alarm;              // +0x035 alarm kind raised when the countdown ends
     std::int8_t alarmSlot;         // +0x036 the world alarm slot of the applied record (ApplyBehaviour)

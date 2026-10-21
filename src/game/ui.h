@@ -915,7 +915,7 @@ public:
     // 00741ABC; RET 0xC; ui_small_members.cpp). Nothing under the point: `topic` 0, null.
     void* NoItemAt(int x, int y, int* topic);
     // Scene object `index` as the interface sprite it is.
-    CUiMesh* SceneMesh(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); }
+    CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98
@@ -1549,7 +1549,7 @@ public:
     const lib::AlignedArray<UiQuadBlock>& Quads() const { return const_cast<CUiMesh*>(this)->Quads(); }
     const lib::AlignedArray<UiMeshVertex>& Vertices() const { return const_cast<CUiMesh*>(this)->Vertices(); }
     const lib::AlignedArray<UiTexel>& Texels() const { return const_cast<CUiMesh*>(this)->Texels(); }
-    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CFigureMesh::RefreshBuffers, 005EA150.)
+    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CPlainFigureMesh::RefreshBuffers, 005EA150.)
     // 005E7010 (RET 0xC; ui_mesh_draw.cpp). Where Place put the sprite: the layout point
     // ((x / z / 0.4816 + 1) * 400, y / z / 0.4816 * 400 + 300; each stored as float) and the depth
     // (z, copied).
@@ -1643,6 +1643,11 @@ static_assert(offsetof(CUiMesh, texture_) == 0x280 && sizeof(CUiMesh) == 0x284);
 static_assert(offsetof(CUiMesh, flatSpecular_) == 0xD8 && offsetof(CUiMesh, textureOffsetU_) == 0xCC);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1C0 && offsetof(CUiMesh, corners_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200 && offsetof(CUiMesh, texCoords_) == 0x210);
+
+// A scene object as the interface sprite it is (a window's sprites are class 0x43 meshes; the
+// engine object is the first base, so the pointer is the same).
+inline CUiMesh* AsUiMesh(CEngineObject* object) { return static_cast<CUiMesh*>(object); }
+inline CUiMesh* CUiWindow::SceneMesh(int index) const { return AsUiMesh(sceneObjects_.data[index]); }
 
 // A growable array of 2D points with the interface arrays' 32-byte alignment.
 struct UiPointF {
@@ -3394,8 +3399,8 @@ public:
     // the key, Enter answers as OK and Esc as cancel, and the key is marked used.
     void OnKeyDown(int key, int repeat, int flags);
     // The check boxes: the first two sprites (Build adds them first).
-    CUiMesh* EasyBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]); }
-    CUiMesh* HardBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]); }
+    CUiMesh* EasyBox() const { return SceneMesh(0); }
+    CUiMesh* HardBox() const { return SceneMesh(1); }
     // The texture shift of a checked box (0xBDB80000).
     static constexpr float kCheckedOffset = -0.08984375f;
 

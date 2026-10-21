@@ -26,7 +26,7 @@ float ThumbInset() { return 5.0f /*0073BF34*/; }
 enum Sprite { kTrack, kThumb, kUpArrow, kDownArrow };
 enum Region { kUpRegion, kDownRegion, kTrackRegion };
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 float AsFloat(int value) { return static_cast<float>(value); }
 
 } // namespace

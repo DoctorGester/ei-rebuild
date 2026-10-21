@@ -253,7 +253,7 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
 // --- 00643DC0 ----------------------------------------------------------------------------------
 
 void CHudMap::BuildMarkers() {
-    CUiMesh* mesh = reinterpret_cast<CUiMesh*>(sceneObjects_.data[2]);
+    CUiMesh* mesh = SceneMesh(2);
     CBaseManager* objects = TheObjectManager();
     CPlayerClient* view = LocalView();
     int unitCount = view ? view->partyUnitIds_.size : 0;
@@ -433,7 +433,7 @@ void CHudMap::UpdateView() {
     std::memcpy(&SceneMesh(10)->localRotation_, &turn, sizeof(turn));
 
     // The view polygon in world units.
-    auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
+    auto* area = SceneMesh(1);
     UiPointArray& points = visibleArea_;
     int count = viewPolygon_.size;
     points.SetSize(count, -1);   // the original inlines the same code
@@ -534,7 +534,7 @@ void CHudMap::UpdateView() {
     area->RefreshBuffers();
 
     // The world's bounds (scene object 0), clamped to the map square [-1, 1].
-    auto* bounds = reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]);
+    auto* bounds = SceneMesh(0);
     float left = static_cast<float>(-D(centreX_) * D(scale_));
     float top = static_cast<float>(-(-D(centreY_) * D(scale_)));
     double rightRaw = (D(worldWidth_) - D(centreX_)) * D(scale_);

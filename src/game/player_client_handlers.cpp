@@ -183,7 +183,7 @@ int CPlayerClient::OnWeaponRemoved() {
     int index;
     in_.Read(&index, 4);
     // The party (an embedded CParty) seen as its record array.
-    PartyUnitRecord* record = reinterpret_cast<PartyRecords*>(Owner()->Party())->Find(unitId);
+    PartyUnitRecord* record = Owner()->Party()->Find(unitId);
     if (record && static_cast<int>(record->weaponCount) > index)
         record->RemoveWeapon(record->weapons[index]);
     if (CUnit* unit = FindClientUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);

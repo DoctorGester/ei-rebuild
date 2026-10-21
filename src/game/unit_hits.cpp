@@ -7,6 +7,8 @@
 #include "unit.h"
 
 #include "object_tables.h"
+#include "party.h"
+#include "player_messages.h"
 #include "item.h"
 #include "spell.h"
 
@@ -275,7 +277,7 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     std::uint32_t slot = activeWeapon;
     CEngineObject* weapon = nullptr;
     if (controller->GetClassId() == kClassPartyController) {
-        PartyUnitRecord* record = player ? reinterpret_cast<PartyRecords*>(player + 0x70)->Find(id_) : nullptr;
+        PartyUnitRecord* record = player ? reinterpret_cast<CPlayer*>(player)->Party()->Find(id_) : nullptr;
         if (record && slot < record->weaponCount) weapon = record->weapons[slot];
     } else if (slot < 4) {
         weapon = weapons[slot];

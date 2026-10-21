@@ -146,7 +146,7 @@ float GameTime() {
     return static_cast<float>(client->tick_) + client->tickFraction_;
 }
 
-std::uint8_t* LocalPlayerData() { return LocalPlayer()->party; }
+CParty* LocalPlayerData() { return LocalPlayer()->Party(); }
 
 mfc::CString* __stdcall LocalPlayerName(mfc::CString* out) {
     return new (out) mfc::CString(LocalPlayer()->Party()->zone_);

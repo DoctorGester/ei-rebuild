@@ -82,7 +82,7 @@ void Place(CUiWindow* window, int index, float x, float y, float depth) {
 }
 
 void SetTint(CEngineObject* object, float value) {
-    float* tint = reinterpret_cast<CUiMesh*>(object)->tint_;
+    float* tint = AsUiMesh(object)->tint_;
     tint[0] = tint[1] = tint[2] = value;
 }
 
@@ -121,7 +121,7 @@ void AdvanceSlide(Panel* panel) {
 void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
-    reinterpret_cast<CUiMesh*>(sling)->localRotation_ = *turn.SetAxisAngle(axis, angle);
+    AsUiMesh(sling)->localRotation_ = *turn.SetAxisAngle(axis, angle);
     SpritePlaceOriginal(sling, nullptr, x, kSlingY, FromBits(kSlingDepthBits));
 }
 
@@ -510,7 +510,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     UiSurfaceReleaseDC(dot);
 
     // The view polygon: the disc's sixteen corners.
-    const CUiMesh* disc = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
+    const CUiMesh* disc = SceneMesh(1);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)
             viewPolygon_.Add(UiPointF{disc->Quads()[block].x[corner], disc->Quads()[block].y[corner]});

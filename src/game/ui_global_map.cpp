@@ -558,7 +558,7 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
     double v = D(time) * D(rate);
     int whole = static_cast<int>(gamecrt::Ftol(v));
     float fraction = static_cast<float>(v - static_cast<double>(whole));
-    std::memcpy(&reinterpret_cast<CUiMesh*>(layer)->textureOffsetU_, &fraction, 4);
+    std::memcpy(&AsUiMesh(layer)->textureOffsetU_, &fraction, 4);
 }
 
 } // namespace
@@ -594,15 +594,14 @@ void CGlobalMap::Update() {
             turn_.y = -turn_.y;
             turn_.z = -turn_.z;
         }
-        CEngineObject** sprites = sceneObjects_.data;
         Vector3 at = {position_.x, position_.y, position_.z};
-        SetPosition(reinterpret_cast<CUiMesh*>(sprites[1]), builder.ModelPoint(at));
-        builder.Turn(reinterpret_cast<CUiMesh*>(sprites[1]));
-        builder.Turn(reinterpret_cast<CUiMesh*>(sprites[2]));
-        for (int k = 3; k < 6; ++k) builder.Turn(reinterpret_cast<CUiMesh*>(sprites[markerCount_ + k]));
-        for (int i = 0; i < zoneCount_; ++i) builder.Turn(reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + i]));
+        SetPosition(SceneMesh(1), builder.ModelPoint(at));
+        builder.Turn(SceneMesh(1));
+        builder.Turn(SceneMesh(2));
+        for (int k = 3; k < 6; ++k) builder.Turn(SceneMesh(markerCount_ + k));
+        for (int i = 0; i < zoneCount_; ++i) builder.Turn(SceneMesh(3 + i));
         for (int i = 0; i < questCount_; ++i) {
-            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + zoneCount_ + i]);
+            CUiMesh* sprite = SceneMesh(3 + zoneCount_ + i);
             Vector3 local = quests_.data[i].position;
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
@@ -610,7 +609,7 @@ void CGlobalMap::Update() {
             sprite->GetPlacement(&x, &y, &depth);
         }
         for (int i = 0; i < linkCount_; ++i) {
-            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + questCount_ + zoneCount_ + i]);
+            CUiMesh* sprite = SceneMesh(3 + questCount_ + zoneCount_ + i);
             Vector3 local = links_.data[i].position;
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
@@ -629,7 +628,7 @@ void CGlobalMap::Update() {
     bobTime_ = static_cast<float>(time);
     double bob = D(0.5f /*0073B86C*/) - x87::fcos(time * D(5.0f /*0073BF34*/)) * D(0.2f /*0073BAD4*/);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
-    SetPosition(reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]), builder.ModelPoint(above));
+    SetPosition(SceneMesh(0), builder.ModelPoint(above));
     // The layers' texture frames run at their own rates.
     SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, 0.01f /*0073D09C*/);
     SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, 0.016666668f /*0073F8A0*/);

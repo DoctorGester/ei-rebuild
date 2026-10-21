@@ -117,7 +117,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     order.Clear();
     order.MakeAttack(enemy);
     bool allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), &end);
-    reinterpret_cast<AIRef*>(&order.object)->Reset();
+    order.object.Reset();
     if (!allowed) return false;
     double ex = static_cast<double>(dest.x) - end.x;
     double ey = static_cast<double>(dest.y) - end.y;
@@ -307,7 +307,7 @@ void FearMode::Execute(AIBrain* brain) {
                 direction.z = static_cast<float>(v.z / twice);
             }
             brain->PlanLooks(&order, &direction, kNoWander, false);
-            reinterpret_cast<AIRef*>(&brain->target)->Assign(nullptr);
+            brain->target.Assign(nullptr);
             brain->action = AIBrain::kActionMove;
             brain->actionTime = AIBrain::kNoTime;
             // 005D7970: the order assigned to the brain's action point and looks.

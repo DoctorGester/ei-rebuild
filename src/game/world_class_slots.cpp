@@ -102,8 +102,8 @@ EI_REWRITTEN(0x005AACD0, I3DFigureClassId);
 
 const char* __fastcall FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
 int __fastcall FigureClientSpecificClassId(CEngineObject*) { return kFigureClientSpecificId; }
-EI_REPLACE(0x005A7040, FigureClientSpecificClassName);
-EI_REPLACE(0x005A7050, FigureClientSpecificClassId);
+EI_REWRITTEN(0x005A7040, FigureClientSpecificClassName);
+EI_REWRITTEN(0x005A7050, FigureClientSpecificClassId);
 
 int __fastcall UiObjectCreate(CEngineObject*) { return 1; }
 const char* __fastcall UiObjectClassName(CEngineObject*) { return kUiObjectName; }

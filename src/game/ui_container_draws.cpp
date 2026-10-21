@@ -102,7 +102,7 @@ EI_REPLACE_METHOD(0x00632A90, CMainMenu::DrawImpl);
 // the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.
 int CHeroEquipPanel::DrawImpl(int pass) {
     PartyUnitRecord* hero = ShownHero(owner_);
-    auto frame = [this](int i) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[i]); };
+    auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
     if (quick < hero->weaponCount) {
         frame(0)->visible_ = 1;

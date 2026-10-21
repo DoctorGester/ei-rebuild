@@ -21,12 +21,12 @@ std::uint32_t g_guardKey = /*007AFECC*/ {};
 // The players_ lists (+0x38) of the client world (007AF5B8) and the server world (007AFF60).
 CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0); }
 CEngineObject* ServerPlayers() { return ei::GameData<CEngineObject*>(0x007AFF98); }
-// The party records outside a game (007C82B0, laid out like WorldPlayer + 0x70): records +0x30,
-// count +0x34, gold +0x50.
-PartyRecords* GlobalParty() { return reinterpret_cast<PartyRecords*>(TheSavedParties().outsideGame_); }
-std::uint8_t* GlobalRecords() { return reinterpret_cast<std::uint8_t*>(GlobalParty()->records); }
-int GlobalRecordCount() { return GlobalParty()->count; }
-std::uint32_t& GlobalGold() { return *reinterpret_cast<std::uint32_t*>(GlobalParty()->array40 + 0x10); }
+// The party outside a game (007C82B0, a CParty like WorldPlayer + 0x70): its records, their
+// count and its gold.
+CParty* GlobalParty() { return reinterpret_cast<CParty*>(TheSavedParties().outsideGame_); }
+std::uint8_t* GlobalRecords() { return reinterpret_cast<std::uint8_t*>(GlobalParty()->members_.data); }
+int GlobalRecordCount() { return GlobalParty()->members_.size; }
+std::uint32_t& GlobalGold() { return GlobalParty()->money_; }
 
 constexpr int kRecordSize = 0x784;
 constexpr int kRecordGuarded = 0x20;   // the 0x704 bytes from +0x20 of a party record

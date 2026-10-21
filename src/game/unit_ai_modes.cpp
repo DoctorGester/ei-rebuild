@@ -99,7 +99,7 @@ void DestroyLooks(AIMoveOrder* order) {
 // Common tail of the moves: drop the target, action 2 to the order's point with its looks.
 void StartMove(AIBrain* brain, AIMoveOrder* order) {
     if (brain->target) {
-        reinterpret_cast<AIRef*>(&brain->target)->Reset();
+        brain->target.Reset();
         brain->target = nullptr;
     }
     brain->action = AIBrain::kActionMove;
@@ -133,7 +133,7 @@ int AIMode::Priority50(AIBrain*) { return kPriority; }
 EI_REPLACE_METHOD(0x005D0A80, AIMode::Priority50);
 
 void AIMode::EnterIdle(AIBrain* brain) {
-    ReleaseRef(brain->target);
+    brain->target.Reset();
     brain->action = AIBrain::kActionNone;
     std::uint32_t roll = IsaacRandom::Global().Next();
     volatile std::int64_t wide = roll;             // FILD qword of the zero-extended value
@@ -143,7 +143,7 @@ void AIMode::EnterIdle(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D0AF0, AIMode::EnterIdle);
 
 void AIMode::ClearAction(AIBrain* brain) {
-    ReleaseRef(brain->target);
+    brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
 EI_REPLACE_METHOD(0x005D0A50, AIMode::ClearAction);
@@ -358,14 +358,14 @@ void FollowMode::Execute(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D1E10, FollowMode::Execute);
 
 void FollowMode::OnObjectDeleted(CEngineObject* object) {
-    if (leader == object && leader) ReleaseRef(leader);
+    if (leader == object && leader) leader.Reset();
 }
 EI_REPLACE_METHOD(0x005D1DE0, FollowMode::OnObjectDeleted);
 
-void FollowMode::Load(CStream* stream) { reinterpret_cast<AIRef*>(&leader)->Load(stream, TheServerWorld()); }
+void FollowMode::Load(CStream* stream) { leader.Load(stream, TheServerWorld()); }
 EI_REPLACE_METHOD(0x005D1E60, FollowMode::Load);
 
-void FollowMode::Save(CStream* stream) { reinterpret_cast<AIRef*>(&leader)->Save(stream); }
+void FollowMode::Save(CStream* stream) { leader.Save(stream); }
 EI_REPLACE_METHOD(0x005D1E80, FollowMode::Save);
 
 // --- Suspection ----------------------------------------------------------------------------------
@@ -374,12 +374,12 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
     if (CEngineObject* seen = brain->seen) {
         bool allied = false;
         if (seen->GetClassId() == kClassUnit) {
-            std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen)->side & 31);
+            std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen.object)->side & 31);
             allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
         }
         if (!allied) {
             Vector3 where;
-            std::memcpy(&where, &static_cast<const CMapObject*>(brain->seen)->position, sizeof(Vector3));
+            std::memcpy(&where, &static_cast<const CMapObject*>(brain->seen.object)->position, sizeof(Vector3));
             brain->memory.Notice(&where, 1000, -2);
         }
     }
@@ -432,7 +432,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     }
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
-    reinterpret_cast<AIRef*>(&brain->target)->Assign(nullptr);
+    brain->target.Assign(nullptr);
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->actionPoint, &order.point, sizeof(Vector3));
@@ -468,18 +468,18 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     chosen = nullptr;
     if (fixed) {
         if (enemy && IsGone(enemy) != 0) {
-            reinterpret_cast<AIRef*>(&enemy)->Assign(nullptr);
+            enemy.Assign(nullptr);
             return kNoPriority;
         }
         if (!enemy) {
             if (CEngineObject* seen = brain->seen) {
                 bool allied = false;
                 if (seen->GetClassId() == kClassUnit) {
-                    std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen)->side & 31);
+                    std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen.object)->side & 31);
                     allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
                 }
                 if (!allied && seen != brain->owner->unit && !brain->memory.reports.Contains(seen))
-                    reinterpret_cast<AIRef*>(&enemy)->Assign(seen);
+                    enemy.Assign(seen);
             }
         }
         if (!enemy) return kNoPriority;
@@ -490,7 +490,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
             return chosen ? 10000 : kNoPriority;
         }
         if (enemy) {
-            reinterpret_cast<AIRef*>(&enemy)->Reset();
+            enemy.Reset();
             enemy = nullptr;
         }
         return kNoPriority;
@@ -562,7 +562,7 @@ EI_REPLACE_METHOD(0x005D2360, SuspectionMode::Save);
 
 void AggressionMode::Enter(AIBrain* brain) {
     brain->owner->SetBusy(1);
-    ReleaseRef(brain->target);
+    brain->target.Reset();
     brain->action = AIBrain::kActionNone;
     brain->owner->voice.Raise(6);
 }
@@ -573,20 +573,20 @@ void AggressionMode::Leave(AIBrain* brain) {
         brain->memory.noticedLevel = 0;
         brain->memory.noticedKind = 0;
     }
-    ReleaseRef(enemy);
+    enemy.Reset();
     brain->owner->SetBusy(0);
     brain->owner->voice.Raise(4);
 }
 EI_REPLACE_METHOD(0x005D2710, AggressionMode::Leave);
 
 void AggressionMode::Load(CStream* stream) {
-    reinterpret_cast<AIRef*>(&enemy)->Load(stream, TheServerWorld());
+    enemy.Load(stream, TheServerWorld());
     stream->Read(&fixed, 1);
 }
 EI_REPLACE_METHOD(0x005D2770, AggressionMode::Load);
 
 void AggressionMode::Save(CStream* stream) {
-    reinterpret_cast<AIRef*>(&enemy)->Save(stream);
+    enemy.Save(stream);
     stream->Write(&fixed, 1);
 }
 EI_REPLACE_METHOD(0x005D27A0, AggressionMode::Save);
@@ -608,7 +608,7 @@ EI_REPLACE_METHOD(0x005D27D0, CorpseWatcherMode::Evaluate);
 
 void FearMode::Enter(AIBrain* brain) {
     brain->owner->SetBusy(1);
-    ReleaseRef(brain->target);
+    brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
 EI_REPLACE_METHOD(0x005D3650, FearMode::Enter);
@@ -648,7 +648,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     switch (state) {
     case kStateFollow: {
         if (!leader && brain->action == AIBrain::kActionFollow) {
-            reinterpret_cast<AIRef*>(&brain->target)->Assign(nullptr);
+            brain->target.Assign(nullptr);
             brain->action = AIBrain::kActionNone;
         }
         int action = brain->action;
@@ -665,7 +665,7 @@ void PlayerMode::Execute(AIBrain* brain) {
         if (!direct) {
             brain->action = AIBrain::kActionFollow;
             if (who != brain->target) {
-                reinterpret_cast<AIRef*>(&brain->target)->Reset();
+                brain->target.Reset();
                 if (who) ++who->refCount_;
                 brain->target = who;
             }
@@ -698,12 +698,12 @@ void PlayerMode::Execute(AIBrain* brain) {
         if (walking == kOneBits) {
             if (brain->action == AIBrain::kActionNone) {
                 state = kStateFollow;
-                ReleaseRef(brain->target);
+                brain->target.Reset();
                 brain->action = AIBrain::kActionNone;
             } else if (!direct && !StaysWithParty(brain, true)) {
                 reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x21);
                 std::memset(&point.z, 0, 4);
-                ReleaseRef(brain->target);
+                brain->target.Reset();
                 brain->action = AIBrain::kActionNone;
             }
         } else if (direct || StaysWithParty(brain, false)) {
@@ -722,7 +722,7 @@ void PlayerMode::Execute(AIBrain* brain) {
         break;
     }
     state = kStateFollow;
-    ReleaseRef(brain->target);
+    brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
 EI_REPLACE_METHOD(0x005D4A90, PlayerMode::Execute);
@@ -749,7 +749,7 @@ void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, c
     }
     self->run = static_cast<std::uint8_t>(run);
     if (!DirectControl(brain)) ReleaseRef(self->leader);
-    ReleaseRef(self->target);
+    self->target.Reset();
 }
 } // namespace
 
@@ -843,7 +843,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     CUnit* self = brain->owner->unit;
     if (newLeader == self) {
         if (leader) {
-            reinterpret_cast<AIRef*>(&leader)->Reset();
+            AIRef::Of(&leader)->Reset();
             leader = nullptr;
         }
         return;
@@ -865,7 +865,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     }
     if (brain->action == AIBrain::kActionWalk) {
         state = kStateFollow;
-        ReleaseRef(brain->target);
+        brain->target.Reset();
         brain->action = AIBrain::kActionNone;
     }
     if (newLeader != leader) {
@@ -878,7 +878,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
 EI_REWRITTEN(0x005D3DE0, PlayerMode::SetLeader);
 
 void PlayerMode::OnObjectDeleted(CEngineObject* object) {
-    if (target == object && target) ReleaseRef(target);
+    if (target == object && target) target.Reset();
     if (leader == object && leader) ReleaseRef(leader);
 }
 EI_REPLACE_METHOD(0x005D37A0, PlayerMode::OnObjectDeleted);
@@ -886,8 +886,8 @@ EI_REPLACE_METHOD(0x005D37A0, PlayerMode::OnObjectDeleted);
 void PlayerMode::Load(CStream* stream) {
     // The save versions that wrote a group of objects after the mode.
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
-    reinterpret_cast<AIRef*>(&target)->Load(stream, TheServerWorld());
-    reinterpret_cast<AIRef*>(&leader)->Load(stream, TheServerWorld());
+    target.Load(stream, TheServerWorld());
+    AIRef::Of(&leader)->Load(stream, TheServerWorld());
     stream->Read(&point, sizeof(Vector3));
     stream->Read(&state, 4);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {
@@ -904,8 +904,8 @@ void PlayerMode::Load(CStream* stream) {
 EI_REPLACE_METHOD(0x005D4CD0, PlayerMode::Load);
 
 void PlayerMode::Save(CStream* stream) {
-    reinterpret_cast<AIRef*>(&target)->Save(stream);
-    reinterpret_cast<AIRef*>(&leader)->Save(stream);
+    target.Save(stream);
+    AIRef::Of(&leader)->Save(stream);
     stream->Write(&point, sizeof(Vector3));
     stream->Write(&state, 4);
 }

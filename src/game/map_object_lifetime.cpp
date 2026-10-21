@@ -184,7 +184,7 @@ void CObject3D::TearDownObject3D() {
     if (partBoxes) gamecrt::operator_delete(partBoxes);
     partNames.Destruct();
     if (CLinkMesh* current = figure) {
-        if (--current->refCount_ == 0 && current) current->DeleteThis(1);
+        if (--current->refCount_ == 0) delete current;
     }
     if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
     if (parts.data) gamecrt::operator_delete(parts.data[-1]);

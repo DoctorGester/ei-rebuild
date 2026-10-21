@@ -221,7 +221,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     float halfWidth = static_cast<float>(widthShare * kPictureHalf);
     int u1 = static_cast<int>(gamecrt::Ftol(widthShare * kTexels));
     int v0 = static_cast<int>(gamecrt::Ftol((1.0f - D(heightShare)) * kTexels));
-    CUiMesh* picture = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3]);
+    CUiMesh* picture = SceneMesh(3);
     picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
                           static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
                           0x100);
@@ -319,7 +319,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     }
     SelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
-        reinterpret_cast<CUiMesh*>(sceneObjects_.data[0])->visible_ = 0;
+        SceneMesh(0)->visible_ = 0;
         regions_.data[0]->SetTip(0, 1, 0);
     }
 
@@ -681,8 +681,8 @@ void CObjectivesWindow::Build() {
                 break;
             }
         if (SizeOf(*zones) > 1) {
-            reinterpret_cast<CUiMesh*>(sceneObjects_.data[14])->visible_ = 1;
-            reinterpret_cast<CUiMesh*>(sceneObjects_.data[15])->visible_ = 1;
+            SceneMesh(14)->visible_ = 1;
+            SceneMesh(15)->visible_ = 1;
             regions_.data[2]->SetTip(0x13948, 1, 0);
             regions_.data[3]->SetTip(0x13949, 1, 0);
         }
@@ -695,7 +695,7 @@ void CObjectivesWindow::DrawQuestList() {
     CTextManager* texts = TheTextManager();
     mfc::CString title;
     mfc::CString variable;
-    auto mesh = [this](int index) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); };
+    auto mesh = [this](int index) { return SceneMesh(index); };
     mesh(2)->visible_ = 0;
     auto* surface = static_cast<CUiSurface*>(surfaces_.data[0]);
     UiSurfaceGetDC(surface);

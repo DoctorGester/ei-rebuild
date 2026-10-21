@@ -349,7 +349,7 @@ namespace {
 // the local player's data (+0x34 the number of unit records).
 void __fastcall TradeSnapshotRecord(CTradePanel*);
 
-int PartyRecordCount() { return *reinterpret_cast<int*>(LocalPlayerData() + 0x34); }
+int PartyRecordCount() { return LocalPlayerData()->members_.size; }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
@@ -451,7 +451,7 @@ EI_REWRITTEN(0x00625430, TradeResetRecords);
 namespace {
 
 UnitStats* PartyMemberStats(int index) {
-    CParty* party = reinterpret_cast<CParty*>(LocalPlayerData());
+    CParty* party = LocalPlayerData();
     return reinterpret_cast<UnitStats*>(party->members_.data[index].stats);
 }
 } // namespace

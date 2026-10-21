@@ -347,7 +347,7 @@ void LoadArray(lib::AlignedArray<T>& array, char** cursor, int count) {
 
 } // namespace
 
-void CFigureMesh::LoadFigImpl(char** cursor, float s, float t, float u) {
+void CPlainFigureMesh::LoadFigImpl(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     FigHeader header;
     std::memcpy(&header, *cursor, sizeof(header));
@@ -391,7 +391,7 @@ void CFigureMesh::LoadFigImpl(char** cursor, float s, float t, float u) {
     buffers_.words = words_.data;
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A2500, CFigureMesh::LoadFigImpl);
+EI_REWRITTEN(0x005A2500, CPlainFigureMesh::LoadFigImpl);
 
 void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
@@ -494,7 +494,7 @@ void SkipRecords34(char** cursor) {
 
 } // namespace
 
-void CFigureMesh::LoadOldImpl(char** cursor, float s, float t, float u) {
+void CPlainFigureMesh::LoadOldImpl(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     LoadOldCommon(this, cursor, s, t, u, false);
     LoadArray(texCoords_, cursor, ReadCount(cursor));
@@ -520,7 +520,7 @@ void CFigureMesh::LoadOldImpl(char** cursor, float s, float t, float u) {
     buffers_.indices = indices_.data;
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A3800, CFigureMesh::LoadOldImpl);
+EI_REWRITTEN(0x005A3800, CPlainFigureMesh::LoadOldImpl);
 
 void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
     // Unlike the other three loaders, this one does not test the loaded flag.
@@ -618,30 +618,30 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
 lib::AlignedArray<VertexPacket>& OffsetVertices() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E18); }
 } // namespace
 
-void CFigureMesh::MirrorXImpl() {
+void CPlainFigureMesh::MirrorXImpl() {
     NegateBlock(vertices_, 0);
     NegateBlock(normals_, 0);
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REWRITTEN(0x005A4B30, CFigureMesh::MirrorXImpl);
+EI_REWRITTEN(0x005A4B30, CPlainFigureMesh::MirrorXImpl);
 
 void CFigureMesh::FitVertexBounds() {
     if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
 }
 EI_REWRITTEN(0x005A37C0, CFigureMesh::FitVertexBounds);
 
-void CFigureMesh::MirrorYImpl() {
+void CPlainFigureMesh::MirrorYImpl() {
     NegateBlock(vertices_, 1);
     NegateBlock(normals_, 1);
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REWRITTEN(0x005A4BF0, CFigureMesh::MirrorYImpl);
+EI_REWRITTEN(0x005A4BF0, CPlainFigureMesh::MirrorYImpl);
 
 EI_REPLACE_METHOD(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
 
-void CFigureMesh::RefreshBuffers() {
+void CPlainFigureMesh::RefreshBuffers() {
     BuffersChanged();
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
@@ -660,8 +660,8 @@ void CFigureMesh::RefreshBuffers() {
     buffers_.indices = indices_.data;
     buffers_.indexCount = indices_.size;
 }
-EI_REWRITTEN(0x005A6D40, CFigureMesh::RefreshBuffers);
-EI_REWRITTEN(0x005EA150, CFigureMesh::RefreshBuffers);
+EI_REWRITTEN(0x005A6D40, CPlainFigureMesh::RefreshBuffers);
+EI_REWRITTEN(0x005EA150, CPlainFigureMesh::RefreshBuffers);
 
 void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
     // The positions the new renderer keeps on the GPU move with new offsets (R16d): the animation's frame.

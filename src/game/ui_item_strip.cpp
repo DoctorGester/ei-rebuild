@@ -135,17 +135,14 @@ BOOL CUiItemStrip::Draw(int pass) {
     const int first = static_cast<int>(position);
     const float frac = static_cast<float>(position - static_cast<float>(first));
     const float hundred = 100.0f /*0073BAB0*/, fifty = 50.0f /*0074023C*/, one = 1.0f /*0073B84C*/;
-    CEngineObject** sprites = window.sceneObjects_.data;
-    const std::uint32_t dim = 0x3E480000;   // 0.1953125
-    auto* left = reinterpret_cast<std::uint8_t*>(sprites[0]);
-    auto* right = reinterpret_cast<std::uint8_t*>(sprites[1]);
-    *reinterpret_cast<std::uint32_t*>(left + 0xCC) = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0u;
-    *reinterpret_cast<std::uint32_t*>(right + 0xCC) =
-        static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0u;
+    // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
+    const float dim = 0.1953125f;   // 0x3E480000
+    window.SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0.0f;
+    window.SceneMesh(1)->textureOffsetU_ = static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0.0f;
 
-    reinterpret_cast<CUiMesh*>(sprites[9])->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
+    window.SceneMesh(9)->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
-        reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[10 + i])
+        window.SceneMesh(10 + i)
             ->Place(((static_cast<float>(i) - frac) + one) * hundred, static_cast<float>(top_) + fifty, scale_);
     }
     window.DrawBase(pass);

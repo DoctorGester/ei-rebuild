@@ -29,7 +29,7 @@ void SaveObjectList(mfc::CTypedPtrList<CUnit>& list, CStream* stream) {
     WriteCopy(stream, list.count);
     for (auto* node = list.head; node;) {
         auto* next = node->next;
-        reinterpret_cast<AIRef*>(&node->data)->Save(stream);
+        AIRef::Of(&node->data)->Save(stream);
         node = next;
     }
 }
@@ -74,7 +74,7 @@ void AIMemory::Load(CStream* stream) {
     stream->Read(&count, 4);
     reports.SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
-        reinterpret_cast<AIRef*>(&reports.data[i].object)->Load(stream, TheServerWorld());
+        reports.data[i].object.Load(stream, TheServerWorld());
         stream->Read(&reports.data[i].what, 4);
     }
     stream->Read(&count, 4);
@@ -101,7 +101,7 @@ void AIMemory::Save(CStream* stream) {
     WriteCopy(stream, nearbyCountdown);
     WriteCopy(stream, reports.size);
     for (int i = 0; i < reports.size; ++i) {
-        reinterpret_cast<AIRef*>(&reports.data[i].object)->Save(stream);
+        reports.data[i].object.Save(stream);
         WriteCopy(stream, reports.data[i].what);
     }
     WriteCopy(stream, calls.size);

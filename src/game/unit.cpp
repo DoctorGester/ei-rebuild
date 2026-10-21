@@ -2,6 +2,8 @@
 
 #include "item.h"
 #include "spell.h"
+#include "party.h"
+#include "player_messages.h"
 #include "unit_db.h"
 
 #include "ei/hook.h"
@@ -43,7 +45,8 @@ float ItemWeight(const CItem* item) { return item->Weight(); }
 // A spell's mana cost (CSpell +0x40, a float kept as a dword).
 float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
 
-PartyRecords* RecordsOf(char* player) { return reinterpret_cast<PartyRecords*>(player + 0x70); }
+// The party of the unit's player (CPlayer +0x70).
+CParty* RecordsOf(char* player) { return reinterpret_cast<CPlayer*>(player)->Party(); }
 
 bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == kClassPartyController; }
 

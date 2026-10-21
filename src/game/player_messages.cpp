@@ -248,9 +248,9 @@ void CPlayerServer::SetFlag70(std::uint8_t value) { flag70_ = value; }
 
 // --- Party records -------------------------------------------------------------------------------
 
-PartyUnitRecord* PartyRecords::Find(int unitId) const {
-    for (int i = 0; i < count; ++i)
-        if (records[i].unitId == static_cast<std::uint32_t>(unitId)) return &records[i];
+PartyUnitRecord* CParty::Find(int unitId) const {
+    for (int i = 0; i < members_.size; ++i)
+        if (members_.data[i].unitId == static_cast<std::uint32_t>(unitId)) return &members_.data[i];
     return nullptr;
 }
 
@@ -492,5 +492,5 @@ EI_REWRITTEN(0x0066D7B0, CPlayerServer::SendText);
 EI_REWRITTEN(0x0066D230, CPlayerServer::WriteTo);
 EI_REWRITTEN(0x0066D250, CPlayerServer::SetDisconnect);
 EI_REWRITTEN(0x0066D260, CPlayerServer::SetFlag70);
-EI_REWRITTEN(0x006621B0, PartyRecords::Find);
+EI_REWRITTEN(0x006621B0, CParty::Find);
 EI_REPLACE_METHOD(0x00665DE0, CPlayer::Tick);

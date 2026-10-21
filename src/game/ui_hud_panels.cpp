@@ -33,7 +33,7 @@ constexpr char kNewLine[] = {'\n', '\0'};                           // 00784340
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
 // The panel's scene object `index` (the HUD's are interface sprites).
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
 // Text into the panel's first surface (005FDE20, Rebirth-patched: through its address).
 void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {
@@ -304,7 +304,7 @@ void CHudTopPanel::ShowItems() {
 
     mfc::CString& text = pageTexts_[1];
     text.Empty();
-    auto* party = reinterpret_cast<CParty*>(LocalPlayerData());
+    auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
         TextsGetString(texts, nullptr, "format_money", &format);
         line.Format(format, static_cast<int>(party->money_));

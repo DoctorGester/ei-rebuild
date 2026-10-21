@@ -65,7 +65,7 @@ void SexOf(const char* figure, mfc::CString& sex) {
 using PlayerNode = net::RefNode;
 PlayerNode* PlayersHead() { return net::GameClient()->players_.End(); }
 
-CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
+CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 } // namespace
 

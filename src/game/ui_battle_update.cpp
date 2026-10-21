@@ -34,6 +34,7 @@
 #include <cstring>
 #include <bit>
 #include "originals_ui.h"
+#include "party.h"
 #include "world.h"
 #include "world_glue.h"
 #include "lib/mfc_array.h"
@@ -98,7 +99,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
             CEngineObject* shown = sceneObjects_.data[last];
-            static_cast<CUiMesh*>(static_cast<CFigureMesh*>(shown))->SetScale(slot < 4 ? 0.55f : 0.85f);
+            AsUiMesh(shown)->SetScale(slot < 4 ? 0.55f : 0.85f);
             SceneMesh(last)->flatSpecular_ = 0xFF000000;
         }
     };
@@ -341,9 +342,9 @@ void CBattleScreen::Update() {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
         mfc::CArray<std::uint8_t*> records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
         mfc::CArray<std::uint8_t*> second = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
-        PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData());
-        for (int i = 0; i < data->count; ++i)
-            records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->records[i]));   // 0059D2E0
+        CParty* data = LocalPlayerData();
+        for (int i = 0; i < data->members_.size; ++i)
+            records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->members_.data[i]));   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? reinterpret_cast<CMessageBox*>(memory)->Construct(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1)
@@ -482,7 +483,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             static_cast<CWorldClient*>(world)->Deselect(nullptr);
             using MarkFn = void(__thiscall*)(void*, int);
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
-            auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data[i * 5 + 4]); };
+            auto marker = [&](int i) { return portraits_->SceneMesh(i * 5 + 4); };
             auto slot = [&](int i) -> HudPortraitSlot& { return static_cast<CHudPortraits*>(portraits_)->slots_[i]; };
             for (int i = 0; i < party->size; ++i) {
                 CUnit* unit = unitAt(i);

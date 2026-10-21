@@ -2,8 +2,9 @@
 // creates a scene object of a class id. 0x41-0x43 are the figure part meshes built on the common
 // base (005AABC0): 0x41 with two empty arrays (CSharedFigureMesh), 0x42 with four more
 // (CPlainFigureMesh), 0x43 the same (CUiMesh, ui.h; the original constructs its six arrays); the
-// original inlines their constructors, ours are C++ (C19). 0x44 (004D9110) and
-// 0x300B-0x300D (0050A5D0, 0050AF40, 0050C5F0) have their own constructors. The new object's
+// original inlines their constructors. 0x44 (004D9110) and 0x300B-0x300D (AnimationTrack 0050A5D0,
+// FigureBone 0050AF40, CFigureAnimationState 0050C5F0) have their own. All are C++ classes (C19),
+// allocated at the game's sizes. The new object's
 // type_ (+0x10) gets the class id; an unknown id or a failed allocation returns null. See
 // docs/notes/models.md.
 #include "engine_object.h"   // CEngineObject
@@ -24,36 +25,31 @@
 
 namespace {
 
-// A figure object of class T in new storage of `size` bytes (the class 0x41 object is smaller than
-// its C++ class: figure_mesh.h), or null when the allocation fails.
-template <typename T>
-T* New(std::size_t size) {
-    void* o = gamecrt::operator_new(size);
+// A figure object of class T in new storage (the game's size for the class), or null when the
+// allocation fails.
+template <typename T, std::size_t kGameSize>
+T* New() {
+    static_assert(sizeof(T) == kGameSize);
+    void* o = gamecrt::operator_new(sizeof(T));
     return o ? new (o) T() : nullptr;
 }
 
 void* Create(int classId) {
     switch (classId) {
     case 0x41:
-        return New<CSharedFigureMesh>(0x1E0);
+        return New<CSharedFigureMesh, 0x1E0>();
     case 0x42:
-        return New<CPlainFigureMesh>(0x220);
+        return New<CPlainFigureMesh, 0x220>();
     case 0x43:
-        return New<CUiMesh>(0x284);
+        return New<CUiMesh, 0x284>();
     case 0x44:
-        return New<CSkyObject>(0x230);
-    case 0x300B: {
-        void* o = gamecrt::operator_new(0x78);
-        return o ? static_cast<AnimationTrack*>(o)->Construct() : nullptr;
-    }
-    case 0x300C: {
-        void* o = gamecrt::operator_new(0xA0);
-        return o ? static_cast<FigureBone*>(o)->Construct() : nullptr;
-    }
-    case 0x300D: {
-        void* o = gamecrt::operator_new(0x78);
-        return o ? static_cast<CFigureAnimationState*>(o)->Construct() : nullptr;
-    }
+        return New<CSkyObject, 0x230>();
+    case 0x300B:
+        return New<AnimationTrack, 0x78>();
+    case 0x300C:
+        return New<FigureBone, 0xA0>();
+    case 0x300D:
+        return New<CFigureAnimationState, 0x78>();
     default:
         return nullptr;
     }
