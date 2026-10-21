@@ -55,7 +55,7 @@ void SetLightRange(CLight* light, std::uint32_t rangeBits) {
 }
 
 std::uint32_t& LightFlags(CLight* light) { return light->flags_; }
-Vector3& LightPosition(CLight* light) { return light->position_; }
+Vector3& LightPosition(CLight* light) { return light->localPosition_; }
 
 // The particle tick's step towards the target, in the original's x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);

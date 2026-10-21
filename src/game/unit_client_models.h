@@ -19,6 +19,7 @@ class CParticleSource;   // effects.h
 class CTexture;          // texture.h
 struct tagRECT;          // windows.h RECT
 class CUnit;
+struct UnitPrototypeRecord;   // unit_db.h
 struct AIPath;    // ai_map.h
 struct FigureAnimation;   // map_object_figures.h
 struct Vector3;   // maths.h
@@ -420,11 +421,11 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 
 // 00535CB0 (__fastcall). The figure part names a unit of prototype `prototype` shows with the
 // armour pieces `armourIds` (appended to `names`: "<part>.armor<number>", the hair as
-// "hr.<hair>.armor<number>" unless the prototype has no hair, +0x10 = -1), the parts of the
+// "hr.<hair>.armor<number>" unless the prototype has no hair, -1), the parts of the
 // weapons `weaponIds` (006A1780, also into `names`), and every plain part of the three rows
 // (into `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
 
-void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
+void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
                                        stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames);
 

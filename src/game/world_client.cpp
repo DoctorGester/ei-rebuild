@@ -491,8 +491,8 @@ int CWorldClient::Segment() {
                          light = static_cast<CLight*>(lights.Next())) {
                         if (light == sun || (light->flags_ & 0x80)) continue;
                         float nodeX = effect.position_.x, nodeY = effect.position_.y;
-                        double dy = static_cast<double>(light->position_.y) - nodeY;
-                        double dx = static_cast<double>(light->position_.x) - nodeX;
+                        double dy = static_cast<double>(light->localPosition_.y) - nodeY;
+                        double dx = static_cast<double>(light->localPosition_.x) - nodeX;
                         double squared = LengthSquared2DUnrounded(dx, dy);
                         double radius = light->rangeSquared_;
                         if (squared > radius) continue;

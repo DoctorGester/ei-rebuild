@@ -36,13 +36,14 @@ std::uint8_t& Guards() { return g_guards; }
 void(__cdecl* const kDestroyBuilder)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE30);
 void(__cdecl* const kFreePartPoints)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE10);
 
-// A scene node's matrix from its orientation and position (the bottom row 0, 0, 0, 1).
-void BuildNodeMatrix(CObject3D* node) {
-    node->localRotation_.ToMatrix(node->worldMatrix.m);
-    float* m = node->worldMatrix.m;
-    m[11] = node->localPosition_.z;
-    m[3] = node->localPosition_.x;
-    m[7] = node->localPosition_.y;
+// A scene node's matrix (an object's or a figure part's) from its rotation and position (the
+// bottom row 0, 0, 0, 1).
+void BuildNodeMatrix(const Quaternion& rotation, const Vector3& position, Matrix4& matrix) {
+    rotation.ToMatrix(matrix.m);
+    float* m = matrix.m;
+    m[11] = position.z;
+    m[3] = position.x;
+    m[7] = position.y;
     m[14] = 0.0f;
     m[13] = 0.0f;
     m[12] = 0.0f;
@@ -80,7 +81,7 @@ struct PartData {
     int indexCount = 0;
 };
 
-void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CObject3D* part, PartData& data) {
+void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMesh* part, PartData& data) {
     const Matrix4* top = pipeline->Top(CTransformPipeline::kDecalStack);
     {
         stlp::string name(part->GetName());
@@ -134,19 +135,17 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             // The object's bounding sphere about its origin, then about its centre.
             if (!builder.Touches(&object->localPosition_, Length<Sum3::XYZ>(object->center) + object->radius))
                 continue;
-            BuildNodeMatrix(object);
+            BuildNodeMatrix(object->localRotation_, object->localPosition_, object->worldMatrix);
             Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->center) +
                              object->localPosition_;
             if (!builder.Touches(&centre, object->radius)) continue;
             PushDecalMatrix(pipeline, object->worldMatrix.m);
-            auto* figure = reinterpret_cast<CLinkMesh*>(object->figure);
+            CLinkMesh* figure = object->figure;
             if (figure) {
-                // The parts are scene nodes laid out as CObject3D's first members (position,
-                // orientation, matrix); CFigureMesh's declaration contradicts it (models.md, C9).
                 for (int i = 0; i < object->parts.size; ++i) {
-                    auto* part = reinterpret_cast<CObject3D*>(object->parts[i]);
-                    BuildNodeMatrix(part);
-                    PushDecalMatrix(pipeline, part->worldMatrix.m);
+                    CFigureMesh* part = object->parts[i];
+                    BuildNodeMatrix(part->localRotation_, part->localPosition_, part->worldMatrix_);
+                    PushDecalMatrix(pipeline, part->worldMatrix_.m);
                     AddPartTriangles(pipeline, figure, part, data);
                     pipeline->PopMatrix(CTransformPipeline::kDecalStack);
                 }

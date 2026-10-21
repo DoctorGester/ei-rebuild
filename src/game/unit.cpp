@@ -402,7 +402,7 @@ UnitPrototypeRecord* CUnit::GetPrototype23C() {
 EI_REPLACE_METHOD(0x005309E0, CUnit::GetPrototype23C);
 
 std::uint32_t CUnit::SetPrototype23C(const UnitPrototypeRecord* record) {
-    int offset = static_cast<int>(reinterpret_cast<const char*>(record) - unitdb::Prototypes().begin);
+    int offset = unitdb::PrototypeByteOffset(record);
     prototype23C = offset / unitdb::kPrototypeSize;
     return offset < 0 ? 1u : 0u;   // EAX: the sign of the unadjusted quotient
 }

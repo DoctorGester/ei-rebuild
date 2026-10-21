@@ -206,7 +206,7 @@ void CChatWindow::ShowPlayers() {
             prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
             // EI_Plugin's Fixes (006093B7): an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
-                prototype = reinterpret_cast<UnitPrototypeRecord*>(pluginfixes::FallbackPrototype());
+                prototype = pluginfixes::FallbackPrototype();
         }
         FigurePrototypeRecord* figure;
         {

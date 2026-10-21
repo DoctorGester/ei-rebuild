@@ -273,7 +273,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
     const char* const* names = record->names.Start();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
-        CollectArmourPartNames(reinterpret_cast<const char*>(prototype), &record->armourIds, &record->weaponIds, &first,
+        CollectArmourPartNames(prototype, &record->armourIds, &record->weaponIds, &first,
                                &second);   // 00535CB0
     } else {
         int count = static_cast<int>(record->names.Finish() - names);

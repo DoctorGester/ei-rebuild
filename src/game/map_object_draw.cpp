@@ -56,7 +56,7 @@ using LightList = lib::AlignedArray<CEngineObject*>;
 
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const CObject3D* object, const CLight* light) {
-    const Vector3& at = light->position_;
+    const Vector3& at = light->localPosition_;
     float dx = static_cast<float>(static_cast<double>(object->localPosition_.x) - at.x);
     float dy = static_cast<float>(static_cast<double>(object->localPosition_.y) - at.y);
     float dz = static_cast<float>(static_cast<double>(object->localPosition_.z) - at.z);

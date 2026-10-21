@@ -7,6 +7,7 @@
 #include "core_streams.h"
 #include "player_messages.h"
 #include "unit_create.h"
+#include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -31,12 +32,9 @@ constexpr int kVersionSecondName = 0x6A;
 constexpr int kCarriedGrowMin = 4;
 constexpr int kCarriedGrowMax = 0x400;
 
-// The record of prototype `index`, or null when out of range (the table holds 0x120-byte records
-// whose first field is the name CString).
-char* PrototypeAt(std::uint32_t index) { return unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize); }
-
-int PrototypeIndexOf(const char* record) {
-    return record ? static_cast<int>((record - unitdb::Prototypes().begin) / unitdb::kPrototypeSize) : -1;
+// The index of prototype record `record` (one of the table's), or -1 without one.
+int PrototypeIndexOf(const UnitPrototypeRecord* record) {
+    return record ? static_cast<int>(record - unitdb::PrototypeTable().begin) : -1;
 }
 
 // Writes `value` from a stack copy, as the original does for most scalars.
@@ -64,7 +62,7 @@ void ReadStringInto(CStream* stream, mfc::CString& target) {
 
 // The prototype record named `name` through the name map (an unknown name is added to it;
 // 005335E0, hash_map<string, record*>::operator[], inlined by the original).
-char* PrototypeByName(const char* name) {
+UnitPrototypeRecord* PrototypeByName(const char* name) {
     stlp::string key(name);
     return unitdb::PrototypeTable().byName.Subscript(key);
 }
@@ -192,7 +190,7 @@ void CUnit::LoadUnit(CStream* stream) {
     mfc::CString prototypeName;
     ReadStringInto(stream, prototypeName);
     prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
-    char* second;
+    UnitPrototypeRecord* second;
     if (stream->version_ < kVersionSecondName) {
         second = unitdb::PrototypeTable().FindByName(prototypeName);
     } else {
@@ -240,10 +238,10 @@ void CUnit::SaveUnit(CStream* stream) {
 
     // The prototype's name (the record's first field is a CString; a record out of range is
     // copied from address 0, as the original does), then the second prototype's or "".
-    mfc::CString prototypeName(*reinterpret_cast<const mfc::CString*>(PrototypeAt(prototypeId_)));
+    mfc::CString prototypeName(unitdb::PrototypeRecord(prototypeId_)->name);
     WriteString(stream, prototypeName);
-    const char* second = PrototypeAt(static_cast<std::uint32_t>(prototype23C));
-    if (second) prototypeName = *reinterpret_cast<const mfc::CString*>(second);
+    const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
+    if (second) prototypeName = second->name;
     else prototypeName = "";
     WriteString(stream, prototypeName);
 }

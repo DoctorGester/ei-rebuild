@@ -307,7 +307,7 @@ void CHudMap::BuildMarkers() {
         out.BeginQuad();
         CLight* light = markers->LightWithId(node->data);
         float x, y;
-        if (light && out.Place(light->position_.x, light->position_.y, &x, &y)) {
+        if (light && out.Place(light->localPosition_.x, light->localPosition_.y, &x, &y)) {
             out.PutSquare(x, y);
             out.Show(kFrameMarked);
         } else {

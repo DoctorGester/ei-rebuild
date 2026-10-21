@@ -21,22 +21,22 @@ class CUnit;
 struct UnitStats;
 struct UnitVitals;
 struct UnitPrototypeRecord;   // unit_db.h
+struct UnitNpcRecord;         // unit_db.h
 
-// The unit prototype table (global 007AF358): an STLport vector of 0x120-byte records (item_db.h's
-// RecordTable reads its begin / end) followed by a hash_map<string, record*> from prototype names
-// to records at +0x0C.
+// The unit prototype table (global 007AF358): an STLport vector of 0x120-byte records followed by
+// a hash_map<string, record*> from prototype names to records at +0x0C.
 struct UnitPrototypeTable {
     // 0053AD30 (unit_stat_small.cpp, RET 4). Prototype `index`, or null past the end.
     UnitPrototypeRecord* At(std::uint32_t index);
-    using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
+    using NameIndex = stlp::hash_map<stlp::string, UnitPrototypeRecord*, stlp::StringHash>;
 
     // 00514930 (and its copy 005144D0). The record named `name`: operator[] on the name index,
     // so an unknown name is inserted with a null record (and null is returned).
-    char* FindByName(const char* name);
+    UnitPrototypeRecord* FindByName(const char* name);
 
-    char* begin;                // +0x00
-    char* end;                  // +0x04
-    char* endOfStorage;         // +0x08
+    UnitPrototypeRecord* begin;         // +0x00
+    UnitPrototypeRecord* end;           // +0x04
+    UnitPrototypeRecord* endOfStorage;  // +0x08
     NameIndex byName;           // +0x0C
 };
 static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
@@ -44,14 +44,14 @@ static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 // The NPC prototype table (global 007AF378; records of statistics for named creatures), laid
 // out the same way.
 struct NpcPrototypeTable {
-    using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
+    using NameIndex = stlp::hash_map<stlp::string, UnitNpcRecord*, stlp::StringHash>;
 
     // 005145D0. As UnitPrototypeTable::FindByName (its own instantiation, 00514A20).
-    char* FindByName(const char* name);
+    UnitNpcRecord* FindByName(const char* name);
 
-    char* begin;
-    char* end;
-    char* endOfStorage;
+    UnitNpcRecord* begin;
+    UnitNpcRecord* end;
+    UnitNpcRecord* endOfStorage;
     NameIndex byName;           // +0x0C
 };
 static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);

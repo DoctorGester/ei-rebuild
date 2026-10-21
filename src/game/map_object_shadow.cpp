@@ -151,7 +151,7 @@ double Brightness(const CLight* light) {
 // falloff over the squared distance. False when the object is out of its range.
 bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
     const Vector3& at = object->localPosition_;
-    const Vector3& from = light->position_;
+    const Vector3& from = light->localPosition_;
     double dx = static_cast<double>(at.x) - from.x;
     double dy = static_cast<double>(at.y) - from.y;
     double dz = static_cast<double>(at.z) - from.z;

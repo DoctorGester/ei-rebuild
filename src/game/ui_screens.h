@@ -24,6 +24,8 @@
 
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "resource.h"
+#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -965,7 +967,7 @@ public:
     CUiScrollingSurface* textSurface_;   // +0x164 the scrolling text
     CUiSurface* headerSurface_; // +0x168
     int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
-    std::uint8_t archive_[0x1C8 - 0x170];   // +0x170 CMappedResource ("outro.res")
+    lib::InPlace<CMappedResource> archive_;   // +0x170 "outro.res" (built and destroyed by hand)
     stlp::list<TitleLine> lines_;   // +0x1C8
     float nextLineAt_;          // +0x1CC game time the current line ends (0 from Build and for scrolls)
     stlp::list<TitleLine>::Node* currentLine_;   // +0x1D0 the next line (the sentinel at the end)

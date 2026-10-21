@@ -309,8 +309,11 @@ namespace unitdb {
 inline UnitDatabase& Database() { return *g_unitDatabase; }
 // operator[] on the prototype and model name indexes (005335E0 / 0053C780; an unknown name gets a
 // null entry): the record, or null.
-inline UnitPrototypeRecord* PrototypeNamed(const stlp::string& name) {
-    return reinterpret_cast<UnitPrototypeRecord*>(PrototypeTable().byName.Subscript(name));
+inline UnitPrototypeRecord* PrototypeNamed(const stlp::string& name) { return PrototypeTable().byName.Subscript(name); }
+// The byte distance of `record` from the first prototype record: what the originals divide by
+// 0x120 themselves (a null record included, which gives a negative distance).
+inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
+    return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(PrototypeTable().begin));
 }
 inline UnitModelRecord* ModelNamed(const stlp::string& name) { return Database().models.byName.Subscript(name); }
 } // namespace unitdb
@@ -408,5 +411,15 @@ namespace unitdb {
 inline SkillLevelRecord* SkillLevelAt(std::uint32_t index) {
     stlp::vector<SkillLevelRecord>& levels = SkillDb()->levels;
     return index < static_cast<std::uint32_t>(levels.end() - levels.begin()) ? levels.begin() + index : nullptr;
+}
+// Skill record `index`, or null past the end (SkillDatabase::SkillAt, inline).
+inline SkillRecord* SkillAt(std::uint32_t index) {
+    stlp::vector<SkillRecord>& skills = SkillDb()->skills;
+    return index < static_cast<std::uint32_t>(skills.end() - skills.begin()) ? skills.begin() + index : nullptr;
+}
+// The models' level record `index` (007AF3B8), or null past the end.
+inline UnitLevelRecord* ModelLevelAt(std::uint32_t index) {
+    UnitLevelTable& levels = Database().levels;
+    return index < static_cast<std::uint32_t>(levels.end - levels.begin) ? levels.begin + index : nullptr;
 }
 } // namespace unitdb

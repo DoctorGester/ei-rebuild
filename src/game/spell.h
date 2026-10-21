@@ -5,6 +5,7 @@
 // game's own GetClassName strings where there is one; field names are provisional.
 
 #include "base_manager.h"
+#include "core_transform.h"   // CTransformObject (CLight)
 #include "engine_object.h"
 #include "resource_manager.h"
 #include "item_db.h"
@@ -467,7 +468,10 @@ const char* __fastcall SpellConstructorClassName(CSpellConstructor*);
 int __fastcall SpellConstructorClassId(CSpellConstructor*);
 
 // A light (vtable 00743AFC, GetClassName "CLight", class id 10). type_ 0x31 is a point light.
-class CLight : public CEngineObject {
+// A transform object: localPosition_ is the light's position (a point light's, and where a
+// directional light is drawn from); worldPosition_ holds the position in the space of the mesh
+// being lit (the mesh drawer 005A7A70 writes it), localRotation_ / worldRotation_ start identity.
+class CLight : public CTransformObject {
 public:
     // 0068D730. Brightness (luminance of the colour) at `point`, falling off with the squared
     // distance for point lights.
@@ -503,12 +507,6 @@ public:
                   float distance) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AFC);
 
-    // The first 0x54 bytes are a CTransformObject (core_transform.h; its destructor's vtable is
-    // stored), not declared as the base here yet.
-    Vector3 position_;              // +0x1C
-    Vector3 localPosition_;         // +0x28 the position in the space of the mesh being lit (005A7A70)
-    Quaternion localRotation_;      // +0x34 identity
-    Quaternion worldRotation_;      // +0x44 identity
     std::uint8_t unused_54[0x94 - 0x54];
     int kind_;                      // +0x94 1 point, 3 directional
     float color_[3];                // +0x98 r, g, b
@@ -531,7 +529,7 @@ static_assert(offsetof(CLight, color_) == 0x98);
 static_assert(offsetof(CLight, rangeSquared_) == 0x100);
 static_assert(offsetof(CLight, litColors_) == 0x114);
 static_assert(offsetof(CLight, range_) == 0xE0);
-static_assert(offsetof(CLight, localPosition_) == 0x28 && offsetof(CLight, direction_) == 0xD4 &&
+static_assert(offsetof(CLight, unused_54) == 0x54 && offsetof(CLight, direction_) == 0xD4 &&
               offsetof(CLight, localDirection_) == 0x108);
 
 // 0068CFF0 / 0068D000 (slots 2 / 3, light.cpp): Create returns 1; Destroy clears flags_ bit 5.

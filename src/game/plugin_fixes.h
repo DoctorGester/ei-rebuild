@@ -37,7 +37,7 @@ inline bool Contains(const char* name, const char* needle) {
 // the head of the first bucket of the prototype table's name index (in bucket order, chains not
 // walked) whose name has none of "NPC", "Human", "Orc", "Undead", "Male", "Female" in it. Null when
 // there is none (the plugin would run on past the buckets).
-inline char* FallbackPrototype() {
+inline UnitPrototypeRecord* FallbackPrototype() {
     auto& index = unitdb::PrototypeTable().byName;
     for (std::size_t b = 0; b < index.BucketCount(); ++b) {
         auto* node = index.Bucket(b);

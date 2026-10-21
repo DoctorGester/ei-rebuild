@@ -372,6 +372,12 @@ namespace game {
 
 // 00480080. Reports a fatal error (printf-style) and normally exits the game.
 int __cdecl FatalError(const char* format, ...);
+// FatalError's result as the pointer a caller hands back in EAX (the originals return what the
+// report returns, when it returns at all).
+template <class T, class... Args>
+T* FatalErrorAs(const char* format, Args... args) {
+    return reinterpret_cast<T*>(FatalError(format, args...));
+}
 // 0044C470. Debug log; compiled out (empty) in the release build, but other mods may hook it. A bare
 // RET: the caller's EAX comes back unchanged (bink_video.cpp's error message masks it, so it is
 // declared to return a value; the other callers ignore it).

@@ -153,14 +153,20 @@ EI_VECTOR_CHECK("MaxDamage", MaxCall, CheckMax);
 constexpr std::uintptr_t kFactorStatRange = 0x007AF280;   // unit_stats.cpp
 constexpr std::uint32_t kMostLevelRecords = 4096;
 
+// Points a skill database vector at `first`..`last` (its start and finish pointers, written as
+// bytes: the vector has no setter; the records are never constructed or destroyed).
+template <typename T>
+void PointVector(stlp::vector<T>& vector, T* first, T* last) {
+    T* const range[2] = {first, last};
+    std::memcpy(&vector, range, sizeof(range));
+}
+
 // The stand-in's level records: `count` zeroed records, the skill database's level table on them.
 std::vector<unsigned char> g_levels;
 SkillLevelRecord* Levels(std::uint32_t count) {
     g_levels.assign((count ? count : 1) * sizeof(SkillLevelRecord), 0);
     auto* first = reinterpret_cast<SkillLevelRecord*>(g_levels.data());
-    RecordTable& table = const_cast<RecordTable&>(unitdb::SkillLevels());
-    table.begin = reinterpret_cast<char*>(first);
-    table.end = reinterpret_cast<char*>(first + count);
+    PointVector(SkillDb()->levels, first, first + count);
     return first;
 }
 
@@ -200,9 +206,8 @@ void PutSkills(const char* letters, std::uint32_t count) {
         const VectorView names = {&g_skillNamePointers[i], &g_skillNamePointers[i] + 1, &g_skillNamePointers[i] + 1};
         std::memcpy(g_skillRecords + i * sizeof(SkillRecord) + offsetof(SkillRecord, statNames), &names, sizeof(names));
     }
-    RecordTable& table = const_cast<RecordTable&>(unitdb::Skills());
-    table.begin = reinterpret_cast<char*>(g_skillRecords);
-    table.end = reinterpret_cast<char*>(g_skillRecords + count * sizeof(SkillRecord));
+    auto* first = reinterpret_cast<SkillRecord*>(g_skillRecords);
+    PointVector(SkillDb()->skills, first, first + count);
 }
 
 UnitStats& ZeroStats() {
