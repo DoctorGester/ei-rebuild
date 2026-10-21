@@ -177,8 +177,8 @@ void CSaveLoadWindow::Build() {
         selected_ = 0;
         if (EntryCount() != 0) {
             nameTyped_ = false;
-            *reinterpret_cast<mfc::CString*>(&name_) = *reinterpret_cast<mfc::CString*>(&entriesBegin_->title_);
-            cursor_ = reinterpret_cast<const int*>(name_)[-2];   // CString length
+            name_ = entriesBegin_->title_;
+            cursor_ = name_.GetLength();
         }
     } else {
         selected_ = EntryCount() != 0 ? 0 : -1;
@@ -488,7 +488,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->defaultsEnd_ = nullptr;
             w->defaultsCapacity_ = nullptr;
             w->names_.ConstructEmpty();
-            w->text_ = mfc::impl::PchNil();
+            ::new (&w->text_) mfc::CString;
             w->voiceLists_[0].ConstructEmpty();   // 006342A0
             w->voiceLists_[1].ConstructEmpty();
             SetVtables(&w->window, kMpHeroVtable, kMpHeroInputVtable);
@@ -680,12 +680,11 @@ struct TitlesTokenizer : TextTokenizer {
     const char* WordOrNull() const { return position != -1 ? static_cast<const char*>(word) : nullptr; }
 };
 
-mfc::CString* LineString(const char** field) { return reinterpret_cast<mfc::CString*>(field); }
 } // namespace
 
 void CCreditsScreen::Build() {
     CInterface3D* ui = window.interface_;
-    const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
+    const mfc::CString& name = name_;
     if (!fromGame_) {
         TheSoundManager()->StopAll(1);
         TheMusicSystem()->Stop();
@@ -718,9 +717,7 @@ void CCreditsScreen::Build() {
             mfc::CString line(static_cast<const char*>(lines.word));
             TitlesTokenizer words{{0, &line, " "}};
             words.Start();
-            TitleLine record = {};
-            record.text = mfc::impl::PchNil();
-            record.style = record.text;
+            TitleLine record{};
             {
                 mfc::CString first(words.WordOrNull());
                 record.scroll = gamecrt::mbsicmp(static_cast<const char*>(first),
@@ -730,12 +727,10 @@ void CCreditsScreen::Build() {
             words.Next();
             record.speed = static_cast<float>(GameAtof(words.word));
             words.Next();
-            *LineString(&record.style) = words.WordOrNull();
+            record.style = words.WordOrNull();
             words.Next();
-            *LineString(&record.text) = words.WordOrNull();
+            record.text = words.WordOrNull();
             stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);   // push_back (0062C090)
-            LineString(&record.style)->~CString();
-            LineString(&record.text)->~CString();
             lines.Next();
         }
         currentLine_ = lines_.First();

@@ -1648,7 +1648,7 @@ int CWorldClient::LoadZone(CStream* block) {
     const MapRecord* zone = LocalZoneRecord();
     mfc::CString& allod = *reinterpret_cast<mfc::CString*>(&zoneName_);
     allod = worlddata::DefaultAllodText();
-    if (zone) allod = *reinterpret_cast<const mfc::CString*>(&zone->allod);
+    if (zone) allod = zone->allod;
     allod.MakeLower();
     if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), static_cast<const char*>(map));

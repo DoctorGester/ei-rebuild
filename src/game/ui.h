@@ -24,15 +24,13 @@
 
 #include <windows.h>
 
-namespace mfc { class CString; }
 namespace console { class ConsoleWindow; }
 namespace ui_gdi { struct GameFont; struct GameDC; }
 
 // A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
 struct ReturnedString {
-    char* data = nullptr;
-    mfc::CString* Slot() { return reinterpret_cast<mfc::CString*>(&data); }
-    ~ReturnedString() { Slot()->~CString(); }
+    mfc::CString data{mfc::CString::kUnset};   // constructed by the callee
+    mfc::CString* Slot() { return &data; }
 };
 static_assert(sizeof(ReturnedString) == 4);
 
@@ -1416,12 +1414,12 @@ struct HudPortraitSlot {
     Quaternion restB_;               // +0x28
     int wobbleKind_;                 // +0x38 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
     float wobbleTime_;               // +0x3C starts negative (a delay)
-    char* faceName_;                 // +0x40 CString
+    mfc::CString faceName_;          // +0x40
     int faceState_;                  // +0x44 picture shown (0 normal, 2 hit, 3 low mana, ...)
     int faceMode_;                   // +0x48 1 / 2: a timed picture, 0 none
     float faceTimer_;                // +0x4C
-    char* modelPrefix_;              // +0x50 CString: the face model is prefix + build + suffix,
-    char* modelSuffix_;              // +0x54 CString  build "th", "me" or "fa"
+    mfc::CString modelPrefix_;       // +0x50 the face model is prefix + build + suffix,
+    mfc::CString modelSuffix_;       // +0x54 build "th", "me" or "fa"
     float build_;                    // +0x58 the unit's build the model was chosen for
     Quaternion wobbleTarget_;        // +0x5C
     float wobbleSpeed_;              // +0x6C
@@ -1429,13 +1427,14 @@ struct HudPortraitSlot {
     std::uint8_t unused_71[3];
     int playerId_;                   // +0x74 that player's serial (PlayerMessage +0x30), else -1
 
-    // The three CString members.
-    mfc::CString& FaceName() { return *reinterpret_cast<mfc::CString*>(&faceName_); }
-    mfc::CString& ModelPrefix() { return *reinterpret_cast<mfc::CString*>(&modelPrefix_); }
-    mfc::CString& ModelSuffix() { return *reinterpret_cast<mfc::CString*>(&modelSuffix_); }
+    mfc::CString& FaceName() { return faceName_; }
+    mfc::CString& ModelPrefix() { return modelPrefix_; }
+    mfc::CString& ModelSuffix() { return modelSuffix_; }
 };
 static_assert(sizeof(HudPortraitSlot) == 0x78);
 static_assert(offsetof(HudPortraitSlot, wobbleKind_) == 0x38);
+static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40 && offsetof(HudPortraitSlot, modelPrefix_) == 0x50 &&
+              offsetof(HudPortraitSlot, modelSuffix_) == 0x54);
 static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 
 // A figure prototype (the records of the map at 007AF3A4); only the model name the faces use.
@@ -1795,7 +1794,7 @@ public:
     // prototypes (UnitPrototypeRecord +0x24 / +0x20; the battle screen copies them as dwords).
     float viewHeight_[2];            // +0x154 how far up the panel the model stands, in units of its size
     float viewSize_[2];              // +0x15C the model's size: it is drawn 1 / size (times its animation's ratio)
-    char* strings_[2];               // +0x164 CStrings: the selected and the hover unit's names (00637940)
+    mfc::CString strings_[2];        // +0x164 the selected and the hover unit's names (00637940)
     int sliding_;                    // +0x16C set when the sling button starts the slide
     int offset_;                     // +0x170 current slide offset in pixels (to the left)
     int travel_;                     // +0x174 full slide distance
@@ -1923,7 +1922,7 @@ public:
     void AddPickedUp(CItem* item, int crippled);
     // 0064A630 (RET 4; ui_hud_top_panel.cpp). The same with the money ("format_money"), for money > 0.
     void AddMoney(int money);
-    mfc::CString& PageText(int page) { return *reinterpret_cast<mfc::CString*>(&pageTexts_[page]); }
+    mfc::CString& PageText(int page) { return pageTexts_[page]; }
 
     CBattleScreen* owner_;           // +0x148
     int sliding_;                    // +0x14C
@@ -1932,11 +1931,11 @@ public:
     float slide_;                    // +0x158 0 (out) .. 1 (in)
     float slideDirection_;           // +0x15C
     int page_;                       // +0x160
-    char* pageTexts_[2];             // +0x164 CStrings: the message log's text of pages 0 and 1
+    mfc::CString pageTexts_[2];      // +0x164 the message log's text of pages 0 and 1
 };
 static_assert(offsetof(CHudTopPanel, owner_) == 0x148);
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
-static_assert(offsetof(CHudTopPanel, page_) == 0x160);
+static_assert(offsetof(CHudTopPanel, page_) == 0x160 && offsetof(CHudTopPanel, pageTexts_) == 0x164);
 
 // --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
 
@@ -2479,10 +2478,10 @@ struct UiWordToken : UiTextToken {
     // memory freed when bit 0 of `flags` is set. Returns this.
     UiWordToken* WordTokenDelete(unsigned flags);
 
-    char* text_;                     // +0x08 CString
+    mfc::CString text_;              // +0x08
     int width_;                      // +0x0C its width in the token's font (005F8340)
 };
-static_assert(sizeof(UiWordToken) == 0x10);
+static_assert(sizeof(UiWordToken) == 0x10 && offsetof(UiWordToken, text_) == 0x08);
 // MFC CArray of token pointers (SetSize 0065E010, ui_scroll_text.cpp).
 using UiTokenArray = mfc::CArray<UiTextToken*>;
 // A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; DR-H16: only
@@ -2621,19 +2620,19 @@ struct SaveEntry {
     SaveEntry* CopyConstruct(const SaveEntry* from);
     void Destruct();
 
-    char* title_;                    // +0x00 CString shown in the list
-    char* folder_;                   // +0x04 CString folder name under saves\ ("saveq" quick save,
+    mfc::CString title_;             // +0x00 shown in the list
+    mfc::CString folder_;            // +0x04 folder name under saves\ ("saveq" quick save,
                                      //       "savea"/"saveb" automatic saves, "save<n>")
     std::int32_t savedAt_;           // +0x08 time() when it was saved (info.sav version 2 and up)
     float gameTime_;                 // +0x0C the "gtime" variable
-    char* map_;                      // +0x10 CString: the map of the zone
-    char* zone_;                     // +0x14 CString: the zone
+    mfc::CString map_;               // +0x10 the map of the zone
+    mfc::CString zone_;              // +0x14 the zone
     mfc::CStringArray stringArrays_[2];  // +0x18, +0x2C copied with the entry
     bool broken_;                    // +0x40 no info.sav: titled "Error Save", no picture
     std::uint8_t unused_41[3];
 };
 static_assert(sizeof(SaveEntry) == 0x44);
-static_assert(offsetof(SaveEntry, zone_) == 0x14);
+static_assert(offsetof(SaveEntry, folder_) == 0x04 && offsetof(SaveEntry, map_) == 0x10 && offsetof(SaveEntry, zone_) == 0x14);
 static_assert(offsetof(SaveEntry, broken_) == 0x40);
 
 // ui_saveload.cpp. 006570E0 (__fastcall: the save folder's name, `stepFrame` in DL; plain RET):
@@ -2748,14 +2747,14 @@ public:
     CEngineObject* dialog_;          // +0x184 the save window's picture of the game for the new save
                                      //        (a texture made by FillEntries; released by slot 26.
                                      //        The name is from an earlier reading.)
-    char* name_;                     // +0x188 CString: the save name being edited
+    mfc::CString name_;              // +0x188 the save name being edited
     bool nameTyped_;                 // +0x18C
     std::uint8_t unused_18D[3];
     int cursor_;                     // +0x190 caret position in name_
 };
 static_assert(offsetof(CSaveLoadWindow, selected_) == 0x170);
 static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
-static_assert(offsetof(CSaveLoadWindow, cursor_) == 0x190);
+static_assert(offsetof(CSaveLoadWindow, name_) == 0x188 && offsetof(CSaveLoadWindow, cursor_) == 0x190);
 static_assert(sizeof(CSaveLoadWindow) == 0x194);
 
 // A setting's definition (0x18 bytes; the exe's table of 26 at 00787430).
@@ -2877,12 +2876,12 @@ public:
     const char* HelpTopic() const;
 
     stlp::vector<mfc::CString> zones_;   // +0x164 the zones listed
-    char* zoneName_;                 // +0x170 CString: the zone it was opened for
+    mfc::CString zoneName_;          // +0x170 the zone it was opened for
     int twoButtons_;                 // +0x174 OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // +0x178 exit -> distance, or null
     int listZones_;                  // +0x17C list the zones of the zone's allod with quests
     int zoneIndex_;                  // +0x180 the zone shown
-    char* shownZone_;                // +0x184 CString
+    mfc::CString shownZone_;         // +0x184
     mfc::CArray<ObjectiveExit> exits_;   // +0x188 (vtable 00741264)
     int nearestExit_;                // +0x19C
     int selectedQuest_;              // +0x1A0 row of the quest named by the global at 007C8178
@@ -2898,7 +2897,8 @@ public:
     mfc::CStringArray objectiveTexts_;   // +0x1D8 obj_0..obj_2
     std::uint32_t savedAlphaRef_;    // +0x1EC
 };
-static_assert(offsetof(CObjectivesWindow, zones_) == 0x164);
+static_assert(offsetof(CObjectivesWindow, zones_) == 0x164 && offsetof(CObjectivesWindow, zoneName_) == 0x170);
+static_assert(offsetof(CObjectivesWindow, shownZone_) == 0x184);
 static_assert(offsetof(CObjectivesWindow, exits_) == 0x188 && offsetof(CObjectivesWindow, nearestExit_) == 0x19C);
 static_assert(offsetof(CObjectivesWindow, quests_) == 0x1A8 && offsetof(CObjectivesWindow, questPlaces_) == 0x1CC);
 static_assert(offsetof(CObjectivesWindow, objectiveTexts_) == 0x1D8 && offsetof(CObjectivesWindow, savedAlphaRef_) == 0x1EC);
@@ -3053,7 +3053,7 @@ public:
     // outside the field. (Not named DrawText: windows.h makes that a macro.)
     void DrawContents();
     void DrawContentsVanilla();
-    mfc::CString& Text() { return *reinterpret_cast<mfc::CString*>(&text_); }
+    mfc::CString& Text() { return text_; }
     // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
     // vtables 00742DF4 / 00742DC0, every character class, font 1, at most 50 characters, colours
     // 0xFFFFFF / 0xFF, no surfaces, then a surface (format 5) over `rect` (kept in area_; null when
@@ -3087,7 +3087,7 @@ public:
     int maxLength_;                  // +0x164
     COLORREF colour_;                // +0x168 the text's colour
     COLORREF caretColour_;           // +0x16C SetLook's last argument (0xFF from the constructor)
-    const char* text_;               // +0x170 CString: the text typed
+    mfc::CString text_;              // +0x170 the text typed
     int caret_;                      // +0x174 caret position in text_
     bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)
     bool focused_;                   // +0x179 keys are taken only while set
@@ -3138,15 +3138,15 @@ public:
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CMessageBox* MessageBoxDelete(unsigned flags);
 
-    const char* title_;              // +0x164 CString (text of the title key)
-    const char* text_;               // +0x168 CString (text of the text key)
+    mfc::CString title_;             // +0x164 the text of the title key
+    mfc::CString text_;              // +0x168 the text of the text key
     std::uint32_t result_;           // +0x16C 0xFFFF0000: the text in font 1, else 2
     std::uint32_t flags_;            // +0x170
     std::uint32_t format_;           // +0x174 added to the text's DrawText format
     CUiEditField* edit_;             // +0x178 the edit field (flag 4)
     char* editText_;                 // +0x17C the edit field's first text; OK copies the typed one here
 };
-static_assert(offsetof(CMessageBox, title_) == 0x164);
+static_assert(offsetof(CMessageBox, title_) == 0x164 && offsetof(CMessageBox, text_) == 0x168);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
 static_assert(sizeof(CMessageBox) == 0x180);
 

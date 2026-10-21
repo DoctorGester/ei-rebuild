@@ -101,13 +101,13 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     statsPanel_->SetHero(0, nullptr);
     tradePanel_->ResetRecords();
     tradePanel_->SelectHero(0);
-    reinterpret_cast<mfc::CString&>(text_) = prototype;
+    text_ = prototype;
     voiceIndex_ = 0;
     voiceTop_ = 0;
-    voices_ = reinterpret_cast<char**>(firstVoices ? &voiceLists_[0] : &voiceLists_[1]);
+    voices_ = firstVoices ? &voiceLists_[0] : &voiceLists_[1];
     MpVoiceVector& voices = Voices();
     // The first entry's file (read even when the list is empty, as the original does).
-    hero->texts[6] = reinterpret_cast<const mfc::CString&>(voices.begin()->file);
+    hero->texts[6] = voices.begin()->file;
     // The entry count compared unsigned (the subtraction shifted arithmetically).
     std::uint32_t count = static_cast<std::uint32_t>(
         (reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin())) >> 3);

@@ -195,10 +195,9 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         void* memory = gamecrt::operator_new(kObjectivesSize);
         void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(clock->interface_) : nullptr;
         {
-            alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-            mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
-            static_cast<CObjectivesWindow*>(window)->Setup(static_cast<const char*>(*zone), nullptr, 0, 0);
-            zone->~CString();
+            mfc::CString zone(mfc::CString::kUnset);
+            LocalPlayerName(&zone);
+            static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
         }
         clock->interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         inputHandled_ = true;

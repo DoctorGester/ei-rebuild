@@ -69,7 +69,7 @@ bool SameFolder(const char* folder, const char* name) {
 } // namespace
 
 void CSaveLoadWindow::RefreshListVanilla() {
-    mfc::CString& name = *reinterpret_cast<mfc::CString*>(&name_);
+    mfc::CString& name = name_;
     if (cursor_ > name.GetLength()) cursor_ = name.GetLength();
     if (cursor_ < 0) cursor_ = 0;
     CUiSurface* surface = surfaces_.data[0];

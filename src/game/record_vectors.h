@@ -455,29 +455,29 @@ struct HudPortraitSlotElement {
     using R = HudPortraitSlot;
     static void Construct(R* to, const R& from) {
         Plain(*to, from);
-        new (&records::AsCString(to->faceName_)) mfc::CString(records::AsCString(from.faceName_));
-        new (&records::AsCString(to->modelPrefix_)) mfc::CString(records::AsCString(from.modelPrefix_));
-        new (&records::AsCString(to->modelSuffix_)) mfc::CString(records::AsCString(from.modelSuffix_));
+        new (&to->faceName_) mfc::CString(from.faceName_);
+        new (&to->modelPrefix_) mfc::CString(from.modelPrefix_);
+        new (&to->modelSuffix_) mfc::CString(from.modelSuffix_);
     }
     static void Assign(R& to, const R& from) {
         Plain(to, from);
-        records::AsCString(to.faceName_) = records::AsCString(from.faceName_);
-        records::AsCString(to.modelPrefix_) = records::AsCString(from.modelPrefix_);
-        records::AsCString(to.modelSuffix_) = records::AsCString(from.modelSuffix_);
+        to.faceName_ = from.faceName_;
+        to.modelPrefix_ = from.modelPrefix_;
+        to.modelSuffix_ = from.modelSuffix_;
     }
     static void Default(R* p) {
         p->restA_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
         p->current_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
         p->restB_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-        new (&records::AsCString(p->faceName_)) mfc::CString();
-        new (&records::AsCString(p->modelPrefix_)) mfc::CString();
-        new (&records::AsCString(p->modelSuffix_)) mfc::CString();
+        new (&p->faceName_) mfc::CString();
+        new (&p->modelPrefix_) mfc::CString();
+        new (&p->modelSuffix_) mfc::CString();
         p->wobbleTarget_.SetIdentity();
     }
     static void Destroy(R* p) {
-        records::AsCString(p->modelSuffix_).~CString();
-        records::AsCString(p->modelPrefix_).~CString();
-        records::AsCString(p->faceName_).~CString();
+        p->modelSuffix_.~CString();
+        p->modelPrefix_.~CString();
+        p->faceName_.~CString();
     }
 
 private:

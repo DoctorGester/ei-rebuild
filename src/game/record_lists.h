@@ -119,8 +119,8 @@ struct TitleLineElement {
     static void Copy(TitleLine* to, const TitleLine& from) {
         to->scroll = from.scroll;
         to->speed = from.speed;
-        new (&records::AsCString(to->text)) mfc::CString(records::AsCString(from.text));
-        new (&records::AsCString(to->style)) mfc::CString(records::AsCString(from.style));
+        new (&to->text) mfc::CString(from.text);
+        new (&to->style) mfc::CString(from.style);
     }
 };
 

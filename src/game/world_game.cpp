@@ -118,10 +118,10 @@ void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Re
 
 // The CString fields of the records the flow copies as CStrings (MFC's shared assignment).
 mfc::CString& AsCString(char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
-const mfc::CString& RecordName(MapRecord* record) { return AsCString(record->name); }
-const mfc::CString& RecordAllod(MapRecord* record) { return AsCString(record->allod); }
-const mfc::CString& RecordMob(MapRecord* record) { return AsCString(record->mob); }
-const mfc::CString& RecordMap(MapRecord* record) { return AsCString(record->map); }
+const mfc::CString& RecordName(MapRecord* record) { return record->name; }
+const mfc::CString& RecordAllod(MapRecord* record) { return record->allod; }
+const mfc::CString& RecordMob(MapRecord* record) { return record->mob; }
+const mfc::CString& RecordMap(MapRecord* record) { return record->map; }
 
 // A file stream local (zero-filled first, then built and torn down as the original inlines it).
 struct LocalFileStream {

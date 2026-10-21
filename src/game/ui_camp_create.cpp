@@ -469,7 +469,7 @@ void CCampPages::BuildPages() {
         BriefingPlayerName name;
         zone = TheMapDatabase()->FindMap(name);
     }
-    TheMusicSystem()->PlayConstructor(zone ? zone->allod : "gipat");
+    TheMusicSystem()->PlayConstructor(zone ? static_cast<const char*>(zone->allod) : "gipat");
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = TheRenderDevice();

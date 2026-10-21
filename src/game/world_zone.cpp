@@ -255,7 +255,7 @@ void __stdcall SelectLoadingMovie(const char* zone) {
     mfc::CString allod;
     if (zone) {
         MapRecord* map = TheMapDatabase()->FindMap(zone);
-        if (map) allod = *reinterpret_cast<const mfc::CString*>(reinterpret_cast<const char*>(map) + 4);
+        if (map) allod = map->allod;
     }
     if (SameName(allod, "gipat")) {
         LoadingMovie() = "progres2.bik";   // progres2.bik

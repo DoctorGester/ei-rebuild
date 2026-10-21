@@ -328,7 +328,7 @@ void CBattleScreen::Update() {
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
                 ShowPanelView(panel, first);
-                panel->owner_->UnitName(panel->shownUnit_, reinterpret_cast<mfc::CString*>(panel->strings_));
+                panel->owner_->UnitName(panel->shownUnit_, &panel->strings_[0]);
             }
         }
     }
@@ -660,7 +660,7 @@ void CBattleScreen::RefreshSelection() {
         panel->shownUnit_ = first;
         if (first) {
             ShowPanelView(panel, first);
-            panel->owner_->UnitName(panel->shownUnit_, reinterpret_cast<mfc::CString*>(panel->strings_));
+            panel->owner_->UnitName(panel->shownUnit_, &panel->strings_[0]);
         }
     }
 

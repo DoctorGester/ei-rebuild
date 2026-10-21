@@ -506,7 +506,7 @@ EI_REPLACE_METHOD(0x00618FF0, CMpHeroScreen::ClampHeroSelection);
 
 void CMpHeroScreen::ClampVoiceSelection() {
     if (voiceIndex_ < 0) voiceIndex_ = 0;
-    int count = static_cast<int>(voices_[1] - voices_[0]) >> 3;
+    int count = static_cast<int>(voices_->end() - voices_->begin());
     if (static_cast<std::uint32_t>(voiceIndex_) >= static_cast<std::uint32_t>(count)) voiceIndex_ = count - 1;
     int selected = voiceIndex_;
     // Eleven rows are visible.
@@ -515,7 +515,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     SetScrollPos(voiceScroll_, voiceTop_);
     TakeScrollPos(voiceScroll_, nullptr, &voiceTop_);
     // Each voice is {file, name}; the hero keeps the file name at +0x18.
-    const auto& file = *reinterpret_cast<const mfc::CString*>(voices_[0] + voiceIndex_ * 8);
+    const mfc::CString& file = voices_->begin()[voiceIndex_].file;
     *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
     DrawVoices();
 }

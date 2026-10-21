@@ -310,15 +310,15 @@ bool HeroCanUseSpell(void* stats, char* spell);
 
 // --- Multiplayer hero screen ----------------------------------------------------------------
 
-// A voice of the hero screen (8 bytes: two CStrings, kept as their pointers).
+// A voice of the hero screen (8 bytes: two CStrings).
 struct MpVoiceEntry {
     // 00615800. The destructor: the name, then the file.
     void Destroy();
 
-    const char* file;           // +0 CString
-    const char* name;           // +4 CString
+    mfc::CString file;          // +0
+    mfc::CString name;          // +4
 };
-static_assert(sizeof(MpVoiceEntry) == 8);
+static_assert(sizeof(MpVoiceEntry) == 8 && offsetof(MpVoiceEntry, name) == 4);
 using MpVoiceVector = stlp::vector<MpVoiceEntry>;
 //
 // Opened by the main menu's Multiplayer button (region 5 of 00632D70; vtables 00742118/0074214C,
@@ -402,7 +402,7 @@ public:
     // 006167C0. The hero list's surface (0): ten rows of names from heroTop_, the selection frame
     // (scene object 2) on the selected hero.
     void DrawHeroList();
-    MpVoiceVector& Voices() { return *reinterpret_cast<MpVoiceVector*>(voices_); }
+    MpVoiceVector& Voices() { return *voices_; }
     // ShowHero (ui_screens.cpp).
     void CallShowHero(int index);
 
@@ -532,9 +532,9 @@ public:
     CUiEditField* renameEdit_;  // +0x1E8 the hero list's rename edit window (focused_ while renaming)
     CUiEditField* nameEdit_;    // +0x1EC the new hero's name edit window (0065C290 sets its text)
     CUiScrollbar* voiceScroll_; // +0x1F0
-    const char* text_;          // +0x1F4 CString
+    mfc::CString text_;         // +0x1F4
     MpVoiceVector voiceLists_[2];   // +0x1F8, +0x204 (voices_ points at one of them)
-    char** voices_;             // +0x210 STLport vector of {CString file, CString name} (8 bytes)
+    MpVoiceVector* voices_;     // +0x210 voiceLists_[0] or [1]
     int voiceTop_;              // +0x214
     int voiceIndex_;            // +0x218
     int voiceSound_;            // +0x21C
@@ -876,10 +876,10 @@ struct TitleLine {
     bool scroll;                // +0 the first word is "#scroll"
     std::uint8_t unused_1[3];
     float speed;                // +4 the second word (atof): the scroll speed, or the seconds shown
-    const char* text;           // +8 CString: the fourth word (the header)
-    const char* style;          // +0xC CString: the third word (the text file in the archive)
+    mfc::CString text;          // +8 the fourth word (the header)
+    mfc::CString style;         // +0xC the third word (the text file in the archive)
 };
-static_assert(sizeof(TitleLine) == 0x10);
+static_assert(sizeof(TitleLine) == 0x10 && offsetof(TitleLine, text) == 8 && offsetof(TitleLine, style) == 0xC);
 
 // The titles' scrolling text surface (0x58 bytes, vtable 00742FD8: slot 0 Draw, slot 1 the deleting
 // destructor; ui_scrolling_surface.cpp).
@@ -968,7 +968,7 @@ public:
     stlp::list<TitleLine> lines_;   // +0x1C8
     float nextLineAt_;          // +0x1CC game time the current line ends (0 from Build and for scrolls)
     stlp::list<TitleLine>::Node* currentLine_;   // +0x1D0 the next line (the sentinel at the end)
-    const char* name_;          // +0x1D4 CString ("Titles")
+    mfc::CString name_;         // +0x1D4 ("Titles")
     CBinkVideo player_;         // +0x1D8 the movie player (constructor 005DB340)
     bool fromGame_;             // +0x1F4 opened in a game (pending value 0xCCCCCCCC) or the menu
     bool finished_;             // +0x1F5 the last line has gone (cleared by Build)

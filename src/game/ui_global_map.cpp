@@ -71,27 +71,19 @@ template <std::floating_point T> float Bits(T) = delete;
 
 // --- Game data ----------------------------------------------------------------------------------
 
-// An allod of the map database (AllodRecord, object_tables.h): its global map figures and zones.
-struct AllodView {
-    char* name;                      // +0x00 CString
-    char* arrow;                     // +0x04 the current zone's marker
-    char* ball;                      // +0x08 its base
-    char* questMarker;               // +0x0C
-    char* island;                    // +0x10 the island model
-    char* armor;                     // +0x14
-    std::uint8_t unused_18[4];
-    int* zones;                      // +0x1C indices into the map database's maps
-    int zoneCount;                   // +0x20
-    std::uint8_t unused_24[0x2C - 0x24];
-};
-static_assert(sizeof(AllodView) == 0x2C);
+// An allod of the map database (AllodRecord, object_tables.h): its other names are its global map
+// figures, its maps the indices of its zones.
+constexpr int kAllodArrow = 0;         // the current zone's marker
+constexpr int kAllodBall = 1;          // its base
+constexpr int kAllodQuestMarker = 2;
+constexpr int kAllodIsland = 3;        // the island model
 
 // A zone of the map database: its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
-bool NonEmpty(const char* cstring) { return reinterpret_cast<const int*>(cstring)[-2] != 0; }
+bool NonEmpty(const mfc::CString& text) { return text.GetLength() != 0; }
 
 // --- Not rewritten ------------------------------------------------------------------------------
 
@@ -201,24 +193,6 @@ private:
 };
 
 
-// Element templates with real strings (layouts of GlobalMapZone / GlobalMapPlace).
-struct ZoneTemplate {
-    int state = 0;
-    int link = 0;
-    mfc::CString name;
-    mfc::CString title;
-    const GlobalMapZone& Get() const { return *reinterpret_cast<const GlobalMapZone*>(this); }
-};
-static_assert(sizeof(ZoneTemplate) == sizeof(GlobalMapZone));
-struct PlaceTemplate {
-    int zone = 0;
-    Vector3 position{0.0f, 0.0f, 0.0f};
-    mfc::CString name;
-    mfc::CString title;
-    const GlobalMapPlace& Get() const { return *reinterpret_cast<const GlobalMapPlace*>(this); }
-};
-static_assert(sizeof(PlaceTemplate) == sizeof(GlobalMapPlace));
-
 void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, int tip) {
     CUiRegion* region = window->AddRegion();
     region->CallSetRect(left, top, right, bottom);
@@ -252,24 +226,20 @@ void CGlobalMap::Create() {
 
     MapRecord* current;
     {
-        alignas(4) std::uint8_t raw[4];
-        mfc::CString* name = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
-        current = FindZone(*name);
-        name->~CString();
+        mfc::CString name(mfc::CString::kUnset);
+        current = FindZone(*LocalPlayerName(&name));
     }
-    AllodView* allod = reinterpret_cast<AllodView*>(TheMapDatabase()->FindAllod(current->allod));
+    AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod);
     {
-        alignas(4) std::uint8_t raw[4];
-        mfc::CString* title = AllodTitle(reinterpret_cast<mfc::CString*>(raw), allod->name);
-        *reinterpret_cast<mfc::CString*>(&allodTitle_) = *title;
-        title->~CString();
+        mfc::CString title(mfc::CString::kUnset);
+        allodTitle_ = *AllodTitle(&title, allod->name);
     }
     {
         Vector3 position;
         ZonePosition(&position, current->name);
         std::memcpy(&position_, &position, 12);
     }
-    const mfc::CString& allodName = *reinterpret_cast<const mfc::CString*>(&allod->name);
+    const mfc::CString& allodName = allod->name;
     LoadTexture(mfc::operator+(allodName, "Map"), 3, 0);   // <allod>Map
     LoadTexture(mfc::operator+(allodName, "Sys"), 3, 0);   // <allod>Sys
     LoadTexture(mfc::operator+(allodName, "MapG"), 3, 0);   // <allod>MapG
@@ -287,10 +257,10 @@ void CGlobalMap::Create() {
     // The current zone: its arrow above it, its base on it, the island.
     {
         Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(2.0f /*0073CDB8*/))};
-        builder.Marker(allod->arrow, above, 1.0f);
+        builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
         Vector3 at = {position_.x, position_.y, position_.z};
-        builder.Marker(allod->ball, at, Bits(0x3F4CCCCD));   // 0.8
-        CUiMesh* island = AddFigure(this, allod->island);
+        builder.Marker(allod->otherNames[kAllodBall], at, Bits(0x3F4CCCCD));   // 0.8
+        CUiMesh* island = AddFigure(this, allod->otherNames[kAllodIsland]);
         SetTexture(island, builder.Texture(2));
         island->Place(centreX_, centreY_, depth_);
         builder.Turn(island);
@@ -306,27 +276,25 @@ void CGlobalMap::Create() {
     VariableTable vars;
     // New elements are copied from these (the original's have uninitialised numbers; every
     // number is overwritten right after).
-    ZoneTemplate zoneTemplate;
-    PlaceTemplate linkTemplate;
-    PlaceTemplate questTemplate;
+    GlobalMapZone zoneTemplate{};
+    GlobalMapPlace linkTemplate{};
+    GlobalMapPlace questTemplate{};
     linkCount_ = 0;
     questCount_ = 0;
     zoneCount_ = 0;
 
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
-    for (int i = 0; i < allod->zoneCount; ++i) {
-        MapRecord* zone = ZoneAt(allod->zones[i]);
+    for (int i = 0; i < allod->maps.size; ++i) {
+        MapRecord* zone = ZoneAt(allod->maps.data[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
-        GlobalMapZonesSetAtGrow(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
-        variable.Format("z.%s", zone->name);
+        GlobalMapZonesSetAtGrow(&zones_, nullptr, zones_.size, &zoneTemplate);
+        variable.Format("z.%s", static_cast<const char*>(zone->name));
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
-        *reinterpret_cast<mfc::CString*>(&zones_.data[zoneCount_].name) = *reinterpret_cast<mfc::CString*>(&zone->name);
+        zones_.data[zoneCount_].name = zone->name;
         {
-            alignas(4) std::uint8_t raw[4];
-            mfc::CString* title = ZoneTitle(reinterpret_cast<mfc::CString*>(raw), zone->name);
-            *reinterpret_cast<mfc::CString*>(&zones_.data[zoneCount_].title) = *title;
-            title->~CString();
+            mfc::CString title(mfc::CString::kUnset);
+            zones_.data[zoneCount_].title = *ZoneTitle(&title, zone->name);
         }
         CUiMesh* sprite = AddFigure(this, zone->figure);
         sprite->Place(centreX_, centreY_, depth_);
@@ -336,7 +304,7 @@ void CGlobalMap::Create() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable.Format("q.%s", zones_.data[i].name);
+        variable.Format("q.%s", static_cast<const char*>(zones_.data[i].name));
         GameLocalPlayerVariables(variable, vars.Table());
         const NamedFloatTable& table = *vars.Table();
         for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
@@ -347,22 +315,20 @@ void CGlobalMap::Create() {
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
                     SetPlaceCount(quests_, quests_.size + 1);
-                    quests_.data[quests_.size - 1].AssignCopy(questTemplate.Get());
+                    quests_.data[quests_.size - 1].AssignCopy(questTemplate);
                     GlobalMapPlace& quest = quests_.data[n];
-                    *reinterpret_cast<mfc::CString*>(&quest.name) = parts[2];
+                    quest.name = parts[2];
                     quests_.data[n].zone = i;
                     {
-                        alignas(4) std::uint8_t raw[4];
-                        mfc::CString* title = QuestTitle(reinterpret_cast<mfc::CString*>(raw), parts[2]);
-                        *reinterpret_cast<mfc::CString*>(&quests_.data[n].title) = *title;
-                        title->~CString();
+                        mfc::CString title(mfc::CString::kUnset);
+                        quests_.data[n].title = *QuestTitle(&title, parts[2]);
                     }
                     {
                         Vector3 position;
                         QuestPosition(&position, parts[2]);
                         std::memcpy(&quests_.data[n].position, &position, 12);
                     }
-                    CUiMesh* sprite = AddFigure(this, allod->questMarker);
+                    CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);
                     Vector3 local = quests_.data[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
@@ -383,7 +349,7 @@ void CGlobalMap::Create() {
         for (int e = 0; e < zone->exits.size; ++e) {
             MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
-            variable.Format("z.%s", way->name);
+            variable.Format("z.%s", static_cast<const char*>(way->name));
             if (way->kind != 2) continue;
             // Only at state 2.
             double state = D(LocalPlayerVariable(variable));
@@ -394,14 +360,12 @@ void CGlobalMap::Create() {
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
             SetPlaceCount(links_, links_.size + 1);
-            links_.data[links_.size - 1].Assign(linkTemplate.Get());
+            links_.data[links_.size - 1].Assign(linkTemplate);
             links_.data[n].zone = i;
-            *reinterpret_cast<mfc::CString*>(&links_.data[n].name) = *reinterpret_cast<mfc::CString*>(&way->name);
+            links_.data[n].name = way->name;
             {
-                alignas(4) std::uint8_t raw[4];
-                mfc::CString* title = ZoneTitle(reinterpret_cast<mfc::CString*>(raw), way->name);
-                *reinterpret_cast<mfc::CString*>(&links_.data[n].title) = *title;
-                title->~CString();
+                mfc::CString title(mfc::CString::kUnset);
+                links_.data[n].title = *ZoneTitle(&title, way->name);
             }
             {
                 Vector3 position;
@@ -710,14 +674,14 @@ void EmptyArray(Array* array, std::uintptr_t vtableAddress) {
 
 CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     reinterpret_cast<CUiContainer*>(this)->Construct(ui);
-    allodTitle_ = mfc::impl::PchNil();
+    ::new (&allodTitle_) mfc::CString;
     EmptyArray(&zones_, 0x00740BFC);
     EmptyArray(&links_, 0x00740BF0);
     EmptyArray(&quests_, 0x00740BE4);
     path_.Start() = nullptr;
     path_.Finish() = nullptr;
     path_.EndOfStorage() = nullptr;   // the allocator proxy (005FA0C0)
-    target_ = mfc::impl::PchNil();
+    ::new (&target_) mfc::CString;
     // The tree (005FA100: the header from the pool; 005FA0E0 empties it) keeps the first byte of
     // the original's compare object, the argument slot holding `ui`.
     arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
@@ -728,7 +692,7 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     turn_.x = 0.0f;
     turn_.y = 0.0f;
     turn_.z = 0.0f;
-    shownName_ = mfc::impl::PchNil();
+    ::new (&shownName_) mfc::CString;
     vtable_ = ei::GamePointer<void*>(0x00740B3C);
     inputVtable_ = ei::GamePointer<void*>(0x00740B08);
     return this;
@@ -770,11 +734,6 @@ EI_REPLACE(0x005F6920, GlobalMapDestroy);
 
 // --- 00631CC0: the zone array's SetAtGrow --------------------------------------------------------
 
-namespace {
-mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
-const mfc::CString& AsString(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
-} // namespace
-
 void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));
     for (int i = 0; i < count; ++i) {
@@ -785,8 +744,8 @@ void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
 
 void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
     for (int i = 0; i < count; ++i) {
-        AsString(zones[i].title).~CString();
-        AsString(zones[i].name).~CString();
+        zones[i].title.~CString();
+        zones[i].name.~CString();
     }
 }
 
@@ -795,7 +754,7 @@ void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int in
     GlobalMapZone& slot = zones->data[index];
     slot.state = zone->state;
     slot.link = zone->link;
-    AsString(slot.name) = AsString(zone->name);
-    AsString(slot.title) = AsString(zone->title);
+    slot.name = zone->name;
+    slot.title = zone->title;
 }
 EI_REPLACE(0x00631CC0, GlobalMapZonesSetAtGrow);

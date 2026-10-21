@@ -164,7 +164,7 @@ void CMpConnectScreen::DrawListVanilla() {
         TextColour() = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text.Format("%s %s", label(7), nameEdit_->text_);
+            text.Format("%s %s", label(7), static_cast<const char*>(nameEdit_->text_));
             if (extended)
                 DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else

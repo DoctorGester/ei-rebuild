@@ -81,16 +81,10 @@ float MenuTurn() { return GameFloat(0x007C7F14) * 1.2f /*0073CDF4*/; }
 __declspec(naked) void __fastcall ReloadHeroesAt(MpHeroRoster*) EI_ORIGINAL(0x00662FB0)
 MpHeroRoster* Heroes() { return ei::GamePointer<MpHeroRoster>(0x007C82A0); }
 
-// The screen's vectors as the library's: the figures' prototype names, and the voices (a
-// MpVoiceEntry with its CStrings as objects).
-struct Voice {
-    mfc::CString file;
-    mfc::CString name;
-};
-static_assert(sizeof(Voice) == sizeof(MpVoiceEntry));
+// The screen's vectors as the library's: the figures' prototype names, and the voices.
 using NameList = stlp::vector<mfc::CString>;
-using VoiceList = stlp::vector<Voice>;
-static_assert(sizeof(NameList) == sizeof(MpStringVector) && sizeof(VoiceList) == sizeof(MpVoiceVector));
+using VoiceList = MpVoiceVector;
+static_assert(sizeof(NameList) == sizeof(MpStringVector));
 
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return reinterpret_cast<CUiContainer*>(screen); }
 
@@ -148,7 +142,7 @@ void SortNames(NameList& names) {
 // prototype's name.
 void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* prototype, const mfc::CString& label,
                bool voiced) {
-    if (voiced) voices.push_back(Voice{prototype->name, label});
+    if (voiced) voices.push_back(MpVoiceEntry{prototype->name, label});
     names.push_back(prototype->name);
 }
 
@@ -315,8 +309,8 @@ void CMpHeroScreen::Create() {
     texts->GetString("lmp_female_voice", &female);
     NameList& men = *reinterpret_cast<NameList*>(&defaults_);
     NameList& women = *reinterpret_cast<NameList*>(&names_);
-    VoiceList& maleVoices = *reinterpret_cast<VoiceList*>(&voiceLists_[0]);
-    VoiceList& femaleVoices = *reinterpret_cast<VoiceList*>(&voiceLists_[1]);
+    VoiceList& maleVoices = voiceLists_[0];
+    VoiceList& femaleVoices = voiceLists_[1];
     const NpcPrototypeTable& creatures = unitdb::NpcTable();
     const int count = static_cast<int>(reinterpret_cast<const UnitNpcRecord*>(creatures.end) -
                                        reinterpret_cast<const UnitNpcRecord*>(creatures.begin));
@@ -415,7 +409,7 @@ void CMpHeroScreen::Create() {
     voiceSound_ = -1;
     voiceTop_ = 0;
     voiceIndex_ = 0;
-    voices_ = reinterpret_cast<char**>(&voiceLists_[0]);
+    voices_ = &voiceLists_[0];
     turn_ = 0.0f;
     rotating_ = 0;
 

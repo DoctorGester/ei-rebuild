@@ -242,7 +242,7 @@ void CParty::OpenEdgeExits() {
     for (int i = 0; i < zone->exits.size; ++i) {
         MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
-        variable.Format(ZoneVariableFormat(), target->name);
+        variable.Format(ZoneVariableFormat(), static_cast<const char*>(target->name));
         float value = variables.Get(variable);
         EI_NAN_AUDIT(value);
         if (value == 0.0f) variables.Set(variable, kOpened);

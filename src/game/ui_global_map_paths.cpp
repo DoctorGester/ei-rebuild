@@ -67,20 +67,15 @@ constexpr int kFirstLinkRegion = 3;
 constexpr int kCampScreen = 5;
 constexpr std::size_t kObjectivesSize = 0x1F0;
 
-mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
-
 // The zone the local player is in.
 MapRecord* PlayerZone() {
-    alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-    mfc::CString* name = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
-    MapRecord* zone = TheMapDatabase()->FindMap(*name);
-    name->~CString();
-    return zone;
+    mfc::CString name(mfc::CString::kUnset);
+    return TheMapDatabase()->FindMap(*LocalPlayerName(&name));
 }
 
 // The ways from the player's zone to `target`, the earlier results dropped.
 void SearchWays(CGlobalMap* map, const mfc::CString& target) {
-    AsString(map->target_) = target;
+    map->target_ = target;
     map->pathTime_ = 0.0f;
     map->arrivals_.Clear();
     map->found_ = false;
@@ -89,7 +84,7 @@ void SearchWays(CGlobalMap* map, const mfc::CString& target) {
 }
 
 bool MayTravelTo(CGlobalMap* map) {
-    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->target_)));
+    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(static_cast<const char*>(map->target_))));
 }
 
 } // namespace
@@ -127,7 +122,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         if (onWay) continue;
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
-            variable.Format(kZoneVariable, zone->name);
+            variable.Format(kZoneVariable, static_cast<const char*>(zone->name));
             int state = static_cast<int>(LocalPlayerVariable(variable));   // _ftol: truncated
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }
@@ -174,7 +169,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         link = zone.link;
         if (!gipat_ || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
-            SearchWays(this, AsString(zone.name));
+            SearchWays(this, zone.name);
             if (!MayTravelTo(this)) return;
             void* memory = gamecrt::operator_new(kObjectivesSize);
             void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(interface_) : nullptr;
@@ -184,7 +179,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         }
     }
     // A link: the party goes there at once when there is a way.
-    SearchWays(this, AsString(links_.data[link].name));
+    SearchWays(this, links_.data[link].name);
     if (!found_ || !MayTravelTo(this)) return;
     GamePassTime(Arrival(arrivals_, 0));
     ::RequestZone(links_.data[link].name, 0);

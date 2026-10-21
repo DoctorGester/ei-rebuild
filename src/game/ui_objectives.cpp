@@ -183,7 +183,7 @@ constexpr float kExitTurnDown = 3.1415927f; // 00742B24
 // --- 0064CC10: the zone page ----------------------------------------------------------------------
 
 void CObjectivesWindow::ShowZone(const char* zone) {
-    *reinterpret_cast<mfc::CString*>(&shownZone_) = zone;
+    shownZone_ = zone;
     // Drop what the previous zone added: its picture texture, exit markers and exit regions.
     while (objects_.size > 2) RemoveObjectAt(2);
     while (sceneObjects_.size > 0x15) RemoveSceneObjectAt(0x15);
@@ -251,7 +251,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             }
         } else {
             mfc::CString name;
-            name.Format("z.%s", source.target);
+            name.Format("z.%s", static_cast<const char*>(source.target));
             float value = LocalPlayerVariable(name);
             EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag_ = true;
@@ -316,7 +316,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         CStringArray parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
-        prefix.Format("q.%s", shownZone_);
+        prefix.Format("q.%s", static_cast<const char*>(shownZone_));
         table->Fill(prefix);
         ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
@@ -355,7 +355,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             int foundText;
             {
                 mfc::CString zoneKey("zone ");
-                mfc::CString key = zoneKey + *reinterpret_cast<const mfc::CString*>(&shownZone_);
+                mfc::CString key = zoneKey + shownZone_;
                 foundText = FindText(key);
             }
             if (foundText) {
@@ -458,7 +458,7 @@ void CObjectivesWindow::ShowQuest() {
         if (fields.GetSize() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
-        variable.Format("q.%s.%s.%s", shownZone_, static_cast<const char*>((*quests)[selectedQuest_]),
+        variable.Format("q.%s.%s.%s", static_cast<const char*>(shownZone_), static_cast<const char*>((*quests)[selectedQuest_]),
                         static_cast<const char*>(fields[1]));   // "q.%s.%s.%s"
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
@@ -648,7 +648,7 @@ void CObjectivesWindow::Build() {
                     listed = true;
                     break;
                 }
-            if (!listed) PushBack(zones, *reinterpret_cast<const mfc::CString*>(&zone->name));
+            if (!listed) PushBack(zones, zone->name);
         }
         if (SizeOf(*zones) == 0 && reinterpret_cast<const int*>(static_cast<const char*>(current))[-2] != 0)
             PushBack(zones, current);
@@ -700,7 +700,7 @@ void CObjectivesWindow::DrawQuestList() {
         }
         if (found) texts->ReadLine(&title, 1);
         else title = (*quests)[row];
-        variable.Format("q.%s.%s", shownZone_, static_cast<const char*>((*quests)[row]));
+        variable.Format("q.%s.%s", static_cast<const char*>(shownZone_), static_cast<const char*>((*quests)[row]));
         int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;
@@ -728,7 +728,7 @@ const char* const kMissionTopic = "quest_mission";
 } // namespace
 
 void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButtons, int listZones) {
-    *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;
+    zoneName_ = zone;
     twoButtons_ = twoButtons;
     exitDistances_ = static_cast<stlp::map<int, float>*>(exitDistances);
     listZones_ = listZones;

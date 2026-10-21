@@ -23,11 +23,11 @@ BOOL __fastcall IsTextKey(int id);
 
 // One "#allod" entry of map.txt (0x2C bytes; constructed by 00460720).
 struct AllodRecord {
-    char* name;               // CString: the "#allod" line's second word
-    char* otherNames[5];      // +0x04 CStrings: one word on each of the next five lines
+    mfc::CString name;           // the "#allod" line's second word
+    mfc::CString otherNames[5];  // +0x04 one word on each of the next five lines
     mfc::CArray<int> maps;    // +0x18 CDWordArray (vtable 0073C3D0): the indices of its maps
 };
-static_assert(offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
+static_assert(offsetof(AllodRecord, otherNames) == 0x04 && offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
 
 // One "#exit" of a map entry (0x3C bytes; map_database.h has the loader's view).
 struct MapExit {
@@ -35,7 +35,7 @@ struct MapExit {
     float deploy[4];        // +0x04
     float remove[4];        // +0x14
     float angle;            // +0x24
-    char* target;           // +0x28 CString: the zone it leads to
+    mfc::CString target;    // +0x28 the zone it leads to
     int targetExit;         // +0x2C the target zone's exit the party arrives at
     float view;             // +0x30
     bool hasDeployAngle;    // +0x34
@@ -47,14 +47,14 @@ static_assert(sizeof(MapExit) == 0x3C);
 
 // One map/zone entry (0x5C bytes): +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
-    char* name;   // CString
-    char* allod;  // +0x04 CString (SaveGame keeps the visited zones of the current one's)
-    char* mob;    // +0x08 CString: the .mob file without extension
-    char* map;    // +0x0C CString: the .mpr map without extension ("" = none)
-    char* figure;           // +0x10 CString: the "#figure" line
-    char* picture2;         // +0x14 CString: the "#maps" second line's second word
-    char* picture;          // +0x18 CString: its first word, the HUD map's texture (00641F20)
-    char* camera;           // +0x1C CString: the "#camera" line
+    mfc::CString name;
+    mfc::CString allod;     // +0x04 (SaveGame keeps the visited zones of the current one's)
+    mfc::CString mob;       // +0x08 the .mob file without extension
+    mfc::CString map;       // +0x0C the .mpr map without extension ("" = none)
+    mfc::CString figure;    // +0x10 the "#figure" line
+    mfc::CString picture2;  // +0x14 the "#maps" second line's second word
+    mfc::CString picture;   // +0x18 its first word, the HUD map's texture (00641F20)
+    mfc::CString camera;    // +0x1C the "#camera" line
     int sizeX;              // +0x20 "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY;              // +0x24
     int kind;               // +0x28 0 game, 1 edge, 2 brief (2: the zone has a script folder, 00596350)
@@ -70,7 +70,7 @@ struct MapRecord {
     mfc::CArray<MapExit> exits;   // +0x48
 };
 static_assert(offsetof(MapRecord, kind) == 0x28);
-static_assert(offsetof(MapRecord, map) == 0x0C);
+static_assert(offsetof(MapRecord, map) == 0x0C && offsetof(MapRecord, camera) == 0x1C);
 static_assert(offsetof(MapRecord, setting30) == 0x30);
 static_assert(offsetof(MapRecord, exits) == 0x48);
 static_assert(offsetof(MapRecord, restricted) == 0x34);

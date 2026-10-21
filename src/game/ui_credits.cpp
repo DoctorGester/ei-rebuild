@@ -79,7 +79,7 @@ BOOL CCreditsScreen::Draw(int pass) {
     }
     if (!player_.Frame(app::MovieMode() != 1) && finished_) {
         player_.Close();
-        PlayMoviesOriginal(mfc::operator+(*reinterpret_cast<const mfc::CString*>(&name_), kOutroSuffix), 0, 0, 0, 0);
+        PlayMoviesOriginal(mfc::operator+(name_, kOutroSuffix), 0, 0, 0, 0);
         InterfaceHasScreen() = false;
         Close();
         return 1;

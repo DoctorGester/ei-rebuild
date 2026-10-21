@@ -45,7 +45,6 @@ constexpr int kTipLine = 20;
 const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
@@ -141,14 +140,14 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         surfaces_.data[0]->Freeze(0, 0);
         SceneMesh(markerCount_ + kTipBack)->visible_ = 0;
         SceneMesh(markerCount_ + kTipFrame)->visible_ = 0;
-        AsString(shownName_).Empty();
+        shownName_.Empty();
         return;
     }
     mfc::CString text;
-    text = isLink ? AsString(links_.data[index].name) : AsString(zones_.data[index].name);
+    text = isLink ? links_.data[index].name : zones_.data[index].name;
     if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound(), 0);
-    AsString(shownName_) = text;
-    text = isLink ? AsString(links_.data[index].title) : AsString(zones_.data[index].title);
+    shownName_ = text;
+    text = isLink ? links_.data[index].title : zones_.data[index].title;
     surfaces_.data[0]->Freeze(1, 0);
     UiSurfaceGetDC(surfaces_.data[0]);
     surfaces_.data[0]->Clear();

@@ -294,7 +294,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
-        const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin()[index].file);
+        const mfc::CString& file = voices.begin()[index].file;
         HeroRecordOf(this)->texts[6] = file;
         MpHeroPlayVoice(this);
         DrawVoices();

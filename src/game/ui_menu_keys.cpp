@@ -42,8 +42,6 @@ constexpr int kOptionRows = 14;
 const UiKeyName* KeyNamesBegin() { return ei::GamePointer<const UiKeyName>(0x007857B0); }
 const UiKeyName* KeyNamesEnd() { return ei::GamePointer<const UiKeyName>(0x00787070); }
 
-mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
-
 } // namespace
 
 // --- Save/load window ----------------------------------------------------------------------------
@@ -108,7 +106,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     int selected = selected_;
     bool editable = selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(EntryCount()) &&
                     !IsReservedSave(selected) && !nameTyped_;
-    mfc::CString& name = Str(name_);
+    mfc::CString& name = name_;
     switch (key) {
     case kKeyBack:
         if (editable) {
@@ -135,7 +133,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     case kKeyRight:
         if (editable) {
             nameTyped_ = true;
-            name = Str(entriesBegin_[selected_].title_);
+            name = entriesBegin_[selected_].title_;
             cursor_ = name.GetLength();
         }
         if (key == kKeyEnd)
@@ -184,10 +182,10 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
         if (selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(EntryCount()) &&
             !IsReservedSave(selected) && !nameTyped_) {
             nameTyped_ = true;
-            Str(name_).Empty();
+            name_.Empty();
             cursor_ = 0;
         }
-        mfc::CString& name = Str(name_);
+        mfc::CString& name = name_;
         if (!interface_->ctrlDown_ && name.GetLength() < kMaxNameLength) {
             mfc::CString tail = console::Ops(name).Mid(cursor_);
             mfc::CString typed;
@@ -254,7 +252,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (a null box is written through, as in the original).
-            *reinterpret_cast<mfc::CString*>(&static_cast<CMessageBox*>(box)->text_) = static_cast<const char*>(message);
+            static_cast<CMessageBox*>(box)->text_ = static_cast<const char*>(message);
             interface_->PushWindow(box, 1, 1);
             return;
         }

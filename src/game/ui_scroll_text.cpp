@@ -138,14 +138,14 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
             if (w) {
                 ei::SetVtable(w, UiTextToken::kVtableAddress);   // the base, replaced by the word's
                 w->type_ = 0;
-                w->text_ = mfc::impl::PchNil();   // afxEmptyString
+                ::new (&w->text_) mfc::CString;   // afxEmptyString
                 w->type_ = kWordType;
                 ei::SetVtable(w, UiWordToken::kVtableAddress);
                 w->width_ = 0;
             }
             SIZE size = TextExtent(interface_, token, font);
             w->width_ = size.cx;
-            *reinterpret_cast<mfc::CString*>(&w->text_) = token;
+            w->text_ = token;
             Append(tokens_, w);
         }
     } while (pos < text->GetLength());
@@ -431,7 +431,7 @@ EI_REPLACE_METHOD(0x0065D960, UiTextToken::DestroyBase);
 
 void UiWordToken::DestroyWord() {
     ei::SetVtable(this, kVtableAddress);
-    reinterpret_cast<mfc::CString*>(&text_)->~CString();
+    text_.~CString();
     ei::SetVtable(this, UiTextToken::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x0065D910, UiWordToken::DestroyWord);

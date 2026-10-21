@@ -50,8 +50,6 @@ constexpr int kPartLegs = 4;
 constexpr int kTipPreviousHero = 0x4F4C;
 constexpr int kTipNextHero = 0x4F4D;
 
-const mfc::CString& AsCString(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
-
 UnitStats* HeroStats(CUiWindow* owner) { return reinterpret_cast<UnitStats*>(ShownHero(owner)->stats); }
 
 } // namespace
@@ -90,7 +88,7 @@ void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
             row = &perks_.begin[i];
             info->index = row->level;
         }
-        info->text = AsCString(row->key);
+        info->text = row->key;
         info->text.TrimRight(kPerkLevelDigits);
         info->text += kPerkFirstLevel;
     }
@@ -178,7 +176,7 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     regions_.data[0]->SetTip(party ? kTipPreviousHero : 0, 1, 0);
     regions_.data[1]->SetTip(party ? kTipNextHero : 0, 1, 0);
     heroIndex_ = heroIndex;
-    if (title) *reinterpret_cast<mfc::CString*>(&title_) = title;
+    if (title) title_ = title;
     points_ = static_cast<int>(ShownHero(owner_)->height * 100.0f);
     static_cast<CHeroStatsPanel*>(this)->DrawStats();
 }

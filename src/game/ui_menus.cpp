@@ -85,8 +85,8 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     nameTyped_ = false;
-    *reinterpret_cast<mfc::CString*>(&name_) = *reinterpret_cast<mfc::CString*>(&entriesBegin_[selected].title_);
-    cursor_ = reinterpret_cast<const int*>(name_)[-2];   // CString length
+    name_ = entriesBegin_[selected].title_;
+    cursor_ = name_.GetLength();
 }
 EI_REPLACE_METHOD(0x006577B0, CSaveLoadWindow::TakeSelectedTitle);
 

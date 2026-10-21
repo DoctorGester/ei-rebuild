@@ -53,15 +53,15 @@ EI_REPLACE_METHOD(0x00635CA0, CHudMap::DestroyBody);
 void CHudUnitPanel::DestroyBody() {
     partLabels_.Destruct();
     texts_.Destruct();
-    reinterpret_cast<mfc::CString*>(&strings_[1])->~CString();
-    reinterpret_cast<mfc::CString*>(&strings_[0])->~CString();
+    strings_[1].~CString();
+    strings_[0].~CString();
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x00635D00, CHudUnitPanel::DestroyBody);
 
 void CHudTopPanel::DestroyBody() {
-    reinterpret_cast<mfc::CString*>(&pageTexts_[1])->~CString();
-    reinterpret_cast<mfc::CString*>(&pageTexts_[0])->~CString();
+    pageTexts_[1].~CString();
+    pageTexts_[0].~CString();
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x00635E00, CHudTopPanel::DestroyBody);

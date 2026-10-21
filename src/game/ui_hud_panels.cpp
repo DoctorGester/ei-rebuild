@@ -302,7 +302,7 @@ void CHudTopPanel::ShowItems() {
         merged.AddTail(copy);
     }
 
-    mfc::CString& text = *reinterpret_cast<mfc::CString*>(&pageTexts_[1]);
+    mfc::CString& text = pageTexts_[1];
     text.Empty();
     auto* party = reinterpret_cast<CParty*>(LocalPlayerData());
     if (static_cast<int>(party->money_) > 0) {

@@ -36,7 +36,7 @@ inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
 inline void DestroyBlockAt4(Bytes<20>* p) { aligned::ArrayAt4Free(p); }
 
 // Zone exits: the target string empty (004606A0); its destructor.
-inline void InitExit(MapExit* p) { p->target = mfc::impl::PchNil(); }
+inline void InitExit(MapExit* p) { ::new (&p->target) mfc::CString; }
 inline void DestroyExit(MapExit* p) { zone::ExitDestruct(p); }
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 

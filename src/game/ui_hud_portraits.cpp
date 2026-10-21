@@ -221,8 +221,8 @@ void CHudPortraits::Update() {
             else if (build > kFat)
                 name = "fa";
             {
-                const auto& prefix = *reinterpret_cast<const mfc::CString*>(&slot.modelPrefix_);
-                const auto& suffix = *reinterpret_cast<const mfc::CString*>(&slot.modelSuffix_);
+                const mfc::CString& prefix = slot.modelPrefix_;
+                const mfc::CString& suffix = slot.modelSuffix_;
                 mfc::CString withPrefix = prefix + name;
                 mfc::CString full = withPrefix + suffix;
                 name = full;
