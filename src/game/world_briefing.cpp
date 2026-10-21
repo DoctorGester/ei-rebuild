@@ -304,7 +304,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();
-        static_cast<CMapDatabase*>(reinterpret_cast<void*>(0x0079BF00))->Load(path);
+        static_cast<CMapDatabase*>(ei::GamePointer<void>(0x0079BF00))->Load(path);
     }
     // push_back(folder)
     stlp::string name(folder);
@@ -320,8 +320,8 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     mfc::CString name;
     // The peer's map: the client's +0x25F4, else the server's +0x25A8 (name at +0x0C).
     const std::uint8_t* peer = nullptr;
-    auto* client = *reinterpret_cast<std::uint8_t* const*>(0x0079B5D8);
-    auto* server = *reinterpret_cast<std::uint8_t* const*>(0x0079B5DC);
+    auto* client = ei::GameData<std::uint8_t* const>(0x0079B5D8);
+    auto* server = ei::GameData<std::uint8_t* const>(0x0079B5DC);
     if (ActiveSession(client) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(client + 0x25F4)))
         peer = *reinterpret_cast<std::uint8_t* const*>(client + 0x25F4);
     else if (ActiveSession(server) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(server + 0x25A8)))

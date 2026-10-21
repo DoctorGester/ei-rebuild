@@ -17,7 +17,7 @@ namespace {
 __declspec(naked) void __fastcall CameraDestruct(void* /*camera*/) EI_ORIGINAL(0x0040CE60)
 
 // The once-only flags of the two buffers (bit 0: 0079B900, bit 1: 0079B8E0).
-std::uint8_t& BufferFlags() { return *reinterpret_cast<std::uint8_t*>(0x0079B8FC); }
+std::uint8_t& BufferFlags() { return ei::GameData<std::uint8_t>(0x0079B8FC); }
 } // namespace
 
 // 0040C8A0: the camera at 0079B2A8.

@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 CItemLink* CItemLink::Construct() {
     vtable = Vtable();
@@ -15,7 +16,7 @@ CItemLink* CItemLink::Construct() {
 EI_REPLACE_METHOD(0x0058FBB0, CItemLink::Construct);
 
 void CItemLink::Reset() {
-    vtable = reinterpret_cast<void*>(CRefCounted::kVtableAddress);
+    vtable = ei::GamePointer<void>(CRefCounted::kVtableAddress);
     vtable = Vtable();
 }
 EI_REPLACE_METHOD(0x0058FB90, CItemLink::Reset);

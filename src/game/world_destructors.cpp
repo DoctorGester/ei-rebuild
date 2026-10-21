@@ -21,6 +21,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 
@@ -137,7 +138,7 @@ void CWorld::Destruct() {
     ei::SetVtable(this, kBaseVtableAddress);
     DestroyManagers();
     auto* countdowns = &countdowns_;
-    countdowns->vtable = reinterpret_cast<void*>(kCountdownsVtable);
+    countdowns->vtable = ei::GamePointer<void>(kCountdownsVtable);
     countdowns->FreeData();
     reinterpret_cast<RefPtr*>(&netSession_)->Destroy();
     shared5C_.Destroy();
@@ -157,7 +158,7 @@ void CParticleManager::Destruct() {
     ei::SetVtable(this, worlddata::kParticleManagerVtable);
     CParticleManager::Destroy();
     held_.Destroy();
-    freeParticles.vtable = reinterpret_cast<void*>(kParticleListVtable);
+    freeParticles.vtable = ei::GamePointer<void>(kParticleListVtable);
     freeParticles.RemoveAll();
     CBaseManager::DestructBody();
 }
@@ -172,14 +173,14 @@ EI_REPLACE_METHOD(0x005627A0, CParticleManager::DeletingDestruct);
 void Terrain::Destruct() {
     ei::SetVtable(this, worlddata::kTerrainVtable);
     Terrain::DestroyImpl();
-    waterLevels.vtable = reinterpret_cast<void*>(kWaterLevelsVtable);
+    waterLevels.vtable = ei::GamePointer<void>(kWaterLevelsVtable);
     waterLevels.FreeData();
     records::AsCString(textAE0).~CString();
     visibleColumnLast.FreeData();
     visibleColumnFirst.FreeData();
     wavePhases.FreeData();
     lights.Destroy();
-    sectorCache.vtable = reinterpret_cast<void*>(kSectorCacheVtable);
+    sectorCache.vtable = ei::GamePointer<void>(kSectorCacheVtable);
     sectorCache.RemoveAll();
     vertexTiles.FreeData();
     archive.Destroy();
@@ -204,11 +205,11 @@ EI_REPLACE_METHOD(0x00562B60, Terrain::DeletingDestruct);
 void Sector::Destruct() {
     ei::SetVtable(this, kSectorVtable);
     Clear();
-    occluders.vtable = reinterpret_cast<void*>(kSectorOccluderArrayVtable);
+    occluders.vtable = ei::GamePointer<void>(kSectorOccluderArrayVtable);
     occluders.FreeData();
     units.vtable = mfc::PtrListVtable();
     units.RemoveAll();
-    objects.vtable = reinterpret_cast<void*>(kSectorObjectListVtable);
+    objects.vtable = ei::GamePointer<void>(kSectorObjectListVtable);
     objects.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005BFCD0, Sector::Destruct);
@@ -247,7 +248,7 @@ void CWorldClient::Destruct() {
     dynamicObjects_.RemoveAll();
     objects_.Destroy();
     DestroySectorList(&heroes_);
-    countedA0_.vtable = reinterpret_cast<void*>(kCountedArrayVtable);
+    countedA0_.vtable = ei::GamePointer<void>(kCountedArrayVtable);
     if (countedA0_.data) {
         for (int i = 0; i < countedA0_.size; ++i) ObjectHolderDelete(&countedA0_.data[i], nullptr, 0);
         gamecrt::operator_delete(countedA0_.data);

@@ -73,7 +73,7 @@ constexpr std::uint32_t kTintDim = 0x3F333333;   // 0.7f: the movement panel's o
 
 constexpr const char* kSoundClock = "buttons\\battle\\clock.wav";     // 0079447C
 // The world's update period in milliseconds: the game's speed.
-int& UpdatePeriod() { return *reinterpret_cast<int*>(std::uintptr_t(0x0078FF34)); }
+int& UpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
@@ -698,7 +698,7 @@ void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scale
 constexpr int kCategoryWand = 8;
 IsaacRandom& UiRandom() { return IsaacRandom::Global(); }
 // 00742760: the factor turning a random dword into the portraits' negative start delay.
-double PortraitDelayScale() { return *reinterpret_cast<const volatile double*>(0x00742760); }
+double PortraitDelayScale() { return ei::GameData<const volatile double>(0x00742760); }
 // A random value times ~-2^-34 * 0.3 (00742760), as the original stores it.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
@@ -1025,7 +1025,7 @@ using OrderUnits = mfc::CArray<CUnit*>;
 // (CPlayerClient::SendWalk), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
 // 0073B84C: the constant 1.0f the zone variable is compared with.
-float GameOne() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
+float GameOne() { return ei::GameData<const volatile float>(0x0073B84C); }
 
 } // namespace
 
@@ -1058,7 +1058,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
-    OrderUnits units{reinterpret_cast<void*>(kUnitPtrArrayVtable), nullptr, 0, 0, 0};
+    OrderUnits units{ei::GamePointer<void>(kUnitPtrArrayVtable), nullptr, 0, 0, 0};
     for (int i = 0; i < party_.size; ++i) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -1074,7 +1074,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         else
             view->SendWalk(&units, &point, ctrl & 0xFF);
     }
-    units.vtable = reinterpret_cast<void*>(kUnitPtrArrayVtable);
+    units.vtable = ei::GamePointer<void>(kUnitPtrArrayVtable);
     units.FreeData();
 }
 EI_REPLACE_METHOD(0x00636F10, CBattleScreen::OrderAt);

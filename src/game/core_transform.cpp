@@ -5,13 +5,14 @@
 #include "core_maths.h"
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
 
 namespace {
 // The engine's zero vector (0079B5C8, set up by a static initialiser), copied as dwords.
-const void* ZeroVector() { return reinterpret_cast<const void*>(0x0079B5C8); }
+const void* ZeroVector() { return ei::GamePointer<const void>(0x0079B5C8); }
 } // namespace
 
 CTransformObject* CTransformObject::ConstructBase() {

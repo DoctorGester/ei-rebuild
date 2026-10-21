@@ -99,9 +99,9 @@ void CFigureAnimationState::DestructBody() {
     ei::SetVtable(this, kStateVtable);
     ReleaseBones();
     Reset();
-    queue.vtable = reinterpret_cast<void*>(kQueueVtable);
+    queue.vtable = ei::GamePointer<void>(kQueueVtable);
     queue.RemoveAll();
-    bones.vtable = reinterpret_cast<void*>(kBoneListVtable);
+    bones.vtable = ei::GamePointer<void>(kBoneListVtable);
     bones.RemoveAll();
     DestructBase();
 }

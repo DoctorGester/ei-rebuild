@@ -39,7 +39,7 @@ CBaseManager* ObjectManager() { return ei::GameData<CBaseManager* const>(0x007AF
 
 // The width of the fade at the map's edges (read by 006CB020 / 006CB118; 00578D60 / 00578D70 get
 // and set it). The menu shows its world with 6.
-float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
+float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 // The main menu's six rectangles of menus.reg (loaded by 005ACE80).
 const RECT* MenuRects() { return ei::GamePointer<const RECT>(0x007C8048); }
 // Interface options (bit 0: the menu's lightning).
@@ -48,7 +48,7 @@ std::uint32_t InterfaceOptions() { return ei::GameData<const volatile std::uint3
 std::uint32_t& NextLightningTick() { return ei::GameData<std::uint32_t>(0x007C811C); }
 
 // An input side whose every slot does nothing.
-void** InertInputVtable() { return reinterpret_cast<void**>(0x00741154); }
+void** InertInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 constexpr int kStonesObject = 2;                            // the object manager's id of the stones
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 constexpr float kMenuEdgeFade = 6.0f;

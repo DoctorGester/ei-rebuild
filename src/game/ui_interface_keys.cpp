@@ -20,7 +20,7 @@
 namespace {
 
 // The scan code to character table (0079BF70, 0x200 entries).
-std::uint8_t KeyCharacter(int scan) { return reinterpret_cast<const std::uint8_t*>(0x0079BF70)[scan]; }
+std::uint8_t KeyCharacter(int scan) { return ei::GamePointer<const std::uint8_t>(0x0079BF70)[scan]; }
 
 // The screen capture (CallCaptureSurface on [007AF080] + 0x18); the picture (dib.h) is written with
 // CDib::Write and deleted through its slot 1.

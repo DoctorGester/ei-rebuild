@@ -101,8 +101,8 @@ const char kConstructionVariable[] = "constr.current";   // 00790384
 // The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
 // input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
 char& CloseAllRequested() { return ei::GameData<char>(0x007C7D94); }
-float& MapEdgeFade() { return *reinterpret_cast<float*>(std::uintptr_t(0x0079BD34)); }
-const char* DefaultMusic() { return *reinterpret_cast<const char**>(std::uintptr_t(0x0079BECC)); }
+float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
+const char* DefaultMusic() { return ei::GameData<const char*>(0x0079BECC); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
 CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }

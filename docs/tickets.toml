@@ -2968,7 +2968,7 @@ group = "standalone"
 size = 2
 model = "opus"
 files = ["src/game/game_data.h", "tools/data_seam.py", "config/data_seam.csv", "tools/gen_static_init.py"]
-note = "Code reaches game data by the original's address only through src/game/game_data.h (identity in game.exe and so far in the image); tools/data_seam.py counts seam / helper / id / generated / raw uses per section, build.cmd --check ratchets config/data_seam.csv and keeps sealed sections at 0 raw. Generated static init resolves through its visitor (d.At). .bss sealed (883 raw -> 0); the casts of the other sections rewritten where the tool can. Checked: build checks, goldens (identity mapping), --no-hooks (harness files touched)."
+note = "Code reaches game data by the original's address only through src/game/game_data.h (identity in game.exe and so far in the image); tools/data_seam.py counts seam / helper / id / generated / raw uses per section, build.cmd --check ratchets config/data_seam.csv and keeps sealed sections at 0 raw. Generated static init resolves through its visitor (d.At). .bss sealed (883 raw -> 0); the casts of the other sections rewritten where the tool can. Checked: build checks, goldens (identity mapping), --no-hooks (harness files touched). Raw uses after S18a: .bss 883 -> 0, .data 495 -> 64, .rdata 2028 -> 381, IAT 563 -> 76 (1557 casts rewritten by data_seam.py --apply; gameapi.h through GameData)."
 
 [[ticket]]
 id = "S18b"

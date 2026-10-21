@@ -203,7 +203,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     DamageInfo copy = *hit;
     if (!(copy.amount < kZero || copy.amount > kZero)) return 0;
     float difficulty = unit->player ? kOne
-                                    : ei::GamePointer<const float>(0x007C54A0)[*reinterpret_cast<const int*>(0x0079BEC0)];
+                                    : ei::GamePointer<const float>(0x007C54A0)[ei::GameData<const int>(0x0079BEC0)];
     float total = kZero;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -

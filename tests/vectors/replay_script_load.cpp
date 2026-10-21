@@ -10,6 +10,7 @@
 #include "../../src/game/script.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -171,7 +172,7 @@ void ReadRun(Reader& r, Run* run) {
     }
     new (&run->tail.data.text) mfc::CString;
     run->tail.data.line = r.Get<std::int32_t>();
-    run->list.vtable = reinterpret_cast<void*>(0x0073D424);
+    run->list.vtable = ei::GamePointer<void>(0x0073D424);
     run->list.head = linked ? &run->nodes[0] : nullptr;
     run->list.tail = &run->tail;   // only its line is read
     run->list.count = static_cast<int>(linked);

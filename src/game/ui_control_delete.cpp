@@ -10,6 +10,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -31,24 +32,24 @@ T* FreeIfAsked(T* self, unsigned flags) {
 // --- Bodies -------------------------------------------------------------------------------------
 
 void CUiScrollbar::DestroyBody() {
-    vtable_ = reinterpret_cast<void**>(kScrollbarVtable);
-    inputVtable_ = reinterpret_cast<void**>(kScrollbarInputVtable);
+    vtable_ = ei::GamePointer<void*>(kScrollbarVtable);
+    inputVtable_ = ei::GamePointer<void*>(kScrollbarInputVtable);
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0065AFC0, CUiScrollbar::DestroyBody);
 EI_REPLACE_METHOD(0x0065BCB0, CUiScrollbar::DestroyBody);   // the slider's (the same code)
 
 void CUiSpin::DestroyBody() {
-    vtable_ = reinterpret_cast<void**>(kSpinVtable);
-    inputVtable_ = reinterpret_cast<void**>(kSpinInputVtable);
+    vtable_ = ei::GamePointer<void*>(kSpinVtable);
+    inputVtable_ = ei::GamePointer<void*>(kSpinInputVtable);
     texts_.Destruct();
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0065BE10, CUiSpin::DestroyBody);
 
 void CUiEditField::DestroyBody() {
-    vtable_ = reinterpret_cast<void**>(kEditFieldVtable);
-    inputVtable_ = reinterpret_cast<void**>(kEditFieldInputVtable);
+    vtable_ = ei::GamePointer<void*>(kEditFieldVtable);
+    inputVtable_ = ei::GamePointer<void*>(kEditFieldInputVtable);
     Text().~CString();
     DestroyBase();
 }

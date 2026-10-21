@@ -76,8 +76,8 @@ float HalfHeight() { return ei::GameData<const float>(0x007AED9C); }   // 30: th
 float FlakeHeight() { return ei::GameData<const float>(0x007AED98); }  // 0.2
 
 // A number per (column squared + row) & 31, mixed into a cell's.
-const std::uint32_t* RainSeeds() { return reinterpret_cast<const std::uint32_t*>(0x0078DEA4); }
-const std::uint32_t* SnowSeeds() { return reinterpret_cast<const std::uint32_t*>(0x0078DF24); }
+const std::uint32_t* RainSeeds() { return ei::GamePointer<const std::uint32_t>(0x0078DEA4); }
+const std::uint32_t* SnowSeeds() { return ei::GamePointer<const std::uint32_t>(0x0078DF24); }
 
 // A snowflake's sway (0xA00 bytes; five tables built at start-up by 004E3980): 128 smoothed random
 // values and the cubic between each two neighbours.

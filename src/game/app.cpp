@@ -288,7 +288,7 @@ EI_REPLACE(0x00456140, StartFirstMap);
 
 namespace {
 const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
-const char* WindowTitle() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079BB24)); }      // the game window's title (a buffer)
+const char* WindowTitle() { return ei::GamePointer<const char>(0x0079BB24); }      // the game window's title (a buffer)
 } // namespace
 
 // 004560D0 (A-E2).

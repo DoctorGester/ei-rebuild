@@ -421,7 +421,7 @@ constexpr std::uint32_t kLowFlags = 0xFFFF;
 constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);   // CArray<float>
 
 // ".MP": the map file's extension, through the pointer the loader reads.
-const char* MapExtension() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x007441D4)); }
+const char* MapExtension() { return ei::GameData<const char* const>(0x007441D4); }
 
 // The original keeps 1 when its FCOMP finds 1 below the value, or the two unordered.
 float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
@@ -434,7 +434,7 @@ void terrain::LevelArrayElements::Construct(mfc::CArray<float>* arrays, int coun
 }
 void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count) {
     for (int i = 0; i < count; ++i) {
-        arrays[i].vtable = reinterpret_cast<void*>(kFloatArrayVtable);
+        arrays[i].vtable = ei::GamePointer<void>(kFloatArrayVtable);
         if (arrays[i].data) gamecrt::operator_delete(arrays[i].data);
     }
 }

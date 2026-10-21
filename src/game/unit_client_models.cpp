@@ -497,7 +497,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
 
 void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
     void* textureManager = TextureManager();
-    SkinLayerArray layers{reinterpret_cast<void*>(0x0073EEA0), nullptr, 0, 0, 0};
+    SkinLayerArray layers{ei::GamePointer<void>(0x0073EEA0), nullptr, 0, 0, 0};
     void* result;
     {
         mfc::CString unitKey;

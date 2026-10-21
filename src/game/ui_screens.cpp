@@ -47,10 +47,10 @@ BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScro
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
 __declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
 
-void* MultiplayerClient() { return *reinterpret_cast<void**>(0x0079B5D8); }
+void* MultiplayerClient() { return ei::GameData<void*>(0x0079B5D8); }
 void* const kGame = ei::GamePointer<void>(0x007AFE20);
 // 0079BE84: the camp's tab keys are active.
-bool TabKeysEnabled() { return *reinterpret_cast<const int*>(0x0079BE84) != 0; }
+bool TabKeysEnabled() { return ei::GameData<const int>(0x0079BE84) != 0; }
 
 // Virtual slot `slot` of an object with its vtable at +0.
 template <typename Fn>

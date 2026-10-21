@@ -31,7 +31,7 @@ namespace {
 const char* DataPath() { return ei::GameData<const char* const>(0x007AF460); }
 
 // Nonzero when mipmaps are used (otherwise every texture gets a single level).
-int MipmapsEnabled() { return *reinterpret_cast<const int*>(0x0079BCE0); }
+int MipmapsEnabled() { return ei::GameData<const int>(0x0079BCE0); }
 
 // The alpha kind from the file (texture flags 0x4000..0x20000), and the texture loaded.
 void MarkLoaded(CTexture* texture, const MmpHeader* header) {

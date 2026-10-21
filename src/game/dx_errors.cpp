@@ -6,6 +6,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_library.h"   // CxxThrowException
+#include "game_data.h"
 
 #include <algorithm>
 #include <cstdarg>
@@ -191,8 +192,8 @@ static_assert(sizeof(GameError) == 0xC);
 
 namespace {
 
-void* ErrorVtable() { return reinterpret_cast<void*>(0x0073CAB4); }
-void* ErrorBaseVtable() { return reinterpret_cast<void*>(0x0073CAB0); }
+void* ErrorVtable() { return ei::GamePointer<void>(0x0073CAB4); }
+void* ErrorBaseVtable() { return ei::GamePointer<void>(0x0073CAB0); }
 // 00787EE4: "%s (0x%.8X) %s".
 const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
@@ -251,7 +252,7 @@ EI_REPLACE(0x00480300, GameErrorConstructResult);
 
 namespace {
 [[noreturn]] void Throw(GameError* error) {
-    libcrt::CxxThrowException(&error, reinterpret_cast<const void*>(0x00759908));
+    libcrt::CxxThrowException(&error, ei::GamePointer<const void>(0x00759908));
     for (;;) {
     }
 }

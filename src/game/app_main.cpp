@@ -73,7 +73,7 @@ T& Global(std::uintptr_t address) {
 }
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
 float ExeFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double ExeDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+double ExeDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 // A step of a float expression kept apart from the next: the value passes through a double, which
 // holds any result at the precisions the game runs at (53 bits before Direct3D starts, 24 after).
 double Step(double value) {

@@ -66,7 +66,7 @@ float AbsBits(float f) {
 // A zone of the map database: its picture (picture2, the texture shown here), its size in map
 // cells and its exits (the deploy rectangle x1, y1, x2, y2 and the target zone, "none" when it
 // leads nowhere).
-MapRecord* FindZone(const char* name) { return reinterpret_cast<CMapDatabase*>(0x0079BF00)->FindMap(name); }
+MapRecord* FindZone(const char* name) { return ei::GamePointer<CMapDatabase>(0x0079BF00)->FindMap(name); }
 
 CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 struct UiTexts {

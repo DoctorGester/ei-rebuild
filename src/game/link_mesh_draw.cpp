@@ -61,7 +61,7 @@ lib::AlignedArray<PixelPair>& TexturePixels() {
 }
 
 // The screen rectangle of a part that was not drawn (0073D780: zeros).
-const RECT& NoScreen() { return *reinterpret_cast<const RECT*>(0x0073D780); }
+const RECT& NoScreen() { return ei::GameData<const RECT>(0x0073D780); }
 
 std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 

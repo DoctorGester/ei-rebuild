@@ -28,12 +28,12 @@
 namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
-float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
+float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 void* TheGame() { return ei::GamePointer<void>(0x007AFE20); }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
-void** SaveLoadVtable() { return reinterpret_cast<void**>(0x00741388); }
-void** SaveLoadInputVtable() { return reinterpret_cast<void**>(0x00741354); }
+void** SaveLoadVtable() { return ei::GamePointer<void*>(0x00741388); }
+void** SaveLoadInputVtable() { return ei::GamePointer<void*>(0x00741354); }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;
@@ -54,7 +54,7 @@ struct LocalPartyRecords {
 LocalPartyRecords* LocalRecords() { return reinterpret_cast<LocalPartyRecords*>(LocalPlayerData()); }
 int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
 
-CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
+CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 const char* ZoneTopicFormat() { return "b.%s"; }
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f

@@ -366,8 +366,8 @@ void CHeroEquipPanel::Build(bool body) {
     Builder(AddSprite(0))->Cells(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
         // The body's slots: 100x100 around the centres of two tables (00741EC4 x, 00741EE0 y).
-        const int* xs = reinterpret_cast<const int*>(0x00741EC4);
-        const int* ys = reinterpret_cast<const int*>(0x00741EE0);
+        const int* xs = ei::GamePointer<const int>(0x00741EC4);
+        const int* ys = ei::GamePointer<const int>(0x00741EE0);
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
         LoadTexture("camp1", 3, 0);   // camp1
         LoadTexture("camp2", 3, 0);   // camp2

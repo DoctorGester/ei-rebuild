@@ -33,6 +33,7 @@
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -190,7 +191,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
 
     mfc::CTypedPtrList<CEngineObject> items;
-    items.vtable = reinterpret_cast<void*>(worlddata::kItemListVtable);
+    items.vtable = ei::GamePointer<void>(worlddata::kItemListVtable);
     items.head = nullptr;
     items.tail = nullptr;
     items.count = 0;
@@ -228,7 +229,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
 
     // The list's inlined destructor (its nodes are dropped, the items stay with the player).
-    items.vtable = reinterpret_cast<void*>(worlddata::kItemListVtable);
+    items.vtable = ei::GamePointer<void>(worlddata::kItemListVtable);
     items.RemoveAll();
 }
 
@@ -370,7 +371,7 @@ double Weight(CUnitServer* controller) {
 // weights.
 void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     if (world->PlayerList()->objects_.Size() == 0) return;
-    ShareList list{reinterpret_cast<void*>(worlddata::kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ShareList list{ei::GamePointer<void>(worlddata::kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
     auto soloUnit = [&](WorldPlayer* p) -> CEngineObject* {
         if (!p->server || p->mercCount != 1) return nullptr;
         return WorldFindUnit(world, nullptr, static_cast<int>(MercRecord(p, 0).unitId));
@@ -424,7 +425,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         --it.manager->refCount_;
         it.manager = nullptr;
     }
-    list.vtable = reinterpret_cast<void*>(worlddata::kShareListVtable);
+    list.vtable = ei::GamePointer<void>(worlddata::kShareListVtable);
     list.RemoveAll();   // 0059D5C0
 }
 
@@ -510,7 +511,7 @@ ItemSourceRef* NewItemRecord(bool refValueBase) {
     if (!memory) return nullptr;
     if (!refValueBase) return reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
     RefValueConstructBase(memory);
-    memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
+    memory->vtable = ei::GamePointer<void>(worlddata::kItemSourceRefVtable);
     return memory;
 }
 
@@ -576,7 +577,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
         PartyAddItem(party, nullptr, node->data, 1, 1);
         node = next;
     }
-    RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
+    RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
     for (int i = 0; i < player->mercCount; ++i) list.SetAtGrow(list.size, reinterpret_cast<std::uint8_t*>(&MercRecord(player, i)));   // 0059D2E0
     for (int i = 0; i < list.size; ++i) {
         auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
@@ -584,7 +585,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
         if (!unit || ObjectSlots(unit)->IsDead() != 0) continue;
         SyncRecord(party, record, unit);
     }
-    list.vtable = reinterpret_cast<void*>(worlddata::kRecordArrayVtable);
+    list.vtable = ei::GamePointer<void>(worlddata::kRecordArrayVtable);
     if (list.data) gamecrt::operator_delete(list.data);
 }
 
@@ -678,7 +679,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     }
     if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
-    RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
+    RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
     // Records whose unit is gone (or dead, outside a network client game) are dropped (the
     // inlined CArray::RemoveAt).
     for (int i = 0; i < player->mercCount; ++i) {
@@ -697,7 +698,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
         list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
     }
     StoreParty(&list, PartyOf(player), placements);
-    list.vtable = reinterpret_cast<void*>(worlddata::kRecordArrayVtable);
+    list.vtable = ei::GamePointer<void>(worlddata::kRecordArrayVtable);
     if (list.data) gamecrt::operator_delete(list.data);
 }
 

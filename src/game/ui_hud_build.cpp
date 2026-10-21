@@ -23,7 +23,7 @@
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
+void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 float Pi() { return GameFloat(0x007423F8); }

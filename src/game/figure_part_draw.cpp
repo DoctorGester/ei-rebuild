@@ -41,9 +41,9 @@ lib::AlignedArray<VertexPacket>& MovedPositions() { return ei::GameData<lib::Ali
 std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E58); }
 // The ambient level the lights' colours are set with (0079BE9C, float bits), the "crown" option
 // (0079BD28), the flags an animated mesh's drawer gets (00790C0C) and the renderer (007AF060).
-std::uint32_t AmbientBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079BE9C); }
-int CrownOption() { return *reinterpret_cast<const int*>(0x0079BD28); }
-std::uint32_t AnimatedDrawerFlags() { return *reinterpret_cast<const std::uint32_t*>(0x00790C0C); }
+std::uint32_t AmbientBits() { return ei::GameData<const std::uint32_t>(0x0079BE9C); }
+int CrownOption() { return ei::GameData<const int>(0x0079BD28); }
+std::uint32_t AnimatedDrawerFlags() { return ei::GameData<const std::uint32_t>(0x00790C0C); }
 
 // --- Forwarders ----------------------------------------------------------------------------------
 

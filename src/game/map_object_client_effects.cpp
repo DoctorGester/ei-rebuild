@@ -25,6 +25,7 @@
 #include "ei/hook.h"
 #include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -52,8 +53,8 @@ constexpr int kScaleRingSource = 0x201B;   // strengthen / weaken
 constexpr int kFallbackSource = 0x2013;
 
 // The sound distances (0073DBE0 / 0073DBE4: 10 and 50), read from the exe as the original does.
-float SoundNear() { return *reinterpret_cast<const float*>(0x0073DBE0); }
-float SoundFar() { return *reinterpret_cast<const float*>(0x0073DBE4); }
+float SoundNear() { return ei::GameData<const float>(0x0073DBE0); }
+float SoundFar() { return ei::GameData<const float>(0x0073DBE4); }
 
 // The effect types whose several entries share one particle source (the strongest power wins).
 bool MergesParticles(int type) {
@@ -160,8 +161,8 @@ constexpr float kLightHeight = 2.0f;             // 0073DBE8
 constexpr int kUnitClassId = 0x50;
 
 // The default light of slot 19's mode 1 (0079BEB0: r, g, b; 0079BEBC: radius).
-const float* DefaultLightColour() { return reinterpret_cast<const float*>(0x0079BEB0); }
-float DefaultLightRadius() { return *reinterpret_cast<const float*>(0x0079BEBC); }
+const float* DefaultLightColour() { return ei::GamePointer<const float>(0x0079BEB0); }
+float DefaultLightRadius() { return ei::GameData<const float>(0x0079BEBC); }
 
 CObject3DSpecific* SideHalf(CMapObject* owner) {
     return owner->Specific();

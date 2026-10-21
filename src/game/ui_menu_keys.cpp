@@ -38,8 +38,8 @@ constexpr int kListRows = 16;            // visible rows of the save list
 constexpr int kOptionRows = 14;
 
 // The key name table (88 entries of 0x48 bytes).
-const UiKeyName* KeyNamesBegin() { return reinterpret_cast<const UiKeyName*>(0x007857B0); }
-const UiKeyName* KeyNamesEnd() { return reinterpret_cast<const UiKeyName*>(0x00787070); }
+const UiKeyName* KeyNamesBegin() { return ei::GamePointer<const UiKeyName>(0x007857B0); }
+const UiKeyName* KeyNamesEnd() { return ei::GamePointer<const UiKeyName>(0x00787070); }
 
 CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }

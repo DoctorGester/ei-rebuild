@@ -41,12 +41,12 @@ namespace {
 void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 void* ServerWorld() { return ei::GamePointer<void>(0x007AFF60); }
 void* SectorMap() { return ei::GamePointer<void>(0x007B01F4); }   // the server world + 0x294
-CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
+CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 CMusicSystem* Music() { return ei::GameData<CMusicSystem* const>(0x007AF760); }
-float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
+float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
-void** ScreenInputVtable() { return reinterpret_cast<void**>(0x00741154); }
-void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
+void** ScreenInputVtable() { return ei::GamePointer<void*>(0x00741154); }
+void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }
 
 const char* SaveLoadTexture() { return "saveload"; }
 const char* DefaultAllod() { return "gipat"; }

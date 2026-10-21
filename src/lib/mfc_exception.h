@@ -9,6 +9,7 @@
 
 #include "mfc_string.h"
 #include "mfc_try.h"
+#include "game/game_data.h"
 
 namespace mfc::impl {
 
@@ -84,7 +85,7 @@ struct CFileException {
     long osError;       // +0x0C m_lOsError (-1: none)
     CString fileName;   // +0x10 m_strFileName
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x00745E4C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00745E4C); }
     // An empty exception as CFile's constructors build it on the stack (cause none, no OS error),
     // on an object whose name is constructed.
     void InitEmpty();
@@ -105,7 +106,7 @@ struct CArchiveException {
     int cause;          // +0x08
     CString fileName;   // +0x0C
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x00746808); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00746808); }
     void Destruct();                                        // 006E6BA1
     CArchiveException* DeletingDestructor(unsigned flags);  // 006E6B85 (vtable slot 1)
     // 0070A795 (slot 3): as CFileException's, with AFX_IDP_ARCH_NONE + cause.

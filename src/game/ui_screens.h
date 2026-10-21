@@ -619,8 +619,8 @@ MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddres
 
 class CMpConnectScreen : public CUiContainer {
 public:
-    static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741CD0)); }
-    static void** InputVtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741C9C)); }
+    static void** Vtable() { return ei::GamePointer<void*>(0x00741CD0); }
+    static void** InputVtable() { return ei::GamePointer<void*>(0x00741C9C); }
 
     // The message box results (slot 27): the kinds the screen opens boxes with, ORed with 1 (OK)
     // or 2 (cancel) when they come back.
@@ -766,8 +766,8 @@ static_assert(sizeof(CMpConnectScreen) == 0x260);
 // the master server and a progress bar sprite. Its result is kBoxMaster (| 2 when done).
 class CMasterRequestBox : public CMessageBox {
 public:
-    static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741DD8)); }
-    static void** InputVtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741DA4)); }
+    static void** Vtable() { return ei::GamePointer<void*>(0x00741DD8); }
+    static void** InputVtable() { return ei::GamePointer<void*>(0x00741DA4); }
     // 0061E2F0 (RET 0x18). Constructor: the box (flags 2: one cancel button; format 1), the link
     // connecting to `address`, vtables, the bar (a plain sprite, colour 0xFFA06800), and `extra`
     // written to the link's outgoing buffer. Returns this.

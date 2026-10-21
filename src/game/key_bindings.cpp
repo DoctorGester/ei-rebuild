@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "text_split.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -38,11 +39,11 @@ static_assert(sizeof(Action) == 0x10);
 
 constexpr std::uintptr_t kKeysAddress = std::uintptr_t(0x007857B0);      // the key table, then the actions' table
 constexpr std::uintptr_t kActionsAddress = std::uintptr_t(0x00787070);
-Key* Keys() { return reinterpret_cast<Key*>(kKeysAddress); }
+Key* Keys() { return ei::GamePointer<Key>(kKeysAddress); }
 constexpr int kKeyCount = (kActionsAddress - kKeysAddress) / 0x48;   // 88
-Action* Actions() { return reinterpret_cast<Action*>(kActionsAddress); }
+Action* Actions() { return ei::GamePointer<Action>(kActionsAddress); }
 constexpr int kActionCount = 60;
-signed char* ActionOfScan() { return reinterpret_cast<signed char*>(0x0079BF70); }
+signed char* ActionOfScan() { return ei::GamePointer<signed char>(0x0079BF70); }
 
 
 // 00700C05: operator+(CString, LPCTSTR).

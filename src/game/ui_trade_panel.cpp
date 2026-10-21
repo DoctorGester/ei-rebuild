@@ -68,7 +68,7 @@ int SkillCount() {
 // level and flag (stack bytes, all overwritten except the flag of the non-learnable rows); ours
 // are 0.
 TradeRow BlankRow() {
-    char* empty = *reinterpret_cast<char* const*>(0x00796E48);
+    char* empty = ei::GameData<char* const>(0x00796E48);
     TradeRow row{};
     row.name = row.key = row.nextKey = empty;
     return row;

@@ -25,7 +25,7 @@
 namespace {
 
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
 IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // Ticks left before the weather may change again (0x7C2DFC).

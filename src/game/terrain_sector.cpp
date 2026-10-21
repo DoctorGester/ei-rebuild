@@ -105,7 +105,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     perPage = textures;
 
     char name[0x100];
-    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, *reinterpret_cast<const char* const*>(0x00744164));
+    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, ei::GameData<const char* const>(0x00744164));
     using GetFileFn = void*(__thiscall*)(void*, const char*, std::uint32_t*);
     std::uint32_t size = 0;
     const std::uint8_t* file = static_cast<const std::uint8_t*>(
@@ -343,7 +343,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         std::uint32_t r = GlobalRandom().Next();
                         a.frames = frames;
                         a.frame = static_cast<int>(r % static_cast<std::uint32_t>(frames));
-                        a.speed = reinterpret_cast<const int*>(0x00796960)[ClassOf(owner, texture)];
+                        a.speed = ei::GamePointer<const int>(0x00796960)[ClassOf(owner, texture)];
                         uv = owner->TileUv(rotation, a.frame + index, 0);
                     }
                 }
@@ -611,20 +611,20 @@ void SectorData::DestructBody() {
     classCounts.FreeData();
     animated.FreeData();
     for (int q = 3; q >= 0; --q) {
-        tiles[q].vtable = reinterpret_cast<void*>(kTileListArrayVtable);
+        tiles[q].vtable = ei::GamePointer<void>(kTileListArrayVtable);
         tiles[q].FreeData();
     }
     for (int q = 3; q >= 0; --q) {
-        tileFlags[q].vtable = reinterpret_cast<void*>(kFlagArrayArrayVtable);
+        tileFlags[q].vtable = ei::GamePointer<void>(kFlagArrayArrayVtable);
         tileFlags[q].FreeData();
     }
     waterTiles.FreeData();
     tileTextures.FreeData();
-    records.vtable = reinterpret_cast<void*>(kRecordArrayVtable);
+    records.vtable = ei::GamePointer<void>(kRecordArrayVtable);
     records.FreeData();   // each record's light list released (the original inlines 006C4EE0's loop)
-    vertices.vtable = reinterpret_cast<void*>(kPositionArrayVtable);
+    vertices.vtable = ei::GamePointer<void>(kPositionArrayVtable);
     vertices.FreeData();
-    waterMaterials.vtable = reinterpret_cast<void*>(kByteArrayVtable);   // ~CByteArray (006FF61D)
+    waterMaterials.vtable = ei::GamePointer<void>(kByteArrayVtable);   // ~CByteArray (006FF61D)
     waterMaterials.FreeData();
 }
 EI_REPLACE_METHOD(0x006BF8A0, SectorData::DestructBody);

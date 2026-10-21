@@ -13,6 +13,7 @@
 
 #include <cstring>
 #include "originals_ai.h"
+#include "game_data.h"
 
 namespace {
 // The sector map through its original address (rewritten in sector_map.cpp), so the verify build's
@@ -25,7 +26,7 @@ using ShapeHandle = ShapeCacheHandle;
 // 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
 // Standing height of each size class (007912BC).
-const float* ClassHeights() { return reinterpret_cast<const float*>(0x007912BC); }
+const float* ClassHeights() { return ei::GamePointer<const float>(0x007912BC); }
 
 // LineOfSight through its original address (rewritten in ai_map.cpp), its ST0 taken unrounded.
 
@@ -39,7 +40,7 @@ constexpr int kExpensive = 12000;           // cost above which a step is flagge
 
 CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
     mfc::CTypedPtrList<CEngineObject> nearby{};
-    nearby.vtable = reinterpret_cast<void*>(0x0073D454);
+    nearby.vtable = ei::GamePointer<void>(0x0073D454);
     nearby.blockSize = 10;
     float unitHeight = unit->standingHeight;
     sectorMap.FindUnitsInRadius(position, &nearby, 10.0f);
@@ -85,7 +86,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
             break;
         }
     }
-    nearby.vtable = reinterpret_cast<void*>(0x0073D454);
+    nearby.vtable = ei::GamePointer<void>(0x0073D454);
     nearby.RemoveAll();
     return blocker;
 }

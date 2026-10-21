@@ -174,7 +174,7 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
     levels.width = 1;
     levels.height = 1;
     AllocateGrid(levels);
-    cellRowsVtable = reinterpret_cast<void*>(kCellRowArrayVtable);
+    cellRowsVtable = ei::GamePointer<void>(kCellRowArrayVtable);
     cellRows = nullptr;
     cellRowGrowBy = 0;
     cellRowMax = 0;
@@ -186,7 +186,7 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
 EI_REPLACE_METHOD(0x005B3FF0, LocalSearch::Construct);
 
 void LocalSearch::Destruct() {
-    cellRowsVtable = reinterpret_cast<void*>(kCellRowArrayVtable);
+    cellRowsVtable = ei::GamePointer<void>(kCellRowArrayVtable);
     if (cellRows) gamecrt::operator_delete(cellRows);
     FreeGrid(levels);
     FreeGrid(nodes);
@@ -194,7 +194,7 @@ void LocalSearch::Destruct() {
 EI_REPLACE_METHOD(0x0058AA60, LocalSearch::Destruct);
 
 CUnitLayer* CUnitLayer::Construct() {
-    nodes.vtable = reinterpret_cast<void*>(kNodeListVtable);
+    nodes.vtable = ei::GamePointer<void>(kNodeListVtable);
     nodes.count = 0;
     nodes.free = nullptr;
     nodes.tail = nullptr;
@@ -209,7 +209,7 @@ CUnitLayer* CUnitLayer::Construct() {
 EI_REPLACE_METHOD(0x005B4110, CUnitLayer::Construct);
 
 void CUnitLayer::Destruct() {
-    nodes.vtable = reinterpret_cast<void*>(kNodeListVtable);
+    nodes.vtable = ei::GamePointer<void>(kNodeListVtable);
     nodes.count = 0;
     nodes.free = nullptr;
     nodes.tail = nullptr;
@@ -286,7 +286,7 @@ EI_REPLACE_METHOD(0x005C91F0, AIEventTable::Destroy);
 
 namespace {
 // 0079118C: rows of 16 ints; the first of each row is the open-cell mark of a cost band.
-int OpenMark(int band) { return reinterpret_cast<const int*>(std::uintptr_t(0x0079118C))[band * 16]; }
+int OpenMark(int band) { return ei::GamePointer<const int>(0x0079118C)[band * 16]; }
 
 // The cost bands: 0 or 1, 2, 3..9, 10..34, 35..70 (above: no mark).
 int CostBand(int cost) {

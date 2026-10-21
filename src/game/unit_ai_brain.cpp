@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstddef>
@@ -26,11 +27,11 @@ namespace {
 constexpr float kNearPointCleared = 100000.0f;
 
 // 0073FED8: the initial call radius (10.0).
-float InitialCallRadius() { return *reinterpret_cast<const float*>(0x0073FED8); }
+float InitialCallRadius() { return ei::GameData<const float>(0x0073FED8); }
 // 0073FF00: a new fear mode's distance (copied as a dword).
-std::uint32_t FearDistanceBits() { return *reinterpret_cast<const std::uint32_t*>(0x0073FF00); }
+std::uint32_t FearDistanceBits() { return ei::GameData<const std::uint32_t>(0x0073FF00); }
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
-void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
+void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 
 } // namespace
 

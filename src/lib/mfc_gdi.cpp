@@ -19,12 +19,12 @@ namespace mfc::impl {
 namespace {
 
 // The runtime classes of the temporary objects, their fixed allocators and CTempDC's vtable.
-CRuntimeClass* TempDCClass() { return reinterpret_cast<CRuntimeClass*>(0x00745FB0); }
-CRuntimeClass* TempGdiObjectClass() { return reinterpret_cast<CRuntimeClass*>(0x00745F88); }
+CRuntimeClass* TempDCClass() { return ei::GamePointer<CRuntimeClass>(0x00745FB0); }
+CRuntimeClass* TempGdiObjectClass() { return ei::GamePointer<CRuntimeClass>(0x00745F88); }
 CFixedAlloc& TempDCAlloc() { return ei::GameData<CFixedAlloc>(0x007C8D18); }
 CFixedAlloc& TempGdiObjectAlloc() { return ei::GameData<CFixedAlloc>(0x007C8CF0); }
-void* TempDCVtable() { return reinterpret_cast<void*>(0x007463E4); }
-void* TempGdiObjectVtable() { return reinterpret_cast<void*>(0x0074645C); }
+void* TempDCVtable() { return ei::GamePointer<void>(0x007463E4); }
+void* TempGdiObjectVtable() { return ei::GamePointer<void>(0x0074645C); }
 
 // A map of the image's thread, made as afxMapHDC / afxMapHGDIOBJ make it (under the critical new
 // handler). The thread state's destructor frees MFC's; the image's live until the process ends.

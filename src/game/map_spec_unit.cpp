@@ -119,7 +119,7 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->alarmKind = 0;
     self->enabled = 0;
     self->alertMode = 0;
-    self->callRadius = *reinterpret_cast<const std::uint32_t*>(0x0073C378);
+    self->callRadius = ei::GameData<const std::uint32_t>(0x0073C378);
     self->alarmDelay = 75;
     self->alarm = 0;
     return self;

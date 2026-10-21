@@ -6,6 +6,7 @@
 #include "gameapi.h"
 #include "mfc_resource.h"
 #include "game/originals_library.h"   // MbsInc
+#include "game/game_data.h"
 
 #include <cstring>
 #include <new>
@@ -40,8 +41,8 @@ LONG Decrement(long* refs) { return ::InterlockedDecrement(refs); }
 int StrLen(const char* text) { return ::lstrlenA(text); }
 #else
 using InterlockedFn = LONG(WINAPI*)(LONG volatile*);
-LONG Increment(long* refs) { return (*reinterpret_cast<InterlockedFn*>(0x0073B254))(refs); }
-LONG Decrement(long* refs) { return (*reinterpret_cast<InterlockedFn*>(0x0073B258))(refs); }
+LONG Increment(long* refs) { return (ei::GameData<InterlockedFn>(0x0073B254))(refs); }
+LONG Decrement(long* refs) { return (ei::GameData<InterlockedFn>(0x0073B258))(refs); }
 int StrLen(const char* text) { return gameapi::lstrlenA(text); }
 #endif
 

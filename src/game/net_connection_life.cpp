@@ -16,6 +16,7 @@
 #include "lib/stlp_tree_abi.h"
 #include "originals_script.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -112,7 +113,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     if (session) {
         roundTrip_ = static_cast<float>(static_cast<double>(session->maxRoundTrip_));
     } else {
-        roundTrip_ = *reinterpret_cast<const float*>(0x0073BF34);
+        roundTrip_ = ei::GameData<const float>(0x0073BF34);
     }
     double old = roundTripSquare_;   // never written before: whatever the allocation held
     sendSequence_ = static_cast<std::uint16_t>(tick);

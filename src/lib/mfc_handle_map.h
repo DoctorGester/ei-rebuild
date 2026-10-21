@@ -14,6 +14,7 @@
 
 #include "crt.h"
 #include "mfc.h"
+#include "game/game_data.h"
 
 #include <cstdint>
 
@@ -61,7 +62,7 @@ struct CMapPtrToPtr {
     CPlex* blocks;              // +0x14 m_pBlocks
     int blockSize;              // +0x18 m_nBlockSize
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x0074689C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0074689C); }
 
     CMapPtrToPtr* Construct(int blockSize);                             // 007002C2 (returns this)
     void Destruct();                                                    // 00700375
@@ -87,7 +88,7 @@ struct CHandleMap {
     unsigned handleOffset;          // +0x40 where the object keeps its handle
     int handleCount;                // +0x44 1, or 2 (a DC's output and attribute handles)
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x0074685C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0074685C); }
 
     CHandleMap* Construct(CRuntimeClass* objectClass, unsigned handleOffset, int handleCount);   // 00703617
     // 0070367C: the object of `handle` (null for null): the permanent one, else the temporary one,

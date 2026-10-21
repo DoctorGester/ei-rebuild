@@ -72,7 +72,7 @@ EI_REPLACE_METHOD(0x005C0060, Sector::FreeOccluder);
 void __stdcall ConstructSectors(Sector* sectors, int count) {
     std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
     for (; count != 0; --count, ++sectors) {
-        sectors->objects = {reinterpret_cast<void*>(kSectorObjectListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        sectors->objects = {ei::GamePointer<void>(kSectorObjectListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->units = {mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->occluders.Construct(kSectorOccluderArrayVtable);
         std::uintptr_t vtable = kSectorVtable;
@@ -94,7 +94,7 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
 EI_REPLACE_METHOD(0x005C06F0, CSectorMap::Init);
 
 void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>* sectors) {
-    sectors->vtable = reinterpret_cast<void*>(kSectorArrayVtable);
+    sectors->vtable = ei::GamePointer<void>(kSectorArrayVtable);
     if (!sectors->data) return;
     SectorElements::Destruct(sectors->data, sectors->size);
     gamecrt::operator_delete(sectors->data);
@@ -102,7 +102,7 @@ void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>*
 EI_REPLACE(0x00599330, CSectorMap::DestructSectors);
 
 void CSectorMap::DestructBody() {
-    vtable = reinterpret_cast<void*>(kVtableAddress);
+    vtable = ei::GamePointer<void>(kVtableAddress);
     DestructSectors(&sectors);
 }
 EI_REPLACE_METHOD(0x0058A700, CSectorMap::DestructBody);

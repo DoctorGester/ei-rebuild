@@ -8,6 +8,7 @@
 #include "mfc_time.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <cstring>
 #include <new>
@@ -34,7 +35,7 @@ void Place(CString& result, impl::CString&& s) {
 // implementation links into it (mfc_string.cpp, mfc_archive.cpp).
 #ifndef EI_VECTORS_REPLAY
 // _afxPchNil: the shared empty-string data pointer.
-CString::CString() : data_(*reinterpret_cast<char**>(0x00796E48)) {}
+CString::CString() : data_(ei::GameData<char*>(0x00796E48)) {}
 
 CString::CString(const char* s) { ::new (static_cast<void*>(this)) impl::CString(s); }                       // 007009DE
 CString::CString(const char* s, int length) { ::new (static_cast<void*>(this)) impl::CString(s, length); }   // 006FD4DE

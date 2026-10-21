@@ -92,7 +92,7 @@ CUnit* FirstOtherPartyMember(WorldPlayer* player, const CUnit* self) {
     return nullptr;
 }
 
-void* const kPtrListVtable = reinterpret_cast<void*>(0x0073BE80);   // CPtrList
+void* const kPtrListVtable = ei::GamePointer<void>(0x0073BE80);   // CPtrList
 
 } // namespace
 

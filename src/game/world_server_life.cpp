@@ -21,11 +21,12 @@
 #include "originals_script.h"
 #include "originals_world.h"
 #include "game_arrays.h"
+#include "game_data.h"
 
 namespace {
 
 // 0073F918: a pointer to the messages registry's file name ("SMessBase.reg", 00790804).
-const char* MessagesFileName() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0073F918)); }
+const char* MessagesFileName() { return ei::GameData<const char* const>(0x0073F918); }
 // FatalError texts.
 const char* CantCreateText() { return "CWorldServer::Create.\n Can't create base world.\n"; }
 const char* CantOpenText() { return "CWorldServer::Create.\n Can't opent message base resource.\n"; }

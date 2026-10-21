@@ -14,6 +14,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -118,7 +119,7 @@ PartyUnitRecord* PartyUnitRecord::DeletingDestruct(unsigned flags) {
 EI_REPLACE_METHOD(0x00664AC0, PartyUnitRecord::DeletingDestruct);
 
 void __fastcall DestructPartyMemberArray(PartyMemberArray* array) {
-    array->vtable = reinterpret_cast<void*>(kPartyMemberArrayVtable);
+    array->vtable = ei::GamePointer<void>(kPartyMemberArrayVtable);
     array->FreeData();
 }
 EI_REPLACE(0x00664160, DestructPartyMemberArray);
@@ -192,7 +193,7 @@ void ReleaseItems(const AlignedPtrArray& items) {
 CParty* CParty::Construct() {
     ClearFields();
     ei::SetVtable(this, kBaseVtableAddress);
-    members_.vtable = reinterpret_cast<void*>(kPartyMemberArrayVtable);
+    members_.vtable = ei::GamePointer<void>(kPartyMemberArrayVtable);
     members_.data = nullptr;
     members_.growBy = 0;
     members_.maxSize = 0;
@@ -219,7 +220,7 @@ void CParty::DestructBody() {
     zone_.~CString();
     variables_.Destroy();
     if (items_.data != nullptr) gamecrt::operator_delete(items_.data[-1]);
-    members_.vtable = reinterpret_cast<void*>(kPartyMemberArrayVtable);
+    members_.vtable = ei::GamePointer<void>(kPartyMemberArrayVtable);
     if (members_.data != nullptr) {
         for (int i = 0; i != members_.size; ++i) members_.data[i].Destruct();
         gamecrt::operator_delete(members_.data);

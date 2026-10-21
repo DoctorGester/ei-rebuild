@@ -66,7 +66,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
     if (high > low) {
         double random = x87::FromUnsigned(Rng()->Next());
         double scale;
-        std::memcpy(&scale, reinterpret_cast<const void*>(0x0073C468), sizeof(scale));
+        std::memcpy(&scale, ei::GamePointer<const void>(0x0073C468), sizeof(scale));
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);
     }
     int percent = gamecrt::rand() * 100 / 0x7FFF % 100 + 1;

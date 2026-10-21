@@ -32,6 +32,7 @@
 #include <cstring>
 #include "originals_engine.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 namespace {
 
@@ -74,7 +75,7 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
 void Begin(CUiSurface* self, CInterface3D* ui, int format) {
     self->holder_ = nullptr;
     self->flags_ = static_cast<std::uint32_t>(format);
-    self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
+    self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
     self->background_ = 0;
     self->interface_ = ui;
 }
@@ -86,7 +87,7 @@ CUiSurface* AsSurface(char* self) { return reinterpret_cast<CUiSurface*>(self); 
 // 005FD120. The destructor body: frees the kept bytes (total 007C7E74), takes the surface's
 // height * pitch off 007C7E78, drops the holder and empties the screen rectangle.
 void CUiSurface::ReleaseContents() {
-    vtable_ = reinterpret_cast<void*>(kVtableAddress);
+    vtable_ = ei::GamePointer<void>(kVtableAddress);
     if (std::uint8_t* kept = kept_) {
         gamecrt::operator_delete(kept);
         kept_ = nullptr;
@@ -107,7 +108,7 @@ EI_REPLACE_METHOD(0x005FD120, CUiSurface::ReleaseContents);
 char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString name) {
     CUiSurface* self = AsSurface(raw);
     self->holder_ = nullptr;
-    self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
+    self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
     self->background_ = 0;
     self->interface_ = static_cast<CInterface3D*>(ui);
     CBaseManager* manager = static_cast<CBaseManager*>(UiTextureManager());

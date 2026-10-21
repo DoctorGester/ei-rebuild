@@ -330,7 +330,7 @@ void CVisibilityFog::ClearCells() {
 }
 
 void CVisibilityFog::Destruct() {
-    vtable_ = reinterpret_cast<void*>(0x0073D6B4);
+    vtable_ = ei::GamePointer<void>(0x0073D6B4);
     ClearCells();
     cells.Destroy();
     reinterpret_cast<CEngineObject*>(this)->DestructBase();

@@ -38,8 +38,8 @@ struct LocaleCategory {
     char* locale;
     int(__cdecl* init)();
 };
-LocaleCategory* Categories() { return reinterpret_cast<LocaleCategory*>(0x00797888); }
-const char* StaticC() { return reinterpret_cast<const char*>(0x00797778); }
+LocaleCategory* Categories() { return ei::GamePointer<LocaleCategory>(0x00797888); }
+const char* StaticC() { return ei::GamePointer<const char>(0x00797778); }
 // __lc_handle (007CABE8): each category's language id (0 for "C"); __lc_id (007CAC30): its LC_ID.
 unsigned* Handles() { return ei::GamePointer<unsigned>(0x007CABE8); }
 LocaleId* Ids() { return ei::GamePointer<LocaleId>(0x007CAC30); }
@@ -48,19 +48,19 @@ unsigned& CtypeCodePage() { return ei::GameData<unsigned>(0x007CAC00); }
 unsigned& CollateCodePage() { return ei::GameData<unsigned>(0x007CAC04); }
 // getqloc's cache: the last name resolved, qualified (00797800) and as asked for (0079777C), its LC_ID
 // (007CAB24) and code page (007CAB2C).
-char* QualifiedCache() { return reinterpret_cast<char*>(0x00797800); }
-char* RequestedCache() { return reinterpret_cast<char*>(0x0079777C); }
+char* QualifiedCache() { return ei::GamePointer<char>(0x00797800); }
+char* RequestedCache() { return ei::GamePointer<char>(0x0079777C); }
 LocaleId& CachedId() { return ei::GameData<LocaleId>(0x007CAB24); }
 unsigned& CachedCodePage() { return ei::GameData<unsigned>(0x007CAB2C); }
 
 // The class tables: _pctype / _pwctype (00797DD8 / 00797DDC; the C locale's table + 1 entry is 00797DE2),
 // the heap blocks behind them (007CAC28 / 007CAC2C, null for "C") and __mb_cur_max (00797FE4).
-const unsigned short*& CtypeTable() { return *reinterpret_cast<const unsigned short**>(0x00797DD8); }
-const unsigned short*& WideCtypeTable() { return *reinterpret_cast<const unsigned short**>(0x00797DDC); }
-const unsigned short* StaticCtype() { return reinterpret_cast<const unsigned short*>(0x00797DE2); }
+const unsigned short*& CtypeTable() { return ei::GameData<const unsigned short*>(0x00797DD8); }
+const unsigned short*& WideCtypeTable() { return ei::GameData<const unsigned short*>(0x00797DDC); }
+const unsigned short* StaticCtype() { return ei::GamePointer<const unsigned short>(0x00797DE2); }
 unsigned short*& CtypeBlock() { return ei::GameData<unsigned short*>(0x007CAC28); }
 unsigned short*& WideCtypeBlock() { return ei::GameData<unsigned short*>(0x007CAC2C); }
-int& MbCurMax() { return *reinterpret_cast<int*>(0x00797FE4); }
+int& MbCurMax() { return ei::GameData<int>(0x00797FE4); }
 
 // The multibyte code page: _mbctype (007CC180, 257 bytes, a byte's flags at + 1), _mbcasemap (007CC080),
 // __mbcodepage (007CC058), __ismbcodepage (007CC06C), __mblcid (007CC284), __mbulinfo (007CC060, three
@@ -83,9 +83,9 @@ struct CodePageInfo {
     unsigned char ranges[4][8];
 };
 static_assert(sizeof(CodePageInfo) == 0x30);
-const CodePageInfo* CodePageInfos() { return reinterpret_cast<const CodePageInfo*>(0x00797688); }
+const CodePageInfo* CodePageInfos() { return ei::GamePointer<const CodePageInfo>(0x00797688); }
 constexpr int kCodePageInfos = 5;
-const unsigned char* ClassFlags() { return reinterpret_cast<const unsigned char*>(0x00797680); }
+const unsigned char* ClassFlags() { return ei::GamePointer<const unsigned char>(0x00797680); }
 
 constexpr unsigned char kMbLead = 0x4;    // _M1
 constexpr unsigned char kMbTrail = 0x8;   // _M2
@@ -99,11 +99,11 @@ struct NameAbbreviation {
     const char* name;
     char abbreviation[4];
 };
-const NameAbbreviation* LanguageTable() { return reinterpret_cast<const NameAbbreviation*>(0x007989E0); }
-const NameAbbreviation* CountryTable() { return reinterpret_cast<const NameAbbreviation*>(0x00798928); }
+const NameAbbreviation* LanguageTable() { return ei::GamePointer<const NameAbbreviation>(0x007989E0); }
+const NameAbbreviation* CountryTable() { return ei::GamePointer<const NameAbbreviation>(0x00798928); }
 constexpr int kLastLanguage = 0x40;
 constexpr int kLastCountry = 0x16;
-const unsigned short* NonDefaultCountries() { return reinterpret_cast<const unsigned short*>(0x00798914); }
+const unsigned short* NonDefaultCountries() { return ei::GamePointer<const unsigned short>(0x00798914); }
 constexpr int kNonDefaultCountries = 10;
 
 // strcpy / strcat as VC6's (no bound).

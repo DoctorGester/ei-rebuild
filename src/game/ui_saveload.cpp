@@ -59,7 +59,7 @@ const char* GameFolder() { return ei::GameData<char* const>(0x007AF460); }
 CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 
 void* const kFlow = ei::GamePointer<void>(0x007AFE20);         // the game flow (world_game.cpp)
-CMapDatabase* const kMapDatabase = reinterpret_cast<CMapDatabase*>(0x0079BF00);
+CMapDatabase* const kMapDatabase = ei::GamePointer<CMapDatabase>(0x0079BF00);
 void* const kCursor = ei::GamePointer<void>(0x007C7BD8);
 void* const kInterface = ei::GamePointer<void>(0x007C7D50);
 
@@ -127,7 +127,7 @@ struct LocalFileStream {
 struct LocalEntry {
     SaveEntry e;
     LocalEntry() {
-        char* empty = *reinterpret_cast<char**>(0x00796E48);   // afxEmptyString
+        char* empty = ei::GameData<char*>(0x00796E48);   // afxEmptyString
         e.title_ = empty;
         e.folder_ = empty;
         e.map_ = empty;

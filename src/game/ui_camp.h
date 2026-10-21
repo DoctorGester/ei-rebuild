@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -40,7 +41,7 @@ void LoadPersonTexts(PersonTextMap* map);
 
 // The pixels the mouse must move with the button down on the view before the battle screen
 // starts a selection box (an interface option; 0 or less: never).
-inline int BoxSelectThreshold() { return *reinterpret_cast<const int*>(0x0079BDB0); }
+inline int BoxSelectThreshold() { return ei::GameData<const int>(0x0079BDB0); }
 
 struct ItemHoverInfo;
 struct ClassTemplate;

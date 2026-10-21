@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -19,7 +20,7 @@ constexpr int kLastCell = 31;       // the column / row a ray enters a sector at
 constexpr int kLoaded = 1;          // SectorAt's stage: the vertex positions
 
 // The width of the fade at the map's edges (0079BD34; the interface's screens set it).
-float MapEdgeFade() { return *reinterpret_cast<const float*>(0x0079BD34); }
+float MapEdgeFade() { return ei::GameData<const float>(0x0079BD34); }
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;

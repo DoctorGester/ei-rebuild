@@ -69,8 +69,8 @@ static_assert(sizeof(CStringData) == 12);
 CStringData* DataNil();
 char* PchNil();
 #else
-inline CStringData* DataNil() { return *reinterpret_cast<CStringData**>(0x00796E4C); }
-inline char* PchNil() { return *reinterpret_cast<char**>(0x00796E48); }
+inline CStringData* DataNil() { return ei::GameData<CStringData*>(0x00796E4C); }
+inline char* PchNil() { return ei::GameData<char*>(0x00796E48); }
 #endif
 
 class CString {

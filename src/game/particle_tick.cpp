@@ -26,7 +26,7 @@ inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 #define EI_ZERO GameFloat(0x0073B858)          // 0.0 (the z of the up axis the side is crossed with)
 #define EI_ONE GameFloat(0x0073B84C)           // 1.0
 #define EI_HALF GameFloat(0x0073B86C)          // 0.5

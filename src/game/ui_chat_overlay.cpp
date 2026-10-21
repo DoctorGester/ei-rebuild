@@ -17,6 +17,7 @@
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -27,8 +28,8 @@ constexpr int kTop = 10;
 constexpr int kLineHeight = 16;
 // The typed line's surface.
 constexpr int kTypedLeft = 10, kTypedTop = 0x23D, kTypedRight = 0x316, kTypedBottom = 0x24E, kTypedFormat = 4;
-void** ChatOverlayVtable() { return reinterpret_cast<void**>(0x007400DC); }
-void** ChatOverlayInputVtable() { return reinterpret_cast<void**>(0x007400A8); }
+void** ChatOverlayVtable() { return ei::GamePointer<void*>(0x007400DC); }
+void** ChatOverlayInputVtable() { return ei::GamePointer<void*>(0x007400A8); }
 // The typed line: at most 200 characters and narrower than 780 pixels in font 1.
 constexpr int kMaxTyped = 200;
 constexpr int kMaxTypedWidth = 0x30C;

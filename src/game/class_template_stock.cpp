@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 namespace {
 
@@ -68,12 +69,12 @@ ItemStock* ItemStock::Construct(void* owner) {
 EI_REPLACE_METHOD(0x004A66C0, ItemStock::Construct);
 
 ClassTemplate* ClassTemplate::Construct() {
-    vtable = reinterpret_cast<void*>(kBaseVtableAddress);
+    vtable = ei::GamePointer<void>(kBaseVtableAddress);
     ItemsParty()->Construct();
     SpellsParty()->Construct();
     allowed.Construct(ItemsParty());
     magic.Construct(SpellsParty());
-    vtable = reinterpret_cast<void*>(kVtableAddress);
+    vtable = ei::GamePointer<void>(kVtableAddress);
     ItemsParty()->Create();
     SpellsParty()->Create();
     type = -1;
@@ -98,14 +99,14 @@ void ItemStock::Destruct() {
 }
 
 void ClassTemplate::Destruct() {
-    vtable = reinterpret_cast<void*>(kVtableAddress);
+    vtable = ei::GamePointer<void>(kVtableAddress);
     ItemsParty()->Destroy();
     SpellsParty()->Destroy();
     magic.Destruct();
     allowed.Destruct();
     SpellsParty()->DestructBody();
     ItemsParty()->DestructBody();
-    vtable = reinterpret_cast<void*>(kBaseVtableAddress);
+    vtable = ei::GamePointer<void>(kBaseVtableAddress);
 }
 EI_REPLACE_METHOD(0x004A6A90, ClassTemplate::Destruct);
 

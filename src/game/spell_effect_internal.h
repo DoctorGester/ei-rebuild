@@ -87,8 +87,8 @@ inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, cons
 // --- x87 sequences ------------------------------------------------------------------------------
 // Plain C++ in the x87 order: double intermediates are the original's unrounded register values.
 
-inline float GameConst(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-inline double GameConstDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+inline float GameConst(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+inline double GameConstDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
 // The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2, written by the
 // original as FYL2X / F2XM1 / FSCALE (x87::flog, x87::fexp; the logarithm is used unrounded). The

@@ -99,7 +99,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     SizePoints();
 
     // Towards the camera (0079B2C4), normalised unless zero.
-    const Vector3& camera = *reinterpret_cast<const Vector3*>(0x0079B2C4);
+    const Vector3& camera = ei::GameData<const Vector3>(0x0079B2C4);
     Vector3 towards = camera - *position;
     float length = LengthZYX(towards);
     if (length > 0.0f || length < 0.0f) towards /= length;

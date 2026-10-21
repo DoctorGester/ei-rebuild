@@ -10,6 +10,7 @@
 #include "lib/gameapi.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 namespace {
 
@@ -24,8 +25,8 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     CUiWindow::Construct(ui);
     texts_.Construct();
-    vtable_ = reinterpret_cast<void**>(kSpinVtable);
-    inputVtable_ = reinterpret_cast<void**>(kSpinInputVtable);
+    vtable_ = ei::GamePointer<void*>(kSpinVtable);
+    inputVtable_ = ei::GamePointer<void*>(kSpinInputVtable);
     rect_ = rect;
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);

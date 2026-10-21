@@ -8,6 +8,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
@@ -38,7 +39,7 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
 }
 
 // The work buffer 0079B668: a CWordArray (SetSize is MFC's, 006FEEFA).
-mfc::CArray<std::uint16_t>& WorkWords() { return *reinterpret_cast<mfc::CArray<std::uint16_t>*>(0x0079B668); }
+mfc::CArray<std::uint16_t>& WorkWords() { return ei::GameData<mfc::CArray<std::uint16_t>>(0x0079B668); }
 
 void Emit(std::uint16_t index) { clip::Buffer()[clip::BufferCount()++] = index; }
 

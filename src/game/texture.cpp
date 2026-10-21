@@ -16,7 +16,7 @@
 
 namespace {
 // Game-wide paths set at startup. Names provisional.
-const mfc::CString& GameRoot() { return *reinterpret_cast<const mfc::CString*>(0x0079BC90); }
+const mfc::CString& GameRoot() { return ei::GameData<const mfc::CString>(0x0079BC90); }
 const char* DataPath() { return ei::GameData<const char* const>(0x007AF460); }
 
 // Format id for a .bmp texture, by texture kind.
@@ -121,7 +121,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
 
 namespace {
 // The texture quality setting (0 best .. 3).
-int TextureQuality() { return *reinterpret_cast<const int*>(0x0079BCDC); }
+int TextureQuality() { return ei::GameData<const int>(0x0079BCDC); }
 const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
 } // namespace
 

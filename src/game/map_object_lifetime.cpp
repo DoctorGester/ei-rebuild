@@ -141,7 +141,7 @@ CObject3D* CObject3D::Construct() {
     figure = nullptr;
     StringArrayConstruct(&partNameArrayVtable);
     std::memset(&boundsFlags, 0, 0xE * 4);
-    partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
+    partBoxArrayVtable = ei::GamePointer<void>(kFrameArrayVtable);
     partBoxes = nullptr;
     partBoxGrowBy = 0;
     partBoxCapacity = 0;
@@ -163,7 +163,7 @@ EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
 void CObject3D::DestructBody() {
     SetVtable(this, CObject3D::kVtableAddress);
     Destroy3D();
-    partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
+    partBoxArrayVtable = ei::GamePointer<void>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
     StringArrayDestruct(&partNameArrayVtable);
     if (CLinkMesh* current = figure) {
@@ -190,7 +190,7 @@ EI_REPLACE_METHOD(0x00515D70, CObject3D::DestructBody);
 
 CMapObject* CMapObject::Construct() {
     CObject3D::Construct();   // 00515BD0
-    effectsVtable = reinterpret_cast<void*>(kEffectArrayVtable);
+    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
     effects = nullptr;
     effectGrowBy = 0;
     effectCapacity = 0;
@@ -239,7 +239,7 @@ void CMapObject::DestructBody() {
         gamecrt::operator_delete(records->fields_);
     }
     DestroyString(&name2);
-    effectsVtable = reinterpret_cast<void*>(kEffectArrayVtable);
+    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
     if (effects) gamecrt::operator_delete(effects);
     CObject3D::DestructBody();   // 00515D70
 }
@@ -338,7 +338,7 @@ void CUnit::DestructBody() {
     // The vtable's slot 5 (0052E740, the release from the player), called through the vtable's
     // memory as the original does.
     using Slot = void(__fastcall*)(CUnit*);
-    reinterpret_cast<const Slot*>(CUnit::kVtableAddress)[5](this);
+    ei::GamePointer<const Slot>(CUnit::kVtableAddress)[5](this);
     DestroyMapObject();
     Reset();
     carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
@@ -473,7 +473,7 @@ void CUnitServer::DestructBody() {
     if (CEngineObject* effect = effectObject) effect->Release();
     DestroyArray(savedQueue, kServerArrayVtable);
     DestroyArray(currentPlan.animation, kServerArrayVtable);
-    motion.excludedBlocks.vtable = reinterpret_cast<void*>(AIPath::kExcludedBlocksVtable);
+    motion.excludedBlocks.vtable = ei::GamePointer<void>(AIPath::kExcludedBlocksVtable);
     if (motion.excludedBlocks.data) gamecrt::operator_delete(motion.excludedBlocks.data);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);

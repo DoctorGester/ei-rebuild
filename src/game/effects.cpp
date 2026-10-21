@@ -43,8 +43,8 @@ constexpr double kOrbitMinRadius = 0.01;                                // 0073C
 constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 0073CC80 (1.6)
 
 // Size curves of the orbiting particles, indexed by the ticks left (0073CB38, 0073CB78).
-const float* SizeCurve() { return reinterpret_cast<const float*>(0x0073CB38); }
-const float* AntimagicSizeCurve() { return reinterpret_cast<const float*>(0x0073CB78); }
+const float* SizeCurve() { return ei::GamePointer<const float>(0x0073CB38); }
+const float* AntimagicSizeCurve() { return ei::GamePointer<const float>(0x0073CB78); }
 
 IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
@@ -63,7 +63,7 @@ double Unsigned(std::uint32_t value) {
 
 // 004113A0: the camera's shake around a point (the camera object is 0079B2A8).
 // Arguments: camera, unused EDX, point, strength, range, duration.
-void* TheCamera() { return reinterpret_cast<void*>(0x0079B2A8); }
+void* TheCamera() { return ei::GamePointer<void>(0x0079B2A8); }
 
 constexpr int kTypeFire = 0x2003;
 constexpr int kTypeSmoke = 0x2004;

@@ -805,7 +805,7 @@ void CCampPages::Close() {
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, as the record array the client glue takes (005789E0; a
     // CArray of record pointers, vtable 0073FAA4, SetSize 005719B0), their keys raised meanwhile.
-    RecordPtrArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+    RecordPtrArray records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     for (int i = 0; i < player->members_.size; ++i) {
         PartyUnitRecord* record = &player->members_.data[i];
@@ -838,7 +838,7 @@ void CCampPages::Close() {
         delete static_cast<CEngineObject*>(*list);   // slot 0 with 1, when the re-read field is set
     }
     // The record array's destructor.
-    records.vtable = reinterpret_cast<void*>(0x0073FAA4);
+    records.vtable = ei::GamePointer<void>(0x0073FAA4);
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x0060E6B0, CCampPages::Close);
@@ -1265,13 +1265,13 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);
     models_.Construct(compare);
     textures_.Construct(compare);
-    vtable_ = reinterpret_cast<void**>(0x00740A2C);
-    inputVtable_ = reinterpret_cast<void**>(0x007409F8);
+    vtable_ = ei::GamePointer<void*>(0x00740A2C);
+    inputVtable_ = ei::GamePointer<void*>(0x007409F8);
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
     heroes_.Construct(0x007402AC);
     StringArrayConstruct(&pageTitles_);
-    vtable_ = reinterpret_cast<void**>(0x0074091C);
-    inputVtable_ = reinterpret_cast<void**>(0x007408E8);
+    vtable_ = ei::GamePointer<void*>(0x0074091C);
+    inputVtable_ = ei::GamePointer<void*>(0x007408E8);
     return this;
 }
 EI_REPLACE_METHOD(0x005F6240, CCampPages::Construct);

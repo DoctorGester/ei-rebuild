@@ -139,8 +139,8 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     if (!body_) return 1;
 
     // The seven body slots' rectangles: 70 x 70 around the centres 00741EC4 / 00741EE0 (layout).
-    const int* centreX = reinterpret_cast<const int*>(0x00741EC4);
-    const int* centreY = reinterpret_cast<const int*>(0x00741EE0);
+    const int* centreX = ei::GamePointer<const int>(0x00741EC4);
+    const int* centreY = ei::GamePointer<const int>(0x00741EE0);
     RECT slots[7];
     for (int i = 0; i < 7; ++i) {
         RECT r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};

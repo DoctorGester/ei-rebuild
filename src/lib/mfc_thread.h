@@ -9,6 +9,7 @@
 // AfxInitThread's message filter hook and AfxTermThread's temporary maps are left out.
 
 #include "mfc_window.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -34,7 +35,7 @@ struct WinThread {
     POINT cursorLast;               // +0x5C m_ptCursorLast
     UINT msgLast;                   // +0x64 m_nMsgLast
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x007466E0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007466E0); }
 
     // 0070C259 (thiscall, RET 8, returns this): CCmdTarget's constructor, the vtable, the procedure
     // and its parameter, then CommonConstruct.

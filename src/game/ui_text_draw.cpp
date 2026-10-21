@@ -13,12 +13,13 @@
 #include "lib/mfc.h"
 #include "lib/mfc_gdi.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 namespace {
 constexpr COLORREF kShadowColour = 0x080808;
 constexpr int kRectSlack = 2;           // pixels added to a scaled rectangle's right and bottom
 constexpr unsigned kLayoutWidth = 800, kLayoutHeight = 600;
-HWND GameWindow() { return *reinterpret_cast<HWND*>(0x0079BC28); }
+HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
 } // namespace
 
 // --- 005FDE20 ----------------------------------------------------------------------------------------------

@@ -74,9 +74,9 @@ void CAnimationNode::DestructBody() {
     spare000_ = 0;
     pointsA_.FreeData();
     pointsB_.FreeData();
-    morphFrames_.vtable = reinterpret_cast<void*>(kMorphFramesVtable);
+    morphFrames_.vtable = ei::GamePointer<void>(kMorphFramesVtable);
     morphFrames_.FreeData();
-    normals_.vtable = reinterpret_cast<void*>(kNormalsVtable);
+    normals_.vtable = ei::GamePointer<void>(kNormalsVtable);
     normals_.FreeData();
     translationKeys_.FreeData();
     rotationKeys_.FreeData();

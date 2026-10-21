@@ -21,7 +21,7 @@ namespace {
 
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-CCamera* Camera() { return reinterpret_cast<CCamera*>(0x0079B2A8); }
+CCamera* Camera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
 
 bool ModifierHeld(const CInterface3D* ui) {
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(ui);
@@ -37,7 +37,7 @@ std::uint32_t Bits(float f) {
 } // namespace
 
 void CCameraInput::OnKeyDown(int, int, int flags) {
-    int character = static_cast<signed char>(reinterpret_cast<const std::uint8_t*>(0x0079BF70)[flags & 0x1FF]);
+    int character = static_cast<signed char>(ei::GamePointer<const std::uint8_t>(0x0079BF70)[flags & 0x1FF]);
     switch (character) {
     case 5: x_ = 1.0f; handled_ = true; break;
     case 6: x_ = -1.0f; handled_ = true; break;

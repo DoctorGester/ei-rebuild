@@ -155,7 +155,7 @@ bool StrUpper(Call* call) {
 // Say(text, ...): in a network game, the joined texts go out as a chat line from the server.
 bool Say(Call* call) {
     if (IsMultiplayerClient()) {
-        void* server = *reinterpret_cast<void**>(0x0079B5DC);
+        void* server = ei::GameData<void*>(0x0079B5DC);
         if (server && !(*reinterpret_cast<std::uint32_t*>(static_cast<char*>(server) + 4) & 0x80000000u)) {
             std::string text = Joined(call);
             static_cast<net::ServerSession*>(server)->Announce(text.c_str(), 0);

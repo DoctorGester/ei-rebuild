@@ -20,7 +20,7 @@ inline double D(float f) { return f; }
 ParticleDepthArray& DrawOrder() { return ei::GameData<ParticleDepthArray>(0x007A9C50); }
 
 // The camera's orientation (0079B2DC).
-const Quaternion& CameraRotation() { return *reinterpret_cast<const Quaternion*>(0x0079B2DC); }
+const Quaternion& CameraRotation() { return ei::GameData<const Quaternion>(0x0079B2DC); }
 
 // The sort's ordering: far (greater depth) first. x87 FCOMP / TEST AH,0x41: false for NaN.
 bool Before(const ParticleDepth& a, const ParticleDepth& b) { return a.depth > b.depth; }

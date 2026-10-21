@@ -14,6 +14,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -21,7 +22,7 @@ namespace {
 
 const char* const kHeroName = "Hero";
 // CArray<record*> (the party's records handed to the client world).
-void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
+void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;

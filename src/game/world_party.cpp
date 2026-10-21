@@ -34,13 +34,13 @@
 namespace {
 
 // Values and vtables read from the exe's memory as the original does (rule 9).
-float Half() { return *reinterpret_cast<const volatile float*>(0x0073B86C); }            // 0.5f
-float CellSize() { return *reinterpret_cast<const volatile float*>(0x0073F904); }        // the map cell size
+float Half() { return ei::GameData<const volatile float>(0x0073B86C); }            // 0.5f
+float CellSize() { return ei::GameData<const volatile float>(0x0073F904); }        // the map cell size
 float FacingOffset() { return ei::GameData<const volatile float>(0x007AFED8); }
 const void* NoRotation() { return ei::GamePointer<const void>(0x007C2DE0); }           // 16 bytes: the identity rotation
-void* PtrListVtable() { return reinterpret_cast<void*>(0x0073BE80); }                    // the item lists' CPtrList
-void* IdArrayVtable() { return reinterpret_cast<void*>(0x0073EBD4); }                    // CArray<int>
-void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }                // the record pointers' CArray
+void* PtrListVtable() { return ei::GamePointer<void>(0x0073BE80); }                    // the item lists' CPtrList
+void* IdArrayVtable() { return ei::GamePointer<void>(0x0073EBD4); }                    // CArray<int>
+void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }                // the record pointers' CArray
 
 constexpr int kClassQuestItem = 0x14;
 constexpr int kKindSinglePlayer = 1;

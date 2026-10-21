@@ -13,6 +13,7 @@
 // classes reach it from their own destructors. Checked in game by verify_mfc_state.cpp until S21d.
 
 #include <windows.h>
+#include "game/game_data.h"
 
 namespace mfc::impl {
 
@@ -69,7 +70,7 @@ struct CWnd {
     void* controlContainer;     // +0x34 m_pCtrlCont (a COleControlContainer, a CObject)
     COleControlSite* controlSite;   // +0x38 m_pCtrlSite
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x00746DA8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00746DA8); }
 
     // 00704546 CWnd(HWND): CCmdTarget's constructor, CWnd's vtable, CWnd's members cleared and the
     // handle kept (returns this). The static initialisers build MFC's four static windows with it

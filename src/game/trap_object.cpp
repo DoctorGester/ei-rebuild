@@ -14,7 +14,7 @@
 #include "game_data.h"
 
 namespace {
-void* const kTrapVtable = reinterpret_cast<void*>(0x0073E548);
+void* const kTrapVtable = ei::GamePointer<void>(0x0073E548);
 const char* const kTrapName = "CTrapObject";
 const char* const kMagicTrapName = "CMagicTrapObject";
 // 0078F730: the script the trap runs when set off (x, y, z).

@@ -20,6 +20,7 @@
 #include "engine_object.h"
 #include "unit.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -115,7 +116,7 @@ constexpr int kRecordCount = static_cast<int>(sizeof(kRecords) / sizeof(kRecords
 static_assert(kRecordCount == 69);
 constexpr int kFirstNewId = 300;
 
-const ScriptKeyword* GameTable() { return reinterpret_cast<const ScriptKeyword*>(0x0078BCA0); }
+const ScriptKeyword* GameTable() { return ei::GamePointer<const ScriptKeyword>(0x0078BCA0); }
 
 // _stricmp in the "C" locale (the names are ASCII).
 int AsciiStricmp(const char* a, const char* b) {

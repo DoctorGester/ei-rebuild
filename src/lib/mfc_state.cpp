@@ -15,7 +15,7 @@ namespace {
 
 // GetVersion through the exe's import table (gameapi.h leaves it out: its SDK prototype differs).
 using GetVersionFn = DWORD(WINAPI*)();
-GetVersionFn& GetVersionImport() { return *reinterpret_cast<GetVersionFn*>(0x0073B2D0); }
+GetVersionFn& GetVersionImport() { return ei::GameData<GetVersionFn>(0x0073B2D0); }
 
 // 0070D158 / 0070D188 as the original calls them: on afxData, no arguments.
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }

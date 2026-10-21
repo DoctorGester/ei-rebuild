@@ -61,31 +61,31 @@ constexpr float kEmitterMargin = std::bit_cast<float>(0x3A83126Fu);  // 0073CCF4
 constexpr float kEmitterMaxScale = 255.0f;                         // 0073C370
 
 // pi (007440D8) and pi / 2 (007C8808, set by a static initialiser).
-float Pi() { return *reinterpret_cast<const volatile float*>(0x007440D8); }
+float Pi() { return ei::GameData<const volatile float>(0x007440D8); }
 float HalfPi() { return ei::GameData<const volatile float>(0x007C8808); }
 // The fade step every fade request uses (007440E4, 1/96), copied as a dword.
-std::uint32_t FadeStepBits() { return *reinterpret_cast<const volatile std::uint32_t*>(0x007440E4); }
+std::uint32_t FadeStepBits() { return ei::GameData<const volatile std::uint32_t>(0x007440E4); }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
-float StopFadeStep() { return *reinterpret_cast<const volatile float*>(0x007440E8); }
+float StopFadeStep() { return ei::GameData<const volatile float>(0x007440E8); }
 
 IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Miles Sound System through game.exe's import table (all __stdcall).
 using SampleIntFn = void(__stdcall*)(void*, int);
 using SampleFn = void(__stdcall*)(void*);
-SampleIntFn AilSetSampleVolume() { return *reinterpret_cast<SampleIntFn*>(0x0073B774); }
-SampleIntFn AilSetSamplePan() { return *reinterpret_cast<SampleIntFn*>(0x0073B77C); }
-SampleFn AilEndSample() { return *reinterpret_cast<SampleFn*>(0x0073B7D8); }
-SampleFn AilStopSample() { return *reinterpret_cast<SampleFn*>(0x0073B784); }
-SampleFn AilResumeSample() { return *reinterpret_cast<SampleFn*>(0x0073B780); }
-SampleFn AilInitSample() { return *reinterpret_cast<SampleFn*>(0x0073B808); }
-SampleFn AilStartSample() { return *reinterpret_cast<SampleFn*>(0x0073B76C); }
-SampleIntFn AilSetSampleLoopCount() { return *reinterpret_cast<SampleIntFn*>(0x0073B778); }
-SampleIntFn AilSetSamplePosition() { return *reinterpret_cast<SampleIntFn*>(0x0073B790); }
+SampleIntFn AilSetSampleVolume() { return ei::GameData<SampleIntFn>(0x0073B774); }
+SampleIntFn AilSetSamplePan() { return ei::GameData<SampleIntFn>(0x0073B77C); }
+SampleFn AilEndSample() { return ei::GameData<SampleFn>(0x0073B7D8); }
+SampleFn AilStopSample() { return ei::GameData<SampleFn>(0x0073B784); }
+SampleFn AilResumeSample() { return ei::GameData<SampleFn>(0x0073B780); }
+SampleFn AilInitSample() { return ei::GameData<SampleFn>(0x0073B808); }
+SampleFn AilStartSample() { return ei::GameData<SampleFn>(0x0073B76C); }
+SampleIntFn AilSetSampleLoopCount() { return ei::GameData<SampleIntFn>(0x0073B778); }
+SampleIntFn AilSetSamplePosition() { return ei::GameData<SampleIntFn>(0x0073B790); }
 using EosFn = void(__stdcall*)(void*, void*);
-EosFn AilRegisterEosCallback() { return *reinterpret_cast<EosFn*>(0x0073B75C); }
+EosFn AilRegisterEosCallback() { return ei::GameData<EosFn>(0x0073B75C); }
 using ReverbFn = void(__stdcall*)(void*, float, float, float);
-ReverbFn AilSetSampleReverb() { return *reinterpret_cast<ReverbFn*>(0x0073B764); }
+ReverbFn AilSetSampleReverb() { return ei::GameData<ReverbFn>(0x0073B764); }
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
 void* EndOfSampleCallback() { return reinterpret_cast<void*>(0x006B75E0); }
 
@@ -947,7 +947,7 @@ struct WavInfo {
 };
 static_assert(sizeof(WavInfo) == 0x24);
 using WavInfoFn = void(__stdcall*)(const void*, WavInfo*);
-WavInfoFn AilWavInfo() { return *reinterpret_cast<WavInfoFn*>(0x0073B754); }
+WavInfoFn AilWavInfo() { return ei::GameData<WavInfoFn>(0x0073B754); }
 constexpr std::int32_t kImaAdpcm = 0x11;
 } // namespace
 
@@ -1034,7 +1034,7 @@ EI_REPLACE_METHOD(0x006B5EE0, SoundFader::Update);
 
 namespace {
 using SamplePositionFn = std::int32_t(__stdcall*)(void*);
-SamplePositionFn AilSamplePosition() { return *reinterpret_cast<SamplePositionFn*>(0x0073B770); }
+SamplePositionFn AilSamplePosition() { return ei::GameData<SamplePositionFn>(0x0073B770); }
 constexpr int kVoiceCount = 15;
 constexpr int kNoVoice = -1;
 } // namespace
@@ -1080,7 +1080,7 @@ EI_REPLACE_METHOD(0x006B7D10, CSoundManager::AllocateVoice);
 
 namespace {
 using SampleUintFn = void(__stdcall*)(void*, std::uint32_t);
-SampleUintFn AilSetSampleMsPosition() { return *reinterpret_cast<SampleUintFn*>(0x0073B768); }
+SampleUintFn AilSetSampleMsPosition() { return ei::GameData<SampleUintFn>(0x0073B768); }
 
 // The level of a new 2D voice: as FlatVolume, except that a NaN camera height keeps the full level
 // (the original tests "below 70 or unordered" first, then "above 30").
@@ -1217,11 +1217,11 @@ using SampleFileFn = int(__stdcall*)(void*, const void*, int);
 using MemAllocFn = void*(__stdcall*)(int);
 using MemFreeFn = void(__stdcall*)(void*);
 using DecompressFn = int(__stdcall*)(const void*, int, const char*, void**, int*, void*);
-NamedFileFn AilSetNamedSampleFile() { return *reinterpret_cast<NamedFileFn*>(0x0073B760); }
-SampleFileFn AilSetSampleFile() { return *reinterpret_cast<SampleFileFn*>(0x0073B750); }
-MemAllocFn AilMemAllocLock() { return *reinterpret_cast<MemAllocFn*>(0x0073B758); }
-MemFreeFn AilMemFreeLock() { return *reinterpret_cast<MemFreeFn*>(0x0073B7FC); }
-DecompressFn AilDecompressAsi() { return *reinterpret_cast<DecompressFn*>(0x0073B804); }
+NamedFileFn AilSetNamedSampleFile() { return ei::GameData<NamedFileFn>(0x0073B760); }
+SampleFileFn AilSetSampleFile() { return ei::GameData<SampleFileFn>(0x0073B750); }
+MemAllocFn AilMemAllocLock() { return ei::GameData<MemAllocFn>(0x0073B758); }
+MemFreeFn AilMemFreeLock() { return ei::GameData<MemFreeFn>(0x0073B7FC); }
+DecompressFn AilDecompressAsi() { return ei::GameData<DecompressFn>(0x0073B804); }
 void* DecompressCallback() { return reinterpret_cast<void*>(0x006B89B0); }   // SoundDecompressCallback
 const char* Mp3Suffix() { return ".mp3"; }
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use

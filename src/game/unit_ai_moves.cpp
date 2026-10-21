@@ -75,7 +75,7 @@ CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(u
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CEngineObject>& list) {
     list = {};
-    list.vtable = reinterpret_cast<void*>(0x0073D454);
+    list.vtable = ei::GamePointer<void>(0x0073D454);
     list.blockSize = 10;
 }
 } // namespace

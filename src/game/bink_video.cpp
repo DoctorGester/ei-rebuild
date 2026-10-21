@@ -53,7 +53,7 @@ using BinkSoundSystemFn = void(__stdcall*)(void*, void*);   // (open function, M
 using BinkGotoFn = void(__stdcall*)(BinkHeader*, unsigned, int);
 template <typename F>
 F Import(std::uintptr_t slot) {
-    return *reinterpret_cast<F*>(slot);
+    return ei::GameData<F>(slot);
 }
 BinkFn BinkWait() { return Import<BinkFn>(0x0073B728); }
 BinkFn BinkDoFrame() { return Import<BinkFn>(0x0073B718); }

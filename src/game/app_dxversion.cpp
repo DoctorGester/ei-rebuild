@@ -17,6 +17,7 @@
 #include "lib/gameapi.h"
 
 #include "../hook/log.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -36,7 +37,7 @@ constexpr int kRelease = 2;
 constexpr int kCreateSurface = 6;            // IDirectDraw::CreateSurface (+0x18)
 constexpr int kSetCooperativeLevel = 20;     // IDirectDraw::SetCooperativeLevel (+0x50)
 
-const void* Id(std::uintptr_t a) { return reinterpret_cast<const void*>(a); }
+const void* Id(std::uintptr_t a) { return ei::GamePointer<const void>(a); }
 
 using DirectDrawCreate = long(__stdcall*)(void*, void**, void*);
 using DirectDrawCreateEx = long(__stdcall*)(void*, void**, const void*, void*);

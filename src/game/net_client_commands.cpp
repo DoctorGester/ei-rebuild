@@ -137,7 +137,7 @@ double ClientSession::BufferRatioImpl(GameBuffer* buffer) {
     };
     if (streamSize() < 4) {
         float zero;
-        std::memcpy(&zero, reinterpret_cast<const void*>(0x0073B858), sizeof(zero));
+        std::memcpy(&zero, ei::GamePointer<const void>(0x0073B858), sizeof(zero));
         return zero;
     }
     buffer->Seek(0);

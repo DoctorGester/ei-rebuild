@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 namespace {
 
@@ -29,7 +30,7 @@ std::uint32_t CreateFlag(int type) {
 
 CTextureManager* CTextureManager::Construct() {
     CResourceManager::Construct();
-    cache_ = mfc::CTypedPtrList<CTexture>{reinterpret_cast<void*>(kCacheVtableAddress), nullptr, nullptr, 0,
+    cache_ = mfc::CTypedPtrList<CTexture>{ei::GamePointer<void>(kCacheVtableAddress), nullptr, nullptr, 0,
                                           nullptr, nullptr, kListBlockSize};
     shadowRenderSurface_ = nullptr;
     device_ = nullptr;
@@ -86,7 +87,7 @@ void CTextureManager::Destruct() {
     CResourceManager::Destroy();
     SetDevice(nullptr);
     // The members' destructors: both counted pointers are empty by now; the cache's.
-    cache_.vtable = reinterpret_cast<void*>(kCacheVtableAddress);
+    cache_.vtable = ei::GamePointer<void>(kCacheVtableAddress);
     cache_.RemoveAll();
     CResourceManager::Destruct();
 }

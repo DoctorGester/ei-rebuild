@@ -24,7 +24,7 @@ mfc::CString& String(char*& field) { return *reinterpret_cast<mfc::CString*>(&fi
 const mfc::CString& String(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
 
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-void* Vtable(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
+void* Vtable(std::uintptr_t address) { return ei::GamePointer<void>(address); }
 
 // Slot `slot` of `object`'s vtable, as a function of the object alone returning EAX.
 using ObjectSlot = int(__thiscall*)(void*);

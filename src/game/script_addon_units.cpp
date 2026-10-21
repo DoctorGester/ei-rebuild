@@ -61,7 +61,7 @@ bool PassesFilter(CEngineObject* object, bool units, bool others, bool living) {
 template <typename Visit>
 void ForObjectsNear(float x, float y, float radius, Visit visit) {
     mfc::CTypedPtrList<CEngineObject> list{};
-    list.vtable = reinterpret_cast<void*>(0x0073D454);
+    list.vtable = ei::GamePointer<void>(0x0073D454);
     list.blockSize = 10;
     Vector3 point = {x, y, 0.0f};
     kSectorMap->FindUnitsInRadius(&point, &list, radius);

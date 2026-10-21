@@ -102,7 +102,7 @@ struct MemoryStream {
 // (00567A60, 00567950); all RET 4 with the block.
 __declspec(naked) int __fastcall ClientLoadZone(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567AB0)
 // 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
-void* EmptyListVtable() { return reinterpret_cast<void*>(0x0073BE80); }   // the CPtrList passed to it
+void* EmptyListVtable() { return ei::GamePointer<void>(0x0073BE80); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
 
 // The quest log refreshed with an empty CPtrList built and destroyed on the stack.
@@ -122,8 +122,8 @@ constexpr int kNumberExperience = 8;
 // The experience shown for `amount`: amount * 0073E128 ^ (+0x33E - 0073E124), stored to a float,
 // then rounded to the nearest integer (FISTP).
 int ScaledExperience(const CUnit* unit, float amount) {
-    double base = *reinterpret_cast<const double*>(0x0073E128);
-    float offset = *reinterpret_cast<const float*>(0x0073E124);
+    double base = ei::GameData<const double>(0x0073E128);
+    float offset = ei::GameData<const float>(0x0073E124);
     float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->attackRate) - offset) * amount);
     return static_cast<int>(std::lrint(scaled));
 }
@@ -355,7 +355,7 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
 // 0079BE70: path markers are shown (written by 006524A0).
-bool MarkersShown() { return *reinterpret_cast<const int*>(0x0079BE70) != 0; }
+bool MarkersShown() { return ei::GameData<const int>(0x0079BE70) != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 
@@ -769,7 +769,7 @@ CEngineObject* EngineObject(CPlayerClient* client) { return reinterpret_cast<CEn
 
 CPlayerClient* CPlayerClient::Construct() {
     EngineObject(this)->ClearFields();
-    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    vtable_ = ei::GamePointer<void>(kConnectionVtable);
     player_ = nullptr;
     handlers_.Construct();
     in_.ConstructQueueStream();
@@ -778,13 +778,13 @@ CPlayerClient* CPlayerClient::Construct() {
     decompressor_.Construct();
     partyUnitIds_.Construct();
     otherUnitIds_.Construct();
-    vtable_ = reinterpret_cast<void*>(kClientVtable);
+    vtable_ = ei::GamePointer<void>(kClientVtable);
     Clear();
     return this;
 }
 
 void CPlayerClient::DestructBody() {
-    vtable_ = reinterpret_cast<void*>(kClientVtable);
+    vtable_ = ei::GamePointer<void>(kClientVtable);
     Clear();
     otherUnitIds_.FreeData();
     partyUnitIds_.FreeData();
@@ -793,7 +793,7 @@ void CPlayerClient::DestructBody() {
     out_.Destruct();
     in_.Destruct();
     handlers_.FreeData();
-    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    vtable_ = ei::GamePointer<void>(kConnectionVtable);
     player_ = nullptr;
     EngineObject(this)->DestructBase();
 }

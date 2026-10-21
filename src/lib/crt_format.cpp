@@ -988,7 +988,7 @@ int __cdecl Printf(const char* format, ...) {
 }
 EI_REPLACE(0x006E955F, libcrt::Printf);
 
-gamecrt::CrtFile* StandardOutput() { return reinterpret_cast<gamecrt::CrtFile*>(0x00798080); }   // &_iob[1]
+gamecrt::CrtFile* StandardOutput() { return ei::GamePointer<gamecrt::CrtFile>(0x00798080); }   // &_iob[1]
 
 // ---- atof: __strgtold12 and _ld12cvt ----
 

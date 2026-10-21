@@ -264,7 +264,7 @@ namespace {
 struct CellOffset {
     int dy, dx;
 };
-const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(0x007916BC); }
+const CellOffset* SteepOffsets() { return ei::GamePointer<const CellOffset>(0x007916BC); }
 
 // The largest climbable step of a climb table: the run of non-negative costs from the middle,
 // less one.

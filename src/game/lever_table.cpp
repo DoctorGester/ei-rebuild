@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -70,7 +71,7 @@ void __fastcall LeverTableDestruct(Table* self) {
         gamecrt::operator_delete(storage);
         return;
     }
-    void** freeList = reinterpret_cast<void**>(0x0079B224) + ((bytes - 1) >> 3);
+    void** freeList = ei::GamePointer<void*>(0x0079B224) + ((bytes - 1) >> 3);
     *reinterpret_cast<void**>(storage) = *freeList;
     *freeList = storage;
 }

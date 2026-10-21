@@ -29,7 +29,7 @@ int GameCommitMode() { return ei::GameData<const int>(0x007CADA4); }
 constexpr int kStreamCommit = 0x4000;   // _IOCOMMIT
 
 // &_iob[0..2]: the game's stdin, stdout and stderr (0x20-byte FILEs).
-const char* GameStreams() { return reinterpret_cast<const char*>(0x00798060); }
+const char* GameStreams() { return ei::GamePointer<const char>(0x00798060); }
 constexpr std::ptrdiff_t kGameStreamSize = 0x20;
 
 // The host stream behind a game stream pointer.

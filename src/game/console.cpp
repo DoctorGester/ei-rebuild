@@ -89,7 +89,7 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     Base()->Construct(buffer_, sizeof(buffer_));   // 006FCAD2
     filter_ = filter;
-    line_ = *reinterpret_cast<char**>(0x00796E48);   // CString(): the shared empty string
+    line_ = ei::GameData<char*>(0x00796E48);   // CString(): the shared empty string
     ei::SetVtable(this, kVtableAddress);
     return this;
 }

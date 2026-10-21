@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/mfc_gdi.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -45,7 +46,7 @@ using GamePen = mfc::impl::CPen;
 // a brush attached (CGdiObject::Attach), destroyed as the game inlines it (CGdiObject::Destruct).
 struct GameBrush : mfc::impl::CGdiObject {
     void Construct() {
-        vtable = reinterpret_cast<void*>(0x007463C4);
+        vtable = ei::GamePointer<void>(0x007463C4);
         handle = nullptr;
     }
     // operator HBRUSH (GetSafeHandle; a local is never null).

@@ -39,7 +39,7 @@ void* const kTextGlue = ei::GamePointer<void>(0x007AFEA4);
 IsaacRandom& UiRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // A random value times ~-2^-34 * 0.3 (00742760): the portrait's wobble delay, stored as a float.
 float PortraitDelay(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * *reinterpret_cast<const volatile double*>(0x00742760));
+    return static_cast<float>(x87::FromUnsigned(random) * ei::GameData<const volatile double>(0x00742760));
 }
 
 // The orders' unit list: an MFC CArray<CUnit*> on the stack (vtable 007402AC, SetSize 005EBDB0,
@@ -126,7 +126,7 @@ void CBattleScreen::ToggleMember(int index) {
     if (IsMultiplayerClient()) return;
     if (index >= party->size) return;
 
-    UiDwordArray chosen{reinterpret_cast<void*>(0x0073C3D0), nullptr, 0, 0, 0};
+    UiDwordArray chosen{ei::GamePointer<void>(0x0073C3D0), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         chosen.SetAtGrow(chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
@@ -149,7 +149,7 @@ void CBattleScreen::ToggleMember(int index) {
         if (value != 0) {
             const Vector3 axis = {-1.0f, 0.0f, 0.0f};
             const float angle = ei::GameData<const volatile float>(0x007C8144) *
-                                *reinterpret_cast<const volatile float*>(0x0073CDCC);   // 1/7
+                                ei::GameData<const volatile float>(0x0073CDCC);   // 1/7
             rest = turn.SetAxisAngle(axis, angle);
         }
         portraits->slots_[i].restB_ = *rest;
@@ -186,7 +186,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
-    OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
+    OrderUnits units{ei::GamePointer<void>(0x007402AC), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -201,14 +201,14 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
     if (units.size != 0) LocalView(kWorld)->SendAttack(&units, target, kind, ctrl & 0xFF);
-    units.vtable = reinterpret_cast<void*>(0x007402AC);
+    units.vtable = ei::GamePointer<void>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }
 EI_REPLACE_METHOD(0x00637190, CBattleScreen::AttackUnit);
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
-    OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
+    OrderUnits units{ei::GamePointer<void>(0x007402AC), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         auto* member = party->data[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -220,7 +220,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
         static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
     }
     if (units.size != 0) LocalView(kWorld)->SendUseDead(&units, target, ctrl & 0xFF);
-    units.vtable = reinterpret_cast<void*>(0x007402AC);
+    units.vtable = ei::GamePointer<void>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }
 EI_REPLACE_METHOD(0x006373A0, CBattleScreen::OrderDeadUnit);
@@ -261,7 +261,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         if (member == unit) {
             Vector3 axis;
             unit->orientation.AxisY(&axis);
-            const float k = *reinterpret_cast<const volatile float*>(0x0073B850);   // 0.1
+            const float k = ei::GameData<const volatile float>(0x0073B850);   // 0.1
             point.x = point.x + -axis.x * k;
             point.y = point.y + -axis.y * k;
             point.z = point.z + -axis.z * k;

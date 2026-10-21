@@ -11,7 +11,7 @@
 namespace {
 
 // 0079B604: timeGetTime() at the previous pump.
-std::uint32_t& LastPumpTime() { return *reinterpret_cast<std::uint32_t*>(0x0079B604); }
+std::uint32_t& LastPumpTime() { return ei::GameData<std::uint32_t>(0x0079B604); }
 
 // 0073BB24: milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;

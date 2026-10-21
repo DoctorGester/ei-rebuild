@@ -50,7 +50,7 @@ int GameTicks() { return ei::GameData<const int>(0x007AF61C); }
 float GameTickFraction() { return ei::GameData<const float>(0x007AFCA8); }
 // The sun's ray step scale (007C8964 = 1 * 95, a static initialiser), and the cell size (007441D0).
 float SunStepScale() { return ei::GameData<const float>(0x007C8964); }
-float CellSize() { return *reinterpret_cast<const float*>(0x007441D0); }
+float CellSize() { return ei::GameData<const float>(0x007441D0); }
 
 bool SignClear(float v) {
     std::uint32_t bits;

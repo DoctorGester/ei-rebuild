@@ -30,6 +30,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -82,7 +83,7 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 bool& PathFlag() { return WorldServer()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
 CAIMap* MapOf(void* world) { return static_cast<CWorldServer*>(world)->AIMap(); }
-float HalfCell() { return *reinterpret_cast<const float*>(0x0073EEE4) * *reinterpret_cast<const float*>(0x0073B86C); }
+float HalfCell() { return ei::GameData<const float>(0x0073EEE4) * ei::GameData<const float>(0x0073B86C); }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
 struct LocalPath {
@@ -130,22 +131,22 @@ struct LocalUnitMotion {
     UnitMotion motion;
     LocalUnitMotion() {
         mfc::impl::ConstructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
-        motion.points.vtable = reinterpret_cast<void*>(0x0073EB9C);
+        motion.points.vtable = ei::GamePointer<void>(0x0073EB9C);
         mfc::impl::ConstructArrayOf<mfc::impl::MotionWaypointArrayClass>(motion.waypoints);
         mfc::impl::ConstructArrayOf<mfc::impl::ArgFloatArrayClass>(motion.stepSpeeds);
         motion.curveX = {};   // the segment part (0054E5D0): no curves, no segment
         motion.curveY = {};
         motion.segment = -1;
         static_cast<UnitMotion*>(&motion)->Clear();
-        motion.speedScale = *reinterpret_cast<const float*>(0x0073EF20);
+        motion.speedScale = ei::GameData<const float>(0x0073EF20);
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
     }
     ~LocalUnitMotion() {
         mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(motion.stepSpeeds);
-        motion.waypoints.vtable = reinterpret_cast<void*>(0x0073EBB4);
+        motion.waypoints.vtable = ei::GamePointer<void>(0x0073EBB4);
         if (motion.waypoints.data) gamecrt::operator_delete(motion.waypoints.data);
-        motion.points.vtable = reinterpret_cast<void*>(0x0073EBA8);
+        motion.points.vtable = ei::GamePointer<void>(0x0073EBA8);
         if (motion.points.data) gamecrt::operator_delete(motion.points.data);
     }
     LocalUnitMotion(const LocalUnitMotion&) = delete;
@@ -173,7 +174,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     void* world = ObjectWorld(this);
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
-    SpotArray spots{reinterpret_cast<void*>(0x0073C120), nullptr, 0, 0, 0};
+    SpotArray spots{ei::GamePointer<void>(0x0073C120), nullptr, 0, 0, 0};
     float size = static_cast<float>(Slots(unit)->Radius());
     Slots(order->target)->UseSpots(&spots, size);
     bool result = true;
@@ -191,7 +192,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
-            float limit = *reinterpret_cast<const float*>(0x0073EF28);
+            float limit = ei::GameData<const float>(0x0073EF28);
             if (!(LengthSquared2DUnrounded(ex, ey) < limit * limit)) continue;
             if (path.Cost() >= best) continue;
             best = path.Cost();
@@ -205,7 +206,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             std::memcpy(&order->point, &bestSpot, sizeof(bestSpot));
         }
     }
-    spots.vtable = reinterpret_cast<void*>(0x0073C120);
+    spots.vtable = ei::GamePointer<void>(0x0073C120);
     if (spots.data) gamecrt::operator_delete(spots.data);
     return result;
 }
@@ -263,7 +264,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         Vector3 from = {position.x, position.y, position.z};
         from.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
         double visible = MapOf(ManagerContextOf(this))->LineOfSight(&from, &sight.point);
-        if (!(visible < *reinterpret_cast<const float*>(0x0073EEC0))) break;
+        if (!(visible < ei::GameData<const float>(0x0073EEC0))) break;
         t += 5.0f;
     }
     return t;

@@ -34,7 +34,7 @@ FigureBone* FigureBone::Construct() {
     new (&name) mfc::CString();
     new (&name2) mfc::CString();
     new (&name3) mfc::CString();
-    children.vtable = reinterpret_cast<void*>(kChildListVtable);
+    children.vtable = ei::GamePointer<void>(kChildListVtable);
     children.count = 0;
     children.free = nullptr;
     children.tail = nullptr;
@@ -94,7 +94,7 @@ void FigureBone::DestructBody() {
     DestroyBone();   // its reset empties the matrices through 0050DD40 here, the same SetSize
     if (matrices.data) lib::AlignedArray<Matrix4>::Free(matrices.data);
     // The child list's destructor: its vtable, RemoveAll again.
-    children.vtable = reinterpret_cast<void*>(kChildListVtable);
+    children.vtable = ei::GamePointer<void>(kChildListVtable);
     children.RemoveAll();
     name3.~CString();
     name2.~CString();

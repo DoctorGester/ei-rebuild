@@ -12,6 +12,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
@@ -93,7 +94,7 @@ namespace {
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
 
-float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
+float One() { return ei::GameData<const volatile float>(0x0073B84C); }
 
 } // namespace
 

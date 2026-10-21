@@ -10,6 +10,7 @@
 #include "game/game_arrays.h"
 #include "game/sound.h"
 #include "game/world.h"
+#include "game_data.h"
 
 void __fastcall RefPtrRelease(RefPtr* self);                  // refptr_copies.cpp
 // The release (PairReleaseSecond) or the owner's Destroy (PairDestroySecond) of the RefPtr at +4: a
@@ -103,40 +104,40 @@ EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*,
 
 // The lists' vtables.
 struct OwnedRefListClass {   // a map object controller's counted pointer list (005575F0)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F028); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F028); }
 };
 struct TokenListClass {   // the script parser's tokens (004CA260)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D424); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D424); }
 };
 struct SharedObjectListClass {   // the world server's shared objects (0059A3C0)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FA10); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FA10); }
 };
 
 // CScript's lists (their destructors, S13b: 004C92C0, 004C8E20, 004C7560, 004C8520, 004C7E30,
 // 004C6760, 004C6410, 004C6120).
 struct TempObjectListClass {   // +0x1CC
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D448); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D448); }
 };
 struct TempGroupListClass {   // +0x1B0
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D43C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D43C); }
 };
 struct DeclListClass {   // +0x70 and +0x178
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D364); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D364); }
 };
 struct RunListClass {   // +0x15C
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D340); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D340); }
 };
 struct InstanceListClass {   // +0x140
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D34C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D34C); }
 };
 struct LightningListClass {   // +0x4C
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D370); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D370); }
 };
 struct FxSourceListClass {   // +0x30
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D37C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D37C); }
 };
 struct ParticleSourceListClass {   // +0x14
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D388); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D388); }
 };
 
 } // namespace gamelists

@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "game/originals_library.h"
 #include "lib/crt.h"
+#include "game/game_data.h"
 
 #include <algorithm>
 #include <cstring>
@@ -174,9 +175,9 @@ struct OutOfRange {
 };
 static_assert(sizeof(OutOfRange) == 0x10C);
 
-const void* NamedExceptionVtable() { return reinterpret_cast<const void*>(0x0073B994); }
-const void* OutOfRangeVtable() { return reinterpret_cast<const void*>(0x0073BE8C); }
-const void* OutOfRangeThrowInfo() { return reinterpret_cast<const void*>(0x0074C640); }
+const void* NamedExceptionVtable() { return ei::GamePointer<const void>(0x0073B994); }
+const void* OutOfRangeVtable() { return ei::GamePointer<const void>(0x0073BE8C); }
+const void* OutOfRangeThrowInfo() { return ei::GamePointer<const void>(0x0074C640); }
 const char* BasicStringText() { return "basic_string"; }
 
 } // namespace

@@ -13,6 +13,7 @@
 #include "core_streams.h"
 
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -77,7 +78,7 @@ public:
         ClassIdMap classIds;     // +0x00 vtable -> class id
         FactoryMap factories;    // +0x14 class id -> factory
     };
-    static ClassRegistry& Registry() { return *reinterpret_cast<ClassRegistry*>(0x0079B270); }
+    static ClassRegistry& Registry() { return ei::GameData<ClassRegistry>(0x0079B270); }
 
     // The current chunk: the top of the stack.
     Ref* Current() { return &stack_.End()->prev->data; }

@@ -83,7 +83,7 @@ inline const char* TextsLmpFileText() { return "textsLmp.res"; }
 inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
 // sets its flag 0x200.
-inline int ShadowSetting() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD0C)); }
+inline int ShadowSetting() { return ei::GameData<const volatile int>(0x0079BD0C); }
 
 // ---- The client world's zone load (00567AB0) ----------------------------------------------------
 
@@ -100,14 +100,14 @@ inline const char* FinalMusicText() { return "final"; }
 // Options (the object at 0079BC70; options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
 // LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
 // DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
-inline int AudioOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BCC0)); }
-inline int WaterWavesOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD38)); }
-inline int SelfShadowingOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD3C)); }
-inline int LightingFrequencyOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD44)); }
+inline int AudioOption() { return ei::GameData<const volatile int>(0x0079BCC0); }
+inline int WaterWavesOption() { return ei::GameData<const volatile int>(0x0079BD38); }
+inline int SelfShadowingOption() { return ei::GameData<const volatile int>(0x0079BD3C); }
+inline int LightingFrequencyOption() { return ei::GameData<const volatile int>(0x0079BD44); }
 inline float DefaultWindForceOption() { return ExeFloat(std::uintptr_t(0x0079BE58)); }
 // 0078FF38: the hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the
 // next UpdateLighting set it.
-inline float& LastLitHour() { return *reinterpret_cast<float*>(std::uintptr_t(0x0078FF38)); }
+inline float& LastLitHour() { return ei::GameData<float>(0x0078FF38); }
 
 // Vtables Setup stores while it inlines the constructors.
 constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
@@ -128,9 +128,9 @@ constexpr std::uintptr_t kClientArrayListVtable = std::uintptr_t(0x0073F73C);   
 inline void* DataFolderString() { return ei::GamePointer<void>(0x007AF460); }
 inline void* TextFolderString() { return ei::GamePointer<void>(0x007AF45C); }
 inline void* BaseFolderString() { return ei::GamePointer<void>(0x007AF458); }
-inline const char* ConfiguredDataPath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC90)); }
-inline const char* ConfiguredTextPath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC94)); }
-inline const char* ConfiguredBasePath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC98)); }
+inline const char* ConfiguredDataPath() { return ei::GameData<const char* const>(0x0079BC90); }
+inline const char* ConfiguredTextPath() { return ei::GameData<const char* const>(0x0079BC94); }
+inline const char* ConfiguredBasePath() { return ei::GameData<const char* const>(0x0079BC98); }
 // The vtables WorldCreateManagers stores after the base manager's constructor: the player list
 // (+0x38) and the timed objects (+0x48); and the counted helper's (+0x5C).
 constexpr std::uintptr_t kPlayerListVtable = std::uintptr_t(0x0073F328);
@@ -146,18 +146,18 @@ inline const char* AutosaveEventText() { return "autosave"; }
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
 // The volume settings the sound manager takes on the client's tenth tick (006B7740 / 006B78A0 /
 // 006B7A00; the last is the movies' volume, bink_video.cpp).
-inline int VolumeSettingA() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC8)); }
-inline int VolumeSettingB() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCCC)); }
-inline int MovieVolumeSetting() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC4)); }
+inline int VolumeSettingA() { return ei::GameData<const int>(0x0079BCC8); }
+inline int VolumeSettingB() { return ei::GameData<const int>(0x0079BCCC); }
+inline int MovieVolumeSetting() { return ei::GameData<const int>(0x0079BCC4); }
 // 007AFC9C: 2 while the party fights (sound_music.cpp).
 inline int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
 // The interface's list of the multiplayer peers (an STLport vector of 4-byte entries at 007C7D84).
 inline const stlp::vector<int>& PeerList() { return ei::GameData<const stlp::vector<int>>(0x007C7D84); }
 // The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
 // period (0078FF34) per tick and restarts at 0079BD24.
-inline int LightLevelsSetting() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BD58)); }
-inline int WorldUpdatePeriod() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0078FF34)); }
-inline int LightLevelsPeriod() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BD24)); }
+inline int LightLevelsSetting() { return ei::GameData<const int>(0x0079BD58); }
+inline int WorldUpdatePeriod() { return ei::GameData<const int>(0x0078FF34); }
+inline int LightLevelsPeriod() { return ei::GameData<const int>(0x0079BD24); }
 // The scene's sun light (007AF07C; figure_part_draw.cpp) and the point 007AFDB0 the grey levels
 // start from (its distance to the sun; meaning unknown).
 inline CLight* SceneSun() { return ei::GameData<CLight* const>(0x007AF07C); }
@@ -204,7 +204,7 @@ inline void* FlushManipulator() { return reinterpret_cast<void*>(std::uintptr_t(
 // ---- Effect constants (spell_effect_*.cpp, world_effect_*.cpp) -----------------------------------
 // References, so the effects read them through a volatile (ConstAt) or pass their address (ConstPtr)
 // as the original does; Rebirth may patch the data.
-inline const float& ExeFloatRef(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+inline const float& ExeFloatRef(std::uintptr_t address) { return ei::GameData<const float>(address); }
 inline const float& OneRef() { return ExeFloatRef(0x0073B84C); }   // 1.0
 inline const float& ZeroRef() { return ExeFloatRef(0x0073B858); }   // 0.0
 inline const float& HalfRef() { return ExeFloatRef(0x0073B86C); }   // 0.5
@@ -246,9 +246,9 @@ inline const float& AnnouncePeriodRef() { return ExeFloatRef(0x0073BB20); }   //
 inline const float& QueueWaitLimitRef() { return ExeFloatRef(0x0073F090); }   // squared distance a blocking ally may be away
 // Tables of the AI (ai_refresh.cpp): the height of each of 8 levels; per occluder type the cost added by full
 // cover and the damping exponent; 5 rows x 16 dwords of cell marks.
-inline const float* LevelHeights() { return reinterpret_cast<const float*>(0x007912BC); }
-inline const int* OccluderCosts() { return reinterpret_cast<const int*>(0x007912A4); }
-inline const int* OccluderDamping() { return reinterpret_cast<const int*>(0x007912B0); }
-inline const std::uint32_t* MarkTable() { return reinterpret_cast<const std::uint32_t*>(0x00791164); }
+inline const float* LevelHeights() { return ei::GamePointer<const float>(0x007912BC); }
+inline const int* OccluderCosts() { return ei::GamePointer<const int>(0x007912A4); }
+inline const int* OccluderDamping() { return ei::GamePointer<const int>(0x007912B0); }
+inline const std::uint32_t* MarkTable() { return ei::GamePointer<const std::uint32_t>(0x00791164); }
 
 } // namespace worlddata

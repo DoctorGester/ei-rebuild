@@ -38,7 +38,7 @@ constexpr int kNumbersKind = 6;
 constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of the digits' texture
 
 const char* NumbersName() { return "numbers"; }
-const char* FiguresResource() { return *reinterpret_cast<const char* const*>(0x0079BC94); } // a CString
+const char* FiguresResource() { return ei::GameData<const char* const>(0x0079BC94); } // a CString
 void* Renderer() { return ei::GameData<void* const>(0x007AF080); }
 UnitDatabase* Units() { return ei::GamePointer<UnitDatabase>(0x007AF358); }
 

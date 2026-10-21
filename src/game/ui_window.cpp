@@ -511,15 +511,15 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     localRotation_.SetIdentity();   // two identity rotations (0040CB00, inlined here)
     worldRotation_.SetIdentity();
     interface_ = ui;
-    inputVtable_ = reinterpret_cast<void**>(0x007401D0);
+    inputVtable_ = ei::GamePointer<void*>(0x007401D0);
     std::memset(spareA0_, 0, sizeof(spareA0_));
     ClearArray(objects_);
     ClearArray(sceneObjects_);
     ClearArray(surfaces_);
     ClearArray(regions_);
     ClearArray(models_);
-    vtable_ = reinterpret_cast<void**>(0x00740F60);
-    inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
+    vtable_ = ei::GamePointer<void*>(0x00740F60);
+    inputVtable_ = ei::GamePointer<void*>(0x00740F2C);
     flags_ = 0;
     rect_ = RECT{0, 0, 0, 0};
     localRotation_ = ei::GameData<const Quaternion>(0x007C7E58);
@@ -553,8 +553,8 @@ EI_REPLACE_METHOD(0x00600D30, CUiContainer::AddChild);
 // --- 005FE930: the destructor body -------------------------------------------------------------
 
 void CUiWindow::DestroyBase() {
-    vtable_ = reinterpret_cast<void**>(0x00740F60);
-    inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
+    vtable_ = ei::GamePointer<void*>(0x00740F60);
+    inputVtable_ = ei::GamePointer<void*>(0x00740F2C);
     for (CEngineObject** held : {&blackMaterial_, &whiteMaterial_, &heldObject_}) {
         if (*held) (*held)->Release();
         *held = nullptr;
@@ -593,8 +593,8 @@ void CUiWindow::DestroyBase() {
     if (sceneObjects_.data) FreeAligned(sceneObjects_.data);
     if (objects_.data) FreeAligned(objects_.data);
     // The CTransformObject and CEngineObject levels.
-    inputVtable_ = reinterpret_cast<void**>(0x007401D0);
-    vtable_ = reinterpret_cast<void**>(0x0073BA38);
+    inputVtable_ = ei::GamePointer<void*>(0x007401D0);
+    vtable_ = ei::GamePointer<void*>(0x0073BA38);
     reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }
 EI_REPLACE_METHOD(0x005FE930, CUiWindow::DestroyBase);

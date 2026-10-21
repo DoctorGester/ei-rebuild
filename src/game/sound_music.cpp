@@ -28,7 +28,7 @@ IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // The party's fight state, set by the world (2: fighting).
 int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
 // ".mp3" (the pointer at 00744094).
-const char* Mp3() { return *reinterpret_cast<const char* const*>(0x00744094); }
+const char* Mp3() { return ei::GameData<const char* const>(0x00744094); }
 
 int Compare(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -90,7 +90,7 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
 
 const mfc::CString& TextPath() { return ei::GameData<const mfc::CString>(0x007AF45C); }
 // "music.reg" (the pointer at 00744090).
-const char* MusicReg() { return *reinterpret_cast<const char* const*>(0x00744090); }
+const char* MusicReg() { return ei::GameData<const char* const>(0x00744090); }
 
 } // namespace
 
@@ -305,7 +305,7 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 CMusicSystem* CMusicSystem::Construct() {
     ClearFields();
     ei::SetVtable(this, CEngineObject::kVtableAddress);
-    themesVtable = reinterpret_cast<void*>(kThemeArrayVtable);
+    themesVtable = ei::GamePointer<void>(kThemeArrayVtable);
     themes = nullptr;
     themeGrow = 0;
     themeMax = 0;

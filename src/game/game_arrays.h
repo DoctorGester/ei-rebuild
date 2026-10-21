@@ -9,6 +9,7 @@
 #include "game/object_tables.h"
 #include "game/script.h"
 #include "game/unit.h"
+#include "game_data.h"
 
 namespace aligned {
 std::uint32_t* __fastcall AllocateDwords(int count);   // 0051EF90 (aligned_arrays.cpp)
@@ -96,40 +97,40 @@ using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nu
 
 // CScript's arrays' vtables (their destructors 004CB150, 004CB650, 004CB310).
 struct PointLightArrayClass {   // +0x00
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3A0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3A0); }
 };
 struct AreaArrayClass {   // +0x194
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3C4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3C4); }
 };
 struct DefinitionArrayClass {   // +0x8C
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3B8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3B8); }
 };
 
 // The vtable 0059A100 restores (an array of object pointers, Serialize 0059A170).
 struct ObjectPtrArrayBaseClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FABC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FABC); }
 };
 
 // The particles' draw order (CArray<ParticleDepth>, effects.h; 007A9C50).
 struct ParticleDepthArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D024); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D024); }
 };
 // The sector spiral's offsets (CArray<SpiralOffset>, sector_map.h; 007C2FF8).
 struct SpiralOffsetArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FDEC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FDEC); }
 };
 // The script quest's objectives (CArray<ScriptQuestObjective>, script.h; 007AA608).
 struct ObjectiveArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D46C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D46C); }
 };
 // The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool; 007C3038).
 struct SmoothNodeArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FE34); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FE34); }
 };
 
 // The vtable 004C3B20 restores (CArray<ScriptGroup>).
 struct GroupArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D310); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D310); }
 };
 
 // 004C1290 (RET 4): SetSize to the source's size, then each reference replaced by a referenced copy

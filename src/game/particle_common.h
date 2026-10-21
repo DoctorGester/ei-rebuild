@@ -35,7 +35,7 @@ inline double Unsigned(std::uint32_t value) {
 inline float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
 
 inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-inline double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+inline double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 inline std::uint32_t GameDword(std::uintptr_t address) {
     return *reinterpret_cast<const volatile std::uint32_t*>(address);
 }

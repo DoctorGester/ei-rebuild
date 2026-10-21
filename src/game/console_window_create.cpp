@@ -6,6 +6,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <new>
 
@@ -18,7 +19,7 @@ constexpr int kInitialRect[4] = {0, 0, 800, 150};
 constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
 // MFC CFont's vtable (an empty CGdiObject: no handle yet).
-void** FontVtable() { return reinterpret_cast<void**>(0x0073BFB4); }
+void** FontVtable() { return ei::GamePointer<void*>(0x0073BFB4); }
 } // namespace
 
 ConsoleWindow* ConsoleWindow::Construct(int* screen) {

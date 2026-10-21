@@ -109,7 +109,7 @@ void CInterface3D::Update() {
         }
         ResetInput();
         app::PumpMessages();
-        *reinterpret_cast<bool*>(0x00784750) = false;
+        ei::GameData<bool>(0x00784750) = false;
     }
     if (queuedWindow_) {
         Activate(queuedWindow_);

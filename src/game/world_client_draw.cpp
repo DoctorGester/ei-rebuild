@@ -137,22 +137,22 @@ CEngineObject** VectorCopyBack(CEngineObject** first, CEngineObject** last, CEng
 }
 
 // The object margin around the camera when collecting what to draw (0073BAB0, 100.0).
-float ObjectsDrawMargin() { return *reinterpret_cast<const float*>(0x0073BAB0); }
+float ObjectsDrawMargin() { return ei::GameData<const float>(0x0073BAB0); }
 float ObjectsDrawRadius() {
     static const float setting = StarterDrawRadius("ObjectsDrawRadius");
     return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : ObjectsDrawMargin();
 }
 // 0073B84C: 1.0, the map edge's margin.
-float MapEdgeMargin() { return *reinterpret_cast<const float*>(0x0073B84C); }
+float MapEdgeMargin() { return ei::GameData<const float>(0x0073B84C); }
 // 0073F750: the length of the shadows' projection along the camera's Z axis.
-float ShadowLength() { return *reinterpret_cast<const float*>(0x0073F750); }
+float ShadowLength() { return ei::GameData<const float>(0x0073F750); }
 // The light effect settings (0079BD50, 0079BD4C, 0079BD54: the three lists +0x1B8 / +0x1BC /
 // +0x1C0) and the game mode (0079BE64; 1 single player).
-int LightEffectsSetting(std::uintptr_t address) { return *reinterpret_cast<const int*>(address); }
+int LightEffectsSetting(std::uintptr_t address) { return ei::GameData<const int>(address); }
 int LightEffects1B8() { return LightEffectsSetting(std::uintptr_t(0x0079BD50)); }
 int LightEffects1BC() { return LightEffectsSetting(std::uintptr_t(0x0079BD4C)); }
 int LightEffects1C0() { return LightEffectsSetting(std::uintptr_t(0x0079BD54)); }
-int GameMode() { return *reinterpret_cast<const int*>(0x0079BE64); }
+int GameMode() { return ei::GameData<const int>(0x0079BE64); }
 // 007900E4: the part a selection marker sits on.
 const char* MarkerPartName() { return "hp"; }
 

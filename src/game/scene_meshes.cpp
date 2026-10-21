@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -59,12 +60,12 @@ auto* const kCompareRecords = reinterpret_cast<int(__cdecl*)(const void*, const 
 auto* const kComparePairs = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF60);
 
 template <typename MapT>
-MapT NewMap(std::uintptr_t vtable) { return MapT{reinterpret_cast<void*>(vtable), nullptr, 17, 0, nullptr, nullptr, 10}; }
+MapT NewMap(std::uintptr_t vtable) { return MapT{ei::GamePointer<void>(vtable), nullptr, 17, 0, nullptr, nullptr, 10}; }
 
 // The inlined destructor of the second and third maps: RemoveAll and the base vtable.
 template <typename MapT>
 void DestroyMap(MapT& map, std::uintptr_t vtable) {
-    map.vtable = reinterpret_cast<void*>(vtable);
+    map.vtable = ei::GamePointer<void>(vtable);
     map.RemoveAll();
 }
 
@@ -190,7 +191,7 @@ void BuildPairs(SceneMesh* mesh) {
 // 0044CFF0 (__fastcall: the unit's mesh array). The record list (vtable 0073C19C) is shared by all
 // meshes and freed at the end.
 void __fastcall IndexMeshCorners(VtArray* meshes) {
-    RecordArray records{reinterpret_cast<void*>(0x0073C19C), nullptr, 0, 0, 0};
+    RecordArray records{ei::GamePointer<void>(0x0073C19C), nullptr, 0, 0, 0};
     for (int m = 0; m < meshes->size; ++m) {
         CornerMap corners = NewMap<CornerMap>(0x0073C190);
         IndexMap indices = NewMap<IndexMap>(0x0073C184);
@@ -198,10 +199,10 @@ void __fastcall IndexMeshCorners(VtArray* meshes) {
         IndexFaceCorners(&Typed<MeshArray>(*meshes).data[m]);
         BuildPairs(&Typed<MeshArray>(*meshes).data[m]);
         DestroyMap(indices, 0x0073C184);
-        corners.vtable = reinterpret_cast<void*>(0x0073C190);
+        corners.vtable = ei::GamePointer<void>(0x0073C190);
         corners.RemoveAll();   // 00453F80
     }
-    records.vtable = reinterpret_cast<void*>(0x0073C19C);
+    records.vtable = ei::GamePointer<void>(0x0073C19C);
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE(0x0044CFF0, IndexMeshCorners);

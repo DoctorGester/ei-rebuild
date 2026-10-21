@@ -40,7 +40,7 @@ void PushFree(AIEvent* event) {
 
 void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
     constexpr std::uintptr_t kPoolVtable = std::uintptr_t(0x0073FEB4);
-    pool->vtable = reinterpret_cast<void*>(kPoolVtable);
+    pool->vtable = ei::GamePointer<void>(kPoolVtable);
     pool->RemoveAll();
 }
 EI_REPLACE(0x005CDBA0, AIEventPoolDestruct);
@@ -176,7 +176,7 @@ constexpr std::size_t kNormalTableSize = 0x1000;
 int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     Clear();
     map = aiMap;
-    const float scale = *reinterpret_cast<const float*>(kMinusCellScale);
+    const float scale = ei::GameData<const float>(kMinusCellScale);
     const int newWidth = 1 - static_cast<int>(gamecrt::Ftol(sizeX * scale));
     const int newHeight = 1 - static_cast<int>(gamecrt::Ftol(sizeY * scale));
     if (width != newWidth || height != newHeight) {

@@ -19,22 +19,22 @@ namespace {
 
 // The exe's throw information for a CFileException* and a CArchiveException* (the pointer to the
 // class and to each base, ".PAVCFileException@@" ... ".PAX").
-const void* FileExceptionThrowInfo() { return reinterpret_cast<const void*>(0x0077F440); }
-const void* ArchiveExceptionThrowInfo() { return reinterpret_cast<const void*>(0x0077F2B0); }
+const void* FileExceptionThrowInfo() { return ei::GamePointer<const void>(0x0077F440); }
+const void* ArchiveExceptionThrowInfo() { return ei::GamePointer<const void>(0x0077F2B0); }
 // _simpleNotSupportedException (a static CNotSupportedException) and the throw information of a
 // CNotSupportedException*.
 void* SimpleNotSupportedException() { return ei::GamePointer<void>(0x007C8D50); }
-const void* NotSupportedThrowInfo() { return reinterpret_cast<const void*>(0x0077EE80); }
+const void* NotSupportedThrowInfo() { return ei::GamePointer<const void>(0x0077EE80); }
 // _simpleMemoryException and _simpleResourceException (static, not auto-deleted) and the throw
 // information of a CMemoryException* and a CResourceException*.
 void* SimpleMemoryException() { return ei::GamePointer<void>(0x007C8DE8); }
-const void* MemoryThrowInfo() { return reinterpret_cast<const void*>(0x0077EE38); }
+const void* MemoryThrowInfo() { return ei::GamePointer<const void>(0x0077EE38); }
 void* SimpleResourceException() { return ei::GamePointer<void>(0x007C8C58); }
-const void* ResourceThrowInfo() { return reinterpret_cast<const void*>(0x0077EC28); }
+const void* ResourceThrowInfo() { return ei::GamePointer<const void>(0x0077EC28); }
 
 // The two classes' CRuntimeClass records.
-void* FileExceptionClass() { return reinterpret_cast<void*>(0x00746820); }
-void* ArchiveExceptionClass() { return reinterpret_cast<void*>(0x007467D8); }
+void* FileExceptionClass() { return ei::GamePointer<void>(0x00746820); }
+void* ArchiveExceptionClass() { return ei::GamePointer<void>(0x007467D8); }
 
 mfc::CObjectVirtuals* Virtuals(CException* exception) { return reinterpret_cast<mfc::CObjectVirtuals*>(exception); }
 CExceptionVirtuals* Slots(CException* exception) { return reinterpret_cast<CExceptionVirtuals*>(exception); }
@@ -84,16 +84,16 @@ CSimpleException* CSimpleException::Construct(BOOL autoDeleteFlag, unsigned id, 
 }
 
 CSimpleException* CSimpleException::ConstructResource(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x0074646C));
+    return Construct(autoDeleteFlag, id, ei::GamePointer<void>(0x0074646C));
 }
 CSimpleException* CSimpleException::ConstructUser(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x00746484));
+    return Construct(autoDeleteFlag, id, ei::GamePointer<void>(0x00746484));
 }
 CSimpleException* CSimpleException::ConstructMemory(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x007465F8));
+    return Construct(autoDeleteFlag, id, ei::GamePointer<void>(0x007465F8));
 }
 CSimpleException* CSimpleException::ConstructNotSupported(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x00746610));
+    return Construct(autoDeleteFlag, id, ei::GamePointer<void>(0x00746610));
 }
 
 void CSimpleException::InitString() {
@@ -153,10 +153,10 @@ BOOL CArchiveException::GetErrorMessage(char* error, unsigned maxError, unsigned
     return CauseMessage(kIdpArchiveNone, cause, fileName, error, maxError, helpContext);
 }
 
-void __fastcall ResourceExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x0074646C); }
-void __fastcall UserExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x00746484); }
-void __fastcall MemoryExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x007465F8); }
-void __fastcall NotSupportedExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x00746610); }
+void __fastcall ResourceExceptionDestruct(CException* self) { self->vtable = ei::GamePointer<void>(0x0074646C); }
+void __fastcall UserExceptionDestruct(CException* self) { self->vtable = ei::GamePointer<void>(0x00746484); }
+void __fastcall MemoryExceptionDestruct(CException* self) { self->vtable = ei::GamePointer<void>(0x007465F8); }
+void __fastcall NotSupportedExceptionDestruct(CException* self) { self->vtable = ei::GamePointer<void>(0x00746610); }
 
 int __stdcall OsErrorToException(long osError) {
     switch (static_cast<unsigned long>(osError)) {

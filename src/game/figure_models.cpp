@@ -16,6 +16,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 namespace {
 
@@ -106,11 +107,11 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     buckets->Finish() = nullptr;
     buckets->EndOfStorage() = nullptr;   // the allocator proxy (005AD640)
     *count = 0;
-    const auto* first = reinterpret_cast<const std::uint32_t*>(0x0073B914);
-    const auto* last = reinterpret_cast<const std::uint32_t*>(0x0073B984);
+    const auto* first = ei::GamePointer<const std::uint32_t>(0x0073B914);
+    const auto* last = ei::GamePointer<const std::uint32_t>(0x0073B984);
     std::uint32_t hint = 100;
     const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
-    std::uint32_t n = prime == last ? *reinterpret_cast<const std::uint32_t*>(0x0073B980) : *prime;
+    std::uint32_t n = prime == last ? ei::GameData<const std::uint32_t>(0x0073B980) : *prime;
     buckets->Reserve<stlp::PlainElement<AnimationMap::Node*>>(n);
     buckets->FillInsert<stlp::PlainElement<AnimationMap::Node*>>(buckets->Finish(), n, nullptr);   // 005ADAD0
     *count = 0;

@@ -21,7 +21,7 @@
 #include <initializer_list>
 
 namespace {
-void* const kLeverVtable = reinterpret_cast<void*>(0x0073E740);
+void* const kLeverVtable = ei::GamePointer<void>(0x0073E740);
 constexpr int kLeverNetFields = 6;
 constexpr int kLeverField = 5;            // the network field and the MarkChanged part
 constexpr int kPartScale = 1;

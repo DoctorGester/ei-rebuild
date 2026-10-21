@@ -43,11 +43,11 @@
 namespace {
 // --- Globals ----------------------------------------------------------------------------------
 
-int ShadowMode() { return *reinterpret_cast<const int*>(0x0079BD0C); }   // 0 off, 2 blurred
+int ShadowMode() { return ei::GameData<const int>(0x0079BD0C); }   // 0 off, 2 blurred
 int ShadowSwitch(int classId) {
-    if (classId == 0x50) return *reinterpret_cast<const int*>(0x0079BD14);   // units
-    if (classId == 0x52) return *reinterpret_cast<const int*>(0x0079BD1C);
-    return *reinterpret_cast<const int*>(0x0079BD18);
+    if (classId == 0x50) return ei::GameData<const int>(0x0079BD14);   // units
+    if (classId == 0x52) return ei::GameData<const int>(0x0079BD1C);
+    return ei::GameData<const int>(0x0079BD18);
 }
 const Vector3* DefaultLight() { return ei::GamePointer<const Vector3>(0x007AF230); }
 void* TextureManager() { return ei::GameData<void*>(0x007AF744); }

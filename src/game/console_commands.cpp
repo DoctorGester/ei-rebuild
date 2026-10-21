@@ -264,7 +264,7 @@ void __fastcall LastFps(CStringArray*) {
     auto* timer = static_cast<CSceneRenderer*>(SceneRenderer());
     GameOStream& os = Out() << "Current FPS: ";
     unsigned ms = timer->FrameTime();
-    double fps = *reinterpret_cast<const float*>(0x0073C34C) / x87::FromUnsigned(ms);
+    double fps = ei::GameData<const float>(0x0073C34C) / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
 }
 EI_REPLACE(0x005DEEE0, LastFps);
@@ -395,7 +395,7 @@ void __fastcall Net(CStringArray* args) {
         if (WorldPlayer* player = GetPlayer(0)) player->logTraffic = libcrt::Atoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], "time") == 0)
-        *reinterpret_cast<int*>(0x0079BC60) = libcrt::Atoi((*args)[1]);
+        *ei::GamePointer<int>(0x0079BC60) = libcrt::Atoi((*args)[1]);
     if (Mbsicmp((*args)[0], "zone") == 0 && ServerActive(Server())) {
         mfc::CString zone((*args)[1]);
         Server()->SendCommand(0, zone);
@@ -559,11 +559,11 @@ void SetRate(CStringArray* args, int* rate, const char* usage) {
 } // namespace
 
 // 005E0990: rate <bytes per second>.
-void __fastcall Rate(CStringArray* args) { SetRate(args, reinterpret_cast<int*>(0x00783E34), "Rate has one parameter - connection rate in bytes per second"); }
+void __fastcall Rate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E34), "Rate has one parameter - connection rate in bytes per second"); }
 EI_REPLACE(0x005E0990, Rate);
 
 // 005E0A10: localrate <bytes per second>.
-void __fastcall LocalRate(CStringArray* args) { SetRate(args, reinterpret_cast<int*>(0x00783E38), "LocalRate has one parameter - connection rate in bytes per second"); }
+void __fastcall LocalRate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E38), "LocalRate has one parameter - connection rate in bytes per second"); }
 EI_REPLACE(0x005E0A10, LocalRate);
 
 } // namespace console::commands

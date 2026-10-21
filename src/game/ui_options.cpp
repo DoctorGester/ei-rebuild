@@ -56,51 +56,51 @@ constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
 // Float constants read from the exe's memory as the original does (rule 9), all single precision.
-float ConstOne() { return *reinterpret_cast<const float*>(0x0073B84C); }        // 1.0
-float ConstFromStep() { return *reinterpret_cast<const float*>(0x0074023C); }   // 50.0: value = setting * 50
-float ConstToStep() { return *reinterpret_cast<const float*>(0x00742B80); }     // 0.02: setting = value * 0.02
-float ConstScrollFrom() { return *reinterpret_cast<const float*>(0x0073BAA0); } // 4.0: setting 20's value
-float ConstScrollTo() { return *reinterpret_cast<const float*>(0x0073C3B0); }   // 0.25: setting 20 from it
-float ConstHalf() { return *reinterpret_cast<const float*>(0x0073B86C); }       // 0.5: the slider's centre
-float ConstThumbLift() { return *reinterpret_cast<const float*>(0x0073B850); }  // 0.1: the thumb above the track
+float ConstOne() { return ei::GameData<const float>(0x0073B84C); }        // 1.0
+float ConstFromStep() { return ei::GameData<const float>(0x0074023C); }   // 50.0: value = setting * 50
+float ConstToStep() { return ei::GameData<const float>(0x00742B80); }     // 0.02: setting = value * 0.02
+float ConstScrollFrom() { return ei::GameData<const float>(0x0073BAA0); } // 4.0: setting 20's value
+float ConstScrollTo() { return ei::GameData<const float>(0x0073C3B0); }   // 0.25: setting 20 from it
+float ConstHalf() { return ei::GameData<const float>(0x0073B86C); }       // 0.5: the slider's centre
+float ConstThumbLift() { return ei::GameData<const float>(0x0073B850); }  // 0.1: the thumb above the track
 // The slider sprites' turn about z (a float global set at start-up, not in the file).
 float QuarterTurn() { return ei::GameData<const float>(0x007C8210); }
 
 // The game's option globals the window loads (00652200) and stores (006524A0), by setting.
-int& OptVolume0() { return *reinterpret_cast<int*>(0x0079BCC8); }       // setting 0 (the sound system's volume A)
-int& OptVolume1() { return *reinterpret_cast<int*>(0x0079BCC4); }       // setting 1
-int& OptVolume2() { return *reinterpret_cast<int*>(0x0079BCCC); }       // setting 2
-float& OptSpeedA() { return *reinterpret_cast<float*>(0x0079BDC0); }    // setting 3 (three more copies on store)
-float& OptSpeedA2() { return *reinterpret_cast<float*>(0x0079BDD8); }
-float& OptSpeedA3() { return *reinterpret_cast<float*>(0x0079BDE4); }
-float& OptSpeedA4() { return *reinterpret_cast<float*>(0x0079BDCC); }
-float& OptSpeedB() { return *reinterpret_cast<float*>(0x0079BDBC); }    // setting 4 (three more copies on store)
-float& OptSpeedB2() { return *reinterpret_cast<float*>(0x0079BDD4); }
-float& OptSpeedB3() { return *reinterpret_cast<float*>(0x0079BDE0); }
-float& OptSpeedB4() { return *reinterpret_cast<float*>(0x0079BDC8); }
-int& Opt5() { return *reinterpret_cast<int*>(0x0079BDAC); }             // setting 5
-int& Opt6Tenths() { return *reinterpret_cast<int*>(0x0079BDB0); }       // setting 6 * 10
+int& OptVolume0() { return ei::GameData<int>(0x0079BCC8); }       // setting 0 (the sound system's volume A)
+int& OptVolume1() { return ei::GameData<int>(0x0079BCC4); }       // setting 1
+int& OptVolume2() { return ei::GameData<int>(0x0079BCCC); }       // setting 2
+float& OptSpeedA() { return ei::GameData<float>(0x0079BDC0); }    // setting 3 (three more copies on store)
+float& OptSpeedA2() { return ei::GameData<float>(0x0079BDD8); }
+float& OptSpeedA3() { return ei::GameData<float>(0x0079BDE4); }
+float& OptSpeedA4() { return ei::GameData<float>(0x0079BDCC); }
+float& OptSpeedB() { return ei::GameData<float>(0x0079BDBC); }    // setting 4 (three more copies on store)
+float& OptSpeedB2() { return ei::GameData<float>(0x0079BDD4); }
+float& OptSpeedB3() { return ei::GameData<float>(0x0079BDE0); }
+float& OptSpeedB4() { return ei::GameData<float>(0x0079BDC8); }
+int& Opt5() { return ei::GameData<int>(0x0079BDAC); }             // setting 5
+int& Opt6Tenths() { return ei::GameData<int>(0x0079BDB0); }       // setting 6 * 10
 // Settings 7-9, the shadow switches (map_object_shadow.cpp): units, other objects, class 0x52.
-int& OptShadowUnits() { return *reinterpret_cast<int*>(0x0079BD14); }
-int& OptShadowBuildings() { return *reinterpret_cast<int*>(0x0079BD18); }
-int& OptShadowFlora() { return *reinterpret_cast<int*>(0x0079BD1C); }
-int& Opt10() { return *reinterpret_cast<int*>(0x0079BD50); }
-int& Opt11() { return *reinterpret_cast<int*>(0x0079BD4C); }
-int& Opt12() { return *reinterpret_cast<int*>(0x0079BE64); }
-int& Opt13() { return *reinterpret_cast<int*>(0x0079BE70); }
-float& OptGamma14() { return *reinterpret_cast<float*>(0x0079BCFC); }   // settings 14-16 (setting * 0.02 - 1)
-float& OptGamma15() { return *reinterpret_cast<float*>(0x0079BD00); }
-float& OptGamma16() { return *reinterpret_cast<float*>(0x0079BD04); }
-int& Opt17() { return *reinterpret_cast<int*>(0x0079BE74); }
+int& OptShadowUnits() { return ei::GameData<int>(0x0079BD14); }
+int& OptShadowBuildings() { return ei::GameData<int>(0x0079BD18); }
+int& OptShadowFlora() { return ei::GameData<int>(0x0079BD1C); }
+int& Opt10() { return ei::GameData<int>(0x0079BD50); }
+int& Opt11() { return ei::GameData<int>(0x0079BD4C); }
+int& Opt12() { return ei::GameData<int>(0x0079BE64); }
+int& Opt13() { return ei::GameData<int>(0x0079BE70); }
+float& OptGamma14() { return ei::GameData<float>(0x0079BCFC); }   // settings 14-16 (setting * 0.02 - 1)
+float& OptGamma15() { return ei::GameData<float>(0x0079BD00); }
+float& OptGamma16() { return ei::GameData<float>(0x0079BD04); }
+int& Opt17() { return ei::GameData<int>(0x0079BE74); }
 // Setting 18: help windows (Rebirth's ForceShowTutorial patches its store at 00652663).
-int& OptHelp18() { return *reinterpret_cast<int*>(0x0079BE78); }
-int& Opt19() { return *reinterpret_cast<int*>(0x0079BE7C); }
-float& Opt20() { return *reinterpret_cast<float*>(0x0079BE80); }        // setting 20
-int& Opt21() { return *reinterpret_cast<int*>(0x0079BE84); }
-float& OptSign22() { return *reinterpret_cast<float*>(0x0079BD64); }    // setting 22 (-1 for 1, else +1)
-float& OptSign23() { return *reinterpret_cast<float*>(0x0079BD68); }    // setting 23 (likewise)
-int& Opt24() { return *reinterpret_cast<int*>(0x0079BD08); }
-int& OptDifficultyCopy() { return *reinterpret_cast<int*>(0x0079BEC4); } // setting 25 (with GameDifficulty 0079BEC0)
+int& OptHelp18() { return ei::GameData<int>(0x0079BE78); }
+int& Opt19() { return ei::GameData<int>(0x0079BE7C); }
+float& Opt20() { return ei::GameData<float>(0x0079BE80); }        // setting 20
+int& Opt21() { return ei::GameData<int>(0x0079BE84); }
+float& OptSign22() { return ei::GameData<float>(0x0079BD64); }    // setting 22 (-1 for 1, else +1)
+float& OptSign23() { return ei::GameData<float>(0x0079BD68); }    // setting 23 (likewise)
+int& Opt24() { return ei::GameData<int>(0x0079BD08); }
+int& OptDifficultyCopy() { return ei::GameData<int>(0x0079BEC4); } // setting 25 (with GameDifficulty 0079BEC0)
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
 

@@ -101,7 +101,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     Factory* factory = TheFactory();
     Unit* unit = reinterpret_cast<Unit*>(target);
     float k0;
-    std::memcpy(&k0, reinterpret_cast<const void*>(0x0073B858), 4);   // 0.0
+    std::memcpy(&k0, ei::GamePointer<const void>(0x0073B858), 4);   // 0.0
     float f10, f14;
     std::memcpy(&f10, r + field::kNoStats0, 4);
     std::memcpy(&f14, r + field::kNoStats2, 4);

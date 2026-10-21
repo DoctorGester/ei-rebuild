@@ -39,7 +39,7 @@ CMemoryStream& Received() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // (CInterface3D::MessageText, message 12). EI_Plugin's Pause writes it in .rdata: '2' for a pause,
 // '3' ("reserved_03") for a resume.
 void SetPauseTextDigit(std::uint8_t pause) {
-    auto* digit = reinterpret_cast<char*>(std::uintptr_t(0x007930F6));
+    auto* digit = ei::GamePointer<char>(0x007930F6);
     DWORD old;
     VirtualProtect(digit, 1, PAGE_READWRITE, &old);
     *digit = static_cast<char>('3' - pause);

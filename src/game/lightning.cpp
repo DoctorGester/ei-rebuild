@@ -38,7 +38,7 @@ float* NoiseSide() { return ei::GamePointer<float>(0x0079C1F8); }
 float* NoiseUp() { return ei::GamePointer<float>(0x0079C838); }
 
 // Branch sway frequencies: six pairs (side, up) at 00787C8C.
-const float* BranchFrequencies() { return reinterpret_cast<const float*>(0x00787C8C); }
+const float* BranchFrequencies() { return ei::GamePointer<const float>(0x00787C8C); }
 
 // World clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
 int GameTicks() { return ei::GameData<const volatile int>(0x007AF61C); }

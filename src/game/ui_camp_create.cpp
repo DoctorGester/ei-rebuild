@@ -47,7 +47,7 @@
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
+void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }          // CUiItemPanel
@@ -63,7 +63,7 @@ VtablePair SpellMakerVtables() { return {Vtable(0x00741670), Vtable(0x0074163C)}
 VtablePair ItemMakerVtables() { return {Vtable(0x007415D4), Vtable(0x007415A0)}; }          // CConstructorPage
 VtablePair RepairGridVtables() { return {Vtable(0x00741538), Vtable(0x00741504)}; }         // CRepairGrid
 std::uintptr_t ItemArrayVtable() { return std::uintptr_t(0x00741BC0); }      // the strips' CArray<char*>
-void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }    // CArray<record*>
+void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }    // CArray<record*>
 
 // The objects' sizes where the class declares less than the original allocates.
 constexpr std::size_t kTradePanelSize = 0x1B8;

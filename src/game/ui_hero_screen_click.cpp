@@ -92,13 +92,13 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);
     camp->textures_.Construct(compare);
-    camp->vtable_ = reinterpret_cast<void**>(0x00740A2C);
-    camp->inputVtable_ = reinterpret_cast<void**>(0x007409F8);
+    camp->vtable_ = ei::GamePointer<void*>(0x00740A2C);
+    camp->inputVtable_ = ei::GamePointer<void*>(0x007409F8);
     camp->fromHeroScreen_ = true;   // opened from the hero screen
     camp->heroes_.Construct(0x007402AC);
     StringArrayConstruct(&camp->pageTitles_);
-    camp->vtable_ = reinterpret_cast<void**>(0x0074091C);
-    camp->inputVtable_ = reinterpret_cast<void**>(0x007408E8);
+    camp->vtable_ = ei::GamePointer<void*>(0x0074091C);
+    camp->inputVtable_ = ei::GamePointer<void*>(0x007408E8);
     return camp;
 }
 
@@ -523,7 +523,7 @@ EI_REPLACE(0x006183B0, MpHeroContinue);
 namespace {
 const char* SoundCancel() { return game::CancelSoundText(); }
 // The points the three attributes must add up to (a float in the exe's data).
-float AttributePoints() { return *reinterpret_cast<const float*>(0x00741C98); }
+float AttributePoints() { return ei::GameData<const float>(0x00741C98); }
 } // namespace
 
 void CMpHeroScreen::RefreshHero() {

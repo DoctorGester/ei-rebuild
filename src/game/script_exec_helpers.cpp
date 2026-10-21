@@ -90,7 +90,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     const float dy = static_cast<float>(static_cast<double>(target[1]) - position[1]);
     const float dz = static_cast<float>(static_cast<double>(target[2]) - position[2]);
     // FILD steps; FDIVR 1.0f (0073B84C), rounded to float.
-    const float inverse = static_cast<float>(static_cast<double>(*reinterpret_cast<const float*>(0x0073B84C)) / light->steps);
+    const float inverse = static_cast<float>(static_cast<double>(ei::GameData<const float>(0x0073B84C)) / light->steps);
     light->step.x = static_cast<float>(dx * inverse);
     light->step.y = static_cast<float>(static_cast<double>(dy) * inverse);
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
@@ -164,7 +164,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     CEffectPointLight* object = static_cast<CEffectPointLight*>(Lights(this)[i].object);
     ++object->refCount_;
     f = cmd->floatArgs.data;
-    const float scale = *reinterpret_cast<const float*>(0x0073C36C);   // 1 / 255
+    const float scale = ei::GameData<const float>(0x0073C36C);   // 1 / 255
     float red = f[5] * scale;
     float green = f[6] * scale;
     float blue = f[7] * scale;

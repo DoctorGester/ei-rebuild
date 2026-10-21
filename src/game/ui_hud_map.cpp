@@ -356,8 +356,8 @@ namespace {
 
 // The camera (global 007AF7C8; its rotation at +0x34) and the ground point it looks at.
 const CTransformObject* Camera() { return ei::GameData<CTransformObject* const>(0x007AF7C8); }
-std::uint32_t CameraTargetXBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079B388); }
-std::uint32_t CameraTargetYBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079B38C); }
+std::uint32_t CameraTargetXBits() { return ei::GameData<const std::uint32_t>(0x0079B388); }
+std::uint32_t CameraTargetYBits() { return ei::GameData<const std::uint32_t>(0x0079B38C); }
 
 void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
 
@@ -571,7 +571,7 @@ namespace {
 // 2.5^(delta / 1200): _CIpow (006E81A0) of the double at 00742AD0 and delta * 0.00083333335f,
 // left unrounded.
 double WheelZoomFactor(int delta) {
-    return libcrt::CiPow(*reinterpret_cast<const double*>(0x00742AD0), static_cast<double>(delta) * *reinterpret_cast<const float*>(0x00742AC8));
+    return libcrt::CiPow(ei::GameData<const double>(0x00742AD0), static_cast<double>(delta) * ei::GameData<const float>(0x00742AC8));
 }
 } // namespace
 

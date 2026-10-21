@@ -49,7 +49,7 @@ const char* FixedViewZone() { return "gz20g"; }
 // 007C8388: an identity rotation (set by the static initialiser 00666CC0).
 const Quaternion& FixedViewRotation() { return ei::GameData<const Quaternion>(0x007C8388); }
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
-double ExeDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
+double ExeDouble(std::uintptr_t address) { return ei::GameData<const double>(address); }
 
 CEngineObject* FindClientUnit(int id) { return WorldFindUnit(WorldClient(), nullptr, id); }
 

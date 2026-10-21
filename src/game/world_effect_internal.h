@@ -41,7 +41,7 @@ inline BitStream* ReadSnapshot() { return ei::GameData<BitStream*>(0x007A9794); 
 
 // Constants the original reads from memory (read the same way so nothing is folded).
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
-inline double AngleScale() { return *reinterpret_cast<const volatile double*>(0x0073FFD0); }  // ~2 pi / 2^32
+inline double AngleScale() { return ei::GameData<const volatile double>(0x0073FFD0); }  // ~2 pi / 2^32
 
 // By reference: a float passed by value would be loaded and stored through the FPU.
 inline std::uint32_t Bits(const float& f) {

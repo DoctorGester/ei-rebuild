@@ -53,7 +53,7 @@ constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Ex
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
 void StoreRadians(void* out, const char* text) {
     const double degrees = GameAtof(text);
-    const double factor = *reinterpret_cast<const double*>(0x0073C3B8) * *reinterpret_cast<const double*>(0x0073BA30);
+    const double factor = ei::GameData<const double>(0x0073C3B8) * ei::GameData<const double>(0x0073BA30);
     *static_cast<float*>(out) = static_cast<float>(degrees * factor);
 }
 

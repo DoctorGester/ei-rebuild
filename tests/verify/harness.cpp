@@ -1065,7 +1065,7 @@ HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
 // The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
 // off, tutorial windows open only where the game forces them (005F86F0, 005F8A80). The harness
 // clears it every frame, since the options are reloaded when a game starts.
-int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
+int& g_showTutorial = ei::GameData<int>(0x0079BE78);
 
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
 // default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
@@ -1076,7 +1076,7 @@ int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
 // after it: the unsigned backlog (10..54) wraps to about 4.29e9 and the loop runs some 78 million
 // client ticks (minutes). Real-time runs mostly got away with it by timing; on the virtual clock
 // ui_camp_deals, ui_trade_hold, effects_bow, ... hung every time. 0 = leave it to the game.
-unsigned& g_tickLength = *reinterpret_cast<unsigned*>(0x0078FF34);
+unsigned& g_tickLength = ei::GameData<unsigned>(0x0078FF34);
 unsigned g_heldTickLength = 0;
 
 // The main loop's calls of the server's update and the client's tick (thiscall, EAX 0 stops the
@@ -1328,7 +1328,7 @@ DWORD Now() { return clock::Now(); }
 
 // Input for the interface screens: window messages to the game window (0079BC28; its window
 // procedure 00457970 handles the mouse and key messages).
-HWND GameWindow() { return *reinterpret_cast<HWND*>(0x0079BC28); }
+HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
 
 // Modifier keys held around an input step ("hold", "release" and the <mods> words of the mouse and key
 // steps). The game reads them from the key messages (CInterface3D::OnKeyDown sets +0x7C / +0x7D / +0x7E
@@ -1969,7 +1969,7 @@ std::string CampPutOn(const std::string& argument) {
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
     auto* ui = ei::GamePointer<CInterface3D>(0x007C7D50);
     auto* camp = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
-    if (!camp || *reinterpret_cast<void**>(camp) != reinterpret_cast<void*>(0x0074091C))
+    if (!camp || *reinterpret_cast<void**>(camp) != ei::GamePointer<void>(0x0074091C))
         return "campputon: the camp is not on top";
     int page = *reinterpret_cast<int*>(camp + 0x190);
     auto* strip = *reinterpret_cast<std::uint8_t**>(camp + 0x1E0);
@@ -2842,7 +2842,7 @@ void RunSteps() {
             ConsoleExecute(s.argument.c_str());
         } else if (s.verb == "newgame") {
             // What the main menu's new-game button does after the intro movie (00632940).
-            *reinterpret_cast<unsigned char*>(0x00784750) = 0;
+            ei::GameData<unsigned char>(0x00784750) = 0;
             g_request.kind = 3;
         } else if (s.verb == "load") {
             g_request.argument = s.argument.c_str();
@@ -2974,7 +2974,7 @@ void RunSteps() {
                 g_failures.push_back("zone needs <name> [exit]");
                 continue;
             }
-            const auto* record = reinterpret_cast<const std::uint8_t*>(reinterpret_cast<CMapDatabase*>(kMapDatabase)->FindMap(name));
+            const auto* record = reinterpret_cast<const std::uint8_t*>(ei::GamePointer<CMapDatabase>(kMapDatabase)->FindMap(name));
             void* connection = LocalConnection();
             Log("harness: zone %s: %s", name, DescribeLocalPlayer().c_str());
             if (!record) {
@@ -3398,7 +3398,7 @@ void RunSteps() {
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
         } else if (s.verb == "record") {
-            *reinterpret_cast<unsigned char*>(0x0079BC54) = s.argument == "on" ? 1 : 0;
+            ei::GameData<unsigned char>(0x0079BC54) = s.argument == "on" ? 1 : 0;
         } else if (s.verb == "waitpresent") {
             int seconds = 10;
             char what[16] = "";
@@ -3715,7 +3715,7 @@ void ActivateWithoutForeground(HWND window) {
     static bool sent = false;
     if (sent || !ei::GameData<void*>(0x007AF080)) return;
     sent = true;
-    if (*reinterpret_cast<std::uint8_t*>(0x0079BC5C)) return;
+    if (ei::GameData<std::uint8_t>(0x0079BC5C)) return;
     Log("harness: the game window activated (nothing activates it: harness games never take the foreground)");
     SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
 }

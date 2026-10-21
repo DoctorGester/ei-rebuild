@@ -507,7 +507,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
     for (int i = 0; i < count; ++i) {
         // A temporary empty block (vtable 0073D3DC, id unset) is copied into the node.
         ScriptDecl temp{};
-        temp.commands.vtable = reinterpret_cast<void*>(0x0073D3DC);
+        temp.commands.vtable = ei::GamePointer<void>(0x0073D3DC);
         AppendNode(list, NewBlockNode, [&](char* data) {
             auto* block = reinterpret_cast<ScriptDecl*>(data);
             recordarrays::CmdArrayCopy(reinterpret_cast<recordarrays::Cmds::Array*>(&block->commands), nullptr, reinterpret_cast<const recordarrays::Cmds::Array*>(&temp.commands));
@@ -539,7 +539,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
             mfc::CArray<ScriptIfThen> ifThen;
             ScriptVars vars;
         } temp{};
-        temp.ifThen.vtable = reinterpret_cast<void*>(0x0073D430);
+        temp.ifThen.vtable = ei::GamePointer<void>(0x0073D430);
         temp.vars.ScriptVarsConstruct();
         AppendNode(list, NewInstanceNode, [&](char* data) {
             auto* instance = reinterpret_cast<ScriptDefinition*>(data);

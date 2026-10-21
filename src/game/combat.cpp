@@ -89,7 +89,7 @@ float Global7C5488() { return ei::GameData<const float>(0x007C5488); }
 float Global7C548C() { return ei::GameData<const float>(0x007C548C); }
 // Difficulty (0079BEC0) and the attack factor per difficulty (007C54AC, floats).
 float DifficultyAttackFactor() {
-    int difficulty = *reinterpret_cast<const int*>(0x0079BEC0);
+    int difficulty = ei::GameData<const int>(0x0079BEC0);
     return ei::GamePointer<const float>(0x007C54AC)[difficulty];
 }
 

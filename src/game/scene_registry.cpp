@@ -43,7 +43,7 @@ constexpr auto ConstructNamed = mfc::impl::ConstructElementsAt<mfc::impl::NamedD
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
 using SeenMap = DwordMap;
-void* SeenMapVtable() { return reinterpret_cast<void*>(0x0073C16C); }
+void* SeenMapVtable() { return ei::GamePointer<void>(0x0073C16C); }
 
 // map[key] as the original inlines it: the association (created with value 0 when missing).
 MapAssoc* MapLookup(SeenMap& map, std::uint32_t key) {
@@ -105,7 +105,7 @@ struct Mapping {
 // u = (w / width) * u + x / width; v = 1 - ((h / height) * (1 - v) + y / height), each rounded once
 // (the quotients and products unrounded; the inner v sum is rounded to float before 1 - it).
 void MapTexCoord(float* uv, const Mapping* mapping) {
-    const double one = *reinterpret_cast<const float*>(0x0073B84C);
+    const double one = ei::GameData<const float>(0x0073B84C);
     const float u = static_cast<float>(static_cast<double>(mapping->w) / mapping->width * uv[0] + static_cast<double>(mapping->x) / mapping->width);
     const float inner = static_cast<float>(static_cast<double>(mapping->h) / mapping->height * (one - uv[1]) +
                                            static_cast<double>(mapping->y) / mapping->height);

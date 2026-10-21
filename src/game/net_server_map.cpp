@@ -15,6 +15,7 @@
 #include "world.h"
 #include "world_data.h"
 #include "game_flow_data.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -29,7 +30,7 @@ inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLo
 void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * 12); }
 
 
-std::uint32_t* VariableCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }
+std::uint32_t* VariableCounter() { return ei::GamePointer<std::uint32_t>(0x0079B608); }
 
 } // namespace
 

@@ -9,6 +9,7 @@
 // loader, the writer and the defaults (older code) still go by the offsets in `field`.
 
 #include "../lib/mfc.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -223,7 +224,7 @@ static_assert(offsetof(GameOptions, workPath_) == field::kWorkPath && offsetof(G
               offsetof(GameOptions, masterServerName_) == field::kMasterServerName &&
               sizeof(GameOptions) == field::kLoadedSize);
 
-inline GameOptions* TheOptions() { return reinterpret_cast<GameOptions*>(0x0079BC70); }
+inline GameOptions* TheOptions() { return ei::GamePointer<GameOptions>(0x0079BC70); }
 
 // 00458DA0 (options_defaults.cpp). The options' defaults.
 void __fastcall OptionsResetDefaults(GameOptions* self);

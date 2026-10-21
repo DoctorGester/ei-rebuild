@@ -8,6 +8,7 @@
 
 #include "mfc_archive.h"
 #include "mfc_list.h"
+#include "game/game_data.h"
 
 namespace mfc::impl {
 
@@ -147,214 +148,214 @@ void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
 
 // Arrays whose elements need nothing.
 struct NodeItemsAClass {   // inside the scene loader's 0x120-byte node records (00454F80)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C1AC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C1AC); }
 };
 struct NodeItemsBClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C1B8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C1B8); }
 };
 struct NodeItemsCClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C138); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C138); }
 };
 struct TextureLinkArrayClass {   // the scene loader's {id, value} links
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C150); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C150); }
 };
 struct MeshCornerArrayClass {   // the scene meshes' corner records (IndexMeshCorners)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C19C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C19C); }
 };
 struct Vector3ArrayClass {   // 12-byte points: animation node normals, use spots, terrain sector data
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C120); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C120); }
 };
 struct TrapCircleArrayClass {   // a trap's circles (map_spec, magic_trap)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C698); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C698); }
 };
 struct TrapPointArrayClass {   // a trap's points
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C6A4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C6A4); }
 };
 struct Array0498Class {   // constructed by 00498E60 only
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D024); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D024); }
 };
 struct ArgObjectsClass {   // a script command's object arguments, the derived class (script_copy)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D484); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D484); }
 };
 struct ArgGroupsClass {   // a script command's group arguments, the derived class
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D478); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D478); }
 };
 struct ArgObjectsBaseClass {   // a script command's object arguments (script_destroy)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3F4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3F4); }
 };
 struct ArgGroupsBaseClass {   // a script command's group arguments
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D400); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D400); }
 };
 struct BindingsBaseClass {   // a script command's bindings
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D40C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D40C); }
 };
 struct EffectArrayClass {   // a map object's effects
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DBA0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DBA0); }
 };
 struct EffectSoundArrayClass {   // a map object's effect sounds
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DC3C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DC3C); }
 };
 struct FrameArrayClass {   // a 3D object's frames
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DE40); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DE40); }
 };
 struct MotionWaypointBaseClass {   // a unit's motion waypoints once destroyed
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073EBB4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073EBB4); }
 };
 struct CarriedArrayClass {   // a unit's carried objects
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073EB84); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073EB84); }
 };
 struct IdArrayClass {   // CArray<int> of quest item ids (world_party)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073EBD4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073EBD4); }
 };
 struct SkinLayerArrayClass {   // a unit's skin layers (ComposeSkin)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073EEA0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073EEA0); }
 };
 struct CountdownArrayClass {   // the world's countdowns
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F234); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F234); }
 };
 struct PartyUnitArrayClass {   // the server's and interface's party unit arrays
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FAA4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FAA4); }
 };
 struct SectorOccluderArrayClass {   // a sector's occluders
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FAE0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FAE0); }
 };
 struct SectorCellArrayClass {   // constructed by 005C18C0
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FDEC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FDEC); }
 };
 struct SpiralCellArrayClass {   // the sector spiral's cells
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FDE0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FDE0); }
 };
 struct SmoothRowArrayClass {   // the path smoothing tables' rows
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FE34); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FE34); }
 };
 struct SmoothEdgeArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FE28); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FE28); }
 };
 struct SmoothCopyArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FE10); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FE10); }
 };
 struct SmoothStepArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FE1C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FE1C); }
 };
 struct ObjectiveExitArrayClass {   // the objectives window's exits
-    static void* Vtable() { return reinterpret_cast<void*>(0x00741264); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00741264); }
 };
 struct ItemStripArrayClass {   // an item strip's CArray<char*>
-    static void* Vtable() { return reinterpret_cast<void*>(0x00741BC0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00741BC0); }
 };
 struct QuickEntryArrayClass {   // the HUD's quick item entries
-    static void* Vtable() { return reinterpret_cast<void*>(0x007428A0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007428A0); }
 };
 struct TokenPtrArrayClass {   // the scroll text's token pointers
-    static void* Vtable() { return reinterpret_cast<void*>(0x00742F14); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00742F14); }
 };
 struct LinePtrArrayClass {   // the scroll text's line pointers
-    static void* Vtable() { return reinterpret_cast<void*>(0x00742F08); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00742F08); }
 };
 struct TerrainArrayAClass {   // the terrain builder's arrays (006CBE60)
-    static void* Vtable() { return reinterpret_cast<void*>(0x00744210); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00744210); }
 };
 struct TerrainArrayBClass {   // (006CC2A0, 006CC3E0)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0074421C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0074421C); }
 };
 struct TerrainArrayCClass {   // (006CC530)
-    static void* Vtable() { return reinterpret_cast<void*>(0x00744228); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00744228); }
 };
 
 // Lists whose elements need nothing.
 struct BoneListClass {   // a figure bone's and an animation state's lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DA40); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DA40); }
 };
 struct AnimationStateListClass {   // an animation state's second list
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DA80); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DA80); }
 };
 struct Object3DListClass {   // a 3D object's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DE4C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DE4C); }
 };
 struct ClientObjectListClass {   // the client world's and the sectors' object lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F530); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F530); }
 };
 struct ExperienceListClass {   // CWorldServer::AwardExperience's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FAB0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FAB0); }
 };
 struct AttentionListClass {   // AIAttention::Choose's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FF34); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FF34); }
 };
 struct PlayerListClass {   // a player's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x00743138); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00743138); }
 };
 struct TextureListClass {   // the texture manager's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x00743D18); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00743D18); }
 };
 struct SoundListClass {   // the sound manager's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x00744130); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00744130); }
 };
 
 // Maps whose elements need nothing.
 struct FigureRegistryMapClass {   // LoadFigureRegistry's map
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C16C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C16C); }
 };
 struct CornerMapAClass {   // IndexMeshCorners' maps
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C190); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C190); }
 };
 struct CornerMapBClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C184); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C184); }
 };
 struct CornerMapCClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C178); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C178); }
 };
 
 // Arrays whose elements own something.
 struct FakeUnitBoneArraysClass {   // a fake unit's 20-byte CObject elements (FakeUnitConstruct)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C0F0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C0F0); }
 };
 struct FakeUnitPartArrayClass {   // a fake unit's 0x220-byte figure parts
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C108); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C108); }
 };
 struct FakeUnitSceneRecordArrayClass {   // a fake unit's 0x18C-byte scene records
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C0FC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C0FC); }
 };
 struct FakeUnitRecord9CArrayClass {   // a fake unit's 0x9C-byte records
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C0E4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C0E4); }
 };
 struct SceneObjectArrayClass {   // the scene loader's 0x1C-byte CObject elements (SceneInfo::Load)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C80C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C80C); }
 };
 struct TerrainByteArraysClass {   // the terrain's CByteArray elements (Serialize 006C4790)
-    static void* Vtable() { return reinterpret_cast<void*>(0x007441A8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007441A8); }
 };
 struct AlignedAt4ArrayClass {   // the scene loader's 20-byte records with an aligned block at +4
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C114); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C114); }
 };
 struct AlignedAt8ArrayClass {   // an animation node's 24-byte records with an aligned block at +8
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D9BC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D9BC); }
 };
 struct TextureNameArrayClass {   // the scene loader's {id, CString}
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C144); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C144); }
 };
 struct MemoryRecordArrayClass {   // a unit's 0x18-byte memory records, a CString at +0x14
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F064); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F064); }
 };
 struct NamedRecordArrayClass {   // 12-byte records with a CString at +4 (004C9D90)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D46C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D46C); }
 };
 struct GlobalMapPointArrayClass {   // the global map's 0x18-byte points, CStrings at +0x10, +0x14
-    static void* Vtable() { return reinterpret_cast<void*>(0x00740BF0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00740BF0); }
 };
 struct GlobalMapPathArrayClass {   // the same layout
-    static void* Vtable() { return reinterpret_cast<void*>(0x00740BE4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00740BE4); }
 };
 struct GlobalMapZoneArrayClass {   // the global map's 16-byte entries, CStrings at +8, +0xC
-    static void* Vtable() { return reinterpret_cast<void*>(0x00740BFC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00740BFC); }
 };
 struct PatrolArrayClass {   // patrols (32 bytes, a waypoint array at +0xC)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C394); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C394); }
 };
 struct AllodArrayClass {   // the map database's allods (0x2C bytes: six CStrings, an id array)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C3DC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C3DC); }
 };
 struct ScriptAreaArrayClass {   // the script's areas (24-byte elements that are arrays)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3C4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3C4); }
 };
 
 // ---- Element destructors -------------------------------------------------------------------------
@@ -425,13 +426,13 @@ using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothSte
 using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
 
 struct TrapAreasArrayClass {   // a map trap record's areas (12-byte elements; the magic trap's circles)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C68C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C68C); }
 };
 struct TrapTargetsArrayClass {   // a map trap record's targets (8-byte elements; the magic trap's points)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C680); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C680); }
 };
 struct BehaviourPatrolsArrayClass {   // a unit record behaviour's patrols (mapspec::Patrol elements)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C37C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C37C); }
 };
 
 // The scene's object records: CMap<DWORD, DWORD>s built by 00477380, destroyed through slot 1.

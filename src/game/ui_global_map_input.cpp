@@ -24,8 +24,8 @@ namespace {
 // The escape menu the map opens on Esc (0x168 bytes, built inline as the battle screen's key
 // handler does).
 constexpr std::size_t kEscMenuSize = 0x168;
-void** EscMenuVtable() { return reinterpret_cast<void**>(0x007412A4); }
-void** EscMenuInputVtable() { return reinterpret_cast<void**>(0x00741270); }
+void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
+void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
 const char* QuickSaveName() { return "saveq"; }
 
 constexpr int kActionQuickSave = '5';

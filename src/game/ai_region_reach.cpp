@@ -605,7 +605,7 @@ CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
     local.levels.width = 1;
     local.levels.height = 1;
     AllocateByteGrid(&local.levels);
-    local.cellRowsVtable = reinterpret_cast<void*>(kCellRowArrayVtable);
+    local.cellRowsVtable = ei::GamePointer<void>(kCellRowArrayVtable);
     local.cellRows = nullptr;
     local.cellRowGrowBy = 0;
     local.cellRowMax = 0;

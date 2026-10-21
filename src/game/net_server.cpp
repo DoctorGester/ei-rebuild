@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -21,7 +22,7 @@ namespace {
 void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
 // 00783E30: the game's UDP port (read at run time, as the original does).
-int GamePort() { return *reinterpret_cast<const volatile int*>(0x00783E30); }
+int GamePort() { return ei::GameData<const volatile int>(0x00783E30); }
 
 } // namespace
 

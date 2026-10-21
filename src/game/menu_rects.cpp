@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -44,7 +45,7 @@ constexpr MenuRect kRects[] = {
 using IntArray = lib::AlignedArray<int>;
 
 using SetRectFn = int(__stdcall*)(void*, int, int, int, int);
-SetRectFn ImportSetRect() { return *reinterpret_cast<SetRectFn const*>(0x0073B478); }
+SetRectFn ImportSetRect() { return ei::GameData<SetRectFn const>(0x0073B478); }
 
 } // namespace
 

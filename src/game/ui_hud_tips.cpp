@@ -85,7 +85,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
         float types[7];
         weapon->GetDamageTypes(types);
-        const float zero = *reinterpret_cast<const volatile float*>(0x0073B858);
+        const float zero = ei::GameData<const volatile float>(0x0073B858);
         unsigned type = 0;
         while (type < 7 && !(types[type] < zero) && !(types[type] > zero)) ++type;
         description = "Unknown";
@@ -132,9 +132,9 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     Texts()->GetItemTexts(item, text, &line, &line);
     auto* data = reinterpret_cast<std::uint8_t*>(item->spell_);
     if (!data) return;
-    const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
-    const float pi = *reinterpret_cast<const volatile float*>(0x007423F8);
-    const float perTick = *reinterpret_cast<const volatile float*>(0x00740544);   // 1/15
+    const float one = ei::GameData<const volatile float>(0x0073B84C);
+    const float pi = ei::GameData<const volatile float>(0x007423F8);
+    const float perTick = ei::GameData<const volatile float>(0x00740544);   // 1/15
 
     if (item->GetCategory() == 5) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.

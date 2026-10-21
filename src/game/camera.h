@@ -288,19 +288,19 @@ namespace camera {
 
 inline double D(float f) { return f; }
 
-inline double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+inline double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
-inline CCamera* TheCamera() { return reinterpret_cast<CCamera*>(0x0079B2A8); }
+inline CCamera* TheCamera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
 inline Terrain* TheTerrain() { return ei::GameData<Terrain* const>(0x007AF738); }   // width / height
 inline CBaseManager* ObjectManager() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
-inline float CellSize() { return *reinterpret_cast<const float*>(0x0079BDB4); }
-inline float ClockFloat() { return *reinterpret_cast<const float*>(0x0079B2A4); }
-inline const Vector3& ZeroVector() { return *reinterpret_cast<const Vector3*>(0x0079B5C8); }
-inline const Quaternion& IdentityRotation() { return *reinterpret_cast<const Quaternion*>(0x0079B5B8); }
-inline void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // free list of the 12-byte nodes
+inline float CellSize() { return ei::GameData<const float>(0x0079BDB4); }
+inline float ClockFloat() { return ei::GameData<const float>(0x0079B2A4); }
+inline const Vector3& ZeroVector() { return ei::GameData<const Vector3>(0x0079B5C8); }
+inline const Quaternion& IdentityRotation() { return ei::GameData<const Quaternion>(0x0079B5B8); }
+inline void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // free list of the 12-byte nodes
 inline std::uint32_t& GlobalFlags() { return ei::GameData<std::uint32_t>(0x007AF5C0); }   // bit 0x10: camera file made
-inline const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x00796E48); }
+inline const char* EmptyStringData() { return ei::GameData<const char* const>(0x00796E48); }
 
 // Constants (addresses in the exe in the comments).
 #define CAM_PI camera::GameDouble(0x0073B9A0)

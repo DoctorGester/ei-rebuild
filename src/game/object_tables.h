@@ -8,6 +8,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp_hash.h"
+#include "game_data.h"
 
 using BOOL = int;
 
@@ -107,7 +108,7 @@ static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);
 
 // The game's map database (0079BF00).
-inline CMapDatabase* GameMapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
+inline CMapDatabase* GameMapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 
 // The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies):
 // STLport's hashtable over pair<CString, float> (stlp_hash.h; its members are registered in

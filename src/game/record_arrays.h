@@ -20,6 +20,7 @@
 #include "game/sound.h"
 #include "game/terrain_sector.h"
 #include "game/world.h"
+#include "game_data.h"
 
 namespace recordarrays {
 
@@ -60,7 +61,7 @@ struct FaceGroupElements {
 };
 using FaceGroups = ArrayAbi<scene::FaceGroup, FaceGroupElements>;
 struct FaceGroupArrayClass {   // CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C2BC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C2BC); }
 };
 
 // ---- Records -------------------------------------------------------------------------------------
@@ -77,7 +78,7 @@ void InitTheme(MusicTheme* p);
 void __fastcall DestroyTheme(MusicTheme* p);
 using Themes = ArrayAbi<MusicTheme, EachElements<MusicTheme, InitTheme, DestroyTheme>>;
 struct ThemeArrayClass {   // CArray<MusicTheme> (CMusicSystem +0x1C)
-    static void* Vtable() { return reinterpret_cast<void*>(CMusicSystem::kThemeArrayVtable); }
+    static void* Vtable() { return ei::GamePointer<void>(CMusicSystem::kThemeArrayVtable); }
 };
 
 // The sound cache's wave records (0x1C bytes): the name an empty string with room for 8 bytes
@@ -91,7 +92,7 @@ inline void InitBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourConstruct(p
 inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct(p); }
 using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, InitBehaviour, DestroyBehaviour>>;
 struct BehaviourArrayClass {   // CArray<Behaviour> (the server unit's brain)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F034); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F034); }
 };
 
 // GetAt by value (__thiscall (result, index), RET 8; returns result): the element copy-constructed
@@ -123,10 +124,10 @@ inline void DestroySubCall(ScriptSubCall* p) { p->DestroyElement(0); }
 using SubCalls = ArrayAbi<ScriptSubCall, EachElements<ScriptSubCall, InitSubCall, DestroySubCall>>;
 using Bindings = ArrayAbi<ScriptBinding>;
 struct BindingArrayClass {   // a command's binding arrays (copy constructor 004CCCB0)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D49C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D49C); }
 };
 struct SubCallArrayClass {   // a command's nested calls (copy constructor 004CCD90)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D4A8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D4A8); }
 };
 // Definitions (built by 004CEB80, destroyed by 004BE9D0), runs (004BCAE0) and command blocks
 // (004BF7E0).
@@ -150,23 +151,23 @@ SubCalls::Array* __fastcall SubCallsCopyConstruct(SubCalls::Array* self, void*, 
 // ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
 
 struct SceneNodeArrayClass {   // CArray<SceneNode> (destructor 004514B0)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C15C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C15C); }
 };
 struct SubCallBaseClass {   // the nested calls' base array (destructors 004C5180 / 004CCF70)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D418); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D418); }
 };
 struct DeltaFieldArrayClass {   // CArray<DeltaField> (destructor 0050FBC0)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DB94); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DB94); }
 };
 struct TerrainAlignedArrayClass {   // the terrain's 16-byte records, an aligned block at +0 (006C4C40)
-    static void* Vtable() { return reinterpret_cast<void*>(0x007441B4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007441B4); }
 };
 using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
 struct WaveListClass {   // the sound cache's CList<WaveRecord> (destructor 006BC870)
-    static void* Vtable() { return reinterpret_cast<void*>(0x00744124); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00744124); }
 };
 struct SectorVertexArrayClass {   // a terrain sector's vertex records (destructor 006C4690)
-    static void* Vtable() { return reinterpret_cast<void*>(0x00744184); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00744184); }
 };
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;

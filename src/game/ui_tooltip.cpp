@@ -53,8 +53,8 @@ constexpr int kSurfaceFormat = 5;
 // The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time
 // (0.0 in the exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by
 // the static initialiser 0065E310).
-float ShowDelay() { return *reinterpret_cast<const float*>(std::uintptr_t(0x0079BE80)); }
-float AppearTime() { return *reinterpret_cast<const float*>(std::uintptr_t(0x00742F2C)); }
+float ShowDelay() { return ei::GameData<const float>(0x0079BE80); }
+float AppearTime() { return ei::GameData<const float>(0x00742F2C); }
 POINT CursorOffset() { return ei::GameData<const POINT>(0x007C8258); }
 
 // The extent of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
@@ -74,8 +74,8 @@ SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
 CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) {
     CUiWindow::Construct(ui);
     lines_.Construct();
-    vtable_ = reinterpret_cast<void**>(kTooltipVtable);
-    inputVtable_ = reinterpret_cast<void**>(kTooltipInputVtable);
+    vtable_ = ei::GamePointer<void*>(kTooltipVtable);
+    inputVtable_ = ei::GamePointer<void*>(kTooltipInputVtable);
     timer_ = 0.0f;
     state_ = 0;
     region_ = region;

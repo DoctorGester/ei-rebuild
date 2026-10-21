@@ -9,6 +9,7 @@
 #include "item_db.h"
 #include "resource_manager.h"
 #include "../lib/mfc.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -173,7 +174,7 @@ static_assert(sizeof(CItem) == 0x4C);
 // bytes, vtable 0073FA88): a counted value with a 16-bit count and the dword the world's save keeps
 // per item (world_save.cpp, world_units.cpp, world_quests.cpp).
 struct CItemLink {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FA88); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FA88); }
 
     // item_link.cpp (A-W14). 0058FBB0: the constructor's last step, the vtable stored (the counted
     // value's 00419720 ran before); returns this. The world server's CreateUnits and

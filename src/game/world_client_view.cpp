@@ -90,8 +90,8 @@ ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result,
 }
 ObjectList* DeferredUnits() { return ei::GamePointer<ObjectList>(0x007AF5B4); }
 
-const std::uint32_t& g_multiplayerView = *reinterpret_cast<const std::uint32_t*>(0x0079BE6C);
-const std::uint32_t& g_modelTouchDelay = *reinterpret_cast<const std::uint32_t*>(0x0079BD24);
+const std::uint32_t& g_multiplayerView = ei::GameData<const std::uint32_t>(0x0079BE6C);
+const std::uint32_t& g_modelTouchDelay = ei::GameData<const std::uint32_t>(0x0079BD24);
 // 007AFDB0: the point PickGround / PickSurface return without a view matrix.
 const float* NoPickPoint() { return ei::GamePointer<const float>(0x007AFDB0); }
 

@@ -83,7 +83,7 @@ struct AllodView {
 };
 static_assert(sizeof(AllodView) == 0x2C);
 
-CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
+CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 // A zone of the map database: its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
 MapRecord* FindZone(const char* name) { return MapDatabase()->FindMap(name); }
@@ -552,7 +552,7 @@ void CGlobalMap::Create() {
     reinterpret_cast<UpdateFn>(vtable_[24])(this);   // slot 24 (+0x60)
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
-        if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal("saveb", 1);
+        if (ei::GameData<const int>(0x0079BE7C) != 0) AutoSaveOriginal("saveb", 1);
         autosave_ = false;
     }
     interface_->OpenHelp(0);
@@ -692,13 +692,13 @@ EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);
 // --- 005F67A0: the constructor --------------------------------------------------------------------
 
 namespace {
-char* EmptyCString() { return *reinterpret_cast<char* const*>(0x00796E48); }
+char* EmptyCString() { return ei::GameData<char* const>(0x00796E48); }
 
 // A CArray's constructor body, inlined by the original: the instantiation's vtable, then the
 // storage, grow step, capacity and size cleared in that order.
 template <typename Array>
 void EmptyArray(Array* array, std::uintptr_t vtable) {
-    array->vtable = reinterpret_cast<void*>(vtable);
+    array->vtable = ei::GamePointer<void>(vtable);
     array->data = nullptr;
     array->growBy = 0;
     array->maxSize = 0;
@@ -727,8 +727,8 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     turn_.y = 0.0f;
     turn_.z = 0.0f;
     shownName_ = EmptyCString();
-    vtable_ = reinterpret_cast<void**>(0x00740B3C);
-    inputVtable_ = reinterpret_cast<void**>(0x00740B08);
+    vtable_ = ei::GamePointer<void*>(0x00740B3C);
+    inputVtable_ = ei::GamePointer<void*>(0x00740B08);
     return this;
 }
 EI_REPLACE_METHOD(0x005F67A0, CGlobalMap::Construct);
@@ -740,7 +740,7 @@ namespace {
 // 005FBDD0 / 005FBD80 the places', 005FBD30 the zones'), the storage freed.
 template <typename Array>
 void DestroyArray(Array* array, std::uintptr_t vtable) {
-    array->vtable = reinterpret_cast<void*>(vtable);
+    array->vtable = ei::GamePointer<void>(vtable);
     if (!array->data) return;
     int size = array->size;
     for (int i = 0; i < size; ++i) {

@@ -30,7 +30,7 @@ float GameFloat(std::uintptr_t address) {
 }
 double GameDouble(std::uintptr_t address) {
     double d;
-    std::memcpy(&d, reinterpret_cast<const void*>(address), sizeof(d));
+    std::memcpy(&d, ei::GamePointer<const void>(address), sizeof(d));
     return d;
 }
 float Absolute(float f) {

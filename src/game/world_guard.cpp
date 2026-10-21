@@ -17,7 +17,7 @@ namespace {
 
 IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
-char& GuardPlain() { return *reinterpret_cast<char*>(0x0079026C); }            // 1: data in the clear
+char& GuardPlain() { return ei::GameData<char>(0x0079026C); }            // 1: data in the clear
 std::uint32_t& GuardKey() { return ei::GameData<std::uint32_t>(0x007AFECC); }
 // The players_ lists (+0x38) of the client world (007AF5B8) and the server world (007AFF60).
 CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0); }

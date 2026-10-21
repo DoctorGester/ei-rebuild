@@ -38,7 +38,7 @@
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
+void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }     // CUiItemPanel

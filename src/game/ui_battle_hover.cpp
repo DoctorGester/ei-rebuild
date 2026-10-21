@@ -162,7 +162,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                                 reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
                 name = mfc::CString("z.") + name;
                 double value = LocalPlayerVariable(name);
-                const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
+                const float one = ei::GameData<const volatile float>(0x0073B84C);
                 // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
                 if (!x87::IsNaN(static_cast<float>(value)) && value != one) SetCursor(kCursorExit);
             }

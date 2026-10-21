@@ -54,8 +54,8 @@ float UnitEffectX() { return GameFloat(0x0073D72C); }     // 40
 float SlideTime() { return GameFloat(0x00742428); }       // 0.3 seconds for the whole way
 float SlingTurn() { return GameFloat(0x007C8144); }       // the sling buttons' turn (a global angle)
 // The unit panel's six body parts: where each one's pair of sprites goes (two tables of six ints).
-const int* PartX() { return reinterpret_cast<const int*>(std::uintptr_t(0x00742434)); }
-const int* PartY() { return reinterpret_cast<const int*>(std::uintptr_t(0x0074244C)); }
+const int* PartX() { return ei::GamePointer<const int>(0x00742434); }
+const int* PartY() { return ei::GamePointer<const int>(0x0074244C); }
 constexpr int kParts = 6;
 constexpr int kEffects = 6;
 
@@ -363,7 +363,7 @@ EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);
 // --- 00641F20: the map's setup ----------------------------------------------------------------------
 
 namespace {
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const double>(address); }
 constexpr const char* kDefaultPicture = "battle00";
 float ZoneUnit() { return GameFloat(0x0073CA90); }            // 32: world units per unit of a zone's size
 float MapSide() { return GameFloat(0x0073CDB8); }             // 2: the map's side in map units

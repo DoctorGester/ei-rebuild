@@ -84,7 +84,7 @@ static_assert(sizeof(ObjectIdMap) == 0x18);
 
 // 0073F530: the vtable the game stores in its CTypedPtrList<CPtrList, CEngineObject*> locals
 // (SendFreshObjects, world_map.cpp; world_zone.cpp).
-inline void* ObjectPtrListVtable() { return reinterpret_cast<void*>(0x0073F530); }
+inline void* ObjectPtrListVtable() { return ei::GamePointer<void>(0x0073F530); }
 
 struct PartyRecords;   // unit.h
 
@@ -427,8 +427,8 @@ using WorldStream = CStream;
 // (vtable 0073FAC8, base 0073FABC; constructor 005985C0, destructor 0059A100 releases the objects
 // through slot 4 and frees the data).
 struct SharedObject {
-    static void* ObjectsVtable() { return reinterpret_cast<void*>(0x0073FAC8); }
-    static void* ObjectsBaseVtable() { return reinterpret_cast<void*>(0x0073FABC); }   // set by the destructor
+    static void* ObjectsVtable() { return ei::GamePointer<void>(0x0073FAC8); }
+    static void* ObjectsBaseVtable() { return ei::GamePointer<void>(0x0073FABC); }   // set by the destructor
 
     int objectId;
     int player;
@@ -2046,7 +2046,7 @@ int __stdcall LoadMission(void* file);
 void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
 bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
 // 00790264: the newest save version stored uncompressed (SaveFileRead reads those as they are).
-inline int SaveLastUncompressedVersion() { return *reinterpret_cast<const int*>(0x00790264); }
+inline int SaveLastUncompressedVersion() { return ei::GameData<const int>(0x00790264); }
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
@@ -2068,12 +2068,12 @@ CWorldServer* WorldServer();   // 007AFF60
 // 007AF5B8: the client world (the interface reaches it as UiClientWorld).
 inline CWorldClient* GameClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
-inline int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
+inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
 // The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
 // the far clip (the transform pipeline's depth range, 00500B70 / 00566360).
-inline float FogStartDay() { return *reinterpret_cast<const float*>(0x0079BED4); }
-inline float FogStartNight() { return *reinterpret_cast<const float*>(0x0079BED0); }
-inline float FarClipDistance() { return *reinterpret_cast<const float*>(0x0079BE54); }
+inline float FogStartDay() { return ei::GameData<const float>(0x0079BED4); }
+inline float FogStartNight() { return ei::GameData<const float>(0x0079BED0); }
+inline float FarClipDistance() { return ei::GameData<const float>(0x0079BE54); }
 CWorldClient* WorldClient();   // 007AF5B8
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,

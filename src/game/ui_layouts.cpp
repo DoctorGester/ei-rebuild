@@ -406,7 +406,7 @@ constexpr std::uintptr_t kMpHeroVtable = std::uintptr_t(0x0074214C);
 constexpr std::uintptr_t kMpHeroInputVtable = std::uintptr_t(0x00742118);
 
 // The empty CString's data pointer (00796E48), stored as a CString member is.
-const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x00796E48); }
+const char* EmptyStringData() { return ei::GameData<const char* const>(0x00796E48); }
 } // namespace
 
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
@@ -705,7 +705,7 @@ void CCreditsScreen::Build() {
 
     // The script: one record per line, words separated by spaces.
     auto* archive = reinterpret_cast<CMappedResource*>(archive_);
-    archive->OpenResource(mfc::operator+(*reinterpret_cast<const mfc::CString*>(0x0079BC94), "outro.res"),
+    archive->OpenResource(mfc::operator+(ei::GameData<const mfc::CString>(0x0079BC94), "outro.res"),
                           0);   // "outro.res"
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);

@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -11,8 +12,8 @@
 
 namespace {
 
-const void* DibVtable() { return reinterpret_cast<const void*>(0x00744288); }
-const void* DibRuntimeClass() { return reinterpret_cast<const void*>(0x00796CD0); }
+const void* DibVtable() { return ei::GamePointer<const void>(0x00744288); }
+const void* DibRuntimeClass() { return ei::GamePointer<const void>(0x00796CD0); }
 
 constexpr int kMaskBytes = 3 * sizeof(std::uint32_t);   // the channel masks of a BI_BITFIELDS header
 constexpr std::uint16_t kPaletteVersion = 0x300;

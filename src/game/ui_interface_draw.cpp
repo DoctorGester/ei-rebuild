@@ -28,7 +28,7 @@
 namespace {
 
 // The bars' share of the screen height (00740150; read from the exe's memory).
-float LetterboxShare() { return *reinterpret_cast<const float*>(0x00740150); }
+float LetterboxShare() { return ei::GameData<const float>(0x00740150); }
 
 constexpr float kOpaque = 255.0f;     // 0073C370
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
@@ -52,7 +52,7 @@ float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile flo
 int SurfaceBytesKept() { return ei::GameData<const volatile int>(0x007C7E74); }
 int SurfaceBytesAllocated() { return ei::GameData<const volatile int>(0x007C7E78); }
 // The option byte 00784753: backdrops of a quarter of the layout, stretched over it.
-bool SmallBackdrops() { return *reinterpret_cast<const volatile std::uint8_t*>(0x00784753) != 0; }
+bool SmallBackdrops() { return ei::GameData<const volatile std::uint8_t>(0x00784753) != 0; }
 
 constexpr int kRedrawSlot = 22;   // a window's surfaces blit themselves
 constexpr int kTipsSlot = 23;     // its tooltips follow the mouse and redraw

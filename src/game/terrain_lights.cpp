@@ -46,7 +46,7 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
 }
 
 // The cell size (00744160; 1) the light bounds are divided by.
-float CellSize() { return *reinterpret_cast<const float*>(0x00744160); }
+float CellSize() { return ei::GameData<const float>(0x00744160); }
 
 bool SignSet(float v) { return std::bit_cast<std::uint32_t>(v) >> 31 != 0; }
 

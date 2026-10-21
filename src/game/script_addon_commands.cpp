@@ -39,7 +39,7 @@ namespace {
 
 
 // 0079BE6C: the "draw all units" flag (the console's spectator mode).
-int& DrawAllUnits() { return *reinterpret_cast<int*>(0x0079BE6C); }
+int& DrawAllUnits() { return ei::GameData<int>(0x0079BE6C); }
 // 007C554C: the loading screen's movie is off (LoadingMovie::off, bink_video.cpp).
 std::uint8_t& LoadingMovieOff() { return ei::GameData<std::uint8_t>(0x007C554C); }
 

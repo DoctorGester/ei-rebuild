@@ -20,6 +20,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_hashes.h"
+#include "game_data.h"
 
 #include <dinput.h>
 
@@ -28,10 +29,10 @@
 
 namespace {
 
-void* const kCountedRootVtable = reinterpret_cast<void*>(0x0073BB68);
-void* const kPartyRecordVtable = reinterpret_cast<void*>(0x0073C360);
-void* const kMouseVtable = reinterpret_cast<void*>(0x0073C350);
-void* const kMouseRootVtable = reinterpret_cast<void*>(0x0073C368);
+void* const kCountedRootVtable = ei::GamePointer<void>(0x0073BB68);
+void* const kPartyRecordVtable = ei::GamePointer<void>(0x0073C360);
+void* const kMouseVtable = ei::GamePointer<void>(0x0073C350);
+void* const kMouseRootVtable = ei::GamePointer<void>(0x0073C368);
 
 CParty* PartyOf(PartyRecord* record) { return reinterpret_cast<CParty*>(record->party); }
 

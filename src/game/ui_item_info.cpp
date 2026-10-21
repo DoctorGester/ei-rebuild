@@ -91,7 +91,7 @@ int StatFtolArgScaled(std::uintptr_t fn, const void* self, int arg, std::uintptr
 // _ftol(_CIpow(base, exponent - subtrahend) * scale): the base is the double at `base`, the exponent a
 // float minus the float at `subtrahend` (FSUB), the product with the float at `scale`, all unrounded.
 int PowFtol(std::uintptr_t base, float exponent, std::uintptr_t subtrahend, std::uintptr_t scale) {
-    const double power = libcrt::CiPow(*reinterpret_cast<const double*>(base), static_cast<double>(exponent) - GameFloat(subtrahend));
+    const double power = libcrt::CiPow(ei::GameData<const double>(base), static_cast<double>(exponent) - GameFloat(subtrahend));
     return Ftol(power * GameFloat(scale));
 }
 // _ftol of a + b (FLD b; FADD a), optionally times the float at `scale`, unrounded.

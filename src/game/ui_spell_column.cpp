@@ -95,7 +95,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             else
                 line.Format("%s %d  ", labels[2], Truncate(Get<float>(data, 0x24)));
             tip += line;
-            const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
+            const float one = ei::GameData<const volatile float>(0x0073B84C);
             float duration = Get<float>(data, 0x30);
             if (!(duration >= one))   // TEST AH,1: below 1 or NaN
                 line.Format("%s %s \n", labels[3], labels[8]);   // "%s %s \n"
@@ -109,7 +109,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             } else {
                 // The area: radius squared times pi (007423F8, a float).
                 float radius = Get<float>(data, 0x28);
-                double area = static_cast<double>(radius) * radius * *reinterpret_cast<const volatile float*>(0x007423F8);
+                double area = static_cast<double>(radius) * radius * ei::GameData<const volatile float>(0x007423F8);
                 line.Format("%s %.1f%s \n", labels[5], area, labels[10]);   // "%s %.1f%s \n"
             }
             tip += line;
@@ -118,7 +118,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
                 line.Format("%s %s  ", labels[6], labels[8]);
             } else {
                 // Ticks to seconds (00740544, 1/15).
-                double seconds = x87::FromUnsigned(ticks) * *reinterpret_cast<const volatile float*>(0x00740544);
+                double seconds = x87::FromUnsigned(ticks) * ei::GameData<const volatile float>(0x00740544);
                 line.Format("%s %.1f%s  ", labels[6], seconds, labels[11]);
             }
             tip += line;

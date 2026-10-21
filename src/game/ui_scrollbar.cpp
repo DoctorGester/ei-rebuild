@@ -6,6 +6,7 @@
 #include "ui_screens.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -19,8 +20,8 @@ constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1 at 0073B850) and 5 to the right of the
 // track's left edge (0073BF34).
-float ThumbLift() { return *reinterpret_cast<const float*>(std::uintptr_t(0x0073B850)); }
-float ThumbInset() { return *reinterpret_cast<const float*>(std::uintptr_t(0x0073BF34)); }
+float ThumbLift() { return ei::GameData<const float>(0x0073B850); }
+float ThumbInset() { return ei::GameData<const float>(0x0073BF34); }
 
 enum Sprite { kTrack, kThumb, kUpArrow, kDownArrow };
 enum Region { kUpRegion, kDownRegion, kTrackRegion };
@@ -35,8 +36,8 @@ CUiScrollbar* CUiScrollbar::Construct(CInterface3D* ui, RECT rect, float depth, 
     maxPosition_ = maximum;
     speed_ = speed;
     depth_ = depth;
-    vtable_ = reinterpret_cast<void**>(kScrollbarVtable);
-    inputVtable_ = reinterpret_cast<void**>(kScrollbarInputVtable);
+    vtable_ = ei::GamePointer<void*>(kScrollbarVtable);
+    inputVtable_ = ei::GamePointer<void*>(kScrollbarInputVtable);
     moved_ = true;
     state_ = 0;
     position_ = -1;
@@ -102,8 +103,8 @@ EI_REPLACE_METHOD(0x0065B490, CUiScrollbar::SetRect);
 
 CUiSlider* CUiSlider::Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) {
     CUiScrollbar::Construct(ui, rect, depth, maximum, speed);
-    vtable_ = reinterpret_cast<void**>(kSliderVtable);
-    inputVtable_ = reinterpret_cast<void**>(kSliderInputVtable);
+    vtable_ = ei::GamePointer<void*>(kSliderVtable);
+    inputVtable_ = ei::GamePointer<void*>(kSliderInputVtable);
     return this;
 }
 EI_REPLACE_METHOD(0x0065BC30, CUiSlider::Construct);
@@ -119,7 +120,7 @@ constexpr int kSliderThumbHeight = 10;
 // to int gives 0x80000000).
 int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 // The wheel's step per unit of delta: 1/120 (00742C84).
-float WheelStep() { return *reinterpret_cast<const float*>(std::uintptr_t(0x00742C84)); }
+float WheelStep() { return ei::GameData<const float>(0x00742C84); }
 } // namespace
 
 void CUiScrollbar::OnMouseMove(int, int x, int y) {

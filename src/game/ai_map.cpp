@@ -299,7 +299,7 @@ EI_REPLACE_METHOD(0x005B64E0, CAIMap::BridgeDeckAt);
 
 namespace {
 // Transparency of an occluder class (0073 global at 00791744).
-const float* Transparency() { return reinterpret_cast<const float*>(0x00791744); }
+const float* Transparency() { return ei::GamePointer<const float>(0x00791744); }
 constexpr float kMinVisibility = 0.0001f;
 } // namespace
 

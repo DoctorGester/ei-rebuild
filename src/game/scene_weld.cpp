@@ -9,6 +9,7 @@
 #include "lib/vecmath.h"
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cmath>
@@ -23,7 +24,7 @@ namespace {
 
 double WeldDistance() {
     double d;
-    std::memcpy(&d, reinterpret_cast<const void*>(0x0073B860), sizeof(d));
+    std::memcpy(&d, ei::GamePointer<const void>(0x0073B860), sizeof(d));
     return d;
 }
 

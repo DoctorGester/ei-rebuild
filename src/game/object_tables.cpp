@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -128,7 +129,7 @@ constexpr std::uintptr_t kCommandTable = std::uintptr_t(0x007857B0);
 constexpr std::uintptr_t kCommandTableEnd = std::uintptr_t(0x00787070);
 
 void* __fastcall FindCommandByKey(int key) {
-    const auto* keys = reinterpret_cast<const signed char*>(0x0079BF70);
+    const auto* keys = ei::GamePointer<const signed char>(0x0079BF70);
     for (int slot = 0; slot < 0x200; ++slot) {
         if (keys[slot] != key) continue;
         for (std::uintptr_t entry = kCommandTable; entry < kCommandTableEnd; entry += 0x48)

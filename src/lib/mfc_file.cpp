@@ -55,9 +55,9 @@ const FindSlots* Virtuals(const CFileFind* find) { return reinterpret_cast<const
 FindSlots* Virtuals(CFileFind* find) { return reinterpret_cast<FindSlots*>(find); }
 
 // The classes' CRuntimeClass records and AfxThrowNotSupportedException's thrown object.
-void* FileClass() { return reinterpret_cast<void*>(0x00745DB0); }
-void* StdioFileClass() { return reinterpret_cast<void*>(0x007464C8); }
-void* FileFindClass() { return reinterpret_cast<void*>(0x00745EC0); }
+void* FileClass() { return ei::GamePointer<void>(0x00745DB0); }
+void* StdioFileClass() { return ei::GamePointer<void>(0x007464C8); }
+void* FileFindClass() { return ei::GamePointer<void>(0x00745EC0); }
 // "*.*", FindFile's pattern when given none; "file://", GetFileURL's prefix.
 const char* AllFiles() { return "*.*"; }
 const char* FileUrlPrefix() { return "file://"; }
@@ -103,7 +103,7 @@ const char* Next(const char* p) { return ::MbsInc(p); }
 
 // comdlg32's GetFileTitleA through the exe's import slot (gameapi.h covers the other DLLs).
 using GetFileTitleFn = short(WINAPI*)(const char*, char*, WORD);
-GetFileTitleFn& GetFileTitleImport() { return *reinterpret_cast<GetFileTitleFn*>(0x0073B748); }
+GetFileTitleFn& GetFileTitleImport() { return ei::GameData<GetFileTitleFn>(0x0073B748); }
 
 constexpr unsigned kMaxFileName = 256;   // _MAX_FNAME, the name getters' buffer
 

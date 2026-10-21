@@ -6,6 +6,7 @@
 #include "effects.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 namespace {
 constexpr int kNone = -1;
@@ -82,7 +83,7 @@ void CUnitClientSpecific::DestructClientBody() {
     speech->next = speech;
     speech->prev = speech;
     stlp::deallocate(speech, sizeof(ClientSpeechNode));
-    list58.vtable = reinterpret_cast<void*>(kList58VtableAddress);
+    list58.vtable = ei::GamePointer<void>(kList58VtableAddress);
     list58.RemoveAll();
     *reinterpret_cast<std::uintptr_t*>(this) = kBaseVtableAddress;
     unit = nullptr;
@@ -94,7 +95,7 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     ClearFields();
     *reinterpret_cast<std::uintptr_t*>(this) = kBaseVtableAddress;
     unit = nullptr;
-    list58.vtable = reinterpret_cast<void*>(kList58VtableAddress);
+    list58.vtable = ei::GamePointer<void>(kList58VtableAddress);
     list58.count = 0;
     list58.free = nullptr;
     list58.tail = nullptr;

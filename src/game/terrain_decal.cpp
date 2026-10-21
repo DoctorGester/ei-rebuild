@@ -9,12 +9,13 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 namespace {
 
 constexpr float kMargin = 1.0f;   // 0073B84C: one cell around the quad
 
-float CellSize() { return *reinterpret_cast<const float*>(0x007441D0); }
+float CellSize() { return ei::GameData<const float>(0x007441D0); }
 
 // The original's select idioms (FCOMP; C0 picks): the lower of `a` and `b` (a when unordered), and
 // `a` raised to `bound` (bound when unordered).

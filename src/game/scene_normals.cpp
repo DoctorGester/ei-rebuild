@@ -24,12 +24,12 @@ namespace {
 
 Vector3 GamePoint(std::uintptr_t address) {
     Vector3 p;
-    std::memcpy(&p, reinterpret_cast<const void*>(address), sizeof(p));
+    std::memcpy(&p, ei::GamePointer<const void>(address), sizeof(p));
     return p;
 }
 double WeldDistance() {
     double d;
-    std::memcpy(&d, reinterpret_cast<const void*>(0x0073B860), sizeof(d));
+    std::memcpy(&d, ei::GamePointer<const void>(0x0073B860), sizeof(d));
     return d;
 }
 
