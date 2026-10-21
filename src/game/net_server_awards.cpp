@@ -17,6 +17,7 @@
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -130,7 +131,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-        void* textOut = worlddata::InterfaceManager()->MessageText(&text, 7, *static_cast<const char**>(titleOut));
+        void* textOut = TheInterface()->MessageText(&text, 7, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);
@@ -184,7 +185,7 @@ void ServerSession::LeaveZone() {
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-        void* textOut = worlddata::InterfaceManager()->MessageText(&text, 6, *static_cast<const char**>(titleOut));
+        void* textOut = TheInterface()->MessageText(&text, 6, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);

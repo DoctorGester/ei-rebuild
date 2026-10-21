@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <algorithm>
 #include <bit>
@@ -68,7 +69,6 @@ float FollowNear() { return ei::GameData<const float>(0x007C5404); }
 float FollowFar() { return ei::GameData<const float>(0x007C5408); }
 
 IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
-int WorldTick() { return ei::GameData<const int>(0x007AFFC4); }
 CAIMap* AIMap() { return WorldServer()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
@@ -208,7 +208,7 @@ void AIBrain::UpdateFollow() {
     auto* leader = static_cast<CUnit*>(target);
     Vector3 toLeader{static_cast<float>(leader->position.x - self->position.x), static_cast<float>(leader->position.y - self->position.y),
                      static_cast<float>(leader->position.z - self->position.z)};
-    int now = WorldTick();
+    int now = CurrentWorldTick();
     float distance = static_cast<float>(
         std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
     CUnitServer* leaderController = ControllerOf(leader);

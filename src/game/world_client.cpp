@@ -35,6 +35,7 @@
 #include "originals_ui.h"
 #include "originals_effects.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 #include <cstring>
@@ -416,7 +417,7 @@ int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};   // [ebp-0x58]
     int frames = ++ticksRun_;
     if (frames == 10) {
-        InterfaceStringEventOriginal(worlddata::InterfaceManager(), nullptr, worlddata::AutosaveEventText());
+        InterfaceStringEventOriginal(TheInterface(), nullptr, worlddata::AutosaveEventText());
         sounds_->SetEffectsVolume(worlddata::VolumeSettingA());
         sounds_->SetSpeechVolume(worlddata::VolumeSettingB());
         sounds_->SetMusicVolume(worlddata::MovieVolumeSetting());

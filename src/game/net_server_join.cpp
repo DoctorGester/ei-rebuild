@@ -14,6 +14,7 @@
 #include "ui.h"
 #include "world_data.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -104,7 +105,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     if (host) record->host_ = 1;
 
     std::uint32_t announcement = 0;   // CString
-    void* formatted = worlddata::InterfaceManager()->MessageText(&announcement, 0, name->data());
+    void* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
     self->Announce(*static_cast<const char**>(formatted), nullptr);
     CStringDestroy(&announcement);
 }

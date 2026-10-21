@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -66,7 +67,6 @@ int SendMove(BitStream& out, std::uint8_t type, const mfc::CArray<CUnit*>* units
 }
 
 // The game flow (007AFE20).
-GameFlow* Flow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 
 // A memory stream on the stack, as the original builds (0041DD70's fields inlined) and destroys it.
 struct LocalStream {
@@ -210,7 +210,7 @@ int CPlayerClient::SendPartyUpdate() {
 
 void CPlayerClient::Rejoin() {
     if (state_ != kStateBetweenZones) return;
-    Flow()->ReturnLocalParty();
+    TheGameFlow()->ReturnLocalParty();
     SendPartyUpdate();
     WriteType(out_, kJoined);
     state_ = kStateJoining;

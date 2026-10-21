@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "game/game_data.h"
+#include "game/game_singletons.h"
 
 #include <windows.h>
 
@@ -37,7 +38,6 @@ Sampler g_smooth(kFamily, "PathSmoother::Smooth", kVariableSize, 32, 3);
 // Paths longer than this are not kept (the records hold every cell twice).
 constexpr int kMaxCells = 1024;
 
-int WorldTick() { return ei::GameData<const int>(0x007AFFC4); }
 
 // ---- @PathTables ---------------------------------------------------------------------------------
 
@@ -239,7 +239,7 @@ bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* 
     OfferTables();
     Writer head;
     head.Put(StateOf(unit));
-    head.Put<std::int32_t>(WorldTick());
+    head.Put<std::int32_t>(CurrentWorldTick());
     head.Put(*target);
     head.Put(range);
     head.Put(minDistance);

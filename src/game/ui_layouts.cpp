@@ -34,6 +34,7 @@
 #include "world_glue.h"
 #include "record_lists.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -478,7 +479,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
         TextsGetString(GameClientTexts(), nullptr, "reserved_04", &text);
-        static_cast<CInterface3D*>(ei::GamePointer<void>(0x007C7D50))->ShowStatusText(text);
+        TheInterface()->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
         auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));

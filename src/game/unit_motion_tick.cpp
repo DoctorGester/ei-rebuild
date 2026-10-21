@@ -27,6 +27,7 @@
 #include "game_data.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -122,7 +123,6 @@ CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(Manag
 int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
 CPlayer* PlayerOf(CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
 CUnitServer* ServerControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(unit->controller); }
-int CurrentFrame() { return ei::GameData<const int>(0x007AFFC4); }
 int GameMode() { return ei::GameData<const int>(0x007C2CC4); }
 
 constexpr int kStateIdle = 0;
@@ -236,7 +236,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     char* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        ServerControllerOf(blocker)->brain.LeaderOrFollowed() == self && CurrentFrame() < c->waitFrame + 2) {
+        ServerControllerOf(blocker)->brain.LeaderOrFollowed() == self && CurrentWorldTick() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;

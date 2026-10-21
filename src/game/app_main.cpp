@@ -52,6 +52,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <ddraw.h>
 
@@ -143,7 +144,6 @@ CWorldServer* Server() { return &Global<CWorldServer>(0x007AFF60); }
 CCamera* Camera() { return &Global<CCamera>(0x0079B2A8); }
 CSoundManager* Sound() { return Global<CSoundManager*>(0x007AF784); }
 CDirectInputMouse*& Mouse() { return Global<CDirectInputMouse*>(0x0079BA08); }
-CInterface3D* Interface() { return &Global<CInterface3D>(0x007C7D50); }
 void* ClassRegistry() { return &Global<char>(0x0079B270); }
 void* LogicSettingsObject() { return &Global<char>(0x007C53F8); }
 void* QuestDatabaseObject() { return &Global<char>(0x007C87A8); }
@@ -663,7 +663,7 @@ bool RunPass() {
                 camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
         }
     }
-    Interface()->Update();
+    TheInterface()->Update();
     const bool draw = static_cast<char>(MovieModeFlag()) != 0;
     if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(draw, true);
     else app::FrameStep(draw, true);
@@ -696,7 +696,7 @@ int RunMainLoop(bool interfaceInput) {
 
 void ShutDown(gamecrt::NewHandler previousHandler) {
     DeleteComposedTextures();
-    InterfaceShutdownAt(Interface());
+    InterfaceShutdownAt(TheInterface());
     static_cast<CCursor*>(GameCursor())->Shutdown();
     CDirectInputMouse* mouse = Mouse();
     Mouse() = nullptr;
@@ -775,7 +775,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
                  DeviceNamed() == 0);
-    InterfaceCreateAt(Interface(), nullptr, RenderDeviceObject());
+    InterfaceCreateAt(TheInterface(), nullptr, RenderDeviceObject());
     static_cast<CMapDatabase*>(MapDatabaseObject())->LoadAll();
     StartFirstMap();
     static_cast<CSceneRenderer*>(SceneContext())->SetGamma(options->brightness_, options->contrast_, options->gamma_);

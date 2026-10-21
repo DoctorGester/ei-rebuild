@@ -10,6 +10,7 @@
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 class CInterface3D;   // ui.h
 class CLight;   // spell.h
@@ -139,8 +140,6 @@ constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 
 // ---- The client's Segment (005641F0) ------------------------------------------------------------
 
-// The interface manager (007C7D50; script string events go to it).
-inline CInterface3D* InterfaceManager() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 inline const char* AutosaveEventText() { return "autosave"; }
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }

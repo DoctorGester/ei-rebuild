@@ -16,6 +16,7 @@
 #include "world_data.h"
 #include "game_flow_data.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -74,7 +75,7 @@ void ServerSession::SetMap(const stlp::string* name) {
     WorldPrepareMap(world, nullptr, name->data());
     std::uint32_t title = 0, text = 0;   // CStrings
     void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-    void* textOut = worlddata::InterfaceManager()->MessageText(&text, 5, *static_cast<const char**>(titleOut));
+    void* textOut = TheInterface()->MessageText(&text, 5, *static_cast<const char**>(titleOut));
     Announce(*static_cast<const char**>(textOut), nullptr);
     CStringDestroy(&text);
     CStringDestroy(&title);

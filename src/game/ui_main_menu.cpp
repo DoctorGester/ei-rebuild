@@ -27,13 +27,13 @@
 #include "bink_video.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
 namespace {
 
 // The game flow.
-GameFlow* Flow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 void* MusicSystem() { return ei::GameData<void* const>(0x007AF760); }
 IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 CBaseManager* ObjectManager() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
@@ -116,7 +116,7 @@ EI_REPLACE_METHOD(0x006335E0, CMainMenu::AddVersionLine);
 
 void CMainMenu::Create() {
     interface_->ResetSavedState();
-    Flow()->UseResources(false);
+    TheGameFlow()->UseResources(false);
     UiInputSide* inert = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
     if (inert) {
         inert->vtable_ = InertInputVtable();
@@ -188,7 +188,7 @@ EI_REPLACE_METHOD(0x00632910, CMainMenu::Close);
 // --- 00632940: a message box's answer (slot 27) -----------------------------------------------
 
 void CMainMenu::OnMessageResult(int result) {
-    Flow()->UseResources(false);
+    TheGameFlow()->UseResources(false);
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
@@ -202,7 +202,7 @@ void CMainMenu::OnMessageResult(int result) {
             PlayMovie(path, 0, 1, 1, 1, 1, 1);
         }
         InterfaceHasScreen() = false;
-        Flow()->RequestState3();
+        TheGameFlow()->RequestState3();
     } else if (static_cast<std::uint32_t>(result) == 0xCCCCCCCC) {
         GameStartAmbience();
         AddVersionLine();

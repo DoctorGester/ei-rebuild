@@ -126,7 +126,7 @@ BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetStr
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     return reinterpret_cast<CTextManager*>(this)->GetItemTexts(item, name, description, kind);
 }
-Texts* TextManager() { return ei::GameData<Texts*>(0x007AF788); }
+Texts* TextManager() { return reinterpret_cast<Texts*>(GameTexts()); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
@@ -183,22 +183,12 @@ EI_REPLACE(0x005F13A0, ItemDamageLists);
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
 
-// The skill database (007AF268).
-const SkillDatabase* Skills() { return ei::GamePointer<const SkillDatabase>(0x007AF268); }
-
-// The spell and modifier record tables the spell book reads (UiRecordTable, ui.h).
-const UiRecordTable* SpellRecords() { return ei::GamePointer<const UiRecordTable>(0x007C8510); }
-const UiRecordTable* ModifierRecords() { return ei::GamePointer<const UiRecordTable>(0x007C8530); }
-
-// The item record tables of the game's data (weapons, armour, quick items) and their strides.
-constexpr std::uintptr_t kWeaponRecords = std::uintptr_t(0x007C86F8);
-constexpr std::uintptr_t kArmourRecords = std::uintptr_t(0x007C8718);
-constexpr std::uintptr_t kQuickItemRecords = std::uintptr_t(0x007C8738);
+// The spell and modifier record tables the spell book reads (UiRecordTable, ui.h; item_db.h).
+const UiRecordTable* SpellRecords() { return static_cast<const UiRecordTable*>(&itemdb::Spells()); }
+const UiRecordTable* ModifierRecords() { return static_cast<const UiRecordTable*>(&itemdb::SpellModifiers()); }
 
 // Record tables by stride (item_db.h): materials 0x50, weapons 0xB4, armour 200, quick items 0x8C.
-const char* RecordOf(std::uintptr_t table, std::uint32_t index, int stride) {
-    return ei::GamePointer<const RecordTable>(table)->RecordAt(index, stride);
-}
+const char* RecordOf(const RecordTable& table, std::uint32_t index, int stride) { return table.RecordAt(index, stride); }
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;
@@ -532,9 +522,9 @@ void CItemInfoPanel::DescribeBlueprint() {
     const char* record = nullptr;
     std::uint32_t index = Read<std::uint32_t>(item, 0x54);
     switch (Read<int>(item, 0x50)) {
-    case 0: sort = 0; record = RecordOf(kWeaponRecords, index, 0xB4); break;
-    case 1: sort = 1; record = RecordOf(kArmourRecords, index, 200); break;
-    case 2: sort = 2; record = RecordOf(kQuickItemRecords, index, 0x8C); break;
+    case 0: sort = 0; record = RecordOf(itemdb::Weapons(), index, 0xB4); break;
+    case 1: sort = 1; record = RecordOf(itemdb::Armors(), index, 200); break;
+    case 2: sort = 2; record = RecordOf(itemdb::QuickItems(), index, 0x8C); break;
     default: break;
     }
     mfc::CString name, description, kindText;
@@ -812,8 +802,8 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     mfc::CString name = info->text;
     name.TrimRight("0");
     name += "1";
-    int group = Skills()->IndexOf(name) / 3;
-    const RecordTable& levels = ei::GameData<const RecordTable>(0x007AF274);
+    int group = SkillDb()->IndexOf(name) / 3;
+    const RecordTable& levels = unitdb::SkillLevels();
     for (int i = 0; i < 3; ++i) {
         std::uint32_t index = static_cast<std::uint32_t>(group * 3 + i);
         std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(levels.end - levels.begin) / 0x44);

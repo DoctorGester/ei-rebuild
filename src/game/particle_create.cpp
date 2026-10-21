@@ -248,7 +248,7 @@ void SetupTornado(CParticleSource* s) {
     color |= gamecrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
     SetBits(&s->frameDelay, color);
     SetupTornadoRings(s);
-    std::memcpy(&s->elements[0].value[6], ei::GamePointer<const void>(0x0073CB18), sizeof(float));  // 12.0
+    SetBits(&s->elements[0].value[6], 0x41400000 /*0073CB18*/);  // 12.0
     SetElementFloat(s, 0, 0x28, 0.5f);
     SetBits(&s->elements[0].value[8], 0x3F7D70A4);     // 0.99
     SetCallbacks(s, &Source::EmitTornado, &Source::UpdateTornado, &Source::TickTornado);

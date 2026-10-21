@@ -25,6 +25,7 @@
 #include "unit.h"
 #include "world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -47,7 +48,6 @@ bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, "1") || ArgI
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
 // 007C7D50: the interface manager.
-CInterface3D* Interface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 
 // The world's player `id` (00594180, through its address), or null.
 WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(id)); }
@@ -62,11 +62,11 @@ bool ServerActive(net::ClientSession* server) { return server && !(server->flags
 
 void SetDebugInfoRect(int left, int top, int right, int bottom) {
     RECT rect = {left, top, right, bottom};
-    Interface()->SetDebugInfoRect(&rect);
+    TheInterface()->SetDebugInfoRect(&rect);
 }
 void SetConsoleRect(int left, int top, int right, int bottom) {
     int rect[4] = {left, top, right, bottom};
-    Interface()->SetConsoleRect(rect);
+    TheInterface()->SetConsoleRect(rect);
 }
 
 } // namespace
@@ -139,7 +139,7 @@ EI_REPLACE(0x005DDBE0, ConsolePos);
 // 005DDF80: history <lines>.
 void __fastcall History(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine("Invalid parameters");
-    Interface()->SetConsoleHistory(libcrt::Atoi((*args)[0]));
+    TheInterface()->SetConsoleHistory(libcrt::Atoi((*args)[0]));
 }
 EI_REPLACE(0x005DDF80, History);
 
@@ -315,7 +315,7 @@ void __fastcall Give(CStringArray* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {
-        InterfaceActiveWindowOriginal(Interface())->VirtualDebugFill();
+        InterfaceActiveWindowOriginal(TheInterface())->VirtualDebugFill();
         return;
     }
     PrintLine("Give what?");
@@ -333,7 +333,7 @@ void RequestWithParty(CStringArray* args, const char* extra) {
     party->AddMember("F", "Human Hero", extra);
     {
         mfc::CString map((*args)[0]);
-        (ei::GamePointer<GameFlow>(0x007AFE20)->*Request)(map, party);
+        (TheGameFlow()->*Request)(map, party);
     }
     party->DestructBody();
 }
@@ -375,7 +375,7 @@ EI_REPLACE(0x005DF5B0, LootAll);
 // 005DF8E0: fadeout <milliseconds>.
 void __fastcall FadeOut(CStringArray* args) {
     if (args->GetSize() <= 0) return PrintLine("FADEOUT nMillSec");
-    Interface()->fade_->Start(libcrt::Atoi((*args)[0]));
+    TheInterface()->fade_->Start(libcrt::Atoi((*args)[0]));
     PrintLine("Ok");
 }
 EI_REPLACE(0x005DF8E0, FadeOut);
@@ -519,7 +519,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
             // Our binding's player record: only the host gets the window.
             auto* binding = static_cast<net::BindingMessage*>(server->binding_);
             if (static_cast<net::PlayerMessage*>(binding->PlayerRef().ptr)->host_)
-                InterfaceActiveWindowOriginal(Interface())->VirtualPlayerList(windowMode);
+                InterfaceActiveWindowOriginal(TheInterface())->VirtualPlayerList(windowMode);
             return;
         }
     }
@@ -542,8 +542,8 @@ EI_REPLACE(0x005E06E0, Ban);
 // 005E0830: fps 1|on|0|off (anything else: nothing).
 void __fastcall Fps(CStringArray* args) {
     if (args->GetSize() < 1) return PrintLine("Invalid number of parameters for command \"FPS\"");
-    if (ArgOn(args, 0)) Interface()->ShowFps(1);
-    else if (ArgOff(args, 0)) Interface()->ShowFps(0);
+    if (ArgOn(args, 0)) TheInterface()->ShowFps(1);
+    else if (ArgOff(args, 0)) TheInterface()->ShowFps(0);
 }
 EI_REPLACE(0x005E0830, Fps);
 

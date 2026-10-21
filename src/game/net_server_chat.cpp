@@ -11,6 +11,7 @@
 #include "originals_ui.h"
 #include "ui.h"
 #include "world_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -65,7 +66,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 // 0041A490: Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
     std::uint32_t line = 0;   // CString
-    void* formatted = worlddata::InterfaceManager()->MessageText(&line, kind, text);
+    void* formatted = TheInterface()->MessageText(&line, kind, text);
     Announce(*static_cast<const char**>(formatted), player);
     CStringDestroy(&line);
 }
