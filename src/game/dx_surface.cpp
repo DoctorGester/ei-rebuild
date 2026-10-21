@@ -31,7 +31,6 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_engine.h"
-#include "originals_library.h"   // CxxThrowException
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -45,7 +44,7 @@ void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
 // 004800E0 / 00480080 (cdecl): DirectX error / fatal error reports (the second printf-like);
 // nonzero to go on.
 // The thrown error object: operator new (007005AF), its constructor (GameErrorConstruct, 00480250,
-// cdecl: object, format, width, height) and _CxxThrowException with its throw info (originals_engine.h).
+// cdecl: object, format, width, height) and the throw (dx_errors.h).
 
 // A DDPIXELFORMAT as dwords (PixelFormat): size, flags, FourCC, bits, R, G, B, A masks.
 enum : int { kFormatSize = 0, kFormatFlags = 1, kBits = 3, kRed = 4, kGreen = 5, kBlue = 6, kAlpha = 7 };
@@ -80,9 +79,7 @@ constexpr long kSurfaceRefused = static_cast<long>(0x80004001);
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
     void* object = gamecrt::operator_new(0xC);
     if (object) object = GameErrorConstruct(static_cast<GameError*>(object), "Can't create DDSurface %d:%d with default BPP.\n", width, height);   // "Can't create DDSurface %d %d ..."
-    libcrt::CxxThrowException(&object, GameErrorThrowInfo());
-    for (;;) {
-    }
+    throw static_cast<CDXException*>(object);
 }
 
 // The display mode's pixel format into `format` (IDirectDraw7::GetDisplayMode). False when
@@ -359,7 +356,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
     if (!LoadPictureData(picture, flag)) {
         void* object = gamecrt::operator_new(0xC);
         if (object) object = GameErrorConstruct(static_cast<GameError*>(object), "Can't load picture to surface.\n");   // "Can't load picture to surface"
-        libcrt::CxxThrowException(&object, GameErrorThrowInfo());
+        throw static_cast<CDXException*>(object);
     }
     render::PictureFromMmp(this, picture);
     ++HolderCount();

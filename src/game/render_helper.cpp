@@ -20,7 +20,6 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
-#include "originals_library.h"   // CxxThrowException
 #include "game_data.h"
 
 #include <d3d.h>
@@ -509,7 +508,7 @@ const char* AcquiringText() { return "Acquiring geometry processor from transfor
 const char* NoLibraryText() { return "Can't load 3D transform library.\n"; }
 const char* NoFunctionText() { return "Loaded 3D transform library have no function \"GetTLPipeline\".\n"; }
 
-// The constructor's failure: a new error object thrown (a GameError*, by the game's own throw).
+// The constructor's failure: a new error object thrown (a GameError* thrown as a CDXException*).
 // What the original's unwinding does on the way out is done here first: the folder's string and
 // the stacks' blocks (from the last) freed, the counted base's vtable left. (The memory itself is
 // the caller's: the original's `new` frees it.)
@@ -519,9 +518,7 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
     folder.reset();
     for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
     ei::SetVtable(self, 0x0073D768);
-    libcrt::CxxThrowException(&error, GameErrorThrowInfo());
-    for (;;) {
-    }
+    throw reinterpret_cast<CDXException*>(error);
 }
 
 } // namespace

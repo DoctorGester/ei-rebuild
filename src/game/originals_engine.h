@@ -28,9 +28,6 @@ __declspec(naked) inline int __fastcall TextsGetString(void* /*texts*/, void*, c
 __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/)
     EI_ORIGINAL(0x00488970)
 
-// The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
-inline const void* GameErrorThrowInfo() { return ei::GamePointer<const void>(0x00759908); }
-
 // C3j. 004849F0: particle source attaches to an object (RET 4, no result).
 __declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)
     EI_ORIGINAL(0x004849F0)

@@ -10,8 +10,14 @@
 // "Unrecognized error value.\n" for any other. Ours returns its own copies of the exe's strings.
 const char* __fastcall DirectXErrorText(long result);
 
-// The error object the device layer throws (a C++ throw, throw info 00759908; vtable 0073CAB4, its
-// base's 0073CAB0, one slot each: the deleting destructor). 0xC bytes from operator new.
+// The types a thrown GameError* is thrown as (C18e): this compiler's `throw` of a CDXException* makes the
+// game's throw information (00759908: the pointer to CDXException, to CGameException and to void), a
+// handler matches by the decorated names.
+class CGameException {};
+class CDXException : public CGameException {};
+
+// The error object the device layer throws (vtable 0073CAB4, its base's 0073CAB0, one slot each: the
+// deleting destructor). 0xC bytes from operator new.
 struct GameError {
     GameError* DeleteScalarBase(int flags);
     // 004815B0 / 00481580 (slot 0 of 0073CAB4 / 0073CAB0, RET 4): the destructor (the base's inlined),
@@ -27,7 +33,7 @@ GameError* __cdecl GameErrorConstruct(GameError* error, const char* format, ...)
 GameError* GameErrorFormat(GameError* error, const char* format, va_list args);
 GameError* GameErrorFormatResult(GameError* error, long result, const char* format, va_list args);
 // The original's `throw new CError(...)`: the object from operator new, constructed by 00480250 /
-// 00480300, thrown by pointer (_CxxThrowException, throw info 00759908). WinMain catches it. The
+// 00480300, thrown by pointer (a CDXException*). WinMain catches it. The
 // frames of ours it passes are not unwound member by member as the original's are (what a failed
 // constructor had built stays); every such throw ends the game.
 [[noreturn]] void ThrowGameError(const char* format, ...);

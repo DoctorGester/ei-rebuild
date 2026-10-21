@@ -5,7 +5,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_library.h"   // CxxThrowException
 #include "game_data.h"
 
 #include <algorithm>
@@ -243,9 +242,7 @@ GameError* GameErrorFormatResult(GameError* error, long result, const char* form
 
 namespace {
 [[noreturn]] void Throw(GameError* error) {
-    libcrt::CxxThrowException(&error, ei::GamePointer<const void>(0x00759908));
-    for (;;) {
-    }
+    throw reinterpret_cast<CDXException*>(error);
 }
 } // namespace
 

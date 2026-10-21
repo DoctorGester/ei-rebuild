@@ -2,9 +2,8 @@
 
 // MFC 4.2's exception classes as the game's copy throws them (except.cpp, filex.cpp, arcex.cpp),
 // and AFX_EXCEPTION_LINK's chain (ticket S8, docs/notes/standalone.md section 2). The objects keep
-// the exe's layout and vtables, and a throw goes through the game's _CxxThrowException with the
-// exe's throw information, so a handler in original code and one in ours (mfc_try.h) catch it the
-// same way. Every body is registered at its library address (mfc_exception.cpp) and checked in game by
+// the exe's layout and vtables, and a throw is this compiler's `throw` of a pointer to mfc_try.h's
+// class of the game's name, so a handler of ours catches it by that name. Every body is registered at its library address (mfc_exception.cpp) and checked in game by
 // verify_mfc_exception.cpp until S21d.
 
 #include "mfc_string.h"
