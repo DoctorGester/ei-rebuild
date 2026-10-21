@@ -2427,6 +2427,29 @@ model = "sonnet"
 depends = ["C17"]
 note = "After SV5d4's merge (harness-only change) main's verify build failed check_fp_fold: ::RandomAngle (world_effect_visual.cpp, the 0073FFD0 literal of CEffectParticle's scorch angle) was judged against LoadFigPart 004F7F00 / RemorphFigPart 004F9FD0, which do not call it; the previous verify builds passed. Allowed in tools/check_fp_fold_allow.txt for now. Find why the CALL / JMP rel32 scan (call_graph) attributes it there (a false rel32 match, a folded COMDAT, a layout-dependent boundary), fix the scan so the result does not depend on unrelated code layout, then drop the allow entry. Checks: build.cmd verify and release at 0 on main and on a couple of earlier commits."
 
+[[ticket]]
+id = "C18"
+title = "Named globals instead of game.exe's data bytes"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-21: the track after S18 is code cleanup. 3,028 distinct game data addresses (tools/progress.py) are still reached through GameAddress / GamePointer / GameRef ids into section bytes generated from game.exe (S18d/S18h, gen_image_cells). Turn them into named C++ globals with typed definitions and initialisers, one area (owner file) per batch, so the code no longer names game.exe addresses for data. Strings and tables of constants first (rdata_literals already checks literals), then .data / .bss objects; image cells that stay are ones only the generated code cells need. Goldens and the image suite are the check; the original suite when a harness or golden changes. Batches of one area each, opus for the first batch to set the pattern, sonnet after."
+
+[[ticket]]
+id = "C19"
+title = "Compiler-made vtables: real virtual classes instead of game.exe's tables"
+group = "cleanup"
+model = "opus"
+depends = ["C18"]
+note = "Objects still get game.exe's vtables: 647 SetVtable stores in 138 files point at the copied .rdata tables, whose slots are fixed up to our functions (gen_image_cells code cells). Make the class families real C++ virtual classes so the compiler emits the vtables, one family per batch (UI windows, map objects, units, effects, scripts, ...). RTTI / type_info reads (find_vtables, the harness's vtable labels, the census) need a replacement id. Check: goldens, check_registrations; the vtable code cells left in image_code_cells.inc should drop with each family. First batch (opus) also writes the method into docs/notes/standalone.md."
+
+[[ticket]]
+id = "C20"
+title = "Retire the registrations and code cells when nothing reaches game addresses"
+group = "cleanup"
+model = "opus"
+depends = ["C19"]
+note = "End state of the cleanup track: once data are named globals (C18) and vtables are the compiler's (C19), the 9,304 EI_REPLACE registrations and the 21,636 code cells only serve callbacks stored in data and the harness's address names. Measure what still needs them, replace the rest, and drop gen_image_cells' code cells; the image then needs no address map of game.exe's code."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
@@ -2604,7 +2627,7 @@ group = "standalone"
 size = 5
 depends = ["S17", "C13"]
 files = ["tools", "src/game/*.h"]
-note = "Generated definitions for the 3,601 data addresses, vtables as real virtual classes, imports linked directly, plain new / delete; then the image and the read of game.exe go. After C13."
+note = "Exit criterion met 2026-10-21 (S18k / S18k1: the image is an ordinary relocatable exe that reads no game.exe at run time). The cleanup it listed moved to its own tickets: C18 (named globals for the data addresses), C19 (compiler-made vtables), C20 (registrations and code cells), C14 / C15 (standard types, reinterpret_cast), C11 (shims)."
 
 [[ticket]]
 id = "S1a"
