@@ -23,7 +23,6 @@
 
 namespace {
 // The vtables the constructors and destructors install.
-constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);   // the abstract controller
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 void* const kAlarmRecordsVtable = ei::GamePointer<void>(0x0073F04C);
 void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
@@ -95,7 +94,7 @@ CUnitServer* CUnitServer::Construct() {
     type_ = 0;
     flags_ = 0;
     owner_ = nullptr;
-    ei::SetVtable(this, kControllerVtable);
+    ei::SetVtable(this, CUnitController::Vtable());
     unit = nullptr;
     InitSteps(queue);
     motion.Construct();

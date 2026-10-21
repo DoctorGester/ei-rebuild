@@ -45,7 +45,6 @@ using ei::SetVtable;
 
 // Vtables.
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
-constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
 
 constexpr std::uint32_t kStreamLimit = 2000000000;   // a memory stream's size limit
 constexpr std::uint32_t kOne = 0x3F800000;
@@ -497,7 +496,7 @@ void CUnitServer::DestructBody() {
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
-    SetVtable(this, kControllerVtable);
+    SetVtable(this, CUnitController::Vtable());
     unit = nullptr;
     CEngineObject::DestructBase();
 }

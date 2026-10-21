@@ -190,7 +190,9 @@ vtable,slots,class,file,note
 0073EBA8,3,MotionPointArrayClass,src/lib/mfc_slots.h,CArray (a unit motion's points)
 0073EBB4,3,MotionWaypointBaseClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints)
 0073EBD4,3,IdArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> of quest item ids (world_party))
+0073ECD8,54,CUnitClientSpecificClass,src/game/unit_controller_slots.cpp,the client's unit controller (CUnitClientSpecific)
 0073EDB0,3,CellListClass,src/lib/mfc_slots.h,CList (the units' path cell lists)
+0073EDBC,54,ControllerBaseClass,src/game/unit_controller_slots.cpp,the unit controllers' abstract base (CUnitController)
 0073EEA0,3,SkinLayerArrayClass,src/lib/mfc_slots.h,CArray (a unit's skin layers (ComposeSkin))
 0073EF2C,3,AnimationStepsClass,src/lib/mfc_slots.h,CArray (a unit's animation steps)
 0073F010,3,ArmourSpellListClass,src/game/game_slots.h,CList (the armour spells)
@@ -202,6 +204,7 @@ vtable,slots,class,file,note
 0073F064,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit's 0x18-byte memory records)
 0073F07C,3,PointArrayClass,src/lib/mfc_slots.h,CArray (a unit's point lists)
 0073F12C,3,LootListClass,src/lib/mfc_slots.h,CList (the loot lists)
+0073F18C,42,CWorldBaseClass,src/game/world_class.h,the worlds' base (CWorld)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
 0073F240,7,CWorldHandleClass,src/game/world_sessions.cpp,the server world's counted helper (a player source)
 0073F25C,26,CItemManager,src/game/item.h,
@@ -209,6 +212,7 @@ vtable,slots,class,file,note
 0073F328,25,CPlayerManager,src/game/player_manager.h,
 0073F38C,7,CPlayerSourceClass,src/game/world_sessions.cpp,the player sources' base
 0073F3A8,7,DriverSessionClass,src/game/net_link.h,the network session (DriverSession)
+0073F41C,43,CWorldClientClass,src/game/world_class.h,the client world
 0073F4FC,13,BridgeManagerClass,src/game/world_construct.cpp,the client world's platform set (CBridgeManager)
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
@@ -232,6 +236,7 @@ vtable,slots,class,file,note
 0073F7F8,42,dead class,-,stored only by dead code 005794B0 / 00579730
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
+0073F928,42,CWorldServerClass,src/game/world_class.h,the server world
 0073F9D0,3,RefListBClass,src/game/game_slots.h,CList (the world server's counted pointers)
 0073F9E0,3,AreaListClass,src/lib/mfc_slots.h,CArray (the AI map's area lists; after CSectorMap's one-slot table 0073F9DC)
 0073F9EC,3,SectorArrayClass,src/game/record_arrays.h,CArray (the AI map's sectors)

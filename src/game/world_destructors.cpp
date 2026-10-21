@@ -15,6 +15,7 @@
 #include "sector_map.h"
 #include "terrain.h"
 #include "world.h"
+#include "world_class.h"
 #include "world_client_class.h"
 #include "world_data.h"
 #include "world_deleting_destructors.h"
@@ -30,10 +31,6 @@
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 
 namespace {
-
-// The members' vtables the destructors store back before emptying them.
-constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
-constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
 
 // The client's ground print lists: each print's destructor (the client's copies 0056D080,
 // 0056D400, 0056D680 of GroundPrint's).
@@ -132,7 +129,7 @@ void CScript::Destruct() {
 EI_REWRITTEN(0x0058A140, CScript::Destruct);
 
 void CWorld::Destruct() {
-    ei::SetVtable(this, kBaseVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     DestroyManagers();
     auto* countdowns = &countdowns_;
     countdowns->vtable = mfc::impl::CountdownArrayClass::Vtable();
@@ -149,7 +146,7 @@ CWorld* CWorld::DeletingDestruct(unsigned flags) {
     Destruct();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x0055EC60, CWorld::DeletingDestruct);
+EI_REWRITTEN(0x0055EC60, CWorld::DeletingDestruct);
 
 CParticleManager::CParticleManager() {
     mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
@@ -225,7 +222,7 @@ Sector* Sector::DeletingDestruct(unsigned flags) {
 EI_REPLACE_METHOD(0x0059E080, Sector::DeletingDestruct);
 
 void CWorldClient::Destruct() {
-    ei::SetVtable(this, kClientVtable);
+    ei::SetVtable(this, Vtable());
     Teardown();
     pausedTitle_.~CString();
     windowTitle_.~CString();
@@ -266,10 +263,10 @@ CWorldClient* CWorldClient::DeletingDestruct(unsigned flags) {
     Destruct();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x00561A00, CWorldClient::DeletingDestruct);
+EI_REWRITTEN(0x00561A00, CWorldClient::DeletingDestruct);
 
 void CWorldServer::Destruct() {
-    ei::SetVtable(this, kServerVtable);
+    ei::SetVtable(this, Vtable());
     Teardown();
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
     DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
@@ -300,4 +297,4 @@ CWorldServer* CWorldServer::DeletingDestruct(unsigned flags) {
     Destruct();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x0058A430, CWorldServer::DeletingDestruct);
+EI_REWRITTEN(0x0058A430, CWorldServer::DeletingDestruct);

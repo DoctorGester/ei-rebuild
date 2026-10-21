@@ -114,7 +114,7 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     }
     SpeechList::Insert(stlp::AsNode<ClientSpeech>(speech), said);
 }
-EI_REPLACE_METHOD(0x00537D80, CUnitClientSpecific::Say);
+EI_REWRITTEN(0x00537D80, CUnitClientSpecific::Say);
 
 void CUnitClientSpecific::StopSpeech() {
     for (ClientSpeechNode* node = speech->next; node != speech; node = node->next) {
@@ -129,7 +129,7 @@ void CUnitClientSpecific::StopSpeech() {
     speech->next = speech;
     speech->prev = speech;
 }
-EI_REPLACE_METHOD(0x00538040, CUnitClientSpecific::StopSpeech);
+EI_REWRITTEN(0x00538040, CUnitClientSpecific::StopSpeech);
 
 bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = gameapi::timeGetTime();

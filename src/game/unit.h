@@ -78,7 +78,10 @@ public:
     void IgnoreThreeArguments(int, int, int);
     void IgnoreTwoArguments(int, int);
     void IgnoreArgument(int);
-    CUnitController* DeleteScalar(unsigned flags);
+    CUnitController* DeletingDestruct(unsigned flags);
+    // The abstract controller's compiled table (ControllerBaseClass, unit_controller_slots.cpp; game.exe's 0073EDBC):
+    // CUnitServer's and CUnitClientSpecific's constructors store it first, their destructor bodies last.
+    static void* Vtable();
     virtual void FiguresLoaded();           // 13: client 005344E0, base 00533B90
     virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
     virtual void Unused15();                // 15: empty everywhere (base 00533BB0, client 00535580)

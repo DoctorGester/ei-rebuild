@@ -291,7 +291,7 @@ void CWorldServer::AddCounted(CEngineObject* item) {
     AddCountedTail(&counted_, item);   // the original inlines the same AddTail
 }
 
-EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
+EI_REWRITTEN(0x00594CE0, CWorldServer::CopyItem);
 
 void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {

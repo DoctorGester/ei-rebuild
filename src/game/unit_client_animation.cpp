@@ -92,7 +92,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     CFigureAnimationState* state = unit->Object3D()->animation;
     if (state && unit->motionMode != kMotionPaused) state->Advance(step);
 }
-EI_REPLACE_METHOD(0x00535B30, CUnitClientSpecific::AdvanceTime);
+EI_REWRITTEN(0x00535B30, CUnitClientSpecific::AdvanceTime);
 
 void CUnitClientSpecific::RestartAnimation(float time) {
     if (unit->flags_ & kFlagFrozen) return;
@@ -128,7 +128,7 @@ void CUnitClientSpecific::RestartAnimation(float time) {
     }
     lastTime = static_cast<float>(start);
 }
-EI_REPLACE_METHOD(0x005352B0, CUnitClientSpecific::RestartAnimation);
+EI_REWRITTEN(0x005352B0, CUnitClientSpecific::RestartAnimation);
 
 void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     if (unit->flags_ & kFlagFrozen) return;

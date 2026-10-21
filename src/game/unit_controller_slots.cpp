@@ -1,19 +1,22 @@
-// Small virtual slots of a unit's controllers (A-U12): the abstract base (vtable 0073EDBC; the
+// Small virtual slots of a unit's controllers (A-U12): the abstract base (game.exe's vtable 0073EDBC; the
 // server's CUnitServer, 0073EF38, and the client's CUnitClientSpecific, 0073ECD8, keep most of its
-// empty slots), its lifetime, and the client controller's small methods. Slot names:
-// CUnitController (unit.h).
+// empty slots), its lifetime, the client controller's small methods, and the compiled tables of the base
+// and the client controller (C19). Slot names: CUnitController (unit.h).
 #include "unit.h"
 #include "unit_client_models.h"
 
 #include "effects.h"   // CParticleSource
+#include "engine_object_class.h"
 #include "texture.h"   // CTexture
 
 #include "ei/hook.h"
 #include "ei/vcall.h"   // SetVtable
 #include "lib/crt.h"
 
+#include <bit>
+#include <cstdint>
+
 namespace {
-constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
 constexpr const char* kClientClassName = "CUnitClientSpecific";
 constexpr int kClientClassId = 0x3D;
 
@@ -30,28 +33,28 @@ void DropMarker(CParticleSource*& marker) {
 
 // 00533DB0. The destructor body: the base's vtable, no unit, the engine object's.
 void __fastcall ControllerDestruct(CUnitController* self) {
-    ei::SetVtable(self, kControllerVtable);
+    ei::SetVtable(self, CUnitController::Vtable());
     self->unit_ = nullptr;
     self->DestructBase();
 }
 EI_REPLACE(0x00533DB0, ControllerDestruct);
 
 // 00533D90 (slot 0, RET 4).
-CUnitController* CUnitController::DeleteScalar(unsigned flags) {
+CUnitController* CUnitController::DeletingDestruct(unsigned flags) {
     ControllerDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00533D90, CUnitController::DeleteScalar);
+EI_REWRITTEN(0x00533D90, CUnitController::DeletingDestruct);
 
 // 00533DD0 (slot 2): no unit; 1. 00533DE0 (slot 3): no unit.
 int __fastcall ControllerCreate(CUnitController* self) {
     self->unit_ = nullptr;
     return 1;
 }
-EI_REPLACE(0x00533DD0, ControllerCreate);
+EI_REWRITTEN(0x00533DD0, ControllerCreate);
 void __fastcall ControllerDestroy(CUnitController* self) { self->unit_ = nullptr; }
-EI_REPLACE(0x00533DE0, ControllerDestroy);
+EI_REWRITTEN(0x00533DE0, ControllerDestroy);
 
 // --- The base controller's empty slots ---------------------------------------------------------------
 // Most are under five bytes (too short to hook); the server's and the client's vtables share them
@@ -110,12 +113,12 @@ EI_REPLACE(0x00533CB0, ControllerZero);
 
 // 0 with one argument (RET 4): slots 19 (RefreshVitals) and 21 (Heal); the client's too.
 int CUnitController::ReturnZeroOne(int) { return 0; }
-EI_REPLACE_METHOD(0x00533BD0, CUnitController::ReturnZeroOne);
-EI_REPLACE_METHOD(0x00533BF0, CUnitController::ReturnZeroOne);
+EI_REWRITTEN(0x00533BD0, CUnitController::ReturnZeroOne);
+EI_REWRITTEN(0x00533BF0, CUnitController::ReturnZeroOne);
 
 // 00533BE0 (slot 20 TakeHit, RET 0xC; the client's too): 0.
 int CUnitController::ReturnZeroThree(int, int, int) { return 0; }
-EI_REPLACE_METHOD(0x00533BE0, CUnitController::ReturnZeroThree);
+EI_REWRITTEN(0x00533BE0, CUnitController::ReturnZeroThree);
 
 // False in AL (RET 4): slots 34 (WeaponAdded) and 35 (RemoveWeaponModel).
 bool CUnitController::ReturnFalse(int) { return false; }
@@ -132,9 +135,9 @@ EI_REPLACE(0x00533DF0, ClientControllerPath);
 const char* __fastcall ClientControllerClassName(CUnitClientSpecific*) {
     return kClientClassName;
 }
-EI_REPLACE(0x00533E00, ClientControllerClassName);
+EI_REWRITTEN(0x00533E00, ClientControllerClassName);
 int __fastcall ClientControllerClassId(CUnitClientSpecific*) { return kClientClassId; }
-EI_REPLACE(0x00533E10, ClientControllerClassId);
+EI_REWRITTEN(0x00533E10, ClientControllerClassId);
 
 void CUnitClientSpecific::SetMarkers(CParticleSource* path, CParticleSource* marker) {
     DropMarker(sources[1]);
@@ -157,3 +160,122 @@ void CUnitClientSpecific::DropFaceTexture() {
     blinks = 0;
 }
 EI_REPLACE_METHOD(0x00538EA0, CUnitClientSpecific::DropFaceTexture);
+
+// --- The compiled tables (C19) -------------------------------------------------------------------------
+// Compiled tags (engine_object_class.h) in place of game.exe's 0073EDBC (the abstract controller) and 0073ECD8
+// (CUnitClientSpecific). ControllerClass declares CUnitController's slots 13-53 (unit.h) with the base's bodies
+// (most are empty, or answer 0 / false; the pure ones `_purecall`); the client's tag overrides the slots its
+// game.exe table changes with the bodies that table reached (qualified: no dispatch). A slot whose original is a
+// plain RET leaves EAX as the caller had it (CUnit passes the EAX of slots 23, 44, 49 and 53 on), so those are void.
+
+namespace {
+
+template <typename Self, typename T>
+class ControllerClass : public EngineObjectClass<Self, T> {
+public:
+    int Create() override { return ControllerCreate(Controller()); }   // 2: 00533DD0
+    void Destroy() override { ControllerDestroy(Controller()); }        // 3: 00533DE0
+
+    virtual int FiguresLoaded() { return ControllerFiguresLoaded(Controller()); }   // 13: 00533B90
+    virtual void RestartAnimation(float) {}                    // 14: 00533BA0 (RET 4)
+    virtual void Unused15() {}                                 // 15: 00533BB0
+    virtual AIPath* Path() {                                   // 16: pure
+        _purecall();
+        return nullptr;
+    }
+    virtual void Unused17() { _purecall(); }                   // 17: pure
+    virtual void PlayerChanged(void*) {}                       // 18: 00533BC0 (RET 4)
+    virtual int RefreshVitals(int withHitPoints) { return Controller()->ReturnZeroOne(withHitPoints); }   // 19: 00533BD0
+    virtual int TakeHit(DamageInfo*, CUnit*, CUnit*) { return 0; }   // 20: 00533BE0 (RET 0xC)
+    virtual int Heal(int amountBits) { return Controller()->ReturnZeroOne(amountBits); }   // 21: 00533BF0
+    virtual void RepackStats() {}                              // 22: 00533C00
+    virtual void UpdateSizeClasses() {}                        // 23: 00533C10
+    virtual int Level() { return _purecall(); }                // 24: pure
+    virtual int ShowWeapon(std::uint32_t) { return _purecall(); }   // 25: pure
+    virtual bool ArmourPutOn(std::uint32_t) {                  // 26: pure
+        _purecall();
+        return false;
+    }
+    virtual bool ArmourTakenOff(std::uint32_t) {               // 27: pure
+        _purecall();
+        return false;
+    }
+    virtual void ClearOuterArmourLayers() {}                   // 28: 00533C20
+    virtual int RefreshEquipment() { return ControllerZero(Controller()); }   // 29: 00533C30
+    virtual int RefreshModel() { return ControllerZero(Controller()); }       // 30: 00533C40
+    virtual int RefreshWounds() { return ControllerZero(Controller()); }      // 31: 00533C50
+    virtual void SetArmourModels(const std::uint32_t*, int) {}   // 32: 00533C60 (RET 8)
+    virtual void SetWeaponModels(const std::uint32_t*, int) {}   // 33: 00533C70 (RET 8)
+    virtual bool WeaponAdded(std::uint32_t) { return false; }         // 34: 00533C80 (RET 4)
+    virtual bool RemoveWeaponModel(std::uint32_t) { return false; }   // 35: 00533C90 (RET 4)
+    virtual int HasOtherArmour() { return _purecall(); }       // 36: pure
+    virtual int HasMainArmour() { return _purecall(); }        // 37: pure
+    virtual void HostileMaskChanged() {}                       // 38: 00533CA0
+    virtual int TamingStage() { return ControllerZero(Controller()); }   // 39: 00533CB0
+    virtual void AdvanceTime(float) {}                         // 40: 00533CC0 (RET 4)
+    virtual void MotionChanged() {}                            // 41: 00533CD0
+    virtual void ObjectDeleted(CEngineObject*) {}              // 42: 00533CE0 (RET 4)
+    virtual void RestartFadeIn() {}                            // 43: 00533CF0
+    virtual void Resettle() {}                                 // 44: 00533D00
+    virtual void UpdateMoveFactors() {}                        // 45: 00533D10
+    virtual void StatChanged(int, float, std::uint32_t) {}     // 46: 00533D20 (RET 0xC)
+    virtual void Wound(float) {}                               // 47: 00533D30 (RET 4)
+    virtual void Died() {}                                     // 48: 00533D40
+    virtual void EffectsChanged() {}                           // 49: 00533D50
+    virtual void GetAttackParams(AttackParams*) { _purecall(); }   // 50: pure
+    virtual void Say(const SpeechRecord*, int) {}              // 51: 00533D60 (RET 8)
+    virtual void StopSpeech() {}                               // 52: 00533D70
+    virtual void MoveFactorsChanged() {}                       // 53: 00533D80
+
+protected:
+    CUnitController* Controller() { return this->template As<CUnitController>(); }
+};
+
+class ControllerBaseClass final : public ControllerClass<ControllerBaseClass, CUnitController> {};
+
+class CUnitClientSpecificClass final : public ControllerClass<CUnitClientSpecificClass, CUnitClientSpecific> {
+public:
+    int Create() override { return Client()->CreateClient(); }    // 2: 00533FE0
+    void Destroy() override { Client()->DestroyClient(); }        // 3: 005340C0
+    int RunTick() override { return Client()->UpdateClient(); }   // 6: 005341A0
+    const char* ClassName() override { return ClientControllerClassName(Client()); }   // 11: 00533E00
+    int ClassId() override { return ClientControllerClassId(Client()); }               // 12: 00533E10
+    int FiguresLoaded() override { return Client()->FiguresLoaded(); }                 // 13: 005344E0
+    void RestartAnimation(float time) override { Client()->RestartAnimation(time); }   // 14: 005352B0
+    void Unused15() override {}                                   // 15: 00535580 (empty)
+    AIPath* Path() override { return ClientControllerPath(Client()); }   // 16: 00533DF0
+    void Unused17() override {}                                   // 17: 00534130 (empty)
+    void PlayerChanged(void* player) override { Client()->OwnerPlayerChanged(player); }   // 18: 00534140
+    int Level() override { return Client()->Level(); }            // 24: 00539160
+    int ShowWeapon(std::uint32_t slot) override { return Client()->ChangeWeaponModel(slot); }      // 25: 00535590
+    bool ArmourPutOn(std::uint32_t itemId) override { return Client()->WearArmourModel(itemId); }  // 26: 005381B0
+    bool ArmourTakenOff(std::uint32_t slot) override { return Client()->RemoveArmourModel(slot); } // 27: 005385A0
+    int RefreshEquipment() override { return Client()->RefreshSkins(); }   // 29: 00536100
+    int RefreshModel() override { return Client()->RefreshSimpleSkin(); }  // 30: 00536220
+    int RefreshWounds() override { return Client()->RefreshWounds(); }     // 31: 00537360
+    void SetArmourModels(const std::uint32_t* ids, int count) override { Client()->SetArmourModels(ids, count); }   // 32: 00538140
+    void SetWeaponModels(const std::uint32_t* ids, int count) override { Client()->SetWeaponModels(ids, count); }   // 33: 00538860
+    bool WeaponAdded(std::uint32_t id) override { return Client()->AddWeaponModel(id); }            // 34: 005388C0
+    bool RemoveWeaponModel(std::uint32_t id) override { return Client()->RemoveWeaponModel(id); }   // 35: 00538920
+    int HasOtherArmour() override { return Client()->HasWeaponModels(); }   // 36: 005391B0
+    int HasMainArmour() override { return Client()->HasArmourModels(); }    // 37: 005391E0
+    void AdvanceTime(float time) override { Client()->AdvanceTime(time); }  // 40: 00535B30
+    void MotionChanged() override { ClientMotionChanged(Client()); }        // 41: 00535B20
+    void RestartFadeIn() override { Client()->RestartFadeIn(); }            // 43: 005344A0 (EAX: its result)
+    void StatChanged(int location, float amount, std::uint32_t flags) override {   // 46: 00537500
+        Client()->HitEffect(location, amount, flags);
+    }
+    void Wound(float lost) override { Client()->SparkEffect(std::bit_cast<int>(lost)); }   // 47: 00537C00 (not read)
+    void Died() override { Client()->DeathEffect(); }                       // 48: 005373D0
+    void GetAttackParams(AttackParams* out) override { Client()->GetAttackParams(out); }   // 50: 00538960
+    void Say(const SpeechRecord* speech, int kind) override { Client()->Say(speech, kind); }   // 51: 00537D80
+    void StopSpeech() override { Client()->StopSpeech(); }                  // 52: 00538040
+
+private:
+    CUnitClientSpecific* Client() { return As<CUnitClientSpecific>(); }
+};
+
+} // namespace
+
+void* CUnitController::Vtable() { return ControllerBaseClass::Vtable(); }
+void* CUnitClientSpecific::Vtable() { return CUnitClientSpecificClass::Vtable(); }
