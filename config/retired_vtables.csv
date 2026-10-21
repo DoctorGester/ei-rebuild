@@ -91,6 +91,8 @@ vtable,slots,class,file,note
 0073CA08,1,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,1,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
+0073CA48,7,BufferViewBaseClass,src/game/net_coder.h,the fixed view's base (the views' destructors leave it)
+0073CA64,7,BufferViewClass,src/game/net_coder.h,a fixed view over memory owned elsewhere
 0073CAB0,1,GameErrorBaseClass,src/game/dx_errors.h,the thrown error object's base (GameErrorDestruct leaves it)
 0073CAB4,1,GameErrorClass,src/game/dx_errors.h,the thrown error object (GameErrorFormat / GameErrorFormatResult)
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
@@ -143,6 +145,7 @@ vtable,slots,class,file,note
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
+0073D624,7,GrowingBufferClass,src/game/net_coder.h,the growing byte buffer
 0073D760,1,DeviceObjectClass,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
 0073D768,1,RendererBaseClass,src/game/texture.h,"the renderer's counted base (CDXSurface, the device object, the pipeline)"

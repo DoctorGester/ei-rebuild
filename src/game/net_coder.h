@@ -5,6 +5,7 @@
 // 0047D970, 0041D600). See docs/notes/network.md, "Compression". Names provisional.
 
 #include "ei/vcall.h"
+#include "lib/compiled_vtable.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -21,9 +22,10 @@
 //             slot 2 (empty, 0047D900) and slot 5 (deleting destructor 0047D910); the views live on
 //             the stack and are destroyed by setting the base's vtable (inlined, or 0047D960 when
 //             unwinding).
-// Like the streams, the class is __declspec(novtable): the game's constructors (or InitView) store
-// the vtables, and C++ never does. Copies are byte copies, the vtable included, as they were when
-// this was a plain struct (the verify wrappers copy buffers).
+// Like the streams, the class is __declspec(novtable): our rewrites of the game's constructors (or
+// InitView) store the vtables, and C++ never does. The tables are the compiled tags below (C19; game.exe's
+// three are retired). Copies are byte copies, the vtable included, as they were when this was a plain
+// struct (the verify wrappers copy buffers).
 namespace stlp {
 class string;
 }
@@ -75,7 +77,7 @@ public:
 
     // A fixed view (vtable 0073CA64, flags 2) over [first, last), as the coder's callers build it.
     void InitView(std::uint8_t* first, std::uint8_t* last) {
-        ei::SetVtable(this, kViewVtableAddress);
+        ei::SetVtable(this, ViewVtable());
         begin = first;
         cur = first;
         end = last;
@@ -84,9 +86,11 @@ public:
         flags = 2;
     }
 
-    static constexpr std::uintptr_t kGrowingVtableAddress = std::uintptr_t(0x0073D624);
-    static constexpr std::uintptr_t kViewVtableAddress = std::uintptr_t(0x0073CA64);
-    static constexpr std::uintptr_t kViewBaseVtableAddress = std::uintptr_t(0x0073CA48);   // the view's base
+    // The compiled tables (the tags below): the growing buffer's (game.exe's 0073D624), the fixed view's (0073CA64)
+    // and the view's base (0073CA48).
+    static void* GrowingVtable();
+    static void* ViewVtable();
+    static void* ViewBaseVtable();
 
     // The growing buffer's non-virtual members (game_buffer.cpp).
     // 004DA7F0. Constructor: growing vtable, base 0, flags 6, a 0x20-byte block (cursor and high at
@@ -139,7 +143,56 @@ static_assert(offsetof(GameBuffer, begin) == 0x04);
 static_assert(offsetof(GameBuffer, flags) == 0x18);
 static_assert(sizeof(GameBuffer) == 0x1C);
 
-constexpr std::uintptr_t kBufferViewVtable = GameBuffer::kViewVtableAddress;
+extern "C" int __cdecl _purecall();
+
+// The buffers' compiled tags (C19; docs/notes/standalone.md, "Batch 15's families"): GameBufferClass has the view
+// base's slots (0073CA48: 2 the empty commit, 5 its deleting destructor, the rest `_purecall`); the view's and the
+// growing buffer's tags override them with the bodies their game.exe tables reached.
+template <typename Self>
+class GameBufferClass : public ei::CompiledTag<Self> {
+public:
+    virtual void ReserveRead(std::int32_t) { _purecall(); }                       // 0
+    virtual void ReserveWrite(std::int32_t) { _purecall(); }                      // 1
+    virtual std::uint32_t Commit() { return 0; }   // 2: 0047D900 (empty: EAX as it was; no caller reads it)
+    virtual int ReadMore(void*, std::uint32_t) { return _purecall(); }            // 3
+    virtual int WriteMore(const void*, std::uint32_t) { return _purecall(); }     // 4
+    virtual void* DeleteScalar(unsigned deleteFlags) { return Buffer()->DeleteViewBase(deleteFlags); }   // 5: 0047D910
+    virtual std::uint8_t* Seek(std::int32_t) {                                     // 6
+        _purecall();
+        return nullptr;
+    }
+
+protected:
+    GameBuffer* Buffer() { return reinterpret_cast<GameBuffer*>(this); }
+};
+
+struct BufferViewBaseClass final : GameBufferClass<BufferViewBaseClass> {};
+
+class BufferViewClass final : public GameBufferClass<BufferViewClass> {
+public:
+    void ReserveRead(std::int32_t size) override { Buffer()->ReserveViewImpl(size); }    // 0: 004DA580
+    void ReserveWrite(std::int32_t size) override { Buffer()->ReserveViewImpl(size); }   // 1: 004DA590
+    int ReadMore(void* to, std::uint32_t size) override { return Buffer()->NothingMore(to, size); }           // 3: 004DA5A0
+    int WriteMore(const void* from, std::uint32_t size) override { return Buffer()->NothingMore(from, size); }   // 4: 004DA5B0
+    void* DeleteScalar(unsigned deleteFlags) override { return Buffer()->DeleteView(deleteFlags); }   // 5: 0047D940
+    std::uint8_t* Seek(std::int32_t position) override { return Buffer()->SeekView(position); }      // 6: 0047D930
+};
+
+class GrowingBufferClass final : public GameBufferClass<GrowingBufferClass> {
+public:
+    void ReserveRead(std::int32_t size) override { Buffer()->ReserveGrowing(size); }    // 0: 004DA630
+    void ReserveWrite(std::int32_t size) override { Buffer()->ReserveGrowing(size); }   // 1: 004DA6B0
+    int ReadMore(void* to, std::uint32_t size) override { return Buffer()->NothingMore(to, size); }   // 3: 004DA730
+    int WriteMore(const void* from, std::uint32_t size) override {                                   // 4: 004DA740
+        return Buffer()->WriteMoreGrowing(from, size);
+    }
+    void* DeleteScalar(unsigned deleteFlags) override { return Buffer()->DeleteGrowing(deleteFlags); }   // 5: 004DA8F0
+    std::uint8_t* Seek(std::int32_t position) override { return Buffer()->SeekGrowing(position); }      // 6: 004DA860
+};
+
+inline void* GameBuffer::GrowingVtable() { return GrowingBufferClass::Vtable(); }
+inline void* GameBuffer::ViewVtable() { return BufferViewClass::Vtable(); }
+inline void* GameBuffer::ViewBaseVtable() { return BufferViewBaseClass::Vtable(); }
 
 // 0047D960: the base's vtable left (the view owns nothing).
 void __fastcall BufferViewDestruct(GameBuffer* self);
