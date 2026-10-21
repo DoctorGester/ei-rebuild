@@ -20,6 +20,8 @@
 #include <cstring>
 #include <new>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 constexpr int kSoundManagerClassId = 0xE;
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
@@ -32,10 +34,11 @@ int CompareText(const char* a, const char* b) {
 CRITICAL_SECTION* Lock(std::uint8_t* storage) { return reinterpret_cast<CRITICAL_SECTION*>(storage); }
 } // namespace
 
-const char* __fastcall SoundManagerClassName(CSoundManager*) {
-    return kSoundManagerClassNameAddress;
-}
-int __fastcall SoundManagerClassId(CSoundManager*) { return kSoundManagerClassId; }
+const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
+int CSoundManager::GetClassId() { return kSoundManagerClassId; }
+
+const char* __fastcall SoundManagerClassName(CSoundManager* self) { return self->CSoundManager::GetClassName(); }
+int __fastcall SoundManagerClassId(CSoundManager* self) { return self->CSoundManager::GetClassId(); }
 EI_REPLACE(0x006B6290, SoundManagerClassName);
 EI_REPLACE(0x006B62A0, SoundManagerClassId);
 
@@ -46,7 +49,7 @@ int CSoundManager::CreateBody() {
 EI_REPLACE_METHOD(0x006B6D70, CSoundManager::CreateBody);
 
 CSoundManager* CSoundManager::DeletingDestruct(unsigned flags) {
-    DestructBody();
+    this->CSoundManager::~CSoundManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -203,26 +206,21 @@ EI_REPLACE(0x006B63F0, ConstructSequence);
 void __fastcall DestructSequence(SoundSequence* sequence) { sequence->names.Destruct(); }
 EI_REPLACE(0x006B6400, DestructSequence);
 
-CSoundManager* CSoundManager::Construct() {
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
+// The strings and the archive are members the compiler constructs (before the body here; between
+// the stream reader and the registries in the original).
+CSoundManager::CSoundManager() {
     ClearFields();
     streamReader.Construct();
-    new (&soundPath) mfc::CString();
     soundRegistry.Construct();
-    archive074.Construct();
     registry0CC.Construct();
     ConstructList(waveSources, kWaveSourceListVtable);
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
-    new (&streamName) mfc::CString();
-    new (&nextName) mfc::CString();
     markers.Construct();
     markers2.Construct();
     gameapi::InitializeCriticalSection(Lock(nameLock));
     gameapi::InitializeCriticalSection(Lock(streamLock));
-    new (&midiName) mfc::CString();
-    new (&midiNextName) mfc::CString();
     midiArray1E4.Construct();
     midiArray1F4.Construct();
     ConstructFader(midiFader);
@@ -236,14 +234,15 @@ CSoundManager* CSoundManager::Construct() {
     // are 0 here (the original's are stack bytes).
     cache.Construct(kMapBuckets, 0, 0, 0);
     deferred.Construct(kMapBuckets);
-    ei::SetVtable(this, kVtableAddress);
     AilStartup()();
     Reset();
-    return this;
 }
 
-void CSoundManager::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+CSoundManager* CSoundManager::Construct() { return new (this) CSoundManager(); }
+
+// The strings and the archive are destroyed after the body (the archive after the registries; in the
+// original between them, through 006714A0's address for Rebirth: the same destructor in the image).
+CSoundManager::~CSoundManager() {
     Close();
     AilShutdown()();
     deferred.Destroy();   // clear 006BD100, the buckets 006BC510
@@ -256,23 +255,18 @@ void CSoundManager::DestructBody() {
     gameapi::DeleteCriticalSection(Lock(midiLock));
     midiArray1F4.FreeData();
     midiArray1E4.FreeData();
-    midiNextName.~CString();
-    midiName.~CString();
     gameapi::DeleteCriticalSection(Lock(streamLock));
     gameapi::DeleteCriticalSection(Lock(nameLock));
     markers2.FreeData();
     markers.FreeData();
-    nextName.~CString();
-    streamName.~CString();
     waveSources.vtable = ei::GamePointer<void>(kWaveSourceListVtable);
     waveSources.RemoveAll();
     registry0CC.Destroy();
-    MappedResourceDestroyOriginal(&archive074);
     soundRegistry.Destroy();
-    soundPath.~CString();
     streamReader.Destruct();
-    DestructBase();
 }
+
+void CSoundManager::DestructBody() { this->CSoundManager::~CSoundManager(); }
 
 void CSoundManager::ResetStream() {
     streamState = 0;

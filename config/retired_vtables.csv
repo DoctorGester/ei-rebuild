@@ -27,3 +27,4 @@ vtable,slots,class,file,note
 00743BB4,13,CMaterial,src/game/material.h,
 00743D24,13,CTexture,src/game/texture.h,
 00744098,13,CMusicSystem,src/game/sound.h,
+007440F0,13,CSoundManager,src/game/sound.h,
