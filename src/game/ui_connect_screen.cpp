@@ -103,10 +103,10 @@ void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(fr
 
 // A message box of `ui` on top (allocation failure: null pushed, as the original).
 void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_t result, int flags) {
-    void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-    void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(ui, title, text, static_cast<int>(result), flags, kBoxFormat)
+    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+    CMessageBox* box = memory ? memory->Construct(ui, title, text, static_cast<int>(result), flags, kBoxFormat)
                        : nullptr;
-    ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+    ui->PushWindow(box, 1, 1);
 }
 
 // The file stream the address book is written with, built and torn down inline (the archive is
@@ -164,8 +164,8 @@ constexpr int kTextureKind = 3;
 constexpr int kScrollbarTexture = 1;   // objects_: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    return memory ? static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    return memory ? memory->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
 }
 
 // A write the way the box's constructor inlines it: in place (marking the buffer written) when it
@@ -289,13 +289,13 @@ void CMpConnectScreen::Update() {
             joining_ = false;
             mfc::CString key;
             key = RefusalKey(client->refusal_);
-            void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-            void* box = nullptr;
+            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+            CMessageBox* box = nullptr;
             if (memory) {
                 mfc::CString text = key + MessageSuffix();
-                box = static_cast<CMessageBox*>(memory)->Construct(interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat);
+                box = memory->Construct(interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat);
             }
-            interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+            interface_->PushWindow(box, 1, 1);
             return;
         }
     }
@@ -545,9 +545,9 @@ void CMpConnectScreen::MasterRequest() {
         master.Parse(MasterHost(), kMasterPort);
     net::ClientSession* client = net::GameClient();
     std::uint32_t extra = client ? client->queries_.extra : 0;
-    void* memory = gamecrt::operator_new(sizeof(CMasterRequestBox));
+    CMasterRequestBox* memory = gamecrt::operator_new_as<CMasterRequestBox>();
     CMasterRequestBox* box =
-        memory ? static_cast<CMasterRequestBox*>(memory)->Construct(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra)
+        memory ? memory->Construct(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra)
                : nullptr;
     interface_->PushWindow(box, 1, 1);
 }
@@ -752,8 +752,8 @@ void CMpConnectScreen::Create() {
         maxPlayers_ = 6;
     }
     {
-        void* memory = gamecrt::operator_new(sizeof(CUiEditField));
-        nameEdit_ = memory ? static_cast<CUiEditField*>(memory)->Construct(
+        CUiEditField* memory = gamecrt::operator_new_as<CUiEditField>();
+        nameEdit_ = memory ? memory->Construct(
                                  interface_, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160})
                            : nullptr;
         AddChild(nameEdit_);
@@ -830,7 +830,7 @@ EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
 CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* titleKey, const char* textKey,
                                                 std::uint32_t result, const net::NetAddress* address,
                                                 std::uint32_t extra) {
-    static_cast<CMessageBox*>(this)->Construct(ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
+    CMessageBox::Construct(ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
     link_.Construct(address);
     vtable_ = Vtable();
     inputVtable_ = InputVtable();

@@ -28,8 +28,8 @@ CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     vtable_ = ei::GamePointer<void*>(kSpinVtable);
     inputVtable_ = ei::GamePointer<void*>(kSpinInputVtable);
     rect_ = rect;
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(memory ? memory->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);
     texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText());
     changed_ = false;
     layout_ = rect;

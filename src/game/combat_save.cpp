@@ -172,7 +172,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     stream->Read(&animationHeld, 1);
     LoadStepList(&queue, stream);
     stream->Read(&queue.extra, 4);
-    static_cast<AIPath*>(&motion)->LoadPath(stream);
+    motion.LoadPath(stream);
     PlanLoad(&currentPlan, nullptr, stream);
     LoadPlanFields(stream, &currentPlan);
     stream->Read(&keepHitDirection, 1);
@@ -199,14 +199,14 @@ void CUnitServer::LoadServer(CStream* stream) {
     stream->Read(&tamerSide, 4);
     stream->Read(&speedClass, 4);
     stream->Read(&claimedHostile, 4);
-    static_cast<AIBrain*>(&brain)->Load(stream);
-    static_cast<AIAlarm*>(&voice)->Load(stream);
+    brain.Load(stream);
+    voice.Load(stream);
     stream->Read(&orderStopped, 1);
     stream->Read(&deathReported, 1);
     stream->Read(&sinkSpeed, 4);
 
     // The context's (the world's) slot 14: the timed objects.
-    void* effects = static_cast<CWorld*>(ManagerContext())->TimedObjectManager();
+    void* effects = WorldContext()->TimedObjectManager();
     AssignCounted(effectObject, ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->Read(&followsLeader, 1);
@@ -261,8 +261,8 @@ void CUnitServer::SaveServer(CStream* stream) {
     WriteCopy(stream, tamerSide);
     WriteCopy(stream, speedClass);
     WriteCopy(stream, claimedHostile);
-    static_cast<AIBrain*>(&brain)->Save(stream);
-    static_cast<AIAlarm*>(&voice)->Save(stream);
+    brain.Save(stream);
+    voice.Save(stream);
     WriteCopy(stream, orderStopped);
     WriteCopy(stream, deathReported);
     stream->Write(&sinkSpeed, 4);   // the float's bits

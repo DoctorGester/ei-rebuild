@@ -632,7 +632,7 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&alarm, 1);
     stream->Read(&count, 4);
     alarmRecords.SetSize(count, -1);
-    for (int i = 0; i < alarmRecords.size; ++i) static_cast<mapspec::Behaviour*>(&alarmRecords.data[i])->Read(stream);
+    for (int i = 0; i < alarmRecords.size; ++i) alarmRecords.data[i].Read(stream);
     stream->Read(&alarmCountdown, 4);
     // A radius saved as the default one becomes the configured one.
     LogicSettings& settings = GameLogicSettings();

@@ -483,7 +483,7 @@ public:
 };
 inline CUnitServerVirtuals* ServerSlots(CEngineObject* controller) { return static_cast<CUnitServerVirtuals*>(controller); }
 
-// An object (a map object or a unit) seen through its virtual slots.
+// An engine object known to be a map object (a unit, a lever, a trap ...): its slots and fields.
 inline CMapObject* ObjectSlots(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 
 // The companion's back pointer (+0x1C of CMapObjectServer / CMapObjectClientSpecific).

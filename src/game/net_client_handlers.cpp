@@ -133,7 +133,7 @@ void DropRequestsFor(ClientSession* self, const Message* file) {
 
 // The owner's release of the party description (+0x260C) as the handlers inline it, then null.
 void DropParty(ClientSession* self) {
-    auto* state = static_cast<CRefObject*>(self->party_.ptr);
+    auto* state = self->party_.ptr;
     if (!state) return;
     if (state->refs_ != 1) {
         state->flags7_ |= CRefObject::kDetached;
@@ -141,7 +141,7 @@ void DropParty(ClientSession* self) {
         state->OnShutdown();
         --state->refs_;
     }
-    auto* held = static_cast<CRefObject*>(self->party_.ptr);
+    auto* held = self->party_.ptr;
     --held->refs_;
     if (held->refs_ == 0 && held) delete held;
     self->party_.ptr = nullptr;

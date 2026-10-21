@@ -121,7 +121,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
             int found;
             {
                 // MFC's result-slot calls (GetFilePath, operator+) construct these.
-                mfc::CString path(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
+                mfc::CString path(finder.GetFilePath());
                 mfc::CString sub(mfc::CString::kUnset);
                 CStringConcatTextOriginal(&sub, &path, SubdirectoryPattern());
                 found = FindSeedFile(out, sub, target, counter);
@@ -131,7 +131,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
         }
         if (*counter >= target) {
             if (finder.GetLength() >= kMinimumFileSize) {
-                mfc::CString path(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
+                mfc::CString path(finder.GetFilePath());
                 const char* text = path;
                 std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the original
                 return 1;

@@ -112,7 +112,7 @@ void CEffectShowVisibility::Pack(DeltaField* field) {
 }
 
 int CEffectShowVisibility::Tick() {
-    if (!static_cast<CWorld*>(ManagerContext())->IsServer()) return 1;
+    if (!WorldContext()->IsServer()) return 1;
     CEngineObject* seer = WorldFindUnit(ObjectWorld(this), nullptr, seerId_);
     CEngineObject* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
     if (seer == nullptr || observer == nullptr) return 0;

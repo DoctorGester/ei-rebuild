@@ -61,7 +61,7 @@ struct LocalCoder {
 
 struct LocalBuffer {
     GameBuffer b;
-    LocalBuffer() { static_cast<GameBuffer*>(&b)->ConstructGrowing(); }
+    LocalBuffer() { b.ConstructGrowing(); }
     ~LocalBuffer() { GrowingBufferDestruct(&b); }
     LocalBuffer(const LocalBuffer&) = delete;
     LocalBuffer& operator=(const LocalBuffer&) = delete;

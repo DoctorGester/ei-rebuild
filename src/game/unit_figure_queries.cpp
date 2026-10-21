@@ -108,7 +108,7 @@ double CUnit::BodyExtent() {
 EI_REPLACE_METHOD(0x005304A0, CUnit::BodyExtent);
 
 double CUnit::GroundHeight(float x, float y) {
-    auto* world = static_cast<CWorld*>(World());
+    auto* world = World();
     if (movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
     if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + position.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
@@ -119,10 +119,10 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     // The original leaves this uninitialised on the server and for a hero without a right hand,
     // and turns whatever the stack holds; zero gives the position there (docs/notes/units.md).
     Vector3 local = {0.0f, 0.0f, 0.0f};
-    auto* world = static_cast<CWorld*>(ManagerContext());
+    auto* world = WorldContext();
     if (!world->IsServer()) {
         if (type_ == kUnitTypeHero) {
-            if (CEngineObject* hand = static_cast<CObject3D*>(this)->FindPartByPrefix(kRightHand)) {
+            if (CEngineObject* hand = FindPartByPrefix(kRightHand)) {
                 Vector3 at;
                 PartWorldPosition(&at.x, static_cast<CFigureMesh*>(hand));
                 out->x = at.x;

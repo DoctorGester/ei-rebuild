@@ -302,8 +302,8 @@ void COptionsWindow::BuildSettings() {
             text = TextOffDefault();
             TheTextManager()->GetString(TextOptionOff(), &text);
             if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyHard(), &text);
-            void* memory = gamecrt::operator_new(sizeof(CUiSpin));
-            setting.spin_ = memory ? static_cast<CUiSpin*>(memory)->Construct(interface_, RECT{530, top + 160, 690, top + 176},
+            CUiSpin* memory = gamecrt::operator_new_as<CUiSpin>();
+            setting.spin_ = memory ? memory->Construct(interface_, RECT{530, top + 160, 690, top + 176},
                                                                              text)
                                    : nullptr;
             text = TextOnDefault();

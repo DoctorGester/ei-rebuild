@@ -89,16 +89,13 @@ CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
 EI_REWRITTEN(0x004B2500, ScriptObjectRef::Construct);
 
 CUnit* ScriptObjectRef::AsUnit() const {
-    CEngineObject* o = object;
-    if (o && o->GetClassId() == kClassUnit) return static_cast<CUnit*>(o);
-    return nullptr;
+    return UnitOrNull(object);
 }
 EI_REWRITTEN(0x004B2530, ScriptObjectRef::AsUnit);
 
 void* ScriptObjectRef::GetUnitPerception() const {
-    CEngineObject* o = object;
-    if (o && o->GetClassId() == kClassUnit) return static_cast<CUnit*>(o)->controller;
-    return nullptr;
+    CUnit* unit = UnitOrNull(object);
+    return unit ? unit->controller : nullptr;
 }
 EI_REWRITTEN(0x004B2550, ScriptObjectRef::GetUnitPerception);
 

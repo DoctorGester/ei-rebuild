@@ -606,7 +606,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
             SetDefaults(&vitals, nullptr);
             mapObject->SetServerData(&vitals);
         } else {
-            static_cast<UnitStats*>(&stats)->Reset();
+            stats.Reset();
             SetDefaults(&vitals, &stats);
             mapObject->SetStats(&stats);
         }

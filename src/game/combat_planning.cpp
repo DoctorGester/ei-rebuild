@@ -81,7 +81,7 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 // map (007B01F4).
 bool& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
-CAIMap* MapOf(void* world) { return static_cast<CWorldServer*>(world)->AIMap(); }
+CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
@@ -136,7 +136,7 @@ struct LocalUnitMotion {
         motion.curveX = {};   // the segment part (0054E5D0): no curves, no segment
         motion.curveY = {};
         motion.segment = -1;
-        static_cast<UnitMotion*>(&motion)->Clear();
+        motion.Clear();
         motion.speedScale = 0.5f /*0073EF20*/;
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
@@ -168,7 +168,7 @@ void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, 
 // --- A use order's spot -----------------------------------------------------------------------
 
 bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
-    void* world = ObjectWorld(this);
+    CWorldServer* world = ServerWorld();
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
     SpotArray spots{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
@@ -217,7 +217,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     if (pathOrder->kind != kMotionPath) return 0.0f;
     ObjectWorld(this);
     LocalUnitMotion simulated;
-    static_cast<UnitMotion*>(&simulated.motion)->Build(static_cast<AIPath*>(motionOrder));
+    simulated.motion.Build(static_cast<AIPath*>(motionOrder));
     SightTarget sight;
     bool canSee = FindSightTarget(order, &sight);
     Vector3 previous = {0.0f, 0.0f, -1000.0f};
@@ -235,7 +235,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         float speed;
         int cellX;
         int cellY;
-        static_cast<UnitMotion*>(&simulated.motion)->Sample(nullptr, OrderOf(static_cast<AIPath*>(motionOrder)), time, &turning,
+        simulated.motion.Sample(nullptr, OrderOf(static_cast<AIPath*>(motionOrder)), time, &turning,
                                                              &position.x, &direction.x, &speed, &cellX, &cellY);
         if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
         std::memcpy(&previous, &position, sizeof(previous));
@@ -262,7 +262,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = {position.x, position.y, position.z};
         from.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + sight.eyeHeight);
-        double visible = MapOf(ManagerContextOf(this))->LineOfSight(&from, &sight.point);
+        double visible = MapOf(ServerWorld())->LineOfSight(&from, &sight.point);
         EI_NAN_AUDIT(visible);
         if (visible >= 0.1f /*0073EEC0*/) break;
         t += 5.0f;
@@ -297,7 +297,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         int kind = order->kind == kOrderAttack ? 2 : 1;
         if (order->kind == kOrderCastAt || order->kind == kOrderCast) {
             std::uint32_t source = action.source;
-            void* spell = nullptr;
+            CSpell* spell = nullptr;
             bool skip = false;
             if (source & kQuickItemSource) {
                 CItem* carrier = SpellCarrier(source);
@@ -306,7 +306,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             } else {
                 spell = unit->GetSpellObject(source);
             }
-            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype())->castType == 0) kind = 2;
+            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype())->castType == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
@@ -332,7 +332,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
                 PathFlag() = false;
                 SectorMapRemove(ServerSectors(), nullptr, target);
             }
-            void* world = ManagerContextOf(this);
+            CWorldServer* world = ServerWorld();
             path.Path()->flag6E = unit->player == nullptr;
             std::uint32_t saved43C = unit->altPassCosts;
             unit->altPassCosts = 1;
@@ -363,12 +363,12 @@ EI_REWRITTEN(0x0054E600, CUnitServer::PlanOrderRoute);
 // --- A party unit's move -----------------------------------------------------------------------
 
 void CUnitServer::PlanMove(const float* point, int moving, int run, float range) {
-    void* world = ManagerContextOf(this);
+    CWorldServer* world = ServerWorld();
     LocalPath path;
     UnitPtrList lifted{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     LiftNearby(&lifted, point, static_cast<char>(moving));
     int mode = unit->moveMode;
-    CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();
+    CSectorMap* sectors = world->Sectors();
     CAIMap* map = MapOf(world);
     bool running = static_cast<std::uint8_t>(run) != 0;
     if (running && mode != 2 && mode != 3) {
@@ -380,7 +380,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         SectorMapAdd(sectors, nullptr, unit);
     }
     std::uint32_t flag = map->CellFlag80At(&unit->position);
-    void* world2 = ManagerContextOf(this);
+    CWorldServer* world2 = ServerWorld();
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;

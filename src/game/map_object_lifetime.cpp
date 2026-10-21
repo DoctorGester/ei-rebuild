@@ -165,7 +165,7 @@ void CObject3D::DestructBody() {
     TearDownObject3D();
     name.~CString();
     SetVtable(this, CTransformObject::kVtableAddress);
-    static_cast<CEngineObject*>(this)->DestructBase();
+    CEngineObject::DestructBase();
 }
 EI_REWRITTEN(0x00515D70, CObject3D::DestructBody);
 
@@ -406,7 +406,7 @@ void CMapObjectServer::DestructBody() {
     name78.~CString();
     SetVtable(this, CMapObjectCompanion::kVtableAddress);
     owner = nullptr;
-    static_cast<CEngineObject*>(this)->DestructBase();
+    CEngineObject::DestructBase();
 }
 EI_REWRITTEN(0x00515720, CMapObjectServer::DestructBody);
 
@@ -462,7 +462,7 @@ void CMapObjectClientSpecific::DestructBody() {
     }
     SetVtable(this, CMapObjectCompanion::kVtableAddress);
     owner = nullptr;
-    static_cast<CEngineObject*>(this)->DestructBase();
+    CEngineObject::DestructBase();
 }
 EI_REWRITTEN(0x00510560, CMapObjectClientSpecific::DestructBody);
 
@@ -501,6 +501,6 @@ void CUnitServer::DestructBody() {
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
     SetVtable(this, kControllerVtable);
     unit = nullptr;
-    static_cast<CEngineObject*>(this)->DestructBase();
+    CEngineObject::DestructBase();
 }
 EI_REWRITTEN(0x00546230, CUnitServer::DestructBody);

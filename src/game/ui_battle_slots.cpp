@@ -147,7 +147,7 @@ EI_REPLACE_METHOD(0x00635080, CBattleScreen::SaveState);
 // --- 006361B0: slot 29 --------------------------------------------------------------------------
 
 void CBattleScreen::MarkPortrait(int index) {
-    auto* portraits = static_cast<CHudPortraits*>(portraits_);
+    auto* portraits = portraits_;
     portraits->SceneMesh(index * kPortraitSprites + 4)->visible_ = 1;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion turn;
@@ -221,7 +221,7 @@ void CBattleScreen::OnMessageResult(int result) {
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
         if (window) {
-            static_cast<CUiContainer*>(window)->Construct(interface_);
+            window->CUiContainer::Construct(interface_);
             window->entriesBegin_ = nullptr;
             window->entriesEnd_ = nullptr;
             window->entriesCapacity_ = nullptr;
@@ -263,8 +263,8 @@ void CBattleScreen::OnGameOver(char won) {
                                                    "game_over_msg", 0x20000, 3, 1)
                      : nullptr;
     } else {
-        void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, "end_of_game",
+        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+        box = memory ? memory->Construct(interface_, "end_of_game",
                                                    "end_of_game_msg", 0xFFFF0000u, 3, 1)
                      : nullptr;
     }

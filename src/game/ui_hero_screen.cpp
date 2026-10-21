@@ -110,13 +110,13 @@ BOOL CMpHeroScreen::Draw(int pass) {
     int y = MouseScreenY();
     hoveredItem_ = nullptr;
     int topic = 0;
-    hoveredItem_ = static_cast<CUiWindow*>(weaponPanel_)->VirtualItemAt(x, y, &topic);
-    if (!hoveredItem_ && topic == 0) hoveredItem_ = static_cast<CUiWindow*>(spellPanel_)->VirtualItemAt(x, y, &topic);
+    hoveredItem_ = weaponPanel_->VirtualItemAt(x, y, &topic);
+    if (!hoveredItem_ && topic == 0) hoveredItem_ = spellPanel_->VirtualItemAt(x, y, &topic);
 
     if (hoveredItem_) {
-        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->Describe(reinterpret_cast<CItem*>(hoveredItem_));
+        if (descPanel_) descPanel_->Describe(reinterpret_cast<CItem*>(hoveredItem_));
     } else if (topic != 0) {
-        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
+        if (descPanel_) descPanel_->ShowHelp(topic);
     } else {
         // The original sets only the kind; the other fields stay as the stack had them (ours 0).
         ItemHoverInfo info = {};
@@ -165,7 +165,7 @@ void CMpHeroScreen::Update() {
     }
     if (mode_ != kModeNewHero) return;
 
-    mfc::CString name(static_cast<CUiEditField*>(nameEdit_)->text_);
+    mfc::CString name(nameEdit_->text_);
     const UnitStats* stats = StatsOf(Hero());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     // FCOMP; TEST AH,0x40: equal.
@@ -195,7 +195,7 @@ void CMpHeroScreen::Close() {
     }
     GameRemoveUnitsOf(&records);
     previewModel_ = nullptr;
-    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
+    descPanel_->Describe(nullptr);
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x00615850, CMpHeroScreen::Close);
@@ -392,7 +392,7 @@ void CMpHeroScreen::ShowHero(int index) {
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
     auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) static_cast<CUnit*>(unit)->AddWeapon(hero->weapons[i]);
+    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) unit->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();

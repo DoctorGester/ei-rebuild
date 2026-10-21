@@ -97,7 +97,7 @@ void Forget(CPlayer::ObjectMap& map, int id) {
     if (CPlayer::ObjectMap::Node* node = map.Find(id)) map.Erase(node);
 }
 
-int WorldUpdateCount(CPlayer* player) { return static_cast<CWorldServer*>(player->ManagerContext())->updateCount_; }
+int WorldUpdateCount(CPlayer* player) { return player->ServerWorld()->updateCount_; }
 
 // SendItemsGiven (A-H10).
 constexpr std::uint8_t kMessageItemStates = 0x05;
@@ -281,12 +281,12 @@ int CPlayerServer::SendPartyState() {
 
     int count = partyUnits_.size;
     WriteByte(&out_, kMessagePartyState);
-    WriteByte(&out_, static_cast<CWorldServer*>(player->ManagerContext())->paused_ != 0 ? 1 : 0);
+    WriteByte(&out_, player->ServerWorld()->paused_ != 0 ? 1 : 0);
     WriteDword(&out_, possessedId_);
     WriteDword(&out_, static_cast<std::uint32_t>(count));
     std::uint32_t playerBit = 1u << (player->playerId_ & 31);
     for (int i = 0; i < count; ++i) {
-        auto* unit = static_cast<CUnit*>(partyUnits_.data[i].AsUnit());
+        auto* unit = partyUnits_.data[i].AsUnit();
         if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
             if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.

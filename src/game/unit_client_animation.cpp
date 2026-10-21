@@ -39,11 +39,6 @@ constexpr float kHalf = 0.5f;                         // 0073B86C
 constexpr float kPulseBase = 0.2f;                    // 0073BAD4
 constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 
-
-CObject3DClientSpecific* ClientHalf(CUnit* unit) {
-    return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-}
-
 // The pulse's value after the clock moved on by `frames`.
 float Pulse(float& clock, float frames) {
     float now = frames + clock;   // FST to a float local, FSTP to the clock
@@ -86,8 +81,8 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     }
     if (step > kLongStep) step = static_cast<float>(IsaacRandom::Global().Next() % kLongStepSpread + 500u);
     lastTime = time;
-    if (ObjectSlots(unit)->InvisibleSlot()) ClientHalf(unit)->InvisiblePulse(step);
-    if (unit->MapObject()->IsStunned()) ClientHalf(unit)->StunnedPulse(step);
+    if (ObjectSlots(unit)->InvisibleSlot()) unit->ClientSpecific()->InvisiblePulse(step);
+    if (unit->MapObject()->IsStunned()) unit->ClientSpecific()->StunnedPulse(step);
     if (unit->pathTimeShift == 0) PlaceOnPath(time, step);
     else unit->animationSpeed = 1.0f;
     if (unit->motionMode == kMotionScaled) {

@@ -91,18 +91,18 @@ int CastDelayTicks(double distanceSq, double flight) {
 
 // The spell a cast order's source names: a quick item's spell (+0x44), or the unit's own. The
 // boolean is false when a quick item source has no carrier (the original returns there).
-bool OrderSpell(CUnitServer* self, std::uint32_t source, void** spell) {
+bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
     if (source & kQuickItemSource) {
         CItem* carrier = self->SpellCarrier(source);
         if (!carrier) return false;
-        *spell = Get<void*>(carrier, 0x44);
+        *spell = carrier->spell_;
         return true;
     }
     *spell = self->unit->GetSpellObject(source);
     return true;
 }
 
-char* SpellPrototypeOf(void* spell) { return static_cast<CSpell*>(spell)->GetPrototype(); }
+char* SpellPrototypeOf(CSpell* spell) { return spell->GetPrototype(); }
 } // namespace
 
 namespace {
@@ -117,18 +117,17 @@ namespace {
 
 bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
     if (order->flag18) return false;
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     CEngineObject* target = order->target;
 
     if (order->kind == kOrderCast || order->kind == kOrderCastAt) {
-        void* spell;
+        CSpell* spell;
         if (!OrderSpell(this, order->source, &spell) || !spell) return false;
         if (Get<int>(SpellPrototypeOf(spell), 0x40) == 0) return false;
         out->point.x = out->point.y = out->point.z = 0.0f;
         std::memset(&out->minDistanceSq, 0, sizeof(float));
         out->unit = nullptr;
-        if (IsUnit(target)) {
-            CUnit* other = static_cast<CUnit*>(target);
+        if (CUnit* other = UnitOrNull(target)) {
             out->unit = other;
             double reach = static_cast<double>(unit->standingHeight) + other->standingHeight + kPointThree;
             out->minDistanceSq = static_cast<float>(reach * reach);
@@ -137,15 +136,16 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
         }
         std::memcpy(&out->point, &order->point, sizeof(out->point));
         out->point.z = static_cast<float>(
-            static_cast<CWorld*>(world)->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
+            world->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
         out->eyeHeight = static_cast<float>(unit->BaseSpeed());
         return true;
     }
 
-    if (!IsUnit(target)) return false;
+    CUnit* targetUnit = UnitOrNull(target);
+    if (!targetUnit) return false;
     out->point.x = out->point.y = out->point.z = 0.0f;
     out->minDistanceSq = kNearSq;
-    out->unit = static_cast<CUnit*>(target);
+    out->unit = targetUnit;
     out->eyeHeight = static_cast<float>(unit->BaseSpeed());
     return true;
 }
@@ -252,7 +252,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     eye.y = unit->position.y;
     eye.z = unit->position.z;
     eye.z = static_cast<float>(unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
-    CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
+    CAIMap* map = ServerWorld()->AIMap();
     double visibility = map->LineOfSight(&eye, &sight.point);
     return visibility >= kPointOne;
 }
@@ -273,7 +273,7 @@ void DestroySteps(AnimationSteps* steps) {
 
 // The quick item or spell value the cast animation is built with: the spell's +0x4C scaled by
 // 15 / stats +0x30 (left at stats +0x30 when that is 0), rounded.
-int CastValue(CUnitServer* self, void* spell) {
+int CastValue(CUnitServer* self, CSpell* spell) {
     double scale = Get<float>(self, 0x210);
     if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
     volatile std::int64_t wide = Get<std::uint32_t>(spell, 0x4C);
@@ -281,7 +281,7 @@ int CastValue(CUnitServer* self, void* spell) {
     return x87::fistp(value);
 }
 
-void FillCastKind(OrderPlan* plan, void* spell) {
+void FillCastKind(OrderPlan* plan, CSpell* spell) {
     plan->isCast = 1;
     if (!spell) {
         plan->castKind = kCastKindNone;
@@ -301,7 +301,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     Vector3 origin;
     std::memcpy(&origin, &unit->position.x, sizeof(origin));
     int now = ObjectWorld(this)->tick_;
-    void* spell = nullptr;
+    CSpell* spell = nullptr;
 
     if (order->flag18) {
         double distance = ActionDistance(order);
@@ -371,11 +371,11 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     float reachSq;    // the order's own range, squared
     float outerSq;    // how far the target may be and still be waited for
-    if (!IsUnit(order->target)) {
+    targetUnit = UnitOrNull(order->target);
+    if (!targetUnit) {
         reachSq = static_cast<float>(static_cast<double>(range) * range);
         outerSq = reachSq;
     } else {
-        targetUnit = static_cast<CUnit*>(order->target);
         double speed = targetUnit->MoveSpeed();
         reachSq = static_cast<float>(static_cast<double>(range) * range);
         bool inFront = false;
@@ -401,7 +401,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             targetUnit->IsLargeUnit()) {
             // A moving target of a missile spell: aim where it will be when the spell arrives.
             predict = true;
-            void* missile;
+            CSpell* missile;
             if (OrderSpell(this, order->source, &missile) && missile &&
                 (Get<std::uint32_t>(missile, 0x3C) & kSpellNoTarget)) {
                 float flight = Get<float>(missile, 0x30);

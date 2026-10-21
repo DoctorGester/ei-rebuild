@@ -255,7 +255,7 @@ int GameFlow::SaveGame(const char* slot) {
     TheInterface()->SaveState(&scenario);
     ScriptsReset(kScripts);
     TheInterface()->SaveWindowState();
-    static_cast<CStream*>(&scenario)->WriteSized(static_cast<CStream*>(kScripts));
+    scenario.WriteSized(static_cast<CStream*>(kScripts));
     ScriptsReset(kScripts);
     TheCamera()->SaveState(&scenario);
     SaveFileWrite(&file.stream, kMagicScenario, SaveVersion(), &scenario);
@@ -1093,11 +1093,11 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     AddressSet(address, nullptr, kLocalHost, ei::GameData<const int>(0x00783E30));
     {
         GameBuffer hello;
-        static_cast<GameBuffer*>(&hello)->ConstructGrowing();
+        hello.ConstructGrowing();
         char secret[kPasswordSize] = {};
         if (password) gamecrt::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
-        static_cast<net::ClientBase*>(net::GameClient())->Join(reinterpret_cast<const net::NetAddress*>(address), &hello);
+        net::GameClient()->Join(reinterpret_cast<const net::NetAddress*>(address), &hello);
         GrowingBufferDestruct(&hello);
     }
     LocalLogin()->host_ = 1;
@@ -1123,11 +1123,11 @@ EI_REWRITTEN(0x0057EA50, GameFlow::StartClient);
 
 void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
     GameBuffer hello;
-    static_cast<GameBuffer*>(&hello)->ConstructGrowing();
+    hello.ConstructGrowing();
     char secret[kPasswordSize] = {};
     if (password) gamecrt::strncpy(secret, password, kPasswordSize);
     hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
-    static_cast<net::ClientBase*>(net::GameClient())->Join(const_cast<net::NetAddress*>(address), &hello);
+    net::GameClient()->Join(const_cast<net::NetAddress*>(address), &hello);
     GrowingBufferDestruct(&hello);
 }
 EI_REWRITTEN(0x0057E970, GameFlow::JoinServer);
@@ -1271,7 +1271,7 @@ int __stdcall LoadMission(CStream* file) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
         TheInterface()->LoadState(&mission.s);
-        static_cast<CStream*>(&mission.s)->ReadSized(static_cast<CStream*>(GameSaveStream()));
+        mission.s.ReadSized(static_cast<CStream*>(GameSaveStream()));
         ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
     }
     return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70
@@ -1301,7 +1301,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     }
     while (found) {
         found = finder.FindNext();
-        mfc::CString file(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
+        mfc::CString file(finder.GetFilePath());
         ImportDeleteFile()(file);
     }
     finder.Close();
@@ -1328,7 +1328,7 @@ constexpr int kResultMainMenu = 4;
 
 
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
-inline CPlayerClient* ClientWorldLocalView(void* client) { return static_cast<CWorldClient*>(client)->LocalView(); }
+inline CPlayerClient* ClientWorldLocalView(CWorldClient* client) { return client->LocalView(); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
 __declspec(naked) int __stdcall EnterZoneAt(CParty*) EI_ORIGINAL(0x0057A060)
 
@@ -1536,7 +1536,7 @@ void GameFlow::ProcessRequest() {
         StartZoneAt(this, nullptr, kMainMenu, 2);
         break;
     case kStateLoad:
-        static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+        clientWorld->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         TheServerWorld()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
@@ -1568,7 +1568,7 @@ void GameFlow::ProcessRequest() {
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         TheServerWorld()->TeardownZone();
-        if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
+        if (!clientWorld->JoinGameClient(zone)) {
             if (Active(net::GameClient())) {
                 BeginMultiplayerGame();
             } else {
@@ -1583,7 +1583,7 @@ void GameFlow::ProcessRequest() {
         StartNetworkZoneAt(requestTarget_);
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
-        static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+        clientWorld->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }
@@ -1604,7 +1604,7 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // 005F8420), the scripts (004A51C0, a stream method), the globals (00410AB0); the world from
 // mission.sav (00579E60, a flow method, from the file stream).
 __declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
-void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadSized(static_cast<CStream*>(a2)); }
+void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, void* a2) { a0->ReadSized(static_cast<CStream*>(a2)); }
 int& LoadedScriptsVersion() { return ei::GameData<int>(0x007AFE00); }
 
 } // namespace

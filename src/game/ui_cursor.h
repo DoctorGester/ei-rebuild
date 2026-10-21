@@ -43,7 +43,7 @@ public:
     // read fails) into the object and returns it. The argument is not read. PollThroughHook goes
     // through the address so the wrapper runs.
     const LONG* Poll(int unused);
-    const LONG* PollThroughHook(int unused) { return static_cast<CDirectInputMouse*>(this)->Poll(unused); }
+    const LONG* PollThroughHook(int unused) { return Poll(unused); }
     // 004578D0 (A-E1; app_lifetime.cpp). Destructor body: the vtable, Shutdown, the two counted
     // pointers' releases (both already null), the root vtable (0073C368).
     void Destruct();

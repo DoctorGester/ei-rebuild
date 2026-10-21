@@ -260,3 +260,8 @@ inline void CObject3DClientSpecific::ClearWoundsMaterial() {
     woundsMaterial = nullptr;
     if (old) old->Release();
 }
+
+#include "map_object_figures.h"   // CObject3D
+
+// The 3D object's half (+0x94) on the client.
+inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return static_cast<CObject3DClientSpecific*>(attached); }

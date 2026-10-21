@@ -32,7 +32,7 @@ int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(v
 
 // The skin texture: the first texture of the unit's client half (its material), or null.
 CTexture* SkinOf(CUnit* unit) {
-    auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+    auto* half = unit->Object3D()->ClientSpecific();
     if (!half->partSets[0]) return nullptr;
     return half->partSets[0]->texture;
 }
@@ -77,7 +77,7 @@ void CUnitClientSpecific::BlinkClose(bool force) {
     CTexture* skin = SkinOf(unit);
     if (!skin) return;
     auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
-    auto* face = static_cast<CTexture*>(faceTexture);
+    CTexture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
     double scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
@@ -94,7 +94,7 @@ void CUnitClientSpecific::BlinkOpen(bool force) {
     CTexture* skin = SkinOf(unit);
     if (!skin) return;
     auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
-    auto* face = static_cast<CTexture*>(faceTexture);
+    CTexture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
     double scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);

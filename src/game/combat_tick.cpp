@@ -211,9 +211,8 @@ namespace {
 // standing on its own) is too high to reach, else whether the action can be planned (0054C6B0).
 bool CanStillDo(CUnitServer* self, UnitAction* order) {
     if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
-        CEngineObject* target = order->target;
-        if (IsUnit(target) && !IsDead(target)) {
-            auto* other = static_cast<CUnit*>(target);
+        CUnit* other = UnitOrNull(order->target);
+        if (other && !IsDead(other)) {
             if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
                 double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
                 if (height >= kHeightLimit) return false;
@@ -306,7 +305,7 @@ void DestroyPtrList(UnitPtrList* list) {
 } // namespace
 
 bool CUnitServer::StartMove() {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     UnitPtrList lifted;
     InitPtrList(&lifted);
     orderStopped = 0;
@@ -332,13 +331,13 @@ bool CUnitServer::StartMove() {
     }
     // Plan the way with the units near the goal lifted off the sector map.
     LiftNearby(&lifted, &action.point.x, action.source != 0);
-    CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
+    CAIMap* map = ServerWorld()->AIMap();
     unit->altPassCosts = map->CellFlag80At(&unit->position);
     bool found = PathTo(&action.point.x, action.point.z);
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(static_cast<CWorldServer*>(world)->Sectors(), nullptr, current->data);
+        SectorMapAdd(world->Sectors(), nullptr, current->data);
     }
     bool arrived = false;
     if (action.param) {
@@ -387,7 +386,7 @@ bool CUnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         int time = action.param;
-        int now = static_cast<CWorld*>(ManagerContext())->tick_;
+        int now = WorldContext()->tick_;
         motion.StandAndTurn(now, unit, &action.point, static_cast<std::uint32_t>(time));
         unit->RefreshMotion();
         PlayIdle();
@@ -525,7 +524,7 @@ void CUnitServer::ContinueAction() {
     if (!(cast && (unit->flags_ & kFlagNoCasting))) {
         if (!action.target) {
             if (cast) {
-                auto* spell = static_cast<CSpell*>(SpellOfSource(action.source));
+                CSpell* spell = SpellOfSource(action.source);
                 carryOn = spell && (spell->targetFlags_ & kSpellNoTarget);
             }
         } else if (!IsDead(action.target)) {
@@ -593,9 +592,8 @@ void SetModeInline(CUnit* unit, int mode) {
 
 bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
     if (order->kind != kOrderAttack && order->kind != kOrderSkill) return false;
-    CEngineObject* target = order->target;
-    if (!IsUnit(target) || IsDead(target)) return false;
-    auto* other = static_cast<CUnit*>(target);
+    CUnit* other = UnitOrNull(order->target);
+    if (!other || IsDead(other)) return false;
     if (other->sizeClass != 0) return false;
     if (order->kind == kOrderAttack && self->HasRangedWeapon()) return false;
     double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
@@ -683,9 +681,7 @@ void CUnitServer::ExecuteOrder() {
         } else {
             // The action starts now.
             bool fresh = true;
-            CEngineObject* target = action.target;
-            if (IsUnit(target)) {
-                auto* other = static_cast<CUnit*>(target);
+            if (CUnit* other = UnitOrNull(action.target)) {
                 auto* theirs = reinterpret_cast<CUnitServer*>(other->controller);
                 if (reinterpret_cast<CEngineObject*>(theirs->action.target) == unit) fresh = false;
             }

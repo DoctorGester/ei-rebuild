@@ -40,8 +40,7 @@ namespace {
 
 constexpr std::uint32_t kArmed = 0x80000;   // flags_
 
-// A unit as a map object (its position) and its virtual slot 55: non-zero when dead.
-CMapObject* AsMapObject(CEngineObject* unit) { return static_cast<CMapObject*>(unit); }
+// A unit's virtual slot 55: non-zero when dead.
 bool IsDead(CEngineObject* unit) { return ObjectSlots(unit)->IsDead() != 0; }
 
 // The units inside (+0x268): an MFC CList whose elements are counted references.
@@ -70,8 +69,8 @@ constexpr int kPtrListBlockSize = 10;
 bool StaysInside(MagicTrap* trap, CEngineObject* unit) {
     int count = trap->area.size;
     const TrapCircle* circle = trap->area.data;
-    float x = AsMapObject(unit)->position.x;
-    float y = AsMapObject(unit)->position.y;
+    float x = ObjectSlots(unit)->position.x;
+    float y = ObjectSlots(unit)->position.y;
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
@@ -106,7 +105,7 @@ void MagicTrap::UpdateVictims() {
     }
 
     if (!(flags_ & kArmed)) return;
-    void* context = ManagerContextOf(this);
+    CWorldServer* context = ServerWorld();
     PtrList found = NewPtrList();
     PtrList newcomers = NewPtrList();
     FindTrapVictims(context, &area, sides, &found);
@@ -131,11 +130,11 @@ void MagicTrap::UpdateVictims() {
 }
 EI_REWRITTEN(0x0052A680, MagicTrap::UpdateVictims);
 
-void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
+void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
                                 mfc::CTypedPtrList<CUnit>* out) {
     using UnitList = mfc::CTypedPtrList<CUnit>;
     out->RemoveAll();
-    CSectorMap* sectors = static_cast<CWorldServer*>(context)->Sectors();
+    CSectorMap* sectors = context->Sectors();
     UnitList found{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, kPtrListBlockSize};
     for (int i = 0; i < area->size; ++i) {
         const TrapCircle& circle = area->data[i];
@@ -180,9 +179,9 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             CUnit* closest = nullptr;
             for (UnitList::Node* node = units->head; node; node = node->next) {
                 CUnit* unit = node->data;
-                float dx = AsMapObject(unit)->position.x - origin.x;
-                float dy = AsMapObject(unit)->position.y - origin.y;
-                float dz = AsMapObject(unit)->position.z - origin.z;
+                float dx = ObjectSlots(unit)->position.x - origin.x;
+                float dy = ObjectSlots(unit)->position.y - origin.y;
+                float dz = ObjectSlots(unit)->position.z - origin.z;
                 EI_NAN_AUDIT(dx, dy, dz);
                 if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
             }
@@ -194,7 +193,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             UnitList::Node* next = node->next;
             CUnit* unit = node->data;
             TheServerWorld()->CastSpell(spell, nullptr, &from, unit,
-                                   &AsMapObject(unit)->position, 0);
+                                   &ObjectSlots(unit)->position, 0);
             node = next;
         }
     }
@@ -205,7 +204,7 @@ EI_REWRITTEN(0x0052A4B0, MagicTrap::CastAtUnits);
 namespace {
 // The spell manager's CreateSpellFromText (00689030, RET 4; not rewritten).
 // The map object context's (the world's) slot 22.
-CSpellManager* SpellManagerOf(void* context) { return static_cast<CWorld*>(context)->SpellManager(); }
+CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
 
 // The units inside (+0x268): CList::RemoveAll inlined, as SetUp, the constructor and the
 // destructor all have it (each element's reference released and cleared, the list emptied, its
@@ -228,8 +227,8 @@ void ClearVictims(MagicTrap* trap) {
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     const char* text = record->spell;
-    void* manager = SpellManagerOf(ManagerContextOf(this));
-    auto* made = static_cast<CEngineObject*>(static_cast<CSpellManager*>(manager)->CreateSpellFromText(text));
+    CSpellManager* manager = SpellManagerOf(WorldContext());
+    CEngineObject* made = manager->CreateSpellFromText(text);
     CEngineObject* old = spell;
     spell = made;
     if (made) ++made->refCount_;
@@ -307,7 +306,7 @@ MagicTrap::MagicTrap() {
     inside.blocks = nullptr;
     inside.blockSize = kVictimBlockSize;
 
-    static_cast<CMapObject*>(this)->CreateMapObject();
+    CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -372,7 +371,7 @@ EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
 
 void MagicTrap::LoadTrap(CStream* stream) {
     LoadMapObject(stream);
-    void* manager = SpellManagerOf(ManagerContextOf(this));
+    void* manager = SpellManagerOf(WorldContext());
     // The original reads the id and the two counts into its argument's stack slot: a read that
     // fails leaves the previous value there (at first the stream pointer itself).
     auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
@@ -381,7 +380,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
     stream->Read(&value, 4);
     area.SetSize(value, -1);
     for (int i = 0; i < area.size; ++i) stream->Read(&area.data[i], sizeof(TrapCircle));
-    CountedListLoad(&inside, stream, ManagerContextOf(this));
+    CountedListLoad(&inside, stream, WorldContext());
     stream->Read(&value, 4);
     points.SetSize(value, -1);
     for (int i = 0; i < points.size; ++i) stream->Read(&points.data[i], sizeof(TrapPoint));
@@ -416,7 +415,7 @@ void DestroyPtrList(PtrList& list) {
 } // namespace
 
 int MagicTrap::CreateTrap() {
-    int result = static_cast<CMapObject*>(this)->CreateMapObject();
+    int result = CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -441,7 +440,7 @@ EI_REWRITTEN(0x0052A200, MagicTrap::DestroyTrap);
 
 int MagicTrap::UpdateTrap() {
     int result = CMapObject::Update();
-    auto* world = static_cast<CWorld*>(ManagerContextOf(this));
+    auto* world = WorldContext();
     if (!world->IsServer() || !spell) return result;
     if (period <= 0) {
         UpdateVictims();
@@ -454,7 +453,7 @@ int MagicTrap::UpdateTrap() {
 EI_REWRITTEN(0x0052AC20, MagicTrap::UpdateTrap);
 
 void MagicTrap::FireAtOccupants() {
-    void* context = ManagerContextOf(this);
+    CWorldServer* context = ServerWorld();
     PtrList found = NewPtrList();
     if (flags_ & kArmed) {
         FindTrapVictims(context, &area, sides, &found);

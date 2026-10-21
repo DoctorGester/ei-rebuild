@@ -6,6 +6,7 @@
 #include "unit_client_models.h"
 
 #include "effects.h"   // CParticleSource
+#include "texture.h"   // CTexture
 
 #include "ei/hook.h"
 #include "ei/vcall.h"   // SetVtable
@@ -150,7 +151,7 @@ void CUnitClientSpecific::SetMarkers(CParticleSource* path, CParticleSource* mar
 EI_REPLACE_METHOD(0x00535240, CUnitClientSpecific::SetMarkers);
 
 void CUnitClientSpecific::DropFaceTexture() {
-    CEngineObject* texture = faceTexture;
+    CTexture* texture = faceTexture;
     faceTexture = nullptr;
     if (texture) texture->Release();
     blinks = 0;

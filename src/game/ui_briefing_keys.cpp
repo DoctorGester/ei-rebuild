@@ -27,7 +27,6 @@ const char* QuestPrefix() { return "q."; }
 constexpr std::size_t kEscMenuSize = 0x168;
 void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
 void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
-constexpr std::size_t kObjectivesSize = 0x1F0;
 
 constexpr int kScanCodeMask = 0x1FF;
 constexpr int kActionObjectives = 4;
@@ -64,13 +63,13 @@ void OpenObjectives(CInterface3D* ui) {
         MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
-        void* memory = gamecrt::operator_new(kObjectivesSize);
-        void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(ui) : nullptr;
+        CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
+        CObjectivesWindow* window = memory ? memory->Construct(ui) : nullptr;
         {
             BriefingPlayerName player;
-            static_cast<CObjectivesWindow*>(window)->Setup(player, nullptr, 0, 1);
+            window->Setup(player, nullptr, 0, 1);
         }
-        ui->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
+        ui->PushWindow(window, 1, 1);
         break;
     }
 }

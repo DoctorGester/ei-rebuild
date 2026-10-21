@@ -149,7 +149,7 @@ EI_REWRITTEN(0x00441640, BufferLength);
 // growing buffer), destructor, deleting destructor and copy constructor.
 Query* __fastcall QueryConstruct(Query* self) {
     std::memset(&self->address, 0, sizeof(self->address));
-    static_cast<GameBuffer*>(&self->reply)->ConstructGrowing();
+    self->reply.ConstructGrowing();
     return self;
 }
 EI_REWRITTEN(0x00443770, QueryConstruct);
@@ -180,7 +180,7 @@ EI_REWRITTEN(0x00443E20, HolderInit);
 
 void ClientBase::SendPing(const NetAddress* address) {
     GameBuffer b;
-    static_cast<GameBuffer*>(&b)->ConstructGrowing();
+    b.ConstructGrowing();
     std::uint8_t kind = 3;
     Put(&b, &kind, 1);
     float time = static_cast<float>(time_);
@@ -193,7 +193,7 @@ EI_REWRITTEN(0x00441660, ClientBase::SendPing);
 void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     std::uint32_t rate = RateFor(address);
     GameBuffer b;
-    static_cast<GameBuffer*>(&b)->ConstructGrowing();
+    b.ConstructGrowing();
     std::uint8_t kind = 4;
     Put(&b, &kind, 1);
     Put(&b, &magic_, 4);
@@ -444,7 +444,7 @@ void ClientBase::Ask(const NetAddress* address) {
         }
         v.back().address = *address;
         GameBuffer b;
-        static_cast<GameBuffer*>(&b)->ConstructGrowing();
+        b.ConstructGrowing();
         std::uint8_t kind = 3;
         b.BufferWrite(&kind, 1);
         float time = static_cast<float>(time_);
@@ -581,7 +581,7 @@ EI_REPLACE_METHOD(0x00442AD0, ClientBase::TickImpl);
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     GameBuffer b;
     GameBuffer* buffer = &b;   // slot 4 through the vtable
-    static_cast<GameBuffer*>(&b)->ConstructGrowing();
+    b.ConstructGrowing();
     RefPtr entry{nullptr};
     Describe(&entry);
     if (entry.ptr) {
@@ -662,7 +662,7 @@ namespace {
 // "Accepted" (packet 6) with the join's id, to `to`.
 void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     GameBuffer b;
-    static_cast<GameBuffer*>(&b)->ConstructGrowing();
+    b.ConstructGrowing();
     std::uint8_t kind = 6;
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
@@ -728,7 +728,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     }
 
     GameBuffer b;
-    static_cast<GameBuffer*>(&b)->ConstructGrowing();
+    b.ConstructGrowing();
     std::uint8_t kind = 7;
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
@@ -769,7 +769,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
                 GameBuffer& r = q->reply;
                 r.cur = r.begin;
                 r.high = r.begin + length;
-                if (r.high > r.end) static_cast<GameBuffer*>(&r)->Grow(length);
+                if (r.high > r.end) r.Grow(length);
             } else {
                 length = static_cast<std::uint32_t>(BufferLength(&q->reply));
                 archive->Field(2, &length, 4);

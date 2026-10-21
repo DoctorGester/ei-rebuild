@@ -109,7 +109,7 @@ EI_REWRITTEN(0x004BE9D0, ScriptDefinitionDestruct);
 void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
     SetBaseVtable(&cmd->subCalls, recordarrays::SubCallBaseClass::Vtable());
     if (ScriptSubCall* calls = cmd->subCalls.data) {
-        for (int i = 0; i < cmd->subCalls.size; ++i) static_cast<ScriptSubCall*>(&calls[i])->DestroyElement(0);
+        for (int i = 0; i < cmd->subCalls.size; ++i) calls[i].DestroyElement(0);
         gamecrt::operator_delete(cmd->subCalls.data);
     }
     FreePlain(&cmd->globalBindings, mfc::impl::BindingsBaseClass::Vtable());

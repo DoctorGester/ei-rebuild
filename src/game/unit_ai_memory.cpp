@@ -162,7 +162,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
     CUnit* unit = self->unit;
     Vector3 eye;
-    static_cast<CMapObjectVirtuals*>(unit)->EyePoint(&eye);
+    unit->EyePoint(&eye);
     for (auto* node = nearby.head; node; node = node->next) {
         auto* other = node->data;
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
@@ -176,7 +176,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
         EI_NAN_AUDIT(distance, sight);
         if (distance < sight) {
             Vector3 theirEye;
-            Vector3 to = *static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
+            Vector3 to = *other->EyePoint(&theirEye);
             double range = TheServerWorld()->AIMap()->LineOfSight(&eye, &to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }

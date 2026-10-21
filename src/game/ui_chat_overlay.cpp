@@ -185,9 +185,9 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
 
         node->data.name = plain[i];
         node->data.time = now;
-        void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
         CUiSurface* surface =
-            memory ? static_cast<CUiSurface*>(memory)->Construct(
+            memory ? memory->Construct(
                          interface_, 0, 0, TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad,
                          kLineSurfaceHeight, kLineSurfaceFormat, 1)
                    : nullptr;
@@ -339,8 +339,8 @@ CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
     new (&typed_) mfc::CString;
     vtable_ = ChatOverlayVtable();
     inputVtable_ = ChatOverlayInputVtable();
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, kTypedLeft, kTypedTop, kTypedRight,
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(memory ? memory->Construct(interface_, kTypedLeft, kTypedTop, kTypedRight,
                                                                     kTypedBottom, kTypedFormat, 1)
                       : nullptr);
     chatOpen_ = false;

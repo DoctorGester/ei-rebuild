@@ -123,7 +123,7 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
     int part = partAndObject[0];
     // A spell aimed at no object cannot be cast on a large unit of size class 0.
     if (part >= 0) {
-        auto* spell = static_cast<CSpell*>(self->GetSpellObject(part));
+        CSpell* spell = self->GetSpellObject(part);
         if (spell && (spell->targetFlags_ & kSpellNoTarget) && target->sizeClass == 0 &&
             PrototypeSize(target) >= kHalf)
             return false;

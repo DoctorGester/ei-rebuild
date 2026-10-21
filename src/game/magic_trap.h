@@ -165,5 +165,5 @@ static_assert(sizeof(MagicTrapRecord) == 0x44);
 // `out` (AddTail inlined) each one alive (slot 55 returns 0) whose side (+0x250) has its bit in
 // `sides`; a unit in two circles is appended twice. `context` is the trap's map object context
 // (the world). See docs/notes/units.md ("Magic traps").
-void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
+void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
                                 mfc::CTypedPtrList<CUnit>* out);

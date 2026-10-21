@@ -151,8 +151,7 @@ void SetSize(StaticPtrArray& a, int n) {
     }
 }
 
-CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
-const float* PositionOf(CEngineObject* object) { return &MapObject(object)->position.x; }
+const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->position.x; }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The
 // squared distance and the squared range stay on the FPU (dy^2 + dx^2, as the original adds).
@@ -225,7 +224,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // the original's branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
-        world->Sectors()->FindUnitsInRadius(&MapObject(unit)->position, &heard, radius);
+        world->Sectors()->FindUnitsInRadius(&ObjectSlots(unit)->position, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::impl::PtrListClass::Vtable();
         heard.RemoveAll();
@@ -353,7 +352,7 @@ int CWorldServer::SendZone(CPlayer* player) {
         units.figured.Construct(100);   // 005985E0
         units.dressed.Construct(100);   // 00598790
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
-            if (node->value->GetClassId() == world::kClassUnit) units.Add(static_cast<CUnit*>(node->value));
+            if (CUnit* unit = UnitOrNull(node->value)) units.Add(unit);
         units.Write(&message);
         gamehash::DressedAbi::Destroy(reinterpret_cast<gamehash::DressedTable*>(&units.dressed));
         gamehash::FiguredGroupsAbi::Destroy(reinterpret_cast<gamehash::FiguredGroupsTable*>(&units.figured));

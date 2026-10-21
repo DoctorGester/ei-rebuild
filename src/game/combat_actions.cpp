@@ -61,10 +61,10 @@ constexpr int kMessageTameFailed = 0x16;
 
 
 
-CDiplomacy* DiplomacyOf(void* world) { return &static_cast<CWorldServer*>(world)->diplomacy_; }
+CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 
 // The world's AI events.
-AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
+AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 
 float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
@@ -179,10 +179,10 @@ void CUnitServer::FinishAction(int location, char) {
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
 
 void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) {
-        CBaseManager* factory = static_cast<CWorld*>(world)->TimedObjectManager();
+        CBaseManager* factory = world->TimedObjectManager();
         CEngineObject* missile = factory->CreateObject(kMissileObject, -1);
         if (!missile) return;
         Vector3 position;
@@ -193,7 +193,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         arrow->fromCaster_ = 1;
         arrow->casterId_ = unit->id_;
         std::memcpy(&arrow->hit_, hit, sizeof(DamageInfo));
-        static_cast<CWorldServer*>(world)->AddTimedObject(missile);
+        world->AddTimedObject(missile);
     } else {
         ObjectSlots(target)->ReceiveHit(hit, unit, unit);
     }
@@ -241,9 +241,9 @@ EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
 
 void CUnitServer::UseItemCharge(CItem* item, float cost) {
     if (!item) return;
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     item->charge_ = item->charge_ - cost;
-    static_cast<CWorldServer*>(world)->AddCounted(item);
+    world->AddCounted(item);
     auto* player = unit->player;
     const auto* link = reinterpret_cast<const CItemLink*>(static_cast<std::uintptr_t>(item->link_));
     if (!player || !link) return;
@@ -288,8 +288,8 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
 EI_REPLACE_METHOD(0x005518F0, CUnitServer::HitDirection);
 
 void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer) {
-    void* world = ManagerContext();
-    CDiplomacy* diplomacy = DiplomacyOf(unit->ManagerContext());
+    CWorldServer* world = ServerWorld();
+    CDiplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;
     UnitListNode* node = static_cast<UnitList*>(witnesses)->head;
     if (!node) return;
@@ -331,7 +331,7 @@ void CUnitServer::PropagateHostility() {
     if (!(unit->flags_ & 0x80000)) return;
     unit->flags_ &= ~0x80000u;
     claimedHostile |= unit->relationsA;
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     double radius = brain.callRadius;
     // The squared radius goes through a global (007AF40C) and is compared as an int.
     volatile float* limit = ei::GamePointer<volatile float>(0x007AF40C);
@@ -362,7 +362,7 @@ void CUnitServer::PropagateHostility() {
 EI_REPLACE_METHOD(0x00552E00, CUnitServer::PropagateHostility);
 
 void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     if (unit->type_ < 0x32 || unit->type_ > 0x36) {
         unit->flags_ |= 1;
         return;
@@ -385,7 +385,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             if (killer->player)
                 PlayerMessage(killer->player->Server(), nullptr, killer, kMessageKilled);
         } else if (unit->player) {
-            static_cast<AIAlarm*>(&attacker->ServerController()->voice)->Raise(9);
+            attacker->ServerController()->voice.Raise(9);
         }
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
@@ -421,7 +421,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
 EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
 
 void CUnitServer::UseSkill(CEngineObject* target) {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
         if (CPlayer* player = unit->player) TheServerWorld()->Loot(target, player);
@@ -461,7 +461,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     switch (skill) {
     case 0: {
         ItemUse record = {1, 0, 0};
-        auto* items = static_cast<CWorld*>(world)->ItemFactory();
+        auto* items = world->ItemFactory();
         CEngineObject* studied = items->FindObject(action.param);
         record = {1, 0, 0};
         if (studied) {
@@ -503,7 +503,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
             return;
         }
         CPlayer* player = unit->player;
-        if (player && static_cast<CWorldServer*>(world)->Loot(other, player)) return;
+        if (player && world->Loot(other, player)) return;
         if (!unit->player) return;
         message = kMessageStealFailed;
         break;
@@ -532,7 +532,7 @@ void CUnitServer::Idle() {
 EI_REPLACE_METHOD(0x00555180, CUnitServer::Idle);
 
 void CUnitServer::SetDead(int dead) {
-    auto* world = static_cast<CWorldServer*>(ManagerContext());
+    auto* world = ServerWorld();
     if (unit->dead == dead) return;
     CSectorMap* units = world->Sectors();
     SectorMapRemove(units, nullptr, unit);

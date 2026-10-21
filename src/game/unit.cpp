@@ -43,7 +43,7 @@ float HeroTransitionSpeed() { return GameLogicSettings().humanCrossAnimationSpee
 float ItemWeight(const CItem* item) { return item->Weight(); }
 
 // A spell's mana cost (CSpell +0x40, a float kept as a dword).
-float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
+float SpellCost(const CSpell* spell) { return std::bit_cast<float>(spell->manaCost_); }
 
 // The party of the unit's player (CPlayer +0x70).
 CParty* RecordsOf(CPlayer* player) { return player->Party(); }
@@ -233,7 +233,7 @@ CItem* CUnit::GetSpell(std::uint32_t slot) {
 }
 EI_REPLACE_METHOD(0x005319A0, CUnit::GetSpell);
 
-void* CUnit::GetSpellObject(std::uint32_t slot) {
+CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
@@ -285,7 +285,7 @@ EI_REPLACE_METHOD(0x005307B0, CUnit::TotalItemWeight);
 int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
     if (slot >= 8) return 3;
     if (HasEffect(0x20)) return 4;
-    void* spell = GetSpellObject(slot);
+    CSpell* spell = GetSpellObject(slot);
     if (!spell) return 3;
     float cost = SpellCost(spell);
     float available = static_cast<float>(packedVitals.mana);

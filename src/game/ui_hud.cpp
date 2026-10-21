@@ -504,13 +504,13 @@ UI_INPUT_HANDLER(0x00649160, CHudClock, OnMouseMove);
 void CHudClock::OpenObjectives() {
     highlight_ = false;
     interface_->PlaySound(kSoundClick, 0);
-    void* memory = gamecrt::operator_new(sizeof(CObjectivesWindow));
-    void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(interface_) : nullptr;
+    CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
+    CObjectivesWindow* window = memory ? memory->Construct(interface_) : nullptr;
     {
         BriefingPlayerName zone;
-        static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
+        window->Setup(zone, nullptr, 0, 0);
     }
-    interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
+    interface_->PushWindow(window, 1, 1);
 }
 EI_REWRITTEN(0x00648F10, CHudClock::OpenObjectives);
 

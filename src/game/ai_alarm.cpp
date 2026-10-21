@@ -34,14 +34,11 @@ struct AiLogStream : libcrt::Ostream {
 };
 AiLogStream* AlarmLog() { return ei::GameData<AiLogStream*>(0x007C2EB8); }
 
-// 00455940: the owner's manager context (the world server).
-static inline CWorldServer* ManagerContextAt(void* object) { return static_cast<CWorldServer*>(ManagerContextOf(object)); }
-
 } // namespace
 
 static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     CUnitServer* server = owner;
-    CWorldServer* world = ManagerContextAt(owner);
+    CWorldServer* world = owner->ServerWorld();   // 00455940
     if (state->pending != 0) {
         if (state->pending > state->level) {
             state->active = state->pending;

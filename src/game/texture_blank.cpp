@@ -77,7 +77,7 @@ EI_REWRITTEN(0x0068F6C0, CTexture::CreateBlank);
 // --- 00691D80 ----------------------------------------------------------------------------------------
 
 CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
-    auto* texture = static_cast<CTexture*>(CreateObject(kind, -1));
+    CTexture* texture = NewTextureOfType(kind);
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     texture->width_ = static_cast<std::uint32_t>(width);

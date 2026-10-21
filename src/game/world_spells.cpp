@@ -103,11 +103,11 @@ void CWorldServer::CreateMissile(const void* spell, CUnit* caster, Vector3 from,
         else list.head = node;
         list.tail = node;
     }
-    if (target && target->GetClassId() == world::kClassUnit && caster) {
-        CEngineObject* controller = static_cast<CUnit*>(target)->controller;
+    CUnit* victim = UnitOrNull(target);
+    if (victim && caster) {
         if (IsHostileType(SpellType(spell))) {
-            reinterpret_cast<CUnitServer*>(controller)->Brain()->SetSeen(caster);
-            static_cast<CDiplomacy*>(&diplomacy_)->OnAttack(caster, static_cast<CUnit*>(target), 10);
+            victim->ServerController()->Brain()->SetSeen(caster);
+            diplomacy_.OnAttack(caster, victim, 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }
@@ -148,7 +148,7 @@ void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* fr
     std::memcpy(&center, caster ? &caster->position : from, sizeof(center));
     float radius = std::bit_cast<float>(AsSpell(spell)->range_);
     Sectors()->FindUnitsInRadius(&center, &units, radius);
-    if (target && target->GetClassId() == world::kClassUnit) {
+    if (CUnit* targetUnit = UnitOrNull(target)) {
         UnitList::Node* found = nullptr;
         for (UnitList::Node* node = units.head; node; node = node->next)
             if (node->data == target) {
@@ -157,7 +157,7 @@ void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* fr
             }
         if (found) RemoveNode(units, found);
         UnitList::Node* node = units.NewNode(nullptr, units.head);
-        node->data = static_cast<CUnit*>(target);
+        node->data = targetUnit;
         if (units.head) units.head->prev = node;
         else units.tail = node;
         units.head = node;

@@ -891,7 +891,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int t = 0; t < s.textureNames.size; ++t) {
         // The unit's material holder: its texture of the id (0051B2F0) named, then a material
         // (0051B470) for each link of the id.
-        auto* owner = static_cast<CObject3DClientSpecific*>(u->Object3D()->attached);
+        auto* owner = u->Object3D()->ClientSpecific();
         mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames.Id(t)))->Name();
         bool bmp = gamecrt::mbsicmp(static_cast<const char*>(s.textureNames.Name(t).Right(4)),
                                    scenedata::BmpExtText()) == 0;
@@ -903,7 +903,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
             // The manager context's slot 33 (CWorld::MaterialManager).
-            void* manager = static_cast<CWorld*>(ManagerContextOf(fakeUnit))->MaterialManager();
+            void* manager = fakeUnit->WorldContext()->MaterialManager();
             std::uint32_t id = s.textureLinks.Record(l).id;
             if (id != s.textureNames.Id(t)) continue;
             CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
@@ -917,7 +917,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         u->Object3D()->AddPart(static_cast<CFigureMesh*>(&figureArray.data[f]));
     }
     u->skin.BindMeshes(&u->Object3D()->parts);
-    static_cast<SceneSkin*>(&u->skin)->Rewind();
+    u->skin.Rewind();
     const std::uint32_t offset[3] = {0, 0, 0x44FA0000};   // (0, 0, 500)
     std::memcpy(&u->Object3D()->position, offset, sizeof(offset));
     return 1;

@@ -106,18 +106,18 @@ CUiItemPanel* NewPanel(std::size_t size, CInterface3D* ui, CUiWindow* owner, Vta
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    return memory ? static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    return memory ? memory->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
 }
 
 CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) {
-    void* memory = gamecrt::operator_new(sizeof(CUiScrollbar));
-    return memory ? static_cast<CUiScrollbar*>(memory)->Construct(ui, rect, 3.0f, 0, 1.0f) : nullptr;
+    CUiScrollbar* memory = gamecrt::operator_new_as<CUiScrollbar>();
+    return memory ? memory->Construct(ui, rect, 3.0f, 0, 1.0f) : nullptr;
 }
 
 CUiEditField* NewEditField(CInterface3D* ui, RECT rect) {
-    void* memory = gamecrt::operator_new(sizeof(CUiEditField));
-    return memory ? static_cast<CUiEditField*>(memory)->Construct(ui, rect) : nullptr;
+    CUiEditField* memory = gamecrt::operator_new_as<CUiEditField>();
+    return memory ? memory->Construct(ui, rect) : nullptr;
 }
 
 // Slot 18 of a panel: its Build.

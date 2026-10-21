@@ -112,7 +112,7 @@ ParticleFrame Begin(CRainSnow& layer, float sink, float rise) {
     ParticleFrame frame;
     frame.wind = layer.wind;
     frame.wind.z = static_cast<float>(layer.wind.z - sink);
-    const CWorldClient* world = static_cast<const CWorldClient*>(layer.world);
+    const CWorldClient* world = layer.world;
     frame.time = static_cast<float>(static_cast<float>(world->tick_) + world->tickFraction_);
     const Vector3 eye = world->camera_->localPosition_;
     // The time a particle takes from `rise` above the camera, and where it starts from then.

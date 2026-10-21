@@ -50,11 +50,11 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionAction:
-        static_cast<CCampPages*>(this)->UpdateAction();
+        UpdateAction();
         if (actionEnabled_) DoAction();
         break;
     case kRegionSecondAction:
-        static_cast<CCampPages*>(this)->UpdateAction();
+        UpdateAction();
         if (actionShown_) UndoAction();
         break;
     case kRegionTurnLeft:
@@ -67,7 +67,7 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
         break;
     default:
         if (region >= kRegionFirstPage && region <= kRegionLastPage && page_ != region - kRegionFirstPage)
-            static_cast<CCampPages*>(this)->ShowPage(region - kRegionFirstPage);
+            ShowPage(region - kRegionFirstPage);
         break;
     }
 }
@@ -80,7 +80,7 @@ void CCampPages::OnLButtonUp(int buttons, int x, int y) {
 
 void CCampPages::OnKeyDown(int key, int repeat, int flags) {
     if (key == VK_ESCAPE) {
-        static_cast<CCampPages*>(this)->ShowPage(kLeavePage);
+        ShowPage(kLeavePage);
         inputHandled_ = true;
         return;
     }
@@ -103,7 +103,7 @@ void CCampPages::OnMessageResult(int result) {
     CItem* item = LocalPlayerData()->AddItem(weapon, 0, 1);
     hero->RemoveWeapon(weapon);   // 00660A50: the weapon list's Remove
     hero->weaponIndex = 0xFFFFFFFFu;
-    static_cast<CUiItemStrip*>(itemStrip_)->ScrollToItem(item);
+    itemStrip_->ScrollToItem(item);
     CallVirtual(kSlotRefreshWeapons);
 }
 EI_REPLACE_METHOD(0x0060E900, CCampPages::OnMessageResult);

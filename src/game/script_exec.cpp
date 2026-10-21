@@ -185,7 +185,7 @@ AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(sta
 // The brain's patrol mode, null when it has none.
 PatrolMode* PatrolOf(void* state) { return static_cast<PatrolMode*>(BrainOf(state)->FindPatrolMode()); }
 UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
-Vector3* Position(CEngineObject* object) { return &static_cast<CMapObject*>(object)->position; }
+Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->position; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
@@ -240,7 +240,7 @@ int& ForDepth(CScript* script) { return script->forDepth_; }
 // The commands that need more than a few lines.
 
 void SetCP(const SSCCmd* cmd, bool fast) {
-    CEngineObject* object = Arg(cmd, 0);
+    CMapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
     if (!object) return;
     const float* f = cmd->floatArgs.data;
     CAIMap* map = TheAIMap();
@@ -250,7 +250,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->MoveInSectors(object, &point);
         if (object->GetClassId() == kClassUnit) Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
         map->SetRefreshUnits(1);
-        static_cast<CMapObject*>(object)->MarkChanged(2);
+        object->MarkChanged(2);
         return;
     }
     float oldZ = Position(object)->z;
@@ -259,14 +259,14 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     if (object->GetClassId() == kClassUnit) {
         Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
-        if (oldZ != Position(object)->z) static_cast<CMapObject*>(object)->MarkChanged(2);
+        if (oldZ != Position(object)->z) object->MarkChanged(2);
         return;
     }
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
     PtrList units;
     mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&units, 10);
-    float radius = static_cast<CMapObject*>(object)->radius + static_cast<CMapObject*>(object)->radius;
+    float radius = object->radius + object->radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
     for (PtrList::Node* pos = units.head; pos;) {
         CUnit* unit = pos->data;
@@ -285,7 +285,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         }
         map->AddToSectors(unit);
     }
-    static_cast<CMapObject*>(object)->MarkChanged(2);
+    object->MarkChanged(2);
     mfc::impl::DestructList<mfc::impl::PtrListClass>(units);
 }
 

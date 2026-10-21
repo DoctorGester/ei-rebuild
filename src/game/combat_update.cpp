@@ -104,8 +104,8 @@ constexpr int kRemarkBored = 0x29;
 
 // 0073C548: how much faster a dead body sinks every update.
 float SinkAcceleration() { return 0.01f /*0073C548*/; }
-int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
-int WorldTime(const void* object) { return TickOf(ManagerContextOf(object)); }
+int TickOf(const CWorld* world) { return world->tick_; }
+int WorldTime(const CEngineObject* object) { return TickOf(object->WorldContext()); }
 // The connection of a unit's player (CPlayer::connection_; a CPlayerServer on the server).
 CPlayerConnection* ConnectionOf(CPlayer* player) { return player->connection_; }
 
@@ -138,14 +138,14 @@ void SwitchWeaponIfWanted(CUnit* unit) {
 
 // The unit's standing flag (CUnit + 0x278) changed, re-registered on the sector map.
 void SetStandingFlag(CUnitServer* self, int standing) {
-    void* world = ManagerContextOf(self);
+    CWorldServer* world = self->ServerWorld();
     CUnit* unit = self->unit;
     if (static_cast<int>(unit->obstacle) == standing) return;
-    CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();
+    CSectorMap* sectors = world->Sectors();
     SectorMapRemove(sectors, nullptr, unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
     SectorMapAdd(sectors, nullptr, self->unit);
-    static_cast<CMapObject*>(self->unit)->MarkChanged(7);
+    self->unit->MarkChanged(7);
 }
 
 // A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
@@ -266,7 +266,7 @@ int CUnitServer::UpdateServer() {
 
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
     // over, the death is reported and the orders are dropped.
-    void* world = ManagerContextOf(this);
+    CWorldServer* world = ServerWorld();
     if (self->position.z > 0.0f) {
         float& sinking = sinkSpeed;
         sinking += SinkAcceleration();
@@ -278,14 +278,14 @@ int CUnitServer::UpdateServer() {
     std::uint8_t& reported = deathReported;
     if (reported == 0 && Queue(this).count == 0) {
         reported = 1;
-        static_cast<CWorldServer*>(world)->TellPartiesGone(unit);
+        world->TellPartiesGone(unit);
         CPlayer* player = unit->player;
         unit->SetPlayer(nullptr);
         if (player && player->IsLeader(unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {
-            static_cast<AIBrain*>(&brain)->Reset();
-            static_cast<AIAlarm*>(&voice)->Reset();
+            brain.Reset();
+            voice.Reset();
         }
         EmptyAction(&action);
         EmptyAction(&action2);
@@ -555,7 +555,7 @@ EI_REWRITTEN(0x00549690, CUnitServer::EndOrder);
 // --- Acting -------------------------------------------------------------------------------------
 
 void CUnitServer::TickAction() {
-    void* world = ManagerContextOf(this);
+    CWorldServer* world = ServerWorld();
     int now = TickOf(world);
     if (now == actingCheckTime) unit->UpdateSizeClass();
     OrderPlan& plan = Plan(this);
@@ -586,14 +586,14 @@ void CUnitServer::TickAction() {
     }
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
-        void* context = ManagerContextOf(this);
+        CWorld* context = WorldContext();
         Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
         Vector3 direction;
         float speed;
         int cellX;
         int cellY;
         bool turning;
-        unit->Motion()->Sample(static_cast<CWorld*>(context), OrderOf(MotionPath()), static_cast<float>(TickOf(context)),
+        unit->Motion()->Sample(context, OrderOf(MotionPath()), static_cast<float>(TickOf(context)),
                                &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
         reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);
@@ -638,7 +638,7 @@ bool CUnitServer::ActionInReach() {
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (!target) {
         if (!cast) return false;
-        auto* spell = static_cast<CSpell*>(SpellOfSource(action.source));
+        CSpell* spell = SpellOfSource(action.source);
         if (!spell) return false;
         if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
@@ -659,7 +659,7 @@ EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);
 // --- Item spells --------------------------------------------------------------------------------
 
 void CUnitServer::TickItemSpells() {
-    void* world = ManagerContextOf(this);
+    CWorldServer* world = ServerWorld();
     bool healed = false;
     for (ArmourSpellList::Node* node = armourSpells.head; node;) {
         ArmourSpell* current = &node->data;
@@ -680,7 +680,7 @@ void CUnitServer::TickItemSpells() {
         }
         UseItemCharge(item, std::bit_cast<float>(spell->manaCost_));
         CUnit* self = unit;
-        static_cast<CWorldServer*>(world)->CastSpell(spell, self, &self->position, self, &self->position, 1);
+        world->CastSpell(spell, self, &self->position, self, &self->position, 1);
         int countdown = static_cast<int>(spell->duration_) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;

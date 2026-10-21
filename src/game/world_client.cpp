@@ -227,8 +227,7 @@ void CWorldClient::CreateExitMarkers() {
                             game::NoneText()) == 0) {
             continue;
         }
-        auto* source = static_cast<CParticleSource*>(
-            ParticleManagerObject()->CreateSource(kExitParticles));
+        auto* source = ParticleManagerObject()->CreateSource(kExitParticles);
         CEngineObject* marker = source;
         AssignCounted(&countedA0_[i], marker);
         const ZoneExit& exit = exits_[i];

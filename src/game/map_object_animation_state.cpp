@@ -32,7 +32,7 @@ AnimationTrack* AnimatorOf(FigureBone* bone) {
 const char* ModelName(const CFigureAnimationState* state) { return state->owner->name; }
 
 CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {
-    return static_cast<CWorld*>(state->ManagerContext())->FigureManager();
+    return state->WorldContext()->FigureManager();
 }
 
 // The figure manager or else each bone takes `animation`.

@@ -80,7 +80,7 @@ EI_REPLACE_METHOD(0x00552670, CUnitServer::OnObjectDeleted);
 
 void CUnitServer::Resettle() {
     if (ObjectSlots(unit)->IsDead()) return;
-    auto* world = static_cast<CWorldServer*>(ManagerContext());
+    auto* world = ServerWorld();
     world->Sectors()->Remove(unit);
     unit->Object3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();   // CUnit slot 37 (both unit vtables hold 00530A50)

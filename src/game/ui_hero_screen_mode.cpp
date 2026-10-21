@@ -155,7 +155,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         nameEdit_->SetFocused(false);
         tradePanel_->SelectHero(0);
     }
-    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
+    descPanel_->Describe(nullptr);
     statsPanel_->ShowStats(mode);
     mode_ = mode;
     // Rebirth's WideScreen (addon's handler after the original): the curtains shown but on the list.

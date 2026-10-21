@@ -48,7 +48,7 @@ using OrderUnits = mfc::CArray<CUnit*>;
 
 // The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
 // the selection, 00566030 (RET 4) controls a unit.
-inline CPlayerClient* LocalView(void* client) { return static_cast<CWorldClient*>(client)->LocalView(); }
+inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView(); }
 // The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
 // CPlayerClient::SendAttack), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
@@ -101,8 +101,8 @@ void DropPendingAction(CBattleScreen* self, bool inlinePanels) {
 // Member i's portrait nods after a random delay (as the orders' nod).
 void NodPortrait(CBattleScreen* self, int i) {
     float delay = PortraitDelay(IsaacRandom::Global().Next());
-    static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleTime_ = delay;
-    static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleKind_ = 1;
+    self->portraits_->slots_[i].wobbleTime_ = delay;
+    self->portraits_->slots_[i].wobbleKind_ = 1;
 }
 
 } // namespace
@@ -130,7 +130,7 @@ void CBattleScreen::ToggleMember(int index) {
     TheClientWorld()->Deselect(nullptr);
 
     for (int i = 0; i < party->size; ++i) {
-        auto* portraits = static_cast<CHudPortraits*>(portraits_);
+        auto* portraits = portraits_;
         std::uint32_t value = chosen.data[i];
         portraits->SceneMesh(i * 5 + 4)->visible_ = static_cast<int>(value);
         Quaternion turn;
@@ -182,9 +182,9 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         int n = units.size;
         units.SetSize(n + 1, -1);
         units.data[n] = member;
-        HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
+        HudPortraitSlot& slot = portraits_->slots_[i];
         slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
-        static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
+        portraits_->slots_[i].wobbleKind_ = 1;
         int targetLevel = target->Level();
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
@@ -204,9 +204,9 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
         int n = units.size;
         units.SetSize(n + 1, -1);
         units.data[n] = member;
-        HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
+        HudPortraitSlot& slot = portraits_->slots_[i];
         slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
-        static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
+        portraits_->slots_[i].wobbleKind_ = 1;
     }
     if (units.size != 0) LocalView(TheClientWorld())->SendUseDead(&units, target, ctrl & 0xFF);
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
@@ -297,7 +297,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
             text += "\n";
             // Both go to the top panel's text and, unless its +0x160, the message log.
             auto post = [this](const char* part) {
-                CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);
+                CHudTopPanel* top = topPanel_;
                 top->PageText(0) += part;
                 if (top->page_ == 0) static_cast<CUiScrollText*>((void*)top->owner_->children_.data[9])->AddText(part);
             };
@@ -312,15 +312,15 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         // The member's timed face (no null test, as the original).
         for (int i = 0; i < party->size; ++i) {
             if (unitAt(i)->id_ != id) continue;
-            HudPortraitSlot* slots = static_cast<CHudPortraits*>(portraits_)->slots_;
+            HudPortraitSlot* slots = portraits_->slots_;
             slots[i].faceTimer_ = 0.0f;
-            static_cast<CHudPortraits*>(portraits_)->slots_[i].faceMode_ = 1;
+            portraits_->slots_[i].faceMode_ = 1;
         }
     } else if (event - 0xB <= 0x15 - 0xB) {
         for (int i = 0; i < party->size; ++i) {
             if (unitAt(i)->id_ != id) continue;
-            static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
-            static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 2;
+            portraits_->slots_[i].wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
+            portraits_->slots_[i].wobbleKind_ = 2;
         }
     }
 }

@@ -513,8 +513,8 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
 // the stacks' blocks (from the last) freed, the counted base's vtable left. (The memory itself is
 // the caller's: the original's `new` frees it.)
 [[noreturn]] void ThrowPipelineError(CTransformPipeline* self, std::optional<stlp::string>& folder, const char* text) {
-    void* memory = gamecrt::operator_new(sizeof(GameError));
-    GameError* error = memory ? GameErrorConstruct(static_cast<GameError*>(memory), text) : nullptr;
+    GameError* memory = gamecrt::operator_new_as<GameError>();
+    GameError* error = memory ? GameErrorConstruct(memory, text) : nullptr;
     folder.reset();
     for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
     ei::SetVtable(self, 0x0073D768);

@@ -35,28 +35,9 @@ constexpr const char kUnknown[] = "Unknown";
 constexpr const char kColon[] = ": ";
 constexpr const char kLineEnd[] = "\r\n";
 
-// The text lookup the original inlines (or calls as 004DEBC0): the first archive that has `key`;
-// the archive writes the text's size to length_.
-const char* FindText(CTextManager* self, const char* key) {
-    for (CTextManager::SourceNode* node = self->sources_.head->next; node != self->sources_.head; node = node->next) {
-        // The file's data or null.
-        if (const char* text = static_cast<const char*>(node->data.source->GetFile(key, &self->length_))) return text;
-    }
-    return nullptr;
-}
-
 // Clears the current text, looks up `key` and makes it current. True when it was found and is
-// not empty (length compared unsigned).
-bool OpenText(CTextManager* self, const char* key) {
-    if (self->text_) {
-        self->text_ = nullptr;
-        self->cursor_ = nullptr;
-    }
-    const char* text = FindText(self, key);
-    self->cursor_ = text;
-    self->text_ = text;
-    return text && self->length_ != 0;
-}
+// not empty (the original inlines CTextManager::Open, 004DEFC0).
+bool OpenText(CTextManager* self, const char* key) { return self->Open(key) != 0; }
 
 // A CString field of a database record that may be null (the original then faults reading it).
 const mfc::CString& StringAt(const char* record, int offset) {

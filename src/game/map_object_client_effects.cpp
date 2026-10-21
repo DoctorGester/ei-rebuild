@@ -118,7 +118,7 @@ const char* SoundFolder(int type) {
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
 void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
-    CParticleSource* ring = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource));
+    CParticleSource* ring = ParticleManagerObject()->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource);
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
@@ -140,10 +140,6 @@ void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The feeble mind sequence's chooser (005117C0): the first name once, then the second.
 int __fastcall FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
-
-CObject3DClientSpecific* ClientHalf(CMapObject* owner) {
-    return static_cast<CObject3DClientSpecific*>(owner->attached);
-}
 
 // Is there a record of `type` other than `index`?
 bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type) {
@@ -296,8 +292,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case kShrink:
             break;
         default: {
-            CParticleSource* source = static_cast<CParticleSource*>(
-                ParticleManagerObject()->CreateSource(ParticleSourceType(type)));
+            CParticleSource* source = ParticleManagerObject()->CreateSource(ParticleSourceType(type));
             if (source) AddReference(source);
             added.source = source;
             source->Attach(CompanionOwner(this));
@@ -329,12 +324,12 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case kStun:
             if (OtherRecordOfType(particles, i, kStun)) break;
             CompanionOwner(this)->flags_ &= ~kFlagStunned;
-            ClientHalf(CompanionOwner(this))->ClearPartTints();
+            CompanionOwner(this)->ClientSpecific()->ClearPartTints();
             break;
         case kInvisibility:
             if (OtherRecordOfType(particles, i, kInvisibility)) break;
             CompanionOwner(this)->flags_ &= ~kFlagInvisible;
-            ClientHalf(CompanionOwner(this))->ResetPartAlpha();
+            CompanionOwner(this)->ClientSpecific()->ResetPartAlpha();
             break;
         case kLichdom:
         case kStrengthen:

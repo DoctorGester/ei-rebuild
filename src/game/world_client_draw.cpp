@@ -206,12 +206,12 @@ void DrawEach(FrameList list, Draw draw) {
 // the old notes) with the scene context; their results are ignored. The new renderer learns which
 // object the meshes of a figure draw belong to (its shadow map's casters, R16j).
 constexpr auto kDraw = [](CMapObjectVirtuals* object) {
-    render::BeginCaster(static_cast<const CEngineObject*>(object));
+    render::BeginCaster(object);
     object->DrawFigure(TheSceneRenderer());
     render::EndCaster();
 };
 constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) {
-    render::BeginCaster(static_cast<const CEngineObject*>(object));
+    render::BeginCaster(object);
     object->DrawCollectDirty(TheSceneRenderer());
     render::EndCaster();
 };
@@ -291,7 +291,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
         renderer->distanceFog_ = 0;
-        static_cast<CSky*>(skyDome_)->Draw(TheSceneRenderer(), static_cast<const Vector3*>(&camera_->localPosition_));
+        skyDome_->Draw(TheSceneRenderer(), &camera_->localPosition_);
         renderer->distanceFog_ = 1;
         SetRenderState(renderer, 22, 2);
         SetRenderState(renderer, 29, 0);
@@ -325,7 +325,7 @@ int CWorldClient::Render() {
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        static_cast<ClientArrayManager*>(arrayManager_)->DrawImpl(TheSceneRenderer());
+        arrayManager_->DrawImpl(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
@@ -349,7 +349,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 7, 0);
         ApplyStateBlock(renderer, StateBlockAlpha());
         renderer->distanceFog_ = 0;
-        static_cast<CFlyingHitPoints*>(numbers_)->Draw(TheSceneRenderer());
+        numbers_->Draw(TheSceneRenderer());
         renderer->distanceFog_ = 1;
         SetRenderState(renderer, 7, renderer->zEnable_);
     }
@@ -595,7 +595,7 @@ int CWorldClient::DrawPass() {
                 if (ObjectSlots(object)->IsDead() == 0) {
                     Vector3 point;
                     std::memcpy(&point, &object->position, sizeof(point));
-                    if (void* part = static_cast<CObject3D*>(object)->FindPartByPrefix(MarkerPartName())) {
+                    if (void* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
                         const float* at = object->PartWorldPosition(&scratch.x, static_cast<const CFigureMesh*>(part));
                         std::memcpy(&point, at, sizeof(point));

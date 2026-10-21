@@ -74,14 +74,14 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* unit, void* dropList, void* itemList,
+int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, char* unit, void* dropList, void* itemList,
                                  void* /*unused*/, int* gold) {
     auto* drops = static_cast<PtrList*>(dropList);
     auto* items = static_cast<PtrList*>(itemList);
     auto* cunit = reinterpret_cast<CUnit*>(unit);
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
-    void* manager = static_cast<CWorld*>(world)->ItemFactory();
+    void* manager = world->ItemFactory();
     char* prototype = UnitPrototype(unit);
     *gold = 0;
     if (prototype) {

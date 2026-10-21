@@ -35,7 +35,7 @@ void ReleaseInline(void* slot) {
 void ClientSession::Destruct() {
     PartyDestruct(&parties_[1]);
     PartyDestruct(&parties_[0]);
-    if (trade_) static_cast<CRefObject*>(trade_)->Release();
+    if (trade_) trade_->Release();
     tradeRecords_.Release<recordlist::TradeElement>();
     offers_.Release();
     party_.Destroy();

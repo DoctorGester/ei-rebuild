@@ -178,7 +178,7 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     heroIndex_ = heroIndex;
     if (title) title_ = title;
     points_ = static_cast<int>(ShownHero(owner_)->height * 100.0f);
-    static_cast<CHeroStatsPanel*>(this)->DrawStats();
+    DrawStats();
 }
 EI_REWRITTEN(0x006232D0, CHeroStatsPanel::SetHero);
 

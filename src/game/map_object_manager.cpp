@@ -106,14 +106,14 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     CResourceManager* manager = this;
     CEngineObject* object = CBaseManager::CreateObjectImpl(classId, id);
     if (!object) return nullptr;
-    auto* figures = static_cast<CWorld*>(manager->context_)->FigureManager();
+    auto* figures = manager->ContextAsWorld()->FigureManager();
     static_cast<CMapObject*>(object)->SetAnimationState(
         static_cast<CFigureAnimationState*>(figures->CreateObject(kAnimationStateClass, kNoId)));
     CMapObjectVirtuals* slots = ObjectSlots(object);
-    slots->AttachObject(static_cast<CWorld*>(manager->context_)->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
-    slots->AttachObject(static_cast<CWorld*>(manager->context_)->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
+    slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
+    slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
     if (int half = ThirdHalfOf(classId))
-        slots->AttachObject(static_cast<CWorld*>(manager->context_)->SpecificManager()->CreateObject(half, kNoId));
+        slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
     return object;
 }
 EI_REPLACE_METHOD(0x00512A30, CMapObjectManager::CreateMapObject);

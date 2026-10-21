@@ -257,18 +257,18 @@ void CEffectMoshka::Follow(int objectId) {
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, as the original does.
     auto* bird = static_cast<CObject3D*>(bird_);
-    CEngineObject* attached = bird->attached;
+    CObject3DClientSpecific* attached = bird->ClientSpecific();
     Vector3 perch;
     FindPerch(&perch, &PositionOf(followed));
     std::memcpy(&bird->position, &perch, sizeof(bird->position));
     console::CStringArray parts;
     bird->MakeFigure(model, &parts, 1);
-    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
+    attached->RegisterPartMaterials();
     bird->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     bird->RestartPose();
-    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
+    attached->SetSkins(texture, game::EmptyText());
     TheClientWorld()->AddObject(bird_);
-    static_cast<CObject3DSpecific*>(attached)->SetLit(1);
+    attached->AsSpecific()->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);

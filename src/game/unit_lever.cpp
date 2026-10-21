@@ -58,7 +58,7 @@ void Lever::SetState(int wanted, float duration) {
     }
 
     // Only on the server (the world's slot 26).
-    auto* world = static_cast<CWorldServer*>(ObjectWorld(this));
+    auto* world = ServerWorld();
     if (!world->IsServer()) return;
     mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     CSectorMap* sectors = world->Sectors();
@@ -90,7 +90,7 @@ void Lever::SetState(int wanted, float duration) {
     }
     scale.y = travel;   // the shown position
     SetUpAnimatedFigure(name);
-    static_cast<CMapObject*>(this)->MarkChanged(5);
+    MarkChanged(5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
     map->EndRefresh();
     map->refreshUnits = true;

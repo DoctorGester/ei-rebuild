@@ -179,8 +179,8 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
 
     bone->children_.SetSize(node->children.size, -1);
     for (int i = 0; i < bone->children_.size; ++i) {
-        void* block = gamecrt::operator_new(sizeof(CAnimationNode));
-        CAnimationNode* child = block ? static_cast<CAnimationNode*>(block)->Construct() : nullptr;
+        CAnimationNode* block = gamecrt::operator_new_as<CAnimationNode>();
+        CAnimationNode* child = block ? block->Construct() : nullptr;
         bone->children_.data[i] = child;
         bone->children_.data[i]->parent_ = bone;
         BuildBone(skin, bone->children_.data[i], node->children.data[i], frames);
