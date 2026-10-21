@@ -79,20 +79,32 @@ struct CanvasState {
     std::uint32_t greyMode = 2;          // ps_grey: 0 5:6:5, 1 5:5:5, 2 on 8-bit channels
     CanvasImage gpu;                     // made by RunCanvasCommands
     bool blitPending = false;            // blitted in the frame, the blit not drawn yet
+    unsigned version = 0;                // g_version when a command for it was last queued
+    std::vector<Rect> text;              // ui::CanvasInfo::text
 };
 std::unordered_map<const void*, CanvasState> g_canvases;
 unsigned g_nextId = 1;
+unsigned g_version = 0;
+
+// The switch (ui::Mode): its words, the path shown under Both, the families listed.
+ui::Mode g_mode = ui::Mode::Cpu;
+ui::Path g_path = ui::Path::Cpu;
+std::vector<std::string> g_listed;
+// The canvas blits of the frame drawn last (CanvasBlitsDrawn).
+std::vector<Rect> g_drawnRects;
+constexpr std::size_t kMaxTextRects = 64;
 
 struct Op {
-    enum Kind : std::uint8_t { Make, Solid, Glyphs, Copy, Grey };
+    enum Kind : std::uint8_t { Make, Solid, Glyphs, Copy, Grey, Pixels };
     Kind kind = Solid;
     const void* holder = nullptr;
     unsigned canvas = 0;
-    Rect rect{};                 // Solid: the rectangle; Glyphs: the run's bounds; Copy: the frame's source
+    Rect rect{};                 // Solid: the rectangle; Glyphs: the run's bounds; Copy: the frame's source; Pixels: where
     Rect scissor{};              // Glyphs: the clip rectangle within the canvas
     std::uint32_t colour = 0;    // Solid: 0x00RRGGBB as the canvas holds it; Glyphs: the text colour
     const text::GlyphAtlas* atlas = nullptr;
     std::vector<float> vertices;   // Glyphs: x, y, atlas x, atlas y per corner, six corners a quad
+    std::vector<std::uint32_t> pixels;   // Pixels: RGBA8, rect's rows
 };
 std::vector<Op> g_queue;
 
@@ -115,11 +127,31 @@ CanvasState* Target(const void* holder) {
     return &it->second;
 }
 
-void Push(Op&& op) { g_queue.push_back(std::move(op)); }
+void Push(Op&& op) {
+    auto it = g_canvases.find(op.holder);
+    if (it != g_canvases.end()) it->second.version = ++g_version;
+    g_queue.push_back(std::move(op));
+}
 
-void PushSolid(const void* holder, const CanvasState& canvas, const Rect& rect, std::uint32_t rgb) {
+Rect Union(const Rect& a, const Rect& b) {
+    return Rect{std::min(a.left, b.left), std::min(a.top, b.top), std::max(a.right, b.right), std::max(a.bottom, b.bottom)};
+}
+
+// A glyph run's area kept for the comparison (ui::CanvasInfo::text); a fill of the whole canvas forgets them.
+void AddTextRect(CanvasState& canvas, const Rect& r) {
+    if (canvas.text.size() < kMaxTextRects) {
+        canvas.text.push_back(r);
+        return;
+    }
+    Rect all = r;
+    for (const Rect& t : canvas.text) all = Union(all, t);
+    canvas.text.assign(1, all);
+}
+
+void PushSolid(const void* holder, CanvasState& canvas, const Rect& rect, std::uint32_t rgb) {
     Rect r = Intersect(rect, Rect{0, 0, canvas.width, canvas.height});
     if (Empty(r)) return;
+    if (r.left == 0 && r.top == 0 && r.right == canvas.width && r.bottom == canvas.height) canvas.text.clear();
     Op op;
     op.kind = Op::Solid;
     op.holder = holder;
@@ -130,6 +162,14 @@ void PushSolid(const void* holder, const CanvasState& canvas, const Rect& rect, 
 }
 
 std::uint32_t CanvasColour(ui::Colour colour, const CanvasState& canvas) { return ui::Quantise(colour, canvas.format); }
+
+// 0x00RRGGBB quantised to the canvas's bits, as the RGBA8 texel the canvas holds (red in the low byte).
+std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
+    std::uint32_t r = QuantiseChannel((rgb >> 16) & 0xFF, static_cast<int>(canvas.bits[0]));
+    std::uint32_t g = QuantiseChannel((rgb >> 8) & 0xFF, static_cast<int>(canvas.bits[1]));
+    std::uint32_t b = QuantiseChannel(rgb & 0xFF, static_cast<int>(canvas.bits[2]));
+    return r | (g << 8) | (b << 16) | 0xFF000000u;
+}
 
 // ---- GPU objects ----------------------------------------------------------------------------------------
 
@@ -513,6 +553,15 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     sg_end_pass();
 }
 
+// An Image's pixels written into the canvas's texture.
+void DrawPixels(const CanvasState& canvas, const Op& op) {
+    ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
+    if (!texture) return;
+    const Rect& r = op.rect;
+    D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
+    Context()->UpdateSubresource(texture, 0, &box, op.pixels.data(), static_cast<UINT>(r.right - r.left) * 4u, 0);
+}
+
 void DrawGrey(const CanvasState& canvas) {
     if (!EnsureScratch(g_under, canvas.width, canvas.height, SG_PIXELFORMAT_RGBA8, "ei-canvas-under")) return;
     Rect whole{0, 0, canvas.width, canvas.height};
@@ -587,6 +636,7 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
         return true;
     CanvasState* canvas = it != g_canvases.end() ? Target(holder) : &g_canvases[holder];
     canvas->id = g_nextId++;
+    canvas->text.clear();
     canvas->width = width;
     canvas->height = height;
     canvas->format = format;
@@ -715,6 +765,7 @@ void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& 
     for (const text::Rect& u : layout.underlines) quad(u.left, u.top, u.right - u.left, u.bottom - u.top, -1.0f, -1.0f);
     op.rect = Intersect(bounds, scissor);
     if (Empty(op.rect)) return;
+    AddTextRect(*canvas, layout.clipped ? scissor : op.rect);
     Push(std::move(op));
 }
 
@@ -822,6 +873,78 @@ void DrawCanvas(const void* holder, const Rect& destination, const Rect* source,
     canvas.blitPending = true;
 }
 
+void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb, int pitch) {
+    CanvasState* canvas = Target(holder);
+    if (!canvas || !rgb) return;
+    Rect r = Intersect(destination, Rect{0, 0, canvas->width, canvas->height});
+    if (Empty(r)) return;
+    Op op;
+    op.kind = Op::Pixels;
+    op.holder = holder;
+    op.canvas = canvas->id;
+    op.rect = r;
+    const int w = r.right - r.left, h = r.bottom - r.top;
+    op.pixels.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
+    for (int y = 0; y < h; ++y) {
+        const std::uint32_t* in = rgb + static_cast<std::ptrdiff_t>(y + r.top - destination.top) * pitch + (r.left - destination.left);
+        std::uint32_t* out = op.pixels.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(w);
+        for (int x = 0; x < w; ++x) out[x] = CanvasTexel(in[x], *canvas);
+    }
+    Push(std::move(op));
+}
+
+void ResetOptions() {
+    g_mode = Mode::Cpu;
+    g_listed.clear();
+}
+
+bool ParseOption(const std::string& word) {
+    const std::string name = word.substr(0, word.find('='));
+    if (name != "uiboth" && name != "uinative") return false;
+    g_mode = name == "uiboth" ? Mode::Both : Mode::Native;
+    g_listed.clear();
+    for (std::size_t start = name.size() + 1; start <= word.size();) {
+        std::size_t plus = word.find('+', start);
+        std::string family = word.substr(start, plus == std::string::npos ? std::string::npos : plus - start);
+        if (!family.empty()) g_listed.push_back(family);
+        if (plus == std::string::npos) break;
+        start = plus + 1;
+    }
+    return true;
+}
+
+Mode CurrentMode() { return g_mode; }
+
+bool Listed(const char* name) {
+    if (g_mode == Mode::Cpu) return false;
+    if (g_listed.empty()) return true;
+    return name && std::find(g_listed.begin(), g_listed.end(), name) != g_listed.end();
+}
+
+void SetPath(Path path) { g_path = path; }
+Path CurrentPath() { return g_path; }
+
+bool DrawsCanvas(const void* holder) {
+    return HasCanvas(holder) && (g_mode == Mode::Native || (g_mode == Mode::Both && g_path == Path::Native));
+}
+
+void Canvases(std::vector<CanvasInfo>* out) {
+    out->clear();
+    out->reserve(g_canvases.size());
+    for (const auto& [holder, canvas] : g_canvases) {
+        CanvasInfo info;
+        info.holder = holder;
+        info.width = canvas.width;
+        info.height = canvas.height;
+        info.format = canvas.format;
+        info.version = canvas.version;
+        info.text = canvas.text;
+        out->push_back(std::move(info));
+    }
+}
+
+void DrawnCanvasRects(std::vector<Rect>* out) { *out = g_drawnRects; }
+
 } // namespace ui
 
 // ---- render.cpp's side ------------------------------------------------------------------------------------
@@ -860,6 +983,7 @@ void RunCanvasCommands() {
         case Op::Glyphs: DrawGlyphs(*canvas, op); break;
         case Op::Copy: DrawCopy(*canvas, op); break;
         case Op::Grey: DrawGrey(*canvas); break;
+        case Op::Pixels: DrawPixels(*canvas, op); break;
         }
         ++k;
     }
@@ -868,6 +992,8 @@ void RunCanvasCommands() {
 
 void CanvasBlitsDrawn() {
     for (auto& entry : g_canvases) entry.second.blitPending = false;
+    g_drawnRects.clear();
+    for (const CanvasBatch& batch : CurrentFrame().canvasBatches) g_drawnRects.push_back(batch.destination);
 }
 
 void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {

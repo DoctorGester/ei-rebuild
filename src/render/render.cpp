@@ -3,6 +3,7 @@
 #include "render.h"
 #include "render_game.h"
 #include "render_internal.h"
+#include "render_ui.h"
 
 #include "../hook/log.h"
 #include "ei/hook.h"   // ei::Standalone
@@ -52,9 +53,10 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
 // and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
 // the smooth option on (render::SetSmooth), "classicshadows" the game's shadow decals instead of the
-// shadow map (render::SetClassicShadows, R16j).
+// shadow map (render::SetClassicShadows, R16j); "uiboth" / "uinative" the interface canvases (render_ui.h).
 void ParseSpec(const char* spec) {
     g_smooth = false;
+    ui::ResetOptions();
     bool classicShadows = false;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
@@ -70,6 +72,7 @@ void ParseSpec(const char* spec) {
         if (word == "new" || word == "present" || word == "cpuwindows") {}
         else if (word == "smooth") g_smooth = true;
         else if (word == "classicshadows") classicShadows = true;
+        else if (ui::ParseOption(word)) {}
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
         else if (word == "checkall") g_checkAll = true;

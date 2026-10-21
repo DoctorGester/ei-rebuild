@@ -14,7 +14,8 @@
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
 // list, carries the smooth option ("smooth", SetSmooth), the classic shadows ("classicshadows",
-// SetClassicShadows) and the harness build's "removable"; "new",
+// SetClassicShadows), the interface canvases' "uiboth" / "uinative" (render_ui.h) and the harness
+// build's "removable"; "new",
 // "present" and "cpuwindows" are accepted and change nothing.
 
 #include <cstdint>
