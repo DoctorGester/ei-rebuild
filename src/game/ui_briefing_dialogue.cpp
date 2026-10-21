@@ -115,7 +115,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     } else {
         number = human ? kHumanListen[IsaacRandom::Global().Next() & 3] : kListen;
     }
-    auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_));
+    auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
     if (!serverUnit) return;
     auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
     controller->StopAction();
@@ -133,7 +133,7 @@ EI_REPLACE_METHOD(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 // briefing screen unchecked, as the original does; the count is read again after each call.
 void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
-    auto* unit = reinterpret_cast<CUnit*>(WorldFindUnit(TheClientWorld(), nullptr, serverUnit->id_));
+    auto* unit = WorldFindUnit(TheClientWorld(), nullptr, serverUnit->id_);
     if (!unit) return;
     auto* screen = static_cast<CBriefingScreen*>(InterfaceActiveWindowOriginal(TheInterface()));
     for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
@@ -294,7 +294,7 @@ void EraseShown(BriefingShownItem* node) {
 } // namespace
 
 void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
-    auto* person = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(name)));
+    auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
             if (gamecrt::mbsicmp(static_cast<const char*>(node->name),
@@ -319,7 +319,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         auto* model = reinterpret_cast<CUnitClientSpecific*>(person->controller);
         model->blinks = 0;
         model->BlinkOpen(true);
-        if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, person->id_))) {
+        if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, person->id_)) {
             serverUnit->SetFlag40000000Off(true);
             GameSetUnitHeight(person->id_, 0.0f);
             auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);

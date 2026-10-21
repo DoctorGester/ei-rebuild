@@ -94,7 +94,7 @@ void ConstructWithoutDirect3D(CTextureDevice* device) {
     // DDSCL_FPUSETUP), and the game's arithmetic runs with it from then on.
     unsigned int x87 = 0;
     __control87_2(_PC_24, _MCW_PC, &x87, nullptr);
-    static_cast<CTextureDevice*>(device)->BuildFormatTable();
+    device->BuildFormatTable();
     const RECT& screen = device->screen_;
     D3DVIEWPORT7 viewport;
     viewport.dwX = static_cast<DWORD>(screen.left);

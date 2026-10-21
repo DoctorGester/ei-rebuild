@@ -64,7 +64,7 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
     float toWorld = kCellScale * kHalf;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
-    position.z = static_cast<float>(static_cast<CUnit*>((void*)unit)->GroundHeight(position.x, position.y) + unit->heightOffset);
+    position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + unit->heightOffset);
     static_cast<CWorld*>(ObjectWorld(self))->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;

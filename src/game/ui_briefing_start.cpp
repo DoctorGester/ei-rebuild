@@ -145,7 +145,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         if (words.GetSize() < 2) continue;
         int id = TextKeyFromName(words[1]);
         if (id == leader_->id_) continue;
-        auto* unit = static_cast<CUnit*>(GameFindClientUnit(id));
+        auto* unit = GameFindClientUnit(id);
         if (!unit) continue;
         if (!person_)
             person_ = unit;
@@ -256,7 +256,7 @@ void CBriefingScreen::FinishDialogue() {
         auto* model = reinterpret_cast<CUnitClientSpecific*>(unit->controller);
         model->blinks = 0;
         model->BlinkOpen(true);
-        auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_));
+        auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeight(unit->id_, 0.0f);

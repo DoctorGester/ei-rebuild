@@ -347,7 +347,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     records.SetSize(size + 1, -1);
     records.data[size] = reinterpret_cast<std::uint8_t*>(first);
     GameCreatePartyUnits(&records, flag);
-    auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data->unitId));
+    auto* unit = GameFindClientUnit(player->members_.data->unitId);
     unit->SetPrototype23C(unit->GetPrototype());
     previewModel_ = unit;
     if (unit) {
@@ -389,7 +389,7 @@ void CMpHeroScreen::ShowHero(int index) {
     }
     MakePreview(1);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
-    auto* unit = static_cast<CUnit*>(GameFindClientUnit(hero->unitId));
+    auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) static_cast<CUnit*>(unit)->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();

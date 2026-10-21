@@ -187,7 +187,7 @@ int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = static_cast<CUnit*>(WorldFindUnit(ObjectWorld(this), nullptr, casterId_));
+        auto* caster = WorldFindUnit(ObjectWorld(this), nullptr, casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
@@ -367,7 +367,7 @@ int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = static_cast<CUnit*>(WorldFindUnit(ObjectWorld(this), nullptr, casterId_));
+        auto* caster = WorldFindUnit(ObjectWorld(this), nullptr, casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);

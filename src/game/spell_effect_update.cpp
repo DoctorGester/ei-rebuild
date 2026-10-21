@@ -275,7 +275,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
             for (auto* node = units.head; node;) {
                 CEngineObject* unit = node->data;
                 node = node->next;
-                static_cast<ScriptGroup*>(group)->Insert(unit);
+                group->Insert(unit);
             }
         }
         float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
@@ -302,7 +302,7 @@ void Possession(CSpellEffect* e) {
         CEngineObject* target = e->target;
         CUnitServer* server = ControllerOf(target);
         ScriptGroup* group = &ServerOf(player)->group50F8_;
-        static_cast<ScriptGroup*>(group)->Insert(target);
+        group->Insert(target);
         group->InsertAll(&server->Brain()->memory.visible);   // 004B31D0
         group->InsertAll(&server->Brain()->memory.seenCorpses);
         ServerOf(player)->possessedId_ = target->id_;

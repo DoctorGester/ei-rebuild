@@ -61,7 +61,7 @@ float CellScaleB() { return 0.5f /*0073B86C*/; }
 constexpr std::uintptr_t kUnitArrayVtable = std::uintptr_t(0x007402AC);
 using UnitArray = mfc::CArray<CUnit*>;
 
-CUnit* FindUnit(int id) { return static_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, id)); }
+CUnit* FindUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 

@@ -63,9 +63,9 @@ __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, Ve
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
 // actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.
-void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>((void*)a0)->Highlight(a2, a3); }
-void __fastcall SpellPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>((void*)a0)->Highlight(a2, a3); }
-void __fastcall ActionPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>((void*)a0)->Highlight(a2, a3); }
+void __fastcall QuickPanelSet(CHudQuickItems* a0, void*, int a2, int a3) { a0->Highlight(a2, a3); }
+void __fastcall SpellPanelSet(CHudSpellColumn* a0, void*, int a2, int a3) { a0->Highlight(a2, a3); }
+void __fastcall ActionPanelSet(CHudActionColumn* a0, void*, int a2, int a3) { a0->Highlight(a2, a3); }
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr int kQuickSlots = 8;
@@ -74,7 +74,7 @@ constexpr int kQuickSlots = 8;
 // item panel (0063CD20 per slot). The spell and action panels: 00637500 resets each sprite inline
 // (scale 1, colour opaque, the highlight index walking along), 00637750 calls their setters.
 template <typename Column>
-void DropColumn(Column* panel, bool inlinePanels, void(__fastcall* setPanel)(CUiWindow*, void*, int, int)) {
+void DropColumn(Column* panel, bool inlinePanels, void(__fastcall* setPanel)(Column*, void*, int, int)) {
     for (int i = 0; i < panel->count_; ++i) {
         if (inlinePanels) {
             CUiMesh* sprite = reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data[i]);

@@ -156,7 +156,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (spoke) {
         // "#phrase <speaker> [voice]": the speaker's name (its unit's name, else its "pers" text,
         // else the word itself), then the text up to the next '#'.
-        auto* unit = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(words[1])));
+        auto* unit = GameFindClientUnit(TextKeyFromName(words[1]));
         if (!unit) {
             speaker = words[1];
         } else {
@@ -314,7 +314,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_))) {
+                if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
                     auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
                     controller->StopAction();
                     controller->actionDone = SpeakerActionDone();

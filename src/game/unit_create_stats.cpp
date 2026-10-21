@@ -257,7 +257,7 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     std::memset(vitals, 0, sizeof(UnitVitals));
     std::memset(stats, 0, sizeof(UnitStats));
     vitals->Reset();
-    static_cast<UnitStats*>(stats)->Reset();
+    stats->Reset();
 
     // Vitals: hit points and mana at their maxima, the model's regeneration.
     FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, &prototype->hitPoints);
@@ -322,7 +322,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const Npc* npc = FindNpc(name);
     if (!prototype) return game::FatalError("Can't find prototype \"%s\" for new HERO.\n", name);
     if (!npc) game::DebugLog("Can't find NPC prototype \"%s\" for new HERO.\n", name);
-    static_cast<UnitStats*>(stats)->Reset();
+    stats->Reset();
 
     const float* speed = &prototype->speed;
     if (npc) {

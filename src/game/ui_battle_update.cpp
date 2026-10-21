@@ -159,7 +159,7 @@ namespace {
 // spells 0063E820 (RET 4), actions 0063F800 (RET 8).
 // 00530930 (__fastcall on a unit): its prototype record.
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype());
+    return reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
 }
 // The unit panel's model view for the unit it now shows, copied from the prototype as dwords: the
 // size from `first`'s (+0x20), the height from the shown unit's (+0x24; the same unit).
@@ -170,7 +170,7 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
-static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUnit*>(::WorldFindUnit(world, nullptr, id)); }
+static CUnit* FindUnit(void* world, void*, int id) { return ::WorldFindUnit(world, nullptr, id); }
 
 // vector<int> pieces (library): 005F8F10 constructs from an allocator (RET 4), 0064B620
 // (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
@@ -281,7 +281,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
             TheCamera()->SetTargetId(ids.camera);
-            static_cast<CBattleScreen*>(screen)->RefreshSelection();
+            screen->RefreshSelection();
         }
         screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);   // 0064AF30
         screen->clientParty_.camera = ids.camera;
@@ -669,13 +669,13 @@ void CBattleScreen::RefreshSelection() {
     pendingAction_ = 0;
     pendingItem_ = -1;
     CHudQuickItems* quick = static_cast<CHudQuickItems*>(quickItems_);
-    for (int i = 0; i < 8; ++i) static_cast<CHudQuickItems*>((void*)quick)->Highlight(i, 0);
+    for (int i = 0; i < 8; ++i) quick->Highlight(i, 0);
     quick->selected_ = -1;
     CHudSpellColumn* spells = static_cast<CHudSpellColumn*>(spellColumn_);
-    for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>((void*)spells)->Highlight(i, 0);
+    for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
     spells->selected_ = -1;
     CHudActionColumn* actions = static_cast<CHudActionColumn*>(actionColumn_);
-    for (int i = 0; i < actions->count_; ++i) static_cast<CHudActionColumn*>((void*)actions)->Highlight(i, 0);
+    for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
     actions->selected_ = -1;
 }
 EI_REPLACE_METHOD(0x00637DC0, CBattleScreen::RefreshSelection);

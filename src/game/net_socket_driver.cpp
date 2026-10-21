@@ -218,7 +218,7 @@ bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
         std::memset(from->zero, 0, sizeof(from->zero));
         buffer->cur = buffer->begin;
         buffer->high = buffer->begin + n;
-        if (buffer->high > buffer->end) static_cast<GameBuffer*>(buffer)->Grow(static_cast<std::uint32_t>(n));
+        if (buffer->high > buffer->end) buffer->Grow(static_cast<std::uint32_t>(n));
     }
     return n >= 0;
 }

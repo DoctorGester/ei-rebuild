@@ -14,6 +14,7 @@
 #include "item.h"
 #include "resource_manager.h"
 #include "spell.h"
+#include "unit.h"
 #include "unit_create.h"
 #include "random.h"
 
@@ -124,10 +125,10 @@ CWorld* CWorld::ConstructBase() {
 }
 EI_REPLACE_METHOD(0x0055EAB0, CWorld::ConstructBase);
 
-CEngineObject* CWorld::FindUnit(int id) {
+CUnit* CWorld::FindUnit(int id) {
     CEngineObject* object = ObjectWithId(id);
     if (!object) return nullptr;
-    return object->GetClassId() == world::kClassUnit ? object : nullptr;
+    return object->GetClassId() == world::kClassUnit ? static_cast<CUnit*>(object) : nullptr;
 }
 EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
 

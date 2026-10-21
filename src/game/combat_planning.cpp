@@ -262,7 +262,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
         if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = {position.x, position.y, position.z};
-        from.z = static_cast<float>(static_cast<CUnit*>((void*)unit)->GroundHeight(position.x, position.y) + sight.eyeHeight);
+        from.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + sight.eyeHeight);
         double visible = MapOf(ManagerContextOf(this))->LineOfSight(&from, &sight.point);
         EI_NAN_AUDIT(visible);
         if (visible >= 0.1f /*0073EEC0*/) break;
@@ -377,10 +377,10 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = 2;
         unit->UpdateSizeClass();
-        if (!static_cast<CAIMap*>(map)->CanLeaveCell(unit)) unit->moveMode = mode;
+        if (!map->CanLeaveCell(unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
-    std::uint32_t flag = static_cast<CAIMap*>(map)->CellFlag80At(&unit->position);
+    std::uint32_t flag = map->CellFlag80At(&unit->position);
     void* world2 = ManagerContextOf(this);
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;

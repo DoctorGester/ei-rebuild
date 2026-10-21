@@ -81,7 +81,7 @@ Vector3 Normalised(float x, float y, float z) {
 void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
                                  bool immediate, int run) {
     (void)z;   // the server unit's height is used instead
-    auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_));
+    auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
     if (!serverUnit) return;
     auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
     if (!controller) return;
@@ -121,7 +121,7 @@ EI_REPLACE_METHOD(0x006089D0, CBriefingScreen::MovePerson);
 
 void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     (void)unused;
-    auto* unit = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(name)));
+    auto* unit = GameFindClientUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
         BriefingSpeaker* entry = speakers_;
@@ -148,7 +148,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         speakersEnd_[-1].name = name;
         auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
         if (player->server) static_cast<CPlayerServer*>(player->server)->SendPair19(kEventJoins, unit->id_);
-        if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_))) {
+        if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
             reinterpret_cast<CUnitServer*>(serverUnit->controller)->actionDone = SpeakerActionDone();
         }

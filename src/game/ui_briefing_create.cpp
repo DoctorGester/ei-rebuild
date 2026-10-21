@@ -96,7 +96,7 @@ WorldPlayer* LocalViewPlayer() {
     return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
 }
 
-CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, id)); }
+CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).

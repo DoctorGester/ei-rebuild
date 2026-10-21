@@ -33,7 +33,7 @@ void LoadPersonTexts(PersonTextMap* map) {
     texts->ListKeys(&keys, PersonPattern());
     for (int i = 0; i < keys.size; ++i) {
         if (!TextsOpenSection(texts, nullptr, keys[i])) continue;
-        static_cast<CTextManager*>(texts)->ReadLine(&line, 1);
+        texts->ReadLine(&line, 1);
         int key;
         {
             mfc::CString name = console::Ops(keys[i]).Mid(kPersonPrefixLength);

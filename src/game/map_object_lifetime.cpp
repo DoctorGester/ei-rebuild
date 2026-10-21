@@ -272,7 +272,7 @@ CUnit* CUnit::Construct() {
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
     m->segment = -1;
-    static_cast<UnitMotion*>(m)->Clear();
+    m->Clear();
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
     carriedVtable = static_cast<std::uint32_t>(ei::GameAddress(kCarriedArrayVtable));
@@ -451,7 +451,7 @@ void CUnitServer::DestructBody() {
     SetVtable(this, kUnitServerVtable);
     ResetController();
     AIBrain* b = Brain();
-    static_cast<AIBrain*>(b)->Init();
+    b->Init();
     b->memory.Destruct();
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.spells);
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);

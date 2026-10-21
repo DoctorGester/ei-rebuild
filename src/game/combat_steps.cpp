@@ -122,7 +122,7 @@ namespace {
 __declspec(naked) int __fastcall StatsPickLocation(void*, void*, int) EI_ORIGINAL(0x00525B20)
 // 00530560. CUnit: its height (2 * +0x14C), in ST0.
 // 00530280. CUnit: the ground (or water surface) height under (x, y) for the unit, in ST0.
-inline double __fastcall UnitGroundAt(CUnit* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
+inline double __fastcall UnitGroundAt(CUnit* a0, void*, float a2, float a3) { return a0->GroundHeight(a2, a3); }
 // AnimationSteps (CArray) members: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0
 // AddStep(animation, duration), 00544DD0 set every step's +8.
 // Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ActionSpeed, the unit's

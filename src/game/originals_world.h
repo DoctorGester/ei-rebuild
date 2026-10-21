@@ -45,7 +45,7 @@ __declspec(naked) inline void __fastcall FlowUpdateFromServerOriginal(void* /*fl
 // (EAX on return is not a result).
 __declspec(naked) inline void __fastcall WorldRemoveObject(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
 // 0055FB00 (RET 4): the world's object with this id when it is a unit (type 0x50), else null.
-__declspec(naked) inline CEngineObject* __fastcall WorldFindUnit(void* /*world*/, void*, int /*id*/)
+__declspec(naked) inline CUnit* __fastcall WorldFindUnit(void* /*world*/, void*, int /*id*/)
     EI_ORIGINAL(0x0055FB00)
 
 // C3h. 005809D0: the game flow loads the quests of a zone folder (RET 4, AL = loaded). The flow is the global at

@@ -332,7 +332,7 @@ bool CUnitServer::StartMove() {
     // Plan the way with the units near the goal lifted off the sector map.
     LiftNearby(&lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
-    unit->altPassCosts = static_cast<CAIMap*>(map)->CellFlag80At(&unit->position);
+    unit->altPassCosts = map->CellFlag80At(&unit->position);
     bool found = PathTo(&action.point.x, action.point.z);
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
@@ -889,7 +889,7 @@ void CUnitServer::ApproachTarget() {
     if (static_cast<double>(reach) * reach < LengthSquared2DUnrounded(fx, fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
-        static_cast<AIPath*>(path)->Clear();
+        path->Clear();
         int time = WorldTick(this);
         Vector3 axis;
         unit->orientation.AxisY(&axis);

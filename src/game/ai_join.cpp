@@ -43,8 +43,8 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     bool ok = true;
     int x = 0, y = 0, open = 0, other = 0;
     for (;;) {
-        static_cast<LocalSearch*>(forward)->Expand();
-        static_cast<LocalSearch*>(backward)->Expand();
+        forward->Expand();
+        backward->Expand();
         forward->Best(&x, &y, &open);
         if (open == kUnreached) {
             ok = false;
@@ -63,8 +63,8 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
     if (ok) {
         if (cost) *cost = other + open;
-        static_cast<LocalSearch*>(forward)->PathTo(x, y, path);
-        static_cast<LocalSearch*>(backward)->PathTo(x, y, &scratch);
+        forward->PathTo(x, y, path);
+        backward->PathTo(x, y, &scratch);
         PathCellList reversed;
         PathCellsAppend(path, nullptr, PathCellsReversed(&scratch, nullptr, &reversed));
         DestroyList(reversed);
@@ -73,8 +73,8 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         // saved ESI, the forward search's address); ours get the plain words.
         SetPlainCellWords(path);
     }
-    static_cast<LocalSearch*>(backward)->Reset();
-    static_cast<LocalSearch*>(forward)->Reset();
+    backward->Reset();
+    forward->Reset();
     DestroyList(scratch);
     return ok;
 }

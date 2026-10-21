@@ -84,7 +84,7 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
     }
     if (DeltaField* field = state->BeginField(5)) {
         std::uint32_t ids[11];
-        static_cast<CUnit*>(unit)->GetEquipmentIds(ids);
+        unit->GetEquipmentIds(ids);
         for (int i = 0; i < 4; ++i) PutWord(field, ids[i]);
         PutWord(field, (unit->flags_ & 0x40000000) ? 0xFFFFFFFFu : ids[4]);
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
@@ -338,12 +338,12 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     }
     if (DeltaField* field = state->BeginField(10)) {
         AIPath* path = unit->Controller()->Path();
-        static_cast<AIPath*>(path)->ReadState(field);
-        if (unit->pathTimeShift == 1) static_cast<AIPath*>(path)->ShiftTime(-1);
+        path->ReadState(field);
+        if (unit->pathTimeShift == 1) path->ShiftTime(-1);
         AIPath* path2 = unit->Controller()->Path();
-        static_cast<AIPath*>(path2)->ForgetObject(unit->id_);
+        path2->ForgetObject(unit->id_);
         float walk, run;
-        static_cast<CUnit*>(unit)->GetMoveSpeeds(&walk, &run);
+        unit->GetMoveSpeeds(&walk, &run);
         UnitMotion* motion = unit->Motion();   // +0x27C
         motion->segment = -1;
         motion->speedScale = walk;

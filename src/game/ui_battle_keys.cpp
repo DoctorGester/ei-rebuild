@@ -145,7 +145,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             hud->pendingSlot_ = -1;
             hud->pendingAction_ = 0;
             hud->pendingItem_ = -1;
-            for (int i = 0; i < kQuickSlots; ++i) static_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
+            for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
             quick->selected_ = -1;
             hud->spellColumn_->ClearHighlights();
             static_cast<CHudActionColumn*>(hud->actionColumn_)->ClearHighlights();
@@ -208,7 +208,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         // The camera follows the first selected member, or nobody.
         for (int i = 0; i < hud->party_.size; ++i) {
             if (hud->party_[i]->flags_ & kUnitSelected) {
-                static_cast<CCamera*>(camera)->SetTarget(hud->party_[i]);
+                camera->SetTarget(hud->party_[i]);
                 return;
             }
         }

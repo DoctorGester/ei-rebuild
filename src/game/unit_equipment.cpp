@@ -61,20 +61,20 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         // The loop bounds are read again on every pass, as in the original.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CEngineObject* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin()[i]);
-            if (armour) static_cast<CUnit*>(unit)->EquipArmour(armour);
+            if (armour) unit->EquipArmour(armour);
             else game::FatalError(game::equipmenttexts::NoArmour(), static_cast<const char*>(prototype->armourNames.begin()[i]), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
-            int slot = static_cast<CUnit*>(unit)->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
+            int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
             if (slot != -1) unit->pendingWeapon = slot;
         }
         if (Named(prototype->secondWeaponName))
-            static_cast<CUnit*>(unit)->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
+            unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CEngineObject* spell = (CEngineObject*)static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));
-        if (spell) static_cast<CUnit*>(unit)->AddSpell(spell);
+        if (spell) unit->AddSpell(spell);
         else game::FatalError(game::equipmenttexts::NoSpell(), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
     }
     return 1;

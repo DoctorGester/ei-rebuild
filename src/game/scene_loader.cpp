@@ -904,7 +904,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             if (id != s.textureNames.Id(t)) continue;
             CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
             linked->name = static_cast<const char*>(s.textureNames.Name(t));
-            static_cast<CMaterialManager*>(manager)->FillMaterial(static_cast<CMaterial*>(linked), s.textureLinks.Record(l).value);
+            static_cast<CMaterialManager*>(manager)->FillMaterial(linked, s.textureLinks.Record(l).value);
         }
     }
 

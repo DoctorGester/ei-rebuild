@@ -22,6 +22,8 @@
 
 using BOOL = int;
 
+class CUnit;   // unit.h
+
 enum ScriptType : int {
     kScriptFloat = 1,
     kScriptString = 2,
@@ -78,7 +80,7 @@ struct ScriptObjectRef {
     // 004B2500. Copy constructor; returns the object pointer (left in EAX).
     CEngineObject* Construct(const ScriptObjectRef& other);
     // 004B2530. The object if it is a unit (class id 0x50), otherwise null.
-    CEngineObject* AsUnit() const;
+    CUnit* AsUnit() const;
     // 004B2550. The unit's perception data (+0x240; lists what the unit sees), null for non-units.
     void* GetUnitPerception() const;
     // 004B2570. Drops the reference if the object was deleted from the world.

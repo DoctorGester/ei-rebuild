@@ -319,7 +319,7 @@ int CPlayerClient::OnExperience() {
     float amount;
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
-    auto* unit = static_cast<CUnit*>(WorldFindUnit(TheClientWorld(), nullptr, id));
+    auto* unit = WorldFindUnit(TheClientWorld(), nullptr, id);
     if (unit != nullptr) TheClientWorld()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
@@ -455,7 +455,7 @@ int CPlayerClient::OnPathMarker() {
         PathWriteOriginal(path, nullptr, writing);
         writing->EndField();
         DeltaField* reading = field->BeginReadB(0, &in_);
-        static_cast<AIPath*>(path)->ReadState(reading);
+        path->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
             static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
@@ -476,8 +476,8 @@ int CPlayerClient::OnPathMarker() {
         auto* marker = static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
         marker->position = at;
         CEngineObject* owner = player_;
-        CEngineObject* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
-        if (unit != nullptr) static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(unit)->controller)->SetMarkers(reinterpret_cast<CParticleSource*>(pathSource), reinterpret_cast<CParticleSource*>(marker));
+        CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
+        if (unit != nullptr) static_cast<CUnitClientSpecific*>(unit->controller)->SetMarkers(reinterpret_cast<CParticleSource*>(pathSource), reinterpret_cast<CParticleSource*>(marker));
     }
     field->Destruct();
     return 1;
@@ -873,7 +873,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < count; ++i) {
         int id = ReadDword(&in_);
         partyUnitIds_.data[i] = id;
-        auto* unit = static_cast<CUnit*>(WorldFindUnit(player->ManagerContext(), nullptr, id));
+        auto* unit = WorldFindUnit(player->ManagerContext(), nullptr, id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
         if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&

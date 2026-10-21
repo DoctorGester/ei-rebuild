@@ -88,9 +88,9 @@ CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
 }
 EI_REPLACE_METHOD(0x004B2500, ScriptObjectRef::Construct);
 
-CEngineObject* ScriptObjectRef::AsUnit() const {
+CUnit* ScriptObjectRef::AsUnit() const {
     CEngineObject* o = object;
-    if (o && o->GetClassId() == kClassUnit) return o;
+    if (o && o->GetClassId() == kClassUnit) return static_cast<CUnit*>(o);
     return nullptr;
 }
 EI_REPLACE_METHOD(0x004B2530, ScriptObjectRef::AsUnit);

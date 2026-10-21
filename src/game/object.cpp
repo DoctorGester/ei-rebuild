@@ -7,7 +7,7 @@
 
 // --- Forwarders (not rewritten) ----------------------------------------------------------------
 
-void __fastcall UnitSetHostileMask(CUnit* a0, void*, std::uint32_t a2) { static_cast<CUnit*>((void*)a0)->SetHostileMask(a2); }
+void __fastcall UnitSetHostileMask(CUnit* a0, void*, std::uint32_t a2) { a0->SetHostileMask(a2); }
 
 // --- CHoover ------------------------------------------------------------------------------------
 

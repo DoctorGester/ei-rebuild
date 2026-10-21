@@ -283,7 +283,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         SetSize(collected, static_cast<int>(end - Collected().data));
         DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
         state->SendObjectsRemoved(&Kept());
-        static_cast<CPlayerServer*>(state)->SendObjectsAdded(&Added());
+        state->SendObjectsAdded(&Added());
         state->SendObjectsChanged(&Removed());
 
         // Timed objects.
@@ -297,7 +297,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
 
         if (sessionKind_ == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer_;
-            if (--timer <= 0 && state->refreshPending_ == 0) static_cast<CPlayerServer*>(state)->ResendParty();
+            if (--timer <= 0 && state->refreshPending_ == 0) state->ResendParty();
         }
     }
 

@@ -269,11 +269,11 @@ void CHudTopPanel::ShowPage() {
     }
     CUiScrollText* log = MessageLog(owner_);
     if (page_ == 0) {
-        static_cast<CUiScrollText*>(log)->SetText(pageTexts_[0]);
+        log->SetText(pageTexts_[0]);
         log->CallSetPosition(log->maxPosition_);
         log->moved_ = true;
     } else {
-        static_cast<CUiScrollText*>(log)->SetText(pageTexts_[1]);
+        log->SetText(pageTexts_[1]);
         log->CallSetPosition(0);
     }
 }
@@ -322,7 +322,7 @@ void CHudTopPanel::ShowItems() {
     merged.RemoveAll();
     if (page_ == 1) {
         CUiScrollText* log = MessageLog(owner_);
-        static_cast<CUiScrollText*>(log)->SetText(text);
+        log->SetText(text);
         log->CallSetPosition(0);
     }
     merged.RemoveAll();

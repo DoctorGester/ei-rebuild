@@ -49,7 +49,7 @@ void SetPauseTextDigit(std::uint8_t pause) {
 
 // A unit of the player's world (the server's).
 CUnit* FindUnit(CPlayer* player, int id) {
-    return static_cast<CUnit*>(WorldFindUnit(player->ManagerContext(), nullptr, id));
+    return WorldFindUnit(player->ManagerContext(), nullptr, id);
 }
 bool Alive(CUnit* unit) { return ObjectSlots(unit)->IsDead() == 0; }
 bool Able(CUnit* unit) { return unit && !(unit->flags_ & kFlagBlocked) && Alive(unit); }

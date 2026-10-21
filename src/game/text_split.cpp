@@ -46,12 +46,12 @@ EI_REPLACE(0x004DBF50, SplitWords);
 int __fastcall ReplaceChar(mfc::CString* string, char from, char to) {
     mfc::CString result;
     int start = 0;
-    int at = static_cast<const mfc::CString*>(string)->Find(from);
+    int at = string->Find(from);
     while (at != -1) {
         result += console::Ops(*string).Mid(start, at - start);
         console::Ops(result).AppendChar(to);
         start = at + 1;
-        at = static_cast<const mfc::CString*>(string)->Find(from, start);
+        at = string->Find(from, start);
     }
     result += console::Ops(*string).Mid(start);
     *string = result;

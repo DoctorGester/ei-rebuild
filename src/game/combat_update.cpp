@@ -280,7 +280,7 @@ int CUnitServer::UpdateServer() {
         reported = 1;
         static_cast<CWorldServer*>(world)->TellPartiesGone(unit);
         char* player = unit->player;
-        static_cast<CUnit*>(unit)->SetPlayer(nullptr);
+        unit->SetPlayer(nullptr);
         if (player && reinterpret_cast<CPlayer*>(player)->IsLeader(unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {

@@ -202,7 +202,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             float ty = static_cast<float>(static_cast<double>(bestY) + Half());
             path->targetY = ty;
         } else {
-            static_cast<LocalSearch*>(search)->Reset();
+            search->Reset();
             bool retried = false;
             if (static_cast<char>(retry)) {
                 // Exclude the failing waypoint's region and plan again.
@@ -229,7 +229,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         PathCellList::Node* first = path->cells.head;
         if (first->data.x != fromX || first->data.y != fromY) result = false;
     }
-    static_cast<LocalSearch*>(search)->Reset();
+    search->Reset();
     DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
     DestroyList(chain, PathCellListVtable());
     return result;

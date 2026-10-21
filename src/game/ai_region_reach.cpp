@@ -195,7 +195,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     for (int row = y0; row < y1; ++row)
         for (int col = x0; col < x1; ++col)
             if (search->CostAt(col, row) < kUnreached) marks->rows[row][col] = static_cast<std::int8_t>(mark);
-    static_cast<LocalSearch*>(search)->Reset();
+    search->Reset();
     return found;
 }
 
@@ -268,7 +268,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
             out->tail = node;
         }
     }
-    static_cast<LocalSearch*>(search)->Reset();
+    search->Reset();
 }
 
 void CRegionMap::ClampEdgeCosts() {
@@ -558,7 +558,7 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
             }
             edgeRows[by][bx * 8 + dir] = value;
         }
-        static_cast<LocalSearch*>(search)->Reset();
+        search->Reset();
     }
 }
 
@@ -637,7 +637,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
         if (search->CostAt(right, y) < kUnreached) second = true;
     }
     if (first && second) {
-        static_cast<LocalSearch*>(search)->Reset();
+        search->Reset();
         return true;
     }
     first = false;
@@ -646,7 +646,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
         if (search->CostAt(x, top) < kUnreached) first = true;
         if (search->CostAt(x, bottom) < kUnreached) second = true;
     }
-    static_cast<LocalSearch*>(search)->Reset();
+    search->Reset();
     return first && second;
 }
 

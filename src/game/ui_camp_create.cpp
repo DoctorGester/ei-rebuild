@@ -391,7 +391,7 @@ void CCampPages::BuildPages() {
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
         if (PrototypeObjectClass(player->members_.data[i].texts[5]) != kHeroClass) continue;
-        auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data[i].unitId));
+        auto* unit = GameFindClientUnit(player->members_.data[i].unitId);
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kIdleAnimation)) {

@@ -1147,7 +1147,7 @@ void CCampPages::RefreshWeapons() {
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);   // 005310D0
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i)
-        static_cast<CUnit*>(unit)->AddWeapon(hero->weapons[i]);                           // 00531070
+        unit->AddWeapon(hero->weapons[i]);                           // 00531070
     unit->SendEquipment();                                                      // 00531110
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();

@@ -57,7 +57,7 @@ void SetCursor(int shape) { ei::GamePointer<HoverCursor>(0x007C7BD8)->SetShape(s
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
 // 00531920 the quick item (RET 4); 006A4230 an item's category.
 static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype());
+    return reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
 }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
 
