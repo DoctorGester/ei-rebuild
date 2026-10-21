@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "record_vectors.h"
 #include "../hook/log.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -60,7 +61,7 @@ void LogAddressLine(const char* text, const NetAddress* address) {
 
 float GameFloat(std::uintptr_t a) {
     float f;
-    std::memcpy(&f, reinterpret_cast<const void*>(a), 4);
+    std::memcpy(&f, ei::GamePointer<const void>(a), 4);
     return f;
 }
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
@@ -128,7 +129,7 @@ ServerEntryBase* ServerEntryBase::ConstructBase() {
     std::memset(&address_, 0, sizeof(address_));
     ei::SetVtable(this, kVtableAddress);
     SetBits(timeout_, 0);
-    std::memcpy(&ping_, reinterpret_cast<const void*>(0x0073BFA0), sizeof(ping_));
+    std::memcpy(&ping_, ei::GamePointer<const void>(0x0073BFA0), sizeof(ping_));
     foreign_ = 0;
     state_ = kLocal;
     return this;
@@ -366,7 +367,7 @@ EI_REPLACE_METHOD(0x004420E0, ClientBase::RemoveClientImpl);
 // Pings go to the game port (00783E30).
 void ClientBase::Refresh() {
     NetAddress address{};
-    for (unsigned i = 0; socket_.Broadcast(&address, i, *reinterpret_cast<const int*>(0x00783E30)); ++i)
+    for (unsigned i = 0; socket_.Broadcast(&address, i, ei::GameData<const int>(0x00783E30)); ++i)
         SendPing(&address);
     AddressNode* sentinel = waiting_.End();
     if (sentinel->next != sentinel) {
@@ -522,7 +523,7 @@ void ClientBase::Join(const NetAddress* address, const GameBuffer* data) {
     host_ = *address;
     std::uint32_t id = static_cast<std::uint32_t>(gamecrt::rand()) << 16;
     using TickCount = std::uint32_t(__stdcall*)();
-    id |= (*reinterpret_cast<TickCount const*>(0x0073B344))() & 0xFFFF;
+    id |= (ei::GameData<TickCount const>(0x0073B344))() & 0xFFFF;
     joinId_ = id;
     joinState_ = kAsking;
     SetBits(retryTimer_, 0);
@@ -560,7 +561,7 @@ void ClientBase::TickImpl(double dt) {
                     node = servers_.Erase(node);
                     continue;
                 }
-                std::memcpy(&e->ping_, reinterpret_cast<const void*>(0x0073BFA0), sizeof(e->ping_));
+                std::memcpy(&e->ping_, ei::GamePointer<const void>(0x0073BFA0), sizeof(e->ping_));
             }
         }
         node = node->next;

@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "lib/mfc.h"
+#include "game_data.h"
 
 class CEngineObject;
 class IsaacRandom;
@@ -28,7 +29,7 @@ __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, floa
     EI_ORIGINAL(0x00488970)
 
 // The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
-inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
+inline const void* GameErrorThrowInfo() { return ei::GamePointer<const void>(0x00759908); }
 
 // C3j. 004849F0: particle source attaches to an object (RET 4, no result).
 __declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)

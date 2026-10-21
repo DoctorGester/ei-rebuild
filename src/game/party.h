@@ -13,6 +13,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -34,7 +35,7 @@ struct PartyUnitRecord;   // unit.h
 inline AlignedPtrArray& ItemList(CEngineObject**& data) { return *reinterpret_cast<AlignedPtrArray*>(&data); }
 
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
-inline CParty*& LoadingParty() { return *reinterpret_cast<CParty**>(std::uintptr_t(0x007C8344)); }
+inline CParty*& LoadingParty() { return ei::GameData<CParty*>(0x007C8344); }
 
 // 00664880 (__stdcall, RET 8; party_lifetime.cpp). MFC ConstructElements for the records: the
 // memory zeroed, then each record constructed.

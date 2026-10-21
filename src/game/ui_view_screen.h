@@ -6,6 +6,7 @@
 // docs/notes/ui.md, section 4.
 
 #include "ui.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -33,8 +34,8 @@ struct UnitPickInput : UiInputSide {
     // 005EBBC0 (slot 11, RET 0xC). Ctrl released: cursor 0.
     void OnKeyUp(int key, int repeat, int flags);
 
-    static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00740278)); }
-    static void** BaseVtable() { return reinterpret_cast<void**>(std::uintptr_t(0x007401D0)); }
+    static void** Vtable() { return ei::GamePointer<void*>(0x00740278); }
+    static void** BaseVtable() { return ei::GamePointer<void*>(0x007401D0); }
 
     UiDwordArray picked_;            // +0x0C ids of the picked units (CDWordArray, SetSize 0059C660)
 };

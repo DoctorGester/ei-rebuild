@@ -3,6 +3,7 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -94,7 +95,7 @@ void Install(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
     g_streams = new std::unordered_map<void*, Trace>;
     const WriteFn traced[2] = {&TracedWrite<0>, &TracedWrite<1>};
     for (int i = 0; i < 2; ++i) {
-        auto* slot = reinterpret_cast<WriteFn*>(kStreamVtables[i]) + kWriteSlot;
+        auto* slot = ei::GamePointer<WriteFn>(kStreamVtables[i]) + kWriteSlot;
         DWORD old;
         VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
         g_writes[i] = *slot;

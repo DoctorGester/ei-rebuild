@@ -25,6 +25,7 @@
 #include "originals_world.h"
 #include "originals_ui.h"
 #include "game_flow_data.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -37,7 +38,7 @@ namespace {
 // The briefing texts (pointer at 007AF788): 004DEFC0 (RET 4) opens a section by name (0 when
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
 // current line into words.
-void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
+void* BriefingTexts() { return ei::GameData<void*>(0x007AF788); }
 
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
@@ -123,7 +124,7 @@ namespace {
 
 // The quest text files loaded so far (007AFDD0: an STLport vector of strings, the files' paths).
 using LoadedFiles = stlp::vector<stlp::string>;
-LoadedFiles& QuestFiles() { return *reinterpret_cast<LoadedFiles*>(0x007AFDD0); }
+LoadedFiles& QuestFiles() { return ei::GameData<LoadedFiles>(0x007AFDD0); }
 
 } // namespace
 
@@ -255,8 +256,8 @@ void GameFlow::OnVariableChanged(const void* event) {
                                 reinterpret_cast<const unsigned char*>(flowdata::kQuestVariablePrefix)) == 0;
     }
     if (quest) {
-        static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->OnQuestVariable(name, std::bit_cast<float>(value));
-        static_cast<CWorldClient*>(reinterpret_cast<void*>(0x007AF5B8))->OnQuestVariable(name, std::bit_cast<float>(value));
+        static_cast<CInterface3D*>(ei::GamePointer<void>(0x007C7D50))->OnQuestVariable(name, std::bit_cast<float>(value));
+        static_cast<CWorldClient*>(ei::GamePointer<void>(0x007AF5B8))->OnQuestVariable(name, std::bit_cast<float>(value));
     }
 }
 
@@ -272,7 +273,7 @@ void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { stati
 
 // The quest folders registered so far (007AFDC0: an STLport vector of strings).
 using StringVector = stlp::vector<stlp::string>;
-StringVector& QuestFolders() { return *reinterpret_cast<StringVector*>(0x007AFDC0); }
+StringVector& QuestFolders() { return ei::GameData<StringVector>(0x007AFDC0); }
 
 bool Equal(const stlp::string& s, const char* text) {
     std::size_t length = std::strlen(text);
@@ -298,12 +299,12 @@ void GameFlow::RegisterQuests(const char* folder) {
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    QuestDatabaseLoad(reinterpret_cast<char*>(0x007C87A8), nullptr,   // 006AE8E0 (its result not read)
+    QuestDatabaseLoad(ei::GamePointer<char>(0x007C87A8), nullptr,   // 006AE8E0 (its result not read)
                       static_cast<CTextManager*>(texts)->cursor_);
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();
-        static_cast<CMapDatabase*>(reinterpret_cast<void*>(0x0079BF00))->Load(path);
+        static_cast<CMapDatabase*>(ei::GamePointer<void>(0x0079BF00))->Load(path);
     }
     // push_back(folder)
     stlp::string name(folder);
@@ -319,8 +320,8 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     mfc::CString name;
     // The peer's map: the client's +0x25F4, else the server's +0x25A8 (name at +0x0C).
     const std::uint8_t* peer = nullptr;
-    auto* client = *reinterpret_cast<std::uint8_t* const*>(0x0079B5D8);
-    auto* server = *reinterpret_cast<std::uint8_t* const*>(0x0079B5DC);
+    auto* client = ei::GameData<std::uint8_t* const>(0x0079B5D8);
+    auto* server = ei::GameData<std::uint8_t* const>(0x0079B5DC);
     if (ActiveSession(client) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(client + 0x25F4)))
         peer = *reinterpret_cast<std::uint8_t* const*>(client + 0x25F4);
     else if (ActiveSession(server) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(server + 0x25A8)))

@@ -11,6 +11,7 @@
 #include "net_connection_trees.h"
 #include "library_net_lists.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -20,7 +21,7 @@ namespace {
 
 inline double D(float f) { return f; }
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The history / acknowledged lists and the freed-id queue (library_net_lists.h).
 using Packets = stlp::list<SentPacket>;

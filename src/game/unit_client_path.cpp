@@ -17,6 +17,7 @@
 #include "originals_engine.h"
 #include "originals_core.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstddef>
@@ -38,7 +39,7 @@ constexpr float kHalf = 0.5f;                 // 0073B86C
 constexpr float kHalfTurn = 3.1416f;          // 0073CF80
 constexpr float kDecay = -0.3f;               // 0073CDFC
 constexpr float kAnimationRate = 15.0f;       // 0073C518
-float FullTurn() { return *reinterpret_cast<const float*>(0x007AF330); }   // set at start-up
+float FullTurn() { return ei::GameData<const float>(0x007AF330); }   // set at start-up
 
 } // namespace
 

@@ -31,6 +31,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -68,15 +69,15 @@ constexpr double kSwayPeriod = 50.0;                                // 0073D0A0
 constexpr int kSwayCells = 0x7C;
 
 // Set by static initialisers (004E38A0 .. 004E3920).
-float CellSize() { return *reinterpret_cast<const float*>(0x007AEDA8); }     // 0.5
-float RainRise() { return *reinterpret_cast<const float*>(0x007AEDA4); }     // 40: half a rain cycle's fall less 10
-float SnowRise() { return *reinterpret_cast<const float*>(0x007AEDA0); }     // 40: the same for snow
-float HalfHeight() { return *reinterpret_cast<const float*>(0x007AED9C); }   // 30: the band around the camera
-float FlakeHeight() { return *reinterpret_cast<const float*>(0x007AED98); }  // 0.2
+float CellSize() { return ei::GameData<const float>(0x007AEDA8); }     // 0.5
+float RainRise() { return ei::GameData<const float>(0x007AEDA4); }     // 40: half a rain cycle's fall less 10
+float SnowRise() { return ei::GameData<const float>(0x007AEDA0); }     // 40: the same for snow
+float HalfHeight() { return ei::GameData<const float>(0x007AED9C); }   // 30: the band around the camera
+float FlakeHeight() { return ei::GameData<const float>(0x007AED98); }  // 0.2
 
 // A number per (column squared + row) & 31, mixed into a cell's.
-const std::uint32_t* RainSeeds() { return reinterpret_cast<const std::uint32_t*>(0x0078DEA4); }
-const std::uint32_t* SnowSeeds() { return reinterpret_cast<const std::uint32_t*>(0x0078DF24); }
+const std::uint32_t* RainSeeds() { return ei::GamePointer<const std::uint32_t>(0x0078DEA4); }
+const std::uint32_t* SnowSeeds() { return ei::GamePointer<const std::uint32_t>(0x0078DF24); }
 
 // A snowflake's sway (0xA00 bytes; five tables built at start-up by 004E3980): 128 smoothed random
 // values and the cubic between each two neighbours.
@@ -85,11 +86,11 @@ struct SwayTable {
     MotionCubic segments[128];
 };
 static_assert(sizeof(SwayTable) == 0xA00);
-SwayTable& SwayXByHeight() { return *reinterpret_cast<SwayTable*>(0x007AE398); }
-SwayTable& SwayXByPlace() { return *reinterpret_cast<SwayTable*>(0x007AC598); }
-SwayTable& SwayYByHeight() { return *reinterpret_cast<SwayTable*>(0x007AD998); }
-SwayTable& SwayYByPlace() { return *reinterpret_cast<SwayTable*>(0x007ABB98); }
-SwayTable& SwayZByHeight() { return *reinterpret_cast<SwayTable*>(0x007ACF98); }
+SwayTable& SwayXByHeight() { return ei::GameData<SwayTable>(0x007AE398); }
+SwayTable& SwayXByPlace() { return ei::GameData<SwayTable>(0x007AC598); }
+SwayTable& SwayYByHeight() { return ei::GameData<SwayTable>(0x007AD998); }
+SwayTable& SwayYByPlace() { return ei::GameData<SwayTable>(0x007ABB98); }
+SwayTable& SwayZByHeight() { return ei::GameData<SwayTable>(0x007ACF98); }
 
 // The table's value at `at`, whose whole part (_ftol) is `cell`: 0 outside the table (as 004E3930,
 // which the draw has inline; the cubic's value 004E5660 is left unrounded).

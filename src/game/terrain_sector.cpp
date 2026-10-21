@@ -19,11 +19,12 @@
 #include "originals_world.h"
 #include "lib/mfc_array.h"
 #include "render/render.h"
+#include "game_data.h"
 
 namespace terrain {
 namespace {
 
-double GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+double GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The constants of this code (all floats in .rdata).
 double One() { return GameFloat(0x00744160); }          // 1: vertex spacing
@@ -40,7 +41,7 @@ double Zero() { return GameFloat(0x0073B858); }         // 0
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Element helpers of the original (DestroyRecords is in terrain_lights.cpp): the flag arrays'
 // (006C4F90 / 006C4F60) and the tile lists' (006C5050 / 006C5010) instantiations.
@@ -104,7 +105,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     perPage = textures;
 
     char name[0x100];
-    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, *reinterpret_cast<const char* const*>(0x00744164));
+    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, ei::GameData<const char* const>(0x00744164));
     using GetFileFn = void*(__thiscall*)(void*, const char*, std::uint32_t*);
     std::uint32_t size = 0;
     const std::uint8_t* file = static_cast<const std::uint8_t*>(
@@ -342,7 +343,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         std::uint32_t r = GlobalRandom().Next();
                         a.frames = frames;
                         a.frame = static_cast<int>(r % static_cast<std::uint32_t>(frames));
-                        a.speed = reinterpret_cast<const int*>(0x00796960)[ClassOf(owner, texture)];
+                        a.speed = ei::GamePointer<const int>(0x00796960)[ClassOf(owner, texture)];
                         uv = owner->TileUv(rotation, a.frame + index, 0);
                     }
                 }
@@ -546,9 +547,9 @@ namespace {
 using ProjectionVertex = Vector4;
 static_assert(sizeof(ProjectionVertex) == 16);
 using ProjectionBuffer = lib::AlignedArray<ProjectionVertex>;
-ProjectionBuffer& ProjectionInput() { return *reinterpret_cast<ProjectionBuffer*>(std::uintptr_t(0x007C88F8)); }
-ProjectionBuffer& ProjectionOutput() { return *reinterpret_cast<ProjectionBuffer*>(std::uintptr_t(0x007C88E8)); }
-FlagArray& ProjectionOutcodes() { return *reinterpret_cast<FlagArray*>(std::uintptr_t(0x007C88D0)); }
+ProjectionBuffer& ProjectionInput() { return ei::GameData<ProjectionBuffer>(0x007C88F8); }
+ProjectionBuffer& ProjectionOutput() { return ei::GameData<ProjectionBuffer>(0x007C88E8); }
+FlagArray& ProjectionOutcodes() { return ei::GameData<FlagArray>(0x007C88D0); }
 constexpr int kProjectionVertices = 0x330;
 
 // The vtables of the sector's CArray instantiations.
@@ -610,20 +611,20 @@ void SectorData::DestructBody() {
     classCounts.FreeData();
     animated.FreeData();
     for (int q = 3; q >= 0; --q) {
-        tiles[q].vtable = reinterpret_cast<void*>(kTileListArrayVtable);
+        tiles[q].vtable = ei::GamePointer<void>(kTileListArrayVtable);
         tiles[q].FreeData();
     }
     for (int q = 3; q >= 0; --q) {
-        tileFlags[q].vtable = reinterpret_cast<void*>(kFlagArrayArrayVtable);
+        tileFlags[q].vtable = ei::GamePointer<void>(kFlagArrayArrayVtable);
         tileFlags[q].FreeData();
     }
     waterTiles.FreeData();
     tileTextures.FreeData();
-    records.vtable = reinterpret_cast<void*>(kRecordArrayVtable);
+    records.vtable = ei::GamePointer<void>(kRecordArrayVtable);
     records.FreeData();   // each record's light list released (the original inlines 006C4EE0's loop)
-    vertices.vtable = reinterpret_cast<void*>(kPositionArrayVtable);
+    vertices.vtable = ei::GamePointer<void>(kPositionArrayVtable);
     vertices.FreeData();
-    waterMaterials.vtable = reinterpret_cast<void*>(kByteArrayVtable);   // ~CByteArray (006FF61D)
+    waterMaterials.vtable = ei::GamePointer<void>(kByteArrayVtable);   // ~CByteArray (006FF61D)
     waterMaterials.FreeData();
 }
 EI_REPLACE_METHOD(0x006BF8A0, SectorData::DestructBody);

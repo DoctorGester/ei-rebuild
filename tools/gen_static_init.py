@@ -105,6 +105,16 @@ def lit(v):
     return str(v) if v < 10 else f'0x{v:X}'
 
 
+# game.exe's data (its import address table, .rdata, .data and .bss, .rsrc): an argument there is a
+# data address, which the visitor resolves through the data seam (d.At, static_init.h; S18).
+DATA = (0x0073B000, 0x007D7000)
+
+
+def arg_lit(v):
+    v &= 0xFFFFFFFF
+    return f'd.At({hexa(v)})' if DATA[0] <= v < DATA[1] else lit(v)
+
+
 MEM = re.compile(r'^(byte|dword|qword) ptr \[(0x[0-9a-f]+)\]$')
 REGMEM = re.compile(r'^(byte|dword|qword) ptr \[(e[a-d]x|e[sd]i)(?: ([+-]) (0x[0-9a-f]+|\d+))?\]$')
 STACK = re.compile(r'^\[esp(?: \+ (0x[0-9a-f]+|\d+))?\]$')
@@ -142,7 +152,7 @@ class Interpreter:
     def arg(self, v):
         kind = v[0]
         if kind == 'imm':
-            return lit(v[1])
+            return arg_lit(v[1])
         if kind == 'dword':
             return f'd.Dword({hexa(v[1])})'
         if kind == 'local':
@@ -348,7 +358,7 @@ class Interpreter:
         if size != 'dword':
             raise Unknown(f'{x.address:08X}: {size} store')
         if v[0] == 'imm':
-            self.emit(f'd.Store({hexa(address)}, {lit(v[1])});', indent)
+            self.emit(f'd.Store({hexa(address)}, {arg_lit(v[1])});', indent)
             self.kinds.append('store')
         elif v[0] == 'dword':
             self.emit(f'd.Store({hexa(address)}, d.Dword({hexa(v[1])}));', indent)
@@ -550,7 +560,11 @@ def match_exit(img, address, md):
         else:
             label = lambda n: starts[-1] if n == '@E' else starts[int(n[1:])]
             if all(v == label(n) for n, v in found.items() if n.startswith('@')):
-                value = lambda m: hexa(found[m.group(1)]) if found[m.group(1)] >= 0x10000 else lit(found[m.group(1)])
+                def value(m):
+                    v = found[m.group(1)]
+                    if m.group(1).startswith('A') and DATA[0] <= v < DATA[1]:
+                        return arg_lit(v)   # an argument: a data address goes through the seam
+                    return hexa(v) if v >= 0x10000 else lit(v)
                 return name, re.sub(r'\{(\w+)\}', value, body), at - address
     return None
 

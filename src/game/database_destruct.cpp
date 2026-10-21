@@ -15,6 +15,7 @@
 #include "record_vectors.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 namespace {
 
@@ -44,10 +45,10 @@ struct AllodElements {
 
 void CMapDatabase::Destruct() {
     auto& mapRecords = reinterpret_cast<gamearrays::ZoneRecords::Array&>(maps);
-    mapRecords.vtable = reinterpret_cast<void*>(kMapArrayVtable);
+    mapRecords.vtable = ei::GamePointer<void>(kMapArrayVtable);
     mapRecords.FreeData();
     auto& allodRecords = reinterpret_cast<mfc::CArray<AllodRecord, AllodElements>&>(allods);
-    allodRecords.vtable = reinterpret_cast<void*>(kAllodArrayVtable);
+    allodRecords.vtable = ei::GamePointer<void>(kAllodArrayVtable);
     allodRecords.FreeData();
 }
 EI_REPLACE_METHOD(0x0045E6F0, CMapDatabase::Destruct);

@@ -30,6 +30,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 using console::CStringArray;
 
@@ -70,8 +71,8 @@ void ContainerInputs::AddInput(void* input) { reinterpret_cast<CUiContainer*>(th
 
 // The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
 // game being loaded (at 007AFE1C).
-int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }
-bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
+int SaveVersion() { return ei::GameData<const int>(0x007AFE00); }
+bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
 
 // The vtables (main, input) of the panels Create builds inline.
 constexpr std::uintptr_t kClockVtable = std::uintptr_t(0x007425C8);            // CHudClock
@@ -94,7 +95,7 @@ Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner, s
 }
 
 // A CString member made empty, as MFC's inline constructor does (afxEmptyString's data).
-char* EmptyStringData() { return *reinterpret_cast<char* const*>(0x00796E48); }
+char* EmptyStringData() { return ei::GameData<char* const>(0x00796E48); }
 
 } // namespace
 
@@ -149,7 +150,7 @@ void CBattleScreen::Create() {
     // The screen's own input handler (vtable 00741154, 0x0C bytes).
     void** input = static_cast<void**>(gamecrt::operator_new(0x0C));
     if (input) {
-        input[0] = reinterpret_cast<void*>(0x00741154);
+        input[0] = ei::GamePointer<void>(0x00741154);
         input[1] = interface_;
     }
     reinterpret_cast<ContainerInputs*>(this)->AddInput(input);
@@ -194,8 +195,8 @@ void CBattleScreen::Create() {
             panel->strings_[1] = EmptyStringData();
             panel->texts_.Construct();
             panel->partLabels_.Construct();
-            panel->vtable_ = reinterpret_cast<void**>(0x007426F8);
-            panel->inputVtable_ = reinterpret_cast<void**>(0x007426C4);
+            panel->vtable_ = ei::GamePointer<void*>(0x007426F8);
+            panel->inputVtable_ = ei::GamePointer<void*>(0x007426C4);
         }
         unitPanel_ = panel;
     }
@@ -216,8 +217,8 @@ void CBattleScreen::Create() {
                 points->capacity = 0;
                 points->size = 0;
             }
-            panel->vtable_ = reinterpret_cast<void**>(0x00742660);
-            panel->inputVtable_ = reinterpret_cast<void**>(0x0074262C);
+            panel->vtable_ = ei::GamePointer<void*>(0x00742660);
+            panel->inputVtable_ = ei::GamePointer<void*>(0x0074262C);
         }
         map_ = panel;
     }
@@ -250,8 +251,8 @@ void CBattleScreen::Create() {
             panel->owner_ = this;
             panel->pageTexts_[0] = EmptyStringData();
             panel->pageTexts_[1] = EmptyStringData();
-            panel->vtable_ = reinterpret_cast<void**>(0x00742498);
-            panel->inputVtable_ = reinterpret_cast<void**>(0x00742464);
+            panel->vtable_ = ei::GamePointer<void*>(0x00742498);
+            panel->inputVtable_ = ei::GamePointer<void*>(0x00742464);
         }
         topPanel_ = panel;
     }
@@ -275,7 +276,7 @@ void CBattleScreen::Create() {
     memory = gamecrt::operator_new(0x2C);
     reinterpret_cast<ContainerInputs*>(this)->AddInput(memory ? static_cast<CCameraInput*>(memory)->Construct(interface_) : nullptr);
 
-    *reinterpret_cast<std::uint32_t*>(0x0079B2B0) &= ~0x40u;
+    ei::GameData<std::uint32_t>(0x0079B2B0) &= ~0x40u;
     pendingAction_ = 0;
     pendingSlot_ = -1;
     GameSetWeather(0, 0.0f);   // clear weather
@@ -313,12 +314,12 @@ BOOL CBattleScreen::Draw(void* target) {
         static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
-    InputMouseMove(0, *reinterpret_cast<int*>(0x007C7C50), *reinterpret_cast<int*>(0x007C7C54));
+    InputMouseMove(0, ei::GameData<int>(0x007C7C50), ei::GameData<int>(0x007C7C54));
     // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
     UiRenderer* renderer = interface_->renderer_;
     DWORD flags = kClearTarget;
     if ((renderer->caps_ & 0x4000) && renderer->stencil_) flags = kClearStencil;
-    auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+    auto* lock = ei::GamePointer<CRITICAL_SECTION>(0x007AEE78);
     gameapi::EnterCriticalSection(lock);
     renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);

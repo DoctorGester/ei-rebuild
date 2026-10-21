@@ -14,6 +14,7 @@
 #include "originals_world.h"
 #include "originals_script.h"
 #include "game_arrays.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -27,7 +28,7 @@ struct World {
     void AddTimedObject(void* object);    // 0058E520
 };
 void World::AddTimedObject(void* object) { WorldAddTimed(this, nullptr, static_cast<CEngineObject*>(object)); }
-World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
+World* TheWorld() { return ei::GamePointer<World>(0x007AFF60); }
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
 CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
@@ -89,7 +90,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     const float dy = static_cast<float>(static_cast<double>(target[1]) - position[1]);
     const float dz = static_cast<float>(static_cast<double>(target[2]) - position[2]);
     // FILD steps; FDIVR 1.0f (0073B84C), rounded to float.
-    const float inverse = static_cast<float>(static_cast<double>(*reinterpret_cast<const float*>(0x0073B84C)) / light->steps);
+    const float inverse = static_cast<float>(static_cast<double>(ei::GameData<const float>(0x0073B84C)) / light->steps);
     light->step.x = static_cast<float>(dx * inverse);
     light->step.y = static_cast<float>(static_cast<double>(dy) * inverse);
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
@@ -163,7 +164,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     CEffectPointLight* object = static_cast<CEffectPointLight*>(Lights(this)[i].object);
     ++object->refCount_;
     f = cmd->floatArgs.data;
-    const float scale = *reinterpret_cast<const float*>(0x0073C36C);   // 1 / 255
+    const float scale = ei::GameData<const float>(0x0073C36C);   // 1 / 255
     float red = f[5] * scale;
     float green = f[6] * scale;
     float blue = f[7] * scale;
@@ -226,9 +227,9 @@ struct QuestObjective {
 };
 static_assert(sizeof(QuestObjective) == 12);
 
-QuestObjective* QuestObjectives() { return *reinterpret_cast<QuestObjective**>(0x007AA60C); }
-int QuestObjectiveCount() { return *reinterpret_cast<int*>(0x007AA610); }
-mfc::CString& QuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C); }   // QStart's name
+QuestObjective* QuestObjectives() { return ei::GameData<QuestObjective*>(0x007AA60C); }
+int QuestObjectiveCount() { return ei::GameData<int>(0x007AA610); }
+mfc::CString& QuestName() { return ei::GameData<mfc::CString>(0x007AA61C); }   // QStart's name
 
 // 004D23A0 CScript::Load (rewritten; through its address so its verify wrapper runs).
 BOOL __fastcall LoadOrig(CScript* a0, void*, mfc::CString* a2, BOOL a3) { return (BOOL)ScriptLoadLine((void*)a0, nullptr, (const mfc::CString*)a2, (int)a3); }

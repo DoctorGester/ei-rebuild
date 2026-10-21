@@ -32,11 +32,12 @@
 #include <cstring>
 #include "originals_engine.h"
 #include "originals_library.h"   // CxxThrowException
+#include "game_data.h"
 
 namespace {
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-int& HolderCount() { return *reinterpret_cast<int*>(0x007AEE94); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
+int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
 // The holder's vtable and its base class's.
 void SetHolderVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D774); }
 void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }

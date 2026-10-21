@@ -8,6 +8,7 @@
 #include "engine_object.h"
 
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <windows.h>
 
@@ -29,7 +30,7 @@ static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorI
               sizeof(ProcessorInfo) == 0x14);
 inline constexpr std::uint32_t kProcessorMmx = 0x00800000;   // CPUID.1:EDX bit 23
 inline constexpr std::uint32_t kProcessorSse = 0x02000000;   // CPUID.1:EDX bit 25
-inline ProcessorInfo* TheProcessorInfo() { return reinterpret_cast<ProcessorInfo*>(0x007CAED0); }
+inline ProcessorInfo* TheProcessorInfo() { return ei::GamePointer<ProcessorInfo>(0x007CAED0); }
 // The terminator cleared, then CPUID function 1 into the globals when the processor has CPUID (the
 // EFLAGS ID bit can be flipped; as in the original it stays flipped). Both writers inline this.
 void ReadProcessorInfo();
@@ -72,7 +73,7 @@ static_assert(offsetof(CSysInfo, computerName_) == 0x1C && offsetof(CSysInfo, se
               offsetof(CSysInfo, memory_) == 0x30 && offsetof(CSysInfo, system_) == 0x50 &&
               offsetof(CSysInfo, version_) == 0x74 && sizeof(CSysInfo) == 0x108);
 
-inline CSysInfo* TheSysInfo() { return reinterpret_cast<CSysInfo*>(0x007AB8F8); }
+inline CSysInfo* TheSysInfo() { return ei::GamePointer<CSysInfo>(0x007AB8F8); }
 
 // 004DDE75: the destructor body (its vtable, the five texts from the last to the first, the engine
 // object's base destructor).

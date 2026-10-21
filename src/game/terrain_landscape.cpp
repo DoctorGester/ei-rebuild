@@ -17,6 +17,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -196,11 +197,11 @@ constexpr int kRipples = 40;
 // Static initialisers (006C52D0, 006C52F0, 006C5360..006C53A0): the zero position and identity
 // rotation Create gives the landscape, and the waves' scales (computed from other constants at
 // startup, read from memory).
-const Vector3& ZeroPosition() { return *reinterpret_cast<const Vector3*>(0x007C8988); }
-const Quaternion& IdentityRotation() { return *reinterpret_cast<const Quaternion*>(0x007C8978); }
-float WaveHeightScale() { return *reinterpret_cast<const float*>(0x007C8970); }
-float WaveSpeedScale() { return *reinterpret_cast<const float*>(0x007C8968); }
-float WaveDirectionScale() { return *reinterpret_cast<const float*>(0x007C896C); }
+const Vector3& ZeroPosition() { return ei::GameData<const Vector3>(0x007C8988); }
+const Quaternion& IdentityRotation() { return ei::GameData<const Quaternion>(0x007C8978); }
+float WaveHeightScale() { return ei::GameData<const float>(0x007C8970); }
+float WaveSpeedScale() { return ei::GameData<const float>(0x007C8968); }
+float WaveDirectionScale() { return ei::GameData<const float>(0x007C896C); }
 
 // The CString members are declared as their data pointers (the client world's Setup stores the
 // empty string's there); assignments go through MFC's operator=.
@@ -328,8 +329,8 @@ void Terrain::SetWaves(const Vector3* direction, float strength) {
 namespace {
 
 // The texture manager (007AF744) and the material manager (007AF740).
-CTextureManager* Textures() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
-void* Materials() { return *reinterpret_cast<void* const*>(0x007AF740); }
+CTextureManager* Textures() { return ei::GameData<CTextureManager* const>(0x007AF744); }
+void* Materials() { return ei::GameData<void* const>(0x007AF740); }
 
 constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
 constexpr int kPageMaterial = 0x12;   // material kind
@@ -420,7 +421,7 @@ constexpr std::uint32_t kLowFlags = 0xFFFF;
 constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);   // CArray<float>
 
 // ".MP": the map file's extension, through the pointer the loader reads.
-const char* MapExtension() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x007441D4)); }
+const char* MapExtension() { return ei::GameData<const char* const>(0x007441D4); }
 
 // The original keeps 1 when its FCOMP finds 1 below the value, or the two unordered.
 float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
@@ -433,7 +434,7 @@ void terrain::LevelArrayElements::Construct(mfc::CArray<float>* arrays, int coun
 }
 void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count) {
     for (int i = 0; i < count; ++i) {
-        arrays[i].vtable = reinterpret_cast<void*>(kFloatArrayVtable);
+        arrays[i].vtable = ei::GamePointer<void>(kFloatArrayVtable);
         if (arrays[i].data) gamecrt::operator_delete(arrays[i].data);
     }
 }

@@ -38,7 +38,7 @@ int ReportMissingTargets() {
     const int exitCalls = missing(callees.calls, "exit function's callee");
     int imports = 0;
     for (std::uintptr_t slot : targets.imports)
-        if (!*reinterpret_cast<const std::uintptr_t*>(slot)) ++imports;
+        if (!GameData<const std::uintptr_t>(slot)) ++imports;
     Log("standalone: static initialisers: %zu call(s), %zu exit function(s), %zu import call(s); without code: %d call "
         "target(s), %d exit function(s), %d import(s), %d exit function callee(s)",
         targets.calls.size(), targets.exits.size(), targets.imports.size(), calls, exits, imports, exitCalls);

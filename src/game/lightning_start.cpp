@@ -16,20 +16,21 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_core.h"
+#include "game_data.h"
 
 namespace {
 
 // 00500A00: releases the texture in `holder` and loads `name` (kind 6).
 
-IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 float GameFloat(std::uintptr_t address) {
     float f;
-    std::memcpy(&f, reinterpret_cast<const void*>(address), sizeof(f));
+    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
     return f;
 }
 double GameDouble(std::uintptr_t address) {
     double d;
-    std::memcpy(&d, reinterpret_cast<const void*>(address), sizeof(d));
+    std::memcpy(&d, ei::GamePointer<const void>(address), sizeof(d));
     return d;
 }
 float Absolute(float f) {
@@ -57,8 +58,8 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 } // namespace
 
 void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool demon) {
-    int ticks = *reinterpret_cast<const volatile int*>(0x007AF61C);
-    float fraction = *reinterpret_cast<const volatile float*>(0x007AFCA8);
+    int ticks = ei::GameData<const volatile int>(0x007AF61C);
+    float fraction = ei::GameData<const volatile float>(0x007AFCA8);
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / GameFloat(0x0073C4F8));   // 4
     power_ = power;
     const float strength = Absolute(power);

@@ -9,23 +9,24 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
-char& GuardPlain() { return *reinterpret_cast<char*>(0x0079026C); }            // 1: data in the clear
-std::uint32_t& GuardKey() { return *reinterpret_cast<std::uint32_t*>(0x007AFECC); }
+char& GuardPlain() { return ei::GameData<char>(0x0079026C); }            // 1: data in the clear
+std::uint32_t& GuardKey() { return ei::GameData<std::uint32_t>(0x007AFECC); }
 // The players_ lists (+0x38) of the client world (007AF5B8) and the server world (007AFF60).
-CEngineObject* ClientPlayers() { return *reinterpret_cast<CEngineObject**>(0x007AF5F0); }
-CEngineObject* ServerPlayers() { return *reinterpret_cast<CEngineObject**>(0x007AFF98); }
+CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0); }
+CEngineObject* ServerPlayers() { return ei::GameData<CEngineObject*>(0x007AFF98); }
 // The party records outside a game (007C82B0, laid out like WorldPlayer + 0x70): records +0x30,
 // count +0x34, gold +0x50.
-std::uint8_t* GlobalRecords() { return *reinterpret_cast<std::uint8_t**>(0x007C82E0); }
-int GlobalRecordCount() { return *reinterpret_cast<int*>(0x007C82E4); }
-std::uint32_t& GlobalGold() { return *reinterpret_cast<std::uint32_t*>(0x007C8300); }
+std::uint8_t* GlobalRecords() { return ei::GameData<std::uint8_t*>(0x007C82E0); }
+int GlobalRecordCount() { return ei::GameData<int>(0x007C82E4); }
+std::uint32_t& GlobalGold() { return ei::GameData<std::uint32_t>(0x007C8300); }
 
 constexpr int kRecordSize = 0x784;
 constexpr int kRecordGuarded = 0x20;   // the 0x704 bytes from +0x20 of a party record

@@ -15,6 +15,7 @@
 #include "../../src/game/sector_map.h"
 #include "../../src/game/unit.h"
 #include "../../src/lib/crt.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -367,7 +368,7 @@ void ReadPath(Reader& r, AIPath& path) {
     std::memset(&path, 0, sizeof(path));
     EmptyList(path.steps);
     EmptyList(path.cells);
-    path.excludedBlocks.vtable = reinterpret_cast<void*>(AIPath::kExcludedBlocksVtable);
+    path.excludedBlocks.vtable = ei::GamePointer<void>(AIPath::kExcludedBlocksVtable);
     path.motionOrder = r.Get<MotionOrder>();
     ReadCells(r, path.steps);
     ReadCells(r, path.cells);

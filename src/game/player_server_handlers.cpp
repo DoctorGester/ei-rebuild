@@ -26,6 +26,7 @@
 #include "originals_library.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
@@ -44,14 +45,14 @@ constexpr float kPathRange = 1000000.0f;              // FindPath's range for th
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
 // The stream the received packets are decompressed into (007C83D0; ReceiveMessages fills it).
-CMemoryStream& ReceivedMessages() { return *reinterpret_cast<CMemoryStream*>(std::uintptr_t(0x007C83D0)); }
+CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The shares a revived hero loses: of the party's money (007C5490) and of its experience above the
 // NPC record's floor (007C5494). Set at startup.
-float MoneyPenalty() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x007C5490)); }
-float ExperiencePenalty() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x007C5494)); }
+float MoneyPenalty() { return ei::GameData<const volatile float>(0x007C5490); }
+float ExperiencePenalty() { return ei::GameData<const volatile float>(0x007C5494); }
 // The AI map's cell size factors (0074326C, 0073B86C): a half-cell coordinate times both is world units.
-float CellScaleA() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x0074326C)); }
-float CellScaleB() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x0073B86C)); }
+float CellScaleA() { return ei::GameData<const volatile float>(0x0074326C); }
+float CellScaleB() { return ei::GameData<const volatile float>(0x0073B86C); }
 // The use order's unit list: an MFC CArray<CUnit*> (vtable 007402AC; SetAtGrow 0060AD50, RemoveAt
 // 00671200 are the template's members).
 constexpr std::uintptr_t kUnitArrayVtable = std::uintptr_t(0x007402AC);
@@ -151,7 +152,7 @@ AIPath* AIPath::Construct() {
     cells = {};
     cells.vtable = PathCellListVtable();
     cells.blockSize = 0x80;
-    excludedBlocks.vtable = reinterpret_cast<void*>(kExcludedBlocksVtable);
+    excludedBlocks.vtable = ei::GamePointer<void>(kExcludedBlocksVtable);
     excludedBlocks.data = nullptr;
     excludedBlocks.size = 0;
     excludedBlocks.maxSize = 0;
@@ -193,7 +194,7 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
 
 int CPlayerServer::OnUseOrder() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{reinterpret_cast<void*>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
     int count = 0;
     in.Read(&count, 4);
     for (int i = 0; i < count; ++i) {
@@ -268,7 +269,7 @@ int CPlayerServer::OnUseOrder() {
         if (AIMode* mode = brain->FindPlayerMode())
             static_cast<PlayerMode*>(mode)->CommandUse(brain, object, kind, value, flag != 0);
     }
-    units.vtable = reinterpret_cast<void*>(kUnitArrayVtable);
+    units.vtable = ei::GamePointer<void>(kUnitArrayVtable);
     if (units.data) gamecrt::operator_delete(units.data);
     return 1;
 }
@@ -287,11 +288,11 @@ namespace {
 
 // The campaign mode (007C2CC4; 1 and 3 end the game when the leader is gone) and the game mode
 // (007B0098; 1 single player, 2 multiplayer).
-int CampaignMode() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007C2CC4)); }
-int GameMode() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007B0098)); }
+int CampaignMode() { return ei::GameData<const volatile int>(0x007C2CC4); }
+int GameMode() { return ei::GameData<const volatile int>(0x007B0098); }
 // The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
-void* PartyManager() { return reinterpret_cast<void*>(std::uintptr_t(0x007AA5A0)); }
-int& NextRecordObjectId() { return *reinterpret_cast<int*>(std::uintptr_t(0x00794E3C)); }
+void* PartyManager() { return ei::GamePointer<void>(0x007AA5A0); }
+int& NextRecordObjectId() { return ei::GameData<int>(0x00794E3C); }
 
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
@@ -321,8 +322,8 @@ void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtable) {
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{reinterpret_cast<void*>(kUnitArrayVtable), nullptr, 0, 0, 0};
-    PointArray offsets{reinterpret_cast<void*>(kPointArrayVtable), nullptr, 0, 0, 0};
+    UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    PointArray offsets{ei::GamePointer<void>(kPointArrayVtable), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
     int run = 0;
     Vector3 to{};
@@ -525,7 +526,7 @@ int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
 int CPlayerServer::OnAttack() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{reinterpret_cast<void*>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
     in.Read(&ctrl, 4);
@@ -641,7 +642,7 @@ namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;
 constexpr std::uint8_t kMessage19 = 0x19;
 const char* const kResendingParty = "Resending party of player ";   // 00794F34
-libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(std::uintptr_t(0x007C56B0)); }
+libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
 } // namespace
 
 void CPlayerServer::SendPartyUpdate() {

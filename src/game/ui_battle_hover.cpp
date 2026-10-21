@@ -21,6 +21,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "world.h"
+#include "game_data.h"
 
 namespace {
 
@@ -43,9 +44,9 @@ struct HoverCursor {
     int SetShape(int shape);
 };
 int HoverCursor::SetShape(int a2) { return static_cast<CCursor*>((void*)this)->ChangeShape(a2); }
-void SetCursor(int shape) { reinterpret_cast<HoverCursor*>(0x007C7BD8)->SetShape(shape); }
+void SetCursor(int shape) { ei::GamePointer<HoverCursor>(0x007C7BD8)->SetShape(shape); }
 
-void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
+void* const kClientWorld = ei::GamePointer<void>(0x007AF5B8);
 
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
@@ -161,7 +162,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                                 reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
                 name = mfc::CString("z.") + name;
                 double value = LocalPlayerVariable(name);
-                const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
+                const float one = ei::GameData<const volatile float>(0x0073B84C);
                 // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
                 if (!x87::IsNaN(static_cast<float>(value)) && value != one) SetCursor(kCursorExit);
             }

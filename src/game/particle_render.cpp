@@ -17,6 +17,7 @@
 #include "model.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 namespace {
 
@@ -28,19 +29,19 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 #define EI_ONE GameFloat(0x0073B84C)
 
 // x87 FCOMP; FNSTSW; C0: "a < b or unordered".
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
-ParticleVertexArray& Vertices() { return *reinterpret_cast<ParticleVertexArray*>(0x007A9BD0); }
-ParticleSpriteArray& Sprites() { return *reinterpret_cast<ParticleSpriteArray*>(0x007A9BE0); }
-std::uint8_t& ArraysConstructed() { return *reinterpret_cast<std::uint8_t*>(0x007A9BF4); }
+ParticleVertexArray& Vertices() { return ei::GameData<ParticleVertexArray>(0x007A9BD0); }
+ParticleSpriteArray& Sprites() { return ei::GameData<ParticleSpriteArray>(0x007A9BE0); }
+std::uint8_t& ArraysConstructed() { return ei::GameData<std::uint8_t>(0x007A9BF4); }
 
 // The world clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
-int WorldTicks() { return *reinterpret_cast<const volatile int*>(0x007AF61C); }
-float TickFraction() { return *reinterpret_cast<const volatile float*>(0x007AFCA8); }
+int WorldTicks() { return ei::GameData<const volatile int>(0x007AF61C); }
+float TickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
 
 constexpr int kReserve = 0x1000;
 

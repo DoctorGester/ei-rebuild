@@ -7,6 +7,7 @@
 #include "maths.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -23,7 +24,7 @@ using RotationKey = AnimationRotationKey;
 
 float GameFloat(std::uintptr_t address) {
     float f;
-    std::memcpy(&f, reinterpret_cast<const void*>(address), sizeof(f));
+    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
     return f;
 }
 

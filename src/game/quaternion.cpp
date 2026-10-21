@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -23,8 +24,8 @@ double StoreDouble(double v) {
 }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 #define EI_HALF_F GameFloat(0x0073B86C)        // 0.5f
 #define EI_ONE_F GameFloat(0x0073B84C)         // 1.0f
 #define EI_ZERO_D GameDouble(0x0073C340)       // 0.0

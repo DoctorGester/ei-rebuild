@@ -108,10 +108,10 @@ private:
 };
 
 // 007C55A8: the console's ostream (its streambuf is ConsoleStreambuf 007C5868).
-inline GameOStream& Out() { return *reinterpret_cast<GameOStream*>(0x007C55A8); }
+inline GameOStream& Out() { return ei::GameData<GameOStream>(0x007C55A8); }
 // 007C5760: another of the console's ostreams (its message filter not identified); the battle
 // screen prints the "Terrain Coords" of a click on the ground to it (00638EF0).
-inline GameOStream& Out7C5760() { return *reinterpret_cast<GameOStream*>(0x007C5760); }
+inline GameOStream& Out7C5760() { return ei::GameData<GameOStream>(0x007C5760); }
 // `<< '\n' << flush`, how every console message ends.
 void EndLine(GameOStream& os);
 // Out() << text, then EndLine.
@@ -157,12 +157,12 @@ static_assert(sizeof(ConsoleStreambuf) == 0x454);
 static_assert(offsetof(ConsoleStreambuf, base_) == 0x10 && offsetof(ConsoleStreambuf, filter_) == 0x4C &&
               offsetof(ConsoleStreambuf, line_) == 0x50 && offsetof(ConsoleStreambuf, buffer_) == 0x54);
 
-inline ConsoleStreambuf* MainStreambuf() { return reinterpret_cast<ConsoleStreambuf*>(0x007C5868); }
+inline ConsoleStreambuf* MainStreambuf() { return ei::GamePointer<ConsoleStreambuf>(0x007C5868); }
 
 // 007C7B68: the message categories shown (bit per filter, "filter" command).
-inline unsigned& FilterMask() { return *reinterpret_cast<unsigned*>(0x007C7B68); }
+inline unsigned& FilterMask() { return ei::GameData<unsigned>(0x007C7B68); }
 // 007C7B64: set by the cheat word; unlocks the second command map and the script lines.
-inline bool& CheatEnabled() { return *reinterpret_cast<bool*>(0x007C7B64); }
+inline bool& CheatEnabled() { return ei::GameData<bool>(0x007C7B64); }
 
 // The console window (the interface manager 007C7D50 keeps it at +0x14). Lines are kept as text;
 // the surface is redrawn by 005E4800.
@@ -232,8 +232,8 @@ static_assert(sizeof(CommandNode) == 0x18);
 CommandHandler& Command(CommandMap* map, const mfc::CString& key);
 
 // 007C7B28: commands always available; 007C7B38: commands after the cheat word.
-inline CommandMap* PublicCommands() { return reinterpret_cast<CommandMap*>(0x007C7B28); }
-inline CommandMap* CheatCommands() { return reinterpret_cast<CommandMap*>(0x007C7B38); }
+inline CommandMap* PublicCommands() { return ei::GamePointer<CommandMap>(0x007C7B28); }
+inline CommandMap* CheatCommands() { return ei::GamePointer<CommandMap>(0x007C7B38); }
 
 // The registrations the executor makes on every call, in its order: map, name, handler.
 struct CommandRegistration {

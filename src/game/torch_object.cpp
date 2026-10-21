@@ -9,11 +9,12 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <initializer_list>
 
 namespace {
-void* const kTorchVtable = reinterpret_cast<void*>(0x0073E834);
+void* const kTorchVtable = ei::GamePointer<void>(0x0073E834);
 const char* const kTorchClassName = "CTorchObject";
 constexpr int kClassTorch = 0x57;
 constexpr int kTypeTorchSpec = 0x4B;

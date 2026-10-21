@@ -25,21 +25,22 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <new>
 
 namespace {
 
-void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
-void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
+void* ServerWorld() { return ei::GamePointer<void>(0x007AFF60); }
+void* SectorMap() { return ei::GamePointer<void>(0x007B01F4); }   // the server world + 0x294
 // The loot table (007C8758): its records, then their name index.
-stlp::RecordsByName* LootTable() { return reinterpret_cast<stlp::RecordsByName*>(0x007C8758); }
-float TurnedOver() { return *reinterpret_cast<const float*>(0x007410D0); }   // pi
+stlp::RecordsByName* LootTable() { return ei::GamePointer<stlp::RecordsByName>(0x007C8758); }
+float TurnedOver() { return ei::GameData<const float>(0x007410D0); }   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }
-const int* SlotXs() { return reinterpret_cast<const int*>(0x0074111C); }   // 300, 500, 200, 400, 600, 75, 725
-const int* SlotYs() { return reinterpret_cast<const int*>(0x00741138); }   // 300 x5, 500, 500
+const int* SlotXs() { return ei::GamePointer<const int>(0x0074111C); }   // 300, 500, 200, 400, 600, 75, 725
+const int* SlotYs() { return ei::GamePointer<const int>(0x00741138); }   // 300 x5, 500, 500
 using ActionDoneFn = void(__fastcall*)(CUnit*);
 ActionDoneFn SpeakerActionDone() { return reinterpret_cast<ActionDoneFn>(0x006023F0); }
 

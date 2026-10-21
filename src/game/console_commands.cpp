@@ -24,6 +24,7 @@
 #include "ui.h"
 #include "unit.h"
 #include "world.h"
+#include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -46,7 +47,7 @@ bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, "1") || ArgI
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
 // 007C7D50: the interface manager.
-CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
+CInterface3D* Interface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 
 // The world's player `id` (00594180, through its address), or null.
 WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(id)); }
@@ -263,7 +264,7 @@ void __fastcall LastFps(CStringArray*) {
     auto* timer = static_cast<CSceneRenderer*>(SceneRenderer());
     GameOStream& os = Out() << "Current FPS: ";
     unsigned ms = timer->FrameTime();
-    double fps = *reinterpret_cast<const float*>(0x0073C34C) / x87::FromUnsigned(ms);
+    double fps = ei::GameData<const float>(0x0073C34C) / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
 }
 EI_REPLACE(0x005DEEE0, LastFps);
@@ -332,7 +333,7 @@ void RequestWithParty(CStringArray* args, const char* extra) {
     party->AddMember("F", "Human Hero", extra);
     {
         mfc::CString map((*args)[0]);
-        (reinterpret_cast<GameFlow*>(0x007AFE20)->*Request)(map, party);
+        (ei::GamePointer<GameFlow>(0x007AFE20)->*Request)(map, party);
     }
     party->DestructBody();
 }
@@ -394,7 +395,7 @@ void __fastcall Net(CStringArray* args) {
         if (WorldPlayer* player = GetPlayer(0)) player->logTraffic = libcrt::Atoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], "time") == 0)
-        *reinterpret_cast<int*>(0x0079BC60) = libcrt::Atoi((*args)[1]);
+        *ei::GamePointer<int>(0x0079BC60) = libcrt::Atoi((*args)[1]);
     if (Mbsicmp((*args)[0], "zone") == 0 && ServerActive(Server())) {
         mfc::CString zone((*args)[1]);
         Server()->SendCommand(0, zone);
@@ -558,11 +559,11 @@ void SetRate(CStringArray* args, int* rate, const char* usage) {
 } // namespace
 
 // 005E0990: rate <bytes per second>.
-void __fastcall Rate(CStringArray* args) { SetRate(args, reinterpret_cast<int*>(0x00783E34), "Rate has one parameter - connection rate in bytes per second"); }
+void __fastcall Rate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E34), "Rate has one parameter - connection rate in bytes per second"); }
 EI_REPLACE(0x005E0990, Rate);
 
 // 005E0A10: localrate <bytes per second>.
-void __fastcall LocalRate(CStringArray* args) { SetRate(args, reinterpret_cast<int*>(0x00783E38), "LocalRate has one parameter - connection rate in bytes per second"); }
+void __fastcall LocalRate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E38), "LocalRate has one parameter - connection rate in bytes per second"); }
 EI_REPLACE(0x005E0A10, LocalRate);
 
 } // namespace console::commands

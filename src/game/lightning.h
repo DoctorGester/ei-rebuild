@@ -11,6 +11,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "maths.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -128,7 +129,7 @@ void __fastcall LightningDestruct(CLightning* self);
 // key drawn for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
 constexpr int kLightningNoiseRows = 32;
 constexpr int kLightningNoiseRowLength = 400;
-inline float* LightningNoiseTable() { return reinterpret_cast<float*>(0x0079CE78); }
+inline float* LightningNoiseTable() { return ei::GamePointer<float>(0x0079CE78); }
 // 00468A00 (cdecl; lightning_load.cpp, A-E1; Rebirth-patched: callers use LoadLightningNoiseOriginal).
 // Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
 int __cdecl LoadLightningNoise();

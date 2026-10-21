@@ -16,6 +16,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -24,8 +25,8 @@ namespace {
 inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 #define EI_ZERO GameFloat(0x0073B858)          // 0.0 (the z of the up axis the side is crossed with)
 #define EI_ONE GameFloat(0x0073B84C)           // 1.0
 #define EI_HALF GameFloat(0x0073B86C)          // 0.5
@@ -35,10 +36,10 @@ double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volat
 constexpr std::uint32_t kFarBits = 0x47C35000;     // 100000.0f
 constexpr std::uint32_t kNearBits = 0xC7C35000;    // -100000.0f
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // The world's wind (007AF5DC: direction, then strength), copied as four dwords.
-const void* WorldWind() { return reinterpret_cast<const void*>(0x007AF5DC); }
+const void* WorldWind() { return ei::GamePointer<const void>(0x007AF5DC); }
 
 // x87 FCOMP; FNSTSW; C0: "a < b or unordered".
 bool LessOrUnordered(double a, double b) { return !(a >= b); }

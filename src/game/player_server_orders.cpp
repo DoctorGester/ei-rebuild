@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "game_data.h"
 
 #include <windows.h>
 
@@ -32,13 +33,13 @@ constexpr int kStateJoined = 1;
 constexpr int kStateSendingCamera = 2;
 
 // The stream the received packets are decompressed into (007C83D0).
-CMemoryStream& Received() { return *reinterpret_cast<CMemoryStream*>(std::uintptr_t(0x007C83D0)); }
+CMemoryStream& Received() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 
 // The last digit of "reserved_02" (007930EC), the key of the pause announcement's text
 // (CInterface3D::MessageText, message 12). EI_Plugin's Pause writes it in .rdata: '2' for a pause,
 // '3' ("reserved_03") for a resume.
 void SetPauseTextDigit(std::uint8_t pause) {
-    auto* digit = reinterpret_cast<char*>(std::uintptr_t(0x007930F6));
+    auto* digit = ei::GamePointer<char>(0x007930F6);
     DWORD old;
     VirtualProtect(digit, 1, PAGE_READWRITE, &old);
     *digit = static_cast<char>('3' - pause);

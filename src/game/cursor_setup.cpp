@@ -4,14 +4,15 @@
 #include "ei/hook.h"
 #include "originals_ui.h"
 #include "ui_cursor.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 // The cursor object (007C7BD8) and its methods (thiscall).
-void* CursorObject() { return reinterpret_cast<void*>(0x007C7BD8); }
+void* CursorObject() { return ei::GamePointer<void>(0x007C7BD8); }
 // The device the cursor is drawn on (007AF080).
-CTextureDevice* CursorDevice() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
+CTextureDevice* CursorDevice() { return ei::GameData<CTextureDevice* const>(0x007AF080); }
 // 005E62E0: stops the drawing thread and releases the shapes.
 void __fastcall CursorShutdown(void* cursor) { static_cast<CCursor*>(cursor)->Shutdown(); }
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).

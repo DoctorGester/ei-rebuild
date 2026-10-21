@@ -4,6 +4,7 @@
 #include "vectors.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <cstring>
 #include <memory>
@@ -25,11 +26,11 @@ void OfferTables() {
     if (offered) return;
     offered = true;
     auto v = Zeroed<Tables>();
-    std::memcpy(v.lengthCodes, reinterpret_cast<const void*>(kLengthCodes), sizeof(v.lengthCodes));
-    std::memcpy(v.lengthBits, reinterpret_cast<const void*>(kLengthBits), sizeof(v.lengthBits));
-    std::memcpy(v.offsetCodes, reinterpret_cast<const void*>(kOffsetCodes), sizeof(v.offsetCodes));
-    std::memcpy(v.offsetBits, reinterpret_cast<const void*>(kOffsetBits), sizeof(v.offsetBits));
-    std::memcpy(v.masks, reinterpret_cast<const void*>(kBitMasks), sizeof(v.masks));
+    std::memcpy(v.lengthCodes, ei::GamePointer<const void>(kLengthCodes), sizeof(v.lengthCodes));
+    std::memcpy(v.lengthBits, ei::GamePointer<const void>(kLengthBits), sizeof(v.lengthBits));
+    std::memcpy(v.offsetCodes, ei::GamePointer<const void>(kOffsetCodes), sizeof(v.offsetCodes));
+    std::memcpy(v.offsetBits, ei::GamePointer<const void>(kOffsetBits), sizeof(v.offsetBits));
+    std::memcpy(v.masks, ei::GamePointer<const void>(kBitMasks), sizeof(v.masks));
     g_tables.Offer(v, ControlWord());
 }
 

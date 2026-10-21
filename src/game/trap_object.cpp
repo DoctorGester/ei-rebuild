@@ -11,14 +11,15 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 namespace {
-void* const kTrapVtable = reinterpret_cast<void*>(0x0073E548);
+void* const kTrapVtable = ei::GamePointer<void>(0x0073E548);
 const char* const kTrapName = "CTrapObject";
 const char* const kMagicTrapName = "CMagicTrapObject";
 // 0078F730: the script the trap runs when set off (x, y, z).
 const char* const kTrapScript = "Worldscript( CreateParticleSource( 100, %g, %g, %g, 1, \"Mushroom\"))";
-void* MissionScript() { return reinterpret_cast<void*>(0x007C27D4); }
+void* MissionScript() { return ei::GamePointer<void>(0x007C27D4); }
 constexpr int kClassTrap = 0x55;
 constexpr int kClassMagicTrap = 0x61;
 constexpr std::uint32_t kFlag40 = 0x40;

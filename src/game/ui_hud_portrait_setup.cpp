@@ -21,12 +21,13 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "record_vectors.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float Half() { return GameFloat(0x0073B86C); }            // 0.5
 float Texel() { return GameFloat(0x0073EEB8); }           // 1 / 256
 float Seventh() { return GameFloat(0x0073CDCC); }         // 1 / 7
@@ -34,8 +35,8 @@ float Pi() { return GameFloat(0x007423F8); }
 float Thin() { return GameFloat(0x0073BAD4); }            // 0.2
 float Fat() { return GameFloat(0x0073CCA8); }             // 0.8
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle (ui_hud_portraits.cpp)
-const Quaternion& Identity() { return *reinterpret_cast<const Quaternion*>(0x007C8150); }
-void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
+const Quaternion& Identity() { return ei::GameData<const Quaternion>(0x007C8150); }
+void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 
 // The slots' STLport vector (CHudPortraits +0x158): 0064AB20 appends a default slot (identity
 // orientations, empty strings), 0064AD40 erases [first, last): recordvec::HudPortraitSlotVector's.

@@ -16,6 +16,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -33,7 +34,7 @@ __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x004
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
 // The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
 __declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
-void* TheRandom() { return reinterpret_cast<void*>(0x007A9D40); }
+void* TheRandom() { return ei::GamePointer<void>(0x007A9D40); }
 
 
 void ClearBase(CEffect* e) {
@@ -64,7 +65,7 @@ int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
     const double speed = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*velocity));
     const double dist = x87::fsqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
     // FCOM 0073B858; TEST AH,0x41: on only when above.
-    if (!(dist > *reinterpret_cast<const float*>(0x0073B858))) return 0;
+    if (!(dist > ei::GameData<const float>(0x0073B858))) return 0;
     // FCOM ST(1); TEST AH,1: the speed when the distance is below it or they are unordered.
     const double divisor = dist >= speed ? dist : speed;
     *t = static_cast<float>(speed / divisor);
@@ -88,18 +89,18 @@ bool IsOneShotType(int type) {
 // The scorch mark's angle: a random value times the double at 0073FFD0, the value loaded with
 // FILD qword (exact), FMUL qword, rounded to float.
 float RandomAngle(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * *reinterpret_cast<const double*>(0x0073FFD0));
+    return static_cast<float>(x87::FromUnsigned(random) * ei::GameData<const double>(0x0073FFD0));
 }
 
 // The ISAAC Next the 0x2030 scorch inlines (same as 004667F0).
 std::uint32_t InlineRandom() {
-    auto* count = reinterpret_cast<std::uint32_t*>(0x007A9D44);
+    auto* count = ei::GamePointer<std::uint32_t>(0x007A9D44);
     std::uint32_t index = (*count)--;
     if (index == 0) {
         RandomRefill(TheRandom());
         *count = 0xFF;
     }
-    return reinterpret_cast<const std::uint32_t*>(0x007A9D48)[*count];
+    return ei::GamePointer<const std::uint32_t>(0x007A9D48)[*count];
 }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
@@ -107,7 +108,7 @@ std::uint32_t InlineRandom() {
 void WallScorchShape(const Vector3* direction, const float* half, float* angleAndOuter) {
     angleAndOuter[0] = static_cast<float>(x87::fpatan(direction->y, direction->x));
     const double outer = x87::fsqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
-    angleAndOuter[1] = static_cast<float>((outer + *half) + *reinterpret_cast<const float*>(0x0073C54C));
+    angleAndOuter[1] = static_cast<float>((outer + *half) + ei::GameData<const float>(0x0073C54C));
 }
 
 } // namespace

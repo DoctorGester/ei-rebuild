@@ -17,16 +17,17 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <cstring>
 
 namespace {
 
 // The world's update period in milliseconds (the harness's `speed`; the game's default 55).
-int& WorldUpdatePeriod() { return *reinterpret_cast<int*>(0x0078FF34); }
+int& WorldUpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
 constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
-bool AutoSaveEnabled() { return *reinterpret_cast<const int*>(0x0079BE7C) != 0; }
+bool AutoSaveEnabled() { return ei::GameData<const int>(0x0079BE7C) != 0; }
 const char* AutoSaveName() { return "savea"; }
 
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
@@ -42,16 +43,16 @@ struct LocalPlayerBlock {
 };
 LocalPlayerBlock* LocalPlayer() { return reinterpret_cast<LocalPlayerBlock*>(LocalPlayerData()); }
 
-void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
-void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
+void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
+void* TheGame() { return ei::GamePointer<void>(0x007AFE20); }
 // The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
 float SelectedFaceAngle() {
-    return *reinterpret_cast<const volatile float*>(0x007C8144) * *reinterpret_cast<const volatile float*>(0x0073CDCC);
+    return ei::GameData<const volatile float>(0x007C8144) * ei::GameData<const volatile float>(0x0073CDCC);
 }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
-void** SaveLoadVtable() { return reinterpret_cast<void**>(0x00741388); }
-void** SaveLoadInputVtable() { return reinterpret_cast<void**>(0x00741354); }
+void** SaveLoadVtable() { return ei::GamePointer<void*>(0x00741388); }
+void** SaveLoadInputVtable() { return ei::GamePointer<void*>(0x00741354); }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;

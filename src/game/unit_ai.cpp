@@ -575,7 +575,7 @@ void AIBrain::Follow(CEngineObject* object) {
 EI_REPLACE_METHOD(0x005D7E40, AIBrain::Follow);
 
 namespace {
-const std::uint32_t* Diplomacy() { return reinterpret_cast<const std::uint32_t*>(0x007C2BC4); }
+const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
 } // namespace
 
 void AIBrain::Remember(CUnit* self, CEngineObject* object) {

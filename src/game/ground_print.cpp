@@ -25,6 +25,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/stlp_list.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -45,18 +46,18 @@ constexpr float kAngleMilli = 1000.0f;           // 0073C34C
 constexpr float kSpinDegrees = 30.0f;            // 0073BAF0
 
 // Globals.
-CWorldClient* ClientWorld() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
-CTextureManager* Textures() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
+CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
+CTextureManager* Textures() { return ei::GameData<CTextureManager* const>(0x007AF744); }
 // pi / 2 and 2 pi as floats (set by the static initialisers 006CEC90 / 006CEC80).
-float HalfPi() { return *reinterpret_cast<const float*>(0x007C899C); }
-float TwoPi() { return *reinterpret_cast<const float*>(0x007C8998); }
+float HalfPi() { return ei::GameData<const float>(0x007C899C); }
+float TwoPi() { return ei::GameData<const float>(0x007C8998); }
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the original).
-double Pi() { return *reinterpret_cast<const double*>(0x00744238); }
-double PerDegree() { return *reinterpret_cast<const double*>(0x0073BA30); }
+double Pi() { return ei::GameData<const double>(0x00744238); }
+double PerDegree() { return ei::GameData<const double>(0x0073BA30); }
 // The prints settings: blood, footprints, scorch marks (0 off).
-bool BloodPrintsOn() { return *reinterpret_cast<const int*>(0x0079BD50) != 0; }
-bool FootprintsOn() { return *reinterpret_cast<const int*>(0x0079BD4C) != 0; }
-bool ScorchMarksOn() { return *reinterpret_cast<const int*>(0x0079BD54) != 0; }
+bool BloodPrintsOn() { return ei::GameData<const int>(0x0079BD50) != 0; }
+bool FootprintsOn() { return ei::GameData<const int>(0x0079BD4C) != 0; }
+bool ScorchMarksOn() { return ei::GameData<const int>(0x0079BD54) != 0; }
 
 // 004EBE60, inlined: *slot = value with counted references, the old one released.
 void AssignCounted(CTexture** slot, CTexture* value) {

@@ -33,6 +33,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "record_lists.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -56,7 +57,7 @@ struct UiTexts {
     int Find(const char* key);
 };
 int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
+CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 } // namespace
 
 namespace {
@@ -156,7 +157,7 @@ void CSaveLoadWindow::Build() {
     scrollbar_ = NewScrollbar(interface_, 108, 108, 384, 492);
     AddChild(scrollbar_);
 
-    CUiModel* model = AddMenuModel(this, *reinterpret_cast<const float*>(0x007C81C8));
+    CUiModel* model = AddMenuModel(this, ei::GameData<const float>(0x007C81C8));
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
     if (isSave_) {
@@ -238,7 +239,7 @@ void COptionsWindow::Build() {
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
     AddSurface(NewSurface(interface_, 100, 100, 700, 500));
 
-    CUiModel* model = AddMenuModel(this, *reinterpret_cast<const float*>(0x007C81A0));
+    CUiModel* model = AddMenuModel(this, ei::GameData<const float>(0x007C81A0));
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
     model->ShowPart("options", 1);
@@ -268,12 +269,13 @@ void CEscMenu::Build() {
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
-    turn.SetAxisAngle(axis, *reinterpret_cast<const float*>(0x007C7FB0));
+    turn.SetAxisAngle(axis, ei::GameData<const float>(0x007C7FB0));
     std::memcpy(&model->object_->localRotation_, &turn, sizeof(turn));
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through 0062AC90 (SetRect with a RECT by value).
-    for (std::uintptr_t source = kEscMenuRects; source < kEscMenuRects + 5 * sizeof(RECT); source += sizeof(RECT)) {
+    const std::uintptr_t rects = ei::GameAddress(kEscMenuRects);
+    for (std::uintptr_t source = rects; source < rects + 5 * sizeof(RECT); source += sizeof(RECT)) {
         CUiRegion* region = window.AddRegion();
         RECT rect;
         gameapi::CopyRect(&rect, reinterpret_cast<const RECT*>(source));
@@ -404,7 +406,7 @@ constexpr std::uintptr_t kMpHeroVtable = std::uintptr_t(0x0074214C);
 constexpr std::uintptr_t kMpHeroInputVtable = std::uintptr_t(0x00742118);
 
 // The empty CString's data pointer (00796E48), stored as a CString member is.
-const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x00796E48); }
+const char* EmptyStringData() { return ei::GameData<const char* const>(0x00796E48); }
 } // namespace
 
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
@@ -476,7 +478,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
         TextsGetString(GameClientTexts(), nullptr, "reserved_04", &text);
-        static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->ShowStatusText(text);
+        static_cast<CInterface3D*>(ei::GamePointer<void>(0x007C7D50))->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
         auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));
@@ -689,10 +691,10 @@ void CCreditsScreen::Build() {
     CInterface3D* ui = window.interface_;
     const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
     if (!fromGame_) {
-        static_cast<CSoundManager*>(*reinterpret_cast<void**>(0x007AF784))->StopAll(1);
-        (*reinterpret_cast<CMusicSystem**>(0x007AF760))->Stop();
+        static_cast<CSoundManager*>(ei::GameData<void*>(0x007AF784))->StopAll(1);
+        (ei::GameData<CMusicSystem*>(0x007AF760))->Stop();
     }
-    CursorShowOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
+    CursorShowOriginal(ei::GamePointer<void>(0x007C7BD8), nullptr, 0);
     PlayMoviesOriginal(mfc::operator+(name, "fin"), 1, 0, 0, 0);   // "<name>fin"
     nextLineAt_ = 0.0f;
     // (As the original: the field's address goes in as uiParam, so it is never written; then font
@@ -703,7 +705,7 @@ void CCreditsScreen::Build() {
 
     // The script: one record per line, words separated by spaces.
     auto* archive = reinterpret_cast<CMappedResource*>(archive_);
-    archive->OpenResource(mfc::operator+(*reinterpret_cast<const mfc::CString*>(0x0079BC94), "outro.res"),
+    archive->OpenResource(mfc::operator+(ei::GameData<const mfc::CString>(0x0079BC94), "outro.res"),
                           0);   // "outro.res"
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);

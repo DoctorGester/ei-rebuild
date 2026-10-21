@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -14,8 +15,8 @@
 namespace {
 
 // The tracks' defaults without key frames (Evaluate).
-const Vector3& DefaultPosition() { return *reinterpret_cast<const Vector3*>(std::uintptr_t(0x007AF110)); }
-const Quaternion& DefaultRotation() { return *reinterpret_cast<const Quaternion*>(std::uintptr_t(0x007AF100)); }
+const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF110); }
+const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF100); }
 
 // A count at the cursor, which moves past it.
 int ReadCount(std::uint8_t** cursor) {

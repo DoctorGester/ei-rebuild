@@ -21,6 +21,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 namespace {
 
@@ -33,10 +34,10 @@ void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reint
 // allocation of 16-byte points 00468F70; atexit 006E727B. The sprite records are zero filled (00468F90).
 void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 
-IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 float GameFloat(std::uintptr_t address) {
     float f;
-    std::memcpy(&f, reinterpret_cast<const void*>(address), sizeof(f));
+    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
     return f;
 }
 
@@ -49,9 +50,9 @@ struct SpriteElements {
     static void Destruct(SpriteRecord*, int) {}
 };
 using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584, at 0079C1E0
-SpriteArray& Sprites() { return *reinterpret_cast<SpriteArray*>(0x0079C1E0); }
-LightningPointArray& GlowPoints() { return *reinterpret_cast<LightningPointArray*>(0x0079C1D0); }
-std::uint8_t& GlowGuards() { return *reinterpret_cast<std::uint8_t*>(0x0079C1F4); }
+SpriteArray& Sprites() { return ei::GameData<SpriteArray>(0x0079C1E0); }
+LightningPointArray& GlowPoints() { return ei::GameData<LightningPointArray>(0x0079C1D0); }
+std::uint8_t& GlowGuards() { return ei::GameData<std::uint8_t>(0x0079C1F4); }
 
 // The two static arrays' SetSize(8), as inlined (the sprites' new records constructed by 00468F90).
 void SizeSprites() { Sprites().SetSize(8); }
@@ -98,7 +99,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     SizePoints();
 
     // Towards the camera (0079B2C4), normalised unless zero.
-    const Vector3& camera = *reinterpret_cast<const Vector3*>(0x0079B2C4);
+    const Vector3& camera = ei::GameData<const Vector3>(0x0079B2C4);
     Vector3 towards = camera - *position;
     float length = LengthZYX(towards);
     if (length > 0.0f || length < 0.0f) towards /= length;

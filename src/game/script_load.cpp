@@ -24,6 +24,7 @@
 #include "originals_world.h"
 #include "game_arrays.h"
 #include "game_lists.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -41,7 +42,7 @@ namespace {
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
-CEngineObject* RegistryObject(int id) { return static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AFFA8))->FindObject(id); }
+CEngineObject* RegistryObject(int id) { return static_cast<CBaseManager*>(ei::GameData<void*>(0x007AFFA8))->FindObject(id); }
 
 // CArray template members (out of line), __thiscall (size, growBy).
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
@@ -175,7 +176,7 @@ int ReadInt(ScriptStream* stream) {
 int StreamVersion(const ScriptStream* stream) { return reinterpret_cast<const int*>(stream)[2]; }
 
 // The script being loaded (as in Save; the run loader finds a run's instance through it).
-CScript*& LoadingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
+CScript*& LoadingScript() { return ei::GameData<CScript*>(0x007AA620); }
 
 // An object id as the list loaders resolve it: -1 is none, else the registry's object with its
 // reference count raised.
@@ -188,7 +189,7 @@ CEngineObject* AcquireById(int id) {
 
 // The world's first script (007C27D4 = world +0x12874, the only script a savegame holds): block
 // ids resolve in its lists whatever script is loaded.
-const CScript* SavedScript() { return reinterpret_cast<const CScript*>(0x007C27D4); }
+const CScript* SavedScript() { return ei::GamePointer<const CScript>(0x007C27D4); }
 
 // CScript::FindBlock on the saved script, as the loaders inline it.
 ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
@@ -241,7 +242,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
             ref->Reset();
             ref->object = nullptr;
         } else {
-            CEngineObject* object = WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
+            CEngineObject* object = WorldFindObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, id);
             ref->Reset();
             if (object) ++object->refCount_;
             ref->object = object;
@@ -266,7 +267,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
             int id = 0;
             stream->Read(&id, 4);
             CEngineObject* object =
-                id == -1 ? nullptr : WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
+                id == -1 ? nullptr : WorldFindObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, id);
             group->data[k].Assign(object);
         }
         group->Sort();
@@ -411,7 +412,7 @@ void ScriptVars::Load(ScriptStream* stream) {
             ref->Reset();
             ref->object = nullptr;
         } else {
-            ref->Assign(WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
+            ref->Assign(WorldFindObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, slot));
         }
         ScriptStringLoad(&objectNames.data[i], stream);
     }
@@ -506,7 +507,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
     for (int i = 0; i < count; ++i) {
         // A temporary empty block (vtable 0073D3DC, id unset) is copied into the node.
         ScriptDecl temp{};
-        temp.commands.vtable = reinterpret_cast<void*>(0x0073D3DC);
+        temp.commands.vtable = ei::GamePointer<void>(0x0073D3DC);
         AppendNode(list, NewBlockNode, [&](char* data) {
             auto* block = reinterpret_cast<ScriptDecl*>(data);
             recordarrays::CmdArrayCopy(reinterpret_cast<recordarrays::Cmds::Array*>(&block->commands), nullptr, reinterpret_cast<const recordarrays::Cmds::Array*>(&temp.commands));
@@ -538,7 +539,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
             mfc::CArray<ScriptIfThen> ifThen;
             ScriptVars vars;
         } temp{};
-        temp.ifThen.vtable = reinterpret_cast<void*>(0x0073D430);
+        temp.ifThen.vtable = ei::GamePointer<void>(0x0073D430);
         temp.vars.ScriptVarsConstruct();
         AppendNode(list, NewInstanceNode, [&](char* data) {
             auto* instance = reinterpret_cast<ScriptDefinition*>(data);

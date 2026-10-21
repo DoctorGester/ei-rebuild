@@ -24,6 +24,7 @@
 #include "lib/mfc_array.h"
 #include "world_data.h"
 #include "ei/vcall.h"
+#include "game_data.h"
 
 namespace mapspec {
 
@@ -118,7 +119,7 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->alarmKind = 0;
     self->enabled = 0;
     self->alertMode = 0;
-    self->callRadius = *reinterpret_cast<const std::uint32_t*>(0x0073C378);
+    self->callRadius = ei::GameData<const std::uint32_t>(0x0073C378);
     self->alarmDelay = 75;
     self->alarm = 0;
     return self;
@@ -373,11 +374,11 @@ EI_REPLACE(0x0046C2F0, UnitStatsDestruct);
 void __fastcall UnitSpecApply(UnitSpec* self) {
     Spec& b = self->object.base;
     if (!b.object) {
-        WorldMakeObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, &b);
+        WorldMakeObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, &b);
         return;
     }
-    SectorMapMove(reinterpret_cast<void*>(0x007B01F4), nullptr, AsEngineObject(b.object), &b.position);
-    reinterpret_cast<CAIMap*>(0x007B00D0)->TurnObject(static_cast<CEngineObject*>(b.object), &b.rotation);
+    SectorMapMove(ei::GamePointer<void>(0x007B01F4), nullptr, AsEngineObject(b.object), &b.position);
+    ei::GamePointer<CAIMap>(0x007B00D0)->TurnObject(static_cast<CEngineObject*>(b.object), &b.rotation);
     auto* unit = static_cast<CUnit*>(b.object);
     std::memcpy(&unit->orientation, &b.rotation, 16);
     ObjectSetFigureScaleOriginal(b.object, nullptr, &self->object.scale.x);

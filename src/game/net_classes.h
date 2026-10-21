@@ -28,6 +28,7 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -104,17 +105,17 @@ class ServerSession;
 class ClientSession;
 
 // 0079B91C: the network log.
-inline LogStream*& NetLog() { return *reinterpret_cast<LogStream**>(0x0079B91C); }
+inline LogStream*& NetLog() { return ei::GameData<LogStream*>(0x0079B91C); }
 // 0079B920: the session being updated (set by Tick / Receive and by the connection code).
-inline SessionBase*& CurrentSession() { return *reinterpret_cast<SessionBase**>(0x0079B920); }
+inline SessionBase*& CurrentSession() { return ei::GameData<SessionBase*>(0x0079B920); }
 // 0079B924: the connection being updated or read (null outside the session code).
-inline Connection*& CurrentConnection() { return *reinterpret_cast<Connection**>(0x0079B924); }
+inline Connection*& CurrentConnection() { return ei::GameData<Connection*>(0x0079B924); }
 // 0079B900: the buffer every update packet is built in; 0079B8E0: the one datagrams are received into.
-inline GameBuffer* SendBuffer() { return reinterpret_cast<GameBuffer*>(0x0079B900); }
-inline GameBuffer* ReceiveBuffer() { return reinterpret_cast<GameBuffer*>(0x0079B8E0); }
+inline GameBuffer* SendBuffer() { return ei::GamePointer<GameBuffer>(0x0079B900); }
+inline GameBuffer* ReceiveBuffer() { return ei::GamePointer<GameBuffer>(0x0079B8E0); }
 // 0079B5DC / 0079B5D8: the game server and the game client (null when there is none).
-inline ServerSession*& GameServer() { return *reinterpret_cast<ServerSession**>(0x0079B5DC); }
-inline ClientSession*& GameClient() { return *reinterpret_cast<ClientSession**>(0x0079B5D8); }
+inline ServerSession*& GameServer() { return ei::GameData<ServerSession*>(0x0079B5DC); }
+inline ClientSession*& GameClient() { return ei::GameData<ClientSession*>(0x0079B5D8); }
 // The game client's trade offer (net_client_party.cpp, net_client_handlers.cpp; plain RET each):
 // 0041DA50 publishes our offer, 0041E220 finds the partner's offer that pairs with ours (a
 // PartyMessage, or null), 0041E180 takes the acceptance back, 0041E3E0 drops the offer.

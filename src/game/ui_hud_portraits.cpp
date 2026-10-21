@@ -21,6 +21,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 namespace {
 
@@ -34,14 +35,14 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float Pi() { return GameFloat(0x007423F8); }
 float TurnPeriod() { return GameFloat(0x007C8140); }      // a global the clock also uses
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle
-const Quaternion* Identity() { return reinterpret_cast<const Quaternion*>(0x007C8150); }
-bool GamePaused() { return *reinterpret_cast<const volatile bool*>(0x007AF624); }   // 00578D50
-int SelectedUnitId() { return *reinterpret_cast<const volatile int*>(0x0079B3C4); }
-IsaacRandom* Random() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+const Quaternion* Identity() { return ei::GamePointer<const Quaternion>(0x007C8150); }
+bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
+int SelectedUnitId() { return ei::GameData<const volatile int>(0x0079B3C4); }
+IsaacRandom* Random() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
@@ -64,7 +65,7 @@ constexpr float kThin = 0.2f;                 // 0073BAD4
 constexpr float kFat = 0.8f;                  // 0073CCA8
 // Doubles the original multiplies random numbers with (about 2^-32, -0.3 * 2^-32 and 2^-31; not
 // exact powers of two), read from the exe.
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 double RandomScale32() { return GameDouble(0x0073C468); }
 double RandomDelayScale() { return GameDouble(0x00742760); }
 double RandomScale31() { return GameDouble(0x0073C508); }

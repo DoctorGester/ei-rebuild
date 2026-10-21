@@ -12,6 +12,7 @@
 
 #include "mfc_exception.h"
 #include "mfc_time.h"
+#include "game/game_data.h"
 
 namespace mfc::impl {
 
@@ -43,7 +44,7 @@ struct CFile {
     BOOL closeOnDelete;     // +0x08 m_bCloseOnDelete
     CString fileName;       // +0x0C m_strFileName (the full path)
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x00745DF4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00745DF4); }
 
     CFile* Construct();                                         // 00701036
     CFile* ConstructHandle(HANDLE file);                        // 0070106C CFile(int hFile)
@@ -82,7 +83,7 @@ static_assert(sizeof(CFile) == 0x10);
 struct CStdioFile : CFile {
     gamecrt::CrtFile* stream;   // +0x10 m_pStream
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x007464F0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007464F0); }
 
     CStdioFile* Construct();                                    // 00701B79
     CStdioFile* ConstructOpen(const char* path, unsigned flags);    // 00701BD4 (throws a CFileException*)
@@ -116,7 +117,7 @@ struct CFileFind {
     CString root;               // +0x14 m_strRoot
     char separator;             // +0x18 m_chDirSeparator ('\\')
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x00745EE8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00745EE8); }
 
     CFileFind* Construct();                                     // 006E6370
     void Destruct();                                            // 006E63AD

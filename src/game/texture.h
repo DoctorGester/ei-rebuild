@@ -4,6 +4,7 @@
 #include "resource_manager.h"
 #include "lib/containers.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <windows.h>
 
@@ -244,7 +245,7 @@ static_assert(offsetof(CTextureDevice, depthFormats_) == 0xB4 && offsetof(CTextu
 static_assert(offsetof(CTextureDevice, batch_) == 0xD4 && offsetof(CTextureDevice, batch2_) == 0xF4);
 
 // The renderer's device object (the global pointer at 007AF080).
-inline CTextureDevice* RenderDeviceObject() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
+inline CTextureDevice* RenderDeviceObject() { return ei::GameData<CTextureDevice* const>(0x007AF080); }
 // 004EF610 (device_present.cpp): the device object's present, once a frame. Returns the DirectDraw
 // result: 0.
 long __fastcall DevicePresent(CTextureDevice* device);
@@ -271,7 +272,7 @@ static_assert(offsetof(DirectDrawDriver, guid) == 0x10 && offsetof(DirectDrawDri
 static_assert(sizeof(DirectDrawDriver) == 0x30);
 // The driver list (007AEE64).
 inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() {
-    return *reinterpret_cast<stlp::list<DirectDrawDriver>*>(0x007AEE64);
+    return ei::GameData<stlp::list<DirectDrawDriver>>(0x007AEE64);
 }
 // 004EE6D0 (the index in ECX; render_helper.cpp). The driver `index` steps after the list's first;
 // past the last: a fatal error ("Can't find driver by index.") and null.
@@ -371,7 +372,7 @@ public:
     virtual void BlurShadow(void* pixels, int width, int height);
     virtual void BlurShadow2(void* pixels, int width, int height);
 };
-inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
+inline CPixelConverter* PixelConverter() { return ei::GameData<CPixelConverter*>(0x007AF06C); }
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // A byte buffer aligned to 32 bytes (the engine's aligned array; its out-of-line SetSize is 00694300).

@@ -11,6 +11,7 @@
 #include "lib/vecmath.h"
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cmath>
@@ -23,12 +24,12 @@ namespace {
 
 Vector3 GamePoint(std::uintptr_t address) {
     Vector3 p;
-    std::memcpy(&p, reinterpret_cast<const void*>(address), sizeof(p));
+    std::memcpy(&p, ei::GamePointer<const void>(address), sizeof(p));
     return p;
 }
 double WeldDistance() {
     double d;
-    std::memcpy(&d, reinterpret_cast<const void*>(0x0073B860), sizeof(d));
+    std::memcpy(&d, ei::GamePointer<const void>(0x0073B860), sizeof(d));
     return d;
 }
 
@@ -154,7 +155,7 @@ EI_REPLACE(0x0044E3B0, PackMeshPositions);
 namespace {
 float GameFloat(std::uintptr_t address) {
     float f;
-    std::memcpy(&f, reinterpret_cast<const void*>(address), sizeof(f));
+    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
     return f;
 }
 // The original's branchless select after FCOMP: `b` when a < b or unordered, else `a`.

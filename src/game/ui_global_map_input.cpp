@@ -15,6 +15,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -23,8 +24,8 @@ namespace {
 // The escape menu the map opens on Esc (0x168 bytes, built inline as the battle screen's key
 // handler does).
 constexpr std::size_t kEscMenuSize = 0x168;
-void** EscMenuVtable() { return reinterpret_cast<void**>(0x007412A4); }
-void** EscMenuInputVtable() { return reinterpret_cast<void**>(0x00741270); }
+void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
+void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
 const char* QuickSaveName() { return "saveq"; }
 
 constexpr int kActionQuickSave = '5';
@@ -42,7 +43,7 @@ constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
 const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;

@@ -8,6 +8,7 @@
 #include "harness_pair.h"
 
 #include "../../src/hook/log.h"
+#include "game/game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -220,7 +221,7 @@ void InstallPort() {
         Log("harness: no free UDP port found; the game keeps its own");
         return;
     }
-    auto* target = reinterpret_cast<int*>(kGamePort);
+    auto* target = ei::GamePointer<int>(kGamePort);
     int before = *target;
     DWORD old;
     if (!VirtualProtect(target, sizeof(int), PAGE_READWRITE, &old)) return;

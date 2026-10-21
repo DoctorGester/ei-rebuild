@@ -5,6 +5,7 @@
 #include "harness_starter.h"
 
 #include "../../src/hook/log.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -554,7 +555,7 @@ void Install() {
     HookExport(advapi, "RegEnumKeyExW", &EnumKeyW, g_enumKeyW);
     HookExport(advapi, "RegGetValueA", &GetA, g_getA);
     HookExport(advapi, "RegGetValueW", &GetW, g_getW);
-    PatchSlot(reinterpret_cast<decltype(&::RegCreateKeyExA)*>(kGameRegCreateKeyExASlot), &GameCreate, g_gameCreate);
+    PatchSlot(ei::GamePointer<decltype(&::RegCreateKeyExA)>(kGameRegCreateKeyExASlot), &GameCreate, g_gameCreate);
 }
 
 bool PinnedFile(const char* relative, char (&out)[260]) {

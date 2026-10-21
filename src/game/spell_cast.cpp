@@ -17,6 +17,7 @@
 #include "ei/x87.h"
 #include "lib/stlp_list.h"
 #include "lib/stlp_string.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -33,12 +34,12 @@ const char* const kCantEnd = "Can't end spell construction\n";
 constexpr int kClassSpellContainer = 0x3003;
 
 // Free list of the STLport node allocator for 16-byte blocks (the 12-byte list nodes).
-SpellModifierNode*& NodeFreeList16() { return *reinterpret_cast<SpellModifierNode**>(0x0079B228); }
+SpellModifierNode*& NodeFreeList16() { return ei::GameData<SpellModifierNode*>(0x0079B228); }
 
 // The spell and modifier tables: a holder object whose +0x0C is a name hash_map; the lookups
 // below are thiscall on it.
-void* const kSpellTableHolder = reinterpret_cast<void*>(0x007C8510);
-void* const kModifierTableHolder = reinterpret_cast<void*>(0x007C8530);
+void* const kSpellTableHolder = ei::GamePointer<void>(0x007C8510);
+void* const kModifierTableHolder = ei::GamePointer<void>(0x007C8530);
 
 // 0068C680: STLport string reserve(n) on the container's code string (stlp::StringAbi's).
 void CodesReserve(char** codes, unsigned n) { stlp::StringAbi::Reserve(reinterpret_cast<stlp::string*>(codes), nullptr, n); }
@@ -48,7 +49,7 @@ void CodesReserve(char** codes, unsigned n) { stlp::StringAbi::Reserve(reinterpr
 int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(gamecrt::Ftol(x87::FromUnsigned(value) * factor)); }
 
 // sqrt(area / pi) on the FPU stack, as FLD, FDIV [0x00743A7C], FSQRT (returned unrounded in ST0).
-double AreaToRadius(float area) { return x87::fsqrt(area / *reinterpret_cast<const float*>(0x00743A7C)); }
+double AreaToRadius(float area) { return x87::fsqrt(area / ei::GameData<const float>(0x00743A7C)); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t u;

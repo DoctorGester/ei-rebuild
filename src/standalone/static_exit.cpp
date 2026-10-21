@@ -148,7 +148,7 @@ bool ExitFunction(Do& d, std::uintptr_t fn) {
         if (d.Once(0x007AEE60, 1)) d.Thiscall(0x004F0520, 0x007AEE64);
         return true;
     case 0x004F0B30:   // import, 12 byte(s); atexit by 004F0B10
-        d.Import(0x0073B1D4, 0x007AEE78);
+        d.Import(0x0073B1D4, d.At(0x007AEE78));
         return true;
     case 0x004F2B20:   // free, 20 byte(s); atexit by 004F2AF0
         if (d.NonZero(0x007AEED0)) d.Cdecl(0x007005D8, d.Dword(d.Dword(0x007AEED0) - 4));
@@ -259,7 +259,7 @@ bool ExitFunction(Do& d, std::uintptr_t fn) {
         d.Thiscall(0x004600D0, 0x007C2FC0);
         return true;
     case 0x005C41F0:   // stdcall, 20 byte(s); atexit by 005C41C0
-        d.Stdcall(0x006E859F, 0x007C3058, 0x3C, 0x51, 0x005C4250);
+        d.Stdcall(0x006E859F, d.At(0x007C3058), 0x3C, 0x51, 0x005C4250);
         return true;
     case 0x005C4480:   // destructor, 10 byte(s); atexit by 005C4460
         d.Thiscall(0x005C4490, 0x007C3038);

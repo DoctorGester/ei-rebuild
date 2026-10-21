@@ -19,6 +19,7 @@
 #include "lib/vecmath.h"
 #include "originals_ui.h"       // SpritePlaceOriginal
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -26,8 +27,8 @@
 namespace {
 
 // The constants the original reads from the exe's data.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const double>(address); }
 float Pi() { return GameFloat(0x007423F8); }
 float Sixth() { return GameFloat(0x0073CE40); }             // the clock's sectors: pi / 6
 float Eighth() { return GameFloat(0x0073C520); }            // the movement panel's: pi / 8
@@ -38,7 +39,7 @@ float SectorRadius() { return GameFloat(0x00741F1C); }      // 80
 float TexelBottom() { return GameFloat(0x0073D03C); }       // 254
 float TexelLeft() { return GameFloat(0x0073CDB8); }         // 2
 float LayoutBottom() { return GameFloat(0x00742B0C); }      // 600
-int& UpdatePeriod() { return *reinterpret_cast<int*>(std::uintptr_t(0x0078FF34)); }
+int& UpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
 const char* ArrowSprite() { return "in25arrow"; }
 
 constexpr int kLayoutRight = 800;

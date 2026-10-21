@@ -15,6 +15,7 @@
 #include "originals_gameplay.h"
 #include "item.h"
 #include "party.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,7 +23,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 
 // Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): 005E70E0 a
@@ -123,8 +124,8 @@ void CItemScreen::CreateBase() {
     CUiWindow* icons = nullptr;
     if (memory) {
         icons = static_cast<CUiWindow*>(memory)->Construct(interface_);
-        icons->vtable_ = reinterpret_cast<void**>(0x00740444);
-        icons->inputVtable_ = reinterpret_cast<void**>(0x00740410);
+        icons->vtable_ = ei::GamePointer<void*>(0x00740444);
+        icons->inputVtable_ = ei::GamePointer<void*>(0x00740410);
     }
     iconWindow_ = icons;
     reinterpret_cast<CUiContainer*>(this)->AddChild(icons);
@@ -145,7 +146,7 @@ void CItemScreen::CreateBase() {
         reinterpret_cast<SetFn>((*static_cast<void***>(target))[5])(target, 99.0f, 100.0f);
     }
     // The caches keep 30 entries (20 with 00784754 set).
-    if (*reinterpret_cast<const volatile char*>(0x00784754) != 0) {
+    if (ei::GameData<const volatile char>(0x00784754) != 0) {
         textures_.limit = 20;
         TrimItemCache(&textures_);
         models_.limit = 20;
@@ -183,7 +184,7 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     auto* camp = static_cast<CCampPages*>(self);
     StringArrayDestruct(&camp->pageTitles_);
     // The heroes CArray (vtable 007402AC).
-    camp->heroes_.vtable = reinterpret_cast<void*>(0x007402AC);
+    camp->heroes_.vtable = ei::GamePointer<void>(0x007402AC);
     if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
@@ -201,7 +202,7 @@ void DeallocateNodes(void* block, std::uint32_t bytes) {
         gamecrt::operator_delete(block);
         return;
     }
-    void** lists = reinterpret_cast<void**>(0x0079B224);
+    void** lists = ei::GamePointer<void*>(0x0079B224);
     std::uint32_t index = (bytes - 1) >> 3;
     *static_cast<void**>(block) = lists[index];
     lists[index] = block;
@@ -235,7 +236,7 @@ CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
     return static_cast<CItem*>(list->AddItem(item, keepCount, merge));
 }
 void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
-void* TurnVtable() { return reinterpret_cast<void*>(0x007403F8); }
+void* TurnVtable() { return ei::GamePointer<void>(0x007403F8); }
 } // namespace
 
 // --- 005ED710 / 005ED780: the turning state's Clone and deleting destructor -----------------------

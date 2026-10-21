@@ -6,6 +6,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -113,7 +114,7 @@ struct MaterialKindFile {
 };
 constexpr int kMaterialKindFiles = 8;
 inline const MaterialKindFile* MaterialKindFileTable() {
-    return reinterpret_cast<const MaterialKindFile*>(std::uintptr_t(0x00743BF8));
+    return ei::GamePointer<const MaterialKindFile>(0x00743BF8);
 }
 constexpr int kMagicMaterialKind = 0x17;
 // The colours a material file holds: after its name (a 16-bit length, then the text).

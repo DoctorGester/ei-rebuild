@@ -5,6 +5,7 @@
 #include "crt_format_vectors.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <climits>
 #include <cstdarg>
@@ -30,8 +31,8 @@ struct Locale {
 
 Locale CurrentLocale() {
     Locale locale;
-    locale.point = *reinterpret_cast<const char*>(kDecimalPoint);
-    std::memcpy(locale.classes, *reinterpret_cast<const unsigned short* const*>(kCharClasses), sizeof(locale.classes));
+    locale.point = ei::GameData<const char>(kDecimalPoint);
+    std::memcpy(locale.classes, ei::GameData<const unsigned short* const>(kCharClasses), sizeof(locale.classes));
     return locale;
 }
 
@@ -40,7 +41,7 @@ bool SameLocale(const Locale& a, const Locale& b) {
 }
 
 // __lc_handle[LC_CTYPE]: nonzero once the game has set its locale.
-unsigned LocaleHandle() { return *reinterpret_cast<const unsigned*>(0x007CABF0); }
+unsigned LocaleHandle() { return ei::GameData<const unsigned>(0x007CABF0); }
 
 // Whether the locale now is the fixture's; the fixture is taken (and offered) at the first call after
 // the game set its locale.
@@ -96,7 +97,7 @@ constexpr unsigned kLong = 0x10;
 constexpr unsigned kWide = 0x800;
 constexpr unsigned kInt64 = 0x8000;
 constexpr unsigned short kLeadByte = 0x8000;
-const unsigned char* FormatLookup() { return reinterpret_cast<const unsigned char*>(0x007476D0); }
+const unsigned char* FormatLookup() { return ei::GamePointer<const unsigned char>(0x007476D0); }
 
 struct Span {
     const char* begin;
@@ -107,7 +108,7 @@ struct Span {
 // does not take (above). `texts` gets the text arguments' bytes, `hasFloat` whether a float is read.
 bool PutArguments(Writer& w, const char* format, va_list args, std::vector<Span>& texts, bool& hasFloat) {
     const unsigned char* lookup = FormatLookup();
-    const unsigned short* classes = *reinterpret_cast<const unsigned short* const*>(kCharClasses);
+    const unsigned short* classes = ei::GameData<const unsigned short* const>(kCharClasses);
     Writer list;
     std::uint32_t count = 0;
     const unsigned char* f = reinterpret_cast<const unsigned char*>(format);

@@ -22,6 +22,7 @@
 #include "lib/vecmath.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -38,17 +39,17 @@ constexpr std::uint32_t kUnitFlagLit = 0x100;
 constexpr int kKeyEnter = 0xD;
 constexpr float kSpecialZoneDistance = 23.0f;
 
-CInterface3D* TheInterface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
-GameFlow* Flow() { return reinterpret_cast<GameFlow*>(0x007AFE20); }
-int& WorldTick() { return *reinterpret_cast<int*>(0x007AF61C); }
-CBaseManager* ItemManager() { return *reinterpret_cast<CBaseManager* const*>(0x007AF60C); }
-void* Weather() { return reinterpret_cast<void*>(0x007AFCAC); }   // "RainSnow"
+CInterface3D* TheInterface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
+GameFlow* Flow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
+int& WorldTick() { return ei::GameData<int>(0x007AF61C); }
+CBaseManager* ItemManager() { return ei::GameData<CBaseManager* const>(0x007AF60C); }
+void* Weather() { return ei::GamePointer<void>(0x007AFCAC); }   // "RainSnow"
 // The zone whose camera placement keeps a fixed view ("gz20g").
 const char* FixedViewZone() { return "gz20g"; }
 // 007C8388: an identity rotation (set by the static initialiser 00666CC0).
-const Quaternion& FixedViewRotation() { return *reinterpret_cast<const Quaternion*>(0x007C8388); }
+const Quaternion& FixedViewRotation() { return ei::GameData<const Quaternion>(0x007C8388); }
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
-double ExeDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
+double ExeDouble(std::uintptr_t address) { return ei::GameData<const double>(address); }
 
 CEngineObject* FindClientUnit(int id) { return WorldFindUnit(WorldClient(), nullptr, id); }
 

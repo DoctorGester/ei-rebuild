@@ -35,6 +35,7 @@
 #include "originals_world.h"
 #include "originals_gameplay.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -98,9 +99,9 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 // The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
 CAIMap* ServerAIMap() { return WorldServer()->AIMap(); }
 CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
-float HalfCell() { return *reinterpret_cast<const float*>(0x0073EEE4) * *reinterpret_cast<const float*>(0x0073B86C); }
-float HeroWalkLimit() { return *reinterpret_cast<const float*>(0x007C5448); }
-float HeroRunLimit() { return *reinterpret_cast<const float*>(0x007C5440); }
+float HalfCell() { return ei::GameData<const float>(0x0073EEE4) * ei::GameData<const float>(0x0073B86C); }
+float HeroWalkLimit() { return ei::GameData<const float>(0x007C5448); }
+float HeroRunLimit() { return ei::GameData<const float>(0x007C5440); }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
@@ -648,7 +649,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     float dx = point[0] - unit->position.x;
     float dy = point[1] - unit->position.y;
     float dz = point[2] - unit->position.z;
-    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > *reinterpret_cast<const float*>(0x0073CA98)) {
+    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > ei::GameData<const float>(0x0073CA98)) {
         CSectorMap* sectors = world->Sectors();
         sectors->FindUnitsInRadius(reinterpret_cast<const Vector3*>(point), list, 4.0f);
         void* group = &reinterpret_cast<CPlayerServer*>(player->connection_)->partyUnits_;
@@ -711,7 +712,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         float ey = half * path->targetY - goal[1];
         float ex = half * path->targetX - goal[0];
         float left = LengthSquared2DUnrounded(ex, ey);
-        bool stillFar = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
+        bool stillFar = reached * ei::GameData<const float>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
             PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;

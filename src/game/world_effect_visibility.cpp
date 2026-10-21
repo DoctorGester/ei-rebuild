@@ -12,6 +12,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -21,7 +22,7 @@ namespace {
 
 // The fog manager (*007AF75C); VisFogManagerAdd (004E28D0) makes a fog object, already counted once
 // by the manager's list.
-ClientArrayManager* FogManager() { return *reinterpret_cast<ClientArrayManager**>(0x007AF75C); }
+ClientArrayManager* FogManager() { return ei::GameData<ClientArrayManager*>(0x007AF75C); }
 
 // A memory stream on the stack, as the original builds and destroys it inline.
 struct TempStream {

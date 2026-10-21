@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "game_data.h"
 
 #include <richedit.h>
 
@@ -27,8 +28,8 @@ constexpr COLORREF kWhite = 0xFFFFFF;
 const char* const kRichEditLibrary = "Riched20.dll";
 const char* const kRichEditClass = "RichEdit20A";
 
-HWND GameWindow() { return *reinterpret_cast<HWND*>(std::uintptr_t(0x0079BC28)); }
-HINSTANCE GameInstance() { return *reinterpret_cast<HINSTANCE*>(std::uintptr_t(0x0079BC24)); }
+HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
+HINSTANCE GameInstance() { return ei::GameData<HINSTANCE>(0x0079BC24); }
 
 // The block being streamed into the RichEdit (the original reads it through a CMemFile; its
 // callback is 0065EF10).
@@ -55,7 +56,7 @@ int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) 
 
 CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT* rect) {
     ConstructOnRect(ui, rect, kSurfaceFormat);
-    vtable_ = reinterpret_cast<void*>(kScrollingVtableAddress);
+    vtable_ = ei::GamePointer<void>(kScrollingVtableAddress);
     richEditLibrary_ = nullptr;
     richEditLibrary_ = gameapi::LoadLibraryA(kRichEditLibrary);
     richEdit_ = gameapi::CreateWindowExA(0, kRichEditClass, nullptr, WS_CHILD | ES_MULTILINE, 0, 0, 0, 0, GameWindow(),
@@ -70,7 +71,7 @@ CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT
 EI_REPLACE_METHOD(0x0065ED30, CUiScrollingSurface::Construct);
 
 void CUiScrollingSurface::DestructBody() {
-    vtable_ = reinterpret_cast<void*>(kScrollingVtableAddress);
+    vtable_ = ei::GamePointer<void>(kScrollingVtableAddress);
     gameapi::DestroyWindow(richEdit_);
     if (richEditLibrary_) {
         gameapi::FreeLibrary(richEditLibrary_);

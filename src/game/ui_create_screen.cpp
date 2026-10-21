@@ -31,7 +31,7 @@
 namespace {
 
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
-std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
+std::uint32_t EmptyString() { return ei::GameData<const std::uint32_t>(0x00796E48); }   // afxEmptyString
 
 // An empty STLport list whose nodes are `Node` (next, prev, then the element): its sentinel from the
 // node pool, linked to itself (the list constructors 005F90E0 / 005F9300).
@@ -44,7 +44,7 @@ Node* EmptyList() {
 }
 
 // The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
-void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
+void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 void SetVtables(void* window, void** vtable, void** inputVtable) {
     auto* w = static_cast<CUiWindow*>(window);
     w->vtable_ = vtable;
@@ -157,7 +157,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     for (const auto& state : kStates) {
         SetRenderState(ui->renderer_->device_, state[0], state[1]);
     }
-    *reinterpret_cast<std::uint8_t*>(0x00784750) = 1;
+    ei::GameData<std::uint8_t>(0x00784750) = 1;
     using CreateFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<CreateFn>(window->vtable_[25])(window);
     app::PumpMessages();
@@ -241,7 +241,7 @@ void CInterface3D::Activate(CUiWindow* window) {
     }
     ResetInput();
     app::PumpMessages();
-    *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
+    ei::GameData<std::uint8_t>(0x00784750) = 0;
     if (!window) {
         game::FatalError("Cannot activate NULL interface screen\n");
         return;
@@ -273,7 +273,7 @@ void CInterface3D::ShowMessage(int force) {
         text->~CString();
     }
     if (messageText_.GetLength() == 0) return;
-    if (*reinterpret_cast<const int*>(0x0079BE78) == 0 && !forced) return;
+    if (ei::GameData<const int>(0x0079BE78) == 0 && !forced) return;
     void* memory = gamecrt::operator_new(0x194);
     CUiWindow* window = nullptr;
     if (memory) {
@@ -318,7 +318,7 @@ void CInterface3D::OpenHelp(int flag) {
         helpTopics_.Subscript(key) = 0;
     }
     bool forced = static_cast<std::uint8_t>(flag) != 0;
-    if (*reinterpret_cast<const int*>(0x0079BE78) != 0) {
+    if (ei::GameData<const int>(0x0079BE78) != 0) {
         if (!forced && seen >= 0) return;
     } else if (!forced) {
         return;
@@ -349,7 +349,7 @@ namespace {
 
 // STLport's node allocator: the free list of 0x18-byte nodes (0079B22C) and the refill
 // (004060E0, __fastcall with the size).
-void** FreeList18() { return reinterpret_cast<void**>(0x0079B22C); }
+void** FreeList18() { return ei::GamePointer<void*>(0x0079B22C); }
 
 void* AllocateNode18() {
     void* node = *FreeList18();

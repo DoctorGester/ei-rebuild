@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "originals_effects.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -38,7 +39,7 @@ const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
 // The sound system (global 007AF784); thiscall.
-void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
+void* SoundSystem() { return ei::GameData<void*>(0x007AF784); }
 
 // The light's position (a point light of the light factory, class 0x31).
 float* PositionOf(CEngineObject* light) { return &static_cast<CLight*>(light)->position_.x; }
@@ -123,7 +124,7 @@ int CMapObjectClientSpecific::Update() {
             sound->timer = timer;
             if (!(timer & 0x80000000u)) continue;
             mfc::CString name;
-            std::uint32_t variant = reinterpret_cast<IsaacRandom*>(0x007A9D40)->Next() % 3 + 1;
+            std::uint32_t variant = ei::GamePointer<IsaacRandom>(0x007A9D40)->Next() % 3 + 1;
             if (sound->kind == kSoundStench) {
                 name.Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;

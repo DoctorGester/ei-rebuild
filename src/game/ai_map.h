@@ -128,7 +128,7 @@ struct PathCell {
 static_assert(sizeof(PathCell) == 8);
 
 // The vtable of CList<PathCell> (PathCellList).
-inline void* PathCellListVtable() { return reinterpret_cast<void*>(0x0073EDB0); }
+inline void* PathCellListVtable() { return ei::GamePointer<void>(0x0073EDB0); }
 
 // ConstructElements of CList<PathCell>: the instantiation's own (00539980, ai_path_cells.cpp).
 struct PathCellElements {
@@ -176,7 +176,7 @@ struct BlockCostElements {
 };
 // The CList of reached blocks (0x1C bytes, nodes 0x14; vtable 0073FCFC).
 using BlockCostList = mfc::CList<BlockCost, BlockCostElements>;
-inline void* BlockCostListVtable() { return reinterpret_cast<void*>(0x0073FCFC); }
+inline void* BlockCostListVtable() { return ei::GamePointer<void>(0x0073FCFC); }
 static_assert(sizeof(BlockCostList::Node) == 0x14);
 
 struct CRegionMap;

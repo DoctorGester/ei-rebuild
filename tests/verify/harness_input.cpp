@@ -6,6 +6,7 @@
 #include <windowsx.h>
 
 #include "../../src/hook/log.h"
+#include "game/game_data.h"
 
 #include <atomic>
 #include <cstdint>
@@ -94,7 +95,7 @@ void Install() {
     static bool installed = false;
     if (installed) return;
     installed = true;
-    PatchSlot(reinterpret_cast<void*>(kDirectInputCreateExSlot), &RoutedCreate, g_create);
+    PatchSlot(ei::GamePointer<void>(kDirectInputCreateExSlot), &RoutedCreate, g_create);
 }
 
 bool RealMouse(HWND, UINT message, WPARAM, LPARAM lParam, LRESULT* result) {

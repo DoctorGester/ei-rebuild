@@ -11,6 +11,7 @@
 // elements are game types. Checked in game by verify_mfc_list.cpp until S21d.
 
 #include "mfc_array.h"
+#include "game/game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -222,52 +223,52 @@ void InitMap(CMap<std::uint32_t, std::uint32_t>* p) {
 // ---- The instantiations' vtables (game data) ------------------------------------------------------
 
 struct PtrListClass {   // CPtrList (the lists the code builds on the stack; blocks of 10)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D454); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D454); }
 };
 struct ItemListClass {   // the item and object pointer lists (CTypedPtrList)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073BE80); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073BE80); }
 };
 struct TempListClass {   // a pointer list built around each item creation (world quests)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073B8D4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073B8D4); }
 };
 struct CellListClass {   // the units' path cell lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073EDB0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073EDB0); }
 };
 struct LootListClass {   // the loot lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F12C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F12C); }
 };
 struct PlatformListClass {   // the client maps' platform lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F548); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F548); }
 };
 struct ClientListClass {   // the client map's lists (world_client_maps 0056FD40)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D018); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D018); }
 };
 struct ClientList2Class {   // 00570EA0's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F724); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F724); }
 };
 struct ClientList3Class {   // 005715D0's list
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F73C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F73C); }
 };
 struct NodeListClass {   // the AI map's node lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F9F8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F9F8); }
 };
 struct BlockCostListClass {   // the AI's block cost lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FCFC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FCFC); }
 };
 struct AiMapListClass {   // the AI map's lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FCF0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FCF0); }
 };
 struct WaypointListClass {   // the AI plan's waypoint lists
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FD9C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FD9C); }
 };
 struct StaticListClass {   // the list a static initialiser builds (005CDAD0)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FEB4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FEB4); }
 };
 struct DwordMapClass {   // the scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073C818); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073C818); }
 };
 struct ScriptCommandsClass {   // CArray<SSCCmd> (a script block, a CList element)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3DC); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3DC); }
 };
 
 // ---- Elements ------------------------------------------------------------------------------------

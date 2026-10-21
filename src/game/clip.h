@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "game_data.h"
 
 // D3DTLVERTEX (0x20 bytes).
 struct TLVertex {
@@ -23,9 +24,9 @@ namespace clip {
 
 // The work buffer: an MFC CWordArray at 0079B668 (data pointer 0079B66C), the number of indices
 // in it (0079B68C) and the last intersection parameter (0079B664).
-inline std::uint16_t*& Buffer() { return *reinterpret_cast<std::uint16_t**>(0x0079B66C); }
-inline int& BufferCount() { return *reinterpret_cast<int*>(0x0079B68C); }
-inline float& LastRatio() { return *reinterpret_cast<float*>(0x0079B664); }
+inline std::uint16_t*& Buffer() { return ei::GameData<std::uint16_t*>(0x0079B66C); }
+inline int& BufferCount() { return ei::GameData<int>(0x0079B68C); }
+inline float& LastRatio() { return ei::GameData<float>(0x0079B664); }
 
 // 0042E4D0. `out` = a + (b - a) * t for position, rhw and texture coordinates; colour and specular
 // per byte, each step rounded through a float and FISTP. __fastcall: a in ECX, b in EDX.

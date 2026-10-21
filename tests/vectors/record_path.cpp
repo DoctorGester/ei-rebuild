@@ -16,6 +16,7 @@
 #include "../../src/hook/log.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -52,15 +53,15 @@ void OfferTables() {
     w.Put(static_cast<std::uint32_t>(std::size(kTableRanges)));
     for (const Range& r : kTableRanges) {
         w.Put(r);
-        w.PutBytes(reinterpret_cast<const void*>(std::uintptr_t(r.address)), r.size);
+        w.PutBytes(ei::GamePointer<const void>(r.address), r.size);
     }
     w.Put(static_cast<std::uint32_t>(std::size(kTableArrays)));
     for (const Range& r : kTableArrays) {
-        const auto& array = *reinterpret_cast<const mfc::CArray<std::uint8_t>*>(std::uintptr_t(r.address));
+        const auto& array = ei::GameData<const mfc::CArray<std::uint8_t>>(r.address);
         w.Put(r);
         PutArray(w, array.data, array.size, r.size);
     }
-    const auto* tables = reinterpret_cast<const SmoothTable*>(kSmoothTables);
+    const auto* tables = ei::GamePointer<const SmoothTable>(kSmoothTables);
     for (int i = 0; i < kSmoothTableCount; ++i) {
         PutArray(w, tables[i].copies.data, tables[i].copies.size, kSmoothCopySize);
         PutArray(w, tables[i].steps.data, tables[i].steps.size, kSmoothStepSize);

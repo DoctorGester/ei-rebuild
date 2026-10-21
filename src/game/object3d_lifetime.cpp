@@ -9,13 +9,14 @@
 
 #include "ei/hook.h"
 #include "originals_engine.h"
+#include "game_data.h"
 
 #include <cstring>
 
 namespace {
 // Globals the game fills at startup: the identity quaternion and the default figure scale.
-const Quaternion& IdentityOrientation() { return *reinterpret_cast<const Quaternion*>(0x007AF1C0); }
-const float* DefaultFigureScale() { return reinterpret_cast<const float*>(0x007AF1D0); }
+const Quaternion& IdentityOrientation() { return ei::GameData<const Quaternion>(0x007AF1C0); }
+const float* DefaultFigureScale() { return ei::GamePointer<const float>(0x007AF1D0); }
 
 // The counted objects CountedRef holds: their count (+0x04) and their deletion (slot 0 with 1).
 inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }

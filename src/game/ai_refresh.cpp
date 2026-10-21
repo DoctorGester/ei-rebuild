@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
+#include "game_data.h"
 
 namespace {
 
@@ -28,7 +29,7 @@ int AreaList(int level) {
 
 // 005B8BA0 (RET 0x14, AL). The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
@@ -263,7 +264,7 @@ namespace {
 struct CellOffset {
     int dy, dx;
 };
-const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(0x007916BC); }
+const CellOffset* SteepOffsets() { return ei::GamePointer<const CellOffset>(0x007916BC); }
 
 // The largest climbable step of a climb table: the run of non-negative costs from the middle,
 // less one.

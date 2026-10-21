@@ -19,6 +19,7 @@
 #include "ui_cursor.h"
 #include "ini_file.h"
 #include "bink_video.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -28,13 +29,13 @@ namespace app {
 namespace {
 
 template <typename T>
-T& Global(std::uintptr_t address) { return *reinterpret_cast<T*>(address); }
+T& Global(std::uintptr_t address) { return ei::GameData<T>(address); }
 
-void* Interface() { return reinterpret_cast<void*>(0x007C7D50); }
-void* Game() { return reinterpret_cast<void*>(0x007AF060); }
-void* Screen() { return reinterpret_cast<void*>(0x007C7BD8); }
+void* Interface() { return ei::GamePointer<void>(0x007C7D50); }
+void* Game() { return ei::GamePointer<void>(0x007AF060); }
+void* Screen() { return ei::GamePointer<void>(0x007C7BD8); }
 bool Running() { return Global<std::uint8_t>(0x0079BC5C) != 0 && Global<std::uint8_t>(0x00784750) != 0; }
-CRITICAL_SECTION* RenderLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* RenderLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
 // The software cursor's lock (005E65F0) is called through the target of the original CALL at
@@ -136,7 +137,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     IniConstruct(ini);
     {
         alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), reinterpret_cast<const mfc::CString*>(0x007AF460), "config\\movie.ini");
+        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), ei::GamePointer<const mfc::CString>(0x007AF460), "config\\movie.ini");
         IniSetPath(ini, nullptr, *path);
         path->~CString();
     }
@@ -145,7 +146,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     for (int i = 0; i < list.size; ++i) {
         alignas(mfc::CString) unsigned char dirRaw[sizeof(mfc::CString)];
         alignas(mfc::CString) unsigned char fullRaw[sizeof(mfc::CString)];
-        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), reinterpret_cast<const mfc::CString*>(0x007AF458), "Movies\\");
+        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), ei::GamePointer<const mfc::CString>(0x007AF458), "Movies\\");
         mfc::CString* full = ConcatString(reinterpret_cast<mfc::CString*>(fullRaw), dir, &list.data[i]);
         PlayMovie(*full, 0, 1, 0, 0, static_cast<char>(a), b);
         full->~CString();

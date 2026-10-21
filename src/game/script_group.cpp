@@ -8,6 +8,7 @@
 #include "lib/mfc_array.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -18,7 +19,7 @@ struct ObjectRegistry {
     CEngineObject* FindObject(int id);   // 00593AA0
 };
 CEngineObject* ObjectRegistry::FindObject(int id) { return WorldFindObjectOriginal(this, nullptr, static_cast<unsigned>(id)); }
-ObjectRegistry* Registry() { return reinterpret_cast<ObjectRegistry*>(0x007AFF60); }
+ObjectRegistry* Registry() { return ei::GamePointer<ObjectRegistry>(0x007AFF60); }
 
 // The game's CRT.
 void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }

@@ -19,6 +19,7 @@
 #include "originals_world.h"
 #include "lib/mfc_slots.h"
 #include "ei/vcall.h"
+#include "game_data.h"
 
 namespace mapspec {
 
@@ -28,9 +29,9 @@ namespace {
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
 // (007B01F4); the world object's own updates.
-void* World() { return reinterpret_cast<void*>(0x007AFF60); }
-void* Selection() { return reinterpret_cast<void*>(0x007B00D0); }
-void* Lists() { return reinterpret_cast<void*>(0x007B01F4); }
+void* World() { return ei::GamePointer<void>(0x007AFF60); }
+void* Selection() { return ei::GamePointer<void>(0x007B00D0); }
+void* Lists() { return ei::GamePointer<void>(0x007B01F4); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -109,7 +110,7 @@ void Spec::SpecRefresh() { Record()->ApplyObject(); }
 EI_REPLACE_DISPATCH(0x00469E00, Spec::SpecRefresh);
 
 // 00469F20 (slot 2): the object with the record's id.
-void* Spec::SpecWorldObject() { return static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AF5F8))->FindObject(id); }
+void* Spec::SpecWorldObject() { return static_cast<CBaseManager*>(ei::GameData<void*>(0x007AF5F8))->FindObject(id); }
 EI_REPLACE_METHOD(0x00469F20, Spec::SpecWorldObject);
 
 // 00469F40 (slot 5): moves the record, then slot 7.

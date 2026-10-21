@@ -33,6 +33,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -40,7 +41,7 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
 const char* SelectSound() { return "buttons\\save\\select.wav"; }
@@ -62,8 +63,8 @@ const char* RefusalKey(int refusal) {
     }
 }
 // The port an address typed without one gets (8888), and the master server's host name.
-int DefaultPort() { return *reinterpret_cast<const int*>(0x00783E30); }
-const char* MasterHost() { return *reinterpret_cast<const char* const*>(0x0079BED8); }
+int DefaultPort() { return ei::GameData<const int>(0x00783E30); }
+const char* MasterHost() { return ei::GameData<const char* const>(0x0079BED8); }
 constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0, 0073B858), on (-0.08984375, 00741DA0); the selected game
@@ -145,7 +146,7 @@ const char* NameEnd() { return "|"; }
 // The model's turn about x: 007C7F40 (an angle set at start) times 1.2 (0073CDF4).
 float MenuTurn() { return GameFloat(0x007C7F40) * GameFloat(0x0073CDF4); }
 // The interface's text colour (the list draw changes it per row).
-std::uint32_t TextColour() { return *reinterpret_cast<const volatile std::uint32_t*>(0x00793AD8); }
+std::uint32_t TextColour() { return ei::GameData<const volatile std::uint32_t>(0x00793AD8); }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 // ExtendedServerName's values in Create (addon.dll: operands at 0061B5CE, 0061BB51, 0061BC09).
 constexpr float kExtendedSelectionRight = 381.5f;

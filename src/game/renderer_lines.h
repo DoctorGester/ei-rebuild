@@ -5,6 +5,7 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -41,7 +42,7 @@ struct LineBuffer {
     int growBy;
 };
 static_assert(sizeof(LineBuffer) == 0x10);
-inline LineBuffer& LineVertices() { return *reinterpret_cast<LineBuffer*>(0x007A9CE0); }
+inline LineBuffer& LineVertices() { return ei::GameData<LineBuffer>(0x007A9CE0); }
 
 // Four points of a line list as the transform object takes them (0x40 bytes).
 struct LinePacket {
@@ -78,9 +79,9 @@ struct ProjectedPoint {
     float x, y, z, rhw;
 };
 inline lib::AlignedArray<ProjectedPoint>& LineProjected() {
-    return *reinterpret_cast<lib::AlignedArray<ProjectedPoint>*>(0x007A9CB8);
+    return ei::GameData<lib::AlignedArray<ProjectedPoint>>(0x007A9CB8);
 }
-inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *reinterpret_cast<mfc::CArray<std::uint8_t>*>(0x007A9CC8); }
+inline mfc::CArray<std::uint8_t>& LineOutcodes() { return ei::GameData<mfc::CArray<std::uint8_t>>(0x007A9CC8); }
 
 // 0049B4B0 (fastcall: the device object, the points; the colour on the stack, RET 4).
 long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

@@ -35,6 +35,7 @@
 #include <cstring>
 #include <vector>
 #include "originals_render.h"
+#include "game_data.h"
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where
 // it stores to a float (float locals); the order of every operation is the original's.
@@ -42,25 +43,25 @@
 namespace {
 // --- Globals ----------------------------------------------------------------------------------
 
-int ShadowMode() { return *reinterpret_cast<const int*>(0x0079BD0C); }   // 0 off, 2 blurred
+int ShadowMode() { return ei::GameData<const int>(0x0079BD0C); }   // 0 off, 2 blurred
 int ShadowSwitch(int classId) {
-    if (classId == 0x50) return *reinterpret_cast<const int*>(0x0079BD14);   // units
-    if (classId == 0x52) return *reinterpret_cast<const int*>(0x0079BD1C);
-    return *reinterpret_cast<const int*>(0x0079BD18);
+    if (classId == 0x50) return ei::GameData<const int>(0x0079BD14);   // units
+    if (classId == 0x52) return ei::GameData<const int>(0x0079BD1C);
+    return ei::GameData<const int>(0x0079BD18);
 }
-const Vector3* DefaultLight() { return reinterpret_cast<const Vector3*>(0x007AF230); }
-void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
-void* RenderDevice() { return *reinterpret_cast<void**>(0x007AF080); }
-void* ShadowProjector() { return reinterpret_cast<void*>(0x007AF5B8); }
-void* TextureStages() { return reinterpret_cast<void*>(0x007AF060); }
+const Vector3* DefaultLight() { return ei::GamePointer<const Vector3>(0x007AF230); }
+void* TextureManager() { return ei::GameData<void*>(0x007AF744); }
+void* RenderDevice() { return ei::GameData<void*>(0x007AF080); }
+void* ShadowProjector() { return ei::GamePointer<void>(0x007AF5B8); }
+void* TextureStages() { return ei::GamePointer<void>(0x007AF060); }
 // The work buffers: the parts' points projected into the light's view, their texture pixels, and
 // the ground quad (one block of four corners).
 using ShadowPoints = lib::AlignedArray<Vector2>;
 using ShadowPixels = lib::AlignedArray<RasterTriangle::Point>;
 using ShadowQuads = lib::AlignedArray<VertexPacket>;
-ShadowPoints& Points() { return *reinterpret_cast<ShadowPoints*>(0x007AF1F8); }
-ShadowPixels& Pixels() { return *reinterpret_cast<ShadowPixels*>(0x007AF1E0); }
-ShadowQuads& Quads() { return *reinterpret_cast<ShadowQuads*>(0x007AF208); }
+ShadowPoints& Points() { return ei::GameData<ShadowPoints>(0x007AF1F8); }
+ShadowPixels& Pixels() { return ei::GameData<ShadowPixels>(0x007AF1E0); }
+ShadowQuads& Quads() { return ei::GameData<ShadowQuads>(0x007AF208); }
 
 constexpr int kTypePointLight = 0x31;
 constexpr int kClassUnitObject = 0x50;

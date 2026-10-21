@@ -37,6 +37,7 @@
 #include "originals_world.h"
 #include "originals_core.h"
 #include "originals_gameplay.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -101,7 +102,7 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<C
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
 
 // 0073C548: how much faster a dead body sinks every update.
-float SinkAcceleration() { return *reinterpret_cast<const float*>(0x0073C548); }
+float SinkAcceleration() { return ei::GameData<const float>(0x0073C548); }
 int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
 int WorldTime(const void* object) { return TickOf(ManagerContextOf(object)); }
 // The connection of a unit's player (CPlayer::connection_; a CPlayerServer on the server).
@@ -698,8 +699,8 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
-    ItemList items{reinterpret_cast<void*>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    ItemList others{reinterpret_cast<void*>(0x0073F12C), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ItemList items{ei::GamePointer<void>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ItemList others{ei::GamePointer<void>(0x0073F12C), nullptr, nullptr, 0, nullptr, nullptr, 10};
     unit->CollectItems(&items, reinterpret_cast<mfc::CTypedPtrList<void>*>(&others));
     // Weapons other than the one in use do not count.
     for (ItemList::Node* node = items.head; node;) {
@@ -756,9 +757,9 @@ void CUnitServer::RefreshItemSpells() {
         else current->next->prev = current->prev;
         mfc::impl::FreeNodeAs<gamelists::Holders>(list, current);   // 00558B80
     }
-    others.vtable = reinterpret_cast<void*>(0x0073F12C);
+    others.vtable = ei::GamePointer<void>(0x0073F12C);
     others.RemoveAll();
-    items.vtable = reinterpret_cast<void*>(0x0073BE80);
+    items.vtable = ei::GamePointer<void>(0x0073BE80);
     items.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005528F0, CUnitServer::RefreshItemSpells);

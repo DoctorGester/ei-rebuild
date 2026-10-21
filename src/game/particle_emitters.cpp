@@ -15,6 +15,7 @@
 #include "originals_engine.h"
 #include "originals_world.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -30,10 +31,10 @@ double Unsigned(std::uint32_t value) {
 }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 
@@ -242,7 +243,7 @@ static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));
 #define EI_JITTER GameFloat(0x0073CE90)            // 0.04
 #define EI_SCALE_0_08 GameDouble(0x0073CE98)       // ~0.08 * 2^-32
 
-const std::int32_t* FadeAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A774); }
+const std::int32_t* FadeAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A774); }
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
 // 0044C470: the game's debug message (cdecl, one argument).
@@ -466,12 +467,12 @@ namespace {
 #define EI_TRANS_GROWTH GameFloat(0x0073CCD8)      // 0.02
 
 // Alpha tables indexed by the ticks left.
-const std::int32_t* SparkAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AB98); }
-const float* GlowAlpha() { return reinterpret_cast<const float*>(0x0078AA78); }
-const std::int32_t* DustAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AAD8); }
+const std::int32_t* SparkAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AB98); }
+const float* GlowAlpha() { return ei::GamePointer<const float>(0x0078AA78); }
+const std::int32_t* DustAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AAD8); }
 
 // 00561150 on the map object at 007AF78C: the ground plane at (x, y), as a normal and a distance.
-void* PlaneMap() { return reinterpret_cast<void*>(0x007AF78C); }
+void* PlaneMap() { return ei::GamePointer<void>(0x007AF78C); }
 
 // x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {

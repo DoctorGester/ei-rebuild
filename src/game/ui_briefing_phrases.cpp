@@ -28,6 +28,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 namespace {
 
@@ -61,8 +62,8 @@ const char* NameLine() { return "\007C\377\377\377 %s %s\n"; }
 const char* TextLine() { return "\007C\377\377\377 %s\n"; }
 const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
-stlp::NameMap& BriefingRecords() { return *reinterpret_cast<stlp::NameMap*>(0x007C87D4); }   // hash_map<string, BriefingRecord*>
-void* ItemManager() { return *reinterpret_cast<void* const*>(0x007AF60C); }
+stlp::NameMap& BriefingRecords() { return ei::GameData<stlp::NameMap>(0x007C87D4); }   // hash_map<string, BriefingRecord*>
+void* ItemManager() { return ei::GameData<void* const>(0x007AF60C); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);

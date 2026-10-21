@@ -7,6 +7,7 @@
 // going through the forwarders (mfc.h's CStringArray, src/game/originals_library.h) until C13.
 
 #include "mfc_string.h"
+#include "game/game_data.h"
 
 #include <cstdint>
 
@@ -33,16 +34,16 @@ struct PlainArray {
 
 // The instantiations' vtables (game data).
 struct WordArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x00745F78); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00745F78); }
 };
 struct DWordArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x007464B8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007464B8); }
 };
 struct ByteArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x00746560); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00746560); }
 };
 struct UIntArrayClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x007467A0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007467A0); }
 };
 using CWordArray = PlainArray<std::uint16_t, WordArrayClass>;
 using CDWordArray = PlainArray<std::uint32_t, DWordArrayClass>;
@@ -59,7 +60,7 @@ struct CStringArray {
     int maxSize;    // +0x0C
     int growBy;     // +0x10
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x00745F5C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x00745F5C); }
 
     CStringArray* Construct();                          // 006FE925
     void Destruct();                                    // 006FE958

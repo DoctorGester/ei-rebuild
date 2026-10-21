@@ -12,6 +12,7 @@
 #include "ei/rebirth.h"
 #include "originals_library.h"
 #include "../hook/log.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,7 +23,7 @@ namespace {
 
 constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
-const void* SelectTimeout() { return reinterpret_cast<const void*>(0x0079B928); }
+const void* SelectTimeout() { return ei::GamePointer<const void>(0x0079B928); }
 // STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n) (00441180, plain elements).
 
 // A hostent's first address (h_addr_list[0]).
@@ -48,7 +49,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));
     family = 2;
     stlp::string s(text, text + std::strlen(text));
-    const std::size_t npos = *reinterpret_cast<const std::size_t*>(0x0073BDE8);
+    const std::size_t npos = ei::GameData<const std::size_t>(0x0073BDE8);
     int number = defaultPort;
     std::size_t colon = npos;
     if (s.size() != 0) {

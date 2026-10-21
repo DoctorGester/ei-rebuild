@@ -3,6 +3,7 @@
 #include "ei/hook.h"
 #include "game/originals_library.h"
 #include "gameapi.h"
+#include "game/game_data.h"
 
 #include <cfloat>
 #include <cmath>
@@ -46,8 +47,8 @@ struct CaseFold {
     int fold[256];
 };
 
-unsigned CtypeHandle() { return *reinterpret_cast<const unsigned*>(0x007CABF0); }   // __lc_handle[LC_CTYPE]
-unsigned CodePage() { return *reinterpret_cast<const unsigned*>(0x007CAC00); }      // __lc_codepage
+unsigned CtypeHandle() { return ei::GameData<const unsigned>(0x007CABF0); }   // __lc_handle[LC_CTYPE]
+unsigned CodePage() { return ei::GameData<const unsigned>(0x007CAC00); }      // __lc_codepage
 
 CaseFold caseFold;
 
@@ -94,9 +95,9 @@ namespace {
 // The CRT's character class table pointer _pctype (00797DD8; the C locale's table + 1 entry, so -1 is
 // EOF) and its multibyte flags _mbctype + 1 (007CC181; no lead bytes for a single-byte code page, the
 // single-byte case bits still set), with _mbcasemap (007CC080), each byte's other case.
-const unsigned short* CharClasses() { return *reinterpret_cast<const unsigned short* const*>(0x00797DD8); }
-const unsigned char* MultibyteFlags() { return reinterpret_cast<const unsigned char*>(0x007CC181); }
-const unsigned char* MultibyteCaseMap() { return reinterpret_cast<const unsigned char*>(0x007CC080); }
+const unsigned short* CharClasses() { return ei::GameData<const unsigned short* const>(0x00797DD8); }
+const unsigned char* MultibyteFlags() { return ei::GamePointer<const unsigned char>(0x007CC181); }
+const unsigned char* MultibyteCaseMap() { return ei::GamePointer<const unsigned char>(0x007CC080); }
 constexpr unsigned char kMbSingleUpper = 0x10;   // _SBUP in _mbctype
 
 constexpr unsigned short kDigit = 0x4;      // _DIGIT
@@ -111,8 +112,8 @@ constexpr unsigned short kLower = 0x2;      // _LOWER
 
 // The LC_CTYPE locale: its handle (__lc_handle[LC_CTYPE] 007CABF0; zero for "C") and code page
 // (__lc_codepage 007CAC00).
-unsigned LocaleHandle() { return *reinterpret_cast<const unsigned*>(0x007CABF0); }
-unsigned LocaleCodePage() { return *reinterpret_cast<const unsigned*>(0x007CAC00); }
+unsigned LocaleHandle() { return ei::GameData<const unsigned>(0x007CABF0); }
+unsigned LocaleCodePage() { return ei::GameData<const unsigned>(0x007CAC00); }
 
 // __crtLCMapStringA (006F1FDE) on its LCMapStringW path: the bytes (up to a zero, at most `count`)
 // to UTF-16 in the code page, mapped, and back; the bytes written, or 0.
@@ -661,9 +662,9 @@ EI_REPLACE(0x006EBBB4, libcrt::Controlfp);
 namespace {
 // MFC's new handler (_afxNewHandler, 00796E14) and the CRT's (_pnhHeap, 007CAAD8), with _newmode
 // (007CAC7C), which says whether malloc calls the CRT's too.
-gamecrt::NewHandler& AfxNewHandler() { return *reinterpret_cast<gamecrt::NewHandler*>(0x00796E14); }
-gamecrt::NewHandler& HeapNewHandler() { return *reinterpret_cast<gamecrt::NewHandler*>(0x007CAAD8); }
-int NewMode() { return *reinterpret_cast<const int*>(0x007CAC7C); }
+gamecrt::NewHandler& AfxNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x00796E14); }
+gamecrt::NewHandler& HeapNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x007CAAD8); }
+int NewMode() { return ei::GameData<const int>(0x007CAC7C); }
 constexpr std::size_t kHeapMaxRequest = 0xFFFFFFE0;
 
 // The CRT's heap (_crtheap, 007CAF08) is a Win32 heap of its own, as in game.exe: VC6's _heap_init
@@ -672,7 +673,7 @@ constexpr std::size_t kHeapMaxRequest = 0xFFFFFFE0;
 // to 16 bytes (_heap_alloc 006EAC0F). The calls go through the image's import slots, where the
 // harness's repeatable heap and its jitter take them as in game.exe (tests/verify/harness_heap.h,
 // SV7c2). Made at the first allocation: the image's start-up has no _heap_init of its own.
-HANDLE& CrtHeap() { return *reinterpret_cast<HANDLE*>(0x007CAF08); }
+HANDLE& CrtHeap() { return ei::GameData<HANDLE>(0x007CAF08); }
 
 HANDLE Heap() {
     HANDLE& heap = CrtHeap();
@@ -780,11 +781,11 @@ struct FreeBlock {
 };
 constexpr std::size_t kMaxPooled = 128;
 FreeBlock*& FreeListFor(std::size_t bytes) {
-    return reinterpret_cast<FreeBlock**>(0x0079B224)[(bytes - 1) >> 3];
+    return ei::GamePointer<FreeBlock*>(0x0079B224)[(bytes - 1) >> 3];
 }
-std::size_t& PoolHeapSize() { return *reinterpret_cast<std::size_t*>(0x0079B264); }
-char*& ChunkStart() { return *reinterpret_cast<char**>(0x0079B268); }
-char*& ChunkEnd() { return *reinterpret_cast<char**>(0x0079B26C); }
+std::size_t& PoolHeapSize() { return ei::GameData<std::size_t>(0x0079B264); }
+char*& ChunkStart() { return ei::GameData<char*>(0x0079B268); }
+char*& ChunkEnd() { return ei::GameData<char*>(0x0079B26C); }
 std::size_t RoundUp(std::size_t bytes) { return (bytes + 7) & ~std::size_t{7}; }
 } // namespace
 
@@ -938,7 +939,7 @@ namespace libcrt::imports {
 
 namespace {
 template <typename F>
-F Slot(F, std::uintptr_t address) { return *reinterpret_cast<F*>(address); }
+F Slot(F, std::uintptr_t address) { return ei::GameData<F>(address); }
 } // namespace
 
 std::uint16_t __stdcall Htons(std::uint16_t v) { return Slot(&Htons, 0x0073B704)(v); }                 // 006E60E2, ord 9

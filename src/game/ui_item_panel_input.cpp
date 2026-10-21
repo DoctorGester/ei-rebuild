@@ -5,6 +5,7 @@
 #include "ui_screens.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 void CUiItemPanel::OnLeftDown(int, int x, int y) {
     // The original hands the address of its x argument as the topic out-parameter.
@@ -22,9 +23,9 @@ EI_REPLACE_METHOD(0x005EE310, InputForward<&CUiItemPanel::OnLeftDown>::Call);
 // 0060E210: the blank panel's constructor.
 CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CUiWindow* owner) {
     Construct(ui);
-    vtable_ = reinterpret_cast<void**>(std::uintptr_t(0x00741B58));
+    vtable_ = ei::GamePointer<void*>(0x00741B58);
     owner_ = owner;
-    inputVtable_ = reinterpret_cast<void**>(std::uintptr_t(0x00741B24));
+    inputVtable_ = ei::GamePointer<void*>(0x00741B24);
     return this;
 }
 EI_REPLACE_METHOD(0x0060E210, CUiItemPanel::ConstructBlank);

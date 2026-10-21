@@ -18,13 +18,14 @@
 #include "stlp_list.h"
 #include "stlp_tree.h"
 #include "stlp_vector.h"
+#include "game/game_data.h"
 
 namespace stlp {
 
 // allocate / deallocate: stlp_alloc.h.
 // 0079B228: the node allocator's free list of 12-byte nodes (list nodes), which some code pushes
 // to inline.
-inline void*& SmallNodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }
+inline void*& SmallNodeFreeList() { return ei::GameData<void*>(0x0079B228); }
 
 // basic_string<char>: three pointers, no small-string buffer. 12 bytes.
 class string {

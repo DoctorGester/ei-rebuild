@@ -20,12 +20,13 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "unit.h"
+#include "game_data.h"
 
 namespace {
 
 inline double D(float f) { return f; }
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 template <typename T>
 T Read(const std::uint8_t* p, int offset) {
@@ -132,7 +133,7 @@ void CHeroStatsPanel::DrawStats() {
     std::uint8_t* unit = reinterpret_cast<UnitFn>(owner_->vtable_[50])(owner_, heroIndex_);  // +0xC8
     mfc::CString line;
     mfc::CString text;
-    CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
+    CTextManager* texts = ei::GameData<CTextManager*>(0x007AF788);
     RECT rect;
 
     if (page_ == 10) {
@@ -365,8 +366,8 @@ void CHeroEquipPanel::Build(bool body) {
     Builder(AddSprite(0))->Cells(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
         // The body's slots: 100x100 around the centres of two tables (00741EC4 x, 00741EE0 y).
-        const int* xs = reinterpret_cast<const int*>(0x00741EC4);
-        const int* ys = reinterpret_cast<const int*>(0x00741EE0);
+        const int* xs = ei::GamePointer<const int>(0x00741EC4);
+        const int* ys = ei::GamePointer<const int>(0x00741EE0);
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
         LoadTexture("camp1", 3, 0);   // camp1
         LoadTexture("camp2", 3, 0);   // camp2
@@ -407,7 +408,7 @@ void CHeroStatsPanel::Build() {
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
     for (const auto& b : buttons) AddSprite(0)->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
     // The texts the panel draws (CStringArray at +0x15C).
-    CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
+    CTextManager* texts = ei::GameData<CTextManager*>(0x007AF788);
     mfc::CString text;
     mfc::CStringArray* array = &texts_;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
@@ -555,7 +556,7 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
     AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 450, 400, 490, 5, 1) : nullptr);
     pulse_ = 0.0f;
     // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
-    CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
+    CTextManager* texts = ei::GameData<CTextManager*>(0x007AF788);
     mfc::CStringArray* array = &static_cast<CSpellMakerPage*>(this)->texts_;
     mfc::CString text;
     for (int key : {0x23, 0x24}) {

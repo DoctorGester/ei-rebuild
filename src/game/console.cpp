@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "library_trees.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -65,7 +66,7 @@ int Mbscmp(const char* a, const char* b) {
 }
 
 // 007C7D50: the interface manager (ConsoleAddText hands a line to its console window, if any).
-inline CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
+inline CInterface3D* Interface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 
 // 0057F440 (called with the game at 007AFE20 in ECX): a network game is running (server object
 // 0079B5D8 present and active).
@@ -88,7 +89,7 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     Base()->Construct(buffer_, sizeof(buffer_));   // 006FCAD2
     filter_ = filter;
-    line_ = *reinterpret_cast<char**>(0x00796E48);   // CString(): the shared empty string
+    line_ = ei::GameData<char*>(0x00796E48);   // CString(): the shared empty string
     ei::SetVtable(this, kVtableAddress);
     return this;
 }

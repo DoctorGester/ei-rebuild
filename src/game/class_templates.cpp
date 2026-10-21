@@ -24,6 +24,7 @@
 #include "originals_gameplay.h"
 #include "spell.h"
 #include "lib/stlp_vector_refs.h"
+#include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -56,10 +57,10 @@ void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
 // 007C86E4 / 007C851C (a missing name is inserted with a null record); 004ACC10 find_or_insert of
 // the modifier map 007C853C.
-void* const kWeapons = reinterpret_cast<void*>(0x007C86F8);
-void* const kArmors = reinterpret_cast<void*>(0x007C8718);
-stlp::NameMap& QuickItemMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C8744); }
-stlp::NameMap& FourthKindMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C86E4); }
+void* const kWeapons = ei::GamePointer<void>(0x007C86F8);
+void* const kArmors = ei::GamePointer<void>(0x007C8718);
+stlp::NameMap& QuickItemMap() { return ei::GameData<stlp::NameMap>(0x007C8744); }
+stlp::NameMap& FourthKindMap() { return ei::GameData<stlp::NameMap>(0x007C86E4); }
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.

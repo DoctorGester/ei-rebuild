@@ -12,13 +12,14 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
 
 namespace {
 // 007C54B8: the defence factor of units without a player, per difficulty (GameDifficulty()).
-inline const float* DefenceFactors() { return reinterpret_cast<const float*>(0x007C54B8); }
+inline const float* DefenceFactors() { return ei::GamePointer<const float>(0x007C54B8); }
 
 UnitVitals& VitalsOf(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->MapObject()->companion)->vitals; }
 

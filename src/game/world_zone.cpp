@@ -30,6 +30,7 @@
 #include "originals_library.h"
 #include "originals_gameplay.h"
 #include "lib/mfc_slots.h"
+#include "game_data.h"
 
 namespace {
 
@@ -39,12 +40,12 @@ namespace {
 constexpr const char* kNoExit = "none";   // 007846F0
 
 // Set while LoadMobFile reads a .mob file (byte at 007C554C; the object loaders read it).
-std::uint8_t& LoadingMobFile() { return *reinterpret_cast<std::uint8_t*>(0x007C554C); }
+std::uint8_t& LoadingMobFile() { return ei::GameData<std::uint8_t>(0x007C554C); }
 
 // The default orientation of new units (16 bytes at 007C2DE0), passed by value.
 Quaternion DefaultRotation() {
     Quaternion value;
-    std::memcpy(&value, reinterpret_cast<const void*>(0x007C2DE0), sizeof(value));
+    std::memcpy(&value, ei::GamePointer<const void>(0x007C2DE0), sizeof(value));
     return value;
 }
 
@@ -242,7 +243,7 @@ void CWorldServer::SaveMapObjects(void* stream) {
 // ---- Loading movie (00595080) -------------------------------------------------------------------
 
 namespace {
-const char*& LoadingMovie() { return *reinterpret_cast<const char**>(0x00791EE0); }
+const char*& LoadingMovie() { return ei::GameData<const char*>(0x00791EE0); }
 bool SameName(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
 }
@@ -253,7 +254,7 @@ constexpr const char* kProgres5 = "progres5.bik";
 void __stdcall SelectLoadingMovie(const char* zone) {
     mfc::CString allod;
     if (zone) {
-        MapRecord* map = reinterpret_cast<CMapDatabase*>(0x0079BF00)->FindMap(zone);
+        MapRecord* map = ei::GamePointer<CMapDatabase>(0x0079BF00)->FindMap(zone);
         if (map) allod = *reinterpret_cast<const mfc::CString*>(reinterpret_cast<const char*>(map) + 4);
     }
     if (SameName(allod, "gipat")) {

@@ -22,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <float.h>
 
@@ -41,10 +42,10 @@ struct StageBlock {
     DWORD colourArg2, alphaArg1, alphaOp, alphaArg2;
 };
 const StageBlock kStageBlocks[4] = {
-    {reinterpret_cast<DWORD*>(0x007AEDDC), D3DTA_CURRENT, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
-    {reinterpret_cast<DWORD*>(0x007AEDD8), D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE},
-    {reinterpret_cast<DWORD*>(0x007AEDD4), D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
-    {reinterpret_cast<DWORD*>(0x007AEDD0), D3DTA_DIFFUSE, D3DTA_DIFFUSE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
+    {ei::GamePointer<DWORD>(0x007AEDDC), D3DTA_CURRENT, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
+    {ei::GamePointer<DWORD>(0x007AEDD8), D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE},
+    {ei::GamePointer<DWORD>(0x007AEDD4), D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
+    {ei::GamePointer<DWORD>(0x007AEDD0), D3DTA_DIFFUSE, D3DTA_DIFFUSE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
 };
 
 constexpr std::uint32_t kDxtCode = MAKEFOURCC('D', 'X', 'T', 0);   // a DXT format's code without its digit

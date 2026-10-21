@@ -5,6 +5,7 @@
 // CAIMap::UnitShape in ai_movement.cpp for its user.
 #include "core_refcount.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -56,4 +57,4 @@ UnitShapeCache::Map::Pair* __fastcall ConstructShapePair(UnitShapeCache::Map::Pa
                                                          const ShapeCacheHandle* key, const RefPtr* value);
 void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair);
 
-inline UnitShapeCache* UnitShapes() { return reinterpret_cast<UnitShapeCache*>(0x007C2F70); }
+inline UnitShapeCache* UnitShapes() { return ei::GamePointer<UnitShapeCache>(0x007C2F70); }

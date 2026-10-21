@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "unit.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -38,7 +39,7 @@ std::uint8_t* SpellPrototypeOf(void* spell) {
     return reinterpret_cast<std::uint8_t*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
 
-void* TextManager() { return *reinterpret_cast<void* const*>(0x007AF788); }
+void* TextManager() { return ei::GameData<void* const>(0x007AF788); }
 
 // The spell's slot 19 (the picture's name) and 20 (the model's name).
 void SpellName(CEngineObject* spell, int slot, ReturnedString* out) {
@@ -94,7 +95,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             else
                 line.Format("%s %d  ", labels[2], Truncate(Get<float>(data, 0x24)));
             tip += line;
-            const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
+            const float one = ei::GameData<const volatile float>(0x0073B84C);
             float duration = Get<float>(data, 0x30);
             if (!(duration >= one))   // TEST AH,1: below 1 or NaN
                 line.Format("%s %s \n", labels[3], labels[8]);   // "%s %s \n"
@@ -108,7 +109,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             } else {
                 // The area: radius squared times pi (007423F8, a float).
                 float radius = Get<float>(data, 0x28);
-                double area = static_cast<double>(radius) * radius * *reinterpret_cast<const volatile float*>(0x007423F8);
+                double area = static_cast<double>(radius) * radius * ei::GameData<const volatile float>(0x007423F8);
                 line.Format("%s %.1f%s \n", labels[5], area, labels[10]);   // "%s %.1f%s \n"
             }
             tip += line;
@@ -117,7 +118,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
                 line.Format("%s %s  ", labels[6], labels[8]);
             } else {
                 // Ticks to seconds (00740544, 1/15).
-                double seconds = x87::FromUnsigned(ticks) * *reinterpret_cast<const volatile float*>(0x00740544);
+                double seconds = x87::FromUnsigned(ticks) * ei::GameData<const volatile float>(0x00740544);
                 line.Format("%s %.1f%s  ", labels[6], seconds, labels[11]);
             }
             tip += line;

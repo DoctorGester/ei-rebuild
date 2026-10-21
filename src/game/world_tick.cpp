@@ -26,6 +26,7 @@
 #include "originals_world.h"
 #include "originals_script.h"
 #include "game_lists.h"
+#include "game_data.h"
 
 namespace {
 
@@ -45,8 +46,8 @@ void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBr
 
 // WakeUnitsAround's function-local static: a SpiralCache at 007AFF08 (guard bit 007AFF10 & 1,
 // destructor 0058D5C0 registered with atexit).
-SpiralCache& WakeCache() { return *reinterpret_cast<SpiralCache*>(0x007AFF08); }
-std::uint8_t& WakeCacheGuard() { return *reinterpret_cast<std::uint8_t*>(0x007AFF10); }
+SpiralCache& WakeCache() { return ei::GameData<SpiralCache>(0x007AFF08); }
+std::uint8_t& WakeCacheGuard() { return ei::GameData<std::uint8_t>(0x007AFF10); }
 
 // 005C0930 (CSectorMap, inlined here: bounds check and address only). The unit list of sector
 // (x, y), or null outside the map.
@@ -229,9 +230,9 @@ namespace {
 using IdArray = lib::AlignedArray<unsigned>;
 // 004538D0: the instantiation's SetAtGrow(index, value) (RET 8).
 
-IdArray& RemovedIds() { return *reinterpret_cast<IdArray*>(0x007AFEF0); }   // flagged for removal
-IdArray& SleepingIds() { return *reinterpret_cast<IdArray*>(0x007AFEE0); }  // leave the update map
-std::uint8_t& UpdateListGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AFF00); }
+IdArray& RemovedIds() { return ei::GameData<IdArray>(0x007AFEF0); }   // flagged for removal
+IdArray& SleepingIds() { return ei::GameData<IdArray>(0x007AFEE0); }  // leave the update map
+std::uint8_t& UpdateListGuards() { return ei::GameData<std::uint8_t>(0x007AFF00); }
 
 constexpr int kUnitSleepCountdown = 0x174;   // CUnit +0x174: updates left before it may sleep
 int& SleepCountdown(CEngineObject* object) {

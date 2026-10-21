@@ -39,6 +39,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "ui_cursor.h"
+#include "game_data.h"
 
 namespace {
 
@@ -52,7 +53,7 @@ using BinkSoundSystemFn = void(__stdcall*)(void*, void*);   // (open function, M
 using BinkGotoFn = void(__stdcall*)(BinkHeader*, unsigned, int);
 template <typename F>
 F Import(std::uintptr_t slot) {
-    return *reinterpret_cast<F*>(slot);
+    return ei::GameData<F>(slot);
 }
 BinkFn BinkWait() { return Import<BinkFn>(0x0073B728); }
 BinkFn BinkDoFrame() { return Import<BinkFn>(0x0073B718); }
@@ -90,7 +91,7 @@ static_assert(offsetof(LoadingMovie, surfaceType) == 0x38);
 // Game globals.
 template <typename T>
 T& Global(std::uintptr_t address) {
-    return *reinterpret_cast<T*>(address);
+    return ei::GameData<T>(address);
 }
 CTextureDevice* DeviceObject() { return Global<CTextureDevice*>(0x007AF080); }
 void* Cursor() { return &Global<std::uint8_t>(0x007C7BD8); }

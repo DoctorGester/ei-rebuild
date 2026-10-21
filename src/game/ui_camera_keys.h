@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include <windows.h>
+#include "game_data.h"
 
 class CInterface3D;
 
@@ -14,7 +15,7 @@ class CInterface3D;
 // cleared by the key-up); the right button turns the view while held.
 class CCameraInput {
 public:
-    static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00740208)); }
+    static void** Vtable() { return ei::GamePointer<void*>(0x00740208); }
     // 005EACB0 (RET 4; ui_camera_input.cpp). Constructor: vtable 00740208, the interface, not
     // turning, the axes 0 (handled_ and the press points left). Returns this.
     CCameraInput* Construct(CInterface3D* ui);

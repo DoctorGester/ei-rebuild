@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -417,12 +418,12 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
 // 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
 // (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
-void* const kWeaponTable = reinterpret_cast<void*>(0x007C86F8);
-void* const kArmorTable = reinterpret_cast<void*>(0x007C8718);
-void* const kQuickTable = reinterpret_cast<void*>(0x007C8738);
-void* const kTable14 = reinterpret_cast<void*>(0x007C8758);
-void* const kTable15 = reinterpret_cast<void*>(0x007C8778);
-void* const kMaterialTable = reinterpret_cast<void*>(0x007C86D8);
+void* const kWeaponTable = ei::GamePointer<void>(0x007C86F8);
+void* const kArmorTable = ei::GamePointer<void>(0x007C8718);
+void* const kQuickTable = ei::GamePointer<void>(0x007C8738);
+void* const kTable14 = ei::GamePointer<void>(0x007C8758);
+void* const kTable15 = ei::GamePointer<void>(0x007C8778);
+void* const kMaterialTable = ei::GamePointer<void>(0x007C86D8);
 
 // 006AD000 (RET 0x10). The item manager makes an item (kind, record index, a, b).
 CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a4, int a5) { return (CItem*)a0->MakeItem(a2, a3, a4, a5); }
@@ -431,7 +432,7 @@ CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a
 // (007C8704, 006AD670), armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell
 // (007C851C, 004ABD00) maps, and the modifier map's find_or_insert (007C853C, 004ACC10) of a
 // (name, null) pair.
-stlp::NameMap& NameMapAt(std::uintptr_t address) { return *reinterpret_cast<stlp::NameMap*>(address); }
+stlp::NameMap& NameMapAt(std::uintptr_t address) { return ei::GameData<stlp::NameMap>(address); }
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 int TableIndex(const RecordTable& table, const char* record, int stride) {

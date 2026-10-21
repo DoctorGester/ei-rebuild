@@ -21,19 +21,20 @@
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <utility>
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 // The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
 // share of the screen width.
 const char* FontFace() { return "Times New Roman"; }
 constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
-void** FontVtable() { return reinterpret_cast<void**>(0x0073BFB4); }
+void** FontVtable() { return ei::GamePointer<void*>(0x0073BFB4); }
 
 // A new CFont without a handle (null when the memory cannot be had).
 ui_gdi::GameFont* NewFont() {
@@ -51,7 +52,7 @@ bool CreateFont(ui_gdi::GameFont* font, int size) {
 }
 
 // The language the keyboard starts in (the option 0079BE98, a Windows language id) and English.
-DWORD KeyboardLanguage() { return *reinterpret_cast<const volatile DWORD*>(0x0079BE98); }
+DWORD KeyboardLanguage() { return ei::GameData<const volatile DWORD>(0x0079BE98); }
 constexpr DWORD kEnglish = 0x409;
 constexpr int kMaxLayouts = 16;
 

@@ -119,8 +119,8 @@ CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(Manag
 int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
 CPlayer* PlayerOf(CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
 CUnitServer* ServerControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(unit->controller); }
-int CurrentFrame() { return *reinterpret_cast<const int*>(0x007AFFC4); }
-int GameMode() { return *reinterpret_cast<const int*>(0x007C2CC4); }
+int CurrentFrame() { return ei::GameData<const int>(0x007AFFC4); }
+int GameMode() { return ei::GameData<const int>(0x007C2CC4); }
 
 constexpr int kStateIdle = 0;
 constexpr int kStateCasting = 5;

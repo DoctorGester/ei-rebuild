@@ -24,10 +24,11 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 constexpr int kKindSinglePlayer = 1;
 constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // spell +0x3C: also hits the target itself

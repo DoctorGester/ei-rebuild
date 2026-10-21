@@ -20,6 +20,7 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -280,7 +281,7 @@ EI_REPLACE_METHOD(0x0064A320, CHudTopPanel::ShowPage);
 void CHudTopPanel::ShowItems() {
     CTextManager* texts = GameTexts();
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
-    mfc::CTypedPtrList<CItem> merged{reinterpret_cast<void*>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    mfc::CTypedPtrList<CItem> merged{ei::GamePointer<void>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
     mfc::CString line;
     mfc::CString format;

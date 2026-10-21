@@ -24,12 +24,12 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // Ticks left before the weather may change again (0x7C2DFC).
-int& WeatherDelay() { return *reinterpret_cast<int*>(0x007C2DFC); }
+int& WeatherDelay() { return ei::GameData<int>(0x007C2DFC); }
 
 // Constants read from the exe (rule 9).
 double MapScale() { return GameDouble(0x0073FA40); }        // 2^-23: a random word to map coordinates

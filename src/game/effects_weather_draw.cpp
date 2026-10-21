@@ -12,6 +12,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -32,9 +33,9 @@ struct FogSprite {
 // stay in the exe (004E2280, 004E2260).
 using FogPointArray = lib::AlignedArray<ParticleVertex>;
 using FogSpriteArray = mfc::CArray<FogSprite>;
-FogPointArray& Points() { return *reinterpret_cast<FogPointArray*>(0x007ABA30); }
-FogSpriteArray& Sprites() { return *reinterpret_cast<FogSpriteArray*>(0x007ABA40); }
-std::uint8_t& WorkArrayGuards() { return *reinterpret_cast<std::uint8_t*>(0x007ABA54); }
+FogPointArray& Points() { return ei::GameData<FogPointArray>(0x007ABA30); }
+FogSpriteArray& Sprites() { return ei::GameData<FogSpriteArray>(0x007ABA40); }
+std::uint8_t& WorkArrayGuards() { return ei::GameData<std::uint8_t>(0x007ABA54); }
 constexpr std::uint8_t kSpritesConstructed = 1;
 constexpr std::uint8_t kPointsConstructed = 2;
 

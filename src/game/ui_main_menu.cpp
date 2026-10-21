@@ -25,29 +25,30 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "bink_video.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 
 // The game flow.
-GameFlow* Flow() { return reinterpret_cast<GameFlow*>(0x007AFE20); }
-void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
-CBaseManager* ObjectManager() { return *reinterpret_cast<CBaseManager* const*>(0x007AF5F8); }
+GameFlow* Flow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
+void* MusicSystem() { return ei::GameData<void* const>(0x007AF760); }
+IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
+CBaseManager* ObjectManager() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
 
 // The width of the fade at the map's edges (read by 006CB020 / 006CB118; 00578D60 / 00578D70 get
 // and set it). The menu shows its world with 6.
-float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
+float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 // The main menu's six rectangles of menus.reg (loaded by 005ACE80).
-const RECT* MenuRects() { return reinterpret_cast<const RECT*>(0x007C8048); }
+const RECT* MenuRects() { return ei::GamePointer<const RECT>(0x007C8048); }
 // Interface options (bit 0: the menu's lightning).
-std::uint32_t InterfaceOptions() { return *reinterpret_cast<const volatile std::uint32_t*>(0x007AF064); }
+std::uint32_t InterfaceOptions() { return ei::GameData<const volatile std::uint32_t>(0x007AF064); }
 // The tick count of the menu's next lightning chance.
-std::uint32_t& NextLightningTick() { return *reinterpret_cast<std::uint32_t*>(0x007C811C); }
+std::uint32_t& NextLightningTick() { return ei::GameData<std::uint32_t>(0x007C811C); }
 
 // An input side whose every slot does nothing.
-void** InertInputVtable() { return reinterpret_cast<void**>(0x00741154); }
+void** InertInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 constexpr int kStonesObject = 2;                            // the object manager's id of the stones
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 constexpr float kMenuEdgeFade = 6.0f;

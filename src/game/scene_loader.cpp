@@ -30,6 +30,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_window.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -604,7 +605,7 @@ void FaceGroup::Destruct() {
 }
 
 void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
-    groups->vtable = reinterpret_cast<void*>(kFaceGroupArrayVtable);
+    groups->vtable = ei::GamePointer<void>(kFaceGroupArrayVtable);
     if (!groups->data) return;
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
     gamecrt::operator_delete(groups->data);

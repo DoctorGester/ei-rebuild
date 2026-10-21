@@ -5,13 +5,14 @@
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "mfc_state.h"
+#include "game/game_data.h"
 
 namespace mfc::impl {
 
 namespace {
 
 // The game CRT's multibyte flags (_mbctype + 1); _istlead is the lead-byte bit.
-const unsigned char* MultibyteFlags() { return reinterpret_cast<const unsigned char*>(0x007CC181); }
+const unsigned char* MultibyteFlags() { return ei::GamePointer<const unsigned char>(0x007CC181); }
 constexpr unsigned char kMbLead = 0x4;   // _M1
 bool IsLeadByte(char c) { return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0; }
 

@@ -4,6 +4,7 @@
 #include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -27,7 +28,7 @@ constexpr std::uintptr_t kHeapReAllocSlot = 0x0073B374;
 constexpr std::uintptr_t kHeapSizeSlot = 0x0073B37C;
 
 // The CRT's heap handle (_crtheap), set by _heap_init (006F54E6).
-HANDLE& CrtHeap() { return *reinterpret_cast<HANDLE*>(0x007CAF08); }
+HANDLE& CrtHeap() { return ei::GameData<HANDLE>(0x007CAF08); }
 
 decltype(&::HeapCreate) g_heapCreate;
 decltype(&::HeapDestroy) g_heapDestroy;

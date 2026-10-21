@@ -8,11 +8,12 @@
 #include "lib/stlp.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 namespace {
 // The container's vtables (main, input side).
-void** ContainerVtable() { return reinterpret_cast<void**>(0x00741008); }
-void** ContainerInputVtable() { return reinterpret_cast<void**>(0x00740FD4); }
+void** ContainerVtable() { return ei::GamePointer<void*>(0x00741008); }
+void** ContainerInputVtable() { return ei::GamePointer<void*>(0x00740FD4); }
 
 // The display object (00500960): slot 6 gives the last frame's length in milliseconds.
 std::uint32_t FrameMilliseconds() {

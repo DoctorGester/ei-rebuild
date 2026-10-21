@@ -29,6 +29,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cmath>
 
@@ -38,9 +39,9 @@ const char* GoodbyeTopic() { return "goodbye"; }
 const char* ConstructorTopic() { return "constr"; }
 const char* BriefingSection() { return "briefing "; }
 const char* ShowLine() { return "#show"; }
-const ClassTemplateVector* ClassTemplates() { return reinterpret_cast<const ClassTemplateVector*>(0x007AA5D8); }
+const ClassTemplateVector* ClassTemplates() { return ei::GamePointer<const ClassTemplateVector>(0x007AA5D8); }
 const char* TopicPrefix() { return "b."; }
-void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
+void* MusicSystem() { return ei::GameData<void* const>(0x007AF760); }
 
 WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0)); }
 

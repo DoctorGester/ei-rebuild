@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -53,7 +54,7 @@ int CFigureManager::CreateWithArchives() {
     mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
     AddArchive(folder + kFiguresArchive);
     AddArchive(folder + kMenusArchive);
-    LoadMenuRects(this, nullptr, reinterpret_cast<std::uint8_t*>(kMenuRects));
+    LoadMenuRects(this, nullptr, ei::GamePointer<std::uint8_t>(kMenuRects));
     return 1;
 }
 EI_REPLACE_METHOD(0x005AA510, CFigureManager::CreateWithArchives);

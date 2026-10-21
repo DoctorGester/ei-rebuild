@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_ai.h"
+#include "game_data.h"
 
 namespace {
 constexpr int kUnreached = 0x7FFFFFFF;
@@ -113,7 +114,7 @@ void BlockSearch::Expand() {
 
 bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
     bool seeded = false;
-    BlockCostList blocks{reinterpret_cast<void*>(0x0073FCFC), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    BlockCostList blocks{ei::GamePointer<void>(0x0073FCFC), nullptr, nullptr, 0, nullptr, nullptr, 10};
     NearbyBlocks(sizeClass, flag, x, y, &blocks);
     for (BlockCostList::Node* node = blocks.head; node; node = node->next) {
         int cost = node->data.cost / 128;

@@ -19,6 +19,7 @@
 #include "originals_script.h"
 #include "originals_ui.h"
 #include "ui.h"
+#include "game_data.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -40,9 +41,9 @@ namespace {
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
 
 // The saved / console script (the world's command script).
-CScript* const kScripts = reinterpret_cast<CScript*>(0x007C27D4);
-void* const kRenderer = reinterpret_cast<void*>(0x007C7BD8);
-int* const kSpectator = reinterpret_cast<int*>(0x0079BE6C);
+CScript* const kScripts = ei::GamePointer<CScript>(0x007C27D4);
+void* const kRenderer = ei::GamePointer<void>(0x007C7BD8);
+int* const kSpectator = ei::GamePointer<int>(0x0079BE6C);
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
 // addon's state.

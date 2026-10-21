@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -46,7 +47,7 @@ void AnimationTrack::Evaluate(float atTime) {
     } else if (positionCount != 0) {
         std::memcpy(&position, positions + 3 * (positionCount - 1), 12);
     } else {
-        std::memcpy(&position, reinterpret_cast<const void*>(0x007AF110), 12);
+        std::memcpy(&position, ei::GamePointer<const void>(0x007AF110), 12);
     }
 
     if (next < rotationCount) {
@@ -55,7 +56,7 @@ void AnimationTrack::Evaluate(float atTime) {
     } else if (rotationCount != 0) {
         std::memcpy(&rotation, rotations + 4 * (rotationCount - 1), 16);
     } else {
-        std::memcpy(&rotation, reinterpret_cast<const void*>(0x007AF100), 16);
+        std::memcpy(&rotation, ei::GamePointer<const void>(0x007AF100), 16);
     }
 
     if (next < frames.size) {

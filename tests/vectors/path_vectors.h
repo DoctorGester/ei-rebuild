@@ -19,6 +19,7 @@
 #include "vectors.h"
 
 #include "../../src/game/ai_map.h"
+#include "../../src/game/game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -34,19 +35,19 @@ struct Range {
     std::uint32_t size;
 };
 constexpr Range kTableRanges[] = {
-    {0x00791108, 36},   // DirectionDx
-    {0x0079112C, 36},   // DirectionDy
-    {0x00791978, 36},   // DirectionSteps (indexed from its middle)
-    {0x0079169C, 32},   // the size classes' standing heights
-    {0x0073F0A8, 8},    // PlanLongPath's distance for aiming at the best cell
-    {0x0073B86C, 4},    // 0.5
-    {0x007C2FEC, 8},    // the spiral's radius tree: depth, mask
+    {ei::DataId(0x00791108), 36},   // DirectionDx
+    {ei::DataId(0x0079112C), 36},   // DirectionDy
+    {ei::DataId(0x00791978), 36},   // DirectionSteps (indexed from its middle)
+    {ei::DataId(0x0079169C), 32},   // the size classes' standing heights
+    {ei::DataId(0x0073F0A8), 8},    // PlanLongPath's distance for aiming at the best cell
+    {ei::DataId(0x0073B86C), 4},    // 0.5
+    {ei::DataId(0x007C2FEC), 8},    // the spiral's radius tree: depth, mask
 };
 // CArrays read through their data pointer: {address of the CArray, element size}.
 constexpr Range kTableArrays[] = {
-    {0x007C2FC0, 4},   // the spiral's lengths per radius
-    {0x007C2FD8, 4},   // the radius tree's keys
-    {0x007C2FF8, 4},   // the spiral's offsets {dx, dy}
+    {ei::DataId(0x007C2FC0), 4},   // the spiral's lengths per radius
+    {ei::DataId(0x007C2FD8), 4},   // the radius tree's keys
+    {ei::DataId(0x007C2FF8), 4},   // the spiral's offsets {dx, dy}
 };
 constexpr std::uintptr_t kSmoothTables = 0x007C3058;   // 81 SmoothTables (3 CArrays each)
 constexpr int kSmoothTableCount = 81;

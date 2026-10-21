@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_library.h"
+#include "game_data.h"
 
 // {data, size, capacity, growBy}; the elements are compared as unsigned words (the objects'
 // addresses).
@@ -30,8 +31,8 @@ CEngineObject* ObjectOf(std::uint32_t word) { return reinterpret_cast<CEngineObj
 
 // The sort's scratch array (a function static at 007A9738, guard bit 1 of 007A9748, freed at exit
 // by 0047B1D0).
-ObjectSet& Scratch() { return *reinterpret_cast<ObjectSet*>(0x007A9738); }
-std::uint8_t& ScratchGuard() { return *reinterpret_cast<std::uint8_t*>(0x007A9748); }
+ObjectSet& Scratch() { return ei::GameData<ObjectSet>(0x007A9738); }
+std::uint8_t& ScratchGuard() { return ei::GameData<std::uint8_t>(0x007A9748); }
 
 // One counting pass by the byte at `shift`: `src` scattered into `dst` (stable).
 void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {

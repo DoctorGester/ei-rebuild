@@ -22,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -130,7 +131,7 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
 // from its level record (007AF3B8) and no layers; the others unused.
 void SetSlots(UnitStats* stats, const Model* model) {
-    const RecordTable& levels = *reinterpret_cast<const RecordTable*>(0x007AF3B8);
+    const RecordTable& levels = ei::GameData<const RecordTable>(0x007AF3B8);
     for (int i = 0; i < 6; ++i) {
         const UnitModelSlot& entry = model->slots[i];
         UnitStatSlot& slot = stats->slots[i];
@@ -397,7 +398,7 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float Global(std::uintptr_t address) { return ei::GameData<const float>(address); }
 
 // 007C5460 ^ (ln(experience / 007C545C) / ln(007C5464)): FYL2X with FLDLN2 and the CRT's
 // _CIpow (006E81A0), as the original computes it. Unrounded.

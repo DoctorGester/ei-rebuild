@@ -16,6 +16,7 @@
 #include "originals_ai.h"
 #include "unit_ai.h"
 #include "lib/mfc_list.h"
+#include "game_data.h"
 
 namespace {
 
@@ -52,7 +53,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->bridgeHeights.Construct(100);   // 005BCCD0
     mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(self->sectorMap.sectors);
     CSectorMap& sectors = self->sectorMap;
-    sectors.vtable = reinterpret_cast<void*>(CSectorMap::kVtableAddress);
+    sectors.vtable = ei::GamePointer<void>(CSectorMap::kVtableAddress);
     sectors.aiMap = nullptr;
     sectors.height = 0;
     sectors.added = 0;
@@ -112,7 +113,7 @@ void __fastcall DestructAIMap(CAIMap* self) {
     FreeGrid(self->WaterGrid());
     self->bridges.cells.FreeData();
     self->footprint.cells.FreeData();
-    self->sectorMap.vtable = reinterpret_cast<void*>(CSectorMap::kVtableAddress);
+    self->sectorMap.vtable = ei::GamePointer<void>(CSectorMap::kVtableAddress);
     CSectorMap::DestructSectors(&self->sectorMap.sectors);
     self->bridgeHeights.Destroy();   // 005984A0
     self->materials.FreeData();

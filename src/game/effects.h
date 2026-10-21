@@ -19,6 +19,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -516,7 +517,7 @@ struct FogTile {
     float u1;   // +0x08 u0 + 1/4
     float v0;   // +0x0C 1 - (row + 1) / 4
 };
-inline FogTile* FogTiles() { return reinterpret_cast<FogTile*>(0x007ABA58); }
+inline FogTile* FogTiles() { return ei::GamePointer<FogTile>(0x007ABA58); }
 
 // The squares currently seen: rows of bytes, nonzero = visible.
 struct FogGrid {

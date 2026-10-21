@@ -26,6 +26,7 @@
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 const mfc::CString* GameDataPathString() {
     return static_cast<const mfc::CString*>(worlddata::DataFolderString());
@@ -46,7 +47,7 @@ int __stdcall FinishQuestMap(const char* name) {
 EI_REPLACE(0x0057FB90, FinishQuestMap);
 
 namespace {
-CScript* CommandScript() { return reinterpret_cast<CScript*>(std::uintptr_t(0x007C29CC)); }
+CScript* CommandScript() { return ei::GamePointer<CScript>(0x007C29CC); }
 } // namespace
 
 int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error) {
@@ -80,7 +81,7 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
 EI_REPLACE(0x00578C40, PlayerZeroVariables);
 
 namespace {
-mfc::CString& StartFolder() { return *reinterpret_cast<mfc::CString*>(std::uintptr_t(0x007AF454)); }
+mfc::CString& StartFolder() { return ei::GameData<mfc::CString>(0x007AF454); }
 constexpr unsigned kFolderBufferSize = 0x400;
 } // namespace
 
@@ -99,9 +100,9 @@ constexpr double kHoursPerDay = 24.0;   // 0073D108
 const char kConstructionVariable[] = "constr.current";   // 00790384
 // The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
 // input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
-char& CloseAllRequested() { return *reinterpret_cast<char*>(std::uintptr_t(0x007C7D94)); }
-float& MapEdgeFade() { return *reinterpret_cast<float*>(std::uintptr_t(0x0079BD34)); }
-const char* DefaultMusic() { return *reinterpret_cast<const char**>(std::uintptr_t(0x0079BECC)); }
+char& CloseAllRequested() { return ei::GameData<char>(0x007C7D94); }
+float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
+const char* DefaultMusic() { return ei::GameData<const char*>(0x0079BECC); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
 CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
@@ -131,7 +132,7 @@ EI_REPLACE(0x00578700, GamePassTime);
 void __stdcall GameEnsureZone(const char* map, const char* mob) { WorldServer()->EnsureZone(map, mob); }
 EI_REPLACE(0x00578730, GameEnsureZone);
 
-void* GameObject7C2D60() { return reinterpret_cast<void*>(std::uintptr_t(0x007C2D60)); }
+void* GameObject7C2D60() { return ei::GamePointer<void>(0x007C2D60); }
 EI_REPLACE(0x00578750, GameObject7C2D60);
 
 void __stdcall GameSetUnitHeight(int id, float z) {

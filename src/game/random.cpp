@@ -5,6 +5,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -77,7 +78,7 @@ namespace {
 
 // The exe's search strings: the pointer at 0073D080 ("C:\*.*") and the sub-directory suffix 0078B054
 // ("\*.*").
-const char* SeedSearchPattern() { return *reinterpret_cast<const char* const*>(0x0073D080); }
+const char* SeedSearchPattern() { return ei::GameData<const char* const>(0x0073D080); }
 const char* SubdirectoryPattern() { return "\\*.*"; }
 
 constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN

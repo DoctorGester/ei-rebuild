@@ -12,6 +12,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -20,12 +21,12 @@ namespace {
 const char* ClickSound() { return "buttons\\base\\click1.wav"; }
 const char* QuickSaveName() { return "saveq"; }
 const char* QuestPrefix() { return "q."; }
-CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
+CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 
 // The escape menu (0x168 bytes, built inline as the battle screen's key handler does).
 constexpr std::size_t kEscMenuSize = 0x168;
-void** EscMenuVtable() { return reinterpret_cast<void**>(0x007412A4); }
-void** EscMenuInputVtable() { return reinterpret_cast<void**>(0x00741270); }
+void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
+void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
 constexpr std::size_t kObjectivesSize = 0x1F0;
 
 constexpr int kScanCodeMask = 0x1FF;

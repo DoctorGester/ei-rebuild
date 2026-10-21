@@ -12,6 +12,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world_effect.h"
+#include "game_data.h"
 
 using namespace spellfx;
 
@@ -20,7 +21,7 @@ namespace {
 constexpr float kExplosionLoudness = 5.0f;             // immediate
 constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasting strike
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
-void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
+void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 

@@ -9,6 +9,7 @@
 #include "unit_db.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 namespace {
 // The game's settings (globals read at the time of the call).
@@ -16,7 +17,7 @@ constexpr std::uintptr_t kDifficulty = std::uintptr_t(0x0079BEC0);
 constexpr std::uintptr_t kAttackFactors = std::uintptr_t(0x007C54AC);    // a float per difficulty
 constexpr std::uintptr_t kDefenceFactors = std::uintptr_t(0x007C54B8);
 
-int Difficulty() { return *reinterpret_cast<const int*>(kDifficulty); }
+int Difficulty() { return ei::GameData<const int>(kDifficulty); }
 
 // Element `index` of the records between `begin` and `end`, or null past the end (the count is a
 // signed division, the comparison unsigned, as the original's).
@@ -47,9 +48,9 @@ EI_REPLACE(0x00523730, ReadPackedParams);
 
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
-    attack = static_cast<int>(attack * reinterpret_cast<const float*>(kAttackFactors)[Difficulty()]);
+    attack = static_cast<int>(attack * ei::GamePointer<const float>(kAttackFactors)[Difficulty()]);
     defence =
-        static_cast<int>(static_cast<float>(defence) * reinterpret_cast<const float*>(kDefenceFactors)[Difficulty()]);
+        static_cast<int>(static_cast<float>(defence) * ei::GamePointer<const float>(kDefenceFactors)[Difficulty()]);
 }
 EI_REPLACE_METHOD(0x0052E0D0, AttackParams::ScaleForDifficulty);
 

@@ -29,6 +29,7 @@
 #include "lib/mfc_list.h"
 #include "ei/vcall.h"
 #include "core_transform.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -43,8 +44,8 @@ double Unsigned(std::uint32_t value) {
 }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 #define EI_ONE GameFloat(0x0073B84C)            // 1.0
 #define EI_POINT_FOUR GameFloat(0x0073B868)     // 0.4
 #define EI_POINT_SEVEN GameFloat(0x0073C538)    // 0.7
@@ -71,7 +72,7 @@ double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
 
 // The original's 16-byte constant at 007A9C30 (an identity rotation), copied to +0x34 by Reset.
-const void* IdentityRotation() { return reinterpret_cast<const void*>(0x007A9C30); }
+const void* IdentityRotation() { return ei::GamePointer<const void>(0x007A9C30); }
 
 void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
 
@@ -249,7 +250,7 @@ void SetupTornado(CParticleSource* s) {
     color |= gamecrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
     SetBits(&s->frameDelay, color);
     SetupTornadoRings(s);
-    std::memcpy(&s->elements[0].value[6], reinterpret_cast<const void*>(0x0073CB18), sizeof(float));  // 12.0
+    std::memcpy(&s->elements[0].value[6], ei::GamePointer<const void>(0x0073CB18), sizeof(float));  // 12.0
     SetElementFloat(s, 0, 0x28, 0.5f);
     SetBits(&s->elements[0].value[8], 0x3F7D70A4);     // 0.99
     SetCallbacks(s, &Source::EmitTornado, &Source::UpdateTornado, &Source::TickTornado);

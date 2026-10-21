@@ -6,6 +6,7 @@
 #include "lib/vecmath.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
@@ -15,7 +16,7 @@ namespace scene {
 namespace {
 
 // The normal used for a degenerate face (007A9C98).
-const Vector3& DegenerateNormal() { return *reinterpret_cast<const Vector3*>(0x007A9C98); }
+const Vector3& DegenerateNormal() { return ei::GameData<const Vector3>(0x007A9C98); }
 
 constexpr double kMinimumSquare = 1e-10;
 

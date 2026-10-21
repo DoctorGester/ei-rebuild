@@ -14,6 +14,7 @@
 #include "lib/stlp_list_refs.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -335,7 +336,7 @@ namespace net {
 namespace {
 // 00439E30: the clients list's insert(pos, value) (list<RefPtr>'s with SharedRef); 00425040:
 // another STLport string destructor.
-float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloatAt(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 } // namespace
 
 // The send interval is the constant at 0073BF48 over the rate clamped to [500, 50000].

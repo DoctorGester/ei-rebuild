@@ -7,6 +7,7 @@
 #include "../../src/game/script.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <cstring>
 #include <string>
@@ -44,7 +45,7 @@ void ei::vectors::script::OfferFixtures() {
         w.PutString(table[i].function);
         w.PutString(table[i].command);
     }
-    w.Put(*reinterpret_cast<const std::uint8_t*>(kQuoteChar));
+    w.Put(ei::GameData<const std::uint8_t>(kQuoteChar));
     w.Put(static_cast<std::uint32_t>(std::size(kStringPointers)));
     for (std::uintptr_t at : kStringPointers) {
         w.Put(static_cast<std::uint32_t>(at));

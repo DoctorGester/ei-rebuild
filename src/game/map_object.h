@@ -18,6 +18,7 @@
 #include "maths.h"
 
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -380,7 +381,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
 
 // The light manager (*007AF738; camera.h's TheTerrain reads the same global): the map object files
 // hand it to the light calls (add, remove, aim, IsLit) as their `this`.
-inline void* LightManager() { return *reinterpret_cast<void* const*>(0x007AF738); }
+inline void* LightManager() { return ei::GameData<void* const>(0x007AF738); }
 
 // The slot the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {

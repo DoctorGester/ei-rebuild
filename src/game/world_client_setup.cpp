@@ -20,6 +20,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <bit>
 
@@ -27,7 +28,7 @@ namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 0073C36C: 1 / 255
 
 // The game's data folder (a CString global) and the strings the original passes by address.
-const mfc::CString& DataPath() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
+const mfc::CString& DataPath() { return ei::GameData<const mfc::CString>(0x007AF460); }
 const char* ConfigFolder() { return "config\\"; }
 const char* SunlightSection() { return "sunlight"; }
 const char* AmbientSection() { return "ambient"; }
@@ -37,9 +38,9 @@ constexpr int kNumbersKind = 6;
 constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of the digits' texture
 
 const char* NumbersName() { return "numbers"; }
-const char* FiguresResource() { return *reinterpret_cast<const char* const*>(0x0079BC94); } // a CString
-void* Renderer() { return *reinterpret_cast<void* const*>(0x007AF080); }
-UnitDatabase* Units() { return reinterpret_cast<UnitDatabase*>(0x007AF358); }
+const char* FiguresResource() { return ei::GameData<const char* const>(0x0079BC94); } // a CString
+void* Renderer() { return ei::GameData<void* const>(0x007AF080); }
+UnitDatabase* Units() { return ei::GamePointer<UnitDatabase>(0x007AF358); }
 
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
 // figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is

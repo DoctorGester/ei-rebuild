@@ -33,13 +33,14 @@
 #include "originals_gameplay.h"
 #include "originals_ui.h"
 #include "originals_effects.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
 #include <new>
 
 
-CWorldClient* WorldClient() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
+CWorldClient* WorldClient() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 
 // ---- Heights -------------------------------------------------------------------------------------
 

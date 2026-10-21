@@ -6,6 +6,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -129,6 +130,6 @@ struct CMapObjectManager {
 };
 
 namespace unitdb {
-inline UnitPrototypeTable& PrototypeTable() { return *reinterpret_cast<UnitPrototypeTable*>(0x007AF358); }
-inline NpcPrototypeTable& NpcTable() { return *reinterpret_cast<NpcPrototypeTable*>(0x007AF378); }
+inline UnitPrototypeTable& PrototypeTable() { return ei::GameData<UnitPrototypeTable>(0x007AF358); }
+inline NpcPrototypeTable& NpcTable() { return ei::GameData<NpcPrototypeTable>(0x007AF378); }
 } // namespace unitdb

@@ -18,6 +18,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "lib/stlp_vector_refs.h"
+#include "game_data.h"
 
 #include <bit>
 
@@ -51,10 +52,10 @@ PartyRecord* NewRecord() {
     auto* record = static_cast<PartyRecord*>(gamecrt::operator_new(sizeof(PartyRecord)));
     *reinterpret_cast<std::uint32_t*>(&record->refCount) = 0;
     if (!record) return nullptr;
-    record->vtable = reinterpret_cast<void*>(0x0073BB68);
+    record->vtable = ei::GamePointer<void>(0x0073BB68);
     PartyConstruct(record->party);
-    *reinterpret_cast<void**>(&record->name) = *reinterpret_cast<void**>(0x00796E48);   // afxEmptyString
-    record->vtable = reinterpret_cast<void*>(0x0073C360);
+    *reinterpret_cast<void**>(&record->name) = ei::GameData<void*>(0x00796E48);   // afxEmptyString
+    record->vtable = ei::GamePointer<void>(0x0073C360);
     reinterpret_cast<CParty*>(record->party)->Create();   // slot 2
     return record;
 }
@@ -194,7 +195,7 @@ void __fastcall PartyManagerEndRedeploy(void* manager, void*, void* players) {
 EI_REPLACE(0x004A8880, PartyManagerEndRedeploy);
 
 int __stdcall PartyNextId(int* out) {
-    int& counter = *reinterpret_cast<int*>(0x0078B0E8);
+    int& counter = ei::GameData<int>(0x0078B0E8);
     *out = counter;
     return ++counter;
 }

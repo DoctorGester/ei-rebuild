@@ -572,10 +572,10 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
 // contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).
-inline std::uint32_t& UiSurfaceKeptBytes() { return *reinterpret_cast<std::uint32_t*>(0x007C7E74); }
-inline std::uint32_t& UiSurfaceBytes() { return *reinterpret_cast<std::uint32_t*>(0x007C7E78); }
+inline std::uint32_t& UiSurfaceKeptBytes() { return ei::GameData<std::uint32_t>(0x007C7E74); }
+inline std::uint32_t& UiSurfaceBytes() { return ei::GameData<std::uint32_t>(0x007C7E78); }
 // The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
-inline CRITICAL_SECTION* GameDeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+inline CRITICAL_SECTION* GameDeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
 struct UiDrawPass {
@@ -1052,27 +1052,27 @@ static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 
 // Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
-inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
+inline bool& InterfaceHasScreen() { return ei::GameData<bool>(0x00784750); }
 
 // The client world (CWorldClient, world.h).
-inline class CWorldClient* UiClientWorld() { return reinterpret_cast<class CWorldClient*>(0x007AF5B8); }
+inline class CWorldClient* UiClientWorld() { return ei::GamePointer<class CWorldClient>(0x007AF5B8); }
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
-inline int& ShowHitNumbersOption() { return *reinterpret_cast<int*>(0x0079BE74); }
+inline int& ShowHitNumbersOption() { return ei::GameData<int>(0x0079BE74); }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
-inline void* DebugInfoPanel() { return reinterpret_cast<void*>(0x0079B930); }
+inline void* DebugInfoPanel() { return ei::GamePointer<void>(0x0079B930); }
 // The game's data path (CString 007AF460; 00578DB0 returns its address).
-inline const mfc::CString& GameDataPath() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
+inline const mfc::CString& GameDataPath() { return ei::GameData<const mfc::CString>(0x007AF460); }
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
-inline void* UiTextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+inline void* UiTextureManager() { return ei::GameData<void* const>(0x007AF744); }
 // The model manager (007AF5F4) the windows take their sprites and item models from.
-inline void* UiModelManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
+inline void* UiModelManager() { return ei::GameData<void* const>(0x007AF5F4); }
 
 // The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
-inline const signed char* KeyActions() { return reinterpret_cast<const signed char*>(0x0079BF70); }
+inline const signed char* KeyActions() { return ei::GamePointer<const signed char>(0x0079BF70); }
 // The same table for writing (the options window's OK stores its copy there).
-inline signed char* KeyActionTable() { return reinterpret_cast<signed char*>(0x0079BF70); }
+inline signed char* KeyActionTable() { return ei::GamePointer<signed char>(0x0079BF70); }
 constexpr int kKeyActionCount = 0x200;
 
 // 005F2EA0 / 005F2EE0. Bounds-checked records of the spell and spell-modifier databases, as the
@@ -2778,7 +2778,7 @@ struct OptionDefinition {
     int row_;                        // +0x14 its row there
 };
 static_assert(sizeof(OptionDefinition) == 0x18);
-inline const OptionDefinition* OptionDefinitions() { return reinterpret_cast<const OptionDefinition*>(0x00787430); }
+inline const OptionDefinition* OptionDefinitions() { return ei::GamePointer<const OptionDefinition>(0x00787430); }
 constexpr int kOptionDefinitionCount = 26;
 
 // A key action's definition (0x10 bytes; the exe's table of 59 at 00787080).
@@ -2789,7 +2789,7 @@ struct ActionDefinition {
     int row_;                        // +0x0C
 };
 static_assert(sizeof(ActionDefinition) == 0x10);
-inline const ActionDefinition* ActionDefinitions() { return reinterpret_cast<const ActionDefinition*>(0x00787080); }
+inline const ActionDefinition* ActionDefinitions() { return ei::GamePointer<const ActionDefinition>(0x00787080); }
 constexpr int kActionDefinitionCount = 59;
 
 // A setting of the options window (0x14 bytes, 26 of them at +0x378; copy constructor 00653100,
@@ -2922,7 +2922,7 @@ struct UiKeyName {
     char name_[0x40];                // +0x08
 };
 static_assert(sizeof(UiKeyName) == 0x48);
-inline const UiKeyName* UiKeyNames() { return reinterpret_cast<const UiKeyName*>(0x007857B0); }
+inline const UiKeyName* UiKeyNames() { return ei::GamePointer<const UiKeyName>(0x007857B0); }
 constexpr int kUiKeyNameCount = 88;
 
 // A key binding row of the options window (0x18 bytes, vector at +0x36C; rows_ point at them;
@@ -3338,10 +3338,10 @@ static_assert(sizeof(CDifficultyBox) == 0x184);
 
 // The mouse (007C7C50: the position in screen pixels; 007C7C60: the motion a right-button drag
 // accumulates, read and cleared by the drag's mouse-move handlers 00630010 / 005EB210).
-inline int& MouseScreenX() { return *reinterpret_cast<int*>(0x007C7C50); }
-inline int& MouseScreenY() { return *reinterpret_cast<int*>(0x007C7C54); }
-inline int& MouseDragX() { return *reinterpret_cast<int*>(0x007C7C60); }
-inline int& MouseDragY() { return *reinterpret_cast<int*>(0x007C7C64); }
+inline int& MouseScreenX() { return ei::GameData<int>(0x007C7C50); }
+inline int& MouseScreenY() { return ei::GameData<int>(0x007C7C54); }
+inline int& MouseDragX() { return ei::GameData<int>(0x007C7C60); }
+inline int& MouseDragY() { return ei::GameData<int>(0x007C7C64); }
 
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
 inline int& GameDifficulty() { return ei::GameData<int>(0x0079BEC0); }

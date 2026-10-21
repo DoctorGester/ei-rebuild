@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <dinput.h>
 
@@ -17,11 +18,11 @@
 namespace {
 
 // The game's own copies of the interface ids, the system mouse's id and the mouse data format.
-const GUID& InputInterfaceId() { return *reinterpret_cast<const GUID*>(std::uintptr_t(0x00744F10)); }    // IID_IDirectInput7A
-const GUID& DeviceInterfaceId() { return *reinterpret_cast<const GUID*>(std::uintptr_t(0x00744EA0)); }   // IID_IDirectInputDevice7A
-const GUID& SystemMouseId() { return *reinterpret_cast<const GUID*>(std::uintptr_t(0x00744DD0)); }       // GUID_SysMouse
+const GUID& InputInterfaceId() { return ei::GameData<const GUID>(0x00744F10); }    // IID_IDirectInput7A
+const GUID& DeviceInterfaceId() { return ei::GameData<const GUID>(0x00744EA0); }   // IID_IDirectInputDevice7A
+const GUID& SystemMouseId() { return ei::GameData<const GUID>(0x00744DD0); }       // GUID_SysMouse
 // c_dfDIMouse's axes (the game's GUID_XAxis, GUID_YAxis, GUID_ZAxis).
-const GUID* AxisId(std::uintptr_t address) { return reinterpret_cast<const GUID*>(address); }
+const GUID* AxisId(std::uintptr_t address) { return ei::GamePointer<const GUID>(address); }
 
 const char* const kNoInput = "Can't create direct input object\n";        // "Can't create direct input object\n"
 const char* const kNoDevice = "Can't create direct input device for mouse\n";       // "Can't create direct input device for mouse\n"

@@ -7,6 +7,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "text_split.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -272,7 +273,7 @@ TextSourceNode** __fastcall TextSourcesErase(TextSourceList*, void*, TextSourceN
     pos->data.name.~string();   // 004DEAB0: the storage freed
     if (pos) {   // the original checks only here, after using the node (always true)
         // The inlined STLport node deallocation: push on the 0x18-byte free list.
-        auto*& freeList = *reinterpret_cast<Node**>(0x0079B22C);
+        auto*& freeList = ei::GameData<Node*>(0x0079B22C);
         pos->next = freeList;
         freeList = pos;
     }

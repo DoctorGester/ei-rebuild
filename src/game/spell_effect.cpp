@@ -14,11 +14,12 @@
 #include <cstring>
 #include "originals_effects.h"
 #include "originals_ai.h"
+#include "game_data.h"
 
 namespace {
 constexpr float kTargetThreshold = 0.5f;    // 0073B86C
 constexpr float kWallHalfWidth = 1.0f;      // 0073B84C
-void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
+void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 constexpr int kPtrListBlockSize = 10;
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;

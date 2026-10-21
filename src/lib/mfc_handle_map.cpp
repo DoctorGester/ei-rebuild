@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "mfc_exception.h"
 #include "mfc_try.h"
+#include "game/game_data.h"
 
 #include <cstring>
 
@@ -12,7 +13,7 @@ namespace mfc::impl {
 
 namespace {
 // _afxNewHandler: the handler MFC's operator new calls when an allocation fails.
-gamecrt::NewHandler& AfxNewHandler() { return *reinterpret_cast<gamecrt::NewHandler*>(0x00796E14); }
+gamecrt::NewHandler& AfxNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x00796E14); }
 
 std::uint32_t HashKey(const void* key) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(key)) >> 4; }
 } // namespace

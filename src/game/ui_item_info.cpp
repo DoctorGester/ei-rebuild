@@ -37,13 +37,14 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 namespace {
 
 using console::CStringArray;
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 template <typename T>
 T Read(const void* p, int offset) {
@@ -90,7 +91,7 @@ int StatFtolArgScaled(std::uintptr_t fn, const void* self, int arg, std::uintptr
 // _ftol(_CIpow(base, exponent - subtrahend) * scale): the base is the double at `base`, the exponent a
 // float minus the float at `subtrahend` (FSUB), the product with the float at `scale`, all unrounded.
 int PowFtol(std::uintptr_t base, float exponent, std::uintptr_t subtrahend, std::uintptr_t scale) {
-    const double power = libcrt::CiPow(*reinterpret_cast<const double*>(base), static_cast<double>(exponent) - GameFloat(subtrahend));
+    const double power = libcrt::CiPow(ei::GameData<const double>(base), static_cast<double>(exponent) - GameFloat(subtrahend));
     return Ftol(power * GameFloat(scale));
 }
 // _ftol of a + b (FLD b; FADD a), optionally times the float at `scale`, unrounded.
@@ -138,7 +139,7 @@ BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetStr
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     return reinterpret_cast<CTextManager*>(this)->GetItemTexts(item, name, description, kind);
 }
-Texts* TextManager() { return *reinterpret_cast<Texts**>(0x007AF788); }
+Texts* TextManager() { return ei::GameData<Texts*>(0x007AF788); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
@@ -197,11 +198,11 @@ namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
 
 // The skill database (007AF268).
-const SkillDatabase* Skills() { return reinterpret_cast<const SkillDatabase*>(0x007AF268); }
+const SkillDatabase* Skills() { return ei::GamePointer<const SkillDatabase>(0x007AF268); }
 
 // The spell and modifier record tables the spell book reads (UiRecordTable, ui.h).
-const UiRecordTable* SpellRecords() { return reinterpret_cast<const UiRecordTable*>(0x007C8510); }
-const UiRecordTable* ModifierRecords() { return reinterpret_cast<const UiRecordTable*>(0x007C8530); }
+const UiRecordTable* SpellRecords() { return ei::GamePointer<const UiRecordTable>(0x007C8510); }
+const UiRecordTable* ModifierRecords() { return ei::GamePointer<const UiRecordTable>(0x007C8530); }
 
 // The item record tables of the game's data (weapons, armour, quick items) and their strides.
 constexpr std::uintptr_t kWeaponRecords = std::uintptr_t(0x007C86F8);
@@ -210,7 +211,7 @@ constexpr std::uintptr_t kQuickItemRecords = std::uintptr_t(0x007C8738);
 
 // Record tables by stride (item_db.h): materials 0x50, weapons 0xB4, armour 200, quick items 0x8C.
 const char* RecordOf(std::uintptr_t table, std::uint32_t index, int stride) {
-    return reinterpret_cast<const RecordTable*>(table)->RecordAt(index, stride);
+    return ei::GamePointer<const RecordTable>(table)->RecordAt(index, stride);
 }
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
@@ -821,7 +822,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     name.TrimRight("0");
     name += "1";
     int group = Skills()->IndexOf(name) / 3;
-    const RecordTable& levels = *reinterpret_cast<const RecordTable*>(0x007AF274);
+    const RecordTable& levels = ei::GameData<const RecordTable>(0x007AF274);
     for (int i = 0; i < 3; ++i) {
         std::uint32_t index = static_cast<std::uint32_t>(group * 3 + i);
         std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(levels.end - levels.begin) / 0x44);

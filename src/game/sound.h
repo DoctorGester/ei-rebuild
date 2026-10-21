@@ -14,6 +14,7 @@
 #include "../lib/vecmath.h"
 #include "registry.h"
 #include "resource_stream.h"
+#include "game_data.h"
 
 // BOOL results are full 0/1 ints in EAX.
 
@@ -517,5 +518,5 @@ int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
 int __fastcall MusicSystemClassId(CMusicSystem* self);
 
 namespace sound {
-inline CSoundManager* Manager() { return *reinterpret_cast<CSoundManager* const*>(0x007AF784); }
+inline CSoundManager* Manager() { return ei::GameData<CSoundManager* const>(0x007AF784); }
 }

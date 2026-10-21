@@ -12,6 +12,7 @@
 // (MapHDC / MapHGDIOBJ, registered image-only at those addresses).
 
 #include "mfc_handle_map.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -27,7 +28,7 @@ struct CGdiObject {
     void* vtable;
     HGDIOBJ handle;     // +0x04 m_hObject
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x007463D4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007463D4); }
 
     // 0070A060: the object of `handle` (a CTempGdiObject when it has no permanent one), null for null.
     static CGdiObject* __stdcall FromHandle(HGDIOBJ handle);
@@ -48,7 +49,7 @@ void* __stdcall CreateTempGdiObject();          // 0070C028
 
 // CPen (vtable 007463B4).
 struct CPen : CGdiObject {
-    static void* Vtable() { return reinterpret_cast<void*>(0x007463B4); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007463B4); }
     // 0070A0E2 CPen(style, width, colour): CreatePen attached; a CResourceException when it fails.
     CPen* Construct(int style, int width, COLORREF colour);
 };
@@ -74,7 +75,7 @@ struct CDC {
     HDC attribDC;       // +0x08 m_hAttribDC
     BOOL printing;      // +0x0C m_bPrinting
 
-    static void* Vtable() { return reinterpret_cast<void*>(0x007461B0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x007461B0); }
 
     CDC* Construct();                                               // 00708CD7 (returns this)
     // 00708D79: the DC object of `dc` (a CTempDC when it has no permanent one), null for null.

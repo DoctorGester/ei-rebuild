@@ -16,17 +16,18 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 
 // An extra input side whose slots do nothing (vtable 00741154).
-void** InertInputVtable() { return reinterpret_cast<void**>(0x00741154); }
+void** InertInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 // The orders' unit list (CArray<CUnit*>, vtable 007402AC; SetSize 005EBDB0).
-void* OrderUnitsVtable() { return reinterpret_cast<void*>(0x007402AC); }
+void* OrderUnitsVtable() { return ei::GamePointer<void>(0x007402AC); }
 // CDWordArray's vtable (0073C3D0).
-void* DwordArrayVtable() { return reinterpret_cast<void*>(0x0073C3D0); }
+void* DwordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }
 
 constexpr int kVkControl = 0x11;
 constexpr int kVkSpace = 0x20;

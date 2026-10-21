@@ -11,12 +11,13 @@
 #include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The layout: half a texel (0073CC90, 1 / 512) and a texel (0073EEB8, 1 / 256) of the 256-wide
 // interface textures; 1 / 800 (00740164) and 1 / 400 (0074015C) of the layout's width; the view's

@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -136,7 +137,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
             if (w) {
                 ei::SetVtable(w, UiTextToken::kVtableAddress);   // the base, replaced by the word's
                 w->type_ = 0;
-                w->text_ = *reinterpret_cast<char**>(0x00796E48);   // afxEmptyString
+                w->text_ = ei::GameData<char*>(0x00796E48);   // afxEmptyString
                 w->type_ = kWordType;
                 ei::SetVtable(w, UiWordToken::kVtableAddress);
                 w->width_ = 0;
@@ -279,8 +280,8 @@ CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT
     CUiScrollbar::Construct(ui, rect, depth, 0, kScrollSpeed);
     tokens_.Construct(kTokenArrayVtable);
     lines_.Construct(kLineArrayVtable);
-    vtable_ = reinterpret_cast<void**>(kScrollTextVtable);
-    inputVtable_ = reinterpret_cast<void**>(kScrollTextInputVtable);
+    vtable_ = ei::GamePointer<void*>(kScrollTextVtable);
+    inputVtable_ = ei::GamePointer<void*>(kScrollTextInputVtable);
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
     CUiScrollbar::SetRect(&rect);
@@ -309,15 +310,15 @@ void CUiScrollText::PlaceText(const RECT& rect) {
 }
 
 void CUiScrollText::DestroyBody() {
-    vtable_ = reinterpret_cast<void**>(kScrollTextVtable);
-    inputVtable_ = reinterpret_cast<void**>(kScrollTextInputVtable);
+    vtable_ = ei::GamePointer<void*>(kScrollTextVtable);
+    inputVtable_ = ei::GamePointer<void*>(kScrollTextInputVtable);
     DeleteTokens();
     tokens_.SetSize(0, -1);
     for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
     lines_.SetSize(0, -1);
-    lines_.vtable = reinterpret_cast<void*>(kLineArrayVtable);
+    lines_.vtable = ei::GamePointer<void>(kLineArrayVtable);
     lines_.FreeData();
-    tokens_.vtable = reinterpret_cast<void*>(kTokenArrayVtable);
+    tokens_.vtable = ei::GamePointer<void>(kTokenArrayVtable);
     tokens_.FreeData();
     CUiScrollbar::DestroyBody();
 }

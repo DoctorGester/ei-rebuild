@@ -11,6 +11,7 @@
 #include "originals_world.h"
 #include "world.h"
 #include "game_strings.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -30,7 +31,7 @@ enum CommandKind : std::uint32_t {
 };
 
 void* CurrentConnectionObject() { return CurrentConnection(); }
-std::size_t StringNpos() { return *reinterpret_cast<const std::size_t*>(0x0073BDE8); }
+std::size_t StringNpos() { return ei::GameData<const std::size_t>(0x0073BDE8); }
 
 bool Is(const stlp::string& s, const char* t) {
     std::size_t length = std::strlen(t);

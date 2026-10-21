@@ -32,6 +32,7 @@
 #include "originals_ui.h"
 #include "originals_core.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -40,8 +41,8 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
 template <typename T>
 T Get(const void* p, int offset) {
@@ -116,7 +117,7 @@ float RandomPhase(std::uint32_t random) {
 // school's colour (00740358, 16 bytes per school) into 0xFFrrggbb. The phase is stored as float
 // but the sine and the colour use the unrounded value, as the original.
 // The spell schools' glow colours (four floats each, 0x10 bytes apart from 00740358).
-const float* SchoolGlow(int school) { return reinterpret_cast<const float*>(0x00740358) + school * 4; }
+const float* SchoolGlow(int school) { return ei::GamePointer<const float>(0x00740358) + school * 4; }
 
 std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const double advanced = static_cast<double>(dt) * GameDouble(0x007403F0) + turn->glow;
@@ -144,7 +145,7 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
         double pi = D(GameFloat(0x007402C0));
         turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(GameFloat(0x0073BAA0)));
     }
-    if (turn->speed > GameFloat(0x007402EC)) std::memcpy(&turn->speed, reinterpret_cast<const void*>(0x007402EC), 4);
+    if (turn->speed > GameFloat(0x007402EC)) std::memcpy(&turn->speed, ei::GamePointer<const void>(0x007402EC), 4);
     // The angle is stored (FST) and compared unrounded with 2 pi (FCOMP; TEST AH,0x41: wraps while
     // above, not when equal or unordered).
     double angle = static_cast<double>(dt) * turn->speed + turn->angle;
@@ -160,7 +161,7 @@ Quaternion HalfTurn(float ax, float ay, float az) {
     const Vector3 axis = {ax, ay, az};
     Quaternion q;
     float pi;
-    std::memcpy(&pi, reinterpret_cast<const void*>(0x007402C0), 4);
+    std::memcpy(&pi, ei::GamePointer<const void>(0x007402C0), 4);
     q.SetAxisAngle(axis, pi);
     return q;
 }
@@ -202,7 +203,7 @@ void SetShade(std::uint8_t* sprite, std::uint32_t grey) {
 
 // The renderer's Direct3D device (UiRenderer 007AF080 +0x54): SetRenderState (slot 20).
 void SetSpecular(int on) {
-    auto* renderer = *reinterpret_cast<std::uint8_t**>(0x007AF080);
+    auto* renderer = ei::GameData<std::uint8_t*>(0x007AF080);
     void* device = Get<void*>(renderer, 0x54);
     using SetStateFn = long(__stdcall*)(void*, int, int);
     reinterpret_cast<SetStateFn>((*static_cast<void***>(device))[20])(device, 0x1D, on);
@@ -240,7 +241,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         // checking the allocation.
         auto* turn = static_cast<ItemTurn*>(gamecrt::operator_new(sizeof(ItemTurn)));
         reinterpret_cast<volatile int*>(turn)[1] = 0;
-        if (turn) turn->vtable = reinterpret_cast<void*>(0x007403F8);
+        if (turn) turn->vtable = ei::GamePointer<void>(0x007403F8);
         turn->angle = 0.0f;
         turn->speed = 0.0f;
         turn->flag = false;
@@ -474,8 +475,8 @@ EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 
 namespace {
 
-CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
-void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
+CTextureManager* TextureManager() { return ei::GameData<CTextureManager* const>(0x007AF744); }
+void* PixelDecoder() { return ei::GameData<void* const>(0x007AF06C); }
 
 
 // 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
@@ -527,7 +528,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         void* decoder = PixelDecoder();
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::EnterCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
@@ -556,7 +557,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         }
     }
     if (pixels) gamecrt::operator_delete(pixels);
-    gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::LeaveCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     VirtualCall(manager, 22);
     return texture;
 }
@@ -583,7 +584,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         void* decoder = Get<void*>(device, 0x4C);
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::EnterCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
@@ -611,7 +612,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         }
     }
     if (pixels) gamecrt::operator_delete(pixels);
-    gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::LeaveCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     VirtualCall(TextureManager(), 22);
     return image != nullptr;
 }

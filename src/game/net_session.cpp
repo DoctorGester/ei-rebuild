@@ -6,11 +6,12 @@
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "game_data.h"
 
 namespace {
 
 // 0079B604: timeGetTime() at the previous pump.
-std::uint32_t& LastPumpTime() { return *reinterpret_cast<std::uint32_t*>(0x0079B604); }
+std::uint32_t& LastPumpTime() { return ei::GameData<std::uint32_t>(0x0079B604); }
 
 // 0073BB24: milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
@@ -35,7 +36,7 @@ void __cdecl Pump() {
     LastPumpTime() = now;
     TickSession(GameServer(), elapsed);
     TickSession(GameClient(), elapsed);
-    static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->UpdateMultiplayerVariable();   // 0057F190 with the game flow 007AFE20: the per-frame network step
+    static_cast<GameFlow*>(ei::GamePointer<void>(0x007AFE20))->UpdateMultiplayerVariable();   // 0057F190 with the game flow 007AFE20: the per-frame network step
 }
 EI_REPLACE(0x004122D0, Pump);
 

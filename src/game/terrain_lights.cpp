@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -28,8 +29,8 @@ constexpr int kLastVertex = 32;   // the last vertex of a sector row / column
 constexpr int kSectorCells = 32;
 
 // The pool's two block lists (see LightRefBlock).
-LightRefBlock*& BlocksWithFree() { return *reinterpret_cast<LightRefBlock**>(0x007C8840); }
-LightRefBlock*& FullBlocks() { return *reinterpret_cast<LightRefBlock**>(0x007C8844); }
+LightRefBlock*& BlocksWithFree() { return ei::GameData<LightRefBlock*>(0x007C8840); }
+LightRefBlock*& FullBlocks() { return ei::GameData<LightRefBlock*>(0x007C8844); }
 
 void Unlink(LightRefBlock* block, LightRefBlock*& head) {
     if (block->prev) block->prev->next = block->next;
@@ -45,7 +46,7 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
 }
 
 // The cell size (00744160; 1) the light bounds are divided by.
-float CellSize() { return *reinterpret_cast<const float*>(0x00744160); }
+float CellSize() { return ei::GameData<const float>(0x00744160); }
 
 bool SignSet(float v) { return std::bit_cast<std::uint32_t>(v) >> 31 != 0; }
 

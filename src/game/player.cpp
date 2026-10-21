@@ -14,6 +14,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "game_data.h"
 
 namespace {
 
@@ -75,9 +76,9 @@ void CPlayer::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
     DestroyPlayer();
     Party()->Destroy();
-    objects_.vtable = reinterpret_cast<void*>(kRechargeListVtable);
+    objects_.vtable = ei::GamePointer<void>(kRechargeListVtable);
     objects_.RemoveAll();
-    items_.vtable = reinterpret_cast<void*>(kItemListVtable);
+    items_.vtable = ei::GamePointer<void>(kItemListVtable);
     items_.RemoveAll();
     Party()->DestructBody();
     knownTimed_.Destroy();

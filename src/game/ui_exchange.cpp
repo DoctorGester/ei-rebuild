@@ -18,6 +18,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -115,7 +116,7 @@ EI_REPLACE_METHOD(0x0062D210, CExchangeScreen::OnExchangeDone);
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
+void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 
 VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }          // CUiItemPanel
 VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }          // CItemInfoPanel

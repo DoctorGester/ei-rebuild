@@ -20,11 +20,12 @@
 #include "lib/crt.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 namespace {
 
-void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
-void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
+void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
+void* ServerWorld() { return ei::GamePointer<void>(0x007AFF60); }
 const char* ClickSound() { return "buttons\\base\\click1.wav"; }
 const char* TopicPrefixKey() { return "topic_prefix"; }
 const char* GoodbyeTopic() { return "goodbye"; }

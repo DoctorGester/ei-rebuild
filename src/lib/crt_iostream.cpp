@@ -10,6 +10,7 @@
 #include "crt.h"
 #include "ei/hook.h"
 #include "gameapi.h"
+#include "game/game_data.h"
 
 #include <cstring>
 
@@ -23,21 +24,21 @@ CRITICAL_SECTION* Section(std::uint8_t* lock) { return reinterpret_cast<CRITICAL
 
 // The exe's vtables the constructors and destructors write: streambuf's, ios's, and ostream's for its ios;
 // ostream's virtual base table (the ios 8 bytes in).
-const void* StreambufVtable() { return reinterpret_cast<const void*>(0x007482AC); }
-const void* IosVtable() { return reinterpret_cast<const void*>(0x007482E8); }
-const void* OstreamIosVtable() { return reinterpret_cast<const void*>(0x00748280); }
-const int* OstreamVirtualBases() { return reinterpret_cast<const int*>(0x00748284); }
+const void* StreambufVtable() { return ei::GamePointer<const void>(0x007482AC); }
+const void* IosVtable() { return ei::GamePointer<const void>(0x007482E8); }
+const void* OstreamIosVtable() { return ei::GamePointer<const void>(0x00748280); }
+const int* OstreamVirtualBases() { return ei::GamePointer<const int>(0x00748284); }
 
 // The lock all streams share (x_lockc) and how many ios are alive (initialised with the first, deleted
 // with the last).
-CRITICAL_SECTION* SharedLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007CAE90); }
-int& LiveIosCount() { return *reinterpret_cast<int*>(0x007CAEC8); }
+CRITICAL_SECTION* SharedLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007CAE90); }
+int& LiveIosCount() { return ei::GameData<int>(0x007CAEC8); }
 
 constexpr int kReserveSize = 0x200;   // doallocate's reserve area
 
 // The game CRT's stdout / stderr (&_iob[1], &_iob[2]), flushed after each insertion under ios::stdio.
-gamecrt::CrtFile* GameStdout() { return reinterpret_cast<gamecrt::CrtFile*>(0x00798080); }
-gamecrt::CrtFile* GameStderr() { return reinterpret_cast<gamecrt::CrtFile*>(0x007980A0); }
+gamecrt::CrtFile* GameStdout() { return ei::GamePointer<gamecrt::CrtFile>(0x00798080); }
+gamecrt::CrtFile* GameStderr() { return ei::GamePointer<gamecrt::CrtFile>(0x007980A0); }
 
 // opfx (006FC1F9): the ios locked; a stream in error gets failbit and nothing is written (0); otherwise
 // the tie flushed and the streambuf locked too (1).

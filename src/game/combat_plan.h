@@ -4,14 +4,15 @@
 // the planner builds and the plan of an order. Names provisional.
 
 #include "combat.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
 
 // AnimationStep, AnimationSteps and OrderPlan are declared in combat.h (CUnitServer holds a plan).
 
-inline void* const kAnimationStepsVtable = reinterpret_cast<void*>(0x0073F01C);
-inline void* const kAnimationStepsBaseVtable = reinterpret_cast<void*>(0x0073EF2C);
+inline void* const kAnimationStepsVtable = ei::GamePointer<void>(0x0073F01C);
+inline void* const kAnimationStepsBaseVtable = ei::GamePointer<void>(0x0073EF2C);
 
 // Where an order must be seen from (0x18 bytes; 0054BCB0 fills it).
 struct SightTarget {

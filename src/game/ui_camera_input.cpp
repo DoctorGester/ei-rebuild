@@ -14,13 +14,14 @@
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstring>
 
 namespace {
 
 // The camera speed options (floats in the game's data; the camera keys multiply two of them).
-float Option(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float Option(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float PanSpeed() { return Option(0x0079BDC0) * Option(0x0079BDB8); }
 float TurnSpeed() { return Option(0x0079BDCC) * Option(0x0079BDC4); }
 float TiltSpeed() { return Option(0x0079BDD8) * Option(0x0079BDD0); }
@@ -42,7 +43,7 @@ bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_
 float DragPanSpeed() { return Option(0x0079BDBC) * Option(0x0079BDB8); }
 float DragTurnSpeed() { return Option(0x0079BDC8) * Option(0x0079BDC4) * Option(0x0079BD64); }
 float DragTiltSpeed() { return Option(0x0079BDD4) * Option(0x0079BDD0) * Option(0x0079BD68); }
-int EdgeMargin() { return *reinterpret_cast<const volatile int*>(0x0079BDAC); }
+int EdgeMargin() { return ei::GameData<const volatile int>(0x0079BDAC); }
 // Layout units to a part of the screen (0074015C 1 / 400, 00740204 1 / 300) and the rates' scales
 // (0073BAAC 10, 0073BAB4 500).
 float PerWidth() { return Option(0x0074015C); }

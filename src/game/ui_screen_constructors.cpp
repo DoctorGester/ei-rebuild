@@ -10,18 +10,19 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <new>
 
 namespace {
 
-void** MessageBoxVtable() { return reinterpret_cast<void**>(0x00742348); }
-void** MessageBoxInputVtable() { return reinterpret_cast<void**>(0x00742314); }
-void** ObjectivesVtable() { return reinterpret_cast<void**>(0x007411BC); }
-void** ObjectivesInputVtable() { return reinterpret_cast<void**>(0x00741188); }
-void* ObjectiveExitsVtable() { return reinterpret_cast<void*>(0x00741264); }
-void** PortraitsVtable() { return reinterpret_cast<void**>(0x00742A18); }
-void** PortraitsInputVtable() { return reinterpret_cast<void**>(0x007429E4); }
+void** MessageBoxVtable() { return ei::GamePointer<void*>(0x00742348); }
+void** MessageBoxInputVtable() { return ei::GamePointer<void*>(0x00742314); }
+void** ObjectivesVtable() { return ei::GamePointer<void*>(0x007411BC); }
+void** ObjectivesInputVtable() { return ei::GamePointer<void*>(0x00741188); }
+void* ObjectiveExitsVtable() { return ei::GamePointer<void>(0x00741264); }
+void** PortraitsVtable() { return ei::GamePointer<void*>(0x00742A18); }
+void** PortraitsInputVtable() { return ei::GamePointer<void*>(0x007429E4); }
 
 constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
 

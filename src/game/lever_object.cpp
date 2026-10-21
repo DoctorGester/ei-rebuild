@@ -16,11 +16,12 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <initializer_list>
 
 namespace {
-void* const kLeverVtable = reinterpret_cast<void*>(0x0073E740);
+void* const kLeverVtable = ei::GamePointer<void>(0x0073E740);
 constexpr int kLeverNetFields = 6;
 constexpr int kLeverField = 5;            // the network field and the MarkChanged part
 constexpr int kPartScale = 1;
@@ -32,7 +33,7 @@ constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
 
 const char* const kLeverClassName = "CLeverObject";
-int GameTick() { return *reinterpret_cast<const int*>(0x007AF61C); }
+int GameTick() { return ei::GameData<const int>(0x007AF61C); }
 
 void SetVtable(Lever* lever) { *reinterpret_cast<void**>(lever) = kLeverVtable; }
 

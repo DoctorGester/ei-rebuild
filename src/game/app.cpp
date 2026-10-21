@@ -26,6 +26,7 @@
 #include "texture.h"            // the renderer's device object
 #include "ui.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <ddraw.h>
 
@@ -39,7 +40,7 @@ namespace {
 
 template <typename T>
 T& Global(std::uintptr_t address) {
-    return *reinterpret_cast<T*>(address);
+    return ei::GameData<T>(address);
 }
 
 HWND MainWindow() { return Global<HWND>(0x0079BC28); }
@@ -47,15 +48,15 @@ bool QuitOnClose() { return Global<std::uint8_t>(0x00784751) != 0; }   // Alt+F4
 
 // The interface (007C7D50) takes the input: pending windows closed before and after each message
 // (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
-CInterface3D* TheInput() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
+CInterface3D* TheInput() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 
 // The console's ostream (007C55A8).
-libcrt::Ostream* Console() { return reinterpret_cast<libcrt::Ostream*>(0x007C55A8); }
+libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8); }
 
 // Objects told about activation changes: the cursor (007C7BD8), the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
 // (pointer at 007AF784).
-CCursor* TheCursor() { return reinterpret_cast<CCursor*>(0x007C7BD8); }
+CCursor* TheCursor() { return ei::GamePointer<CCursor>(0x007C7BD8); }
 CDirectInputMouse* TheMouse() { return Global<CDirectInputMouse*>(0x0079BA08); }
 
 std::uint8_t& ActiveFlag() { return Global<std::uint8_t>(0x0079BC5C); }
@@ -255,20 +256,20 @@ int __cdecl StartFirstMap() {
     map = Length(cmdMap) != 0 ? cmdMap : Global<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
                         reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0) {
-        static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->CloseSessions();
-        MenuOpen(reinterpret_cast<void*>(0x007AFE20));
+        static_cast<GameFlow*>(ei::GamePointer<void>(0x007AFE20))->CloseSessions();
+        MenuOpen(ei::GamePointer<void>(0x007AFE20));
         return 1;
     }
-    void* world = reinterpret_cast<void*>(0x007AFF60);
+    void* world = ei::GamePointer<void>(0x007AFF60);
     if (!WorldLoadMap(world, nullptr, map, cmdMode, 0))
         return game::FatalError("Can't load map \"%s\".\n", static_cast<const char*>(map));
     static_cast<CWorldServer*>(world)->SetGameResult(1);
-    void* client = reinterpret_cast<void*>(0x007AF5B8);
+    void* client = ei::GamePointer<void>(0x007AF5B8);
     static_cast<CWorldClient*>(client)->SetPlayer(Global<std::uint8_t*>(0x007AFFBC));
     static_cast<CWorldClient*>(client)->LocalView()[0x85] = 0;
     Global<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;
-    void* script = reinterpret_cast<void*>(0x007C27D4);
+    void* script = ei::GamePointer<void>(0x007C27D4);
     BOOL loaded;
     {
         mfc::CString root(Global<mfc::CString>(0x007AF460));
@@ -287,7 +288,7 @@ EI_REPLACE(0x00456140, StartFirstMap);
 
 namespace {
 const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
-const char* WindowTitle() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079BB24)); }      // the game window's title (a buffer)
+const char* WindowTitle() { return ei::GamePointer<const char>(0x0079BB24); }      // the game window's title (a buffer)
 } // namespace
 
 // 004560D0 (A-E2).

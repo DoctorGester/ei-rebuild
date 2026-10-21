@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/mfc_thread.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -164,8 +165,8 @@ constexpr std::uintptr_t kSequenceDestruct = std::uintptr_t(0x006B6400);
 
 // Miles (game.exe's imports 0073B7D4 / 0073B7D0).
 using AilVoidFn = void(__stdcall*)();
-AilVoidFn AilStartup() { return *reinterpret_cast<AilVoidFn*>(std::uintptr_t(0x0073B7D4)); }
-AilVoidFn AilShutdown() { return *reinterpret_cast<AilVoidFn*>(std::uintptr_t(0x0073B7D0)); }
+AilVoidFn AilStartup() { return ei::GameData<AilVoidFn>(0x0073B7D4); }
+AilVoidFn AilShutdown() { return ei::GameData<AilVoidFn>(0x0073B7D0); }
 
 template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, std::uintptr_t vtable) {
     list.vtable = reinterpret_cast<void*>(vtable);
@@ -247,7 +248,7 @@ void CSoundManager::DestructBody() {
     AilShutdown()();
     deferred.Destroy();   // clear 006BD100, the buckets 006BC510
     cache.Destroy();      // clear 006BCE00, the buckets 006BC4D0
-    cacheList.vtable = reinterpret_cast<void*>(kCacheListVtable);
+    cacheList.vtable = ei::GamePointer<void>(kCacheListVtable);
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
     libcrt::DestroyElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
@@ -263,7 +264,7 @@ void CSoundManager::DestructBody() {
     markers.FreeData();
     nextName.~CString();
     streamName.~CString();
-    waveSources.vtable = reinterpret_cast<void*>(kWaveSourceListVtable);
+    waveSources.vtable = ei::GamePointer<void>(kWaveSourceListVtable);
     waveSources.RemoveAll();
     registry0CC.Destroy();
     MappedResourceDestroyOriginal(&archive074);
@@ -327,7 +328,7 @@ constexpr int kMixerChannels = 0x12;
 constexpr unsigned kPrefUseWaveOut = 0xF;
 
 // The sound option (0 off: startup does not open sound; 2 the wave mapper).
-int SoundOption() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC0)); }
+int SoundOption() { return ei::GameData<const int>(0x0079BCC0); }
 
 // The voice constructor / destructor the CRT's eh vector iterators run (compiler-generated, the
 // name string's; config/library.csv), the DirectSoundEnumerateA callback appending each device's
@@ -345,19 +346,19 @@ using DriverWindowFn = void(__stdcall*)(void*, void*);
 using AllocateSampleFn = void*(__stdcall*)(void*);
 using SampleUserDataFn = void(__stdcall*)(void*, unsigned, std::intptr_t);
 using HandleFn = void(__stdcall*)(void*);
-EnumerateFn DirectSoundEnumerate() { return *reinterpret_cast<EnumerateFn*>(std::uintptr_t(0x0073B04C)); }
-PreferenceFn AilSetPreference() { return *reinterpret_cast<PreferenceFn*>(std::uintptr_t(0x0073B7A0)); }
-WaveOutOpenFn AilWaveOutOpen() { return *reinterpret_cast<WaveOutOpenFn*>(std::uintptr_t(0x0073B7A4)); }
-LastErrorFn AilLastError() { return *reinterpret_cast<LastErrorFn*>(std::uintptr_t(0x0073B7A8)); }
-DriverWindowFn AilSetDirectSoundWindow() { return *reinterpret_cast<DriverWindowFn*>(std::uintptr_t(0x0073B7AC)); }
-AllocateSampleFn AilAllocateSample() { return *reinterpret_cast<AllocateSampleFn*>(std::uintptr_t(0x0073B7B0)); }
-SampleUserDataFn AilSetSampleUserData() { return *reinterpret_cast<SampleUserDataFn*>(std::uintptr_t(0x0073B7C8)); }
-HandleFn AilReleaseSample() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B788)); }
-HandleFn AilEndSequence() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B800)); }
-HandleFn AilReleaseSequence() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B794)); }
-HandleFn AilMemFree() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B7FC)); }
-HandleFn AilWaveOutClose() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B798)); }
-HandleFn AilMidiOutClose() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B79C)); }
+EnumerateFn DirectSoundEnumerate() { return ei::GameData<EnumerateFn>(0x0073B04C); }
+PreferenceFn AilSetPreference() { return ei::GameData<PreferenceFn>(0x0073B7A0); }
+WaveOutOpenFn AilWaveOutOpen() { return ei::GameData<WaveOutOpenFn>(0x0073B7A4); }
+LastErrorFn AilLastError() { return ei::GameData<LastErrorFn>(0x0073B7A8); }
+DriverWindowFn AilSetDirectSoundWindow() { return ei::GameData<DriverWindowFn>(0x0073B7AC); }
+AllocateSampleFn AilAllocateSample() { return ei::GameData<AllocateSampleFn>(0x0073B7B0); }
+SampleUserDataFn AilSetSampleUserData() { return ei::GameData<SampleUserDataFn>(0x0073B7C8); }
+HandleFn AilReleaseSample() { return ei::GameData<HandleFn>(0x0073B788); }
+HandleFn AilEndSequence() { return ei::GameData<HandleFn>(0x0073B800); }
+HandleFn AilReleaseSequence() { return ei::GameData<HandleFn>(0x0073B794); }
+HandleFn AilMemFree() { return ei::GameData<HandleFn>(0x0073B7FC); }
+HandleFn AilWaveOutClose() { return ei::GameData<HandleFn>(0x0073B798); }
+HandleFn AilMidiOutClose() { return ei::GameData<HandleFn>(0x0073B79C); }
 // The MP3 stream's (OpenStream).
 using FindProviderFn = void*(__stdcall*)(const char*, const char*, const char*);
 using BufferSizeFn = int(__stdcall*)(void*, int, int);
@@ -365,15 +366,15 @@ using MemAllocFn = void*(__stdcall*)(int);
 using SampleIntFn = void(__stdcall*)(void*, int);
 using SampleTypeFn = void(__stdcall*)(void*, int, int);
 using SampleProcessorFn = void*(__stdcall*)(void*, int, void*);
-FindProviderFn RibFindFileProvider() { return *reinterpret_cast<FindProviderFn*>(std::uintptr_t(0x0073B7E4)); }
-BufferSizeFn AilMinimumSampleBufferSize() { return *reinterpret_cast<BufferSizeFn*>(std::uintptr_t(0x0073B7E0)); }
-MemAllocFn AilMemAllocLock() { return *reinterpret_cast<MemAllocFn*>(std::uintptr_t(0x0073B758)); }
-HandleFn AilInitSample() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B808)); }
-SampleTypeFn AilSetSampleType() { return *reinterpret_cast<SampleTypeFn*>(std::uintptr_t(0x0073B7DC)); }
-SampleIntFn AilSetSamplePlaybackRate() { return *reinterpret_cast<SampleIntFn*>(std::uintptr_t(0x0073B7B8)); }
-SampleIntFn AilSetSampleVolume() { return *reinterpret_cast<SampleIntFn*>(std::uintptr_t(0x0073B774)); }
-SampleIntFn AilSetSamplePan() { return *reinterpret_cast<SampleIntFn*>(std::uintptr_t(0x0073B77C)); }
-SampleProcessorFn AilSetSampleProcessor() { return *reinterpret_cast<SampleProcessorFn*>(std::uintptr_t(0x0073B78C)); }
+FindProviderFn RibFindFileProvider() { return ei::GameData<FindProviderFn>(0x0073B7E4); }
+BufferSizeFn AilMinimumSampleBufferSize() { return ei::GameData<BufferSizeFn>(0x0073B7E0); }
+MemAllocFn AilMemAllocLock() { return ei::GameData<MemAllocFn>(0x0073B758); }
+HandleFn AilInitSample() { return ei::GameData<HandleFn>(0x0073B808); }
+SampleTypeFn AilSetSampleType() { return ei::GameData<SampleTypeFn>(0x0073B7DC); }
+SampleIntFn AilSetSamplePlaybackRate() { return ei::GameData<SampleIntFn>(0x0073B7B8); }
+SampleIntFn AilSetSampleVolume() { return ei::GameData<SampleIntFn>(0x0073B774); }
+SampleIntFn AilSetSamplePan() { return ei::GameData<SampleIntFn>(0x0073B77C); }
+SampleProcessorFn AilSetSampleProcessor() { return ei::GameData<SampleProcessorFn>(0x0073B78C); }
 
 // Miles' sample (HSAMPLE), as far as the stream reads it: the functions of its codec stage.
 struct MilesSample {
@@ -395,9 +396,9 @@ CSoundManager* ManagerOf(void* stream) {
 using BufferReadyFn = int(__stdcall*)(void*);
 using LoadBufferFn = void(__stdcall*)(void*, int, void*, int);
 using UserDataFn = std::intptr_t(__stdcall*)(void*, unsigned);
-BufferReadyFn AilSampleBufferReady() { return *reinterpret_cast<BufferReadyFn*>(std::uintptr_t(0x0073B7E8)); }
-LoadBufferFn AilLoadSampleBuffer() { return *reinterpret_cast<LoadBufferFn*>(std::uintptr_t(0x0073B7EC)); }
-UserDataFn AilSampleUserData() { return *reinterpret_cast<UserDataFn*>(std::uintptr_t(0x0073B7B4)); }
+BufferReadyFn AilSampleBufferReady() { return ei::GameData<BufferReadyFn>(0x0073B7E8); }
+LoadBufferFn AilLoadSampleBuffer() { return ei::GameData<LoadBufferFn>(0x0073B7EC); }
+UserDataFn AilSampleUserData() { return ei::GameData<UserDataFn>(0x0073B7B4); }
 constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
 __declspec(naked) void __fastcall ReadStreamOriginal(CSoundManager*, void*, void* /*stream*/) EI_ORIGINAL(0x006BB3A0)

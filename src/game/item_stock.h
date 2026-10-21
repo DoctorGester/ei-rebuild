@@ -13,6 +13,7 @@
 
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
+#include "game_data.h"
 
 // STLport vector of record pointers.
 using StockPtrVector = stlp::vector<char*>;
@@ -73,22 +74,22 @@ namespace stock {
 // (007C8650, pointers into the stock's material entries), the material entries taken (007C8640),
 // the spells (007C8670) and modifiers (007C8660) taken.
 using CandidateVector = stlp::vector<StockMaterial*>;
-inline StockPtrVector& TakenPrototypes() { return *reinterpret_cast<StockPtrVector*>(0x007C8680); }
-inline CandidateVector& Candidates() { return *reinterpret_cast<CandidateVector*>(0x007C8650); }
-inline StockMaterialVector& TakenMaterials() { return *reinterpret_cast<StockMaterialVector*>(0x007C8640); }
-inline StockPtrVector& TakenSpells() { return *reinterpret_cast<StockPtrVector*>(0x007C8670); }
-inline StockPtrVector& TakenModifiers() { return *reinterpret_cast<StockPtrVector*>(0x007C8660); }
+inline StockPtrVector& TakenPrototypes() { return ei::GameData<StockPtrVector>(0x007C8680); }
+inline CandidateVector& Candidates() { return ei::GameData<CandidateVector>(0x007C8650); }
+inline StockMaterialVector& TakenMaterials() { return ei::GameData<StockMaterialVector>(0x007C8640); }
+inline StockPtrVector& TakenSpells() { return ei::GameData<StockPtrVector>(0x007C8670); }
+inline StockPtrVector& TakenModifiers() { return ei::GameData<StockPtrVector>(0x007C8660); }
 // The spell recipe vectors for weapons, armors and scrolls (FillSpellMaps' argument).
-inline const SpellRecipeVector* WeaponSpellRecipes() { return reinterpret_cast<const SpellRecipeVector*>(0x007C8568); }
-inline const SpellRecipeVector* ArmorSpellRecipes() { return reinterpret_cast<const SpellRecipeVector*>(0x007C855C); }
-inline const SpellRecipeVector* ScrollSpellRecipes() { return reinterpret_cast<const SpellRecipeVector*>(0x007C8550); }
+inline const SpellRecipeVector* WeaponSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C8568); }
+inline const SpellRecipeVector* ArmorSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C855C); }
+inline const SpellRecipeVector* ScrollSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C8550); }
 // The spell and modifier maps by name (operator[] inserts a null record: NamedRecord).
-inline RecordNameMap& SpellsByName() { return *reinterpret_cast<RecordNameMap*>(0x007C851C); }
-inline RecordNameMap& ModifiersByName() { return *reinterpret_cast<RecordNameMap*>(0x007C853C); }
+inline RecordNameMap& SpellsByName() { return ei::GameData<RecordNameMap>(0x007C851C); }
+inline RecordNameMap& ModifiersByName() { return ei::GameData<RecordNameMap>(0x007C853C); }
 // The material draw's factors of the prototype's price (read from the exe as the original does):
 // 00743D78 (a seventh) and 0073BAD4 (0.2).
-inline float SeventhFactor() { return *reinterpret_cast<const float*>(0x00743D78); }
-inline float FifthFactor() { return *reinterpret_cast<const float*>(0x0073BAD4); }
+inline float SeventhFactor() { return ei::GameData<const float>(0x00743D78); }
+inline float FifthFactor() { return ei::GameData<const float>(0x0073BAD4); }
 } // namespace stock
 
 struct ItemStock {

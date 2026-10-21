@@ -674,8 +674,17 @@ void ReadFog(Frame& f) {
 } // namespace detail
 
 namespace game {
+static Addresses Resolved() {
+    Addresses a;
+    a.window = ei::GameAddress(a.window);
+    a.renderer = ei::GameAddress(a.renderer);
+    a.deviceObject = ei::GameAddress(a.deviceObject);
+    a.deviceLock = ei::GameAddress(a.deviceLock);
+    return a;
+}
+
 Addresses& Where() {
-    static Addresses addresses;
+    static Addresses addresses = Resolved();
     return addresses;
 }
 } // namespace game

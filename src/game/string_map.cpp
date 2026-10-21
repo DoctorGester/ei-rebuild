@@ -20,6 +20,7 @@
 #include <new>
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 namespace strmap {
 
@@ -55,12 +56,12 @@ using Pairs = lib_trees::StringPairs;
 CDebugPanel* Panel(void* self) { return static_cast<CDebugPanel*>(self); }
 
 // The node allocator's free list of 0x28-byte nodes (0079B234), which the destructor pushes to inline.
-void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B234); }
+void*& NodeFreeList() { return ei::GameData<void*>(0x0079B234); }
 
 } // namespace
 
 // 004447D0.
-void* __cdecl StringTable() { return reinterpret_cast<void*>(0x0079B930); }
+void* __cdecl StringTable() { return ei::GamePointer<void>(0x0079B930); }
 EI_REPLACE(0x004447D0, StringTable);
 
 // 004447E0 (slot 0): table[key] = value (a missing key is inserted at its lower bound with an
@@ -159,7 +160,7 @@ void __fastcall PanelInit(void* self, void*, CInterface3D* ui) {
     auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(8));
     if (font) {
         font->handle = nullptr;
-        font->vtable = reinterpret_cast<void**>(kFontVtable);
+        font->vtable = ei::GamePointer<void*>(kFontVtable);
     }
     panel->font_ = font;
     if (!font->CreatePointFont(0x5A, FontFace(), nullptr)) {

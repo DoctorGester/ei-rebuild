@@ -12,6 +12,7 @@
 #include "model.h"
 #include "originals_render.h"
 #include "render/render.h"   // MeshChanged
+#include "game_data.h"
 
 #include <cstring>
 
@@ -555,7 +556,7 @@ EI_REPLACE_METHOD(0x005A4D60, CFigureMesh::LoadOldShared);
 namespace {
 
 // The limit on the squared distance of the position from the origin (the float 1e8 at 0073FAFC).
-inline float FarLimit() { return *reinterpret_cast<const float*>(0x0073FAFC); }
+inline float FarLimit() { return ei::GameData<const float>(0x0073FAFC); }
 } // namespace
 
 namespace {
@@ -614,7 +615,7 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
 }
 
 // The shared buffer DrawOffset moves the vertices into (a function-less global at 007C2E18).
-lib::AlignedArray<VertexPacket>& OffsetVertices() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E18); }
+lib::AlignedArray<VertexPacket>& OffsetVertices() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E18); }
 } // namespace
 
 void CFigureMesh::MirrorX() {

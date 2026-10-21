@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include "originals_ui.h"
+#include "game_data.h"
 
 namespace {
 constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";   // 007937E4
@@ -66,7 +67,7 @@ UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)SceneRenderer(
 
 template <typename T>
 T Global(std::uintptr_t address) {
-    return *reinterpret_cast<T*>(address);
+    return ei::GameData<T>(address);
 }
 } // namespace
 

@@ -25,6 +25,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -40,7 +41,7 @@ const char* FollowName() { return "follow"; }
 const char* ScienceName() { return "science"; }
 
 // The world's update period in milliseconds: the game's speed.
-int& UpdatePeriod() { return *reinterpret_cast<int*>(0x0078FF34); }
+int& UpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
@@ -51,8 +52,8 @@ constexpr int kQuickSlots = 8;
 constexpr std::size_t kObjectivesSize = 0x1F0;
 // The escape menu (0x168 bytes, built inline).
 constexpr std::size_t kEscMenuSize = 0x168;
-void** EscMenuVtable() { return reinterpret_cast<void**>(0x007412A4); }
-void** EscMenuInputVtable() { return reinterpret_cast<void**>(0x00741270); }
+void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
+void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
 
 // The key actions (the key table's values; the original's jump table at 0063B4DC).
 enum KeyAction {

@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -281,11 +282,11 @@ SmoothTable* SmoothTable::Construct() {
 EI_REPLACE_METHOD(0x005C4210, SmoothTable::Construct);
 
 void SmoothTable::Destruct() {
-    chained.vtable = reinterpret_cast<void*>(kStepArrayVtable);
+    chained.vtable = ei::GamePointer<void>(kStepArrayVtable);
     chained.FreeData();
-    steps.vtable = reinterpret_cast<void*>(kStepArrayVtable);
+    steps.vtable = ei::GamePointer<void>(kStepArrayVtable);
     steps.FreeData();
-    copies.vtable = reinterpret_cast<void*>(kCopyArrayVtable);
+    copies.vtable = ei::GamePointer<void>(kCopyArrayVtable);
     copies.FreeData();
 }
 EI_REPLACE_METHOD(0x005C4250, SmoothTable::Destruct);

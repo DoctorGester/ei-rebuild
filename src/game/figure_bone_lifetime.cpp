@@ -8,6 +8,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <new>
@@ -19,8 +20,8 @@ constexpr std::uintptr_t kChildListVtable = std::uintptr_t(0x0073DA40);
 constexpr int kChildBlockSize = 10;
 
 // The animation tracks' defaults (AnimationTrack::Evaluate without key frames).
-const Vector3& DefaultPosition() { return *reinterpret_cast<const Vector3*>(std::uintptr_t(0x007AF110)); }
-const Quaternion& DefaultRotation() { return *reinterpret_cast<const Quaternion*>(std::uintptr_t(0x007AF100)); }
+const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF110); }
+const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF100); }
 
 // The mesh is a counted engine object (its slot 4 releases it).
 void ReleaseMesh(CFigureMesh* mesh) { reinterpret_cast<CEngineObject*>(mesh)->Release(); }
@@ -33,7 +34,7 @@ FigureBone* FigureBone::Construct() {
     new (&name) mfc::CString();
     new (&name2) mfc::CString();
     new (&name3) mfc::CString();
-    children.vtable = reinterpret_cast<void*>(kChildListVtable);
+    children.vtable = ei::GamePointer<void>(kChildListVtable);
     children.count = 0;
     children.free = nullptr;
     children.tail = nullptr;
@@ -93,7 +94,7 @@ void FigureBone::DestructBody() {
     DestroyBone();   // its reset empties the matrices through 0050DD40 here, the same SetSize
     if (matrices.data) lib::AlignedArray<Matrix4>::Free(matrices.data);
     // The child list's destructor: its vtable, RemoveAll again.
-    children.vtable = reinterpret_cast<void*>(kChildListVtable);
+    children.vtable = ei::GamePointer<void>(kChildListVtable);
     children.RemoveAll();
     name3.~CString();
     name2.~CString();

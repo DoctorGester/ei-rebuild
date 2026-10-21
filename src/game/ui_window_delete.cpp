@@ -20,17 +20,18 @@
 #include "lib/stlp.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
 // The vtables the bodies write.
-void** InputSideBaseVtable() { return reinterpret_cast<void**>(0x007401D0); }
-void** ItemInfoPanelVtable() { return reinterpret_cast<void**>(0x007404DC); }
-void** ItemInfoPanelInputVtable() { return reinterpret_cast<void**>(0x007404A8); }
-void* ItemArrayVtable() { return reinterpret_cast<void*>(0x00741BC0); }        // CArray<char*>
-void* PartyArrayVtable() { return reinterpret_cast<void*>(0x007402AC); }       // the battle screen's party
-void* DwordArrayVtable() { return reinterpret_cast<void*>(0x0073C3D0); }       // CDWordArray
-void* ObjectiveExitsVtable() { return reinterpret_cast<void*>(0x00741264); }   // CArray<ObjectiveExit>
+void** InputSideBaseVtable() { return ei::GamePointer<void*>(0x007401D0); }
+void** ItemInfoPanelVtable() { return ei::GamePointer<void*>(0x007404DC); }
+void** ItemInfoPanelInputVtable() { return ei::GamePointer<void*>(0x007404A8); }
+void* ItemArrayVtable() { return ei::GamePointer<void>(0x00741BC0); }        // CArray<char*>
+void* PartyArrayVtable() { return ei::GamePointer<void>(0x007402AC); }       // the battle screen's party
+void* DwordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }       // CDWordArray
+void* ObjectiveExitsVtable() { return ei::GamePointer<void>(0x00741264); }   // CArray<ObjectiveExit>
 
 // An STLport vector's storage back to the node pool (its elements already destroyed).
 template <typename T>

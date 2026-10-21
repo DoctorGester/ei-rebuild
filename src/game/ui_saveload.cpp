@@ -43,6 +43,7 @@
 #include "game_flow_data.h"
 #include "world_glue.h"
 #include "record_vectors.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -52,15 +53,15 @@ namespace {
 
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 // The game's folder (the CString 007AF460 that 00578DB0 returns).
-const char* GameFolder() { return *reinterpret_cast<char* const*>(0x007AF460); }
-CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
+const char* GameFolder() { return ei::GameData<char* const>(0x007AF460); }
+CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 
-void* const kFlow = reinterpret_cast<void*>(0x007AFE20);         // the game flow (world_game.cpp)
-CMapDatabase* const kMapDatabase = reinterpret_cast<CMapDatabase*>(0x0079BF00);
-void* const kCursor = reinterpret_cast<void*>(0x007C7BD8);
-void* const kInterface = reinterpret_cast<void*>(0x007C7D50);
+void* const kFlow = ei::GamePointer<void>(0x007AFE20);         // the game flow (world_game.cpp)
+CMapDatabase* const kMapDatabase = ei::GamePointer<CMapDatabase>(0x0079BF00);
+void* const kCursor = ei::GamePointer<void>(0x007C7BD8);
+void* const kInterface = ei::GamePointer<void>(0x007C7D50);
 
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
@@ -126,7 +127,7 @@ struct LocalFileStream {
 struct LocalEntry {
     SaveEntry e;
     LocalEntry() {
-        char* empty = *reinterpret_cast<char**>(0x00796E48);   // afxEmptyString
+        char* empty = ei::GameData<char*>(0x00796E48);   // afxEmptyString
         e.title_ = empty;
         e.folder_ = empty;
         e.map_ = empty;

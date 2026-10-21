@@ -11,6 +11,7 @@
 #include "lib/vecmath.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <concepts>
 
@@ -40,9 +41,9 @@ namespace {
 #define EI_POINT_THREE GameFloat(0x0073C54C)        // 0.3
 
 const char* NoCarrierCasting() { return "Particle effect CastingElemental without carrier\n"; }
-const std::int32_t* CastAlphaByCountdown() { return reinterpret_cast<const std::int32_t*>(0x0078A964); }
-const std::int32_t* CastAlphaByLifeWide() { return reinterpret_cast<const std::int32_t*>(0x0078A980); }   // 0x202A
-const std::int32_t* CastAlphaByLife() { return reinterpret_cast<const std::int32_t*>(0x0078A9BC); }
+const std::int32_t* CastAlphaByCountdown() { return ei::GamePointer<const std::int32_t>(0x0078A964); }
+const std::int32_t* CastAlphaByLifeWide() { return ei::GamePointer<const std::int32_t>(0x0078A980); }   // 0x202A
+const std::int32_t* CastAlphaByLife() { return ei::GamePointer<const std::int32_t>(0x0078A9BC); }
 
 // A random point in the unit ball (ten tries; the last one is kept), as the set-up draws it.
 void RandomInBall(float& x, float& y, float& z) {
@@ -263,8 +264,8 @@ namespace {
 #define EI_AIR_SIZE GameFloat(0x0073CC80)           // 1.6
 
 const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
-const float* SphereSizeByLife() { return reinterpret_cast<const float*>(0x0073CB38); }
-const float* AntimagicSizeByLife() { return reinterpret_cast<const float*>(0x0073CB78); }
+const float* SphereSizeByLife() { return ei::GamePointer<const float>(0x0073CB38); }
+const float* AntimagicSizeByLife() { return ei::GamePointer<const float>(0x0073CB78); }
 
 // A random point in the unit ball (ten tries), the squared length summed z, y, x.
 void RandomInBallZYX(float& x, float& y, float& z) {
@@ -729,8 +730,8 @@ namespace {
 #define EI_MARKER_SIZE_SCALE GameDouble(0x0073CCB0) // ~0.4 * 2^-32
 #define EI_MARKER_SIZE_BASE GameFloat(0x0073CCA8)   // 0.8
 
-const std::int32_t* SwirlMarkerAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A918); }
-const std::int32_t* SwirlSparkAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A914); }
+const std::int32_t* SwirlMarkerAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A918); }
+const std::int32_t* SwirlSparkAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A914); }
 
 // Adds orbiter `k` (the k-th of `lifetime`, evenly spaced around the carrier) and emits its marker
 // particle (state -1 - k).
@@ -1108,7 +1109,7 @@ namespace {
 
 constexpr int kBlastCore = -1222;     // the core flash, emitted once at the start
 
-const std::int32_t* BlastAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A5DC); }
+const std::int32_t* BlastAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A5DC); }
 
 // A flame's size and frame timing: the size from the fragments' radius, the frame step random.
 void BlastFlameTiming(CParticleSource* s, Particle* p) {
@@ -1499,7 +1500,7 @@ namespace {
 #define EI_SHOWER_FAST GameFloat(0x0073C51C)         // 1.5
 #define EI_SHOWER_GRAVITY GameFloat(0x0073C52C)      // 0.05
 
-const std::int32_t* ShowerAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A6B4); }
+const std::int32_t* ShowerAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A6B4); }
 
 // alpha * 8 random unit directions (at least one) in the elements.
 void ChooseShowerRays(CParticleSource* s) {
@@ -1615,9 +1616,9 @@ namespace {
 #define EI_BAG_BALL_SIZE GameFloat(0x0073CD18)       // 0.15
 #define EI_BAG_KICK GameFloat(0x0073C52C)            // 0.05
 
-float* BagSizes() { return reinterpret_cast<float*>(0x007A9BFC); }     // 12 entries
-const std::int32_t* BagColours() { return reinterpret_cast<const std::int32_t*>(0x0073CBA4); }   // r, g, b
-const std::int32_t* BagAlpha() { return reinterpret_cast<const std::int32_t*>(0x0073CC34); }
+float* BagSizes() { return ei::GamePointer<float>(0x007A9BFC); }     // 12 entries
+const std::int32_t* BagColours() { return ei::GamePointer<const std::int32_t>(0x0073CBA4); }   // r, g, b
+const std::int32_t* BagAlpha() { return ei::GamePointer<const std::int32_t>(0x0073CC34); }
 constexpr int kBagGone = -13;
 
 std::uint32_t BagRgb(int kind) {
@@ -1797,7 +1798,7 @@ namespace {
 #define EI_COLUMN_SPEED_UP GameFloat(0x0073CEE0)     // 1.05
 
 // The alpha by remaining life, read backwards from 0078A960.
-const std::int32_t* ColumnAlphaEnd() { return reinterpret_cast<const std::int32_t*>(0x0078A960); }
+const std::int32_t* ColumnAlphaEnd() { return ei::GamePointer<const std::int32_t>(0x0078A960); }
 std::uint32_t ColumnAlpha(int life) { return static_cast<std::uint32_t>(*(ColumnAlphaEnd() - life)); }
 
 // The ring from the carrier's figure (the first emission). False without a carrier.
@@ -2350,7 +2351,7 @@ namespace {
 #define EI_CYL_SPARK_PULL GameFloat(0x0073CDE0)      // 0.6
 #define EI_CYL_SPARK_SHRINK GameFloat(0x0073CD70)    // 0.9
 
-const std::int32_t* CylinderAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AB18); }
+const std::int32_t* CylinderAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AB18); }
 
 // The stars on the carrier's orbit (the first emission).
 void SetUpCylinder(CParticleSource* s) {
@@ -2865,8 +2866,8 @@ EI_REPLACE_METHOD(0x00494470, CParticleSource::EmitPortal);
 
 namespace {
 
-const float* AcidSpread() { return reinterpret_cast<const float*>(0x0078A61C); }    // by age
-const float* AcidSize() { return reinterpret_cast<const float*>(0x0078A668); }      // by age
+const float* AcidSpread() { return ei::GamePointer<const float>(0x0078A61C); }    // by age
+const float* AcidSize() { return ei::GamePointer<const float>(0x0078A668); }      // by age
 
 // Position: the start (+0x38) plus the velocity scaled by the source's size and the spread table.
 void PlaceAcid(CParticleSource* s, Particle* p, int age, Vector3& out) {
@@ -3029,10 +3030,10 @@ namespace {
 #define EI_CLAY_COS GameFloat(0x0073CD50)             // 0.95
 #define EI_CLAY_SIN GameFloat(0x0073CE78)             // 0.31225
 
-const std::int32_t* ClayAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A734); }
-const float* ClayReach() { return reinterpret_cast<const float*>(0x0078A6F4); }
+const std::int32_t* ClayAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A734); }
+const float* ClayReach() { return ei::GamePointer<const float>(0x0078A6F4); }
 // The reach read backwards from 0078A72C (for a positive size).
-const float* ClayReachEnd() { return reinterpret_cast<const float*>(0x0078A72C); }
+const float* ClayReachEnd() { return ei::GamePointer<const float>(0x0078A72C); }
 float ClayReachBackwards(int t) { return *(ClayReachEnd() - t); }
 
 } // namespace
@@ -3380,7 +3381,7 @@ EI_REPLACE_METHOD(0x00495120, CParticleSource::UpdateRegeneration);
 namespace {
 
 // A running angle kept by the game (007A9BF8); VisionStar's satellites turn by it.
-float SpinAngle() { return *reinterpret_cast<const volatile float*>(0x007A9BF8); }
+float SpinAngle() { return ei::GameData<const volatile float>(0x007A9BF8); }
 
 // The turn per satellite of the star: the rate for the satellite that follows `count` particles (1-4).
 float SpinRate(int count) {
@@ -3469,7 +3470,7 @@ EI_REPLACE_METHOD(0x00494F30, CParticleSource::UpdateVisionStar);
 
 namespace {
 
-const std::int32_t* ZoneExitAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AA38); }    // by life
+const std::int32_t* ZoneExitAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AA38); }    // by life
 
 } // namespace
 
@@ -3492,7 +3493,7 @@ EI_REPLACE_METHOD(0x00492F40, CParticleSource::UpdateZoneExit);
 
 namespace {
 
-const std::int32_t* FeebleAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078ABB8); }    // by life
+const std::int32_t* FeebleAlpha() { return ei::GamePointer<const std::int32_t>(0x0078ABB8); }    // by life
 
 } // namespace
 
@@ -3530,7 +3531,7 @@ EI_REPLACE_METHOD(0x00495950, CParticleSource::UpdateFeebleMind);
 
 namespace {
 
-const std::int32_t* FeetAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AC18); }    // by life
+const std::int32_t* FeetAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AC18); }    // by life
 
 // Not rewritten (forwarders): the figure part named `name` (00516A80, null if none) and a part's
 // world position (005188B0).
@@ -3750,8 +3751,8 @@ EI_REPLACE_METHOD(0x004955D0, CParticleSource::UpdateSilence);
 
 namespace {
 
-const std::int32_t* ModifierAlphaIn() { return reinterpret_cast<const std::int32_t*>(0x0078A800); }     // by tick
-const std::int32_t* ModifierAlphaOut() { return reinterpret_cast<const std::int32_t*>(0x0078A88C); }    // by tick
+const std::int32_t* ModifierAlphaIn() { return ei::GamePointer<const std::int32_t>(0x0078A800); }     // by tick
+const std::int32_t* ModifierAlphaOut() { return ei::GamePointer<const std::int32_t>(0x0078A88C); }    // by tick
 
 // x87 FCOMP's "below" (also taken when unordered).
 bool Below(double a, double b) { return !(a >= b); }
@@ -3824,7 +3825,7 @@ EI_REPLACE_METHOD(0x00490B00, CParticleSource::TickModifier);
 
 namespace {
 
-const std::int32_t* LightningAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A9F8); }    // by life
+const std::int32_t* LightningAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A9F8); }    // by life
 
 bool ZeroOrNaN(float f) { return f == 0.0f || x87::IsNaN(f); }
 
@@ -3974,8 +3975,8 @@ EI_REPLACE_METHOD(0x00490110, CParticleSource::TickTeleport);
 
 namespace {
 
-const std::int32_t* CurseAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AC98); }    // by life
-const std::int32_t* TransAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078ACF8); }    // by life
+const std::int32_t* CurseAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AC98); }    // by life
+const std::int32_t* TransAlpha() { return ei::GamePointer<const std::int32_t>(0x0078ACF8); }    // by life
 
 // A random point of the unit ball (ten tries, the last one kept), each coordinate rounded.
 void RandomInBall(float& x, float& y, float& z, double& lengthSquared) {
@@ -4201,8 +4202,8 @@ EI_REPLACE_METHOD(0x0048ED60, CParticleSource::EmitTendril);
 
 namespace {
 
-const float* DustAxisX() { return reinterpret_cast<const float*>(0x0078AAB8); }    // (+-0.707) by quadrant
-const float* DustAxisY() { return reinterpret_cast<const float*>(0x0078AAC8); }
+const float* DustAxisX() { return ei::GamePointer<const float>(0x0078AAB8); }    // (+-0.707) by quadrant
+const float* DustAxisY() { return ei::GamePointer<const float>(0x0078AAC8); }
 
 } // namespace
 
@@ -4250,13 +4251,13 @@ Vector3* UnitPoint(void* unit, Vector3* out, int index) {
     return (*static_cast<Fn**>(unit))[52](unit, out, index);
 }
 double TerrainHeight(float x, float y) {
-    void* terrain = reinterpret_cast<void*>(0x007AF5B8);
+    void* terrain = ei::GamePointer<void>(0x007AF5B8);
     using Fn = double(__thiscall*)(void*, float, float);
     return (*static_cast<Fn**>(terrain))[28](terrain, x, y);
 }
 double PlatformHeight(const Vector3* at, float ground) {
     using Fn = double(__thiscall*)(void*, const Vector3*, float);
-    return reinterpret_cast<Fn>(0x00560F00)(reinterpret_cast<void*>(0x007AF78C), at, ground);
+    return reinterpret_cast<Fn>(0x00560F00)(ei::GamePointer<void>(0x007AF78C), at, ground);
 }
 
 // FCOMP's "equal" (also taken when unordered).
@@ -4288,7 +4289,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
-    Vector3 point = *UnitPoint(unit, &scratch, index + *reinterpret_cast<const int*>(0x007AF61C));
+    Vector3 point = *UnitPoint(unit, &scratch, index + ei::GameData<const int>(0x007AF61C));
     float* mark = ElementFloat(elements, 0x18);
     if (SameOrNaN(mark[0], point.x) && SameOrNaN(mark[1], point.y) && SameOrNaN(mark[2], point.z)) return 0;
     std::memcpy(mark, &point, sizeof(Vector3));

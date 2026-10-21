@@ -22,15 +22,16 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "lib/stlp_vector_refs.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
-void** MainVtable() { return reinterpret_cast<void**>(0x00741478); }
-void** InputVtable() { return reinterpret_cast<void**>(0x00741444); }
+void** MainVtable() { return ei::GamePointer<void*>(0x00741478); }
+void** InputVtable() { return ei::GamePointer<void*>(0x00741444); }
 
 // The status texts' keys, in texts_ order.
 const char* TextKey(int i) {

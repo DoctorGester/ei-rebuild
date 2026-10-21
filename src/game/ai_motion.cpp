@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "map_object.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <concepts>
 #include <cstring>
@@ -52,7 +53,7 @@ constexpr float kMinLength = 9.99999975e-06f; // 0073CDF0
 
 // Dir[(dy * 3 + dx)] for neighbouring cells: 1..8 counter-clockwise from (0, -1); 0 for the cell
 // itself. The table at 00791988 is indexed from its middle.
-const int* DirectionTable() { return reinterpret_cast<const int*>(0x00791988); }
+const int* DirectionTable() { return ei::GamePointer<const int>(0x00791988); }
 int Direction(const PathCell& from, const PathCell& to) {
     return DirectionTable()[(to.y - from.y) * 3 + to.x - from.x];
 }

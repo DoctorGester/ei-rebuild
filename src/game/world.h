@@ -22,6 +22,7 @@
 #include "lib/stlp.h"
 #include "maths.h"
 #include "originals_core.h"
+#include "game_data.h"
 
 using BOOL = int;
 
@@ -83,7 +84,7 @@ static_assert(sizeof(ObjectIdMap) == 0x18);
 
 // 0073F530: the vtable the game stores in its CTypedPtrList<CPtrList, CEngineObject*> locals
 // (SendFreshObjects, world_map.cpp; world_zone.cpp).
-inline void* ObjectPtrListVtable() { return reinterpret_cast<void*>(0x0073F530); }
+inline void* ObjectPtrListVtable() { return ei::GamePointer<void>(0x0073F530); }
 
 struct PartyRecords;   // unit.h
 
@@ -412,7 +413,7 @@ struct __declspec(novtable) Projectile {
 static_assert(offsetof(Projectile, references) == 4);
 static_assert(offsetof(Projectile, referenceCount) == 4);
 // 007C84EC: the world the missiles find while they load (LoadSave sets it).
-inline CWorldServer*& LoadingProjectileWorld() { return *reinterpret_cast<CWorldServer**>(0x007C84EC); }
+inline CWorldServer*& LoadingProjectileWorld() { return ei::GameData<CWorldServer*>(0x007C84EC); }
 // The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28). Its
 // FreeNode (0059C810, world_tick.cpp) releases the node's missile.
 using ProjectileList = mfc::CTypedPtrList<Projectile>;
@@ -426,8 +427,8 @@ using WorldStream = CStream;
 // (vtable 0073FAC8, base 0073FABC; constructor 005985C0, destructor 0059A100 releases the objects
 // through slot 4 and frees the data).
 struct SharedObject {
-    static void* ObjectsVtable() { return reinterpret_cast<void*>(0x0073FAC8); }
-    static void* ObjectsBaseVtable() { return reinterpret_cast<void*>(0x0073FABC); }   // set by the destructor
+    static void* ObjectsVtable() { return ei::GamePointer<void>(0x0073FAC8); }
+    static void* ObjectsBaseVtable() { return ei::GamePointer<void>(0x0073FABC); }   // set by the destructor
 
     int objectId;
     int player;
@@ -1271,7 +1272,7 @@ struct MatrixDevice {
 static_assert(offsetof(MatrixDevice, pickStack) == 0x14);
 static_assert(offsetof(MatrixDevice, objectStack) == 0x24);
 static_assert(offsetof(MatrixDevice, viewStack) == 0x5C);
-inline MatrixDevice* TheMatrixDevice() { return *reinterpret_cast<MatrixDevice**>(std::uintptr_t(0x007AF068)); }
+inline MatrixDevice* TheMatrixDevice() { return ei::GameData<MatrixDevice*>(0x007AF068); }
 
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {
@@ -1968,7 +1969,7 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
-inline GameFlow* TheGameFlow() { return reinterpret_cast<GameFlow*>(std::uintptr_t(0x007AFE20)); }
+inline GameFlow* TheGameFlow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 
 struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
 
@@ -2045,7 +2046,7 @@ int __stdcall LoadMission(void* file);
 void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
 bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
 // 00790264: the newest save version stored uncompressed (SaveFileRead reads those as they are).
-inline int SaveLastUncompressedVersion() { return *reinterpret_cast<const int*>(0x00790264); }
+inline int SaveLastUncompressedVersion() { return ei::GameData<const int>(0x00790264); }
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
@@ -2065,14 +2066,14 @@ void __stdcall SelectLoadingMovie(const char* zone);
 
 CWorldServer* WorldServer();   // 007AFF60
 // 007AF5B8: the client world (the interface reaches it as UiClientWorld).
-inline CWorldClient* GameClientWorld() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
+inline CWorldClient* GameClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
-inline int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
+inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
 // The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
 // the far clip (the transform pipeline's depth range, 00500B70 / 00566360).
-inline float FogStartDay() { return *reinterpret_cast<const float*>(0x0079BED4); }
-inline float FogStartNight() { return *reinterpret_cast<const float*>(0x0079BED0); }
-inline float FarClipDistance() { return *reinterpret_cast<const float*>(0x0079BE54); }
+inline float FogStartDay() { return ei::GameData<const float>(0x0079BED4); }
+inline float FogStartNight() { return ei::GameData<const float>(0x0079BED0); }
+inline float FarClipDistance() { return ei::GameData<const float>(0x0079BE54); }
 CWorldClient* WorldClient();   // 007AF5B8
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
@@ -2093,16 +2094,16 @@ enum class FrameList {
     Visible54,       // 007AF5A8
 };
 inline stlp::vector<CEngineObject*>& FrameObjects(FrameList list) {
-    return *reinterpret_cast<stlp::vector<CEngineObject*>*>(std::uintptr_t(0x007AF508) + 0x10u * static_cast<std::uintptr_t>(list));
+    return *reinterpret_cast<stlp::vector<CEngineObject*>*>(ei::GameAddress(0x007AF508) + 0x10u * static_cast<std::uintptr_t>(list));
 }
 inline stlp::list<CEngineObject*>* FrameDeferredUnits() {
-    return reinterpret_cast<stlp::list<CEngineObject*>*>(std::uintptr_t(0x007AF5B4));
+    return ei::GamePointer<stlp::list<CEngineObject*>>(0x007AF5B4);
 }
 // 007AF63C: the id the next object only the client makes gets (client figures such as a bow
 // shot's arrow); each use counts it down.
-inline int& NextClientObjectId() { return *reinterpret_cast<int*>(0x007AF63C); }
+inline int& NextClientObjectId() { return ei::GameData<int>(0x007AF63C); }
 // 007AFFB4: the world server's item manager (the item factory, CWorld slot 18 / itemManager_).
-inline CEngineObject* WorldItemManager() { return *reinterpret_cast<CEngineObject* const*>(0x007AFFB4); }
+inline CEngineObject* WorldItemManager() { return ei::GameData<CEngineObject* const>(0x007AFFB4); }
 
 
 // 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A

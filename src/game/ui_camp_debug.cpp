@@ -14,6 +14,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "resource_manager.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -30,8 +31,8 @@ const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
 // The item and spell databases (their name lists, originals_gameplay.h).
-void* ItemDatabase() { return *reinterpret_cast<void* const*>(0x007AF60C); }
-void* SpellDatabase() { return *reinterpret_cast<void* const*>(0x007AF604); }
+void* ItemDatabase() { return ei::GameData<void* const>(0x007AF60C); }
+void* SpellDatabase() { return ei::GameData<void* const>(0x007AF604); }
 
 constexpr int kWeaponClass = 0x3004;
 constexpr int kArmorClass = 0x3005;

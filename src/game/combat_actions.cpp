@@ -31,6 +31,7 @@
 #include "originals_world.h"
 #include "originals_library.h"
 #include "world_effect.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -91,7 +92,7 @@ CUnit* FirstOtherPartyMember(WorldPlayer* player, const CUnit* self) {
     return nullptr;
 }
 
-void* const kPtrListVtable = reinterpret_cast<void*>(0x0073BE80);   // CPtrList
+void* const kPtrListVtable = ei::GamePointer<void>(0x0073BE80);   // CPtrList
 
 } // namespace
 
@@ -343,7 +344,7 @@ void CUnitServer::PropagateHostility() {
     void* world = ManagerContext();
     double radius = brain.callRadius;
     // The squared radius goes through a global (007AF40C) and is compared as an int.
-    volatile float* limit = reinterpret_cast<volatile float*>(0x007AF40C);
+    volatile float* limit = ei::GamePointer<volatile float>(0x007AF40C);
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;

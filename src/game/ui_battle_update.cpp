@@ -36,6 +36,7 @@
 #include "world.h"
 #include "world_glue.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -90,7 +91,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
         CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
-        const float right = *reinterpret_cast<const volatile float*>(0x007428AC);
+        const float right = ei::GameData<const volatile float>(0x007428AC);
         if (slot < 4)
             SpritePlace(sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
@@ -144,7 +145,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
-        (*reinterpret_cast<CTextManager**>(0x007AF788))->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
+        (ei::GameData<CTextManager*>(0x007AF788))->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
@@ -197,7 +198,7 @@ void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const ch
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
-void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the 12-byte nodes
+void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // the 12-byte nodes
 
 // An MFC CArray<void*> as the update builds them on the stack (vtable 0073FAA4).
 using PtrArray = mfc::CArray<void*>;
@@ -232,7 +233,7 @@ void SortIds(IdVector* ids) {
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
 void RebuildClientParty(CBattleScreen* screen) {
-    net::ClientSession* session = *reinterpret_cast<net::ClientSession**>(0x0079B5D8);
+    net::ClientSession* session = ei::GameData<net::ClientSession*>(0x0079B5D8);
     ListNode** players = reinterpret_cast<ListNode**>(&session->players_);
     PartyIds ids;
     ids.Construct();
@@ -284,7 +285,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         }
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
-            static_cast<CCamera*>(reinterpret_cast<void*>(0x0079B2A8))->SetTargetId(ids.camera);
+            static_cast<CCamera*>(ei::GamePointer<void>(0x0079B2A8))->SetTargetId(ids.camera);
             static_cast<CBattleScreen*>(screen)->RefreshSelection();
         }
         screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);   // 0064AF30
@@ -346,8 +347,8 @@ void CBattleScreen::Update() {
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
-        mfc::CArray<std::uint8_t*> records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
-        mfc::CArray<std::uint8_t*> second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> second = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
         PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData());
         for (int i = 0; i < data->count; ++i)
             records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->records[i]));   // 0059D2E0
@@ -361,9 +362,9 @@ void CBattleScreen::Update() {
             interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             exitPending_ = 0;
         }
-        second.vtable = reinterpret_cast<void*>(0x0073FAA4);
+        second.vtable = ei::GamePointer<void>(0x0073FAA4);
         if (second.data) gamecrt::operator_delete(second.data);
-        records.vtable = reinterpret_cast<void*>(0x0073FAA4);
+        records.vtable = ei::GamePointer<void>(0x0073FAA4);
         if (records.data) gamecrt::operator_delete(records.data);
     }
 
@@ -503,14 +504,14 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                     reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, 0);
                 }
                 marker(i)->visible_ = 0;
-                slot(i).restB_ = *reinterpret_cast<const Quaternion*>(0x007C8150);   // identity
+                slot(i).restB_ = ei::GameData<const Quaternion>(0x007C8150);   // identity
             }
             for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
                 int i = static_cast<int>(node->data);
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-                const float angle = *reinterpret_cast<const volatile float*>(0x007C8144) *
-                                    *reinterpret_cast<const volatile float*>(0x0073CDCC);   // 1/7
+                const float angle = ei::GameData<const volatile float>(0x007C8144) *
+                                    ei::GameData<const volatile float>(0x0073CDCC);   // 1/7
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
@@ -548,14 +549,14 @@ CTextManager* TextGlue::Table() { return (CTextManager*)GameClientTexts(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
-float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloatAt(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 // FCOMP; TEST AH,0x40: equal, or unordered.
 bool EqualOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
 
 } // namespace
 
 void CBattleScreen::OnQuestVariable(const char* name, float value) {
-    CTextManager* texts = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
+    CTextManager* texts = ei::GamePointer<TextGlue>(0x007AFEA4)->Table();
     console::CStringArray parts;
     mfc::CString text;
     mfc::CString title;

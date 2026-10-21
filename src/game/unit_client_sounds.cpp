@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <cmath>
 
@@ -166,7 +167,7 @@ struct LocalView {
 };
 
 // 0079BE6C: footprints show for every unit (else only for units with flags_ 0x400000).
-bool AllFootprintsShown() { return *reinterpret_cast<const int*>(0x0079BE6C) == 0; }
+bool AllFootprintsShown() { return ei::GameData<const int>(0x0079BE6C) == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; a NaN
 // `now` counts as passed).

@@ -26,6 +26,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "game_data.h"
 
 #include <intrin.h>
 
@@ -40,7 +41,7 @@ constexpr std::uint32_t kFeatureMmx = 0x00800000;  // CPUID.1:EDX bit 23
 
 // What CPUID function 1 reported (007CAED0, ProcessorInfo in sys_info.h; renderer_base_create.cpp
 // fills it the same way).
-ProcessorInfo& Processor() { return *reinterpret_cast<ProcessorInfo*>(0x007CAED0); }
+ProcessorInfo& Processor() { return ei::GameData<ProcessorInfo>(0x007CAED0); }
 
 // Whether the processor has CPUID: the ID flag flips. As in the original it stays flipped.
 bool HasCpuid() {

@@ -8,6 +8,7 @@
 #include "game_strings.h"
 #include "device_switchover.h"   // device::SwitchOverRenderState
 #include "texture.h"
+#include "game_data.h"
 
 #include <d3d.h>
 
@@ -25,16 +26,16 @@ static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRe
 namespace device {
 
 // The interface and device ids as game.exe has them.
-inline const GUID& IidDirect3D7() { return *reinterpret_cast<const GUID*>(0x00745A80); }
-inline const GUID& IidHalDevice() { return *reinterpret_cast<const GUID*>(0x00745A50); }
-inline const GUID& IidTnLHalDevice() { return *reinterpret_cast<const GUID*>(0x00745A10); }
+inline const GUID& IidDirect3D7() { return ei::GameData<const GUID>(0x00745A80); }
+inline const GUID& IidHalDevice() { return ei::GameData<const GUID>(0x00745A50); }
+inline const GUID& IidTnLHalDevice() { return ei::GameData<const GUID>(0x00745A10); }
 
 // The game's device lock (007AEE78), held around Direct3D draws and surface locks.
-inline CRITICAL_SECTION* Lock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+inline CRITICAL_SECTION* Lock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 // The surface holders alive (007AEE94; 004EFA60 and the other constructors count them).
-inline int& HolderCount() { return *reinterpret_cast<int*>(0x007AEE94); }
+inline int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
 // The texture manager (007AF744).
-inline CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
+inline CTextureManager* TextureManager() { return ei::GameData<CTextureManager* const>(0x007AF744); }
 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
 inline IDirectDraw7* DDraw(const CTextureDevice* device) { return static_cast<IDirectDraw7*>(device->ddraw_); }

@@ -29,6 +29,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -37,8 +38,8 @@
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }     // CUiItemPanel
 VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }     // CItemInfoPanel
@@ -77,7 +78,7 @@ float MenuTurn() { return GameFloat(0x007C7F14) * GameFloat(0x0073CDF4); }
 // The saved heroes' reload (00662FB0, plain RET): Rebirth-patched, so through its address (as the
 // screen's mode, 00615D30, originals_ui.h).
 __declspec(naked) void __fastcall ReloadHeroesAt(MpHeroRoster*) EI_ORIGINAL(0x00662FB0)
-MpHeroRoster* Heroes() { return reinterpret_cast<MpHeroRoster*>(0x007C82A0); }
+MpHeroRoster* Heroes() { return ei::GamePointer<MpHeroRoster>(0x007C82A0); }
 
 // The screen's vectors as the library's: the figures' prototype names, and the voices (a
 // MpVoiceEntry with its CStrings as objects).

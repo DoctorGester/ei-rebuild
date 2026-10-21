@@ -8,6 +8,7 @@
 #include "game/game_arrays.h"
 #include "game/game_lists.h"
 #include "game/script.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -18,7 +19,7 @@ namespace gameslots {
 
 // The script's #define list (004D6340).
 struct DefineListClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D4C0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D4C0); }
 };
 
 // A script group's destructor body as a free function (004C2290).
@@ -220,64 +221,64 @@ using WavesThrough = ListTemporary<gamelists::Waves, gamelists::InitWave, Assign
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 struct ItemObjectListClass {   // a list of engine objects released through slot 4 (00427600)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073BE74); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073BE74); }
 };
 struct ClientObjectList2Class {   // the same in the client maps (00571F10)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F61C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F61C); }
 };
 struct ObjectRefListClass {   // CList<ScriptObjectRef>
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D448); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D448); }
 };
 struct VictimListClass {   // a magic trap's victims (counted references)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073E730); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073E730); }
 };
 struct PointLightArrayClass {   // the script's point lights
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3A0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3A0); }
 };
 struct DefinitionArrayClass {   // CArray<ScriptDefinition>
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3B8); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3B8); }
 };
 struct MemoryObjectArrayClass {   // a unit memory's object records
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F058); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F058); }
 };
 struct ClientObjectPtrArrayClass {   // the client maps' engine object pointers
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F53C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F53C); }
 };
 struct EffectObjectArrayClass {   // a map object client's effect records
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073DC48); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073DC48); }
 };
 struct RefListAClass {   // counted pointer lists of the world server (00598F40)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073FA4C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073FA4C); }
 };
 struct RefListBClass {   // (00599D60)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F9D0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F9D0); }
 };
 struct ParticleSourceListClass {   // the script's particle sources
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D388); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D388); }
 };
 struct FxSourceListClass {   // the script's FX sources
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D37C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D37C); }
 };
 struct LightningListClass {   // the script's lightnings
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D370); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D370); }
 };
 struct DeclListClass {   // CList<ScriptDecl>
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D364); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D364); }
 };
 struct DefinitionListClass {   // CList<ScriptDefinition>
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D34C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D34C); }
 };
 struct RunListClass {   // CList<ScriptRun>
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D340); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D340); }
 };
 struct GroupListClass {   // CList<ScriptGroup>
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D43C); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D43C); }
 };
 struct ArmourSpellListClass {   // the armour spells (12-byte records holding an engine object)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073F010); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073F010); }
 };
 struct CommandArrayClass {   // CArray<SSCCmd> (a command block)
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3D0); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D3D0); }
 };
 
 } // namespace gameslots

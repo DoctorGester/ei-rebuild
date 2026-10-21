@@ -11,6 +11,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -71,7 +72,7 @@ void ServerSession::DescribeImpl(RefPtr* out) {
 // 28004.
 void ServerSession::SetPublic(bool announce) {
     public_ = announce;
-    if (announce) masterAddress_.Parse(*reinterpret_cast<const char* const*>(0x0079BED8), 0x6D64);
+    if (announce) masterAddress_.Parse(ei::GameData<const char* const>(0x0079BED8), 0x6D64);
 }
 
 namespace {

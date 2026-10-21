@@ -15,6 +15,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -22,8 +23,8 @@ namespace {
 
 constexpr unsigned kPartyFileMagic = 0x114;
 
-int SaveVersion() { return *reinterpret_cast<const int*>(0x00790260); }
-int NewestReadVersion() { return *reinterpret_cast<const int*>(0x00790268); }
+int SaveVersion() { return ei::GameData<const int>(0x00790260); }
+int NewestReadVersion() { return ei::GameData<const int>(0x00790268); }
 const char* TempFileName() { return "temp.mp"; }
 
 mfc::CString InFolder(const char* folder, const mfc::CString& name) { return mfc::CString(folder) + name; }

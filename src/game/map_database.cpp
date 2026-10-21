@@ -15,6 +15,7 @@
 #include "text_reader.h"
 #include "game_arrays.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -36,7 +37,7 @@ int TextReader::Split(console::CStringArray* words, int flag) {
     return reinterpret_cast<CTextManager*>(this)->Split(words, flag);
 }
 mfc::BOOL TextReader::Close() { return TextClose(reinterpret_cast<CTextManager*>(this)); }
-TextReader* TheTextReader() { return *reinterpret_cast<TextReader**>(0x007AF788); }
+TextReader* TheTextReader() { return ei::GameData<TextReader*>(0x007AF788); }
 
 // Element constructors / destructors of the record arrays: the allods' (00460720 / 004606F0), the
 // maps' (004607E0 / 004607B0) and the exits' (004606A0 / 00460670) instantiations.
@@ -52,7 +53,7 @@ constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Ex
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
 void StoreRadians(void* out, const char* text) {
     const double degrees = GameAtof(text);
-    const double factor = *reinterpret_cast<const double*>(0x0073C3B8) * *reinterpret_cast<const double*>(0x0073BA30);
+    const double factor = ei::GameData<const double>(0x0073C3B8) * ei::GameData<const double>(0x0073BA30);
     *static_cast<float*>(out) = static_cast<float>(degrees * factor);
 }
 

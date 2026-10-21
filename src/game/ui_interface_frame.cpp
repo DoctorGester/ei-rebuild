@@ -23,6 +23,7 @@
 #include "world.h"
 #include "world_glue.h"
 #include "../hook/log.h"
+#include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -35,8 +36,8 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 // (007AFE20) Disconnect (0057ECA0) and LeaveGame (00581660), the client's server flag (00578D10),
 // a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
-void SetCursorShape(int shape) { static_cast<CCursor*>(reinterpret_cast<void*>(0x007C7BD8))->ChangeShape(shape); }
-void* Session() { return reinterpret_cast<void*>(0x007AFE20); }
+void SetCursorShape(int shape) { static_cast<CCursor*>(ei::GamePointer<void>(0x007C7BD8))->ChangeShape(shape); }
+void* Session() { return ei::GamePointer<void>(0x007AFE20); }
 
 // 00458220: dispatches the window messages waiting in the queue.
 
@@ -108,14 +109,14 @@ void CInterface3D::Update() {
         }
         ResetInput();
         app::PumpMessages();
-        *reinterpret_cast<bool*>(0x00784750) = false;
+        ei::GameData<bool>(0x00784750) = false;
     }
     if (queuedWindow_) {
         Activate(queuedWindow_);
         queuedWindow_ = nullptr;
     }
-    mouseX_ = *reinterpret_cast<int*>(0x007C7C50);
-    mouseY_ = *reinterpret_cast<int*>(0x007C7C54);
+    mouseX_ = ei::GameData<int>(0x007C7C50);
+    mouseY_ = ei::GameData<int>(0x007C7C54);
     if (disconnected_ && IsMultiplayerClient() && net::GameClient()->joinState_ != 2) {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
@@ -161,7 +162,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).
     if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words.data[0], "gameover") == 0) {
-        void* menu = reinterpret_cast<void*>(0x007AFEA5);
+        void* menu = ei::GamePointer<void>(0x007AFEA5);
         MenuSet578920(menu, nullptr, 1);
         MenuCall578940(menu, nullptr);
         PlaySound("buttons\\gameover.wav", 0);

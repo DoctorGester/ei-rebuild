@@ -18,6 +18,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -116,7 +117,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
             Release(member.object);
         }
         // The copy's destructor (vtable 0073D11C): each reference destroyed, the array freed.
-        copy.vtable = reinterpret_cast<void*>(0x0073D11C);
+        copy.vtable = ei::GamePointer<void>(0x0073D11C);
         if (copy.data) {
             for (int k = 0; k < copy.size; ++k) ScriptRefDestroy(&copy.data[k].object, nullptr, 0);
             gamecrt::operator_delete(copy.data);

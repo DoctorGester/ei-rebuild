@@ -12,6 +12,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstddef>
@@ -22,16 +23,16 @@ namespace {
 // The vtables the constructors and destructors install.
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);   // the abstract controller
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
-void* const kArmourSpellListVtable = reinterpret_cast<void*>(0x0073F010);
-void* const kModeListVtable = reinterpret_cast<void*>(0x0073F028);
-void* const kAlarmRecordsVtable = reinterpret_cast<void*>(0x0073F04C);
-void* const kAlarmRecordsBaseVtable = reinterpret_cast<void*>(0x0073F034);
-void* const kAttackOptionsVtable = reinterpret_cast<void*>(0x0073F040);
-void* const kObjectListVtable = reinterpret_cast<void*>(0x0073E730);
-void* const kReportsVtable = reinterpret_cast<void*>(0x0073F140);
-void* const kReportsBaseVtable = reinterpret_cast<void*>(0x0073F058);
-void* const kCallsVtable = reinterpret_cast<void*>(0x0073F070);
-void* const kCallsBaseVtable = reinterpret_cast<void*>(0x0073F064);
+void* const kArmourSpellListVtable = ei::GamePointer<void>(0x0073F010);
+void* const kModeListVtable = ei::GamePointer<void>(0x0073F028);
+void* const kAlarmRecordsVtable = ei::GamePointer<void>(0x0073F04C);
+void* const kAlarmRecordsBaseVtable = ei::GamePointer<void>(0x0073F034);
+void* const kAttackOptionsVtable = ei::GamePointer<void>(0x0073F040);
+void* const kObjectListVtable = ei::GamePointer<void>(0x0073E730);
+void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
+void* const kReportsBaseVtable = ei::GamePointer<void>(0x0073F058);
+void* const kCallsVtable = ei::GamePointer<void>(0x0073F070);
+void* const kCallsBaseVtable = ei::GamePointer<void>(0x0073F064);
 
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
@@ -132,7 +133,7 @@ EI_REPLACE_METHOD(0x00545580, CUnitServer::Construct);
 // --- AIPath -------------------------------------------------------------------------------------
 
 void AIPath::Destruct() {
-    excludedBlocks.vtable = reinterpret_cast<void*>(kExcludedBlocksVtable);
+    excludedBlocks.vtable = ei::GamePointer<void>(kExcludedBlocksVtable);
     if (excludedBlocks.data) gamecrt::operator_delete(excludedBlocks.data);
     cells.vtable = PathCellListVtable();
     cells.RemoveAll();

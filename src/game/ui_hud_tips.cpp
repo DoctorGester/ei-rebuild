@@ -17,6 +17,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 namespace {
 
@@ -27,7 +28,7 @@ template <typename T> T Get(const void* base, int offset) {
     return v;
 }
 
-CTextManager* Texts() { return *reinterpret_cast<CTextManager* const*>(0x007AF788); }
+CTextManager* Texts() { return ei::GameData<CTextManager* const>(0x007AF788); }
 
 // 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
 // 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture
@@ -84,7 +85,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
         float types[7];
         weapon->GetDamageTypes(types);
-        const float zero = *reinterpret_cast<const volatile float*>(0x0073B858);
+        const float zero = ei::GameData<const volatile float>(0x0073B858);
         unsigned type = 0;
         while (type < 7 && !(types[type] < zero) && !(types[type] > zero)) ++type;
         description = "Unknown";
@@ -131,9 +132,9 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     Texts()->GetItemTexts(item, text, &line, &line);
     auto* data = reinterpret_cast<std::uint8_t*>(item->spell_);
     if (!data) return;
-    const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
-    const float pi = *reinterpret_cast<const volatile float*>(0x007423F8);
-    const float perTick = *reinterpret_cast<const volatile float*>(0x00740544);   // 1/15
+    const float one = ei::GameData<const volatile float>(0x0073B84C);
+    const float pi = ei::GameData<const volatile float>(0x007423F8);
+    const float perTick = ei::GameData<const volatile float>(0x00740544);   // 1/15
 
     if (item->GetCategory() == 5) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.

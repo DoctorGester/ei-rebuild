@@ -19,6 +19,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -27,7 +28,7 @@ namespace {
 
 // The colour the list's texts and the line are drawn in (00793AD8): set per row and for the
 // details, and left as it is for the next draw's titles.
-std::uint32_t& TextColour() { return *reinterpret_cast<std::uint32_t*>(0x00793AD8); }
+std::uint32_t& TextColour() { return ei::GameData<std::uint32_t>(0x00793AD8); }
 
 constexpr std::uint32_t kColourAsked = 0x31B3FF;    // an entry in state 1 (asked directly)
 constexpr std::uint32_t kColourState2 = 0x31E3EE;   // in state 2

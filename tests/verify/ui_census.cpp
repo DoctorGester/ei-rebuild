@@ -35,6 +35,7 @@
 #include "../../src/game/ui.h"
 #include "../../src/hook/log.h"
 #include "../../src/render/render.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -287,7 +288,7 @@ std::vector<Candidate> Candidates(const State& s) {
     std::vector<Candidate> out;
     out.reserve(s.owners.size() + 6);
     for (const auto& [surface, window] : s.owners) out.push_back({surface, window, nullptr});
-    const auto* ui = reinterpret_cast<const CInterface3D*>(kInterface);
+    const auto* ui = ei::GamePointer<const CInterface3D>(kInterface);
     out.push_back({ui->backdrop_, nullptr, "backdrop"});
     out.push_back({ui->secondBackdrop_, nullptr, "backdrop2"});
     out.push_back({ui->fpsSurface_, nullptr, "fps"});

@@ -11,6 +11,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -124,8 +125,8 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     CUiWindow::Construct(ui);
     new (&Text()) mfc::CString;
-    vtable_ = reinterpret_cast<void**>(kEditFieldVtable);
-    inputVtable_ = reinterpret_cast<void**>(kEditFieldInputVtable);
+    vtable_ = ei::GamePointer<void*>(kEditFieldVtable);
+    inputVtable_ = ei::GamePointer<void*>(kEditFieldInputVtable);
     charClasses_ = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred_ = 0;
     font_ = 1;

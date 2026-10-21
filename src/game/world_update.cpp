@@ -24,10 +24,11 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 namespace {
 
-libcrt::Ostream* NetworkLog() { return reinterpret_cast<libcrt::Ostream*>(flowdata::kNetLogStream); }
+libcrt::Ostream* NetworkLog() { return ei::GamePointer<libcrt::Ostream>(flowdata::kNetLogStream); }
 
 // CPlayerServer::possessedId_ (+0x24) is -1 while no Possession spell has taken a unit.
 bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }

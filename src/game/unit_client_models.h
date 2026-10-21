@@ -10,6 +10,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -72,7 +73,7 @@ static_assert(sizeof(ClientSpeechNode) == 0x1C);
 // armour covers "bd" and the arm pieces, trousers "hp" and the legs, a helmet the hair "hr" and
 // the head "hd" (the rest of that row is empty). Armour slots 0 / 1 / 2 use rows 2 / 0 / 1.
 using PartNameRow = char[7][4];
-inline const PartNameRow* ArmourPartNames() { return reinterpret_cast<const PartNameRow*>(0x0073EC24); }
+inline const PartNameRow* ArmourPartNames() { return ei::GamePointer<const PartNameRow>(0x0073EC24); }
 
 // One layer of a composed skin (0xC bytes): what it is (0x32 the unit's own skin, 0x3005 armour,
 // 0x3004 a weapon; 0 none), the packed item id or prototype index, and the armour slot / weapon

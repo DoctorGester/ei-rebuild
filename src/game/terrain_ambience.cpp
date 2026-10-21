@@ -14,6 +14,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -31,7 +32,7 @@ struct AmbientSoundClass {
     int chance;             // +0x14 percent per frame for a one-shot
 };
 static_assert(sizeof(AmbientSoundClass) == 0x18);
-const AmbientSoundClass* SoundClasses() { return reinterpret_cast<const AmbientSoundClass*>(0x007969D0); }
+const AmbientSoundClass* SoundClasses() { return ei::GamePointer<const AmbientSoundClass>(0x007969D0); }
 constexpr int kClasses = 16;
 
 // One of the 3x3 sectors around the listener.
@@ -62,10 +63,10 @@ constexpr float kPercent = 100.0f;          // 0073BAB0
 constexpr float kPi = 3.14159274f;          // 007441C8
 constexpr double kTwoToMinus32 = 2.3283064370807974e-10;   // 0073C468
 
-float CellSize() { return *reinterpret_cast<const float*>(0x007441D0); }
+float CellSize() { return ei::GameData<const float>(0x007441D0); }
 // pi / 2 (007C8930, a static initialiser from 007441C8 * 0.5).
-float HalfPi() { return *reinterpret_cast<const float*>(0x007C8930); }
-CWorldClient* ClientWorld() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
+float HalfPi() { return ei::GameData<const float>(0x007C8930); }
+CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 
 // The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }

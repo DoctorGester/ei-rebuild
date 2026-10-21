@@ -10,6 +10,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -68,4 +69,4 @@ static_assert(offsetof(PartyManager, records) == 0x24);
 static_assert(offsetof(PartyManager, templates) == 0x38);
 
 // 007AA5A0: the game's party manager.
-inline PartyManager* GamePartyManager() { return reinterpret_cast<PartyManager*>(std::uintptr_t(0x007AA5A0)); }
+inline PartyManager* GamePartyManager() { return ei::GamePointer<PartyManager>(0x007AA5A0); }

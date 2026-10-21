@@ -14,6 +14,7 @@
 #include "random.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <windows.h>
 
@@ -30,7 +31,7 @@ namespace {
 // 0057F440 on 007AFE20: whether this is a network game.
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
 
-IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
@@ -154,7 +155,7 @@ bool StrUpper(Call* call) {
 // Say(text, ...): in a network game, the joined texts go out as a chat line from the server.
 bool Say(Call* call) {
     if (IsMultiplayerClient()) {
-        void* server = *reinterpret_cast<void**>(0x0079B5DC);
+        void* server = ei::GameData<void*>(0x0079B5DC);
         if (server && !(*reinterpret_cast<std::uint32_t*>(static_cast<char*>(server) + 4) & 0x80000000u)) {
             std::string text = Joined(call);
             static_cast<net::ServerSession*>(server)->Announce(text.c_str(), 0);

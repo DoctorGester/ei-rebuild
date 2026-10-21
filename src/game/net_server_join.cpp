@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "ui.h"
 #include "world_data.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -23,7 +24,7 @@ namespace {
 template <typename List>
 CRefObject* LastObject(const List& list) { return list.End()->prev->data.ptr; }
 // 0079B60C: the serial the next player record gets.
-std::uint32_t& PlayerCounter() { return *reinterpret_cast<std::uint32_t*>(0x0079B60C); }
+std::uint32_t& PlayerCounter() { return ei::GameData<std::uint32_t>(0x0079B60C); }
 
 } // namespace
 

@@ -60,6 +60,7 @@
 #include "unit_client_models.h"
 #include "unit_create.h"
 #include "game_arrays.h"
+#include "game_data.h"
 
 #include <windows.h>
 
@@ -1329,7 +1330,7 @@ int CWorldClient::Setup() {
     auto* lists = reinterpret_cast<ClientListManager*>(New(sizeof(ClientListManager)));
     if (lists) {
         static_cast<CBaseManager*>(lists)->ConstructBase();
-        lists->list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
+        lists->list.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
         lists->list.count = 0;
         lists->list.free = nullptr;
         lists->list.tail = nullptr;
@@ -1484,7 +1485,7 @@ int PlatformSet::Clear() {
 EI_REPLACE_METHOD(0x00561800, PlatformSet::Clear);
 
 void PlatformSet::DestructBody() {
-    list.vtable = reinterpret_cast<void*>(worlddata::kPlatformListVtable);
+    list.vtable = ei::GamePointer<void>(worlddata::kPlatformListVtable);
     list.RemoveAll();
     Engine()->DestructBase();
 }
@@ -1520,7 +1521,7 @@ void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* str
 EI_REPLACE(0x0055E8A0, SaveListedObjects);
 
 void ClientListManager::DestructBody() {
-    list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
+    list.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
     for (auto* node = list.head; node; node = node->next)
         if (node->data) node->data->Release();
     list.RemoveAll();
@@ -1538,7 +1539,7 @@ EI_REPLACE_METHOD(0x00562EA0, ClientListManager::DeletingDestruct);
 void ClientArrayManager::DestructBody() {
     ei::SetVtable(this, worlddata::kClientArrayManagerVtable);
     VisFogManagerDestroy(this);
-    list.vtable = reinterpret_cast<void*>(worlddata::kClientArrayListVtable);
+    list.vtable = ei::GamePointer<void>(worlddata::kClientArrayListVtable);
     list.RemoveAll();
     if (current) current->Release();
     CBaseManager::DestructBody();

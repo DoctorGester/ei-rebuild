@@ -44,6 +44,7 @@
 #include "originals_gameplay.h"
 #include "originals_script.h"
 #include "originals_core.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -166,7 +167,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
     if (memory) {
         if (refValueBase) {
             RefValueConstructBase(memory);
-            memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
+            memory->vtable = ei::GamePointer<void>(worlddata::kItemSourceRefVtable);
             record = memory;
         } else {
             record = reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());

@@ -18,6 +18,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "stl_sorts.h"
+#include "game_data.h"
 
 RefPtr* __fastcall RefPtrNull(RefPtr* /*p*/);
 namespace net {
@@ -41,8 +42,8 @@ using Items = stlp::list<SentItem>;
 // The static vector of 004346D0: constructor, erase of a range (00439DD0), introsort loop and final
 // insertion sort by object, atexit.
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
-ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
-std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
+ReplicatedVector& StaticReplicated() { return ei::GameData<ReplicatedVector>(0x0079B8D0); }
+std::uint8_t& StaticReplicatedGuard() { return ei::GameData<std::uint8_t>(0x0079B8DC); }
 
 
 
@@ -118,7 +119,7 @@ EI_REPLACE_METHOD(0x00435F10, IdPool::Allocate);
 // may be judged one call apart from the original.
 int Connection::Silent() const {
     float factor;
-    std::memcpy(&factor, reinterpret_cast<const void*>(0x0073BAA4), sizeof(factor));   // 3.0
+    std::memcpy(&factor, ei::GamePointer<const void>(0x0073BAA4), sizeof(factor));   // 3.0
     float limit = roundTrip_ * factor;
     return !(limit >= idleTime_) ? 1 : 0;
 }

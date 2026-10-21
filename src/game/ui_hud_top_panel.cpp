@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <concepts>
 #include <cstdint>
@@ -17,7 +18,7 @@
 
 namespace {
 
-float Pi() { return *reinterpret_cast<const volatile float*>(0x007423F8); }
+float Pi() { return ei::GameData<const volatile float>(0x007423F8); }
 
 float FloatFromBits(std::uint32_t bits) {
     float f;

@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <new>
@@ -68,7 +69,7 @@ namespace {
 
 // The if-then array of a definition the lists build (the array's derived vtable).
 struct DefinitionIfThenClass {
-    static void* Vtable() { return reinterpret_cast<void*>(0x0073D430); }
+    static void* Vtable() { return ei::GamePointer<void>(0x0073D430); }
 };
 
 gamearrays::ObjectRefs::Array* RefArray(ScriptGroup* group) {

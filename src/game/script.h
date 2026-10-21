@@ -18,6 +18,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 using BOOL = int;
 
@@ -35,28 +36,28 @@ using ScriptStream = CStream;
 // The vtables of the script's CArray instantiations: the derived classes the constructors install,
 // and the base classes the inlined destructors write back.
 namespace scriptvtable {
-inline void* const kFloats = reinterpret_cast<void*>(0x0073D2E0);       // ScriptVars float values
-inline void* const kFloatsBase = reinterpret_cast<void*>(0x0073D2EC);
-inline void* const kStrings = reinterpret_cast<void*>(0x0073D2D4);      // CString arrays (strings, names)
-inline void* const kStringsBase = reinterpret_cast<void*>(0x0073D2F8);
-inline void* const kRefs = reinterpret_cast<void*>(0x0073D110);         // object references (ScriptGroup)
-inline void* const kRefsBase = reinterpret_cast<void*>(0x0073D11C);
-inline void* const kGroups = reinterpret_cast<void*>(0x0073D304);       // ScriptVars group values
-inline void* const kGroupsBase = reinterpret_cast<void*>(0x0073D310);
-inline void* const kCmds = reinterpret_cast<void*>(0x0073D4A8);         // CArray<SSCCmd> (loader arrays)
-inline void* const kIfThen = reinterpret_cast<void*>(0x0073D430);       // CArray<ScriptIfThen>
+inline void* const kFloats = ei::GamePointer<void>(0x0073D2E0);       // ScriptVars float values
+inline void* const kFloatsBase = ei::GamePointer<void>(0x0073D2EC);
+inline void* const kStrings = ei::GamePointer<void>(0x0073D2D4);      // CString arrays (strings, names)
+inline void* const kStringsBase = ei::GamePointer<void>(0x0073D2F8);
+inline void* const kRefs = ei::GamePointer<void>(0x0073D110);         // object references (ScriptGroup)
+inline void* const kRefsBase = ei::GamePointer<void>(0x0073D11C);
+inline void* const kGroups = ei::GamePointer<void>(0x0073D304);       // ScriptVars group values
+inline void* const kGroupsBase = ei::GamePointer<void>(0x0073D310);
+inline void* const kCmds = ei::GamePointer<void>(0x0073D4A8);         // CArray<SSCCmd> (loader arrays)
+inline void* const kIfThen = ei::GamePointer<void>(0x0073D430);       // CArray<ScriptIfThen>
 // The CScript members' (the constructor 004BDE40 installs them; A-E1).
-inline void* const kPointLights = reinterpret_cast<void*>(0x0073D394);  // CArray<ScriptPointLight>
-inline void* const kParticleList = reinterpret_cast<void*>(0x0073D388);
-inline void* const kFxSourceList = reinterpret_cast<void*>(0x0073D37C);
-inline void* const kLightningList = reinterpret_cast<void*>(0x0073D370);
-inline void* const kBlockList = reinterpret_cast<void*>(0x0073D364);    // blocks_ and worldBlocks_
-inline void* const kDefinitions = reinterpret_cast<void*>(0x0073D358);  // CArray<ScriptDefinition>
-inline void* const kInstanceList = reinterpret_cast<void*>(0x0073D34C);
-inline void* const kRunList = reinterpret_cast<void*>(0x0073D340);
-inline void* const kAreas = reinterpret_cast<void*>(0x0073D334);        // CArray<ScriptArea>
-inline void* const kTempGroupList = reinterpret_cast<void*>(0x0073D43C);
-inline void* const kTempObjectList = reinterpret_cast<void*>(0x0073D448);
+inline void* const kPointLights = ei::GamePointer<void>(0x0073D394);  // CArray<ScriptPointLight>
+inline void* const kParticleList = ei::GamePointer<void>(0x0073D388);
+inline void* const kFxSourceList = ei::GamePointer<void>(0x0073D37C);
+inline void* const kLightningList = ei::GamePointer<void>(0x0073D370);
+inline void* const kBlockList = ei::GamePointer<void>(0x0073D364);    // blocks_ and worldBlocks_
+inline void* const kDefinitions = ei::GamePointer<void>(0x0073D358);  // CArray<ScriptDefinition>
+inline void* const kInstanceList = ei::GamePointer<void>(0x0073D34C);
+inline void* const kRunList = ei::GamePointer<void>(0x0073D340);
+inline void* const kAreas = ei::GamePointer<void>(0x0073D334);        // CArray<ScriptArea>
+inline void* const kTempGroupList = ei::GamePointer<void>(0x0073D43C);
+inline void* const kTempObjectList = ei::GamePointer<void>(0x0073D448);
 } // namespace scriptvtable
 
 // A CString returned by value into raw storage; destroyed at the end of the scope.
@@ -319,7 +320,7 @@ struct ScriptParticleType {
     int lifetime;           // ticks, -1 forever
 };
 static_assert(sizeof(ScriptParticleType) == 12);
-inline const ScriptParticleType* ScriptParticleTypes() { return reinterpret_cast<const ScriptParticleType*>(0x0078B120); }
+inline const ScriptParticleType* ScriptParticleTypes() { return ei::GamePointer<const ScriptParticleType>(0x0078B120); }
 constexpr int kScriptParticleTypeCount = 64;
 
 struct ScriptDecl;
@@ -943,9 +944,9 @@ struct ScriptQuestObjective {
 };
 static_assert(sizeof(ScriptQuestObjective) == 12);
 inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() {
-    return *reinterpret_cast<mfc::CArray<ScriptQuestObjective>*>(0x007AA608);
+    return ei::GameData<mfc::CArray<ScriptQuestObjective>>(0x007AA608);
 }
-inline mfc::CString& ScriptQuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C); }
+inline mfc::CString& ScriptQuestName() { return ei::GameData<mfc::CString>(0x007AA61C); }
 // 004BAEB0 (__thiscall). An objective's destructor.
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 // 004BAA40 (QStart; __fastcall). The objectives destroyed and freed (size and capacity 0), the quest
@@ -966,7 +967,7 @@ struct QuestTable {
     Map byName;             // +0x0C
 };
 static_assert(offsetof(QuestTable, byName) == 0x0C);
-inline QuestTable* TheQuestTable() { return reinterpret_cast<QuestTable*>(0x007C87A8); }
+inline QuestTable* TheQuestTable() { return ei::GamePointer<QuestTable>(0x007C87A8); }
 
 // ---- Loader arrays (script_parse_arrays.cpp) ------------------------------------------------------
 // CArray template members of the loader's arrays, __thiscall, registered as free functions; the

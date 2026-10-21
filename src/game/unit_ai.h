@@ -19,6 +19,7 @@
 #include "unit.h"
 
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -180,14 +181,14 @@ static_assert(sizeof(AIMode) == 8);
 
 // The modes' vtables as their constructors install them (the script's 004BA1C0-004BA920).
 namespace aimode {
-inline void* const kBaseVtable = reinterpret_cast<void*>(0x0073D15C);
-inline void* const kGuardVtable = reinterpret_cast<void*>(0x0073D128);
-inline void* const kSentryVtable = reinterpret_cast<void*>(0x0073D190);
-inline void* const kFollowVtable = reinterpret_cast<void*>(0x0073D1C4);
-inline void* const kSuspectionVtable = reinterpret_cast<void*>(0x0073D1F8);
-inline void* const kAggressionVtable = reinterpret_cast<void*>(0x0073D260);
-inline void* const kCorpseWatcherVtable = reinterpret_cast<void*>(0x0073D294);
-inline void* const kFearVtable = reinterpret_cast<void*>(0x0073FF8C);
+inline void* const kBaseVtable = ei::GamePointer<void>(0x0073D15C);
+inline void* const kGuardVtable = ei::GamePointer<void>(0x0073D128);
+inline void* const kSentryVtable = ei::GamePointer<void>(0x0073D190);
+inline void* const kFollowVtable = ei::GamePointer<void>(0x0073D1C4);
+inline void* const kSuspectionVtable = ei::GamePointer<void>(0x0073D1F8);
+inline void* const kAggressionVtable = ei::GamePointer<void>(0x0073D260);
+inline void* const kCorpseWatcherVtable = ei::GamePointer<void>(0x0073D294);
+inline void* const kFearVtable = ei::GamePointer<void>(0x0073FF8C);
 } // namespace aimode
 
 // Shared slot implementations of the simple modes (registered once, used by several vtables).
@@ -196,18 +197,18 @@ namespace aimode {
 int __fastcall PatrolType(AIMode* self);
 int __fastcall FearType(AIMode* self);
 // The root vtable a mode's destructor leaves (CRefObject's, 0073BB68).
-inline void* const kRootVtable = reinterpret_cast<void*>(0x0073BB68);
-inline void* const kPatrolVtable = reinterpret_cast<void*>(0x0073FF40);
-inline void* const kPatrolPointsVtable = reinterpret_cast<void*>(0x0073FF74);
-inline void* const kPatrolPointsBaseVtable = reinterpret_cast<void*>(0x0073FF80);
-inline void* const kPlayerVtable = reinterpret_cast<void*>(0x0073F0F8);
+inline void* const kRootVtable = ei::GamePointer<void>(0x0073BB68);
+inline void* const kPatrolVtable = ei::GamePointer<void>(0x0073FF40);
+inline void* const kPatrolPointsVtable = ei::GamePointer<void>(0x0073FF74);
+inline void* const kPatrolPointsBaseVtable = ei::GamePointer<void>(0x0073FF80);
+inline void* const kPlayerVtable = ei::GamePointer<void>(0x0073F0F8);
 // Tamed (type 8): a Player mode (PlayerMode::Construct) given this vtable (00552150: GetType 8).
-inline void* const kTamedVtable = reinterpret_cast<void*>(0x0073F0C4);
+inline void* const kTamedVtable = ei::GamePointer<void>(0x0073F0C4);
 // 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000.
 // 005520A0 / 00552150 (slot 8): their types 6 and 8 (unit_ai_player_mode_slots.cpp).
 int __fastcall PlayerType(AIMode* self);
 int __fastcall TamedType(AIMode* self);
-inline void* const kActionBaseVtable = reinterpret_cast<void*>(0x0073D22C);
+inline void* const kActionBaseVtable = ei::GamePointer<void>(0x0073D22C);
 // 005D8850 / 005D6D10 (unit_ai_mode_lifetime.cpp). The abstract bases' constructors: the vtable
 // 0073D15C / 0073D22C only; return the mode.
 AIMode* __fastcall ConstructModeBase(AIMode* mode);
@@ -489,7 +490,7 @@ static_assert(sizeof(FearMode) == 0x2C);
 static_assert(offsetof(FearMode, flag) == 0x28);
 static_assert(offsetof(FearMode, fleePoint) == 0x1C);
 // 0073FF00: a new Fear mode's distance, which `distance` returns to.
-inline float FearDefaultDistance() { return *reinterpret_cast<const float*>(0x0073FF00); }
+inline float FearDefaultDistance() { return ei::GameData<const float>(0x0073FF00); }
 
 // Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
 struct PlayerMode : AIMode {
@@ -609,7 +610,7 @@ namespace console {
 class GameOStream;
 }
 // 007C53C4: the stream the AI's perception messages go to.
-inline console::GameOStream* AiLog() { return *reinterpret_cast<console::GameOStream**>(0x007C53C4); }
+inline console::GameOStream* AiLog() { return ei::GameData<console::GameOStream*>(0x007C53C4); }
 
 // 005CA050 (ECX = out, EDX = point; unit_ai_brain.cpp). Copies x and y of a point (the AI events'
 // and the heard calls' noticed points); returns `out`.

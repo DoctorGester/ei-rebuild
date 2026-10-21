@@ -19,6 +19,7 @@
 #include "../lib/crt.h"
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -88,7 +89,7 @@ void CPlayerServer::SendGameTime() {
     std::uint32_t value = static_cast<std::uint32_t>(Owner()->sessionKind100_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
-    WriteDword(&out_, *reinterpret_cast<const std::uint32_t*>(0x007AFFC4));
+    WriteDword(&out_, ei::GameData<const std::uint32_t>(0x007AFFC4));
     Owner()->dirty_ &= ~0x10;
 }
 
@@ -363,11 +364,11 @@ constexpr int kPathKindNoPath = 3;
 
 CPlayerServer* CPlayerServer::Construct() {
     EngineObject(this)->ClearFields();
-    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    vtable_ = ei::GamePointer<void>(kConnectionVtable);
     player_ = nullptr;
     handlers_.Construct();
     out_.ConstructQueueStream();
-    placements_.vtable = reinterpret_cast<void*>(kPlacementsVtable);
+    placements_.vtable = ei::GamePointer<void>(kPlacementsVtable);
     placements_.data = nullptr;
     placements_.size = 0;
     placements_.maxSize = 0;
@@ -379,13 +380,13 @@ CPlayerServer* CPlayerServer::Construct() {
     ConstructGroup(group50F8_);
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
     partyUnits_.vtable = scriptvtable::kRefs;
-    vtable_ = reinterpret_cast<void*>(kServerVtable);
+    vtable_ = ei::GamePointer<void>(kServerVtable);
     ClearState();
     return this;
 }
 
 void CPlayerServer::DestructBody() {
-    vtable_ = reinterpret_cast<void*>(kServerVtable);
+    vtable_ = ei::GamePointer<void>(kServerVtable);
     ClearState();
     ScriptGroupDestructOriginal(&partyUnits_);
     ScriptGroupDestructOriginal(&group50F8_);
@@ -393,11 +394,11 @@ void CPlayerServer::DestructBody() {
     sentObjects_.FreeData();
     decompressor_.out.End();
     compressor_.out.End();
-    placements_.vtable = reinterpret_cast<void*>(kPlacementsVtable);
+    placements_.vtable = ei::GamePointer<void>(kPlacementsVtable);
     if (placements_.data) gamecrt::operator_delete(placements_.data);
     out_.Destruct();
     handlers_.FreeData();
-    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    vtable_ = ei::GamePointer<void>(kConnectionVtable);
     player_ = nullptr;
     EngineObject(this)->DestructBase();
 }

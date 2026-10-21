@@ -11,13 +11,14 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 float One() { return GameFloat(0x0073B84C); }
 float Half() { return GameFloat(0x0073B86C); }
 float SmoothingWeight() { return GameFloat(0x0073D724); }   // 0.3: the share of the sample's own value
@@ -34,7 +35,7 @@ WeatherNoiseCurve* WeatherNoiseCurveAt(int index) {
         std::uintptr_t(0x007AE398), std::uintptr_t(0x007AD998), std::uintptr_t(0x007AC598), std::uintptr_t(0x007ABB98),
         std::uintptr_t(0x007ACF98),
     };
-    return reinterpret_cast<WeatherNoiseCurve*>(kCurves[index]);
+    return ei::GamePointer<WeatherNoiseCurve>(kCurves[index]);
 }
 
 float WeatherNoiseAmplitude() { return GameFloat(0x0073D728); }

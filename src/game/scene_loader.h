@@ -18,6 +18,7 @@
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "../lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -365,7 +366,7 @@ inline const char* FirstKeyNotAtZeroText() { return "ResolveNodesAMF.\n This ver
 inline const char* NoRootNodeText() { return "Can't find top-level object in hierarchy\n"; }
 
 // 0079B9B0: the exe's zero vector (the scene code copies it).
-inline const Vector3& ZeroVector() { return *reinterpret_cast<const Vector3*>(std::uintptr_t(0x0079B9B0)); }
+inline const Vector3& ZeroVector() { return ei::GameData<const Vector3>(0x0079B9B0); }
 // 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
 inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %g\ty = %g\tz = %g\n"; }
 
@@ -429,20 +430,20 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 // The data the loader reads by address: the vtables of the arrays it constructs inline and its
 // messages.
 namespace scenedata {
-inline void* PointArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C860)); }       // A
-inline void* TexCoordArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C854)); }    // B
-inline void* FileFaceArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C848)); }    // C
-inline void* GroupArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C2BC)); }       // D
-inline void* RotKeyArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C83C)); }      // E
-inline void* PosKeyArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C830)); }      // F
-inline void* MorphHeadArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C824)); }   // G
-inline void* NormalArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C86C)); }      // H
+inline void* PointArrayVtable() { return ei::GamePointer<void>(0x0073C860); }       // A
+inline void* TexCoordArrayVtable() { return ei::GamePointer<void>(0x0073C854); }    // B
+inline void* FileFaceArrayVtable() { return ei::GamePointer<void>(0x0073C848); }    // C
+inline void* GroupArrayVtable() { return ei::GamePointer<void>(0x0073C2BC); }       // D
+inline void* RotKeyArrayVtable() { return ei::GamePointer<void>(0x0073C83C); }      // E
+inline void* PosKeyArrayVtable() { return ei::GamePointer<void>(0x0073C830); }      // F
+inline void* MorphHeadArrayVtable() { return ei::GamePointer<void>(0x0073C824); }   // G
+inline void* NormalArrayVtable() { return ei::GamePointer<void>(0x0073C86C); }      // H
 inline std::uintptr_t DwordMapVtable() { return std::uintptr_t(0x0073C818); }
-inline void* MapArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C80C)); }
-inline void* IndexArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C800)); }
-inline void* NodeArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C15C)); }
-inline void* TextureNameArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C144)); }   // {id, CString}
-inline void* TextureLinkArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C150)); }   // {id, value}
+inline void* MapArrayVtable() { return ei::GamePointer<void>(0x0073C80C); }
+inline void* IndexArrayVtable() { return ei::GamePointer<void>(0x0073C800); }
+inline void* NodeArrayVtable() { return ei::GamePointer<void>(0x0073C15C); }
+inline void* TextureNameArrayVtable() { return ei::GamePointer<void>(0x0073C144); }   // {id, CString}
+inline void* TextureLinkArrayVtable() { return ei::GamePointer<void>(0x0073C150); }   // {id, value}
 
 inline const char* CantOpenText() { return "Can't open file %s.\n"; }
 // "Scene \"%s\" have more then one top-level object!..."

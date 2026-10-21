@@ -4,6 +4,7 @@
 // implementations (config/library.csv). Layouts match MFC so objects can be shared with original code.
 
 #include "crt.h"
+#include "game/game_data.h"
 
 #include <cstdarg>
 #include <cstddef>
@@ -208,9 +209,9 @@ inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
 inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 
 // The game's CPtrList vtable (lists the code builds on the stack use blocks of 10).
-inline void* PtrListVtable() { return reinterpret_cast<void*>(0x0073D454); }
+inline void* PtrListVtable() { return ei::GamePointer<void>(0x0073D454); }
 // The game's CDWordArray / CArray<int> vtable (lists of ids built on the stack).
-inline void* DWordArrayVtable() { return reinterpret_cast<void*>(0x0073C3D0); }
+inline void* DWordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }
 
 // ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
 //
@@ -289,7 +290,7 @@ struct CArray {
 
     // The constructor body: the instantiation's vtable, empty (e.g. CByteArray's 006FF5EA).
     CArray* Construct(std::uintptr_t vtableAddress) {
-        vtable = reinterpret_cast<void*>(vtableAddress);
+        vtable = ei::GamePointer<void>(vtableAddress);
         data = nullptr;
         growBy = 0;
         maxSize = 0;
