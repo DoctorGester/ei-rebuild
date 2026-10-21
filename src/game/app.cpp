@@ -20,6 +20,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "options.h"
 #include "originals_world.h"
 #include "originals_ui.h"
 #include "script.h"
@@ -91,7 +92,7 @@ LRESULT OnActivate(WPARAM wParam) {
             // pointer; the value below rebuilds them. The context is the mouse.
             std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
                                   (ei::GameData<std::uint8_t>(0x00784756) == 0 ? 1u : 0u);
-            ResetCursors(ei::GameData<int>(0x0079BCF0) != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
+            ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
                          static_cast<int>(flags));
         }
     }
@@ -113,13 +114,14 @@ LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
 
 // The "QueryCancelAutoPlay" message id, registered on first use (function-local static of the
 // original: guard bit 0 of 0079BA04, id 0079BA00).
+std::uint8_t g_autoPlayGuard = /*0079BA04*/ {};
+std::uint32_t g_autoPlayMessage = /*0079BA00*/ {};
 UINT AutoPlayMessage() {
-    auto& guard = ei::GameData<std::uint8_t>(0x0079BA04);
-    if (!(guard & 1)) {
-        guard |= 1;
-        ei::GameData<UINT>(0x0079BA00) = gameapi::RegisterWindowMessageA("QueryCancelAutoPlay");
+    if (!(g_autoPlayGuard & 1)) {
+        g_autoPlayGuard |= 1;
+        g_autoPlayMessage = gameapi::RegisterWindowMessageA("QueryCancelAutoPlay");
     }
-    return ei::GameData<UINT>(0x0079BA00);
+    return g_autoPlayMessage;
 }
 
 LRESULT Handled() {
@@ -245,7 +247,7 @@ int __cdecl StartFirstMap() {
     const auto& cmdMode = CommandLineMob();   // empty: main menu
     const auto& cmdScript = CommandLineScript();
     mfc::CString map;
-    map = Length(cmdMap) != 0 ? cmdMap : ei::GameData<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
+    map = Length(cmdMap) != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
     if (gamecrt::mbscmp(static_cast<const char*>(cmdMode),
                         game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
@@ -300,8 +302,8 @@ namespace {
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
 using ErrorHook = void(__fastcall*)(const char* text);
-ErrorHook& FatalErrorHook() { return ei::GameData<ErrorHook>(0x007A9BA0); }   // set by the console (null here)
-int& FatalErrorCount() { return ei::GameData<int>(0x007A9B9C); }
+void* g_fatalErrorHook = /*007A9BA0*/ {nullptr};   // set by the console (null here)
+int g_fatalErrorCount = /*007A9B9C*/ {};
 
 } // namespace
 
@@ -317,8 +319,8 @@ int __cdecl FatalError(const char* format, ...) {
     va_end(args);
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
     if (!carryOn) ShowMessageBox(text, kErrorBoxFlags);
-    if (ErrorHook hook = FatalErrorHook()) hook(text);
-    if (++FatalErrorCount() >= 1 && !carryOn) libcrt::Exit(-1);
+    if (auto hook = reinterpret_cast<ErrorHook>(g_fatalErrorHook)) hook(text);
+    if (++g_fatalErrorCount >= 1 && !carryOn) libcrt::Exit(-1);
     return 0;
 }
 EI_REPLACE(0x00480080, FatalError);
@@ -335,8 +337,8 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     gameapi::wvsprintfA(text, format, args);
     gamecrt::sprintf(report, CodeReportFormat(), text, result, DirectXErrorText(result));
     ShowMessageBox(report, kErrorBoxFlags);
-    if (ErrorHook hook = FatalErrorHook()) hook(report);
-    if (++FatalErrorCount() >= 1) libcrt::Exit(-1);
+    if (auto hook = reinterpret_cast<ErrorHook>(g_fatalErrorHook)) hook(report);
+    if (++g_fatalErrorCount >= 1) libcrt::Exit(-1);
     return 0;
 }
 

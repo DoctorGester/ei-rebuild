@@ -61,8 +61,11 @@ bool __fastcall QuitGame(int exitCode) {
     return true;
 }
 
-// 00455E20. The movie mode byte (00784752; 1 unless the command line changed it).
-std::uint8_t __cdecl MovieMode() { return MovieModeFlag(); }
+// The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
+std::uint8_t g_movieMode = /*00784752*/ 1;
+
+// 00455E20.
+std::uint8_t __cdecl MovieMode() { return g_movieMode; }
 
 // 00455BA0. The copy protection's sabotage: the options go back to their defaults and every object
 // of the object manager gets a random number below 0x1000 as its companion and as its specific

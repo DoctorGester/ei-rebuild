@@ -159,8 +159,8 @@ double Step(double value) {
 
 // The window: its class atom, class name and title (0x100 bytes each, from the string table), the
 // instance and the window.
-std::uint16_t& WindowClassAtom() { return ei::GameData<std::uint16_t>(0x0079BA20); }
-char* WindowClassName() { return &ei::GameData<char>(0x0079BA24); }
+std::uint16_t g_windowClassAtom = /*0079BA20*/ {};
+char g_windowClassName[256] = /*0079BA24*/ {""};
 char* WindowTitle() { return &ei::GameData<char>(0x0079BB24); }
 HINSTANCE& Instance() { return ei::GameData<HINSTANCE>(0x0079BC24); }
 HWND& MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
@@ -183,11 +183,11 @@ std::uint8_t& ActivationChanged() { return ei::GameData<std::uint8_t>(0x0079BC5D
 // The loop's clock: the time of the last pass (a function-local static of the original: guard bit
 // 0 of 0079B9FC), the time not yet run by the server and by the client (milliseconds), and the
 // client's speed.
-std::uint8_t& LastTimeGuard() { return ei::GameData<std::uint8_t>(0x0079B9FC); }
-DWORD& LastTime() { return ei::GameData<DWORD>(0x0079B9F8); }
-std::uint32_t& ServerBacklog() { return ei::GameData<std::uint32_t>(0x0079BC64); }
-std::uint32_t& ClientBacklog() { return ei::GameData<std::uint32_t>(0x0079BC68); }
-float& ClientSpeed() { return ei::GameData<float>(0x00784758); }
+std::uint8_t g_lastTimeGuard = /*0079B9FC*/ {};
+DWORD g_lastTime = /*0079B9F8*/ {};
+std::uint32_t g_serverBacklog = /*0079BC64*/ {};
+std::uint32_t g_clientBacklog = /*0079BC68*/ {};
+float g_clientSpeed = /*00784758*/ 1.0f;
 // The console's switch that prints the client speed every frame.
 int& ShowClientSpeed() { return ei::GameData<int>(0x0079BC60); }
 // A movie of the frames is being written (app_frame.cpp): the loop then runs a fixed time a frame.
@@ -197,7 +197,7 @@ std::uint8_t& RecordingFrames() { return ei::GameData<std::uint8_t>(0x0079BC54);
 // the textures, little non-local memory; and whether a device was named on the command line.
 std::uint8_t& LittleOtherMemory() { return ei::GameData<std::uint8_t>(0x00784753); }
 std::uint8_t& LittleTextureMemory() { return ei::GameData<std::uint8_t>(0x00784754); }
-std::uint8_t& LittleNonLocalMemory() { return ei::GameData<std::uint8_t>(0x00784755); }
+std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 std::uint8_t& DeviceNamed() { return ei::GameData<std::uint8_t>(0x00784756); }
 constexpr DWORD kLittleMemory = 0x800000;
 
@@ -342,7 +342,7 @@ void ReadCommandLine(const char* commandLine) {
 // one exits.
 void RegisterWindowClass(HINSTANCE instance) {
     gameapi::LoadStringA(instance, kTitleString, WindowTitle(), kTextSize);
-    gameapi::LoadStringA(instance, kClassNameString, WindowClassName(), kTextSize);
+    gameapi::LoadStringA(instance, kClassNameString, g_windowClassName, kTextSize);
     WNDCLASSEXA windowClass;
     windowClass.cbSize = sizeof(windowClass);
     windowClass.style = CS_DBLCLKS;
@@ -355,10 +355,10 @@ void RegisterWindowClass(HINSTANCE instance) {
     windowClass.hCursor = nullptr;
     windowClass.hbrBackground = nullptr;
     windowClass.lpszMenuName = nullptr;
-    windowClass.lpszClassName = WindowClassName();
-    WindowClassAtom() = gameapi::RegisterClassExA(&windowClass);
+    windowClass.lpszClassName = g_windowClassName;
+    g_windowClassAtom = gameapi::RegisterClassExA(&windowClass);
 
-    HWND other = gameapi::FindWindowA(MAKEINTRESOURCEA(WindowClassAtom()), WindowTitle());
+    HWND other = gameapi::FindWindowA(MAKEINTRESOURCEA(g_windowClassAtom), WindowTitle());
     if (!other) return;
     const DWORD foregroundThread = gameapi::GetWindowThreadProcessId(gameapi::GetForegroundWindow(), nullptr);
     const DWORD otherThread = gameapi::GetWindowThreadProcessId(other, nullptr);
@@ -480,7 +480,7 @@ DWORD CreateRenderer() {
     LittleOtherMemory() = other <= kLittleMemory;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM;
     device::GetAvailableVidMem(static_cast<IDirectDraw7*>(TheRenderDevice()->ddraw_), &caps, &total, &free);
-    LittleNonLocalMemory() = free <= kLittleMemory;
+    g_littleNonLocalMemory = free <= kLittleMemory;
     DeviceNamed() = options->driverIndex_ != 0;
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
     return free;
@@ -587,17 +587,17 @@ void TakeActivationChange() {
 
 // The milliseconds since the last pass.
 std::uint32_t TimeSinceLastPass() {
-    if (!(LastTimeGuard() & 1)) {
-        LastTimeGuard() |= 1;
-        LastTime() = gameapi::timeGetTime();
+    if (!(g_lastTimeGuard & 1)) {
+        g_lastTimeGuard |= 1;
+        g_lastTime = gameapi::timeGetTime();
     }
     DWORD now;
     {
         ei::mainloop::InSite site(ei::mainloop::Site::FrameTime);
         now = gameapi::timeGetTime();
     }
-    const std::uint32_t elapsed = now - LastTime();
-    LastTime() += elapsed;
+    const std::uint32_t elapsed = now - g_lastTime;
+    g_lastTime += elapsed;
     return elapsed;
 }
 
@@ -607,16 +607,16 @@ std::uint32_t TimeSinceLastPass() {
 bool RunWorlds() {
     for (;;) {
         bool settled = true;
-        if (ServerBacklog() >= TickLength()) {
+        if (g_serverBacklog >= TickLength()) {
             settled = false;
             if (!ServerUpdate()(TheServerWorld(), nullptr)) return false;
-            ServerBacklog() -= TickLength();
+            g_serverBacklog -= TickLength();
             net::Pump();
         }
-        if (ClientBacklog() >= TickLength() && (TheClientWorld()->PumpHasIncoming() || !TheClientWorld()->IsLocalViewMode2())) {
+        if (g_clientBacklog >= TickLength() && (TheClientWorld()->PumpHasIncoming() || !TheClientWorld()->IsLocalViewMode2())) {
             if (!ClientSegment()(TheClientWorld(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
-            ClientBacklog() -= tick;
+            g_clientBacklog -= tick;
             TheCamera()->Update(CameraSeconds(tick));
             net::Pump();
             continue;
@@ -676,20 +676,20 @@ bool RunPass() {
         const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::TheOptions()->movieCapturingFps_));
         elapsed = gamecrt::Ftol(libcrt::Ceil(frame));
     }
-    ServerBacklog() += elapsed;
-    if (!client->IsLocalViewMode2()) ClientSpeed() = 1.0f;
-    ClientBacklog() =
-        gamecrt::Ftol(Step(x87::FromUnsigned(elapsed) * ClientSpeed()) + static_cast<double>(static_cast<std::int32_t>(ClientBacklog())));
-    if (ClientBacklog() > kBacklogLimit) ClientBacklog() = 0;
+    g_serverBacklog += elapsed;
+    if (!client->IsLocalViewMode2()) g_clientSpeed = 1.0f;
+    g_clientBacklog =
+        gamecrt::Ftol(Step(x87::FromUnsigned(elapsed) * g_clientSpeed) + static_cast<double>(static_cast<std::int32_t>(g_clientBacklog)));
+    if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {
         FlowProcessRequestOriginal(TheGameFlow());
-        const float fraction = static_cast<float>(x87::FromUnsigned(ClientBacklog()) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
+        const float fraction = static_cast<float>(x87::FromUnsigned(g_clientBacklog) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused_) client->tickFraction_ = fraction;
         const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
         const float roundedBalance = static_cast<float>(balance);
-        ClientSpeed() = SpeedForBalance(balance, roundedBalance);
-        if (ShowClientSpeed()) PrintClientSpeed(ClientSpeed(), roundedBalance);
+        g_clientSpeed = SpeedForBalance(balance, roundedBalance);
+        if (ShowClientSpeed()) PrintClientSpeed(g_clientSpeed, roundedBalance);
 
         // The camera runs on the real time of the pass, a tick at a time.
         CCamera* camera = TheCamera();
@@ -708,7 +708,7 @@ bool RunPass() {
         }
     }
     TheInterface()->Update();
-    const bool draw = static_cast<char>(MovieModeFlag()) != 0;
+    const bool draw = static_cast<char>(g_movieMode) != 0;
     if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(draw, true);
     else app::FrameStep(draw, true);
     return true;
@@ -794,7 +794,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     mfc::CString folder;
     CreateFolders(folder);
     Instance() = instance;
-    MainWindow() = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(WindowClassAtom()), WindowTitle(), WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
+    MainWindow() = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), WindowTitle(), WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
                                             options->resolutionX_, options->resolutionY_, nullptr, nullptr, instance, nullptr);
     if (!MainWindow()) return 0;
     gameapi::ShowWindow(MainWindow(), show);

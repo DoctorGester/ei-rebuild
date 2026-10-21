@@ -13,9 +13,9 @@ extern lib::StaticObject<stlp::list<std::uint8_t>> g_protectionChecks;   // stat
 namespace app {
 
 // 00784751: whether QuitGame may post the quit message (1 in the exe's data; cleared while a timed
-// movie plays). 00784752: the movie mode byte.
+// movie plays).
 inline std::uint8_t& QuitAllowed() { return ei::GameData<std::uint8_t>(0x00784751); }
-inline std::uint8_t& MovieModeFlag() { return ei::GameData<std::uint8_t>(0x00784752); }
+extern std::uint8_t g_movieMode;   // app_helpers.cpp
 
 // 0079BC2C: the copy protection's check list (an STLport list of bytes, 1 passed / 0 failed; built
 // empty by the static initialiser 00455E30, freed at exit by 00455F00; static_lists.cpp). Nothing adds to it.

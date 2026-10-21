@@ -10,7 +10,6 @@ src/game/atexit_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/fake_unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/figure_mesh_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -55,7 +54,6 @@ src/game/ui_hud_slide.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_hud_tips.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_hud_unit_info.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_interface.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
-src/game/ui_item_info.cpp,0,0,0,0,20,0,0,0,0,0,0,0,0,0
 src/game/ui_item_strip_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_layouts.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/ui_menus.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -73,7 +71,7 @@ src/game/world_client_draw.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/world_client_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/world_effect_visual.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+src/game/world_effect_visual.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_game.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/world_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_map_files.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
