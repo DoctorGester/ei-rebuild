@@ -76,15 +76,14 @@ struct UnitLogStream : libcrt::Ostream {
     UnitLogStream* Put(const char* text) { PutText(text); return this; }                             // 006FC31D
     UnitLogStream* Put(double value) { PutDouble(value); return this; }                              // 006FC7FA
     UnitLogStream* PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }   // 006FC0B0
-    UnitLogStream* Apply(void* manipulator) {                                                        // 00434FE0: manipulator(*this)
-        libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator));
+    UnitLogStream* Apply(libcrt::Manipulator manipulator) {                                                        // 00434FE0: manipulator(*this)
+        libcrt::Ostream::Apply(manipulator);
         return this;
     }
 };
 
 namespace {
 UnitLogStream* HitLog() { return ei::GameData<UnitLogStream*>(0x007AF284); }
-void* const kEndLine = reinterpret_cast<void*>(0x00435000);
 } // namespace
 
 // CUnitServer 00552780: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
@@ -191,7 +190,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         } else if (slot.kind == 2) {
             HitLog()->Put(kDead);
         }
-        HitLog()->PutChar('\n')->Apply(kEndLine);
+        HitLog()->PutChar('\n')->Apply(libcrt::FlushManipulator);
     }
     if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= 1;
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));

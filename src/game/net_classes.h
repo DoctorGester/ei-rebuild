@@ -94,9 +94,9 @@ public:
     LogStream* Put(const char* text);       // 006FC31D
     LogStream* PutChar(char c);             // 006FC0B0
     LogStream* PutInt(int value);           // 006FC14E
-    LogStream* Apply(void* manipulator);    // 00434FE0
+    LogStream* Apply(libcrt::Manipulator manipulator);    // 00434FE0
     // The flush manipulator (00435000) the session code ends its lines with.
-    LogStream* Flush() { return Apply(reinterpret_cast<void*>(0x00435000)); }
+    LogStream* Flush() { return Apply(libcrt::FlushManipulator); }
 };
 
 // ---- The globals of the session code ------------------------------------------------------------

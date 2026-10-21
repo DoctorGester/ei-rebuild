@@ -24,7 +24,7 @@ namespace net {
 LogStream* LogStream::Put(const char* text) { PutText(text); return this; }
 LogStream* LogStream::PutChar(char c) { libcrt::Ostream::PutChar(c); return this; }
 LogStream* LogStream::PutInt(int a0) { PutUnsigned(static_cast<unsigned>(a0)); return this; }
-LogStream* LogStream::Apply(void* manipulator) { libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator)); return this; }
+LogStream* LogStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return this; }
 
 namespace {
 

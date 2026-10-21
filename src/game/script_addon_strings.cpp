@@ -31,7 +31,6 @@ namespace {
 // 0057F440 on 007AFE20: whether this is a network game.
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
 
-void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
 mfc::CString* StringResult(Call* call) { return static_cast<mfc::CString*>(call->result); }
@@ -167,7 +166,7 @@ bool Say(Call* call) {
 // flush.
 bool ConsoleString(Call* call) {
     std::string text = Joined(call);
-    (console::Out() << text.c_str() << "\n").Apply(kFlushManipulator);
+    (console::Out() << text.c_str() << "\n").Apply(libcrt::FlushManipulator);
     return true;
 }
 

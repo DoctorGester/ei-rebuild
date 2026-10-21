@@ -53,8 +53,8 @@ int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 struct GameOstream : libcrt::Ostream {
     GameOstream* Write(const char* text) { PutText(text); return this; }                      // 006FC31D
     GameOstream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }  // 006FC0B0 (operator<<(char))
-    GameOstream* Apply(void* manipulator) {                                                   // 00434FE0
-        libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator));
+    GameOstream* Apply(libcrt::Manipulator manipulator) {                                                   // 00434FE0
+        libcrt::Ostream::Apply(manipulator);
         return this;
     }
 };
@@ -193,7 +193,7 @@ void AIBrain::Think() {
             text.Format(MotivationFormat(), owner->unit->id_, static_cast<const char*>(name),
                         bestPriority);
             GameOstream* console = ConsoleStream();
-            console->Write(text)->Put('\n')->Apply(worlddata::FlushManipulator());
+            console->Write(text)->Put('\n')->Apply(libcrt::FlushManipulator);
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
                 alerted = 1;

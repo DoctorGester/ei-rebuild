@@ -27,8 +27,8 @@ struct AiLogStream : libcrt::Ostream {
     AiLogStream* Write(const char* text) { PutText(text); return this; }                       // 006FC31D
     AiLogStream* Write(long value) { PutInt(value); return this; }                             // 006FC9C6
     AiLogStream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }   // 006FC0B0
-    AiLogStream* Apply(void* manipulator) {                                                    // 00434FE0
-        libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator));
+    AiLogStream* Apply(libcrt::Manipulator manipulator) {                                                    // 00434FE0
+        libcrt::Ostream::Apply(manipulator);
         return this;
     }
 };
@@ -61,7 +61,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             case 9: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
-            AlarmLog()->Write(what)->Put(10)->Apply(reinterpret_cast<void*>(0x00435000));
+            AlarmLog()->Write(what)->Put(10)->Apply(libcrt::FlushManipulator);
         }
         state->pending = 0;
     }

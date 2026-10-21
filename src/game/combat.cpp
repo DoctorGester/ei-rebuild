@@ -136,7 +136,7 @@ GameOstream* GameOstream::Put(const char* text) { PutText(text); return this; }
 GameOstream* GameOstream::Put(long v) { PutInt(v); return this; }
 GameOstream* GameOstream::Put(double v) { PutDouble(v); return this; }
 GameOstream* GameOstream::PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }
-GameOstream* GameOstream::Apply(void* manipulator) { libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator)); return this; }
+GameOstream* GameOstream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return this; }
 
 namespace {
 
