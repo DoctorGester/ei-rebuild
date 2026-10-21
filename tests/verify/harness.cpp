@@ -2103,11 +2103,16 @@ std::string HudState(const std::string& argument) {
                 Log("harness: hudstate: spell slot %u item %p, prototype %d, flags %08X", s, item,
                     spell ? spell->prototypeIndex_ : -1, spell ? spell->targetFlags_ : 0);
             }
-            // Its weapons (their kind: 5 bow, 6 crossbow) and the one in use.
+            // Its weapons (their kind: 5 bow, 6 crossbow) and the one in use. In game.exe's --no-hooks runs its own
+            // GetType (006A07F0): ours reads our named item database (C18k4), which game.exe never fills.
+            auto weaponType = [](CItemWeapon* weapon) {
+                return ei::Standalone() ? weapon->GetType()
+                                        : reinterpret_cast<int(__thiscall*)(CItemWeapon*)>(0x006A07F0)(weapon);
+            };
             for (unsigned w = 0; w < 4; ++w)
                 if (CEngineObject* weapon = unit->GetWeapon(w))
                     Log("harness: hudstate: weapon slot %u item %p kind %d%s", w, weapon,
-                        static_cast<CItemWeapon*>(weapon)->GetType(), unit->activeWeapon == w ? " (in use)" : "");
+                        weaponType(static_cast<CItemWeapon*>(weapon)), unit->activeWeapon == w ? " (in use)" : "");
         }
     }
     if (!argument.empty()) {
@@ -3079,7 +3084,9 @@ void RunSteps() {
             int id = 0, constr = 0;
             sscanf_s(s.argument.c_str(), "%d %d", &id, &constr);
             if (id == 5 && constr > 0 &&
-                !FindClassTemplate(&ThePartyManager()->templates, nullptr, constr)) {
+                !FindClassTemplate(ei::Standalone() ? &ThePartyManager()->templates   // game.exe's own in --no-hooks runs
+                                                         : &ei::OriginalGameData<PartyManager>(0x007AA5A0).templates,
+                                   nullptr, constr)) {
                 std::string error = "screen: no class template " + std::to_string(constr);
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
