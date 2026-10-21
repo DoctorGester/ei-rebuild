@@ -3123,6 +3123,15 @@ group = "standalone"
 depends = ["S18e"]
 note = "S18e left the files SV10j had open: unit_ai*.cpp / unit_ai.h, combat_*.cpp, script_effects*, unit_hits.cpp (the armour piece tables stay for S18g). Once SV10j is merged remove the SKIP pattern in tools/rdata_literals.py and run it (--apply, then --check, build.cmd verify and release, check_fp_fold -v against main's list for folds). About 20 reads: unit_ai.h FearDefaultDistance 0073FF00, unit_ai_brain.cpp 0073FED8 / 0073FF00, combat_motion.cpp 0073EEE4 0073B86C 0073CA98 0073F0B8, combat_planning.cpp 0073EF20 0073EF28 0073EEC0, combat_update.cpp 0073C548 and the GameFloat helpers in those files."
 
+[[ticket]]
+id = "S18e3"
+title = "Tools that read game.exe find it the same way (run_all.run_dir fallback, a clear error)"
+group = "standalone"
+size = 0.5
+model = "sonnet"
+files = ["tools/rdata_literals.py tools/check_static_init.py tools/gen_image_cells.py tools/gen_static_init.py"]
+note = "Found by SV10g: in a worktree without the run\\ junction, build.cmd verify's tools/rdata_literals.py --check stops with an IndexError (no game.exe found). The tools that read game.exe (rdata_literals, check_static_init, gen_static_init, gen_image_cells' EI_GAME_EXE default F:\\games\\...\\game.exe, exe_strings, data_seam if it reads it) should share one lookup: --exe, else run_all.run_dir(root) (falls back to the main checkout's run\\), vanilla then rebirth, and fail with one clear message naming what was looked for. No behaviour change on main; check build.cmd verify in a worktree without the junction."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
