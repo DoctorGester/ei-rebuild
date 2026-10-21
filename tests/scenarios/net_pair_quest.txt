@@ -16,14 +16,21 @@
 # - Walks: the wheel zooms out; before each clickground step "lookat" clicks the minimap to bring the camera
 #   over the target (the minimap is centred on the camera, 1 layout pixel about 2.8 map units on vanilla's,
 #   3.75 x 2.7 on Rebirth's wider one; the camera goes back to the hero at times). Each step is repeated
-#   because a fight stops the walk. The last undead killed: QuestComplete -> FinishQuestMap 0057FB90 ->
-#   FinishMap 004193F0 queues "z9q2_3".
+#   because a fight stops the walk, and waits until the hero has stood idle for 20 frames (waitidle: the walk
+#   over, or the fight it ran into; SV5d5, instead of 150 frames each), which also gives the undead near him
+#   time to come. waitdead checks all ten are dead. The last undead killed: QuestComplete -> FinishQuestMap
+#   0057FB90 -> FinishMap 004193F0 queues "z9q2_3".
 # - Back through exit 1 (remove rectangle 205 305 215 320; the leave box's Enter), then the sheriff's middle
 #   topic "The undead are destroyed" (z9q2_3): command 1 -> CompleteZone 00418ED0 (text 7 announced, the kind 0
 #   and kind 1 awards shared by the two clients, the host's items with the final award, the next zones
-#   queued); 60 s later the awards reach both clients (ClientOnAward 0041EF90).
+#   queued); about 20 frames later the awards reach both clients (ClientOnAward 0041EF90), which waitaward
+#   sees in the leader's experience (ApplyAwards); each game waits for its own.
+# - No streamed music (both games): the music system picks a fight's combat track (a random draw) only when the
+#   stream thread, which plays in real time, does not report it playing, so the draws of the zone's fights
+#   followed the machine's load (SV5d5: the flake of C13b3).
 # prepare: make_mp_hero.py --stats 1000 60 60 --skills 60 --damage 300 --absorb 100
 timeout 480
+music 0
 peer net_pair_quest
 reject Script error
 waitmenu
@@ -98,37 +105,37 @@ frames 5
 lookat 80 264
 frames 5
 clickground 80 264 dblclick
-frames 150
+waitidle 120 20
 lookat 80 264
 frames 5
 lookat 80 264
 frames 5
 clickground 80 264 dblclick
-frames 150
+waitidle 120 20
 lookat 80 264
 frames 5
 lookat 80 264
 frames 5
 clickground 80 264 dblclick
-frames 150
+waitidle 120 20
 lookat 80 264
 frames 5
 lookat 80 264
 frames 5
 clickground 80 264 dblclick
-frames 150
+waitidle 120 20
 lookat 80 264
 frames 5
 lookat 80 264
 frames 5
 clickground 80 264 dblclick
-frames 150
+waitidle 120 20
 lookat 80 264
 frames 5
 lookat 80 264
 frames 5
 clickground 80 264 dblclick
-frames 150
+waitidle 120 20
 
 # The undead: the west part of the camp (the camera stops at the map's edge), then the east part.
 lookat 40 280
@@ -136,133 +143,147 @@ frames 5
 lookat 40 280
 frames 5
 clickground 40 280 dblclick
-frames 150
+waitidle 120 20
 lookat 40 280
 frames 5
 lookat 40 280
 frames 5
 clickground 40 280 dblclick
-frames 150
+waitidle 120 20
 lookat 25 292
 frames 5
 lookat 25 292
 frames 5
 clickground 25 292 dblclick
-frames 150
+waitidle 120 20
 lookat 25 292
 frames 5
 lookat 25 292
 frames 5
 clickground 25 292 dblclick
-frames 150
+waitidle 120 20
 lookat 10 280
 frames 5
 lookat 10 280
 frames 5
 clickground 10 280 dblclick
-frames 150
+waitidle 120 20
 lookat 10 280
 frames 5
 lookat 10 280
 frames 5
 clickground 10 280 dblclick
-frames 150
+waitidle 120 20
 lookat 25 305
 frames 5
 lookat 25 305
 frames 5
 clickground 25 305 dblclick
-frames 150
+waitidle 120 20
 lookat 25 305
 frames 5
 lookat 25 305
 frames 5
 clickground 25 305 dblclick
-frames 150
+waitidle 120 20
 lookat 10 292
 frames 5
 lookat 10 292
 frames 5
 clickground 10 292 dblclick
-frames 150
+waitidle 120 20
 lookat 10 292
 frames 5
 lookat 10 292
 frames 5
 clickground 10 292 dblclick
-frames 150
+waitidle 120 20
 lookat 40 304
 frames 5
 lookat 40 304
 frames 5
 clickground 40 304 dblclick
-frames 150
+waitidle 120 20
 lookat 40 304
 frames 5
 lookat 40 304
 frames 5
 clickground 40 304 dblclick
-frames 150
+waitidle 120 20
 lookat 40 285
 frames 5
 lookat 40 285
 frames 5
 clickground 40 285 dblclick
-frames 150
+waitidle 120 20
 lookat 40 285
 frames 5
 lookat 40 285
 frames 5
 clickground 40 285 dblclick
-frames 150
+waitidle 120 20
 lookat 36 265
 frames 5
 lookat 36 265
 frames 5
 clickground 36 265 dblclick
-frames 150
+waitidle 120 20
 lookat 36 265
 frames 5
 lookat 36 265
 frames 5
 clickground 36 265 dblclick
-frames 150
+waitidle 120 20
 lookat 55 288
 frames 5
 lookat 55 288
 frames 5
 clickground 55 288 dblclick
-frames 150
+waitidle 120 20
 lookat 55 288
 frames 5
 lookat 55 288
 frames 5
 clickground 55 288 dblclick
-frames 150
+waitidle 120 20
 lookat 52 292
 frames 5
 lookat 52 292
 frames 5
 clickground 52 292 dblclick
-frames 150
+waitidle 120 20
 lookat 52 292
 frames 5
 lookat 52 292
 frames 5
 clickground 52 292 dblclick
-frames 150
+waitidle 120 20
 lookat 45 280
 frames 5
 lookat 45 280
 frames 5
 clickground 45 280 dblclick
-frames 150
+waitidle 120 20
 lookat 45 280
 frames 5
 lookat 45 280
 frames 5
 clickground 45 280 dblclick
-frames 150
+waitidle 120 20
+# The north-west undead (1000188) keeps to about 11..27 x 266..292 and only fights a hero who stands near it.
+lookat 19 277
+frames 5
+lookat 19 277
+frames 5
+clickground 19 277 dblclick
+waitidle 120 60
+lookat 19 277
+frames 5
+lookat 19 277
+frames 5
+clickground 19 277 dblclick
+waitidle 120 60
+waitdead 120 1000188 1000189 1000190 1000191 1000192 1000193 1000194 1000195 1000196 1000197
 
 # Back to exit 1.
 lookat 210 312
@@ -270,37 +291,20 @@ frames 5
 lookat 210 312
 frames 5
 clickground 210 312 dblclick
-frames 150
+waitidle 120 20
 lookat 210 312
 frames 5
 lookat 210 312
 frames 5
 clickground 210 312 dblclick
-frames 150
+waitidle 120 20
 lookat 210 312
 frames 5
 lookat 210 312
 frames 5
 clickground 210 312 dblclick
-frames 150
-lookat 210 312
-frames 5
-lookat 210 312
-frames 5
-clickground 210 312 dblclick
-frames 150
-lookat 210 312
-frames 5
-lookat 210 312
-frames 5
-clickground 210 312 dblclick
-frames 150
-lookat 210 312
-frames 5
-lookat 210 312
-frames 5
-clickground 210 312 dblclick
-frames 150
+waitidle 120 20
+
 waitwindow 30 msgbox
 key enter
 waitwindow 60 briefing
@@ -313,6 +317,7 @@ waitunit 10 Nsheriff
 clickunit Nsheriff
 frames 10
 capture topics
+awardfrom
 clickregion 1
 wait 4000
 click 400 300
@@ -323,9 +328,8 @@ click 400 300
 wait 800
 click 400 300
 wait 800
-frames 40
-# The awards go out 60 s after CompleteZone queued them.
-frames 400
+# The awards reach both clients (ClientOnAward 0041EF90, applied by ApplyAwards).
+waitaward 120
 peersignal done
 frames 20
 report

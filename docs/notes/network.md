@@ -86,6 +86,15 @@ function does; this file keeps what is not visible in the code.
   goes back through exit 1 and takes the sheriff's "<zone>_3" topic. The original (EI_COVER) reaches 0057FB90,
   004193F0, CompleteZone 00418ED0 and ClientOnAward 0041EF90 in both games, and OnMaster 0041ACA0 (the harness's
   `fakemaster` answers each announcement on the pair's virtual port with the key and a new token).
+  SV5d5 cut it from 6400 frames (130-240 s a run) to 2840 (vanilla ~65 s, the image ~80 s): 3800 of the old
+  frames were the hero standing idle at the end of a fixed `frames 150` (a walk is a few frames when he is
+  there already), and 380 were `frames 400` after the award, which reaches both clients about 20 frames after
+  CompleteZone (both games' experience changes in the same frame). Each walk now waits on `waitidle` (20 idle
+  frames), the camp on `waitdead`, the end on `waitaward`. The undead 1000188 keeps to about 11..27 x 266..292
+  and only fights a hero standing near it: the walk ends with two stops at 19 277 (60 idle frames).
+  Both games play without streamed music (`music 0`): the music system's combat-track draw at a fight's start
+  followed the real-time stream thread, which made the zone's fights draw differently with the machine's load
+  (the C13b3 flake; sound.md, "Non-determinism").
 - Game bug (the original too): a guest joining while the host's briefing dialogue runs crashes the host in
   CTextManager::PeekWord (CBriefingScreen::NextPhrase -> FindLine; the original at 004DF7F7). The scenario talks
   to the sheriff after the join.
