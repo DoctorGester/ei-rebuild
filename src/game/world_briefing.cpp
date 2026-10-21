@@ -291,7 +291,8 @@ void GameFlow::RegisterQuests(const char* folder) {
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::QuestRegistry();
-        registered = TextsOpenSection(texts, nullptr, path) != 0;
+        // (004DEFC0 in the original; the registry is binary, read as it is: CTextManager::OpenData.)
+        registered = static_cast<CTextManager*>(texts)->OpenData(path) != 0;
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).

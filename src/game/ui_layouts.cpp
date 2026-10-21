@@ -4,6 +4,7 @@
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "app_helpers.h"
+#include "asset_text.h"
 #include "bink_video.h"
 #include "library_trees.h"
 #include "sound.h"
@@ -710,6 +711,7 @@ void CCreditsScreen::Build() {
         mfc::CString script;
         libcrt::Memmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
+        text::FromAssetText(&script);   // the headers' text in UTF-8 with EI_UTF8 (the pages are RTF)
         RemoveCarriageReturns(&script);
         TitlesTokenizer lines{{0, &script, "\n"}};   // "\n"
         lines.Start();

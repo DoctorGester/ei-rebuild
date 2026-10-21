@@ -111,17 +111,24 @@ BOOL CTextManager::Open(const char* key) {
         text_ = nullptr;
         cursor_ = nullptr;
     }
-    const char* text = nullptr;
-    for (CTextManager::SourceNode* node = sources_.head->next; node != sources_.head; node = node->next) {
-        // The archive's GetFile (slot 5): the file's data or null.
-        text = static_cast<const char*>(node->data.source->GetFile(key, &length_));
-        if (text) break;
-    }
+    // The first archive that has `key` (TextSources::FindText: the text's size written to length_).
+    const char* text = static_cast<const char*>(sources_.FindText(key, &length_));
     cursor_ = text;
     text_ = text;
     return text && length_ != 0;
 }
 EI_REPLACE_METHOD(0x004DEFC0, CTextManager::Open);
+
+BOOL CTextManager::OpenData(const char* key) {
+    if (text_) {
+        text_ = nullptr;
+        cursor_ = nullptr;
+    }
+    const char* data = static_cast<const char*>(sources_.Find(key, &length_));
+    cursor_ = data;
+    text_ = data;
+    return data && length_ != 0;
+}
 
 BOOL __fastcall TextClose(CTextManager* self) {
     self->text_ = nullptr;

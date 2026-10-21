@@ -3,6 +3,7 @@
 // Every file operation asks for the file again through slot 1 (File), as the original does.
 #include "chunk_stream.h"
 
+#include "asset_text.h"
 #include "console.h"   // CStringArray
 
 #include "ei/hook.h"
@@ -263,6 +264,7 @@ mfc::CString* Chunk::ReadString(mfc::CString* out) {
         *p++ = static_cast<char>(c);
     }
     text.ReleaseBuffer(-1);
+    text::FromAssetText(&text);   // .mob text (unit names, dialogue) in UTF-8 with EI_UTF8
     new (out) mfc::CString(text);
     return out;
 }
@@ -286,6 +288,7 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     {
         mfc::CString text;
         reinterpret_cast<MobScriptDecoder*>(&decoder)->Decode(&text);
+        text::FromAssetText(&text);   // the scripts' literals in UTF-8 with EI_UTF8
         new (out) mfc::CString(text);
     }
     stlp::deallocate(decoder.input.Start(), static_cast<std::size_t>(decoder.input.EndOfStorage() - decoder.input.Start()));

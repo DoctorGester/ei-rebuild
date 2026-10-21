@@ -14,6 +14,7 @@
 // into and read from that memory with no Lock (DirectPixels).
 #include "app.h"
 #include "app_helpers.h"
+#include "asset_text.h"
 #include "lib/mfc_time.h"
 #include "core_streams.h"
 #include "stl_sorts.h"
@@ -277,8 +278,10 @@ void CSaveLoadWindow::SaveGame() {
         mfc::CString path = folder + game::savewords::InfoFile();
         info.Open(path, kOpenWrite, 0);
     }
-    if (nameTyped_)
+    if (nameTyped_) {
         entriesBegin_->title_ = name_;
+        text::FromAssetText(&entriesBegin_->title_);   // EI_UTF8: the 8-bit edited name back to UTF-8 (until U4)
+    }
     else if (selected_ == 0)
         entriesBegin_->title_.Empty();
     else

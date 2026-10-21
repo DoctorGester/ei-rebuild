@@ -5,6 +5,7 @@
 // original addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
+#include "asset_text.h"
 #include "world_glue.h"
 #include "sound.h"
 #include "ui_cursor.h"
@@ -296,7 +297,8 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
         device->lastLoadResult_ = result;
         if (result != 0) FatalErrorCode(result, FlipFailedText());
     }
-    int answer = gameapi::MessageBoxA(MainWindow(), text, WindowTitle(), static_cast<UINT>(flags));
+    const text::ForAnsiCall ansi(text);   // EI_UTF8: until U2
+    int answer = gameapi::MessageBoxA(MainWindow(), ansi, WindowTitle(), static_cast<UINT>(flags));
     gameapi::SetCursor(cursor);
     return answer;
 }
