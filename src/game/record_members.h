@@ -57,13 +57,20 @@ void DefaultMember(stlp::vector<T>& to) {
     to.ConstructEmpty();
 }
 
+// A vector or a type derived from one (acks::Speeches): copied as a vector, never as bytes.
+template <typename U>
+std::true_type DerivesVector(const stlp::vector<U>*);
+std::false_type DerivesVector(const void*);
+template <typename T>
+constexpr bool kVectorLike = decltype(DerivesVector(static_cast<T*>(nullptr)))::value;
+
 // Plain data: copied as bytes, left as it is by default. Not the members above, whatever the type
 // traits say (an stlp::vector is trivially copyable to them: its copy constructor is deleted, its
-// copy assignment the implicit one), nor arrays of them. A trivially copyable record with copies of
+// copy assignment the implicit one), nor types derived from a vector, nor arrays of them. A trivially copyable record with copies of
 // its own (CopyMember / AssignMember / DefaultMember found by argument-dependent lookup) specialises
 // this to false, so arrays of it go element by element too.
 template <typename T>
-struct IsPlain : std::bool_constant<std::is_trivially_copyable_v<T>> {};
+struct IsPlain : std::bool_constant<std::is_trivially_copyable_v<T> && !kVectorLike<T>> {};
 template <>
 struct IsPlain<mfc::CString> : std::false_type {};
 template <>
@@ -103,6 +110,8 @@ std::enable_if_t<!kPlain<T>> DefaultMember(T (&to)[N]) {
 static_assert(std::is_trivially_copyable_v<stlp::vector<int>[2]> && !kPlain<stlp::vector<int>[2]>,
               "arrays of vectors go element by element");
 static_assert(!kPlain<mfc::CString[2][3]> && kPlain<int[4]>);
+struct DerivedVectorCheck : stlp::vector<int> {};
+static_assert(!kPlain<DerivedVectorCheck> && !kPlain<DerivedVectorCheck[2]>, "derived vectors are not bytes");
 
 // The copy constructor, operator= and resize(n) default of R over the members M (member pointers,
 // declaration order). The destructor is the record's own (its S13 or earlier port).
