@@ -238,27 +238,18 @@ bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
 
 // The database records of the camp's loot items (the record index at +0x54): spells, spell
 // modifiers and materials (null past the end; the original then reads through null).
-template <typename T>
-T Read(const char* p, int offset) {
-    T v;
-    std::memcpy(&v, p + offset, sizeof(T));
-    return v;
-}
 std::uint32_t Index(const CItem* item) { return static_cast<const CItemLoot*>(item)->index_; }
 // The loot's record type (+0x50): the record table it indexes.
 std::uint32_t RecordType(const CItem* item) { return static_cast<const CItemLoot*>(item)->recordType_; }
-const char* Record(const RecordTable& table, std::uint32_t index, int stride) {
-    return table.RecordAt(index, stride);
-}
 itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
 itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
-const char* BlueprintRecord(const CItem* item) { return Record(itemdb::Materials(), Index(item), 0x50); }
+itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::MaterialAt(Index(item)); }
 // A part's prototype record by the loot's record type (+0x50): weapon, armour, quick item.
-const char* PartRecord(const CItem* item, int recordType) {
+itemdb::ItemRecordHead* PartRecord(const CItem* item, int recordType) {
     switch (recordType) {
-    case 0: return Record(itemdb::Weapons(), Index(item), 0xB4);
-    case 1: return Record(itemdb::Armors(), Index(item), 200);
-    case 2: return Record(itemdb::QuickItems(), Index(item), 0x8C);
+    case 0: return itemdb::WeaponAt(Index(item));
+    case 1: return itemdb::ArmorAt(Index(item));
+    case 2: return itemdb::QuickItemAt(Index(item));
     default: return nullptr;
     }
 }
@@ -398,8 +389,8 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             itemResults_->ItemManager();
             itemResults_->SpellManager();
             std::uint32_t kindOnes = 0;
-            const char* part = nullptr;
-            const char* firstKindOne = nullptr;
+            const itemdb::ItemRecordHead* part = nullptr;
+            const itemdb::MaterialRecordHead* firstKindOne = nullptr;
             if (CountOf(itemResults_) <= 0) return false;
             for (int i = 0; i < CountOf(itemResults_); ++i) {
                 if (IsBlueprint(ItemOf(itemResults_, i))) return false;
@@ -413,9 +404,9 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
                 }
             }
             if (!part) return false;
-            const char* own = BlueprintRecord(item);
-            if (firstKindOne) return own == firstKindOne && kindOnes < Read<std::uint32_t>(part, 0x4C);
-            return gamecrt::mbsicmp(Read<const char*>(part, 0x10), Read<const char*>(own, 0x04)) == 0;
+            const itemdb::MaterialRecordHead* own = BlueprintRecord(item);
+            if (firstKindOne) return own == firstKindOne && kindOnes < part->materialUnits;
+            return gamecrt::mbsicmp(part->materialClass, own->soundName) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -679,7 +670,6 @@ void ReleaseObject(CEngineObject* object) {
     if (object) object->Release();
 }
 
-char* RecordText(const char* record) { return const_cast<char*>(record); }
 
 } // namespace
 
@@ -719,9 +709,8 @@ bool CCampPages::CanMakeSpell() {
     }
     CSpell* made = constructor->container_->Spell()->Clone(manager);
     constructor->CallSetManager(nullptr);
-    void* quickItems = const_cast<RecordTable*>(&itemdb::QuickItems());
-    auto* record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(quickItems), nullptr, "spell container"));
-    int index = static_cast<int>(record - itemdb::QuickItems().begin) / 0x8C;
+    itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
+    int index = quickItems.IndexOf(quickItems.Named("spell container"));
     CItem* container = static_cast<CItemManager*>(factory)->MakeItem(0x3008, index, 0, -1);
     if (container) container->AttachSpell(made);
     spellMade_ = container;
@@ -739,9 +728,9 @@ bool CCampPages::CanMakeItem() {
     CItemConstructor* constructor = itemResults_->ItemConstructor();
     CResourceManager* factory = itemResults_->ItemManager();
     CSpellManager* manager = itemResults_->SpellManager();
-    const char* part = nullptr;
+    itemdb::ItemRecordHead* part = nullptr;
     CEngineObject* spell = nullptr;   // a counted pointer (0052C690), released on the way out
-    const char* blueprint = nullptr;
+    itemdb::MaterialRecordHead* blueprint = nullptr;
     int blueprintCount = 0;
     int type = 0;            // the original's is uninitialised until a part sets it
     auto fail = [&]() {
@@ -762,7 +751,7 @@ bool CCampPages::CanMakeItem() {
             default: break;
             }
         } else if (IsKindOne(item)) {
-            const char* record = BlueprintRecord(item);
+            itemdb::MaterialRecordHead* record = BlueprintRecord(item);
             if (!blueprint) {
                 blueprint = record;
                 blueprintCount = 1;
@@ -774,16 +763,16 @@ bool CCampPages::CanMakeItem() {
         }
     }
     if (!blueprint || !part) return fail();
-    if (Read<int>(part, 0x4C) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(Read<const char*>(part, 0x10), Read<const char*>(blueprint, 0x04)) != 0)
+    if (static_cast<int>(part->materialUnits) != blueprintCount) return fail();
+    if (gamecrt::mbsicmp(part->materialClass, blueprint->soundName) != 0)
         return fail();
     constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {
         constructor->SetManager(nullptr);
         return fail();
     }
-    if (!constructor->SetPrototype(RecordText(part)) ||
-        !constructor->SetMaterial(RecordText(blueprint)) ||
+    if (!constructor->SetPrototype(part) ||
+        !constructor->SetMaterial(blueprint) ||
         !constructor->SetSpellObject(static_cast<CSpell*>(spell))) {
         constructor->SetManager(nullptr);
         return fail();

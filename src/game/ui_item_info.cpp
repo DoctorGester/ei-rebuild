@@ -49,12 +49,6 @@ using console::CStringArray;
 
 inline double D(float f) { return f; }
 
-template <typename T>
-T Read(const void* p, int offset) {
-    T v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
-    return v;
-}
 // A float the item database keeps as its bits (a dword field).
 float FloatOf(std::uint32_t bits) {
     float v;
@@ -63,8 +57,6 @@ float FloatOf(std::uint32_t bits) {
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatOf(T) = delete;
-
-const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast<const itemdb::SpellRecord*>(record); }
 
 int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
 
@@ -130,7 +122,7 @@ BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description
 }
 Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
-int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
+int Length(const mfc::CString& s) { return s.GetLength(); }
 
 // Items and spells through their addresses (thiscall): the prototype record (006A0110), the
 // category (006A4230), a weapon's type (006A07F0, CItemWeapon::GetType) and damage weights
@@ -185,12 +177,8 @@ EI_REPLACE(0x005F13A0, ItemDamageLists);
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
 
-// The spell and modifier record tables the spell book reads (UiRecordTable, ui.h; item_db.h).
-const UiRecordTable* SpellRecords() { return static_cast<const UiRecordTable*>(&itemdb::Spells()); }
-const UiRecordTable* ModifierRecords() { return static_cast<const UiRecordTable*>(&itemdb::SpellModifiers()); }
-
-// Record tables by stride (item_db.h): materials 0x50, weapons 0xB4, armour 200, quick items 0x8C.
-const char* RecordOf(const RecordTable& table, std::uint32_t index, int stride) { return table.RecordAt(index, stride); }
+// The spell and modifier records the spell book reads (itemdb::SpellAt / SpellModifierAt) and the
+// item records (item_db.h).
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;
@@ -273,8 +261,10 @@ constexpr int kQuest = 0x3007;
 constexpr int kSpellItem = 0x3008;
 constexpr int kLoot = 0x3009;
 
-int KindOf(CItem* item) { return Read<int>(item, 0x10); }
-std::uint32_t PackedIdOf(CItem* item) { return Read<std::uint32_t>(item, 0x18); }
+int KindOf(CItem* item) { return item->type_; }
+std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
+// The loot and quest items' kind (+0x4C), record type (+0x50) and record index (+0x54).
+const CItemLoot* LootOf(CItem* item) { return static_cast<const CItemLoot*>(item); }
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0:
@@ -323,8 +313,8 @@ void CItemInfoPanel::DescribeItem() {
 
     int kind = KindOf(item);
     if (kind == kQuest) {
-        int sort = Read<int>(item, 0x4C);
-        int sub = Read<int>(item, 0x50);
+        int sort = static_cast<int>(LootOf(item)->kind_);
+        int sub = static_cast<int>(LootOf(item)->recordType_);
         if (sort == 1) {
             DescribeMaterial();
             return;
@@ -346,7 +336,7 @@ void CItemInfoPanel::DescribeItem() {
         DescribeQuickItem();
         return;
     }
-    if ((reinterpret_cast<const std::uint8_t*>(interface_)[0x7C] && SpellOf(item)) || kind == kSpellItem) {
+    if ((interface_->ctrlDown_ && SpellOf(item)) || kind == kSpellItem) {
         DescribeCarriedSpell();
         return;
     }
@@ -383,14 +373,14 @@ void CItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
     }
-    if (kind != kLoot) w.Number(0, FtolOf(Read<float>(item, 0x34)));   // price
+    if (kind != kLoot) w.Number(0, FtolOf(item->Weight()));   // +0x34
 
     if (kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) {
         // The charge and the carried spell's level.
         CSpell* spell = SpellOf(item);
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
-        w.Number(2, FtolOf(Read<float>(item, 0x2C)));
-        w.line.Format("%s %d/%d", static_cast<const char*>(w.T(14)), spellValue, Read<int>(item, 0x40));
+        w.Number(2, FtolOf(item->chargeMax_));
+        w.line.Format("%s %d/%d", static_cast<const char*>(w.T(14)), spellValue, static_cast<int>(item->magicLevel_));
         w.Text(w.line);
         w.Down();
     } else if (kind == kQuick) {
@@ -399,9 +389,9 @@ void CItemInfoPanel::DescribeItem() {
 
     if (kind == kArmor || kind == kWeapon) {
         // The condition (current only when positive: FCOMP; TEST AH,0x41).
-        float current = Read<float>(item, 0x20);
+        float current = FloatOf(item->condition_);
         int condition = current > 0.0f ? FtolOf(current) : 0;
-        int maximum = FtolOf(Read<float>(item, 0x24));
+        int maximum = FtolOf(FloatOf(item->conditionMax_));
         w.line.Format("%s %d/%d", static_cast<const char*>(w.T(3)), condition, maximum);
         w.Text(w.line);
         w.Down();
@@ -416,8 +406,8 @@ void CItemInfoPanel::DescribeItem() {
                 w.line.Format("damage_%d", first);
                 texts->GetString(w.line, &text);
             }
-            float low = Read<float>(item, 0x50);
-            float spread = Read<float>(item, 0x54);
+            float low = weapon->damage_;
+            float spread = weapon->damageSpread_;
             int high = SumFtol(low, spread);
             int lowValue = FtolOf(low);
             w.line.Format("%s %d-%d %s", static_cast<const char*>(w.T(15)), lowValue, high,
@@ -427,7 +417,7 @@ void CItemInfoPanel::DescribeItem() {
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
             w.Number(38, Ftol(WeaponStat84(PackedIdOf(item))));
             if (weapon->GetType() == 5 || weapon->GetType() == 6)
-                w.Number(10, FtolOf(Read<float>(item, 0x58)));
+                w.Number(10, FtolOf(weapon->reach_));
             else
                 w.Number(39, Ftol(WeaponStat88(PackedIdOf(item))));
             goto tail;
@@ -476,8 +466,7 @@ EI_REWRITTEN(0x005EE760, CItemInfoPanel::DescribeItem);
 void CItemInfoPanel::DescribeMaterial() {
     CItem* item = Item();
     Texts* texts = TextManager();
-    const auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
-        itemdb::Materials().RecordAt(Read<std::uint32_t>(item, 0x54), itemdb::kMaterialSize));
+    const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(LootOf(item)->index_);
     if (!material) return;
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
@@ -522,12 +511,12 @@ void CItemInfoPanel::DescribeBlueprint() {
     // calls this only for kinds 0-2; the original leaves the record and kind uninitialised
     // otherwise (here: none, and it faults reading the record like a missing one).
     int sort = 3;
-    const char* record = nullptr;
-    std::uint32_t index = Read<std::uint32_t>(item, 0x54);
-    switch (Read<int>(item, 0x50)) {
-    case 0: sort = 0; record = RecordOf(itemdb::Weapons(), index, 0xB4); break;
-    case 1: sort = 1; record = RecordOf(itemdb::Armors(), index, 200); break;
-    case 2: sort = 2; record = RecordOf(itemdb::QuickItems(), index, 0x8C); break;
+    const itemdb::ItemRecordHead* head = nullptr;
+    std::uint32_t index = LootOf(item)->index_;
+    switch (static_cast<int>(LootOf(item)->recordType_)) {
+    case 0: sort = 0; head = itemdb::WeaponAt(index); break;
+    case 1: sort = 1; head = itemdb::ArmorAt(index); break;
+    case 2: sort = 2; head = itemdb::QuickItemAt(index); break;
     default: break;
     }
     mfc::CString name, description, kindText;
@@ -536,9 +525,9 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Draw()->Begin();
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record's +0x10) and the count.
-    const auto* head = reinterpret_cast<const itemdb::ItemRecordHead*>(record);
-    const auto* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(record);
-    const auto* armor = reinterpret_cast<const itemdb::ArmorRecord*>(record);
+    // (The weapon and armour views are read only for their own sort.)
+    const auto* weapon = static_cast<const itemdb::WeaponRecord*>(head);
+    const auto* armor = static_cast<const itemdb::ArmorRecord*>(head);
     mfc::CString text = head->materialClass;
     text.MakeLower();
     {
@@ -595,13 +584,12 @@ EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
 void CItemInfoPanel::DescribeSpellRecord() {
     CItem* item = Item();
     Texts* texts = TextManager();
-    const char* spell = SpellRecords()->SpellAt(Read<std::uint32_t>(item, 0x54));
+    const itemdb::SpellRecord* record = itemdb::SpellAt(LootOf(item)->index_);
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->Begin();
     w.Head(name, kindText);
-    const itemdb::SpellRecord* record = AsSpell(spell);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
     w.School(record->castType);
@@ -644,11 +632,10 @@ void CItemInfoPanel::DescribeModifierRecord() {
     Texts* texts = TextManager();
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
-    const char* modifier = ModifierRecords()->ModifierAt(Read<std::uint32_t>(item, 0x54));
+    const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(LootOf(item)->index_);
     Writer w(this);
     w.Draw()->Begin();
     w.Head(name, kindText);
-    const itemdb::SpellModifierRecord* record = reinterpret_cast<const itemdb::SpellModifierRecord*>(modifier);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
     w.Down();

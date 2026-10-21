@@ -34,8 +34,6 @@
 
 namespace {
 
-// The quest item table (007C8758; this window calls it the loot table): its records, then their name index.
-stlp::RecordsByName* LootTable() { return itemdb::Named(itemdb::TheItemDatabase().questItems); }
 float TurnedOver() { return 3.1415927f /*007410D0*/; }   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }
@@ -166,8 +164,9 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     text::ReplaceChar(&key, '_', ' ');
     key.MakeLower();
     const itemdb::ItemRecordHead* record;
-    // The name index's operator[] (0060AC20; an unknown name gets a null entry).
-    record = static_cast<const itemdb::ItemRecordHead*>(LootTable()->Named(key));
+    // The quest item table's (007C8758; this window calls it the loot table) name index's
+    // operator[] (0060AC20; an unknown name gets a null entry).
+    record = itemdb::TheItemDatabase().questItems.Named(key);
     if (!record) return;
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);

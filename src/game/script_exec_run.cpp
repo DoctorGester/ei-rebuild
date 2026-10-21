@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 #include "game_arrays.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -90,6 +91,10 @@ struct ParticleSourceElements {
 };
 using ParticleSources = mfc::CList<ScriptParticleSource, ParticleSourceElements>;
 static_assert(sizeof(ParticleSources::Node) == 0x2C);
+struct ParticleSourcesAbi {
+    using List = ParticleSources;
+    using Node = ParticleSources::Node;
+};
 
 void RespawnFxSources(CScript* script) {
     auto* next = script->fxSources_.head;
@@ -150,7 +155,7 @@ void UpdatePointLights(CScript* script) {
 }
 
 void UpdateParticleSources(CScript* script) {
-    auto& list = reinterpret_cast<ParticleSources&>(script->particles_);
+    ParticleSources& list = *mfc::impl::ListAs<ParticleSourcesAbi>(&script->particles_);
     auto* next = list.head;
     while (next) {
         ParticleSources::Node* node = next;

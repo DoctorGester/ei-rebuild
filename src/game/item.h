@@ -498,8 +498,8 @@ public:
     // records cleared, count 1, flag 8 set. Returns 1, or a fatal error's result.
     BOOL BeginCreateItem(int kind, int key);
 
-    BOOL SetMaterial(char* material);       // 006A5CC0. Returns 1.
-    BOOL SetPrototype(char* prototype);     // 006A5CD0. Returns 1.
+    BOOL SetMaterial(itemdb::MaterialRecordHead* material);   // 006A5CC0. Returns 1.
+    BOOL SetPrototype(itemdb::ItemRecordHead* prototype);     // 006A5CD0. Returns 1.
     BOOL SetSpellObject(CSpell* spell); // 006A5CE0. Returns 1 (not counted).
 
     // 006A5CF0. Builds the item. On failure releases it and returns null; otherwise hands it over
@@ -522,8 +522,8 @@ public:
     bool MagicCapacity(float* level, float* power);
 
     CBaseManager* manager_;   // +0x1C the item manager; counted (+4) but never released
-    char* material_;          // +0x20 material record or null
-    char* prototype_;         // +0x24 prototype record
+    itemdb::MaterialRecordHead* material_;   // +0x20 material record or null
+    itemdb::ItemRecordHead* prototype_;      // +0x24 prototype record
     CItem* item_;             // +0x28 counted
     CSpell* spell_;     // +0x2C
     int count_;               // +0x30 copied to the item's +0x48
