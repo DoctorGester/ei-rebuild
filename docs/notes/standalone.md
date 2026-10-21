@@ -57,8 +57,9 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 ### How it runs
 
 - **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is linked below
-  0x400000 and reserves 0x400000-0x7D7000. It copies game.exe's headers and .rsrc from disk into place
-  (data only), fills .text with INT3 and loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
+  0x400000 and reserves 0x400000-0x7D7000. It copies game.exe's headers from disk into place and no section
+  (.rsrc stays zero and PAGE_NOACCESS since S18h: a reader would end the run with `ei_standalone: read of game.exe's
+  .rsrc at ...`; the resource imports read game.exe loaded as a data file), fills .text with INT3 and loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
   and resolves game.exe's imports as it initialises (S18f: DDraw, mss32 and binkw32 from game.exe's folder or the
   working directory, the rest from System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
   then `InstallHooks` writes a JMP for every registration into the blank text. Forwarders, function pointers in data and vtable slots
@@ -121,7 +122,7 @@ each step green on the goldens and removing a measured tie:
   16 bits are 0xB000;
   the shift is set by an `init_seg(compiler)` object, before every other static constructor of the DLL (the
   harness's and the game globals' `GameData` references bind at static init). Nothing reads or writes the range
-  before it: the host lays out only headers and .rsrc, the loader and the DLL's CRT start-up touch no game data;
+  before it: the host lays out only the headers, the loader and the DLL's CRT start-up touch no game data;
   the log line counts the old range's nonzero bytes (0).
   **The bytes**: the host copies neither section (it skips RVAs 0033B000 and 00383000); the build writes
   their file bytes from 0073B000 up to .data's last nonzero dword, the import table's 0x820 bytes zero (our slots;
