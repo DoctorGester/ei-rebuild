@@ -1218,11 +1218,11 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   `EI_BUILD_DIR=<worktree>\build\verify-utf8`; copy the first run's `build\verify\runs\<scenario>-standalone\frames`
   away and compare each scenario with `python tools/compare_frames.py <off frames> <on frames> --tolerance 0
   --max-fraction 0`. U1's result: 51 of the 54 frames identical (menus, in-game HUD and dialogue, camp, base,
-  trade, titles and credits). The 3 others are ui_gallery_mp's briefing, chat_typed and chat_sent: the base
-  screen's player list (the face and "На базе", top right) is missing. That is not the text: with the switch off,
-  a few leaked game-heap allocations during the run (`gamecrt::operator_new` of 16, 64 or 100 bytes on every other
-  text lookup) lose the same face and status (the same 27249 pixels), so the chat window's drawing depends on the
-  heap's layout and the UTF-8 copies only move it. Goldens with the switch on differ only in ui_gallery_game's
+  trade, titles and credits). The 3 others were ui_gallery_mp's briefing, chat_typed and chat_sent: the base
+  screen's player list (the face and "На базе", top right) was missing. That was not the text but the heap's
+  layout (the UTF-8 copies only moved it; so did leaked allocations or a log line): the server's update lists the
+  player record and the client's binding in the order of its entries' addresses, and a player read before the
+  binding was listed as nobody (UB1, fixed: network.md "Original bugs kept (rest)", address_order.h). Goldens with the switch on differ only in ui_gallery_game's
   saves (the save title and the top panel text are UTF-8 now), which is allowed.
 - **Found for U2-U5**: the save name editor edits bytes (U4); `GetStringBuffer` cuts UTF-8 by bytes at the
   buffer size (U5); the clipboard copy converts with CP_ACP and `CharUpperA` in script_addon_strings upper-cases

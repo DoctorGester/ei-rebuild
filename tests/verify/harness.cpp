@@ -332,6 +332,10 @@
 //                             main thread's CPU and wall time per frame, ei::CodeAddress's lookups per
 //                             frame (all / by forwarders, S18i1); "-" only starts a new
 //                             count. Skipped in a run of the original code
+//   checkplayers              require the base screen on top, of a network client with a live binding, to
+//                             list every player the client holds (its chat window's faces; UB1: the order
+//                             of the players and the binding in an update follows the server's heap, run
+//                             with EI_HEAP_JITTER to vary it)
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
@@ -3655,6 +3659,11 @@ void RunSteps() {
                 frameWallMs / n, codeLookups / n, forwarderLookups / n);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
+        } else if (s.verb == "checkplayers") {
+            std::uintptr_t vtables[2] = {};
+            std::string why;
+            WindowVtables("briefing", vtables);
+            if (!address_order::CheckPlayerList(vtables, &why)) g_failures.push_back("checkplayers: " + why);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";

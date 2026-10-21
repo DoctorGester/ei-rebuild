@@ -251,7 +251,12 @@ dropped, true), 9 Receive / record, 10 pump (00478010, empty), 11 disconnect, 12
 ## Original bugs kept (rest)
 
 `SendUpdate`: an entry that overflows the budget stays in the packet uncounted, the rest of that priority waits,
-lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object without a null check. The
+lower priorities are still tried. Within a priority the entries go in the order of their addresses (`priorities_` is
+keyed by `ReplicaEntry*`), so which object the client reads first follows the server's heap. The client's player
+list (`CChatWindow::ShowPlayers`) lists nobody while the binding is missing and the original's binding handler
+0041E430 does not refresh it: players read before the binding left the base screen without faces and statuses
+(UB1). With `address_order::ById` (the standalone, harness runs) the binding refreshes the list when players are
+already there; the harness patches the original's 0041E430 the same way (address_order.h). `ReadRecord`'s skip path creates a throwaway object without a null check. The
 player record and `Track`'s entry write their count before the null check; `Receive` and `Tick` set and clear the
 current session / connection globals without the SEH frames that would reset them. `Connection::Construct`
 squares the uninitialised round-trip time. `PartyMemberMessage::Clone` (00417420) reads the copy's

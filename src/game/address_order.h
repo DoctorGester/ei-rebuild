@@ -12,7 +12,11 @@
 //     sectors' (sy, sx), as meant, instead of the slots' neighbours' pointers;
 //   - the client's draw lists (DrawPass 0056AFE0, UnitOrderLess 00574300, world_rules.cpp; SV7b6):
 //     by the texture's and the figure's names instead of their addresses, so the blending order of
-//     objects and shadows, and with it the frame, does not follow the heap.
+//     objects and shadows, and with it the frame, does not follow the heap;
+//   - the client's player list (net_client_handlers.cpp, 0041E430; UB1): an update packet lists its
+//     objects in the order of the server's ReplicaEntry addresses (Connection::priorities_), so the
+//     players may come before the client's binding and be listed as nobody (the base screen's faces
+//     and statuses missing); with ById the binding's arrival lists them again, as if it came first.
 
 #include <cstdint>
 
