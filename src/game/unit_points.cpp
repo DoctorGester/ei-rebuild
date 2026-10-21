@@ -1,6 +1,6 @@
 // Two CUnit virtual slots giving points of the unit (vtable 0073EA8C, shared by CFakeUnit
 // 0073BFE8): 52 the position predicted along its path (0052FCC0) and 53 the point its current
-// animation acts on (0052FDF0). Registered as free functions (thiscall as fastcall; rule 4). See
+// animation acts on (0052FDF0). Registered as members PositionAtImpl / AimPointImpl (rule 4). See
 // docs/notes/units.md ("Unit points").
 #include "ai_map.h"
 #include "ai_motion.h"
@@ -25,8 +25,6 @@ namespace {
 // turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
-Vector3* __fastcall AxisY(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
-
 constexpr int kOrderPath = 2;
 constexpr float kCellScale = 1.0f;            // 0073E9B8 / 0073EBF0
 constexpr float kHalf = 0.5f;                 // 0073B86C
@@ -41,8 +39,7 @@ void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->posit
 // 0052FCC0 (slot 52, RET 8). A dead unit (slot 55) gives its action point (slot 53); otherwise a
 // unit following a path order (kind 2) without flag 0x8000000 gives its motion's position at
 // `time`, and any other its position.
-float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, int time) {
-    auto* unit = reinterpret_cast<CUnit*>(object);
+static float* PredictPosition(CUnit* unit, float* out, int time) {
     // The controller's slot 16: its motion (the order in its first 0x20 bytes).
     AIPath* path = static_cast<CUnitController*>(unit->controller)->Path();
     if (IsDead(unit)) {
@@ -77,8 +74,7 @@ float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, i
 // bits (0x1C00000 of its flags): 0x400000 back (-Y), 0x800000 forward (+Y) by above[1], 0xC00000
 // right (+X), 0x1000000 left (-X) by above[0]. The point is kept only where the AI map lets size
 // class 3 stand (on the server); otherwise, and for a living unit, the position.
-float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
-    auto* unit = reinterpret_cast<CUnit*>(object);
+static float* ActionPoint(CUnit* unit, float* out) {
     if (!IsDead(unit)) {
         CopyPosition(out, unit);
         return out;
@@ -92,11 +88,11 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
         std::uint32_t side = entry->flags & 0x1C00000;
         Vector3 axis;
         if (side == 0x800000) {
-            AxisY(&unit->orientation, nullptr, &axis);
+            unit->orientation.AxisY(&axis);
             float reach = unit->above.y;
             offset = axis * reach;
         } else if (side == 0x400000) {
-            AxisY(&unit->orientation, nullptr, &axis);
+            unit->orientation.AxisY(&axis);
             float reach = unit->above.y;
             offset = -axis * reach;
         } else if (side == 0xC00000) {
@@ -124,5 +120,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
     return out;
 }
 
-EI_REPLACE(0x0052FCC0, UnitPredictPosition);
-EI_REPLACE(0x0052FDF0, UnitActionPoint);
+float* CUnit::PositionAtImpl(float* out, int time) { return PredictPosition(this, out, time); }
+EI_REPLACE_METHOD(0x0052FCC0, CUnit::PositionAtImpl);
+float* CUnit::AimPointImpl(float* out) { return ActionPoint(this, out); }
+EI_REPLACE_METHOD(0x0052FDF0, CUnit::AimPointImpl);

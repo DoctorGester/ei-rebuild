@@ -147,7 +147,7 @@ void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
         group->vtable = scriptvtable::kRefsBase;
         if (!group->data) continue;
         ScriptObjectRef* ref = group->data;
-        for (int k = group->size; k != 0; --k, ++ref) ScriptRefDestroy(&ref->object, nullptr, 0);
+        for (int k = group->size; k != 0; --k, ++ref) ref->DestroyElement(0);
         gamecrt::operator_delete(group->data);
     }
     gamecrt::operator_delete(groups.data);

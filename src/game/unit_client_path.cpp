@@ -47,7 +47,7 @@ float FullTurn() { return ei::GameData<const float>(0x007AF330); }   // set at s
 // +0x76 is set, then turns it: at once with unit flag 0x10000000, else blended toward the motion's
 // direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally the animation
 // speed factor +0x178 from the motion's speed and the figure's current animation.
-void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, float rate) {
+static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
     if (unit->flags_ & 0x4000000) return;
     float toCells = 1.0f / (kCellScale * kHalf);
@@ -128,11 +128,12 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
     unit->animationSpeed = static_cast<float>(numerator / denominator);
 }
 
-EI_REPLACE(0x00535850, ClientPlaceOnPath);
+void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
+EI_REPLACE_METHOD(0x00535850, CUnitClientSpecific::PlaceOnPath);
 
 // 00535B20 (slot 41 MotionChanged; A-U12): the unit placed on its new path at the time it was last
 // advanced to, without turning.
 void __fastcall ClientMotionChanged(CUnitClientSpecific* self) {
-    ClientPlaceOnPath(self, nullptr, self->lastTime, 0.0f);
+    self->PlaceOnPath(self->lastTime, 0.0f);
 }
 EI_REPLACE(0x00535B20, ClientMotionChanged);

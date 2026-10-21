@@ -39,8 +39,9 @@ stlp::RecordsByName* LootTable() { return ei::GamePointer<stlp::RecordsByName>(0
 float TurnedOver() { return 3.1415927f /*007410D0*/; }   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }
-const int* SlotXs() { return ei::GamePointer<const int>(0x0074111C); }   // 300, 500, 200, 400, 600, 75, 725
-const int* SlotYs() { return ei::GamePointer<const int>(0x00741138); }   // 300 x5, 500, 500
+// The seven speakers' places (800 x 600 layout).
+constexpr int kSlotXs[7] = /*0074111C*/ {300, 500, 200, 400, 600, 75, 725};
+constexpr int kSlotYs[7] = /*00741138*/ {300, 300, 300, 300, 300, 500, 500};
 using ActionDoneFn = void(__fastcall*)(CUnit*);
 ActionDoneFn SpeakerActionDone() { return ei::Code<ActionDoneFn>(0x006023F0); }
 
@@ -140,7 +141,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
             libcontainers::ConstructSpeaker(speakersEnd_, &added);
             ++speakersEnd_;
         } else {
-            libcontainers::InsertSpeakersOverflow(reinterpret_cast<libcontainers::Speakers*>(&speakers_), nullptr,
+            libcontainers::SpeakerAbi::InsertOverflow(reinterpret_cast<libcontainers::Speakers*>(&speakers_), nullptr,
                                                   speakersEnd_, &added, 1);
         }
         speakersEnd_[-1].unit = unit;
@@ -169,8 +170,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     record = static_cast<const itemdb::ItemRecordHead*>(stlp::RecordNamed(LootTable(), nullptr, key));
     if (!record) return;
 
-    float x = static_cast<float>(SlotXs()[index % kSlots]);
-    float y = static_cast<float>(SlotYs()[index % kSlots]);
+    float x = static_cast<float>(kSlotXs[index % kSlots]);
+    float y = static_cast<float>(kSlotYs[index % kSlots]);
     CUiMesh* back = nullptr;
     CUiMesh* frame = nullptr;
     if (index < kSlots) {

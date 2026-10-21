@@ -783,7 +783,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             }
             if (!ok) return fail(0);
             if (worldScript) return fail(Error(this, token.line, 14, "Only one WorldScript() per file allowed"));
-            worldScript = ScriptNewWorldScript(this, nullptr);
+            worldScript = NewWorldScript();
             if (!Orig(this)->LoadCommandsAt(&worldScript->commands, &pos, &tokens, nullptr)) return fail(0);
             break;
         }
@@ -853,7 +853,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         }
     }
 
-    if (worldScript && runWorldScript) ScriptRunWorldScript(this, nullptr, worldScript);   // 004BCC60
+    if (worldScript && runWorldScript) RunWorldScript(worldScript);   // 004BCC60
     LoadedFlag() = 1;
     ++FileCount();
     TokensDestruct(&tokens);

@@ -154,7 +154,8 @@ each step green on the goldens and removing a measured tie:
   the log line counts the old range's nonzero bytes (0).
   **The bytes**: the host copies neither section (it skips RVAs 0033B000 and 00383000); the build writes
   their file bytes from 0073B000 up to .data's last nonzero dword, the import table's 0x820 bytes zero (our slots;
-  ResolveImageImports fills them), .rdata's tail past 007828B2 zero (`tools/gen_image_cells.py --bytes`, a CMake
+  ResolveImageImports fills them), .rdata's tail past 007828B2 zero, the ranges our named globals hold zero
+  (config/named_data.csv, "Named data (C18)" below) (`tools/gen_image_cells.py --bytes`, a CMake
   custom command from `EI_GAME_EXE`; empty by default: `tools/exe_path.py` finds it) into
   build/<cfg>/image/image_data_bytes.inc, not committed (user 2026-10-21: the interim before named globals);
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
@@ -259,7 +260,8 @@ each step green on the goldens and removing a measured tie:
   literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
   cells 0073D720, 0073D728) stay.
 - **.rdata sealed** (S18g; `rdata` sealed in config/data_seam.csv, raw 365 -> 0): every use of 0073B820-00783000 reaches the
-  seam. **Vtables**: `ei::SetVtable(object, std::uintptr_t)` (include/ei/vcall.h) resolves its argument with `GameAddress`, so
+  seam. **Vtables** (until C19 makes a family's vtables the compiler's: "Compiler-made vtables" below):
+  `ei::SetVtable(object, std::uintptr_t)` (include/ei/vcall.h) resolves its argument with `GameAddress`, so
   the per-class `kVtableAddress` constants and the `SetVtable(this, 0x...)` literals are ids / helper arguments; the
   `const void*` overload takes a pointer already resolved (`X::Vtable()` accessors returning `GamePointer<void>`). A file's own
   vtable helper (`SetVtable(CUnitShape*, std::uintptr_t)`, `ConstructList`, `FreeArray`, `DestroyArray`, `InitList`,
@@ -292,8 +294,125 @@ each step green on the goldens and removing a measured tie:
 | S18j | game.exe's resources built into ei_standalone.exe (a .res from the build), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
 | S18k | an ordinary host (no fixed base, no range in its image; free parts of the range reserved as the guard), no read of game.exe (dispatch bytes from the build, imports from the game folder), stray game addresses reported by the seam | the address image (dashboard "image ties" 5 -> 0) |
 
-Not on this path: named, typed globals in place of a section's bytes and vtables as real virtual classes
-(cleanup after S18k), plain new / delete and standard containers (C14), Win32 calls linked directly.
+Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
+classes (C19), plain new / delete and standard containers (C14), Win32 calls linked directly.
+
+### Named data (C18)
+
+The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
+after its first batch, 3,000 after the second). C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
+vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
+eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
+that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
+kinds given.
+- **The form**: a typed definition whose initialiser carries the original's address as a tag right after the `=`:
+  `constexpr int kSlotXs[7] = /*0074111C*/ {300, 500, 200, 400, 600, 75, 725};`. The code names the global
+  (`kSlotXs[i]`), never the address. It lives in the file that reads it (its anonymous namespace), or as
+  `inline constexpr` in the subsystem's header when several files read it (ui_camp.h's `kBodySlotX`). A single float,
+  double or integer is no table: it is rdata_literals' tagged literal (`5.0f /*007402EC*/`, S18e), even when the code
+  copied its bytes with memcpy.
+- **The check** (`python tools/named_data.py --check`, build.cmd): the initialiser's numbers, packed by the declared
+  element type (`TYPES`: the scalars, GUID as `IHH8B`; nested braces are flattened, a `[n]` bound must match the
+  count), are game.exe's bytes at the tag (.rdata past the import table, or .data and its zero-filled tail);
+  config/named_data.csv lists exactly the tagged ranges (address, size, name, file; `--update` writes it); and
+  nothing else reaches a range: no address literal of src/ or tests/ (.cpp, .h, .inc, comments blanked) inside it,
+  no pointer cell of game.exe's data inside it or pointing into it (image_cells.inc), no code cell inside it
+  (image_code_cells.inc), no addon.dll site, no two ranges overlapping. A wrong value fails with its first
+  differing byte.
+- **The bytes**: gen_image_cells.py --bytes writes the csv's ranges zero (CMake's custom command depends on the
+  csv), so the image's copy of the sections no longer carries them; what the check proves unreachable is also
+  unread at run time.
+- **A batch** (the method; batch 1 did the interface's .rdata tables, 13 addresses: ui_hero_preview's four clear
+  rectangle tables, ui_item_view's school glow colours and its pi / 5.0 floats, ui_briefing_people's speaker places,
+  ui_hud_slide's part positions, the camp body slots of ui_container_draws / ui_hero_panels):
+  1. `python tools/named_data.py --split "<kind>"`: take the addresses of one kind whose owner is your area.
+  2. Per address: read its uses for the extent (the count the code indexes, the original's bound, the next tagged
+     neighbour) and the element type; write the definition with the tag (the values from game.exe:
+     `gen_image_cells.image(exe_path.find_exe())` in a `python -c`, or write zeros and let --check name the first
+     difference).
+  3. Replace every read (`GamePointer<const T>(0x...)`, `GameData<const T>(0x...)`, the per-file accessor
+     returning the pointer) with the name; drop the accessor and the comments that repeated the address or the
+     values.
+  4. `python tools/named_data.py --update`, then `--check`, `data_seam.py --check`, `rdata_literals.py --check`,
+     `check_cleanup.py` (`--update` when its counts went down), `build.cmd verify` and `release`, and
+     `python tools/work.py test <ID> --golden --jobs 4`.
+- **What the other kinds need** (later batches):
+  - .rdata tables of numbers or GUIDs (app_dxversion, input_mouse, device.h: the DirectX interface ids): as batch 1.
+    Batch 2 (C18b) did unit* (the armour tables, one definition for the overlapping 0073E09C/A0/A4 read as four
+    entries per hit location), effects.h's sphere size curves (read by effects.cpp and particle_callbacks.cpp),
+    figure_models' hash prime list, link_mesh_draw's RECT, and the scalars net_connection / net_lobby /
+    hoover_loot as rdata literals. A table of names is a `char name[rows][cols][n]` of string literals (TYPES
+    has no entry: `char` packs each literal into the last bound's chars, zero padded; kArmourPartNames).
+    A vector recorder or replayer that read a named table by address reads the name instead (unitdb::kSlotWeights).
+    What is left of the ticket's list holds string pointers (random 0073D080, world_server_life 0073F918,
+    terrain_sector 00744164, terrain_landscape 007441D4): C18c. Keep the original's bound on an index the data
+    gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
+    array where the original read the neighbouring .rdata; no database has one).
+  - Tables that hold pointers (material.h 00743BF8, sound_music 00744090, the CRuntimeClass and EH records of
+    src/lib): the check refuses them (a pointer cell inside the range); they need pointers to our own objects, which
+    the packing does not compare yet.
+  - .data and .bss objects (written at run time): the same form without constexpr (`int g_x = /*0079xxxx*/ {5};`,
+    `{}` for the zero-filled tail). Before converting, every reader must use the name: the generated static
+    initialisers and exit functions (static_init.cpp / static_exit.cpp store into or destroy it: the definition's
+    initialiser or constructor takes the store's place, in the list's order when it has a constructor), the
+    harness (tests/verify runs in game.exe too, where a name is our copy and not the original's object: it keeps
+    the address there), the vectors' stand-ins (tests/vectors fill recorded values by address), and game.exe's
+    data pointing at it (a cell keeps it at its address). Saves and messages carry values, not addresses: the
+    goldens catch a changed value.
+  - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
+
+### Compiler-made vtables (C19)
+
+Most objects still get game.exe's vtables: the constructors we wrote out store the address (`ei::SetVtable`), and the
+image's copy of each table holds code cells that image_code.cpp points at our registered functions. C19 makes the
+classes real C++ virtual classes, one family per batch, so the compiler builds their vtables and game.exe's tables
+are left to nobody. The split (batch 1, tools: `find_vtables.py`'s config/vtables.csv, 619 vtables, 7,258 slot code
+cells; who names each address in src/ and tests/, comments blanked):
+
+| Family | Vtables | Slots | What ties it |
+|---|---|---|---|
+| container instantiations (mfc_array / mfc_slots / mfc_list, record_arrays, class_templates) | 159 | 475 | one table per CArray / CList instantiation: a template parameter of the shared templates |
+| world, units, items, spells, effects, AI, combat, party | 101 | 1,358 | |
+| interface (ui*, console) | 88 | 1,574 | slots called by index (`vtable_[n]`: 74 sites, ui.h 28) |
+| library (MFC, CRT; RTTI type_info) | 54 | 522 | MFC's own classes; with C14 |
+| network (net*, link*, player_sync, server*) | 45 | 422 | message classes (net_messages.cpp: 117 stores) |
+| no store in src/ | 39 | 421 | only game.exe's code installed them (base vtables a destructor stores, ...): check, then retire |
+| render, device, textures, figures, scene, sound | 39 | 516 | |
+| map objects (map_object*, object3d*, trap, magic trap, lever, torch, sky, lightning) | 39 | 947 | |
+| named by the harness | 35 | 940 | the window labels (`kKnownWindows`, `WindowReady`, the census's `W<vtable>#n`), the digest's AI modes and CSpellEffect, harness_savetrace's stream Write slots, the console streambuf's sync slot (`PatchSlot`) |
+| streams, files, resources, core | 17 | 136 | |
+| src/lib only | 3 | 7 | |
+
+Nothing else depends on a vtable's address: saves and network messages carry values (no vtable comparison in src/),
+game.exe's game classes have no RTTI (only MFC's have type descriptors; nothing reads them), find_vtables reads RTTI
+names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5 (mod_folders reproduces it).
+
+**The method** (batch 1: the ground prints, ground_print.{h,cpp}, 0073F754 / 0073F760 / 0073F76C / 0073F778):
+1. Pick a family whose vtables only its own files name (`python tools/named_data.py --split vtable` lists each
+   vtable address with the files that name it; tests/ too: grep the harness), with no harness use (or replace
+   that first, below).
+2. The classes: drop `__declspec(novtable)` and the `kVtableAddress` constants; the virtuals stay declared in
+   game.exe's slot order (every slot, so slot indexes keep their meaning) and hold the bodies (`TickImpl` becomes
+   `Tick`); a derived slot calls the base's qualified (`GroundPrint::Tick()`).
+3. The constructors become C++ constructors (the shared part a protected one, the copy the lists make a copy
+   constructor); callers construct in place (`new (storage) BloodPrint(...)`, `new (to) BloodPrint(from)` in the list
+   policies). Members must be trivially default-constructible (or initialised in the list as the original does):
+   a constructor default-initialises what it does not name. The explicit `Destruct` / deleting destructors can stay.
+4. The registrations stay (C20 retires them): virtual slots and constructors through `__fastcall` shims that call
+   without dispatch (`self->GroundPrint::Tick()`, `new (self) GroundPrint(...)`; rewrite guide rule 4).
+5. List the family's game.exe vtables in config/retired_vtables.csv (vtable, slots, class, declaring file):
+   gen_image_cells.py moves their slots out of the code cells (group `vtable-retired`; the `vtable` group's count is
+   7,258 less the retired slots) and writes their bytes zero in the image; named_data.py --check proves nothing names an
+   address inside them (src/, tests/), no pointer cell points into them and no code cell is left in them. A vtable two
+   classes shared (0073F778, the copy constructor's) goes when both do.
+6. `python tools/gen_image_cells.py`, the checks, both builds, `work.py test <ID> --golden --jobs 4`.
+- **Ids for later families**: the harness names objects by game.exe's vtable (window labels in goldens: the census's
+  `W00740688#3`, `waitwindow`, the digest's AI modes). A converted class needs an id that both game.exe runs (golden
+  recording) and the image give the same: e.g. the harness maps a vtable to a name (`kKnownWindows`' names) through
+  game.exe's address in game.exe and through the class's compiler vtable (read from a constructed object, or
+  `typeid` once no game.exe table is left in that hierarchy) in the image; when the label text changes, re-record with
+  `--no-hooks --golden --fresh`. Slots the harness patches (`PatchSlot`, harness_savetrace) need a hook in our code
+  instead.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 

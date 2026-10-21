@@ -115,10 +115,12 @@ float RandomPhase(std::uint32_t random) {
 }
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the
-// school's colour (00740358, 16 bytes per school) into 0xFFrrggbb. The phase is stored as float
+// school's colour (kSchoolGlow) into 0xFFrrggbb. The phase is stored as float
 // but the sine and the colour use the unrounded value, as the original.
-// The spell schools' glow colours (four floats each, 0x10 bytes apart from 00740358).
-const float* SchoolGlow(int school) { return ei::GamePointer<const float>(0x00740358) + school * 4; }
+// The spell schools' glow colours (red, green, blue and an unused 1 each).
+constexpr float kSchoolGlow[8][4] = /*00740358*/ {
+    {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f},
+    {1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}};
 
 std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const double advanced = static_cast<double>(dt) * 5.0 /*007403F0*/ + turn->glow;
@@ -147,7 +149,7 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
         double pi = D(3.1415927f /*007402C0*/);
         turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(4.0f /*0073BAA0*/));
     }
-    if (turn->speed > 5.0f /*007402EC*/) std::memcpy(&turn->speed, ei::GamePointer<const void>(0x007402EC), 4);
+    if (turn->speed > 5.0f /*007402EC*/) turn->speed = 5.0f /*007402EC*/;
     // The angle is stored (FST) and compared unrounded with 2 pi (FCOMP; TEST AH,0x41: wraps while
     // above, not when equal or unordered).
     double angle = static_cast<double>(dt) * turn->speed + turn->angle;
@@ -162,9 +164,7 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
 Quaternion HalfTurn(float ax, float ay, float az) {
     const Vector3 axis = {ax, ay, az};
     Quaternion q;
-    float pi;
-    std::memcpy(&pi, ei::GamePointer<const void>(0x007402C0), 4);
-    q.SetAxisAngle(axis, pi);
+    q.SetAxisAngle(axis, 3.1415927f /*007402C0*/);
     return q;
 }
 
@@ -276,7 +276,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         if (spell && (kind == 0x3004 || kind == 0x3005)) {
             int school = Get<int>(reinterpret_cast<CSpell*>(spell)->GetPrototype(), 0x14);
             if (school < 8)
-                Set(model, 0xD8, Glow(dt, turn, SchoolGlow(school)));
+                Set(model, 0xD8, Glow(dt, turn, kSchoolGlow[school]));
             else
                 turn->glow = 0.0f;
         }

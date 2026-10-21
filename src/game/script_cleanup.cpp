@@ -120,7 +120,7 @@ void __fastcall ScriptResetZone(CScript* script) {
     script->globals_.ResetValues();
     for (auto* node = script->worldBlocks_.head; node;) {
         auto* next = node->next;
-        ScriptRunWorldScript(script, nullptr, &node->data);
+        script->RunWorldScript(&node->data);
         node = next;
     }
 }

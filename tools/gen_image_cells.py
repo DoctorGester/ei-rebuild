@@ -20,7 +20,8 @@ has looked at it. Every game.exe 1.06 has the same .rdata and .data (vanilla's a
 The code cells (S18i, src/standalone/image_code_cells.inc; image_code.cpp points each at our code once the
 registrations are in, or at a stub that reports there is no code at its address): the aligned dwords of the same data
 whose value lies in game.exe's code section and that are code pointers: the cells of the structures the tool walks
-(CODE_STRUCTURES: vtable slots from config/vtables.csv, the C++ exception tables' funclets, destructors and copy
+(CODE_STRUCTURES: vtable slots from config/vtables.csv less the retired vtables' (config/retired_vtables.csv, C19:
+classes whose vtable is the compiler's; their bytes are zero in the image), the C++ exception tables' funclets, destructors and copy
 constructors, MFC's CreateObject, the static initialiser list) and the CODE_REVIEWED groups (MFC's message maps, the
 CRT's function pointers). The rest of the dwords in that range are left as they are: NOT_CODE groups (text, the
 import names' hints, the CRT's SEH scope tables, which only game.exe's own frames read) and text by the filters above
@@ -29,12 +30,12 @@ whose value is no function start (config/functions.csv). A dword that is neither
 usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT] [--dispatch OUT]
   (no option)  write src/standalone/image_cells.inc and image_code_cells.inc
   --check      exit 1 when the files differ from what the scan writes, or a cell has no review (build.cmd)
-  --bytes OUT  write the moved range's initial bytes (.rdata's and .data's file bytes, the import table zero) to OUT
-               as a C++ initialiser (the build)
+  --bytes OUT  write the moved range's initial bytes (.rdata's and .data's file bytes, the import table and the ranges
+               our named globals hold zero: config/named_data.csv, C18) to OUT as a C++ initialiser (the build)
   --dispatch OUT write the dispatch-only functions' bytes (MOV EAX,[ECX]; JMP [EAX+n]) to OUT (the build: InstallHooks
                checks the EI_REPLACE_DISPATCH thunks against them, S18k)
 """
-import argparse, csv, os, struct, sys
+import argparse, csv, os, re, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exe_path  # noqa: E402
@@ -46,6 +47,8 @@ RUNTIME_CLASSES = os.path.join(ROOT, 'config', 'runtime_classes.csv')
 VTABLES = os.path.join(ROOT, 'config', 'vtables.csv')
 FUNCTIONS = os.path.join(ROOT, 'config', 'functions.csv')
 LIBRARY = os.path.join(ROOT, 'config', 'library.csv')
+NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
+RETIRED_VTABLES = os.path.join(ROOT, 'config', 'retired_vtables.csv')
 BASE = 0x00400000
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
@@ -144,9 +147,13 @@ REVIEWED_RDATA = [
     (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
 ]
 
-# Code cells of the structures the tool walks (code_structures()): kind, the number of cells, what.
+# Code cells of the structures the tool walks (code_structures()): kind, the number of cells, what. The vtables'
+# 7258 are game.exe's; the retired ones' (config/retired_vtables.csv, C19: classes whose vtable is the compiler's now)
+# are not code cells: nothing installs those vtables, and the image holds their bytes zero (write_bytes).
+VTABLE_SLOT_CELLS = 7258
 CODE_STRUCTURES = [
-    ('vtable', 7258, "a vtable's slots (config/vtables.csv)"),
+    ('vtable', None, "a vtable's slots (config/vtables.csv)"),
+    ('vtable-retired', None, "a retired vtable's slots (config/retired_vtables.csv): not code cells"),
     ('eh-unwind', 13129, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet)"),
     ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet)'),
     ('eh-throw', 2, "C++ EH: ThrowInfo: the thrown object's destructor"),
@@ -357,11 +364,13 @@ def code_structures(img):
         if in_code(dw(cell)):
             kinds.setdefault(cell, kind)
 
+    retired = {v + 4 * i for v, n, _, _ in retired_vtables() for i in range(n)}
     with open(VTABLES, newline='') as f:
         for row in csv.DictReader(f):
             vtable = int(row['vtable'], 16)
             for i in range(int(row['slots'])):
-                mark(vtable + 4 * i, 'vtable')
+                cell = vtable + 4 * i
+                mark(cell, 'vtable-retired' if cell in retired else 'vtable')
     lo, hi = SCANNED[0][1], SCANNED[0][2]
     for a in range(lo, hi - 20, 4):
         if dw(a) == 0x19930520:   # FuncInfo: magic, maxState, pUnwindMap ({toState, action}), nTryBlocks, pTryBlockMap
@@ -431,11 +440,17 @@ def code_check(img, problems):
                             '(CODE_REVIEWED) or not (NOT_CODE)? (tools/gen_image_cells.py)')
             continue
         counts[g] = counts.get(g, 0) + 1
-        if g[0] in ('structure', 'code'):
+        if g[0] == 'code' or g[0] == 'structure' and CODE_STRUCTURES[g[1]][0] != 'vtable-retired':
             code.append((c, v, g))
+    retired = sum(n for _, n, _, _ in retired_vtables())
+    check_retired(problems)
     for name, groups in (('structure', CODE_STRUCTURES), ('code', CODE_REVIEWED), ('not', NOT_CODE)):
         for i, g in enumerate(groups):
             n = g[1] if name == 'structure' else g[2]
+            if name == 'structure' and g[0] == 'vtable':
+                n = VTABLE_SLOT_CELLS - retired
+            elif name == 'structure' and g[0] == 'vtable-retired':
+                n = retired
             have = counts.get((name, i), 0)
             what = g[2] if name == 'structure' else f'{g[0]:08X}-{g[1]:08X} ({g[3]})'
             if have != n:
@@ -521,17 +536,60 @@ def render(cells, img):
     return '\n'.join(lines) + '\n'
 
 
+def named_ranges():
+    """(address, size) of the ranges our named globals hold now (config/named_data.csv, tools/named_data.py) and of
+    the retired vtables (config/retired_vtables.csv, C19)."""
+    with open(NAMED_DATA, newline='') as f:
+        named = [(int(r['address'], 16), int(r['size'])) for r in csv.DictReader(f)]
+    return named + [(v, 4 * n) for v, n, _, _ in retired_vtables()]
+
+
+def retired_vtables():
+    """(vtable, slots, class, file) of config/retired_vtables.csv: game.exe's vtables of classes whose vtable is the
+    compiler's now (C19; docs/notes/standalone.md "Compiler-made vtables"). Nothing installs them: their slots are no
+    code cells and the image holds their bytes zero; tools/named_data.py --check proves nothing names or points
+    into them."""
+    if not os.path.exists(RETIRED_VTABLES):
+        return []
+    with open(RETIRED_VTABLES, newline='') as f:
+        return [(int(r['vtable'], 16), int(r['slots']), r['class'], r['file']) for r in csv.DictReader(f)]
+
+
+def check_retired(problems):
+    """Each retired vtable is a game vtable of config/vtables.csv with all its slots, listed once."""
+    with open(VTABLES, newline='') as f:
+        vtables = {int(r['vtable'], 16): (int(r['slots']), r['kind']) for r in csv.DictReader(f)}
+    seen = set()
+    for v, n, cls, path in retired_vtables():
+        where = f'config/retired_vtables.csv: {v:08X} ({cls})'
+        if v in seen:
+            problems.append(f'gen_image_cells: {where} is listed twice')
+        seen.add(v)
+        if v not in vtables:
+            problems.append(f'gen_image_cells: {where} is not a vtable of config/vtables.csv')
+        elif vtables[v][0] != n:
+            problems.append(f'gen_image_cells: {where} has {n} slot(s), config/vtables.csv {vtables[v][0]}')
+        if not os.path.exists(os.path.join(ROOT, path)):
+            problems.append(f'gen_image_cells: {where}: no file {path}')
+        elif not re.search(rf'\b(class|struct)\s+{re.escape(cls)}\b',
+                           open(os.path.join(ROOT, path), encoding='utf-8', errors='replace').read()):
+            problems.append(f'gen_image_cells: {where}: {path} declares no class {cls}')
+
+
 def write_bytes(img, path):
     lo = MOVED[0]
     end = SCANNED[-1][2]   # the file's bytes; the rest of the range is zero
     data = bytearray(img[lo - BASE:end - BASE])
     data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
+    named = named_ranges()
+    for a, n in named:   # named globals of ours now (C18): nothing reads these bytes
+        data[a - lo:a - lo + n] = bytes(n)
     while data.endswith(b'\0\0\0\0'):
         data = data[:-4]
     words = struct.unpack(f'<{len(data) // 4}I', data)
     lines = ['// Generated by tools/gen_image_cells.py --bytes from game.exe at build time (not committed). Do not edit.',
-             f"// game.exe's .rdata and .data from {lo:08X} as its file holds them (the import table zero), up to the "
-             f"last nonzero dword: {len(words)} dwords."]
+             f"// game.exe's .rdata and .data from {lo:08X} as its file holds them (the import table and the {len(named)} "
+             f"ranges of config/named_data.csv and config/retired_vtables.csv zero), up to the last nonzero dword: {len(words)} dwords."]
     for i in range(0, len(words), 8):
         lines.append(','.join(f'0x{w:X}' for w in words[i:i + 8]) + ',')
     text = '\n'.join(lines) + '\n'

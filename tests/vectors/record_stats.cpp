@@ -229,7 +229,6 @@ int LetterOf(std::uint32_t index) {
 }
 
 constexpr int kSkillLevelBytes = 0x24;                // UnitStats::SkillPrice sums these
-constexpr std::uintptr_t kSlotWeights = 0x0073E0FC;   // unit_params_protection.cpp
 constexpr std::uintptr_t kFactorStatRange = 0x007AF280;   // unit_stats.cpp
 
 // 00527050
@@ -405,8 +404,8 @@ void __fastcall ProtectionBlockRecord(UnitParams* self, void*, const UnitVitalsP
         view.kind = slot.kind;
         std::memcpy(view.protection, slot.protection, sizeof(view.protection));
         if (keyed && slot.kind > 1) {
-            if (slot.type < 0 || slot.type >= 8) recordable = false;
-            else view.weight = ei::GameData<const float>(kSlotWeights + 4 * slot.type);
+            if (slot.type < 0 || slot.type >= unitdb::kSlotTypes) recordable = false;
+            else view.weight = unitdb::kSlotWeights[slot.type];
         }
     }
     std::memcpy(v.vitals, vitals->protection, sizeof(v.vitals));

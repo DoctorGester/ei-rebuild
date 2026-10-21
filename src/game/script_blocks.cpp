@@ -65,10 +65,10 @@ ScriptDecl* CScript::NewCommandList() {
 EI_REPLACE_METHOD(0x004BF540, CScript::NewCommandList);
 
 // 004BF900 CScript::NewWorldScript.
-ScriptDecl* __fastcall ScriptNewWorldScript(CScript* script, void*) {
-    return AppendBlock(&script->worldBlocks_, 0x80000000u);
+ScriptDecl* CScript::NewWorldScript() {
+    return AppendBlock(&worldBlocks_, 0x80000000u);
 }
-EI_REPLACE(0x004BF900, ScriptNewWorldScript);
+EI_REPLACE_METHOD(0x004BF900, CScript::NewWorldScript);
 
 // 004BCE10 CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
 // 004CDB30 constructs the slot), the empty temporary's parts are copied in (004CE2F0) and the last

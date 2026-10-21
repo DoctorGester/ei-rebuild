@@ -42,6 +42,11 @@ R VirtualCall(void* object, int slot, Args... args) {
     return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
 }
 
+// The wide preview's six rectangles cleared to the far plane (800 x 600 layout), one table per edge.
+constexpr LONG kWideClearLeft[6] = /*007402F8*/ {290, 272, 272, 510, 510, 510};
+constexpr LONG kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290, 390};
+constexpr LONG kWideClearRight[6] = /*00740328*/ {510, 290, 290, 528, 528, 528};
+constexpr LONG kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410};
 
 // The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
 // 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
@@ -111,11 +116,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     RECT rects[6];
     if (static_cast<std::uint8_t>(wide) != 0) {
         for (int i = 0; i < 6; ++i) {
-            RECT r;
-            r.left = Get<LONG>(ei::GamePointer<const void>(0x007402F8), i * 4);
-            r.top = Get<LONG>(ei::GamePointer<const void>(0x00740310), i * 4);
-            r.right = Get<LONG>(ei::GamePointer<const void>(0x00740328), i * 4);
-            r.bottom = Get<LONG>(ei::GamePointer<const void>(0x00740340), i * 4);
+            RECT r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
             interface_->CallScaleRectToScreen(&r);
             rects[i] = r;
         }

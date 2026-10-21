@@ -367,9 +367,9 @@ void CHeroEquipPanel::Build(bool body) {
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
     Builder(AddSprite(0))->Cells(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
-        // The body's slots: 100x100 around the centres of two tables (00741EC4 x, 00741EE0 y).
-        const int* xs = ei::GamePointer<const int>(0x00741EC4);
-        const int* ys = ei::GamePointer<const int>(0x00741EE0);
+        // The body's slots: 100x100 around their centres.
+        const int* xs = kBodySlotX;
+        const int* ys = kBodySlotY;
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
         LoadTexture("camp1", 3, 0);   // camp1
         LoadTexture("camp2", 3, 0);   // camp2
@@ -385,10 +385,7 @@ void CHeroEquipPanel::Build(bool body) {
     }
     selected_ = -1;
 }
-namespace {
-void __fastcall EquipBuild(CHeroEquipPanel* self, void*, int body) { self->Build(static_cast<std::uint8_t>(body) != 0); }
-} // namespace
-EI_REPLACE(0x00622000, EquipBuild);
+EI_REPLACE_METHOD(0x00622000, CHeroEquipPanel::Build);
 
 // --- 00622DB0: the statistics panel's Build (slot 18) ---------------------------------------------
 
@@ -509,10 +506,7 @@ void CHeroQuickStrip::Build(bool top) {
                                  0x8E, 0x72, 0xF2, 8, 1);
     selected_ = -1;
 }
-namespace {
-void __fastcall QuickStripBuild(CHeroQuickStrip* self, void*, int top) { self->Build(static_cast<std::uint8_t>(top) != 0); }
-} // namespace
-EI_REPLACE(0x00622A80, QuickStripBuild);
+EI_REPLACE_METHOD(0x00622A80, CHeroQuickStrip::Build);
 
 // --- 006280C0 / 00628CC0: the constructors' second pages ---------------------------------------------
 

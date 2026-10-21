@@ -73,18 +73,10 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list);
 // 004A88A0 / 004A88C0: new game; the records reset (004A5BD0), then five / four templates (004A7630).
 void __fastcall PartyManagerNewGame(void* manager);
 void __fastcall PartyManagerNewGameFour(void* manager);
-// 004A8890 / 004A8880: 004A6050 / 004A6360 on the records (the script's redeploy).
-void __fastcall PartyManagerBeginRedeploy(void* manager, void* edx, void* players);
-void __fastcall PartyManagerEndRedeploy(void* manager, void* edx, void* players);
+// (004A8890 / 004A8880 are PartyManager::BeginRedeploy / EndRedeploy.)
 // 004A8910 (__stdcall): *out = the counter at 0078B0E8, then the counter is raised; returns it.
 int __stdcall PartyNextId(int* out);
-// 004A8790 (__thiscall on a hash_map<int, Party>, four stack arguments, the first two unused):
-// key 0 resets `target` (00661700(1, 0)); else the party stored under the key is copied into it
-// (00661300). False when the key is not stored. Sets AL only.
-bool __fastcall PartyMapLoad(const void* map, void* edx, int unused1, int unused2, const int* key, void* target);
-// 004A8800 (__thiscall). Copies `source` into the party stored under the key (operator[] 004A91B0
-// creates it when missing). True.
-bool __fastcall PartyMapStore(void* map, void* edx, const int* key, const void* source);
+// (004A8790 / 004A8800 are PartyManager::LoadParty / StoreParty.)
 
 // 004BAEC0 (__fastcall: ECX player, EDX name; script_runtime_helpers.cpp). The party a script's
 // "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty without "::")

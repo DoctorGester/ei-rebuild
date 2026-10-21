@@ -54,7 +54,7 @@ void CInterface3D::SetConsoleHistory(int lines) {
 }
 EI_REPLACE_METHOD(0x005F7EF0, CInterface3D::SetConsoleHistory);
 
-void CInterface3D::SetDebugInfoRect(const RECT* rect) { strmap::PanelSetRect(DebugInfoPanel(), nullptr, rect); }
+void CInterface3D::SetDebugInfoRect(const RECT* rect) { DebugInfoPanel()->SetRect(rect); }
 EI_REPLACE_METHOD(0x005F7F10, CInterface3D::SetDebugInfoRect);
 
 void CInterface3D::ShowFps(int on) {

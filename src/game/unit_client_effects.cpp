@@ -53,7 +53,7 @@ constexpr int kMinFlashTicks = 4;
 
 // The armour slots covering each hit location (0073EC78: four ints per location; columns 2, 0,
 // 1 are tried in that order, 7 none). Indexed as the original does, without a range check.
-const std::int32_t (*HitArmourRows())[4] { return reinterpret_cast<const std::int32_t(*)[4]>(ei::GameAddress(0x0073EC78)); }
+constexpr std::int32_t kHitArmourRows[6][4] = /*0073EC78*/ {{7, 7, 0, 7}, {3, 7, 1, 7}, {3, 6, 1, 7}, {3, 6, 1, 7}, {4, 5, 2, 7}, {4, 5, 2, 7}};
 constexpr int kArmourColumns[3] = {2, 0, 1};
 
 // The figure part and the particle attach point of each hit location.
@@ -111,7 +111,7 @@ float SmallerExtent(const CUnit* unit) {
 
 // The hero's armour material over `location`, or null.
 const itemdb::MaterialRecordHead* ArmourMaterial(const CUnitClientSpecific* self, int location) {
-    const std::int32_t* row = HitArmourRows()[location];
+    const std::int32_t* row = kHitArmourRows[location];
     for (int column : kArmourColumns) {
         int slot = row[column];
         if (slot == kNoArmourSlot) continue;

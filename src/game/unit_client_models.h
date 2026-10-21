@@ -69,11 +69,14 @@ struct ClientSpeechNode {
 };
 static_assert(sizeof(ClientSpeechNode) == 0x1C);
 
-// The figure part names of the three armour groups (0073EC24: seven char[4] each): a body
+// The figure part names of the three armour groups (seven char[4] each): a body
 // armour covers "bd" and the arm pieces, trousers "hp" and the legs, a helmet the hair "hr" and
 // the head "hd" (the rest of that row is empty). Armour slots 0 / 1 / 2 use rows 2 / 0 / 1.
-using PartNameRow = char[7][4];
-inline const PartNameRow* ArmourPartNames() { return ei::GamePointer<const PartNameRow>(0x0073EC24); }
+inline constexpr char kArmourPartNames[3][7][4] = /*0073EC24*/ {
+    {"bd", "rh1", "rh2", "rh3", "lh1", "lh2", "lh3"},
+    {"hp", "rl1", "rl2", "rl3", "ll1", "ll2", "ll3"},
+    {"hr", "hd", "", "", "", "", ""},
+};
 
 // One layer of a composed skin (0xC bytes): what it is (0x32 the unit's own skin, 0x3005 armour,
 // 0x3004 a weapon; 0 none), the packed item id or prototype index, and the armour slot / weapon
@@ -110,6 +113,8 @@ struct AttackParams;   // combat.h
 
 class CUnitClientSpecific : public CEngineObject {
 public:
+    // 00535850 (unit_client_path.cpp; RET 8). Places the unit on its path at `time`, turning by `rate`.
+    void PlaceOnPath(float time, float rate);
     // 00538960 (unit_client_attack.cpp). Virtual slot 50 (thiscall, RET 4; registered as a free
     // function, rewrite-guide rule 4): the attack figures the interface shows for a party unit. A
     // text-key unit with a weapon in hand (weaponIds[activeWeapon]) takes damage, type, damage type
@@ -419,9 +424,6 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 // "hr.<hair>.armor<number>" unless the prototype has no hair, +0x10 = -1), the parts of the
 // weapons `weaponIds` (006A1780, also into `names`), and every plain part of the three rows
 // (into `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
-// 00535850 (unit_client_path.cpp; fastcall: ECX the controller; RET 8). Places the unit on its path
-// at `time`, turning by `rate`.
-void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, float rate);
 
 void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,

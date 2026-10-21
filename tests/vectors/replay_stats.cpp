@@ -150,7 +150,6 @@ EI_VECTOR_CHECK("MaxDamage", MaxCall, CheckMax);
 // ---- SV4d: the formulas that read the game's settings and the skill database. Each check writes what
 // the record read to the stand-in (src/game/game_data.h; cleared before every record).
 
-constexpr std::uintptr_t kSlotWeights = 0x0073E0FC;       // unit_params_protection.cpp
 constexpr std::uintptr_t kFactorStatRange = 0x007AF280;   // unit_stats.cpp
 constexpr std::uint32_t kMostLevelRecords = 4096;
 
@@ -366,7 +365,6 @@ bool CheckProtectionBlock(const ProtectionCall& v, char* d, std::size_t n) {
         slot.type = view.type;
         slot.kind = view.kind;
         std::memcpy(slot.protection, view.protection, sizeof(view.protection));
-        if (v.keyed && view.kind > 1) ei::GameData<float>(kSlotWeights + 4 * view.type) = view.weight;
     }
     UnitVitalsPacked vitals;
     std::memset(&vitals, 0, sizeof(vitals));

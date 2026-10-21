@@ -724,7 +724,7 @@ void CMpHeroScreen::AddNewHero() {
     if (MpHeroesEnd() == MpHeroesCapacity()) {
         BlankHeroRecord blank;
         blank.record.Construct();
-        libcontainers::InsertHeroRecordsOverflow(reinterpret_cast<libcontainers::HeroRecords*>(&MpHeroesBegin()), nullptr,
+        libcontainers::HeroRecordAbi::InsertOverflow(reinterpret_cast<libcontainers::HeroRecords*>(&MpHeroesBegin()), nullptr,
                                                  MpHeroesEnd(), &blank.record, 1);   // 00619920
         blank.record.Destruct();
     } else {

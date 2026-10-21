@@ -25,6 +25,9 @@ struct CTime {
     static CTime* __stdcall CurrentTime(CTime* out);                // 006FE508
     // strftime of the local time into at most 127 characters (empty when it does not fit).
     CString Format(const char* format) const;                       // 006FE795
+    // 005E0550 (RET 8; library_containers.cpp, the CTime - CTimeSpan operator): *out = the time minus
+    // `span` seconds (wrapping, as SUB); returns out.
+    CTime* MinusSpan(CTime* out, long span) const;
 };
 static_assert(sizeof(CTime) == 4);
 

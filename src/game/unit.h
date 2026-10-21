@@ -426,6 +426,10 @@ public:
     // movement kind 2, on the water surface plus its z or the offset).
     void PlaceOnGround(float offset) override;
     void PlaceOnGroundImpl(float offset);   // body of the slot above (registered by member pointer)
+    // 0052FCC0 / 0052FDF0 (RET 8 / RET 4; unit_points.cpp). Slots 52 (PositionAt) and 53 (AimPoint):
+    // the position predicted along the path at world time `time`, the point the animation acts on.
+    float* PositionAtImpl(float* out, int time);
+    float* AimPointImpl(float* out);
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
@@ -728,7 +732,7 @@ struct UnitParams {
 
     // unit_params_protection.cpp (A-U4). 005270E0 (RET 0xC): the seven protection values the unit
     // panel shows, into `out`: for text-key units (`keyed`) each body slot whose kind is above 1
-    // adds its protection times its type's weight (0073E0FC), the sums are divided by the weights'
+    // adds its protection times its type's weight (kSlotWeights), the sums are divided by the weights'
     // total (0 when none) and the packed vitals' protection added; others get the packed
     // protection times the difficulty factor (007C54A0).
     void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
@@ -750,8 +754,9 @@ inline const RecordTable& Prototypes() { return ei::GameData<const RecordTable>(
 inline const RecordTable& Models() { return ei::GameData<const RecordTable>(0x007AF398); }
 inline const RecordTable& Skills() { return ei::GameData<const RecordTable>(0x007AF268); }
 inline const RecordTable& SkillLevels() { return ei::GameData<const RecordTable>(0x007AF274); }
-// 0073E048: for each armour type, the three body slots it covers (7: none); UnitStats::AddArmourLayer.
-inline const int* ArmourCoverage() { return ei::GamePointer<const int>(0x0073E048); }
+// The weight of a body slot's protection by slot type (head 10, body 30, ...): UnitParams::ProtectionBlock.
+inline constexpr int kSlotTypes = 5;
+inline constexpr float kSlotWeights[kSlotTypes] = /*0073E0FC*/ {10.0f, 30.0f, 15.0f, 15.0f, 15.0f};
 } // namespace unitdb
 
 // One of the three protection layers of a body slot (0x48 bytes): what each of the seven damage
@@ -995,7 +1000,7 @@ struct UnitStats {
 
     // unit_armour_layers.cpp (U9).
     // 005230C0. Adds the armour piece `armour` (a CItemArmor) to the slots its type covers (up to
-    // three, table 0073E048; 7 none): for each covered slot that is used, layer GetTypeGroup()
+    // three, table kArmourCoverage; 7 none): for each covered slot that is used, layer GetTypeGroup()
     // gains the piece's absorb values (+0x4C for the first, +0x68 for the others), its +0x00
     // the piece's mask (+0x84 / +0x88) and its state 3.
     void AddArmourLayer(CEngineObject* armour);

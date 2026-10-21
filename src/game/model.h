@@ -167,6 +167,8 @@ public:
     // function 1 into the globals, then 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s
     // transform object taken. No library, or no such function in it: throws. Returns this.
     CTransformPipeline* TransformPipelineConstruct(const char* folder);
+    // 004F0DF0 (RET 4; render_helper.cpp). The deleting destructor (slot 0). Returns this.
+    void* DeleteScalar(unsigned flags);
     // The push the draw code inlines (the terrain passes 006C6230 / 006C6330; also the world draw
     // 00569E40 and the decal projector 0056C750, which keep their own copies): as PushMatrix, but
     // the new top is computed by MatrixMultiply (004D9880), whose elements sum in another order.
@@ -294,6 +296,8 @@ public:
     // 004FCA60 (RET 8; render_helper.cpp). Constructor: takes the device and its capabilities, then
     // records the nine built-in presets (`flag`'s low byte: one texture stage each). Returns this.
     CRenderHelper* RenderHelperConstruct(IDirect3DDevice7* device, std::uint32_t flag);
+    // 004FCC20 (RET 4; render_helper.cpp). The deleting destructor (slot 0). Returns this.
+    void* DeleteScalar(unsigned flags);
     // 004FCE90 (RET 8, AL; render_helper.cpp). The state list of built-in preset `index` into
     // `states` (emptied first); false beyond the nine. Presets 0 and 8 have no states.
     bool RenderHelperBuiltInStateList(stlp::vector<RenderPresetRecord::State>* states, unsigned index);

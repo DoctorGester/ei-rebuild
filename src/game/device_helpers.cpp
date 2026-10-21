@@ -151,22 +151,28 @@ EI_REPLACE_METHOD(0x004EF790, CDXSurface::DeleteScalar);
 
 // 004E7800 (RET 4): the renderer's counted base (vtable 0073D768, slot 0): nothing to destroy. No
 // object keeps this vtable while it can be released, so nothing calls it.
-void* __fastcall RendererBaseDelete(void* object, void*, unsigned flags) {
-    SetRendererBaseVtable(object);
-    if (flags & 1) gamecrt::operator_delete(object);
-    return object;
+struct CRendererBase {
+    void* DeleteScalar(unsigned flags);
+};
+void* CRendererBase::DeleteScalar(unsigned flags) {
+    SetRendererBaseVtable(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004E7800, RendererBaseDelete);
+EI_REPLACE_METHOD(0x004E7800, CRendererBase::DeleteScalar);
 
 // 004F6A00 (RET 4): the figure loader's base class (vtable 0073D824, slot 0; the constructor
 // 004F68C0 stores it before the loader's own): the root's vtable left (004F69F0, inlined here),
 // then the block freed. Nothing calls it either.
-void* __fastcall LoaderBaseDelete(void* object, void*, unsigned flags) {
-    SetRootVtable(object);
-    if (flags & 1) gamecrt::operator_delete(object);
-    return object;
+struct CLoaderBase {
+    void* DeleteScalar(unsigned flags);
+};
+void* CLoaderBase::DeleteScalar(unsigned flags) {
+    SetRootVtable(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004F6A00, LoaderBaseDelete);
+EI_REPLACE_METHOD(0x004F6A00, CLoaderBase::DeleteScalar);
 
 // ---- Matrices ---------------------------------------------------------------------------------------
 

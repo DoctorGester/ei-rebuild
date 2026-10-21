@@ -420,7 +420,7 @@ void CPlayerServer::UpdatePartyUnits() {
     }
     known.vtable = scriptvtable::kRefsBase;
     if (known.data != nullptr) {
-        for (int i = 0; i < known.size; ++i) ScriptRefDestroy(&known.data[i].object, nullptr, 0);
+        for (int i = 0; i < known.size; ++i) known.data[i].DestroyElement(0);
         gamecrt::operator_delete(known.data);
     }
 }

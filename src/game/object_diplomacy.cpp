@@ -53,7 +53,7 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
         if (FieldAt<int>(unit, unitfield::kPlayer) != player) continue;
         std::uint32_t mask = FieldAt<std::uint32_t>(unit, unitfield::kHostileMask);
         mask = relation == kRelationHostile ? mask | Bit(other) : mask & ~Bit(other);
-        UnitSetHostileMask(unit, nullptr, mask);
+        unit->SetHostileMask(mask);
     }
     if (it.manager) --it.manager->refCount_;
 }

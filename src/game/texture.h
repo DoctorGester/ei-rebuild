@@ -95,6 +95,9 @@ public:
     // the library freed, the clipper, both surface holders and the DirectDraw object released, the
     // display modes freed.
     void DestructDirectDraw();
+    // 004EE310 (RET 4; render_helper.cpp). The DirectDraw holder's deleting destructor (slot 0): the
+    // base's body, then the block freed when bit 0 of `flags` is set. Returns this.
+    void* DeleteDirectDraw(unsigned flags);
     // 004EEC60 (plain RET). The display mode restored, in full screen only.
     void RestoreDisplayMode();
     // 004EECF0 (RET 8). The cooperative level of the window: exclusive full screen or normal, with
@@ -113,6 +116,8 @@ public:
     // buffers, the depth surfaces and the pipeline dropped, the Direct3D device and object
     // released, the members destroyed, then the base's destructor body.
     void Destruct();
+    // 004E6880 (RET 4; render_helper.cpp). The device object's deleting destructor (slot 0).
+    void* DeleteDevice(unsigned flags);
     // 004E6EE0 (plain RET). The texture formats: the Direct3D device's formats listed again and
     // formats_ filled from them: DXT1 .. DXT5 by their four-character codes, 5:6:5, 5:5:5 (0x5550),
     // 1:5:5:5, 4:4:4:4 and 8:8:8:8 by their ids; largestFormatId_ is the largest id stored.

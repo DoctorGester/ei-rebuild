@@ -473,20 +473,17 @@ constexpr int kSpellSlots = 8;
 // The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
 // ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
 // 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
-CEngineObject* __fastcall RecordAddQuick(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddWeapon(static_cast<CItem*>(a2)); }
-CEngineObject* __fastcall RecordAddWorn(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddArmor(static_cast<CItem*>(a2)); }
-CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddSpell(static_cast<CItem*>(a2)); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
 CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
 
 // The record entry for `item` from the party records, with a reference held across `add`.
-template <typename Add>
-CEngineObject* AddToRecord(CParty* party, PartyUnitRecord* record, CEngineObject* item, Add add) {
+template <auto Add>
+CEngineObject* AddToRecord(CParty* party, PartyUnitRecord* record, CEngineObject* item) {
     CItem* entry = PartyCopy(party, item);
     if (entry) ++entry->refCount_;
-    CEngineObject* added = add(record, nullptr, entry);
+    CEngineObject* added = (CEngineObject*)(record->*Add)(entry);
     if (entry) entry->Release();
     return added;
 }
@@ -517,7 +514,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
     for (int slot = 0; slot < kQuickSlots; ++slot) {
         CEngineObject* item = static_cast<CUnit*>(unit)->GetWeapon(slot);
         if (!item) continue;
-        CEngineObject* entry = AddToRecord(party, record, item, RecordAddQuick);
+        CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
         ItemSourceRef* ref = NewItemRecord(false);
         ref->itemId = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&static_cast<CItem*>(item)->link_, nullptr, ref);
@@ -525,7 +522,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CEngineObject* item = static_cast<const CUnit*>((const void*)unit)->WornItem(slot);
         if (!item) continue;
-        CEngineObject* entry = AddToRecord(party, record, item, RecordAddWorn);
+        CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
         ItemSourceRef* ref = NewItemRecord(true);
         ref->itemId = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&static_cast<CItem*>(item)->link_, nullptr, ref);
@@ -550,7 +547,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
     for (int slot = 0; slot < kSpellSlots; ++slot) {
         CEngineObject* spell = static_cast<CUnit*>(unit)->GetSpell(slot);
         if (!spell) continue;
-        AddToRecord(party, record, spell, RecordAddSpell);
+        AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
     }
     controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
 }
@@ -594,9 +591,9 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     CUnitServer* controller = ControllerOf(unit);
     ClearRecordItems(record);
     for (int slot = 0; slot < kQuickSlots; ++slot)
-        if (CEngineObject* item = static_cast<CUnit*>(unit)->GetWeapon(slot)) AddToRecord(party, record, item, RecordAddQuick);
+        if (CEngineObject* item = static_cast<CUnit*>(unit)->GetWeapon(slot)) AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
     for (int slot = 0; slot < kWornSlots; ++slot)
-        if (CEngineObject* item = static_cast<const CUnit*>((const void*)unit)->WornItem(slot)) AddToRecord(party, record, item, RecordAddWorn);
+        if (CEngineObject* item = static_cast<const CUnit*>((const void*)unit)->WornItem(slot)) AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = static_cast<CItem*>(static_cast<CUnit*>(unit)->GetQuickItem(slot));
         if (!item || static_cast<int>(item->count_) <= 0) continue;
@@ -611,7 +608,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
         if (entry) entry->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
-        if (CEngineObject* spell = static_cast<CUnit*>(unit)->GetSpell(slot)) AddToRecord(party, record, spell, RecordAddSpell);
+        if (CEngineObject* spell = static_cast<CUnit*>(unit)->GetSpell(slot)) AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
     controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
     if (world->sessionKind_ == 1) {
         record->moveMode2 = unit->moveMode2;

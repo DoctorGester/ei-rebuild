@@ -95,9 +95,12 @@ struct BehaviourArrayClass {   // CArray<Behaviour> (the server unit's brain)
     static void* Vtable() { return ei::GamePointer<void>(0x0073F034); }
 };
 
-// CStringArray's GetAt by value (004698C0, and 004698A0 calling it; RET 8, S16): the element
-// copy-constructed into `result`, which is returned.
-mfc::CString* __fastcall StringGetAt(const mfc::CArray<mfc::CString>* self, void*, mfc::CString* result, int index);
+// CStringArray over the part names of a map object (the server companion's, the object's own). 004698C0
+// (and 004698A0 calling it; RET 8, S16): GetAt by value, the element copy-constructed into `result`,
+// which is returned.
+struct PartNames : mfc::CArray<mfc::CString> {
+    mfc::CString* CopyAt(mfc::CString* result, int index) const;
+};
 
 // The global map's 0x18-byte records (mfc::impl::GlobalMapPointRecords): the destructor, the
 // strings at +0x14 and +0x10 (005FBD80 / 005FBDD0).

@@ -460,8 +460,8 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
     }
     PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
     if (ok) {
-        BlockSearchPathTo(&forward, nullptr, x, y, chain);
-        BlockSearchPathTo(&backward, nullptr, x, y, &scratch);
+        forward.PathTo(x, y, chain);
+        backward.PathTo(x, y, &scratch);
         PathCellList reversed;
         PathCellsAppend(chain, nullptr, PathCellsReversed(&scratch, nullptr, &reversed));
         DestroyPathList(reversed);
@@ -471,7 +471,7 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
     return ok;
 }
 
-void __fastcall BlockSearchPathTo(BlockSearch* searchIn, void*, int x, int y, PathCellList* path) {
+static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellList* path) {
     auto& search = *searchIn;
     // The inlined RemoveAll.
     path->count = 0;
@@ -692,7 +692,8 @@ EI_REPLACE_METHOD(0x005AF7B0, CRegionMap::CellSuitsBlockAt);
 EI_REPLACE(0x005AF3D0, ConstructRegionMap);
 EI_REPLACE_METHOD(0x005B0C00, CRegionMap::Attach);
 EI_REPLACE_METHOD(0x005AFAE0, CRegionMap::MeasureBlockEdges);
-EI_REPLACE(0x005AF1C0, BlockSearchPathTo);
+void BlockSearch::PathTo(int x, int y, PathCellList* path) { BlockSearchPathToOf(this, x, y, path); }
+EI_REPLACE_METHOD(0x005AF1C0, BlockSearch::PathTo);
 EI_REPLACE_METHOD(0x005AF5F0, CRegionMap::JoinBlockSearches);
 EI_REPLACE_METHOD(0x005B0600, CRegionMap::DominantRegion);
 EI_REPLACE_METHOD(0x005B0D90, CRegionMap::FindRegionChain);

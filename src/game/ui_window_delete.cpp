@@ -448,7 +448,7 @@ COptionsWindow* COptionsWindow::OptionsWindowDelete(unsigned flags) {
 EI_REPLACE_METHOD(0x0062B160, COptionsWindow::OptionsWindowDelete);
 
 // 0062EDA0: the global map's clouds (slot 2 of 007420D4): the base's own (00499E30) does the same.
-EI_REPLACE(0x0062EDA0, CloudNoiseBaseDeletingDestruct);
+EI_REPLACE_METHOD(0x0062EDA0, CCloudNoise::DeletingDestructImpl);
 
 // 00633240: the multiplayer hero screen (0074214C).
 CMpHeroScreen* CMpHeroScreen::HeroScreenDelete(unsigned flags) {

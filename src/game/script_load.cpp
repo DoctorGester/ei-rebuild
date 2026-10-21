@@ -55,8 +55,6 @@ void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(
 void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 void __stdcall DestructRefs(void* a0, int a1) { gamearrays::ObjectRefs::DestructElements(static_cast<ScriptObjectRef*>(a0), a1); }
 void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructElements(static_cast<ScriptGroup*>(a0), a1); }
-void __fastcall RefDestroy(void* ref, void*, int flags) { ScriptRefDestroy(static_cast<CEngineObject**>(ref), nullptr, flags); }
-void __fastcall CmdDestroy(void* cmd, void*, int flags) { static_cast<SSCCmd*>(cmd)->DestroyElement(flags); }   // 004BF620
 
 // SSCCmd's argument arrays (out of line), __thiscall (size, growBy): floats, group pointers,
 // bindings (both arrays), nested calls (a new SSCCmd per element).
@@ -68,9 +66,9 @@ void __fastcall CmdDestroy(void* cmd, void*, int flags) { static_cast<SSCCmd*>(c
 namespace scriptarray {
 
 namespace {
-template <auto Destroy, int kSize>
+template <typename T, auto Destroy, int kSize>
 void DestroyEach(char* first, int count) {
-    for (int i = 0; i < count; ++i, first += kSize) Destroy(first, nullptr, 0);
+    for (int i = 0; i < count; ++i, first += kSize) (reinterpret_cast<T*>(first)->*Destroy)(0);
 }
 template <RangeFn Destruct>
 void DestroyRange(char* first, int count) { Destruct(first, count); }
@@ -79,9 +77,9 @@ void DestroyRange(char* first, int count) { Destruct(first, count); }
 
 const ElementKind kFloats{4, ConstructAs<mfc::impl::Plain4>, nullptr, nullptr};
 const ElementKind kStrings{4, ConstructStrings, DestroyRange<DestructStrings>, DestroyRange<DestructStrings>};
-const ElementKind kRefs{4, ConstructAs<mfc::impl::Plain4>, DestroyEach<RefDestroy, 4>, DestroyRange<DestructRefs>};
-const ElementKind kGroups{0x14, ConstructAs<mfc::impl::ScriptGroups>, DestroyEach<ScriptGroupDestroy, 0x14>, DestroyRange<DestructGroups>};
-const ElementKind kCmds{0x94, ConstructAs<recordarrays::Cmds>, DestroyEach<CmdDestroy, 0x94>, DestroyEach<CmdDestroy, 0x94>};
+const ElementKind kRefs{4, ConstructAs<mfc::impl::Plain4>, DestroyEach<ScriptObjectRef, &ScriptObjectRef::DestroyElement, 4>, DestroyRange<DestructRefs>};
+const ElementKind kGroups{0x14, ConstructAs<mfc::impl::ScriptGroups>, DestroyEach<ScriptGroup, &ScriptGroup::DestroyElement, 0x14>, DestroyRange<DestructGroups>};
+const ElementKind kCmds{0x94, ConstructAs<recordarrays::Cmds>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement, 0x94>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement, 0x94>};
 const ElementKind kIfThen{8, ConstructAs<mfc::impl::Plain8>, nullptr, nullptr};
 const ElementKind kPointers{4, ConstructAs<mfc::impl::Plain4>, nullptr, nullptr};
 

@@ -27,7 +27,7 @@ _VEC_OPERAND = r'(?:\w+\s*(?:<\s*\w+\s*>\s*)?\(\s*[\w.\[\]>-]+\s*\)|\w+(?:\s*(?:
 _VEC_SUM = re.compile(r'(?<![\w.>\]])(' + _VEC_OPERAND + r')\s*\*\s*(' + _VEC_OPERAND + r')\s*\+\s*(' +
                       _VEC_OPERAND + r')\s*\*\s*(' + _VEC_OPERAND + r')(?![\w(\[])')
 _VEC_WRAPPER = re.compile(r'^\w+(?:<\w+>)?\((.*)\)$')
-_VEC_ARRAY = re.compile(r'(?<!const )\bfloat\s+(\w+)\s*\[\s*(3|4|16)\s*\](\s*\[\s*\d+\s*\])?')
+_VEC_ARRAY = re.compile(r'(?<!const )(?<!constexpr )\bfloat\s+(\w+)\s*\[\s*(3|4|16)\s*\](\s*\[\s*\d+\s*\])?')
 _VEC_NOT_VECTOR = re.compile(r'(?i)colou?r|rgb|tint|fog|^red$|stat|skill|attack|defen|absorp|reverb|unknown_|weight|^block$|distances$')
 _VEC_QUATERNION = re.compile(r'(?i)quat|orient|rotat|turn|xyzw|^q$|projected')
 

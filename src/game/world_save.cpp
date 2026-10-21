@@ -172,7 +172,6 @@ __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, 
 // 00554450. The unit controller's reposition after a move.
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
-void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { static_cast<CMapObject*>((void*)a0)->WriteFullState(); }
 
 } // namespace
 
@@ -235,7 +234,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
             ReadStringInto(stream, name);
             ObjectSlots(object)->TakePrototype(static_cast<const char*>(name));
         }
-        MapObjectBeginLoad(object, nullptr);
+        static_cast<CMapObject*>(static_cast<void*>(object))->WriteFullState();
         object->Load(stream);
         int changed = ReadValue<int>(stream);
         if (!object) continue;   // (the object was already used above)

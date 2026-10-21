@@ -44,10 +44,6 @@ constexpr float kMushroomRise = std::bit_cast<float>(0x3DF5C28Fu);     // 0073CC
 constexpr double kOrbitMinRadius = 0.01;                                // 0073CE20
 constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 0073CC80 (1.6)
 
-// Size curves of the orbiting particles, indexed by the ticks left (0073CB38, 0073CB78).
-const float* SizeCurve() { return ei::GamePointer<const float>(0x0073CB38); }
-const float* AntimagicSizeCurve() { return ei::GamePointer<const float>(0x0073CB78); }
-
 
 // Reads a float back from memory, as the original does after storing it (the compiler would
 // otherwise reuse the unrounded register value).
@@ -300,16 +296,16 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     p->pos.x = px;
     switch (type_) {
     case kTypeSphereFire:
-        p->size = SizeCurve()[p->life] * p->drift.x * scale * 2.0f;
+        p->size = kSphereSizeByLife[p->life] * p->drift.x * scale * 2.0f;
         break;
     case kTypeAntimagic:
-        p->size = AntimagicSizeCurve()[p->life] * p->drift.x * scale;
+        p->size = kAntimagicSizeByLife[p->life] * p->drift.x * scale;
         break;
     case kTypeSphereElectricity:
-        p->size = SizeCurve()[p->life] * p->drift.x * scale;
+        p->size = kSphereSizeByLife[p->life] * p->drift.x * scale;
         break;
     default:
-        p->size = SizeCurve()[p->life] * p->drift.x * scale * kSphereScale;
+        p->size = kSphereSizeByLife[p->life] * p->drift.x * scale * kSphereScale;
         break;
     }
     return 1;

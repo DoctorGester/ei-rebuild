@@ -69,7 +69,6 @@ void* FigureManager() { return ei::GameData<void* const>(0x007AF5F4); }
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 // 00516A80. 3D object: its figure part named `name`, or null.
-CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return static_cast<CObject3D*>((void*)a0)->FindPartByPrefix(a2); }
 // 00539580. SkinLayerArray::SetSize (the 12-byte path records' instantiation).
 void SetLayerCount(SkinLayerArray* layers, int size) { mfc::impl::ArrayAs<mfc::impl::PathRecords>(*layers).SetSize(size, -1); }
 
@@ -99,7 +98,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     const char* armour = ArmourRecord(type);
     mfc::CString armourPart;
     for (int i = 0; i < 7; ++i) {
-        const char* plain = ArmourPartNames()[row][i];
+        const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         mfc::CString part(plain);
         if (gamecrt::mbscmp(static_cast<const char*>(part),
@@ -110,7 +109,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
             if (hair == -1) continue;
             part.Format("hr.%.2d", hair);
         }
-        CEngineObject* current = FindPart(unit, nullptr, part);
+        CEngineObject* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
         armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), ItemHead(armour)->number);
         if (static_cast<const CMappedResource*>(*static_cast<void**>(model))->FindEntry(armourPart) != -1) {
             static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(armourPart, model, FiguresFlag(unit)));
@@ -157,7 +156,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     }
     if (!model) return false;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
-        const char* plain = ArmourPartNames()[row][i];
+        const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         mfc::CString part(plain);
         if (CompareNames(part, kHair) == 0) {
@@ -302,7 +301,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
         int row = RowOfSlot(ItemHead(armour)->type);
         if (row < 0) continue;
         for (int i = 0; i < 7; ++i) {
-            const char* plain = ArmourPartNames()[row][i];
+            const char* plain = kArmourPartNames[row][i];
             if (!plain[0]) break;
             if (SameName(plain, kHair)) {
                 int hair = Prototype(prototype)->hair;
@@ -321,7 +320,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
     // test on the name's address never fails), so the empty names of the helmet row go in too.
     for (int row = 0; row < 3; ++row) {
         for (int i = 0; i < 7; ++i) {
-            const char* plain = ArmourPartNames()[row][i];
+            const char* plain = kArmourPartNames[row][i];
             if (SameName(plain, kHair)) {
                 int hair = Prototype(prototype)->hair;
                 if (hair == -1) continue;

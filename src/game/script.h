@@ -87,6 +87,9 @@ struct ScriptObjectRef {
     void Load(ScriptStream* stream);
     // 004B25F0. Writes the object id, -1 when empty.
     void Save(ScriptStream* stream) const;
+    // 004CE1E0 (0052D030 is a byte-identical copy; RET 4; script_destroy.cpp). The element destructor:
+    // the object released, the slot cleared; freed when bit 0 of `flags` is set. Returns this.
+    void* DestroyElement(int flags);
 
     CEngineObject* object;
 };
@@ -191,6 +194,9 @@ struct ScriptGroup : ScriptObjectRefs {
     // From now on ours orders by id (the harness, before the game starts).
     static void OrderById();
 
+    // 004CE210 (RET 4; script_destroy.cpp). The element destructor: the body (DestructBody), then freed
+    // when bit 0 of `flags` is set. Returns this.
+    void* DestroyElement(int flags);
     // 004B2620. this = a + b (GroupAdd).
     void Union(const ScriptGroup& a, const ScriptGroup& b);
     // 004B2920. this = a - b (GroupSub).
@@ -398,6 +404,10 @@ struct ScriptParticleSource {
     // 004B1850 (script_effects.cpp). The effect object leaves the world's timed objects and is released;
     // the slot is cleared.
     void ScriptParticleSourceDestruct();
+    // 004CE270 (RET 4; script_destroy.cpp). The element destructor (the source's object is the first
+    // field): removed from the server world's timed objects, released, cleared; freed when bit 0 of
+    // `flags` is set. Returns this.
+    void* DestroyElement(int flags);
     // 004B1A80 (RET 4; script_effects.cpp). Saved as the savegame holds it (as the point light's).
     void ScriptParticleSourceSave(ScriptStream* stream) const;
 
@@ -420,6 +430,9 @@ struct ScriptFxSource {
     // 004BD540 (script_effects.cpp). The element's destructor body: the sound dropped as above, then the
     // name destroyed.
     void ScriptFxSourceDestruct();
+    // 004CE2B0 (RET 4; script_destroy.cpp). The element destructor: the body above, then freed when
+    // bit 0 of `flags` is set. Returns this.
+    void* DestroyElement(int flags);
     // 004B1C50 / 004B1B40 (RET 4; script_effects.cpp). Saved as the savegame holds it (the name with its
     // terminator); Load reads it back.
     void ScriptFxSourceSave(ScriptStream* stream) const;
@@ -590,6 +603,11 @@ public:
 
     // Not rewritten (forwarders).
     struct ScriptDecl* NewCommandList();          // 004BF540: a command block owned by the script
+    // 004BF900. The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
+    struct ScriptDecl* NewWorldScript();
+    // 004BCC60 (RET 4). Adds a run of `block` (empty variables, no kill flag) at the head of the run
+    // list; it first executes on the next tick.
+    void RunWorldScript(struct ScriptDecl* block);
 
     // Fields used by the loader.
     ScriptDefinitions& Scripts() { return definitions_; }
@@ -798,6 +816,9 @@ struct ScriptDecl {
     void Save(ScriptStream* stream) const;
     // 004CB2D0 (RET 4; script_copy.cpp). Assignment: the commands array copied (ScriptCommands::CopyFrom 004CC0C0), the id; returns this.
     ScriptDecl* ScriptDeclAssign(const ScriptDecl* other);
+    // 004CE2D0 (RET 4; script_destroy.cpp). The element destructor (ScriptDeclDestruct), then freed when
+    // bit 0 of `flags` is set. Returns this.
+    void* DestroyElement(int flags);
 
     ScriptCommands commands;
     int id;
@@ -876,9 +897,6 @@ struct ScriptRun {
 };
 static_assert(sizeof(ScriptRun) == 0xB4);
 
-// 004BCC60 (CScript::RunWorldScript). Adds a run of `block` (empty variables, no kill flag) at
-// the head of the run list; it first executes on the next tick.
-void __fastcall ScriptRunWorldScript(CScript* script, void* edx, ScriptDecl* block);
 // 004BEC80. Outside For loops (+0x1E8 == 0): frees the evaluation temporaries, keeping one empty
 // group (+0x1B0 list) and one released object reference (+0x1CC list).
 void __fastcall ScriptFreeTemporaries(CScript* script);
@@ -992,8 +1010,6 @@ void __fastcall ScriptWorldBlocksLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptInstancesLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptRunsLoad(ScriptList* list, ScriptStream* stream);
 
-// 004BF900. The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
-ScriptDecl* __fastcall ScriptNewWorldScript(CScript* script, void* edx);
 // 004B5F70 (SSCCmd::Clear). id 0, every argument / binding / nested-call array emptied (nested
 // commands deleted; growBy kept), called script null.
 void __fastcall ScriptCmdClear(SSCCmd* cmd);
@@ -1020,11 +1036,7 @@ void __fastcall ScriptCmdDestruct(SSCCmd* cmd);
 // Element destructors (ticket S7; __thiscall (flags) RET 4, bit 0 also deletes, `this` returned):
 // 004CE1E0 reference, 004CE210 group, 004CE230 nested call, 004CE270 particle source's object,
 // 004CE2B0 FX source, 004CE2D0 world block, 004BF620 command.
-void* __fastcall ScriptRefDestroy(CEngineObject** slot, void*, int flags);
-void* __fastcall ScriptGroupDestroy(void* group, void*, int flags);
-void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags);
-void* __fastcall ScriptFxSourceDestroy(void* source, void*, int flags);
-void* __fastcall ScriptWorldBlockDestroy(void* block, void*, int flags);
+// (ScriptObjectRef / ScriptGroup / ScriptParticleSource / ScriptFxSource / ScriptDecl / SSCCmd::DestroyElement.)
 
 // ---- Variable appends (script_vars_append.cpp) --------------------------------------------------
 

@@ -68,12 +68,12 @@ EI_REPLACE(0x006B90C0, DestroyWave);
 EI_REPLACE(0x00557890, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REPLACE(0x00558E10, Behaviours::ConstructElements);
 
-mfc::CString* __fastcall StringGetAt(const mfc::CArray<mfc::CString>* self, void*, mfc::CString* result, int index) {
-    new (result) mfc::CString(self->data[index]);
+mfc::CString* PartNames::CopyAt(mfc::CString* result, int index) const {
+    new (result) mfc::CString(data[index]);
     return result;
 }
-EI_REPLACE(0x004698A0, StringGetAt);
-EI_REPLACE(0x004698C0, StringGetAt);
+EI_REPLACE_METHOD(0x004698A0, PartNames::CopyAt);
+EI_REPLACE_METHOD(0x004698C0, PartNames::CopyAt);
 
 
 // The global map's links and quests (the zero fill, then both strings empty).

@@ -37,7 +37,6 @@ bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(s
 
 __declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058B750)
 // 00665A10. Disconnects a player (its connection and units).
-void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's
@@ -46,7 +45,7 @@ void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs
 
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, WorldPlayer* player) {
-    PlayerDisconnect(player, nullptr);
+    PlayerDisconnectOriginal(player);
     static_cast<CPlayerManager*>(world->PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
     NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->id)->PutChar('\n')
         ->Apply(libcrt::FlushManipulator);
@@ -157,7 +156,7 @@ int CWorldServer::Update() {
     heroes.vtable = scriptvtable::kRefsBase;
     if (heroes.data) {
         ScriptObjectRef* ref = heroes.data;
-        for (int n = heroes.size; n != 0; --n) ScriptRefDestroy(&(ref++)->object, nullptr, 0);
+        for (int n = heroes.size; n != 0; --n) (ref++)->DestroyElement(0);
         gamecrt::operator_delete(heroes.data);
     }
 

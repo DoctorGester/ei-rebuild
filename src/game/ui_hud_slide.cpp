@@ -55,8 +55,8 @@ float UnitEffectX() { return 40.0f /*0073D72C*/; }     // 40
 float SlideTime() { return 0.3f /*00742428*/; }       // 0.3 seconds for the whole way
 float SlingTurn() { return GameFloat(0x007C8144); }       // the sling buttons' turn (a global angle)
 // The unit panel's six body parts: where each one's pair of sprites goes (two tables of six ints).
-const int* PartX() { return ei::GamePointer<const int>(0x00742434); }
-const int* PartY() { return ei::GamePointer<const int>(0x0074244C); }
+constexpr int kPartX[6] = /*00742434*/ {50, 50, 95, 5, 95, 5};
+constexpr int kPartY[6] = /*0074244C*/ {35, 105, 70, 70, 140, 140};
 constexpr int kParts = 6;
 constexpr int kEffects = 6;
 
@@ -205,8 +205,8 @@ void CHudUnitPanel::LayoutVanilla() {
     Place(this, 13, middle, 207.5f, 5.0f);
     // The body parts: a pair of sprites each (scene objects 14 + 2i and 15 + 2i).
     for (int i = 0; i < kParts; ++i) {
-        const float y = static_cast<float>(PartY()[i]) + UnitPartDown();
-        const float x = static_cast<float>(PartX()[i] + 50) - offset;
+        const float y = static_cast<float>(kPartY[i]) + UnitPartDown();
+        const float x = static_cast<float>(kPartX[i] + 50) - offset;
         Place(this, 14 + 2 * i, x, y, 4.0f);
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
@@ -315,8 +315,8 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     AddSprite(nullptr)->SetRectangle(5.0f, 100.0f, 35.0f, 205.0f, 145.0f, 210.0f, 0x3B, 0x93, 0xA9, 0x98);
     // 14-25: the six body parts' bars, each over its frame, at the tables' places.
     for (int i = 0; i < kParts; ++i) {
-        const int x = PartX()[i];
-        const int y = PartY()[i];
+        const int x = kPartX[i];
+        const int y = kPartY[i];
         AddSprite(nullptr)->SetRectangle(4.0f, 50.0f, static_cast<float>(x + 25), static_cast<float>(y + 15),
                                          static_cast<float>(x + 75), static_cast<float>(y + 20), 0x40, 0x7E, 0x72, 0x83);
         AddSprite(nullptr)->SetRectangle(5.0f, 50.0f, static_cast<float>(x + 20), static_cast<float>(y + 15),
