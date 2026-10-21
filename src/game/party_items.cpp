@@ -18,20 +18,20 @@
 namespace {
 
 static_assert(offsetof(PartyUnitRecord, weaponGrowBy) - offsetof(PartyUnitRecord, weapons) == 0xC);
-static_assert(sizeof(AlignedPtrArray) == 0x10);
+static_assert(sizeof(PartyItemArray) == 0x10);
 
 // A flag argument the original reads as a byte.
 bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
 // Appends `item` to `list` (the original's inlined SetSize(count + 1) and store).
-void Append(AlignedPtrArray& list, void* item) {
+void Append(PartyItemArray& list, CItem* item) {
     int index = list.size;
     list.SetSize(index + 1, -1);
     list.data[index] = item;
 }
 
 // Removes the element at `index`, closing the gap.
-void RemoveAt(AlignedPtrArray& list, int index) {
+void RemoveAt(PartyItemArray& list, int index) {
     int after = list.size - index - 1;
     if (after != 0) std::memmove(list.data + index, list.data + index + 1, static_cast<std::size_t>(after) * 4);
     --list.size;
@@ -48,7 +48,7 @@ CItem* AddEntry(CItem**& data, CItem* item) {
 }
 
 void RemoveEntry(CItem**& data, CItem* entry) {
-    AlignedPtrArray& list = ItemList(data);
+    PartyItemArray& list = ItemList(data);
     for (int i = 0; i < list.size; ++i) {
         if (list.data[i] != entry) continue;
         entry->Release();
@@ -157,7 +157,7 @@ CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     int count = ByteFlag(keepCount) ? static_cast<int>(item->count_) : 1;
     if (ByteFlag(merge)) {
         for (int i = 0; i < items_.size; ++i) {
-            auto* existing = static_cast<CItem*>(items_.data[i]);
+            CItem* existing = items_.data[i];
             if (!existing->IsSameAs(item)) continue;
             existing->count_ += static_cast<std::uint32_t>(count);
             return existing;
@@ -174,7 +174,7 @@ EI_REPLACE_METHOD(0x00661DB0, CParty::AddItem);
 CItem* CParty::RemoveItem(CItem* item, int all) {
     for (int i = 0; i < items_.size; ++i) {
         if (items_.data[i] != item) continue;
-        auto* entry = static_cast<CItem*>(items_.data[i]);
+        CItem* entry = items_.data[i];
         if (static_cast<int>(entry->count_) > 1 && !ByteFlag(all)) {
             --entry->count_;
             return entry;
@@ -193,14 +193,14 @@ constexpr int kQuestItemClassId = 0x14;   // CItemQuest
 
 void CParty::RemoveQuestItems() {
     for (int i = items_.size - 1; i >= 0; --i) {
-        auto* item = static_cast<CItem*>(items_.data[i]);
+        CItem* item = items_.data[i];
         if (item->GetClassId() == kQuestItemClassId) RemoveItem(item, 1);
     }
 }
 EI_REPLACE_METHOD(0x00661FB0, CParty::RemoveQuestItems);
 
 void CParty::ReleaseAllItems() {
-    for (int i = 0; i < items_.size; ++i) static_cast<CEngineObject*>(items_.data[i])->Release();
+    for (int i = 0; i < items_.size; ++i) items_.data[i]->Release();
     items_.SetSize(0, -1);
 }
 EI_REPLACE_METHOD(0x00661FE0, CParty::ReleaseAllItems);

@@ -54,7 +54,7 @@ using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The player's carried items (CParty::items_): an aligned array of item pointers (its SetSize
 // 0059CB50 is lib::AlignedArray's).
-using ItemArray = AlignedPtrArray;
+using ItemArray = PartyItemArray;
 
 // CArray<int> (vtable 0073EBD4), and the CArray of record pointers CreateUnits takes (0073FAA4).
 using IdArray = mfc::CArray<int>;
@@ -102,7 +102,7 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     return found;
 }
 
-CEngineObject* ItemAt(const ItemArray* items, int i) { return static_cast<CEngineObject*>(items->data[i]); }
+CItem* ItemAt(const ItemArray* items, int i) { return items->data[i]; }
 
 } // namespace
 
@@ -122,8 +122,8 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
     // description names this zone or whose id an object asks for; otherwise all of them.
     for (int i = 0; i < items->size; ++i) {
         if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
-        CEngineObject* item = ItemAt(items, i);
-        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(reinterpret_cast<CItem*>(item)->GetPrototype());
+        CItem* item = ItemAt(items, i);
+        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(item->GetPrototype());
         if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName_);
             if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_))) continue;

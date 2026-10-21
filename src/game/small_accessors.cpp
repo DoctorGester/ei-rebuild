@@ -134,7 +134,7 @@ int __fastcall ScriptUnitCarriedCount(const CUnit* unit) {
 }
 EI_REPLACE(0x004BA070, ScriptUnitCarriedCount);
 
-CEngineObject* CUnit::CarriedItem(int index) const {
+CItem* CUnit::CarriedItem(int index) const {
     return carried[index];
 }
 EI_REPLACE_METHOD(0x004BA080, CUnit::CarriedItem);

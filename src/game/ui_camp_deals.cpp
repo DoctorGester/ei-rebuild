@@ -54,7 +54,7 @@ constexpr int kQuickItemClass = 0x3006;
 
 CParty* PartyOf(void* list) { return static_cast<CParty*>(list); }
 CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
-CItem* ItemAt(CParty* party, int index) { return static_cast<CItem*>(party->items_.data[index]); }
+CItem* ItemAt(CParty* party, int index) { return party->items_.data[index]; }
 int ItemCount(const CParty* party) { return party->items_.size; }
 // The prototype index an item's packed id carries (its high word).
 std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->prototypeId_ >> 16; }

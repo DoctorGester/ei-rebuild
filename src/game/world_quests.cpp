@@ -697,7 +697,7 @@ void CWorldServer::StorePlayerItems(WorldPlayer* player, CParty* party) {
 
 void CWorldServer::ClearPlayerItems(WorldPlayer* player) {
     CParty* party = player->Party();
-    while (party->items_.size != 0) party->RemoveItem(static_cast<CItem*>(party->items_.data[0]), 1);
+    while (party->items_.size != 0) party->RemoveItem(party->items_.data[0], 1);
 }
 EI_REPLACE_METHOD(0x00591070, CWorldServer::ClearPlayerItems);
 

@@ -380,7 +380,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         return;
     }
     if (mode != kGridMode) return;
-    const AlignedPtrArray& offered = ownOffer_->items_;
+    const PartyItemArray& offered = ownOffer_->items_;
     for (int i = 0; i < offered.size; ++i) {
         if (offered.data[i] != item) continue;
         uiorig::PlayUiSound(interface_, kPutOffSound, 0);

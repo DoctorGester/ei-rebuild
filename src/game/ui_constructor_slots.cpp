@@ -32,8 +32,8 @@ CItem* NthSlot(void* slots, int nth, Predicate matches) {
     const auto& items = static_cast<CParty*>(slots)->items_;
     int found = 0;
     for (int i = 0; i < items.size; ++i) {
-        if (!matches(static_cast<CItem*>(items.data[i]))) continue;
-        if (found == nth) return static_cast<CItem*>(items.data[i]);
+        if (!matches(items.data[i])) continue;
+        if (found == nth) return items.data[i];
         ++found;
     }
     return nullptr;

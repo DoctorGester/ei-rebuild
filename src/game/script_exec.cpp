@@ -338,10 +338,10 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
     CParty* to = static_cast<CParty*>(Parties()->Find(Text(cmd, 1)));
     if (!from || !to) return;
     if (replace) {
-        while (to->items_.size != 0) PartyRemoveItem(to, static_cast<CEngineObject*>(to->items_.data[0]), 1);
+        while (to->items_.size != 0) PartyRemoveItem(to, to->items_.data[0], 1);
     }
     for (int i = 0; i < from->items_.size; ++i)
-        PartyAddItem(to, static_cast<CEngineObject*>(from->items_.data[i]), 1, 1);
+        PartyAddItem(to, from->items_.data[i], 1, 1);
     if (replace) to->Money() = from->Money();
     else to->Money() += from->Money();
 }
@@ -814,7 +814,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xAF: {   // GiveUnitQuestItem(unit, item)
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
+            CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item && item->GetClassId() == kClassQuestItem) unit->AddCarried(item);
             break;
         }

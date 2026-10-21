@@ -484,7 +484,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 1: {
         if (!other) return;
         if (other->player) return;
-        CItem* item = static_cast<CItem*>(other->TakeRandomItem());
+        CItem* item = other->TakeRandomItem();
         if (item) {
             GameLog()->Put("Item has been stolen from")->PutChar(10)->Apply(kLogEndLine);
             if (char* player = unit->player) {
