@@ -60,8 +60,8 @@ lib::AlignedArray<PixelPair>& TexturePixels() {
     return pixels;
 }
 
-// The screen rectangle of a part that was not drawn (0073D780: zeros).
-const RECT& NoScreen() { return ei::GameData<const RECT>(0x0073D780); }
+// The screen rectangle of a part that was not drawn.
+constexpr RECT kNoScreen = /*0073D780*/ {0, 0, 0, 0};
 
 std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
@@ -143,7 +143,7 @@ void KeepScreen(CLinkMesh* mesh, const stlp::string* name, int flags, int result
         lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name)->screen = drawn;
         return;
     }
-    lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name)->screen = NoScreen();
+    lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name)->screen = kNoScreen;
 }
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without

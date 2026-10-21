@@ -90,10 +90,17 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
 }
 EI_REPLACE_METHOD(0x005A9EF0, FigureModel::FindAnimation);
 
+// The library's hash table sizes.
+constexpr std::uint32_t kPrimeCount = 28;
+constexpr std::uint32_t kPrimes[kPrimeCount] = /*0073B914*/ {
+    53,        97,        193,       389,       769,       1543,       3079,       6151,       12289,      24593,
+    49157,     98317,     196613,    393241,    786433,    1572869,    3145739,    6291469,    12582917,   25165843,
+    50331653,  100663319, 201326611, 402653189, 805306457, 1610612741, 3221225473, 4294967291};
+
 // 005A9A50 (thiscall, returns this): the model's constructor. The animation map is built as
 // STLport's hashtable constructor inlines it: empty functors (the original copies an
 // uninitialised stack byte into them; ours 0), no elements, buckets for the first prime of the
-// list 0073B914..0073B984 not below 100, all null. Then the three archives are new 0x6C-byte
+// list (kPrimes) not below 100, all null. Then the three archives are new 0x6C-byte
 // objects (006721D0), null when the allocation fails.
 FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     AnimationMap& table = model->animationCache;
@@ -107,11 +114,11 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     buckets->Finish() = nullptr;
     buckets->EndOfStorage() = nullptr;   // the allocator proxy (005AD640)
     *count = 0;
-    const auto* first = ei::GamePointer<const std::uint32_t>(0x0073B914);
-    const auto* last = ei::GamePointer<const std::uint32_t>(0x0073B984);
+    const std::uint32_t* first = kPrimes;
+    const std::uint32_t* last = kPrimes + kPrimeCount;
     std::uint32_t hint = 100;
     const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
-    std::uint32_t n = prime == last ? 0xFFFFFFFBu /*0073B980*/ : *prime;
+    std::uint32_t n = prime == last ? kPrimes[kPrimeCount - 1] : *prime;
     buckets->Reserve<stlp::PlainElement<AnimationMap::Node*>>(n);
     buckets->FillInsert<stlp::PlainElement<AnimationMap::Node*>>(buckets->Finish(), n, nullptr);   // 005ADAD0
     *count = 0;

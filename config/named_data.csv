@@ -1,4 +1,13 @@
 address,size,name,file
+0073B914,112,kPrimes,src/game/figure_models.cpp
+0073CB38,64,kSphereSizeByLife,src/game/effects.h
+0073CB78,24,kAntimagicSizeByLife,src/game/effects.h
+0073D780,16,kNoScreen,src/game/link_mesh_draw.cpp
+0073E048,84,kArmourCoverage,src/game/unit_armour_layers.cpp
+0073E09C,96,kArmourPieces,src/game/unit_hits.cpp
+0073E0FC,20,kSlotWeights,src/game/unit.h
+0073EC24,84,kArmourPartNames,src/game/unit_client_models.h
+0073EC78,96,kHitArmourRows,src/game/unit_client_effects.cpp
 007402F8,24,kWideClearLeft,src/game/ui_hero_preview.cpp
 00740310,24,kWideClearTop,src/game/ui_hero_preview.cpp
 00740328,24,kWideClearRight,src/game/ui_hero_preview.cpp

@@ -46,7 +46,7 @@ TYPES = {
     'unsigned': 'I', 'DWORD': 'I', 'std::uint32_t': 'I', 'uint32_t': 'I',
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
     'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
-    'GUID': 'IHH8B', 'IID': 'IHH8B', 'CLSID': 'IHH8B',
+    'RECT': 'iiii', 'GUID': 'IHH8B', 'IID': 'IHH8B', 'CLSID': 'IHH8B',
 }
 DEF = re.compile(r'([\w:]+)\s+(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*\{')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
@@ -85,6 +85,9 @@ class Definition:
 
     def pack(self):
         """Packs the initialiser by the element type; sets size/packed or problem."""
+        if self.type == 'char':
+            self.pack_names()
+            return
         fmt = TYPES.get(self.type)
         if fmt is None:
             self.problem = f'{self.type} is no element type tools/named_data.py knows (TYPES)'
@@ -123,6 +126,34 @@ class Definition:
                 out += struct.pack('<' + code.upper(), v & ((1 << bits) - 1))
         self.packed = bytes(out)
         self.size = len(out)
+
+
+def _pack_names(self):
+    """A char array's rows of names: `char kNames[3][7][4] = /*addr*/ {{"bd", "rh1", ...}, ...}`: each string
+    literal fills the last dimension's chars, zero padded; the other dimensions' product is the string count."""
+    dims = re.findall(r'\[\s*([^\]]*?)\s*\]', self.dims)
+    if not dims or not all(d.isdigit() for d in dims):
+        self.problem = 'a char array needs numeric bounds'
+        return
+    width = int(dims[-1])
+    names = re.findall(r'"([^"\\]*)"', srcscan.blank_comments(self.body))
+    want = 1
+    for d in dims[:-1]:
+        want *= int(d)
+    if len(names) != want:
+        self.problem = f'{len(names)} string(s) for {self.dims.strip()}'
+        return
+    out = bytearray()
+    for n in names:
+        if len(n) >= width:
+            self.problem = f'"{n}" does not fit char[{width}] with its terminator'
+            return
+        out += n.encode('latin-1').ljust(width, b'\0')
+    self.packed = bytes(out)
+    self.size = len(out)
+
+
+Definition.pack_names = _pack_names
 
 
 def definitions():

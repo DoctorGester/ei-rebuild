@@ -268,22 +268,6 @@ namespace {
 #define EI_AIR_SIZE 1.6f /*0073CC80*/           // 1.6
 
 const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
-const float* SphereSizeByLife() {
-    static const float kValues[16] = {
-        0.01f /*0073CB38*/, 0.02f /*0073CB3C*/, 0.03f /*0073CB40*/, 0.035f /*0073CB44*/,
-        0.035f /*0073CB48*/, 0.035f /*0073CB4C*/, 0.035f /*0073CB50*/, 0.035f /*0073CB54*/,
-        0.035f /*0073CB58*/, 0.035f /*0073CB5C*/, 0.035f /*0073CB60*/, 0.035f /*0073CB64*/,
-        0.035f /*0073CB68*/, 0.03f /*0073CB6C*/, 0.02f /*0073CB70*/, 0.01f /*0073CB74*/,
-    };
-    return kValues;
-}
-const float* AntimagicSizeByLife() {
-    static const float kValues[6] = {
-        0.01f /*0073CB78*/, 0.015f /*0073CB7C*/, 0.02f /*0073CB80*/, 0.03f /*0073CB84*/,
-        0.015f /*0073CB88*/, 0.01f /*0073CB8C*/,
-    };
-    return kValues;
-}
 
 // A random point in the unit ball (ten tries), the squared length summed z, y, x.
 void RandomInBallZYX(float& x, float& y, float& z) {
@@ -403,14 +387,14 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
     if (type_ == 0x2017) {
-        double s = D(SphereSizeByLife()[p->life]) * D(p->drift.x) * D(radius);
+        double s = D(kSphereSizeByLife[p->life]) * D(p->drift.x) * D(radius);
         p->size = static_cast<float>(s + s);
     } else if (type_ == 0x201A) {
-        p->size = static_cast<float>(D(AntimagicSizeByLife()[p->life]) * D(p->drift.x) * D(radius));
+        p->size = static_cast<float>(D(kAntimagicSizeByLife[p->life]) * D(p->drift.x) * D(radius));
     } else if (type_ == 0x2016) {
-        p->size = static_cast<float>(D(SphereSizeByLife()[p->life]) * D(p->drift.x) * D(radius));
+        p->size = static_cast<float>(D(kSphereSizeByLife[p->life]) * D(p->drift.x) * D(radius));
     } else {
-        p->size = static_cast<float>(D(SphereSizeByLife()[p->life]) * D(p->drift.x) * D(radius) * D(EI_AIR_SIZE));
+        p->size = static_cast<float>(D(kSphereSizeByLife[p->life]) * D(p->drift.x) * D(radius) * D(EI_AIR_SIZE));
     }
     return 1;
 }

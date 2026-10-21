@@ -299,7 +299,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
-after its first batch). C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
+after its first batch, 3,000 after the second). C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
@@ -336,8 +336,15 @@ kinds given.
      `check_cleanup.py` (`--update` when its counts went down), `build.cmd verify` and `release`, and
      `python tools/work.py test <ID> --golden --jobs 4`.
 - **What the other kinds need** (later batches):
-  - .rdata tables of numbers or GUIDs (app_dxversion, input_mouse, device.h: the DirectX interface ids; unit*,
-    effects, figure_models, net*, terrain*, random): as batch 1. Keep the original's bound on an index the data
+  - .rdata tables of numbers or GUIDs (app_dxversion, input_mouse, device.h: the DirectX interface ids): as batch 1.
+    Batch 2 (C18b) did unit* (the armour tables, one definition for the overlapping 0073E09C/A0/A4 read as four
+    entries per hit location), effects.h's sphere size curves (read by effects.cpp and particle_callbacks.cpp),
+    figure_models' hash prime list, link_mesh_draw's RECT, and the scalars net_connection / net_lobby /
+    hoover_loot as rdata literals. A table of names is a `char name[rows][cols][n]` of string literals (TYPES
+    has no entry: `char` packs each literal into the last bound's chars, zero padded; kArmourPartNames).
+    A vector recorder or replayer that read a named table by address reads the name instead (unitdb::kSlotWeights).
+    What is left of the ticket's list holds string pointers (random 0073D080, world_server_life 0073F918,
+    terrain_sector 00744164, terrain_landscape 007441D4): C18c. Keep the original's bound on an index the data
     gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
     array where the original read the neighbouring .rdata; no database has one).
   - Tables that hold pointers (material.h 00743BF8, sound_music 00744090, the CRuntimeClass and EH records of

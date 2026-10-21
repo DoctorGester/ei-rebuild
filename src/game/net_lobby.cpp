@@ -125,7 +125,7 @@ ServerEntryBase* ServerEntryBase::ConstructBase() {
     std::memset(&address_, 0, sizeof(address_));
     ei::SetVtable(this, kVtableAddress);
     SetBits(timeout_, 0);
-    std::memcpy(&ping_, ei::GamePointer<const void>(0x0073BFA0), sizeof(ping_));
+    ping_ = 9.999f /*0073BFA0*/;
     foreign_ = 0;
     state_ = kLocal;
     return this;
@@ -558,7 +558,7 @@ void ClientBase::TickImpl(double dt) {
                     node = servers_.Erase(node);
                     continue;
                 }
-                std::memcpy(&e->ping_, ei::GamePointer<const void>(0x0073BFA0), sizeof(e->ping_));
+                e->ping_ = 9.999f /*0073BFA0*/;
             }
         }
         node = node->next;

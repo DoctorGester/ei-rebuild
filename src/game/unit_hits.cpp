@@ -59,13 +59,10 @@ const char* const kPassedDamage = " passed damage = ";
 const char* const kCrippled = " HL was crippled";
 const char* const kDead = " HL is dead";
 
-// Armour slot of the piece covering hit location `location` at layer `layer` (1 or 2): the
-// tables at 0073E09C (first piece), 0073E0A0 (second piece of a limb) and 0073E0A4 (the limbs'
-// outer layer), as the original indexes them.
-constexpr std::uintptr_t kArmourFirstPiece = std::uintptr_t(0x0073E09C);
-constexpr std::uintptr_t kArmourSecondPiece = std::uintptr_t(0x0073E0A0);
-constexpr std::uintptr_t kArmourOuterLayer = std::uintptr_t(0x0073E0A4);
-int ArmourTable(std::uintptr_t address) { return *ei::GamePointer<const int>(address); }
+// Armour slot of the piece covering hit location `location` at layer `layer` (1 or 2): four entries per
+// location, (first piece, second piece of a limb) at the inner layer, then at the outer one, as the original
+// indexes them.
+constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1, 7, 3, 6, 1, 7, 4, 5, 2, 7, 4, 5, 2, 7};
 
 float& ItemFloat(CEngineObject* item, int offset) {
     return *reinterpret_cast<float*>(reinterpret_cast<char*>(item) + offset);
@@ -129,19 +126,19 @@ void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
     int outer = layer - 1;
     if (static_cast<std::uint32_t>(location) > 5) return;
     if (location <= 1) {
-        int slot = ArmourTable(kArmourFirstPiece + (outer + location * 2) * 8);
+        int slot = kArmourPieces[location * 4 + outer * 2];
         if (slot == 7) return;
         WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
         return;
     }
     if (outer == 1) {
-        int slot = ArmourTable(kArmourOuterLayer + location * 0x10);
+        int slot = kArmourPieces[location * 4 + 2];
         WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
         return;
     }
-    std::uintptr_t row = static_cast<std::uintptr_t>((outer + location * 2) * 8);
-    WearItem(unit->armor[ArmourTable(kArmourFirstPiece + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
-    WearItem(unit->armor[ArmourTable(kArmourSecondPiece + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+    int row = location * 4 + outer * 2;
+    WearItem(unit->armor[kArmourPieces[row]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+    WearItem(unit->armor[kArmourPieces[row + 1]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
 }
 EI_REPLACE(0x00525720, WearArmour);
 
