@@ -972,7 +972,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     UnitShapeCache 0073FD58 (a real virtual class: CreateShape calls CreateUnitShape, Construct constructs in place);
     CUiSurface's UiSurfaceClass 00740F28 (slot 0 Blit, UiSurfaceBlit) and the scrolling text's tokens (TextTokenClass
     00742F24, FormatTokenClass 00742F28, WordTokenClass 00742F20; ui.h); CResourceBase / CResourceStream
-    (ResourceBaseClass 00743324, ResourceStreamClass 00743320); the item records (item_db.h: ItemRecordTag over
+    (00743324 / 00743320: real virtual classes since C15 batch 11); the item records (item_db.h: ItemRecordTag over
     ItemRecordSlots, one tag per kind 00744054-00744068; the base's 00744060 is ItemRecordBaseClass, whose Kind is
     the compiler CRT's `_purecall` as game.exe's 006E73EB, reached only by a bug); prints.db's PrintRecord /
     PrintRecord2 (00744264 / 00744268: real virtual classes, `Vtable()` the compiler's, Serialize defined).

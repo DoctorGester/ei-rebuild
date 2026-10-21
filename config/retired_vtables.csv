@@ -237,8 +237,8 @@ vtable,slots,class,file,note
 007432E0,7,CMappedResource,src/game/resource.h,
 007432FC,1,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,
-00743320,1,ResourceStreamClass,src/game/resource_stream.h,the sound system's file reader (CResourceStream)
-00743324,1,ResourceBaseClass,src/game/resource_stream.h,the archive readers' base (CResourceBase)
+00743320,1,CResourceStream,src/game/resource_stream.h,the sound system's file reader
+00743324,1,CResourceBase,src/game/resource.h,the archive readers' base
 00743A14,26,CSpellManager,src/game/spell.h,
 00743B50,25,CLightFactory,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
