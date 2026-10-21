@@ -35,7 +35,7 @@ void* const kPartyRecordVtable = ei::GamePointer<void>(0x0073C360);
 void* const kMouseVtable = ei::GamePointer<void>(0x0073C350);
 void* const kMouseRootVtable = ei::GamePointer<void>(0x0073C368);
 
-CParty* PartyOf(PartyRecord* record) { return reinterpret_cast<CParty*>(record->party); }
+CParty* PartyOf(PartyRecord* record) { return record->Party(); }
 
 // A counted pointer's release (00439910): the object deleted with its last reference.
 template <typename T>

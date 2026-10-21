@@ -817,9 +817,9 @@ struct MpHeroRecord {
     // the versions 00790260..00790268): false when the file does not read, else the party loaded
     // (with its variables) and the memory stream's ok flag.
     bool ReadFile(const char* folder);
-    CParty* Party() { return reinterpret_cast<CParty*>(party); }
+    CParty* Party() { return party.Party(); }
 
-    std::uint8_t party[0x70];        // +0x00 CParty
+    PartyStorage party;              // +0x00 CParty (party_storage.h)
     mfc::CString file;               // +0x70
 };
 static_assert(sizeof(MpHeroRecord) == kMpHeroSize);

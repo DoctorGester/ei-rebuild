@@ -6,6 +6,7 @@
 // provisional.
 
 #include "item_stock.h"
+#include "party_storage.h"
 #include "lib/stlp.h"
 
 class CParty;   // party.h
@@ -38,8 +39,8 @@ struct ClassTemplate {
     // levels (ItemStock::SetLevels).
     void SetLevels(const float* base, const float* scroll);
 
-    CParty* ItemsParty() { return reinterpret_cast<CParty*>(items); }
-    CParty* SpellsParty() { return reinterpret_cast<CParty*>(spells); }
+    CParty* ItemsParty() { return items.Party(); }
+    CParty* SpellsParty() { return spells.Party(); }
 
     void* vtable;                   // 0073D0C4 (base 0073BB68)
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
@@ -52,10 +53,10 @@ struct ClassTemplate {
     std::uint8_t weightsTail[4];        // +0x34 field 4's tenth dword (archived with weights)
     std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion (004A88E0)
     std::uint8_t unused_39[3];
-    // +0x3C / +0xAC the party objects (CParty, constructor 00661050), held as storage because the
-    // class is abstract in its C++ declaration: ItemsParty / SpellsParty.
-    std::uint8_t items[0x70];
-    std::uint8_t spells[0x70];
+    // +0x3C / +0xAC the party objects (CParty, constructor 00661050; party_storage.h): ItemsParty /
+    // SpellsParty.
+    PartyStorage items;
+    PartyStorage spells;
     ItemStock allowed;              // +0x11C everything the class may use (vectors at +0x08 armors,
                                     //   +0x14 weapons, +0x20 quick items, +0x2C the fourth kind
                                     //   (16-byte entries), +0x38 spells, +0x44 modifiers)

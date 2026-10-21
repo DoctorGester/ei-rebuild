@@ -142,8 +142,8 @@ struct LocalFileStream {
 // The record builder's party (a CParty, party.h), built and torn down by the originals (its
 // bytes, so the compiler neither constructs nor destroys it).
 struct LocalRecords {
-    alignas(4) std::uint8_t bytes[sizeof(CParty)];
-    CParty* Party() { return reinterpret_cast<CParty*>(bytes); }
+    PartyStorage storage;
+    CParty* Party() { return storage.Party(); }
     LocalRecords() { Party()->Construct(); }
     ~LocalRecords() { PartyRecordsDestructOriginal(Party()); }
     LocalRecords(const LocalRecords&) = delete;
@@ -696,7 +696,7 @@ namespace {
 // begins a redeploy of a party.
 
 // The party outside a game (007C82B0, the party records as CPlayer::Party has them).
-CParty* GlobalParty() { return reinterpret_cast<CParty*>(TheSavedParties().outsideGame_); }
+CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 // A CParty through an untyped pointer; Assign / CopyConstruct (00661300 / 006613C0) read the
 // source non-const.
 CParty* AsParty(const void* party) { return static_cast<CParty*>(const_cast<void*>(party)); }

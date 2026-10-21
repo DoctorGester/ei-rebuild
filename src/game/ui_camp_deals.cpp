@@ -276,7 +276,7 @@ void CCampPages::DoAction() {
         trade_->Settle(1, 0);
         return;
     case kSpellTrade:
-        reinterpret_cast<CParty*>(constructor_->spells)->SpellManager();
+        constructor_->SpellsParty()->SpellManager();
         StockSpells(this, PartyOf(spellParts_[2]));
         ReturnToStrip(this, spellParts_[0], spellParts_[2], spellStrip_);
         ReturnToStrip(this, PlayerParty(), spellParts_[1], itemStrip_);
@@ -291,7 +291,7 @@ void CCampPages::DoAction() {
         }
         break;
     case kItemTrade:
-        reinterpret_cast<CParty*>(constructor_->items)->ItemManager();
+        constructor_->ItemsParty()->ItemManager();
         StockItems(this, PartyOf(itemParts_[2]));
         ReturnToStrip(this, itemParts_[0], itemParts_[2], partStrip_);
         ReturnToStrip(this, PlayerParty(), itemParts_[1], itemStrip_);

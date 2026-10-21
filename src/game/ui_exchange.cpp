@@ -189,8 +189,8 @@ void CExchangeScreen::Create() {
     scratch_ = memory ? static_cast<CParty*>(memory)->Construct() : nullptr;
     scratch_->Create();
     net::ClientSession* client = net::GameClient();
-    ownOffer_ = reinterpret_cast<CParty*>(&client->parties_[0]);
-    partnerOffer_ = reinterpret_cast<CParty*>(&client->parties_[1]);
+    ownOffer_ = client->parties_[0].Party();
+    partnerOffer_ = client->parties_[1].Party();
     PartyResetOriginal(ownOffer_, nullptr, 1, 0);
 
     // The description panel (its item list and text arrays constructed in place).

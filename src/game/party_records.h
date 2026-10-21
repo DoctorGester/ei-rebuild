@@ -4,6 +4,8 @@
 // scripts refer to it by. The object at 007AA5A0 keeps them in a vector at +0x24 followed by two
 // strings. Names are provisional.
 
+#include "party_storage.h"
+
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -17,11 +19,10 @@ struct PartyRecord {
     void* vtable;
     std::int16_t refCount;      // +0x04 counted pointers (the dword is cleared before construction)
     std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
-    char party[0x70];           // +0x08 the party (constructor 00661050)
+    PartyStorage party;         // +0x08 the party (constructor 00661050)
     mfc::CString name;          // +0x78 "" for the unnamed record
 
-    // The embedded party (party.h; the class is abstract in C++, so the member is its bytes).
-    CParty* Party() { return reinterpret_cast<CParty*>(party); }
+    CParty* Party() { return party.Party(); }
 
     // 004A5AF0 (virtual slot 1 Serialize, RET 4; party_manager.cpp). The name as string field 1,
     // the party (SaveParty / LoadParty with variables) as stream field 2.

@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "party.h"
 #include "random.h"
+#include "ui_screens.h"   // MpHeroRecord (the party outside a game)
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -23,7 +24,7 @@ CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0)
 CEngineObject* ServerPlayers() { return ei::GameData<CEngineObject*>(0x007AFF98); }
 // The party outside a game (007C82B0, a CParty like CPlayer + 0x70): its records, their
 // count and its gold.
-CParty* GlobalParty() { return reinterpret_cast<CParty*>(TheSavedParties().outsideGame_); }
+CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 int GlobalRecordCount() { return GlobalParty()->members_.size; }
 std::uint32_t& GlobalGold() { return GlobalParty()->money_; }
 

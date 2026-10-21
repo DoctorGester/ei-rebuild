@@ -10,6 +10,7 @@
 #include "engine_object.h"
 #include "maths.h"
 #include "net_delta.h"
+#include "party_storage.h"
 #include "script.h"
 
 #include "lib/containers.h"
@@ -431,8 +432,8 @@ public:
     // slot 21 of the connection.
     void Tick();
 
-    // The embedded party (party.h; the class is abstract in C++, so the member is its bytes).
-    CParty* Party() { return reinterpret_cast<CParty*>(&party_); }
+    // The embedded party (party_storage.h).
+    CParty* Party() { return party_.Party(); }
     // The connection as the server's view of it (a CPlayerServer on the server world, null for
     // none).
     CPlayerServer* Server() const { return static_cast<CPlayerServer*>(connection_); }
@@ -446,7 +447,7 @@ public:
     int maxUnitId_;                             // +0x54 highest id put in units_
     ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C
-    alignas(4) std::uint8_t party_[0x70];       // +0x70 an embedded CParty; slot 18 its item manager
+    PartyStorage party_;                        // +0x70 an embedded CParty; slot 18 its item manager
     mfc::CTypedPtrList<CItem> items_;           // +0xE0 items given to the player (counted; CPtrList)
     std::uint32_t partyId_;                     // +0xFC the key of the party in the party manager (PartyNextId); sent with the client's login (00667680)
     int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units (00667EC0)

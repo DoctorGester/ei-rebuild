@@ -357,10 +357,10 @@ struct LocalStream {
 };
 // A party on the stack (constructor 00661050, destructor body 006611D0).
 struct LocalParty {
-    alignas(4) unsigned char bytes[sizeof(CParty)];
+    PartyStorage storage;
     LocalParty() { Get()->Construct(); }
     ~LocalParty() { Get()->DestructBody(); }
-    CParty* Get() { return reinterpret_cast<CParty*>(bytes); }
+    CParty* Get() { return storage.Party(); }
 };
 
 } // namespace

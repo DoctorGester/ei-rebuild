@@ -1900,9 +1900,8 @@ struct GameFlow {
     // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
     void UpdateFromServer();
 
-    // The party of a request (party.h; RequestPartyZone5 / 6 copy one in; the constructor and
-    // destructor run on these bytes).
-    class CParty* RequestParty() { return reinterpret_cast<class CParty*>(requestParty_); }
+    // The party of a request (party_storage.h; RequestPartyZone5 / 6 copy one in).
+    class CParty* RequestParty() { return requestParty_.Party(); }
 
     // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
     // function call them). The constructor body: empty names, the party constructed (00661050), no
@@ -1916,7 +1915,7 @@ struct GameFlow {
 
     int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
     mfc::CString requestTarget_;          // +0x04 the request's zone or save name
-    std::uint8_t requestParty_[0x70];     // +0x08 a CParty: RequestParty()
+    PartyStorage requestParty_;           // +0x08 a CParty: RequestParty()
     int requestArg_;                      // +0x78 the entrance (4) or the load flag (2)
     mfc::CString zone7C_;                 // +0x7C the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // +0x80 set by SwitchMultiplayerZone, cleared by the game's start

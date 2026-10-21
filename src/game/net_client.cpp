@@ -21,7 +21,7 @@ namespace {
 
 // 004DA7F0: the growing byte buffer's constructor (net_coder.h, GameBuffer).
 // 00661050: the embedded party's constructor (CParty::Construct, called at its address).
-void PartyConstruct(PartyStorage* party) { reinterpret_cast<CParty*>(party)->Construct(); }
+void PartyConstruct(PartyStorage* party) { party->Party()->Construct(); }
 static_assert(sizeof(PartyStorage) == sizeof(CParty));
 // 0041F460: an empty STLport string (library).
 

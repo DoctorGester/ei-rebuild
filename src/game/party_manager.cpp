@@ -74,8 +74,8 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
-            auto* party = reinterpret_cast<CParty*>(reinterpret_cast<gamehash::PartyTable*>(parties)->At(
-                                                                      reinterpret_cast<const std::uint32_t*>(&key)));   // 004A91B0
+            CParty* party = reinterpret_cast<gamehash::PartyTable*>(parties)->At(
+                                    reinterpret_cast<const std::uint32_t*>(&key))->Get();   // 004A91B0
             if (EnterChunk(2)) {
                 party->ArchiveParty(this);
                 LeaveChunk();
@@ -193,7 +193,7 @@ EI_REWRITTEN(0x004A64B0, NamedPartyRecords::Serialize);
 void PartyRecord::Serialize(ChunkArchive* ar) {
     LocalStream local;
     ar->CStringField(1, &name);
-    CParty* p = reinterpret_cast<CParty*>(party);
+    CParty* p = Party();
     if (!ar->loading_) {
         p->SaveParty(&local.stream, 1);
         ar->StreamField(2, &local.stream);
@@ -211,8 +211,8 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(3, &flag0D, 1);
     ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
     LocalStream local;
-    auto* itemsParty = reinterpret_cast<CParty*>(items);
-    auto* spellsParty = reinterpret_cast<CParty*>(spells);
+    CParty* itemsParty = ItemsParty();
+    CParty* spellsParty = SpellsParty();
     if (!ar->loading_) {
         itemsParty->SaveParty(&local.stream, 0);
         spellsParty->SaveParty(&local.stream, 0);
@@ -244,7 +244,7 @@ void CopyParty(CParty* to, CParty* from) {
     to->LoadParty(&local.stream, 1);
 }
 
-CParty* RecordParty(PartyRecord* record) { return reinterpret_cast<CParty*>(record->party); }
+CParty* RecordParty(PartyRecord* record) { return record->Party(); }
 
 } // namespace
 

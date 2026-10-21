@@ -328,8 +328,8 @@ namespace {
 // to the game flow's request 5 / 6 (00581730 / 00581760: a copy of it) with the map name.
 template <void (GameFlow::*Request)(const char*, const void*)>
 void RequestWithParty(CStringArray* args, const char* extra) {
-    alignas(CParty) unsigned char storage[sizeof(CParty)];
-    CParty* party = reinterpret_cast<CParty*>(storage);
+    PartyStorage storage;
+    CParty* party = storage.Party();
     party->Construct();
     party->AddMember("F", "Human Hero", extra);
     {
