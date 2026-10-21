@@ -330,7 +330,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
 // Direct3D 11 work recorded on a deferred context and run as one command list.
 bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
 // The cursor thread's presents so far, the last one's rectangle and, in the verify build, the
-// checks of the frame it composed (the last frame without its cursor, the cursor's texels where its
+// checks of the frame it presented (the frame target, the cursor's texels where its
 // mask is clear) and how many differed.
 struct CursorPresentInfo {
     std::uint32_t presents = 0;
@@ -340,7 +340,7 @@ struct CursorPresentInfo {
     int checks = 0, mismatches = 0;
 };
 CursorPresentInfo CursorPresents();
-// Verify build: the frame the cursor thread presented last (before the gamma ramp), as 24-bit BGR
+// Verify build: the frame the cursor thread presented last (after the gamma ramp), as 24-bit BGR
 // rows from the top. False when there is none.
 bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr);
 
@@ -435,6 +435,7 @@ void GammaRamp(std::uint8_t* rgba256);
 struct WindowPresentInfo {
     std::uint32_t presents = 0;
     int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
+    int cursorChecks = 0, cursorMismatches = 0;   // verify build: the cursor the present draws, checked in the back buffer
     bool rampCheckPending = false;
     bool rampIdentity = true;   // the ramp in use is the identity
     bool failed = false;   // no swap chain, or the device was lost and could not be made again

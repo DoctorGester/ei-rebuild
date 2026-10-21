@@ -2,7 +2,8 @@
 // frame is drawn into a flip-model swap chain on the game window, its aspect kept (centred, black
 // bars when the window's client area has another shape), through the display's gamma ramp (the
 // options' brightness / contrast / gamma, IDirectDrawGammaControl's ramp in the old path) as a
-// shader step, and presented with the vertical blank. Also where the frame sits in the window, for
+// shader step, with the software cursor drawn over it by the same shader (the frame stays without it, for the
+// cursor thread's presents), and presented with the vertical blank. Also where the frame sits in the window, for
 // the game's mouse coordinates (WindowToFrame / FrameToWindow). docs/notes/renderer.md, section 9.
 #include "render.h"
 #include "render_game.h"
@@ -17,6 +18,7 @@
 #include <dxgi1_2.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 namespace render {
@@ -55,11 +57,21 @@ struct Ramp {
 };
 Ramp g_rampTable;   // (kept across devices: the game sets it once, a new device gets it again)
 std::uint8_t (&g_ramp)[256 * 4] = g_rampTable.entries;
+std::uint8_t g_uploaded[256 * 4];   // the ramp in the lookup texture (the cursor thread's checks read it)
 bool g_rampDirty = true;     // to be uploaded before the next present
 bool g_rampIdentity = true;
 long g_rampsSet = 0;          // verify build: ramps set so far (the ramp check is sampled)
 bool g_checkRamp = false;     // verify build: compare the next presented frame with the ramp applied
 WindowPresentInfo g_info;
+Rect g_lastCursor{0, 0, 0, 0};   // verify build: where the last present drew the cursor (the ramp check leaves it out)
+
+// The present shader's fragment uniforms (shaders/present.hlsl, cursor_params): the cursor's rectangle in the
+// frame (right <= left: none), the frame's size and the cursor texels per frame pixel, the cursor texture's size.
+struct CursorParams {
+    float to[4];
+    float frame[4];
+    float size[4];
+};
 
 bool CreatePipeline() {
     sg_shader_desc s{};
@@ -67,6 +79,9 @@ bool CreatePipeline() {
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     s.uniform_blocks[0].size = 16;
     s.uniform_blocks[0].hlsl_register_b_n = 0;
+    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.uniform_blocks[1].size = sizeof(CursorParams);
+    s.uniform_blocks[1].hlsl_register_b_n = 0;
     s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
     s.views[0].texture.image_type = SG_IMAGETYPE_2D;
     s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
@@ -75,6 +90,10 @@ bool CreatePipeline() {
     s.views[1].texture.image_type = SG_IMAGETYPE_2D;
     s.views[1].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
     s.views[1].texture.hlsl_register_t_n = 1;
+    s.views[2].texture.stage = SG_SHADERSTAGE_FRAGMENT;
+    s.views[2].texture.image_type = SG_IMAGETYPE_2D;
+    s.views[2].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
+    s.views[2].texture.hlsl_register_t_n = 2;
     s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
     s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
     s.samplers[0].hlsl_register_s_n = 0;
@@ -85,6 +104,9 @@ bool CreatePipeline() {
     s.texture_sampler_pairs[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.texture_sampler_pairs[1].view_slot = 1;
     s.texture_sampler_pairs[1].sampler_slot = 0;
+    s.texture_sampler_pairs[2].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.texture_sampler_pairs[2].view_slot = 2;
+    s.texture_sampler_pairs[2].sampler_slot = 0;
     s.label = "ei-present";
     g_shader = sg_make_shader(&s);
     sg_pipeline_desc p{};
@@ -278,6 +300,8 @@ void CheckRamp(int width, int height) {
         int points = 0, differing = 0;
         for (int y = height / 34; y < height; y += height / 17 + 1) {
             for (int x = width / 34; x < width; x += width / 17 + 1) {
+                if (x >= g_lastCursor.left - 1 && x < g_lastCursor.right + 1 && y >= g_lastCursor.top - 1 && y < g_lastCursor.bottom + 1)
+                    continue;   // the cursor is over the frame only in the back buffer
                 const auto* b = static_cast<const std::uint8_t*>(mb.pData) + static_cast<std::size_t>(y) * mb.RowPitch + x * 4;
                 const auto* f = static_cast<const std::uint8_t*>(mf.pData) + static_cast<std::size_t>(y) * mf.RowPitch + x * 4;
                 // back buffer B, G, R; frame R, G, B
@@ -305,13 +329,79 @@ void CheckRamp(int width, int height) {
     back->Release();
     sg_reset_state_cache();
 }
+
+// Verify build: the cursor the present just drew (g_lastCursor), checked in the back buffer: its pixels must
+// differ from the frame's somewhere (the cursor is not in the frame), for the sampled presents (one to one
+// placement only).
+void CheckCursorDrawn(int width, int height) {
+    static long presents = 0;
+    static int logged = 0;
+    const Rect& c = g_lastCursor;
+    if (c.right <= c.left || c.bottom <= c.top || c.left < 0 || c.top < 0 || c.right > width || c.bottom > height) return;
+    if (!ReadBackDue(presents++)) return;
+    int fw = 0, fh = 0;
+    if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
+    ID3D11Texture2D* back = nullptr;
+    if (FAILED(g_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&back)))) return;
+    sg_d3d11_image_info info = sg_d3d11_query_image_info(FrameImage());
+    auto* frame = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
+    ID3D11Texture2D* copies[2] = {nullptr, nullptr};
+    ID3D11Texture2D* sources[2] = {back, frame};
+    D3D11_BOX box{static_cast<UINT>(c.left), static_cast<UINT>(c.top), 0, static_cast<UINT>(c.right), static_cast<UINT>(c.bottom), 1};
+    bool ok = frame != nullptr;
+    for (int i = 0; ok && i < 2; ++i) {
+        D3D11_TEXTURE2D_DESC desc{};
+        sources[i]->GetDesc(&desc);
+        desc.Width = static_cast<UINT>(c.right - c.left);
+        desc.Height = static_cast<UINT>(c.bottom - c.top);
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        ok = SUCCEEDED(D3DDevice()->CreateTexture2D(&desc, nullptr, &copies[i]));
+        if (ok) D3DContext()->CopySubresourceRegion(copies[i], 0, 0, 0, 0, sources[i], 0, &box);
+    }
+    D3D11_MAPPED_SUBRESOURCE mb{}, mf{};
+    if (ok) ok = SUCCEEDED(D3DContext()->Map(copies[0], 0, D3D11_MAP_READ, 0, &mb));
+    if (ok && FAILED(D3DContext()->Map(copies[1], 0, D3D11_MAP_READ, 0, &mf))) {
+        D3DContext()->Unmap(copies[0], 0);
+        ok = false;
+    }
+    if (ok) {
+        int differing = 0, total = (c.right - c.left) * (c.bottom - c.top);
+        for (int y = 0; y < c.bottom - c.top; ++y) {
+            const auto* b = static_cast<const std::uint8_t*>(mb.pData) + static_cast<std::size_t>(y) * mb.RowPitch;
+            const auto* f = static_cast<const std::uint8_t*>(mf.pData) + static_cast<std::size_t>(y) * mf.RowPitch;
+            for (int x = 0; x < c.right - c.left; ++x) {
+                // back buffer B, G, R; frame R, G, B, through the ramp
+                if (std::abs(static_cast<int>(b[x * 4]) - g_uploaded[f[x * 4 + 2] * 4 + 2]) > 1 ||
+                    std::abs(static_cast<int>(b[x * 4 + 1]) - g_uploaded[f[x * 4 + 1] * 4 + 1]) > 1 ||
+                    std::abs(static_cast<int>(b[x * 4 + 2]) - g_uploaded[f[x * 4] * 4]) > 1)
+                    ++differing;
+            }
+        }
+        ++g_info.cursorChecks;
+        if (differing == 0) {
+            ++g_info.cursorMismatches;
+            ei::Log("render: MISMATCH cursor in the presented frame: none of the %d pixels of its rectangle differ from the frame", total);
+        } else if (logged++ < 3) {
+            ei::Log("render: cursor in the presented frame: %d of %d pixels of its rectangle differ from the frame", differing, total);
+        }
+        D3DContext()->Unmap(copies[0], 0);
+        D3DContext()->Unmap(copies[1], 0);
+    }
+    for (ID3D11Texture2D* t : copies)
+        if (t) t->Release();
+    back->Release();
+    sg_reset_state_cache();
+}
 #endif
 
 } // namespace
 
 namespace detail {
 
-bool DrawToWindow() {
+bool DrawToWindow(const BlitBatch* cursor) {
     if (g_failed || DeviceIsLost()) return false;
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
     Rect placed{};
@@ -322,6 +412,7 @@ bool DrawToWindow() {
         sg_image_data data{};
         data.mip_levels[0] = sg_range{g_ramp, sizeof(g_ramp)};
         sg_update_image(g_rampImage, &data);
+        std::memcpy(g_uploaded, g_ramp, sizeof(g_uploaded));
         g_rampDirty = false;
     }
     sg_pass pass{};
@@ -337,14 +428,35 @@ bool DrawToWindow() {
     sg_begin_pass(&pass);
     sg_apply_viewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top, true);
     sg_apply_pipeline(g_pipeline);
+    // The cursor texture's slot holds the ramp's when there is no cursor (the rectangle is empty then).
+    CursorParams cp{};
+    sg_view cursorView = g_rampView;
+    g_lastCursor = Rect{0, 0, 0, 0};
+    if (cursor && cursor->texture.id) {
+        const Rect& to = cursor->destination;
+        int dw = to.right - to.left, dh = to.bottom - to.top;
+        int sw = cursor->source.right - cursor->source.left, sh = cursor->source.bottom - cursor->source.top;
+        if (dw > 0 && dh > 0 && sw > 0 && sh > 0 && cursor->source.left == 0 && cursor->source.top == 0) {
+            cursorView = cursor->texture;
+            cp = CursorParams{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
+                               static_cast<float>(to.bottom)},
+                              {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
+                               static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
+                              {static_cast<float>(cursor->textureWidth), static_cast<float>(cursor->textureHeight), 0.0f, 0.0f}};
+            g_lastCursor = to;
+        }
+    }
     sg_bindings b{};
     b.views[0] = FrameTexture();
     b.views[1] = g_rampView;
+    b.views[2] = cursorView;
     b.samplers[0] = LinearSampler();
     sg_apply_bindings(&b);
     float uniforms[4] = {0.0f, 0.0f, 1.0f, 1.0f};
     sg_range range{uniforms, sizeof(uniforms)};
     sg_apply_uniforms(0, &range);
+    sg_range cursorRange{&cp, sizeof(cp)};
+    sg_apply_uniforms(1, &cursorRange);
     sg_draw(0, 3, 1);
     sg_end_pass();
     return true;
@@ -353,6 +465,7 @@ bool DrawToWindow() {
 void PresentWindow() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_checkRamp && g_chain) CheckRamp(g_chainWidth, g_chainHeight);
+    if (g_chain) CheckCursorDrawn(g_chainWidth, g_chainHeight);
 #endif
     // A loss asked for by the harness (render::LoseDevice) stands in for the Present that would
     // have reported it.
@@ -380,7 +493,9 @@ bool CurrentWindowParts(WindowParts* parts) {
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
-    *parts = WindowParts{g_chain, g_view, g_shader, g_pipeline, g_rampView, g_chainWidth, g_chainHeight, placed, g_waitForVsync};
+    *parts = WindowParts{g_chain,       g_view,       g_shader,      g_pipeline, FrameTexture(), g_rampView,
+                         g_uploaded,    g_chainWidth, g_chainHeight, frameWidth, frameHeight,    placed,
+                         g_waitForVsync};
     return true;
 }
 

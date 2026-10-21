@@ -183,12 +183,6 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height) {
     CountDraw(sizeof(vs));
 }
 
-void BlitParts(sg_shader* shader, sg_pipeline* pipeline, sg_sampler* sampler) {
-    *shader = g_blitShader;
-    *pipeline = g_blit;
-    *sampler = g_nearest;
-}
-
 void DestroyBlits() {
     DestroyMultisampledPipelines();
     if (g_blit.id) sg_destroy_pipeline(g_blit);
@@ -498,7 +492,7 @@ void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect&
     }
     Frame& f = CurrentFrame();
     if (use == ImageUse::Cursor && PresentsItself()) {
-        // Drawn by EndFrame after the frame without it is kept for the cursor thread.
+        // Drawn by the present (DrawToWindow) over the frame, which stays without it for the cursor thread.
         f.cursor = BlitBatch{view, w, h, to, Rect{0, 0, w, h}};
         f.haveCursor = true;
         return;
