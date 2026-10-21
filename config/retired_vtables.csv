@@ -18,6 +18,9 @@ vtable,slots,class,file,note
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
+0073D9D8,13,AnimationTrack,src/game/map_object_animation.h,class 0x300B (the figure factory)
+0073DA0C,13,FigureBone,src/game/map_object_figures.h,class 0x300C (the figure factory)
+0073DA4C,13,CFigureAnimationState,src/game/map_object_figures.h,class 0x300D (the figure and map object factories)
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
 0073E178,61,PlainMapObject,src/game/map_object_kinds.h,CTree (PlainMapObject<0x52>)
 0073E26C,61,PlainMapObject,src/game/map_object_kinds.h,CBuilding (PlainMapObject<0x54>)

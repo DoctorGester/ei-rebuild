@@ -17,6 +17,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 class CObject3D;
 class CLinkMesh;          // link_figure.h: an object's figure (+0xF0)
 class CTransformObject;   // core_transform.h
@@ -137,7 +139,8 @@ class CObject3D;
 
 // A bone of a figure's skeleton (class id 0x300C, made by 0050CC60 from the skeleton links; names
 // provisional). The animation state's bone list holds them, its +0x20 the root. Only the fields
-// the pose code uses.
+// the pose code uses. A real virtual class (C19): the compiler makes its vtable (game.exe's
+// 0073DA0C is retired); the child list keeps game.exe's CPtrList table 0073DA40 (the containers).
 struct FigureBone : CEngineObject {
     mfc::CString name;                      // +0x1C the piece's name (0050CC60 links children by it)
     mfc::CString name2;                     // +0x20 its parent's name (empty for the root)
@@ -157,10 +160,24 @@ struct FigureBone : CEngineObject {
     Quaternion rotation;                    // +0x80 in figure space
     lib::AlignedArray<Matrix4> matrices;    // +0x90 (emptied without freeing; freed by the destructor)
 
-    // figure_bone_lifetime.cpp (A-U9; vtable 0073DA0C, 0xA0 bytes, made by the figure factory
-    // 005AAB57):
-    // 0050AF40. The constructor: engine object fields, empty names and child list (blocks of 10),
-    // the vtable, then CreateBone's reset. Returns this.
+    // figure_bone_lifetime.cpp (A-U9; 0xA0 bytes, made by the figure factory 005AAB57):
+    // 0050AF40. Engine object fields, empty names and child list (blocks of 10), then CreateBone's
+    // reset.
+    FigureBone();
+    // 0050B1D0's work: DestroyBone, the matrices' block freed, the list emptied (its destructor),
+    // then the names' and the engine object's.
+    ~FigureBone() override;
+    // The deleting destructor (slot 0, 0050B1B0) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    // The vtable: CEngineObject's but for 0, 2, 3, 7, 11 and 12 (small_slots_500.cpp: 7, 11, 12).
+    int Create() override;                 // 2: 0050B370 CreateBone
+    void Destroy() override;               // 3: 0050B510 DestroyBone
+    const char* GetName() override;        // 7: 0050B180 (name)
+    const char* GetClassName() override;   // 11: 0050B190 "CAnimationNode"
+    int GetClassId() override;             // 12: 0050B1A0 (0x21)
+
+    // The registrations (C20 retires them): 0050AF40 the constructor in place (returns this).
     FigureBone* Construct();
     // 0050B370 (slot 2, EAX 1). Reset: names "", no parent, the child list emptied (its blocks
     // freed), mesh, pose, animator and +0x54 / +0x58 forgotten, the default position and rotation
@@ -169,10 +186,9 @@ struct FigureBone : CEngineObject {
     // 0050B510 (slot 3). Releases the mesh (forgotten first), the animator, +0x54 and +0x58 (the
     // pose is only forgotten), then CreateBone's reset.
     void DestroyBone();
-    // 0050B1D0. The destructor body: the vtable, DestroyBone, the matrices' block freed, the list's
-    // and the names' destructors, the engine object's.
+    // 0050B1D0 the destructor; 0050B1B0 (slot 0, RET 4) the destructor, then operator delete with
+    // flags bit 0 (returns this).
     void DestructBody();
-    // 0050B1B0 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
     FigureBone* DeleteBone(unsigned flags);
 
     // 0050C230 (RET 4; figure_bones.cpp, A-U9). Places this bone and, recursively, its children: a
@@ -202,8 +218,10 @@ public:
     virtual void* ReadEntry(const char* name, int* size);
 };
 
-// The figure's animation state (class id 0x300D, vtable 0073DA4C, 0x78 bytes; CObject3D + 0x98): the
-// skeleton's bones, the animation playing and the queue behind it, the frame reached.
+// The figure's animation state (class id 0x300D, 0x78 bytes; CObject3D + 0x98): the skeleton's
+// bones, the animation playing and the queue behind it, the frame reached. A real virtual class
+// (C19): the compiler makes its vtable (game.exe's 0073DA4C is retired); the lists keep game.exe's
+// CPtrList tables 0073DA40 / 0073DA80 (the containers).
 class CFigureAnimationState : public CEngineObject {
 public:
     // map_object_animation_state.cpp (A-U2).
@@ -228,13 +246,25 @@ public:
     static void AnimateBone(FigureBone* bone, const FigureAnimation* animation);
 
     // map_object_animation_bones.cpp (A-U10).
-    // 0050C5F0. The constructor: engine object fields, empty lists (blocks of 10), the vtable, then
-    // Reset. Returns this.
+    // 0050C5F0. Engine object fields, empty lists (blocks of 10), then Reset.
+    CFigureAnimationState();
+    // 0050C730's work: every bone released, Reset's fields, the lists emptied (their destructors),
+    // then the engine object's.
+    ~CFigureAnimationState() override;
+    // The deleting destructor (slot 0, 0050C710) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12 (small_slots_500.cpp: 11, 12).
+    int Create() override;                 // 2: 0050C860 CreateState
+    void Destroy() override;               // 3: 0050C8E0 DestroyState
+    const char* GetClassName() override;   // 11: 0050C6F0 "CAnimationSystem2"
+    int GetClassId() override;             // 12: 0050C700 (0x21)
+
+    // The registrations (C20 retires them): 0050C5F0 the constructor in place (returns this; the
+    // map object factory's class 0x300D, unit_create_stats.cpp), 0050C730 the destructor, 0050C710
+    // (slot 0) the destructor, then operator delete with flags bit 0 (returns this).
     CFigureAnimationState* Construct();
-    // 0050C730. The destructor body: every bone released, the lists emptied, Reset's fields, the
-    // lists' destructors, the engine object's.
     void DestructBody();
-    // 0050C710 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
     CFigureAnimationState* DeleteState(unsigned flags);
     // 0050C860 (slot 2). Reset with `changed` set first. Returns 1.
     int CreateState();

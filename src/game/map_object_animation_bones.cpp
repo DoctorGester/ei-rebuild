@@ -1,4 +1,4 @@
-// The figure animation state's skeleton (class 0x300D, vtable 0073DA4C; CFigureAnimationState in
+// The figure animation state's skeleton (class 0x300D; CFigureAnimationState in
 // map_object_figures.h): its lifetime, the bones the skeleton file links (005AC880 calls LinkPiece
 // per link, then FindRoot), the meshes the bones carry, and placing the skeleton when the
 // animation or the figure's morph changes. See docs/notes/map_objects.md.
@@ -24,7 +24,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kStateVtable = std::uintptr_t(0x0073DA4C);
 constexpr std::uintptr_t kBoneListVtable = std::uintptr_t(0x0073DA40);
 constexpr std::uintptr_t kQueueVtable = std::uintptr_t(0x0073DA80);
 constexpr int kListBlockSize = 10;
@@ -85,47 +84,50 @@ void ClearTrack(AnimationTrack* track) {
 
 } // namespace
 
-CFigureAnimationState* CFigureAnimationState::Construct() {
+CFigureAnimationState::CFigureAnimationState() {
     ClearFields();
     ConstructList(&bones, kBoneListVtable);
     ConstructList(&queue, kQueueVtable);
-    ei::SetVtable(this, kStateVtable);
     Reset();
-    return this;
 }
+
+CFigureAnimationState* CFigureAnimationState::Construct() { return new (this) CFigureAnimationState(); }
 EI_REPLACE_METHOD(0x0050C5F0, CFigureAnimationState::Construct);
 
-void CFigureAnimationState::DestructBody() {
-    ei::SetVtable(this, kStateVtable);
+CFigureAnimationState::~CFigureAnimationState() {
     ReleaseBones();
     Reset();
     queue.vtable = ei::GamePointer<void>(kQueueVtable);
     queue.RemoveAll();
     bones.vtable = ei::GamePointer<void>(kBoneListVtable);
     bones.RemoveAll();
-    DestructBase();
 }
+
+void CFigureAnimationState::DestructBody() { this->CFigureAnimationState::~CFigureAnimationState(); }
 EI_REWRITTEN(0x0050C730, CFigureAnimationState::DestructBody);
 
 CFigureAnimationState* CFigureAnimationState::DeleteState(unsigned flags) {
-    DestructBody();
+    this->CFigureAnimationState::~CFigureAnimationState();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0050C710, CFigureAnimationState::DeleteState);
+EI_REWRITTEN(0x0050C710, CFigureAnimationState::DeleteState);
+
+int CFigureAnimationState::Create() { return CreateState(); }
+void CFigureAnimationState::Destroy() { DestroyState(); }
 
 int CFigureAnimationState::CreateState() {
     changed = 1;
     Reset();
     return 1;
 }
-EI_REPLACE_METHOD(0x0050C860, CFigureAnimationState::CreateState);
+EI_REWRITTEN(0x0050C860, CFigureAnimationState::CreateState);
 
 void CFigureAnimationState::DestroyState() {
     ReleaseBones();
     Reset();
 }
-EI_REPLACE_METHOD(0x0050C8E0, CFigureAnimationState::DestroyState);
+EI_REWRITTEN(0x0050C8E0, CFigureAnimationState::DestroyState);
 
 void CFigureAnimationState::ReleaseBones() {
     for (auto* node = bones.head; node;) {
