@@ -896,13 +896,32 @@ across runs; the goldens check the game state.
    at 4K) before the cursor is drawn into it; drawing the cursor and the gamma ramp in the present pass keeps the frame
    clean for the cursor thread. Gain: GPU bandwidth only. Risk: low. Check: render_cursor_present, render_present,
    render_present_shot (cursorcheck's own comparisons, 0 differences).
-7. **R16g Per-draw records and instancing.** After R16c / R16d the per-frame data is matrices, colours and pass state:
-   one ring buffer of per-draw records (matrix, fog, stage operations) read by index replaces apply_uniforms per draw;
-   meshes with the same geometry and state (132 of 350 in the fight: creatures of one kind; trees) draw instanced,
-   their textures from texture arrays where sizes match; materials read from the game's data instead of the stand-in
-   device's state. Particles: the scenes measured have 0-3 pre-transformed draws, so they follow only if a spell-heavy
-   scene (spells_cast) shows otherwise. Gain: small now (draws are few), grows with unit counts and wider views. Check:
-   render_scene, units at 8 / 0.1%.
+7. **R16g Per-draw records and instancing (measured, not built: under 0.2 ms a frame to gain).** The plan: one ring
+   buffer of per-draw records (matrix, fog, stage operations) read by index instead of two apply_uniforms per mesh
+   draw; meshes with the same geometry and state drawn instanced. Measured with a temporary timer around the parts
+   of `DrawMeshBatch` (QueryPerformanceCounter; render_stats, vanilla 4K, the harness build with sokol's validation
+   layer off, as in the product; per frame, main thread):
+
+   | Scene | mesh draws (kept on the GPU) | all of DrawMeshBatch ms | uniforms (both blocks built and applied) | pipeline + bindings | sg_draw | same geometry and state as the draw before / as any earlier draw of the frame |
+   |---|---|---|---|---|---|---|
+   | menu | 159 (158) | 0.25 | 0.085 | 0.14 | 0.008 | 3 / 7 |
+   | zone1 | 137 (68) | 0.17 | 0.032 | 0.12 | 0.007 | 4 / 5 |
+   | fight | 245-330 (163-242) | 0.30-0.40 | 0.055-0.074 | 0.21-0.28 | 0.012-0.016 | 4 / 47-77 |
+   | town | 129 (118) | 0.15 | 0.027 | 0.11 | 0.006 | 11 / 11 |
+   | camp | 108 | 0.14 | 0.025 | 0.10 | 0.005 | 5 / 5 |
+
+   ("Same geometry and state": the kept mesh's vertices and triangles hash equal, and the pipeline, both stages'
+   textures and operations, the patch, alpha test, fog, specular, texture factor, shadow sampling and distance fog
+   are the same.) So a ring of records could save at most the uniforms' 0.03-0.07 ms (less its own building and
+   upload), and instancing at most the draws it merges: in the fight 47-77 of them could join an earlier one (only
+   4 the one just before; the rest only by reordering the frame's draws), about 1.2 us each, 0.06-0.09 ms; together
+   under 0.2 ms of the fight's 19 ms main-thread frame, and nothing on the GPU (the same vertices; the GPU frame is
+   1.2 ms). The whole mesh draw path is 0.4 ms of it: the main thread's time is the game's (item 8). The largest
+   part, the pipeline lookup and the bindings (0.8 us a draw: the pipeline map, the samplers per stage,
+   sg_apply_bindings setting every view and sampler), is also under 0.3 ms. EI_PROFILE=1 (the fight) agrees: no
+   renderer draw function among the top samples, d3d11.dll and the driver 1.4% each. Revisit with many more draws
+   (a much wider view or hundreds of units); materials from the game's data and particles (0-3 pre-transformed
+   draws a frame) stay with it.
 8. **R16h Figure animation on the GPU (measured, not built: nothing to gain).** The plan assumed the game morphs the
    figure parts' positions on the CPU every frame. Creatures animate by their bones: FigureBone::Place (0050C230) gives
    each part a position and rotation, i.e. its matrix, which the GPU already applies. The per-vertex morph
