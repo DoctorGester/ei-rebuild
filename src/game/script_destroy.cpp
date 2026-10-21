@@ -43,10 +43,6 @@ void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructEl
 void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }   // 004C26A0 is 004BC810's body
 inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 
-// Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)
-// and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
-void __fastcall GroupBody(void* a0) { static_cast<ScriptGroup*>(a0)->DestructBody(); }
-
 template <typename T>
 void SetBaseVtable(mfc::CArray<T>* a, void* vtable) {
     a->vtable = vtable;
@@ -74,7 +70,7 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->groupNames);
     SetBaseVtable(&vars->groups, scriptvtable::kGroupsBase);
     if (ScriptGroup* groups = vars->groups.data) {
-        for (int i = 0; i < vars->groups.size; ++i) ScriptGroupDestroy(&groups[i], nullptr, 0);
+        for (int i = 0; i < vars->groups.size; ++i) groups[i].DestroyElement(0);
         gamecrt::operator_delete(vars->groups.data);
     }
     FreeStrings(&vars->objectNames);
@@ -136,19 +132,19 @@ void* Finish(void* self, int flags) {
 } // namespace
 
 // A reference: the object released, the slot cleared.
-void* __fastcall ScriptRefDestroy(CEngineObject** slot, void*, int flags) {
-    if (*slot) (*slot)->Release();
-    *slot = nullptr;
-    return Finish(slot, flags);
+void* ScriptObjectRef::DestroyElement(int flags) {
+    if (object) object->Release();
+    object = nullptr;
+    return Finish(this, flags);
 }
-EI_REPLACE(0x004CE1E0, ScriptRefDestroy);
-EI_REPLACE(0x0052D030, ScriptRefDestroy);   // byte-identical copy (A-U11)
+EI_REPLACE_METHOD(0x004CE1E0, ScriptObjectRef::DestroyElement);
+EI_REPLACE_METHOD(0x0052D030, ScriptObjectRef::DestroyElement);   // byte-identical copy (A-U11)
 
-void* __fastcall ScriptGroupDestroy(void* group, void*, int flags) {
-    GroupBody(group);
-    return Finish(group, flags);
+void* ScriptGroup::DestroyElement(int flags) {
+    DestructBody();
+    return Finish(this, flags);
 }
-EI_REPLACE(0x004CE210, ScriptGroupDestroy);
+EI_REPLACE_METHOD(0x004CE210, ScriptGroup::DestroyElement);
 
 // A nested call: its command destroyed and deleted.
 void* ScriptSubCall::DestroyElement(int flags) {
@@ -161,27 +157,27 @@ void* ScriptSubCall::DestroyElement(int flags) {
 EI_REPLACE_METHOD(0x004CE230, ScriptSubCall::DestroyElement);
 
 // A particle source's object: removed from the world's timed objects, then released.
-void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags) {
-    if (*slot) {
-        TheServerWorld()->RemoveTimedObject((*slot)->id_);
-        (*slot)->Release();
+void* ScriptParticleSource::DestroyElement(int flags) {
+    if (object) {
+        TheServerWorld()->RemoveTimedObject(object->id_);
+        object->Release();
     }
-    *slot = nullptr;
-    return Finish(slot, flags);
+    object = nullptr;
+    return Finish(this, flags);
 }
-EI_REPLACE(0x004CE270, ScriptParticleDestroy);
+EI_REPLACE_METHOD(0x004CE270, ScriptParticleSource::DestroyElement);
 
-void* __fastcall ScriptFxSourceDestroy(void* source, void*, int flags) {
-    static_cast<ScriptFxSource*>(source)->ScriptFxSourceDestruct();
-    return Finish(source, flags);
+void* ScriptFxSource::DestroyElement(int flags) {
+    ScriptFxSourceDestruct();
+    return Finish(this, flags);
 }
-EI_REPLACE(0x004CE2B0, ScriptFxSourceDestroy);
+EI_REPLACE_METHOD(0x004CE2B0, ScriptFxSource::DestroyElement);
 
-void* __fastcall ScriptWorldBlockDestroy(void* block, void*, int flags) {
-    ScriptDeclDestruct(static_cast<ScriptDecl*>(block));
-    return Finish(block, flags);
+void* ScriptDecl::DestroyElement(int flags) {
+    ScriptDeclDestruct(this);
+    return Finish(this, flags);
 }
-EI_REPLACE(0x004CE2D0, ScriptWorldBlockDestroy);
+EI_REPLACE_METHOD(0x004CE2D0, ScriptDecl::DestroyElement);
 
 void* SSCCmd::DestroyElement(int flags) {
     Destruct();

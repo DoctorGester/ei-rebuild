@@ -251,7 +251,7 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
         }
         copy.vtable = scriptvtable::kRefsBase;
         if (copy.data) {
-            for (int k = 0; k < copy.size; ++k) ScriptRefDestroy(&copy.data[k].object, nullptr, 0);
+            for (int k = 0; k < copy.size; ++k) copy.data[k].DestroyElement(0);
             gamecrt::operator_delete(copy.data);
         }
     }

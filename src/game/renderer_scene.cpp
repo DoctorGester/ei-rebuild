@@ -94,13 +94,13 @@ int CSceneRenderer::EndScene() {
     long result = DeviceEndScene(device);
     if (result != D3DERR_SCENE_NOT_IN_SCENE && result != 0) app::FatalErrorCode(result, "Can't end scene.\n");
     mfc::CString text;
-    void* panel = DebugInfoPanel();
+    strmap::CDebugPanel* panel = DebugInfoPanel();
     text.Format("%g", 1000.0 / x87::FromUnsigned(frameTime_));
-    strmap::StringTableSet(panel, nullptr, "FPS", text);
+    panel->Set("FPS", text);
     text.Format("%d", device_->vertexCount_);
-    strmap::StringTableSet(panel, nullptr, "num verts", text);
+    panel->Set("num verts", text);
     text.Format("%d", device_->primitiveCount_);
-    strmap::StringTableSet(panel, nullptr, "num trias", text);
+    panel->Set("num trias", text);
     lastFrameStart_ = frameStart_;
     return 1;
 }

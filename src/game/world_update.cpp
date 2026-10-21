@@ -157,7 +157,7 @@ int CWorldServer::Update() {
     heroes.vtable = scriptvtable::kRefsBase;
     if (heroes.data) {
         ScriptObjectRef* ref = heroes.data;
-        for (int n = heroes.size; n != 0; --n) ScriptRefDestroy(&(ref++)->object, nullptr, 0);
+        for (int n = heroes.size; n != 0; --n) (ref++)->DestroyElement(0);
         gamecrt::operator_delete(heroes.data);
     }
 

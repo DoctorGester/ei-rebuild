@@ -455,33 +455,36 @@ EI_REPLACE_METHOD(0x004FD880, CRenderPreset::DeleteScalar);
 // 004FCD30 and 004FD900: the helper's and the preset's abstract base classes (vtables 0073D860 /
 // 0073D888): the root's vtable left (004FCC40 / 004FD8A0, inlined). No object keeps those vtables
 // while it can be released, so nothing calls them.
-void* __fastcall RenderBaseDelete(void* self, void*, unsigned flags) {
-    SetRootVtable(self);
-    return DeleteIf(self, flags);
+struct CRenderBase {
+    void* DeleteScalar(unsigned flags);
+};
+void* CRenderBase::DeleteScalar(unsigned flags) {
+    SetRootVtable(this);
+    return DeleteIf(this, flags);
 }
-EI_REPLACE(0x004FCD30, RenderBaseDelete);
-EI_REPLACE(0x004FD900, RenderBaseDelete);
+EI_REPLACE_METHOD(0x004FCD30, CRenderBase::DeleteScalar);
+EI_REPLACE_METHOD(0x004FD900, CRenderBase::DeleteScalar);
 
 // 004E6880: the device object's (vtable 0073D760).
-void* __fastcall DeviceDelete(void* self, void*, unsigned flags) {
-    static_cast<CTextureDevice*>(self)->Destruct();
-    return DeleteIf(self, flags);
+void* CTextureDevice::DeleteDevice(unsigned flags) {
+    Destruct();
+    return DeleteIf(this, flags);
 }
-EI_REPLACE(0x004E6880, DeviceDelete);
+EI_REPLACE_METHOD(0x004E6880, CTextureDevice::DeleteDevice);
 
 // 004EE310: the DirectDraw holder's.
-void* __fastcall DirectDrawHolderDelete(void* self, void*, unsigned flags) {
-    static_cast<CTextureDevice*>(self)->DestructDirectDraw();
-    return DeleteIf(self, flags);
+void* CTextureDevice::DeleteDirectDraw(unsigned flags) {
+    DestructDirectDraw();
+    return DeleteIf(this, flags);
 }
-EI_REPLACE(0x004EE310, DirectDrawHolderDelete);
+EI_REPLACE_METHOD(0x004EE310, CTextureDevice::DeleteDirectDraw);
 
 // 004FCC20: the helper's (the body above, through its address).
-void* __fastcall RenderHelperDelete(void* self, void*, unsigned flags) {
-    RenderHelperDestruct(static_cast<CRenderHelper*>(self));
-    return DeleteIf(self, flags);
+void* CRenderHelper::DeleteScalar(unsigned flags) {
+    RenderHelperDestruct(this);
+    return DeleteIf(this, flags);
 }
-EI_REPLACE(0x004FCC20, RenderHelperDelete);
+EI_REPLACE_METHOD(0x004FCC20, CRenderHelper::DeleteScalar);
 
 // ---- The transform pipeline (CTransformPipeline, vtable 0073D778) -----------------------------------------
 
@@ -569,11 +572,11 @@ void __fastcall TransformPipelineDestruct(CTransformPipeline* self) {
 EI_REPLACE(0x004F0E10, TransformPipelineDestruct);
 
 // 004F0DF0 (slot 0, RET 4).
-void* __fastcall TlLibraryDelete(void* self, void*, unsigned flags) {
-    TransformPipelineDestruct(static_cast<CTransformPipeline*>(self));
-    return DeleteIf(self, flags);
+void* CTransformPipeline::DeleteScalar(unsigned flags) {
+    TransformPipelineDestruct(this);
+    return DeleteIf(this, flags);
 }
-EI_REPLACE(0x004F0DF0, TlLibraryDelete);
+EI_REPLACE_METHOD(0x004F0DF0, CTransformPipeline::DeleteScalar);
 
 // ---- The driver list --------------------------------------------------------------------------------
 

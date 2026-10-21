@@ -66,7 +66,7 @@ void __fastcall ScriptReset(CScript* script) {
         ScriptVarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 
-    RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { ScriptWorldBlockDestroy(block, nullptr, 0); });
+    RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { block->DestroyElement(0); });
 
     ScriptVars* globals = script->Globals();
     ScriptFloatsClear(reinterpret_cast<ScriptNamedValues<float>*>(&globals->floats));
@@ -99,8 +99,8 @@ void __fastcall ScriptReset(CScript* script) {
     }
     std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
 
-    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { ScriptFxSourceDestroy(source, nullptr, 0); });
-    RemoveAll(script->particles_, [](ScriptParticleSource* source) { ScriptParticleDestroy(&source->object, nullptr, 0); });
+    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { source->DestroyElement(0); });
+    RemoveAll(script->particles_, [](ScriptParticleSource* source) { source->DestroyElement(0); });
     RemoveAll(script->lightning_, [](ScriptLightning* bolt) { ScriptLightningElementsDestruct(bolt, 1); });
 
     mfc::impl::ArrayAs<mfc::impl::ScriptAreas>(script->areas_).SetSize(0, -1);

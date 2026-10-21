@@ -66,12 +66,6 @@ void CallSlot(void* window, int slot) {
     reinterpret_cast<Fn>((*static_cast<void***>(window))[slot])(window);
 }
 
-// The debug panel's slot 0: panel[key] = value.
-void DebugPanelSet(void* panel, const char* key, const char* value) {
-    using Fn = void(__thiscall*)(void*, const char*, const char*);
-    reinterpret_cast<Fn>((*static_cast<void***>(panel))[0])(panel, key, value);
-}
-
 // A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes
 // the full-size one the mode's size in pixels, unscaled (addon's operands at 005F546A..005F5473
 // and 005F5568..005F5571: 1 -> 0, 600 -> height, 800 -> width).
@@ -144,11 +138,11 @@ EI_REPLACE_METHOD(0x005F5220, CInterface3D::Draw);
 
 void CInterface3D::DrawOverlays() {
     mfc::CString text;
-    void* panel = DebugInfoPanel();
+    strmap::CDebugPanel* panel = DebugInfoPanel();
     text.Format("%d", SurfaceBytesKept());
-    DebugPanelSet(panel, "surface stored", text);
+    panel->Set("surface stored", text);
     text.Format("%d", SurfaceBytesAllocated());
-    DebugPanelSet(panel, "surface alloc", text);
+    panel->Set("surface alloc", text);
     if (stackBegin_ != stackEnd_) {
         CallSlot(stackEnd_[-1], kRedrawSlot);
         CallSlot(stackEnd_[-1], kTipsSlot);
@@ -173,7 +167,7 @@ void CInterface3D::DrawOverlays() {
         backdropMode_ = 4;
     }
     if (IsMultiplayerClient() && stackEnd_ - stackBegin_ == 1) CallSlot(root_, kRedrawSlot);
-    strmap::PanelTick(panel);
+    panel->Tick();
 
     ++fpsFrames_;
     const DWORD now = gameapi::timeGetTime();

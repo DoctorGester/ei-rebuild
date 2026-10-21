@@ -8,6 +8,7 @@
 // mouse position before hit testing.
 
 #include "core_transform.h"
+#include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
 #include "game_data.h"
@@ -1057,7 +1058,7 @@ inline bool& InterfaceHasScreen() { return ei::GameData<bool>(0x00784750); }
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return ei::GameData<int>(0x0079BE74); }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
-inline void* DebugInfoPanel() { return ei::GamePointer<void>(0x0079B930); }
+inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CDebugPanel>(0x0079B930); }
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 // The model manager (007AF5F4) the windows take their sprites and item models from.

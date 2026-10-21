@@ -75,7 +75,7 @@ void CInterface3D::Shutdown() {
     secondBackdrop_ = nullptr;
     if (block5C_) gamecrt::operator_delete(block5C_);
     block5C_ = nullptr;
-    strmap::PanelRelease(DebugInfoPanel());
+    DebugInfoPanel()->Release();
     if (root_) {
         root_->DeleteWindow();
         root_ = nullptr;
