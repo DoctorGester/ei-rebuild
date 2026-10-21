@@ -72,7 +72,7 @@ void SetTarget(UnitAction* order, CEngineObject* target) {
 }
 
 void TellParty(CUnit* unit, int message) {
-    if (unit->player) PlayerMessage(reinterpret_cast<WorldPlayer*>(unit->player)->server, nullptr, unit, message);
+    if (unit->player) PlayerMessage(unit->player->Server(), nullptr, unit, message);
 }
 } // namespace
 

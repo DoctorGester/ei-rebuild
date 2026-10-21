@@ -112,12 +112,10 @@ namespace {
 __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
     EI_ORIGINAL(0x00560E10)
 // CStringArray element by value (004698A0: a CString constructed into `out`).
-char** StringArrayGetAt(const recordarrays::PartNames* names, char** out, int index) {
-    names->CopyAt(reinterpret_cast<mfc::CString*>(out), index);
+mfc::CString* StringArrayGetAt(const recordarrays::PartNames* names, mfc::CString* out, int index) {
+    names->CopyAt(out, index);
     return out;
 }
-
-void DestroyString(char** s) { reinterpret_cast<mfc::CString*>(s)->~CString(); }
 
 // The map objects and units the footprint code reads share the CObject3D layout.
 CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
@@ -159,13 +157,15 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
 
     bool hasBridge = false;
     for (int n = 0; n < names->size; ++n) {
-        char* name;
-        int index = mapObject->FindPartIndex(*StringArrayGetAt(names, &name, n));
-        DestroyString(&name);
+        int index;
+        {
+            mfc::CString name(mfc::CString::kUnset);
+            index = mapObject->FindPartIndex(*StringArrayGetAt(names, &name, n));
+        }
         if (index < 0) {
             const char* objectName = mapObject->name;
-            game::FatalError(PartNotFoundFormat(), *StringArrayGetAt(names, &name, n), objectName);
-            DestroyString(&name);
+            mfc::CString name(mfc::CString::kUnset);
+            game::FatalError(PartNotFoundFormat(), static_cast<const char*>(*StringArrayGetAt(names, &name, n)), objectName);
             continue;
         }
         const FootprintPart* part = &mapObject->partBoxes[index];

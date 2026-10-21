@@ -216,7 +216,7 @@ void CGlobalMap::Create() {
     autosave_ = false;
     if (ei::GameData<const int>(0x007AFE1C) != 0)
         GameSaveStream()->Resize(0);
-    else if (reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player->lastScreen != 5)
+    else if (reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player->lastScreen_ != 5)
         autosave_ = true;   // not back from the camp
     depth_ = Bits(0x41200000);     // 10
     centreX_ = Bits(0x43C80000);   // 400

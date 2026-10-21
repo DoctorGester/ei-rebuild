@@ -123,16 +123,16 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 
     // The local player's own unit also shows up to four of the player's 0x3009 items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
-    std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
-    if (!reinterpret_cast<CPlayer*>(player)->IsLeader(unit_)) return;
-    player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
-    std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(player + 0xE8);
+    CPlayer* player = reinterpret_cast<LocalViewData*>(GameLocalView())->player;
+    if (!player->IsLeader(unit_)) return;
+    player = reinterpret_cast<LocalViewData*>(GameLocalView())->player;
+    auto* node = player->items_.tail;
     if (!node) return;
     int slot = 4;
     while (node) {
         if (slot - 4 >= 4) break;
-        CEngineObject* item = *reinterpret_cast<CEngineObject**>(node + 8);
-        node = *reinterpret_cast<std::uint8_t**>(node + 4);
+        CEngineObject* item = node->data;
+        node = node->prev;
         if (!item || item->type_ != kItemQuest)
             continue;
         {

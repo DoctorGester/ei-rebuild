@@ -153,10 +153,8 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         break;
     }
     if (result) {
-        alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        mfc::CString* sum = ConcatString(reinterpret_cast<mfc::CString*>(raw), &params, &letter);
-        params = *sum;
-        sum->~CString();
+        mfc::CString sum(mfc::CString::kUnset);
+        params = *ConcatString(&sum, &params, &letter);
     }
     return result;
 }

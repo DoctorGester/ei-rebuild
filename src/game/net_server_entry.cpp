@@ -41,10 +41,9 @@ void ServerSession::DescribeImpl(RefPtr* out) {
 
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
-        std::uint32_t title = 0;   // CString
-        const char* text = *SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
+        mfc::CString title(mfc::CString::kUnset);
+        const char* text = *SessionMapNameInto(&title);
         description->Assign(text);   // inlined: overwrite, then cut or append
-        CStringDestroy(&title);
     }
 
     entry->players_ = static_cast<std::uint8_t>(ClientCount());

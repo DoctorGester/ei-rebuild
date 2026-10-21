@@ -17,7 +17,7 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
   (`WorldServer()->manager48_`, 007AFFA8).
 - Console: the interface is `CInterface3D` (`SetConsoleRect`, `SetDebugInfoRect`, `SetConsoleHistory`, `ShowFps`, `ConsoleAddText`, `fade_->Start`),
   the debug display switches are `CWorldClient::Show* / Hide*`, the world is `WorldServer()` (`LootDeadUnits`; players through the shared
-  `WorldGetPlayer`), a player is `WorldPlayer` (`server`, `mercs`, `variables`, `Party()->Money()`, `logTraffic` +0x10C), the local player is
+  `WorldGetPlayer`), a player is `CPlayer` (`Server()`, `Party()->members_` / `variables_` / `Money()`, `logTraffic_` +0x10C), the local player is
   `LocalViewData::player`, the network client is `net::GameClient()` (active unless `flags7_ & kDetached`; the host test reads
   `BindingMessage::PlayerRef()` as a `PlayerMessage::host_`), the frame timer is `CSceneRenderer::FrameTime` (slot 6).
 - `mfc::CTime` (006FE3BB `Construct`) and `mfc::CString::FormatV` (006FDC12) in lib/mfc.h; `ConsoleStreambuf::StreambufConstruct` /
@@ -32,6 +32,5 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
 - `tests/verify/verify_script_exec.cpp` still uses `CScript::Field(offset)` (script.h) and `Field<int>`; with it gone the member can be removed.
 - `EffectManager()` is defined in three script files (script_effects, script_exec_run, script_exec_helpers); the local `World` views
   (`RemoveTimedObject` / `AddTimedObject` through the forwarders) remain in script_reset and script_exec_helpers.
-- `WorldPlayer` (world.h) and `CPlayer` (player_messages.h) declare the same
-  object; per-file `Interface()` accessors for 007C7D50 remain.
+- Per-file `Interface()` accessors for 007C7D50 remain.
 - Raw game addresses (strings, globals such as 0079BC60, 00783E34) and `__asm` blocks are not covered.

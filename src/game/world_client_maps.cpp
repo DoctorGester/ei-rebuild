@@ -273,7 +273,7 @@ using DynamicNode = DynamicList::Node;
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
 
 // ClearMaps: the session's player data [00665200].
-void __fastcall SessionPlayerClear(WorldSession* session) { PlayerClearOriginal(session); }
+void __fastcall SessionPlayerClear(CPlayer* session) { PlayerClearOriginal(session); }
 
 // The STLport sort over the screen entries with DepthLess {plane, manager}: __introsort_loop
 // [00573740] (its heap fallback is partial_sort 005769C0), __insertion_sort [00575BC0],
@@ -332,7 +332,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
             }
         }
     }
-    if (object->GetClassId() == world::kClassUnit && Session()->gameKind == 1) {
+    if (object->GetClassId() == world::kClassUnit && Session()->sessionKind100_ == 1) {
         auto* unit = static_cast<CUnit*>(object);
         if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
     }
@@ -459,7 +459,7 @@ void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
 }
 
 int CWorldClient::SendFlag10(int value) {
-    return Session()->LocalClient()->SendFlag10(static_cast<std::uint8_t>(value));
+    return Session()->Client()->SendFlag10(static_cast<std::uint8_t>(value));
 }
 
 void CWorldClient::DropShadows() {
@@ -515,7 +515,7 @@ void CWorldClient::RemoveObject(int id) {
             hero = next;
         }
         DropRef(value);
-        if (Session()->gameKind == 3) static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller)->DropFaceTexture();
+        if (Session()->sessionKind100_ == 3) static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller)->DropFaceTexture();
     }
     if (SectorList* cell = CellFor(objectGrid_, object)) {
         CEngineObject* value = object;
@@ -1000,7 +1000,7 @@ void CWorldClient::Teardown() {
     PlainList& objects = objects_;
     stlp::ListForEachRelease(objects.head->next, objects.head, 0);
     EmptyList(objects, [](SectorListNode* node) { stlp::deallocate(node, 12); });
-    if (WorldSession* session = Session()) {
+    if (CPlayer* session = Session()) {
         session->Release();
         session_ = nullptr;
     }
@@ -1275,7 +1275,7 @@ int CWorldClient::Setup() {
     ++manager->refCount_;
     manager->Init(this);
 
-    session_ = static_cast<std::uint8_t*>(SessionFor(players_));
+    session_ = static_cast<CPlayer*>(SessionFor(players_));
 
     auto* handle = reinterpret_cast<CRefObject*>(New(sizeof(CRefObject)));
     handle->refs_ = 0;   // (refs and flags written before the pointer is tested)
@@ -1583,21 +1583,14 @@ void FitGrid(SectorGrid& grid, const Terrain* terrain) {
 
 // The zone of the local player as the map database knows it, or null.
 MapRecord* LocalZoneRecord() {
-    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    MapRecord* record = TheMapDatabase()->FindMap(*zone);
-    zone->~CString();
-    return record;
+    mfc::CString zone(mfc::CString::kUnset);
+    return TheMapDatabase()->FindMap(*LocalPlayerName(&zone));
 }
 
 // Whether the local player is in the last zone ("gz20g", compared as it is).
 bool InFinalZone() {
-    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    const bool final = gamecrt::mbscmp(static_cast<const char*>(*zone),
-                                       worlddata::FinalZoneText()) == 0;
-    zone->~CString();
-    return final;
+    mfc::CString zone(mfc::CString::kUnset);
+    return gamecrt::mbscmp(static_cast<const char*>(*LocalPlayerName(&zone)), worlddata::FinalZoneText()) == 0;
 }
 
 } // namespace
@@ -1632,7 +1625,7 @@ int CWorldClient::LoadZone(CStream* block) {
     ClearMaps();
     ReleaseItemsAndSpells();
     ClientParticleManager()->ReleaseUnheld();
-    Session()->gameKind = 0;
+    Session()->sessionKind100_ = 0;
     ShowLoadingMovie(kProgressZoneCleared);
     Terrain* terrain = terrain_;
     if (map.GetLength() > 1 && map[1] != ':') {
@@ -1694,7 +1687,7 @@ int CWorldClient::LoadZone(CStream* block) {
     }
 
     // The local server's pending messages follow this block in the view's stream.
-    (Session() ? Session()->LocalClient() : nullptr)->AppendReceived(static_cast<CMemoryStream*>(GameObject7C2D60()));
+    (Session() ? Session()->Client() : nullptr)->AppendReceived(static_cast<CMemoryStream*>(GameObject7C2D60()));
     ticksRun_ = 0;
     BuildUnitSkinsAt(this, nullptr, &looks.figured, &looks.dressed);
     // A wind option other than 0 sets the waves.
@@ -1702,7 +1695,7 @@ int CWorldClient::LoadZone(CStream* block) {
     EI_NAN_AUDIT(wind);
     if (wind != 0.0f) camera::TheTerrain()->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
-    (Session() ? Session()->LocalClient() : nullptr)->SendResume();
+    (Session() ? Session()->Client() : nullptr)->SendResume();
     CloseLoadingMovie();
     return 1;
 }

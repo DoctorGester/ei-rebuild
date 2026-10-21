@@ -265,13 +265,10 @@ void CInterface3D::ShowMessage(int force) {
         Node* header = messages_.head;
         Node* node = header->next;
         if (node == header) return;
-        alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
-        auto* text = reinterpret_cast<mfc::CString*>(storage);
-        new (text) mfc::CString(node->data);
+        mfc::CString text(node->data);
         messages_.Erase(node);   // 005F8E50
-        messageText_ = *text;
+        messageText_ = text;
         messageFlag_ = 0;
-        text->~CString();
     }
     if (messageText_.GetLength() == 0) return;
     if (ei::GameData<const int>(0x0079BE78) == 0 && !forced) return;

@@ -83,9 +83,8 @@ void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 // A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of
 // the scope.
 struct TextBuffer {
-    alignas(4) unsigned char bytes[sizeof(mfc::CString)];
-    ~TextBuffer() { Get()->~CString(); }
-    mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
+    mfc::CString text{mfc::CString::kUnset};
+    mfc::CString* Get() { return &text; }
 };
 
 const char* QuestPrefix() { return "q."; }
@@ -222,7 +221,7 @@ int CPlayerClient::OnSetVariable() {
     mfc::CString name;
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         name = *text.Get();
     }
     std::uint32_t value;
@@ -241,7 +240,7 @@ int CPlayerClient::OnDeleteVariable() {
     mfc::CString name;
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         name = *text.Get();
     }
     Owner()->Party()->variables_.Remove(name);
@@ -254,7 +253,7 @@ int CPlayerClient::OnDeleteVariable() {
 
 int CPlayerClient::OnZoneChange() {
     TextBuffer zone;
-    ReadText(zone.bytes);
+    ReadText(zone.Get());
     int entrance;
     in_.Read(&entrance, 4);
     TheGameFlow()->RequestZoneChange(*zone.Get(), entrance);
@@ -263,7 +262,7 @@ int CPlayerClient::OnZoneChange() {
 
 int CPlayerClient::OnJingle() {
     TextBuffer name;
-    in_.ReadString(name.bytes);
+    in_.ReadString(name.Get());
     TheMusicSystem()->PlayJingle(*name.Get());
     return 1;
 }
@@ -398,13 +397,13 @@ int CPlayerClient::OnParty() {
         block.Get()->CMemoryStream::SeekImpl(0);
         if (in_.ok_) {
             party->LoadParty(block.Get(), 1);
-            mfc::CTypedPtrList<void>& recharging = Owner()->objects_;
+            mfc::CList<std::uint32_t>& recharging = Owner()->recharging_;
             recharging.RemoveAll();
             ObjectListIterator walk{nullptr, nullptr};
             for (CEngineObject* object = walk.First(party->ItemManager()); object != nullptr; object = walk.Next()) {
                 auto* item = static_cast<CItem*>(object);
                 if (item->chargeMax_ > item->charge_)
-                    recharging.AddTail(reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_)));
+                    recharging.AddTail(static_cast<std::uint32_t>(item->id_));
             }
             if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
         }
@@ -486,7 +485,7 @@ int CPlayerClient::OnPathMarker() {
 
 int CPlayerClient::OnStringEvent() {
     TextBuffer text;
-    ReadText(text.bytes);
+    ReadText(text.Get());
     InterfaceStringEventOriginal(TheInterface(), nullptr, *text.Get());
     return 1;
 }
@@ -577,7 +576,7 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&scale, sizeof(scale));
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         secondName = *text.Get();
     }
     if (!in_.ok_) return 0;
@@ -597,7 +596,7 @@ int CPlayerClient::OnNewObject() {
     }
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         scriptName = *text.Get();
     }
     int prototypeValue;
@@ -686,7 +685,7 @@ int CPlayerClient::OnNewObject() {
     TheClientWorld()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;
-        TheClientWorld()->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
+        TheClientWorld()->ObjectVariableName(variable.Get(), object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)

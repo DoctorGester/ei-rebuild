@@ -277,7 +277,7 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     std::uint32_t slot = activeWeapon;
     CEngineObject* weapon = nullptr;
     if (controller->GetClassId() == kClassPartyController) {
-        PartyUnitRecord* record = player ? reinterpret_cast<CPlayer*>(player)->Party()->Find(id_) : nullptr;
+        PartyUnitRecord* record = player ? player->Party()->Find(id_) : nullptr;
         if (record && slot < record->weaponCount) weapon = record->weapons[slot];
     } else if (slot < 4) {
         weapon = weapons[slot];

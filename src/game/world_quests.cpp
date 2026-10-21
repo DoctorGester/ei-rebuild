@@ -52,17 +52,17 @@ struct Briefing {
     mfc::CString n1, n3, n9, n8, n2, n10, hired, n11;
 };
 
-// The player's party (its records, items and variables; WorldPlayer + 0x70).
-CParty* PartyOf(WorldPlayer* player) { return player->Party(); }
-PartyUnitRecord& MercRecord(WorldPlayer* player, int index) { return player->Party()->members_.data[index]; }
+// The player's party (its records, items and variables; CPlayer + 0x70).
+CParty* PartyOf(CPlayer* player) { return player->Party(); }
+PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_.data[index]; }
 
 } // namespace
 
 void CWorldServer::UpdateMercBriefings() {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->server;
-        int otherMercs = CountLivingMercs(player->id);
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* state = player->Server();
+        int otherMercs = CountLivingMercs(player->playerId_);
         auto set = [&](const mfc::CString& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
@@ -83,13 +83,13 @@ void CWorldServer::UpdateMercBriefings() {
             set(b.n11, 0.0f);
 
             bool inParty = false;
-            for (int i = 0; i < player->mercCount; ++i) {
+            for (int i = 0; i < player->Party()->members_.size; ++i) {
                 if (MercRecord(player, i).unitId == key) {
                     inParty = true;
                     break;
                 }
             }
-            NamedFloatTable* variables = &player->variables;
+            NamedFloatTable* variables = &player->Party()->variables_;
             double left = VariableGet(variables, b.n10);
             EI_NAN_AUDIT(left);
             if (inParty) {
@@ -179,7 +179,7 @@ CItem* CreateNamedItem(const char* name, bool fromSecond) {
 }
 
 // The rewards of a briefing record for `player`.
-void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecord* record) {
+void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* record) {
     float experience = record->experience;
     EI_NAN_AUDIT(experience);
     if (experience != 0.0f) {
@@ -204,7 +204,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         else items.head = node;
         items.tail = node;
     }
-    if (items.count) reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
+    if (items.count) player->GiveItems(&items, 0);
 
     for (const mfc::CString* name = record->removeItems.begin(); name != record->removeItems.end(); ++name) {
         CItem* item = CreateNamedItem(*name, false);
@@ -215,7 +215,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         item->Release();
     }
 
-    CPlayerServer* state = player->server;
+    CPlayerServer* state = player->Server();
     for (const mfc::CString* name = record->giveQuests.begin(); name != record->giveQuests.end(); ++name)
         PlayerStateSetVariableMaxOriginal(state, nullptr, *name, 1.0f);
     for (const mfc::CString* name = record->completeQuests.begin(); name != record->completeQuests.end(); ++name)
@@ -250,11 +250,11 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         stlp::string key(parts[2]);
         record = stlp::NamedSlot<BriefingRecord>(worlddata::QuestBriefings(), key);
     }
-    WorldPlayer* player = nullptr;
+    CPlayer* player = nullptr;
     {
         PlayerIterator it;
-        for (WorldPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
-            if (p->id == playerId) {
+        for (CPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
+            if (p->playerId_ == playerId) {
                 player = p;
                 break;
             }
@@ -293,8 +293,8 @@ struct MercNames {
 
 } // namespace
 
-void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
-    CPlayerServer* state = player->server;
+void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
+    CPlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
     auto is = [name](const mfc::CString& variable) {
         return gamecrt::mbsicmp(static_cast<const char*>(variable),
@@ -362,14 +362,14 @@ double Weight(CUnitServer* controller) {
 void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     if (world->PlayerList()->objects_.Size() == 0) return;
     ShareList list{ei::GamePointer<void>(worlddata::kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    auto soloUnit = [&](WorldPlayer* p) -> CUnit* {
-        if (!p->server || p->mercCount != 1) return nullptr;
+    auto soloUnit = [&](CPlayer* p) -> CUnit* {
+        if (!p->Server() || p->Party()->members_.size != 1) return nullptr;
         return WorldFindUnit(world, nullptr, static_cast<int>(MercRecord(p, 0).unitId));
     };
 
     float total = 0.0f;
     PlayerIterator it;
-    for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
+    for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CUnit* unit = soloUnit(p);
         if (!unit) continue;
         CUnitServer* controller = unit->ServerController();
@@ -398,15 +398,15 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         node = next;
     }
     ShareNode* cursor = list.head;
-    for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
+    for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CUnit* unit = soloUnit(p);
         if (!unit || !unit->ServerController()) continue;
         ShareNode* node = cursor;
         cursor = node->next;
         reinterpret_cast<UnitStats*>(MercRecord(p, 0).stats)->AddScaledExperience(node->data.share);
     }
-    for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
-        CPlayerServer* state = p->server;
+    for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
+        CPlayerServer* state = p->Server();
         if (!state) continue;
         for (ShareNode* node = list.head; node; node = node->next)
             state->SendPair18(node->data.controller->unit->id_, std::bit_cast<std::uint32_t>(node->data.share));
@@ -420,9 +420,9 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
 }
 
 // With a player: its living heroes share `amount` equally.
-void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
+void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
     IdArray heroes{mfc::DWordArrayVtable(), nullptr, 0, 0, 0};
-    for (auto* node = player->units.map.First(); node && node->value; node = player->units.map.After(node)) {
+    for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         CEngineObject* unit = node->value;
         if (ObjectSlots(unit)->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
         int id = unit->id_;
@@ -438,12 +438,12 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
         for (int i = 0; i < heroes.size; ++i) {
             CUnit* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
             unit->ServerController()->AddExperience(share);
-            for (int j = 0; j < player->mercCount; ++j) {
+            for (int j = 0; j < player->Party()->members_.size; ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
                 if (static_cast<int>(record.unitId) == heroes.data[i]) reinterpret_cast<UnitStats*>(record.stats)->AddScaledExperience(share);
             }
         }
-        player->server->SendValue15(std::bit_cast<std::uint32_t>(share));
+        player->Server()->SendValue15(std::bit_cast<std::uint32_t>(share));
     }
     heroes.vtable = mfc::DWordArrayVtable();
     if (heroes.data) gamecrt::operator_delete(heroes.data);
@@ -451,7 +451,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
 
 } // namespace
 
-void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
+void CWorldServer::AwardExperience(CPlayer* player, float amount) {
     EI_NAN_AUDIT(amount);
     if (amount == 0.0f) return;
     if (!player) ShareAmongSoloPlayers(this, amount);
@@ -551,15 +551,15 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
 
 } // namespace
 
-void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
+void CWorldServer::SyncPartyRecords(CPlayer* player) {
     CParty* party = PartyOf(player);
-    for (auto* node = player->items.head; node;) {
+    for (auto* node = player->items_.head; node;) {
         auto* next = node->next;
         party->AddItem(node->data, 1, 1);
         node = next;
     }
     RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
-    for (int i = 0; i < player->mercCount; ++i) list.SetAtGrow(list.size, reinterpret_cast<std::uint8_t*>(&MercRecord(player, i)));   // 0059D2E0
+    for (int i = 0; i < player->Party()->members_.size; ++i) list.SetAtGrow(list.size, reinterpret_cast<std::uint8_t*>(&MercRecord(player, i)));   // 0059D2E0
     for (int i = 0; i < list.size; ++i) {
         auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
         CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
@@ -579,7 +579,7 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
-inline void __fastcall UnitSetController(CUnit* a0, void*, void* a2) { a0->SetPlayer(static_cast<char*>(a2)); }
+inline void __fastcall UnitSetController(CUnit* a0, void*, void* a2) { a0->SetPlayer(static_cast<CPlayer*>(a2)); }
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
@@ -649,29 +649,29 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
     }
 }
 
-void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
+void CWorldServer::CollectParty(CPlayer* player, void* placements) {
     if (!player) return;
     if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
     if (sessionKind_ != kKindNetwork) {
         StorePlayerItems(player, PartyOf(player));
-        player->server->SendPartyUpdate();
+        player->Server()->SendPartyUpdate();
     }
     if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
     // Records whose unit is gone (or dead, outside a network client game) are dropped (the
     // inlined CArray::RemoveAt).
-    for (int i = 0; i < player->mercCount; ++i) {
+    for (int i = 0; i < player->Party()->members_.size; ++i) {
         CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(MercRecord(player, i).unitId));
         if (unit && (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient())) continue;
-        int following = player->mercCount - i - 1;
+        int following = player->Party()->members_.size - i - 1;
         MercRecord(player, i).Destruct();
         if (following)
             libcrt::Memmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
-        --player->mercCount;
+        --player->Party()->members_.size;
         --i;
     }
-    for (int i = 0; i < player->mercCount; ++i) {
+    for (int i = 0; i < player->Party()->members_.size; ++i) {
         int index = list.size;
         list.SetSize(index + 1, -1);
         list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
@@ -681,18 +681,18 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (list.data) gamecrt::operator_delete(list.data);
 }
 
-void CWorldServer::StorePlayerItems(WorldPlayer* player, CParty* party) {
+void CWorldServer::StorePlayerItems(CPlayer* player, CParty* party) {
     if (!player) return;
-    for (auto* node = player->items.head; node;) {
+    for (auto* node = player->items_.head; node;) {
         CItem* item = node->data;
         node = node->next;
         party->AddItem(item, 1, 1);
         item->Release();
     }
-    player->items.RemoveAll();
+    player->items_.RemoveAll();
 }
 
-void CWorldServer::ClearPlayerItems(WorldPlayer* player) {
+void CWorldServer::ClearPlayerItems(CPlayer* player) {
     CParty* party = player->Party();
     while (party->items_.size != 0) party->RemoveItem(party->items_.data[0], 1);
 }
@@ -700,8 +700,8 @@ EI_REWRITTEN(0x00591070, CWorldServer::ClearPlayerItems);
 
 void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* server = player->server;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* server = player->Server();
         // The original tests AL only.
         if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, value);
     }
@@ -709,8 +709,8 @@ void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
 
 void CWorldServer::TellPartiesGone(CEngineObject* unit) {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* server = player->server;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* server = player->Server();
         if (server->partyUnits_.Contains(unit)) server->SendObject43(unit);
     }
 }

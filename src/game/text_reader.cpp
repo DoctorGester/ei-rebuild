@@ -25,7 +25,7 @@ int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); 
 struct TextString : mfc::CString {
     void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
 };
-void TextString::AppendChar(char a0) { *reinterpret_cast<mfc::CString*>(this) += a0; }
+void TextString::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 TextString& Ops(mfc::CString& s) { return static_cast<TextString&>(s); }
 const TextString& Ops(const mfc::CString& s) { return static_cast<const TextString&>(s); }
 

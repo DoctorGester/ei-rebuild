@@ -93,9 +93,9 @@ bool GetPlayerOfUnit(Call* call) {
     CEngineObject* unit = ObjectArg(call, 0)->object;
     if (!unit) return Report("GetPlayerOfUnit", "Unit doesn't exists");
     if (!IsUnit(unit)) return Report("GetPlayerOfUnit", "Object with ID %d must be a Unit", unit->id_);
-    auto* party = reinterpret_cast<WorldPlayer*>(static_cast<CUnit*>(unit)->player);
+    CPlayer* party = static_cast<CUnit*>(unit)->player;
     if (!party) return Report("GetPlayerOfUnit", "Unit doesn't have associated player: ID = %d", unit->id_);
-    Store(FloatResult(call), static_cast<float>(party->id));
+    Store(FloatResult(call), static_cast<float>(party->playerId_));
     return true;
 }
 

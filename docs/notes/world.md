@@ -22,7 +22,7 @@ ones); what the notes add is the meaning of fields it still calls `unknown*`, th
 - Globals: 0079B5D8 multiplayer client session, 0079B5DC game server (+4 bit 31 = inactive), 007AF61C / 007AFCA8 game clock,
   007AFFC4 server tick, 007AFE20 the game flow, 007AFEA4 / 007AFEA5 interface / client glue, 007AFFB4 item manager, 007AFFA8
   effect manager, 007AF788 briefing texts. Named in world_data.h / game_flow_data.h.
-- Player list: reference-counted, walked with 00404920 (begin; takes a count) / 00404960 (next). `WorldPlayer` dirty flags
+- Player list: reference-counted, walked with 00404920 (begin; takes a count) / 00404960 (next). `CPlayer::dirty_`
   (+0x130): bits 2 / 4 / 8 weather-like settings, time, a 0..1 value set by 0058EE20; 0x20 countdowns; +0xC4 are the named
   float variables ("gtime" ...); +0x40 units; +0x70 the party (CParty).
 - `ObjectIdMap` = STLport `hash_map<unsigned, T*>` plus the highest key (+0x14). Server maps: +0x104 units to update
@@ -35,8 +35,8 @@ ones); what the notes add is the meaning of fields it still calls `unknown*`, th
   `WakeUnitsAround` uses its own `SpiralCache` 007AFF08), +0x138 game result, +0x160 enables the first command queue, +0x6C
   paused, +0x12D64 game kind (1 single player, 3 no range test, 4 network), +0x12D68 / +0x12D6C .mob / map name. Zone exits
   are 0x3C-byte records (rectangle +0x14, rotation +0x24, target CString +0x28 "none" = no exit, entrance +0x2C).
-- Client: session +0x20C (+0x20 the local view, `WorldSession::localView` = the CPlayerConnection; view +0x1C local
-  WorldPlayer), +0xB4 text-key heroes, +0xB8 every object, +0xBC objects answering slot 29, +0xF0 screen entries (id, RECT),
+- Client: session +0x20C (a `CPlayer`, `CWorldClient::session_`; +0x20 its connection_, the local view, a CPlayerClient: `Client()`; view +0x1C local
+  CPlayer), +0xB4 text-key heroes, +0xB8 every object, +0xBC objects answering slot 29, +0xF0 screen entries (id, RECT),
   ticksRun_ +0x6EC (Segment counts it), tickFraction_ +0x6F0. Sector grids (+0x120 objects, +0x150 second; slot 41 005618A0
   / 42 005618C0 move an object in them): cells of 16 x 16 world units (cell = FISTP shifted right by 4 as unsigned, so
   negatives land outside), each an STLport list of counted object pointers; the grid at 007AF6D8 (moved by 0067BEF0 /
@@ -384,8 +384,8 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   CTimedObjectVirtuals (18-20), Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
   CPlayerServer::refreshPending_, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction_; CWorldServer
   sentObjects_ (+0x12D88) and zoneHeader_ (+0x12E00, a CMemoryStream built by 0041DD70 in 00589ED0, called through a
-  CStream* so the slot dispatch stays), MainScript() (the CScript at +0x12874; globals_ holds "Heroes"); WorldPlayer link
-  (+0x1C) / Connection() (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()
+  CStream* so the slot dispatch stays), MainScript() (the CScript at +0x12874; globals_ holds "Heroes"); CPlayer link_
+  (+0x1C) / connection_ (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()
   0073F530. script_exec's callees are call-only `...Calls` facades.
 - Left: world_game.cpp's `At<int>(World(), 0x5C)` (CWorld::shared5C_: on the server the pending connection source
   world_update.cpp steps (slot 6 the lobby's TakeNew, the last VCall in AcceptNewPlayers) and hands to 0058DAF0;

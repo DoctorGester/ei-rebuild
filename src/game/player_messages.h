@@ -22,6 +22,7 @@
 class CPlayer;
 class CItem;    // item.h
 class CParty;   // party.h
+class CPlayerClient;   // player_client.h
 class CUnit;    // unit.h
 namespace netlink {
 class NetLink;  // net_link.h
@@ -208,7 +209,7 @@ public:
     // 0066FB70, 0x3B: a unit id, then a byte: CUnit::SetUnknown438(signed byte) when the unit exists.
     int OnUnitFlag438();
     int OnLastPosition();      // 00670B20, 0x40: 8 bytes into lastPosition_ x, y
-    // 0066F890, 0x00 (A-H19): the login (LoginMessage). 0 unless the state is 0 (after the read).
+    // 0066F890, 0x00 (A-H19): the login (PlayerLoginMessage). 0 unless the state is 0 (after the read).
     // A client version other than 0x64: message 0x11 with the server's "SrvErrMsg" /
     // "WrongClientVersion" text (formatted with 1, 0), state 3, 0. 0 when the name or password
     // is not printable text (IsPrintableText(.., 0x3F, 1)). By game mode: 1 the party manager's
@@ -302,14 +303,14 @@ static_assert(offsetof(CPlayerServer, flag70_) == 0x70);
 static_assert(offsetof(CPlayerServer, handlers_) == 0x28);
 static_assert(offsetof(CPlayerServer, placements_) == 0x74);
 
-// The client's login message (0x88 bytes, read whole by CPlayerServer::OnLogin).
-struct LoginMessage {
+// The client's login message to the world server (not net::LoginMessage; 0x88 bytes, read whole by CPlayerServer::OnLogin).
+struct PlayerLoginMessage {
     int version;                    // +0x00 0x64
     char name[0x40];                // +0x04
     char password[0x40];            // +0x44
     std::uint32_t partyId;          // +0x84 the client player's partyId_ (cleared before the read)
 };
-static_assert(sizeof(LoginMessage) == 0x88);
+static_assert(sizeof(PlayerLoginMessage) == 0x88);
 
 // 0047ADA0 (__fastcall, RET 4; player_server_handlers.cpp). 1 when the first `maxLength`
 // characters of `text` are printable (the game's isprint, of the signed char); a terminator
@@ -432,6 +433,11 @@ public:
 
     // The embedded party (party.h; the class is abstract in C++, so the member is its bytes).
     CParty* Party() { return reinterpret_cast<CParty*>(&party_); }
+    // The connection as the server's view of it (a CPlayerServer on the server world, null for
+    // none); CPlayerServer is declared apart from CPlayerConnection, hence the one cast here.
+    CPlayerServer* Server() const { return reinterpret_cast<CPlayerServer*>(connection_); }
+    // The connection as the client's local view (player_client.h; the client world's session).
+    CPlayerClient* Client() const { return reinterpret_cast<CPlayerClient*>(connection_); }
 
     netlink::NetLink* link_;                    // +0x1C the connection to the player's client, null: none
     CPlayerConnection* connection_;             // +0x20 CPlayerServer / CPlayerClient (counted)
@@ -450,8 +456,8 @@ public:
     std::uint8_t godMode_;                      // +0x108 the script's GodMode(player, on); the combat code tests it
     int logTraffic_;                            // +0x10C logs the size of every flush
     int lastTick_;                              // +0x110 -1 after Create; the world tick last saved or restored for the player
-    mfc::CTypedPtrList<void> objects_;          // +0x114 ids of items recharging (vtable 00743138)
-    int dirty_;                                 // +0x130 state to send (bits the server's state messages clear); -1 after 006651D0
+    mfc::CList<std::uint32_t> recharging_;      // +0x114 ids of items recharging (vtable 00743138; saved with the world from version 0x55)
+    std::uint32_t dirty_;                       // +0x130 state to send (bits the server's state messages clear); -1 after 006651D0
 };
 static_assert(offsetof(CPlayer, link_) == 0x1C);
 static_assert(offsetof(CPlayer, knownObjects_) == 0x28);
@@ -461,5 +467,12 @@ static_assert(offsetof(CPlayer, party_) == 0x70);
 static_assert(offsetof(CPlayer, items_) == 0xE0);
 static_assert(offsetof(CPlayer, godMode_) == 0x108);
 static_assert(offsetof(CPlayer, logTraffic_) == 0x10C);
-static_assert(offsetof(CPlayer, objects_) == 0x114);
+static_assert(offsetof(CPlayer, recharging_) == 0x114);
+static_assert(offsetof(CPlayer, connection_) == 0x20);
+static_assert(offsetof(CPlayer, units_) == 0x40);
+static_assert(offsetof(CPlayer, partyId_) == 0xFC);
+static_assert(offsetof(CPlayer, sessionKind100_) == 0x100);
+static_assert(offsetof(CPlayer, lastScreen_) == 0x104);
+static_assert(offsetof(CPlayer, lastTick_) == 0x110);
+static_assert(offsetof(CPlayer, dirty_) == 0x130);
 static_assert(sizeof(CPlayer) == 0x134);

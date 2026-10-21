@@ -50,9 +50,9 @@ bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || Arg
 // 007C7D50: the interface manager.
 
 // The world's player `id` (00594180, through its address), or null.
-WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(id)); }
+CPlayer* GetPlayer(int id) { return TheServerWorld()->GetPlayer(id); }
 // The client world's local player (its local view's player).
-WorldPlayer* LocalPlayer() {
+CPlayer* LocalPlayer() {
     return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
 }
 
@@ -204,7 +204,7 @@ EI_REWRITTEN(0x005DE460, Show);
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
 void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine("usage: listvar [Nplayer] <[output file name]>");
-    WorldPlayer* player;
+    CPlayer* player;
     if (IsMultiplayerClient())
         player = LocalPlayer();
     else
@@ -219,7 +219,7 @@ void __fastcall ListVar(CStringArray* args) {
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(Out() << "Cannot open file " << static_cast<const char*>((*args)[1]) << " for writing");
     }
-    const NamedFloatTable& variables = player->variables;
+    const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         const char* name = node->value.key;
         EndLine((Out() << name << " = ").PutFloat(node->value.mapped));
@@ -235,9 +235,9 @@ EI_REWRITTEN(0x005DEA00, ListVar);
 // 005DEC90: loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
     if (args->GetSize() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
-    WorldPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
+    CPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
-    CPlayerServer* state = player->server;
+    CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
 
     mfc::CString line;
@@ -297,9 +297,9 @@ void __fastcall Give(CStringArray* args) {
         PrintLine("give [NPlayer] money [NMoney]");
         return PrintLine("give [NPlayer] exp [NExp]");
     }
-    WorldPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
+    CPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
-    CPlayerServer* state = player->server;
+    CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
     if (ArgIs(args, 1, "money") && args->GetSize() > 2) {
         int amount = libcrt::Atoi((*args)[2]);
@@ -307,11 +307,11 @@ void __fastcall Give(CStringArray* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "exp") && args->GetSize() > 2) {
-        int count = player->mercCount;
+        int count = player->Party()->members_.size;
         // Rounded to float once, as the original stores it.
         float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
-            reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(player->mercs)[i].stats)->AddScaledExperience(share);
+            reinterpret_cast<UnitStats*>(player->Party()->members_.data[i].stats)->AddScaledExperience(share);
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {
@@ -389,10 +389,10 @@ void __fastcall Net(CStringArray* args) {
     }
     if (Mbsicmp((*args)[0], "client") == 0) {
         mfc::CString value((*args)[1]);
-        LocalPlayer()->logTraffic = libcrt::Atoi(value);
+        LocalPlayer()->logTraffic_ = libcrt::Atoi(value);
     }
     if (Mbsicmp((*args)[0], "server") == 0) {
-        if (WorldPlayer* player = GetPlayer(0)) player->logTraffic = libcrt::Atoi((*args)[1]);
+        if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = libcrt::Atoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], "time") == 0)
         *ei::GamePointer<int>(0x0079BC60) = libcrt::Atoi((*args)[1]);
@@ -504,7 +504,7 @@ EI_REWRITTEN(0x005E00D0, Days);
 
 // 005E0570: partyresend.
 void __fastcall PartyResend(CStringArray*) {
-    if (WorldPlayer* player = GetPlayer(0)) static_cast<CPlayerServer*>(player->server)->ResendParty();
+    if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
 }
 EI_REWRITTEN(0x005E0570, PartyResend);
 

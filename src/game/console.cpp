@@ -31,10 +31,10 @@ namespace console {
 
 // ---- Library forwarders -------------------------------------------------------------------------
 
-void Str::AppendChar(char a0) { *reinterpret_cast<mfc::CString*>(this) += a0; }
-void Str::AppendText(const char* a0) { *reinterpret_cast<mfc::CString*>((void*)this) += a0; }
-void Str::TrimLeft(char a0) { reinterpret_cast<mfc::CString*>(this)->TrimLeft(a0); }
-void Str::TrimRight(char a0) { reinterpret_cast<mfc::CString*>(this)->TrimRight(a0); }
+void Str::AppendChar(char a0) { mfc::CString::operator+=(a0); }
+void Str::AppendText(const char* a0) { mfc::CString::operator+=(a0); }
+void Str::TrimLeft(char a0) { mfc::CString::TrimLeft(a0); }
+void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
 
 
 // The library's CStdioFile (lib/mfc_file.h) has this layout.

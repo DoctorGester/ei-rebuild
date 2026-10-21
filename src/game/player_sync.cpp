@@ -258,11 +258,11 @@ int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
 
 // The original calls slot 22 of this object (00743280: SendObject14, rewritten) for each item.
 void CPlayerServer::SendItems() {
-    auto* node = Owner()->objects_.head;
+    auto* node = Owner()->recharging_.head;
     while (node != nullptr) {
         auto* current = node;
         node = node->next;
-        unsigned id = static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(current->data));
+        unsigned id = current->data;
         CResourceManager* items = Owner()->Party()->ItemManager();
         if (CEngineObject* item = items->FindObject(id)) SendObject14(item);
     }

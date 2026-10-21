@@ -115,7 +115,6 @@ int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x9
 // The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
 int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
 CWorldServer* ContextOf(CUnitServer* self) { return static_cast<CWorldServer*>(ManagerContextOf(self)); }
-CPlayer* PlayerOf(CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
 // The unit's server object (CUnit + 0x170) and its vitals.
 UnitVitals& ServerVitals(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->companion)->vitals; }
 
@@ -465,7 +464,7 @@ void CUnitServer::UpdateSneak() {
         // Out of breath: back from the second mode's mode 3, with a remark.
         std::uint32_t code = running == 1 ? 0x15 : 0x14;
         if ((code <= 0x29 || code == 0x30) && code != 0xFFFFFFFFu && unit->player)
-            PlayerMessage(PlayerOf(unit)->connection_, nullptr, unit, static_cast<int>(code));
+            PlayerMessage(unit->player->connection_, nullptr, unit, static_cast<int>(code));
         if (action.modifier != 0) action.modifier = 0;
         moveMode2.wasMode3 = 0;
         int mode = moveMode2.mode;
@@ -492,7 +491,7 @@ void CUnitServer::UpdateSneak() {
         motionChanged = 1;
         return;
     }
-    int allowed = unit->player ? PlayerOf(unit)->godMode_ : 1;
+    int allowed = unit->player ? unit->player->godMode_ : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
     EI_NAN_AUDIT(ServerVitals(unit).mana);
     if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath (vitals +0x14)
@@ -537,7 +536,7 @@ bool CUnitServer::ChangeMoveMode() {
         unit->UpdateSizeClass();
         SectorMapAdd(ServerSectors(), nullptr, unit);
         CUnit* self = unit;
-        if (self->player) PlayerMessage(PlayerOf(self)->connection_, nullptr, self, kMessageModeBlocked);
+        if (self->player) PlayerMessage(self->player->connection_, nullptr, self, kMessageModeBlocked);
         return false;
     }
     if (state == kStateIdle) {
@@ -635,7 +634,7 @@ EI_REWRITTEN(0x00548700, CUnitServer::PathTo);
 void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     auto* list = static_cast<UnitList*>(listIn);
     CWorldServer* world = ContextOf(this);
-    CPlayer* player = PlayerOf(unit);
+    CPlayer* player = unit->player;
     // RemoveAll.
     for (UnitList::Node* node = list->head; node; node = node->next) {
     }
@@ -654,7 +653,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
         CSectorMap* sectors = world->Sectors();
         sectors->FindUnitsInRadius(reinterpret_cast<const Vector3*>(point), list, 4.0f);
-        void* group = &reinterpret_cast<CPlayerServer*>(player->connection_)->partyUnits_;
+        void* group = &player->Server()->partyUnits_;
         for (UnitList::Node* node = list->head; node;) {
             UnitList::Node* current = node;
             node = node->next;
@@ -700,7 +699,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
     LocalMotionOrder end;
     int message;
     if (!partial) {
-        if (self->player) reinterpret_cast<CPlayerServer*>(PlayerOf(self)->connection_)->SendPathMessage(self, &end, goal, 3, 1, kFarBits);
+        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -716,13 +715,13 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         float left = LengthSquared2DUnrounded(ex, ey);
         bool stillFar = reached * 0.010000001f /*0073F0B8*/ > left;   // unordered: not far
         if (self->player)
-            reinterpret_cast<CPlayerServer*>(PlayerOf(self)->connection_)->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
+            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
         message = stillFar ? kMessagePartial : kMessageCannotDo;
     }
-    PlayerMessage(PlayerOf(self)->connection_, nullptr, self, message);
+    PlayerMessage(self->player->connection_, nullptr, self, message);
 }
 EI_REWRITTEN(0x0054EB30, CUnitServer::ReportPath);
 

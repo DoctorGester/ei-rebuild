@@ -72,12 +72,11 @@ void ServerSession::SetMap(const stlp::string* name) {
     void* world = TheGameFlow();
     static_cast<GameFlow*>(world)->RegisterQuests(name->data());
     WorldPrepareMap(world, nullptr, name->data());
-    std::uint32_t title = 0, text = 0;   // CStrings
-    void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-    void* textOut = TheInterface()->MessageText(&text, 5, *static_cast<const char**>(titleOut));
-    Announce(*static_cast<const char**>(textOut), nullptr);
-    CStringDestroy(&text);
-    CStringDestroy(&title);
+    {
+        mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
+        const char* mapTitle = *SessionMapNameInto(&title);
+        Announce(*static_cast<mfc::CString*>(TheInterface()->MessageText(&text, 5, mapTitle)), nullptr);
+    }
 
     std::uint8_t* entry;
     {
