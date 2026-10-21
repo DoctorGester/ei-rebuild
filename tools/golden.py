@@ -109,10 +109,10 @@ GROUPS = (('place', ('pos.', 'rot.', 'scale.', 'cell.', 'motion.', 'heightOffset
 # The entity groups by key prefix, in record order (harness_digest.cpp's kGroupNames). Digest 1 has the first four;
 # digest 2 (SV2a) names the others it has in its title ("groups timed,missile,..."). A golden that lacks a group is
 # compared without it, so new groups need no re-recording of older goldens.
-KEY_GROUPS = ('world', 'random', 'player', 'obj', 'timed', 'missile', 'aievents', 'script', 'client', 'cunit')
+KEY_GROUPS = ('world', 'random', 'player', 'obj', 'timed', 'missile', 'aievents', 'script', 'client', 'cunit', 'water')
 BASE_GROUPS = frozenset(KEY_GROUPS[:4])
 # Entities kept field by field in a compact digest (the rest become hashes).
-CLEAR_GROUPS = ('world', 'random', 'player', 'aievents', 'client')
+CLEAR_GROUPS = ('world', 'random', 'player', 'aievents', 'client', 'water')
 
 
 def digest_path(spec):

@@ -8,12 +8,15 @@
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "../../src/game/ai_motion.h"
+#include "../../src/game/camera.h"
 #include "../../src/game/combat.h"
 #include "../../src/game/map_object.h"
 #include "../../src/game/party.h"
 #include "../../src/game/random.h"
 #include "../../src/game/script.h"
 #include "../../src/game/spell.h"
+#include "../../src/game/terrain.h"
+#include "../../src/game/terrain_sector.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_ai.h"
 #include "../../src/game/world.h"
@@ -80,12 +83,16 @@ struct Entity {
 // 1); then (digest 2, SV2a) the timed objects' own state by id, the missiles by their place in the
 // list, the AI event table, the mission script, the client world and its units by id. A key's name
 // starts with its group's (kGroupNames), which tools/golden.py reads: a golden of digest 1 lacks the
-// groups after kObject, and its comparisons leave them out.
-enum Group : int { kWorld = 0, kRandom, kPlayer, kObject, kTimed, kMissile, kEvents, kScript, kClient, kClientUnit, kGroups };
+// groups after kObject, and its comparisons leave them out. The water layer ("water", R16c3) only after
+// the scenario's "digest water" step: the landscape ("water-1") and each cached sector with water
+// ("water<sy * 1000 + sx>").
+enum Group : int { kWorld = 0, kRandom, kPlayer, kObject, kTimed, kMissile, kEvents, kScript, kClient, kClientUnit, kWater, kGroups };
 constexpr const char* kGroupNames[kGroups] = {"world", "random", "player", "obj", "timed",
-                                              "missile", "aievents", "script", "client", "cunit"};
-// The groups beyond digest 1's, as the title line lists them.
+                                              "missile", "aievents", "script", "client", "cunit", "water"};
+// The groups beyond digest 1's, as the title line lists them (and "water" after "digest water").
 constexpr const char* kNewGroups = "timed,missile,aievents,script,client,cunit";
+bool g_water = false;
+std::string NewGroups() { return std::string(kNewGroups) + (g_water ? ",water" : ""); }
 using Key = std::pair<int, int>;
 using State = std::map<Key, Entity>;
 
@@ -724,6 +731,42 @@ Entity& Slot(State& state, const Key& key) {
     return placed.position->second;   // an entity of that key already there: it, as state[key] gives
 }
 
+// The water layer as the waves leave it (SectorData::Animate 006C3E80, R16c3): the landscape's wave
+// state, and per cached sector with water (by sx, sy) the vertices with a water material and hashes
+// of their positions and speculars.
+void ReadWater(State& state) {
+    const Terrain* t = camera::TheTerrain();
+    if (!t) return;
+    Builder b;
+    b.entity = &Slot(state, {kWater, -1});
+    b.entity->description = "landscape";
+    b.Bits("flags", t->landscapeFlags);
+    b.Int("frame", t->frame);
+    b.Float("phase", t->wavePhase);
+    constexpr int kVertices = 33 * 33;
+    for (auto* node = t->sectorCache.head; node; node = node->next) {
+        const terrain::SectorData* sector = node->data;
+        if (!sector || !sector->hasWater || sector->vertices.size < 2 * kVertices || sector->records.size < 2 * kVertices)
+            continue;
+        Hash positions, speculars;
+        int water = 0;
+        for (int i = kVertices; i < 2 * kVertices; ++i) {
+            const terrain::SectorVertex& record = sector->records[i];
+            if (record.waterMaterial == 0xFFFF) continue;
+            ++water;
+            std::uint32_t bits[3];
+            std::memcpy(bits, &sector->vertices[i], sizeof(bits));
+            for (std::uint32_t word : bits) positions.Add(word);
+            speculars.Add(record.specular);
+        }
+        b.entity = &Slot(state, {kWater, sector->sy * 1000 + sector->sx});
+        b.entity->description = "sector " + std::to_string(sector->sx) + " " + std::to_string(sector->sy);
+        b.Int("water", water);
+        b.Bits("positions", positions.h);
+        b.Bits("speculars", speculars.h);
+    }
+}
+
 void Read(CWorldServer* w, Snapshot& s) {
     Builder b;
     b.entity = &Slot(s.state, {kWorld, 0});
@@ -801,6 +844,7 @@ void Read(CWorldServer* w, Snapshot& s) {
         b.entity->description = Describe(u, true);
         ReadClientUnit(u, b);
     }
+    if (g_water) ReadWater(s.state);
 
     Hash all, section[kGroups];
     for (const auto& [key, entity] : s.state) {
@@ -811,7 +855,7 @@ void Read(CWorldServer* w, Snapshot& s) {
     }
     for (int g = 0; g < kGroups; ++g) {
         s.sections[g] = section[g].h;
-        all.Add(s.sections[g]);
+        if (g != kWater || g_water) all.Add(s.sections[g]);   // without the water group: the hashes as before
     }
     all.AddText(s.zone.c_str());
     s.all = all.h;
@@ -929,7 +973,7 @@ bool OpenDigest() {
     std::setvbuf(g_file, nullptr, _IOFBF, 1 << 20);
     char hooks[8] = "";
     GetEnvironmentVariableA("EI_NO_HOOKS", hooks, sizeof(hooks));
-    std::fprintf(g_file, "# ei state digest 2; groups %s; hooks %s; install %s; every %u world updates\n", kNewGroups,
+    std::fprintf(g_file, "# ei state digest 2; groups %s; hooks %s; install %s; every %u world updates\n", NewGroups().c_str(),
                  hooks[0] == '1' ? "off" : "on", starter::RebirthInstall() ? "rebirth" : "vanilla", g_period);
     return true;
 }
@@ -991,6 +1035,8 @@ void AfterWorldUpdate(void* server) {
     }
 }
 
+void WithWater() { g_water = true; }
+
 std::string Step(const std::string& argument) {
     if (argument.empty() || argument == "now") {
         if (!g_server) return "digest: no world update has run yet";
@@ -1019,7 +1065,7 @@ std::string Dump(const std::string& name) {
     if (!f) return "dump: cannot write dump_" + name + ".txt";
     Snapshot s;
     Read(g_server, s);
-    std::fprintf(f, "# ei state digest 2; groups %s; dump %s\n", kNewGroups, name.c_str());
+    std::fprintf(f, "# ei state digest 2; groups %s; dump %s\n", NewGroups().c_str(), name.c_str());
     WriteHeader(f, g_records, g_updates, g_frames ? *g_frames : 0, g_server->tick_, s);
     WriteDelta(f, State{}, s.state);
     std::fclose(f);

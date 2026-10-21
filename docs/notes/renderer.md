@@ -884,6 +884,13 @@ across runs; the goldens check the game state.
    town 25 -> 2.7 pages, 0.046 -> 0.016 ms); uploads unchanged. Check: `terraincache check` 0 stale in render_stats
    and the render_* scenarios, and with the waves on in zone1 and the town (721 / 872 checks); render_scene's
    world_fresh 0 pixels differ; goldens. What is left with the waves on is Animate on the CPU (R16c3).
+   **R16c3 Animate's circling waves once per call (done).** Their sines depend only on the column or the row and
+   the world time: 33 values per call (`CircleSines`, the same expressions) instead of the time read and two
+   lookups per vertex. Measured A/B in one run (alternate world updates, harness build, vanilla): zone1 0.21-0.27 ->
+   0.10-0.14 ms per world update (a harness frame is five), the town 0.10-0.23 -> 0.05-0.10 (noisy). Check: the scenario
+   `terrain_water_waves` (`waterwaves 1` before newgame; the digest's `water` group, a scenario's `digest water`
+   line: per cached sector hashes of the water layer's positions and speculars, every record) and its golden of the
+   original, the same before and after.
 4. **R16d Meshes resident on the GPU (done).** `render_mesh_cache.cpp`, the pool shared with the terrain in
    `render_buffers.cpp` (`GpuPool`: default-usage buffers written with UpdateSubresource, a geometry stream, a colour
    stream and absolute indices; placed in order, started again with the frame's entries when full). Each figure mesh

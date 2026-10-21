@@ -7,7 +7,7 @@
 // per vertex. The 512-entry sine table at that phase lifts the vertex (by waveHeight times the
 // material's +0x2C) and gives the crest its specular colour; materials of kind 4 move the vertex
 // sideways (only where its depth is negative), the others up and in a circle driven by the world
-// time.
+// time (its sines per column and row once per call: CircleSines).
 #include "terrain.h"
 #include "address_order.h"
 #include "at_exit_functions.h"
@@ -64,6 +64,13 @@ float Sine(const Terrain* owner, double phase) {
 }
 
 std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
+
+// The circling waves' sine per column (and per row: the same values) at the world time. The original
+// reads the time and looks both up per vertex; the same expressions once per call (R16c3).
+void CircleSines(const Terrain* owner, float* sines) {
+    float time = static_cast<float>((GameTicks() + GameTickFraction()) * kTimeScale);
+    for (int i = 0; i < kRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
+}
 
 } // namespace
 
@@ -144,6 +151,8 @@ void SectorData::Animate(Terrain* landscape, int frame) {
     float amplitude = 0.0f;
     int kind = 0;
     Vector3 crest = {0.0f, 0.0f, 0.0f};
+    float circle[kRow];
+    bool circling = false;
     for (int row = 0; row < kRow; ++row) {
         float along = rowStart;
         for (int column = 0; column < kRow; ++column, ++phaseOffset) {
@@ -182,11 +191,12 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                     }
                 } else {
                     position.z = static_cast<float>(lift * kRiseScale + record.position.z);
-                    float time = static_cast<float>((GameTicks() + GameTickFraction()) * kTimeScale);
-                    float sineX = Sine(landscape, column * kQuarterTurn + time);
-                    position.x = sineX * amplitude * kCircleScale + record.position.x;
-                    float sineY = Sine(landscape, row * kQuarterTurn + time);
-                    position.y = sineY * amplitude * kCircleScale + record.position.y;
+                    if (!circling) {
+                        CircleSines(landscape, circle);
+                        circling = true;
+                    }
+                    position.x = circle[column] * amplitude * kCircleScale + record.position.x;
+                    position.y = circle[row] * amplitude * kCircleScale + record.position.y;
                 }
             }
             along = static_cast<float>(along + stepX);

@@ -115,6 +115,8 @@
 //   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
 //                             master the connection screen asks and a public game announces itself to
 //                             (net_second_master: 127.0.0.1 only)
+//   waterwaves 0|1            the options' EnableWaterWaves (0079BD38) for this run, not saved (the
+//                             harness's settings have it off); before newgame, which reads it
 //   fakemaster <port>         in a pair's game: a master server on the pair's virtual port <port> answers
 //                             this game's announcements (harness_pair.h; with "masterhost 127.0.0.1:<port>")
 //   peer <name>               ei_launch's: start a second game beside this one on tests/scenarios/peer/<name>.txt,
@@ -309,6 +311,8 @@
 //                             digest.txt, none (off), or one now (no argument); EI_DIGEST=<N> takes
 //                             them for the whole run. tools/golden.py compares two runs' records and
 //                             names the first field that differs
+//   digest water              (a line for the whole run) the records and dumps hold the water layer too:
+//                             hashes of each cached sector's water vertices as the waves move them (R16c3)
 //   dump <name>               the whole game state now into dump_<name>.txt (harness_digest.h)
 //   uicensus                  count how the interface draws into its window surfaces (GDI calls per
 //                             surface, call sites, readers, drawing no hook explains) and write
@@ -2998,6 +3002,9 @@ void RunSteps() {
             }
         } else if (s.verb == "masterhost") {
             options::TheOptions()->masterServerName_ = s.argument.c_str();
+        } else if (s.verb == "waterwaves") {
+            if (s.argument == "0" || s.argument == "1") options::TheOptions()->enableWaterWaves_ = s.argument == "1";
+            else g_failures.push_back("waterwaves needs 0 or 1");
         } else if (s.verb == "fakemaster") {
             const int port = std::atoi(s.argument.c_str());
             if (!pair::Active()) g_failures.push_back("fakemaster: not a pair's game (a \"peer\" line starts the other)");
@@ -3946,6 +3953,11 @@ bool LoadScenario(const char* path) {
             continue;
         }
         if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
+            g_steps.pop_back();
+            continue;
+        }
+        if (g_steps.back().verb == "digest" && g_steps.back().argument == "water") {
+            digest::WithWater();   // named in the digest's title, written before the main menu's first record
             g_steps.pop_back();
             continue;
         }
