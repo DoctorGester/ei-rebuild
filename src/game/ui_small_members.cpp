@@ -56,10 +56,10 @@ GlobalMapPlace* GlobalMapPlace::Assign(const GlobalMapPlace& from) {
     title = from.title;
     return this;
 }
-EI_REPLACE_METHOD(0x00632490, GlobalMapPlace::Assign);
+EI_REWRITTEN(0x00632490, GlobalMapPlace::Assign);
 
 GlobalMapPlace* GlobalMapPlace::AssignCopy(const GlobalMapPlace& from) { return Assign(from); }
-EI_REPLACE_METHOD(0x006324E0, GlobalMapPlace::AssignCopy);
+EI_REWRITTEN(0x006324E0, GlobalMapPlace::AssignCopy);
 
 // --- Default answers of the windows' slots ---------------------------------------------------------------
 

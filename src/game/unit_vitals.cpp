@@ -176,7 +176,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
     }
     return changed;
 }
-EI_REPLACE_METHOD(0x00523740, UnitVitals::Regenerate);
+EI_REWRITTEN(0x00523740, UnitVitals::Regenerate);
 
 // --- Body slots ------------------------------------------------------------------------------
 
@@ -204,7 +204,7 @@ bool UnitStats::HealSlots(float scale, float amount) {
     }
     return true;
 }
-EI_REPLACE_METHOD(0x00525800, UnitStats::HealSlots);
+EI_REWRITTEN(0x00525800, UnitStats::HealSlots);
 
 BOOL UnitStats::Heal(UnitVitals* vitals, float amount) {
     HealSlots(vitals->maxHitPoints, amount);
@@ -290,7 +290,7 @@ double UnitStats::HitPointCurve() {
     double scaled = curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]);
     return (LevelValueOf(this, kSkillHitPoints) * kPercent + kOne) * scaled;
 }
-EI_REPLACE_METHOD(0x00523E80, UnitStats::HitPointCurve);
+EI_REWRITTEN(0x00523E80, UnitStats::HitPointCurve);
 
 double UnitStats::ManaCurve() {
     double curve =
@@ -298,7 +298,7 @@ double UnitStats::ManaCurve() {
     double scaled = curve * (stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]);
     return (LevelValueOf(this, kSkillMana) * kPercent + kOne) * scaled;
 }
-EI_REPLACE_METHOD(0x00523F50, UnitStats::ManaCurve);
+EI_REWRITTEN(0x00523F50, UnitStats::ManaCurve);
 
 double UnitStats::RateValue() {
     float base = stat18 * kPointTwo + kTen;
@@ -306,17 +306,17 @@ double UnitStats::RateValue() {
     float arms = ArmsFactor(1);
     return (level * kPercentB + kOne) * arms * base;
 }
-EI_REPLACE_METHOD(0x00524320, UnitStats::RateValue);
+EI_REWRITTEN(0x00524320, UnitStats::RateValue);
 
 float __stdcall ScaleDamageByEffects(CUnit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
 
 double __stdcall HitPointEffectScale(CUnit* unit) { return EffectScale(unit, kHitPointEffect); }
-EI_REPLACE(0x00523DB0, HitPointEffectScale);
+EI_REWRITTEN(0x00523DB0, HitPointEffectScale);
 
 float __stdcall ScaleHitPointsByEffects(CUnit* unit, float value) {
     return ScaledAtLeastOne(unit, kHitPointEffect, value);
 }
-EI_REPLACE(0x00523E00, ScaleHitPointsByEffects);
+EI_REWRITTEN(0x00523E00, ScaleHitPointsByEffects);
 
 void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     if (IsTextKey(unit->id_) & 0xFF) {
@@ -331,7 +331,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     vitals->hitPoints = static_cast<float>(hitPoints);
     if (hitPoints > kZero) flags |= 8;
 }
-EI_REPLACE_METHOD(0x005243D0, UnitStats::RecomputeHitPoints);
+EI_REWRITTEN(0x005243D0, UnitStats::RecomputeHitPoints);
 
 void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
@@ -433,7 +433,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     rate = SelectLess(kOne, h, h, kOne);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
 }
-EI_REPLACE_METHOD(0x00524560, UnitStats::Recompute);
+EI_REWRITTEN(0x00524560, UnitStats::Recompute);
 
 // --- Experience ------------------------------------------------------------------------------
 
@@ -452,7 +452,7 @@ void AddPending(UnitStats* stats, double gain) {
 void UnitStats::AddExperience(float amount) { AddPending(this, amount); }
 
 void UnitStats::AddScaledExperience(float amount) { AddPending(this, IntelligenceFactor(&stat20) * amount); }
-EI_REPLACE_METHOD(0x00523960, UnitStats::AddScaledExperience);
+EI_REWRITTEN(0x00523960, UnitStats::AddScaledExperience);
 
 void UnitStats::TakePendingExperience(float amount) { pendingExperience = pendingExperience - amount; }
 
@@ -514,15 +514,15 @@ void UnitStats::GainExperience(CUnit* unit, float amount) {
     AddPending(this, IntelligenceFactor(&stat20) * amount);
     RefreshMaxima(this, VitalsOf(server), unit);
 }
-EI_REPLACE_METHOD(0x005239B0, UnitStats::GainExperience);
+EI_REWRITTEN(0x005239B0, UnitStats::GainExperience);
 
 bool UnitStats::RaiseSkill(int skill, int amount, CUnit* unit) { return RaiseLevel(this, skills, skill, amount, unit); }
-EI_REPLACE_METHOD(0x00528AB0, UnitStats::RaiseSkill);
+EI_REWRITTEN(0x00528AB0, UnitStats::RaiseSkill);
 
 bool UnitStats::RaiseAttribute(int index, int amount, CUnit* unit) {
     return RaiseLevel(this, attributes, index, amount, unit);
 }
-EI_REPLACE_METHOD(0x00528DA0, UnitStats::RaiseAttribute);
+EI_REWRITTEN(0x00528DA0, UnitStats::RaiseAttribute);
 
 bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     CEngineObject* server = ServerObjectOf(unit);
@@ -545,7 +545,7 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     unit->MarkChanged(4);
     return true;
 }
-EI_REPLACE_METHOD(0x00529090, UnitStats::RaiseStrength);
+EI_REWRITTEN(0x00529090, UnitStats::RaiseStrength);
 
 bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     CEngineObject* server = ServerObjectOf(unit);
@@ -577,7 +577,7 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     unit->MarkChanged(4);
     return true;
 }
-EI_REPLACE_METHOD(0x00529220, UnitStats::RaiseDexterity);
+EI_REWRITTEN(0x00529220, UnitStats::RaiseDexterity);
 
 bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
     CEngineObject* server = ServerObjectOf(unit);
@@ -588,6 +588,6 @@ bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
     Recompute(vitals, unit);
     return true;
 }
-EI_REPLACE_METHOD(0x00529400, UnitStats::RaiseIntelligence);
+EI_REWRITTEN(0x00529400, UnitStats::RaiseIntelligence);
 
 double UnitStats::SkillLevelValueCopy(int skill) { return LevelValueOf(this, skill); }

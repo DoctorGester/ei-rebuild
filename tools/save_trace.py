@@ -113,7 +113,7 @@ def names():
     found = {}
     for row in csv.DictReader(open(os.path.join(ROOT, 'config', 'functions.csv'))):
         found[int(row['address'], 16)] = row['name']
-    pattern = re.compile(r'EI_REPLACE\w*\(0x([0-9A-Fa-f]{8}),\s*([\w:]+)')
+    pattern = re.compile(r'(?:EI_REPLACE\w*|EI_REWRITTEN)\(0x([0-9A-Fa-f]{8}),\s*([\w:]+)')
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True):
         for m in pattern.finditer(open(path, encoding='utf-8', errors='replace').read()):
             found[int(m.group(1), 16)] = m.group(2)

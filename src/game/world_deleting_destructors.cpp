@@ -49,37 +49,37 @@ constexpr auto WaypointListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl
 AIRef* AIRef::DeleteScalar(unsigned flags) {
     return DestroyAndFree(this, flags, [](AIRef* ref) { ref->Reset(); });
 }
-EI_REPLACE_METHOD(0x00558CA0, AIRef::DeleteScalar);
+EI_REWRITTEN(0x00558CA0, AIRef::DeleteScalar);
 
 AICallRecord* AICallRecord::DeleteScalar(unsigned flags) {
     return DestroyAndFree(this, flags, [](AICallRecord* call) { call->Destruct(); });
 }
-EI_REPLACE_METHOD(0x00558CC0, AICallRecord::DeleteScalar);
+EI_REWRITTEN(0x00558CC0, AICallRecord::DeleteScalar);
 
 RefPtr* RefPtr::DeleteDestroyed(unsigned flags) {
     return DestroyAndFree(this, flags, [](RefPtr* pointer) { pointer->Destroy(); });
 }
-EI_REPLACE_METHOD(0x00560590, RefPtr::DeleteDestroyed);
+EI_REWRITTEN(0x00560590, RefPtr::DeleteDestroyed);
 
 ScriptPointLight* ScriptPointLight::DeleteScalar(unsigned flags) {
     return DestroyAndFree(this, flags, [](ScriptPointLight* light) { light->ScriptPointLightDestruct(); });
 }
-EI_REPLACE_METHOD(0x0059DD70, ScriptPointLight::DeleteScalar);
+EI_REWRITTEN(0x0059DD70, ScriptPointLight::DeleteScalar);
 
 CFigureManager* CFigureManager::DeleteScalar(unsigned flags) {
     return DestroyAndFree(this, flags, [](CFigureManager* manager) { DestroyFigureManager(reinterpret_cast<char*>(manager)); });
 }
-EI_REPLACE_METHOD(0x005AA1A0, CFigureManager::DeleteScalar);
+EI_REWRITTEN(0x005AA1A0, CFigureManager::DeleteScalar);
 
 mapspec::Behaviour* mapspec::Behaviour::DeleteScalar(unsigned deleteFlags) {
     return DestroyAndFree(this, deleteFlags, [](mapspec::Behaviour* behaviour) { mapspec::BehaviourDestruct(behaviour); });
 }
-EI_REPLACE_METHOD(0x005DA290, mapspec::Behaviour::DeleteScalar);
+EI_REWRITTEN(0x005DA290, mapspec::Behaviour::DeleteScalar);
 
 CEngineObject** __fastcall ObjectHolderDelete(CEngineObject** self, void*, unsigned flags) {
     return DestroyAndFree(self, flags, [](CEngineObject** holder) { ObjectHolderRelease(holder); });
 }
-EI_REPLACE(0x005754E0, ObjectHolderDelete);
+EI_REWRITTEN(0x005754E0, ObjectHolderDelete);
 
 // ---- MFC collections (S13) ----------------------------------------------------------------------
 

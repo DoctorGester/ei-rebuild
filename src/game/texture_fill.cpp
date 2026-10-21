@@ -40,4 +40,4 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     text::Join(&file, &pieces, '\\');
     return LoadBmpFiles(device, file, alphaPath);
 }
-EI_REPLACE_METHOD(0x00690260, CTexture::LoadBmp);
+EI_REWRITTEN(0x00690260, CTexture::LoadBmp);

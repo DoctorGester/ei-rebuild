@@ -77,3 +77,4 @@ address,what,reason
 00797B10-00797B28,data,"_cfltcvt_tab (_fptrap until the float code is linked in): read only by the exe's printf; ours formats floats itself (crt_format.cpp)"
 007474B8,data,"strftime's string ""a/p"" (bytes 61 2F 70 00) read as a pointer to 00702F61, which is inside a function, not a function start (the false vtables.csv row is dropped)"
 00780E08,data,"the import name table's text (bytes 00 00 57 00 after ""...CurrentDirectoryA""), not a pointer: it reads as CArray::SetSize 00570000, whose registration nothing else needed (C20c)"
+007D4030,data,"a dialog resource's UTF-16 text in .rsrc (20 00 4C 00: the "" L"" of ""Save Log and Abort""), not a pointer: it reads as ScriptVarsClear 004C0020, whose registration only check_fp_fold needed (C20d)"

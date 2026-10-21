@@ -95,7 +95,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     }
     LeaveChunk();
 }
-EI_REPLACE_METHOD(0x004ACEC0, ChunkArchive::SerializeParties);
+EI_REWRITTEN(0x004ACEC0, ChunkArchive::SerializeParties);
 
 void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void*) {
     if (!EnterChunk(id)) return;
@@ -139,7 +139,7 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
     }
     LeaveChunk();
 }
-EI_REPLACE_METHOD(0x004AD0C0, ChunkArchive::SerializePartyEntries);
+EI_REWRITTEN(0x004AD0C0, ChunkArchive::SerializePartyEntries);
 
 void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void*) {
     if (!EnterChunk(id)) return;
@@ -160,7 +160,7 @@ void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>*
     }
     LeaveChunk();
 }
-EI_REPLACE_METHOD(0x004ACDC0, ChunkArchive::SerializeClassTemplates);
+EI_REWRITTEN(0x004ACDC0, ChunkArchive::SerializeClassTemplates);
 
 void NamedPartyRecords::Serialize(ChunkArchive* ar) {
     if (ar->EnterChunk(1)) {
@@ -185,7 +185,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
     ar->CStringField(2, &text0C);
     ar->CStringField(3, &text10);
 }
-EI_REPLACE_METHOD(0x004A64B0, NamedPartyRecords::Serialize);
+EI_REWRITTEN(0x004A64B0, NamedPartyRecords::Serialize);
 
 // ---- The archived objects (slot 1 Serialize) ---------------------------------------------------------
 
@@ -260,14 +260,14 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
     }
     variables.Destroy();
 }
-EI_REPLACE_METHOD(0x004A6050, NamedPartyRecords::BeginRedeploy);
+EI_REWRITTEN(0x004A6050, NamedPartyRecords::BeginRedeploy);
 
 void NamedPartyRecords::EndRedeploy(CParty* party) {
     if (CParty* found = Find(text0C)) CopyParty(party, found);
     else party->Clear(1, 0);
     text10 = text0C;
 }
-EI_REPLACE_METHOD(0x004A6360, NamedPartyRecords::EndRedeploy);
+EI_REWRITTEN(0x004A6360, NamedPartyRecords::EndRedeploy);
 
 // ---- Load and save --------------------------------------------------------------------------------
 

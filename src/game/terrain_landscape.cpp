@@ -90,7 +90,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
     if (sector) DeleteSector(sector);
     return nullptr;
 }
-EI_REPLACE_METHOD(0x006C8140, Terrain::SectorAt);
+EI_REWRITTEN(0x006C8140, Terrain::SectorAt);
 
 void Terrain::SetVisibleSectors(float x, float y, float radius) {
     int columnFirst = SectorBound(x - radius - 0.5f, sectorsX);
@@ -107,7 +107,7 @@ void Terrain::SetVisibleSectors(float x, float y, float radius) {
     }
     visibleRowFirst = rowFirst;
 }
-EI_REPLACE_METHOD(0x006CA260, Terrain::SetVisibleSectors);
+EI_REWRITTEN(0x006CA260, Terrain::SetVisibleSectors);
 
 // ---- Create, Destroy, Reset and the waves --------------------------------------------------------
 
@@ -150,7 +150,7 @@ void Terrain::BuildVertexTiles() {
         }
     }
 }
-EI_REPLACE_METHOD(0x006C7A80, Terrain::BuildVertexTiles);
+EI_REWRITTEN(0x006C7A80, Terrain::BuildVertexTiles);
 
 void Terrain::ClearMap() {
     for (int slot = 0; slot < 3; ++slot) {
@@ -183,7 +183,7 @@ void Terrain::ClearMap() {
         table = nullptr;
     }
 }
-EI_REPLACE_METHOD(0x006C7750, Terrain::ClearMap);
+EI_REWRITTEN(0x006C7750, Terrain::ClearMap);
 
 namespace {
 
@@ -366,7 +366,7 @@ int Terrain::SetupPages(int count) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x006C5AA0, Terrain::SetupPages);
+EI_REWRITTEN(0x006C5AA0, Terrain::SetupPages);
 
 // --- A-H26: the map loader ----------------------------------------------------------------------------
 
@@ -631,12 +631,12 @@ void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float si
         v[i] = vBase + v[i];
     }
 }
-EI_REPLACE_METHOD(0x006C7940, Terrain::BuildTileUv);
+EI_REWRITTEN(0x006C7940, Terrain::BuildTileUv);
 
 EI_REPLACE_METHOD(0x006C5430, Terrain::CreateImpl);
 EI_REPLACE_METHOD(0x006C54D0, Terrain::DestroyImpl);
 EI_REPLACE_METHOD(0x006C6070, Terrain::CombineRotationImpl);
-EI_REPLACE_METHOD(0x006C5620, Terrain::Reset);
-EI_REPLACE_METHOD(0x006C57E0, Terrain::BuildWavePhases);
-EI_REPLACE_METHOD(0x006C7D70, Terrain::SetWaveStrength);
+EI_REWRITTEN(0x006C5620, Terrain::Reset);
+EI_REWRITTEN(0x006C57E0, Terrain::BuildWavePhases);
+EI_REWRITTEN(0x006C7D70, Terrain::SetWaveStrength);
 

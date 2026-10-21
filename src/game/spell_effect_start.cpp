@@ -414,13 +414,13 @@ void CSpellEffect::Start(int type) {
     }
     UpdateFootprint(type, 1);
 }
-EI_REPLACE_METHOD(0x0067F870, CSpellEffect::Start);
+EI_REWRITTEN(0x0067F870, CSpellEffect::Start);
 
 void CSpellEffect::SetVisual(CEngineObject* object) {
     Assign(this, &visual, object);
     WorldAddTimed(world, nullptr, visual);
 }
-EI_REPLACE_METHOD(0x0067EF40, CSpellEffect::SetVisual);
+EI_REWRITTEN(0x0067EF40, CSpellEffect::SetVisual);
 
 void CSpellEffect::UpdateFootprint(int type, int stamp) {
     if (!visual) return;
@@ -450,7 +450,7 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
         footprintStamped = 0;
     }
 }
-EI_REPLACE_METHOD(0x0067EFC0, CSpellEffect::UpdateFootprint);
+EI_REWRITTEN(0x0067EFC0, CSpellEffect::UpdateFootprint);
 
 void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget, int particleType, float power,
                                const char* soundName, const Vector3* color, float range) {
@@ -470,7 +470,7 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
     Assign(this, &visual, arrow);
     WorldAddTimed(world, nullptr, visual);
 }
-EI_REPLACE_METHOD(0x0067F170, CSpellEffect::CreateArrow);
+EI_REWRITTEN(0x0067F170, CSpellEffect::CreateArrow);
 
 CEngineObject* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3* at, float size, float alpha,
                                             const Vector3* velocity, CEngineObject* attachTo) {
@@ -490,7 +490,7 @@ CEngineObject* CSpellEffect::CreateParticle(int keep, int particleType, const Ve
     }
     return particle;
 }
-EI_REPLACE_METHOD(0x0067F260, CSpellEffect::CreateParticle);
+EI_REWRITTEN(0x0067F260, CSpellEffect::CreateParticle);
 
 void CSpellEffect::CreateLightning(const Vector3* from, CEngineObject* boltTarget, CEngineObject* source, float power,
                                    int flag) {
@@ -505,7 +505,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CEngineObject* boltTarge
     Assign(this, &visual, bolt);
     WorldAddTimed(world, nullptr, visual);
 }
-EI_REPLACE_METHOD(0x0067F410, CSpellEffect::CreateLightning);
+EI_REWRITTEN(0x0067F410, CSpellEffect::CreateLightning);
 
 void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, const Vector3* velocity, float volume,
                                float hearing) {
@@ -520,7 +520,7 @@ void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, co
     if (keep) Assign(this, &sound, effect);
     WorldAddTimed(world, nullptr, effect);
 }
-EI_REPLACE_METHOD(0x0067F580, CSpellEffect::CreateSound);
+EI_REWRITTEN(0x0067F580, CSpellEffect::CreateSound);
 
 void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocity, const char* first,
                                        const char* pattern, int count, float volume, float hearing) {
@@ -544,7 +544,7 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
     Assign(this, &sound, effect);
     WorldAddTimed(world, nullptr, effect);
 }
-EI_REPLACE_METHOD(0x0067F660, CSpellEffect::CreateSoundSequence);
+EI_REWRITTEN(0x0067F660, CSpellEffect::CreateSoundSequence);
 
 void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, float range, const Vector3* velocity) {
     CEffectPointLight* effect = static_cast<CEffectPointLight*>(CreateObject(this, kClassPointLight));
@@ -556,4 +556,4 @@ void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, flo
     Assign(this, &light, effect);
     WorldAddTimed(world, nullptr, effect);
 }
-EI_REPLACE_METHOD(0x0067F7C0, CSpellEffect::CreatePointLight);
+EI_REWRITTEN(0x0067F7C0, CSpellEffect::CreatePointLight);

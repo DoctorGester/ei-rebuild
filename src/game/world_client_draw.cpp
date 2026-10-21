@@ -362,7 +362,7 @@ int CWorldClient::DrawLineLists() {
         static_cast<LineBatch*>(node->value)->Draw(ScenePipeline(), TheRenderDevice());
     return 1;
 }
-EI_REPLACE_METHOD(0x00569D60, CWorldClient::DrawLineLists);
+EI_REWRITTEN(0x00569D60, CWorldClient::DrawLineLists);
 
 // ---- The debug display's switches -------------------------------------------------------------------
 

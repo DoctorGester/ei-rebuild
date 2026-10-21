@@ -198,7 +198,7 @@ int CUnitServer::ScaledItemValue(const CItem* item) {
     float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->actionValue_) * factor);
     return x87::fistp(value);
 }
-EI_REPLACE_METHOD(0x0054B760, CUnitServer::ScaledItemValue);
+EI_REWRITTEN(0x0054B760, CUnitServer::ScaledItemValue);
 
 int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
     float factor = Combat().rate;
@@ -210,7 +210,7 @@ int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
     float scaled = static_cast<float>(static_cast<double>(value) * factor);
     return x87::fistp(scaled);
 }
-EI_REPLACE_METHOD(0x0054B9C0, CUnitServer::ScaledAttackValue);
+EI_REWRITTEN(0x0054B9C0, CUnitServer::ScaledAttackValue);
 
 void CUnitServer::GetDamageByType(std::int16_t* out) {
     CUnit* self = unit;
@@ -379,7 +379,7 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
     float own = Radius(unit);
     return static_cast<float>((Radius(target) + static_cast<double>(own)) + range);
 }
-EI_REPLACE_METHOD(0x0054C070, CUnitServer::ActionDistance);
+EI_REWRITTEN(0x0054C070, CUnitServer::ActionDistance);
 
 bool CUnitServer::CanReachTarget(const UnitAction* order) {
     if (order->kind != 3 && order->kind != 6) return true;
@@ -398,7 +398,7 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
 }
-EI_REPLACE_METHOD(0x0054C800, CUnitServer::CanReachTarget);
+EI_REWRITTEN(0x0054C800, CUnitServer::CanReachTarget);
 
 std::uint32_t CUnitServer::WeaponTypeMask() {
     CItemWeapon* weapon = ActiveWeapon(unit);
@@ -514,7 +514,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     if (!backstab) roll = roll + speedRatio;
     return MaxZero(static_cast<float>(roll));
 }
-EI_REPLACE_METHOD(0x00555BD0, CUnitServer::AttackRoll);
+EI_REWRITTEN(0x00555BD0, CUnitServer::AttackRoll);
 
 BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     float roll = kHitMark;
@@ -536,7 +536,7 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     std::memcpy(&hit->attackRoll, &result, sizeof(result));
     return result > kZero ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x00553DF0, CUnitServer::ResolveHit);
+EI_REWRITTEN(0x00553DF0, CUnitServer::ResolveHit);
 
 BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
     CUnit* self = unit;
@@ -581,7 +581,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->calledShot = static_cast<std::uint8_t>(calledShot);
     return 1;
 }
-EI_REPLACE_METHOD(0x0054F630, CUnitServer::BuildAttackHit);
+EI_REWRITTEN(0x0054F630, CUnitServer::BuildAttackHit);
 
 BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char calledShot) {
     int backstab = unit->IsBehind(target) & 0xFF;

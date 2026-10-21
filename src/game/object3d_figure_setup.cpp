@@ -162,7 +162,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
     boundsFlags |= kBoundsSphere;
 }
 
-EI_REPLACE_METHOD(0x005179E0, CObject3D::SetUpAnimatedFigure);
+EI_REWRITTEN(0x005179E0, CObject3D::SetUpAnimatedFigure);
 
 // --- Bounds of the placed parts -----------------------------------------------------------------
 
@@ -193,7 +193,7 @@ void CObject3D::UpdatePartBounds() {
     center.y = centreY - position.y;
     center.z = centreZ - position.z;
 }
-EI_REPLACE_METHOD(0x00518100, CObject3D::UpdatePartBounds);
+EI_REWRITTEN(0x00518100, CObject3D::UpdatePartBounds);
 
 // --- Parts by name prefix -----------------------------------------------------------------------
 
@@ -212,7 +212,7 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out) {
         if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined by the original
     }
 }
-EI_REPLACE_METHOD(0x00516B50, CObject3D::CollectPartsByPrefix);
+EI_REWRITTEN(0x00516B50, CObject3D::CollectPartsByPrefix);
 
 // --- Loading single parts ---------------------------------------------------------------------
 
@@ -284,7 +284,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
     part->boxPivot_.z = part->localPosition_.z;
     return part;
 }
-EI_REPLACE_METHOD(0x00517240, CObject3D::LoadPart);
+EI_REWRITTEN(0x00517240, CObject3D::LoadPart);
 
 int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t arg) {
     CEngineObject* manager = FigureManagerOf(this);
@@ -301,7 +301,7 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00517110, CObject3D::LoadParts);
+EI_REWRITTEN(0x00517110, CObject3D::LoadParts);
 
 // --- Building the figure ----------------------------------------------------------------------
 
@@ -373,4 +373,4 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
     else flags_ |= kFlagFigureLoaded;
     return 1;
 }
-EI_REPLACE_METHOD(0x00516DA0, CObject3D::MakeFigure);
+EI_REWRITTEN(0x00516DA0, CObject3D::MakeFigure);

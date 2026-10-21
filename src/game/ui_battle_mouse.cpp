@@ -102,4 +102,4 @@ void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
     text::ReplaceChar(&name, ' ', '_');
     if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
 }
-EI_REPLACE_METHOD(0x0063B920, CBattleScreen::UnitName);
+EI_REWRITTEN(0x0063B920, CBattleScreen::UnitName);

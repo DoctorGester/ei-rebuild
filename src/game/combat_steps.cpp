@@ -222,7 +222,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     added.duration = duration;
     return true;
 }
-EI_REPLACE_METHOD(0x005516D0, CUnitServer::BuildTransition);
+EI_REWRITTEN(0x005516D0, CUnitServer::BuildTransition);
 
 // --- Orders ----------------------------------------------------------------------------------
 
@@ -312,7 +312,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         if (BuildTransition(&back.steps, &from, &moveMode)) AppendFirst(steps, &back.steps);
     }
 }
-EI_REPLACE_METHOD(0x00550100, CUnitServer::BuildOrderSteps);
+EI_REWRITTEN(0x00550100, CUnitServer::BuildOrderSteps);
 
 // --- Casts -----------------------------------------------------------------------------------
 
@@ -386,7 +386,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     steps->steps[1].kind = 1;
     *duration = *duration + pause;
 }
-EI_REPLACE_METHOD(0x00550620, CUnitServer::BuildCastSteps);
+EI_REWRITTEN(0x00550620, CUnitServer::BuildCastSteps);
 
 // --- Attacks ---------------------------------------------------------------------------------
 
@@ -561,7 +561,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     BuildOrderSteps(steps, duration, kOrderAttack, key);
     return true;
 }
-EI_REPLACE_METHOD(0x0054F970, CUnitServer::BuildAttackSteps);
+EI_REWRITTEN(0x0054F970, CUnitServer::BuildAttackSteps);
 
 // --- Death and falls -------------------------------------------------------------------------
 
@@ -639,4 +639,4 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     if (isFall)
         for (int i = 0; i < steps->count; ++i) steps->steps[i].kind = kStepLying;
 }
-EI_REPLACE_METHOD(0x00550A80, CUnitServer::BuildDeathAnimation);
+EI_REWRITTEN(0x00550A80, CUnitServer::BuildDeathAnimation);

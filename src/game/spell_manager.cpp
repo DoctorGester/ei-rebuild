@@ -49,7 +49,7 @@ void SpellSequence::Destruct() {
     ReleaseContainers(this);
     containers.Destroy();
 }
-EI_REPLACE_METHOD(0x006886F0, SpellSequence::Destruct);
+EI_REWRITTEN(0x006886F0, SpellSequence::Destruct);
 
 // --- CSpellManager -------------------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
     container->Spell()->CopyTo(spell);
     return spell;
 }
-EI_REPLACE_METHOD(0x00688EC0, CSpellManager::CreateSpellObject);
+EI_REWRITTEN(0x00688EC0, CSpellManager::CreateSpellObject);
 
 CEngineObject* CSpellManager::NewObjectImpl(int type) {
     if (type == kClassSpell) {
@@ -114,22 +114,22 @@ CSpellManager::~CSpellManager() {
 }
 
 void CSpellManager::Destruct() { this->CSpellManager::~CSpellManager(); }
-EI_REPLACE_METHOD(0x00688990, CSpellManager::Destruct);
+EI_REWRITTEN(0x00688990, CSpellManager::Destruct);
 
 CSpellManager* CSpellManager::DeletingDestruct(unsigned flags) {
     this->CSpellManager::~CSpellManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00688970, CSpellManager::DeletingDestruct);
+EI_REWRITTEN(0x00688970, CSpellManager::DeletingDestruct);
 
 namespace {
 int __fastcall SpellManagerCreateHook(CSpellManager* self) { return self->CSpellManager::Create(); }
 void __fastcall SpellManagerDestroyHook(CSpellManager* self) { self->CSpellManager::Destroy(); }
 } // namespace
-EI_REPLACE(0x00688B30, SpellManagerCreateHook);
-EI_REPLACE(0x00688B40, SpellManagerDestroyHook);
-EI_REPLACE_METHOD(0x00688CD0, CSpellManager::NewObjectImpl);
+EI_REWRITTEN(0x00688B30, SpellManagerCreateHook);
+EI_REWRITTEN(0x00688B40, SpellManagerDestroyHook);
+EI_REWRITTEN(0x00688CD0, CSpellManager::NewObjectImpl);
 
 CEngineObject* CSpellManager::NewObject(int type) { return NewObjectImpl(type); }
 const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
@@ -153,8 +153,8 @@ void CSpellManager::ListSpellNames(mfc::CStringArray* names) { ListRecordNames<i
 void CSpellManager::ListModifierNames(mfc::CStringArray* names) {
     ListRecordNames<itemdb::SpellModifierRecord>(itemdb::SpellModifiers(), names);
 }
-EI_REPLACE_METHOD(0x00689570, CSpellManager::ListSpellNames);
-EI_REPLACE_METHOD(0x00689610, CSpellManager::ListModifierNames);
+EI_REWRITTEN(0x00689570, CSpellManager::ListSpellNames);
+EI_REWRITTEN(0x00689610, CSpellManager::ListModifierNames);
 
 // --- CSpellContainer -----------------------------------------------------------------------------
 
@@ -189,7 +189,7 @@ void CSpellContainer::Destruct() {
     stlp::deallocate(modifiers_, sizeof(SpellModifierNode));
     DestructBase();
 }
-EI_REPLACE_METHOD(0x0068BC50, CSpellContainer::Destruct);
+EI_REWRITTEN(0x0068BC50, CSpellContainer::Destruct);
 
 CSpellContainer* CSpellContainer::DeletingDestruct(unsigned flags) {
     Destruct();

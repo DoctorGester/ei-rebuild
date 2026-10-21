@@ -137,7 +137,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         if (goesBeyond) beyondTarget_ = false;
     }
 }
-EI_REPLACE_METHOD(0x006312C0, CGlobalMap::FindPaths);
+EI_REWRITTEN(0x006312C0, CGlobalMap::FindPaths);
 
 void CGlobalMap::OnLeftDown(int, int x, int y) {
     if (dragging_) return;

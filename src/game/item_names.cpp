@@ -147,7 +147,7 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
     *out = name;
     return true;
 }
-EI_REPLACE(0x006A0CC0, WeaponBaseFigure);
+EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 

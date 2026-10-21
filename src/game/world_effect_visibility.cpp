@@ -137,8 +137,8 @@ void CEffectShowVisibility::SaveState(void* stream) {
     s->Write(&copy, 4);
 }
 
-EI_REPLACE_METHOD(0x0067C340, CEffectShowVisibility::Construct);
-EI_REPLACE_METHOD(0x0067C490, CEffectShowVisibility::Destruct);
+EI_REWRITTEN(0x0067C340, CEffectShowVisibility::Construct);
+EI_REWRITTEN(0x0067C490, CEffectShowVisibility::Destruct);
 EI_REPLACE_METHOD(0x0067C470, CEffectShowVisibility::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067C5F0, CEffectShowVisibility::Reset);
 EI_REPLACE_METHOD(0x0067C660, CEffectShowVisibility::Start);

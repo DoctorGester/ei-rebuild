@@ -2662,7 +2662,7 @@ id = "C20d"
 title = "A function-to-original address map that is not the registrations (check_fp_fold first)"
 group = "cleanup"
 model = "opus"
-note = "C20c kept 1,754 registrations whose only reader is check_fp_fold: it links a function to its original (to compare x87 constants) through the function's own registration, or a helper through its registered callers (check_fp_fold.py --linked); dropping them reported folds that were none (24). Other tools also read every registration as the function-to-address map and lose the dropped ones without failing: coverage.py (watch list), check_signatures (RET n against the original), direct_calls.py, save_trace.py, ui_census_report.py, progress.py's rewritten count. Give them one map that does not register code (e.g. a record per rewritten function in its own section, or the map file plus a names table) and drop the 1,754 with tools/registration_readers.py --drop."
+note = "Done (2026-10-21): the map is the registrations plus EI_REWRITTEN(0x..., Fn) lines (include/ei/hook.h: a {address, &Fn, file, line} record in .eiorg, no registration; check_registrations reads it). check_fp_fold, check_signatures, coverage, direct_calls, save_trace, ui_census_report, gen_originals, progress / dashboard rewritten counts, check_cleanup and gen_short_functions read it; standalone_gaps and registration_readers skip it; check_fp_fold --linked and the check_fp_fold reader are gone; registration_readers --drop now writes EI_REWRITTEN (--only FILE). Every tool's map compared before / after: the same. 1,735 check_fp_fold-only registrations converted (20 in CSkyObject / CSky / CUnit left for C19 batch 5): progress.py registrations 5,262 -> 3,527. check_fp_fold release 1,260 / 4,752 matched / 417 uncalled -> 1,276 / 4,752 / 418, 0 problems (inlining changed where registrar constructors went). Goldens 121 the same. Original suite: 113 differ on isaac.* only, from C18l c (C18l1 filed). Follow-up C20d1: put back the map lines C20c deleted."
 
 [[ticket]]
 id = "C20e"
@@ -2670,7 +2670,7 @@ title = "Registrations: drop the unread ones C20c left in C19's files and the ge
 group = "cleanup"
 model = "sonnet"
 depends = ["C19"]
-note = "After C20c (tools/registration_readers.py --unread): 495 unread, 430 in the files C19 batch 4 held (material, item, sky object, server / client specific, particles, lightning, light, player manager, CUnit tables, map objects, Object3D, traps, levers, torches) and 65 EI_REPLACE_SHORT nothing reads. Rerun --drop on those files after C19 (C20c's build/C20c/batch.py pipeline: dead shims, unused aliases, empty sections), and make gen_short_functions.py write a short function only where something reads its address (64 rewrites are registered only so the generator leaves them out)."
+note = "After C20c (tools/registration_readers.py --unread): 495 unread, 430 in the files C19 batch 4 held (material, item, sky object, server / client specific, particles, lightning, light, player manager, CUnit tables, map objects, Object3D, traps, levers, torches) and 65 EI_REPLACE_SHORT nothing reads. Rerun --drop on those files after C19 (C20c's build/C20c/batch.py pipeline: dead shims, unused aliases, empty sections), and make gen_short_functions.py write a short function only where something reads its address (64 rewrites are registered only so the generator leaves them out). C20d: --drop now writes EI_REWRITTEN in place of the registration (no dead shims or empty sections to clean up after it), and gen_short_functions counts EI_REWRITTEN as ported, so registration_readers' 'short generator' reader is obsolete: drop it from the tool and those 64 registrations become unread. 20 check_fp_fold-only registrations in CSkyObject / CUnit / CSky (sky_object.cpp, unit.cpp) were left for C19 batch 5: rerun registration_readers --unread after it."
 
 [[ticket]]
 id = "C20f"
@@ -2685,6 +2685,20 @@ title = "Dead functions after the registration drops"
 group = "cleanup"
 model = "sonnet"
 note = "C20c dropped 4,090 registrations and removed only the free shims nothing mentioned. Functions and methods that were reached only through their registration are now dead in the image (/OPT:NOREF keeps them). List them (the linker map with /OPT:REF in a scratch build, or a call-graph scan) and delete the dead ones with their declarations, keeping anything a test, check or harness names."
+
+[[ticket]]
+id = "C20d1"
+title = "Function-to-original map: EI_REWRITTEN for the functions C20c's drops deleted"
+group = "cleanup"
+model = "sonnet"
+note = "C20c deleted about 4,000 registration lines (commits 8e46d977, 2dd50133, 0e56146b), so those rewrites are missing from the tools' function-to-original map (coverage.py, progress.py's rewritten count, check_fp_fold, check_signatures, direct_calls, save_trace, ui_census_report). Put an EI_REWRITTEN(0x..., Fn); line back for each deleted registration whose function still exists (name it as the deleted line did, or its current name; next to the function's definition). Expect check_fp_fold to match more functions (each kept copy is compared with its own original) and the rewritten count to come back; fix any fold it then reports. Check: builds, all checks 0, goldens (EI_REWRITTEN changes some inlining)."
+
+[[ticket]]
+id = "C18l1"
+title = "Original suite: the digest's ISAAC state reads our g_random in game.exe (C18l c)"
+group = "cleanup"
+model = "opus"
+note = "Since 67625c45 (C18l c: the ISAAC generator named, IsaacRandom::Global() returns g_random, game.exe's 007A9D40) the harness digest (tests/verify/harness_digest.cpp ReadRandom) reads our g_random also in game.exe, where the original game's code uses 007A9D40: the original suite (--no-hooks --golden) gives 1 the same, 113 differ, every one on isaac.* only (seeded 0, count 0 in the run; seen in C20d's run 2026-10-21). In game.exe the digest has to read the exe's object (or Global() has to be the exe's there). Check other mutable named data the harness reads in game.exe for the same problem; then the original suite 114 the same."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

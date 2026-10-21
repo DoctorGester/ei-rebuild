@@ -208,9 +208,9 @@ void ServerSession::LeaveZone() {
     WorldPrepareMap(TheGameFlow(), nullptr, nullptr);
 }
 
-EI_REPLACE_METHOD(0x00419D90, ServerSession::QueueAward);
-EI_REPLACE_METHOD(0x004191C0, ServerSession::AwardHost);
-EI_REPLACE_METHOD(0x00418ED0, ServerSession::CompleteZone);
-EI_REPLACE_METHOD(0x00418CC0, ServerSession::LeaveZone);
+EI_REWRITTEN(0x00419D90, ServerSession::QueueAward);
+EI_REWRITTEN(0x004191C0, ServerSession::AwardHost);
+EI_REWRITTEN(0x00418ED0, ServerSession::CompleteZone);
+EI_REWRITTEN(0x00418CC0, ServerSession::LeaveZone);
 
 } // namespace net

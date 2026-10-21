@@ -74,7 +74,7 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
     }
     ar->LeaveChunk();
 }
-EI_REPLACE_METHOD(0x006AD7D0, QuestRecord::Serialize);
+EI_REWRITTEN(0x006AD7D0, QuestRecord::Serialize);
 
 void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
@@ -85,21 +85,21 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     for (int i = 1; i < 6; ++i) InlineStrings(ar, 4 + i, &lists[i]);
     ar->Field(10, &field10, 4);
 }
-EI_REPLACE_METHOD(0x006AD900, QuestBriefingRecord::Serialize);
+EI_REWRITTEN(0x006AD900, QuestBriefingRecord::Serialize);
 
 void QuestRecord::Destruct() {
     text.~string();
     places.FreeStorage();
     name.~string();
 }
-EI_REPLACE_METHOD(0x006AF4D0, QuestRecord::Destruct);
+EI_REWRITTEN(0x006AF4D0, QuestRecord::Destruct);
 
 void QuestBriefingRecord::Destruct() {
     text.~string();
     for (int i = 5; i >= 0; --i) records::DestroyVector(lists[i]);
     name.~string();
 }
-EI_REPLACE_METHOD(0x006AF5A0, QuestBriefingRecord::Destruct);
+EI_REWRITTEN(0x006AF5A0, QuestBriefingRecord::Destruct);
 
 // ---- S10a: the records as vector elements (record_vectors.h) ----------------------------------
 
@@ -163,10 +163,10 @@ void QuestBriefingRecord::ConstructDefault() {
 void ChunkArchive::SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void*) {
     SerializeRecords(this, id, quests, QuestDestroy, recordvec::QuestVector::ResizeDefault, &QuestRecord::Serialize);
 }
-EI_REPLACE_METHOD(0x006B1F20, ChunkArchive::SerializeQuests);
+EI_REWRITTEN(0x006B1F20, ChunkArchive::SerializeQuests);
 
 void ChunkArchive::SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void*) {
     SerializeRecords(this, id, briefings, BriefingDestroy, recordvec::BriefingVector::ResizeDefault,
                      &QuestBriefingRecord::Serialize);
 }
-EI_REPLACE_METHOD(0x006B2010, ChunkArchive::SerializeBriefings);
+EI_REWRITTEN(0x006B2010, ChunkArchive::SerializeBriefings);

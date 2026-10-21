@@ -49,7 +49,7 @@ CMaterial::CMaterial() {
 }
 
 CMaterial* CMaterial::Construct() { return new (this) CMaterial(); }
-EI_REPLACE_METHOD(0x0068DBC0, CMaterial::Construct);
+EI_REWRITTEN(0x0068DBC0, CMaterial::Construct);
 
 // The names go after the body (name3, name2, then name after the deque in the original).
 CMaterial::~CMaterial() {
@@ -58,14 +58,14 @@ CMaterial::~CMaterial() {
 }
 
 void CMaterial::Destruct() { this->CMaterial::~CMaterial(); }
-EI_REPLACE_METHOD(0x0068DE30, CMaterial::Destruct);
+EI_REWRITTEN(0x0068DE30, CMaterial::Destruct);
 
 CMaterial* CMaterial::DeletingDestruct(unsigned flags) {
     this->CMaterial::~CMaterial();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0068DD20, CMaterial::DeletingDestruct);
+EI_REWRITTEN(0x0068DD20, CMaterial::DeletingDestruct);
 
 int CMaterial::Create() {
     ResetFields(this);
@@ -90,8 +90,8 @@ namespace {
 int __fastcall MaterialCreateHook(CMaterial* self) { return self->CMaterial::Create(); }
 void __fastcall MaterialDestroyHook(CMaterial* self) { self->CMaterial::Destroy(); }
 } // namespace
-EI_REPLACE(0x0068DF90, MaterialCreateHook);
-EI_REPLACE(0x0068E040, MaterialDestroyHook);
+EI_REWRITTEN(0x0068DF90, MaterialCreateHook);
+EI_REWRITTEN(0x0068E040, MaterialDestroyHook);
 
 // --- CMaterialManager ------------------------------------------------------------------------------
 
@@ -121,19 +121,19 @@ CMaterialManager::ColorTable::Node* EnterKey(CMaterialManager::ColorTable& table
 CMaterialManager::CMaterialManager() { colors_.InitBuckets(kColorTableHint); }
 
 CMaterialManager* CMaterialManager::Construct() { return new (this) CMaterialManager(); }
-EI_REPLACE_METHOD(0x0068E3F0, CMaterialManager::Construct);
+EI_REWRITTEN(0x0068E3F0, CMaterialManager::Construct);
 
 CMaterialManager::~CMaterialManager() { colors_.Destroy(); }
 
 void CMaterialManager::Destruct() { this->CMaterialManager::~CMaterialManager(); }
-EI_REPLACE_METHOD(0x0068E540, CMaterialManager::Destruct);
+EI_REWRITTEN(0x0068E540, CMaterialManager::Destruct);
 
 CMaterialManager* CMaterialManager::DeletingDestruct(unsigned flags) {
     this->CMaterialManager::~CMaterialManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0068E520, CMaterialManager::DeletingDestruct);
+EI_REWRITTEN(0x0068E520, CMaterialManager::DeletingDestruct);
 
 int CMaterialManager::Create() {
     // Rebirth's ResOverride (0068E648): the mod's archives open here if nothing opened them yet.
@@ -177,14 +177,14 @@ CMaterial* CMaterialManager::NewMaterial(int type) {
     material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_))->value;
     return material;
 }
-EI_REPLACE_METHOD(0x0068E970, CMaterialManager::NewMaterial);
+EI_REWRITTEN(0x0068E970, CMaterialManager::NewMaterial);
 
 int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
     if (!material) return 0;
     material->colors = EnterKey(colors_, key)->value;
     return 1;
 }
-EI_REPLACE_METHOD(0x0068EAF0, CMaterialManager::FillMaterial);
+EI_REWRITTEN(0x0068EAF0, CMaterialManager::FillMaterial);
 
 CEngineObject* CMaterialManager::NewObject(int type) { return NewObjectImpl(type); }
 const char* CMaterialManager::GetClassName() { return kManagerClassName; }
@@ -201,5 +201,5 @@ EI_REPLACE(0x0068E510, MaterialManagerClassId);
 namespace {
 int __fastcall MaterialManagerCreateHook(CMaterialManager* self) { return self->CMaterialManager::Create(); }
 } // namespace
-EI_REPLACE(0x0068E640, MaterialManagerCreateHook);
-EI_REPLACE_METHOD(0x0068E900, CMaterialManager::NewObjectImpl);
+EI_REWRITTEN(0x0068E640, MaterialManagerCreateHook);
+EI_REWRITTEN(0x0068E900, CMaterialManager::NewObjectImpl);

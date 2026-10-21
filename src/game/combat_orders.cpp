@@ -202,7 +202,7 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
     }
     if (!PlanOrderRoute(&action2, planArg)) ResetOrder(&action2);
 }
-EI_REPLACE_METHOD(0x00554B30, CUnitServer::OrderAttack);
+EI_REWRITTEN(0x00554B30, CUnitServer::OrderAttack);
 
 namespace {
 // The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's
@@ -262,7 +262,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
     action2.modifier = static_cast<std::uint8_t>(run);
     if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
-EI_REPLACE_METHOD(0x00554D00, CUnitServer::OrderCastAt);
+EI_REWRITTEN(0x00554D00, CUnitServer::OrderCastAt);
 
 void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run) {
     Vector3 aim;
@@ -293,7 +293,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
     action2.modifier = static_cast<std::uint8_t>(run);
     if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
-EI_REPLACE_METHOD(0x00554F50, CUnitServer::OrderCast);
+EI_REWRITTEN(0x00554F50, CUnitServer::OrderCast);
 
 void CUnitServer::StopQueued() {
     if (action.kind == 11) return;

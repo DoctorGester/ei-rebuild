@@ -227,5 +227,5 @@ void CWorldServer::LootDeadUnits() {
     for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) WorldRemoveObject(TheServerWorld(), nullptr, id->value);
 }
 
-EI_REPLACE_METHOD(0x005942D0, CWorldServer::Loot);
-EI_REPLACE_METHOD(0x00593D60, CWorldServer::LootDeadUnits);
+EI_REWRITTEN(0x005942D0, CWorldServer::Loot);
+EI_REWRITTEN(0x00593D60, CWorldServer::LootDeadUnits);

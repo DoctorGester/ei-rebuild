@@ -150,7 +150,7 @@ void CUiSurface::SetRect(int left, int top, int right, int bottom) {
     rect_.bottom = bottom;
     interface_->CallScaleRectToScreen(&rect_);
 }
-EI_REPLACE_METHOD(0x005FD3A0, CUiSurface::SetRect);
+EI_REWRITTEN(0x005FD3A0, CUiSurface::SetRect);
 
 void CUiSurface::MoveTo(int x, int y) {
     POINT point{x, y};
@@ -162,7 +162,7 @@ void CUiSurface::MoveTo(int x, int y) {
     rect_.right = width + point.x;
     rect_.bottom = height + point.y;
 }
-EI_REPLACE_METHOD(0x005FE400, CUiSurface::MoveTo);
+EI_REWRITTEN(0x005FE400, CUiSurface::MoveTo);
 
 // --- CUiModel --------------------------------------------------------------------------------
 
@@ -180,7 +180,7 @@ void CUiModel::SetScreenPosition(float x, float y, float depth) {
     std::memcpy(&position.y, &value, sizeof(float));
     std::memcpy(&position.z, &depth, sizeof(float));
 }
-EI_REPLACE_METHOD(0x005FC450, CUiModel::SetScreenPosition);
+EI_REWRITTEN(0x005FC450, CUiModel::SetScreenPosition);
 
 // --- Record lookups --------------------------------------------------------------------------
 

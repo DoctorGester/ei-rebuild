@@ -68,7 +68,7 @@ void PatrolMode::Destruct() {
     }
     vtable = aimode::kRootVtable;
 }
-EI_REPLACE_METHOD(0x005D1240, PatrolMode::Destruct);
+EI_REWRITTEN(0x005D1240, PatrolMode::Destruct);
 
 PatrolMode* PatrolMode::DeletingDestruct(int flags) {
     Destruct();
@@ -94,7 +94,7 @@ PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*,
     for (int i = 0; i < source.looks.size; ++i) out->looks.data[i] = source.looks.data[i];
     return out;
 }
-EI_REPLACE(0x005D9E40, PatrolPointCopyAt);
+EI_REWRITTEN(0x005D9E40, PatrolPointCopyAt);
 
 // 005D0F90 (slot 3): a copy with its own points. The reference count dword is cleared before the
 // allocation's null test; the abstract base's vtable stands while the points are copied, each
@@ -181,7 +181,7 @@ void __fastcall PatrolPointsDestruct(PatrolPointArray* points) {
     }
     gamecrt::operator_delete(points->data);
 }
-EI_REPLACE(0x005D8CF0, PatrolPointsDestruct);
+EI_REWRITTEN(0x005D8CF0, PatrolPointsDestruct);
 
 PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags) {
     PatrolPointsDestruct(points);

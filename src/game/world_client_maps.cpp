@@ -169,7 +169,7 @@ RadiusFunctor* RadiusFunctor::Mark(std::uint8_t* first, std::uint8_t* last, floa
     scale = factor;
     return this;
 }
-EI_REPLACE_METHOD(0x00571D50, RadiusFunctor::Mark);
+EI_REWRITTEN(0x00571D50, RadiusFunctor::Mark);
 
 
 // 00573350: vector<ScreenEntry>::_M_insert_overflow (plain elements).
@@ -210,13 +210,13 @@ HitCollector* HitCollector::CollectBounds(std::uint8_t* first, std::uint8_t* las
                                           CBaseManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
-EI_REPLACE_METHOD(0x00571800, HitCollector::CollectBounds);
+EI_REWRITTEN(0x00571800, HitCollector::CollectBounds);
 
 HitCollector* HitCollector::CollectParts(std::uint8_t* first, std::uint8_t* last, void* found, LONG x, LONG y,
                                          CBaseManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
-EI_REPLACE_METHOD(0x005718B0, HitCollector::CollectParts);
+EI_REWRITTEN(0x005718B0, HitCollector::CollectParts);
 
 // ---- Lookups -------------------------------------------------------------------------------------
 
@@ -1166,7 +1166,7 @@ SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flag
 void __fastcall SectorListDestruct(SectorList* list) { DestroySectorList(list); }
 EI_REPLACE(0x0056DEF0, SectorListDestruct);
 
-EI_REPLACE(0x00572B30, SectorListsDelete);
+EI_REWRITTEN(0x00572B30, SectorListsDelete);
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
@@ -1181,7 +1181,7 @@ void SectorGrid::Allocate() {
     rows_ = static_cast<SectorList**>(gamecrt::operator_new(static_cast<std::size_t>(unknown0C_) * sizeof(SectorList*)));
     for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_ + y * unknown08_;
 }
-EI_REPLACE_METHOD(0x00572820, SectorGrid::Allocate);
+EI_REWRITTEN(0x00572820, SectorGrid::Allocate);
 
 void SectorGrid::Resize(int width, int height) {
     if (unknown08_ == width && unknown0C_ == height) return;
@@ -1191,7 +1191,7 @@ void SectorGrid::Resize(int width, int height) {
     unknown0C_ = height;
     Allocate();
 }
-EI_REPLACE_METHOD(0x00572450, SectorGrid::Resize);
+EI_REWRITTEN(0x00572450, SectorGrid::Resize);
 
 int CWorldClient::Setup() {
     WorldCreateManagers(this);
@@ -1408,7 +1408,7 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00567A60, CWorldClient::LoadItemsAndSpells);
+EI_REWRITTEN(0x00567A60, CWorldClient::LoadItemsAndSpells);
 
 int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
     for (;;) {
@@ -1451,7 +1451,7 @@ void PlatformSet::DestructBody() {
     list.RemoveAll();
     Engine()->DestructBase();
 }
-EI_REPLACE_METHOD(0x00561A60, PlatformSet::DestructBody);
+EI_REWRITTEN(0x00561A60, PlatformSet::DestructBody);
 
 PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -1499,14 +1499,14 @@ CLightningManager::~CLightningManager() {
 }
 
 void CLightningManager::Destruct() { this->CLightningManager::~CLightningManager(); }
-EI_REPLACE_METHOD(0x00562EC0, CLightningManager::Destruct);
+EI_REWRITTEN(0x00562EC0, CLightningManager::Destruct);
 
 CLightningManager* CLightningManager::DeletingDestruct(unsigned flags) {
     this->CLightningManager::~CLightningManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00562EA0, CLightningManager::DeletingDestruct);
+EI_REWRITTEN(0x00562EA0, CLightningManager::DeletingDestruct);
 
 ClientArrayManager::ClientArrayManager() {
     current = nullptr;
@@ -1521,14 +1521,14 @@ ClientArrayManager::~ClientArrayManager() {
 }
 
 void ClientArrayManager::DestructBody() { this->ClientArrayManager::~ClientArrayManager(); }
-EI_REPLACE_METHOD(0x00562DF0, ClientArrayManager::DestructBody);
+EI_REWRITTEN(0x00562DF0, ClientArrayManager::DestructBody);
 
 ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
     this->ClientArrayManager::~ClientArrayManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00562DD0, ClientArrayManager::DeletingDestruct);
+EI_REWRITTEN(0x00562DD0, ClientArrayManager::DeletingDestruct);
 
 // ---- The zone's state block (00567AB0, A-W15) ----------------------------------------------------
 
@@ -1698,28 +1698,28 @@ int CWorldClient::LoadZone(CStream* block) {
 EI_REPLACE_METHOD(0x00567AB0, CWorldClient::LoadZone);
 
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
-EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
-EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
+EI_REWRITTEN(0x00560650, PlatformSet::AddFace);
+EI_REWRITTEN(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
-EI_REPLACE_METHOD(0x00565090, CWorldClient::ResetZoneObjects);
-EI_REPLACE_METHOD(0x00566100, CWorldClient::Deselect);
-EI_REPLACE_METHOD(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
-EI_REPLACE_METHOD(0x00563190, CWorldClient::ReleaseItemsAndSpells);
-EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
-EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
-EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);
-EI_REPLACE_METHOD(0x005651A0, CWorldClient::RefreshPlatforms);
-EI_REPLACE_METHOD(0x0056D7E0, CWorldClient::QueueSynchronised);
-EI_REPLACE_METHOD(0x00564BE0, CWorldClient::RemoveObject);
-EI_REPLACE_METHOD(0x00564E70, CWorldClient::ClearMaps);
-EI_REPLACE_METHOD(0x00565790, CWorldClient::PickAt);
-EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
-EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
-EI_REPLACE_METHOD(0x00565D00, CWorldClient::UnitAt2);
-EI_REPLACE_METHOD(0x005662B0, CWorldClient::CentreOn);
+EI_REWRITTEN(0x00565090, CWorldClient::ResetZoneObjects);
+EI_REWRITTEN(0x00566100, CWorldClient::Deselect);
+EI_REWRITTEN(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
+EI_REWRITTEN(0x00563190, CWorldClient::ReleaseItemsAndSpells);
+EI_REWRITTEN(0x0056DAF0, CWorldClient::ObjectsInRange);
+EI_REWRITTEN(0x00566F70, CWorldClient::CreatePartyUnits);
+EI_REWRITTEN(0x005647E0, CWorldClient::AddObject);
+EI_REWRITTEN(0x005651A0, CWorldClient::RefreshPlatforms);
+EI_REWRITTEN(0x0056D7E0, CWorldClient::QueueSynchronised);
+EI_REWRITTEN(0x00564BE0, CWorldClient::RemoveObject);
+EI_REWRITTEN(0x00564E70, CWorldClient::ClearMaps);
+EI_REWRITTEN(0x00565790, CWorldClient::PickAt);
+EI_REWRITTEN(0x005659D0, CWorldClient::PickAt2);
+EI_REWRITTEN(0x00565E40, CWorldClient::UnitAt);
+EI_REWRITTEN(0x00565D00, CWorldClient::UnitAt2);
+EI_REWRITTEN(0x005662B0, CWorldClient::CentreOn);
 EI_REPLACE_METHOD(0x005618E0, CWorldClient::ClientGroundHeight);
 EI_REPLACE_METHOD(0x00561930, CWorldClient::ClientSurfaceHeight);
 EI_REPLACE_METHOD(0x0056DE80, CWorldClient::LoadUnitFaces);
-EI_REPLACE_METHOD(0x00567400, CWorldClient::RemoveUnitsOf);
-EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
-EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
+EI_REWRITTEN(0x00567400, CWorldClient::RemoveUnitsOf);
+EI_REWRITTEN(0x00570860, SectorGrid::Move);
+EI_REWRITTEN(0x00570BB0, SectorGrid::Move2);

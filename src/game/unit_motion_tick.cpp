@@ -471,4 +471,4 @@ __declspec(naked) void __fastcall UpdateMotion(CUnitServer* /*c*/) {
         jmp UpdateMotionBody
     }
 }
-EI_REPLACE(0x00547890, UpdateMotion);
+EI_REWRITTEN(0x00547890, UpdateMotion);

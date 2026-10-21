@@ -18,7 +18,7 @@ void DestroyString(mfc::CString& text) { text.~CString(); }
 
 // 00460460: a zone exit's destructor (its CString at +0x28).
 void __fastcall ExitDestruct(MapExit* self) { DestroyString(self->target); }
-EI_REPLACE(0x00460460, ExitDestruct);
+EI_REWRITTEN(0x00460460, ExitDestruct);
 
 // 004608B0: the zone exit's scalar deleting destructor.
 void* __fastcall ExitDelete(void* self, void*, unsigned flags) {
@@ -26,7 +26,7 @@ void* __fastcall ExitDelete(void* self, void*, unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }
-EI_REPLACE(0x004608B0, ExitDelete);
+EI_REWRITTEN(0x004608B0, ExitDelete);
 
 // 00460970: a zone record's destructor: the exits' array (base vtable 0073C3F4; each exit's string
 // destroyed, the block freed, the fields left as they are), then the strings from +0x1C down to +0.
@@ -46,6 +46,6 @@ void __fastcall ZoneRecordDestruct(MapRecord* self) {
     DestroyString(self->allod);
     DestroyString(self->name);
 }
-EI_REPLACE(0x00460970, ZoneRecordDestruct);
+EI_REWRITTEN(0x00460970, ZoneRecordDestruct);
 
 } // namespace zone

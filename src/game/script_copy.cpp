@@ -56,7 +56,7 @@ ScriptVars* ScriptVars::ScriptVarsAssign(const ScriptVars* other) {
     AssignVars(this, other);
     return this;
 }
-EI_REPLACE_METHOD(0x004CBAE0, ScriptVars::ScriptVarsAssign);
+EI_REWRITTEN(0x004CBAE0, ScriptVars::ScriptVarsAssign);
 
 ScriptRun* ScriptRun::ScriptRunAssign(const ScriptRun* other) {
     block = other->block;
@@ -67,7 +67,7 @@ ScriptRun* ScriptRun::ScriptRunAssign(const ScriptRun* other) {
     AssignVars(&vars, &other->vars);
     return this;
 }
-EI_REPLACE_METHOD(0x004CB570, ScriptRun::ScriptRunAssign);
+EI_REWRITTEN(0x004CB570, ScriptRun::ScriptRunAssign);
 
 SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     id = other->id;
@@ -81,7 +81,7 @@ SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     calledScript = other->calledScript;
     return this;
 }
-EI_REPLACE_METHOD(0x004C6BC0, SSCCmd::ScriptCmdAssign);
+EI_REWRITTEN(0x004C6BC0, SSCCmd::ScriptCmdAssign);
 
 ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
     commands.CopyFrom(other->commands);
@@ -97,7 +97,7 @@ ScriptFxSource* ScriptFxSource::ScriptFxSourceAssign(const ScriptFxSource* other
     std::memcpy(static_cast<void*>(&position), &other->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position));
     return this;
 }
-EI_REPLACE_METHOD(0x004CB220, ScriptFxSource::ScriptFxSourceAssign);
+EI_REWRITTEN(0x004CB220, ScriptFxSource::ScriptFxSourceAssign);
 
 // ---- Copy constructors ---------------------------------------------------------------------------
 //
@@ -207,7 +207,7 @@ ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
     }
     return this;
 }
-EI_REPLACE_METHOD(0x004CBA00, ScriptStrings::CopyConstruct);
+EI_REWRITTEN(0x004CBA00, ScriptStrings::CopyConstruct);
 
 // Object values: each slot drops its (null) object and takes the GetAt copy's object with a
 // reference of its own; the copy is released (all inline in the original).
@@ -287,7 +287,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     groupNames.CopyConstruct(&other->groupNames);
     return this;
 }
-EI_REPLACE_METHOD(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
+EI_REWRITTEN(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
 
 // ScriptVars' default constructor (004C00D0): each array's base constructor (004C24F0 / 004C2030 /
 // 004C3960: fields 0, base vtable) then its derived vtable, in member order; returns the set.
@@ -330,4 +330,4 @@ ScriptDefinition* ScriptDefinition::ScriptDefinitionAssign(const ScriptDefinitio
     AssignVars(&vars, &other->vars);
     return this;
 }
-EI_REPLACE_METHOD(0x004CB460, ScriptDefinition::ScriptDefinitionAssign);
+EI_REWRITTEN(0x004CB460, ScriptDefinition::ScriptDefinitionAssign);

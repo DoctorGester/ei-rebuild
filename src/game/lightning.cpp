@@ -116,7 +116,7 @@ float NoiseAmplitude(float power) {
 // --- NoiseKey / LightningSegment ----------------------------------------------------------------
 
 void NoiseKey::Randomize(float amplitude) { RandomizeKey(*this, amplitude, false); }
-EI_REPLACE_METHOD(0x00466190, NoiseKey::Randomize);
+EI_REWRITTEN(0x00466190, NoiseKey::Randomize);
 
 void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, float amplitude) {
     double elapsed = static_cast<double>(time) - noiseTime;
@@ -153,7 +153,7 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
     SampleCurve(this, sideKeys, blend, outSide, amplitude);
     SampleCurve(this, upKeys, blend, outUp, amplitude);
 }
-EI_REPLACE_METHOD(0x004662C0, LightningSegment::SampleNoise);
+EI_REWRITTEN(0x004662C0, LightningSegment::SampleNoise);
 
 void LightningSegment::Animate(float time, float amplitude) {
     int count = points.size;
@@ -250,7 +250,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     step.z = static_cast<float>(step.z / n);
     points.SetSize(count, -1);   // 00468C50
 }
-EI_REPLACE_METHOD(0x00466820, LightningSegment::Init);
+EI_REWRITTEN(0x00466820, LightningSegment::Init);
 
 // --- CLightning --------------------------------------------------------------------------------
 
@@ -319,7 +319,7 @@ void CLightning::UpdateBounds() {
     boundsKind_ = 3;
     radius_ = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(boundsMax_)));
 }
-EI_REPLACE_METHOD(0x00467150, CLightning::UpdateBounds);
+EI_REWRITTEN(0x00467150, CLightning::UpdateBounds);
 
 void CLightning::Animate() {
     float sway = amplitude_;
@@ -376,7 +376,7 @@ void CLightning::Animate() {
     }
     for (int i = 0; i < 6; ++i) branches_[i].Animate(time, NoiseAmplitude(power_));
 }
-EI_REPLACE_METHOD(0x004672E0, CLightning::Animate);
+EI_REWRITTEN(0x004672E0, CLightning::Animate);
 
 void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
     main_.Init(from, to);
@@ -430,7 +430,7 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
     if (power_ < 0.0f) Animate();
     UpdateBounds();
 }
-EI_REPLACE_METHOD(0x00467E10, CLightning::SetEndpoints);
+EI_REWRITTEN(0x00467E10, CLightning::SetEndpoints);
 
 // --- CLightningManager --------------------------------------------------------------------------
 

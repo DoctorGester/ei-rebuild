@@ -222,7 +222,7 @@ void ScriptDefinition::BindCall(const SSCCmd* call) {
     }
     for (int i = 0; i < call->groupArgs.size; ++i) vars.groups.data[i].CopyFrom(*call->groupArgs.data[i]);
 }
-EI_REPLACE_METHOD(0x004BB6A0, ScriptDefinition::BindCall);
+EI_REWRITTEN(0x004BB6A0, ScriptDefinition::BindCall);
 
 void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
     for (int i = 0; i < conditions->commands.size; ++i) {
@@ -233,7 +233,7 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
     }
     script->RunCommands(commands, instance);
 }
-EI_REPLACE_METHOD(0x004BB520, ScriptIfThen::Run);
+EI_REWRITTEN(0x004BB520, ScriptIfThen::Run);
 
 void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     alignas(4) unsigned char storage[sizeof(ScriptRun)];
@@ -269,7 +269,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     }
     ScriptVarsDestruct(&run->vars);
 }
-EI_REPLACE_METHOD(0x004BC420, CScript::RunCommands);
+EI_REWRITTEN(0x004BC420, CScript::RunCommands);
 
 void CScript::RunWorldScript(ScriptDecl* block) {
     CScript* script = this;
@@ -299,7 +299,7 @@ void CScript::RunWorldScript(ScriptDecl* block) {
     runs.head = node;
     ScriptVarsDestruct(&run->vars);
 }
-EI_REPLACE_METHOD(0x004BCC60, CScript::RunWorldScript);
+EI_REWRITTEN(0x004BCC60, CScript::RunWorldScript);
 
 void __fastcall ScriptFreeTemporaries(CScript* script) {
     if (script->forDepth_ > 0) return;
@@ -327,7 +327,7 @@ void __fastcall ScriptFreeTemporaries(CScript* script) {
     if (last->object) last->object->Release();
     last->object = nullptr;
 }
-EI_REPLACE(0x004BEC80, ScriptFreeTemporaries);
+EI_REWRITTEN(0x004BEC80, ScriptFreeTemporaries);
 
 void __fastcall ScriptTick(CScript* script) {
     if (!script->loaded_) return;
@@ -371,4 +371,4 @@ void __fastcall ScriptTick(CScript* script) {
     UpdateParticleSources(script);
     ScriptFreeTemporaries(script);
 }
-EI_REPLACE(0x004BF000, ScriptTick);
+EI_REWRITTEN(0x004BF000, ScriptTick);

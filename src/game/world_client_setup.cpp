@@ -127,7 +127,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     if (old && --old->refCount_ == 0) old->DeleteThis(1);
     Units()->CountSoundFiles(sounds_);
 }
-EI_REPLACE_METHOD(0x00563710, CWorldClient::SetUpGraphics);
+EI_REWRITTEN(0x00563710, CWorldClient::SetUpGraphics);
 
 // ---- The sky (00562F70) --------------------------------------------------------------------------
 
@@ -170,4 +170,4 @@ void CWorldClient::LoadSky() {
     auto* material = reinterpret_cast<CEngineObject*>(static_cast<CMaterialManager*>(MaterialManager())->NewMaterial(kSkyMaterialType));
     AssignCounted(skyDome_->material, material);
 }
-EI_REPLACE_METHOD(0x00562F70, CWorldClient::LoadSky);
+EI_REWRITTEN(0x00562F70, CWorldClient::LoadSky);

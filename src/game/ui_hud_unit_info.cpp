@@ -202,4 +202,4 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         panel.DrawLine();
     }
 }
-EI_REPLACE_METHOD(0x00647040, CHudUnitPanel::DrawUnitInfo);
+EI_REWRITTEN(0x00647040, CHudUnitPanel::DrawUnitInfo);

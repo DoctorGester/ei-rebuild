@@ -106,7 +106,7 @@ void FileStream::Destruct() {   // 00477FB0
     reinterpret_cast<mfc::CFile*>(file_)->~CFile();
     ei::SetVtable(this, kStreamVtable);
 }
-EI_REPLACE_METHOD(0x00477FB0, FileStream::Destruct);
+EI_REWRITTEN(0x00477FB0, FileStream::Destruct);
 
 FileStream* FileStream::DeletingDestruct(unsigned flags) {   // 00477F90
     Destruct();
@@ -169,7 +169,7 @@ void NetLink::Destruct() {   // 00478050
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x00478050, NetLink::Destruct);
+EI_REWRITTEN(0x00478050, NetLink::Destruct);
 
 NetLink* NetLink::DeletingDestruct(unsigned flags) {   // 00478030
     Destruct();
@@ -259,7 +259,7 @@ LoopbackLink* __fastcall LoopbackLink::CreatePair(void*, void*, std::uint8_t* pl
     AssignPeer(&second->peer_, static_cast<LoopbackLink*>(held));
     return second;
 }
-EI_REPLACE(0x004782E0, LoopbackLink::CreatePair);
+EI_REWRITTEN(0x004782E0, LoopbackLink::CreatePair);
 
 void LoopbackLink::Destruct() {   // 004787A0
     ei::SetVtable(this, kVtableAddress);
@@ -268,7 +268,7 @@ void LoopbackLink::Destruct() {   // 004787A0
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x004787A0, LoopbackLink::Destruct);
+EI_REWRITTEN(0x004787A0, LoopbackLink::Destruct);
 
 LoopbackLink* LoopbackLink::DeletingDestruct(unsigned flags) {   // 00478780
     Destruct();
@@ -396,7 +396,7 @@ ReplayLink* __fastcall ReplayLink::Create(void*, void*, const char* path) {   //
     self->replay_.Open(path, FileStream::kOpenRead, 1);
     return self;
 }
-EI_REPLACE(0x00478960, ReplayLink::Create);
+EI_REWRITTEN(0x00478960, ReplayLink::Create);
 
 void ReplayLink::Destruct() {   // 00478CC0
     ei::SetVtable(this, kVtableAddress);
@@ -404,7 +404,7 @@ void ReplayLink::Destruct() {   // 00478CC0
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x00478CC0, ReplayLink::Destruct);
+EI_REWRITTEN(0x00478CC0, ReplayLink::Destruct);
 
 ReplayLink* ReplayLink::DeletingDestruct(unsigned flags) {   // 00478CA0
     Destruct();
@@ -473,7 +473,7 @@ void FramedLink::Destruct() {   // 00479B90
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x00479B90, FramedLink::Destruct);
+EI_REWRITTEN(0x00479B90, FramedLink::Destruct);
 
 FramedLink* FramedLink::DeletingDestruct(unsigned flags) {   // 00479B70
     Destruct();
@@ -626,7 +626,7 @@ void DriverLink::Destruct() {   // 00479D40
     ReleaseCounted(player_);
     FramedLink::Destruct();
 }
-EI_REPLACE_METHOD(0x00479D40, DriverLink::Destruct);
+EI_REWRITTEN(0x00479D40, DriverLink::Destruct);
 
 DriverLink* DriverLink::DeletingDestruct(unsigned flags) {   // 00479D20
     Destruct();

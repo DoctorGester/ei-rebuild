@@ -87,6 +87,6 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     ref.ptr = nullptr;
     ref.Destroy();
 }
-EI_REPLACE_METHOD(0x00419A00, ServerSession::ShareFile);
+EI_REWRITTEN(0x00419A00, ServerSession::ShareFile);
 
 } // namespace net

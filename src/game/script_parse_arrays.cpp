@@ -55,7 +55,7 @@ int ScriptBindings::Add(const ScriptBinding& binding) {
     data[index] = binding;
     return index;
 }
-EI_REPLACE_METHOD(0x004D5B50, ScriptBindings::Add);
+EI_REWRITTEN(0x004D5B50, ScriptBindings::Add);
 
 int ScriptSubCalls::Add(const ScriptSubCall& call) {
     int index = Append(this, kSubCalls);
@@ -65,27 +65,27 @@ int ScriptSubCalls::Add(const ScriptSubCall& call) {
     element.cmd->ScriptCmdAssign(call.cmd);
     return index;
 }
-EI_REPLACE_METHOD(0x004D5CB0, ScriptSubCalls::Add);
+EI_REWRITTEN(0x004D5CB0, ScriptSubCalls::Add);
 
 int ScriptCommands::Add(const SSCCmd& cmd) {
     int index = Append(this, kCmds);
     data[index].ScriptCmdAssign(&cmd);
     return index;
 }
-EI_REPLACE_METHOD(0x004D5ED0, ScriptCommands::Add);
+EI_REWRITTEN(0x004D5ED0, ScriptCommands::Add);
 
 void ScriptCommands::SetAtGrow(int index, const SSCCmd& cmd) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kCmds);
     data[index].ScriptCmdAssign(&cmd);
 }
-EI_REPLACE_METHOD(0x004D65E0, ScriptCommands::SetAtGrow);
+EI_REWRITTEN(0x004D65E0, ScriptCommands::SetAtGrow);
 
 int ScriptDefinitions::Add(const ScriptDefinition& definition) {
     int index = Append(this, kDefinitions);
     data[index].ScriptDefinitionAssign(&definition);   // inlined in the original
     return index;
 }
-EI_REPLACE_METHOD(0x004D6100, ScriptDefinitions::Add);
+EI_REWRITTEN(0x004D6100, ScriptDefinitions::Add);
 
 void __fastcall ScriptSubCallDestruct(ScriptSubCall* call) {
     SSCCmd* cmd = call->cmd;
@@ -94,7 +94,7 @@ void __fastcall ScriptSubCallDestruct(ScriptSubCall* call) {
         gamecrt::operator_delete(cmd);
     }
 }
-EI_REPLACE(0x004C5480, ScriptSubCallDestruct);
+EI_REWRITTEN(0x004C5480, ScriptSubCallDestruct);
 
 template <typename T>
 int ScriptNamedValues<T>::FindName(const char* name) const {
@@ -132,16 +132,16 @@ void ScriptStrings::SetAtGrow(int index, const mfc::CString& text) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kStrings);
     data[index] = text;
 }
-EI_REPLACE_METHOD(0x004CE5F0, ScriptStrings::SetAtGrow);
+EI_REWRITTEN(0x004CE5F0, ScriptStrings::SetAtGrow);
 
 void ScriptStrings::CopyTo(int index, mfc::CString* out) const {
     mfc::CString copy(data[index]);   // the by-value GetAt (004C2680)
     *out = copy;
 }
-EI_REPLACE_METHOD(0x004C2F80, ScriptStrings::CopyTo);
+EI_REWRITTEN(0x004C2F80, ScriptStrings::CopyTo);
 
 void AILooks::SetAtGrow(int index, const AILook& look) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kLooks);
     data[index] = look;
 }
-EI_REPLACE_METHOD(0x004CDCB0, AILooks::SetAtGrow);
+EI_REWRITTEN(0x004CDCB0, AILooks::SetAtGrow);

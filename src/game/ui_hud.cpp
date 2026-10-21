@@ -511,7 +511,7 @@ void CHudClock::OpenObjectives() {
     }
     interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
 }
-EI_REPLACE_METHOD(0x00648F10, CHudClock::OpenObjectives);
+EI_REWRITTEN(0x00648F10, CHudClock::OpenObjectives);
 
 // --- Movement panel ----------------------------------------------------------------------------
 
@@ -1063,4 +1063,4 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     units.vtable = ei::GamePointer<void>(kUnitPtrArrayVtable);
     units.FreeData();
 }
-EI_REPLACE_METHOD(0x00636F10, CBattleScreen::OrderAt);
+EI_REWRITTEN(0x00636F10, CBattleScreen::OrderAt);

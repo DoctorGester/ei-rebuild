@@ -196,8 +196,8 @@ bool CCampPages::DeconstructItem() {
     itemMade_ = nullptr;
     return true;
 }
-EI_REPLACE_METHOD(0x00612500, CCampPages::DeconstructSpell);
-EI_REPLACE_METHOD(0x006129C0, CCampPages::DeconstructItem);
+EI_REWRITTEN(0x00612500, CCampPages::DeconstructSpell);
+EI_REWRITTEN(0x006129C0, CCampPages::DeconstructItem);
 
 // --- 00611220: the first action button ---------------------------------------------------------
 
@@ -314,7 +314,7 @@ void CCampPages::DoAction() {
     }
     PlayerParty()->Money() -= cost_;
 }
-EI_REPLACE_METHOD(0x00611220, CCampPages::DoAction);
+EI_REWRITTEN(0x00611220, CCampPages::DoAction);
 
 // --- 00611760: the second action button --------------------------------------------------------
 

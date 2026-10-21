@@ -131,7 +131,7 @@ void CUiScrollingSurface::RenderText() {
     }
     UiSurfaceReleaseDC(this);
 }
-EI_REPLACE_METHOD(0x0065F020, CUiScrollingSurface::RenderText);
+EI_REWRITTEN(0x0065F020, CUiScrollingSurface::RenderText);
 
 void CUiScrollingSurface::Draw() {
     EI_NAN_AUDIT(speed_);

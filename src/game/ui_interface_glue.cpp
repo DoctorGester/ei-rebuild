@@ -67,7 +67,7 @@ void CInterface3D::ShowFps(int on) {
                          : nullptr;
     ui_native::Adopt(fpsSurface_, "fps");
 }
-EI_REPLACE_METHOD(0x005F5700, CInterface3D::ShowFps);
+EI_REWRITTEN(0x005F5700, CInterface3D::ShowFps);
 
 void CInterface3D::OnQuestVariable(const char* name, float value) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->OnQuestVariable(name, value);
@@ -77,7 +77,7 @@ void CInterface3D::OnQuestVariable(const char* name, float value) {
     text::SplitWords(name, &parts, '.');
     if (parts.GetSize() > kQuestPart) savedText_ = parts[kQuestPart];
 }
-EI_REPLACE_METHOD(0x005F7FC0, CInterface3D::OnQuestVariable);
+EI_REWRITTEN(0x005F7FC0, CInterface3D::OnQuestVariable);
 
 // --- 005F7F30-005F8310, 005F86D0: news for the top window -------------------------------------
 
@@ -142,4 +142,4 @@ void CInterface3D::ShowStatusText(const char* text) {
     }
     statusSurface_ = nullptr;
 }
-EI_REPLACE_METHOD(0x005F75B0, CInterface3D::ShowStatusText);
+EI_REWRITTEN(0x005F75B0, CInterface3D::ShowStatusText);

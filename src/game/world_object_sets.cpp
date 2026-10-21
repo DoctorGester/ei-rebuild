@@ -160,4 +160,4 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
     gone->SetSize(goneCount, -1);
     same->SetSize(sameCount, -1);
 }
-EI_REPLACE(0x0047B1F0, DiffObjectSets);
+EI_REWRITTEN(0x0047B1F0, DiffObjectSets);

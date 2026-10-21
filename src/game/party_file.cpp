@@ -78,7 +78,7 @@ void MpHeroRecord::WriteFile(const char* folder) {
     }
     gameapi::DeleteFileA(TempFile(folder));
 }
-EI_REPLACE_METHOD(0x00662AC0, MpHeroRecord::WriteFile);
+EI_REWRITTEN(0x00662AC0, MpHeroRecord::WriteFile);
 
 bool MpHeroRecord::ReadFile(const char* folder) {
     LocalStreams streams;
@@ -87,7 +87,7 @@ bool MpHeroRecord::ReadFile(const char* folder) {
     Party()->LoadParty(&streams.data, 1);
     return streams.data.ok_ != 0;
 }
-EI_REPLACE_METHOD(0x00662DD0, MpHeroRecord::ReadFile);
+EI_REWRITTEN(0x00662DD0, MpHeroRecord::ReadFile);
 
 void SavedParties::SaveAll() {
     if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)

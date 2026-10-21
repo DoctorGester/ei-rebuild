@@ -81,7 +81,7 @@ void __fastcall WeaponModelParts(std::uint32_t index, console::CStringArray* out
     if (!record) return;
     ForEachPart(record, [out](const char* name) { out->SetAtGrow(out->GetSize(), name); });
 }
-EI_REPLACE(0x006A0FF0, WeaponModelParts);
+EI_REWRITTEN(0x006A0FF0, WeaponModelParts);
 
 void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp::string>* out) {
     const char* record = Weapons().RecordAt(PrototypeIndex(packedId), kWeaponSize);
@@ -91,4 +91,4 @@ void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp
         out->push_back(s);
     });
 }
-EI_REPLACE(0x006A1780, AppendWeaponModelParts);
+EI_REWRITTEN(0x006A1780, AppendWeaponModelParts);

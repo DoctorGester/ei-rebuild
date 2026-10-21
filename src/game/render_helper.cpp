@@ -209,7 +209,7 @@ bool CRenderHelper::RenderHelperBuiltInStateList(StateVector* states, unsigned i
     }
     return true;
 }
-EI_REPLACE_METHOD(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
+EI_REWRITTEN(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 
 // ---- State blocks -------------------------------------------------------------------------------------
 
@@ -374,7 +374,7 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     states.FreeStorage();
     return this;
 }
-EI_REPLACE_METHOD(0x004FCA60, CRenderHelper::RenderHelperConstruct);
+EI_REWRITTEN(0x004FCA60, CRenderHelper::RenderHelperConstruct);
 
 // 004FCD50: the destructor body. Every record's preset goes through slot 3, which erases the record
 // the walk stands on: as in the original, the step to the next record then reads the freed node (its
@@ -395,7 +395,7 @@ void __fastcall RenderHelperDestruct(CRenderHelper* self) {
     if (self->device_) device::Release(self->device_);
     SetRootVtable(self);
 }
-EI_REPLACE(0x004FCD50, RenderHelperDestruct);
+EI_REWRITTEN(0x004FCD50, RenderHelperDestruct);
 
 // ---- The helper's table slots -----------------------------------------------------------------------
 
@@ -441,7 +441,7 @@ void __fastcall RenderPresetDestruct(CRenderPreset* self) {
     self->blocks_.FreeStorage();
     SetRootVtable(self);
 }
-EI_REPLACE(0x004FD8B0, RenderPresetDestruct);
+EI_REWRITTEN(0x004FD8B0, RenderPresetDestruct);
 
 // 004FD880 (slot 0, RET 4).
 void* CRenderPreset::DeleteScalar(unsigned flags) {
@@ -462,7 +462,7 @@ void* CRenderBase::DeleteScalar(unsigned flags) {
     SetRootVtable(this);
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x004FCD30, CRenderBase::DeleteScalar);
+EI_REWRITTEN(0x004FCD30, CRenderBase::DeleteScalar);
 
 // 004E6880: the device object's (vtable 0073D760).
 void* CTextureDevice::DeleteDevice(unsigned flags) {
@@ -494,7 +494,7 @@ MatrixStack* __fastcall MatrixStackConstruct(MatrixStack* self) {
     self->count = 0;
     return self;
 }
-EI_REPLACE(0x004F0DB0, MatrixStackConstruct);
+EI_REWRITTEN(0x004F0DB0, MatrixStackConstruct);
 
 namespace {
 
@@ -555,7 +555,7 @@ CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* f
     transform_ = getPipeline();
     return this;
 }
-EI_REPLACE_METHOD(0x004F0B90, CTransformPipeline::TransformPipelineConstruct);
+EI_REWRITTEN(0x004F0B90, CTransformPipeline::TransformPipelineConstruct);
 
 // 004F0E10: the destructor body: the transform object forgotten, 3DfpFPU.dll unloaded, the stacks'
 // blocks freed from the last to the first (004F0DE0 each), the counted base's vtable left.
@@ -568,7 +568,7 @@ void __fastcall TransformPipelineDestruct(CTransformPipeline* self) {
     for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
     ei::SetVtable(self, 0x0073D768);
 }
-EI_REPLACE(0x004F0E10, TransformPipelineDestruct);
+EI_REWRITTEN(0x004F0E10, TransformPipelineDestruct);
 
 // 004F0DF0 (slot 0, RET 4).
 void* CTransformPipeline::DeleteScalar(unsigned flags) {
@@ -590,4 +590,4 @@ DirectDrawDriver* __fastcall DriverAt(int index) {
     game::FatalError(CantFindDriverText());
     return nullptr;
 }
-EI_REPLACE(0x004EE6D0, DriverAt);
+EI_REWRITTEN(0x004EE6D0, DriverAt);

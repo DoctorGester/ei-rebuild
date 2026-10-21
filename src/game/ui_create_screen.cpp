@@ -250,11 +250,11 @@ void CInterface3D::Activate(CUiWindow* window) {
     OpenOnTop(this, window);
 }
 
-EI_REPLACE_METHOD(0x005F71C0, CInterface3D::Activate);
+EI_REWRITTEN(0x005F71C0, CInterface3D::Activate);
 
-EI_REPLACE_METHOD(0x005F7350, CInterface3D::PushWindow);
+EI_REWRITTEN(0x005F7350, CInterface3D::PushWindow);
 
-EI_REPLACE_METHOD(0x005F5BA0, CInterface3D::CreateScreen);
+EI_REWRITTEN(0x005F5BA0, CInterface3D::CreateScreen);
 
 // --- 005F8A80: the message window ------------------------------------------------------------------
 
@@ -294,7 +294,7 @@ void CInterface3D::ShowMessage(int force) {
     PushWindow(window, 1, 0);
 }
 
-EI_REPLACE_METHOD(0x005F8A80, CInterface3D::ShowMessage);
+EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
 
 // --- 005F86F0: the help window -----------------------------------------------------------------------
 
@@ -342,7 +342,7 @@ void CInterface3D::OpenHelp(int flag) {
     PushWindow(window, 1, 0);
 }
 
-EI_REPLACE_METHOD(0x005F86F0, CInterface3D::OpenHelp);
+EI_REWRITTEN(0x005F86F0, CInterface3D::OpenHelp);
 
 // --- Screens 8 and 9: constructors and screen 8's destructor body -----------------------------------
 
@@ -413,7 +413,7 @@ void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag,
     ei::SetVtable(Bytes(self) + 0x94, 0x00740C08);
     return self;
 }
-EI_REPLACE(0x005F6D50, Screen8Construct);
+EI_REWRITTEN(0x005F6D50, Screen8Construct);
 
 // 005F6E40 (thiscall). Screen 8's destructor body: its members, the list (entries with two
 // CStrings at +0x10 / +0x14) back to the node allocator, then the container base.
@@ -445,4 +445,4 @@ void __fastcall Screen8Destroy(void* self) {
     MappedResourceDestroyOriginal(reinterpret_cast<CMappedResource*>(Bytes(self) + 0x170));
     DestroyContainerBody(self);
 }
-EI_REPLACE(0x005F6E40, Screen8Destroy);
+EI_REWRITTEN(0x005F6E40, Screen8Destroy);

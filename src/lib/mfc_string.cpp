@@ -721,7 +721,7 @@ void __fastcall Destruct(CString* self) { self->~CString(); }
 EI_REPLACE(0x006E6BCD, shim::FixedAllocConstruct);
 EI_REPLACE_METHOD(0x006E6BF5, CFixedAlloc::Destruct);
 
-EI_REPLACE(0x007009DE, shim::TextConstruct);
+EI_REWRITTEN(0x007009DE, shim::TextConstruct);
 EI_REPLACE(0x00700970, shim::Destruct);
 
 } // namespace mfc::impl

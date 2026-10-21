@@ -76,13 +76,13 @@ int SceneSkin::Create() {
     spare4C = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00508870, SceneSkin::Create);
+EI_REWRITTEN(0x00508870, SceneSkin::Create);
 
 void SceneSkin::Clear() {
     if (DropRoot(this)) bones.SetSize(0, -1);
     owner = 0;
     names.SetSize(0, -1);
 }
-EI_REPLACE_METHOD(0x005088E0, SceneSkin::Clear);
+EI_REWRITTEN(0x005088E0, SceneSkin::Clear);
 
 void SceneSkin::SetOwner(std::uint32_t value) { owner = value; }

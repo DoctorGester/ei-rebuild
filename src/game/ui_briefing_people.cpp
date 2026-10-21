@@ -115,7 +115,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     controller->Brain()->Walk(&target, run, 0);
 }
 
-EI_REPLACE_METHOD(0x006089D0, CBriefingScreen::MovePerson);
+EI_REWRITTEN(0x006089D0, CBriefingScreen::MovePerson);
 
 // --- 00605DE0 -----------------------------------------------------------------------------------
 
@@ -218,4 +218,4 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     first->prev->next = node;
     first->prev = node;
 }
-EI_REPLACE_METHOD(0x00605DE0, CBriefingScreen::ShowItem);
+EI_REWRITTEN(0x00605DE0, CBriefingScreen::ShowItem);

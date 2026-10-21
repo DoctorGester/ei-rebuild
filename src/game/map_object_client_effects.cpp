@@ -215,7 +215,7 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
     name += suffix;
     sounds->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
 }
-EI_REPLACE(0x005114D0, PlayEffectSound);
+EI_REWRITTEN(0x005114D0, PlayEffectSound);
 
 void CMapObjectClientSpecific::OnEffectsChanged(bool first) {
     UpdateEffectParticles(first);
@@ -356,7 +356,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
 
     if (wanted) gamecrt::operator_delete(wanted);
 }
-EI_REPLACE_METHOD(0x00510B80, CMapObjectClientSpecific::UpdateEffectParticles);
+EI_REWRITTEN(0x00510B80, CMapObjectClientSpecific::UpdateEffectParticles);
 
 void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
@@ -406,7 +406,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         --i;
     }
 }
-EI_REPLACE_METHOD(0x005112A0, CMapObjectClientSpecific::UpdateEffectSounds);
+EI_REWRITTEN(0x005112A0, CMapObjectClientSpecific::UpdateEffectSounds);
 
 void CObject3DClientSpecific::ResetPartAlpha() {
     for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = 1.0f;
@@ -460,7 +460,7 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     if (flag) light->flags_ |= kLightFlag40;
     ShowLight();
 }
-EI_REPLACE_METHOD(0x00511830, CMapObjectClientSpecific::CreateLight);
+EI_REWRITTEN(0x00511830, CMapObjectClientSpecific::CreateLight);
 
 void CMapObjectClientSpecific::ApplyLightMode(int mode) {
     if (mode == 1) {

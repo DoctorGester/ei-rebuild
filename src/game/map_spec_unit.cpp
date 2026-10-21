@@ -125,7 +125,7 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->alarm = 0;
     return self;
 }
-EI_REPLACE(0x0045D5B0, BehaviourConstruct);
+EI_REWRITTEN(0x0045D5B0, BehaviourConstruct);
 
 // 0046C290: the destructor body (the patrol array's destructor inlined: each patrol's waypoint
 // block freed, then the patrols' block).
@@ -190,7 +190,7 @@ void Patrols::CopyFrom(const Patrols& from) {
         if (copy->waypoints.data) gamecrt::operator_delete(copy->waypoints.data);
     }
 }
-EI_REPLACE_METHOD(0x0046E680, Patrols::CopyFrom);
+EI_REWRITTEN(0x0046E680, Patrols::CopyFrom);
 
 // ---- The chunk classes ---------------------------------------------------------------------------
 
@@ -341,7 +341,7 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
     std::memset(self->stats, 0, sizeof(self->stats));
     return self;
 }
-EI_REPLACE(0x0046C010, UnitSpecConstruct);
+EI_REWRITTEN(0x0046C010, UnitSpecConstruct);
 
 const void* UnitSpecBehaviours(const UnitSpec* spec) { return spec->behaviour; }
 
@@ -353,7 +353,7 @@ void __fastcall UnitSpecDestruct(UnitSpec* self) {
     VectorDestruct(self->behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
     self->object.ObjectSpecDestruct();
 }
-EI_REPLACE(0x0046C140, UnitSpecDestruct);
+EI_REWRITTEN(0x0046C140, UnitSpecDestruct);
 
 // 0046C120 (slot 10).
 UnitSpec* UnitSpec::DeleteScalar(unsigned flags) {
@@ -368,7 +368,7 @@ EI_REPLACE_METHOD(0x0046C120, UnitSpec::DeleteScalar);
 void __fastcall UnitStatsDestruct(std::uint8_t* self) {
     for (int i = 4; i >= 0; --i) reinterpret_cast<mfc::CStringArray*>(self + 0xAC + i * 0x14)->Destruct();
 }
-EI_REPLACE(0x0046C2F0, UnitStatsDestruct);
+EI_REWRITTEN(0x0046C2F0, UnitStatsDestruct);
 
 // 0046C4D0 (slot 7): makes the unit, or moves, turns and rescales it.
 void __fastcall UnitSpecApply(UnitSpec* self) {
@@ -496,7 +496,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
     }
     for (int i = 0; i < a->size; ++i) StreamRead(stream, &a->data[i], sizeof(Waypoint));
 }
-EI_REPLACE(0x0045DE30, WaypointsRead);
+EI_REWRITTEN(0x0045DE30, WaypointsRead);
 
 // 0045DFB0 (ECX array, EDX stream): the count, then the raw waypoints.
 void __fastcall WaypointsWrite(const Array<Waypoint>* a, void* stream) {
@@ -537,7 +537,7 @@ void Behaviour::Read(void* stream) {
     else if (oldFlags & 4) alarm = 2;
     else if (oldFlags & 0x10) alarm = 3;
 }
-EI_REPLACE_METHOD(0x0045D610, Behaviour::Read);
+EI_REWRITTEN(0x0045D610, Behaviour::Read);
 
 // 0045D760: the record to a stream (the same fields).
 void Behaviour::Write(void* stream) const {

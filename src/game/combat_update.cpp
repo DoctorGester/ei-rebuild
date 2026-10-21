@@ -359,7 +359,7 @@ void CUnitServer::UpdateState() {
     }
     hitDirection = 0xFFFFFFFFu;
 }
-EI_REPLACE_METHOD(0x005499F0, CUnitServer::UpdateState);
+EI_REWRITTEN(0x005499F0, CUnitServer::UpdateState);
 
 // --- The animation queue ---------------------------------------------------------------------
 
@@ -435,7 +435,7 @@ bool CUnitServer::PopFinishedSteps() {
     }
     return popped;
 }
-EI_REPLACE_METHOD(0x00546B40, CUnitServer::PopFinishedSteps);
+EI_REWRITTEN(0x00546B40, CUnitServer::PopFinishedSteps);
 
 void CUnitServer::ShowCurrentStep() {
     if (queue.count == 0) return;
@@ -459,7 +459,7 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
-EI_REPLACE_METHOD(0x00546C40, CUnitServer::PlaySteps);
+EI_REWRITTEN(0x00546C40, CUnitServer::PlaySteps);
 
 // --- States -------------------------------------------------------------------------------------
 
@@ -472,10 +472,10 @@ void CUnitServer::SetState(int newState) {
     }
     actingCheckTime = WorldTime(this) + 10;
 }
-EI_REPLACE_METHOD(0x00547090, CUnitServer::SetState);
+EI_REWRITTEN(0x00547090, CUnitServer::SetState);
 
 void CUnitServer::SetStanding(int standing) { SetStandingFlag(this, standing); }
-EI_REPLACE_METHOD(0x005467B0, CUnitServer::SetStanding);
+EI_REWRITTEN(0x005467B0, CUnitServer::SetStanding);
 
 void CUnitServer::StandStill() {
     static_cast<AIPath*>(Motion(this))->Clear();
@@ -485,7 +485,7 @@ void CUnitServer::StandStill() {
     if (MotionPath()->Start(&unit->position, &direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
-EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
+EI_REWRITTEN(0x00547280, CUnitServer::StandStill);
 
 // --- Hit reactions ------------------------------------------------------------------------------
 
@@ -509,7 +509,7 @@ void CUnitServer::PlayHitReaction() {
     ShowCurrentStep();
     animationHeld = 1;
 }
-EI_REPLACE_METHOD(0x00547100, CUnitServer::PlayHitReaction);
+EI_REWRITTEN(0x00547100, CUnitServer::PlayHitReaction);
 
 // --- The end of an order ------------------------------------------------------------------------
 
@@ -550,7 +550,7 @@ void CUnitServer::EndOrder(char abort) {
     OrderPlanReset(&Plan(this));
     StandStill();
 }
-EI_REPLACE_METHOD(0x00549690, CUnitServer::EndOrder);
+EI_REWRITTEN(0x00549690, CUnitServer::EndOrder);
 
 // --- Acting -------------------------------------------------------------------------------------
 
@@ -624,7 +624,7 @@ void CUnitServer::TickAction() {
     if (MotionPath()->Start(&unit->position, &backwards, time)) unit->RefreshMotion();
     SetStanding(0);
 }
-EI_REPLACE_METHOD(0x00549160, CUnitServer::TickAction);
+EI_REWRITTEN(0x00549160, CUnitServer::TickAction);
 
 // --- Checks -------------------------------------------------------------------------------------
 
@@ -686,7 +686,7 @@ void CUnitServer::TickItemSpells() {
         if (countdown <= 0) current->countdown = 8;
     }
 }
-EI_REPLACE_METHOD(0x00552B90, CUnitServer::TickItemSpells);
+EI_REWRITTEN(0x00552B90, CUnitServer::TickItemSpells);
 
 namespace {
 // The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (vtables 0073BE80
@@ -764,4 +764,4 @@ void CUnitServer::RefreshItemSpells() {
     items.vtable = ei::GamePointer<void>(0x0073BE80);
     items.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005528F0, CUnitServer::RefreshItemSpells);
+EI_REWRITTEN(0x005528F0, CUnitServer::RefreshItemSpells);

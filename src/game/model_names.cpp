@@ -21,4 +21,4 @@ void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor)
     gamecrt::operator_delete(text);
     *cursor += length;
 }
-EI_REPLACE(0x004DBCA0, ReadPrefixedName);
+EI_REWRITTEN(0x004DBCA0, ReadPrefixedName);

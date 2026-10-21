@@ -175,7 +175,7 @@ CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     DropTexture(bolt->glowTexture_);
     return bolt;
 }
-EI_REPLACE_METHOD(0x00468680, CLightningManager::NewObjectImpl);
+EI_REWRITTEN(0x00468680, CLightningManager::NewObjectImpl);
 
 CEngineObject* CLightningManager::NewObject(int type) { return NewObjectImpl(type); }
 
@@ -195,6 +195,6 @@ void __fastcall LightningDestruct(CLightning* self) {
     if (self->texture_) self->texture_->Release();
     self->DestructBase();
 }
-EI_REPLACE(0x00468810, LightningDestruct);
+EI_REWRITTEN(0x00468810, LightningDestruct);
 
-EI_REPLACE_METHOD(0x004680D0, CLightning::Start);
+EI_REWRITTEN(0x004680D0, CLightning::Start);

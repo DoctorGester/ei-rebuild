@@ -173,7 +173,7 @@ void CObject3D::DestructBody() {
     SetVtable(this, CTransformObject::kVtableAddress);
     static_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x00515D70, CObject3D::DestructBody);
+EI_REWRITTEN(0x00515D70, CObject3D::DestructBody);
 
 // The name is destroyed after the body, then CEngineObject's part.
 CObject3D::~CObject3D() { TearDownObject3D(); }
@@ -208,7 +208,7 @@ CMapObject* CMapObject::Construct() {
     SetVtable(this, CMapObject::kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x0050E2D0, CMapObject::Construct);
+EI_REWRITTEN(0x0050E2D0, CMapObject::Construct);
 
 CMapObject::CMapObject() { SetUpMapObject(); }
 
@@ -274,7 +274,7 @@ void CMapObject::TearDownMapObject() {
         gamecrt::operator_delete(records->fields_);
     }
 }
-EI_REPLACE_METHOD(0x0050E660, CMapObject::DestructBody);
+EI_REWRITTEN(0x0050E660, CMapObject::DestructBody);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
 EI_REPLACE_METHOD(0x00529B20, CMapObject::DestructBody);
@@ -414,7 +414,7 @@ void CMapObjectServer::DestructBody() {
     owner = nullptr;
     static_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x00515720, CMapObjectServer::DestructBody);
+EI_REWRITTEN(0x00515720, CMapObjectServer::DestructBody);
 
 CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     InitEngineObject(this);
@@ -470,7 +470,7 @@ void CMapObjectClientSpecific::DestructBody() {
     owner = nullptr;
     static_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x00510560, CMapObjectClientSpecific::DestructBody);
+EI_REWRITTEN(0x00510560, CMapObjectClientSpecific::DestructBody);
 
 // --- The server unit controller ---------------------------------------------------------------
 
@@ -509,4 +509,4 @@ void CUnitServer::DestructBody() {
     unit = nullptr;
     static_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x00546230, CUnitServer::DestructBody);
+EI_REWRITTEN(0x00546230, CUnitServer::DestructBody);

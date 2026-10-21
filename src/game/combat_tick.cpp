@@ -252,7 +252,7 @@ void CUnitServer::TakeQueuedOrder() {
     SyncMoveModes();
     waitFrame = TheServerWorld()->tick_;
 }
-EI_REPLACE_METHOD(0x0054A6E0, CUnitServer::TakeQueuedOrder);
+EI_REWRITTEN(0x0054A6E0, CUnitServer::TakeQueuedOrder);
 
 // --- Taking over the queued order ----------------------------------------------------------------
 
@@ -471,7 +471,7 @@ bool CUnitServer::StartQueuedOrder() {
         return false;
     }
 }
-EI_REPLACE_METHOD(0x0054A900, CUnitServer::StartQueuedOrder);
+EI_REWRITTEN(0x0054A900, CUnitServer::StartQueuedOrder);
 
 // --- Every tick ----------------------------------------------------------------------------------
 
@@ -508,7 +508,7 @@ void CUnitServer::UpdateOrders() {
     }
     StartQueuedOrder();
 }
-EI_REPLACE_METHOD(0x0054B390, CUnitServer::UpdateOrders);
+EI_REWRITTEN(0x0054B390, CUnitServer::UpdateOrders);
 
 void CUnitServer::ContinueAction() {
     CEngineObject* target = action.target;
@@ -559,7 +559,7 @@ void CUnitServer::ContinueAction() {
     if (action2.kind == kOrderEmpty && action.kind != kOrderNone) DropQueuedOrder();
     EndOrder(0);
 }
-EI_REPLACE_METHOD(0x0054DD70, CUnitServer::ContinueAction);
+EI_REWRITTEN(0x0054DD70, CUnitServer::ContinueAction);
 
 // --- Carrying out the current order ----------------------------------------------------------------
 
@@ -604,7 +604,7 @@ bool CUnitServer::CanReachAndPlan(const UnitAction* order) {
     if (OutOfReachUp(this, order)) return false;
     return CanPlanAction(order);
 }
-EI_REPLACE_METHOD(0x0054C8B0, CUnitServer::CanReachAndPlan);
+EI_REWRITTEN(0x0054C8B0, CUnitServer::CanReachAndPlan);
 
 bool CUnitServer::CanReachAndPlanFrom(const UnitAction* order, const Vector3* point) {
     if (OutOfReachUp(this, order)) return false;
@@ -616,7 +616,7 @@ bool CUnitServer::CanReachAndPlanFrom(const UnitAction* order, const Vector3* po
     std::memcpy(&unit->position, &saved, sizeof(saved));
     return result;
 }
-EI_REPLACE_METHOD(0x0054C960, CUnitServer::CanReachAndPlanFrom);
+EI_REWRITTEN(0x0054C960, CUnitServer::CanReachAndPlanFrom);
 
 void CUnitServer::ExecuteOrder() {
     int now = WorldTick(this);
@@ -909,4 +909,4 @@ void CUnitServer::ApproachTarget() {
     }
     interceptTime = when;
 }
-EI_REPLACE_METHOD(0x0054D140, CUnitServer::ApproachTarget);
+EI_REWRITTEN(0x0054D140, CUnitServer::ApproachTarget);

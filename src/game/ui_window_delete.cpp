@@ -89,7 +89,7 @@ void CItemInfoPanel::DestroyBody() {
     PartyRecordsDestructOriginal(itemList_);
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x005EE380, CItemInfoPanel::DestroyBody);
+EI_REWRITTEN(0x005EE380, CItemInfoPanel::DestroyBody);
 
 void CChatWindow::DestroyBody() {
     texts_.Destruct();
@@ -98,40 +98,40 @@ void CChatWindow::DestroyBody() {
     players_.FreeStorage();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x00608ED0, CChatWindow::DestroyBody);
+EI_REWRITTEN(0x00608ED0, CChatWindow::DestroyBody);
 
 void CUiItemStrip::DestroyForwarding() {
     list_.vtable = ItemArrayVtable();
     list_.FreeData();
     window.DestroyBase();
 }
-EI_REPLACE_METHOD(0x0060E2B0, CUiItemStrip::DestroyForwarding);
+EI_REWRITTEN(0x0060E2B0, CUiItemStrip::DestroyForwarding);
 
 void CSpellMakerPage::DestroyBody() {
     texts_.Destruct();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0060E600, CSpellMakerPage::DestroyBody);
+EI_REWRITTEN(0x0060E600, CSpellMakerPage::DestroyBody);
 
 void CHeroStatsPanel::DestroyBody() {
     texts_.Destruct();
     CStringDestroy(&title_);
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0060E360, CHeroStatsPanel::DestroyBody);
+EI_REWRITTEN(0x0060E360, CHeroStatsPanel::DestroyBody);
 
 void CMessageBox::DestroyBody() {
     CStringDestroy(&text_);
     CStringDestroy(&title_);
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x0061E3E0, CMessageBox::DestroyBody);
+EI_REWRITTEN(0x0061E3E0, CMessageBox::DestroyBody);
 
 void CMasterRequestBox::DestroyBody() {
     net::MasterLinkDestruct(&link_);   // 00440D40
     CMessageBox::DestroyBody();
 }
-EI_REPLACE_METHOD(0x0061E460, CMasterRequestBox::DestroyBody);
+EI_REWRITTEN(0x0061E460, CMasterRequestBox::DestroyBody);
 
 void ChatLine::Destroy() {
     if (CUiSurface* shown = surface) {
@@ -142,14 +142,14 @@ void ChatLine::Destroy() {
     name.~CString();
     text.~CString();
 }
-EI_REPLACE_METHOD(0x005E2670, ChatLine::Destroy);
+EI_REWRITTEN(0x005E2670, ChatLine::Destroy);
 
 void CChatOverlay::DestroyBody() {
     typed_.~CString();
     DestroyList(lines_, [](ChatLine* line) { line->Destroy(); });
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x005E28E0, CChatOverlay::DestroyBody);
+EI_REWRITTEN(0x005E28E0, CChatOverlay::DestroyBody);
 
 void CBattleScreen::DestroyBody() {
     FreeVectorStorage(clientParty_.without.begin(), clientParty_.without.EndOfStorage());
@@ -161,7 +161,7 @@ void CBattleScreen::DestroyBody() {
     party_.FreeData();
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x005F6130, CBattleScreen::DestroyBody);
+EI_REWRITTEN(0x005F6130, CBattleScreen::DestroyBody);
 
 static_assert(sizeof(BriefingMover) == 0x30);
 
@@ -195,7 +195,7 @@ void CBriefingScreen::DestroyBody() {
     topics_.Destruct();
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x005F6BA0, CBriefingScreen::DestroyBody);
+EI_REWRITTEN(0x005F6BA0, CBriefingScreen::DestroyBody);
 
 void CMpConnectScreen::DestroyBody() {
     texts_.Destruct();
@@ -208,7 +208,7 @@ void CMpConnectScreen::DestroyBody() {
     entries_.FreeStorage();
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x00618570, CMpConnectScreen::DestroyBody);
+EI_REWRITTEN(0x00618570, CMpConnectScreen::DestroyBody);
 
 void CHelpWindow::DestroyBody() {
     DestroyList(pictures_, [](CUiMesh**) {});
@@ -218,7 +218,7 @@ void CHelpWindow::DestroyBody() {
     text_.~CString();
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x005F8970, CHelpWindow::DestroyBody);
+EI_REWRITTEN(0x005F8970, CHelpWindow::DestroyBody);
 
 void CObjectivesWindow::DestroyBody() {
     objectiveTexts_.Destruct();
@@ -232,7 +232,7 @@ void CObjectivesWindow::DestroyBody() {
     FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x00603B90, CObjectivesWindow::DestroyBody);
+EI_REWRITTEN(0x00603B90, CObjectivesWindow::DestroyBody);
 
 void CSaveLoadWindow::DestroyBody() {
     CStringDestroy(&name_);
@@ -247,7 +247,7 @@ void CSaveLoadWindow::DestroyBody() {
     FreeVectorStorage(entriesBegin_, entriesCapacity_);
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x006070C0, CSaveLoadWindow::DestroyBody);
+EI_REWRITTEN(0x006070C0, CSaveLoadWindow::DestroyBody);
 
 // --- Deleting destructors (slot 0) --------------------------------------------------------------
 

@@ -114,7 +114,7 @@ void __fastcall ScriptReset(CScript* script) {
         ScriptDeclDestruct(reinterpret_cast<ScriptDecl*>(element));
     }
 }
-EI_REPLACE(0x004BE6E0, ScriptReset);
+EI_REWRITTEN(0x004BE6E0, ScriptReset);
 
 // ScriptDefinition reset (004D3320; CScript::Load calls it before each `Script` section): the if-then
 // pairs freed inline (no element destructor), each variable array through its instantiation's
@@ -141,4 +141,4 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     definition->params = empty;
     definition->name = empty;
 }
-EI_REPLACE(0x004D3320, ScriptDefinitionReset);
+EI_REWRITTEN(0x004D3320, ScriptDefinitionReset);

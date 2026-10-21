@@ -79,4 +79,4 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x005141F0, CMapObjectManager::GiveStartingEquipment);
+EI_REWRITTEN(0x005141F0, CMapObjectManager::GiveStartingEquipment);

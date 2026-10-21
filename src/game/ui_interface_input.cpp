@@ -84,7 +84,7 @@ void CInterface3D::OnChar(int key, int repeat, int flags) {
     }
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Event(UiInputSide::kChar, key, repeat, flags);
 }
-EI_REPLACE_METHOD(0x005F7B40, CInterface3D::OnChar);
+EI_REWRITTEN(0x005F7B40, CInterface3D::OnChar);
 
 void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
     if (key == VK_SHIFT)

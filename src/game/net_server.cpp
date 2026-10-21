@@ -78,7 +78,7 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     std::memset(password_, 0, sizeof(password_));
     return this;
 }
-EI_REPLACE_METHOD(0x00412D80, ServerSession::Construct);
+EI_REWRITTEN(0x00412D80, ServerSession::Construct);
 
 namespace {
 

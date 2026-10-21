@@ -61,7 +61,7 @@ void AIHeardCalls::Hear(const Vector3* point, int kind, const char* text) {
     mfc::CString copy(text);
     AppendCall(this, at, kind, 0, copy);
 }
-EI_REPLACE_METHOD(0x005CCD40, AIHeardCalls::Hear);
+EI_REWRITTEN(0x005CCD40, AIHeardCalls::Hear);
 
 void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
     mfc::CString copy;
@@ -70,7 +70,7 @@ void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
     // canonical value, which the harness gives the original too (harness_save_leftovers.cpp, S20d).
     AppendCall(this, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
 }
-EI_REPLACE_METHOD(0x005CCEA0, AIHeardCalls::AddClaim);
+EI_REWRITTEN(0x005CCEA0, AIHeardCalls::AddClaim);
 
 void AIHeardCalls::RemoveClaims() {
     for (int i = 0; i < size; ++i)
@@ -108,7 +108,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005C98C0, AIViewer::Noise);
+EI_REWRITTEN(0x005C98C0, AIViewer::Noise);
 
 int AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
@@ -118,4 +118,4 @@ int AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     Noise(source, loudness, kStepNoise, nullptr);
     return 0;
 }
-EI_REPLACE_METHOD(0x005C9770, AIViewer::StepNoise);
+EI_REWRITTEN(0x005C9770, AIViewer::StepNoise);

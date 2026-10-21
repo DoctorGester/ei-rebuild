@@ -111,13 +111,13 @@ CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const cha
     height_ += kPaddingY;
     return this;
 }
-EI_REPLACE_METHOD(0x0065E320, CUiTooltip::Construct);
+EI_REWRITTEN(0x0065E320, CUiTooltip::Construct);
 
 void CUiTooltip::DestroyBody() {
     lines_.Destruct();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0065E4F0, CUiTooltip::DestroyBody);
+EI_REWRITTEN(0x0065E4F0, CUiTooltip::DestroyBody);
 
 void CUiTooltip::SetText(const char* text) {
     if (!text || !*text) return;
@@ -125,7 +125,7 @@ void CUiTooltip::SetText(const char* text) {
     text::Split(text, &lines_, kLineSeparator);
     DrawLines();
 }
-EI_REPLACE_METHOD(0x0065E540, CUiTooltip::SetText);
+EI_REWRITTEN(0x0065E540, CUiTooltip::SetText);
 
 void CUiTooltip::DrawLines() {
     if (!(surfaces_.size > 0)) return;
@@ -150,7 +150,7 @@ void CUiTooltip::DrawLines() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x0065E880, CUiTooltip::DrawLines);
+EI_REWRITTEN(0x0065E880, CUiTooltip::DrawLines);
 
 void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
     switch (state_) {

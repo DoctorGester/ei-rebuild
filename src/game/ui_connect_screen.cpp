@@ -197,7 +197,7 @@ MpAddressEntry* MpAddressEntry::CopyConstruct(const MpAddressEntry* other) {
     password = other->password;
     return this;
 }
-EI_REPLACE_METHOD(0x0061EE80, MpAddressEntry::CopyConstruct);
+EI_REWRITTEN(0x0061EE80, MpAddressEntry::CopyConstruct);
 
 MpAddressEntry* MpAddressEntry::AssignFrom(const MpAddressEntry& other) {
     name = other.name;
@@ -212,13 +212,13 @@ MpAddressEntry* MpAddressEntry::AssignFrom(const MpAddressEntry& other) {
     password = other.password;
     return this;
 }
-EI_REPLACE_METHOD(0x0061E8F0, MpAddressEntry::AssignFrom);
+EI_REWRITTEN(0x0061E8F0, MpAddressEntry::AssignFrom);
 
 void MpAddressEntry::Destroy() {
     description.~CString();
     name.~CString();
 }
-EI_REPLACE_METHOD(0x0061E8A0, MpAddressEntry::Destroy);
+EI_REWRITTEN(0x0061E8A0, MpAddressEntry::Destroy);
 
 void __fastcall MpAddressesPushDefault(MpAddressList* list) {
     MpAddressEntry*& finish = list->Finish();
@@ -234,7 +234,7 @@ void __fastcall MpAddressesPushDefault(MpAddressList* list) {
     MpAddressEntry entry{};
     list->InsertOverflow<recordvec::MpAddressElement>(finish, entry, 1);
 }
-EI_REPLACE(0x0061E5A0, MpAddressesPushDefault);
+EI_REWRITTEN(0x0061E5A0, MpAddressesPushDefault);
 
 MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, MpAddressEntry* pos) {
     MpAddressEntry* begin = list->begin();
@@ -264,7 +264,7 @@ MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, 
     }
     return list->begin() + index;
 }
-EI_REPLACE(0x0061E660, MpAddressesInsertDefault);
+EI_REWRITTEN(0x0061E660, MpAddressesInsertDefault);
 
 MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddressEntry* first, MpAddressEntry* last) {
     MpAddressEntry* to = first;
@@ -273,7 +273,7 @@ MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddres
     list->Finish() = to;
     return first;
 }
-EI_REPLACE(0x0061EA90, MpAddressesErase);
+EI_REWRITTEN(0x0061EA90, MpAddressesErase);
 
 // --- 0061C430: Update (slot 24) -------------------------------------------------------------------
 
@@ -479,7 +479,7 @@ void CMpConnectScreen::SelectAndScroll() {
     scroll_->TakePosition(&scrollTop_);
     DrawListAt(this);
 }
-EI_REPLACE_METHOD(0x0061CC00, CMpConnectScreen::SelectAndScroll);
+EI_REWRITTEN(0x0061CC00, CMpConnectScreen::SelectAndScroll);
 
 // --- 0061CCE0: connect or host --------------------------------------------------------------------
 
@@ -510,7 +510,7 @@ void CMpConnectScreen::Connect() {
     TheGameFlow()->JoinServer(&entries_[selected_].address, EmptyText());
     net::GameClient()->gameType_ = entries_[selected_].gameType;
 }
-EI_REPLACE_METHOD(0x0061CCE0, CMpConnectScreen::Connect);
+EI_REWRITTEN(0x0061CCE0, CMpConnectScreen::Connect);
 
 // --- 0061CF50: add or forget an address -----------------------------------------------------------
 
@@ -530,7 +530,7 @@ void CMpConnectScreen::EditAddress() {
     }
     OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
 }
-EI_REPLACE_METHOD(0x0061CF50, CMpConnectScreen::EditAddress);
+EI_REWRITTEN(0x0061CF50, CMpConnectScreen::EditAddress);
 
 // --- 0061D0D0: ask the master server --------------------------------------------------------------
 
@@ -568,7 +568,7 @@ void CMpConnectScreen::SaveAddressBook() {
     archive.Close(&file.stream);
     file.stream.Close();
 }
-EI_REPLACE_METHOD(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
+EI_REWRITTEN(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
 
 // --- 0061D470: the list from the client's servers -------------------------------------------------
 
@@ -638,7 +638,7 @@ void CMpConnectScreen::RebuildList() {
     }
     scrollTop_ = 0;
 }
-EI_REPLACE_METHOD(0x0061D470, CMpConnectScreen::RebuildList);
+EI_REWRITTEN(0x0061D470, CMpConnectScreen::RebuildList);
 
 // --- 0061B2C0: Create (the vanilla body) ----------------------------------------------------------
 

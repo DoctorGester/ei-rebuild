@@ -43,7 +43,7 @@ CTextureManager::CTextureManager() {
 }
 
 CTextureManager* CTextureManager::Construct() { return new (this) CTextureManager(); }
-EI_REPLACE_METHOD(0x00691140, CTextureManager::Construct);
+EI_REWRITTEN(0x00691140, CTextureManager::Construct);
 
 // The part Destroy and the destructor share: the shadow surface, the cache, the composed textures
 // and the device.
@@ -94,14 +94,14 @@ CTextureManager::~CTextureManager() {
 }
 
 void CTextureManager::Destruct() { this->CTextureManager::~CTextureManager(); }
-EI_REPLACE_METHOD(0x00691250, CTextureManager::Destruct);
+EI_REWRITTEN(0x00691250, CTextureManager::Destruct);
 
 CTextureManager* CTextureManager::DeletingDestruct(unsigned flags) {
     this->CTextureManager::~CTextureManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00691230, CTextureManager::DeletingDestruct);
+EI_REWRITTEN(0x00691230, CTextureManager::DeletingDestruct);
 
 CEngineObject* CTextureManager::CreateObjectImpl(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
@@ -113,8 +113,8 @@ namespace {
 int __fastcall TextureManagerCreateHook(CTextureManager* self) { return self->CTextureManager::Create(); }
 void __fastcall TextureManagerDestroyHook(CTextureManager* self) { self->CTextureManager::Destroy(); }
 } // namespace
-EI_REPLACE(0x00691500, TextureManagerCreateHook);
-EI_REPLACE(0x00691630, TextureManagerDestroyHook);
+EI_REWRITTEN(0x00691500, TextureManagerCreateHook);
+EI_REWRITTEN(0x00691630, TextureManagerDestroyHook);
 
 CEngineObject* CTextureManager::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
 int CTextureManager::ReleaseObject(CEngineObject* object) { return ReleaseObjectImpl(object); }

@@ -84,7 +84,7 @@ void CUiModel::Stop() {
     mfc::CString name(object->name);
     PlayAnimation(object, nullptr, FindNamed(TheObjectManager(), nullptr, &name, kRestPoseKind), 1);
 }
-EI_REPLACE_METHOD(0x005FC3D0, CUiModel::Stop);
+EI_REWRITTEN(0x005FC3D0, CUiModel::Stop);
 
 // 005FC4C0 (RET 8). The part named `name` (005169A0) shown or hidden (`show`'s low byte).
 void CUiModel::ShowPart(const char* name, int show) {
@@ -110,7 +110,7 @@ void CUiModel::Draw(UiDrawPass* pass) {
     Figure()->flags_ &= ~kPreviewDraw;
     pass->SetColour(saved);
 }
-EI_REPLACE_METHOD(0x005FC2F0, CUiModel::Draw);
+EI_REWRITTEN(0x005FC2F0, CUiModel::Draw);
 
 // 005FC1F0 (RET 0xC). The figure's steps go through their addresses (rewritten, with wrappers).
 void CUiModel::Load(const char* name, const char* from, const char* to) {
@@ -130,4 +130,4 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object->RestartPose();
     static_cast<CObject3DClientSpecific*>(specific)->SetSkins(from, to);
 }
-EI_REPLACE_METHOD(0x005FC1F0, CUiModel::Load);
+EI_REWRITTEN(0x005FC1F0, CUiModel::Load);

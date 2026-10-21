@@ -331,14 +331,14 @@ EI_REPLACE_METHOD(0x00669010, CPlayerClient::OnZone);
 EI_REPLACE_METHOD(0x006690F0, CPlayerClient::OnWorldBlock3);
 EI_REPLACE_METHOD(0x006691C0, CPlayerClient::OnWorldBlock5);
 EI_REPLACE_METHOD(0x00669290, CPlayerClient::OnItemRemoved);
-EI_REPLACE_METHOD(0x00667D80, CPlayerClient::ReadText);
+EI_REWRITTEN(0x00667D80, CPlayerClient::ReadText);
 EI_REPLACE_METHOD(0x00669850, CPlayerClient::OnSetVariable);
 EI_REPLACE_METHOD(0x00669960, CPlayerClient::OnDeleteVariable);
 EI_REPLACE_METHOD(0x00669EB0, CPlayerClient::OnZoneChange);
 EI_REPLACE_METHOD(0x00669F40, CPlayerClient::OnJingle);
 EI_REPLACE_METHOD(0x00667680, CPlayerClient::Pump);
-EI_REPLACE_METHOD(0x00667810, CPlayerClient::SendToServer);
-EI_REPLACE_METHOD(0x00667970, CPlayerClient::DispatchMessages);
+EI_REWRITTEN(0x00667810, CPlayerClient::SendToServer);
+EI_REWRITTEN(0x00667970, CPlayerClient::DispatchMessages);
 EI_REPLACE_METHOD(0x00667A30, CPlayerClient::ReceiveMessages);
 
 // --- A-H10: items, party, path markers, string events, recording ---------------------------------
@@ -818,7 +818,7 @@ CPlayerConnection* CPlayerConnection::DeleteScalar(unsigned flags) {
 const char* __fastcall PlayerClientClassName(CPlayerClient*) { return kClientClassName; }
 int __fastcall PlayerClientClassId(CPlayerClient*) { return kClientClassId; }
 
-EI_REPLACE_METHOD(0x00666FD0, CPlayerClient::DestructBody);
+EI_REWRITTEN(0x00666FD0, CPlayerClient::DestructBody);
 EI_REPLACE_METHOD(0x00666FB0, CPlayerClient::DeletingDestruct);
 EI_REPLACE_METHOD(0x00666F70, CPlayerConnection::DeleteScalar);
 EI_REPLACE(0x00666F90, PlayerClientClassName);

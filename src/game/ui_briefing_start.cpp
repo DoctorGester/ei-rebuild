@@ -219,7 +219,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     else
         state_ = kStateStarting;
 }
-EI_REPLACE_METHOD(0x006064E0, CBriefingScreen::StartDialogue);
+EI_REWRITTEN(0x006064E0, CBriefingScreen::StartDialogue);
 
 // --- 00608450 -----------------------------------------------------------------------------------
 
@@ -304,4 +304,4 @@ void CBriefingScreen::FinishDialogue() {
         static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition0F(&savedCamera_, &lookAt_, 0);
     }
 }
-EI_REPLACE_METHOD(0x00608450, CBriefingScreen::FinishDialogue);
+EI_REWRITTEN(0x00608450, CBriefingScreen::FinishDialogue);

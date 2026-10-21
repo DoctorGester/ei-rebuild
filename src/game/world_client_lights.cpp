@@ -223,7 +223,7 @@ int CWorldClient::UpdateLighting() {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00566360, CWorldClient::UpdateLighting);
+EI_REWRITTEN(0x00566360, CWorldClient::UpdateLighting);
 
 void CWorldClient::UpdateExitMarkers() {
     if (exitCount_ != countedA0_.GetSize()) return;
@@ -238,4 +238,4 @@ void CWorldClient::UpdateExitMarkers() {
         marker->extent = {visited == 1.0f ? 1.0f : 0.0f, 0.0f, 0.0f};
     }
 }
-EI_REPLACE_METHOD(0x00567680, CWorldClient::UpdateExitMarkers);
+EI_REWRITTEN(0x00567680, CWorldClient::UpdateExitMarkers);

@@ -80,7 +80,7 @@ CScript* CScript::Construct() {
     ScriptReset(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004BDE40, CScript::Construct);
+EI_REWRITTEN(0x004BDE40, CScript::Construct);
 
 ScriptErrorInfo* CScript::GetError(ScriptErrorInfo* out) {
     new (&out->text) mfc::CString(errorText_);
@@ -88,4 +88,4 @@ ScriptErrorInfo* CScript::GetError(ScriptErrorInfo* out) {
     out->line = errorLine_;
     return out;
 }
-EI_REPLACE_METHOD(0x00456360, CScript::GetError);
+EI_REWRITTEN(0x00456360, CScript::GetError);

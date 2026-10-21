@@ -41,23 +41,23 @@ void __fastcall DestroyTheme(MusicTheme* p) {
     p->briefing.~CString();
     p->name.~CString();
 }
-EI_REPLACE(0x006B4D90, DestroyTheme);
+EI_REWRITTEN(0x006B4D90, DestroyTheme);
 
 void __fastcall DestroyWave(WaveRecord* p) { gamelists::DestroyWave(p); }
-EI_REPLACE(0x006B90C0, DestroyWave);
+EI_REWRITTEN(0x006B90C0, DestroyWave);
 
 mfc::CString* PartNames::CopyAt(mfc::CString* result, int index) const {
     new (result) mfc::CString(data[index]);
     return result;
 }
-EI_REPLACE_METHOD(0x004698A0, PartNames::CopyAt);
+EI_REWRITTEN(0x004698A0, PartNames::CopyAt);
 
 // The global map's links and quests (the zero fill, then both strings empty).
 void __fastcall DestroyGlobalMapRecord(Bytes<0x18>* p) { mfc::impl::DestroyStringsAt<Bytes<0x18>, 0x14, 0x10>(p); }
-EI_REPLACE(0x005FBD80, DestroyGlobalMapRecord);
+EI_REWRITTEN(0x005FBD80, DestroyGlobalMapRecord);
 // The zones (16 bytes): the strings at +0xC, then +8.
 void __fastcall DestroyGlobalMapZone(Bytes<0x10>* p) { mfc::impl::DestroyStringsAt<Bytes<0x10>, 0xC, 8>(p); }
-EI_REPLACE(0x005FBD30, DestroyGlobalMapZone);
+EI_REWRITTEN(0x005FBD30, DestroyGlobalMapZone);
 
 // ---- The script's command arrays ------------------------------------------------------------------
 
@@ -103,8 +103,8 @@ void InitSubCall(ScriptSubCall* p) {
 }
 
 // The by-value GetAt wrappers: their bodies (004CE750, 004CCAA0) have the same arguments.
-EI_REPLACE_METHOD(0x004CD450, ScriptCommands::CopyAt);
-EI_REPLACE_METHOD(0x004C7510, ScriptSubCalls::CopyAt);
+EI_REWRITTEN(0x004CD450, ScriptCommands::CopyAt);
+EI_REWRITTEN(0x004C7510, ScriptSubCalls::CopyAt);
 
 // ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
 
@@ -144,7 +144,7 @@ EI_REPLACE(0x005993A0, SerializeCArray<Sectors>);
 void __fastcall DestroyWaterLevel(WaterLevelElement* p) {
     mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>(p);
 }
-EI_REPLACE(0x005755C0, DestroyWaterLevel);
+EI_REWRITTEN(0x005755C0, DestroyWaterLevel);
 
 } // namespace recordarrays
 
@@ -162,13 +162,13 @@ void ScriptCommands::CopyFrom(const ScriptCommands& source) {
         ScriptCmdDestruct(copy);
     }
 }
-EI_REPLACE_METHOD(0x004CC0C0, ScriptCommands::CopyFrom);
+EI_REWRITTEN(0x004CC0C0, ScriptCommands::CopyFrom);
 
 void ScriptSubCalls::CopyFrom(const ScriptSubCalls& source) {
     mfc::impl::ArrayAs<recordarrays::SubCalls>(*this).SetSize(source.size, -1);
     recordarrays::AssignSubCalls(this, &source);
 }
-EI_REPLACE_METHOD(0x004C6D10, ScriptSubCalls::CopyFrom);
+EI_REWRITTEN(0x004C6D10, ScriptSubCalls::CopyFrom);
 
 ScriptBindings* ScriptBindings::CopyConstruct(const ScriptBindings& source) {
     Construct(reinterpret_cast<std::uintptr_t>(recordarrays::BindingArrayClass::Vtable()));
@@ -176,7 +176,7 @@ ScriptBindings* ScriptBindings::CopyConstruct(const ScriptBindings& source) {
     for (int i = 0; i < source.size; ++i) data[i] = source.data[i];
     return this;
 }
-EI_REPLACE_METHOD(0x004CCCB0, ScriptBindings::CopyConstruct);
+EI_REWRITTEN(0x004CCCB0, ScriptBindings::CopyConstruct);
 
 ScriptSubCalls* ScriptSubCalls::CopyConstruct(const ScriptSubCalls& source) {
     Construct(reinterpret_cast<std::uintptr_t>(recordarrays::SubCallArrayClass::Vtable()));
@@ -184,7 +184,7 @@ ScriptSubCalls* ScriptSubCalls::CopyConstruct(const ScriptSubCalls& source) {
     recordarrays::AssignSubCalls(this, &source);
     return this;
 }
-EI_REPLACE_METHOD(0x004CCD90, ScriptSubCalls::CopyConstruct);
+EI_REWRITTEN(0x004CCD90, ScriptSubCalls::CopyConstruct);
 
 // The position and the waypoints are copied as the dwords they are.
 mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
@@ -202,7 +202,7 @@ mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
     for (int i = 0; i < from.waypoints.size; ++i) std::memcpy(&to.data[i], &from.waypoints.data[i], sizeof(mapspec::Waypoint));
     return result;
 }
-EI_REPLACE_METHOD(0x0046EAB0, mapspec::Patrols::CopyAt);
+EI_REWRITTEN(0x0046EAB0, mapspec::Patrols::CopyAt);
 
 
 // The first ten dwords as they are, the target copy-constructed, then the rest (the flag as a byte).
@@ -216,7 +216,7 @@ ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {
     result->deployAngle = from.deployAngle;
     return result;
 }
-EI_REPLACE_METHOD(0x00584EA0, ZoneExits::CopyAt);
+EI_REWRITTEN(0x00584EA0, ZoneExits::CopyAt);
 
 void DeltaState::SetFieldCount(int count) {
     recordarrays::DeltaFields::SetSize(reinterpret_cast<recordarrays::DeltaFields::Array*>(this), nullptr, count, -1);

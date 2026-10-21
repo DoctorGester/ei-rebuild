@@ -247,7 +247,7 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     weaponHidden = hidden;
     arrowHidden = hidden;
 }
-EI_REPLACE_METHOD(0x00537CB0, CUnitClientSpecific::ShowWeaponParts);
+EI_REWRITTEN(0x00537CB0, CUnitClientSpecific::ShowWeaponParts);
 
 namespace {
 // The bow's arrow part of a hero holding a bow, or null.
@@ -334,7 +334,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
         }
     }
 }
-EI_REPLACE(0x00535CB0, CollectArmourPartNames);
+EI_REWRITTEN(0x00535CB0, CollectArmourPartNames);
 
 // --- Skin -------------------------------------------------------------------------------------
 
@@ -377,7 +377,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
         out->data[k + 1].slot = ItemHead(armour)->type;
     }
 }
-EI_REPLACE_METHOD(0x00536300, CUnitClientSpecific::BuildSkinLayers);
+EI_REWRITTEN(0x00536300, CUnitClientSpecific::BuildSkinLayers);
 
 namespace {
 // SkinRequest's layer bytes grown to `bytes` (the original inlines the aligned CArray SetSize).
@@ -516,4 +516,4 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
     if (layers.data) gamecrt::operator_delete(layers.data);
     return result;
 }
-EI_REPLACE_METHOD(0x00536670, CUnitClientSpecific::ComposeSkin);
+EI_REWRITTEN(0x00536670, CUnitClientSpecific::ComposeSkin);

@@ -194,7 +194,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return damaged;
 }
-EI_REPLACE_METHOD(0x00525070, UnitStats::DamageSlot);
+EI_REWRITTEN(0x00525070, UnitStats::DamageSlot);
 
 int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon) {
     if (hit->location >= kLocations) return 0;
@@ -253,7 +253,7 @@ BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     hitPoints = f >= hp ? f : hp;
     return 1;
 }
-EI_REPLACE_METHOD(0x00524FE0, UnitVitals::TakeHit);
+EI_REWRITTEN(0x00524FE0, UnitVitals::TakeHit);
 
 BOOL CUnit::IsBehind(const CEngineObject* target) {
     if (!player) return 0;

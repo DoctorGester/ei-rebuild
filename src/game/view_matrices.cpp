@@ -91,8 +91,8 @@ std::uint8_t* __fastcall AllocateBlocks8(int count) {
 
 } // namespace view
 
-EI_REPLACE(0x004F15C0, view::LightRotation);
-EI_REPLACE(0x004E5710, view::AllocateBlocks32);
-EI_REPLACE(0x004F65B0, view::AllocateBlocks8);
+EI_REWRITTEN(0x004F15C0, view::LightRotation);
+EI_REWRITTEN(0x004E5710, view::AllocateBlocks32);
+EI_REWRITTEN(0x004F65B0, view::AllocateBlocks8);
 // 004E5660 is a byte-for-byte copy of CubicSegment::Evaluate (0040E440).
 EI_REPLACE_METHOD(0x004E5660, CubicSegment::Evaluate);

@@ -88,7 +88,7 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, void* objectArg) {
     out->z = rise + object->position.z;
     return out;
 }
-EI_REPLACE_METHOD(0x00484C00, CParticleSource::AttachmentPoint);
+EI_REWRITTEN(0x00484C00, CParticleSource::AttachmentPoint);
 
 Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     auto* object = static_cast<CObject3D*>(attachedTo);
@@ -113,7 +113,7 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     out->z = object->center.z;
     return out;
 }
-EI_REPLACE_METHOD(0x00485280, CParticleSource::AttachmentOffset);
+EI_REWRITTEN(0x00485280, CParticleSource::AttachmentOffset);
 
 void CParticleSource::Attach(void* objectArg) {
     auto* object = static_cast<CObject3D*>(objectArg);
@@ -157,4 +157,4 @@ void CParticleSource::StopAndClear() {
     flags_ &= ~5u;
     Attach(nullptr);
 }
-EI_REPLACE_METHOD(0x00485380, CParticleSource::StopAndClear);
+EI_REWRITTEN(0x00485380, CParticleSource::StopAndClear);

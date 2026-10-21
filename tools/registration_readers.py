@@ -25,26 +25,26 @@ holds the address itself. The readers, each a set of addresses:
                      write an EI_REPLACE_SHORT for it
     exit generator   an exit function game.exe registers with atexit that a rewrite registers (atexit_400.cpp, ...):
                      gen_static_init.py writes the ones no rewrite registers into static_exit.cpp
-    check_fp_fold    the registration of a function whose x87 constants check_fp_fold compares with its original's,
-                     or of a registered caller it compares a helper's with (check_fp_fold.py --linked on the built
-                     DLL, --dll): without it the function is compared with its callers' originals or with every
-                     constant of the exe, and C20c's first try reported 24 folds that were none
-  tools that read every registration but need none of them: check_signatures, check_thunks, check_registrations
-  (they check the registration itself), coverage.py (its watch list of rewrites), direct_calls.py,
-  standalone_gaps.py, save_trace.py, ui_census_report.py, progress.py (names and counts).
+  tools that read every registration but need none of them: check_thunks, check_registrations (they check the
+  registration itself), standalone_gaps.py. The tools that need a function's original address (check_fp_fold,
+  check_signatures, coverage.py, direct_calls.py, save_trace.py, ui_census_report.py, progress.py's rewritten
+  count) read the function-to-original map: the registrations and the EI_REWRITTEN lines (C20d, include/ei/hook.h).
 
 A registration none of these read is "unread": nothing reaches its address; our code calls the function by name,
-or nothing does (then the function is dead in the image).
+or nothing does (then the function is dead in the image). Dropping it writes EI_REWRITTEN(0x..., Fn); in its place,
+which keeps the function in the map without registering it.
 
-usage: python tools/registration_readers.py [--dll build/verify/ei_hook.dll] [--list READER] [--unread] [--files]
-                                           [--drop [--exclude RE ...] [--exclude-name RE ...] [--kinds K,...]]
+usage: python tools/registration_readers.py [--list READER] [--unread] [--files]
+                                           [--drop [--exclude RE ...] [--exclude-name RE ...] [--kinds K,...]
+                                                   [--only FILE]]
   (no option)  the split: per reader the registrations it reads (a registration can have several), and per
                first reader in the order above (each counted once)
   --list R     the registrations whose first reader is R (a prefix: "cell", "cell:vtable", "forwarder", ...)
   --unread     the unread registrations, file:line kind address name
   --files      the unread registrations per file
-  --drop       deletes the unread registrations' lines (files matching an --exclude regex and names matching an
-               --exclude-name regex left alone; only --kinds, by default all but the generated EI_REPLACE_SHORT)
+  --drop       writes EI_REWRITTEN in place of the unread registrations (files matching an --exclude regex and names
+               matching an --exclude-name regex left alone; only --kinds, by default all but the generated
+               EI_REPLACE_SHORT; with --only, only the registrations FILE lists as --list / --unread print them)
 """
 import argparse, collections, csv, os, re, struct, sys
 
@@ -58,6 +58,8 @@ REGISTRATION = re.compile(
     r'\s*,\s*([^;]*?)\)\s*;[ \t]*(//[^\n]*)?$', re.M)
 ANY_REGISTRATION = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH|_SHORT|_STANDALONE)?|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(')
 ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
+# A rewrite without a registration (C20d): a line of the function-to-original map, which reads no address.
+REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\([^;]*\)\s*;')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX](?:00)?([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
 WORD = re.compile(r'(?<![0-9A-Za-z_])00([4-7][0-9A-Fa-f]{5})(?![0-9A-Za-z_])')
 CODE_CELLS = os.path.join(ROOT, 'src', 'standalone', 'image_code_cells.inc')
@@ -67,7 +69,7 @@ STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
 NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_code_cells.inc', 'src/standalone/image_cells.inc',
                'src/standalone/image_imports.inc', 'tests/verify/addon_sites.inc')
 ORDER = ['cell', 'static init', 'forwarder', 'code literal', 'named data', 'harness', 'vectors', 'scenario',
-         'golden', 'short generator', 'exit generator', 'check_fp_fold']
+         'golden', 'short generator', 'exit generator']
 # The code cells' groups (image_code_cells.inc's comment lines) by a short name.
 CELL_GROUPS = [('vtable', ('vtable',)), ('throwinfo', ('ThrowInfo',)), ('mfc', ('MFC',)),
                ('static init list', ('initialiser list',)), ('crt', ('CRT',))]
@@ -109,13 +111,8 @@ def registrations():
                 continue
             found += 1
             name = re.sub(r'\s+', ' ', m.group(3)).lstrip('&').strip()
-            r = Registration(rel(path), raw.count('\n', 0, m.start()) + 1, m.group(1), int(m.group(2), 16), name,
-                             m.start(), m.end())
-            # The registration's own comment (blanked in `code`) naming check_fp_fold: the check's only link from the
-            # function to the original whose constants it compares (C20c).
-            if 'check_fp_fold' in raw[m.start():m.end()]:
-                r.readers.add('check_fp_fold')
-            out.append(r)
+            out.append(Registration(rel(path), raw.count('\n', 0, m.start()) + 1, m.group(1), int(m.group(2), 16), name,
+                                    m.start(), m.end()))
         total = sum(1 for m in ANY_REGISTRATION.finditer(code)
                     if '#define' not in code[code.rfind('\n', 0, m.start()) + 1:m.start()])
         if total != found:
@@ -150,7 +147,7 @@ def literal_readers(regs):
             if p in NOT_READERS:
                 continue
             code = srcscan.blank_comments(open(path, encoding='utf-8', errors='replace').read())
-            own = spans.get(p, [])
+            own = spans.get(p, []) + [(m.start(), m.end()) for m in REWRITTEN.finditer(code)]
             for m in ORIGINAL.finditer(code):
                 out[int(m.group(1), 16)].add('forwarder' if top == 'src' else 'forwarder:' + top.split('/')[1])
             for m in LITERAL.finditer(code):
@@ -225,22 +222,10 @@ def exit_generator_readers():
     return {a: {'exit generator'} for a in found}
 
 
-def fp_fold_readers(dll):
-    """The registrations check_fp_fold compares x87 constants through (check_fp_fold.py --linked)."""
-    import subprocess, tempfile
-    if not os.path.exists(dll):
-        raise SystemExit(f'{dll} is not built: check_fp_fold reads its registrations from the DLL and its map')
-    with tempfile.TemporaryDirectory() as tmp:
-        out = os.path.join(tmp, 'linked.txt')
-        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'check_fp_fold.py'), '--dll', dll, '--linked', out],
-                       check=True, stdout=subprocess.DEVNULL)
-        return {int(line, 16): {'check_fp_fold'} for line in open(out) if line.strip()}
-
-
-def measure(dll):
+def measure():
     regs = registrations()
     readers = [code_cells(), literal_readers(regs), named_data_readers(regs), text_readers(),
-               short_generator_readers(regs), exit_generator_readers(), fp_fold_readers(dll)]
+               short_generator_readers(regs), exit_generator_readers()]
     for r in regs:
         for table in readers:
             r.readers |= table.get(r.address, set())
@@ -251,88 +236,35 @@ def excluded(r, exclude, exclude_names):
     return any(re.search(x, r.path) for x in exclude) or any(re.search(x, r.name) for x in exclude_names)
 
 
-def drop(regs, exclude, exclude_names, kinds):
+def rewritten(raw, r):
+    """The EI_REWRITTEN statement that keeps a dropped registration's line of the function-to-original map (C20d):
+    the macro's name and a leading & of the function go, the address as written and a trailing comment stay."""
+    text = raw[r.start:r.end]
+    m = re.match(r'([ \t]*)' + re.escape(r.kind) + r'(\s*\(\s*0[xX][0-9A-Fa-f]+\s*,\s*)&?\s*', text)
+    if not m:
+        raise SystemExit(f'{r.path}:{r.line}: cannot rewrite {text.strip()!r}')
+    return m.group(1) + 'EI_REWRITTEN' + m.group(2) + text[m.end():]
+
+
+def drop(regs, exclude, exclude_names, kinds, only=None):
+    """Writes EI_REWRITTEN in place of each unread registration (in `only`, a set of (path, address), when given)."""
     by_file = collections.defaultdict(list)
     for r in regs:
-        if not r.readers and r.kind in kinds and not excluded(r, exclude, exclude_names):
+        if not r.readers and r.kind in kinds and not excluded(r, exclude, exclude_names) and \
+                (only is None or (r.path, r.address) in only):
             by_file[r.path].append(r)
-    dropped = comments = 0
+    dropped = 0
     for path, rs in sorted(by_file.items()):
         full = os.path.join(ROOT, path)
         raw = open(full, encoding='utf-8', newline='').read()
-        lines = raw.splitlines(keepends=True)
-        dead = set()
-        for r in rs:
-            first = raw.count('\n', 0, r.start)
-            dead.update(range(first, first + raw.count('\n', r.start, r.end) + 1))
+        out, at = [], 0
+        for r in sorted(rs, key=lambda r: r.start):
+            out += [raw[at:r.start], rewritten(raw, r)]
+            at = r.end
             dropped += 1
-        before = len(dead)
-        dead |= orphan_comments(lines, dead)
-        comments += len(dead) - before
-        out = []
-        for i, line in enumerate(lines):
-            if i in dead:
-                continue
-            # Two blank lines meeting where lines went: one is enough.
-            if not line.strip() and out and not out[-1].strip() and i > 0 and i - 1 in dead:
-                continue
-            out.append(line)
         with open(full, 'w', encoding='utf-8', newline='') as f:
-            f.write(''.join(out))
-    print(f'dropped {dropped} registration(s) in {len(by_file)} file(s), {comments} comment line(s) that introduced only them')
-
-
-def orphan_comments(lines, dead):
-    """Comment blocks (whole // lines) that only introduce or follow dropped registrations: between a boundary (a
-    blank line, the file's start or end, a brace line, a dropped line) and a run of dropped lines that itself ends at
-    one. Section rules (// --- ...) stay."""
-    found = set()
-
-    def comment(i):
-        s = lines[i].strip()
-        return s.startswith('//') and '---' not in s and '===' not in s
-
-    def boundary(i):
-        if i < 0 or i >= len(lines) or i in dead or i in found:
-            return True
-        s = lines[i].strip()
-        return not s or s in ('{', '}', '};') or s.startswith(('} //', 'namespace'))
-
-    def run_ends_at_boundary(i, step):
-        while 0 <= i < len(lines) and (i in dead or i in found):
-            i += step
-        return boundary(i) or comment(i)
-
-    changed = True
-    while changed:
-        changed = False
-        i = 0
-        while i < len(lines):
-            if not comment(i) or i in dead or i in found:
-                i += 1
-                continue
-            j = i
-            while j + 1 < len(lines) and comment(j + 1) and j + 1 not in dead and j + 1 not in found:
-                j += 1
-            gone = dead | found
-            above, below = i - 1, j + 1
-            introduces = below in gone and below < len(lines) and boundary(above) and run_ends_at_boundary(below, 1)
-            follows = above in gone and above >= 0 and boundary(below) and run_ends_at_boundary(above, -1)
-            if introduces or follows:
-                found.update(range(i, j + 1))
-                changed = True
-            i = j + 1
-    # A section rule (// --- ...) whose section held dropped lines and holds nothing else now.
-    rules = [i for i, l in enumerate(lines) if re.match(r'\s*// ?(-{3,}|={3,})', l)]
-    for k, h in enumerate(rules):
-        end = rules[k + 1] if k + 1 < len(rules) else len(lines)
-        body = range(h + 1, end)
-        stop = next((i for i in body if lines[i].strip().startswith(('}', 'namespace', '#'))), end)
-        body = range(h + 1, stop)
-        if any(i in dead for i in body) and all(i in dead or i in found or not lines[i].strip() or
-                                                  lines[i].strip().startswith('//') for i in body):
-            found.update(i for i in [h, *body] if i not in dead)
-    return found
+            f.write(''.join(out) + raw[at:])
+    print(f'dropped {dropped} registration(s) in {len(by_file)} file(s): EI_REWRITTEN in their place')
 
 
 def main(argv):
@@ -345,12 +277,19 @@ def main(argv):
     ap.add_argument('--exclude-name', action='append', default=[], help='leave registrations whose name matches')
     ap.add_argument('--kinds', default='EI_REPLACE,EI_REPLACE_METHOD,EI_REPLACE_DISPATCH,EI_REPLACE_STANDALONE',
                     help='the kinds --drop takes (EI_REPLACE_SHORT is generated: gen_short_functions.py)')
-    ap.add_argument('--dll', default=os.path.join(ROOT, 'build', 'verify', 'ei_hook.dll'),
-                    help='the built DLL check_fp_fold reads (built from the sources measured)')
+    ap.add_argument('--only', metavar='FILE', help='--drop: only the registrations FILE lists (path:line kind address '
+                    'name, as --list prints them)')
     args = ap.parse_args(argv)
-    regs = measure(args.dll)
+    regs = measure()
     if args.drop:
-        drop(regs, args.exclude, args.exclude_name, args.kinds.split(','))
+        only = None
+        if args.only:
+            only = set()
+            for line in open(args.only, encoding='utf-8'):
+                m = re.match(r'(\S+):\d+ \S+ ([0-9A-F]{8}) ', line)
+                if m:
+                    only.add((m.group(1), int(m.group(2), 16)))
+        drop(regs, args.exclude, args.exclude_name, args.kinds.split(','), only)
         return 0
     if args.list or args.unread:
         for r in regs:

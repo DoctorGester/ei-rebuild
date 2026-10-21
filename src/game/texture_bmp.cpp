@@ -124,4 +124,4 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     flags_ |= kTextureLoaded;
     return 1;
 }
-EI_REPLACE_METHOD(0x0068FBF0, CTexture::LoadBmpFiles);
+EI_REWRITTEN(0x0068FBF0, CTexture::LoadBmpFiles);

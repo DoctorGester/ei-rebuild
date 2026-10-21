@@ -268,7 +268,7 @@ void CWorldServer::RemoveAllUnits() {
         if (isUnit) WorldRemoveObject(this, nullptr, static_cast<int>(id));   // 005935C0: Rebirth patches it (rule 9)
     } while (node);
 }
-EI_REPLACE_METHOD(0x005939E0, CWorldServer::RemoveAllUnits);
+EI_REWRITTEN(0x005939E0, CWorldServer::RemoveAllUnits);
 
 CEngineObject* ObjectMapIterator::First(ObjectIdMap* objects) {
     map = objects;
@@ -298,11 +298,11 @@ EI_REPLACE_METHOD(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
 EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
 EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);
 EI_REPLACE_METHOD(0x00594220, CWorldServer::GridHeight);
-EI_REPLACE_METHOD(0x00591740, CWorldServer::CountLivingMercs);
-EI_REPLACE_METHOD(0x00594A30, CWorldServer::CollectSharedObjects);
-EI_REPLACE_METHOD(0x0058CC80, CWorldServer::SetClimate);
-EI_REPLACE_METHOD(0x0058E4C0, CWorldServer::GetZoneExit);
+EI_REWRITTEN(0x00591740, CWorldServer::CountLivingMercs);
+EI_REWRITTEN(0x00594A30, CWorldServer::CollectSharedObjects);
+EI_REWRITTEN(0x0058CC80, CWorldServer::SetClimate);
+EI_REWRITTEN(0x0058E4C0, CWorldServer::GetZoneExit);
 EI_REPLACE_METHOD(0x0058E520, CWorldServer::AddTimedObject);
-EI_REPLACE_METHOD(0x0058E5D0, CWorldServer::RemoveTimedObject);
-EI_REPLACE_METHOD(0x0058D5D0, CWorldServer::AddToUpdateMap);
-EI_REPLACE_METHOD(0x005999E0, ObjectIdMap::Set);
+EI_REWRITTEN(0x0058E5D0, CWorldServer::RemoveTimedObject);
+EI_REWRITTEN(0x0058D5D0, CWorldServer::AddToUpdateMap);
+EI_REWRITTEN(0x005999E0, ObjectIdMap::Set);

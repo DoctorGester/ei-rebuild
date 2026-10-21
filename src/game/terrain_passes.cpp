@@ -119,7 +119,7 @@ void Terrain::ChooseDetail(SectorData* sector) {
     else if (distanceSquared < DetailFar() * DetailFar() && minDetail <= 1) level = 1;
     sector->SetDetail(level);
 }
-EI_REPLACE_METHOD(0x006C66E0, Terrain::ChooseDetail);
+EI_REWRITTEN(0x006C66E0, Terrain::ChooseDetail);
 
 int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return 0;

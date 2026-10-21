@@ -483,7 +483,7 @@ BOOL CScript::LoadConditions(ScriptCommands* conditions, ScriptPos* pos, const S
         conditions->SetAtGrow(conditions->size, *cmd.Get());
     }
 }
-EI_REPLACE_METHOD(0x004D0BF0, CScript::LoadConditions);
+EI_REWRITTEN(0x004D0BF0, CScript::LoadConditions);
 
 BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens) {
     LocalToken token;
@@ -534,7 +534,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
         script->ifThen.data[n] = pair;
     }
 }
-EI_REPLACE_METHOD(0x004D1030, CScript::LoadScriptBody);
+EI_REWRITTEN(0x004D1030, CScript::LoadScriptBody);
 
 BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals,
                                  const mfc::CString* name) {
@@ -567,7 +567,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
     StoreIntAsFloat(&cmd->floatArgs.data[0], index);
     return result;
 }
-EI_REPLACE_METHOD(0x004D1D50, CScript::LoadAssignOperator);
+EI_REWRITTEN(0x004D1D50, CScript::LoadAssignOperator);
 
 BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens,
                                        BOOL qualify) {
@@ -619,7 +619,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
     }
     return result;
 }
-EI_REPLACE_METHOD(0x004D1FE0, CScript::LoadVariableDeclarations);
+EI_REWRITTEN(0x004D1FE0, CScript::LoadVariableDeclarations);
 
 BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals) {
     LocalToken token;
@@ -865,4 +865,4 @@ BOOL CScript::LoadFile(const char* path) {
     if (!ReadTextFile(path, &text)) return Error(this, 0, 17, "Unable to read file \"%s\"", path);   // "Unable to read file \"%s\""
     return Orig(this)->LoadAt(&text, 1);
 }
-EI_REPLACE_METHOD(0x004D36F0, CScript::LoadFile);
+EI_REWRITTEN(0x004D36F0, CScript::LoadFile);

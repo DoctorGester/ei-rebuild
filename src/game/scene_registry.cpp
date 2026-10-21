@@ -290,6 +290,6 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
     reg.Destroy();
     return 1;
 }
-EI_REPLACE(0x0044B980, LoadFigureRegistry);
+EI_REWRITTEN(0x0044B980, LoadFigureRegistry);
 
 } // namespace scene

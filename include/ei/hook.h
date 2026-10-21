@@ -213,6 +213,29 @@ extern "C" void ei_code_bind();
     static ::ei::HookRegistrar EI_CAT(ei_record_, __LINE__)( \
         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
 
+// The original of a rewritten function that has no registration (C20d): nothing reaches game.exe's address, our code
+// calls the function by name. EI_REWRITTEN(0x..., Fn); leaves a record {address, &Fn, file, line} in the section
+// .eiorg of the module, which nothing reads at run time and InstallHooks does not take: the compiler checks the name,
+// the record keeps the function's own copy in the image (as a registration did), and check_registrations reads it
+// (one original per address, none also registered). The tools' function-to-original map is the registrations and
+// these lines together (check_signatures.registrations(): check_fp_fold and check_signatures; coverage.py,
+// direct_calls.py, save_trace.py, ui_census_report.py, progress.py's rewritten count). tools/registration_readers.py
+// --drop writes one in place of each registration it drops.
+#pragma section(".eiorg", read, write)
+namespace ei {
+template <typename F>
+struct OriginRecord {
+    static_assert(sizeof(F) == sizeof(void*), "multiple/virtual inheritance member pointer");
+    std::uintptr_t address;
+    F code;
+    const char* file;
+    int line;
+};
+} // namespace ei
+#define EI_REWRITTEN(addr, fn) \
+    __declspec(allocate(".eiorg")) static ::ei::OriginRecord<decltype(&fn)> EI_CAT(ei_rewritten_, __LINE__) = \
+        {addr, &fn, __FILE__, __LINE__}
+
 // Run `fn` (void()) once in the standalone image before the registrations are taken (StartupAction).
 #define EI_STARTUP_ACTION(fn) static ::ei::StartupActionRegistrar EI_CAT(ei_action_, __LINE__)(&fn, #fn)
 

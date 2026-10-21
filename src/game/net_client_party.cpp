@@ -131,7 +131,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         if (p->ptr) p->ptr->Release();
     stlp::deallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()) * 4);   // 00426490
 }
-EI_REPLACE(0x0041DA50, ClientPublishParty);
+EI_REWRITTEN(0x0041DA50, ClientPublishParty);
 
 // 0041E220: the received offer (list +0x2610) that pairs with ours (+0x260C): its partner is our
 // player and its player our partner, and it is live. Null without one.
@@ -217,6 +217,6 @@ void __fastcall ClientApplyParty(ClientSession* self) {
         if (*p) (*p)->Release();
     stlp::deallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()) * 4);   // 004268A0
 }
-EI_REPLACE(0x0041DDC0, ClientApplyParty);
+EI_REWRITTEN(0x0041DDC0, ClientApplyParty);
 
 } // namespace net

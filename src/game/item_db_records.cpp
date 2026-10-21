@@ -49,7 +49,7 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     list20.Copy(source->list20);
     return this;
 }
-EI_REPLACE_METHOD(0x006A8F20, ItemRecordHead::Assign);
+EI_REWRITTEN(0x006A8F20, ItemRecordHead::Assign);
 
 void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
     new (&text04) mfc::CString();
@@ -119,7 +119,7 @@ MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* 
     CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     return this;
 }
-EI_REPLACE_METHOD(0x006A9E40, MaterialRecordHead::CopyConstruct);
+EI_REWRITTEN(0x006A9E40, MaterialRecordHead::CopyConstruct);
 
 void MaterialRecordHead::AssignMaterial(const MaterialRecordHead* source) {
     key = source->key;
@@ -143,7 +143,7 @@ void ItemRecordHead::DestructHead() {
     text08.~CString();
     text04.~CString();
 }
-EI_REPLACE_METHOD(0x006A8950, ItemRecordHead::DestructHead);   // weapons
+EI_REWRITTEN(0x006A8950, ItemRecordHead::DestructHead);   // weapons
 EI_REPLACE_METHOD(0x006A89D0, ItemRecordHead::DestructHead);   // armours
 EI_REPLACE_METHOD(0x006A8BD0, ItemRecordHead::DestructHead);   // loot
 
@@ -151,21 +151,21 @@ void QuickItemRecord::Destruct() {
     text7C.~CString();
     DestructHead();
 }
-EI_REPLACE_METHOD(0x006A8A50, QuickItemRecord::Destruct);
+EI_REWRITTEN(0x006A8A50, QuickItemRecord::Destruct);
 
 void QuestItemRecord::Destruct() {
     for (mfc::CString* zone = zonesBegin; zone != zonesEnd; ++zone) zone->~CString();
     if (zonesBegin) stlp::deallocate(zonesBegin, static_cast<std::size_t>(zonesCapacity - zonesBegin) * sizeof(mfc::CString));
     DestructHead();
 }
-EI_REPLACE_METHOD(0x006A8AE0, QuestItemRecord::Destruct);
+EI_REWRITTEN(0x006A8AE0, QuestItemRecord::Destruct);
 
 void MaterialRecordHead::Destruct() {
     name.~CString();
     soundName.~CString();
     key.~CString();
 }
-EI_REPLACE_METHOD(0x006A88F0, MaterialRecordHead::Destruct);
+EI_REWRITTEN(0x006A88F0, MaterialRecordHead::Destruct);
 
 void SpellRecord::Destruct() {
     list54.FreeStorage();
@@ -174,13 +174,13 @@ void SpellRecord::Destruct() {
     code.~CString();
     name.~CString();
 }
-EI_REPLACE_METHOD(0x00685AA0, SpellRecord::Destruct);
+EI_REWRITTEN(0x00685AA0, SpellRecord::Destruct);
 
 void SpellModifierRecord::Destruct() {
     text1C.~CString();
     name.~CString();
 }
-EI_REPLACE_METHOD(0x00685B70, SpellModifierRecord::Destruct);
+EI_REWRITTEN(0x00685B70, SpellModifierRecord::Destruct);
 
 void SpellListRecord::Destruct() {
     text24.~string();
@@ -188,7 +188,7 @@ void SpellListRecord::Destruct() {
     records::DestroyVector(list0C);
     name.~string();
 }
-EI_REPLACE_METHOD(0x00589860, SpellListRecord::Destruct);
+EI_REWRITTEN(0x00589860, SpellListRecord::Destruct);
 
 // ---- S10a: the spell records as vector elements (record_vectors.h) -------------------------------
 

@@ -102,7 +102,7 @@ CTexture* CTextureManager::NewShadowTexture() {
     bool missing;
     return MakeShadowTexture(this, kShadowTextureKeep, kShadowTextureFlag, &missing);
 }
-EI_REPLACE_METHOD(0x00692010, CTextureManager::NewShadowTexture);
+EI_REWRITTEN(0x00692010, CTextureManager::NewShadowTexture);
 
 CTexture* CTextureManager::ShadowRenderSurface() {
     if (shadowRenderSurface_) return shadowRenderSurface_;
@@ -115,7 +115,7 @@ CTexture* CTextureManager::ShadowRenderSurface() {
     if (previous) previous->Release();
     return shadowRenderSurface_;
 }
-EI_REPLACE_METHOD(0x00692140, CTextureManager::ShadowRenderSurface);
+EI_REWRITTEN(0x00692140, CTextureManager::ShadowRenderSurface);
 
 // --- 00690FC0 / 00691030 ---------------------------------------------------------------------------
 

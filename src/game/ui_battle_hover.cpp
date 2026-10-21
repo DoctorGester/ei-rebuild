@@ -237,4 +237,4 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     }
     SetCursor(shape);
 }
-EI_REPLACE_METHOD(0x00639EF0, CBattleScreen::HoverUnit);
+EI_REWRITTEN(0x00639EF0, CBattleScreen::HoverUnit);

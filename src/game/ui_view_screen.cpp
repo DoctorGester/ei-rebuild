@@ -110,7 +110,7 @@ void UnitPickInput::Destruct() {
     if (picked_.data) gamecrt::operator_delete(picked_.data);
     vtable_ = BaseVtable();
 }
-EI_REPLACE_METHOD(0x005EB910, UnitPickInput::Destruct);
+EI_REWRITTEN(0x005EB910, UnitPickInput::Destruct);
 
 UnitPickInput* UnitPickInput::DeleteThis(int flags) {
     Destruct();

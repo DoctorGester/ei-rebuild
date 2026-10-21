@@ -206,7 +206,7 @@ void MpVoiceEntry::Destroy() {
 namespace {
 void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
 } // namespace
-EI_REPLACE(0x00615800, VoiceEntryDestroy);
+EI_REWRITTEN(0x00615800, VoiceEntryDestroy);
 
 // --- 00634500 / 00634560: the caches' objects released ----------------------------------------------
 
@@ -245,7 +245,7 @@ void CMpHeroScreen::Destroy() {
 namespace {
 void __fastcall HeroScreenDestroy(CMpHeroScreen* self) { self->Destroy(); }
 } // namespace
-EI_REPLACE(0x00633260, HeroScreenDestroy);
+EI_REWRITTEN(0x00633260, HeroScreenDestroy);
 
 // --- 006167C0 / 00616560: the hero list and the voices drawn -----------------------------------------
 
@@ -290,7 +290,7 @@ void CMpHeroScreen::DrawHeroList() {
 namespace {
 void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList(); }
 } // namespace
-EI_REPLACE(0x006167C0, HeroScreenDrawHeroList);
+EI_REWRITTEN(0x006167C0, HeroScreenDrawHeroList);
 
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = window.surfaces_.data[2];
@@ -320,7 +320,7 @@ void CMpHeroScreen::DrawVoices() {
 namespace {
 void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); }
 } // namespace
-EI_REPLACE(0x00616560, HeroScreenDrawVoices);
+EI_REWRITTEN(0x00616560, HeroScreenDrawVoices);
 
 // --- 00616E20: the preview's unit -------------------------------------------------------------
 
@@ -364,7 +364,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x00616E20, CMpHeroScreen::MakePreview);
+EI_REWRITTEN(0x00616E20, CMpHeroScreen::MakePreview);
 
 // --- 00616910: a hero shown -------------------------------------------------------------------
 
@@ -395,4 +395,4 @@ void CMpHeroScreen::ShowHero(int index) {
     DrawHeroList();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x00616910, CMpHeroScreen::ShowHero);
+EI_REWRITTEN(0x00616910, CMpHeroScreen::ShowHero);

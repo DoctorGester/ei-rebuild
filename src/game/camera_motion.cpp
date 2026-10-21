@@ -195,4 +195,4 @@ void CCamera::ClampAboveObjects() {
         camera::NodeFreeList() = list.head;
     }
 }
-EI_REPLACE_METHOD(0x004110D0, CCamera::LookDirection);
+EI_REWRITTEN(0x004110D0, CCamera::LookDirection);

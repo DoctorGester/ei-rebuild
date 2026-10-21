@@ -131,7 +131,7 @@ ClientSession* ClientSession::Construct() {
     parties_[1].Party()->Create();
     return this;
 }
-EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
+EI_REWRITTEN(0x0041BC40, ClientSession::Construct);
 
 // 0041D050 (slot 13). What the server receives from this client: the local player's login
 // (+0x2600), the timed objects (+0x2604, value at +0xC) and the file requests (+0x25E8), and our

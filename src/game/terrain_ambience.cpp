@@ -274,5 +274,5 @@ void terrain::CountAmbientVariants(const char* set) {
 }
 int terrain::AmbientVariants(int soundClass) { return SoundClasses()[soundClass].variants; }
 
-EI_REPLACE_METHOD(0x006CB390, Terrain::PlayAmbience);
-EI_REPLACE_METHOD(0x006CBC00, CWorldClient::AmbienceTimeOfDay);
+EI_REWRITTEN(0x006CB390, Terrain::PlayAmbience);
+EI_REWRITTEN(0x006CBC00, CWorldClient::AmbienceTimeOfDay);

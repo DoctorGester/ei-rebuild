@@ -81,7 +81,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         }
     }
 }
-EI_REPLACE_METHOD(0x00479E30, DriverSession::PumpDrivers);
+EI_REWRITTEN(0x00479E30, DriverSession::PumpDrivers);
 
 // Both lists emptied, then one driver for `player`: started (slot 10), and its pending output
 // drained into throwaway memory streams (slot 9) while slot 6 answers true. Returns the driver.
@@ -119,6 +119,6 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
     }
     return driver;
 }
-EI_REPLACE_METHOD(0x0047A080, DriverSession::Start);
+EI_REWRITTEN(0x0047A080, DriverSession::Start);
 
 } // namespace netlink

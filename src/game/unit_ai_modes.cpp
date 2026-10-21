@@ -756,7 +756,7 @@ void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int
     brain->action = AIBrain::kActionWalk;
     brain->owner->OrderMove(&point.x, run, unknown, kMoveTime);
 }
-EI_REPLACE_METHOD(0x005D39E0, PlayerMode::CommandWalk);
+EI_REWRITTEN(0x005D39E0, PlayerMode::CommandWalk);
 
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
     state = kStateMoveTo;
@@ -771,7 +771,7 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
     brain->action = AIBrain::kActionWalk;
     brain->owner->OrderMove(&point.x, run, unknown, kMoveTime);
 }
-EI_REPLACE_METHOD(0x005D3AE0, PlayerMode::CommandGoTo);
+EI_REWRITTEN(0x005D3AE0, PlayerMode::CommandGoTo);
 
 void PlayerMode::CommandAttack(AIBrain* brain, CEngineObject* object, int how, int unknown) {
     if (object == brain->owner->unit) return;

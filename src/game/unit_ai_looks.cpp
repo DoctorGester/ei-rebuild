@@ -55,14 +55,14 @@ void AIMoveOrder::Clear() {
     point = Vector3{0.0f, 0.0f, 0.0f};
     looks.RemoveAll();
 }
-EI_REPLACE_METHOD(0x00545B20, AIMoveOrder::Clear);
+EI_REWRITTEN(0x00545B20, AIMoveOrder::Clear);
 
 AIMoveOrder* AIMoveOrder::Assign(const AIMoveOrder* other) {
     point = other->point;
     looks.Copy(other->looks);
     return this;
 }
-EI_REPLACE_METHOD(0x005D7970, AIMoveOrder::Assign);
+EI_REWRITTEN(0x005D7970, AIMoveOrder::Assign);
 
 void PatrolMode::AppendPoint(const Vector3* position) {
     // Half-cell index of each coordinate (rounded to nearest after a float store), then its middle.
@@ -78,7 +78,7 @@ void PatrolMode::AppendPoint(const Vector3* position) {
     // The original copies an empty temporary look array into the new point.
     added.looks.SetSize(0, -1);
 }
-EI_REPLACE_METHOD(0x005D12B0, PatrolMode::AppendPoint);
+EI_REWRITTEN(0x005D12B0, PatrolMode::AppendPoint);
 
 // --- The patrol point array (CArray<PatrolPoint>) ---------------------------------------------------
 

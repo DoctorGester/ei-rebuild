@@ -51,7 +51,7 @@ void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
     *y = localPosition_.y / localPosition_.z / 0.48157462f /*00740158*/ * 400.0f /*00740160*/ + 300.0f /*0073FA98*/;
     std::memcpy(depth, &localPosition_.z, sizeof(float));
 }
-EI_REPLACE_METHOD(0x005E7010, CUiMesh::GetPlacement);
+EI_REWRITTEN(0x005E7010, CUiMesh::GetPlacement);
 
 // 005E6FA0. The layout's 1 / 400 (0074015C) and 0.75 (0073C524) with the constants above. Rebirth's
 // WideScreen replaces it (addon's 10023151): x moved by the panel offset first (FIADD; 0 outside its
@@ -111,7 +111,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     Pop(world);
     return 1;
 }
-EI_REPLACE_METHOD(0x005E6D90, CUiMesh::Draw);
+EI_REWRITTEN(0x005E6D90, CUiMesh::Draw);
 
 int CUiMesh::CreateSprite() {
     CreateMesh();
@@ -149,16 +149,16 @@ void CUiMesh::SetQuadCount(int count) {
             Quads()[i].w[k] = 1.0f;
         }
 }
-EI_REPLACE_METHOD(0x005EA210, CUiMesh::SetQuadCount);
+EI_REWRITTEN(0x005EA210, CUiMesh::SetQuadCount);
 
 void CUiMesh::SetVertexCount(int count) {
     Vertices().SetSize(count);
     for (int i = 0; i < count; ++i) Vertices()[i].normal = 0;
 }
-EI_REPLACE_METHOD(0x005EA600, CUiMesh::SetVertexCount);
+EI_REWRITTEN(0x005EA600, CUiMesh::SetVertexCount);
 
 void CUiMesh::SetIndexCount(int count) { indices_.SetSize(count); }
-EI_REPLACE_METHOD(0x005EA4C0, CUiMesh::SetIndexCount);
+EI_REWRITTEN(0x005EA4C0, CUiMesh::SetIndexCount);
 
 void CUiMesh::SetUvCount(int count) { Texels().SetSize(count); }
-EI_REPLACE_METHOD(0x005EA380, CUiMesh::SetUvCount);
+EI_REWRITTEN(0x005EA380, CUiMesh::SetUvCount);

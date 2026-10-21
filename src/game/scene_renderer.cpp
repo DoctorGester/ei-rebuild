@@ -19,4 +19,4 @@ void CSceneRenderer::SetFogColour(float r, float g, float b) {
     fogColour_ = colour;
     SetFogColourState(colour);
 }
-EI_REPLACE_METHOD(0x004BA120, CSceneRenderer::SetFogColour);
+EI_REWRITTEN(0x004BA120, CSceneRenderer::SetFogColour);

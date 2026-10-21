@@ -59,7 +59,7 @@ void CObject3DClientSpecific::InvisiblePulse(float frames) {
     float value = Pulse(pulseClock, frames);
     for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = value;
 }
-EI_REPLACE_METHOD(0x0051CC20, CObject3DClientSpecific::InvisiblePulse);
+EI_REWRITTEN(0x0051CC20, CObject3DClientSpecific::InvisiblePulse);
 
 void CObject3DClientSpecific::StunnedPulse(float frames) {
     float value = Pulse(pulseClock, frames);
@@ -71,7 +71,7 @@ void CObject3DClientSpecific::StunnedPulse(float frames) {
         part->flags_ |= kPartTinted;
     }
 }
-EI_REPLACE_METHOD(0x0051CCD0, CObject3DClientSpecific::StunnedPulse);
+EI_REWRITTEN(0x0051CCD0, CObject3DClientSpecific::StunnedPulse);
 
 void CUnitClientSpecific::AdvanceTime(float time) {
     float stored = time - lastTime;   // FST to a float local

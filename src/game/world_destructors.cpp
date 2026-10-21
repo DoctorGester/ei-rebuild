@@ -132,7 +132,7 @@ void CScript::Destruct() {
     DestroyScriptList<gamelists::ParticleSources, gamelists::ParticleSourceListClass>(particles_);
     DestroyScriptArray<gamearrays::PointLights, gamearrays::PointLightArrayClass>(pointLights_);
 }
-EI_REPLACE_METHOD(0x0058A140, CScript::Destruct);
+EI_REWRITTEN(0x0058A140, CScript::Destruct);
 
 void CWorld::Destruct() {
     ei::SetVtable(this, kBaseVtableAddress);
@@ -146,7 +146,7 @@ void CWorld::Destruct() {
         if (--loader->refCount_ == 0) loader->DeleteThis(1);
     CEngineObject::DestructBase();
 }
-EI_REPLACE_METHOD(0x0055EC80, CWorld::Destruct);
+EI_REWRITTEN(0x0055EC80, CWorld::Destruct);
 
 CWorld* CWorld::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -169,13 +169,13 @@ CParticleManager::~CParticleManager() {
 }
 
 void CParticleManager::Destruct() { this->CParticleManager::~CParticleManager(); }
-EI_REPLACE_METHOD(0x005627C0, CParticleManager::Destruct);
+EI_REWRITTEN(0x005627C0, CParticleManager::Destruct);
 
 CParticleManager* CParticleManager::DeletingDestruct(unsigned flags) {
     this->CParticleManager::~CParticleManager();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x005627A0, CParticleManager::DeletingDestruct);
+EI_REWRITTEN(0x005627A0, CParticleManager::DeletingDestruct);
 
 void Terrain::Destruct() {
     ei::SetVtable(this, worlddata::kTerrainVtable);
@@ -201,7 +201,7 @@ void Terrain::Destruct() {
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     CEngineObject::DestructBase();
 }
-EI_REPLACE_METHOD(0x00562B80, Terrain::Destruct);
+EI_REWRITTEN(0x00562B80, Terrain::Destruct);
 
 Terrain* Terrain::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -219,7 +219,7 @@ void Sector::Destruct() {
     objects.vtable = ei::GamePointer<void>(kSectorObjectListVtable);
     objects.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005BFCD0, Sector::Destruct);
+EI_REWRITTEN(0x005BFCD0, Sector::Destruct);
 
 Sector* Sector::DeletingDestruct(unsigned flags) {
     Destruct();

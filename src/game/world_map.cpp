@@ -314,15 +314,15 @@ void CWorldServer::ResetState() {
     startPosition_.z = 0.0f;
 }
 
-EI_REPLACE_METHOD(0x0058B600, CWorldServer::ResetState);
-EI_REPLACE_METHOD(0x00595C70, CWorldServer::LoadMap);
-EI_REPLACE_METHOD(0x005957E0, CWorldServer::TeardownZone);
+EI_REWRITTEN(0x0058B600, CWorldServer::ResetState);
+EI_REWRITTEN(0x00595C70, CWorldServer::LoadMap);
+EI_REWRITTEN(0x005957E0, CWorldServer::TeardownZone);
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
     if (GameMbscmp(mapName_, map) == 0 && GameMbscmp(mobName_, mob) == 0) return;
     WorldNewZoneOriginal(this, nullptr, map, mob, nullptr);   // patched by Rebirth: stays the original
     TeardownZone();
 }
-EI_REPLACE_METHOD(0x00595B50, CWorldServer::EnsureZone);
-EI_REPLACE_METHOD(0x005951A0, CWorldServer::SendFreshObjects);
-EI_REPLACE_METHOD(0x0058B250, CWorldServer::ResetZone);
+EI_REWRITTEN(0x00595B50, CWorldServer::EnsureZone);
+EI_REWRITTEN(0x005951A0, CWorldServer::SendFreshObjects);
+EI_REWRITTEN(0x0058B250, CWorldServer::ResetZone);

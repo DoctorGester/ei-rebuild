@@ -82,7 +82,7 @@ void ClientSession::SendCommand(int kind, const char* text) {
     raw.ptr = nullptr;
     raw.Destroy();
 }
-EI_REPLACE_METHOD(0x0041D260, ClientSession::SendCommand);
+EI_REWRITTEN(0x0041D260, ClientSession::SendCommand);
 
 // 0041D420 (slot 16): makes `*out` an empty server entry (no name or description, kind 4, no
 // players).

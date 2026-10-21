@@ -110,7 +110,7 @@ void Lever::SetState(int wanted, float duration) {
     around.RemoveAll();
 }
 
-EI_REPLACE_METHOD(0x0052B7A0, Lever::SetState);
+EI_REWRITTEN(0x0052B7A0, Lever::SetState);
 
 namespace {
 
@@ -158,4 +158,4 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
         out->SetAtGrow(out->size, at);
     }
 }
-EI_REPLACE_METHOD(0x0052BBE0, Lever::CollectUseSpots);
+EI_REWRITTEN(0x0052BBE0, Lever::CollectUseSpots);

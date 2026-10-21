@@ -200,7 +200,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     attention.Build(owner->unit);
     if (alwaysUpdated) TheServerWorld()->AddToUpdateMap(owner->unit);
 }
-EI_REPLACE_METHOD(0x005D6630, AIBrain::ApplyBehaviour);
+EI_REWRITTEN(0x005D6630, AIBrain::ApplyBehaviour);
 
 void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
     alarmRecords.SetSize(count, -1);
@@ -213,7 +213,7 @@ void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
     }
     ApplyBehaviour(alarmRecords.data, 0);
 }
-EI_REPLACE_METHOD(0x005D6D20, AIBrain::SetAlarmRecords);
+EI_REWRITTEN(0x005D6D20, AIBrain::SetAlarmRecords);
 
 void AIBrain::HearAlarm(int slot) {
     constexpr int kAlarmHeard = 7;   // the remark level ("to Alarm!")

@@ -42,7 +42,7 @@ double UnitParams::VisionRange(float daylight) {
     double day = static_cast<double>(valuesB0[1]) * daylight * kPercent;
     return (day + (static_cast<double>(kOne) - daylight)) * valuesB0[0];
 }
-EI_REPLACE_METHOD(0x005271E0, UnitParams::VisionRange);
+EI_REWRITTEN(0x005271E0, UnitParams::VisionRange);
 
 void CUnit::AdvanceTimeImpl(float time) {
     if (controller) Controller()->AdvanceTime(time);

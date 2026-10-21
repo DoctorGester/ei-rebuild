@@ -152,4 +152,4 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     builder.Finish();
     render::EndDecalTime(points->size * 4);
 }
-EI_REPLACE_METHOD(0x0056C750, CWorldClient::ProjectDecal);
+EI_REWRITTEN(0x0056C750, CWorldClient::ProjectDecal);

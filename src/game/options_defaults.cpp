@@ -123,7 +123,7 @@ void __fastcall OptionsResetDefaults(GameOptions* self) {
     self->fogDayStartDistance_ = 90.0f;
     self->masterServerName_ = "a3master.nival.com";
 }
-EI_REPLACE(0x00458DA0, OptionsResetDefaults);
+EI_REWRITTEN(0x00458DA0, OptionsResetDefaults);
 
 // 00458730: the options object's destructor (at exit, registered by the static initialiser
 // 00458700): its eighteen CStrings, the last first (the members' destruction order).

@@ -99,7 +99,7 @@ void CBriefingScreen::StartPhrases() {
     firstPhrase_ = true;
     NextPhrase(0);
 }
-EI_REPLACE_METHOD(0x00608210, CBriefingScreen::StartPhrases);
+EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 
 // --- 00607A60 -----------------------------------------------------------------------------------
 
@@ -123,7 +123,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
         controller->PlayAnimation(animation->name);
 }
-EI_REPLACE_METHOD(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
+EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 
 // --- 006023F0 -----------------------------------------------------------------------------------
 
@@ -202,7 +202,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     at.z = static_cast<float>(eye.z + height);
     static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition0F(&at, &eye, 1);
 }
-EI_REPLACE_METHOD(0x00607BB0, CBriefingScreen::ViewSpeaker);
+EI_REWRITTEN(0x00607BB0, CBriefingScreen::ViewSpeaker);
 
 // --- 00607EC0 -----------------------------------------------------------------------------------
 
@@ -275,7 +275,7 @@ void CBriefingScreen::ViewPreset(int preset) {
         break;
     }
 }
-EI_REPLACE_METHOD(0x00607EC0, CBriefingScreen::ViewPreset);
+EI_REWRITTEN(0x00607EC0, CBriefingScreen::ViewPreset);
 
 // --- 006062C0 -----------------------------------------------------------------------------------
 
@@ -343,4 +343,4 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         third_ = nullptr;
     }
 }
-EI_REPLACE_METHOD(0x006062C0, CBriefingScreen::HideSpeaker);
+EI_REWRITTEN(0x006062C0, CBriefingScreen::HideSpeaker);

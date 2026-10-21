@@ -163,7 +163,7 @@ void CBattleScreen::ToggleMember(int index) {
     RefreshSelection();
     if (chosen.data) gamecrt::operator_delete(chosen.data);
 }
-EI_REPLACE_METHOD(0x006379E0, CBattleScreen::ToggleMember);
+EI_REWRITTEN(0x006379E0, CBattleScreen::ToggleMember);
 
 // --- 00637190 / 006373A0: the selected members ordered at a unit -------------------------------
 
@@ -210,7 +210,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     units.vtable = ei::GamePointer<void>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }
-EI_REPLACE_METHOD(0x006373A0, CBattleScreen::OrderDeadUnit);
+EI_REWRITTEN(0x006373A0, CBattleScreen::OrderDeadUnit);
 
 // --- 00637500 / 00637750: the pending spell or quick item used ---------------------------------
 
@@ -235,7 +235,7 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
     }
     DropPendingAction(this, true);
 }
-EI_REPLACE_METHOD(0x00637500, CBattleScreen::UseOnUnit);
+EI_REWRITTEN(0x00637500, CBattleScreen::UseOnUnit);
 
 void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
     auto* party = &party_;
@@ -266,7 +266,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
     }
     DropPendingAction(this, false);
 }
-EI_REPLACE_METHOD(0x00637750, CBattleScreen::UseAtPoint);
+EI_REWRITTEN(0x00637750, CBattleScreen::UseAtPoint);
 
 // --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
 

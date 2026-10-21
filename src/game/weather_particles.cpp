@@ -327,11 +327,11 @@ int CRainSnow::DrawRain(CSceneRenderer* renderer) {
     if (vertexCount != 0) DrawParticles(renderer, vertexCount);
     return 1;
 }
-EI_REPLACE_METHOD(0x004E4240, CRainSnow::DrawRain);
+EI_REWRITTEN(0x004E4240, CRainSnow::DrawRain);
 
 int CRainSnow::DrawSnow(CSceneRenderer* renderer) {
     const int vertexCount = BuildSnow(renderer);
     if (vertexCount != 0) DrawParticles(renderer, vertexCount);
     return 1;
 }
-EI_REPLACE_METHOD(0x004E4C80, CRainSnow::DrawSnow);
+EI_REWRITTEN(0x004E4C80, CRainSnow::DrawSnow);

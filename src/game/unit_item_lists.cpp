@@ -14,7 +14,7 @@ void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTyped
     void* spell = static_cast<CItem*>(item)->spell_;
     if (spell) spells->AddTail(spell);
 }
-EI_REPLACE(0x0069FB60, GatherItem);
+EI_REWRITTEN(0x0069FB60, GatherItem);
 
 namespace {
 // Empty slots add nothing.

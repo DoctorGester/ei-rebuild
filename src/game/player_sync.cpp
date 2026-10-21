@@ -425,14 +425,14 @@ void CPlayerServer::UpdatePartyUnits() {
     }
 }
 
-EI_REPLACE_METHOD(0x0066E130, CPlayerServer::UpdatePartyUnits);
+EI_REWRITTEN(0x0066E130, CPlayerServer::UpdatePartyUnits);
 EI_REPLACE_METHOD(0x0066D270, CPlayerServer::ReceiveMessages);
-EI_REPLACE_METHOD(0x0066D100, CPlayerServer::Flush);
-EI_REPLACE_METHOD(0x0066E430, CPlayerServer::SendPartyState);
-EI_REPLACE_METHOD(0x0066DC90, CPlayerServer::ForgetObject);
-EI_REPLACE_METHOD(0x0066EF80, CPlayerServer::SendParty);
-EI_REPLACE_METHOD(0x0066D7F0, CPlayerServer::SendObjectsAdded);
-EI_REPLACE_METHOD(0x0066DAD0, CPlayerServer::SendObjectsRemoved);
-EI_REPLACE_METHOD(0x0066DDE0, CPlayerServer::SendTimedAdded);
-EI_REPLACE_METHOD(0x0066DF40, CPlayerServer::SendTimedRemoved);
+EI_REWRITTEN(0x0066D100, CPlayerServer::Flush);
+EI_REWRITTEN(0x0066E430, CPlayerServer::SendPartyState);
+EI_REWRITTEN(0x0066DC90, CPlayerServer::ForgetObject);
+EI_REWRITTEN(0x0066EF80, CPlayerServer::SendParty);
+EI_REWRITTEN(0x0066D7F0, CPlayerServer::SendObjectsAdded);
+EI_REWRITTEN(0x0066DAD0, CPlayerServer::SendObjectsRemoved);
+EI_REWRITTEN(0x0066DDE0, CPlayerServer::SendTimedAdded);
+EI_REWRITTEN(0x0066DF40, CPlayerServer::SendTimedRemoved);
 EI_REPLACE_METHOD(0x0066E7D0, CPlayerServer::SendItemsGiven);

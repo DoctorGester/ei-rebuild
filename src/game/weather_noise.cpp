@@ -67,7 +67,7 @@ void WeatherNoiseCurve::Build(float amplitude) {
         segment.quadratic = static_cast<float>((bend - (cubic + cubic)) * half);
     }
 }
-EI_REPLACE_METHOD(0x004E3980, WeatherNoiseCurve::Build);
+EI_REWRITTEN(0x004E3980, WeatherNoiseCurve::Build);
 
 // 004E3B20, a static initialiser (cdecl): the five curves built one after another with the amplitude 0.5.
 void BuildWeatherNoise() {

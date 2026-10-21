@@ -61,26 +61,26 @@ Lever::Lever() {
 }
 
 Lever* Lever::Construct() { return new (this) Lever(); }
-EI_REPLACE_METHOD(0x0052B1F0, Lever::Construct);
+EI_REWRITTEN(0x0052B1F0, Lever::Construct);
 
 Lever::~Lever() { DestroyMapObject(); }
 
 void Lever::DestructBody() { this->Lever::~Lever(); }
-EI_REPLACE_METHOD(0x0052B320, Lever::DestructBody);
+EI_REWRITTEN(0x0052B320, Lever::DestructBody);
 
 Lever* Lever::DeletingDestruct(int flags) {
     this->Lever::~Lever();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0052B300, Lever::DeletingDestruct);
+EI_REWRITTEN(0x0052B300, Lever::DeletingDestruct);
 
 int Lever::CreateLever() {
     int result = CreateMapObject();
     ResetLever(this);
     return result;
 }
-EI_REPLACE_METHOD(0x0052B370, Lever::CreateLever);
+EI_REWRITTEN(0x0052B370, Lever::CreateLever);
 
 int Lever::UpdateLever() {
     Update();
@@ -194,7 +194,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     }
     return complete;
 }
-EI_REPLACE_METHOD(0x0052B650, Lever::ReadLeverNetState);
+EI_REWRITTEN(0x0052B650, Lever::ReadLeverNetState);
 
 std::uintptr_t Lever::SetUp(const LeverSetup* setup) {
     state = setup->state;
@@ -248,10 +248,10 @@ bool Lever::ApplyKey(const LockKey* key, int) {
     MarkChanged(kLeverField);
     return true;
 }
-EI_REPLACE_METHOD(0x0052BB50, Lever::ApplyKey);
+EI_REWRITTEN(0x0052BB50, Lever::ApplyKey);
 
 BOOL Lever::KeyOpens(const LockKey* key) { return LockOpensOriginal(key, nullptr, &lock); }
-EI_REPLACE_METHOD(0x0052BBA0, Lever::KeyOpens);
+EI_REWRITTEN(0x0052BBA0, Lever::KeyOpens);
 
 double Lever::RadiusSlot() { return radius; }
 EI_REPLACE_METHOD(0x0052B3E0, Lever::RadiusSlot);

@@ -154,4 +154,4 @@ int CParticleSource::Draw(void* renderer) {
     std::memcpy(&blend, &additiveBlend, sizeof(blend));
     return draw(renderer, nullptr, blend != 0, &Vertices(), &Sprites());
 }
-EI_REPLACE_METHOD(0x004976B0, CParticleSource::Draw);
+EI_REWRITTEN(0x004976B0, CParticleSource::Draw);

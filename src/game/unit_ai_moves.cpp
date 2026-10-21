@@ -131,7 +131,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
         planned.SetAtGrow(planned.size, look);
     }
 }
-EI_REPLACE_METHOD(0x005D5B40, AIBrain::PlanLooks);
+EI_REWRITTEN(0x005D5B40, AIBrain::PlanLooks);
 
 // 005D7F80
 bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
@@ -190,7 +190,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     units.RemoveAll();
     return result;
 }
-EI_REPLACE_METHOD(0x005D7F80, AIBrain::FindStandPoint);
+EI_REWRITTEN(0x005D7F80, AIBrain::FindStandPoint);
 
 // 005D6F90
 void AIBrain::UpdateFollow() {
@@ -308,7 +308,7 @@ void AIBrain::UpdateFollow() {
         }
     }
 }
-EI_REPLACE_METHOD(0x005D6F90, AIBrain::UpdateFollow);
+EI_REWRITTEN(0x005D6F90, AIBrain::UpdateFollow);
 
 // 005D37E0
 bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* to) {
@@ -328,4 +328,4 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     SectorMapMove(TheServerWorld()->Sectors(), nullptr, unit, &saved);
     return found;
 }
-EI_REPLACE_METHOD(0x005D37E0, PlayerMode::PathClear);
+EI_REWRITTEN(0x005D37E0, PlayerMode::PathClear);

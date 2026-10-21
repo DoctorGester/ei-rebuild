@@ -147,7 +147,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x0049F4B0, IsaacRandom::FindSeedFile);
+EI_REWRITTEN(0x0049F4B0, IsaacRandom::FindSeedFile);
 
 // The original opens the file with CFile's throwing constructor inside TRY / CATCH(CFileException):
 // a failed open, seek or read clears `ok`. Here Open reports the failure and the seek and read go to
@@ -239,4 +239,4 @@ void IsaacRandom::Init() {
     count_ = 256;
     seeded_ = 1;
 }
-EI_REPLACE_METHOD(0x0049F150, IsaacRandom::Init);
+EI_REWRITTEN(0x0049F150, IsaacRandom::Init);

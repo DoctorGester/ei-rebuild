@@ -96,4 +96,4 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REPLACE_METHOD(0x005F78C0, CInterface3D::OnKeyDown);
+EI_REWRITTEN(0x005F78C0, CInterface3D::OnKeyDown);

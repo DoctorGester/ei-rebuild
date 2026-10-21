@@ -185,8 +185,8 @@ bool ServerSession::FinishMap(const stlp::string* name) {
     return true;
 }
 
-EI_REPLACE_METHOD(0x004186F0, ServerSession::SetMap);
-EI_REPLACE_METHOD(0x00418530, ServerSession::QueueMapList);
-EI_REPLACE_METHOD(0x004193F0, ServerSession::FinishMap);
+EI_REWRITTEN(0x004186F0, ServerSession::SetMap);
+EI_REWRITTEN(0x00418530, ServerSession::QueueMapList);
+EI_REWRITTEN(0x004193F0, ServerSession::FinishMap);
 
 } // namespace net

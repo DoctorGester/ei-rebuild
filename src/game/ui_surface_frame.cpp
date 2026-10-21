@@ -27,7 +27,7 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
     brush.Destruct();
     ui_native::FrameRect(this, frame, colour);
 }
-EI_REPLACE_METHOD(0x005FDCB0, CUiSurface::FrameRect);
+EI_REWRITTEN(0x005FDCB0, CUiSurface::FrameRect);
 
 void CUiSurface::Fill(COLORREF colour) {
     if (!holder_) return;
@@ -37,7 +37,7 @@ void CUiSurface::Fill(COLORREF colour) {
     dc->FillSolidRect(&whole, colour);
     ui_native::Fill(this, whole, colour);
 }
-EI_REPLACE_METHOD(0x005FE370, CUiSurface::Fill);
+EI_REWRITTEN(0x005FE370, CUiSurface::Fill);
 
 void CUiSurface::Clear() { Fill(background_); }
 EI_REPLACE_METHOD(0x005FE2F0, CUiSurface::Clear);

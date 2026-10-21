@@ -173,7 +173,7 @@ void CHudQuickItems::UseNow(int slot) {
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
-EI_REPLACE_METHOD(0x0063E020, CHudQuickItems::UseNow);
+EI_REWRITTEN(0x0063E020, CHudQuickItems::UseNow);
 
 void CHudSpellColumn::ClickAlternate(int index) {
     if (!unit_ || index < 0 || index >= count_) return;
@@ -184,4 +184,4 @@ void CHudSpellColumn::ClickAlternate(int index) {
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
-EI_REPLACE_METHOD(0x0063EF60, CHudSpellColumn::ClickAlternate);
+EI_REWRITTEN(0x0063EF60, CHudSpellColumn::ClickAlternate);

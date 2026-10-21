@@ -119,7 +119,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
     if (selected_ >= count_) selected_ = -1;
     Highlight(selected_, 1);
 }
-EI_REPLACE_METHOD(0x0063C180, CHudWeaponBar::SetUnit);
+EI_REWRITTEN(0x0063C180, CHudWeaponBar::SetUnit);
 
 // --- 0063CEE0: a quick item's tooltip ----------------------------------------------------------
 
@@ -198,7 +198,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
         *text += line;
     }
 }
-EI_REPLACE_METHOD(0x0063CEE0, CHudQuickItems::ItemTip);
+EI_REWRITTEN(0x0063CEE0, CHudQuickItems::ItemTip);
 
 // --- 0063F800: the action column's unit --------------------------------------------------------
 
@@ -229,4 +229,4 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);   // "\n"
     regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);
 }
-EI_REPLACE_METHOD(0x0063F800, CHudActionColumn::SetUnit);
+EI_REWRITTEN(0x0063F800, CHudActionColumn::SetUnit);

@@ -162,5 +162,5 @@ bool __fastcall SaveFileRead(void* outStream, unsigned magic, int minimum, int m
     return true;
 }
 
-EI_REPLACE(0x00579B80, SaveFileWrite);
-EI_REPLACE(0x00579830, SaveFileRead);
+EI_REWRITTEN(0x00579B80, SaveFileWrite);
+EI_REWRITTEN(0x00579830, SaveFileRead);

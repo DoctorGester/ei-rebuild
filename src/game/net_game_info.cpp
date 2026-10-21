@@ -92,6 +92,6 @@ int GameInfoRecord::Read(GameBuffer* buffer) {
 }
 
 EI_REPLACE_METHOD(0x00401000, GameInfoRecord::Write);
-EI_REPLACE_METHOD(0x00401170, GameInfoRecord::Read);
+EI_REWRITTEN(0x00401170, GameInfoRecord::Read);
 
 } // namespace net

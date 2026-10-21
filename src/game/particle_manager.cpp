@@ -105,8 +105,8 @@ namespace {
 int __fastcall ParticleManagerCreateHook(CParticleManager* self) { return self->CParticleManager::Create(); }
 void __fastcall ParticleManagerDestroyHook(CParticleManager* self) { self->CParticleManager::Destroy(); }
 } // namespace
-EI_REPLACE(0x00497FC0, ParticleManagerCreateHook);
-EI_REPLACE(0x00497FE0, ParticleManagerDestroyHook);
-EI_REPLACE_METHOD(0x00498400, CParticleManager::CreateSource);
-EI_REPLACE_METHOD(0x00498480, CParticleManager::TickSources);
-EI_REPLACE_METHOD(0x00498630, CParticleManager::ReleaseUnheld);
+EI_REWRITTEN(0x00497FC0, ParticleManagerCreateHook);
+EI_REWRITTEN(0x00497FE0, ParticleManagerDestroyHook);
+EI_REWRITTEN(0x00498400, CParticleManager::CreateSource);
+EI_REWRITTEN(0x00498480, CParticleManager::TickSources);
+EI_REWRITTEN(0x00498630, CParticleManager::ReleaseUnheld);

@@ -54,7 +54,7 @@ CEngineObject* ClientArrayManager::NewObjectImpl(int) {
     fog->boundsValid = 0;
     return object;
 }
-EI_REPLACE_METHOD(0x004E2290, ClientArrayManager::NewObjectImpl);
+EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObjectImpl);
 
 // 004E2990 (slot 2, Create): the texture, the tile table, then the manager's own Create (its
 // result).
@@ -70,7 +70,7 @@ int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
     }
     return self->CBaseManager::Create();
 }
-EI_REPLACE(0x004E2990, VisFogManagerCreate);
+EI_REWRITTEN(0x004E2990, VisFogManagerCreate);
 
 // 004E2850 (slot 3, Destroy; the destructor 00562DF0 calls it too): the texture dropped (null,
 // then released), every fog released, the list emptied.
@@ -85,7 +85,7 @@ void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
     }
     self->list.RemoveAll();
 }
-EI_REPLACE(0x004E2850, VisFogManagerDestroy);
+EI_REWRITTEN(0x004E2850, VisFogManagerDestroy);
 
 // 004E2760 (slot 6, the tick): every fog's tick; one that returns 0 (no cells left) leaves the list
 // and is released. Returns 0.
@@ -100,7 +100,7 @@ int __fastcall VisFogManagerTick(ClientArrayManager* self) {
     }
     return 0;
 }
-EI_REPLACE(0x004E2760, VisFogManagerTick);
+EI_REWRITTEN(0x004E2760, VisFogManagerTick);
 
 int ClientArrayManager::Create() { return VisFogManagerCreate(this); }
 void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
@@ -114,7 +114,7 @@ CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self) {
     self->list.AddTail(fog);
     return fog;
 }
-EI_REPLACE(0x004E28D0, VisFogManagerAdd);
+EI_REWRITTEN(0x004E28D0, VisFogManagerAdd);
 
 // 004E2700 (RET 4; the world's draw 00569E40). Nothing listed: 1. Otherwise the texture is made
 // sure of and bound to stage 0 (a failed bind: 0), then every fog draws; 1.
@@ -129,4 +129,4 @@ int ClientArrayManager::DrawImpl(CSceneRenderer* renderer) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004E2700, ClientArrayManager::DrawImpl);
+EI_REWRITTEN(0x004E2700, ClientArrayManager::DrawImpl);

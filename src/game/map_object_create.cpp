@@ -91,4 +91,4 @@ int CTorchObject::CreateTorch() {
     state->Reset();
     return 1;
 }
-EI_REPLACE_METHOD(0x0052BFC0, CTorchObject::CreateTorch);
+EI_REWRITTEN(0x0052BFC0, CTorchObject::CreateTorch);

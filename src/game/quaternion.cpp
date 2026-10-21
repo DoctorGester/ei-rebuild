@@ -51,14 +51,14 @@ Quaternion* Quaternion::SetAngleAxis(float angle, const Vector3& axis) {
     FromAngle(this, axis, angle);
     return this;
 }
-EI_REPLACE_METHOD(0x0049E790, Quaternion::SetAngleAxis);
+EI_REWRITTEN(0x0049E790, Quaternion::SetAngleAxis);
 
 // 0049E800. Arguments (axis, angle); returns this.
 Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
     FromAngle(this, axis, angle);
     return this;
 }
-EI_REPLACE_METHOD(0x0049E800, Quaternion::SetAxisAngle);
+EI_REWRITTEN(0x0049E800, Quaternion::SetAxisAngle);
 
 // 0049E870. *this = conj(r) * *this; r is copied first (its x negated on the FPU, y and z through
 // float temporaries: the same values, negation is exact), and every component of *this is read
@@ -129,4 +129,4 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     z = static_cast<float>(D(weightA) * D(a.z) + weightB * D(c.z));
     w = static_cast<float>(D(weightA) * D(a.w) + weightB * D(c.w));
 }
-EI_REPLACE_METHOD(0x0049ED20, Quaternion::Slerp);
+EI_REWRITTEN(0x0049ED20, Quaternion::Slerp);

@@ -64,13 +64,13 @@ void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
 // --- 00631110 / 00631030 / 00630F50: titles ----------------------------------------------------
 
 mfc::CString* CGlobalMap::AllodTitle(mfc::CString* out, const char* allod) { return PlaceTitle(out, kAllodPrefix, allod); }
-EI_REPLACE_METHOD(0x00631110, CGlobalMap::AllodTitle);
+EI_REWRITTEN(0x00631110, CGlobalMap::AllodTitle);
 
 mfc::CString* CGlobalMap::ZoneTitle(mfc::CString* out, const char* zone) { return PlaceTitle(out, kZonePrefix, zone); }
-EI_REPLACE_METHOD(0x00631030, CGlobalMap::ZoneTitle);
+EI_REWRITTEN(0x00631030, CGlobalMap::ZoneTitle);
 
 mfc::CString* CGlobalMap::QuestTitle(mfc::CString* out, const char* quest) { return PlaceTitle(out, kQuestPrefix, quest); }
-EI_REPLACE_METHOD(0x00630F50, CGlobalMap::QuestTitle);
+EI_REWRITTEN(0x00630F50, CGlobalMap::QuestTitle);
 
 // --- 00630E00 / 00630CC0: positions -------------------------------------------------------------
 
@@ -99,13 +99,13 @@ Vector3* CGlobalMap::ZonePosition(Vector3* out, const char* zone) {
     ReadMapPosition(out, kZoneEntry, zone, true);
     return out;
 }
-EI_REPLACE_METHOD(0x00630E00, CGlobalMap::ZonePosition);
+EI_REWRITTEN(0x00630E00, CGlobalMap::ZonePosition);
 
 Vector3* CGlobalMap::QuestPosition(Vector3* out, const char* quest) {
     ReadMapPosition(out, kQuestEntry, quest, false);
     return out;
 }
-EI_REPLACE_METHOD(0x00630CC0, CGlobalMap::QuestPosition);
+EI_REWRITTEN(0x00630CC0, CGlobalMap::QuestPosition);
 
 // --- 00630860: the selected zone -----------------------------------------------------------------
 
@@ -138,7 +138,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         for (int k = 0; k < 3; ++k) marker->tint_[k] = i == link ? fog_[k] : 1.0f;
     }
 }
-EI_REPLACE_METHOD(0x00630860, CGlobalMap::SelectZone);
+EI_REWRITTEN(0x00630860, CGlobalMap::SelectZone);
 
 // --- 00630670: the pick picture ------------------------------------------------------------------
 
@@ -193,4 +193,4 @@ void CGlobalMap::SetWeather() {
         WeatherSetRampOriginal(weather_, nullptr, weatherTable_[16], weatherTable_[17], 2.0f);
     }
 }
-EI_REPLACE_METHOD(0x0062EE90, CGlobalMap::SetWeather);
+EI_REWRITTEN(0x0062EE90, CGlobalMap::SetWeather);

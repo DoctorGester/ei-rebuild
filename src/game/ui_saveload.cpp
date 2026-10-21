@@ -242,7 +242,7 @@ void SaveEntry::MakeTitle(int) {
         title.Format(kPlainFormat, static_cast<const char*>(name));
     }
 }
-EI_REPLACE_METHOD(0x00653A50, SaveEntry::MakeTitle);
+EI_REWRITTEN(0x00653A50, SaveEntry::MakeTitle);
 
 // --- 00655550 ------------------------------------------------------------------------------------
 
@@ -576,14 +576,14 @@ mfc::CString SaveEntry::ZoneTitle() const {
     if (title.GetLength() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
-EI_REPLACE_METHOD(0x00653BD0, SaveEntry::ZoneTitle);
+EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
     mfc::CString title = FirstLineOf("allod ", map_);  // 00794200: the key has a space
     if (title.GetLength() == 0) title = "Unknown";
     return title;
 }
-EI_REPLACE_METHOD(0x00653CD0, SaveEntry::AllodTitle);
+EI_REWRITTEN(0x00653CD0, SaveEntry::AllodTitle);
 
 SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
     title_ = from->title_;
@@ -597,7 +597,7 @@ SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
     broken_ = from->broken_;
     return this;
 }
-EI_REPLACE_METHOD(0x006538E0, SaveEntry::Assign);
+EI_REWRITTEN(0x006538E0, SaveEntry::Assign);
 
 SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
     new (&title_) mfc::CString();
@@ -617,7 +617,7 @@ void SaveEntry::Destruct() {
     folder_.~CString();
     title_.~CString();
 }
-EI_REPLACE_METHOD(0x00656720, SaveEntry::Destruct);
+EI_REWRITTEN(0x00656720, SaveEntry::Destruct);
 
 void CSaveLoadWindow::Confirm() {
     if (selected_ < 0) return;
@@ -632,14 +632,14 @@ void CSaveLoadWindow::Confirm() {
     }
     Ask(interface_, "overwrite", "overwrite_msg", kAskOverwrite);
 }
-EI_REPLACE_METHOD(0x00655290, CSaveLoadWindow::Confirm);
+EI_REWRITTEN(0x00655290, CSaveLoadWindow::Confirm);
 
 void CSaveLoadWindow::AskDelete() {
     if (selected_ < 0 || (isSave_ && selected_ == 0)) return;
     interface_->PlaySound(kSoundDelete, 0);
     Ask(interface_, "delete", "delete_msg", kAskDelete);
 }
-EI_REPLACE_METHOD(0x00655380, CSaveLoadWindow::AskDelete);
+EI_REWRITTEN(0x00655380, CSaveLoadWindow::AskDelete);
 
 void CSaveLoadWindow::LoadSelected() {
     int selected = selected_;
@@ -652,7 +652,7 @@ void CSaveLoadWindow::LoadSelected() {
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entriesBegin_[selected_].folder_, 0);
 }
-EI_REPLACE_METHOD(0x00655A10, CSaveLoadWindow::LoadSelected);
+EI_REWRITTEN(0x00655A10, CSaveLoadWindow::LoadSelected);
 
 void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;

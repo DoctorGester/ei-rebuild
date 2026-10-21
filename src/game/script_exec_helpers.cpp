@@ -110,7 +110,7 @@ void __fastcall ScriptAreaAddRect(mfc::CArray<ScriptAreaPart>* area, void*, floa
     part.y2 = y2;
     AddPart(area, part);
 }
-EI_REPLACE(0x004B1ED0, ScriptAreaAddRect);
+EI_REWRITTEN(0x004B1ED0, ScriptAreaAddRect);
 
 void __fastcall ScriptAreaAddRound(mfc::CArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
     ScriptAreaPart part = {};
@@ -120,7 +120,7 @@ void __fastcall ScriptAreaAddRound(mfc::CArray<ScriptAreaPart>* area, void*, flo
     part.x2OrRadiusSquared = radius * radius;
     AddPart(area, part);
 }
-EI_REPLACE(0x004B2070, ScriptAreaAddRound);
+EI_REWRITTEN(0x004B2070, ScriptAreaAddRound);
 
 void CScript::DeleteArea(int id) {
     // CArray of areas at +0x194 (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
@@ -138,7 +138,7 @@ void CScript::DeleteArea(int id) {
         --i;   // the next area moved into this slot
     }
 }
-EI_REPLACE_METHOD(0x004BCF30, CScript::DeleteArea);
+EI_REWRITTEN(0x004BCF30, CScript::DeleteArea);
 
 // ---- Point lights -------------------------------------------------------------------------------
 
@@ -183,7 +183,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     slot->step.z = 0.0f;
     slot->steps = 0;
 }
-EI_REPLACE_METHOD(0x004BD6A0, CScript::CreatePointLight);
+EI_REWRITTEN(0x004BD6A0, CScript::CreatePointLight);
 
 void CScript::MovePointLight(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
@@ -319,7 +319,7 @@ void __fastcall ScriptQuestFinish(CScript* script) {
     ScriptLoadLine((void*)script, nullptr, (const mfc::CString*)&text, 1);
     QuestName() = game::EmptyText();   // the empty string constant
 }
-EI_REPLACE(0x004BAAB0, ScriptQuestFinish);
+EI_REWRITTEN(0x004BAAB0, ScriptQuestFinish);
 
 // ---- The quest's name (script.h) -----------------------------------------------------------------------------------
 

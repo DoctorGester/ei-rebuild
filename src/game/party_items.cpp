@@ -168,7 +168,7 @@ CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     ++copy->refCount_;
     return copy;
 }
-EI_REPLACE_METHOD(0x00661DB0, CParty::AddItem);
+EI_REWRITTEN(0x00661DB0, CParty::AddItem);
 
 CItem* CParty::RemoveItem(CItem* item, int all) {
     for (int i = 0; i < items_.size; ++i) {
@@ -206,13 +206,13 @@ EI_REPLACE_METHOD(0x00661FE0, CParty::ReleaseAllItems);
 // --- The party unit records' item lists ---------------------------------------------------------
 
 CItem* PartyUnitRecord::AddWeapon(CItem* item) { return AddEntry(weapons, item); }
-EI_REPLACE_METHOD(0x006608D0, PartyUnitRecord::AddWeapon);
+EI_REWRITTEN(0x006608D0, PartyUnitRecord::AddWeapon);
 CItem* PartyUnitRecord::AddQuickItem(CItem* item) { return AddEntry(quickItems, item); }
-EI_REPLACE_METHOD(0x00660AB0, PartyUnitRecord::AddQuickItem);
+EI_REWRITTEN(0x00660AB0, PartyUnitRecord::AddQuickItem);
 CItem* PartyUnitRecord::AddArmor(CItem* item) { return AddEntry(armor, item); }
-EI_REPLACE_METHOD(0x00660C90, PartyUnitRecord::AddArmor);
+EI_REWRITTEN(0x00660C90, PartyUnitRecord::AddArmor);
 CItem* PartyUnitRecord::AddSpell(CItem* item) { return AddEntry(spells, item); }
-EI_REPLACE_METHOD(0x00660E70, PartyUnitRecord::AddSpell);
+EI_REWRITTEN(0x00660E70, PartyUnitRecord::AddSpell);
 
 void PartyUnitRecord::RemoveWeapon(CItem* entry) { RemoveEntry(weapons, entry); }
 void PartyUnitRecord::RemoveQuickItem(CItem* entry) { RemoveEntry(quickItems, entry); }

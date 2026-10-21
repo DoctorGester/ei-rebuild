@@ -40,7 +40,7 @@ CResourceManager* CResourceManager::Construct() {
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x00674D90, CResourceManager::Construct);
+EI_REWRITTEN(0x00674D90, CResourceManager::Construct);
 
 CResourceManager::CResourceManager() { std::memset(&archives_, 0, sizeof(archives_)); }
 
@@ -49,7 +49,7 @@ void CResourceManager::Destruct() {
     TearDownResourceManager();
     DestructBody();
 }
-EI_REPLACE_METHOD(0x00674DF0, CResourceManager::Destruct);
+EI_REWRITTEN(0x00674DF0, CResourceManager::Destruct);
 
 CResourceManager::~CResourceManager() { TearDownResourceManager(); }
 
@@ -87,7 +87,7 @@ BOOL CResourceManager::AddArchiveImpl(const char* path) {
 BOOL CResourceManager::AddMmioArchive(const char* path) {
     return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);
 }
-EI_REPLACE_METHOD(0x005AA360, CResourceManager::AddMmioArchive);
+EI_REWRITTEN(0x005AA360, CResourceManager::AddMmioArchive);
 
 BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*)) {
     for (const ArchiveEntry& e : archives_)

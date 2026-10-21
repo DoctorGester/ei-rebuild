@@ -133,7 +133,7 @@ bool Connection::Tick(double dt) {
     CurrentConnection() = nullptr;
     return alive;
 }
-EI_REPLACE_METHOD(0x00433BD0, Connection::Tick);
+EI_REWRITTEN(0x00433BD0, Connection::Tick);
 
 } // namespace net
 
@@ -183,6 +183,6 @@ void Connection::Delivered(SentPacket* packet) {
         }
     }
 }
-EI_REPLACE_METHOD(0x00433FA0, Connection::Delivered);
+EI_REWRITTEN(0x00433FA0, Connection::Delivered);
 
 } // namespace net

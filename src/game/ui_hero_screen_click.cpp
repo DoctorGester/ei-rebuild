@@ -422,7 +422,7 @@ void CMpHeroScreen::Rename() {
 namespace {
 void __fastcall MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
 } // namespace
-EI_REPLACE(0x00618060, MpHeroRename);
+EI_REWRITTEN(0x00618060, MpHeroRename);
 
 // --- 00619150: the voice's sound ----------------------------------------------------------------
 
@@ -469,7 +469,7 @@ void CMpHeroScreen::PlayVoice() {
 namespace {
 void __fastcall MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
 } // namespace
-EI_REPLACE(0x00619150, MpHeroPlayVoice);
+EI_REWRITTEN(0x00619150, MpHeroPlayVoice);
 
 // --- 006183B0: continue -------------------------------------------------------------------------
 
@@ -510,7 +510,7 @@ void CMpHeroScreen::Continue() {
 namespace {
 void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 } // namespace
-EI_REPLACE(0x006183B0, MpHeroContinue);
+EI_REWRITTEN(0x006183B0, MpHeroContinue);
 
 // --- 00618850 / 006186F0: the new hero's statistics and its creation --------------------------------
 
@@ -565,7 +565,7 @@ void CMpHeroScreen::CreateHero() {
 namespace {
 void __fastcall MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 } // namespace
-EI_REPLACE(0x006186F0, MpHeroCreate);
+EI_REWRITTEN(0x006186F0, MpHeroCreate);
 // --- 0061A350 / 00617E40 / 00615940: a hero deleted, the message box's answer ------------------------
 
 MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
@@ -573,10 +573,10 @@ MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
     file = other->file;
     return this;
 }
-EI_REPLACE_METHOD(0x0061A350, MpHeroRecord::Assign);
+EI_REWRITTEN(0x0061A350, MpHeroRecord::Assign);
 
 void MpHeroRoster::Select(const MpHeroRecord* hero) { current.Assign(hero); }
-EI_REPLACE_METHOD(0x00662F80, MpHeroRoster::Select);
+EI_REWRITTEN(0x00662F80, MpHeroRoster::Select);
 
 MpHeroRecord* MpHeroRecord::Construct() {
     Party()->Construct();   // 00661050 by address: its wrapper runs
@@ -588,21 +588,21 @@ void MpHeroRecord::Destruct() {
     file.~CString();
     PartyRecordsDestructOriginal(party);   // 006611D0 by address: its wrapper runs
 }
-EI_REPLACE_METHOD(0x00619560, MpHeroRecord::Destruct);
+EI_REWRITTEN(0x00619560, MpHeroRecord::Destruct);
 
 MpHeroRecord* MpHeroRecord::DeletingDestruct(unsigned flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00664AE0, MpHeroRecord::DeletingDestruct);
+EI_REWRITTEN(0x00664AE0, MpHeroRecord::DeletingDestruct);
 
 MpHeroRecord* __fastcall MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
                                                  MpHeroRecord* dest) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++dest) dest->Assign(first);
     return dest;
 }
-EI_REPLACE(0x00664410, MpHeroRecord::CopyRange);
+EI_REWRITTEN(0x00664410, MpHeroRecord::CopyRange);
 
 namespace {
 // The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
@@ -645,7 +645,7 @@ void CMpHeroScreen::RefreshHeroScroll() {
 namespace {
 void __fastcall MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
 } // namespace
-EI_REPLACE(0x00617E40, MpHeroDelete);
+EI_REWRITTEN(0x00617E40, MpHeroDelete);
 
 void CMpHeroScreen::OnMessageResult(int result) {
     if (result == kAnswerOk) MpHeroDelete(this);
@@ -742,4 +742,4 @@ void CMpHeroScreen::AddNewHero() {
 namespace {
 void __fastcall MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
 } // namespace
-EI_REPLACE(0x00617A50, MpHeroAddNew);
+EI_REWRITTEN(0x00617A50, MpHeroAddNew);

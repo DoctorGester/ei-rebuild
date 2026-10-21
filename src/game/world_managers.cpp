@@ -96,8 +96,8 @@ CPlayerManager* CPlayerManager::DeleteScalar(unsigned flags) {   // 0055F330
 }
 EI_REPLACE(0x0055F310, PlayerManagerClassName);
 EI_REPLACE(0x0055F320, PlayerManagerClassId);
-EI_REPLACE(0x0055F350, PlayerManagerDestruct);
-EI_REPLACE_METHOD(0x0055F330, CPlayerManager::DeleteScalar);
+EI_REWRITTEN(0x0055F350, PlayerManagerDestruct);
+EI_REWRITTEN(0x0055F330, CPlayerManager::DeleteScalar);
 
 CEffectManager::CEffectManager() {}
 CEffectManager* CEffectManager::Construct() { return new (this) CEffectManager(); }
@@ -116,11 +116,11 @@ CBaseManager* CEffectManager::DeleteScalar(unsigned flags) {   // 0055F380
 }
 EI_REPLACE(0x0055F360, EffectManagerClassName);
 EI_REPLACE(0x0055F370, EffectManagerClassId);
-EI_REPLACE(0x0055F3A0, EffectManagerDestruct);
-EI_REPLACE_METHOD(0x0055F380, CEffectManager::DeleteScalar);
+EI_REWRITTEN(0x0055F3A0, EffectManagerDestruct);
+EI_REWRITTEN(0x0055F380, CEffectManager::DeleteScalar);
 // 0067E150 (slot 2; A-H24).
 BOOL __fastcall EffectManagerCreate(CEffectManager* self) { return self->CEffectManager::Create(); }
-EI_REPLACE(0x0067E150, EffectManagerCreate);
+EI_REWRITTEN(0x0067E150, EffectManagerCreate);
 
 CItemManager::CItemManager() {}
 CItemManager* CItemManager::Construct() { return new (this) CItemManager(); }
@@ -138,5 +138,5 @@ CItemManager* CItemManager::DeleteScalar(unsigned flags) {   // 0055F3E0
 }
 EI_REPLACE(0x0055F3C0, ItemManagerClassName);
 EI_REPLACE(0x0055F3D0, ItemManagerClassId);
-EI_REPLACE(0x0055F400, ItemManagerDestruct);
-EI_REPLACE_METHOD(0x0055F3E0, CItemManager::DeleteScalar);
+EI_REWRITTEN(0x0055F400, ItemManagerDestruct);
+EI_REWRITTEN(0x0055F3E0, CItemManager::DeleteScalar);

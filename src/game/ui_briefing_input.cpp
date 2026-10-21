@@ -277,5 +277,5 @@ namespace {
 EI_REPLACE_METHOD(0x006030F0, InputForward<&CBriefingScreen::OnLeftDown>::Call);
 EI_REPLACE_METHOD(0x00603360, InputForward<&CBriefingScreen::OnLeftDouble>::Call);
 EI_REPLACE_METHOD(0x00603D00, InputForward<&CBriefingScreen::OnMouseMove>::Call);
-EI_REPLACE_METHOD(0x00608B60, CBriefingScreen::OpenTopics);
-EI_REPLACE_METHOD(0x006071E0, CBriefingScreen::DrawTopics);
+EI_REWRITTEN(0x00608B60, CBriefingScreen::OpenTopics);
+EI_REWRITTEN(0x006071E0, CBriefingScreen::DrawTopics);

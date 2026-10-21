@@ -116,6 +116,6 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
     coordMap.FreeData();
     pointMap.FreeData();
 }
-EI_REPLACE(0x0044C4A0, WeldMeshVertices);
+EI_REWRITTEN(0x0044C4A0, WeldMeshVertices);
 
 } // namespace scene

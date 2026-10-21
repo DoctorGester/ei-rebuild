@@ -61,7 +61,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
     SurfaceDrawText(surface, nullptr, name, rect, 0, kRowColour, kLeft, 1);
     SurfaceDrawText(surface, nullptr, number, rect, 0, kRowColour, kRight, 1);
 }
-EI_REPLACE_METHOD(0x006242E0, CHeroStatsPanel::DrawRow);
+EI_REWRITTEN(0x006242E0, CHeroStatsPanel::DrawRow);
 
 // --- 00624590: a body part's armour ------------------------------------------------------------------
 
@@ -94,4 +94,4 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     number.Format(kArmourFormat, static_cast<double>(PartArmour(part)));
     SurfaceDrawText(surface, nullptr, number, rect, 0, kRowColour, kRight, 1);
 }
-EI_REPLACE_METHOD(0x00624590, CHeroStatsPanel::DrawPart);
+EI_REWRITTEN(0x00624590, CHeroStatsPanel::DrawPart);

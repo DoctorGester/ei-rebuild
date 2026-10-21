@@ -120,7 +120,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     if (Version(stream) < kVersionRecordText6) return;
     ReadText(stream, texts[6]);
 }
-EI_REPLACE_METHOD(0x0065F9B0, PartyUnitRecord::Load);
+EI_REWRITTEN(0x0065F9B0, PartyUnitRecord::Load);
 
 void PartyUnitRecord::Save(CStream* stream) {
     WriteText(stream, texts[0]);
@@ -220,4 +220,4 @@ void CParty::ArchiveParty(ChunkArchive* ar) {
         ar->StreamField(kStreamField, &held.stream);
     }
 }
-EI_REPLACE_METHOD(0x006617F0, CParty::ArchiveParty);
+EI_REWRITTEN(0x006617F0, CParty::ArchiveParty);

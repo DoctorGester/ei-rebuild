@@ -82,7 +82,7 @@ int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* ou
     *out = rest.Left(count);
     return pos + count;
 }
-EI_REPLACE_METHOD(0x0065D970, CUiScrollText::NextToken);
+EI_REWRITTEN(0x0065D970, CUiScrollText::NextToken);
 
 // --- 0065D4B0 ------------------------------------------------------------------------------------
 
@@ -150,7 +150,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         }
     } while (pos < text->GetLength());
 }
-EI_REPLACE_METHOD(0x0065D4B0, CUiScrollText::Tokenize);
+EI_REWRITTEN(0x0065D4B0, CUiScrollText::Tokenize);
 
 // --- 0065D150 --------------------------------------------------------------------------------------
 
@@ -251,7 +251,7 @@ void CUiScrollText::DrawLines(int scroll) {
     } while (drawn < textRect_.bottom - textRect_.top - offset && line < lines_.size);
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x0065D150, CUiScrollText::DrawLines);
+EI_REWRITTEN(0x0065D150, CUiScrollText::DrawLines);
 
 // --- A-H20: construction, texts, layout ----------------------------------------------------------
 
@@ -296,7 +296,7 @@ CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT
     align_ = kJustified;
     return this;
 }
-EI_REPLACE_METHOD(0x0065CC00, CUiScrollText::Construct);
+EI_REWRITTEN(0x0065CC00, CUiScrollText::Construct);
 
 void CUiScrollText::DeleteTokens() {
     for (int i = 0; i < tokens_.size; ++i)
@@ -323,7 +323,7 @@ void CUiScrollText::DestroyBody() {
     tokens_.FreeData();
     CUiScrollbar::DestroyBody();
 }
-EI_REPLACE_METHOD(0x0065CE20, CUiScrollText::DestroyBody);
+EI_REWRITTEN(0x0065CE20, CUiScrollText::DestroyBody);
 
 void CUiScrollText::AddText(const char* text) {
     CallSetPosition(maxPosition_);
@@ -335,7 +335,7 @@ void CUiScrollText::AddText(const char* text) {
     LayOut(this);
     CallSetPosition(Maximum() - before + position);
 }
-EI_REPLACE_METHOD(0x0065CF30, CUiScrollText::AddText);
+EI_REWRITTEN(0x0065CF30, CUiScrollText::AddText);
 
 void CUiScrollText::SetText(const char* text) {
     Clear();
@@ -343,7 +343,7 @@ void CUiScrollText::SetText(const char* text) {
     LayOut(this);
     CallSetPosition(0);
 }
-EI_REPLACE_METHOD(0x0065CFE0, CUiScrollText::SetText);
+EI_REWRITTEN(0x0065CFE0, CUiScrollText::SetText);
 
 void CUiScrollText::SetRect(const RECT* rect) {
     CUiScrollbar::SetRect(rect);
@@ -362,7 +362,7 @@ void CUiScrollText::Clear() {
     DeleteTokens();
     tokens_.SetSize(0, -1);
 }
-EI_REPLACE_METHOD(0x0065D450, CUiScrollText::Clear);
+EI_REWRITTEN(0x0065D450, CUiScrollText::Clear);
 
 void CUiScrollText::Layout() {
     int total = 0;
@@ -404,7 +404,7 @@ void CUiScrollText::Layout() {
     }
     SetMaximum(textRect_.top - textRect_.bottom + total);
 }
-EI_REPLACE_METHOD(0x0065DAA0, CUiScrollText::Layout);
+EI_REWRITTEN(0x0065DAA0, CUiScrollText::Layout);
 
 // --- The scroll bar's maximum ------------------------------------------------------------------
 
@@ -430,4 +430,4 @@ void UiWordToken::DestroyWord() {
     text_.~CString();
     ei::SetVtable(this, UiTextToken::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x0065D910, UiWordToken::DestroyWord);
+EI_REWRITTEN(0x0065D910, UiWordToken::DestroyWord);

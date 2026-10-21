@@ -79,7 +79,7 @@ void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream) {
         text->~CString();
     }
 }
-EI_REPLACE(0x006773A0, ReadSavedStrings);
+EI_REWRITTEN(0x006773A0, ReadSavedStrings);
 
 void CEffect::MarkChanged() {
     flags_ |= 2;

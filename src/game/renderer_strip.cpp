@@ -165,7 +165,7 @@ float* __fastcall StripDirection(float* out, int index, int mode, const void* ar
     }
     return out;
 }
-EI_REPLACE(0x00502AC0, EmitSection);
+EI_REWRITTEN(0x00502AC0, EmitSection);
 
 // 00502A20 (thiscall on the device holder, the renderer's device_). Draws an indexed triangle list
 // of TL vertices under the device's critical section (007AEE78); with distanceFog_ set the

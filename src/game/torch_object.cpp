@@ -26,21 +26,21 @@ constexpr int kTorchField = 4;
 CTorchObject::CTorchObject() { spec = nullptr; }
 
 CTorchObject* CTorchObject::Construct() { return new (this) CTorchObject(); }
-EI_REPLACE_METHOD(0x0052BEE0, CTorchObject::Construct);
+EI_REWRITTEN(0x0052BEE0, CTorchObject::Construct);
 
 CTorchObject::~CTorchObject() {
     if (spec) spec->Release();
 }
 
 void CTorchObject::DestructBody() { this->CTorchObject::~CTorchObject(); }
-EI_REPLACE_METHOD(0x0052BF60, CTorchObject::DestructBody);
+EI_REWRITTEN(0x0052BF60, CTorchObject::DestructBody);
 
 CTorchObject* CTorchObject::DeletingDestruct(int flags) {
     this->CTorchObject::~CTorchObject();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0052BF40, CTorchObject::DeletingDestruct);
+EI_REWRITTEN(0x0052BF40, CTorchObject::DeletingDestruct);
 
 void CTorchObject::DestroyTorch() {
     CTorchObjectSpec* old = spec;

@@ -98,6 +98,6 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     coderCursor->End();
     GrowingBufferDestruct(&buffer);
 }
-EI_REPLACE_METHOD(0x0041D600, ClientSession::ReadServerListImpl);
+EI_REWRITTEN(0x0041D600, ClientSession::ReadServerListImpl);
 
 } // namespace net

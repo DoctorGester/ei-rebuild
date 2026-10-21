@@ -56,7 +56,7 @@ char* UnitPrototypeTable::FindByName(const char* name) {
     char* record = byName[pairKey];
     return record;
 }
-EI_REPLACE_METHOD(0x00514930, UnitPrototypeTable::FindByName);
+EI_REWRITTEN(0x00514930, UnitPrototypeTable::FindByName);
 
 // --- Server controller ------------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&companion->vitals.mana, &companion->vitals.maxMana, 4);
     return reinterpret_cast<std::uintptr_t>(companion);
 }
-EI_REPLACE_METHOD(0x00552F40, CUnitServer::SetStats);
+EI_REWRITTEN(0x00552F40, CUnitServer::SetStats);
 
 void CUnitServer::Shout(std::uint32_t code) {
     if (code > kLastPlainRemark && code != kExtraRemark) return;
@@ -81,7 +81,7 @@ void CUnitServer::Shout(std::uint32_t code) {
     if (!unit->player) return;
     PlayerSendObject0BOriginal(PlayerMessages(unit->player), nullptr, unit, code);
 }
-EI_REPLACE_METHOD(0x00552780, CUnitServer::Shout);
+EI_REWRITTEN(0x00552780, CUnitServer::Shout);
 
 // --- Broken equipment -------------------------------------------------------------------------
 

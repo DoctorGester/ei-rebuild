@@ -47,7 +47,7 @@ CUnitShape* CUnitShape::Construct(float newRadius) {
     }
     return this;
 }
-EI_REPLACE_METHOD(0x005B3440, CUnitShape::Construct);
+EI_REWRITTEN(0x005B3440, CUnitShape::Construct);
 
 int CUnitShape::Empty() {
     SetVtable(this, kUnitShapeVtable);

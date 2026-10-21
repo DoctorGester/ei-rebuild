@@ -129,7 +129,7 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
     name2 = text;
     return &name2;
 }
-EI_REPLACE_METHOD(0x0050F150, CMapObject::SetSecondName);
+EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
 void CMapObject::SaveTransformSlot(void* file) { Transform()->CTransformObject::SaveTransformImpl(file); }
 EI_REPLACE_METHOD(0x00516350, CMapObject::SaveTransformSlot);

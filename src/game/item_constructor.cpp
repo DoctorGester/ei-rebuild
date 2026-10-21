@@ -228,7 +228,7 @@ BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
     flags_ |= kFlagConstructing;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A5C50, CItemConstructor::BeginCreateItem);
+EI_REWRITTEN(0x006A5C50, CItemConstructor::BeginCreateItem);
 
 BOOL CItemConstructor::SetMaterial(char* material) {
     material_ = material;
@@ -388,7 +388,7 @@ BOOL CItemConstructor::Build() {
     item_->count_ = static_cast<std::uint32_t>(count_);
     return 1;
 }
-EI_REPLACE_METHOD(0x006A5D60, CItemConstructor::Build);
+EI_REWRITTEN(0x006A5D60, CItemConstructor::Build);
 
 // --- The item manager's CreateItem (006AC970) ----------------------------------------------------
 
@@ -587,7 +587,7 @@ CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spell
     if (item) item->AttachSpell(spell);
     return item;
 }
-EI_REPLACE_METHOD(0x006AD1E0, CItemManager::CreateSpellItem);
+EI_REWRITTEN(0x006AD1E0, CItemManager::CreateSpellItem);
 
 namespace {
 
@@ -614,10 +614,10 @@ void CItemManager::ListArmorNames(mfc::CStringArray* names) { ListRecordNames<Ar
 void CItemManager::ListQuickItemNames(mfc::CStringArray* names) {
     ListRecordNames<QuickItemRecord>(QuickItems(), names, HeadName);
 }
-EI_REPLACE_METHOD(0x006AD260, CItemManager::ListMaterialNames);
-EI_REPLACE_METHOD(0x006AD2F0, CItemManager::ListWeaponNames);
-EI_REPLACE_METHOD(0x006AD380, CItemManager::ListArmorNames);
-EI_REPLACE_METHOD(0x006AD410, CItemManager::ListQuickItemNames);
+EI_REWRITTEN(0x006AD260, CItemManager::ListMaterialNames);
+EI_REWRITTEN(0x006AD2F0, CItemManager::ListWeaponNames);
+EI_REWRITTEN(0x006AD380, CItemManager::ListArmorNames);
+EI_REWRITTEN(0x006AD410, CItemManager::ListQuickItemNames);
 
 bool CItemConstructor::MagicCapacity(float* level, float* power) {
     if ((item_->GetClassId() == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return false;

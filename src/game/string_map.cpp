@@ -142,7 +142,7 @@ void CDebugPanel::Init(CInterface3D* ui) {
     RECT rect = {10, 10, 0x122, 0x122};
     SetRect(&rect);
 }
-EI_REPLACE_METHOD(0x00444A70, CDebugPanel::Init);
+EI_REWRITTEN(0x00444A70, CDebugPanel::Init);
 
 // 00444BD0: frees the panel surface and the font.
 void CDebugPanel::Release() {
@@ -154,7 +154,7 @@ void CDebugPanel::Release() {
     if (ui_gdi::GameFont* font = font_) font->Delete();
     font_ = nullptr;
 }
-EI_REPLACE_METHOD(0x00444BD0, CDebugPanel::Release);
+EI_REWRITTEN(0x00444BD0, CDebugPanel::Release);
 
 // 00444C10: the panel's rectangle: fitted by the interface, at least 100 x 15 and at most the
 // screen; a shown panel is made again.
@@ -181,7 +181,7 @@ void CDebugPanel::SetRect(const RECT* rect) {
         Show(1);
     }
 }
-EI_REPLACE_METHOD(0x00444C10, CDebugPanel::SetRect);
+EI_REWRITTEN(0x00444C10, CDebugPanel::SetRect);
 
 // 00444CD0: redraws at most every 500 ms, then the panel surface's slot 0 (Blit).
 void CDebugPanel::Tick() {
@@ -248,6 +248,6 @@ void CDebugPanel::Show(std::uint8_t show) {
     }
     surface_ = nullptr;
 }
-EI_REPLACE_METHOD(0x00444F50, CDebugPanel::Show);
+EI_REWRITTEN(0x00444F50, CDebugPanel::Show);
 
 } // namespace strmap

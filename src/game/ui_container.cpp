@@ -81,7 +81,7 @@ void CUiContainer::AddInput(UiInputSide* input) {
     inputsEnd_ = fresh + size + 1;
     inputsCapacity_ = fresh + length;
 }
-EI_REPLACE_METHOD(0x00600CC0, CUiContainer::AddInput);
+EI_REWRITTEN(0x00600CC0, CUiContainer::AddInput);
 
 // --- Per-frame slots ---------------------------------------------------------------------------
 

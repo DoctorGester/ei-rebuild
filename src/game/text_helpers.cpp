@@ -23,7 +23,7 @@ const char* TextTokenizer::Next() {
     if (next == -1) return nullptr;
     return word;
 }
-EI_REPLACE_METHOD(0x00445D30, TextTokenizer::Next);
+EI_REWRITTEN(0x00445D30, TextTokenizer::Next);
 
 const char* TextTokenizer::Start() {
     position = 0;
@@ -31,7 +31,7 @@ const char* TextTokenizer::Start() {
 }
 
 int __fastcall RemoveCarriageReturns(mfc::CString* text) { return text->Remove('\r'); }
-EI_REPLACE(0x004461E0, RemoveCarriageReturns);
+EI_REWRITTEN(0x004461E0, RemoveCarriageReturns);
 
 mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArray* names, mfc::CString name) {
     for (int i = 0; i < names->size; ++i) {
@@ -43,4 +43,4 @@ mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArr
     new (out) mfc::CString(name);
     return out;
 }
-EI_REPLACE(0x00447F50, FindListedName);
+EI_REWRITTEN(0x00447F50, FindListedName);

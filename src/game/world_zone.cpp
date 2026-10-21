@@ -274,10 +274,10 @@ void __stdcall SelectLoadingMovie(const char* zone) {
     }
 }
 
-EI_REPLACE_METHOD(0x005915E0, CWorldServer::SetZoneExits);
-EI_REPLACE_METHOD(0x005910A0, CWorldServer::AddUnitToServer);
-EI_REPLACE_METHOD(0x00596030, CWorldServer::LoadMapObjects);
-EI_REPLACE_METHOD(0x00595AB0, CWorldServer::LoadMobFile);
-EI_REPLACE_METHOD(0x00596C60, CWorldServer::ClearMapObjects);
-EI_REPLACE_METHOD(0x00596730, CWorldServer::SaveMapObjects);
+EI_REWRITTEN(0x005915E0, CWorldServer::SetZoneExits);
+EI_REWRITTEN(0x005910A0, CWorldServer::AddUnitToServer);
+EI_REWRITTEN(0x00596030, CWorldServer::LoadMapObjects);
+EI_REWRITTEN(0x00595AB0, CWorldServer::LoadMobFile);
+EI_REWRITTEN(0x00596C60, CWorldServer::ClearMapObjects);
+EI_REWRITTEN(0x00596730, CWorldServer::SaveMapObjects);
 EI_REPLACE(0x00595080, SelectLoadingMovie);

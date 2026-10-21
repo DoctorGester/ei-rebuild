@@ -136,7 +136,7 @@ AIRef* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRef* out) {
     if (value) value->Release();
     return out;
 }
-EI_REPLACE(0x005D8D50, CorpsesPopHead);
+EI_REWRITTEN(0x005D8D50, CorpsesPopHead);
 
 // --- Think ---------------------------------------------------------------------------------------
 
@@ -259,7 +259,7 @@ void AIBrain::Think() {
         return;
     }
 }
-EI_REPLACE_METHOD(0x005D53B0, AIBrain::Think);
+EI_REWRITTEN(0x005D53B0, AIBrain::Think);
 
 // --- Mode lookups --------------------------------------------------------------------------------
 
@@ -354,7 +354,7 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     EI_NAN_AUDIT(ey, ex);
     return LengthSquared2DUnrounded(ey, ex) < radiusSq;
 }
-EI_REPLACE_METHOD(0x005D50E0, AIBrain::IsNearPath);
+EI_REWRITTEN(0x005D50E0, AIBrain::IsNearPath);
 
 std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
     if (newOwner == owner) return reinterpret_cast<std::uint32_t>(newOwner);
@@ -427,7 +427,7 @@ void AIBrain::UpdateMove() {
     }
     if (CurrentWorldTick() > actionTime) actionTime = kNoTime;
 }
-EI_REPLACE_METHOD(0x005D7520, AIBrain::UpdateMove);
+EI_REWRITTEN(0x005D7520, AIBrain::UpdateMove);
 
 void AIBrain::UpdateAttack() {
     if (!target) {
@@ -530,7 +530,7 @@ void AIBrain::Walk(const Vector3* point, int run, int unknown) {
     action = kActionWalk;
     owner->OrderMove(&point->x, run, unknown, 1000000.0f);    // 0x49742400
 }
-EI_REPLACE_METHOD(0x005D7AE0, AIBrain::Walk);
+EI_REWRITTEN(0x005D7AE0, AIBrain::Walk);
 
 void AIBrain::TurnTowards(const Vector3* direction, float time) {
     action = kActionWalk;

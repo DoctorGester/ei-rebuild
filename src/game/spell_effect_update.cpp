@@ -410,7 +410,7 @@ void CSpellEffect::UpdateMissile(int type) {
     default: break;
     }
 }
-EI_REPLACE_METHOD(0x00681BB0, CSpellEffect::UpdateMissile);
+EI_REWRITTEN(0x00681BB0, CSpellEffect::UpdateMissile);
 
 void CSpellEffect::UpdateLasting(int type) {
     UnitList units;   // the inline CPtrList the fireworks and clairvoyance fill
@@ -448,7 +448,7 @@ void CSpellEffect::UpdateLasting(int type) {
     units.vtable = kPtrListVtable;
     units.RemoveAll();
 }
-EI_REPLACE_METHOD(0x00682650, CSpellEffect::UpdateLasting);
+EI_REWRITTEN(0x00682650, CSpellEffect::UpdateLasting);
 
 void CSpellEffect::ReleaseVisual() { Assign(this, &visual, nullptr); }
 

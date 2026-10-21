@@ -782,14 +782,14 @@ SharedObject* SharedObject::CopyFrom(const SharedObject* from) {
     ObjectPtrArrayCopy(&objects, &from->objects);
     return this;
 }
-EI_REPLACE_METHOD(0x0059B510, SharedObject::CopyFrom);
+EI_REWRITTEN(0x0059B510, SharedObject::CopyFrom);
 
 SharedObject* SharedObject::DeletingDestruct(unsigned flags) {
     mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(objects));
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0059DDE0, SharedObject::DeletingDestruct);
+EI_REWRITTEN(0x0059DDE0, SharedObject::DeletingDestruct);
 
 void SharedObject::Load(WorldStream* stream) {
     SharedObject* entry = this;
@@ -903,9 +903,9 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
 }
 EI_REPLACE_METHOD(0x00595480, CWorldServer::NewZone);
 
-EI_REPLACE_METHOD(0x005956E0, CWorldServer::PrepareSave);
-EI_REPLACE_METHOD(0x00589CA0, SharedObject::Load);
-EI_REPLACE_METHOD(0x005947E0, CWorldServer::AddSharedObject);
-EI_REPLACE_METHOD(0x00596E70, CWorldServer::LoadSave);
-EI_REPLACE_METHOD(0x00597BD0, CWorldServer::SaveWorld);
-EI_REPLACE_METHOD(0x00596900, CWorldServer::LoadSavedMapObjects);
+EI_REWRITTEN(0x005956E0, CWorldServer::PrepareSave);
+EI_REWRITTEN(0x00589CA0, SharedObject::Load);
+EI_REWRITTEN(0x005947E0, CWorldServer::AddSharedObject);
+EI_REWRITTEN(0x00596E70, CWorldServer::LoadSave);
+EI_REWRITTEN(0x00597BD0, CWorldServer::SaveWorld);
+EI_REWRITTEN(0x00596900, CWorldServer::LoadSavedMapObjects);

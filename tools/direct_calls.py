@@ -54,7 +54,8 @@ SKIP = os.path.join(ROOT, 'config', 'direct_calls_skip.csv')
 UNDNAME_DIRS = glob.glob(r'E:\bin\vs\buildtools\VC\Tools\MSVC\*\bin\Hostx86\x86')
 
 ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
-REGISTRATION = re.compile(r'\bEI_REPLACE(_METHOD|_DISPATCH|_SHORT|_STANDALONE)?\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*,\s*&?\s*([\w:<>, ]+?)\s*\)')
+# EI_REWRITTEN (C20d) names a rewrite whose registration was dropped (group 1 None: kind '').
+REGISTRATION = re.compile(r'\b(?:EI_REPLACE(_METHOD|_DISPATCH|_SHORT|_STANDALONE)?|EI_REWRITTEN)\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*,\s*&?\s*([\w:<>, ]+?)\s*\)')
 RECORD = re.compile(r'\bEI_RECORD\s*\(\s*0[xX]([0-9A-Fa-f]+)')
 STAND_IN = re.compile(r'\bReplayStandIn\s*\(\s*0[xX]([0-9A-Fa-f]+)')
 REBIRTH = re.compile(r'\bEI_REBIRTH_IMPLEMENTS\s*\(\s*0[xX]([0-9A-Fa-f]+)')

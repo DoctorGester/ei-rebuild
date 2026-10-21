@@ -153,11 +153,11 @@ void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
     gamecrt::operator_delete(groups.data);
 }
 
-EI_REPLACE(0x004BC6C0, ScriptFloatsDestruct);
-EI_REPLACE(0x004BC770, ScriptStringsDestruct);
-EI_REPLACE(0x004BC8A0, ScriptObjectsDestruct);
-EI_REPLACE(0x004BC810, ScriptNamesDestruct);
-EI_REPLACE(0x004BC9A0, ScriptRefArrayDestruct);
-EI_REPLACE(0x004BCA20, ScriptGroupArrayDestruct);
-EI_REPLACE(0x004BCAE0, ScriptRunDestruct);
-EI_REPLACE(0x004C81B0, ScriptGroupsDestruct);
+EI_REWRITTEN(0x004BC6C0, ScriptFloatsDestruct);
+EI_REWRITTEN(0x004BC770, ScriptStringsDestruct);
+EI_REWRITTEN(0x004BC8A0, ScriptObjectsDestruct);
+EI_REWRITTEN(0x004BC810, ScriptNamesDestruct);
+EI_REWRITTEN(0x004BC9A0, ScriptRefArrayDestruct);
+EI_REWRITTEN(0x004BCA20, ScriptGroupArrayDestruct);
+EI_REWRITTEN(0x004BCAE0, ScriptRunDestruct);
+EI_REWRITTEN(0x004C81B0, ScriptGroupsDestruct);

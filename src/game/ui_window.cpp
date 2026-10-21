@@ -108,7 +108,7 @@ void CUiRegion::ClearShape() {
     enabled_ = false;
     rectOnly_ = false;
 }
-EI_REPLACE_METHOD(0x005FCA40, CUiRegion::ClearShape);
+EI_REWRITTEN(0x005FCA40, CUiRegion::ClearShape);
 
 void CUiRegion::AddPoint(int x, int y) {
     if (widescreen::Active()) x += widescreen::PanelOffset();
@@ -143,7 +143,7 @@ void CUiRegion::OnMouseMove(int x, int y) {
     }
     tip_->OnMouseMove(x, y);
 }
-EI_REPLACE_METHOD(0x005FC880, CUiRegion::OnMouseMove);
+EI_REWRITTEN(0x005FC880, CUiRegion::OnMouseMove);
 
 // --- CUiWindow -------------------------------------------------------------------------------
 
@@ -155,14 +155,14 @@ int CUiWindow::RegionAt(int x, int y) const {
     }
     return -1;
 }
-EI_REPLACE_METHOD(0x005FFCC0, CUiWindow::RegionAt);
+EI_REWRITTEN(0x005FFCC0, CUiWindow::RegionAt);
 
 BOOL CUiWindow::ContainsPoint(int x, int y) const {
     POINT point{x, y};
     interface_->CallScalePointFromScreen(&point);
     return gameapi::PtInRect(&rect_, point);
 }
-EI_REPLACE_METHOD(0x005FFD30, CUiWindow::ContainsPoint);
+EI_REWRITTEN(0x005FFD30, CUiWindow::ContainsPoint);
 
 void CUiWindow::UpdateRegionTips(int) {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
@@ -213,7 +213,7 @@ void CUiWindow::AddObject(CEngineObject* object) {
     objects_.Add(object);
     ++object->refCount_;
 }
-EI_REPLACE_METHOD(0x005FEDD0, CUiWindow::AddObject);
+EI_REWRITTEN(0x005FEDD0, CUiWindow::AddObject);
 
 void CUiWindow::RemoveObject(CEngineObject* object) {
     if (!object) return;
@@ -252,13 +252,13 @@ void CUiWindow::ClearSceneObjects() {
     for (int i = 0; i < sceneObjects_.size; ++i) sceneObjects_.data[i]->Release();
     sceneObjects_.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005FF7D0, CUiWindow::ClearSceneObjects);
+EI_REWRITTEN(0x005FF7D0, CUiWindow::ClearSceneObjects);
 
 void CUiWindow::ClearObjects() {
     for (int i = 0; i < objects_.size; ++i) objects_.data[i]->Release();
     objects_.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005FF1E0, CUiWindow::ClearObjects);
+EI_REWRITTEN(0x005FF1E0, CUiWindow::ClearObjects);
 
 // Returns `surface` (the original leaves its argument in EAX; the titles' Create 0062B7D0 freezes
 // the surface through the result).
@@ -270,7 +270,7 @@ CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
     if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, true);
     return surface;
 }
-EI_REPLACE_METHOD(0x005FFA90, CUiWindow::AddSurface);
+EI_REWRITTEN(0x005FFA90, CUiWindow::AddSurface);
 
 void CUiWindow::RemoveSurfaceAt(int index) {
     if (CUiSurface* surface = surfaces_.data[index]) {
@@ -280,7 +280,7 @@ void CUiWindow::RemoveSurfaceAt(int index) {
     }
     surfaces_.RemoveAt(index);
 }
-EI_REPLACE_METHOD(0x005FFBF0, CUiWindow::RemoveSurfaceAt);
+EI_REWRITTEN(0x005FFBF0, CUiWindow::RemoveSurfaceAt);
 
 void CUiWindow::ClearSurfaces() {
     for (int i = 0; i < surfaces_.size; ++i) {
@@ -292,7 +292,7 @@ void CUiWindow::ClearSurfaces() {
     }
     surfaces_.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005FFC50, CUiWindow::ClearSurfaces);
+EI_REWRITTEN(0x005FFC50, CUiWindow::ClearSurfaces);
 
 CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
     void* manager = TheTextureManager();
@@ -305,7 +305,7 @@ CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* di
     ++texture->refCount_;
     return texture;
 }
-EI_REPLACE_METHOD(0x005FEF20, CUiWindow::LoadTexture);
+EI_REWRITTEN(0x005FEF20, CUiWindow::LoadTexture);
 
 CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
     CEngineObject* texture = TheTextureManager()->NewTexture(width, height, kind);
@@ -317,7 +317,7 @@ CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
     ++texture->refCount_;
     return texture;
 }
-EI_REPLACE_METHOD(0x005FF0B0, CUiWindow::CreateTexture);
+EI_REWRITTEN(0x005FF0B0, CUiWindow::CreateTexture);
 
 void CUiWindow::ShowSurfaces(int show) {
     for (int i = 0; i < surfaces_.size; ++i) {
@@ -355,7 +355,7 @@ CUiRegion* CUiWindow::AddRegion() {
     regions_.Add(region);
     return region;
 }
-EI_REPLACE_METHOD(0x005FF830, CUiWindow::AddRegion);
+EI_REWRITTEN(0x005FF830, CUiWindow::AddRegion);
 
 void CUiWindow::RemoveRegionAt(int index) {
     if (CUiRegion* region = regions_.data[index]) {
@@ -364,7 +364,7 @@ void CUiWindow::RemoveRegionAt(int index) {
     }
     regions_.RemoveAt(index);
 }
-EI_REPLACE_METHOD(0x005FF9C0, CUiWindow::RemoveRegionAt);
+EI_REWRITTEN(0x005FF9C0, CUiWindow::RemoveRegionAt);
 
 void CUiWindow::ClearRegions() {
     for (int i = 0; i < regions_.size; ++i) {
@@ -375,7 +375,7 @@ void CUiWindow::ClearRegions() {
     }
     regions_.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005FFA20, CUiWindow::ClearRegions);
+EI_REWRITTEN(0x005FFA20, CUiWindow::ClearRegions);
 
 CUiModel* CUiWindow::AddModel() {
     auto* model = static_cast<CUiModel*>(gamecrt::operator_new(sizeof(CUiModel)));
@@ -384,7 +384,7 @@ CUiModel* CUiWindow::AddModel() {
     models_.Add(model);
     return model;
 }
-EI_REPLACE_METHOD(0x005FFD80, CUiWindow::AddModel);
+EI_REWRITTEN(0x005FFD80, CUiWindow::AddModel);
 
 void CUiWindow::ClearModels() {
     for (int i = 0; i < models_.size; ++i) {
@@ -395,7 +395,7 @@ void CUiWindow::ClearModels() {
     }
     models_.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
+EI_REWRITTEN(0x005FFF40, CUiWindow::ClearModels);
 
 // --- 005FF460: ReplaceSceneObject ------------------------------------------------------------------
 
@@ -442,7 +442,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
+EI_REWRITTEN(0x005FF460, CUiWindow::ReplaceSceneObject);
 
 // --- 005FF3C0: AddSprite ---------------------------------------------------------------------------
 
@@ -461,7 +461,7 @@ CUiMesh* CUiWindow::AddSprite(const char* name) {
     sprite->texture_ = objects_.size > 0 ? objects_.data[0] : nullptr;
     return sprite;
 }
-EI_REPLACE_METHOD(0x005FF3C0, CUiWindow::AddSprite);
+EI_REWRITTEN(0x005FF3C0, CUiWindow::AddSprite);
 
 // --- 005FE700: the constructor -----------------------------------------------------------------
 
@@ -529,7 +529,7 @@ void CUiContainer::AddChild(CUiWindow* child) {
     if (!child) return;
     children_.Add(child);
 }
-EI_REPLACE_METHOD(0x00600D30, CUiContainer::AddChild);
+EI_REWRITTEN(0x00600D30, CUiContainer::AddChild);
 
 // --- 005FE930: the destructor body -------------------------------------------------------------
 
@@ -578,4 +578,4 @@ void CUiWindow::DestroyBase() {
     vtable_ = ei::GamePointer<void*>(0x0073BA38);
     reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x005FE930, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x005FE930, CUiWindow::DestroyBase);

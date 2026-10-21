@@ -189,5 +189,5 @@ namespace {
 // Slots 2 and 14's entry points (rule 4).
 int __fastcall ItemManagerCreateHook(CItemManager* self) { return self->CItemManager::Create(); }
 } // namespace
-EI_REPLACE(0x006AC780, ItemManagerCreateHook);
-EI_REPLACE_METHOD(0x006AC810, CItemManager::NewObjectImpl);
+EI_REWRITTEN(0x006AC780, ItemManagerCreateHook);
+EI_REWRITTEN(0x006AC810, CItemManager::NewObjectImpl);

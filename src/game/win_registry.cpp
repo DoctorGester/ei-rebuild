@@ -102,19 +102,19 @@ void CWinRegistry::Close() {
 BOOL CWinRegistry::SetDWord(const char* subkey, const char* name, std::uint32_t value) {
     return SetDWordValue(key_, subkey, name, value);
 }
-EI_REPLACE_METHOD(0x00697CA0, CWinRegistry::SetDWord);
+EI_REWRITTEN(0x00697CA0, CWinRegistry::SetDWord);
 
 BOOL CWinRegistry::SetInt(const char* subkey, const char* name, int value) {
     return SetDWordValue(key_, subkey, name, static_cast<std::uint32_t>(value));
 }
-EI_REPLACE_METHOD(0x00697D40, CWinRegistry::SetInt);
+EI_REWRITTEN(0x00697D40, CWinRegistry::SetInt);
 
 BOOL CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
     HKEY key;
     if (!CreateKey(key_, subkey, &key, "CWinRegistry::SetBinInt().\nUnable to open key.\n")) return 0;
     return SetValue(key, name, REG_BINARY, &bits, 4, "CWinRegistry::SetBinInt().\nUnable to access registry.\n");
 }
-EI_REPLACE_METHOD(0x00697E80, CWinRegistry::SetFloat);
+EI_REWRITTEN(0x00697E80, CWinRegistry::SetFloat);
 
 BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, mfc::CString value) {
     HKEY key;
@@ -122,22 +122,22 @@ BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, mfc::CStri
     return SetValue(key, name, REG_SZ, static_cast<const char*>(value), static_cast<DWORD>(value.GetLength() + 1),
                     "CWinRegistry::SetStringInt().\nUnable to access registry.\n");
 }
-EI_REPLACE_METHOD(0x00697460, CWinRegistry::SetStringInt);
+EI_REWRITTEN(0x00697460, CWinRegistry::SetStringInt);
 
 BOOL CWinRegistry::SetString(const char* subkey, const char* name, mfc::CString value) {
     return SetStringInt(subkey, name, value);
 }
-EI_REPLACE_METHOD(0x00697FC0, CWinRegistry::SetString);
+EI_REWRITTEN(0x00697FC0, CWinRegistry::SetString);
 
 std::uint32_t CWinRegistry::GetDWord(const char* subkey, const char* name, std::uint32_t defaultValue) {
     return GetDWordValue(key_, subkey, name, defaultValue);
 }
-EI_REPLACE_METHOD(0x00698570, CWinRegistry::GetDWord);
+EI_REWRITTEN(0x00698570, CWinRegistry::GetDWord);
 
 int CWinRegistry::GetInt(const char* subkey, const char* name, int defaultValue) {
     return static_cast<int>(GetDWordValue(key_, subkey, name, static_cast<std::uint32_t>(defaultValue)));
 }
-EI_REPLACE_METHOD(0x00698610, CWinRegistry::GetInt);
+EI_REWRITTEN(0x00698610, CWinRegistry::GetInt);
 
 double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits) {
     // The value is read into the stack slot of `subkey`, so a shorter value keeps the pointer's
@@ -154,7 +154,7 @@ double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_
     std::memcpy(&value, &bits, 4);
     return value;
 }
-EI_REPLACE_METHOD(0x00698750, CWinRegistry::GetFloat);
+EI_REWRITTEN(0x00698750, CWinRegistry::GetFloat);
 
 mfc::CString CWinRegistry::GetStringInt(const char* subkey, const char* name, mfc::CString defaultValue) {
     HKEY key;
@@ -183,9 +183,9 @@ mfc::CString CWinRegistry::GetStringInt(const char* subkey, const char* name, mf
     }
     return text;
 }
-EI_REPLACE_METHOD(0x006976B0, CWinRegistry::GetStringInt);
+EI_REWRITTEN(0x006976B0, CWinRegistry::GetStringInt);
 
 mfc::CString CWinRegistry::GetString(const char* subkey, const char* name, mfc::CString defaultValue) {
     return GetStringInt(subkey, name, defaultValue);
 }
-EI_REPLACE_METHOD(0x006988A0, CWinRegistry::GetString);
+EI_REWRITTEN(0x006988A0, CWinRegistry::GetString);

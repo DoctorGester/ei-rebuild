@@ -62,13 +62,13 @@ ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
 ScriptDecl* CScript::NewCommandList() {
     return AppendBlock(&blocks_, 0);
 }
-EI_REPLACE_METHOD(0x004BF540, CScript::NewCommandList);
+EI_REWRITTEN(0x004BF540, CScript::NewCommandList);
 
 // 004BF900 CScript::NewWorldScript.
 ScriptDecl* CScript::NewWorldScript() {
     return AppendBlock(&worldBlocks_, 0x80000000u);
 }
-EI_REPLACE_METHOD(0x004BF900, CScript::NewWorldScript);
+EI_REWRITTEN(0x004BF900, CScript::NewWorldScript);
 
 // 004BCE10 CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
 // 004CDB30 constructs the slot), the empty temporary's parts are copied in (004CE2F0) and the last
@@ -85,7 +85,7 @@ mfc::CArray<ScriptAreaPart>* CScript::FindArea(int id) {
     areas.data[areas.size - 1].id = id;
     return &areas.data[areas.size - 1].parts;
 }
-EI_REPLACE_METHOD(0x004BCE10, CScript::FindArea);
+EI_REWRITTEN(0x004BCE10, CScript::FindArea);
 
 // 004B59F0 CScript::NewTempObject: CList<ScriptObjectRef>::AddTail(null reference) inlined. A new
 // CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
@@ -118,7 +118,7 @@ ScriptObjectRef* CScript::NewTempObject() {
     list.tail = node;
     return ref;
 }
-EI_REPLACE_METHOD(0x004B59F0, CScript::NewTempObject);
+EI_REWRITTEN(0x004B59F0, CScript::NewTempObject);
 
 // 004B5F70 SSCCmd::Clear. The float array is emptied inline (its growBy kept), the others through
 // their SetSize(0, -1).
@@ -138,5 +138,5 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     mfc::impl::ArrayAs<recordarrays::SubCalls>(cmd->subCalls).SetSize(0, -1);
     cmd->calledScript = nullptr;
 }
-EI_REPLACE(0x004B5F70, ScriptCmdClear);
+EI_REWRITTEN(0x004B5F70, ScriptCmdClear);
 

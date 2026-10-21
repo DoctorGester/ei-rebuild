@@ -205,7 +205,7 @@ void CEffectTornado::SaveState(void* stream) {
 
 EI_REPLACE_METHOD(0x0067D7E0, CEffectTornado::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067D970, CEffectTornado::Reset);
-EI_REPLACE_METHOD(0x0067DA50, CEffectTornado::Launch);
+EI_REWRITTEN(0x0067DA50, CEffectTornado::Launch);
 EI_REPLACE_METHOD(0x0067DBD0, CEffectTornado::Tick);
 EI_REPLACE_METHOD(0x0067DDD0, CEffectTornado::Unpack);
 EI_REPLACE_METHOD(0x0067DEB0, CEffectTornado::Pack);

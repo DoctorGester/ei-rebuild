@@ -63,7 +63,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
     FreeCandidates(candidates);
     return picked;
 }
-EI_REPLACE_METHOD(0x005190C0, CObject3D::RandomAnimation);
+EI_REWRITTEN(0x005190C0, CObject3D::RandomAnimation);
 
 FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     AnimationDatabase* database = Animations();
@@ -85,7 +85,7 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     FreeCandidates(candidates);
     return picked;
 }
-EI_REPLACE_METHOD(0x00519380, CObject3D::RandomAnimationOfKind);
+EI_REWRITTEN(0x00519380, CObject3D::RandomAnimationOfKind);
 
 // The candidate lists' helpers are the same code as AlignedPtrArray's.
 EI_REPLACE_METHOD(0x0051A010, AlignedPtrArray::SetAtGrow);

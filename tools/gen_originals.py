@@ -23,7 +23,7 @@ REPORT = os.path.join(ROOT, 'docs', 'originals-report.md')
 # Where one declaration ends and the next begins: a statement end, a brace, a preprocessor line, or
 # the previous forwarder (which has no ';' of its own).
 _BOUNDARY = re.compile(r'[;{}]|' + srcscan.ORIGINAL.pattern + r'|^[ \t]*#[^\n]*(?:\\\n[^\n]*)*', re.M)
-_REPLACE = re.compile(r'\bEI_REPLACE(?:_METHOD)?\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*,\s*&?([^)]*?)\s*\)')
+_REPLACE = re.compile(r'\b(?:EI_REPLACE(?:_METHOD)?|EI_REWRITTEN)\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*,\s*&?([^)]*?)\s*\)')
 # ui_hud.cpp's input shims register through EI_REPLACE inside the macro: (address, class, method).
 _UI_HANDLER = re.compile(r'\bUI_(?:INPUT|WHEEL)_HANDLER\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*,\s*(\w+)\s*,\s*(\w+)\s*\)')
 

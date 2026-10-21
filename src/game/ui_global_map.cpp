@@ -729,7 +729,7 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self) {
     CStringDestroy(&self->allodTitle_);
     DestroyContainerBody(self);
 }
-EI_REPLACE(0x005F6920, GlobalMapDestroy);
+EI_REWRITTEN(0x005F6920, GlobalMapDestroy);
 
 // --- 00631CC0: the zone array's SetAtGrow --------------------------------------------------------
 
@@ -756,4 +756,4 @@ void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int in
     slot.name = zone->name;
     slot.title = zone->title;
 }
-EI_REPLACE(0x00631CC0, GlobalMapZonesSetAtGrow);
+EI_REWRITTEN(0x00631CC0, GlobalMapZonesSetAtGrow);

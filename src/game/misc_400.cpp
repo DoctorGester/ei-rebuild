@@ -91,10 +91,10 @@ std::uint32_t BufferCursor::Start(std::uint8_t* first, std::uint32_t, std::uint3
     return 0;
 }
 
-EI_REPLACE_METHOD(0x0042D690, CClientSpecificManager::Construct);
-EI_REPLACE(0x0042D6F0, misc400::ManagerDestruct);
+EI_REWRITTEN(0x0042D690, CClientSpecificManager::Construct);
+EI_REWRITTEN(0x0042D6F0, misc400::ManagerDestruct);
 EI_REPLACE(0x0042D6B0, misc400::ManagerClassName);
 EI_REPLACE(0x0042D6C0, misc400::ManagerClassId);
-EI_REPLACE_METHOD(0x0042D700, CClientSpecificManager::NewObjectImpl);
-EI_REPLACE(0x00406B30, misc400::AlignedWords);
-EI_REPLACE(0x00406B50, misc400::AlignedDwords);
+EI_REWRITTEN(0x0042D700, CClientSpecificManager::NewObjectImpl);
+EI_REWRITTEN(0x00406B30, misc400::AlignedWords);
+EI_REWRITTEN(0x00406B50, misc400::AlignedDwords);

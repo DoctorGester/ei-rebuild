@@ -367,4 +367,4 @@ int CWorldServer::SendZone(WorldPlayer* player) {
 }
 
 EI_REPLACE_METHOD(0x0058B750, CWorldServer::SyncPlayer);
-EI_REPLACE_METHOD(0x0058C890, CWorldServer::SendZone);
+EI_REWRITTEN(0x0058C890, CWorldServer::SendZone);

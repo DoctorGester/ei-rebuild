@@ -648,4 +648,4 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
 EI_REPLACE_METHOD(0x005927C0, CWorldServer::CreateObject);
 
 EI_REPLACE_METHOD(0x0058EF20, CWorldServer::CreateUnits);
-EI_REPLACE_METHOD(0x0058ECE0, CWorldServer::UseQuickItem);
+EI_REWRITTEN(0x0058ECE0, CWorldServer::UseQuickItem);

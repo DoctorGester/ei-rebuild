@@ -117,7 +117,7 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
     SetRenderState(renderer->device_->d3dDevice_, kZEnable, 1);
     return 1;
 }
-EI_REPLACE_METHOD(0x005E69C0, CScreenFade::Draw);
+EI_REWRITTEN(0x005E69C0, CScreenFade::Draw);
 
 void CScreenFade::Start(int ms) {
     rate_ = kOpaque / static_cast<float>(ms);
@@ -125,7 +125,7 @@ void CScreenFade::Start(int ms) {
     lastTime_ = gameapi::timeGetTime();
     active_ = 1;
 }
-EI_REPLACE_METHOD(0x005E6B90, CScreenFade::Start);
+EI_REWRITTEN(0x005E6B90, CScreenFade::Start);
 
 int CInterface3D::Draw() {
     CloseAllPending();

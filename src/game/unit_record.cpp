@@ -156,6 +156,6 @@ void UnitRecord::ApplyTo(CUnit* target) {
     for (int i = 0; i < Count(r, field::kArmour); ++i) unit->EquipArmour(factory->CreateItem(Ids(r, field::kArmour)[i]));
     for (int i = 0; i < Count(r, field::kWeapons); ++i) unit->AddWeapon(factory->CreateItem(Ids(r, field::kWeapons)[i]));
 }
-EI_REPLACE_METHOD(0x00477B00, UnitRecord::ApplyTo);
+EI_REWRITTEN(0x00477B00, UnitRecord::ApplyTo);
 
 } // namespace unitrecord

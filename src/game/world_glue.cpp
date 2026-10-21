@@ -44,7 +44,7 @@ int __stdcall FinishQuestMap(const char* name) {
     stlp::string text(name);
     return server->FinishMap(reinterpret_cast<const stlp::string*>(&text)) ? 1 : 0;
 }
-EI_REPLACE(0x0057FB90, FinishQuestMap);
+EI_REWRITTEN(0x0057FB90, FinishQuestMap);
 
 namespace {
 CScript* CommandScript() { return ei::GamePointer<CScript>(0x007C29CC); }
@@ -63,7 +63,7 @@ int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error
     }
     return loaded;
 }
-EI_REPLACE(0x005785D0, RunScriptText);
+EI_REWRITTEN(0x005785D0, RunScriptText);
 
 void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     WorldPlayer* player;
@@ -78,7 +78,7 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     }
     player->variables.CopyPrefixed(prefix, out);
 }
-EI_REPLACE(0x00578C40, PlayerZeroVariables);
+EI_REWRITTEN(0x00578C40, PlayerZeroVariables);
 
 namespace {
 mfc::CString& StartFolder() { return TheStartFolder(); }
@@ -91,7 +91,7 @@ void __cdecl StoreStartFolder() {
     mfc::CString text(folder);
     StartFolder() = static_cast<const char*>(mfc::operator+(text, '\\'));
 }
-EI_REPLACE(0x0055EA10, StoreStartFolder);
+EI_REWRITTEN(0x0055EA10, StoreStartFolder);
 
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------
 
@@ -119,7 +119,7 @@ double GameServerTimeOfDay() {
     CWorldServer* world = TheServerWorld();
     return std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, kHoursPerDay);
 }
-EI_REPLACE(0x005786E0, GameServerTimeOfDay);
+EI_REWRITTEN(0x005786E0, GameServerTimeOfDay);
 
 void __stdcall GamePassTime(float offset) {
     // FCOMP 0 with TEST AH,1: nothing for a negative offset or a NaN.
@@ -141,7 +141,7 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     SectorMapMove(world->Sectors(), nullptr, unit, &target);   // 005C11D0: Rebirth patches it (rule 9)
     unit->MarkChanged(2);
 }
-EI_REPLACE(0x00578760, GameSetUnitHeight);
+EI_REWRITTEN(0x00578760, GameSetUnitHeight);
 
 std::uint8_t GameServerPaused() { return TheServerWorld()->paused_; }
 
@@ -152,14 +152,14 @@ void GameStopCameraRecording() {
     CameraCloseFile(world->camera_);
     world->flags_ &= ~kClientRecordingCamera;
 }
-EI_REPLACE(0x005787D0, GameStopCameraRecording);
+EI_REWRITTEN(0x005787D0, GameStopCameraRecording);
 
 int __stdcall GameStartCameraRecording(const char* name) {
     CWorldClient* world = TheClientWorld();
     world->flags_ |= kClientRecordingCamera;
     return world->camera_->OpenFile(name);
 }
-EI_REPLACE(0x005787F0, GameStartCameraRecording);
+EI_REWRITTEN(0x005787F0, GameStartCameraRecording);
 
 int __stdcall GamePlayCameraPath(const char* name, int flag) {
     CWorldClient* world = TheClientWorld();
@@ -170,7 +170,7 @@ int __stdcall GamePlayCameraPath(const char* name, int flag) {
     camera->timeOffset_ = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_ - camera->keys_[0].time);
     return 1;
 }
-EI_REPLACE(0x00578820, GamePlayCameraPath);
+EI_REWRITTEN(0x00578820, GamePlayCameraPath);
 
 int __stdcall GameShowCameraPath(const char* name) {
     CWorldClient* world = TheClientWorld();
@@ -178,13 +178,13 @@ int __stdcall GameShowCameraPath(const char* name) {
     if (!loaded) return loaded;
     return world->camera_->PlaybackStart();
 }
-EI_REPLACE(0x00578880, GameShowCameraPath);
+EI_REWRITTEN(0x00578880, GameShowCameraPath);
 
 std::uint32_t GameCameraPathPlaying() { return TheClientWorld()->camera_->flags_ & CCamera::kPlaying; }
 
 // 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
 int GameRender() { return ClientRenderOriginal(TheClientWorld()); }
-EI_REPLACE(0x00578910, GameRender);
+EI_REWRITTEN(0x00578910, GameRender);
 
 void __stdcall GameStopSounds(int stopStream) { TheClientWorld()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
 

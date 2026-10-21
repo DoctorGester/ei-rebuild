@@ -103,7 +103,7 @@ void CUiSurface::ReleaseContents() {
     if (holder) holder->Release();
     gameapi::SetRectEmpty(&rect_);
 }
-EI_REPLACE_METHOD(0x005FD120, CUiSurface::ReleaseContents);
+EI_REWRITTEN(0x005FD120, CUiSurface::ReleaseContents);
 
 // 005FCF80 (thiscall: interface, picture name by value; RET 8). A window showing the picture
 // "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: GetFile, CloseFile), through a
@@ -140,7 +140,7 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     self->flags_ |= CUiSurface::kFromPicture;
     return raw;
 }
-EI_REPLACE(0x005FCF80, UiSurfaceFromPicture);
+EI_REWRITTEN(0x005FCF80, UiSurfaceFromPicture);
 
 // 005FCC00 (the scale flag is a byte).
 CUiSurface* CUiSurface::Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag) {
@@ -152,7 +152,7 @@ CUiSurface* CUiSurface::Construct(CInterface3D* ui, int left, int top, int right
     Finish(this, static_cast<char>(flag) != 0);
     return this;
 }
-EI_REPLACE_METHOD(0x005FCC00, CUiSurface::Construct);
+EI_REWRITTEN(0x005FCC00, CUiSurface::Construct);
 
 // 005FCDD0.
 CUiSurface* CUiSurface::ConstructOnRect(CInterface3D* ui, const RECT* rect, int format) {
@@ -161,4 +161,4 @@ CUiSurface* CUiSurface::ConstructOnRect(CInterface3D* ui, const RECT* rect, int 
     Finish(this, true);
     return this;
 }
-EI_REPLACE_METHOD(0x005FCDD0, CUiSurface::ConstructOnRect);
+EI_REWRITTEN(0x005FCDD0, CUiSurface::ConstructOnRect);

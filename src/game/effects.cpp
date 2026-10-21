@@ -144,7 +144,7 @@ int CParticleSource::UpdateCloud(Particle* p) {
     p->color = ((static_cast<std::uint32_t>(step) * 255 + a) << 24) | rgb;
     return 1;
 }
-EI_REPLACE_METHOD(0x0048B570, CParticleSource::UpdateCloud);
+EI_REWRITTEN(0x0048B570, CParticleSource::UpdateCloud);
 
 // Smoke puffs: rise and spread for the first two frames, then grow; past frame 7 they drift with
 // the wind and fire smoke dies (other smoke lives on, a quarter of the time each later frame).
@@ -182,7 +182,7 @@ int CParticleSource::UpdateSmoke(Particle* p) {
     p->pos.z = push * windDirection.z + p->pos.z;
     return 1;
 }
-EI_REPLACE_METHOD(0x0048EC20, CParticleSource::UpdateSmoke);
+EI_REWRITTEN(0x0048EC20, CParticleSource::UpdateSmoke);
 
 // A new smoke puff: a random offset in the source's spread (smaller puffs, 40% of them, spread
 // wider), half of it applied at once, and a random height up to `height`.
@@ -218,7 +218,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     std::memcpy(&p->drift.z, &height, sizeof(float));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048E9E0, CParticleSource::EmitSmoke);
+EI_REWRITTEN(0x0048E9E0, CParticleSource::EmitSmoke);
 
 // Nuke debris: fly up and fall back with growing opacity; on landing (falling below the source's
 // mid height) it turns to dust that spreads, grows and fades over 14 ticks.
@@ -253,7 +253,7 @@ int CParticleSource::UpdateDebris(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00489190, CParticleSource::UpdateDebris);
+EI_REWRITTEN(0x00489190, CParticleSource::UpdateDebris);
 
 // Orbiting particles (spheres, Antimagic): rotate the offset about z by the angle in element 1
 // (cos, sin at its +0x18/+0x1C), flatten it onto the plane through element 1's normal at distance
@@ -309,7 +309,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0048E7C0, CParticleSource::UpdateOrbit);
+EI_REWRITTEN(0x0048E7C0, CParticleSource::UpdateOrbit);
 
 // --- Element updates ----------------------------------------------------------------------------
 
@@ -330,7 +330,7 @@ void CParticleSource::TickTendril(ParticleElement*) {
     int cap = maxParticles / 16;
     emitCount = count < cap ? count : cap;
 }
-EI_REPLACE_METHOD(0x0048EE20, CParticleSource::TickTendril);
+EI_REWRITTEN(0x0048EE20, CParticleSource::TickTendril);
 
 // Mushroom cloud: the cap widens with ln(ticks + 1) and rises; the Mushroom shakes the camera on
 // its first tick; emission stops after 30 ticks.
@@ -342,4 +342,4 @@ void CParticleSource::TickMushroom(ParticleElement* e) {
     e->pos.z = size * kMushroomRise + e->pos.z;
     if (ticks == 30) flags_ &= ~1u;
 }
-EI_REPLACE_METHOD(0x00488F00, CParticleSource::TickMushroom);
+EI_REWRITTEN(0x00488F00, CParticleSource::TickMushroom);

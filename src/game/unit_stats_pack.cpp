@@ -124,7 +124,7 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     std::memcpy(params->skillLevels, skillLevels, sizeof(params->skillLevels));
     params->flags = static_cast<std::uint8_t>(flags);
 }
-EI_REPLACE_METHOD(0x00522CE0, UnitStats::Pack);
+EI_REWRITTEN(0x00522CE0, UnitStats::Pack);
 
 // --- Resets ----------------------------------------------------------------------------------
 

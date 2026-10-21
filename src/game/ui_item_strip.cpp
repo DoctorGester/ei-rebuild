@@ -126,7 +126,7 @@ void CUiItemStrip::Build(char top) {
     SetTab(5);
     hovered_ = -1;
 }
-EI_REPLACE_METHOD(0x00620380, CUiItemStrip::Build);
+EI_REWRITTEN(0x00620380, CUiItemStrip::Build);
 
 // 00621B50 (RET 4). `first` is the current tab's position truncated, `frac` what is left of it
 // (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.

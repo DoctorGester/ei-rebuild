@@ -150,7 +150,7 @@ BOOL CTextManager::PeekWord(mfc::CString* out) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004DF770, CTextManager::PeekWord);
+EI_REWRITTEN(0x004DF770, CTextManager::PeekWord);
 
 BOOL __fastcall TextSkipLine(CTextManager* self) {
     const char* p = self->cursor_;
@@ -173,7 +173,7 @@ BOOL __fastcall TextNextLine(CTextManager* self) {
     }
     return 0;
 }
-EI_REPLACE(0x004DF510, TextNextLine);
+EI_REWRITTEN(0x004DF510, TextNextLine);
 
 BOOL CTextManager::ReadLine(mfc::CString* out, BOOL advance) {
     mfc::CString tmp;
@@ -189,7 +189,7 @@ BOOL CTextManager::ReadLine(mfc::CString* out, BOOL advance) {
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
 }
-EI_REPLACE_METHOD(0x004DF8D0, CTextManager::ReadLine);
+EI_REWRITTEN(0x004DF8D0, CTextManager::ReadLine);
 
 BOOL CTextManager::ReadToHash(mfc::CString* out, BOOL advance) {
     mfc::CString tmp;
@@ -204,7 +204,7 @@ BOOL CTextManager::ReadToHash(mfc::CString* out, BOOL advance) {
     if (advance) cursor_ = p;
     return 1;
 }
-EI_REPLACE_METHOD(0x004DFB80, CTextManager::ReadToHash);
+EI_REWRITTEN(0x004DFB80, CTextManager::ReadToHash);
 
 BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
     mfc::CString tmp;
@@ -240,7 +240,7 @@ BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
 }
-EI_REPLACE_METHOD(0x004DFCB0, CTextManager::Split);
+EI_REWRITTEN(0x004DFCB0, CTextManager::Split);
 
 BOOL CTextManager::FindLine(const char* key) {
     console::CStringArray keyWords;

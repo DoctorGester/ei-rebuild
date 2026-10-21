@@ -95,9 +95,9 @@ void* CInterface3D::MessageText(void* out, int id, const char* value) {
     return out;
 }
 
-EI_REPLACE_METHOD(0x005F8C90, CInterface3D::MessageText);
+EI_REWRITTEN(0x005F8C90, CInterface3D::MessageText);
 
-EI_REPLACE_METHOD(0x005F8420, CInterface3D::LoadState);
+EI_REWRITTEN(0x005F8420, CInterface3D::LoadState);
 
 // --- 005F85C0: the saved state written -----------------------------------------------------------
 

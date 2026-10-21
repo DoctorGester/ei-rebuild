@@ -134,7 +134,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     ackBase_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00432DA0, Connection::Construct);
+EI_REWRITTEN(0x00432DA0, Connection::Construct);
 
 // 00433320 (slot 2): tears every container down (in the order the destructor's unwinding would)
 // and constructs the connection again with id 0.
@@ -177,7 +177,7 @@ void Connection::Destruct() {
     FreeReceived(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x004334E0, Connection::Destruct);
+EI_REWRITTEN(0x004334E0, Connection::Destruct);
 
 // 004334C0 (slot 0): the deleting destructor.
 Connection* Connection::DeletingDestruct(unsigned flags) {
@@ -250,7 +250,7 @@ IdPool* IdPool::CopyFrom(const IdPool& other) {
     next = other.next;
     return this;
 }
-EI_REPLACE_METHOD(0x00433A30, IdPool::CopyFrom);
+EI_REWRITTEN(0x00433A30, IdPool::CopyFrom);
 
 namespace {
 // The entry's counted object pointer released as the original inlines it (16-bit count; slot 0

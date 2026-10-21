@@ -72,7 +72,7 @@ int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     uploadResult_ = static_cast<int>((layout.bitCount * size * size) >> 3);
     return 1;
 }
-EI_REPLACE_METHOD(0x0068F6C0, CTexture::CreateBlank);
+EI_REWRITTEN(0x0068F6C0, CTexture::CreateBlank);
 
 // --- 00691D80 ----------------------------------------------------------------------------------------
 
@@ -115,4 +115,4 @@ CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
     }
     return texture;
 }
-EI_REPLACE_METHOD(0x00691D80, CTextureManager::NewTexture);
+EI_REWRITTEN(0x00691D80, CTextureManager::NewTexture);
