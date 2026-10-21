@@ -31,10 +31,12 @@ struct FogSprite {
 // The draw's work arrays, statics of the original function: the sprites' centres and sizes
 // (007ABA30) and their records (007ABA40, a CArray with the vtable 0073C584), bit 0 / bit 1 of
 // 007ABA54 set once the records / the points are constructed. The exit handlers that free them
-// stay in the exe (004E2280, 004E2260).
+// are 004E2280 (the records, left in the exe) and 004E2260 (the points, ported here).
 using FogPointArray = lib::AlignedArray<ParticleVertex>;
 using FogSpriteArray = mfc::CArray<FogSprite>;
-FogPointArray& Points() { return ei::GameData<FogPointArray>(0x007ABA30); }
+constinit lib::AlignedArray<ParticleVertex> g_points = /*007ABA30*/ {};
+lib::AlignedArray<ParticleVertex>& Points() { return g_points; }
+void __cdecl FreePoints() { g_points.FreeData(); }   // 004E2260
 FogSpriteArray& Sprites() { return ei::GameData<FogSpriteArray>(0x007ABA40); }
 std::uint8_t& WorkArrayGuards() { return ei::GameData<std::uint8_t>(0x007ABA54); }
 constexpr std::uint8_t kSpritesConstructed = 1;
@@ -130,3 +132,4 @@ void CRainSnow::PrepareBuffers() {
     for (int i = 0; i < indices.size; ++i) indices.data[i] = static_cast<std::uint16_t>(i);
 }
 EI_REWRITTEN(0x004E3C20, CRainSnow::PrepareBuffers);
+EI_REPLACE(0x004E2260, FreePoints);

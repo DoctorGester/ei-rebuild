@@ -64,15 +64,27 @@ using SpriteArray = mfc::CArray<Sprite>;
 // Engine aligned arrays (lib::AlignedArray) and a CByteArray / CWordArray (mfc::CArray layout; their
 // SetSize is MFC's afxcoll code, called through its address).
 using devicebuffers::ProjectedVertex;
-lib::AlignedArray<ProjectedVertex>& Unused() { return ei::GameData<lib::AlignedArray<ProjectedVertex>>(0x007AEFA0); }  // sized only
-lib::AlignedArray<TLVertex>& Corners() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AEF90); }     // 4 per sprite
+constinit lib::AlignedArray<ProjectedVertex> g_unused = /*007AEFA0*/ {};
+lib::AlignedArray<ProjectedVertex>& Unused() { return g_unused; }  // sized only
+void __cdecl FreeUnused() { g_unused.FreeData(); }   // 00503A20
+constinit lib::AlignedArray<TLVertex> g_corners = /*007AEF90*/ {};
+lib::AlignedArray<TLVertex>& Corners() { return g_corners; }     // 4 per sprite
+void __cdecl FreeCorners() { g_corners.FreeData(); }   // 00503A00
 mfc::CArray<std::uint8_t>& Outcodes() { return ei::GameData<mfc::CArray<std::uint8_t>>(0x007AEF78); }      // a byte per corner
 mfc::CArray<std::uint16_t>& Indices() { return ei::GameData<mfc::CArray<std::uint16_t>>(0x007AEF60); }
 std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AEFB0); }
-lib::AlignedArray<TLVertex>& CornersCopy() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AEFE8); } // the records point here
-lib::AlignedArray<SpriteSortRecord>& Records() { return ei::GameData<lib::AlignedArray<SpriteSortRecord>>(0x007AEFD8); }
-lib::AlignedArray<SpriteSortRecord*>& Order() { return ei::GameData<lib::AlignedArray<SpriteSortRecord*>>(0x007AEFC8); }
-lib::AlignedArray<SpriteSortRecord*>& Spare() { return ei::GameData<lib::AlignedArray<SpriteSortRecord*>>(0x007AEFB8); }
+constinit lib::AlignedArray<TLVertex> g_cornersCopy = /*007AEFE8*/ {};
+lib::AlignedArray<TLVertex>& CornersCopy() { return g_cornersCopy; } // the records point here
+void __cdecl FreeCornersCopy() { g_cornersCopy.FreeData(); }   // 005039C0
+constinit lib::AlignedArray<SpriteSortRecord> g_records = /*007AEFD8*/ {};
+lib::AlignedArray<SpriteSortRecord>& Records() { return g_records; }
+void __cdecl FreeRecords() { g_records.FreeData(); }   // 005039A0
+constinit lib::AlignedArray<SpriteSortRecord*> g_order = /*007AEFC8*/ {};
+lib::AlignedArray<SpriteSortRecord*>& Order() { return g_order; }
+void __cdecl FreeOrder() { g_order.FreeData(); }   // 00503980
+constinit lib::AlignedArray<SpriteSortRecord*> g_spare = /*007AEFB8*/ {};
+lib::AlignedArray<SpriteSortRecord*>& Spare() { return g_spare; }
+void __cdecl FreeSpare() { g_spare.FreeData(); }   // 00503960
 std::uint8_t& SortGuards() { return ei::GameData<std::uint8_t>(0x007AEFF8); }
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
@@ -438,3 +450,9 @@ EI_REWRITTEN(0x00504F70, lib::AlignedArray<TLVertex>::SetSize);
 EI_REWRITTEN(0x00505080, lib::AlignedArray<TLVertex>::SetSizeDiscardStep);
 EI_REWRITTEN(0x00505150, lib::AlignedArray<SpriteSortRecord>::SetSize);
 EI_REWRITTEN(0x00505270, lib::AlignedArray<SpriteSortRecord*>::SetSize);
+EI_REPLACE(0x00503A20, FreeUnused);
+EI_REPLACE(0x00503A00, FreeCorners);
+EI_REPLACE(0x005039C0, FreeCornersCopy);
+EI_REPLACE(0x005039A0, FreeRecords);
+EI_REPLACE(0x00503980, FreeOrder);
+EI_REPLACE(0x00503960, FreeSpare);

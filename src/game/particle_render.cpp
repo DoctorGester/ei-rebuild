@@ -33,7 +33,9 @@ double Unsigned(std::uint32_t value) {
 
 #define EI_ONE 1.0f /*0073B84C*/
 
-ParticleVertexArray& Vertices() { return ei::GameData<ParticleVertexArray>(0x007A9BD0); }
+constinit lib::AlignedArray<ParticleVertex> g_vertices = /*007A9BD0*/ {};
+lib::AlignedArray<ParticleVertex>& Vertices() { return g_vertices; }
+void __cdecl FreeVertices() { g_vertices.FreeData(); }   // 00497D10
 ParticleSpriteArray& Sprites() { return ei::GameData<ParticleSpriteArray>(0x007A9BE0); }
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
@@ -156,3 +158,4 @@ int CParticleSource::Draw(void* renderer) {
     return draw(renderer, nullptr, blend != 0, &Vertices(), &Sprites());
 }
 EI_REWRITTEN(0x004976B0, CParticleSource::Draw);
+EI_REPLACE(0x00497D10, FreeVertices);

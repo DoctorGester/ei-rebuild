@@ -35,11 +35,21 @@ using devicebuffers::ProjectedVertex;
 
 // The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls 004ECB70,
 // 00468F70, 004ECB50 and 00406B30 for the element sizes, which AlignedArray::Allocate matches).
-lib::AlignedArray<TLVertex>& Strip() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AF000); }      // TL vertices of the points
-lib::AlignedArray<TLVertex>& Ribbon() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AF010); }     // TL vertices, two per point
-lib::AlignedArray<ProjectedVertex>& Projected() { return ei::GameData<lib::AlignedArray<ProjectedVertex>>(0x007AF020); }
-lib::AlignedArray<std::uint16_t>& Indices() { return ei::GameData<lib::AlignedArray<std::uint16_t>>(0x007AF030); }
-lib::AlignedArray<std::uint8_t>& Clipped() { return ei::GameData<lib::AlignedArray<std::uint8_t>>(0x007AF040); }    // a flag byte per point
+constinit lib::AlignedArray<TLVertex> g_strip = /*007AF000*/ {};
+lib::AlignedArray<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
+void __cdecl FreeStrip() { g_strip.FreeData(); }   // 00502C00
+constinit lib::AlignedArray<TLVertex> g_ribbon = /*007AF010*/ {};
+lib::AlignedArray<TLVertex>& Ribbon() { return g_ribbon; }     // TL vertices, two per point
+void __cdecl FreeRibbon() { g_ribbon.FreeData(); }   // 00502C20
+constinit lib::AlignedArray<ProjectedVertex> g_projected = /*007AF020*/ {};
+lib::AlignedArray<ProjectedVertex>& Projected() { return g_projected; }
+void __cdecl FreeProjected() { g_projected.FreeData(); }   // 00502C40
+constinit lib::AlignedArray<std::uint16_t> g_indices = /*007AF030*/ {};
+lib::AlignedArray<std::uint16_t>& Indices() { return g_indices; }
+void __cdecl FreeIndices() { g_indices.FreeData(); }   // 00502C60
+constinit lib::AlignedArray<std::uint8_t> g_clipped = /*007AF040*/ {};
+lib::AlignedArray<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
+void __cdecl FreeClipped() { g_clipped.FreeData(); }   // 00502C80
 std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AF050); }
 // The texture coordinates of the next cross section: u (007AF05C) and the two v values.
 float& CurrentU() { return ei::GameData<float>(0x007AF05C); }
@@ -304,3 +314,8 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
 EI_REPLACE_METHOD(0x00501D90, CSceneRenderer::DrawStripImpl);
 
 EI_REWRITTEN(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);
+EI_REPLACE(0x00502C00, FreeStrip);
+EI_REPLACE(0x00502C20, FreeRibbon);
+EI_REPLACE(0x00502C40, FreeProjected);
+EI_REPLACE(0x00502C60, FreeIndices);
+EI_REPLACE(0x00502C80, FreeClipped);

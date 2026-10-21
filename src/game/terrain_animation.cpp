@@ -227,9 +227,10 @@ int __cdecl CompareSectors(const void* a, const void* b) {
     return CompareSlots(*static_cast<const SectorData* const*>(a), *static_cast<const SectorData* const*>(b));
 }
 
-// SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270, the
-// generated ei::static_init::Exit006C9270).
-lib::AlignedArray<SectorData*>& SortedSectors() { return ei::GameData<lib::AlignedArray<SectorData*>>(0x007C8938); }
+// SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270).
+constinit lib::AlignedArray<SectorData*> g_sortedSectors = /*007C8938*/ {};
+lib::AlignedArray<SectorData*>& SortedSectors() { return g_sortedSectors; }
+void __cdecl FreeSortedSectors() { g_sortedSectors.FreeData(); }   // 006C9270
 std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
@@ -267,7 +268,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     if ((terrain::g_sortedSectorsGuard & 1) == 0) {
         terrain::g_sortedSectorsGuard |= 1;
         sorted = {nullptr, 0, 0, 0};
-        GameAtExit(ei::static_init::Exit006C9270);
+        GameAtExit(terrain::FreeSortedSectors);
     }
     if (!sorted.data) {
         sorted.data = sorted.Allocate(0);
@@ -324,3 +325,4 @@ EI_REWRITTEN(0x006C3E50, SectorData::RelightTick);
 EI_REWRITTEN(0x006C3E80, SectorData::Animate);
 EI_REWRITTEN(0x006C8ED0, Terrain::SetSun);
 EI_REPLACE_METHOD(0x006CB1E0, Terrain::RunTickImpl);
+EI_REPLACE(0x006C9270, terrain::FreeSortedSectors);

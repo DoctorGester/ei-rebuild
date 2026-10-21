@@ -40,7 +40,9 @@ namespace {
 
 // The positions with the offsets added (007C2E48, a lib::AlignedArray; a function-local static,
 // guard 007C2E58 bit 1, freed at exit by 005A8AE0).
-lib::AlignedArray<VertexPacket>& MovedPositions() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E48); }
+constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E48*/ {};
+lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
+void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }   // 005A8AE0
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The ambient level the lights' colours are set with (0079BE9C, float bits), the "crown" option
 // (0079BD28), the flags an animated mesh's drawer gets (00790C0C) and the renderer (007AF060).
@@ -407,3 +409,4 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     return 1;
 }
 EI_REWRITTEN(0x005A7A70, FigureMeshDrawer::DrawLit);
+EI_REPLACE(0x005A8AE0, FreeMovedPositions);

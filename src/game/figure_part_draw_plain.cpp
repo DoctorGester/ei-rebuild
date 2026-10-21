@@ -32,7 +32,9 @@ namespace {
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
 // The moved positions (lib::AlignedArray; its inlined SetSize allocates through 00452E70).
-lib::AlignedArray<VertexPacket>& MovedPositions() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E60); }
+constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
+lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
+void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }   // 005A7A50
 std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E70); }
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
@@ -138,3 +140,4 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     return 1;
 }
 EI_REWRITTEN(0x005A7640, FigureMeshDrawer::DrawPlain);
+EI_REPLACE(0x005A7A50, FreeMovedPositions);

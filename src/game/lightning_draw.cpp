@@ -47,7 +47,9 @@ struct SpriteElements {
 };
 using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584, at 0079C1E0
 SpriteArray& Sprites() { return ei::GameData<SpriteArray>(0x0079C1E0); }
-LightningPointArray& GlowPoints() { return ei::GameData<LightningPointArray>(0x0079C1D0); }
+constinit lib::AlignedArray<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
+lib::AlignedArray<LightningPoint>& GlowPoints() { return g_glowPoints; }
+void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }   // 004679F0
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
 // The two static arrays' SetSize(8), as inlined (the sprites' new records constructed by 00468F90).
@@ -165,3 +167,4 @@ int CLightning::DrawImpl(void* device) {
     return 1;
 }
 EI_REWRITTEN(0x00467AD0, CLightning::DrawImpl);
+EI_REPLACE(0x004679F0, FreeGlowPoints);

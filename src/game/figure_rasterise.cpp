@@ -24,7 +24,9 @@ namespace {
 
 using IntPoint = RasterTriangle::Point;
 using PointArray = lib::AlignedArray<IntPoint>;   // its inlined SetSize allocates through 004F65B0
-PointArray& TexturePoints() { return ei::GameData<PointArray>(0x007C2E00); }
+constinit lib::AlignedArray<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
+lib::AlignedArray<RasterTriangle::Point>& TexturePoints() { return g_texturePoints; }
+void __cdecl FreeTexturePoints() { g_texturePoints.FreeData(); }   // 005A1170
 std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
 
 
@@ -60,3 +62,4 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
 }
 
 EI_REWRITTEN(0x005A0E80, RasteriseFigureMesh);
+EI_REPLACE(0x005A1170, FreeTexturePoints);

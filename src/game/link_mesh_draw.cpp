@@ -49,10 +49,12 @@ void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }   // 004F2B20
 using PixelPair = RasterTriangle::Point;
 
 // A part's texture coordinates in 0..255 (007AEEB8; a local static of 004F4850: bit 0 of 007AEEC8
-// says it is constructed, and the exit handler 004F4B30, left in the exe, frees its block).
+// says it is constructed, and the exit handler 004F4B30 frees its block).
+constinit lib::AlignedArray<RasterTriangle::Point> g_texturePixels = /*007AEEB8*/ {};
+void __cdecl FreeTexturePixels() { g_texturePixels.FreeData(); }   // 004F4B30
 lib::AlignedArray<PixelPair>& TexturePixels() {
     auto& constructed = ei::GameData<std::uint8_t>(0x007AEEC8);
-    auto& pixels = ei::GameData<lib::AlignedArray<PixelPair>>(0x007AEEB8);
+    auto& pixels = g_texturePixels;
     if (!(constructed & 1)) {
         constructed |= 1;
         pixels.Construct();
@@ -299,4 +301,5 @@ int CLinkMesh::RasterisePartImpl(const stlp::string* name, const PixelPair* pixe
     return r.vertices.count << 2;
 }
 EI_REWRITTEN(0x004F4850, CLinkMesh::RasterisePartImpl);
+EI_REPLACE(0x004F4B30, FreeTexturePixels);
 EI_REPLACE(0x004F2B20, FreeMovedPackets);   // the exit function of 004F2AF0
