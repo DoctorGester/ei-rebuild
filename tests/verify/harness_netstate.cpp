@@ -1,16 +1,30 @@
 // The "netstate" step: the sessions' state as console lines (harness_pair.h, SV5d4).
 #include "harness_pair.h"
 
+#include "../../src/game/game_data.h"
 #include "../../src/game/net_classes.h"
+#include "ei/hook.h"
 
 #include <cstdio>
 
 namespace ei::verify::pair {
 
+namespace {
+
+// The sessions: ours in the image, game.exe's own in --no-hooks runs (the original code uses its copies).
+net::ServerSession* Server() {
+    return ei::Standalone() ? net::GameServer() : ei::OriginalGameData<net::ServerSession*>(0x0079B5DC);
+}
+net::ClientSession* Client() {
+    return ei::Standalone() ? net::GameClient() : ei::OriginalGameData<net::ClientSession*>(0x0079B5D8);
+}
+
+} // namespace
+
 std::vector<std::string> NetState() {
     std::vector<std::string> lines;
     char line[600];
-    if (net::ServerSession* server = net::GameServer()) {
+    if (net::ServerSession* server = Server()) {
         unsigned connections = 0;
         for (net::ClientNode* node = server->clients_->next; node != server->clients_; node = node->next) ++connections;
         std::snprintf(line, sizeof(line), "netstate: the server has %u connections", connections);
@@ -18,7 +32,7 @@ std::vector<std::string> NetState() {
         std::snprintf(line, sizeof(line), "netstate: no server");
     }
     lines.push_back(line);
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = Client();
     if (!client) {
         lines.push_back("netstate: no client");
         return lines;

@@ -24,8 +24,8 @@ namespace {
 // The record just appended to a list of counted pointers.
 template <typename List>
 CRefObject* LastObject(const List& list) { return list.End()->prev->data.ptr; }
-// 0079B60C: the serial the next player record gets.
-std::uint32_t& PlayerCounter() { return ei::GameData<std::uint32_t>(0x0079B60C); }
+// The serial the next player record gets.
+std::uint32_t g_playerSerial = /*0079B60C*/ {};
 
 } // namespace
 
@@ -86,11 +86,11 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         ++number;
     }
     record->number_ = number;
-    record->serial_ = static_cast<std::int32_t>(PlayerCounter());
-    ++PlayerCounter();
+    record->serial_ = static_cast<std::int32_t>(g_playerSerial);
+    ++g_playerSerial;
     record->firstLine_ = self->nextLine_;
     bound->PlayerRef().Assign(record);
-    bound->ConnectionRef().Assign(CurrentConnection());
+    bound->ConnectionRef().Assign(g_currentConnection);
     msg->binding_.Assign(bound);
 
     ClientSession* client = GameClient();

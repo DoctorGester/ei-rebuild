@@ -837,7 +837,9 @@ public:
     CScript* SecondScript() { return reinterpret_cast<CScript*>(commandsB_); }
     CDiplomacy diplomacy_;                // +0x12C64 (object_diplomacy.h)
     // +0x12D64 the session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld
-    // updates the players' "gtime" first. Joining players take it (CPlayer::sessionKind100_).
+    // updates the players' "gtime" first. Joining players take it (CPlayer::sessionKind100_). Also the
+    // campaign mode (007C2CC4 in the server world 007AFF60): GameFlow::StartZone stores its mode here (1 battle,
+    // 2 main menu, 3 base, 4 edge, 8 the end of the game), StartFirstMap 7 for the command-line script.
     int sessionKind_;
     mfc::CString mobName_;                // +0x12D68 the zone's .mob file
     mfc::CString mapName_;                // +0x12D6C the zone's map
@@ -1885,7 +1887,7 @@ struct GameFlow {
     // the zone record's kind (0 -> 1, 1 -> 4, 2 -> 3), "endofgame" is mode 8, mode 2 loads the main
     // menu zone (also when the zone is unknown, after FatalError and closing the network
     // sessions); otherwise the party enters the zone (0057A060) and the clock follows its "gtime".
-    // The mode becomes the campaign mode (007C2CC4). Rebirth's AllowScriptsInMainMenu sets the
+    // The mode becomes the campaign mode (the server world's sessionKind_). Rebirth's AllowScriptsInMainMenu sets the
     // server's +0x160 in the menu.
     void StartZone(const char* zone, int mode);
     // 0057BD10. A new game: "exec autoexec.cfg" on the console, the party manager's new game

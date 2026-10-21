@@ -30,7 +30,7 @@ enum CommandKind : std::uint32_t {
     kBanBySerial = 5,
 };
 
-void* CurrentConnectionObject() { return CurrentConnection(); }
+void* CurrentConnectionObject() { return g_currentConnection; }
 std::size_t StringNpos() { return 0xFFFFFFFFu /*0073BDE8*/; }
 
 bool Is(const stlp::string& s, const char* t) {

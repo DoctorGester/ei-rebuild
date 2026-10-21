@@ -5,7 +5,6 @@
 #include "coder_vectors.h"
 #include "vectors.h"
 
-#include "../../src/game/game_data.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -78,24 +77,22 @@ void Describe(char* d, std::size_t n, const char* what, const BufferState& ours,
                   ours.flags, original.cur, original.high, original.flags);
 }
 
-// The fixture: our InitCodeTables against the game's tables, then the game's left for the coder checks.
+// The fixture: our InitCodeTables against the game's tables (the lengths' from length 1, the masks' from n = 1),
+// then the game's left in ours for the coder checks.
 bool CheckTables(const Tables& v, char* d, std::size_t n) {
     InitCodeTables();
-    const auto* lengthCodes = &ei::GameData<std::uint32_t[0x23]>(kLengthCodes)[0];
-    const auto* lengthBits = &ei::GameData<std::uint32_t[0x23]>(kLengthBits)[0];
-    const auto* offsetCodes = &ei::GameData<std::uint32_t[0x22]>(kOffsetCodes)[0];
-    const auto* offsetBits = &ei::GameData<std::uint32_t[0x22]>(kOffsetBits)[0];
-    bool same = std::memcmp(lengthCodes + 1, v.lengthCodes + 1, 0x22 * 4) == 0 &&
-                std::memcmp(lengthBits + 1, v.lengthBits + 1, 0x22 * 4) == 0 &&
-                std::memcmp(offsetCodes, v.offsetCodes, sizeof(v.offsetCodes)) == 0 &&
-                std::memcmp(offsetBits, v.offsetBits, sizeof(v.offsetBits)) == 0;
-    std::memcpy(ei::GameData<std::uint32_t[0x23]>(kLengthCodes), v.lengthCodes, sizeof(v.lengthCodes));
-    std::memcpy(ei::GameData<std::uint32_t[0x23]>(kLengthBits), v.lengthBits, sizeof(v.lengthBits));
-    std::memcpy(ei::GameData<std::uint32_t[0x22]>(kOffsetCodes), v.offsetCodes, sizeof(v.offsetCodes));
-    std::memcpy(ei::GameData<std::uint32_t[0x22]>(kOffsetBits), v.offsetBits, sizeof(v.offsetBits));
-    std::memcpy(ei::GameData<std::uint32_t[33]>(kBitMasks), v.masks, sizeof(v.masks));
+    bool same = std::memcmp(g_lengthCodes, v.lengthCodes + 1, sizeof(g_lengthCodes)) == 0 &&
+                std::memcmp(g_lengthBits, v.lengthBits + 1, sizeof(g_lengthBits)) == 0 &&
+                std::memcmp(g_offsetCodes, v.offsetCodes, sizeof(g_offsetCodes)) == 0 &&
+                std::memcmp(g_offsetBits, v.offsetBits, sizeof(g_offsetBits)) == 0;
+    bool sameMasks = std::memcmp(kCoderBitMasks, v.masks + 1, sizeof(kCoderBitMasks)) == 0;
+    std::memcpy(g_lengthCodes, v.lengthCodes + 1, sizeof(g_lengthCodes));
+    std::memcpy(g_lengthBits, v.lengthBits + 1, sizeof(g_lengthBits));
+    std::memcpy(g_offsetCodes, v.offsetCodes, sizeof(g_offsetCodes));
+    std::memcpy(g_offsetBits, v.offsetBits, sizeof(g_offsetBits));
     if (!same) std::snprintf(d, n, "InitCodeTables fills other tables than the game's");
-    return same;
+    else if (!sameMasks) std::snprintf(d, n, "kCoderBitMasks is not the game's mask table");
+    return same && sameMasks;
 }
 EI_VECTOR_CHECK("@CoderTables", Tables, CheckTables);
 

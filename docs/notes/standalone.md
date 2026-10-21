@@ -315,7 +315,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
-after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects). C18 turns them into named C++
+after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -471,6 +471,36 @@ kinds given.
     is not a plain free (ai_region_reach's three point arrays, the water patch 007C2F64, LastResources, the script
     stream, ai_events' pool, the shape cache, the smoothing pool), the alarm log pointer 007C2EB8 (a static
     initialiser stores another object's address) and 007C2F8C (ln 0.6: a call's result).
+  - **Vector-filled tables and the net / CRT state** (C18i). net_coder's code tables (g_offsetBits 0079B6B0,
+    g_offsetCodes 0079B738, g_lengthBits 0079B7C0, g_lengthCodes 0079B848) and kCoderBitMasks 0078DB28: the
+    original indexes the length tables and the masks from one entry before their start (0079B7BC / 0079B844 by
+    length 1..0x22, 0078DB24 by bit count; 0078DB24 itself is the tail of the string "sky00"), so ours take
+    `length - 1` / `count - 1`. **An object's start is where the next one ends**, not the base the code indexes
+    from: read the bytes and the neighbours before trusting a `--refs` start. The coder vectors' "@CoderTables"
+    keeps its format (the recorder reads game.exe's copies at the indexed bases through OriginalGameData; the
+    replay compares from entry 1 and fills ours). A bound must be decimal: `[0x22]` read as no bound (one element,
+    zero bytes) and named nothing; named_data now refuses it. The network globals: net_classes.h's g_gamePort
+    00783E30 (8888; the harness writes its free port to ours in the image, game.exe's in --no-hooks), g_netLog,
+    g_currentSession, g_currentConnection, g_gameClient / g_gameServer 0079B5D8 / 0079B5DC (counted pointers: their
+    static initialisers 00412230 / 00412280 and exit functions 00412250 / 004122A0 are ported in net_session.cpp,
+    rows in config/extra_function_sizes.csv; GameServer() / GameClient() stay as accessors of the names), the pump
+    time, the player / variable serials, CollectChanges's vector and guard 0079B8D0 / 0079B8DC (its exit function
+    00434980 beside it), the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
+    a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
+    left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
+    readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is lib/crt_locale_data.cpp (a file of
+    its own: ei_vectors links it with crt_format.cpp; the replay's "@CrtFormatLocale" writes g_decimalPoint, the
+    recorder reads game.exe's 00797FE8 and __lc_handle), crt_locale.cpp's code page / class flag / country tables,
+    crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
+    (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
+    yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
+    007AFF60), and of the CRT: `_pctype` / `_pwctype` 00797DD8 (cells to the C table + 1 entry: a pointer element
+    cannot name an offset into a range), the locale categories 00797888 with the static "C" 00797778 (their init
+    functions' code cells are not all ours), `_iob` 00798060-007980A0 (pointer cells to the bss buffers), and the
+    heap / allocator state (`_crtheap` 007CAF08, `_pnhHeap` 007CAAD8, `_newmode` 007CAC7C, `_afxNewHandler`
+    00796E14, STLport's node free lists 0079B224 and pool 0079B264-0079B26C): the harness calls our allocator in
+    --no-hooks runs (harness_leftovers' ZeroedNew, CStrings), where a named heap handle would be ours (null), not
+    game.exe's; name them together with a game.exe path for those calls.
   - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
     static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (check_static_init.py re-derives both):
     - **Named ranges**: a store, float fold or fill into a range of config/named_data.csv is left out of

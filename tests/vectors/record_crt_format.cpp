@@ -31,7 +31,7 @@ struct Locale {
 
 Locale CurrentLocale() {
     Locale locale;
-    locale.point = ei::GameData<const char>(kDecimalPoint);
+    locale.point = ei::OriginalGameData<const char>(0x00797FE8);   // game.exe's __decimal_point[0]
     std::memcpy(locale.classes, ei::GameData<const unsigned short* const>(kCharClasses), sizeof(locale.classes));
     return locale;
 }
@@ -41,7 +41,7 @@ bool SameLocale(const Locale& a, const Locale& b) {
 }
 
 // __lc_handle[LC_CTYPE]: nonzero once the game has set its locale.
-unsigned LocaleHandle() { return ei::GameData<const unsigned>(0x007CABF0); }
+unsigned LocaleHandle() { return ei::OriginalGameData<const unsigned>(0x007CABF0); }
 
 // Whether the locale now is the fixture's; the fixture is taken (and offered) at the first call after
 // the game set its locale.

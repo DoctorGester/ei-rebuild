@@ -32,7 +32,7 @@ namespace {
 
 
 // "<text><address>\n" and a flush to the network log.
-void LogAddress(const char* text, const char* address) { NetLog()->Put(text)->Put(address)->PutChar('\n')->Flush(); }
+void LogAddress(const char* text, const char* address) { g_netLog->Put(text)->Put(address)->PutChar('\n')->Flush(); }
 
 } // namespace
 
@@ -54,14 +54,14 @@ EI_REWRITTEN(0x00435010, NetAddress::ToString);
 // out is reported (slot 11) and removed (slot 2). Counts the call in `frame_`. The current session
 // is this one meanwhile.
 void SessionBase::TickImpl(double dt) {
-    CurrentSession() = this;
+    g_currentSession = this;
     time_ = dt + time_;
     NetAddress from{};
     GameBuffer* buffer = ReceiveBuffer();
     while (socket_.Receive(&from, buffer)) {
         BufferUpdateHigh(buffer);
         if (buffer->high - buffer->begin + buffer->base == 0) {
-            if (NetLog()) {
+            if (g_netLog) {
                 stlp::string address;
                 const char* text = from.ToString(&address)->data();
                 LogAddress(game::nettexts::ZeroLength(), text);
@@ -93,7 +93,7 @@ void SessionBase::TickImpl(double dt) {
         ClientNode* next = node->next;
         Connection* connection = node->connection;
         if (!connection->Tick(dt)) {
-            if (NetLog()) {
+            if (g_netLog) {
                 stlp::string address;
                 const char* text = connection->address_.ToString(&address)->data();
                 LogAddress(game::nettexts::Timeout(), text);
@@ -104,7 +104,7 @@ void SessionBase::TickImpl(double dt) {
         node = next;
     }
     ++frame_;
-    CurrentSession() = nullptr;
+    g_currentSession = nullptr;
 }
 EI_REPLACE_METHOD(0x00437370, SessionBase::TickImpl);
 
@@ -123,14 +123,14 @@ namespace {
 
 // "<text>\n" and a flush, when there is a network log.
 void LogText(const char* text) {
-    if (LogStream* log = NetLog()) log->Put(text)->PutChar('\n')->Flush();
+    if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
 }
 
 // The address string of a connection, logged as "<before><address><after>\n", then freed.
 void LogConnection(const char* before, Connection* connection, const char* after) {
     stlp::string peer;
     const char* text = connection->address_.ToString(&peer)->data();
-    LogStream* log = NetLog()->Put(before)->Put(text);
+    LogStream* log = g_netLog->Put(before)->Put(text);
     if (after) log = log->Put(after);
     log->PutChar('\n')->Flush();
 }
@@ -150,7 +150,7 @@ EI_REWRITTEN(0x00436CC0, SessionBase::FindClient);
 // 00436CF0 (slot 2): logs it, closes the connection and erases the node.
 void SessionBase::RemoveClientImpl(ClientNode* node) {
     if (node == clients_) return;
-    if (NetLog()) LogConnection(game::nettexts::RemoveClient(), node->connection, nullptr);
+    if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->connection, nullptr);
     node->connection->Close();
     stlp::list<RefPtr>::Erase<stlp::SharedRef>(stlp::AsRefNode(node));
 }
@@ -164,7 +164,7 @@ bool SessionBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
         return false;
     }
     if (!node->connection->ReadUpdate(cursor)) {
-        if (NetLog()) LogConnection(game::nettexts::BadClient(), node->connection, game::nettexts::BadUpdate());
+        if (g_netLog) LogConnection(game::nettexts::BadClient(), node->connection, game::nettexts::BadUpdate());
         OnClientLost(node->connection);
         RemoveClient(node);
     }
@@ -340,7 +340,7 @@ namespace {
 
 // The send interval is the constant at 0073BF48 over the rate clamped to [500, 50000].
 void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rate) {
-    if (NetLog()) {
+    if (g_netLog) {
         stlp::string peer;
         const char* text = address->ToString(&peer)->data();
         LogAddress(game::nettexts::AddClient(), text);

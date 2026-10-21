@@ -505,7 +505,6 @@ constexpr std::uintptr_t kWorld5C = 0x007AFFBC;
 // LeaveToZone(0, ...); script_exec.cpp case 0x8A: TheWorld()->GetPlayer(Ftol(f[0])) and its +0x20)
 // use 0.
 constexpr int kLocalPlayer = 0;
-constexpr std::uintptr_t kCampaignMode = 0x007C2CC4;    // 1 battle, 2 main menu, 3 base, 4 edge
 constexpr std::uintptr_t kMapDatabase = 0x0079BF00;
 constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
@@ -2275,7 +2274,7 @@ std::string DescribeTopWindow() {
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
                   unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, HarnessFlow()->state_,
-                  ei::GameData<int>(kCampaignMode));
+                  HarnessCampaignMode());
     return text;
 }
 
@@ -2774,19 +2773,19 @@ void RunSteps() {
         // the zone loads): no request pending, not the main menu, the server world holds the zone
         // and the local player is back in the world (state 1; LeaveToZone left it at 3).
         bool ready = false;
-        if (g_inputLoop && HarnessFlow()->state_ == 0 && ei::GameData<int>(kCampaignMode) != 2 &&
+        if (g_inputLoop && HarnessFlow()->state_ == 0 && HarnessCampaignMode() != 2 &&
             _stricmp(ServerZoneName(), g_waitZoneName.c_str()) == 0) {
             void* connection = LocalConnection();
             ready = connection && ConnectionState(connection) == 1;
         }
         if (ready) {
             Log("harness: waitzone %s done after %lu ms (campaign mode %d)", g_waitZoneName.c_str(),
-                Now() - g_waitZoneDeadline.start, ei::GameData<int>(kCampaignMode));
+                Now() - g_waitZoneDeadline.start, HarnessCampaignMode());
             g_waitingZone = false;
         } else if (g_waitZoneDeadline.Passed()) {
             char what[500];
             std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, %s)%s",
-                          g_waitZoneName.c_str(), ServerZoneName(), HarnessFlow()->state_, ei::GameData<int>(kCampaignMode),
+                          g_waitZoneName.c_str(), ServerZoneName(), HarnessFlow()->state_, HarnessCampaignMode(),
                           DescribeLocalPlayer().c_str(), g_waitZoneDeadline.Why().c_str());
             Log("harness: %s", what);
             g_failures.push_back(what);

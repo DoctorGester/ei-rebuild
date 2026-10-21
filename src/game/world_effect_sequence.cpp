@@ -48,7 +48,7 @@ Chooser ChooserFor(int count, bool withFirst) {
 }
 
 bool SnapshotReadToEnd() {
-    BitStream* snapshot = delta::ReadSnapshot();
+    BitStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     return position == snapshot->Size();
 }

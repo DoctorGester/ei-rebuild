@@ -104,8 +104,8 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
     DeltaField* field = NetState()->BeginField(kTorchField);
     if (!field) return complete;
     spec->ReadNetState(field);
-    std::uint32_t readTo = delta::ReadSnapshot()->Position();
-    std::uint32_t size = delta::ReadSnapshot()->Size();
+    std::uint32_t readTo = delta::g_readSnapshot->Position();
+    std::uint32_t size = delta::g_readSnapshot->Size();
     complete &= readTo == size ? 1u : 0u;
     field->EndField();
     return complete;

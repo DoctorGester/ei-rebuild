@@ -17,7 +17,6 @@ namespace net {
 
 namespace {
 
-std::uint32_t& VariableCounter() { return ei::GameData<std::uint32_t>(0x0079B608); }
 
 VariableMessage* VariableAt(RefNode* node) { return static_cast<VariableMessage*>(node->data.ptr); }
 
@@ -75,8 +74,8 @@ void ServerSession::SetVariable(const stlp::string* name, float value) {
         FindOrAddVariable(&found, name);
         VariableMessage* variable = VariableAt(found);
         std::memcpy(&variable->value_, &value, 4);
-        variable->serial_ = VariableCounter();
-        ++VariableCounter();
+        variable->serial_ = g_variableSerial;
+        ++g_variableSerial;
         ++variable->version_;
         return;
     }
@@ -100,8 +99,8 @@ void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     std::memcpy(&selected, &bits, 4);
     volatile double loaded = selected;   // FLD / FSTP
     VariableAt(found)->value_ = static_cast<float>(loaded);
-    VariableAt(found)->serial_ = VariableCounter();
-    ++VariableCounter();
+    VariableAt(found)->serial_ = g_variableSerial;
+    ++g_variableSerial;
     ++VariableAt(found)->version_;
     EI_NAN_AUDIT(VariableAt(found)->value_);
     if (VariableAt(found)->value_ == 0.0f /*0073B858*/) {

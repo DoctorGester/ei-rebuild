@@ -190,19 +190,19 @@ void RewindAndEmpty(DeltaField* field) {
 
 void SetKeep(int channel1Only) {
     if (!channel1Only) {
-        delta::KeepSnapshot0() = 1;
-        delta::KeepSnapshot1() = 1;
+        delta::g_keepSnapshot0 = 1;
+        delta::g_keepSnapshot1 = 1;
     } else {
-        delta::KeepSnapshot0() = 0;
-        delta::KeepSnapshot1() = 1;
+        delta::g_keepSnapshot0 = 0;
+        delta::g_keepSnapshot1 = 1;
     }
 }
 
 void StartRead(DeltaField* field, int second, BitStream* reader) {
     field->snapshot[0].Seek(0);
     field->snapshot[1].Seek(0);
-    delta::ReadSnapshot() = second ? &field->snapshot[1] : &field->snapshot[0];
-    delta::Reader() = reader;
+    delta::g_readSnapshot = second ? &field->snapshot[1] : &field->snapshot[0];
+    delta::g_received = reader;
 }
 } // namespace
 
@@ -233,32 +233,32 @@ DeltaField* DeltaField::BeginReadB(int second, BitStream* reader) {
 EI_REWRITTEN(0x0047FAA0, DeltaField::BeginReadB);
 
 void DeltaField::EndField() {
-    if (delta::ReadSnapshot()) {
-        delta::Reader()->EndBits();
-        delta::ReadSnapshot() = nullptr;
-        delta::Reader() = nullptr;
+    if (delta::g_readSnapshot) {
+        delta::g_received->EndBits();
+        delta::g_readSnapshot = nullptr;
+        delta::g_received = nullptr;
         return;
     }
     out[0].EndBits();
     out[1].EndBits();
-    if (delta::KeepSnapshot0()) snapshot[0].Resize(snapshot[0].Position());
-    if (delta::KeepSnapshot1()) snapshot[1].Resize(snapshot[1].Position());
+    if (delta::g_keepSnapshot0) snapshot[0].Resize(snapshot[0].Position());
+    if (delta::g_keepSnapshot1) snapshot[1].Resize(snapshot[1].Position());
 }
 EI_REWRITTEN(0x0047DC20, DeltaField::EndField);
 EI_REWRITTEN(0x0047FAF0, DeltaField::EndField);
 
 void DeltaField::WriteDelta(const void* data, std::uint32_t size) {
-    delta::WriteDeltaChannel(&snapshot[0], data, size, delta::KeepSnapshot0(), &out[0]);
-    delta::WriteDeltaChannel(&snapshot[1], data, size, delta::KeepSnapshot1(), &out[1]);
+    delta::WriteDeltaChannel(&snapshot[0], data, size, delta::g_keepSnapshot0, &out[0]);
+    delta::WriteDeltaChannel(&snapshot[1], data, size, delta::g_keepSnapshot1, &out[1]);
 }
 EI_REWRITTEN(0x0047DCA0, DeltaField::WriteDelta);
 
 // The bytes come from the snapshot read against (all unchanged, or per unchanged word) or from the
 // reader. When anything changed the result is also written to snapshot[1] at the same place.
 void DeltaField::ReadDelta(void* data, std::uint32_t size) {
-    std::uint32_t position = delta::ReadSnapshot()->Position();
-    BitStream* reader = delta::Reader();
-    const std::uint8_t* current = delta::ReadSnapshot()->data_ + position;
+    std::uint32_t position = delta::g_readSnapshot->Position();
+    BitStream* reader = delta::g_received;
+    const std::uint8_t* current = delta::g_readSnapshot->data_ + position;
     auto* p = static_cast<std::uint8_t*>(data);
     if (reader->GetBit()) {
         std::memcpy(p, current, size);
@@ -278,7 +278,7 @@ void DeltaField::ReadDelta(void* data, std::uint32_t size) {
         snapshot[1].Seek(position);
         snapshot[1].Write(data, size);
     }
-    delta::ReadSnapshot()->Seek(position + size);
+    delta::g_readSnapshot->Seek(position + size);
 }
 EI_REWRITTEN(0x0047E000, DeltaField::ReadDelta);
 
@@ -294,11 +294,11 @@ void DeltaField::WriteStringBoth(const char* text) {
 }
 EI_REWRITTEN(0x0047E2D0, DeltaField::WriteStringBoth);
 
-std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::Reader()->Read(data, size); }
+std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }
 EI_REWRITTEN(0x0047E170, DeltaField::ReadRaw);
 
 void* DeltaField::ReadString(void* cstring) {
-    delta::Reader()->ReadString(cstring);
+    delta::g_received->ReadString(cstring);
     return cstring;
 }
 EI_REWRITTEN(0x0047E310, DeltaField::ReadString);
@@ -322,7 +322,7 @@ void DeltaField::ReadText(char* text, int size) {
 }
 EI_REWRITTEN(0x0047E340, DeltaField::ReadText);
 
-int DeltaField::ReadStream(BitStream* to) { return delta::Reader()->ReadStream(to); }
+int DeltaField::ReadStream(BitStream* to) { return delta::g_received->ReadStream(to); }
 EI_REWRITTEN(0x0047E240, DeltaField::ReadStream);
 
 // --- Readers ------------------------------------------------------------------------------------
@@ -397,9 +397,9 @@ EI_REWRITTEN(0x0047EBF0, DeltaField::WritePosition2D);
 
 // One 16-bit value with the bit read inline (unchanged: from the snapshot read against).
 std::uint16_t DeltaField::ReadWord() {
-    std::uint32_t at = delta::ReadSnapshot()->Position();
-    BitStream* reader = delta::Reader();
-    const std::uint8_t* current = delta::ReadSnapshot()->data_ + at;
+    std::uint32_t at = delta::g_readSnapshot->Position();
+    BitStream* reader = delta::g_received;
+    const std::uint8_t* current = delta::g_readSnapshot->data_ + at;
     std::uint16_t q;
     if (reader->GetBit()) {
         std::memcpy(&q, current, 2);
@@ -408,7 +408,7 @@ std::uint16_t DeltaField::ReadWord() {
         snapshot[1].Seek(at);
         snapshot[1].Write(&q, 2);
     }
-    delta::ReadSnapshot()->Seek(at + 2);
+    delta::g_readSnapshot->Seek(at + 2);
     return q;
 }
 
@@ -416,14 +416,14 @@ void DeltaField::ReadPosition(Vector3* position) {
     position->x = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
     position->y = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
     // z goes through ReadDiff.
-    std::uint32_t at = delta::ReadSnapshot()->Position();
-    BitStream* reader = delta::Reader();
+    std::uint32_t at = delta::g_readSnapshot->Position();
+    BitStream* reader = delta::g_received;
     std::uint16_t q;
-    if (delta::ReadDiff(delta::ReadSnapshot()->data_ + at, &q, 2, reader)) {
+    if (delta::ReadDiff(delta::g_readSnapshot->data_ + at, &q, 2, reader)) {
         snapshot[1].Seek(at);
         snapshot[1].Write(&q, 2);
     }
-    delta::ReadSnapshot()->Seek(at + 2);
+    delta::g_readSnapshot->Seek(at + 2);
     position->z = Dequantize(q, kReadScaleZ, kReadOffsetZ);
 }
 EI_REWRITTEN(0x0047E930, DeltaField::ReadPosition);
@@ -539,13 +539,13 @@ DeltaField* DeltaState::BeginField(int index) {
     switch (mode_) {
     case kWriteFull:
         RewindAndEmpty(field);
-        delta::KeepSnapshot0() = 1;
-        delta::KeepSnapshot1() = 1;
+        delta::g_keepSnapshot0 = 1;
+        delta::g_keepSnapshot1 = 1;
         break;
     case kWriteDelta:
         RewindAndEmpty(field);
-        delta::KeepSnapshot0() = 0;
-        delta::KeepSnapshot1() = 1;
+        delta::g_keepSnapshot0 = 0;
+        delta::g_keepSnapshot1 = 1;
         break;
     case kRead0:
     case kRead1:
