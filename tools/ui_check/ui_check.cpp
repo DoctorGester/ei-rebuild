@@ -780,6 +780,17 @@ void CheckFrame() {
     ui::DropCanvas(first);
     detail::RunCanvasCommands();
     Check(!ui::HasCanvas(first) && !ui::HasCanvas(second), "dropped canvases are gone");
+    // A canvas dropped while its blit is not drawn yet (SwapContents putting away a backdrop the frame blitted):
+    // the frame so far is drawn first, so the blit shows it.
+    ui::Canvas(first, 16, 16, f888);
+    ui::Fill(first, Rect{0, 0, 16, 16}, RGB(30, 60, 90));
+    ui::DrawCanvas(first, Rect{120, 96, 136, 112}, nullptr, false, 0);
+    RefBlit(expected, std::vector<std::uint32_t>(16 * 16, 0x1E3C5A), 16, 16, Rect{120, 96, 136, 112}, Rect{0, 0, 16, 16}, false, 0);
+    splits = g_splits;
+    ui::DropCanvas(first);
+    Check(g_splits == splits + 1 && !ui::HasCanvas(first), "dropping a canvas with its blit pending splits the frame first");
+    differ = ReadTarget(&got) ? Differ(expected, got, g_targetWidth, &example) : -1;
+    Check(differ == 0, "and the dropped canvas's blit is drawn: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
     sg_commit();
 }
 

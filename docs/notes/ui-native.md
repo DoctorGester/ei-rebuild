@@ -242,6 +242,42 @@ themselves are not in the golden. They are the coverage for N3's per-surface dif
 - Rebirth launches: the gallery's goldens are vanilla only (the suite's install); Rebirth's layout is WideScreen's
   frames (`run_all --widescreen`).
 
+### P1 done (2026-10-21): surface plumbing, `src/game/ui_native.{h,cpp}`
+
+**Native surfaces.** `ui_native::Adopt(surface, family)` runs where a surface is made and gives its holder a canvas when
+EI_RENDER lists the family (`uiboth` / `uinative`, `=backdrop+fps+status`): `backdrop` (005F5320's MakeBackdrop, both
+backdrops), `fps` (ShowFps 005F5700), `status` (ShowStatusText 005F75B0). The side map is keyed by the surface (the canvas
+by its holder); `Forget` runs in the constructors and ReleaseContents. No `ui` word: nothing is adopted and every hook
+returns at once, so the default path is today's.
+
+**What records.** Fill / Clear 005FE370 / 005FE2F0 (`Fill`), FrameRect 005FDCB0, CaptureScreen 005FD3D0 (`CopyFrame`),
+Greyscale 005FE440, all in surface pixels after the game's scaling. Text until P2: 005FDE20 copies its DrawText rectangle
+(with the shadow's pixel, the whole surface for DT_NOCLIP, nothing for DT_CALCRECT) from the memory onto the canvas with
+`Image` after GDI drew. SwapContents' restore makes the new holder's canvas from the kept bytes (`Restored`). The blit
+005FDA80 calls `DrawCanvas` when `DrawsCanvas(holder)`, else `SurfaceBlit`.
+
+**The memory stays the source of truth.** GDI and the CPU code keep drawing it in both modes (a lost device brings canvases
+back black). Only under `uinative` do the screen copy (no frame read-back) and greying a surface whose memory is behind go
+to the canvas alone; the memory is then behind until `Sync` reads the canvas back (`ReadBack`), which GetDC 005FDC00,
+PixelAt 005FD240, Rgb565Copy 005FD440 and SwapContents' save call first. Under `uiboth` nothing reads back, so the
+per-surface diff compares GDI's own drawing.
+
+**Rule from a real bug.** `DropCanvas` (HolderGone) draws the frame so far first when the canvas's blit is not drawn yet,
+as the window blits' textures outlive their holders: backdrop mode 3 puts the old backdrop away (SwapContents) after the
+frame blitted it and then copies that frame, which came out black (`ui_compare`'s help A/B and `ei_ui_check` hold it).
+
+**Running the suite with the canvases.** `EI_RENDER_EXTRA=uiboth python tools/work.py test P1 <scenarios>`: the harness
+adds EI_RENDER_EXTRA's words to the scenario's `render` step or to EI_RENDER (a batch keeps its EI_* variables), and a
+differing surface fails the run. A native surface is also compared as it goes (`ui_native::g_goneObserver`): the status
+surface lives only inside ShowStatusText's own frame. The harness's `uimirror` leaves native surfaces alone.
+`ui_compare` turns the frame rate on (its canvas blitted under `uipath native`) and opens the help over the options
+through each path; both paths' captures match. Result (2026-10-21): all 43 `ui_*` scenarios pass under `uiboth` with 0
+differing checks (backdrop, fps, status compared in each that reaches them), and the gallery's, ui_saveload's and
+ui_quicksave's 29 frames under `uinative` equal the `uiboth` ones exactly.
+
+**For P2:** record glyph runs in 005FDE20 instead of `TextDrawn`'s copy (then `uidiff text / block / textlimit` decide), and
+drop the GetDC read-back for surfaces whose text no longer needs the memory.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -257,7 +293,7 @@ they depend on.
   **N3** comparison harness (done, section 3 "N3 done"; `uinative` / `uiboth` / `uipath`, the per-surface diff (a), UI mask
   capture, `compare_frames.py --mask-file`; `tests/verify/harness_ui.cpp`). **N4** the `ui_gallery_*` scenarios (done, every
   window family captured frozen; section 3 "N4: the gallery"). **N5** cursor and per-frame images cached (`render_blit.cpp`).
-- **P1** surface plumbing (canvas per native surface, blit, Get/ReleaseDC as the metrics DC, Fill / Clear / FrameRect, readback for
+- **P1** (done, section 3 "P1 done") surface plumbing (canvas per native surface, blit, Get/ReleaseDC as the metrics DC, Fill / Clear / FrameRect, readback for
   PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs
   N1, N3). **P2** text (005FDE20 records glyph runs, GDI on the metrics DC for the return value; 005FDFA0 unchanged; needs N2, P1).
   **P3a-d** windows by family (menus and dialogs; HUD; camp, hero, trade and item info; briefing, global map titles, help page, chat

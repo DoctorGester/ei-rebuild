@@ -8,7 +8,9 @@
 // fonts draw text a little differently). A surface over its limit is logged with its name (the window's
 // vtable and the surface's index, "W00740F28#2", or the interface's own: backdrop, backdrop2, fps, status,
 // console), its pair of pictures written to frames\uidiff<n>_<name>_gdi.bmp / _canvas.bmp, and the run fails
-// unless a "uidiffcheck" step expected it. Skipped in a run of the original code.
+// unless a "uidiffcheck" step expected it. A native surface (src/game/ui_native.h) is also compared as it goes
+// (the status surface lives inside one frame of its own). EI_RENDER_EXTRA=uiboth runs any scenario this way
+// (harness.cpp). Skipped in a run of the original code.
 //
 // Steps:
 //   uipath cpu|native         under uiboth, which of the two the blits show (render::ui::SetPath), from the

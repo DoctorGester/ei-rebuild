@@ -43,4 +43,9 @@ bool Greyscale(const CUiSurface* surface);
 // SwapContents put the memory back (a new holder, the kept bytes copied in): the canvas made again from it.
 void Restored(CUiSurface* surface);
 
+// The verify build's per-surface comparison (tests/verify/harness_ui.h): a native surface is about to go
+// (ReleaseContents), e.g. the status surface, drawn inside ShowStatusText's own frame and gone before the
+// main loop's next one.
+extern void (*g_goneObserver)(const CUiSurface* surface);
+
 } // namespace ui_native

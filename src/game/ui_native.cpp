@@ -50,7 +50,7 @@ bool MakeCanvas(const CUiSurface* surface) {
 }
 
 // `rect` of the surface's memory (clipped to it) written onto its canvas.
-void CopyMemory(const CUiSurface* surface, const RECT& rect) {
+void MemoryToCanvas(const CUiSurface* surface, const RECT& rect) {
     const render::SurfaceMemory* memory = MemoryOf(surface);
     if (!memory) return;
     const int left = std::max<int>(rect.left, 0), top = std::max<int>(rect.top, 0);
@@ -81,8 +81,12 @@ void Adopt(CUiSurface* surface, const char* family) {
     if (MakeCanvas(surface)) g_surfaces[surface] = NativeSurface{family, false};
 }
 
+void (*g_goneObserver)(const CUiSurface* surface) = nullptr;
+
 void Forget(const CUiSurface* surface) {
-    if (!g_surfaces.empty()) g_surfaces.erase(surface);
+    if (g_surfaces.empty()) return;
+    if (g_goneObserver && IsNative(surface)) g_goneObserver(surface);
+    g_surfaces.erase(surface);
 }
 
 bool IsNative(const CUiSurface* surface) { return Find(surface) && surface->holder_ && canvas::HasCanvas(surface->holder_); }
@@ -104,7 +108,7 @@ void FrameRect(const CUiSurface* surface, const RECT& rect, COLORREF colour) {
 
 void TextDrawn(const CUiSurface* surface, const RECT& rect, bool clipped) {
     if (!IsNative(surface)) return;
-    CopyMemory(surface, clipped ? rect : RECT{0, 0, surface->width_, surface->height_});
+    MemoryToCanvas(surface, clipped ? rect : RECT{0, 0, surface->width_, surface->height_});
 }
 
 bool Capture(const CUiSurface* surface, const RECT& source) {
@@ -125,7 +129,7 @@ void Restored(CUiSurface* surface) {
     NativeSurface* native = Find(surface);
     if (!native) return;
     native->behind = false;
-    if (MakeCanvas(surface)) CopyMemory(surface, RECT{0, 0, surface->width_, surface->height_});
+    if (MakeCanvas(surface)) MemoryToCanvas(surface, RECT{0, 0, surface->width_, surface->height_});
 }
 
 } // namespace ui_native
