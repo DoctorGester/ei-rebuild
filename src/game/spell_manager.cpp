@@ -60,7 +60,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
     const std::uint32_t low = packed & 0xFFFF;
     spell->prototypeId_ = packed;
     if (low == 0) {
-        spell->InitFromPrototype(itemdb::Spells().RecordAt(packed >> 16, itemdb::kSpellSize));
+        spell->InitFromPrototype(itemdb::SpellAt(packed >> 16));
         return spell;
     }
     const std::uint32_t key = packed & 0xFFFF0000;
@@ -140,18 +140,14 @@ const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 // i while i is below the count (read again each time).
 namespace {
 template <typename Record>
-void ListRecordNames(const RecordTable& table, mfc::CStringArray* names) {
-    const int stride = static_cast<int>(sizeof(Record));
-    names->SetSize(static_cast<int>(table.end - table.begin) / stride, -1);
-    for (int i = 0; i < static_cast<int>(table.end - table.begin) / stride; ++i) {
-        auto* record = reinterpret_cast<const Record*>(table.RecordAt(static_cast<std::uint32_t>(i), stride));
-        names->data[i] = record->name;
-    }
+void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, mfc::CStringArray* names) {
+    names->SetSize(static_cast<int>(table.Count()), -1);
+    for (int i = 0; i < static_cast<int>(table.Count()); ++i) names->data[i] = table.At(static_cast<std::uint32_t>(i))->name;
 }
 } // namespace
-void CSpellManager::ListSpellNames(mfc::CStringArray* names) { ListRecordNames<itemdb::SpellRecord>(itemdb::Spells(), names); }
+void CSpellManager::ListSpellNames(mfc::CStringArray* names) { ListRecordNames(itemdb::TheSpellDatabase().spells, names); }
 void CSpellManager::ListModifierNames(mfc::CStringArray* names) {
-    ListRecordNames<itemdb::SpellModifierRecord>(itemdb::SpellModifiers(), names);
+    ListRecordNames(itemdb::TheSpellDatabase().modifiers, names);
 }
 EI_REWRITTEN(0x00689570, CSpellManager::ListSpellNames);
 EI_REWRITTEN(0x00689610, CSpellManager::ListModifierNames);

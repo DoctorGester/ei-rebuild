@@ -63,11 +63,11 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
     auto* award = NewMessageMemory<AwardMessage>();
     if (award) {
         RefValueConstructBase(award);
-        ei::SetVtable(award, kMessageVtable);
+        ei::SetVtable(award, Message::Vtable());
         award->version_ = 1;
         award->connection_.ptr = nullptr;
         stlp::StringElement::Default(&award->text_);
-        ei::SetVtable(award, AwardMessage::kVtableAddress);
+        ei::SetVtable(award, AwardMessage::Vtable());
     }
     CRefObject* previous = award->connection_.ptr;
     award->connection_.ptr = connection;

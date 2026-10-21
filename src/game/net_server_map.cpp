@@ -57,7 +57,7 @@ void ServerSession::SetMap(const stlp::string* name) {
     if (mapMessage) {
         MessageConstructBase(mapMessage);
         stlp::StringElement::Default(&mapMessage->text_);
-        ei::SetVtable(mapMessage, MapMessage::kVtableAddress);
+        ei::SetVtable(mapMessage, MapMessage::Vtable());
     }
     RefPtr* holder = &map_;
     if (mapMessage != holder->ptr) {
@@ -137,7 +137,7 @@ void ServerSession::QueueMapList() {
             if (message) {
                 MessageConstructBase(message);
                 stlp::StringElement::Default(&message->text_);
-                ei::SetVtable(message, ZoneMessage::kVtableAddress);
+                ei::SetVtable(message, ZoneMessage::Vtable());
             }
             message->text_.AssignFrom(key);
             RefPtr ref;
@@ -174,7 +174,7 @@ bool ServerSession::FinishMap(const stlp::string* name) {
     if (message) {
         MessageConstructBase(message);
         stlp::StringElement::Default(&message->text_);
-        ei::SetVtable(message, ZoneMessage::kVtableAddress);
+        ei::SetVtable(message, ZoneMessage::Vtable());
     }
     message->text_.AssignFrom(messageName);
     RefPtr ref;

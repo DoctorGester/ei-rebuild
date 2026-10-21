@@ -43,10 +43,15 @@ void FileRecords(const RecordTable& records, int stride, Index& index, Key key) 
     }
 }
 
-const char* SpellCode(const char* record) { return reinterpret_cast<const itemdb::SpellRecord*>(record)->code; }
-const char* ModifierCode(const char* record) {
-    return reinterpret_cast<const itemdb::SpellModifierRecord*>(record)->code;
+// The same for the spell tables: every record filed under its code.
+template <typename Record>
+void FileByCode(itemdb::CodeIndexedTable<Record>& table) {
+    for (Record* record = table.records.begin(); record != table.records.end(); ++record) {
+        stlp::string text(static_cast<const char*>(record->code));
+        table.byCode[text] = record;
+    }
 }
+
 const char* MaterialKey(const char* record) { return reinterpret_cast<const itemdb::MaterialRecordHead*>(record)->key; }
 const char* ItemName(const char* record) { return reinterpret_cast<const itemdb::ItemRecordHead*>(record)->text04; }
 
@@ -72,9 +77,9 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     void* const unused = reinterpret_cast<void*>(static_cast<std::uintptr_t>(size));
 
     LoadTable(stream, kSpellsChunk, &ChunkArchive::SerializeSpells, &spells, unused,
-              [this] { FileRecords(spells.records, kSpellSize, spells.byCode, SpellCode); });
+              [this] { FileByCode(spells); });
     LoadTable(stream, kModifiersChunk, &ChunkArchive::SerializeSpellModifiers, &modifiers, unused,
-              [this] { FileRecords(modifiers.records, kSpellModifierSize, modifiers.byCode, ModifierCode); });
+              [this] { FileByCode(modifiers); });
 
     // The three lists through one archive, built and destroyed in place.
     ChunkArchive ar;

@@ -159,7 +159,15 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(3, &price, 4);
     ar->Field(4, &castType, 4);
     ar->Field(5, &mana, 4);
-    for (int i = 0; i < 9; ++i) ar->Field(6 + i, &effectValues[i], 4);
+    ar->Field(6, &complexity, 4);
+    ar->Field(7, &speed, 4);
+    ar->Field(8, &range, 4);
+    ar->Field(9, &area, 4);
+    ar->Field(10, &damage, 4);
+    ar->Field(11, &targetKind, 4);
+    ar->Field(12, &targetCount, 4);
+    ar->Field(13, &duration, 4);
+    ar->Field(14, &value3C, 4);
     ar->Field(15, &needsSight, 4);
     ar->IntVectorField(16, &list48, ar);
     ar->IntVectorField(17, &list54, ar);

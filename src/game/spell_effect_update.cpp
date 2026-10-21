@@ -90,10 +90,10 @@ void FireballFlight(CSpellEffect* e) {
         Vector3 at = e->targetPoint;
         float power = Power(e);
         float curve;
-        AreaCurve(&e->radius, reinterpret_cast<const float*>(&Prototype(e)->effectValues[3]), &curve);
+        AreaCurve(&e->Spell()->radius_, &Prototype(e)->area, &curve);
         float size = curve >= power ? curve : power;
         CEngineObject* blast = e->CreateParticle(0, 0x2002, &at, size, 1.0f, &kZeroVector, nullptr);
-        float radius = e->radius;
+        float radius = e->Spell()->radius_;
         float alpha = Power(e);
         static_cast<CEffectParticle*>(blast)->SetColors(alpha, radius);
         e->CreateSound(0, "magic\\fireball\\end.wav", &at, &kZeroVector, kVolume, kHearing);
@@ -243,13 +243,13 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
-        float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
+        float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(&e->position, wake);
-        e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
+        e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
         for (auto* node = units.head; node;) {
             CUnit* unit = node->data;
             node = node->next;
-            int duration = e->targetCount;
+            int duration = static_cast<int>(e->Spell()->duration_);
             int level = FrightLevel(&e->timer, &duration);
             ControllerOf(unit)->Brain()->memory.Notice(&e->position, level, -1);
         }
@@ -271,21 +271,21 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
         auto* player = e->caster->player;
         if (player) {
             ScriptGroup* group = &ServerOf(player)->group50F8_;
-            e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
+            e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
             for (auto* node = units.head; node;) {
                 CUnit* unit = node->data;
                 node = node->next;
                 group->Insert(unit);
             }
         }
-        float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
+        float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(&e->position, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks < 0 || !e->caster) e->state = 3;
     if (ticks == 10) {
-        e->CreateParticle(0, 0x2018, &e->targetPoint, -e->radius, 1.0f, &kZeroVector, nullptr);
+        e->CreateParticle(0, 0x2018, &e->targetPoint, -e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
         e->CreateSound(0, "magic\\Clairvoyence\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
     }
 }
@@ -354,7 +354,7 @@ void Teleport(CSpellEffect* e) {
         e->state = 3;
         return;
     }
-    int arrival = e->targetCount;
+    int arrival = static_cast<int>(e->Spell()->duration_);
     if (arrival < 1) arrival = 1;
     if (e->timer != arrival) return;
     CEngineObject* caster = e->caster;
@@ -369,7 +369,7 @@ void Teleport(CSpellEffect* e) {
     if (!IsUnit(e->caster)) return;
     MapEffect record;
     record.Construct();
-    std::memcpy(&record, &e->effectRecord, sizeof(record));
+    std::memcpy(&record, &e->Spell()->Effect(), sizeof(record));
     ObjectSlots(e->caster)->AddEffect(&record);
     ControllerOf(e->caster)->ResyncWithUnit();
     RiseLight(e);
@@ -381,7 +381,7 @@ void Teleport(CSpellEffect* e) {
 
 int CSpellEffect::Update() {
     if (!world) return 0;
-    int type = static_cast<int>(spellId >> 16);
+    int type = static_cast<int>(Spell()->prototypeId_ >> 16);
     switch (state) {
     case 0: Start(type); return 1;
     case 1: UpdateMissile(type); return 1;

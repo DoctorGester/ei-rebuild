@@ -51,34 +51,32 @@ BOOL CSpell::Clear() {
 }
 EI_REPLACE_METHOD(0x0068B320, CSpell::Clear);
 
-BOOL CSpell::InitFromPrototype(const char* prototype) {
-    auto dword = [prototype](int offset) { return *reinterpret_cast<const std::uint32_t*>(prototype + offset); };
-    speed_ = dword(0x20);
-    range_ = dword(0x24);
-    std::uint32_t kind = dword(0x30);
-    if (kind == 0x75) {            // 'u'
+BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
+    speed_ = prototype->speed;
+    range_ = prototype->range;
+    if (prototype->targetKind == 'u') {
         targetFlags_ = 0x10000000;
-    } else if (kind == 0x74) {     // 't'
+    } else if (prototype->targetKind == 't') {
         targetFlags_ = 0x20000000;
     }
-    targetCount_ = dword(0x34);
-    manaCost_ = dword(0x18);
-    complexity_ = dword(0x1C);
-    price_ = dword(field::kSpellPrice);
-    prototypeField14_ = dword(0x3C);
-    skillNeeded_ = dword(0x44);
+    targetCount_ = prototype->targetCount;
+    manaCost_ = prototype->mana;
+    complexity_ = prototype->complexity;
+    price_ = prototype->price;
+    prototypeField14_ = prototype->value3C;
+    skillNeeded_ = static_cast<std::uint32_t>(prototype->skill);
     effectPower_ = 0x10;
     prototypeIndex_ = static_cast<std::uint8_t>(prototypeId_ >> 16);
-    damage_ = dword(0x2C);
-    radius_ = dword(0x28);
-    duration_ = dword(0x38);
+    damage_ = prototype->damage;
+    radius_ = prototype->area;
+    duration_ = prototype->duration;
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
 EI_REWRITTEN(0x0068B430, CSpell::InitFromPrototype);
 
 itemdb::SpellRecord* CSpell::GetPrototype() {
-    return reinterpret_cast<itemdb::SpellRecord*>(Spells().RecordAt(prototypeId_ >> 16, kSpellSize));
+    return SpellAt(prototypeId_ >> 16);
 }
 EI_REWRITTEN(0x0068BA20, CSpell::GetPrototype);
 
@@ -158,27 +156,28 @@ BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     out->backstabFactor = kOne;
     out->calledShot = 0;
 
-    switch (spellId >> 16) {
+    const CSpell* spell = Spell();
+    switch (spell->prototypeId_ >> 16) {
     case 0: case 3: case 0x28:
-        out->typeWeights[3] = kOne; out->amount = damage; out->hitKind = 0; break;
+        out->typeWeights[3] = kOne; out->amount = spell->damage_; out->hitKind = 0; break;
     case 1: case 4: case 0x29:
-        out->typeWeights[5] = kOne; out->amount = damage; out->hitKind = 0; break;
+        out->typeWeights[5] = kOne; out->amount = spell->damage_; out->hitKind = 0; break;
     case 2:
-        out->typeWeights[4] = kOne; out->amount = damage; out->hitKind = 0; break;
+        out->typeWeights[4] = kOne; out->amount = spell->damage_; out->hitKind = 0; break;
     case 5: case 8:
-        out->typeWeights[4] = kOne; out->amount = damage; out->hitKind = 1; break;
+        out->typeWeights[4] = kOne; out->amount = spell->damage_; out->hitKind = 1; break;
     case 6: case 0x27:
-        out->typeWeights[3] = kOne; out->amount = damage; out->hitKind = 1; break;
+        out->typeWeights[3] = kOne; out->amount = spell->damage_; out->hitKind = 1; break;
     case 7:
-        out->typeWeights[5] = kOne; out->amount = damage; out->hitKind = 1; break;
+        out->typeWeights[5] = kOne; out->amount = spell->damage_; out->hitKind = 1; break;
     default:
         break;
     }
 
-    int targets = targetCount;
+    int targets = static_cast<int>(spell->duration_);
     if (targets > 1) {
         out->multiplier = kSplitDamage / static_cast<float>(targets);
-        out->amount = kSplitDamage / static_cast<float>(targetCount) * out->amount;
+        out->amount = kSplitDamage / static_cast<float>(static_cast<int>(spell->duration_)) * out->amount;
     }
     return 1;
 }
@@ -217,14 +216,14 @@ void CLight::SetLitColors(const float* source, float scale) {
 EI_REWRITTEN(0x0068D280, CLight::SetLitColors);
 
 char* __stdcall SpellCodeByName(const char* name) {
-    const RecordTable& spells = Spells();
-    for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>((spells.end - spells.begin) / kSpellSize); ++i) {
-        auto* spell = reinterpret_cast<const SpellRecord*>(spells.RecordAt(i, kSpellSize));
+    const SpellTable& spells = TheSpellDatabase().spells;
+    for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {
+        const SpellRecord* spell = spells.At(i);
         const char* spellName = spell->name;
         if (gamecrt::mbsicmp(spellName,
                             name) == 0) {
             // The code string's pointer, as the original returns it.
-            const char* code = reinterpret_cast<const SpellRecord*>(spells.RecordAt(i, kSpellSize))->code;
+            const char* code = spells.At(i)->code;
             return const_cast<char*>(code);
         }
     }
@@ -233,15 +232,14 @@ char* __stdcall SpellCodeByName(const char* name) {
 EI_REWRITTEN(0x006893F0, SpellCodeByName);
 
 char* __stdcall SpellModifierCodeByName(const char* name) {
-    const RecordTable& modifiers = SpellModifiers();
-    for (std::uint32_t i = 0;
-         static_cast<int>(i) < static_cast<int>((modifiers.end - modifiers.begin) / kSpellModifierSize); ++i) {
-        auto* modifier = reinterpret_cast<const SpellModifierRecord*>(modifiers.RecordAt(i, kSpellModifierSize));
+    const SpellModifierTable& modifiers = TheSpellDatabase().modifiers;
+    for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(modifiers.Count()); ++i) {
+        const SpellModifierRecord* modifier = modifiers.At(i);
         const char* modifierName = modifier->name;
         if (gamecrt::mbsicmp(modifierName,
                             name) == 0) {
             // Out of range gives address 4 (null record + 4), as in the original.
-            return reinterpret_cast<SpellModifierRecord*>(modifiers.RecordAt(i, kSpellModifierSize))->code;
+            return modifiers.At(i)->code;
         }
     }
     return nullptr;

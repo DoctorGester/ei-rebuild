@@ -92,7 +92,7 @@ EI_REWRITTEN(0x0067E510, CSpellEffect::Construct);
 
 void CSpellEffect::Destruct() {
     SetVtable(this, kVtableAddress);
-    if (footprintStamped) UpdateFootprint(static_cast<int>(spellId >> 16), 0);
+    if (footprintStamped) UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 0);
     if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id_));
     Drop(visual);
     ReleaseSound();

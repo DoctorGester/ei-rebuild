@@ -130,11 +130,11 @@ void AIAttention::Build(CUnit* unit) {
             if (!spell) continue;
             int kind = SpellKind(spell);
             if (kind == kNoKind) continue;
-            float range = std::bit_cast<float>(spell->range_);
+            float range = spell->range_;
             if (server->Combat().naturalWeapon == kNaturalSpellsOnly) range = server->Combat().reach;
             std::uint32_t count = spell->targetCount_;
             int maxCount = static_cast<int>((count < 1 ? 1 : count) - 1);
-            std::uint32_t radius = 0;
+            float radius = 0.0f;
             int effect = 0;
             switch (kind) {
             case 2:
@@ -155,7 +155,6 @@ void AIAttention::Build(CUnit* unit) {
             default:
                 break;
             }
-            float radiusValue = std::bit_cast<float>(radius);
             switch (kind) {
             case 0:
             case 1:
@@ -163,17 +162,17 @@ void AIAttention::Build(CUnit* unit) {
             case 3: {
                 weapons.SetSize(weapons.size + 1, -1);
                 AIAttackOption& option = weapons.data[weapons.size - 1];
-                InitOption(&option, kind, static_cast<int>(slot), range, maxCount, radiusValue, effect);
+                InitOption(&option, kind, static_cast<int>(slot), range, maxCount, radius, effect);
                 server->GetSpellDamage(slot, reinterpret_cast<std::int16_t*>(option.damage));
                 break;
             }
             case 4:
-                AddWeaponOption(4, static_cast<int>(slot), range, maxCount, radiusValue, effect);
+                AddWeaponOption(4, static_cast<int>(slot), range, maxCount, radius, effect);
                 break;
             case 5:
             case 6:
             case 7:
-                AddSpellOption(kind, static_cast<int>(slot), range, maxCount, radiusValue, effect);
+                AddSpellOption(kind, static_cast<int>(slot), range, maxCount, radius, effect);
                 break;
             default:
                 break;

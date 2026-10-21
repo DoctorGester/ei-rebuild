@@ -110,14 +110,14 @@ void CItemLoot::InitFromRecordImpl(const ItemRecordHead* record) {
 
 // --- The virtual slots' entry points (rule 4) -----------------------------------------------------
 
-EI_REPLACE_METHOD(0x006A43C0, CItemQuest::GetUseImpl);
-EI_REPLACE_METHOD(0x0069FE90, CItem::IsSameAsImpl);
-EI_REPLACE_METHOD(0x006A30D0, CItemArmor::IsSameAsImpl);
-EI_REPLACE_METHOD(0x006A3C20, CItemQuick::IsSameAsImpl);
-EI_REPLACE_METHOD(0x006A4510, CItemQuest::IsSameAsImpl);
-EI_REPLACE_METHOD(0x006A4B00, CItemLoot::IsSameAsImpl);
-EI_REPLACE_METHOD(0x006A0660, CItemWeapon::InitFromRecordImpl);
-EI_REPLACE_METHOD(0x006A3070, CItemArmor::InitFromRecordImpl);
-EI_REPLACE_METHOD(0x006A3BE0, CItemQuick::InitFromRecordImpl);
-EI_REPLACE_METHOD(0x006A44D0, CItemQuest::InitFromRecordImpl);
-EI_REPLACE_METHOD(0x006A4AB0, CItemLoot::InitFromRecordImpl);
+EI_REWRITTEN(0x006A43C0, CItemQuest::GetUseImpl);
+EI_REWRITTEN(0x0069FE90, CItem::IsSameAsImpl);
+EI_REWRITTEN(0x006A30D0, CItemArmor::IsSameAsImpl);
+EI_REWRITTEN(0x006A3C20, CItemQuick::IsSameAsImpl);
+EI_REWRITTEN(0x006A4510, CItemQuest::IsSameAsImpl);
+EI_REWRITTEN(0x006A4B00, CItemLoot::IsSameAsImpl);
+EI_REWRITTEN(0x006A0660, CItemWeapon::InitFromRecordImpl);
+EI_REWRITTEN(0x006A3070, CItemArmor::InitFromRecordImpl);
+EI_REWRITTEN(0x006A3BE0, CItemQuick::InitFromRecordImpl);
+EI_REWRITTEN(0x006A44D0, CItemQuest::InitFromRecordImpl);
+EI_REWRITTEN(0x006A4AB0, CItemLoot::InitFromRecordImpl);

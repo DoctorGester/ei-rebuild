@@ -167,7 +167,7 @@ DriverSession* DriverSession::ConstructAt(void* memory) {
     ei::SetVtable(session, CPlayerSource::kVtableAddress);
     session->drivers_ = NewSentinel();
     session->holders_ = NewSentinel();
-    ei::SetVtable(session, kVtableAddress);
+    ei::SetVtable(session, Vtable());
     return session;
 }
 
@@ -184,13 +184,13 @@ DriverSession* DriverSession::Clone() {   // 0055F550
     InsertRange<stlp::SharedRef>(copy->drivers_->next, drivers_->next, drivers_);
     copy->holders_ = NewSentinel();
     InsertRange<stlp::CountedRef>(copy->holders_->next, holders_->next, holders_);
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 
 // Destroyed and built again in place (the count and flags kept): both lists empty, new sentinels.
 int DriverSession::OnShutdown() {   // 0055F6B0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ClearHolders(holders_);
     stlp::deallocate(holders_, sizeof(DriverNode));
     ClearDrivers(drivers_);
@@ -199,12 +199,12 @@ int DriverSession::OnShutdown() {   // 0055F6B0
     ei::SetVtable(this, CPlayerSource::kVtableAddress);
     drivers_ = NewSentinel();
     holders_ = NewSentinel();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 
 void DriverSession::Destruct() {   // 0055F7B0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ClearHolders(holders_);
     stlp::deallocate(holders_, sizeof(DriverNode));
     ClearDrivers(drivers_);
@@ -218,14 +218,14 @@ DriverSession* DriverSession::DeletingDestruct(unsigned flags) {   // 0055F790
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0055F790, DriverSession::DeletingDestruct);
+EI_REWRITTEN(0x0055F790, DriverSession::DeletingDestruct);
 
 namespace {
 int __fastcall SessionShutdownHook(DriverSession* self) { return self->DriverSession::OnShutdown(); }
 DriverSession* __fastcall SessionCloneHook(DriverSession* self) { return self->DriverSession::Clone(); }
 } // namespace
-EI_REPLACE(0x0055F6B0, SessionShutdownHook);
-EI_REPLACE(0x0055F550, SessionCloneHook);
+EI_REWRITTEN(0x0055F6B0, SessionShutdownHook);
+EI_REWRITTEN(0x0055F550, SessionCloneHook);
 
 } // namespace netlink
 

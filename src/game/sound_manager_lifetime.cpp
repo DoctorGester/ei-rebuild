@@ -202,11 +202,10 @@ EI_REPLACE(0x006B63F0, ConstructSequence);
 void __fastcall DestructSequence(SoundSequence* sequence) { sequence->names.Destruct(); }
 EI_REPLACE(0x006B6400, DestructSequence);
 
-// The strings and the archive are members the compiler constructs (before the body here; between
-// the stream reader and the registries in the original).
+// The stream reader, the strings and the archive are members the compiler constructs (before the
+// body here; the stream reader first in the original's body, the archive between the registries).
 CSoundManager::CSoundManager() {
     ClearFields();
-    streamReader.Construct();
     soundRegistry.Construct();
     registry0CC.Construct();
     ConstructList(waveSources, mfc::impl::SoundListClass::Vtable());
@@ -236,8 +235,9 @@ CSoundManager::CSoundManager() {
 
 CSoundManager* CSoundManager::Construct() { return new (this) CSoundManager(); }
 
-// The strings and the archive are destroyed after the body (the archive after the registries; in the
-// original between them, through 006714A0's address for Rebirth: the same destructor in the image).
+// The archive, the strings and the stream reader are destroyed after the body (the archive after the
+// registries; in the original between them, through 006714A0's address for Rebirth: the same
+// destructor in the image; the stream reader last in the original's body).
 CSoundManager::~CSoundManager() {
     Close();
     AilShutdown()();
@@ -259,7 +259,6 @@ CSoundManager::~CSoundManager() {
     waveSources.RemoveAll();
     registry0CC.Destroy();
     soundRegistry.Destroy();
-    streamReader.Destruct();
 }
 
 void CSoundManager::DestructBody() { this->CSoundManager::~CSoundManager(); }

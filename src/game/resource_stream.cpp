@@ -30,18 +30,15 @@ bool PartMatches(const char* name, const char* pattern) {
 
 // --- CResourceBase -------------------------------------------------------------------------------
 
-CResourceBase* CResourceBase::Construct() {
-    ei::SetVtable(this, ResourceBaseClass::Vtable());
+CResourceBase::CResourceBase() {
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
     accelTable_ = nullptr;
     accelCount_ = 0;
-    return this;
 }
 
-void CResourceBase::Destruct() {
-    ei::SetVtable(this, ResourceBaseClass::Vtable());
+CResourceBase::~CResourceBase() {
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -52,8 +49,14 @@ void CResourceBase::Destruct() {
     }
 }
 
+void CResourceBase::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+CResourceBase* CResourceBase::Construct() { return new (this) CResourceBase(); }
+
+void CResourceBase::Destruct() { this->CResourceBase::~CResourceBase(); }
+
 CResourceBase* CResourceBase::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CResourceBase::~CResourceBase();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -68,24 +71,21 @@ void CResourceBase::FreeAccelTable() {
 
 // --- CResourceStream -----------------------------------------------------------------------------
 
-CResourceStream* CResourceStream::Construct() {
-    CResourceBase::Construct();
-    ei::SetVtable(this, ResourceStreamClass::Vtable());
+CResourceStream::CResourceStream() {
     archive_ = nullptr;
     file_ = nullptr;
     offset_ = 0;
     size_ = 0;
-    return this;
 }
 
-void CResourceStream::Destruct() {
-    ei::SetVtable(this, ResourceStreamClass::Vtable());
-    Close();
-    CResourceBase::Destruct();
-}
+CResourceStream::~CResourceStream() { Close(); }
+
+CResourceStream* CResourceStream::Construct() { return new (this) CResourceStream(); }
+
+void CResourceStream::Destruct() { this->CResourceStream::~CResourceStream(); }
 
 CResourceStream* CResourceStream::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CResourceStream::~CResourceStream();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -143,7 +143,7 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     if (entries_ == nullptr || names_ == nullptr) return 0;
-    int index = reinterpret_cast<const CMappedResource*>(this)->FindEntry(name);
+    int index = FindEntry(name);
     if (index == -1) return 0;
     offset_ = static_cast<std::int32_t>(entries_[index].offset);
     if (gameapi::mmioSeek(static_cast<HMMIO>(archive_), offset_, SEEK_SET) == -1) {
