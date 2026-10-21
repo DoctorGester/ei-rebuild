@@ -106,20 +106,12 @@ void StaticInitialisers(Do& d) {
     // 0040C830: float fold
     d.Begin(0x0040C830);
     d.StoreFloat(0x0079B2A0, 3.1415927f /*0073B9A8*/ + 3.1415927f /*0073B9A8*/);
-    // 0040C840: float fold
+    // 0040C840: float fold; 1 left out
     d.Begin(0x0040C840);
-    d.StoreFloat(0x0079B2A4, 3.1415927f /*0073B9A8*/ * 0.5f /*0073B86C*/);
-    // 0040C7E0: stores
+    // 0040C7E0: stores; 3 left out
     d.Begin(0x0040C7E0);
-    d.Store(0x0079B5C8, 0);
-    d.Store(0x0079B5CC, 0);
-    d.Store(0x0079B5D0, 0);
-    // 0040C800: stores
+    // 0040C800: stores; 4 left out
     d.Begin(0x0040C800);
-    d.Store(0x0079B5B8, 0x3F800000);
-    d.Store(0x0079B5BC, 0);
-    d.Store(0x0079B5C0, 0);
-    d.Store(0x0079B5C4, 0);
     // 0040C860: float fold; 1 left out
     d.Begin(0x0040C860);
     // 0040C880: constructor + atexit

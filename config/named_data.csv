@@ -52,6 +52,9 @@ address,size,name,file
 0078ACF8,64,kTransAlpha,src/game/particle_callbacks.cpp
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
+0079B2A4,4,kHalfPi,src/game/camera.h
+0079B5B8,16,kIdentityRotation,src/game/camera.h
+0079B5C8,12,kZeroVector,src/game/camera.h
 007A9BF4,4,g_arraysConstructed,src/game/particle_render.cpp
 007A9BF8,4,kSpinAngle,src/game/particle_callbacks.cpp
 007A9BFC,48,g_bagSizes,src/game/particle_callbacks.cpp

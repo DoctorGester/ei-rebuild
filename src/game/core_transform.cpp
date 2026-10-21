@@ -11,11 +11,6 @@
 #include <cmath>
 #include <cstring>
 
-namespace {
-// The engine's zero vector (0079B5C8, set up by a static initialiser), copied as dwords.
-const void* ZeroVector() { return ei::GamePointer<const void>(0x0079B5C8); }
-} // namespace
-
 CTransformObject* CTransformObject::ConstructBase() {
     ClearFields();
     // Identity rotations (w first); the positions are not initialised.
@@ -150,8 +145,8 @@ EI_REPLACE_METHOD(0x0040D3B0, CCamera::SetTarget);
 void CCamera::SetTargetId(int id) {
     targetId_ = id;
     if (id != -1) {
-        std::memcpy(&offsetA4_, ZeroVector(), sizeof(Vector3));
-        std::memcpy(&offset98_, ZeroVector(), sizeof(Vector3));
+        std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
+        std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     }
 }
 EI_REPLACE_METHOD(0x0040D420, CCamera::SetTargetId);
