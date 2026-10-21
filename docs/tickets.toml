@@ -595,6 +595,14 @@ model = "opus"
 depends = ["R18"]
 note = "User 2026-10-21 (with R18): units, missiles and effects move in 55 ms world ticks (about 18 a second); only animation time uses tick + tickFraction_. Keep each moving object's previous-tick transform and blend it with the current one at draw time by the client's tickFraction_ (the matrices handed to render:: in device_mesh / the transform pipeline), without touching game state, behind an option off by default. Estimated 3-4 batches: transforms store, figures and units, missiles and particles, picking rectangles (they come from the drawn positions) and the camera follow from R18."
 
+[[ticket]]
+id = "UB1"
+title = "Chat window's face and status vanish depending on the game heap's layout"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_textures.cpp", "src/render/render_ui.cpp"]
+note = "Found by U1 (2026-10-21): in ui_gallery_mp's briefing / chat_typed / chat_sent frames the base screen's player list loses its face and status (top right, 27249 pixels) when the game heap shifts. Reproduced with the UTF-8 switch off by leaking gamecrt::operator_new(16/64/100) on every other text lookup; game state digests the same. Guess: a window texture or canvas keyed by holder address in render_textures / render_ui is reused or stale. Fix it so the frames do not depend on heap layout; it otherwise shows in every U ticket's frame check and can make goldens flaky."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
