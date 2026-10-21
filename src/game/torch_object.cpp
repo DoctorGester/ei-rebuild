@@ -12,34 +12,31 @@
 #include "game_data.h"
 
 #include <initializer_list>
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
-void* const kTorchVtable = ei::GamePointer<void>(0x0073E834);
 const char* const kTorchClassName = "CTorchObject";
 constexpr int kClassTorch = 0x57;
 constexpr int kTypeTorchSpec = 0x4B;
 constexpr int kTorchField = 4;
-
-void SetVtable(CTorchObject* torch) { *reinterpret_cast<void**>(torch) = kTorchVtable; }
 } // namespace
 
-CTorchObject* CTorchObject::Construct() {
-    CMapObject::Construct();
-    spec = nullptr;
-    SetVtable(this);
-    return this;
-}
+CTorchObject::CTorchObject() { spec = nullptr; }
+
+CTorchObject* CTorchObject::Construct() { return new (this) CTorchObject(); }
 EI_REPLACE_METHOD(0x0052BEE0, CTorchObject::Construct);
 
-void CTorchObject::DestructBody() {
-    SetVtable(this);
+CTorchObject::~CTorchObject() {
     if (spec) spec->Release();
-    CMapObject::DestructBody();
 }
+
+void CTorchObject::DestructBody() { this->CTorchObject::~CTorchObject(); }
 EI_REPLACE_METHOD(0x0052BF60, CTorchObject::DestructBody);
 
 CTorchObject* CTorchObject::DeletingDestruct(int flags) {
-    DestructBody();
+    this->CTorchObject::~CTorchObject();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -71,6 +68,9 @@ void CTorchObject::SaveTorch(CStream* stream) {
     spec->Save(stream);
 }
 EI_REPLACE_METHOD(0x0052C2A0, CTorchObject::SaveTorch);
+
+void CTorchObject::Load(void* stream) { LoadTorch(static_cast<CStream*>(stream)); }
+void CTorchObject::Save(void* stream) { SaveTorch(static_cast<CStream*>(stream)); }
 
 std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
     if (object->type_ != kTypeTorchSpec) return CMapObject::AttachObjectImpl(object);
@@ -112,8 +112,11 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
 }
 EI_REPLACE_METHOD(0x0052C220, CTorchObject::ReadTorchNetState);
 
-const char* __fastcall TorchClassName(CTorchObject*) { return kTorchClassName; }
+const char* CTorchObject::GetClassName() { return kTorchClassName; }
+int CTorchObject::GetClassId() { return kClassTorch; }
+
+const char* __fastcall TorchClassName(CTorchObject* self) { return self->CTorchObject::GetClassName(); }
 EI_REPLACE(0x0052BF20, TorchClassName);
 
-int __fastcall TorchClassId(CTorchObject*) { return kClassTorch; }
+int __fastcall TorchClassId(CTorchObject* self) { return self->CTorchObject::GetClassId(); }
 EI_REPLACE(0x0052BF30, TorchClassId);

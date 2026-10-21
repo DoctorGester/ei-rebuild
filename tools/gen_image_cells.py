@@ -25,9 +25,11 @@ The code cells (S18i, src/standalone/image_code_cells.inc; image_code.cpp points
 registrations are in, or at a stub that reports there is no code at its address): the aligned dwords of the same data
 whose value lies in game.exe's code section and that are code pointers: the cells of the structures the tool walks
 (CODE_STRUCTURES: vtable slots from config/vtables.csv less the retired vtables' (config/retired_vtables.csv, C19:
-classes whose vtable is the compiler's; their bytes are zero in the image), the C++ exception tables' funclets, destructors and copy
+classes whose vtable is the compiler's; their bytes are zero in the image), the C++ exception tables' (ThrowInfo) destructors and copy
 constructors, MFC's CreateObject, the static initialiser list) and the CODE_REVIEWED groups (MFC's message maps, the
-CRT's function pointers). The rest of the dwords in that range are left as they are: NOT_CODE groups (text, the
+CRT's function pointers). The C++ exception tables' unwind actions and catch handlers (funclets, C20a) are walked and
+counted but are no code cells: only __CxxFrameHandler on game.exe's own frames reads them (LEFT_KINDS). The rest of
+the dwords in that range are left as they are: NOT_CODE groups (text, the
 import names' hints, the CRT's SEH scope tables, which only game.exe's own frames read) and text by the filters above
 whose value is no function start (config/functions.csv). A dword that is neither fails until it is reviewed.
 
@@ -81,8 +83,8 @@ REVIEWED_DATA = [
                                 'variable, set by a static initialiser to RegisterWindowMessageA("commctrl_DragListMsg")'),
     (0x007482F0, 0x0074C60C, 117, 'RTTI (MFC, the CRT, iostream, STLport): complete object locators and base class '
                                   'descriptors -> their type descriptors'),
-    (0x00753F04, 0x0077F7CC, 38, 'C++ EH: catch handler types (FuncInfo) and catchable types (ThrowInfo) -> the '
-                                 'caught / thrown pointer types\' type descriptors (".PAV...")'),
+    (0x00753F04, 0x0077F7CC, 12, 'C++ EH: catchable types (ThrowInfo) -> the thrown pointer types\' type '
+                                 'descriptors (".PAV...")'),
     # .data
     (0x007857B4, 0x0078706C, 88, 'the key bindings\' command table (007857B0, 0x48-byte entries): names'),
     (0x00787074, 0x0078768C, 86, 'the action definitions (00787070) and the settings table after them: names'),
@@ -117,11 +119,22 @@ REVIEWED_DATA = [
     (0x0079AE50, 0x0079AE50, 1, 'the CRT\'s __lconv: __lconv_c'),
 ]
 
+# Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc), as C20a did for
+# the code cells (LEFT_KINDS): the C++ EH tables read only by __CxxFrameHandler on game.exe's own frames, which gets
+# the FuncInfo (unwind map, try block map, handler arrays, the caught types of the handlers) from the function's
+# prologue. No such frame runs in the image (our code's FuncInfos are the compiler's, and none of game.exe's
+# functions has a registration that reaches one: C20a), and nothing in src/ or tests/ names the tables; the
+# harness's crash report (tests/verify/harness_crash.cpp) reads ThrowInfo only, as CxxThrowException and our frame
+# handler do. The cells keep game.exe's values, unshifted. The ThrowInfo kinds (eh-throw, eh-catchable) stay
+# cells, with the catchable types' type descriptor cells (the group at 00753F04 below).
+LEFT_STRUCTURES = ('eh-unwind', 'eh-try', 'eh-handlers', 'eh-handler-type')
+
 # Cells into .rdata that belong to the structures the tool walks (structures()): kind, the number of cells, what.
 STRUCTURES = [
-    ('eh-unwind', 2963, "C++ EH: FuncInfo (magic 19930520) -> its unwind map"),
-    ('eh-try', 378, 'C++ EH: FuncInfo -> its try block map'),
-    ('eh-handlers', 380, 'C++ EH: try block -> its catch handler array'),
+    ('eh-unwind', 2963, "C++ EH: FuncInfo (magic 19930520) -> its unwind map: not pointer cells"),
+    ('eh-try', 378, 'C++ EH: FuncInfo -> its try block map: not pointer cells'),
+    ('eh-handlers', 380, 'C++ EH: try block -> its catch handler array: not pointer cells'),
+    ('eh-handler-type', 26, "C++ EH: catch handler -> the caught type's type descriptor (a pointer type's, \".PAV...\"): not pointer cells"),
     ('eh-throw', 10, 'C++ EH: ThrowInfo -> its catchable type array'),
     ('eh-catchable', 41, 'C++ EH: catchable type array -> its catchable types'),
     ('rtti-locator', 53, "RTTI: a vtable's complete object locator (the vtable's slot -1)"),
@@ -153,13 +166,22 @@ VTABLE_SLOT_CELLS = 7258
 CODE_STRUCTURES = [
     ('vtable', None, "a vtable's slots (config/vtables.csv)"),
     ('vtable-retired', None, "a retired vtable's slots (config/retired_vtables.csv): not code cells"),
-    ('eh-unwind', 13129, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet)"),
-    ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet)'),
+    ('eh-unwind', 13129, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet): not code cells"),
+    ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet): not code cells'),
     ('eh-throw', 2, "C++ EH: ThrowInfo: the thrown object's destructor"),
     ('eh-copy', 5, "C++ EH: ThrowInfo -> catchable type: the thrown object's copy constructor"),
     ('mfc-create', 13, "MFC CRuntimeClass (config/runtime_classes.csv): CreateObject"),
     ('static-init', 748, 'the C++ initialiser list (00783004-00783BB0, __xc_a..__xc_z): the static initialisers'),
 ]
+
+# Kinds of CODE_STRUCTURES that are walked and counted but left out of the code cells. The C++ EH funclets (C20a):
+# __CxxFrameHandler reads a FuncInfo's unwind map and try blocks only for the frame whose prologue hands it that
+# FuncInfo, i.e. game.exe's own functions, and none run in the image (our code's FuncInfo is the compiler's); no
+# funclet has a registration (all were at stubs, which end the run, and no golden reached one), and nothing in src/
+# or tests/ names their tables. Their bytes stay game.exe's, as the NOT_CODE groups' (a stray call through one lands
+# in the guarded code section and is reported as no code there). The ThrowInfo cells (eh-throw, eh-copy) stay code
+# cells: our frame handler reads them for a throw of game.exe's throw information (CxxThrowException).
+LEFT_KINDS = ('vtable-retired', 'eh-unwind', 'eh-handler')
 
 # Code cells outside those structures, as looked at in game.exe: (first cell, last cell, the number of dwords in the
 # code section, what). Every dword of the range whose value lies in the code section is a code cell.
@@ -314,7 +336,13 @@ def structures(img):
             mark(a + 16, 'eh-try')
             if rdata(dw(a + 16)):
                 for i in range(dw(a + 12)):   # try block: tryLow, tryHigh, catchHigh, nCatches, pHandlerArray
-                    mark(dw(a + 16) + 20 * i + 16, 'eh-handlers')
+                    block = dw(a + 16) + 20 * i
+                    mark(block + 16, 'eh-handlers')
+                    if rdata(dw(block + 16)):
+                        for j in range(dw(block + 12)):   # handler type: adjectives, pType (0 for catch (...)), ...
+                            cell = dw(block + 16) + 16 * j + 4
+                            if type_descriptor(dw(cell)):
+                                kinds.setdefault(cell, 'eh-handler-type')
         # ThrowInfo: attributes, pmfnUnwind (code or 0), pForwardCompat 0, pCatchableTypeArray (count, entries);
         # a catchable type: properties, pType (a type descriptor), ...
         unwind = dw(a + 4)
@@ -460,7 +488,7 @@ def code_check(img, problems, keep_named=False):
                             '(CODE_REVIEWED) or not (NOT_CODE)? (tools/gen_image_cells.py)')
             continue
         counts[g] = counts.get(g, 0) + 1
-        if g[0] == 'code' or g[0] == 'structure' and CODE_STRUCTURES[g[1]][0] != 'vtable-retired':
+        if g[0] == 'code' or g[0] == 'structure' and CODE_STRUCTURES[g[1]][0] not in LEFT_KINDS:
             code.append((c, v, g))
     retired = sum(in_code(struct.unpack_from('<I', img, c - BASE)[0]) for c in retired_cells())
     check_retired(problems, img)
@@ -513,13 +541,18 @@ def group_of(cell, value, kinds):
         if first <= cell <= last:
             return ('text', i)
     section = section_of(value)
-    if section == 'rdata' and cell in kinds:
+    if cell in kinds:
         return ('structure', [k for k, _, _ in STRUCTURES].index(kinds[cell]))
     groups = REVIEWED_RDATA if section == 'rdata' else REVIEWED_DATA
     for i, g in enumerate(groups):
         if g[0] <= cell <= g[1] and (len(g) < 5 or g[4] == value):
             return (section, i)
     return None
+
+
+def left_out(group):
+    """Whether a group is no pointer cells: text, or a structure of LEFT_STRUCTURES."""
+    return group[0] == 'text' or group[0] == 'structure' and STRUCTURES[group[1]][0] in LEFT_STRUCTURES
 
 
 def describe(group):
@@ -545,7 +578,7 @@ def render(cells, img):
     by_group = {}
     for a, v in cells:
         g = group_of(a, v, kinds)
-        if g is None or g[0] != 'text':
+        if g is None or not left_out(g):
             by_group.setdefault(g, []).append((a, v))
     for g in order + [None]:
         if g not in by_group:
@@ -605,7 +638,8 @@ def stored_vtable(img, v):
 
 def check_retired(problems, img):
     """Each retired vtable is a game vtable of config/vtables.csv with all its slots, listed once, the start of a
-    table (stored_vtable), and shares no slot with a vtable still in use (its bytes are zero in the image)."""
+    table (stored_vtable) or the tail of a retired one (the row it ends), and shares no slot with a vtable still in
+    use (its bytes are zero in the image)."""
     with open(VTABLES, newline='') as f:
         vtables = {int(r['vtable'], 16): (int(r['slots']), r['kind']) for r in csv.DictReader(f)}
     listed = {v for v, _, _, _ in retired_vtables()}
@@ -615,11 +649,17 @@ def check_retired(problems, img):
             for i in range(n):
                 live.setdefault(v + 4 * i, v)
     seen = set()
+    # A tail goes with its table: a retired row's end, when that row is stored or a tail itself.
+    ends = set()
+    for v, n, _, _ in sorted(retired_vtables()):
+        if stored_vtable(img, v) or v in ends:
+            ends.add(v + 4 * n)
     for v, n, cls, path in retired_vtables():
         where = f'config/retired_vtables.csv: {v:08X} ({cls})'
-        if not stored_vtable(img, v):
+        if not stored_vtable(img, v) and v not in ends:
             problems.append(f'gen_image_cells: {where}: no code of game.exe stores it: the tail of the vtable '
-                            'before it (a slot call or a byte match split it off), not a vtable of its own')
+                            'before it (a slot call or a byte match split it off), not a vtable of its own; '
+                            'retire it with that vtable')
         shared = sorted({live[v + 4 * i] for i in range(n) if v + 4 * i in live})
         if shared:
             problems.append(f'gen_image_cells: {where} shares slots with ' + ' '.join(f'{x:08X}' for x in shared) +
@@ -713,7 +753,7 @@ def main():
             problems.append(f'gen_image_cells: {c:08X} -> {v:08X} has no review (tools/gen_image_cells.py)')
             continue
         counts[g] = counts.get(g, 0) + 1
-        moved += g[0] != 'text'
+        moved += not left_out(g)
         if section_of(v) is None:
             problems.append(f'gen_image_cells: {c:08X} -> {v:08X} is the end of the moved range: a one-past-the-end '
                             'pointer of its last object, or the next section\'s start? decide and review')

@@ -1,15 +1,19 @@
 #pragma once
 
-// Magic traps (map objects of class id 0x3B, 0x290 bytes, vtable 0073E63C, constructed by
-// 00529DD0; the zone file's "MagicTrap" records). Names provisional. flags_ bit 0x80000 is
+// Magic traps (map objects of class id 0x3B, 0x290 bytes, constructed by 00529DD0; the zone file's
+// "MagicTrap" records; a real virtual class: the compiler makes its vtable, C19, game.exe's 0073E63C
+// and its tail 0073E6E8 are retired). Names provisional. flags_ bit 0x80000 is
 // "armed" (the script's ActivateTrap); the position is the map object's. The trap's own members
 // start at +0x238 (declared below). See docs/notes/units.md ("Magic traps").
 
+#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "map_object.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 struct MagicTrapRecord;
 class CStream;   // core_streams.h
@@ -38,20 +42,33 @@ static_assert(sizeof(TrapPoints) == 0x14);
 
 class MagicTrap : public CMapObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073E63C);
     // 00529DD0. The constructor (the factory 00512730, class id 0x3B): the map object (0050E2D0),
     // no spell, the two arrays (circles vtable 0073C68C, points 0073C680) and the list of units
-    // inside (vtable 0073E730, blocks of 10) empty, the vtable 0073E63C; then the map object's
-    // Create (0050E770, called directly), sides -1, flags_ |= 0x80040, the spell released, both
-    // arrays SetSize(0, -1), the list emptied, countdown 0, +0x28C 0, period 10. Returns this.
+    // inside (vtable 0073E730, blocks of 10) empty; then the map object's Create (0050E770,
+    // called directly), sides -1, flags_ |= 0x80040, the spell released, both arrays SetSize(0,
+    // -1), the list emptied, countdown 0, +0x28C 0, period 10.
+    MagicTrap();
+    // 00529F90. The map object's Destroy (0050E840, called directly), the spell released, both
+    // arrays SetSize(0, -1), the list emptied twice (RemoveAll, then CList's destructor), the
+    // arrays' storage freed, then the map object's destructor.
+    ~MagicTrap() override;
+    // The deleting destructor (slot 0, 00529F70) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    int Create() override { return CreateTrap(); }         // 2: 0052A100
+    void Destroy() override { DestroyTrap(); }             // 3: 0052A200
+    int RunTick() override { return UpdateTrap(); }        // 6: 0052AC20
+    void Load(void* stream) override;                      // 9: 0052ADC0 LoadTrap
+    void Save(void* stream) override;                      // 10: 0052B070 SaveTrap
+    const char* GetClassName() override;                   // 11: 00529F50 "CMagicTrapObject" (trap_object.cpp)
+    int GetClassId() override;                             // 12: 00529F60 (0x61)
+    bool IsSynchronised() override { return true; }        // 29: 00529AE0 (the trap's)
+
+    // The registrations (C20 retires them): 00529DD0 the constructor in place (returns this),
+    // 00529F90 the destructor, 00529F70 (slot 0, RET 4; trap_object.cpp) the destructor, then
+    // operator delete when `flags` bit 0 is set (returns this).
     MagicTrap* Construct();
-    // 00529F90. The destructor body (the deleting destructor 00529F70, slot 0): the map object's
-    // Destroy (0050E840, called directly), the spell released, both arrays SetSize(0, -1), the
-    // list emptied twice (RemoveAll, then CList's destructor), the arrays' storage freed, then
-    // the map object's destructor body (0050E660).
     void DestructBody();
-    // 00529F70 (slot 0, RET 4; trap_object.cpp). DestructBody, then operator delete when `flags`
-    // bit 0 is set; returns this.
     MagicTrap* DeletingDestruct(int flags);
     // 0052B070 (virtual slot 10, RET 4). The map object part (0050F900), the spell's id (-1:
     // none), the circles (count, then 12 bytes each), the units inside (count, then each id

@@ -1,11 +1,14 @@
 #pragma once
 
 #include "engine_object.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 using BOOL = int;
 
@@ -15,7 +18,10 @@ struct FigureAnimation;   // map_object_figures.h
 // type, registers them by id, saves and loads the registered ones, and keeps the objects released
 // to it as spares of their type for reuse. Name from the game's own error strings
 // ("CBaseManager::RegisterInstant"). vtable 0073B870, 25 slots (0-12 as CEngineObject's; 11, 12
-// and 14 are _purecall there). base_manager.cpp, base_manager_core.cpp.
+// and 14 are _purecall there). base_manager.cpp, base_manager_core.cpp. Managers are still made
+// by the constructor bodies (ConstructBase, then their vtable); a derived class with real C++
+// constructors (C19; CTextureManager) gets the compiler's vtables, this class's a replica of
+// 0073B870 (every slot defined) that its destructor runs with.
 class CBaseManager : public CEngineObject {
 public:
     // 00512F60 (combat_order_setters.cpp, RET 8). The animation `name` (case-insensitive) in the
@@ -79,6 +85,11 @@ public:
     CBaseManager* ConstructBase();
     // 00402DF0. The destructor body: Destroy (slot 3), the containers, the engine object.
     void DestructBody();
+    // The destructor of a manager with real C++ constructors: DestructBody's part past the vtable
+    // store (TearDownBaseManager), then the engine object's.
+    ~CBaseManager() override;
+    // Managers are freed into the game's heap (slot 0's operator delete).
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
     // 00402DD0. Slot 0's body: DestructBody, then operator delete when flags bit 0 is set.
     CBaseManager* DeletingDestruct(unsigned flags);
     // 00403F40. Object registered under `id`, or null.
@@ -104,6 +115,14 @@ public:
     // nobody took go back to the spares.
     void ReleaseUnused();
 
+protected:
+    // ConstructBase's part past the vtable stores (SetUpBaseManager); for derived classes with real
+    // C++ constructors.
+    CBaseManager();
+    void SetUpBaseManager();
+    void TearDownBaseManager();
+
+public:
     ObjectMap objects_;             // +0x1C registered objects by id
     int maxId_;                     // +0x30 highest id registered
     ObjectList objectList_;         // +0x34 registered objects in registration order (saved so)

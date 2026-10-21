@@ -72,12 +72,18 @@ struct LoadedFile {
 static_assert(sizeof(LoadedFile) == 0x1C);
 
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
-// vtable 007432E0.
+// A real virtual class: the compiler makes its vtable (C19; game.exe's 007432E0 is retired).
 class CMappedResource {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x007432E0);
+    // 00671280. An empty, closed archive: CResourceBase's fields cleared, the loaded-file maps with
+    // 193 buckets each, no image, no file.
+    CMappedResource();
     // Virtual methods, in vtable order.
-    virtual ~CMappedResource();                                       // 0: 006713A0 / 006714A0
+    // 0: 006714A0 (006713A0 the scalar deleting destructor). The loaded files freed, the archive
+    // closed, the maps destroyed, then CResourceBase's part (the accelerator table freed).
+    virtual ~CMappedResource();
+    // The deleting destructor frees into the game's heap (resource.cpp).
+    static void operator delete(void* block);
     virtual BOOL OpenResource(const char* path, BOOL writable);       // 1: 00671730
     BOOL OpenResourceImpl(const char* path, BOOL writable);   // body of the slot above (registered by member pointer)
     virtual BOOL OpenFromMemory(const void* image);                   // 2: 00671A40
@@ -93,9 +99,10 @@ public:
     bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     virtual void FreeAllFiles();                                      // 7: 00672040
 
-    // 00671280. The constructor: empty, closed archive.
+    // The registrations of the constructor and destructors (C20 retires them): 00671280 the
+    // constructor in place (returns this), 006714A0 the destructor, 006713A0 (slot 0) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
     CMappedResource* Construct();
-    // 006714A0 (the destructor body) and 006713A0 (scalar deleting destructor).
     void Destroy();
     CMappedResource* DeletingDestroy(unsigned flags);
 
@@ -123,17 +130,22 @@ public:
 };
 static_assert(sizeof(CMappedResource) == 0x58);
 
-// Maps the whole archive into memory; GetFile returns pointers into the mapping. vtable 00743300.
+// Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual
+// class: the compiler makes its vtable (C19; game.exe's 00743300 is retired).
 class CMMIOResource : public CMappedResource {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743300);
-    // 006721D0 / 006722F0 / 006722D0 (resource_stream.cpp): constructor, destructor body and
-    // scalar deleting destructor.
+    // 006721D0 (resource_stream.cpp). CMappedResource's, a closed mapped file, no image.
+    CMMIOResource();
+    // 006722F0. The mapping closed (CloseResource inlined, then the CMappedFile destructor's),
+    // then CMappedResource's.
+    ~CMMIOResource() override;
+    // The registrations (C20 retires them): 006721D0 the constructor in place (returns this),
+    // 006722F0 the destructor, 006722D0 (slot 0) the destructor, then operator delete when bit 0
+    // of `flags` is set (returns this).
     CMMIOResource* Construct();
     void Destroy();
     CMMIOResource* DeletingDestroy(unsigned flags);
 
-    // 0: 006722D0 / 006722F0 destructor (not rewritten yet)
     BOOL OpenResource(const char* path, BOOL writable) override;      // 1: 006724E0
     BOOL OpenResourceImpl(const char* path, BOOL writable);   // body of the slot above (registered by member pointer)
     BOOL OpenFromMemory(const void* image) override;                  // 2: 00672520

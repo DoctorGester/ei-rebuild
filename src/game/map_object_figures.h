@@ -332,9 +332,50 @@ struct CountedRef {
 template <typename T>
 inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
 
+// The virtual slots are game.exe's table 0073DDD4 (27 slots, abstract: 11 / 12 are _purecall): the
+// game builds most objects with Construct, which stores that table; a class whose constructor is
+// C++ (C19: the torches, levers and traps) gets the compiler's, built from the same bodies (the
+// slots below are defined, object3d_slots.cpp). Slots 13-17 are CTransformObject's (the object
+// starts with its fields: Transform()).
 class CObject3D : public CEngineObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DDD4);
+
+    ~CObject3D() override;   // 00515D70's work without the vtables (map_object_lifetime.cpp)
+    int Create() override { return Create3D(); }          // 2: 00515F70
+    void Destroy() override { Destroy3D(); }               // 3: 00516080
+    void ClearState() override { RemoveAllEffectSources(); }   // 5: 00515E90
+    // 13: 00401490. CTransformObject::CopyTransform: the local and world transform copied; returns
+    // this as the transform.
+    virtual CTransformObject* CopyTransform(const CTransformObject& other);
+    // 14: 00516370 (CombineRotation3D). worldOrientation = parent * orientation.
+    virtual void CombineRotation(const Quaternion& parent);
+    // 15: 0040CC30. CTransformObject::UpdateWorld: the world transform from the parent's.
+    virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
+    // 16 / 17: 00516350 / 00516360. The transform written to / read from the MFC file
+    // (CTransformObject 00401510 / 00401540).
+    virtual void SaveTransform(void* file);
+    virtual void LoadTransform(void* file);
+    // 18 (0x48, RET 4; AL): whether the object may play the animation entry (FigureAnimation);
+    // 0050E400: any. CUnit 00532DA0 (AcceptsTarget: its flags +0x18 for heroes).
+    virtual bool AcceptsAnimation(const void* animation);
+    // 19 (RET 4): 00516D50 AttachSpecific (no result: 0). CMapObject 0050E890, units 0052E870.
+    virtual std::uintptr_t AttachObject(CEngineObject* object);
+    // 20: 005161E0 (CopyFigureImpl).
+    virtual void CopyFigure(const CObject3D* other);
+    // 21 (0x54, AL): whether the object is invisible: 00515D40 false; map objects 0050FA10.
+    virtual bool InvisibleSlot();
+    // 22 / 23 / 24 (0x58 / 0x5C / 0x60, RET 4): draw the figure / draw it and collect its screen
+    // rectangle / draw its shadow with the scene context (00516460 / 00516420 / 00516490: the side
+    // half's slots 19 / 20; 1 without one).
+    virtual int DrawFigure(void* context);
+    virtual int DrawCollectDirty(void* context);
+    virtual int DrawFigureShadow(void* context);
+    // 25 (RET 4): 0050E410 empty; units 0052FC40.
+    virtual void AdvanceTime(float time);
+    // 26: loads the figure (00517500 LoadFiguresImpl, units 0052E910). Returns 1 (or the loader's
+    // EAX).
+    virtual std::uintptr_t LoadFigures();
 
     // map_object_lifetime.cpp.
     // 00515BD0. The constructor: the engine object and transform bases (vtables 0073B8E0,
@@ -360,12 +401,12 @@ public:
     // EAX on the rebuild path (0 when the scale did not change).
     std::uintptr_t SetFigureScale(const float* newScale);
 
-    // 00517500. Virtual slot 26: loads the figure named by +0xA4 and builds the pending parts
+    // 00517500. Virtual slot 26's body: loads the figure named by +0xA4 and builds the pending parts
     // (+0xE0) at the current scale; each part not yet in +0xD0 joins it (referenced), learns its
     // owner and is announced to the animation (+0x98) and the attached object (+0x94, slot 13).
     // Non-units mark every part and themselves (flags_ 8 / 0x200). Then +0x94's slot 21 and
     // flags_ 0x80. Returns 1 (also when already loaded).
-    int LoadFigures();
+    int LoadFiguresImpl();
 
     // 005164B0. Adds `part` to the parts unless it is there: referenced, told its owner, announced
     // to the animation and to the attached object (whose slot 13 result is returned). Returns 1
@@ -480,9 +521,9 @@ public:
     // 00516370. Virtual slot 14 (CTransformObject::CombineRotation's place; the same body as
     // 0040CB80): worldOrientation = parent * orientation.
     void CombineRotation3D(const Quaternion* parent);
-    // 005161E0. Virtual slot 20: takes `other`'s parts (the array copied, no references taken)
-    // and its transform (CTransformObject::CopyTransform 00401490).
-    void CopyFigure(const CObject3D* other);
+    // 005161E0. Virtual slot 20's body: takes `other`'s parts (the array copied, no references
+    // taken) and its transform (CTransformObject::CopyTransform 00401490).
+    void CopyFigureImpl(const CObject3D* other);
     // 00516D50. Virtual slot 19: a side half (type 0x46) replaces the attached one, which is
     // detached (+0x1C cleared) and released; the new one points back here and gains a reference.
     // Other objects (and null) are ignored.
@@ -490,12 +531,12 @@ public:
     // 00515E90. Virtual slot 5: every effect source is taken out of the list, detached (004849F0
     // with null) and released.
     void RemoveAllEffectSources();
-    // 00516460 / 00516420 / 00516490. Virtual slots 22 / 23 / 24: the side half draws the figure
-    // (its slot 19; slot 23 first empties dirtyRect and has it filled) / the shadow (its slot 20).
-    // 1 without a side half, else the half's result.
-    int DrawFigure(void* context);
-    int DrawCollectDirty(void* context);
-    int DrawFigureShadow(void* context);
+    // 00516460 / 00516420 / 00516490. Virtual slots 22 / 23 / 24's bodies: the side half draws
+    // the figure (its slot 19; slot 23 first empties dirtyRect and has it filled) / the shadow
+    // (its slot 20). 1 without a side half, else the half's result.
+    int DrawFigureImpl(void* context);
+    int DrawCollectDirtyImpl(void* context);
+    int DrawFigureShadowImpl(void* context);
 
     // object3d_small_methods.cpp (A-U12).
     // 00515D50 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
@@ -524,6 +565,12 @@ public:
 
     // dirtyRect as the RECT it is (windows.h).
     tagRECT* DirtyRect() { return reinterpret_cast<tagRECT*>(dirtyRect); }
+
+    // The fields the constructor sets past the engine object's and the name (Construct and the C++
+    // constructor), and the destructor body's work but for the name and the vtables (DestructBody
+    // and the C++ destructor).
+    void SetUpObject3D();
+    void TearDownObject3D();
 
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
@@ -570,6 +617,10 @@ public:
     int partBoxCount;               // +0x164 |
     int partBoxCapacity;            // +0x168 |
     int partBoxGrowBy;              // +0x16C /
+
+protected:
+    // 00515BD0 as C++, for a class whose vtable is the compiler's: SetUpObject3D (the name is a member).
+    CObject3D();
 };
 static_assert(offsetof(CObject3D, orientation) == 0x34);
 static_assert(offsetof(CObject3D, worldOrientation) == 0x44);

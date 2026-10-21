@@ -12,6 +12,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 struct AnimationTrack;
 class CFigureAnimationState;
 struct FigureBone;
@@ -20,19 +22,40 @@ struct FigureBone;
 // its name) of the model `modelName` on `figure` (a CFigureAnimationState); 0 when it cannot.
 int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char* modelName, const char* animation);
 
+// 005AA8E0 (figure_factory.cpp): the figure object factory, also the figure manager's slot 14.
+void* __fastcall CreateFigureObject(void* self, void* edx, int classId);
+
 // FigureModel, the cached model, is in model.h.
 
+// A real virtual class: the compiler makes its vtable (C19; game.exe's 0073FB88 is retired).
 class CFigureManager : public CResourceManager {
 public:
+    // 005AA070 (figure_mesh_life.cpp). CResourceManager's constructor, an empty model map with
+    // NextPrime(100) buckets.
+    CFigureManager();
+    // 005AA1C0 (figure_model_destroy.cpp). Every cached model destroyed and freed, the base's
+    // clean-up (00674F40), the model map cleared and its buckets freed, then CResourceManager's
+    // destructor.
+    ~CFigureManager() override;
+
+    int Create() override { return CreateWithArchives(); }                   // 2: 005AA510
+    const char* GetClassName() override;                                     // 11: 005AA180 "CFigureManager"
+    int GetClassId() override;                                               // 12: 005AA190 (0x28)
+    CEngineObject* NewObject(int type) override;                             // 14: 005AA8E0 the factory
+    BOOL AddArchive(const char* path) override { return AddMmioArchive(path); }   // 16: 005AA360
+    CEngineObject* CreateObject(int type, int id) override { return CreateFigureObject(type, id); }   // 23
+    const char* GetFolderName() override;                                    // 25: 005AA170 "figures"
+
+    // 005AA1A0 (slot 0; world_deleting_destructors.cpp): the destructor, then operator delete when
+    // bit 0 of `flags` is set (returns this). A registration (C20 retires it), as Construct.
     CFigureManager* DeleteScalar(unsigned flags);
     int LoadSkeletonLinks(CFigureAnimationState* state, const char* name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
     FigureModel* FindModel(const stlp::string* name);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FB88);
 
-    // 005AA070 (figure_mesh_life.cpp, A-W13). The constructor body: CResourceManager's, an empty
-    // model map with NextPrime(100) buckets, the vtable. Returns this.
+    // 005AA070 (figure_mesh_life.cpp, A-W13). The constructor in place (a registration); returns
+    // this.
     CFigureManager* Construct();
     // 005AAE00 (slot 23, RET 8; figure_mesh_life.cpp). CBaseManager::CreateObject; a new figure
     // (classes 0x41-0x44) also gets a drawer: a class 0x45 object (id -1) of the context's

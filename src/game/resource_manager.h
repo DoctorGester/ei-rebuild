@@ -17,9 +17,11 @@ struct ArchiveEntry {
 static_assert(sizeof(ArchiveEntry) == 16);
 
 // Base of the managers that load their data from archives (CTextureManager, CFigureManager, ...):
-// CBaseManager's archive slots (16-22) over a list of open archives. Name provisional; vtable
-// 00743338 (slots 11, 12 and 14 are _purecall there, and so is a 26th entry that CTextureManager
-// fills with 00691200: probably a slot this class adds, not declared yet). resource_manager.cpp.
+// CBaseManager's archive slots (16-22) over a list of open archives, and a 26th slot, the folder
+// name. Name provisional; vtable 00743338 (slots 11, 12, 14 and 25 are _purecall there).
+// resource_manager.cpp. Like CBaseManager, still made by the constructor body for most managers;
+// one with real C++ constructors (CTextureManager) gets the compiler's vtables, this class's a
+// replica of 00743338.
 class CResourceManager : public CBaseManager {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743338);
@@ -40,6 +42,10 @@ public:
     BOOL HasFileImpl(const char* name);   // body of the slot above (registered by member pointer)
     void FreeAllFiles() override;                                   // 22: 00675530
 
+    // 25: the manager's folder name ("textures" 00691200, "spells" 00688940, ...; the item,
+    // figure and material managers' too).
+    virtual const char* GetFolderName() = 0;
+
     // 005AA360: CFigureManager's slot 16, AddArchive with memory-mapped archives.
     BOOL AddMmioArchive(const char* path);
 
@@ -48,6 +54,15 @@ public:
     CResourceManager* Construct();
     void Destruct();
     CResourceManager* DeletingDestruct(unsigned flags);
+    // The destructor of a manager with real C++ constructors: Destruct's part past the vtable store
+    // (TearDownResourceManager), then CBaseManager's.
+    ~CResourceManager() override;
+
+protected:
+    // No archives (Construct's part past CBaseManager's); for derived classes with real C++
+    // constructors.
+    CResourceManager();
+    void TearDownResourceManager();
 
 private:
     BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*));

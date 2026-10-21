@@ -160,25 +160,7 @@ EI_REPLACE_METHOD(0x006913A0, CTextureManager::SetDevice);
 CEngineObject* CTextureManager::NewObjectImpl(int type) {
     void* memory = gamecrt::operator_new(sizeof(CTexture));
     if (!memory) return nullptr;
-    auto* texture = static_cast<CTexture*>(memory);
-    texture->ClearFields();
-    auto* name = new (&texture->name_) mfc::CString;
-    std::memset(&texture->extra_, 0, sizeof(texture->extra_));
-    texture->surface_ = nullptr;
-    ei::SetVtable(texture, CTexture::kVtableAddress);
-    name->Empty();
-    // 004EBE30, the counted surface pointer set to null.
-    CDXSurface* old = texture->surface_;
-    texture->surface_ = nullptr;
-    if (old) old->Release();
-    texture->block_ = nullptr;
-    texture->height_ = 0;
-    texture->width_ = 0;
-    texture->uploadResult_ = 0;
-    std::memset(&texture->format_, 0, sizeof(texture->format_));
-    texture->format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
-    texture->spare64_ = 0;
-    texture->extra_.SetSize(0, -1);
+    auto* texture = new (memory) CTexture();
     texture->type_ = type;
     return texture;
 }

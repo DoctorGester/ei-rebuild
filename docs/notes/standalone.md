@@ -161,16 +161,17 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 5517 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 1770 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text and the cells inside named ranges (C18, below); 1057 point into .data, 4460 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 1031 point into .data, 739 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
   0074xxxx: "Nov", "Thu", "pow", "Div", "net" pass them and are the tool's TEXT list; real pointers such as
   `8]t\0` read as text too, so no stronger text rule is safe): every cell into .rdata is either in a structure
   the tool walks (STRUCTURES, counted per kind: the C++ EH tables, FuncInfo (magic 19930520) -> unwind map 2963,
-  -> try block map 378, try block -> handler array 380, ThrowInfo -> catchable type array 10, array -> catchable
+  -> try block map 378, try block -> handler array 380, handler -> the caught type's type descriptor 26 (these four
+  are counted but no cells, C20b, below), ThrowInfo -> catchable type array 10, array -> catchable
   types 41; RTTI, a vtable's slot -1 -> complete object locator 53, locator -> class hierarchy 53, hierarchy ->
   base class array 53, array -> base class descriptors 128; MFC's CRuntimeClass from config/runtime_classes.csv,
   class name 40 and base class 40) or in a REVIEWED_RDATA group: CCmdTarget's maps and CWnd's / CWinApp's message
@@ -179,13 +180,21 @@ each step green on the goldens and removing a measured tie:
   (142), the run-time error messages). Cells into .data are in REVIEWED_DATA groups (cell range, count, what it
   is; a new cell or a changed count fails): in .rdata the per-file `const char* const` copies of ".SEC" (73) and a few other
   string constants, MFC's CCmdTarget maps (3), the message map entry 00746C80, RTTI locators and base class
-  descriptors (117) and EH handler / catchable types (38) to their type descriptors (in .data); in .data the
+  descriptors (117) and EH catchable types (12) to their type descriptors (in .data); in .data the
   string-pointer tables (the key bindings' command table, the action definitions, the script's particle types
   and keyword table (442), skills, log channels, ambient sounds, ...) and the CRT / MFC cells (the lock table,
   `_iob`, `_pctype`, the small-block heap's self-linked region list, `_tzname`, `__lconv_c`, CString's empty
   string and `_afxDataNil`). Every cell lies inside the range and is fixed up in its new place. game.exe's own
   code points at .rdata too (FuncInfo addresses in its EH prologues, string immediates), but none of it runs in
-  the image.
+  the image. **Left out of the cells** (C20b, `LEFT_STRUCTURES`; the code-cell side is C20a below): the C++ EH
+  FuncInfos' pointers (unwind map 2963, try block map 378, handler arrays 380) and the handlers' caught-type
+  descriptors (26 of the 38 cells into the type descriptors; the 12 of the catchable types stay) are 3,747 cells
+  `MoveData` no longer fixes up, 5517 -> 1770: only a frame handler on game.exe's own frames reads them (its
+  FuncInfo comes from the function's prologue, and our code's are the compiler's); nothing in src/ or tests/
+  names the tables (address literals checked), the harness's crash report reads only ThrowInfo, named_data.py
+  names none of them. They keep game.exe's values, so a stray read of one lands in the guarded old range
+  (`OnOldData`). ThrowInfo -> catchable type array and the array's entries stay: `CxxThrowException` and our
+  frame handler read them.
   **The guard**: nothing at the old range (the host's reservation, "Host and image"): a use that missed the seam ends the run with
   `standalone: read|write of game.exe's .rdata|.data at <data> by <code>: ...` (in the import table:
   `... of game.exe's own import slot <slot> (<dll>!<function>) by <code>`) in ei_hook.log, on stderr and in the
@@ -206,11 +215,16 @@ each step green on the goldens and removing a measured tie:
   the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
   is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
-  image_code_cells.inc (21,439 cells of .rdata and .data holding a function start: vtable slots, EH unwind /
-  handler / throw / copy entries, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
+  image_code_cells.inc (7,928 cells of .rdata and .data holding a function start: vtable slots, ThrowInfo
+  destructors / copy constructors, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
   points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
   code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
-  (`FixUpCodePointer`). The CRT's SEH scope tables are left: only game.exe's own frames read them. The
+  (`FixUpCodePointer`). Left as game.exe's bytes, no code cells: the CRT's SEH scope tables and the C++ EH
+  FuncInfos' unwind actions and catch handlers (13,511 funclet cells, C20a; `LEFT_KINDS`; the tables' pointer cells likewise, C20b, "The cells" above): only a frame handler
+  on game.exe's own frames reads them (its FuncInfo comes from the function's prologue, and our code's are the
+  compiler's); none had a registration, so all sat at stubs that end the run, and no golden reached one. A stray
+  call through one lands in the guarded code section (`no code at`). The ThrowInfo cells stay: our frame handler
+  reads game.exe's throw information when our code throws with it (`CxxThrowException`). The
   launch-free check: every registration is its address's code (`CheckCode`); `CheckGuard` logs what of game.exe's
   range is open. Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
@@ -505,6 +519,30 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   0073E834 with its tail 0073E850, lever 0073E740, trap 0073E548, magic trap 0073E63C: CMapObject's 61 slots need
   definitions first), the torch spec (0073E954 with its tail 0073E98C), the texture and material managers
   (CResourceManager's 26 slots), CArray<MusicTheme> (007440CC, with the container instantiations).
+- **Batch 3's families**: CTexture (00743D24), CMappedResource / CMMIOResource (007432E0 with its tail 007432FC,
+  00743300), CSoundManager (007440F0), the map objects (torch 0073E834 + 0073E850, lever 0073E740, trap 0073E548, magic
+  trap 0073E63C + 0073E6E8), the torch's spec and its client half (0073D558, 0073E954 + 0073E98C) and the managers
+  CTextureManager (00743CB0), CSpellManager (00743A14), CFigureManager (0073FB88): 17 rows, 21,439 -> 21,037 code cells.
+  - **Bases still built by constructor bodies** (CObject3D, CMapObject, CBaseManager, CResourceManager): CUnit, the
+    plain map objects and the other managers keep `Construct` / `DestructBody` (they store game.exe's vtable). The
+    class also gets protected C++ constructors and a virtual destructor that share the bodies' work
+    (`SetUpMapObject` / `TearDownMapObject`, `SetUpBaseManager` / `TearDownBaseManager`, ...), and every slot is
+    defined (the bodies registered by member pointer get forwarding definitions), so its compiled vtable is a
+    replica of game.exe's: a derived class's base destructors run with it, and a virtual call there (CMapObject's
+    `DestroyMapObject`, CBaseManager's `Destroy`) reaches the same function as in the original. Members whose
+    default constructor only nulls (stlp's vector and hash_map) are fine; base_manager.cpp asserts the rest are trivial.
+  - **Slots with other types in the original**: slot 41 (`ApplyScience(int, int)`) gets the key record's address
+    from combat_actions.cpp; the trap's and lever's overrides cast it back to `const LockKey*`. CTorchObjectSpecSlots
+    (the setters 13-18 reached through the vtable) became CTorchObjectSpec's own virtuals.
+  - **The tails go with their table**: gen_image_cells.py's check accepts a retired row that no code stores when it
+    starts where a retired row it may follow ends (007432FC after 007432E0's 7 slots; 0073E850, 0073E6E8, 0073E98C).
+  - **addon.dll sites**: CMappedResource's table holds addon.dll's ResOverride site 007432F4. addon.dll runs in game.exe
+    only (harness_addon.cpp), so named_data.py exempts the sites in `RETIRED_ADDON_SITES` from the "no addon site
+    inside a retired vtable" rule and does not count tests/verify/addon_sites.inc as naming an address inside one.
+  - **Next**: CMaterialManager (00743C38; material.h, after C18c's pointer tables there), the item manager
+    (CItemManager::kVtableAddress, built by world_create.cpp as a CResourceManager with its vtable stored after),
+    CSkyObject, the other CBaseManager families (the server / client specific managers, particles, lightning, the
+    light factory, the player manager), then CUnit's tables over CMapObject.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
