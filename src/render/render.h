@@ -78,13 +78,16 @@ void CastsShadow(const void* object, float strength);
 void ClassicShadowDecal();
 // The last presented frame's shadow map: made or not (classic option, no sun or terrain, no
 // caster), its size, the world extent it covers (the larger side), the casters' objects and draws,
-// the meshes and terrain batches that sampled it.
+// the meshes and terrain batches that sampled it. Of the objects whose shadow the game draws
+// (CastsShadow, strong enough): `offScreen` handed over no mesh (the game did not draw them), `lost`
+// handed over meshes of which none went into the map (none should).
 struct ShadowInfo {
     bool classic = false;
     bool made = false;
     int size = 0;
     float extent = 0.0f;
     int casters = 0, casterDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
+    int offScreen = 0, lost = 0;
 };
 ShadowInfo ShadowState();
 
