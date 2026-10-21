@@ -1275,9 +1275,8 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 00589BA0: float fold
+    // 00589BA0: float fold; 1 left out
     d.Begin(0x00589BA0);
-    d.StoreFloat(0x007AFED8, 3.1415927f /*0073F8EC*/ * 0.5f /*0073B86C*/);
     // 00589B50: stores; 3 left out
     d.Begin(0x00589B50);
     // 00589B70: stores
@@ -1446,9 +1445,8 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 005C5CB0: float fold
+    // 005C5CB0: float fold; 1 left out
     d.Begin(0x005C5CB0);
-    d.StoreFloat(0x007C4378, 3.1415927f /*0073FE44*/ + 3.1415927f /*0073FE44*/);
     // 005C5C40: stores; 3 left out
     d.Begin(0x005C5C40);
     // 005C5C60: float fold; 1 left out

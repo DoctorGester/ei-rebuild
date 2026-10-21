@@ -72,7 +72,8 @@ StaticPtrArray& Collected() { return ei::GameData<StaticPtrArray>(0x007AFF48); }
 StaticPtrArray& Added() { return ei::GameData<StaticPtrArray>(0x007AFF38); }
 StaticPtrArray& Kept() { return ei::GameData<StaticPtrArray>(0x007AFF28); }
 StaticPtrArray& Removed() { return ei::GameData<StaticPtrArray>(0x007AFF18); }
-std::uint8_t& StaticsGuard() { return ei::GameData<std::uint8_t>(0x007AFF58); }
+std::uint8_t g_staticsGuard = /*007AFF58*/ {};
+std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 AtExitFunction CollectedDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C4D0); }
 AtExitFunction AddedDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C4B0); }

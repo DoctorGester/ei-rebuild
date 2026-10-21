@@ -45,7 +45,7 @@ const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 0073F748: 1/24 (t
 const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
 
 // 0078FF38: the hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
-using worlddata::LastLitHour;
+using worlddata::g_lastLitHour;
 
 // Terrain::SetSun (006C8ED0) takes the ambient colour as a Vector4.
 const Vector4* Ambient(const LightColour* colour) { return reinterpret_cast<const Vector4*>(colour); }
@@ -129,7 +129,7 @@ int CWorldClient::UpdateLighting() {
     if (cave_ == 1) {
         float stored = static_cast<float>(now);
         const float hour = stored;
-        if (LastLitHour() > hour) LastLitHour() = -1.0f;
+        if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
         transform->SetDepthRange(FogStartDay(), FarClipDistance());
         const LightColour sun = sunlight_[0];
         frameSun_.r = sun.r;
@@ -157,9 +157,9 @@ int CWorldClient::UpdateLighting() {
             const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
             skyDome_->Light(&kCaveSun.x, black, black, black);
         }
-        EI_NAN_AUDIT(hour, LastLitHour());
-        if (hour - LastLitHour() < 1.0f) return 0;
-        LastLitHour() = static_cast<float>(std::floor(static_cast<double>(hour)));
+        EI_NAN_AUDIT(hour, g_lastLitHour);
+        if (hour - g_lastLitHour < 1.0f) return 0;
+        g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
         if (terrain_) terrain_->SetSun(light, Ambient(&frameAmbient_));
         return 1;
     }
@@ -169,7 +169,7 @@ int CWorldClient::UpdateLighting() {
     const int index = GameFtol(now);
     transform->SetDepthRange(FogStart(hour), FarClipDistance());
     lightingMark_ = 0x80;
-    if (LastLitHour() > hour) LastLitHour() = -1.0f;
+    if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 
     const double elevation = SunElevation(hour) * kRadiansPerDegree;
     const double turn = hour * kPerHour;
@@ -216,9 +216,9 @@ int CWorldClient::UpdateLighting() {
         const SkyColour skyColour = {sky.r, sky.g, sky.b, 0.0f};   // the original's fourth float is stack garbage
         skyDome_->Light(&direction.x, ambient, sunlight, skyColour);
     }
-    EI_NAN_AUDIT(hour, LastLitHour());
-    if (hour - LastLitHour() < 1.0f) return 0;
-    LastLitHour() = static_cast<float>(std::floor(static_cast<double>(hour)));
+    EI_NAN_AUDIT(hour, g_lastLitHour);
+    if (hour - g_lastLitHour < 1.0f) return 0;
+    g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
     if (terrain_) terrain_->SetSun(light, Ambient(&frameAmbient_));
     return 1;
 }

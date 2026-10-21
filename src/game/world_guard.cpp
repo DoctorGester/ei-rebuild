@@ -16,8 +16,8 @@
 namespace {
 
 
-char& GuardPlain() { return ei::GameData<char>(0x0079026C); }            // 1: data in the clear
-std::uint32_t& GuardKey() { return ei::GameData<std::uint32_t>(0x007AFECC); }
+std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
+std::uint32_t g_guardKey = /*007AFECC*/ {};
 // The players_ lists (+0x38) of the client world (007AF5B8) and the server world (007AFF60).
 CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0); }
 CEngineObject* ServerPlayers() { return ei::GameData<CEngineObject*>(0x007AFF98); }
@@ -58,14 +58,14 @@ void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t k
 }
 
 void __fastcall GuardPlayerData(void* /*glue*/, void*, char plain) {
-    if (plain == GuardPlain()) return;
-    if (!plain) GuardKey() = IsaacRandom::Global().Next();   // a new key each time the data is hidden
-    GuardPlayers(ClientPlayers(), 0, GuardKey());
-    GuardPlayers(ServerPlayers(), 1, GuardKey());
-    std::uint32_t key = GuardKey();
+    if (plain == g_guardPlain) return;
+    if (!plain) g_guardKey = IsaacRandom::Global().Next();   // a new key each time the data is hidden
+    GuardPlayers(ClientPlayers(), 0, g_guardKey);
+    GuardPlayers(ServerPlayers(), 1, g_guardKey);
+    std::uint32_t key = g_guardKey;
     GlobalGold() ^= key;
     for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(GlobalRecords() + i * kRecordSize + kRecordGuarded, key);
-    GuardPlain() = plain;
+    g_guardPlain = plain;
 }
 
 EI_REWRITTEN(0x005791C0, GuardPlayers);
