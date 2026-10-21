@@ -485,7 +485,7 @@ std::string DescribeMissile(const Projectile* p) {
     std::memcpy(&vtable, e->header, 4);
     if (vtable != ei::GameAddress(CSpellEffect::kVtableAddress)) {
         char text[24];
-        std::snprintf(text, sizeof(text), "vtable 0x%08X", vtable);
+        std::snprintf(text, sizeof(text), "vtable 0x%08X", unsigned(ei::OriginalAddress(vtable)));
         return text;
     }
     return "spell " + std::to_string(e->spellId >> 16);

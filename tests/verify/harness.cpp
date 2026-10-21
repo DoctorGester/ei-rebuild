@@ -2079,7 +2079,7 @@ std::string DescribeTopWindow() {
         if (vtable == ei::GameAddress(w.vtables[0]) || vtable == ei::GameAddress(w.vtables[1])) name = w.name;
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
-                  unsigned(vtable), top ? name : "none", ui->queuedWindow_, g_request.kind,
+                  unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, g_request.kind,
                   ei::GameData<int>(kCampaignMode));
     return text;
 }

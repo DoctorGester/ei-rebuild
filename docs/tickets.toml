@@ -3117,7 +3117,7 @@ group = "standalone"
 size = 1
 model = "opus"
 depends = ["S18i"]
-note = "The .rsrc section (icons, cursors, bitmaps, strings) built into the host at build time from game.exe; the routed LoadIconA / LoadStringA / FindResourceA ... and GetModuleHandleA(NULL) / GetModuleFileNameA use the host's module; no PE header copy at 0x400000. Checked: goldens, the window icon and cursors (a capture)."
+note = "The .rsrc section (icons, cursors, bitmaps, strings) built into the host at build time from game.exe; the routed LoadIconA / LoadStringA / FindResourceA ... and GetModuleHandleA(NULL) / GetModuleFileNameA use the host's module; no PE header copy at 0x400000. Checked: goldens, the window icon and cursors (a capture).  S18h: the host already lays out no .rsrc (zero, guarded; nothing read it in the goldens of both installs); the PE headers at 0x400000 are still copied."
 
 [[ticket]]
 id = "S18k"
