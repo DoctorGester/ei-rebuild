@@ -4,6 +4,7 @@
 // object), SetPrototype / SetMaterial / SetSpellObject, then EndCreateItem, whose Build fills the
 // item from a temporary database record: the prototype's values combined with the material's.
 #include "item.h"
+#include "item_class.h"
 #include "spell.h"
 
 #include "console.h"
@@ -141,7 +142,7 @@ void CItem::InitFromRecordImpl(const ItemRecordHead* head) {
     value3C_ = head->value3C;
     magicLevel_ = head->magicLevel;
 }
-EI_REPLACE_METHOD(0x006A0490, CItem::InitFromRecordImpl);
+EI_REWRITTEN(0x006A0490, CItem::InitFromRecordImpl);
 
 void CItem::AttachSpell(CSpell* spell) {
     CSpell* previous = spell_;
@@ -183,11 +184,11 @@ namespace {
 int __fastcall ConstructorCreateHook(CItemConstructor* self) { return self->CItemConstructor::Create(); }
 void __fastcall ConstructorDestroyHook(CItemConstructor* self) { self->CItemConstructor::Destroy(); }
 } // namespace
-EI_REPLACE(0x006A5B90, ConstructorCreateHook);
-EI_REPLACE(0x006A5BD0, ConstructorDestroyHook);
+EI_REWRITTEN(0x006A5B90, ConstructorCreateHook);
+EI_REWRITTEN(0x006A5BD0, ConstructorDestroyHook);
 
 void CItemConstructor::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     CItemConstructor::Destroy();
     DestructBase();
 }
@@ -198,7 +199,7 @@ CItemConstructor* CItemConstructor::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006A5B00, CItemConstructor::DeletingDestruct);
+EI_REWRITTEN(0x006A5B00, CItemConstructor::DeletingDestruct);
 
 void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager_) --manager_->refCount_;

@@ -280,6 +280,14 @@ vtable,slots,class,file,note
 00743CB0,26,CTextureManager,src/game/texture.h,
 00743D18,3,TextureListClass,src/lib/mfc_slots.h,CList (the texture manager's list)
 00743D24,13,CTexture,src/game/texture.h,
+00743DA4,22,CItemClass,src/game/item_class.h,item (the base)
+00743DFC,22,CItemWeaponClass,src/game/item_class.h,weapon
+00743E54,22,CItemArmorClass,src/game/item_class.h,armour
+00743EAC,22,CItemQuickClass,src/game/item_class.h,quick item (potions and wands)
+00743F04,22,CItemQuestClass,src/game/item_class.h,quest item
+00743F5C,22,CItemLootClass,src/game/item_class.h,loot
+00743FB4,22,CItemSpellClass,src/game/item_class.h,scroll
+00744020,13,CItemConstructorClass,src/game/item_class.h,item constructor
 00744054,1,LootItemRecordClass,src/game/item_db.h,a loot item record (LootItemRecord)
 00744058,1,QuestItemRecordClass,src/game/item_db.h,a quest item record (QuestItemRecord)
 0074405C,1,QuickItemRecordClass,src/game/item_db.h,a quick item record (QuickItemRecord)

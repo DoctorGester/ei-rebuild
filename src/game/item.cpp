@@ -55,7 +55,7 @@ namespace {
 // Slot 6's entry point (rule 4).
 int __fastcall ItemRunTickHook(CItem* self) { return self->CItem::RunTick(); }
 } // namespace
-EI_REPLACE(0x006A0070, ItemRunTickHook);
+EI_REWRITTEN(0x006A0070, ItemRunTickHook);
 
 int CItemWeapon::GetType() {
     return WeaponAt(PrototypeIndex(prototypeId_))->type;
@@ -97,7 +97,7 @@ BOOL CItemWeapon::IsSameAsImpl(CItem* item) {
     if (other->reach_ != reach_) return 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A06C0, CItemWeapon::IsSameAsImpl);
+EI_REWRITTEN(0x006A06C0, CItemWeapon::IsSameAsImpl);
 
 int CItemArmor::GetType() {
     return ArmorAt(PrototypeIndex(prototypeId_))->type;
@@ -130,7 +130,7 @@ namespace {
 // Slot 16's entry point (rule 4).
 float __fastcall LootGetPriceHook(CItemLoot* self) { return self->CItemLoot::GetPrice(); }
 } // namespace
-EI_REPLACE(0x006A5470, LootGetPriceHook);
+EI_REWRITTEN(0x006A5470, LootGetPriceHook);
 
 namespace {
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }

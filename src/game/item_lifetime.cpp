@@ -1,6 +1,7 @@
 // The items' constructor and destructor bodies, slot 0 and their Create / Destroy slots (2 / 3).
 // See item.h and docs/notes/items_spells.md ("Item rules").
 #include "item.h"
+#include "item_class.h"
 
 #include "core_refcount.h"
 #include "spell.h"
@@ -39,7 +40,7 @@ CItem* CItem::Construct() {
     ClearFields();
     link_ = 0;
     spell_ = nullptr;
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     SetMinusOne(condition_);
     SetMinusOne(conditionMax_);
     SetMinusOne(charge_);
@@ -72,11 +73,11 @@ namespace {
 int __fastcall ItemCreateHook(CItem* self) { return self->CItem::Create(); }
 void __fastcall ItemDestroyHook(CItem* self) { self->CItem::Destroy(); }
 } // namespace
-EI_REPLACE(0x0069FE20, ItemCreateHook);
-EI_REPLACE(0x0069FE50, ItemDestroyHook);
+EI_REWRITTEN(0x0069FE20, ItemCreateHook);
+EI_REWRITTEN(0x0069FE50, ItemDestroyHook);
 
 void CItem::DestructBody() {
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     CItem::Destroy();
     // The members' destructors: the spell released and the link's count dropped, without clearing.
     if (spell_ != nullptr) spell_->Release();
@@ -97,17 +98,17 @@ CItem* CItem::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0069FD30, CItem::DeletingDestruct);
-EI_REPLACE_METHOD(0x006A0590, CItem::DeletingDestruct);
-EI_REPLACE_METHOD(0x006A2FA0, CItem::DeletingDestruct);
-EI_REPLACE_METHOD(0x006A3B10, CItem::DeletingDestruct);
-EI_REPLACE_METHOD(0x006A4400, CItem::DeletingDestruct);
-EI_REPLACE_METHOD(0x006A49E0, CItem::DeletingDestruct);
-EI_REPLACE_METHOD(0x006A5720, CItem::DeletingDestruct);
+EI_REWRITTEN(0x0069FD30, CItem::DeletingDestruct);
+EI_REWRITTEN(0x006A0590, CItem::DeletingDestruct);
+EI_REWRITTEN(0x006A2FA0, CItem::DeletingDestruct);
+EI_REWRITTEN(0x006A3B10, CItem::DeletingDestruct);
+EI_REWRITTEN(0x006A4400, CItem::DeletingDestruct);
+EI_REWRITTEN(0x006A49E0, CItem::DeletingDestruct);
+EI_REWRITTEN(0x006A5720, CItem::DeletingDestruct);
 
 CItemWeapon* CItemWeapon::Construct() {
     CItem::Construct();
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     SetMinusOne(damage_);
     SetMinusOne(damageSpread_);
     SetMinusOne(reach_);
@@ -118,7 +119,7 @@ EI_REPLACE_METHOD(0x006A0540, CItemWeapon::Construct);
 
 CItemArmor* CItemArmor::Construct() {
     CItem::Construct();
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     std::memset(absorb_, 0, sizeof(absorb_));
     layerMask_[1] = 0;
     layerMask_[0] = 0;
@@ -128,28 +129,28 @@ EI_REPLACE_METHOD(0x006A2F20, CItemArmor::Construct);
 
 CItemQuick* CItemQuick::Construct() {
     CItem::Construct();
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     return this;
 }
 EI_REPLACE_METHOD(0x006A3AD0, CItemQuick::Construct);
 
 CItemQuest* CItemQuest::Construct() {
     CItem::Construct();
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     return this;
 }
 EI_REPLACE_METHOD(0x006A43A0, CItemQuest::Construct);
 
 CItemLoot* CItemLoot::Construct() {
     CItem::Construct();
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     return this;
 }
 EI_REPLACE_METHOD(0x006A49A0, CItemLoot::Construct);
 
 CItemSpell* CItemSpell::Construct() {
     CItem::Construct();
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     return this;
 }
 EI_REPLACE_METHOD(0x006A56E0, CItemSpell::Construct);

@@ -45,11 +45,11 @@ class CItem : public CEngineObject {
 public:
     ItemUse* NoUse(ItemUse* out);
     mfc::CString* EmptyName(mfc::CString* out);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743DA4);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00743DA4)
 
     // The virtual slots in vtable order (the subclasses override them and call CItem's first;
-    // slots 11 and 12 are _purecall here). The rewritten bodies are registered through hook shims
-    // (rule 4).
+    // slots 11 and 12 are _purecall here). The constructor bodies store the compiled tables
+    // (item_class.h, C19), whose slots call the rewritten bodies.
 
     // 0069FE20 (slot 2; item_lifetime.cpp). Count 1, the spell released; returns 1.
     int Create() override;
@@ -197,7 +197,7 @@ static_assert(sizeof(CItemLink) == 0xC);
 // vtable 00743DFC, GetClassId 0x11.
 class CItemWeapon : public CItem {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743DFC);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00743DFC)
 
     // 006A07F0. The weapon type from the prototype (faults if the index is out of range).
     int GetType();
@@ -252,7 +252,7 @@ static_assert(offsetof(CItemWeapon, damage_) == 0x50 && offsetof(CItemWeapon, re
 // vtable 00743E54, GetClassId 0x12.
 class CItemArmor : public CItem {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743E54);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00743E54)
 
     // 006A39E0. The armor type from the prototype (faults if the index is out of range).
     int GetType();
@@ -300,7 +300,7 @@ static_assert(offsetof(CItemArmor, layerMask_) == 0x84);
 // vtable 00743EAC, GetClassId 0x13 (potions, wands).
 class CItemQuick : public CItem {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743EAC);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00743EAC)
 
     // 006A3CD0. Slot 19: "qitem<number>.<material name>" when the prototype's +0x10 name is not
     // "none" ("uq" for a material out of range), else "qitem<number>" (-1 without a prototype).
@@ -333,7 +333,7 @@ static_assert(sizeof(CItemQuick) == 0x50);
 // vtable 00743F04, GetClassId 0x14.
 class CItemQuest : public CItem {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743F04);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00743F04)
 
     mfc::CString FigureName() override;    // 006A45C0 "quitem<number>"
     mfc::CString FigureNameImpl();   // body of the slot above (registered by member pointer)
@@ -370,7 +370,7 @@ static_assert(offsetof(CItemQuest, questItemId_) == 0x4C);
 // CItemQuick's bodies.
 class CItemSpell : public CItem {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743FB4);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00743FB4)
 
     // 006A5820. Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
     mfc::CString FigureName() override;
@@ -390,7 +390,7 @@ public:
 // vtable 00743F5C, GetClassId 0x15.
 class CItemLoot : public CItem {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743F5C);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00743F5C)
 
     // 006A5470. Virtual slot 16: the base price. Depends on what the loot stands for (kind_):
     // itself (price_), a material, or a record of another database (recordType_).
@@ -470,7 +470,7 @@ int __fastcall ArmorFieldB8(std::uint32_t index);
 // and EndCreateItem fills the item from a record combining them (Build).
 class CItemConstructor : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744020);
+    static void* Vtable();   // the compiled table (item_class.h; game.exe's 00744020)
 
     // 006A5AB0 (party_lifetime.cpp). Constructor body: CEngineObject's fields, no manager,
     // records, item or spell (count_ is left as it is), the vtable. Returns this.

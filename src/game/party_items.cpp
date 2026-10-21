@@ -134,13 +134,13 @@ BOOL CItemSpell::CopyToImpl(CItem* target, CSpellManager* spells) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x0069FFC0, CItem::CopyToImpl);
-EI_REPLACE_METHOD(0x006A0730, CItemWeapon::CopyToImpl);
-EI_REPLACE_METHOD(0x006A3140, CItemArmor::CopyToImpl);
-EI_REPLACE_METHOD(0x006A3C50, CItemQuick::CopyToImpl);
-EI_REPLACE_METHOD(0x006A4540, CItemQuest::CopyToImpl);
-EI_REPLACE_METHOD(0x006A4B50, CItemLoot::CopyToImpl);
-EI_REPLACE_METHOD(0x006A57F0, CItemSpell::CopyToImpl);
+EI_REWRITTEN(0x0069FFC0, CItem::CopyToImpl);
+EI_REWRITTEN(0x006A0730, CItemWeapon::CopyToImpl);
+EI_REWRITTEN(0x006A3140, CItemArmor::CopyToImpl);
+EI_REWRITTEN(0x006A3C50, CItemQuick::CopyToImpl);
+EI_REWRITTEN(0x006A4540, CItemQuest::CopyToImpl);
+EI_REWRITTEN(0x006A4B50, CItemLoot::CopyToImpl);
+EI_REWRITTEN(0x006A57F0, CItemSpell::CopyToImpl);
 
 // --- The party's items --------------------------------------------------------------------------
 
