@@ -253,6 +253,15 @@
 //                             fraction of its pixels (by more than 8) within <least>..<most>: the
 //                             world's edges and textures, nothing black or stale. Skipped in a run of
 //                             the original code
+//   smoothorder game|before|split|check
+//                             the image's smooth option's passes in an order the game never draws
+//                             (render::SetSmoothOrder, R12a1), from the next frame: an empty pass on
+//                             the frame target before the world (before), or the world split in two at
+//                             its middle command with an empty pass between (split): the world's later
+//                             run starts from the copy of the frame target into every sample. check
+//                             requires the last frame drawn so: the option on, multisampled, and copies
+//                             into the multisampled target (none for game; split also two depth copies
+//                             back). Ignored in a run of the original code
 //   shadows classic|map|rebuild
 //                             the image's object shadows (render::SetClassicShadows, R16j): the game's
 //                             decals, or the sun's shadow map (the default), from the next frame;
@@ -3299,6 +3308,36 @@ void RunSteps() {
             else if (!info.on || info.targetSamples < 2 || info.targetSamples != info.deviceSamples ||
                      info.multisampledPasses < 1 || info.anisotropicModels < 1 || differing < least || differing > most)
                 g_failures.push_back(text);
+        } else if (s.verb == "smoothorder") {
+            static render::SmoothOrder order = render::SmoothOrder::Game;
+            if (!render::Active()) {
+                Log("harness: smoothorder %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "game" || s.argument == "before" || s.argument == "split") {
+                order = s.argument == "game" ? render::SmoothOrder::Game
+                        : s.argument == "before" ? render::SmoothOrder::Before : render::SmoothOrder::Split;
+                render::SetSmoothOrder(order);
+                continue;
+            }
+            if (s.argument != "check") {
+                g_failures.push_back("smoothorder needs game, before, split or check");
+                continue;
+            }
+            render::SmoothInfo info = render::SmoothState();
+            char text[240];
+            std::snprintf(text, sizeof(text),
+                          "smoothorder check (%s): option %s, %d samples, last frame %d multisampled passes, %d copies into "
+                          "them, %d depth copies back",
+                          order == render::SmoothOrder::Game ? "game" : order == render::SmoothOrder::Before ? "before" : "split",
+                          info.on ? "on" : "off", info.targetSamples, info.multisampledPasses, info.copiesInto, info.depthCopiesBack);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            bool ok = info.on && info.targetSamples >= 2;
+            if (order == render::SmoothOrder::Game) ok = ok && info.multisampledPasses >= 1 && info.copiesInto == 0;
+            else if (order == render::SmoothOrder::Before) ok = ok && info.multisampledPasses >= 1 && info.copiesInto >= 1;
+            else ok = ok && info.multisampledPasses >= 2 && info.copiesInto >= 1 && info.depthCopiesBack >= 2;
+            if (!ok) g_failures.push_back(text);
         } else if (s.verb == "shadows") {
             if (!render::Active()) {
                 Log("harness: shadows %s: not the new renderer (the original code): ignored", s.argument.c_str());
