@@ -3317,7 +3317,7 @@ note = "The last eight functions ported: the port is complete (function_sizes.in
 id = "A-I23"
 title = "Interface functions no scenario checks"
 group = "port"
-note = "The connection screen Create / list draw, exchange slots 0062D100 / 0062D200. Also unreached: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers."
+note = "The connection screen Create / list draw, exchange slots 0062D100 / 0062D200. Also unreached: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers. Done (A-I23): golden now: Create 0061B2C0 / list draw 0061D780 / 00443080 (every pair's join), exchange slots 0062D100 / 0062D200 (net_pair_zone), 0041ECC0 + 005813A0 (net_pair_leave: the vanilla peer now hides z7q2.mq, vanilla never offered z6q1; samefile checks the written file), WinMain's frame-recording branch (app_record), the disc prompt (app_disc_prompt: Rebirth original golden; the vanilla install's game.exe has EB at 00456BB5 and never asks, image golden there). Not from a scenario: the second instance (exit -1 in WinMain before any step, no state for a golden), CDib's catch handlers (need a CFileException from a failing disk; the box ends the run), the DirectX 7 check and the low-disk box; a vector test does not fit (WinMain's calls, MFC's TRY frames: verify_mfc_try.cpp drove them before S21d). Coverage: coverage.py addresses / collect on the original with EI_COVER (perturbs real-time threads: not for goldens)."
 
 [[ticket]]
 id = "PF1"
