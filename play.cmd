@@ -8,7 +8,7 @@ rem   vanilla            the plain GOG install's data (F:\games\EvilIslands) wit
 rem                      and widescreen
 rem The UTF-8 release build (build\release-utf8, apart from the builds the suites use) is copied to run\play, so a
 rem game left open never locks a build, and drawn with the smooth option and the smooth camera. The settings are
-rem run\standalone\ei_settings.ini (imported once from the registry; the starter's WideScreen is the switch).
+rem run\play\ei_settings.ini, next to the exe (imported once from the registry; the starter's WideScreen is the switch).
 rem Until ST1b, the game ends at once when a harness game is open (the original's one-instance check).
 setlocal
 set MODE=%~1
@@ -36,4 +36,5 @@ if /i "%MODE%"=="vanilla" (
 )
 set EI_RENDER=new,present,smooth,smoothcamera
 cd /d "%PLAY%"
-"%PLAY%\ei_launch.exe" --game "%GAME%" --exe "%~dp0run\vanilla\game.exe" --standalone
+rem No --exe: ei_launch starts the ei_standalone.exe next to it, so the settings file is run\play's too.
+"%PLAY%\ei_launch.exe" --game "%GAME%" --standalone

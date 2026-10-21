@@ -1,10 +1,10 @@
 @echo off
 rem Starts the standalone image on the plain GOG install's data in F:\games\EvilIslands, with our renderer (no
-rem display mode change), to play. The image reads no game.exe (S18k1); --exe only places the shared host copy
-rem (run\standalone\ei_standalone.exe, next to run\vanilla), whose folder also holds the game's ei_settings.ini.
-rem It plays from a copy of the release build in run\play, so a game left open never locks build\ (main's builds
-rem and suites keep working) and its log stays out of the build's. The copy is refreshed at each start unless a
-rem game still runs from it. Arguments go to ei_launch (game args after --).
+rem display mode change) and the default Rebirth flags (the bug fixes), to play. It plays from a copy of the release
+rem build in run\play, so a game left open never locks build\ (main's builds and suites keep working); the game's
+rem settings are run\play\ei_settings.ini, next to the exe. The copy is refreshed at each start unless a game still
+rem runs from it. play.cmd builds and plays the UTF-8 build with every option on. Arguments go to ei_launch (game
+rem args after --).
 setlocal
 set PLAY=%~dp0run\play
 if not exist "%PLAY%" mkdir "%PLAY%"
@@ -15,4 +15,5 @@ rem The default Rebirth flags (play.cmd may have left an ei_rebirth.ini there).
 del "%PLAY%\ei_rebirth.ini" 2>nul
 set EI_RENDER=new,present
 cd /d "%PLAY%"
-"%PLAY%\ei_launch.exe" --game "F:\games\EvilIslands" --exe "%~dp0run\vanilla\game.exe" --standalone %*
+rem No --exe: ei_launch starts the ei_standalone.exe next to it.
+"%PLAY%\ei_launch.exe" --game "F:\games\EvilIslands" --standalone %*
