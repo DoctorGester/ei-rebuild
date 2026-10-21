@@ -8,6 +8,7 @@
 #define NOMINMAX
 #include "harness_ui.h"
 #include "harness_capture.h"
+#include "harness_objects.h"
 
 #include "../../src/game/console.h"
 #include "../../src/game/game_singletons.h"
@@ -93,7 +94,7 @@ std::unordered_map<const void*, std::string> NamedHolders() {
     auto add = [&](const CUiSurface* surface, const std::string& name) {
         if (surface && surface->holder_) out.emplace(surface->holder_, name);
     };
-    const CInterface3D* ui = TheInterface();
+    const CInterface3D* ui = HarnessInterface();
     add(ui->backdrop_, "backdrop");
     add(ui->secondBackdrop_, "backdrop2");
     add(ui->fpsSurface_, "fps");

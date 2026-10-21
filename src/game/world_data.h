@@ -141,8 +141,6 @@ inline int VolumeSettingB() { return ei::GameData<const int>(0x0079BCCC); }
 inline int MovieVolumeSetting() { return ei::GameData<const int>(0x0079BCC4); }
 // 007AFC9C: 2 while the party fights (sound_music.cpp).
 inline int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
-// The interface's list of the multiplayer peers (an STLport vector of 4-byte entries at 007C7D84).
-inline const stlp::vector<int>& PeerList() { return ei::GameData<const stlp::vector<int>>(0x007C7D84); }
 // The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
 // period (0078FF34) per tick and restarts at 0079BD24.
 inline int LightLevelsSetting() { return ei::GameData<const int>(0x0079BD58); }

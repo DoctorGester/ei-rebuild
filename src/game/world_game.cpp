@@ -83,9 +83,9 @@ constexpr unsigned kMagicMission = 0x102;
 int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
 int Campaign() { return ei::GameData<const int>(0x007C2CC4); }        // 4: the party is player 0's
 int SaveVersion() { return ei::GameData<const int>(0x00790260); }
-std::uint8_t& ToMainMenu() { return ei::GameData<std::uint8_t>(0x007C7D94); }
-// 007C7DD8: the network sessions are open (BeginMultiplayerGame sets it, a missing zone clears it).
-std::uint8_t& SessionsOpen() { return ei::GameData<std::uint8_t>(0x007C7DD8); }
+bool& ToMainMenu() { return TheInterface()->closeAll_; }
+// The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
+bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
 void* const kScripts = ei::GamePointer<void>(0x007AFDF8);
 libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
@@ -798,7 +798,7 @@ __declspec(naked) int __fastcall SaveGameAt(GameFlow*, void*, const char*) EI_OR
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGameAt(this, nullptr, slot); }
 
 int __stdcall RequestZone(const char* zone, int entrance) {
-    ei::GameData<char>(0x007C7D94) = 1;
+    TheInterface()->closeAll_ = true;
     // 0066B1B0: the local view asks to go to a zone (name, entrance).
     return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(zone, entrance);
 }

@@ -12,3 +12,7 @@
 inline CCursor* HarnessCursor() {
     return ei::Standalone() ? TheCursor() : &ei::OriginalGameData<CCursor>(0x007C7BD8);
 }
+
+inline CInterface3D* HarnessInterface() {
+    return ei::Standalone() ? TheInterface() : &ei::OriginalGameData<CInterface3D>(0x007C7D50);
+}

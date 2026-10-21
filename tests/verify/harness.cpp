@@ -1822,7 +1822,7 @@ void PostWheel(int x, int y, int delta) {
 // layout rectangle (plus the offset its hit test subtracts) goes through the game's layout-to-screen
 // scaling (005F7D20, patched by Rebirth) and then to the window's client size.
 void PostRegionMouse(const std::string& verb, int index) {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     CUiWindow* window = ui->GetActiveWindow();
     if (!window || index < 0 || index >= window->regions_.size || !window->regions_.data[index]) {
         Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window,
@@ -2085,7 +2085,7 @@ std::string LookAt(const std::string& argument) {
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
 std::string HudState(const std::string& argument) {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     auto* screen = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
     if (!screen) return "hudstate: no window on top";
     auto at = [](const void* base, int offset) {
@@ -2165,7 +2165,7 @@ std::string CampPutOn(const std::string& argument) {
     unsigned type = 0;
     int count = 0;
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     auto* camp = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
     if (!camp || *reinterpret_cast<void**>(camp) != ei::GamePointer<void>(0x0074091C))
         return "campputon: the camp is not on top";
@@ -2236,7 +2236,7 @@ bool WindowVtables(const std::string& name, std::uintptr_t (&vtables)[2]) {
 
 // Whether the awaited window is on top and takes input (see the step's description).
 bool WindowReady(std::uintptr_t (&vtables)[2]) {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     CUiWindow* top = ui->GetActiveWindow();
     if (!top || ui->queuedWindow_ || g_request.kind != 0) return false;
     std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(top);
@@ -2250,7 +2250,7 @@ bool WindowReady(std::uintptr_t (&vtables)[2]) {
 
 // For failure messages: the window on top and what keeps it from counting.
 std::string DescribeTopWindow() {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     CUiWindow* top = ui->GetActiveWindow();
     std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
     const char* name = "?";
@@ -2855,7 +2855,7 @@ void RunSteps() {
         if (!WindowReady(g_waitWindowVtables)) g_waitWindowReadyFrom = kNotReady;
         else if (g_waitWindowReadyFrom == kNotReady) g_waitWindowReadyFrom = g_frames;
         if (g_waitWindowReadyFrom != kNotReady && g_frames >= g_waitWindowReadyFrom + 2 && g_inputLoop) {
-            const CScreenFade* fade = TheInterface()->fade_;
+            const CScreenFade* fade = HarnessInterface()->fade_;
             Log("harness: waitwindow %s done after %lu ms (frame %u; screen fade %s, alpha %.0f)", g_waitWindowName.c_str(),
                 Now() - g_waitWindowDeadline.start, g_frames, fade && fade->active_ ? "running" : "off", fade ? fade->alpha_ : 0.0f);
             g_waitingWindow = false;
@@ -3130,7 +3130,7 @@ void RunSteps() {
         } else if (s.verb == "chat") {
             // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
             // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
-            auto* ui = TheInterface();
+            auto* ui = HarnessInterface();
             if (!ui->root_) {
                 g_failures.push_back("chat: the interface has no chat overlay");
             } else if (std::atoi(s.argument.c_str()) != 0) {
@@ -4152,7 +4152,7 @@ bool IsWinMainLoop(const void* returnAddress) {
 unsigned g_closeAllHeldFrom = kNotReady;
 bool HoldMessagesForCloseAll(const void* returnAddress) {
     if (!clock::Virtual() || !IsWinMainLoop(returnAddress) ||
-        !TheInterface()->closeAll_) {
+        !HarnessInterface()->closeAll_) {
         g_closeAllHeldFrom = kNotReady;
         return false;
     }

@@ -905,3 +905,4 @@ address,size,note
 0070C17E,5,static initialiser linking CByteArray's runtime class: a jump to the body (C18e; no Ghidra function)
 006D4A70,11,static initialiser linking CDib's runtime class (C18e; no Ghidra function: decoded size)
 005E4DD0,22,static initialiser of the cursor (no Ghidra function)
+005F4680,22,static initialiser of the interface manager (no Ghidra function)

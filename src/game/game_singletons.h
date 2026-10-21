@@ -34,7 +34,7 @@ struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 inline GameFlow* TheGameFlow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 
 // 007C7D50: the interface manager (windows, the quest log, status text, the console window).
-inline CInterface3D* TheInterface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
+CInterface3D* TheInterface();   // g_interface (ui_small_members.cpp)
 
 // 007AFFC4: the world tick, advanced once per simulation step.
 inline int CurrentWorldTick() { return ei::GameData<const int>(0x007AFFC4); }

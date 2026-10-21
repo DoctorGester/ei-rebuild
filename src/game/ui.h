@@ -17,6 +17,7 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "lib/stlp.h"
 #include "lib/stlp_tree_cstring.h"
 
@@ -395,6 +396,11 @@ static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface
 static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
 static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
 static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
+static_assert(sizeof(CInterface3D) == 0xB0);
+
+// The game's interface manager (the object at 007C7D50; ui_small_members.cpp): built by the static initialiser 005F4680
+// in the list's order, destroyed by the exit function it registers (005F4780).
+extern lib::StaticObject<CInterface3D> g_interface;
 
 // The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray).
 // The original has one out-of-line SetSize per array (006003D0, 006004E0, 00600730, 00600840,
