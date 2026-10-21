@@ -19,6 +19,19 @@
 //   waitunit <seconds> <name> wait until the unit with script name <name> is drawn and the game's
 //                             picking finds it, as "clickunit" needs (a unit just added to the
 //                             server reaches the client and the screen a few frames later)
+//   waitidle <seconds> [<frames>]
+//                             wait until the local player's leader (player 0's first party member in the
+//                             server world) has stood idle for <frames> frames in a row (default 10): no
+//                             action (a walk that ended or that a fight stopped, a fight over) and no path
+//   waitdead <seconds> <id> ...
+//                             wait until each of the server world's units <id> is dead or gone
+//   waitaward <seconds>       wait until the leader's experience or its party's money changes (an award
+//                             applied: ClientSession::ApplyAwards; net_pair_quest): from what they were at
+//                             the last "awardfrom" step, or else at this step
+//   awardfrom                 note the leader's experience and money for the next waitaward (an award that
+//                             may come while the steps between still run)
+//                             (these three read the server world after the frame's update, as the
+//                             digest does: they end in the same frame every run)
 //   frames <n>                let the game run <n> frames of its main loop (after the input posted
 //                             so far has been handled): for what follows a posted key or mouse
 //                             step on the next frames, whatever the frame rate
@@ -168,6 +181,9 @@
 //   fullscreen 0|1            answer the game's FullScreen setting for this run (harness_starter.h)
 //   fpscursor 0|1             answer the game's FPSIndependentCursor setting for this run: 1 runs the
 //                             cursor's drawing thread 005E5690, 0 does not (harness_starter.h)
+//   music <volume>            answer the game's AudioStreaming setting (the streamed music's volume) for
+//                             this run; 0: no streamed music, so the music system's random draws do not
+//                             follow the real-time stream thread (harness_starter.h)
 //   waitpresent <seconds> [gamma]
 //                             wait until the switch-over has presented a frame on the game window
 //                             (its own swap chain); with "gamma" also until the verify build has
@@ -530,6 +546,21 @@ unsigned g_waitWindowReadyFrom = kNotReady;
 bool g_waitingUnit = false;
 std::string g_waitUnitName;
 Deadline g_waitUnitDeadline;
+// A pending "waitidle" / "waitdead" / "waitaward" (SV5d5): which, its deadline; waitidle's frames wanted and the
+// frame from which the leader has stood idle; waitdead's unit ids; waitaward's experience and money at its start.
+enum class WorldWait { None, Idle, Dead, Award };
+WorldWait g_worldWait = WorldWait::None;
+Deadline g_worldWaitDeadline;
+unsigned g_idleFrames = 0;
+unsigned g_idleFrom = kNotReady;
+std::vector<int> g_deadIds;
+float g_awardExperience = 0;
+unsigned g_awardMoney = 0;
+bool g_awardFromSet = false;   // "awardfrom" took them (the next waitaward compares with those)
+void AwardFrom() {
+    const digest::UnitNow unit = digest::Unit(digest::LocalLeader(&g_awardMoney));
+    g_awardExperience = unit.experience;
+}
 // A pending "peerwait": the other game's signal and when to give up (harness_pair.h).
 bool g_waitingPeer = false;
 std::string g_waitPeerTag;
@@ -2659,6 +2690,48 @@ void RunSteps() {
             return;
         }
     }
+    if (g_worldWait != WorldWait::None) {
+        // The server world as the last world update left it (steps run after the frame), so the wait
+        // ends in the same frame every run.
+        std::string what;
+        bool done = false;
+        if (g_worldWait == WorldWait::Idle) {
+            const int leader = digest::LocalLeader();
+            const digest::UnitNow unit = digest::Unit(leader);
+            if (!unit.found || unit.dead || !unit.idle) g_idleFrom = kNotReady;
+            else if (g_idleFrom == kNotReady) g_idleFrom = g_frames;
+            done = g_idleFrom != kNotReady && g_frames >= g_idleFrom + g_idleFrames;
+            what = "waitidle " + std::to_string(g_idleFrames) + " (leader " + std::to_string(leader) +
+                   (unit.found ? unit.dead ? ": dead)" : unit.idle ? ": idle)" : ": busy)" : ": not in the world)");
+        } else if (g_worldWait == WorldWait::Dead) {
+            std::string alive;
+            for (int id : g_deadIds) {
+                const digest::UnitNow unit = digest::Unit(id);
+                if (unit.found && !unit.dead) alive += " " + std::to_string(id);
+            }
+            done = alive.empty();
+            what = "waitdead (alive:" + alive + ")";
+        } else {
+            unsigned money = 0;
+            const digest::UnitNow unit = digest::Unit(digest::LocalLeader(&money));
+            done = unit.found && (unit.experience != g_awardExperience || money != g_awardMoney);
+            char text[160];
+            std::snprintf(text, sizeof(text), "waitaward (experience %.1f -> %.1f, money %u -> %u)", g_awardExperience,
+                          unit.experience, g_awardMoney, money);
+            what = text;
+        }
+        if (done) {
+            Log("harness: %s done after %lu ms (frame %u)", what.c_str(), Now() - g_worldWaitDeadline.start, g_frames);
+            g_worldWait = WorldWait::None;
+        } else if (g_worldWaitDeadline.Passed()) {
+            what += " timed out" + g_worldWaitDeadline.Why();
+            Log("harness: %s", what.c_str());
+            g_failures.push_back(what);
+            g_worldWait = WorldWait::None;
+        } else {
+            return;
+        }
+    }
     while (g_next < g_steps.size()) {
         if (!g_waitUntil.Passed()) return;
         if (std::string why = g_waitUntil.Why(); !why.empty()) {
@@ -2728,6 +2801,34 @@ void RunSteps() {
             g_waitUnitName = rest ? rest : "";
             g_waitUnitDeadline.Set(seconds * 1000);
             return;
+        } else if (s.verb == "waitidle" || s.verb == "waitdead" || s.verb == "waitaward") {
+            char* rest = nullptr;
+            const unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+            if (s.verb == "waitidle") {
+                g_worldWait = WorldWait::Idle;
+                g_idleFrames = 10;
+                if (rest && *rest) g_idleFrames = std::strtoul(rest, nullptr, 10);
+                g_idleFrom = kNotReady;
+            } else if (s.verb == "waitdead") {
+                g_worldWait = WorldWait::Dead;
+                g_deadIds.clear();
+                for (char* at = rest; at && *at;) {
+                    char* end = nullptr;
+                    const long id = std::strtol(at, &end, 10);
+                    if (end == at) break;
+                    g_deadIds.push_back(static_cast<int>(id));
+                    at = end;
+                }
+            } else {
+                g_worldWait = WorldWait::Award;
+                if (!g_awardFromSet) AwardFrom();
+                g_awardFromSet = false;
+            }
+            g_worldWaitDeadline.Set(seconds * 1000);
+            return;
+        } else if (s.verb == "awardfrom") {
+            AwardFrom();
+            g_awardFromSet = true;
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());
         } else if (s.verb == "newgame") {

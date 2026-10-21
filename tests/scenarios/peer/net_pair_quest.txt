@@ -1,6 +1,8 @@
 # The peer of net_pair_quest: makes a new hero, joins the host's game (as in net_pair_join) and waits on the
-# base while the host plays the zone and completes it; it gets its share of the zone's awards.
+# base while the host plays the zone and completes it; it gets its share of the zone's awards (waitaward). No
+# streamed music, as the host's.
 timeout 480
+music 0
 reject Script error
 waitmenu
 clickregion 5
@@ -33,6 +35,8 @@ clickregion 0
 waitwindow 40 briefing
 peersignal joined
 
+# Its share of the awards (ClientOnAward 0041EF90), then the host is done too.
+waitaward 3000
 peerwait 3000 done
 report
 quit

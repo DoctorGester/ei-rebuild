@@ -1,12 +1,12 @@
 {
   "scenario": "net_pair_quest",
   "install": "vanilla",
-  "recorded": "2026-10-20",
-  "commit": "dff556aa",
+  "recorded": "2026-10-21",
+  "commit": "85399dfd",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 3,
-  "reason": "SV5d3: mp folder read from the run's overlay only (the user's own hero Yob had been listed); net_pair_quest new",
+  "reason": "SV5d5: walks wait on waitidle/waitdead/waitaward instead of fixed frames; both games play without streamed music (music 0), whose combat-track draw followed the real-time stream thread",
   "side": "peer"
 }

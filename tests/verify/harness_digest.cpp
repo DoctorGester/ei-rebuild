@@ -1026,6 +1026,38 @@ std::string Dump(const std::string& name) {
     return "";
 }
 
+UnitNow Unit(int id) {
+    UnitNow now;
+    if (!g_server || id < 0) return now;
+    CEngineObject* object = nullptr;
+    g_server->objects_.map.ForEach([&](const auto* n) {
+        if (n->key == static_cast<unsigned>(id)) object = n->value;
+    });
+    if (!object || object->GetClassId() != kClassUnit) return now;
+    auto* u = static_cast<CUnit*>(object);
+    now.found = true;
+    now.dead = u->dead != 0;
+    CEngineObject* controller = u->controller;
+    if (controller && controller->GetClassId() == kClassUnitServer) {
+        auto* c = static_cast<CUnitServer*>(controller);
+        now.idle = c->action.kind == 0 && u->Motion()->points.GetSize() == 0;
+        now.experience = c->stats.experience;
+    }
+    return now;
+}
+
+int LocalLeader(unsigned* money) {
+    if (!g_server || !g_server->players_) return -1;
+    PlayerIterator it;
+    for (WorldPlayer* p = it.First(g_server->players_); p; p = it.Next()) {
+        if (p->id != 0) continue;
+        CParty* party = p->Party();
+        if (money) *money = party->money_;
+        return party->members_.GetSize() > 0 ? static_cast<int>(party->members_[0].unitId) : -1;
+    }
+    return -1;
+}
+
 std::string Summary() {
     if (!g_records) return "";
     char text[120];
