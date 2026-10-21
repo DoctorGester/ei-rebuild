@@ -769,6 +769,31 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - The other ~150 container tables can go the same way, a tag at a time: replace the tag's `Vtable()` by deriving
     from CompiledCollection with the tag's destructor and Serialize (mfc_slots.cpp's ScalarDelete / Serialize
     registrations name both), retire the row, then drop the registrations only the retired cells read.
+- **Batch 9's families** (2026-10-21): 52 more container tags, 6,632 -> 6,476 code cells, 97 slot registrations
+  EI_REWRITTEN: in mfc_slots.h the trap arrays (circles, points, and the map trap record's areas / targets derived from
+  them), the script command's argument and binding arrays (ArgObjectsBase / ArgGroupsBase / BindingsBase with the
+  derived ArgObjects / ArgGroups), the scene loader's arrays and maps (Vector3, NodeItems A-C, TextureLink,
+  MeshCorner, FigureRegistry, CornerMap A-C), the map object, world and unit arrays (Effect, EffectSound, Frame, Id,
+  SkinLayer, Countdown, PartyUnit, SpiralCell), the path smoothing, UI and terrain builder arrays (SmoothEdge / Copy /
+  Step, ObjectiveExit, ItemStrip, QuickEntry, TokenPtr, LinePtr, TerrainArray A-C) and the pointer lists
+  (ClientObject, Experience, Attention, Player, Texture, Sound); in record_arrays.h CArray<SceneNode / DeltaField /
+  Behaviour / SectorVertex>, the command's nested calls (SubCallBase with the derived SubCallArray), the binding arrays
+  (BindingArrayClass over BindingsBaseClass) and the terrain's tile lists.
+  - **A derived tag** is the tag whose table's slots call another tag's destructor (ScalarDelete<ArrayHeader<Base>>)
+    and Serialize (the same address as the base's): `struct Derived final : Base` with its own `Vtable()`
+    (`CompiledVtable<Derived>()`); the base is not final and is defined before it.
+  - **Where the uses were**: every `GamePointer<void>(0x...)` / `DataId(0x...)` / `kXxxVtable` constant for a retired
+    table became the tag's `Vtable()` (helpers that took an address got a `void*` overload or parameter); tests/vectors'
+    replay_script_load.cpp builds its command arrays with SubCallArrayClass (the loader's empty arrays, 0073D4A8).
+    Aliases a tag names (Plain36 / Plain56, AttentionList) moved above the tags.
+  - **Skipped** (not the pattern, or a header the tag cannot reach): SectorOccluderArrayClass 0073FAE0 (shares slots
+    with the sector's own table 0073FADC, which gen_image_cells.py refuses to retire apart); Array0498Class /
+    ParticleDepthArrayClass 0073D024, SectorCellArrayClass / SpiralOffsetArrayClass 0073FDEC and SmoothRowArrayClass /
+    SmoothNodeArrayClass 0073FE34 (static_init.cpp stores the table in generated static initialisers: 007A9C50,
+    007C2FF8, 007C3038); the tags of mfc_array.h and mfc_list.h (the aliases there name them: they would move into
+    mfc_slots.h); the owned-element arrays whose Serialize alias lives in a game header (record_arrays.h, game_arrays.h:
+    FakeUnit*, NamedRecord, the global map's) or later in mfc_slots.h; game_slots.h's and game_lists.h's script lists
+    (SerializeCListThrough over aliases of game_slots.h); synonyms of the same address in two headers (game_arrays.h's).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
