@@ -241,14 +241,14 @@ void CWorld::OpenSession() {
         memory->flags7_ = 0;
         session = DriverSession::ConstructAt(memory);
     }
-    reinterpret_cast<RefPtr*>(&netSession_)->ShareAssign(session);
+    netSession_.ShareAssign(session);
 }
 EI_REWRITTEN(0x0055F410, CWorld::OpenSession);
 
 // ---- CWorld::CloseSession (0055F890) --------------------------------------------------------------
 
 void CWorld::CloseSession() {
-    RefPtr& session = *reinterpret_cast<RefPtr*>(&netSession_);
+    RefPtr& session = netSession_;
     if (!session.ptr) return;
     session.Destroy();
     session.ptr = nullptr;

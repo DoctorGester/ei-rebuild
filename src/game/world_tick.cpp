@@ -219,7 +219,7 @@ void CWorldServer::SetGameResult(int result) {
     gameResult_ = result;
     if (result == 2 || result == 3) {
         OpenSession();
-        static_cast<CPlayerSource*>(netSession_)->Query();   // the new session's slot 4 (result unused)
+        static_cast<CPlayerSource*>(netSession_.ptr)->Query();   // the new session's slot 4 (result unused)
     }
 }
 

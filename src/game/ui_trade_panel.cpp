@@ -31,12 +31,9 @@
 
 namespace {
 
-const mfc::CString& StrAt(const std::uint8_t* address) { return *reinterpret_cast<const mfc::CString*>(address); }
-
 // The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
 // values (thiscall, RET 4), 005260A0 whether a skill record can be learned (RET 8), 00528050 a
-// skill record's price (RET 4); 00527FF0 (__fastcall) the price of a school from one level to the next.
-__declspec(naked) int __fastcall SkillPrice(UnitStats* /*stats*/, void*, std::uint8_t* /*record*/) EI_ORIGINAL(0x00528050)
+// skill record's price (UnitStats::SkillPrice); 00527FF0 (__fastcall) the price of a school from one level to the next.
 __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGINAL(0x00527FF0)
 
 // The text table (GameClientTexts, 00578E20): 004DEFC0 whether it has a key (RET 4), 004DF8D0 the found text into a
@@ -54,12 +51,8 @@ struct SurfaceDraw : CUiSurface {
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
-constexpr int kSkillRecordSize = 0x44;
-std::uint8_t* SkillRecords() { return reinterpret_cast<std::uint8_t*>(unitdb::SkillLevels().begin); }
-int SkillCount() {
-    std::uint8_t* end = reinterpret_cast<std::uint8_t*>(unitdb::SkillLevels().end);
-    return static_cast<int>(end - SkillRecords()) / kSkillRecordSize;
-}
+SkillLevelRecord* SkillRecords() { return SkillDb()->levels.begin(); }
+int SkillCount() { return static_cast<int>(SkillDb()->levels.end() - SkillRecords()); }
 
 // The rows are pushed as copies of an empty row. The original's row has uninitialised price,
 // level and flag (stack bytes, all overwritten except the flag of the non-learnable rows); ours
@@ -95,8 +88,8 @@ int HasPerkText(void* table, const char* name) {
 }
 
 // A perk record's text key: its name (+4) without trailing level digits, plus "0".
-void PerkBaseName(mfc::CString* text, const std::uint8_t* record) {
-    *text = StrAt(record + 4);
+void PerkBaseName(mfc::CString* text, const SkillLevelRecord* record) {
+    *text = record->name;
     text->TrimRight("123");
     *text += "0";
 }
@@ -182,14 +175,14 @@ void CTradePanel::BuildLists() {
         if (level <= 0) continue;
         unsigned index = group + level - 1;
         if (index >= static_cast<unsigned>(SkillCount())) continue;
-        std::uint8_t* record = SkillRecords() + index * kSkillRecordSize;
+        SkillLevelRecord* record = SkillRecords() + index;
         if (!record) continue;
         TradeRow* row = PushBack(&perks_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
             TextReadLine(table, nullptr, &text, 1);
         else
-            text = StrAt(record);
+            text = record->field0;
         if (level > 1)
             row->name.Format("%s (%s%d)", static_cast<const char*>(text),
                                    static_cast<const char*>(perkLevel), level);
@@ -199,14 +192,13 @@ void CTradePanel::BuildLists() {
             // The next level's record (null past the end: the original reads its name through
             // null then, as here).
             unsigned next = index + 1;
-            std::uint8_t* nextRecord =
-                next < static_cast<unsigned>(SkillCount()) ? SkillRecords() + next * kSkillRecordSize : nullptr;
-            row->nextKey = StrAt(nextRecord + 4);
-            row->price = SkillPrice(stats, nullptr, nextRecord);
+            SkillLevelRecord* nextRecord = next < static_cast<unsigned>(SkillCount()) ? SkillRecords() + next : nullptr;
+            row->nextKey = nextRecord->name;
+            row->price = stats->SkillPrice(nextRecord);
         } else {
             row->price = 0;
         }
-        row->key = StrAt(record + 4);
+        row->key = record->name;
         row->level = level;
     }
 
@@ -214,17 +206,17 @@ void CTradePanel::BuildLists() {
     int count = SkillCount();
     for (int index = 0; index < count; index += 3) {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(SkillCount())) continue;
-        std::uint8_t* record = SkillRecords() + index * kSkillRecordSize;
+        SkillLevelRecord* record = SkillRecords() + index;
         if (!record) continue;
-        if (!stats->CanLearn(SkillDb(), reinterpret_cast<const char*>(record))) continue;
+        if (!stats->CanLearn(SkillDb(), record)) continue;
         TradeRow* row = PushBack(&learnable_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
             TextReadLine(table, nullptr, &row->name, 1);
         else
-            row->name = StrAt(record);
-        row->price = SkillPrice(stats, nullptr, record);
-        row->key = StrAt(record + 4);
+            row->name = record->field0;
+        row->price = stats->SkillPrice(record);
+        row->key = record->name;
         row->learnable = true;
         row->level = 0;
     }

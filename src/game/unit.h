@@ -28,6 +28,7 @@ struct UnitStats;
 struct UnitParams;
 struct UnitPrototypeRecord;   // unit_db.h
 struct UnitModelRecord;       // unit_db.h
+struct SkillLevelRecord;      // unit_db.h
 struct DamageInfo;   // spell.h
 struct FootprintPart;   // ai_map.h
 
@@ -810,7 +811,7 @@ struct UnitStats {
     // 005267E0. +0x34 of the level record of skill `index` (0 without one), exact in ST0.
     double SkillLevelValue(int index);
     // 00528270. The level record of skill `index` (level byte at +0x6D3), or null.
-    char* SkillLevelRecord(int index);
+    ::SkillLevelRecord* SkillLevelRecord(int index);
     // 00524280. stat10 * 12 scaled by (1 + 0.01 * level value) of the level byte at +0x6E8.
     double Value6E8();
     // 00525CD0. global 007C5430 + 0.01 * level value of the byte at +0x6E9.
@@ -923,13 +924,13 @@ struct UnitStats {
     // attribute (+0x14 name, +0x18 index, +0x20 value) and skill level (+0x0C name) present unless
     // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
     // record's own level (by its name, +0x04) above the one known. 0/1 in EAX.
-    BOOL CanLearn(const void* database, const char* record);
+    BOOL CanLearn(const void* database, const ::SkillLevelRecord* record);
     // unit_skill_price.cpp. 00528050. The experience learning skill level `record` (of the level
     // records 007AF274) costs: what its +0x30 is worth over the level below's (1.61 ^ (value /
     // 007C5480) * 007C547C, truncated; the first level of a skill over 0), times 007C5484 ^ (the
     // sum of the known skill levels, a byte), rounded to one significant digit, or two when the
     // first digit is below 4; a price of 10 or less with a first digit below 4 is rounded up.
-    int SkillPrice(const char* record);
+    int SkillPrice(const ::SkillLevelRecord* record);
     // unit_hit_location.cpp (U6). 00525B20. The hit location an attack aimed at `location` lands
     // on: `location` while its slot works (kind 3; read without a range check), else the first
     // working neighbour (head: 1, 2, 3; body: 0, 2-5; hands 2 / 3: the other hand, then the body;

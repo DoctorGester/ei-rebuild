@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <type_traits>
 
 #pragma warning(disable : 4740) // inline assembly
 
@@ -71,9 +72,14 @@ void TokensDestruct(ScriptTokenList* tokens) {
     gamelists::Tokens::Destruct<gameslots::TokenListClass>(mfc::impl::ListAs<gamelists::Tokens>(tokens));
 }
 
-// 006FE268 / 006FE296: ConstructElements / DestructElements for CString.
-void __stdcall ConstructStrings(mfc::CString* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>((void*)a0), a1); }
-void __stdcall DestructStrings(mfc::CString* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>((void*)a0), a1); }
+// 006FE268 / 006FE296: ConstructElements / DestructElements for CString (the library's
+// mfc::impl::ConstructStrings / DestructStrings do exactly this).
+void ConstructStrings(mfc::CString* elements, int count) {
+    for (; count--; ++elements) ::new (static_cast<void*>(elements)) mfc::CString;
+}
+void DestructStrings(mfc::CString* elements, int count) {
+    for (; count--; ++elements) elements->~CString();
+}
 
 __declspec(naked) void __fastcall ApplyDefinesAt(mfc::CString*, const ScriptDefineList*) EI_ORIGINAL(0x004D33E0)
 
@@ -105,15 +111,16 @@ int CountChar(const char* text, char c) {
 // zeroing (floats, object and group pointers) or with the CString helpers; only strings are
 // destructed when the array shrinks.
 template <typename T>
-void InlineSetSize(mfc::CArray<T>& a, int n, bool strings) {
-    auto construct = [strings](T* p, int count) {
-        if (strings) ConstructStrings(reinterpret_cast<mfc::CString*>(p), count);
+void InlineSetSize(mfc::CArray<T>& a, int n) {
+    constexpr bool strings = std::is_same_v<T, mfc::CString>;
+    auto construct = [](T* p, int count) {
+        if constexpr (strings) ConstructStrings(p, count);
         else std::memset(p, 0, static_cast<unsigned>(count) * 4);
     };
     static_assert(sizeof(T) == 4);
     if (n == 0) {
         if (a.data) {
-            if (strings) DestructStrings(reinterpret_cast<mfc::CString*>(a.data), a.size);
+            if constexpr (strings) DestructStrings(a.data, a.size);
             gamecrt::operator_delete(a.data);
             a.data = nullptr;
         }
@@ -126,7 +133,7 @@ void InlineSetSize(mfc::CArray<T>& a, int n, bool strings) {
         a.size = n;
     } else if (n <= a.maxSize) {
         if (n > a.size) construct(a.data + a.size, n - a.size);
-        else if (strings && n < a.size) DestructStrings(reinterpret_cast<mfc::CString*>(a.data + n), a.size - n);
+        else if constexpr (strings) { if (n < a.size) DestructStrings(a.data + n, a.size - n); }
         a.size = n;
     } else {
         int grow = a.growBy;
@@ -277,10 +284,10 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     }
 
     cmd->id = id;
-    InlineSetSize(cmd->floatArgs, CountChar(signature, 'f') + floatCount, false);
-    InlineSetSize(cmd->stringArgs, CountChar(signature, 's') + stringCount, true);
-    InlineSetSize(cmd->objectArgs, CountChar(signature, 'o') + CountChar(signature, 'O'), false);
-    InlineSetSize(cmd->groupArgs, CountChar(signature, 'g'), false);
+    InlineSetSize(cmd->floatArgs, CountChar(signature, 'f') + floatCount);
+    InlineSetSize(cmd->stringArgs, CountChar(signature, 's') + stringCount);
+    InlineSetSize(cmd->objectArgs, CountChar(signature, 'o') + CountChar(signature, 'O'));
+    InlineSetSize(cmd->groupArgs, CountChar(signature, 'g'));
     FreeArray(cmd->localBindings);
     FreeArray(cmd->globalBindings);
     mfc::impl::ArrayAs<recordarrays::SubCalls>(cmd->subCalls).SetSize(0, -1);

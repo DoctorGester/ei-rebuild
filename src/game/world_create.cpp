@@ -109,7 +109,7 @@ CWorld* CWorld::ConstructBase() {
     ClearFields();
     figureLoader_ = nullptr;
     shared5C_.ptr = nullptr;
-    netSession_ = nullptr;
+    netSession_.ptr = nullptr;
     countdowns_.Construct(mfc::impl::CountdownArrayClass::Vtable());
     ei::SetVtable(this, kBaseVtableAddress);
     players_ = nullptr;

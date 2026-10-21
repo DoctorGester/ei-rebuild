@@ -136,7 +136,7 @@ void CWorld::Destruct() {
     auto* countdowns = &countdowns_;
     countdowns->vtable = mfc::impl::CountdownArrayClass::Vtable();
     countdowns->FreeData();
-    reinterpret_cast<RefPtr*>(&netSession_)->Destroy();
+    netSession_.Destroy();
     shared5C_.Destroy();
     if (CLinkFigureLoader* loader = figureLoader_)
         if (--loader->refCount_ == 0) loader->DeleteThis(1);

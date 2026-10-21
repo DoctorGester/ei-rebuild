@@ -88,10 +88,10 @@ int CWorldServer::Update() {
         static_cast<CWorldHandle*>(handle)->Pump();
         AcceptNewPlayers(shared5C_.ptr);
     }
-    if (void* pending = netSession_) {
+    if (CRefObject* pending = netSession_.ptr) {
         net::ServerSession* server = net::GameServer();
         if (server && !(server->flags7_ & CRefCounted::kDetached)) static_cast<netlink::DriverSession*>(pending)->PumpDrivers(server);
-        AcceptNewPlayers(netSession_);
+        AcceptNewPlayers(netSession_.ptr);
     }
 
     if (!paused_) {

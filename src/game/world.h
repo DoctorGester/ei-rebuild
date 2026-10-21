@@ -296,7 +296,7 @@ public:
     CEngineObject* manager58_;            // +0x58 (slot 16)
     // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
     RefPtr shared5C_;
-    void* netSession_;                    // +0x60 the network session (a counted pointer; OpenSession)
+    RefPtr netSession_;                   // +0x60 the network session (a netlink::DriverSession; OpenSession)
     int tick_;                            // +0x64 game time in ticks
     int updateCount_;                     // +0x068 world updates run (the server's Update)
     // +0x06C paused: the server's Update skips the players and the tick while it is set; the

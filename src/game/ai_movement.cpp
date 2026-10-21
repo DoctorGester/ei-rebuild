@@ -301,7 +301,7 @@ void* CAIMap::UnitShape(float standingHeight) {
     if (const gamehash::ShapeTable::Node* found = map->Find(handle)) {
         shape = found->value.value.ptr;
         handle.cache = UnitShapes();
-        reinterpret_cast<RefPtr*>(&handle.ref)->Assign(shape);
+        handle.counted.Assign(shape);
     } else {
         // Not cached yet: create it and store it under the handle.
         shape = UnitShapes()->CreateShape(&handle);
@@ -316,7 +316,7 @@ void* CAIMap::UnitShape(float standingHeight) {
             slot->Share(shape);
         }
         handle.cache = UnitShapes();
-        reinterpret_cast<RefPtr*>(&handle.ref)->Assign(shape);
+        handle.counted.Assign(shape);
     }
     ReleaseHandle(&handle);
     return shape;

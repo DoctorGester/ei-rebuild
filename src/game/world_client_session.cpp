@@ -47,7 +47,7 @@ bool CWorldClient::JoinGameClient(const char*) {
     if (client->clients_->next == client->clients_) return false;
     OpenSession();
     netlink::NetLink* link =
-        static_cast<netlink::DriverSession*>(netSession_)->Start(client->clients_->next->connection);
+        static_cast<netlink::DriverSession*>(netSession_.ptr)->Start(client->clients_->next->connection);
     ClearMaps();
     ResetZoneObjects();
     session_->Connect(nullptr);
@@ -60,7 +60,7 @@ namespace {
 void PumpSources(CWorldClient* world) {
     if (CRefObject* source = world->shared5C_.ptr) static_cast<CPlayerSource*>(source)->Pump();
     if (CRefObject* source = world->handle_.ptr) static_cast<CPlayerSource*>(source)->Pump();
-    if (void* session = world->netSession_) static_cast<netlink::DriverSession*>(session)->PumpDrivers(net::GameClient());
+    if (CRefObject* session = world->netSession_.ptr) static_cast<netlink::DriverSession*>(session)->PumpDrivers(net::GameClient());
 }
 
 } // namespace

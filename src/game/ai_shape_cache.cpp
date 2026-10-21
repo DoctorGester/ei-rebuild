@@ -43,7 +43,7 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
     if (node) {
         CRefObject* value = node->value.ptr;
         handle->cache = this;
-        reinterpret_cast<RefPtr*>(&handle->ref)->Assign(value);
+        handle->counted.Assign(value);
         return value;
     }
 
@@ -55,7 +55,7 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
         slot->Share(created);
     }
     handle->cache = this;
-    reinterpret_cast<RefPtr*>(&handle->ref)->Assign(created);
+    handle->counted.Assign(created);
     return created;
 }
 

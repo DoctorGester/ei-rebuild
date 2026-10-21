@@ -332,7 +332,7 @@ bool CheckSkillPrice(const SkillPriceCall& v, char* d, std::size_t n) {
         Levels(0);
     }
     record->values[6] = static_cast<std::uint32_t>(v.exponent);
-    int result = stats.SkillPrice(reinterpret_cast<const char*>(record));
+    int result = stats.SkillPrice(record);
     if (result == v.result) return true;
     std::snprintf(d, n, "record %d (exponents %d, %d): ours %d, original %d", v.index, v.exponent, v.previousExponent,
                   result, v.result);

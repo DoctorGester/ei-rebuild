@@ -19,8 +19,7 @@ constexpr int kWeaponSkill1Bonus = 1;
 const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
     std::uint8_t level = params->skillLevels[type];
     if (level == 0) return nullptr;
-    return reinterpret_cast<const SkillLevelRecord*>(
-        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(type * 3 - 1 + level), unitdb::kSkillLevelSize));
+    return unitdb::SkillLevelAt(static_cast<std::uint32_t>(type * 3 - 1 + level));
 }
 
 // The first letter of skill `skill`'s name (+0x0C leads to it): which stat counts ('s', 'd',

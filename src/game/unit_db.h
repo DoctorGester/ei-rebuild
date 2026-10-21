@@ -346,7 +346,7 @@ struct SkillLevelRecord {
     // 00520DE0 (S13; the compiler's destructor). The strings +0x14, +0x0C, +0x04, +0x00.
     void Destruct();
 
-    mfc::CString field0;                // +0x00 field 0 (nothing reads it)
+    mfc::CString field0;                // +0x00 field 0 (the trade panel's display name of the perk)
     mfc::CString name;              // +0x04 1 (the lookups compare it, _mbsicmp)
     std::uint32_t field2;               // +0x08 2 (nothing reads it)
     mfc::CString requiredLevelName;     // +0x0C 10 the level record it requires ("none")
@@ -403,3 +403,10 @@ static_assert(sizeof(stlp::vector<SkillRecord>) == 0x0C);
 // The skill database (007AF268; unit_db_destroy.cpp).
 extern lib::StaticObject<SkillDatabase> g_skillDatabase;
 inline SkillDatabase* SkillDb() { return &*g_skillDatabase; }
+namespace unitdb {
+// Skill level record `index`, or null past the end (what SkillDatabase::LevelAt answers, inline).
+inline SkillLevelRecord* SkillLevelAt(std::uint32_t index) {
+    stlp::vector<SkillLevelRecord>& levels = SkillDb()->levels;
+    return index < static_cast<std::uint32_t>(levels.end() - levels.begin()) ? levels.begin() + index : nullptr;
+}
+} // namespace unitdb

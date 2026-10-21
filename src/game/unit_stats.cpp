@@ -88,10 +88,10 @@ float UnitStats::WeaponSkill(int type) {
 }
 EI_REPLACE_METHOD(0x00526780, UnitStats::WeaponSkill);
 
-char* UnitStats::SkillLevelRecord(int index) {
+::SkillLevelRecord* UnitStats::SkillLevelRecord(int index) {
     std::uint8_t level = skillLevels[index];
     if (level == 0) return nullptr;
-    return unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
+    return unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
 }
 EI_REWRITTEN(0x00528270, UnitStats::SkillLevelRecord);
 

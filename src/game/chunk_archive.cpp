@@ -401,9 +401,9 @@ void ChunkArchive::Close(CStream* stream) {
         // After a load: each loaded object gets a reference and loses it again (one without other
         // owners is deleted).
         for (ObjectMap::Node* node = objects_.First(); node; node = objects_.After(node)) {
-            CRefObject* counted;
-            reinterpret_cast<RefPtr*>(&counted)->FromRawCounted(node->value);
-            if (counted) counted->Release();
+            RefPtr counted;
+            counted.FromRawCounted(node->value);
+            if (counted.ptr) counted.ptr->Release();
         }
     } else {
         ResizeToCurrent();   // inlined
