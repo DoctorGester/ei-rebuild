@@ -2404,6 +2404,14 @@ group = "cleanup"
 model = "sonnet"
 note = "R16c5 (2026-10-21): check_fp_fold compares a helper that has no registration against every constant in game.exe, so a fold of a value game.exe holds anywhere passes (SetUpCylinder's 2/18 inside EmitCylinder 00493DE0 was missed under /Ob1). Compare each unregistered helper's double / float constants against the registered functions that call or inline it instead; keep tools/check_fp_fold_allow.txt for reviewed ones. Checks: the check still passes on main (or the new finds are fixed as the original's rounding, as R16c5 did), its own tests."
 
+[[ticket]]
+id = "C17a"
+title = "check_fp_fold: call graph names wrong callers for a helper (RandomAngle via 004F7F00 / 004F9FD0)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C17"]
+note = "After SV5d4's merge (harness-only change) main's verify build failed check_fp_fold: ::RandomAngle (world_effect_visual.cpp, the 0073FFD0 literal of CEffectParticle's scorch angle) was judged against LoadFigPart 004F7F00 / RemorphFigPart 004F9FD0, which do not call it; the previous verify builds passed. Allowed in tools/check_fp_fold_allow.txt for now. Find why the CALL / JMP rel32 scan (call_graph) attributes it there (a false rel32 match, a folded COMDAT, a layout-dependent boundary), fix the scan so the result does not depend on unrelated code layout, then drop the allow entry. Checks: build.cmd verify and release at 0 on main and on a couple of earlier commits."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
