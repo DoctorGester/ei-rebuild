@@ -206,7 +206,7 @@ each step green on the goldens and removing a measured tie:
   the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
   is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
-  image_code_cells.inc (21,624 cells of .rdata and .data holding a function start: vtable slots, EH unwind /
+  image_code_cells.inc (21,439 cells of .rdata and .data holding a function start: vtable slots, EH unwind /
   handler / throw / copy entries, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
   points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
   code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
@@ -300,7 +300,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
-after its first batch, 3,000 after the second, 2,989 after C18c). C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
+after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2. C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
@@ -363,7 +363,7 @@ kinds given.
     (8 `{kind, "x.mat"}` rows). Keep the original's bound on an index the data
     gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
     array where the original read the neighbouring .rdata; no database has one).
-  - Tables that hold pointers to game.exe's records (not done; C18d): src/lib's MFC CRuntimeClass records
+  - Tables that hold pointers to game.exe's records (not done; C18e): src/lib's MFC CRuntimeClass records
     (mfc_file's CFile 00745DB0 / CStdioFile 007464C8 / CFileFind 00745EC0, mfc_gdi's CTempDC 00745FB0 /
     CTempGdiObject 00745F88, mfc_exception's CFileException 00746820 / CArchiveException 007467D8): each one's
     m_pBaseClass points at a record that other game records point at too (CObject, CDC, CGdiObject, CException; CFile
