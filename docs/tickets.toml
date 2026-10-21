@@ -3573,7 +3573,7 @@ title = "Drawing and measuring: the interface's text draw and extent, console an
 group = "standalone"
 model = "opus"
 depends = ["U1"]
-note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup. Done 2026-10-21: DrawTextA, GetTextExtentPoint32A, CreateFontIndirectA image slots routed to wide versions under EI_UTF8 (system_text); ForAnsiCall deleted. The fonts never took a charset from an option (MFC CreatePointFont: DEFAULT_CHARSET); the 'Font CharSet' option only sets the CRT LC_CTYPE, left for U5. Off-build frames on this 1252 machine show assets' Cyrillic as Latin-1; the comparison runs the off build with EI_FONT_CHARSET=204 (harness): 54/54 frames identical. utf8_typing: 'λ' frame differs from '?' (58 px, glyph only). Suites: image 121 same, original 114 same."
 
 [[ticket]]
 id = "U4"
