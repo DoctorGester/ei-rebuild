@@ -130,10 +130,7 @@ inline void* BaseFolderString() { return ei::GamePointer<void>(0x007AF458); }
 inline const char* ConfiguredDataPath() { return ei::GameData<const char* const>(0x0079BC90); }
 inline const char* ConfiguredTextPath() { return ei::GameData<const char* const>(0x0079BC94); }
 inline const char* ConfiguredBasePath() { return ei::GameData<const char* const>(0x0079BC98); }
-// The vtables WorldCreateManagers stores after the base manager's constructor: the player list
-// (+0x38) and the timed objects (+0x48); and the counted helper's (+0x5C).
-constexpr std::uintptr_t kPlayerListVtable = std::uintptr_t(0x0073F328);
-constexpr std::uintptr_t kTimedObjectsVtable = std::uintptr_t(0x0073F2C4);
+// The counted helper's vtable (+0x5C), which WorldCreateManagers stores.
 constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 
 // ---- The client's Segment (005641F0) ------------------------------------------------------------

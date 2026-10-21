@@ -12,6 +12,7 @@
 #include "base_manager.h"
 #include "figure_manager.h"
 #include "item.h"
+#include "player_manager.h"
 #include "resource_manager.h"
 #include "spell.h"
 #include "unit.h"
@@ -70,13 +71,13 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->windStrength_ = 0;
 
-    world->players_ = Make<CBaseManager>(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kPlayerListVtable));
+    world->players_ = Make<CBaseManager>(sizeof(CPlayerManager), ConstructOn<CPlayerManager, &CPlayerManager::Construct>, nullptr);
     Attach(world->players_, world);
     world->manager40_ = Make<CBaseManager>(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
     Attach(world->manager40_, world);
     world->manager3C_ = Make<CBaseManager>(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, nullptr);   // 005AA070
     Attach(world->manager3C_, world);
-    world->manager48_ = Make<CBaseManager>(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kTimedObjectsVtable));
+    world->manager48_ = Make<CBaseManager>(sizeof(CEffectManager), ConstructOn<CEffectManager, &CEffectManager::Construct>, nullptr);
     Attach(world->manager48_, world);
     world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, nullptr);   // 00683FF0
     world->manager50_->Create();

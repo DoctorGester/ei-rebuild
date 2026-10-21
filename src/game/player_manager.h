@@ -1,19 +1,32 @@
 #pragma once
 
-// The world's player manager (vtable 0073F328; a CBaseManager of CPlayer objects, the world's +0x38,
-// also the script commands' event dispatcher 007AFF98). player_manager.cpp (A-H15). Its slot 2 and
-// 14 bodies are registered by address under their own names (rule 4: they are CBaseManager
-// virtuals). 0066C180 (a player for a lobby session) is Rebirth-patched (PlayerNumbers, reproduced
+// The world's player manager (a CBaseManager of CPlayer objects, the world's +0x38, also the script
+// commands' event dispatcher 007AFF98; a real virtual class: the compiler makes its vtable, C19,
+// game.exe's 0073F328 is retired). player_manager.cpp (A-H15), its lifetime and class slots
+// world_managers.cpp. Its slot 2 and 14 bodies are registered by member pointer under their own
+// names. 0066C180 (a player for a lobby session) is Rebirth-patched (PlayerNumbers, reproduced
 // behind its flag); callers go through its address (PlayerCreateOriginal, rule 9).
 
 #include "base_manager.h"
 
 #include <cstdint>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 class CPlayerManager : public CBaseManager {
 public:
+    // CBaseManager's constructor (inlined in WorldCreateManagers 0055EE40).
+    CPlayerManager();
+    CPlayerManager* Construct();   // the constructor in place; returns this
+    // 0055F350. CBaseManager's destructor.
+    ~CPlayerManager() override;
+    // 0055F330 (slot 0's registration): the destructor, then operator delete when bit 0 of
+    // `flags` is set. Returns this.
     CPlayerManager* DeleteScalar(unsigned flags);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F328);
+    int Create() override;                         // 2: CreatePlayers
+    const char* GetClassName() override;           // 11: 0055F310 "CPlayerManager"
+    int GetClassId() override;                     // 12: 0055F320 (0x2E)
+    CEngineObject* NewObject(int type) override;   // 14: NewPlayer
 
     // 0066C0F0 (slot 2). CBaseManager's Create, its result made 0 / 1.
     BOOL CreatePlayers();

@@ -34,6 +34,8 @@ template <typename F> void ForEachPlayer(CBaseManager* manager, F f) {
 } // namespace
 
 BOOL CPlayerManager::CreatePlayers() { return CBaseManager::Create() != 0 ? 1 : 0; }
+int CPlayerManager::Create() { return CreatePlayers(); }
+CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
 
 CEngineObject* CPlayerManager::NewPlayer(int type) {
     void* memory = gamecrt::operator_new(sizeof(CPlayer));
