@@ -7,13 +7,15 @@
 // colour key background_ when bit 1 is set. Nothing when the surface is the render target itself.
 // The new renderer (src/render) takes the blit (render::SurfaceBlit); the holder has no DirectDraw
 // surface, only the new renderer's memory (the original's Blt is gone with the DirectDraw fallback,
-// R11a). See docs/notes/renderer.md.
+// R11a). A native surface (ui_native.h, ticket P1) can draw its canvas instead. See
+// docs/notes/renderer.md and docs/notes/ui-native.md.
 #include "device.h"
 #include "ui.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "render/render_ui.h"
 
 #include <cstdint>
 
@@ -35,6 +37,10 @@ void __fastcall UiSurfaceBlit(CUiSurface* surface) {
     if (device::SameSurface(holder->device->renderTarget_, holder)) return;
     render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
     render::Rect part{source.left, source.top, source.right, source.bottom};
-    render::SurfaceBlit(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
+    // A native surface (ui_native.h) draws its canvas when the interface's path says so.
+    if (render::ui::DrawsCanvas(holder))
+        render::ui::DrawCanvas(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
+    else
+        render::SurfaceBlit(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
 }
 EI_REPLACE(0x005FDA80, UiSurfaceBlit);

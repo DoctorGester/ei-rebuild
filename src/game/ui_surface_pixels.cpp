@@ -6,9 +6,12 @@
 //
 // These work on the surfaces' memory (the new renderer's; the holders have no DirectDraw surface)
 // directly (DirectPixels): no Lock, the screen copy from the new renderer's frame, the stretched
-// copy on the CPU. A holder without that memory (none is made) is left alone.
+// copy on the CPU. A holder without that memory (none is made) is left alone. A native surface
+// (ui_native.h) gets the screen copy and the greying on its canvas too (under uinative instead of in its
+// memory), and its canvas is read back before its memory is read or kept.
 #include "app.h"
 #include "ui.h"
+#include "ui_native.h"
 #include "game_strings.h"
 
 #include "device.h"   // device::SameSurface
@@ -100,6 +103,7 @@ void CUiSurface::CaptureScreen() {
     if (!holder) return;
     SurfaceHolder* screen = holder->device->renderTarget_;
     if (device::SameSurface(screen, holder)) return;
+    if (!ui_native::Capture(this, rect_)) return;
     // The copy is taken from the new renderer's frame (the original's Blt from the render target is
     // gone with the DirectDraw fallback, R11a).
     render::CopyFrameTo(holder, render::Rect{rect_.left, rect_.top, rect_.right, rect_.bottom});
@@ -108,6 +112,7 @@ void CUiSurface::CaptureScreen() {
 std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     ObservePixels(this, "Rgb565Copy", false, _AddressOfReturnAddress());
     if (!HolderOf(this)) return nullptr;
+    ui_native::Sync(this);
     // A surface of the wanted size in this one's format, and this one stretched into it.
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     CUiSurface* copy = nullptr;
@@ -150,6 +155,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
 void CUiSurface::Greyscale() {
     ObservePixels(this, "Greyscale", true, _AddressOfReturnAddress());
     if (!HolderOf(this)) return;
+    if (!ui_native::Greyscale(this)) return;
     SurfaceHolder* holder = HolderOf(this);
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels desc;
@@ -239,7 +245,10 @@ void CUiSurface::SwapContents(int restore) {
             DirectPixels(holder_, &desc, true);   // (no memory: the description stays empty)
             SurfaceBytesTotal() += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         }
-        if (!kept_) return;
+        if (!kept_) {
+            ui_native::Restored(this);
+            return;
+        }
         SurfaceHolder* holder = holder_;
         gameapi::EnterCriticalSection(TheDeviceLock());
         if (DirectPixels(holder, &desc)) std::memcpy(desc.bits, kept_, keptSize_);
@@ -248,10 +257,12 @@ void CUiSurface::SwapContents(int restore) {
         gamecrt::operator_delete(kept_);
         kept_ = nullptr;
         keptSize_ = 0;
+        ui_native::Restored(this);
         return;
     }
     SurfaceHolder* holder = holder_;
     if (!holder) return;
+    ui_native::Sync(this);
     gameapi::EnterCriticalSection(TheDeviceLock());
     bool direct = DirectPixels(holder, &desc, true);   // (no memory: an empty copy)
     if (kept_) gamecrt::operator_delete(kept_);
@@ -276,6 +287,7 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     SurfaceHolder* holder = HolderOf(this);
     if (!holder || x < 0 || y < 0) return 0;
     if (x >= width_ || y >= height_) return 0;
+    ui_native::Sync(this);
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels desc;
     if (!DirectPixels(holder, &desc, true)) {

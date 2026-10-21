@@ -4144,7 +4144,22 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
     return result;
 }
 
+// EI_RENDER_EXTRA: words added to the renderer's settings of every run (the scenario's "render" step, or
+// EI_RENDER), e.g. "uiboth" (the interface's canvases compared with GDI; harness_ui.h). Set it in the
+// environment of `work.py test` (a batch keeps its EI_* variables).
+std::string ExtraRenderWords() {
+    char extra[128];
+    DWORD n = GetEnvironmentVariableA("EI_RENDER_EXTRA", extra, sizeof(extra));
+    return n > 0 && n < sizeof(extra) ? std::string(extra) : std::string();
+}
+
+std::string WithExtraRenderWords(const std::string& spec) {
+    const std::string extra = ExtraRenderWords();
+    return extra.empty() ? spec : spec + "," + extra;
+}
+
 bool LoadScenario(const char* path) {
+    bool rendered = false;   // a "render" step configured the renderer
     FILE* f = nullptr;
     if (fopen_s(&f, path, "r") != 0 || !f) return false;
     char line[1024];
@@ -4190,7 +4205,8 @@ bool LoadScenario(const char* path) {
         }
         if (g_steps.back().verb == "render") {
             // The original code draws through dgVoodoo; our renderer runs only in the image.
-            if (ei::Standalone()) render::Configure(g_steps.back().argument.c_str());
+            rendered = true;
+            if (ei::Standalone()) render::Configure(WithExtraRenderWords(g_steps.back().argument).c_str());
             else ei::Log("harness: 'render %s' ignored: a run of the original code", g_steps.back().argument.c_str());
             g_steps.pop_back();
             continue;
@@ -4210,6 +4226,12 @@ bool LoadScenario(const char* path) {
             g_freezeUsed = true;
     }
     std::fclose(f);
+    // EI_RENDER_EXTRA's words also reach a scenario without a "render" step (on top of EI_RENDER).
+    if (!rendered && ei::Standalone() && !ExtraRenderWords().empty()) {
+        char spec[256] = "";
+        DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
+        render::Configure(WithExtraRenderWords(n < sizeof(spec) ? spec : "").c_str());
+    }
     return true;
 }
 

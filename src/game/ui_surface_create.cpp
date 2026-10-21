@@ -16,6 +16,7 @@
 // that throw ends the game.
 #include "app.h"
 #include "ui.h"
+#include "ui_native.h"
 
 #include "base_manager.h"
 #include "dx_surface.h"
@@ -74,6 +75,7 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
 }
 
 void Begin(CUiSurface* self, CInterface3D* ui, int format) {
+    ui_native::Forget(self);   // (a surface made again where another was)
     self->holder_ = nullptr;
     self->flags_ = static_cast<std::uint32_t>(format);
     self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
@@ -89,6 +91,7 @@ CUiSurface* AsSurface(char* self) { return reinterpret_cast<CUiSurface*>(self); 
 // height * pitch off 007C7E78, drops the holder and empties the screen rectangle.
 void CUiSurface::ReleaseContents() {
     vtable_ = ei::GamePointer<void>(kVtableAddress);
+    ui_native::Forget(this);
     if (std::uint8_t* kept = kept_) {
         gamecrt::operator_delete(kept);
         kept_ = nullptr;
@@ -108,6 +111,7 @@ EI_REPLACE_METHOD(0x005FD120, CUiSurface::ReleaseContents);
 // flag 1.
 char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString name) {
     CUiSurface* self = AsSurface(raw);
+    ui_native::Forget(self);
     self->holder_ = nullptr;
     self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
     self->background_ = 0;

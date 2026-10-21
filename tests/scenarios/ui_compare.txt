@@ -1,11 +1,13 @@
-# The interface's GDI and canvas paths compared (N3; tests/verify/harness_ui.h, docs/notes/ui-native.md
-# section 3). Nothing is native before P1, so the harness's mirror gives every named surface a canvas fed
-# from its memory: each check must match GDI's drawing exactly (the read-back and the formats' round trip),
-# a fault drawn on one canvas must be found (its pair written to frames\uidiff1_*), and the two paths' frames
-# must match where canvases were blitted (none yet: an empty UI mask). The original's run skips these steps.
+# The interface's GDI and canvas paths compared (N3, P1; tests/verify/harness_ui.h, docs/notes/ui-native.md
+# section 3). The frame rate surface is native (P1: the game draws it on its canvas, src/game/ui_native.h);
+# the harness's mirror gives every other named surface a canvas fed from its memory. Each check must match
+# GDI's drawing exactly (the read-back and the formats' round trip), a fault drawn on one canvas must be
+# found (its pair written to frames\uidiff1_*), and the two paths' frames must match where canvases were
+# blitted (the UI mask). The original's run skips these steps.
 render new,present,uiboth
 reject Script error
 waitmenu
+console fps on
 uimirror on
 frames 3
 uidiffcheck 0
@@ -32,6 +34,32 @@ capture options_cpu
 unfreeze
 uimask options
 samecapture options_cpu options_native 0 0
+
+# The help over the options (backdrop mode 3: the options' greyed backdrop put away by SwapContents after
+# the frame blitted it, a new one copied from that frame), opened once through each path: the native
+# backdrops must show the same (the frame rate off: its text changes between the two).
+console fps off
+uipath native
+key h
+waitwindow 10 help
+frames 10
+freeze
+capture help_native
+unfreeze
+clickregion 1
+waitwindow 10 options
+uipath cpu
+key h
+waitwindow 10 help
+frames 10
+freeze
+capture help_cpu
+unfreeze
+samecapture help_cpu help_native 0 0
+clickregion 1
+waitwindow 10 options
+frames 3
+uidiffcheck 0
 
 clickregion 1
 waitwindow 10 menu

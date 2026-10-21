@@ -656,6 +656,9 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
 bool HasCanvas(const void* holder) { return g_canvases.count(holder) != 0; }
 
 void DropCanvas(const void* holder) {
+    // A blit of it the frame has not drawn yet is drawn first (Target), as the window blits' textures outlive
+    // their holders until drawn: SwapContents puts a backdrop away after the frame blitted it.
+    if (!Target(holder)) return;
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end()) return;
     g_retired.push_back(it->second.gpu);

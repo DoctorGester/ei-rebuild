@@ -12,6 +12,7 @@
 #include "../../src/game/console.h"
 #include "../../src/game/game_singletons.h"
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_native.h"
 #include "../../src/hook/log.h"
 #include "../../src/render/render.h"
 #include "../../src/render/render_ui.h"
@@ -238,6 +239,7 @@ void Mirror(const std::unordered_map<const void*, std::string>& names) {
     for (auto it = g_fed.begin(); it != g_fed.end();)
         it = ui::HasCanvas(it->first) && names.count(it->first) ? std::next(it) : g_fed.erase(it);
     for (const auto& [holder, name] : names) {
+        if (ui::HasCanvas(holder) && !g_fed.count(holder)) continue;   // a native surface's (src/game/ui_native.h)
         const render::SurfaceMemory* m = render::SurfaceMemoryOf(holder);
         if (!Readable(m) || !ui::Canvas(holder, m->width, m->height, FormatOf(*m))) continue;
         const std::uint64_t hash = HashMemory(*m);
@@ -249,11 +251,33 @@ void Mirror(const std::unordered_map<const void*, std::string>& names) {
     }
 }
 
+// One canvas compared with its holder's memory, when its version or the memory changed since its last check.
+void Check(const ui::CanvasInfo& canvas, const std::unordered_map<const void*, std::string>& names) {
+    const render::SurfaceMemory* m = render::SurfaceMemoryOf(canvas.holder);
+    if (!Readable(m)) return;
+    const std::uint64_t hash = HashMemory(*m);
+    auto found = g_checked.find(canvas.holder);
+    if (found != g_checked.end() && found->second.version == canvas.version && found->second.memoryHash == hash) return;
+    g_checked[canvas.holder] = Checked{canvas.version, hash};
+    Compare(canvas, *m, NameOf(names, canvas.holder));
+}
+
+// A native surface is about to go (ui_native::g_goneObserver): its canvas compared before it is dropped (the
+// status surface lives inside one frame of ShowStatusText's own).
+void OnNativeGone(const CUiSurface* surface) {
+    if (!render::Active() || ui::CurrentMode() != ui::Mode::Both || !surface->holder_) return;
+    std::vector<ui::CanvasInfo> canvases;
+    ui::Canvases(&canvases);
+    for (const ui::CanvasInfo& canvas : canvases)
+        if (canvas.holder == surface->holder_) Check(canvas, NamedHolders());
+}
+
 } // namespace
 
 void Install() {
     g_previousObserver = g_uiSurfaceOwnerObserver;
     g_uiSurfaceOwnerObserver = &OnOwner;
+    ui_native::g_goneObserver = &OnNativeGone;
 }
 
 void Frame() {
@@ -270,15 +294,7 @@ void Frame() {
     });
     for (auto it = g_checked.begin(); it != g_checked.end();)
         it = ui::HasCanvas(it->first) ? std::next(it) : g_checked.erase(it);
-    for (const ui::CanvasInfo& canvas : canvases) {
-        const render::SurfaceMemory* m = render::SurfaceMemoryOf(canvas.holder);
-        if (!Readable(m)) continue;
-        const std::uint64_t hash = HashMemory(*m);
-        auto found = g_checked.find(canvas.holder);
-        if (found != g_checked.end() && found->second.version == canvas.version && found->second.memoryHash == hash) continue;
-        g_checked[canvas.holder] = Checked{canvas.version, hash};
-        Compare(canvas, *m, NameOf(names, canvas.holder));
-    }
+    for (const ui::CanvasInfo& canvas : canvases) Check(canvas, names);
 }
 
 bool Step(const std::string& verb, const std::string& argument, std::string* error) {
