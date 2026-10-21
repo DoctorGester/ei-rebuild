@@ -81,8 +81,8 @@ int CPlayerClient::OnCameraPlacement() {
     TheClientWorld()->CentreOn(&point);
     CCamera* camera = TheCamera();
     const char* zone = Owner()->Party()->zone_;
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zone),
-                        reinterpret_cast<const unsigned char*>(FixedViewZone())) == 0) {
+    if (gamecrt::mbscmp(zone,
+                        FixedViewZone()) == 0) {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = FixedViewRotation();

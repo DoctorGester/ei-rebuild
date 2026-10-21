@@ -220,8 +220,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     exitArray->SetSize(0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
         const MapExit& source = map->exits.data[i];
-        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(source.target),
-                            reinterpret_cast<const unsigned char*>("none")) == 0)
+        if (gamecrt::mbsicmp(source.target,
+                            "none") == 0)
             continue;
         int index = exits_.size;
         ObjectiveExit blank = {};
@@ -336,8 +336,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 quests->SetAtGrow(quests->GetSize(), *s);
                 const char* current = listZones_ == 0 ? static_cast<const char*>(LastQuest())
                                                       : static_cast<const char*>(interface_->savedText_);
-                if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(current),
-                                    reinterpret_cast<const unsigned char*>(static_cast<const char*>(*s))) == 0)
+                if (gamecrt::mbsicmp(current,
+                                    static_cast<const char*>(*s)) == 0)
                     selectedQuest_ = quests->GetSize() - 1;
             }
             LastQuest() = (*quests)[selectedQuest_];
@@ -396,7 +396,7 @@ QuestRecord* FindQuestRecord(const char* name) {
 }
 
 bool SameText(const char* a, const char* b) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+    return gamecrt::mbsicmp(a, b) == 0;
 }
 
 } // namespace
@@ -629,8 +629,8 @@ void CObjectivesWindow::Build() {
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             text::Split(node->value.key, &parts, '.');
             if (parts.GetSize() != 3) continue;
-            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(interfaceQuest),
-                                reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts[2]))) == 0)
+            if (gamecrt::mbsicmp(interfaceQuest,
+                                static_cast<const char*>(parts[2])) == 0)
                 current = parts[1];
             std::uint32_t one;
             std::memcpy(&one, &node->value.mapped, 4);
@@ -638,13 +638,13 @@ void CObjectivesWindow::Build() {
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
-                libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(zone->allod),
-                                reinterpret_cast<const unsigned char*>(allodZone->allod)) != 0)
+                gamecrt::mbsicmp(zone->allod,
+                                allodZone->allod) != 0)
                 continue;
             bool listed = false;
             for (mfc::CString* z = zones->begin(); z != zones->end(); ++z)
-                if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zone->name),
-                                    reinterpret_cast<const unsigned char*>(static_cast<const char*>(*z))) == 0) {
+                if (gamecrt::mbscmp(zone->name,
+                                    static_cast<const char*>(*z)) == 0) {
                     listed = true;
                     break;
                 }
@@ -659,8 +659,8 @@ void CObjectivesWindow::Build() {
         }
         zoneIndex_ = 0;
         for (int i = 0; i < SizeOf(*zones); ++i)
-            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(current)),
-                                reinterpret_cast<const unsigned char*>(static_cast<const char*>(zones->begin()[i]))) ==
+            if (gamecrt::mbsicmp(static_cast<const char*>(current),
+                                static_cast<const char*>(zones->begin()[i])) ==
                 0) {
                 zoneIndex_ = i;
                 break;

@@ -258,8 +258,8 @@ constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
 
 bool SameName(const mfc::CString& name, const char* other) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                           reinterpret_cast<const unsigned char*>(other)) == 0;
+    return gamecrt::mbsicmp(static_cast<const char*>(name),
+                           other) == 0;
 }
 } // namespace
 

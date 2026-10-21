@@ -17,8 +17,8 @@ namespace {
 
 
 bool Is(const mfc::CString& s, const char* text) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s)),
-                           reinterpret_cast<const unsigned char*>(text)) == 0;
+    return gamecrt::mbscmp(static_cast<const char*>(s),
+                           text) == 0;
 }
 
 struct Entry {

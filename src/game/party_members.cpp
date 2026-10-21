@@ -49,8 +49,8 @@ CItem* MakeItem(CParty* party, const char* name) {
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
 bool Named(const mfc::CString& name) {
     return name.GetLength() != 0 &&
-           libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                           reinterpret_cast<const unsigned char*>(game::NoneText())) != 0;
+           gamecrt::mbsicmp(static_cast<const char*>(name),
+                           game::NoneText()) != 0;
 }
 
 // The party's copies of `source`'s items, each with the source's count and a reference.

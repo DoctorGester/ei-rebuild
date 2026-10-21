@@ -21,7 +21,7 @@ namespace {
 // through its address).
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
 
-const unsigned char* MasterHost() { return ei::GameData<const unsigned char*>(0x0079BED8); }   // the master server's host name
+const char* MasterHost() { return ei::GameData<const char*>(0x0079BED8); }   // the master server's host name
 
 bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
@@ -60,8 +60,8 @@ void ServerSession::TickImpl(double dt) {
     EI_NAN_AUDIT(announceTimer_);
     if (announceTimer_ < worlddata::Zero()) {   // run out
         std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
-        const unsigned char* host = MasterHost();
-        if (gamecrt::mbscmp(host, reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) ServerAnnounceToMaster(this);
+        const char* host = MasterHost();
+        if (gamecrt::mbscmp(host, game::EmptyText()) != 0) ServerAnnounceToMaster(this);
     }
 }
 EI_REPLACE_METHOD(0x004182E0, ServerSession::TickImpl);

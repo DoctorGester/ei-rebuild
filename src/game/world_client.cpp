@@ -225,8 +225,8 @@ void CWorldClient::CreateExitMarkers() {
     countedA0_.SetSize(0);
     countedA0_.SetSize(exitCount_);
     for (int i = 0; i < exitCount_; ++i) {
-        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(exits_[i].target),
-                            reinterpret_cast<const unsigned char*>(game::NoneText())) == 0) {
+        if (gamecrt::mbsicmp(exits_[i].target,
+                            game::NoneText()) == 0) {
             continue;
         }
         auto* source = static_cast<CParticleSource*>(

@@ -64,8 +64,8 @@ struct PageEntry {
 };
 
 bool Same(const char* word, const char* text) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(word),
-                           reinterpret_cast<const unsigned char*>(text)) == 0;
+    return gamecrt::mbsicmp(word,
+                           text) == 0;
 }
 
 void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1] = sprite->tint_[2] = value; }

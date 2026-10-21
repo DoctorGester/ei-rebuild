@@ -37,6 +37,10 @@ int __cdecl isdigit(int c);                                        // 006E9379
 int __cdecl isspace(int c);                                        // 006E93CE
 int __cdecl sprintf(char* buffer, const char* format, ...);        // 006E8715
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
+// The same on char strings (the single-byte code page makes them the same bytes).
+inline int __cdecl mbscmp(const char* a, const char* b) {
+    return mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
 
 // A table of the game CRT's own tolower (006EBA53) for every byte, for the CRT's current LC_CTYPE
 // locale (rebuilt when its locale handle or code page changes; in ei_vectors, from the recorded
@@ -326,6 +330,13 @@ int __cdecl Fflush(gamecrt::CrtFile* file);                                     
 int Fileno(const gamecrt::CrtFile* file);
 
 } // namespace libcrt
+
+namespace gamecrt {
+// _mbsicmp (006E8767) on char strings (the single-byte code page makes them the same bytes).
+inline int __cdecl mbsicmp(const char* a, const char* b) {
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
+} // namespace gamecrt
 
 // The import thunks of WSOCK32 (by ordinal) and DINPUT (defined in crt.cpp): the same call through the same
 // import slot.

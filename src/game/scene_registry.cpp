@@ -229,8 +229,8 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
     int j = 0;
     for (; j < names->size; ++j) {
         const NamedType& n = reinterpret_cast<const NamedType*>(names->data)[j];
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(n.name)),
-                            reinterpret_cast<const unsigned char*>(static_cast<const char*>(texture))) == 0 &&
+        if (gamecrt::mbscmp(static_cast<const char*>(n.name),
+                            static_cast<const char*>(texture)) == 0 &&
             n.type == textureType) {
             break;
         }
@@ -273,8 +273,8 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             groupName = MeshAt(unit, m).groups.data[g].name;
             for (int h = 0; h < unit->helpers.size; ++h) {
                 const CMaterial& helperRecord = Typed<HelperArray>(unit->helpers).data[h];
-                if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(helperRecord.name)),
-                                    reinterpret_cast<const unsigned char*>(static_cast<const char*>(groupName))) != 0) {
+                if (gamecrt::mbscmp(static_cast<const char*>(helperRecord.name),
+                                    static_cast<const char*>(groupName)) != 0) {
                     continue;
                 }
                 MapGroup(unit, reg, sections, strings, m, g, h, seen);

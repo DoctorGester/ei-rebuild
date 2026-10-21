@@ -1029,8 +1029,8 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     int exit;
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {
         mfc::CString name(GameExitTarget(exit));
-        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                            reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
+        if (gamecrt::mbsicmp(static_cast<const char*>(name),
+                            game::NoneText()) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name);
             const float one = GameOne();

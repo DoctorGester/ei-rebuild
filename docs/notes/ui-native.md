@@ -216,8 +216,10 @@ P2 tunes `uidiff text / block / textlimit` for our own fonts (whole-word shifts 
 
 ### N4: the gallery (2026-10-21): `tests/scenarios/ui_gallery_*.txt`
 
-Five scenarios open every window family the original reaches with menus, keys and clicks, hold each still (`freeze`) and
-capture it (`frames\<name>.bmp` in the run folder). Each has a vanilla golden from three agreeing runs of the original
+Six scenarios open every window family the original reaches with menus, keys and clicks, hold each still (`freeze`) and
+capture it (`frames\<name>.bmp` in the run folder); N4a's `ui_gallery_deals` adds the camp's deals and the map's zone
+click. The hero list's region 0 tooltip showed with `moveregion 0`, two `move`s a pixel apart a few frames later and 3 s;
+N4's `moveregion` with 2.5 s showed none (which of the two differences matters is untested). Each has a vanilla golden from three agreeing runs of the original
 (plain, `EI_HEAP_JITTER=1`, `2,fill`; no EI_COVER), so the suite checks that the steps keep doing the same; the frames
 themselves are not in the golden. They are the coverage for N3's per-surface diff and for P1-P8: run them under `uiboth`
 / `uinative` and compare.
@@ -229,16 +231,17 @@ themselves are not in the golden. They are the coverage for N3's per-surface dif
 | `ui_gallery_camp` | camp_items, camp_stats, camp_levelup, camp_trade, camp_trade4, camp_spells, camp_makeitem, map, map_escmenu | camp 0074091C; item strip 0074197C / 00621B50; item description CItemInfoPanel 007404DC (a spell weapon, a statistics row); trade panel rows 007417A8 and hero statistics (page 1); trader class 1's trade pages 2 and 4 (CTradeGrid); class 3's spell and item makers with filled strips; global map with a quest title, and the escape menu over it |
 | `ui_gallery_mp` (timeout 120) | hero_stats, connect, briefing, chat_typed, chat_sent | a made hero's statistics page; connection screen CMpConnectScreen 00741CD0 (the game list with its pen lines); the hosted game's base screen with the player list CChatWindow 00741478; chat line CChatOverlay 007400DC (typed text, caret) and a sent line (the unowned chat line surface) |
 | `ui_gallery_base` | base, base_topics, base_phrase, base_rewards | bz1g's base screen (briefing): Smith's topic list, a dialogue phrase with the shown items, the rewards |
+| `ui_gallery_deals` (N4a, timeout 120) | heroes_tip, camp_bought, camp_undone, camp_repair, camp_spell_parts, camp_spell_made, camp_item_finished, camp_item_parts, map_zone_tip, map_ways | the hero list's region 0 tooltip (0x9CA5); the trade panel after its click bought a school level ("give 0 exp" with the camp open) and after the undo button (RestoreRecord); page 6's repair grid CRepairGrid (empty cells); class 3's spell maker with a spell and two runes, then the made container; the item maker with a finished weapon, then its parts (DeconstructItem); the global map's zone tip (gz2g open) and the objectives window a zone click opens (FindPaths) |
 
 **Not captured, and why:**
 - The status surface (005F75B0, "saving" / "loading" notices): it is drawn during the save inside one frame and gone by the
   next, so no capture can hold it. `ui_gallery_game`'s save reaches it (the per-surface diff sees it).
 - The debug panel (0079B930): it cannot be drawn in 1.06 (ui-census.md); only a direct call of 00444F50 would show it.
-- The repair grid (CRepairGrid draw): no scenario reaches it yet (ui.md section 5, "Not reached").
+- The repair grid with an item in it: `ui_gallery_deals` captures page 6's grid drawn empty; only a worn item is offered
+  for repair, and no script command or key wears one (ui.md section 5).
+- A global-map link (regions 3 and up): it needs a way of kind 2 open and travels at once (no window to hold).
 - The exchange window (`ui_exchange.cpp`): it needs a second player; `net_pair_zone` reaches it (a pair, no frames).
 - The global map's pick picture: never shown on screen; `ui_global_map_pick` reaches its PixelAt reads.
-- The hero list's arrow tooltip (region 0, tip 0x9CA5): a 2.5 s hover showed none in the original; the help OK button and
-  the HUD's movement panel give the tooltip family instead.
 - Rebirth launches: the gallery's goldens are vanilla only (the suite's install); Rebirth's layout is WideScreen's
   frames (`run_all --widescreen`).
 

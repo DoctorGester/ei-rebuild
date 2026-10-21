@@ -129,8 +129,8 @@ struct CStringFloatTraits {
     static const Key& KeyOf(const Value& v) { return v.key; }
     static std::uint32_t Hash(const Key& k) { return HashChars(static_cast<const char*>(k)); }
     static bool Equal(const Key& a, const Key& b) {
-        return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(a)),
-                               reinterpret_cast<const unsigned char*>(static_cast<const char*>(b))) == 0;
+        return gamecrt::mbscmp(static_cast<const char*>(a),
+                               static_cast<const char*>(b)) == 0;
     }
     static void Construct(Value* to, const Value& from) {
         new (&to->key) mfc::CString(from.key);

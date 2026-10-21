@@ -248,8 +248,8 @@ int __cdecl StartFirstMap() {
     const auto& cmdScript = ei::GameData<mfc::CString>(0x0079BA18);
     mfc::CString map;
     map = Length(cmdMap) != 0 ? cmdMap : ei::GameData<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
-                        reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0) {
+    if (gamecrt::mbscmp(static_cast<const char*>(cmdMode),
+                        game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
         MenuOpen(TheGameFlow());
         return 1;
