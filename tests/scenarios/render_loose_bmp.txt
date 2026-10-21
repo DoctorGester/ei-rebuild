@@ -1,0 +1,25 @@
+# A-I23a: textures from loose .bmp files. CTextureManager::LoadTexture (006922A0) looks for
+# <game root>textures\<name>.bmp before the archives; tools/make_loose_bmp.py writes one for each of zone 1's
+# terrain pages (Zone1000..Zone1007) and an 8-bit a_<name>.bmp beside it into the run's overlay (the install
+# has no textures\*.bmp and is never written), so the ground around the hero is four coloured quadrants per
+# tile picture. That reaches CTexture::LoadBmp 00690260, LoadBmpFiles 0068FBF0 and CDib Construct 006D4AA0 /
+# Read 006D5910 / Size 006D4D10 / MakePalette 006D54D0. The golden (the world's state) comes from the original.
+# prepare: make_loose_bmp.py
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+move 400 60
+wait 1000
+freeze
+capture world
+capture world_again
+unfreeze
+samecapture world world_again
+hues world 0.08 0.25
+report
+quit

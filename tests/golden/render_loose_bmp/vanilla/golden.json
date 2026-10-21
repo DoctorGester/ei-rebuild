@@ -1,0 +1,12 @@
+{
+  "scenario": "render_loose_bmp",
+  "install": "vanilla",
+  "recorded": "2026-10-21",
+  "commit": "bd1bf312",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 3,
+  "reason": "A-I23a: textures from loose .bmp (CTexture::LoadBmp, CDib::Read); three agreeing original runs, plain, jitter 1, 2,fill",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 3 runs"
+}

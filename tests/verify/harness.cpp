@@ -245,6 +245,10 @@
 //                             require the fraction of neighbouring level-map pixel pairs of
 //                             frames\<frame>.bmp whose level jumps (capture::LevelSteps: the seams of
 //                             R12) to lie within <least>..<most>. Skipped in a run of the original code
+//   hues <frame> <least> <most>
+//                             require each of red, green, blue and yellow (capture::HueShares: the quadrants of
+//                             tools/make_loose_bmp.py's loose terrain textures, A-I23a) to cover a fraction of
+//                             frames\<frame>.bmp within <least>..<most>. Skipped in a run of the original code
 //   mmplevels <most>          require the levels of every .mmp texture the image holds, decoded as drawn,
 //                             to lie within a mean difference of <most> (0..255 per channel) from their
 //                             level 0, both box-filtered to 4 x 4 (render::CheckMmpLevels: levels read
@@ -3307,6 +3311,35 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (steps < least || steps > most) g_failures.push_back(text);
+        } else if (s.verb == "hues") {
+            char frame[64] = "";
+            double least = 0, most = 1;
+            if (sscanf_s(s.argument.c_str(), "%63s %lf %lf", frame, unsigned(sizeof(frame)), &least, &most) < 3) {
+                g_failures.push_back("hues needs a frame name, a least and a most fraction");
+                continue;
+            }
+            if (!render::Active()) {
+                Log("harness: hues %s: not the new renderer (the original code): ignored", frame);
+                continue;
+            }
+            double shares[4] = {0, 0, 0, 0};
+            const char* why = "";
+            if (!capture::HueShares(frame, shares, &why)) {
+                g_failures.push_back(std::string("hues ") + frame + ": " + why);
+                continue;
+            }
+            char text[200];
+            std::snprintf(text, sizeof(text),
+                          "hues %s: red %.3f%% green %.3f%% blue %.3f%% yellow %.3f%% (allowed %.3f%% .. %.3f%% each)", frame,
+                          100.0 * shares[0], 100.0 * shares[1], 100.0 * shares[2], 100.0 * shares[3], 100.0 * least,
+                          100.0 * most);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            for (double share : shares)
+                if (share < least || share > most) {
+                    g_failures.push_back(text);
+                    break;
+                }
         } else if (s.verb == "mmplevels") {
             double most = 0;
             if (sscanf_s(s.argument.c_str(), "%lf", &most) < 1) {

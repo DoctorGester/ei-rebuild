@@ -28,7 +28,9 @@
 #include <windows.h>
 #include <ddraw.h>
 
+#include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -468,6 +470,26 @@ bool LevelSteps(const char* name, double* steps, long long* pairs, const char** 
     }
     *steps = static_cast<double>(stepped) / static_cast<double>(both);
     *pairs = both;
+    return true;
+}
+
+bool HueShares(const char* name, double shares[4], const char** why) {
+    Image image;
+    if (!ReadBmp(name, image)) {
+        *why = "the frame is missing or unreadable";
+        return false;
+    }
+    long long count[4] = {0, 0, 0, 0};
+    for (std::size_t i = 0; i + 2 < image.bgr.size(); i += 3) {
+        const int b = image.bgr[i], g = image.bgr[i + 1], r = image.bgr[i + 2];
+        if ((std::max)({r, g, b}) < 48) continue;
+        if (r * 10 >= 18 * g && r * 10 >= 18 * b) ++count[0];
+        else if (g * 10 >= 18 * r && g * 10 >= 18 * b) ++count[1];
+        else if (b * 10 >= 18 * r && b * 10 >= 18 * g) ++count[2];
+        else if (r * 10 >= 15 * b && g * 10 >= 15 * b && std::abs(r - g) * 3 <= (std::max)(r, g)) ++count[3];
+    }
+    const double total = static_cast<double>(image.width) * image.height;
+    for (int k = 0; k < 4; ++k) shares[k] = static_cast<double>(count[k]) / total;
     return true;
 }
 
