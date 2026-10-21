@@ -211,8 +211,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
         CItem* item = ItemAt(list, i);
         item->Repair();
         if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
-            char* prototype = item->spell_->GetPrototype();
-            const char* name = *reinterpret_cast<const char* const*>(prototype + 4);
+            const char* name = item->spell_->GetPrototype()->code;
             static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(stlp::RecordNamed(SpellTable(), nullptr, name)));
         } else if (UiItemKinds::IsSpell(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;

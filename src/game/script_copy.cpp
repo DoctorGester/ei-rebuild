@@ -41,13 +41,13 @@ void CopyPlain(mfc::CArray<T>* to, const mfc::CArray<T>* from) {
 // ScriptVars::operator= as inlined into ScriptRun::operator= and out of line at 004CBAE0.
 void AssignVars(ScriptVars* to, const ScriptVars* from) {
     CopyFloats(&to->floats, &from->floats);
-    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->floatNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->floatNames));
-    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->strings));
-    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->stringNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->stringNames));
+    to->floatNames.CopyFrom(from->floatNames);
+    to->strings.CopyFrom(from->strings);
+    to->stringNames.CopyFrom(from->stringNames);
     to->objects.CopyFrom(from->objects);
-    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->objectNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->objectNames));
+    to->objectNames.CopyFrom(from->objectNames);
     to->groups.CopyFrom(from->groups);
-    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->groupNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->groupNames));
+    to->groupNames.CopyFrom(from->groupNames);
 }
 
 } // namespace
@@ -72,7 +72,7 @@ EI_REWRITTEN(0x004CB570, ScriptRun::ScriptRunAssign);
 SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     id = other->id;
     CopyFloats(&floatArgs, &other->floatArgs);
-    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&stringArgs), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&other->stringArgs));
+    stringArgs.CopyFrom(other->stringArgs);
     CopyPlain(&objectArgs, &other->objectArgs);
     CopyPlain(&groupArgs, &other->groupArgs);
     CopyPlain(&localBindings, &other->localBindings);
@@ -115,8 +115,7 @@ namespace {
 // GetAt by value: CString (004C2680), a referenced ScriptObjectRef (004C21E0), a ScriptGroup copy
 // (004C3B00); __thiscall (out, index), returning out.
 void* StringAt(const void* array, void* out, int index) {
-    return mfc::impl::StringArrayAbi::GetAt(static_cast<const mfc::impl::StringArrayAbi::Array*>(array), nullptr,
-                                            static_cast<mfc::impl::CString*>(out), index);
+    return static_cast<const ScriptStrings*>(array)->CopyAt(static_cast<mfc::CString*>(out), index);
 }
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
@@ -191,6 +190,21 @@ EI_REWRITTEN(0x004CCAA0, ScriptSubCalls::CopyAt);
 
 // A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
 // name assigned from a GetAt copy.
+mfc::CString* ScriptStrings::CopyAt(mfc::CString* out, int index) const {
+    return new (out) mfc::CString(data[index]);
+}
+EI_REWRITTEN(0x004CC840, ScriptStrings::CopyAt);
+EI_REWRITTEN(0x004C2680, ScriptStrings::CopyAt);
+
+void ScriptStrings::CopyFrom(const ScriptStrings& source) {
+    SetSize(source.size, -1);
+    for (int i = 0; i < source.size; ++i) {
+        mfc::CString copy(source.data[i]);
+        data[i] = copy;
+    }
+}
+EI_REWRITTEN(0x004C14A0, ScriptStrings::CopyFrom);
+
 ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
     InitArray(this, scriptvtable::kStrings);
     int n = other->size;

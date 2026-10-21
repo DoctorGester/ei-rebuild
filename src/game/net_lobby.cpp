@@ -387,7 +387,7 @@ EI_REWRITTEN(0x004422D0, ClientBase::SetAlwaysAsk);
 // entry), as asked.
 void ClientBase::SetQueries(const ClientQueries* from) {
     QueryList& v = queries_.list;
-    recordvec::QueryVector::Assign(&v, nullptr, &from->list);
+    static_cast<recordvec::QueryVector*>(&v)->Assign(from->list);
     queries_.extra = from->extra;
     if (v.end() == v.begin()) return;
     for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
@@ -754,7 +754,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
         if (loading) {
             list.EraseRange<recordvec::QueryElement>(list.begin(), list.end());
             n = archive->CountChunks(1);
-            recordvec::QueryVector::ResizeDefault(&list, nullptr, static_cast<unsigned>(n));
+            static_cast<recordvec::QueryVector*>(&list)->ResizeDefault(static_cast<unsigned>(n));
         } else {
             n = static_cast<int>(list.size());
         }

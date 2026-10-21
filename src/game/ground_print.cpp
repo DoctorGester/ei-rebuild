@@ -408,8 +408,7 @@ void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSiz
     alignas(BloodPrint) unsigned char storage[sizeof(BloodPrint)];
     auto* print = new (storage) BloodPrint(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
                                            static_cast<std::uint8_t>(fresh));
-    stlp::list<BloodPrint>::Node* node;
-    stlp::ListAbi<BloodPrint, recordlist::BloodPrintElement>::Insert(&bloodPrints_, nullptr, &node, bloodPrints_.End(), print);
+    stlp::list<BloodPrint>::Insert<recordlist::BloodPrintElement>(bloodPrints_.End(), *print);
     print->Destruct();
 }
 
@@ -440,8 +439,7 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
         alignas(Footprint) unsigned char storage[sizeof(Footprint)];
         auto* print = new (storage) Footprint(x, y, halfWidth, halfLength, angle, look->alpha, look->life,
                                               look->lifetime, tile, scale, visible, bloodKind);
-        stlp::list<Footprint>::Node* node;
-        stlp::ListAbi<Footprint, recordlist::FootprintElement>::Insert(&footprints_, nullptr, &node, footprints_.End(), print);
+        stlp::list<Footprint>::Insert<recordlist::FootprintElement>(footprints_.End(), *print);
         print->Destruct();
     }
     return inBlood ? bloodKind : -1;
@@ -456,8 +454,7 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
     if (alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     alignas(GroundPrint) unsigned char storage[sizeof(GroundPrint)];
     auto* print = new (storage) GroundPrint(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
-    stlp::list<GroundPrint>::Node* node;
-    stlp::ListAbi<GroundPrint, recordlist::ScorchMarkElement>::Insert(&scorchMarks_, nullptr, &node, scorchMarks_.End(), print);
+    stlp::list<GroundPrint>::Insert<recordlist::ScorchMarkElement>(scorchMarks_.End(), *print);
     print->Destruct();
 }
 

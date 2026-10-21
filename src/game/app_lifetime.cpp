@@ -130,8 +130,8 @@ void PartyManager::Destruct() {
     for (PartyManagerEntry* entry = entries.begin(); entry != entries.end(); ++entry) entry->Destruct();
     entries.FreeStorage();
     parties.ClearWith([this](PartyMap::Node* node) {   // 004ABA70
-        gamehash::PartyAbi::DeleteNode(reinterpret_cast<gamehash::PartyTable*>(&parties), nullptr,
-                                       reinterpret_cast<gamehash::PartyAbi::Node*>(node));
+        static_cast<gamehash::PartyAbi*>(static_cast<stlp::hashtable<gamehash::PartyTraits>*>(reinterpret_cast<gamehash::PartyTable*>(&parties)))
+            ->DeleteNode(reinterpret_cast<gamehash::PartyAbi::Node*>(node));
     });
     static_cast<stlp::vector<void*>*>(parties.BucketVector())->FreeStorage();
 }

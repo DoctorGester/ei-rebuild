@@ -304,10 +304,10 @@ static_assert(offsetof(CCampScreen, partStrip_) == 0x1F0);
 // A party hero's statistics (UnitStats at +0x20 of a 0x784-byte hero record) as the camp reads
 // them: the skill in a spell school rounded like FISTP, and the whole "mana units" (the mana
 // maximum stored as float, divided by the period, truncated).
-int HeroSchoolSkill(void* stats, int school);
-int HeroManaUnits(void* stats);
+int HeroSchoolSkill(UnitStats* stats, int school);
+int HeroManaUnits(UnitStats* stats);
 // Whether a hero with `stats` can use the spell `spell` (+0x50 required skill, +0x40 mana cost).
-bool HeroCanUseSpell(void* stats, char* spell);
+bool HeroCanUseSpell(UnitStats* stats, char* spell);
 
 // --- Multiplayer hero screen ----------------------------------------------------------------
 
@@ -368,7 +368,8 @@ public:
     void BackToNewHero();
 
     // Called through the vtable, as the original does.
-    char* Hero();                       // slot 51 (+0xCC)
+    PartyUnitRecord* Hero();            // slot 51 (+0xCC)
+
     void Refresh();                     // slot 47 (+0xBC), 00618850 here
     void VirtualChooseFigure(const char* prototype);   // slot 52 (+0xD0), ChooseFigure here
     // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
@@ -504,8 +505,7 @@ public:
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
     CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
@@ -608,15 +608,17 @@ static_assert(offsetof(MpAddressEntry, gameType) == 0x24);
 static_assert(offsetof(MpAddressEntry, state) == 0x2C);
 static_assert(offsetof(MpAddressEntry, password) == 0x30);
 static_assert(sizeof(MpAddressEntry) == 0x34);
-using MpAddressList = stlp::vector<MpAddressEntry>;
 
 // The vector's own instantiation members (ui_connect_screen.cpp; thiscall on the vector).
-// 0061E5A0: a default entry (empty texts, address 0, the rest left) appended. 0061E660 (RET 4):
-// one inserted before `pos` (the tail moved up by assignment); returns it. 0061EA90 (RET 8):
-// [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
-void __fastcall MpAddressesPushDefault(MpAddressList* list);
-MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, MpAddressEntry* pos);
-MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddressEntry* first, MpAddressEntry* last);
+struct MpAddresses : stlp::vector<MpAddressEntry> {
+    // 0061E5A0: a default entry (empty texts, address 0, the rest left) appended.
+    void PushDefault();
+    // 0061E660 (RET 4): one inserted before `pos` (the tail moved up by assignment); returns it.
+    MpAddressEntry* InsertDefault(MpAddressEntry* pos);
+    // 0061EA90 (RET 8): [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
+    MpAddressEntry* Erase(MpAddressEntry* first, MpAddressEntry* last);
+};
+using MpAddressList = MpAddresses;
 
 class CMpConnectScreen : public CUiContainer {
 public:
@@ -861,8 +863,7 @@ public:
     // plays animation 0.
     void OnClose();
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     int hovered_;               // +0x164 region under the mouse, -1 for none
 };
 static_assert(offsetof(CEscMenu, hovered_) == 0x164);
@@ -961,8 +962,7 @@ public:
     // closed (005DBF70).
     void OnMessageResult(int result);
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     CUiScrollingSurface* textSurface_;   // +0x164 the scrolling text
     CUiSurface* headerSurface_; // +0x168
     int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written

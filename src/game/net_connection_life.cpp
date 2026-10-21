@@ -82,17 +82,17 @@ Connection* Connection::Construct(std::uint32_t id) {
     address_ = NetAddress{};
     VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
     freedIds_.Construct();   // 00439120
-    trees::SentIds::ConstructWith(&bySentId_, nullptr, &tags[3], &tags[2]);   // 004393C0
-    trees::Objects::ConstructWith(&byObject_, nullptr, &tags[2], &tags[3]);
+    static_cast<trees::SentIds*>(&bySentId_)->ConstructWith(&tags[3], &tags[2]);   // 004393C0
+    static_cast<trees::Objects*>(&byObject_)->ConstructWith(&tags[2], &tags[3]);
     VectorCtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Construct), Callback(trees::Entries::Destroy));
     history_.Construct();   // 00439960
     acknowledged_.Construct();
     // The trees' comparison byte is copied from the stack slot of the id argument.
-    trees::Records::ConstructBase(&records_, nullptr, &tags[3]);
+    static_cast<trees::Records*>(&records_)->ConstructBase(&tags[3]);
     records_.Count() = 0;
     records_.Compare() = static_cast<std::uint8_t>(id);
     records_.EmptyInitialize();
-    trees::Attached::ConstructBase(&attached_, nullptr, &tags[3]);
+    static_cast<trees::Attached*>(&attached_)->ConstructBase(&tags[3]);
     attached_.Compare() = static_cast<std::uint8_t>(id);
     attached_.Count() = 0;
     attached_.EmptyInitialize();
@@ -209,13 +209,13 @@ Connection* Connection::Clone() {
     for (int i = 0; i < kMessageTypes; ++i) copy->idPools_[i].CopyFrom(idPools_[i]);
     netlists::CopyConstruct<FreedIds, FreedIdsElement>(&copy->freedIds_, nullptr, &freedIds_);   // 00437930
     copy->freedTimer_ = freedTimer_;
-    trees::SentIds::CopyConstruct(&copy->bySentId_, nullptr, &bySentId_);   // 00437AA0
-    trees::Objects::CopyConstruct(&copy->byObject_, nullptr, &byObject_);
-    for (int i = 0; i < 11; ++i) trees::Entries::CopyConstruct(&copy->priorities_[i], nullptr, &priorities_[i]);
+    static_cast<trees::SentIds*>(&copy->bySentId_)->CopyConstruct(&bySentId_);   // 00437AA0
+    static_cast<trees::Objects*>(&copy->byObject_)->CopyConstruct(&byObject_);
+    for (int i = 0; i < 11; ++i) static_cast<trees::Entries*>(&copy->priorities_[i])->CopyConstruct(&priorities_[i]);
     netlists::CopyConstruct<SentPacket, PacketRecordElement>(&copy->history_, nullptr, &history_);   // 00437F60
     netlists::CopyConstruct<SentPacket, PacketRecordElement>(&copy->acknowledged_, nullptr, &acknowledged_);
-    trees::Records::CopyConstruct(&copy->records_, nullptr, &records_);
-    trees::Attached::CopyConstruct(&copy->attached_, nullptr, &attached_);
+    static_cast<trees::Records*>(&copy->records_)->CopyConstruct(&records_);
+    static_cast<trees::Attached*>(&copy->attached_)->CopyConstruct(&attached_);
     copy->headerSequence_ = headerSequence_;
     copy->incomingSequence_ = incomingSequence_;
     netlists::CopyConstruct<ReliableChunk, ChunkElement>(&copy->headers_, nullptr, &headers_);   // 00438690

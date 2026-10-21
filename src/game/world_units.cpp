@@ -211,7 +211,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
     script = worlddata::ScriptBeginText();
 
     for (int i = 0; i < records->size; ++i) {
-        auto* record = reinterpret_cast<PartyUnitRecord*>(records->data[i]);
+        auto* record = records->data[i];
         message->prototype = record->texts[5];
         object.texture = record->texts[2];
         message->behaviour[0].type = 4;
@@ -272,7 +272,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         slots->SetScriptName(record->texts[0]);
         unit->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();
-        slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
+        slots->SetStats(&record->stats);
         unit->ReleaseAllItems();
 
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
@@ -311,7 +311,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
     // Followers follow their leaders.
     if (sessionKind_ == kKindSinglePlayer) {
         for (int i = 0; i < records->size; ++i) {
-            auto* record = reinterpret_cast<PartyUnitRecord*>(records->data[i]);
+            auto* record = records->data[i];
             CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
             if (!unit) continue;
             CUnitServer* controller = unit->ServerController();
@@ -563,7 +563,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
                 else
                     index = 0;
             }
-            auto* model = reinterpret_cast<const UnitModelRecord*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
+            auto* model = unitdb::ModelRecord(index);
             std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
             object->MarkChanged(5);
             object->MarkChanged(6);

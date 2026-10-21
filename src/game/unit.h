@@ -26,6 +26,8 @@ class CParty;   // party.h
 class CPlayer;   // player_messages.h
 struct UnitStats;
 struct UnitParams;
+struct UnitPrototypeRecord;   // unit_db.h
+struct UnitModelRecord;       // unit_db.h
 struct DamageInfo;   // spell.h
 struct FootprintPart;   // ai_map.h
 
@@ -37,101 +39,6 @@ constexpr int kUnitTypeHero = 0x32;
 // Class id of the unit's controller (CUnit + 0x240) for the units in a player's party
 // (GetClassName "CUnitClientSpecific"); their items live in the player's inventory records.
 constexpr int kClassPartyController = 0x3D;
-
-// The record the player keeps for each unit of the party (0x784 bytes, found by unit id through
-// 006621B0; a party's record array, party.h). Each item list is an aligned pointer array (data,
-// count, capacity, grow-by; AlignedPtrArray's layout) of the record's own copies of the items.
-struct PartyUnitRecord {
-    // 0065F5F0 (party_lifetime.cpp). Constructor body: seven empty strings, empty item lists, the
-    // defaults below (stats left as they are), ClearItems, the defaults again. Returns this.
-    PartyUnitRecord* Construct();
-    // 0065F740. Destructor body: ClearItems, the defaults, the lists' storage freed (none is left),
-    // the strings destroyed (the last first).
-    void Destruct();
-    // 00664AC0 (party_lifetime.cpp). Scalar deleting destructor: Destruct, then operator delete
-    // when flags bit 0 is set. Returns this.
-    PartyUnitRecord* DeletingDestruct(unsigned flags);
-    // 0065F860. Releases every item of the four lists (slot 4), then empties them (SetSize(0, -1),
-    // inlined for the first two).
-    void ClearItems();
-
-    // 006608D0 / 00660AB0 / 00660C90 / 00660E70 (RET 4; party_items.cpp). A copy of `item` (its
-    // Clone with the world's spell manager), counted and appended to the weapons / quick items /
-    // armour / spells; returns the copy.
-    CItem* AddWeapon(CItem* item);
-    CItem* AddQuickItem(CItem* item);
-    CItem* AddArmor(CItem* item);
-    CItem* AddSpell(CItem* item);
-    // 00660A50 / 00660C30 / 00660E10 / 00660FF0 (RET 4). Releases `entry` and takes it out of the
-    // list (nothing when it is not there).
-    void RemoveWeapon(CItem* entry);
-    void RemoveQuickItem(CItem* entry);
-    void RemoveArmor(CItem* entry);
-    void RemoveSpell(CItem* entry);
-
-    // 00660500 (RET 8; party_members.cpp). ClearItems, then each of the four lists sized to
-    // `source`'s and filled with `party`'s copies (CParty slot 24) of its items, each with the
-    // source item's count (+0x48) and a reference.
-    void CopyItemsFrom(const PartyUnitRecord* source, CParty* party);
-    // 00664950 (RET 4). operator=: the strings assigned, everything else copied (the item lists'
-    // pointers too: the lists are shared, not copied). Returns this.
-    PartyUnitRecord* Assign(const PartyUnitRecord* source);
-    // 00660840 (party_items.cpp, A-H25). The weights (CItem +0x34) of the entries of the four
-    // lists added up: weapons, quick items, spells, armour (empty entries skipped). In ST0.
-    float CarriedWeight() const;
-
-    // 0065F9B0 (RET 4; party_save.cpp). ClearItems and the defaults, then texts 0, 2-5 (text 6
-    // becomes a copy of text 5), +0x1C, the stats (005287A0), +0x724..0x72F and the four lists
-    // (a count, then item ids resolved in the item manager of the party being loaded, 007C8344,
-    // and counted), then text 1; from version 0x51 +0x770, +0x774 and the byte +0x778, from 0x5B
-    // +0x77C, from 0x61 +0x780, from 0x6B text 6.
-    void Load(CStream* stream);
-    // 0065FDE0 (RET 4). Writes what Load reads (newest version): strings with their zero, item
-    // ids (-1 for an empty entry).
-    void Save(CStream* stream);
-
-    mfc::CString texts[7];          // +0x000 names (empty when constructed)
-    std::uint32_t unitId;               // +0x01C the unit's id (saved and loaded)
-    std::uint8_t stats[0x724 - 0x20];   // +0x20 the unit's statistics (UnitStats)
-    float scaleX;                       // +0x724 the figure's scale: x (0.8 when constructed) ...
-    float scaleY;                       // +0x728 ... y (0.2 when constructed); height is z
-    float height;                   // +0x72C the hero's height (1.0 when constructed; the hero screen shows it * 100)
-    CItem** weapons;                // +0x730
-    std::uint32_t weaponCount;      // +0x734
-    int weaponCapacity;             // +0x738
-    int weaponGrowBy;               // +0x73C
-    CItem** quickItems;             // +0x740 (an entry counts only with +0x48 > 0)
-    std::uint32_t quickItemCount;   // +0x744
-    int quickItemCapacity;          // +0x748
-    int quickItemGrowBy;            // +0x74C
-    CItem** armor;                  // +0x750
-    std::uint32_t armorCount;       // +0x754
-    int armorCapacity;              // +0x758
-    int armorGrowBy;                // +0x75C
-    CItem** spells;                 // +0x760
-    std::uint32_t spellCount;       // +0x764
-    int spellCapacity;              // +0x768
-    int spellGrowBy;                // +0x76C
-    int moveMode2;                      // +0x770 the unit's moveMode2 (2 when constructed)
-    std::uint32_t weaponIndex;      // +0x774 the weapon shown in the camp (0 when constructed)
-    std::uint8_t selected;              // +0x778 the unit is selected (flags_ bit 4; 0 when constructed)
-    std::uint8_t unused_779[3];
-    int leaderId;                       // +0x77C the unit it follows (-1 none, when constructed)
-    int fightAtWill;                    // +0x780 the unit's fightAtWill (1 when constructed)
-};
-static_assert(offsetof(PartyUnitRecord, stats) == 0x20);
-static_assert(offsetof(PartyUnitRecord, scaleX) == 0x724);
-static_assert(offsetof(PartyUnitRecord, height) == 0x72C);
-static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
-static_assert(offsetof(PartyUnitRecord, fightAtWill) == 0x780);
-static_assert(sizeof(PartyUnitRecord) == 0x784);
-static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
-static_assert(offsetof(PartyUnitRecord, weaponCount) == 0x734);
-static_assert(offsetof(PartyUnitRecord, quickItemCount) == 0x744);
-static_assert(offsetof(PartyUnitRecord, armorCount) == 0x754);
-static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
-static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
-static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 
 // One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
 // part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).
@@ -363,14 +270,14 @@ public:
     double TotalItemWeight();
 
     // 00530930. The unit's prototype record (index prototypeId_), or null.
-    char* GetPrototype();
+    UnitPrototypeRecord* GetPrototype();
     // 00530970. The record (0x168 bytes) the prototype's +0x08 indexes, or null.
-    char* GetPrototypeModel();
+    UnitModelRecord* GetPrototypeModel();
     // 005309E0. The prototype record of index unknown_23C, or null.
-    char* GetPrototype23C();
+    UnitPrototypeRecord* GetPrototype23C();
     // 005308A0. Stores the index of prototype record `record` in unknown_23C.
     // Returns what the original leaves in EAX (1 when `record` lies before the table).
-    std::uint32_t SetPrototype23C(const char* record);
+    std::uint32_t SetPrototype23C(const UnitPrototypeRecord* record);
 
     // 00530FA0. Is the active weapon (+0x26C) of type 5 or 6 (ranged)? Returns AL only.
     bool HasRangedWeapon();
@@ -778,7 +685,15 @@ constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
 // The unit database's tables and the skill database's vectors as record tables (begin / end; unit_db_destroy.cpp).
 const RecordTable& Prototypes();
+// Prototype record `index` of Prototypes(), or null past the end.
+inline UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
+    return reinterpret_cast<UnitPrototypeRecord*>(Prototypes().RecordAt(index, kPrototypeSize));
+}
 const RecordTable& Models();
+// Model record `index` of Models(), or null past the end.
+inline UnitModelRecord* ModelRecord(std::uint32_t index) {
+    return reinterpret_cast<UnitModelRecord*>(Models().RecordAt(index, kModelSize));
+}
 const RecordTable& Skills();
 const RecordTable& SkillLevels();
 const RecordTable& ModelLevels();   // the models' level records (007AF3B8)
@@ -1104,6 +1019,102 @@ static_assert(offsetof(UnitStats, damageWeights) == 0x90 && offsetof(UnitStats, 
 static_assert(offsetof(UnitStats, valuesB0) == 0xB0);
 static_assert(offsetof(UnitStats, slots) == 0x110);
 static_assert(offsetof(UnitStats, flags) == 0x6F8);
+static_assert(sizeof(UnitStats) == 0x704);
+
+// The record the player keeps for each unit of the party (0x784 bytes, found by unit id through
+// 006621B0; a party's record array, party.h). Each item list is an aligned pointer array (data,
+// count, capacity, grow-by; AlignedPtrArray's layout) of the record's own copies of the items.
+struct PartyUnitRecord {
+    // 0065F5F0 (party_lifetime.cpp). Constructor body: seven empty strings, empty item lists, the
+    // defaults below (stats left as they are), ClearItems, the defaults again. Returns this.
+    PartyUnitRecord* Construct();
+    // 0065F740. Destructor body: ClearItems, the defaults, the lists' storage freed (none is left),
+    // the strings destroyed (the last first).
+    void Destruct();
+    // 00664AC0 (party_lifetime.cpp). Scalar deleting destructor: Destruct, then operator delete
+    // when flags bit 0 is set. Returns this.
+    PartyUnitRecord* DeletingDestruct(unsigned flags);
+    // 0065F860. Releases every item of the four lists (slot 4), then empties them (SetSize(0, -1),
+    // inlined for the first two).
+    void ClearItems();
+
+    // 006608D0 / 00660AB0 / 00660C90 / 00660E70 (RET 4; party_items.cpp). A copy of `item` (its
+    // Clone with the world's spell manager), counted and appended to the weapons / quick items /
+    // armour / spells; returns the copy.
+    CItem* AddWeapon(CItem* item);
+    CItem* AddQuickItem(CItem* item);
+    CItem* AddArmor(CItem* item);
+    CItem* AddSpell(CItem* item);
+    // 00660A50 / 00660C30 / 00660E10 / 00660FF0 (RET 4). Releases `entry` and takes it out of the
+    // list (nothing when it is not there).
+    void RemoveWeapon(CItem* entry);
+    void RemoveQuickItem(CItem* entry);
+    void RemoveArmor(CItem* entry);
+    void RemoveSpell(CItem* entry);
+
+    // 00660500 (RET 8; party_members.cpp). ClearItems, then each of the four lists sized to
+    // `source`'s and filled with `party`'s copies (CParty slot 24) of its items, each with the
+    // source item's count (+0x48) and a reference.
+    void CopyItemsFrom(const PartyUnitRecord* source, CParty* party);
+    // 00664950 (RET 4). operator=: the strings assigned, everything else copied (the item lists'
+    // pointers too: the lists are shared, not copied). Returns this.
+    PartyUnitRecord* Assign(const PartyUnitRecord* source);
+    // 00660840 (party_items.cpp, A-H25). The weights (CItem +0x34) of the entries of the four
+    // lists added up: weapons, quick items, spells, armour (empty entries skipped). In ST0.
+    float CarriedWeight() const;
+
+    // 0065F9B0 (RET 4; party_save.cpp). ClearItems and the defaults, then texts 0, 2-5 (text 6
+    // becomes a copy of text 5), +0x1C, the stats (005287A0), +0x724..0x72F and the four lists
+    // (a count, then item ids resolved in the item manager of the party being loaded, 007C8344,
+    // and counted), then text 1; from version 0x51 +0x770, +0x774 and the byte +0x778, from 0x5B
+    // +0x77C, from 0x61 +0x780, from 0x6B text 6.
+    void Load(CStream* stream);
+    // 0065FDE0 (RET 4). Writes what Load reads (newest version): strings with their zero, item
+    // ids (-1 for an empty entry).
+    void Save(CStream* stream);
+
+    mfc::CString texts[7];          // +0x000 names (empty when constructed)
+    std::uint32_t unitId;               // +0x01C the unit's id (saved and loaded)
+    UnitStats stats;                    // +0x20 the unit's statistics
+    float scaleX;                       // +0x724 the figure's scale: x (0.8 when constructed) ...
+    float scaleY;                       // +0x728 ... y (0.2 when constructed); height is z
+    float height;                   // +0x72C the hero's height (1.0 when constructed; the hero screen shows it * 100)
+    CItem** weapons;                // +0x730
+    std::uint32_t weaponCount;      // +0x734
+    int weaponCapacity;             // +0x738
+    int weaponGrowBy;               // +0x73C
+    CItem** quickItems;             // +0x740 (an entry counts only with +0x48 > 0)
+    std::uint32_t quickItemCount;   // +0x744
+    int quickItemCapacity;          // +0x748
+    int quickItemGrowBy;            // +0x74C
+    CItem** armor;                  // +0x750
+    std::uint32_t armorCount;       // +0x754
+    int armorCapacity;              // +0x758
+    int armorGrowBy;                // +0x75C
+    CItem** spells;                 // +0x760
+    std::uint32_t spellCount;       // +0x764
+    int spellCapacity;              // +0x768
+    int spellGrowBy;                // +0x76C
+    int moveMode2;                      // +0x770 the unit's moveMode2 (2 when constructed)
+    std::uint32_t weaponIndex;      // +0x774 the weapon shown in the camp (0 when constructed)
+    std::uint8_t selected;              // +0x778 the unit is selected (flags_ bit 4; 0 when constructed)
+    std::uint8_t unused_779[3];
+    int leaderId;                       // +0x77C the unit it follows (-1 none, when constructed)
+    int fightAtWill;                    // +0x780 the unit's fightAtWill (1 when constructed)
+};
+static_assert(offsetof(PartyUnitRecord, stats) == 0x20);
+static_assert(offsetof(PartyUnitRecord, scaleX) == 0x724);
+static_assert(offsetof(PartyUnitRecord, height) == 0x72C);
+static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
+static_assert(offsetof(PartyUnitRecord, fightAtWill) == 0x780);
+static_assert(sizeof(PartyUnitRecord) == 0x784);
+static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
+static_assert(offsetof(PartyUnitRecord, weaponCount) == 0x734);
+static_assert(offsetof(PartyUnitRecord, quickItemCount) == 0x744);
+static_assert(offsetof(PartyUnitRecord, armorCount) == 0x754);
+static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
+static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
+static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 
 // unit_hits.cpp.
 // 005253E0 (__fastcall). Wears `item` by `amount` (shared by its +0x48 pieces); the owner says

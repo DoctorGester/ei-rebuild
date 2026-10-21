@@ -259,33 +259,33 @@ inline void SetPosition(CEngineObject* object, const Vector3* position) {
 }
 
 // The fields of the spell prototype the casts read.
-inline const char* Prototype(CSpellEffect* e) { return e->Spell()->GetPrototype(); }
+inline const itemdb::SpellRecord* Prototype(CSpellEffect* e) { return e->Spell()->GetPrototype(); }
 inline Vector3 PrototypeColor(CSpellEffect* e) {
     Vector3 color;
-    std::memcpy(&color, Prototype(e) + 0x64, 12);
+    std::memcpy(&color, &Prototype(e)->extraValues[0], 12);   // +0x64
     return color;
 }
 inline float PrototypeRange(CSpellEffect* e) {
     float range;
-    std::memcpy(&range, Prototype(e) + 0x70, 4);
+    std::memcpy(&range, &Prototype(e)->extraValues[3], 4);   // +0x70
     return range;
 }
 
 inline float Power(CSpellEffect* e) {
     float out;
-    PowerToFloat(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), &out);
+    PowerToFloat(&e->damage, reinterpret_cast<const float*>(&Prototype(e)->effectValues[4]), &out);
     return out;
 }
 inline float PowerScaled(CSpellEffect* e, const float& scale) {
     float out;
-    PowerScaledToFloat(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), ConstPtr(scale), &out);
+    PowerScaledToFloat(&e->damage, reinterpret_cast<const float*>(&Prototype(e)->effectValues[4]), ConstPtr(scale), &out);
     return out;
 }
 
 // The lights' rise speed: range / max(prototype +0x74, 1) (the larger picked on C0: 1 < v or NaN).
 inline float LightRise(CSpellEffect* e) {
     float value;
-    std::memcpy(&value, Prototype(e) + 0x74, 4);
+    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);   // +0x74
     float range = PrototypeRange(e);
     float divisor = value <= 1.0f ? 1.0f : value;
     return range / divisor;
@@ -294,7 +294,7 @@ inline float LightRise(CSpellEffect* e) {
 // The same quotient left unrounded and multiplied by the constant at `scale`, then rounded.
 inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
     float value;
-    std::memcpy(&value, Prototype(e) + 0x74, 4);
+    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);   // +0x74
     float range = PrototypeRange(e);
     float divisor = value <= 1.0f ? 1.0f : value;
     float out;

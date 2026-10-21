@@ -45,7 +45,7 @@ CEngineObject* ClientArrayManager::NewObjectImpl(int) {
     CVisibilityFog* memory = gamecrt::operator_new_as<CVisibilityFog>();
     if (!memory) return nullptr;
     auto* fog = memory;
-    auto* object = reinterpret_cast<CEngineObject*>(fog);
+    CEngineObject* object = fog;
     ei::SetVtable(fog, CEngineObject::kVtableAddress);
     object->ClearFields();
     std::memset(&fog->boundsKind, 0, offsetof(CVisibilityFog, cells) - offsetof(CVisibilityFog, boundsKind));
@@ -125,7 +125,7 @@ int ClientArrayManager::DrawImpl(CSceneRenderer* renderer) {
     for (FogNode* node = list.head; node;) {
         CEngineObject* fog = node->data;
         node = node->next;
-        reinterpret_cast<CVisibilityFog*>(fog)->Draw(renderer);   // 004E1EB0 (its result not read)
+        static_cast<CVisibilityFog*>(fog)->Draw(renderer);   // 004E1EB0 (its result not read)
     }
     return 1;
 }

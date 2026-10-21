@@ -69,7 +69,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
             out->damageType = WeaponDamageType(weapon);
         } else {
             out->weaponType = kTypeNoWeapon;
-            auto* model = reinterpret_cast<const UnitModelRecord*>(owner->GetPrototypeModel());
+            auto* model = owner->GetPrototypeModel();
             // The first damage type whose weight is not zero; left as it was when there is none.
             for (int i = 0; i < kDamageTypes; ++i) {
                 float weight = std::bit_cast<float>(model->damageWeights[i]);

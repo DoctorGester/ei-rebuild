@@ -114,6 +114,12 @@ struct ScriptStrings : mfc::CArray<mfc::CString> {
     // 004CBA00 (RET 4; script_copy.cpp). Copy constructor: storage for exactly the source's size
     // (the inlined SetSize from empty), then each name assigned from a GetAt copy. Returns this.
     ScriptStrings* CopyConstruct(const ScriptStrings* other);
+    // 004CC840 / 004C2680 (RET 8; script_copy.cpp). By-value GetAt: element `index` copy-constructed
+    // into `out`. Returns out.
+    mfc::CString* CopyAt(mfc::CString* out, int index) const;
+    // 004C14A0 (RET 4; script_copy.cpp). SetSize to the source's size, then each name assigned from a
+    // GetAt copy.
+    void CopyFrom(const ScriptStrings& source);
 };
 
 // CArray<ScriptBinding>.
@@ -700,7 +706,7 @@ public:
 
     int id;                                     // +0x00 ScriptKeyword::id
     mfc::CArray<float> floatArgs;                  // +0x04
-    mfc::CArray<mfc::CString> stringArgs;          // +0x18
+    ScriptStrings stringArgs;                      // +0x18
     mfc::CArray<ScriptObjectRef*> objectArgs;      // +0x2C
     mfc::CArray<ScriptGroup*> groupArgs;           // +0x40
     ScriptBindings localBindings;      // +0x54 to the running script's variables

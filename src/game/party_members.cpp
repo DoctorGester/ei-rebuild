@@ -83,7 +83,7 @@ EI_REWRITTEN(0x00660500, PartyUnitRecord::CopyItemsFrom);
 PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
     for (int i = 0; i < 7; ++i) texts[i] = source->texts[i];
     unitId = source->unitId;
-    std::memcpy(stats, source->stats, sizeof(stats));
+    std::memcpy(&stats, &source->stats, sizeof(stats));
     // +0x724..+0x780 member by member (the padding after +0x778 is not copied).
     std::memcpy(&scaleX, &source->scaleX, offsetof(PartyUnitRecord, selected) - offsetof(PartyUnitRecord, scaleX));
     selected = source->selected;
@@ -124,10 +124,9 @@ EI_REWRITTEN(0x006628D0, CParty::AddMember);
 
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
-    auto* model = reinterpret_cast<UnitModelRecord*>(
-        unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+    auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
-    BuildNpcStats(reinterpret_cast<UnitStats*>(record->stats), record->texts[5]);
+    BuildNpcStats(&record->stats, record->texts[5]);
     record->scaleY = prototype->scale.y;
     record->scaleX = prototype->scale.x;
     record->height = prototype->scale.z;
@@ -196,7 +195,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
         Drop(item);
     }
     Money() += npc->startMoney;
-    reinterpret_cast<UnitStats*>(record->stats)->AddExperience(npc->experienceFloor);
+    record->stats.AddExperience(npc->experienceFloor);
     record->texts[6] = record->texts[5];
     return 1;
 }

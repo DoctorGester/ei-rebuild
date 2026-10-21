@@ -47,7 +47,7 @@ const char* const kUnknownMaterial = "uq";
 const ItemRecordHead* Head(const char* record) { return reinterpret_cast<const ItemRecordHead*>(record); }
 const MaterialRecordHead* Material(const char* record) { return reinterpret_cast<const MaterialRecordHead*>(record); }
 
-int Number(const char* record) { return record ? Head(record)->number : -1; }
+int Number(const ItemRecordHead* record) { return record ? record->number : -1; }
 
 // "<code>_<number>.<material>.<variant>", or "" without a prototype or material (slot 17).
 mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const (&codes)[7], std::uint32_t id) {
@@ -153,8 +153,8 @@ EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 
 mfc::CString CItemQuick::FigureNameImpl() {
     mfc::CString name;
-    const char* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(static_cast<const char*>(Head(prototype)->materialClass),
+    const ItemRecordHead* prototype = GetPrototype();
+    if (prototype && gamecrt::mbsicmp(static_cast<const char*>(prototype->materialClass),
                                      kNoMaterial) != 0) {
         const char* material = Materials().RecordAt(MaterialIndex(prototypeId_), kMaterialSize);
         const char* materialName = material ? static_cast<const char*>(Material(material)->name) : kUnknownMaterial;

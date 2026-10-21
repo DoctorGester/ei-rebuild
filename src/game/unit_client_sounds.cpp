@@ -45,8 +45,7 @@ constexpr int kWeaponCrossbow = 6;
 int RandomBelow(int n) { return gamecrt::rand() * n / 0x7FFF % n; }
 
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
-    return reinterpret_cast<const UnitModelRecord*>(
-        unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+    return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
 
 // The skill sounds by animation number (0x13 tame, 0x14 steal, 0x15 science; loot for 0x16,
@@ -66,7 +65,7 @@ const char* SkillSound(std::uint32_t number) {
 } // namespace
 
 int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+    const auto* prototype = unit->GetPrototype();
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
@@ -91,7 +90,7 @@ EI_REWRITTEN(0x00534590, CUnitClientSpecific::FootstepSound);
 
 int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out,
                                      std::uint8_t miss) {
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
+    const auto* prototype = unit->GetPrototype23C();
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     int frame = animation->soundFrame;
@@ -171,7 +170,7 @@ bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0;
 bool PassedFrame(double frame, float last, float now) { return frame > last && frame <= now; }
 
 void Shake(CUnit* unit) {
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+    const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
         TheCamera()->Shake(&unit->position, kShakeDuration, strength,
@@ -249,14 +248,14 @@ void CUnitClientSpecific::PlayStepSounds() {
             FootstepSound(ground, &sound);
         }
         if (unit->moveMode == 0) break;
-        const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+        const auto* prototype = unit->GetPrototype();
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
                 TheCamera()->Shake(&unit->position, kShakeDuration, strength,
                                    kShakeDecay);
         }
-        const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
+        const auto* model = unit->GetPrototypeModel();
         if (!model) break;
         int printKind = model->footprintKind;
         if (printKind <= -1) break;

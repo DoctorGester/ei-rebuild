@@ -222,9 +222,9 @@ void MpAddressEntry::Destroy() {
 }
 EI_REWRITTEN(0x0061E8A0, MpAddressEntry::Destroy);
 
-void __fastcall MpAddressesPushDefault(MpAddressList* list) {
-    MpAddressEntry*& finish = list->Finish();
-    if (finish != list->EndOfStorage()) {
+void MpAddressList::PushDefault() {
+    MpAddressEntry*& finish = Finish();
+    if (finish != EndOfStorage()) {
         if (finish) {
             new (&finish->name) mfc::CString();
             new (&finish->description) mfc::CString();
@@ -234,17 +234,17 @@ void __fastcall MpAddressesPushDefault(MpAddressList* list) {
         return;
     }
     MpAddressEntry entry{};
-    list->InsertOverflow<recordvec::MpAddressElement>(finish, entry, 1);
+    InsertOverflow<recordvec::MpAddressElement>(finish, entry, 1);
 }
-EI_REWRITTEN(0x0061E5A0, MpAddressesPushDefault);
+EI_REWRITTEN(0x0061E5A0, MpAddressList::PushDefault);
 
-MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, MpAddressEntry* pos) {
-    MpAddressEntry* begin = list->begin();
-    int index = static_cast<int>(pos - begin);
-    MpAddressEntry*& finish = list->Finish();
-    if (finish == list->EndOfStorage()) {
+MpAddressEntry* MpAddressList::InsertDefault(MpAddressEntry* pos) {
+    MpAddressEntry* start = begin();
+    int index = static_cast<int>(pos - start);
+    MpAddressEntry*& finish = Finish();
+    if (finish == EndOfStorage()) {
         MpAddressEntry entry{};
-        list->InsertOverflow<recordvec::MpAddressElement>(pos, entry, 1);
+        InsertOverflow<recordvec::MpAddressElement>(pos, entry, 1);
     } else if (pos == finish) {
         if (finish) {
             new (&finish->name) mfc::CString();
@@ -264,18 +264,18 @@ MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, 
         MpAddressEntry entry{};
         pos->AssignFrom(entry);
     }
-    return list->begin() + index;
+    return begin() + index;
 }
-EI_REWRITTEN(0x0061E660, MpAddressesInsertDefault);
+EI_REWRITTEN(0x0061E660, MpAddressList::InsertDefault);
 
-MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddressEntry* first, MpAddressEntry* last) {
+MpAddressEntry* MpAddressList::Erase(MpAddressEntry* first, MpAddressEntry* last) {
     MpAddressEntry* to = first;
-    for (int n = static_cast<int>(list->end() - last); n > 0; --n, ++to, ++last) to->AssignFrom(*last);
-    for (MpAddressEntry* entry = to; entry != list->end(); ++entry) entry->Destroy();
-    list->Finish() = to;
+    for (int n = static_cast<int>(end() - last); n > 0; --n, ++to, ++last) to->AssignFrom(*last);
+    for (MpAddressEntry* entry = to; entry != end(); ++entry) entry->Destroy();
+    Finish() = to;
     return first;
 }
-EI_REWRITTEN(0x0061EA90, MpAddressesErase);
+EI_REWRITTEN(0x0061EA90, MpAddressList::Erase);
 
 // --- 0061C430: Update (slot 24) -------------------------------------------------------------------
 
@@ -575,11 +575,11 @@ EI_REWRITTEN(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
 // --- 0061D470: the list from the client's servers -------------------------------------------------
 
 void CMpConnectScreen::RebuildList() {
-    MpAddressesErase(&entries_, nullptr, entries_.begin(), entries_.end());
+    entries_.Erase(entries_.begin(), entries_.end());
     unsigned index = 0;
     for (net::ServerEntry* server = net::GameClient()->ServerAt(0); server;
          server = net::GameClient()->ServerAt(static_cast<int>(++index))) {
-        MpAddressesPushDefault(&entries_);
+        entries_.PushDefault();
         MpAddressEntry& entry = entries_.back();
         entry.address = server->address_;
         entry.gameType = static_cast<int>(server->kind_);
@@ -612,7 +612,7 @@ void CMpConnectScreen::RebuildList() {
         }
     }
 
-    MpAddressesInsertDefault(&entries_, nullptr, entries_.begin());
+    entries_.InsertDefault(entries_.begin());
     MpAddressEntry& newGame = entries_[0];
     newGame.address = net::NetAddress{};
     newGame.gameType = kNewGameType;

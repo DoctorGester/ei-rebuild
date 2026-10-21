@@ -86,7 +86,7 @@ using NameList = stlp::vector<mfc::CString>;
 using VoiceList = MpVoiceVector;
 static_assert(sizeof(NameList) == sizeof(MpStringVector));
 
-CUiContainer* AsContainer(CMpHeroScreen* screen) { return reinterpret_cast<CUiContainer*>(screen); }
+CUiContainer* AsContainer(CMpHeroScreen* screen) { return &screen->window; }
 
 void SetVtables(CUiWindow* window, VtablePair vtables) {
     window->vtable_ = vtables.main;

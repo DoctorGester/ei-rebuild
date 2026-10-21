@@ -102,7 +102,6 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
     return true;
 }
 
-char* SpellPrototypeOf(CSpell* spell) { return spell->GetPrototype(); }
 } // namespace
 
 namespace {
@@ -123,7 +122,7 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
     if (order->kind == kOrderCast || order->kind == kOrderCastAt) {
         CSpell* spell;
         if (!OrderSpell(this, order->source, &spell) || !spell) return false;
-        if (Get<int>(SpellPrototypeOf(spell), 0x40) == 0) return false;
+        if (spell->GetPrototype()->needsSight == 0) return false;
         out->point.x = out->point.y = out->point.z = 0.0f;
         std::memset(&out->minDistanceSq, 0, sizeof(float));
         out->unit = nullptr;
@@ -291,7 +290,7 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
     std::uint32_t kind = Get<std::uint32_t>(spell, 0x18) >> 16;
     if (kind == kSpellKindStrike) plan->castKind = 1;
     else if (kind == kSpellKindCurse) plan->castKind = 0;
-    else plan->castKind = Get<int>(SpellPrototypeOf(spell), 0x14);
+    else plan->castKind = spell->GetPrototype()->school;
 }
 } // namespace
 

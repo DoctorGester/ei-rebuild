@@ -268,14 +268,10 @@ void SpellListRecord::ConstructDefault() {
     stlp::StringElement::Default(&text24);
 }
 
-template <int Stride>
-char* __fastcall itemdb::RecordTableAt(const RecordTable* table, void*, std::uint32_t index) {
-    return table->RecordAt(index, Stride);
-}
-EI_REPLACE(0x006A5950, itemdb::RecordTableAt<kArmorSize>);
-EI_REPLACE(0x006A5990, itemdb::RecordTableAt<kQuickItemSize>);
-EI_REPLACE(0x006A59D0, itemdb::RecordTableAt<kQuestItemSize>);
-EI_REPLACE(0x006A5A10, itemdb::RecordTableAt<kLootSize>);
+EI_REPLACE_METHOD(0x006A5950, RecordTable::RecordAtStride<kArmorSize>);
+EI_REPLACE_METHOD(0x006A5990, RecordTable::RecordAtStride<kQuickItemSize>);
+EI_REPLACE_METHOD(0x006A59D0, RecordTable::RecordAtStride<kQuestItemSize>);
+EI_REPLACE_METHOD(0x006A5A10, RecordTable::RecordAtStride<kLootSize>);
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;

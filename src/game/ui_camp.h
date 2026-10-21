@@ -89,10 +89,12 @@ struct GlobalMapZoneElements {
     static void Construct(GlobalMapZone* zones, int count);
     static void Destruct(GlobalMapZone* zones, int count);
 };
-using GlobalMapZoneArray = mfc::CArray<GlobalMapZone, GlobalMapZoneElements>;
-// 00631CC0 (thiscall, RET 8). zones[index] = zone, growing the array (and constructing the new
-// zones) when `index` is past its end; the strings are assigned as CStrings.
-void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int index, const GlobalMapZone* zone);
+struct GlobalMapZoneTable : mfc::CArray<GlobalMapZone, GlobalMapZoneElements> {
+    // 00631CC0 (thiscall, RET 8). zones[index] = zone, growing the array (and constructing the new
+    // zones) when `index` is past its end; the strings are assigned as CStrings.
+    void SetAtGrowZone(int index, const GlobalMapZone* zone);
+};
+using GlobalMapZoneArray = GlobalMapZoneTable;
 
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
@@ -129,7 +131,7 @@ struct GlobalMapStep {
     int exit;
 };
 
-class CGlobalMap : public CUiWindow {
+class CGlobalMap : public CUiContainer {
 public:
     // 005F6900 (slot 0, the deleting destructor; ui_window_delete.cpp). GlobalMapDestroy, then the
     // memory freed when bit 0 of `flags` is set; returns this.
@@ -243,7 +245,6 @@ public:
     // hidden (0) through visible_.
     void ShowAllButZones(int visible);
 
-    std::uint8_t unused_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
     int questCount_;                 // +0x168
     int linkCount_;                  // +0x16C

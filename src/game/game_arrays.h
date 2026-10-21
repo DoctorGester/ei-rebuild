@@ -23,7 +23,6 @@ void __fastcall DwordArraySetAtGrowRef(lib::AlignedArray<std::uint32_t>* a, void
 namespace zone {
 void __fastcall ExitDestruct(MapExit* self);           // 00460460 (zone_records.cpp)
 void __fastcall ZoneRecordDestruct(MapRecord* self);   // 00460970
-void* __fastcall ExitDelete(void* self, void*, unsigned flags);   // 004608B0: scalar deleting destructor
 } // namespace zone
 
 namespace gamearrays {
@@ -77,7 +76,7 @@ using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBl
 using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
 using Exits = ArrayAbi<MapExit, EachElements<MapExit, InitExit, DestroyExit>>;
 // 00573080: SetSize(size, -1) of a CArray<ZoneExit> given by its header (its first member).
-inline void ExitsSetSize(void* exits, int size) { Exits::SetSize(static_cast<Exits::Array*>(exits), nullptr, size, -1); }
+inline void ExitsSetSize(void* exits, int size) { static_cast<Exits::Array*>(exits)->SetSize(size, -1); }
 using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
 using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObjective, InitObjective, DestroyObjective>>;

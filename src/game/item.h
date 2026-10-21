@@ -118,7 +118,7 @@ public:
 
     // 006A0110. The prototype record for the item's kind and index; null for spell containers,
     // other kinds and indices out of range.
-    char* GetPrototype();
+    itemdb::ItemRecordHead* GetPrototype();
 
     // 006A4230. The prototype's category (+0x6C); INT_MAX if there is no prototype.
     int GetCategory();

@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_core.h"
 
 #include <cstdint>
@@ -25,23 +26,13 @@ int __fastcall FakeFigureAnswerOne(void*) { return 1; }
 EI_REWRITTEN(0x004547A0, FakeFigureAnswerOne);
 
 // 00453470: CFigure's scalar deleting destructor (its body 0059F030).
-void* __fastcall FigureDelete(void* self, void*, unsigned flags) {
-    FigureDestructBodyOriginal(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
-EI_REPLACE(0x00453470, FigureDelete);
+EI_REPLACE(0x00453470, mfc::impl::ScalarDelete<&FigureDestructBodyOriginal>);
 
 // 0044C490 / 00454360: a record whose only member to destroy is the CString at +4, and its scalar
 // deleting destructor.
 void __fastcall NamedRecordDestruct(std::uint8_t* self) { reinterpret_cast<mfc::CString*>(self + 4)->~CString(); }
 EI_REWRITTEN(0x0044C490, NamedRecordDestruct);
-void* __fastcall NamedRecordDelete(std::uint8_t* self, void*, unsigned flags) {
-    NamedRecordDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
-EI_REWRITTEN(0x00454360, NamedRecordDelete);
+EI_REWRITTEN(0x00454360, mfc::impl::ScalarDelete<&NamedRecordDestruct>);
 
 // 004533E0: a 0x38-byte record cleared; 00453490: an aligned array emptied. Both return this.
 void* __fastcall ClearArray(std::uint32_t* self) {

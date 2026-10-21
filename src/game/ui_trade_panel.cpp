@@ -36,7 +36,7 @@ const mfc::CString& StrAt(const std::uint8_t* address) { return *reinterpret_cas
 // The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
 // values (thiscall, RET 4), 005260A0 whether a skill record can be learned (RET 8), 00528050 a
 // skill record's price (RET 4); 00527FF0 (__fastcall) the price of a school from one level to the next.
-__declspec(naked) int __fastcall SkillPrice(std::uint8_t* /*stats*/, void*, std::uint8_t* /*record*/) EI_ORIGINAL(0x00528050)
+__declspec(naked) int __fastcall SkillPrice(UnitStats* /*stats*/, void*, std::uint8_t* /*record*/) EI_ORIGINAL(0x00528050)
 __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGINAL(0x00527FF0)
 
 // The text table (GameClientTexts, 00578E20): 004DEFC0 whether it has a key (RET 4), 004DF8D0 the found text into a
@@ -46,11 +46,11 @@ int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return 
 // vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (recordvec::TradeRowVector's).
 
 
-struct SurfaceDraw {
-    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }                                                                   // 005FDC00
+struct SurfaceDraw : CUiSurface {
+    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }                                                                     // 005FDC60
+    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
@@ -71,7 +71,7 @@ TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
         if (rows->end) rows->end->CopyConstruct(&value);
         ++rows->end;
     } else {
-        recordvec::TradeRowVector::InsertOverflow(reinterpret_cast<stlp::vector<TradeRow>*>(rows), nullptr, rows->end, &value, 1);
+        static_cast<recordvec::TradeRowVector*>(reinterpret_cast<stlp::vector<TradeRow>*>(rows))->InsertOverflow(rows->end, value, 1);
     }
     return rows->end - 1;
 }
@@ -139,9 +139,9 @@ EI_REWRITTEN(0x0062A310, TradeRow::CopyConstruct);
 // --- 00625880 -----------------------------------------------------------------------------------
 
 void CTradePanel::BuildLists() {
-    using HeroFn = std::uint8_t*(__thiscall*)(CUiWindow*);
+    using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
     using RefreshFn = void(__thiscall*)(CUiWindow*);
-    std::uint8_t* stats = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_) + 0x20;
+    UnitStats* stats = &ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_)->stats;
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
     ei::VirtualSlot<RefreshFn>(owner_->vtable_, 47)(owner_);
     void* table = GameClientTexts();
@@ -159,7 +159,7 @@ void CTradePanel::BuildLists() {
             TextReadLine(table, nullptr, &row->name, 1);
         else
             row->name = names[i];
-        row->level = stats[0x6CB + i];
+        row->level = stats->skills[i];
         row->price = SchoolPrice(row->level, row->level + 1);
     }
     {
@@ -168,7 +168,7 @@ void CTradePanel::BuildLists() {
             TextReadLine(table, nullptr, &row->name, 1);
         else
             row->name = names[6];
-        row->level = stats[0x6C8];
+        row->level = stats->attributes[0];
         row->price = SchoolPrice(row->level, row->level + 1);
     }
 
@@ -178,7 +178,7 @@ void CTradePanel::BuildLists() {
 
     // The perks held: the skill records come in groups of three levels; the group's level byte.
     for (unsigned group = 0; group < 0x6C; group += 3) {
-        int level = stats[0x6D3 + group / 3];
+        int level = stats->skillLevels[group / 3];
         if (level <= 0) continue;
         unsigned index = group + level - 1;
         if (index >= static_cast<unsigned>(SkillCount())) continue;
@@ -216,7 +216,7 @@ void CTradePanel::BuildLists() {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(SkillCount())) continue;
         std::uint8_t* record = SkillRecords() + index * kSkillRecordSize;
         if (!record) continue;
-        if (!reinterpret_cast<UnitStats*>(stats)->CanLearn(SkillDb(), reinterpret_cast<const char*>(record))) continue;
+        if (!stats->CanLearn(SkillDb(), reinterpret_cast<const char*>(record))) continue;
         TradeRow* row = PushBack(&learnable_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
@@ -229,12 +229,10 @@ void CTradePanel::BuildLists() {
         row->level = 0;
     }
 
-    // Experience left: earned (+0x700) plus +4 minus +8, truncated (the game's _ftol).
-    float earned, plus, minus;
-    std::memcpy(&earned, stats + 0x700, 4);
-    std::memcpy(&plus, stats + 4, 4);
-    std::memcpy(&minus, stats + 8, 4);
-    experience_ = static_cast<int>(static_cast<double>(earned) + plus - minus);
+    // Experience left: pending plus earned minus spent, truncated (the game's _ftol).
+    experience_ = static_cast<int>(static_cast<double>(stats->pendingExperience) + stats->experience -
+                                   stats->spentExperience);
+
     ClampScroll();   // 00626D70
     DrawLists();     // 006261A0
 }
@@ -273,7 +271,7 @@ void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* scho
 } // namespace
 
 void CTradePanel::DrawLists() {
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
+    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     mfc::CString value;
@@ -434,8 +432,8 @@ void CTradePanel::ResetRecords() {
             if (records_.end) *records_.end = blank;
             ++records_.end;
         } else {
-            recordvec::TradeRecordVector::InsertOverflow(reinterpret_cast<stlp::vector<TradeRecord>*>(&records_), nullptr,
-                                                         records_.end, &blank, 1);
+            static_cast<recordvec::TradeRecordVector*>(reinterpret_cast<stlp::vector<TradeRecord>*>(&records_))
+                ->InsertOverflow(records_.end, blank, 1);
         }
         recordIndex_ = i;
         TradeSnapshotRecord(this);
@@ -452,7 +450,7 @@ namespace {
 
 UnitStats* PartyMemberStats(int index) {
     CParty* party = LocalPlayerData();
-    return reinterpret_cast<UnitStats*>(party->members_.data[index].stats);
+    return &party->members_.data[index].stats;
 }
 } // namespace
 

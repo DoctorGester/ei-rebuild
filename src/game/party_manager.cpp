@@ -105,7 +105,7 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
         for (PartyManagerEntry* e = entries->begin(); e != entries->end(); ++e) e->Destruct();
         entries->Finish() = entries->Start();
         count = CountChunks(1);
-        recordvec::PartyEntryVector::ResizeDefault(entries, nullptr, static_cast<unsigned>(count));
+        static_cast<recordvec::PartyEntryVector*>(entries)->ResizeDefault(static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(entries->size());
     }
@@ -149,7 +149,7 @@ void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>*
         for (ClassTemplate** p = templates->begin(); p != templates->end(); ++p) Release(*p);
         templates->Finish() = templates->Start();
         count = CountChunks(1);
-        stlp::CountedRefVector::ResizeDefault(&stlp::AsRefPtrs(*templates), nullptr, static_cast<unsigned>(count));
+        static_cast<stlp::CountedRefVector*>(&stlp::AsRefPtrs(*templates))->ResizeDefault(static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(templates->size());
     }
@@ -171,7 +171,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
             for (PartyRecord** p = records.Start(); p != records.Finish(); ++p) Release(*p);
             records.Finish() = records.Start();
             count = ar->CountChunks(1);
-            stlp::CountedRefVector::ResizeDefault(&stlp::AsRefPtrs(records), nullptr, static_cast<unsigned>(count));
+            static_cast<stlp::CountedRefVector*>(&stlp::AsRefPtrs(records))->ResizeDefault(static_cast<unsigned>(count));
         } else {
             count = static_cast<int>(records.size());
         }

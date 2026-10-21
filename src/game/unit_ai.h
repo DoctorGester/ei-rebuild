@@ -30,7 +30,12 @@ struct AIBrain;
 struct AIOrder;
 class CUnitServer;      // combat.h (the unit controller of AI units, the brain's owner)
 
-using AIObjectList = mfc::CTypedPtrList<CUnit>;
+struct CountedUnits : mfc::CTypedPtrList<CUnit> {
+    // 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
+    // holding a reference; returns the node.
+    Node* AddCountedTail(CUnit* object);
+};
+using AIObjectList = CountedUnits;
 
 // A counted reference (CEngineObject refcount at +4, released through vtable slot 4). The AI's
 // reference fields (orders, modes, the brain's target, the reports) are AIRefs: reads see the
@@ -300,14 +305,17 @@ struct PatrolPointElements {
 // CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
 // Add 005D93B0 and SetAtGrow 005D9F30 are registered on the template (unit_ai_looks.cpp); SetSize
 // is 004C9970 (mfc::impl::AiLookRecords).
-using PatrolPointArray = mfc::CArray<PatrolPoint, PatrolPointElements>;
-// 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
-void __fastcall PatrolPointsDestruct(PatrolPointArray* points);
-// 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns `points`.
-PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags);
-// 005D9E40 / 005D9590 (RET 8; unit_ai_mode_lifetime.cpp). GetAt by value: point `index` copied into
-// `out` (a new look array); returns `out`.
-PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*, PatrolPoint* out, int index);
+struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
+    // 005D8CF0 / 005D95B0. The base vtable, every point's looks freed, then the buffer (pointer and
+    // count kept).
+    void Destruct();
+    // 005D8CD0 / 005D9D00 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
+    PatrolPoints* DeletingDestruct(int flags);
+    // 005D9E40 / 005D9590 (RET 8; unit_ai_mode_lifetime.cpp). GetAt by value: point `index` copied into
+    // `out` (a new look array); returns `out`.
+    PatrolPoint* CopyAt(PatrolPoint* out, int index) const;
+};
+using PatrolPointArray = PatrolPoints;
 
 // Patrol (vtable 0073FF40, 0x20 bytes): walk a list of points.
 struct PatrolMode : AIMode {
@@ -420,12 +428,20 @@ struct SuspectionMode : AIMode {
 };
 static_assert(sizeof(SuspectionMode) == 0x18);
 
+// A target the attention chose or the brain is attacking: the part (-1 the whole unit with a weapon,
+// else the spell's part) and the object.
+struct AITargetChoice {
+    int part;                       // +0x00
+    CEngineObject* object;          // +0x04
+};
+static_assert(sizeof(AITargetChoice) == 8 && offsetof(AITargetChoice, object) == 4);
+
 // Aggression (vtable 0073D260, 0x18 bytes): fight an enemy.
 struct AggressionMode : AIMode {
     // 005D2390 (slot 4). 10000 while there is an enemy to fight (the script's, or the best one
     // in sight), else -1000.
     int Evaluate(AIBrain* brain);
-    // 005D2580 (slot 5). Attack the chosen enemy (or cast spell `enemyPart` at it).
+    // 005D2580 (slot 5). Attack the chosen enemy (or cast spell `chosen.part` at it).
     void Execute(AIBrain* brain);
     // 005D26D0 (slot 6). Busy; drops action and target; remark 6.
     void Enter(AIBrain* brain);
@@ -452,8 +468,7 @@ struct AggressionMode : AIMode {
     AIRef enemy;                    // +0x08
     std::uint8_t fixed;             // +0x0C enemy set by the script (no searching)
     std::uint8_t unused_0D[3];
-    int enemyPart;                  // +0x10 -1: the whole unit
-    CEngineObject* chosen;          // +0x14 the enemy chosen this tick
+    AITargetChoice chosen;          // +0x10 the enemy chosen this tick; part -1: the whole unit
 };
 static_assert(sizeof(AggressionMode) == 0x18);
 
@@ -747,16 +762,16 @@ void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream);
 // The brain's attention (+0xA4, 0x2C bytes): the unit's attack options and choosing a target
 // (unit_ai_targets.cpp; the methods are __thiscall on the attention, the brain passed).
 struct AIAttention {
-    // 005D0030 (RET 0x18). The best {part, object} to attack or help into `partAndObject`: the
+    // 005D0030 (RET 0x18). The best {part, object} to attack or help into `choice`: the
     // current attack scored first, then (without `alliesOnly`) every weapon against every
     // candidate and every spell against the unit and its allies in sight; the best that scores
     // above the current one and passes IsUsable, the order check (with `alliesOnly`, for targets
     // not near the path) and CanReach wins; a rejected one seen once is reported (20).
-    void Choose(AIBrain* brain, int* partAndObject, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
+    void Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
                 int reachArg);
     // 005CF7F0 (RET 8). False when the part has no option or an area option (kinds 2, 3) would
     // also hit an ally near the target or the unit itself; true without an object.
-    bool IsUsable(AIBrain* brain, const int* partAndObject);
+    bool IsUsable(AIBrain* brain, const AITargetChoice* choice);
     // 005CF9A0 (RET 0x1C; `this` unused). How good `option` is against `candidate` (`group` the
     // others it would hit or help): by kind, minus 25 per unit of distance beyond the range (x10
     // outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for attacks.
@@ -768,7 +783,7 @@ struct AIAttention {
     // (0054C960) from the unit's place when `fromHere` (low byte) is set or the target is the
     // unit itself, otherwise from the end of a path search to the target (range ScaledValue of the
     // distance, the target lifted off the sector map meanwhile), or the unit's place without one.
-    bool CanReach(AIBrain* brain, const int* partAndObject, int fromHere);
+    bool CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere);
 
     // 005CFE40 (RET 8; unit_ai_attention.cpp). Chooses the best target in sight (Choose from the
     // unit's position) and, when it differs from the current attack, attacks it (action 3; the
@@ -778,11 +793,11 @@ struct AIAttention {
     // 005CF220 (RET 8; unit_ai_attention.cpp). The brain's current attack as {part, object}: action 3
     // {-1, target}, action 4 {spell, target}, the object only when it is a unit; otherwise only the
     // object is cleared.
-    void CurrentAttack(AIBrain* brain, int* partAndObject);
+    void CurrentAttack(AIBrain* brain, AITargetChoice* choice);
     // 005CF170 (RET 8; unit_ai_fear.cpp). Takes up {part, object} unless there is no object or it is
     // the current attack: part -1 AttackTarget, else cast it (action 4 when the spell cannot be cast
     // now; target and actionTime = the spell).
-    void ApplyAttack(AIBrain* brain, const int* partAndObject);
+    void ApplyAttack(AIBrain* brain, const AITargetChoice* choice);
 
     // The option of `part`: the weapons first, then the spells; null when there is none.
     const AIAttackOption* FindOption(int part) const;
@@ -930,10 +945,6 @@ static_assert(sizeof(AIEventTable) == 0x1003C);
 
 // 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
-
-// 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
-// holding a reference; returns the node.
-AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void* edx, CUnit* object);
 
 // The brain's perception memory (brain + 0xD0, 0xC0 bytes): what the unit sees, has seen and heard
 // (unit_ai_memory.cpp, unit_ai_brain.cpp, unit_ai_hearing.cpp, unit_ai_save.cpp; the original's
@@ -1167,7 +1178,7 @@ struct AIBrain {
     // for help (kind 0x1A) at `point`; the message text is formatted only while the console shows
     // filter bit 0.
     void CallAllies(const Vector3* point);
-    void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
+    void ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
     AIRef* PopCorpse(AIRef* out);                                       // 005D8D50 on the memory's corpses
 
     CUnitServer* owner;             // +0x000

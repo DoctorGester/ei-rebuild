@@ -53,10 +53,10 @@ void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // container (RET 4); 0065C290 an edit window's text (RET 4).
 void EditSetText(void* edit, void*, const void* text) { static_cast<CUiEditField*>(edit)->SetText(static_cast<const char*>(text)); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
-struct SurfaceDraw {
-    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }   // 005FDC00
+struct SurfaceDraw : CUiSurface {
+    void* Begin() { return UiSurfaceGetDC(this); }   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }   // 005FE2F0
-    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }     // 005FDC60
+    void End() { UiSurfaceReleaseDC(this); }     // 005FDC60
 };
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 
@@ -85,7 +85,7 @@ CItem* FirstOf(CItem** const& data, const std::uint32_t& count) {
 CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     auto* camp = static_cast<CCampPages*>(gamecrt::operator_new(sizeof(CCampPages)));
     if (!camp) return nullptr;
-    reinterpret_cast<CUiContainer*>(camp)->Construct(ui);
+    camp->CUiContainer::Construct(ui);
     camp->hoveredItem_ = nullptr;
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);
@@ -119,8 +119,6 @@ const char* RenameBar() { return "|"; }
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
 constexpr int kModeStats = 11;
-// The hero record the screen is making (slot 51).
-PartyUnitRecord* HeroRecordOf(CMpHeroScreen* screen) { return reinterpret_cast<PartyUnitRecord*>(screen->Hero()); }
 
 // A multiplayer hero's name: the text 0 of its party's first member record (the original reads
 // the members' data pointer at +0x30 and takes the CString there).
@@ -140,12 +138,12 @@ void CMpHeroScreen::CloseRenameEdit() {
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(window.interface_, game::CancelSoundText(), 0);
     statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
-    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
-    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
+    static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
+    static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
+    static_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    EditSetText(nameEdit_, nullptr, static_cast<const char*>(HeroRecordOf(this)->texts[0]));
+    EditSetText(nameEdit_, nullptr, static_cast<const char*>(Hero()->texts[0]));
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -269,8 +267,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             // Back to the defaults: the attributes 25, +0x72C 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             VirtualChooseFigure(static_cast<const char*>(*defaults_));
-            PartyUnitRecord* hero = HeroRecordOf(this);
-            auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
+            PartyUnitRecord* hero = Hero();
+            auto* stats = &hero->stats;
             stats->stat10Base = 25.0f;
             stats->stat10 = 25.0f;
             stats->stat18Base = 25.0f;
@@ -295,7 +293,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
         const mfc::CString& file = voices.begin()[index].file;
-        HeroRecordOf(this)->texts[6] = file;
+        Hero()->texts[6] = file;
         MpHeroPlayVoice(this);
         DrawVoices();
         return;
@@ -311,7 +309,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             tradePanel_->Settle(0, 0);
-            PartyUnitRecord* hero = HeroRecordOf(this);
+            PartyUnitRecord* hero = Hero();
             weapon_ = FirstOf(hero->weapons, hero->weaponCount);
             weaponPanel_->ShowWeapon(weapon_);
             armor_ = FirstOf(hero->quickItems, hero->quickItemCount);
@@ -344,9 +342,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         VirtualChooseFigure(static_cast<const char*>(*defaults_));
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
-        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
-        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
+        static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
+        static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
+        static_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
         EditSetText(nameEdit_, nullptr, game::EmptyText());
@@ -411,7 +409,7 @@ void CMpHeroScreen::Rename() {
         name = name.Left(bar);
         name.TrimRight();
     }
-    auto* surface = reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[3]);
+    auto* surface = static_cast<SurfaceDraw*>(window.surfaces_.data[3]);
     SurfaceFreeze(surface, nullptr, 1, 0);
     surface->Begin();
     surface->Clear();
@@ -435,7 +433,7 @@ bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) =
 void CMpHeroScreen::PlayVoice() {
     window.interface_->StopSound(voiceSound_);
     voiceSound_ = -1;
-    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+    auto* hero = Hero();
     char* prototype;
     {
         stlp::string key(static_cast<const char*>(hero->texts[6]));
@@ -522,14 +520,15 @@ float AttributePoints() { return 75.0f /*00741C98*/; }
 
 void CMpHeroScreen::RefreshHero() {
     if (previewModel_) {
-        auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
-        auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
+        auto* hero = Hero();
+        auto* stats = &hero->stats;
         stats->RestoreSlots();
         // The third argument (the height's address) is not read.
         stats->GetFactors(&hero->scaleX, &hero->scaleY, static_cast<int>(reinterpret_cast<std::intptr_t>(&hero->height)));
         reinterpret_cast<CObject3D*>(previewModel_)->SetFigureScale(&hero->scaleX);
         CUnit* unit = previewModel_;
-        unit->SetFromStats(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(Hero())->stats));
+        unit->SetFromStats(&Hero()->stats);
+
         static_cast<CUnitController*>(unit->controller)->RefreshWounds();
     }
     statsPanel_->DrawStats();
@@ -541,8 +540,8 @@ EI_REPLACE(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
     mfc::CString name(reinterpret_cast<CUiEditField*>(nameEdit_)->text_);
-    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
-    auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
+    auto* hero = Hero();
+    auto* stats = &hero->stats;
     double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     float points = AttributePoints();
     EI_NAN_AUDIT(sum, points);
@@ -696,7 +695,7 @@ int HighestFileNumber(const char* pattern) {
 
 void CMpHeroScreen::AddNewHero() {
     window.interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
-    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+    auto* hero = Hero();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon_)
@@ -711,7 +710,7 @@ void CMpHeroScreen::AddNewHero() {
     if (static_cast<int>(hero->spellCount) > 0) {
         auto* container = hero->spells[0];
         auto* spell = reinterpret_cast<char*>(container->spell_);
-        if (spell && !HeroCanUseSpell(hero->stats, spell)) {
+        if (spell && !HeroCanUseSpell(&hero->stats, spell)) {
             LocalPlayerData()->AddItem(container, 0, 1);
             hero->RemoveSpell(container);
         }
@@ -720,8 +719,8 @@ void CMpHeroScreen::AddNewHero() {
     if (MpHeroesEnd() == MpHeroesCapacity()) {
         BlankHeroRecord blank;
         blank.record.Construct();
-        libcontainers::HeroRecordAbi::InsertOverflow(reinterpret_cast<libcontainers::HeroRecords*>(&MpHeroesBegin()), nullptr,
-                                                 MpHeroesEnd(), &blank.record, 1);   // 00619920
+        static_cast<libcontainers::HeroRecordAbi*>(reinterpret_cast<libcontainers::HeroRecords*>(&MpHeroesBegin()))
+            ->InsertOverflow(MpHeroesEnd(), blank.record, 1);   // 00619920
         blank.record.Destruct();
     } else {
         if (MpHeroesEnd()) MpHeroesEnd()->Construct();

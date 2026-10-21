@@ -207,7 +207,7 @@ int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
     if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
     if (kind != 3) return 0;
     int value;
-    if (item) value = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype())->category);
+    if (item) value = static_cast<int>(item->GetPrototype()->category);
     else value = static_cast<int>(gamecrt::Ftol(Combat().attackCategory));
     float scaled = static_cast<float>(static_cast<double>(value) * factor);
     return x87::fistp(scaled);
@@ -391,7 +391,7 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
         CItemWeapon* weapon = ActiveWeapon(unit);
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
-    float offset = std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(other->GetPrototype())->height);
+    float offset = std::bit_cast<float>(other->GetPrototype()->height);
     double height = static_cast<double>(offset) + other->position.z;
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
@@ -464,7 +464,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
             out->damageType = WeaponDamageType(weapon->prototypeId_);
         } else {
             out->weaponType = Combat().naturalWeapon;
-            const auto* model = reinterpret_cast<const UnitModelRecord*>(self->GetPrototypeModel());
+            const auto* model = self->GetPrototypeModel();
             // The first damage type with a non-zero weight; left as it was when there is none.
             for (int i = 0; i < 7; ++i) {
                 float weight = std::bit_cast<float>(model->damageWeights[i]);
@@ -520,7 +520,7 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
         if (NoBackstab()) hit->backstabFactor = kOne;
         if (attacker) {
             bool backstab = hit->backstabFactor > kOne;
-            roll = AttackRoll(reinterpret_cast<CUnitServer*>(attacker->controller), backstab);
+            roll = AttackRoll(attacker->ServerController(), backstab);
         }
         if (hit->calledShot) {
             if (hit->location == 0) roll = MaxZero(roll - kCalledShotHead);
@@ -584,7 +584,7 @@ EI_REWRITTEN(0x0054F630, CUnitServer::BuildAttackHit);
 BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char calledShot) {
     int backstab = unit->IsBehind(target) & 0xFF;
     if (target->GetClassId() == kClassUnit &&
-        reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(target)->controller)->NoBackstab())
+        static_cast<CUnit*>(target)->ServerController()->NoBackstab())
         backstab = 0;
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow))
@@ -648,7 +648,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (attacker->type_ != kUnitTypeHero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);
                 } else {
-                    auto* controller = reinterpret_cast<CUnitServer*>(attacker->controller);
+                    auto* controller = attacker->ServerController();
                     CItemWeapon* own = ActiveWeapon(controller->unit);
                     if (own) LastDamageSource(unit) = static_cast<std::int16_t>(own->GetType());
                     else LastDamageSource(unit) = static_cast<std::int16_t>(controller->Combat().naturalWeapon);
@@ -662,7 +662,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             if (!dead) {
                 OnDamaged(attacker, hit->hitKind);
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
-                    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+                    const auto* prototype = unit->GetPrototype();
                     if (IsMultiplayerClient() & 0xFF) {
                         world->AwardExperience(nullptr, std::bit_cast<float>(prototype->experienceValue));
                         return 1;
@@ -703,7 +703,7 @@ void CUnitServer::UpdateSizeClasses() {
         return;
     }
     float load = static_cast<float>(unit->BodyExtent());
-    const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
+    const auto* model = unit->GetPrototypeModel();
     double size = unit->DoubleHeight() * std::bit_cast<float>(model->sizeScale);
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);
@@ -743,7 +743,7 @@ void CUnitServer::UpdateMoveFactors() {
     }
     if (state == 5 && (action.kind == 4 || action.kind == 5)) {
         CSpell* spell = SpellOfSource(action.source);
-        if (spell && reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype())->castType != 1)
+        if (spell && spell->GetPrototype()->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];
     }
     if (state != 0) {

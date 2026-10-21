@@ -204,7 +204,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
     for (CEngineObject* object = node->value; object; object = node->value) {
         if (CUnit* unit = UnitOrNull(object)) {
             if (!unit->player) {
-                AIBrain* brain = reinterpret_cast<CUnitServer*>(unit->controller)->Brain();
+                AIBrain* brain = unit->ServerController()->Brain();
                 BrainHearAlarm(brain, nullptr, index);
                 if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }

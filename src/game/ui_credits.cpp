@@ -84,7 +84,7 @@ BOOL CCreditsScreen::Draw(int pass) {
         Close();
         return 1;
     }
-    return reinterpret_cast<CUiContainer*>(this)->DrawContainer(pass);
+    return window.DrawContainer(pass);
 }
 EI_REPLACE_METHOD(0x0062BD80, CCreditsScreen::Draw);
 

@@ -27,7 +27,7 @@ namespace mapdb {
 namespace {
 
 // The text manager (item_db_text.h) as the loader uses it. Not rewritten.
-struct TextReader {
+struct TextReader : CTextManager {
     mfc::BOOL Open(const char* name);                          // 004DEFC0: finds the text, cursor at its start
     mfc::BOOL NextHeader();                                    // 004DF030 (null key): the next "#" line; false at the end
     int Split(console::CStringArray* words, int flag);         // 004DFCB0: the current line's words
@@ -36,9 +36,9 @@ struct TextReader {
 mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 mfc::BOOL TextReader::NextHeader() { return ::TextFindLineOriginal(this, nullptr, nullptr); }
 int TextReader::Split(console::CStringArray* words, int flag) {
-    return reinterpret_cast<CTextManager*>(this)->Split(words, flag);
+    return CTextManager::Split(words, flag);
 }
-mfc::BOOL TextReader::Close() { return TextClose(reinterpret_cast<CTextManager*>(this)); }
+mfc::BOOL TextReader::Close() { return TextClose(this); }
 TextReader* TheTextReader() { return ei::GameData<TextReader*>(0x007AF788); }
 
 // Element constructors / destructors of the record arrays: the allods' (00460720 / 004606F0), the

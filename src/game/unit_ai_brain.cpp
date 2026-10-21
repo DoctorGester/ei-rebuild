@@ -223,8 +223,8 @@ void AIBrain::AddAggressionMode() {
     auto* mode = NewMode<AggressionMode>(aimode::kAggressionVtable);
     if (mode) {
         mode->enemy = nullptr;
-        mode->chosen = nullptr;
-        mode->enemyPart = -1;
+        mode->chosen.object = nullptr;
+        mode->chosen.part = -1;
         mode->fixed = 0;
     }
     AddMode(mode);
@@ -549,8 +549,8 @@ AIMode* NewModeOfType(int type) {
     case kModeAggression: {
         auto* mode = NewMode<AggressionMode>(aimode::kAggressionVtable);
         mode->enemy = nullptr;
-        mode->chosen = nullptr;
-        mode->enemyPart = -1;
+        mode->chosen.object = nullptr;
+        mode->chosen.part = -1;
         mode->fixed = 0;
         return mode;
     }

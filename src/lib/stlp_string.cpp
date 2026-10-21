@@ -13,26 +13,26 @@
 
 namespace stlp {
 
-void __fastcall StringAbi::RangeInitialize(string* self, void*, const char* first, const char* last) {
-    self->InitRange(first, last);
+void StringAbi::RangeInitialize(const char* first, const char* last) {
+    InitRange(first, last);
 }
 
-void __fastcall StringAbi::RangeInitializeTagged(string* self, void*, const char* first, const char* last, std::uint32_t) {
-    self->InitRange(first, last);
+void StringAbi::RangeInitializeTagged(const char* first, const char* last, std::uint32_t) {
+    InitRange(first, last);
 }
 
-string* __fastcall StringAbi::CopyConstruct(string* self, void*, const string* from) {
-    self->InitRange(from->start_, from->finish_);
-    return self;
+string* StringAbi::CopyConstruct(const string* from) {
+    InitRange(from->start_, from->finish_);
+    return this;
 }
 
 void __fastcall StringAbi::ConstructAt(string* p, const string* from) {
     if (p) p->InitRange(from->start_, from->finish_);
 }
 
-string* __fastcall StringAbi::ConstructFromText(string* self, void*, const char* text, const void*) {
-    self->InitRange(text, text + std::strlen(text));
-    return self;
+string* StringAbi::ConstructFromText(const char* text, const void*) {
+    InitRange(text, text + std::strlen(text));
+    return this;
 }
 
 string* __fastcall StringAbi::ConstructDefault(string* self) {
@@ -42,46 +42,46 @@ string* __fastcall StringAbi::ConstructDefault(string* self) {
     return self;
 }
 
-string* __fastcall StringAbi::ConstructWithCapacity(string* self, void*, const void*, std::size_t n) {
-    self->start_ = self->finish_ = n ? static_cast<char*>(allocate(n)) : nullptr;
-    self->eos_ = self->start_ + n;
-    return self;
+string* StringAbi::ConstructWithCapacity(const void*, std::size_t n) {
+    start_ = finish_ = n ? static_cast<char*>(allocate(n)) : nullptr;
+    eos_ = start_ + n;
+    return this;
 }
 
-string* __fastcall StringAbi::Append(string* self, void*, const char* first, const char* last, std::uint32_t) {
-    self->Append(first, last);
-    return self;
+string* StringAbi::Append(const char* first, const char* last, std::uint32_t) {
+    string::Append(first, last);
+    return this;
 }
 
-string* __fastcall StringAbi::AppendRange(string* self, void*, const char* first, const char* last) {
-    self->Append(first, last);
-    return self;
+string* StringAbi::AppendRange(const char* first, const char* last) {
+    string::Append(first, last);
+    return this;
 }
 
-string* __fastcall StringAbi::AssignRange(string* self, void*, const char* first, const char* last) {
-    self->Assign(first, last);
-    return self;
+string* StringAbi::AssignRange(const char* first, const char* last) {
+    Assign(first, last);
+    return this;
 }
 
-string* __fastcall StringAbi::AssignRangeTagged(string* self, void*, const char* first, const char* last, std::uint32_t) {
-    self->Assign(first, last);
-    return self;
+string* StringAbi::AssignRangeTagged(const char* first, const char* last, std::uint32_t) {
+    Assign(first, last);
+    return this;
 }
 
-string* __fastcall StringAbi::AssignString(string* self, void*, const string* from) {
-    if (from != self) self->Assign(from->start_, from->finish_);
-    return self;
+string* StringAbi::AssignString(const string* from) {
+    if (from != this) Assign(from->start_, from->finish_);
+    return this;
 }
 
-string* __fastcall StringAbi::AssignText(string* self, void*, const char* text) {
-    self->Assign(text, text + std::strlen(text));
-    return self;
+string* StringAbi::AssignText(const char* text) {
+    Assign(text, text + std::strlen(text));
+    return this;
 }
 
-char* __fastcall StringAbi::Erase(string* self, void*, char* first, char* last) {
+char* StringAbi::Erase(char* first, char* last) {
     if (first != last) {
-        std::memmove(first, last, static_cast<std::size_t>(self->finish_ - last) + 1);
-        self->finish_ -= last - first;
+        std::memmove(first, last, static_cast<std::size_t>(finish_ - last) + 1);
+        finish_ -= last - first;
     }
     return first;
 }
@@ -93,30 +93,30 @@ string string::substr(std::size_t pos, std::size_t n) const {
     return string(start_ + pos, start_ + pos + length);
 }
 
-string* __fastcall StringAbi::Substr(const string* self, void*, string* out, std::size_t pos, std::size_t n) {
-    return new (out) string(self->substr(pos, n));
+string* StringAbi::Substr(string* out, std::size_t pos, std::size_t n) const {
+    return new (out) string(substr(pos, n));
 }
 
-void __fastcall StringAbi::Reserve(string* self, void*, std::size_t n) {
-    std::size_t size = self->size();
-    std::size_t capacity = std::max(size, n) + 1;
+void StringAbi::Reserve(std::size_t n) {
+    std::size_t length = size();
+    std::size_t capacity = std::max(length, n) + 1;
     char* fresh = static_cast<char*>(allocate(capacity));
-    std::memcpy(fresh, self->start_, size);
-    fresh[size] = 0;
-    self->Release();
-    self->start_ = fresh;
-    self->finish_ = fresh + size;
-    self->eos_ = fresh + capacity;
+    std::memcpy(fresh, start_, length);
+    fresh[length] = 0;
+    Release();
+    start_ = fresh;
+    finish_ = fresh + length;
+    eos_ = fresh + capacity;
 }
 
-void __fastcall StringAbi::PushBack(string* self, void*, char c) {
-    if (self->finish_ + 1 == self->eos_) {
-        std::size_t size = self->size();
-        Reserve(self, nullptr, size + std::max<std::size_t>(size, 1));
+void StringAbi::PushBack(char c) {
+    if (finish_ + 1 == eos_) {
+        std::size_t length = size();
+        Reserve(length + std::max<std::size_t>(length, 1));
     }
-    self->finish_[1] = 0;
-    *self->finish_ = c;
-    ++self->finish_;
+    finish_[1] = 0;
+    *finish_ = c;
+    ++finish_;
 }
 
 bool __fastcall StringAbi::Less(const string* a, const string* b) { return *a < *b; }
@@ -129,10 +129,10 @@ int __fastcall StringAbi::Compare(const char* first1, const char* last1, const c
     return n1 < n2 ? -1 : n1 > n2 ? 1 : 0;
 }
 
-string* __fastcall StringAbi::DeletingDestructor(string* self, void*, unsigned flags) {
-    self->Release();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+string* StringAbi::DeletingDestructor(unsigned flags) {
+    Release();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
 
 } // namespace stlp
@@ -141,9 +141,9 @@ using stlp::StringAbi;
 
 namespace stlp {
 
-void __fastcall StringAbi::AllocateBlock(string* self, void*, std::size_t n) {
-    self->start_ = self->finish_ = static_cast<char*>(allocate(n));
-    self->eos_ = self->start_ + n;
+void StringAbi::AllocateBlock(std::size_t n) {
+    start_ = finish_ = static_cast<char*>(allocate(n));
+    eos_ = start_ + n;
 }
 
 void StringAbi::Join(string* out, const string& a, const char* first, const char* last) {

@@ -43,7 +43,7 @@ void OwnerCall(CUiWindow* owner, int slot) {
     using Fn = void(__thiscall*)(CUiWindow*);
     ei::VirtualSlot<Fn>(owner->vtable_, slot)(owner);
 }
-UnitStats* StatsOf(PartyUnitRecord* hero) { return reinterpret_cast<UnitStats*>(hero->stats); }
+UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 // An attribute pair (its base and current value, kept equal on this page).
 void SetAttribute(float& base, float& current, float value) {

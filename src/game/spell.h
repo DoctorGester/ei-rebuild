@@ -38,7 +38,7 @@ public:
     BOOL InitFromPrototype(const char* prototype);
 
     // 0068BA20. The spell's prototype record, or null if the index is out of range.
-    char* GetPrototype();
+    itemdb::SpellRecord* GetPrototype();
 
     // 0068BA60. Number of modifiers (the list ends at the first zero, at most 8).
     int GetModifierCount();

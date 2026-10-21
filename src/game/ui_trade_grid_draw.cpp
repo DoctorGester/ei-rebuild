@@ -29,11 +29,11 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // 005ECA10 (thiscall on the grid's +0x14C object): draws an item's model in a cell.
 // The window's surface text helpers (Rebirth patches 005FDE20).
-struct SurfaceText {
-    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }
+struct SurfaceText : CUiSurface {
+    void* Begin() { return UiSurfaceGetDC(this); }
     void Clear() { SurfaceClearOriginal(this); }
     int Draw(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);
-    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }
+    void End() { UiSurfaceReleaseDC(this); }
 };
 int SurfaceText::Draw(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
@@ -89,7 +89,7 @@ int CTradeGrid::DrawGrid(int pass) {
     DrawBase(pass);
 
     mfc::CString text;
-    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
+    auto* surface = static_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
     DrawItems(this, pass, bought_, surface, text, 150.0f /*0073D618*/, 48.0f, 24.0f, 0x0F, 0x41,

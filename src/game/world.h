@@ -988,19 +988,22 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
 
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
-using SectorList = stlp::list<CEngineObject*>;
+struct SectorCellObjects : stlp::list<CEngineObject*> {
+    // 00572B30 / 00572C50 (RET 4; S13, world_client_maps.cpp): the cells' vector deleting
+    // destructor, on the first list of `this` array. Bit 1 of `flags`: it is a new[] block (its count
+    // in the dword before it), every list destroyed from the last; else the one list. Bit 0: the
+    // memory freed. Returns the block.
+    SectorCellObjects* VectorDelete(unsigned flags);
+};
+using SectorList = SectorCellObjects;
 using SectorListNode = SectorList::Node;
-// 00572B30 / 00572C50 (RET 4; S13, world_client_maps.cpp): the cells' vector deleting
-// destructor. Bit 1 of `flags`: `cells` is a new[] block (its count in the dword before it), every
-// list destroyed from the last; else the one list. Bit 0: the memory freed. Returns the block.
-SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flags);
 // A cell's list destroyed (world_client_maps.cpp; STLport's list<counted pointer>::~list, 0056DEF0
 // / 00572E90, inlined by the client's destructor for its heroes): each object released (slot 4)
 // and its node returned to the pool, the sentinel last.
-void DestroySectorList(SectorList* list);
+void DestroySectorList(stlp::list<CEngineObject*>* list);
 // 0056DEF0 (world_client_maps.cpp, S3c): the same at its address, which only the exit function
 // 0056A4C0 calls (on the deferred unit list 007AF5B4).
-void __fastcall SectorListDestruct(SectorList* list);
+void __fastcall SectorListDestruct(stlp::list<CEngineObject*>* list);
 struct SectorGrid {
     SectorList* cells_;                   // +0x00 the lists
     SectorList** rows_;                   // +0x04 row y: its lists
@@ -1012,7 +1015,7 @@ struct SectorGrid {
     // row pointers.
     void Allocate();
     // 00572450 / 005724F0 (RET 8). When the storage has another size: the lists destroyed and the
-    // storage freed (SectorListsDelete, flags 3), the size taken, then Allocate.
+    // storage freed (SectorList::VectorDelete, flags 3), the size taken, then Allocate.
     void Resize(int width, int height);
     // 00570860 (RET 8; CWorldClient slot 41 on +0x120, also 0067BEF0 / 0067CEF0). Moves `object`
     // to `position` (stored at object +0x1C): when the cell (FISTP of x and y, >> 4) changes, out
@@ -1062,7 +1065,8 @@ using PendingMap = PendingIndex;
 // The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
 // CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
 // SetAtGrow 0059D2E0: the plain CArray members).
-using RecordPtrArray = mfc::CArray<std::uint8_t*>;
+struct PartyUnitRecord;   // unit.h
+using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
 struct RecordBytes : stlp::vector<std::uint8_t> {
     // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
     const std::uint8_t* At50(std::uint32_t index) const;

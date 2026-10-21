@@ -35,7 +35,7 @@ void* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 // list (vtable 0073D454, block size 10; destructor 00427830).
 
 // A unit's prototype record (00530930): its name and, at +4, its model name (the race).
-static const UnitPrototypeRecord* UnitPrototype(void* unit) { return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype()); }
+static const UnitPrototypeRecord* UnitPrototype(void* unit) { return static_cast<CUnit*>(unit)->GetPrototype(); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 

@@ -180,27 +180,21 @@ private:
 // The game's instantiations are __thiscall members, declared here as __fastcall functions with the
 // unused EDX second; the destroy helpers are __stdcall functions of two iterators by value.
 template <typename T>
-struct DequeAbi {
+struct DequeAbi : deque<T> {
     using Deque = deque<T>;
     using Iterator = typename Deque::Iterator;
 
     // deque(const allocator_type&, n) (RET 8): returns this.
-    static Deque* __fastcall Construct(Deque* self, void*, const void* /*allocator*/, std::size_t n) {
-        self->Construct(n);
-        return self;
+    Deque* Construct(const void* /*allocator*/, std::size_t n) {
+        Deque::Construct(n);
+        return this;
     }
-    // _M_initialize_map(n) (RET 4).
-    static void __fastcall InitializeMap(Deque* self, void*, std::size_t n) { self->InitializeMap(n); }
+    // _M_initialize_map(n) (RET 4), _M_push_back_aux(x) (RET 4) and _M_reallocate_map(add, atFront)
+    // (RET 8; the flag is the low byte of its slot) are deque's own members, registered through this type.
     // _M_create_nodes(nstart, nfinish) (RET 8): the deque itself is not read.
-    static void __fastcall CreateNodes(Deque*, void*, T** nstart, T** nfinish) { Deque::CreateNodes(nstart, nfinish); }
+    void CreateNodes(T** nstart, T** nfinish) { Deque::CreateNodes(nstart, nfinish); }
     // ~deque().
     static void __fastcall Destruct(Deque* self) { self->Destroy(); }
-    // _M_push_back_aux(x) (RET 4).
-    static void __fastcall PushBackAux(Deque* self, void*, const T* x) { self->PushBackAux(*x); }
-    // _M_reallocate_map(add, atFront) (RET 8): the flag is the low byte of its slot.
-    static void __fastcall ReallocateMap(Deque* self, void*, std::size_t add, std::uint32_t atFront) {
-        self->ReallocateMap(add, static_cast<std::uint8_t>(atFront) != 0);
-    }
 };
 
 } // namespace stlp

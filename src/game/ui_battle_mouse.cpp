@@ -98,7 +98,7 @@ void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
         return;
     }
     out->Empty();
-    name = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name;
+    name = unit->GetPrototype()->name;
     text::ReplaceChar(&name, ' ', '_');
     if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
 }

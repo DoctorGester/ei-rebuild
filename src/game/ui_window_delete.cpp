@@ -45,7 +45,7 @@ void FreeVectorStorage(T* begin, T* capacity) {
 void DestroyPersonTexts(PersonTextMap& map) {
     PersonTextNode* header = map.end();
     if (map.size() != 0) {
-        lib_trees::PersonTexts::EraseSubtree(&map, nullptr, header->parent);
+        static_cast<lib_trees::PersonTexts*>(&map)->EraseSubtree(header->parent);
         map.ResetToEmpty();
     }
     stlp::deallocate(map.end(), sizeof(PersonTextNode));

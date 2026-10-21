@@ -104,7 +104,7 @@ int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
 // The world time of an object's world (00455950).
 int WorldTick(const void* object) { return ObjectWorld(static_cast<const CEngineObject*>(object))->tick_; }
 // The prototype's height offset (UnitPrototypeRecord +0x24).
-float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height); }
+float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetPrototype()->height); }
 // The messages of a unit's player (CPlayer::connection_).
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
@@ -573,7 +573,7 @@ int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
     if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN
     int base;
     if (weapon) {
-        base = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(weapon->GetPrototype())->category);
+        base = static_cast<int>(weapon->GetPrototype()->category);
     } else {
         double value = self->Combat().attackCategory;
         // _ftol (006E853C), as the original truncates it.
@@ -682,7 +682,7 @@ void CUnitServer::ExecuteOrder() {
             // The action starts now.
             bool fresh = true;
             if (CUnit* other = UnitOrNull(action.target)) {
-                auto* theirs = reinterpret_cast<CUnitServer*>(other->controller);
+                auto* theirs = other->ServerController();
                 if (reinterpret_cast<CEngineObject*>(theirs->action.target) == unit) fresh = false;
             }
             bool missed = false;
@@ -690,7 +690,7 @@ void CUnitServer::ExecuteOrder() {
                 char calledShot = static_cast<char>(plan->notSkill);
                 int location = plan->hitLocation;
                 auto* victim = static_cast<CUnit*>(action.target);
-                auto* defender = reinterpret_cast<CUnitServer*>(victim->controller);
+                auto* defender = victim->ServerController();
                 ManagerContext();
                 int backstab = unit->IsBehind(victim) & 0xFF;
                 if (victim->GetClassId() == kClassUnit && defender->NoBackstab()) backstab = 0;
@@ -794,7 +794,7 @@ void CUnitServer::ApproachTarget() {
     CEngineObject* chased = target;
     if (followsLeader) {
         CUnit* leader = followedLeader;
-        auto* theirs = reinterpret_cast<CUnitServer*>(leader->controller);
+        auto* theirs = leader->ServerController();
         if (theirs->action.target == target &&
             (theirs->action.kind == kOrderAttack || theirs->action.kind == kOrderCast || theirs->action.kind == kOrderCastAt) &&
             theirs->state != kStateCasting) {

@@ -108,7 +108,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         return nullptr;
     }
     if ((IsTextKey(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
+    auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;
 
     if (kind == 0x25 || kind == 0x26) {
@@ -137,8 +137,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     } else if (kind <= 0x32) {
         ModelAcks* record = db.models.Find(prototype->name);
         if (!record) {
-            auto* model = reinterpret_cast<const UnitModelRecord*>(
-                unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+            auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
             record = db.models.Find(model->name);
             if (!record) return nullptr;
         }
@@ -166,7 +165,7 @@ EI_REWRITTEN(0x006D8430, SayAck);
 
 const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
+    auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;
     UnitAcks* record = Database().units.Find(prototype->name);
     if (!record) return nullptr;
@@ -194,15 +193,14 @@ void SpeechFields(ChunkArchive* ar, SpeechRecord* speech) {
 
 // Chunk `id` of a list, if present: loading empties the list (its elements destroyed in order) and
 // sizes it to the number of element chunks (id 1); then element i is chunk 1's (i + 1)-th occurrence.
-template <typename T, typename Fields>
-void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list,
-               void(__fastcall* resize)(stlp::vector<T>*, void*, unsigned), Fields fields) {
+template <typename T, typename Abi, typename Fields>
+void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list, void (Abi::*resize)(std::size_t), Fields fields) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
         list->clear();
         count = ar->CountChunks(1);
-        resize(list, nullptr, static_cast<unsigned>(count));
+        (static_cast<Abi*>(list)->*resize)(static_cast<std::size_t>(count));
     } else {
         count = static_cast<int>(list->size());
     }
@@ -234,12 +232,12 @@ void ChunkArchive::SerializeSpeech(int id, void* speech) {
 }
 void ChunkArchive::SerializeSpeechList(int id, void* list, void*) {
     ChunkArchive* ar = this;
-    ListField(ar, id, static_cast<SpeechList*>(list), recordvec::SpeechVector::ResizeDefault,
+    ListField(ar, id, static_cast<SpeechList*>(list), &recordvec::SpeechVector::ResizeDefault,
               [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
 }
 void ChunkArchive::SerializeEnvironmentSpeeches(int id, void* list, void*) {
     ChunkArchive* ar = this;
-    ListField(ar, id, static_cast<stlp::vector<EnvironmentSpeech>*>(list), recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
+    ListField(ar, id, static_cast<stlp::vector<EnvironmentSpeech>*>(list), &recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
         SpeechFields(ar, &speech->speech);
         ar->Field(10, &speech->environment, 4);
     });

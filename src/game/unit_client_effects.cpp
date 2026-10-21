@@ -100,7 +100,7 @@ std::uint32_t DecalVariant() { return static_cast<std::uint32_t>(gamecrt::rand()
 std::uint32_t DecalKind(std::uint32_t variant, std::uint32_t blood) { return variant | (blood + 0xFFFF) << 16; }
 
 const UnitModelRecord* ModelOf(CUnit* unit) {
-    return reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
+    return unit->GetPrototypeModel();
 }
 
 // The smaller of the unit's two horizontal extents (the original's select keeps +0x148 for NaN).
@@ -129,8 +129,7 @@ const itemdb::MaterialRecordHead* ArmourMaterial(const CUnitClientSpecific* self
 std::uint8_t HitSoundKind(CUnit* unit) {
     std::uint16_t weapon = static_cast<std::uint16_t>(unit->Params()->lastHitSource);
     if (weapon < kFirstPrototypeWeapon) return static_cast<std::uint8_t>(weapon);
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(
-        unitdb::Prototypes().RecordAt(weapon - kFirstPrototypeWeapon, unitdb::kPrototypeSize));
+    const auto* prototype = unitdb::PrototypeRecord(weapon - kFirstPrototypeWeapon);
     return prototype ? static_cast<std::uint8_t>(prototype->hitSoundKind) : kNoSoundKind;
 }
 } // namespace

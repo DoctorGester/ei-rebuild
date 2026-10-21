@@ -37,7 +37,7 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
     if (ar->loading_) {
         StringsClear(strings);
         count = ar->CountChunks(1);
-        stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>::ResizeDefault(strings, nullptr, static_cast<std::uint32_t>(count));   // 0051F5B0
+        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(strings)->ResizeDefault(static_cast<std::uint32_t>(count));   // 0051F5B0
     } else {
         count = static_cast<int>(strings->size());
     }
@@ -200,8 +200,8 @@ namespace {
 // original erases them through stlp::copy of an empty range first), empties the vector and resizes
 // it to the count of chunks 1. Each record's chunk is the next occurrence (set before entering it);
 // the vector's start is read before entering.
-template <typename Record, typename Destroy, typename Resize>
-void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, Destroy destroy, Resize resize,
+template <typename Record, typename Destroy, typename Abi>
+void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, Destroy destroy, void (Abi::*resize)(std::size_t),
                       void (Record::*serialize)(ChunkArchive*)) {
     if (!ar->EnterChunk(id)) return;
     int count;
@@ -209,7 +209,7 @@ void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, D
         for (Record* record = records->begin(); record != records->end(); ++record) destroy(record);
         records->Finish() = records->Start();
         count = ar->CountChunks(1);
-        resize(records, nullptr, static_cast<std::uint32_t>(count));
+        (static_cast<Abi*>(records)->*resize)(static_cast<std::size_t>(count));
     } else {
         count = static_cast<int>(records->size());
     }
@@ -230,24 +230,24 @@ void DestroyLevelName(UnitLevelRecord* record) { record->name.~CString(); }
 
 void ChunkArchive::SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void*) {
     SerializeRecords(this, id, records, [](UnitPrototypeRecord* r) { unitdb::DestroyPrototypeRecord(r); },
-                     recordvec::UnitPrototypeVector::ResizeDefault, &UnitPrototypeRecord::Serialize);
+                     &recordvec::UnitPrototypeVector::ResizeDefault, &UnitPrototypeRecord::Serialize);
 }
 EI_REWRITTEN(0x0053DC10, ChunkArchive::SerializePrototypes);
 
 void ChunkArchive::SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitNpcRecord* r) { unitdb::DestroyNpcRecord(r); }, recordvec::UnitNpcVector::ResizeDefault,
+    SerializeRecords(this, id, records, [](UnitNpcRecord* r) { unitdb::DestroyNpcRecord(r); }, &recordvec::UnitNpcVector::ResizeDefault,
                      &UnitNpcRecord::Serialize);
 }
 EI_REWRITTEN(0x0053DD00, ChunkArchive::SerializeNpcs);
 
 void ChunkArchive::SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void*) {
     SerializeRecords(this, id, records, [](UnitModelRecord* r) { unitdb::DestroyModelRecord(r); },
-                     recordvec::UnitModelVector::ResizeDefault, &UnitModelRecord::Serialize);
+                     &recordvec::UnitModelVector::ResizeDefault, &UnitModelRecord::Serialize);
 }
 EI_REWRITTEN(0x0053DF50, ChunkArchive::SerializeModels);
 
 void ChunkArchive::SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void*) {
-    SerializeRecords(this, id, records, DestroyLevelName, recordvec::UnitLevelVector::ResizeDefault, &UnitLevelRecord::Serialize);
+    SerializeRecords(this, id, records, DestroyLevelName, &recordvec::UnitLevelVector::ResizeDefault, &UnitLevelRecord::Serialize);
 }
 EI_REWRITTEN(0x0053E1B0, ChunkArchive::SerializeUnitLevels);
 
@@ -315,7 +315,7 @@ void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, vo
         for (SkillRecord* record = skills->begin(); record != skills->end(); ++record) record->Destruct();
         skills->Finish() = skills->Start();
         count = CountChunks(1);
-        recordvec::SkillVector::ResizeDefault(skills, nullptr, static_cast<std::uint32_t>(count));
+        static_cast<recordvec::SkillVector*>(skills)->ResizeDefault(static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(skills->size());
     }
@@ -338,7 +338,7 @@ void ChunkArchive::SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* 
         for (SkillLevelRecord* record = levels->begin(); record != levels->end(); ++record) record->Destruct();
         levels->Finish() = levels->Start();
         count = CountChunks(1);
-        recordvec::SkillLevelVector::ResizeDefault(levels, nullptr, static_cast<std::uint32_t>(count));
+        static_cast<recordvec::SkillLevelVector*>(levels)->ResizeDefault(static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(levels->size());
     }

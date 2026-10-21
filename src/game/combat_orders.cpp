@@ -42,10 +42,10 @@ AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 
 // The prototype records behind a spell and a unit.
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
-    return reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype());
+    return spell->GetPrototype();
 }
 const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+    return unit->GetPrototype();
 }
 
 // The inlined reset of an order: kind 9, target released, flag18 / +0x1C / +0x20 cleared.

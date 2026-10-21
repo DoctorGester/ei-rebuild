@@ -92,8 +92,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     // The commanded target first, when it can be reached from here.
     if (target && MapObject(target)->IsDead() == 0) {
-        int partAndObject[2] = {-1, static_cast<int>(reinterpret_cast<std::uintptr_t>(target.object))};
-        if (brain->attention.CanReach(brain, partAndObject, 1)) {
+        AITargetChoice choice{-1, target.object};
+        if (brain->attention.CanReach(brain, &choice, 1)) {
             Attack(brain, target, false);
             return;
         }
@@ -101,7 +101,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     AIObjectList candidates;
     InitList(candidates);
-    int best[2] = {-1, 0};          // {part, object}
+    AITargetChoice best{-1, nullptr};
     float radius;
     if (state == kStateMoveTo) {
         radius = GameLogicSettings().swarmRadius;
@@ -127,10 +127,10 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     AddPartyTargets(brain, &candidates);
     unit->flags_ |= kChoosingFlag;
-    brain->ChooseTarget(best, &candidates, PositionOf(unit), 0, 0);
+    brain->ChooseTarget(&best, &candidates, PositionOf(unit), 0, 0);
     unit->flags_ &= ~kChoosingFlag;
 
-    auto* chosen = reinterpret_cast<CEngineObject*>(best[1]);
+    CEngineObject* chosen = best.object;
     if (chosen) {
         if (!DirectlyControlled(brain->owner->unit)) {
             // The other followers that are not fighting stop following.
@@ -153,9 +153,9 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
             }
             party.RemoveAll();
         }
-        int now[2] = {-1, 0};
-        brain->attention.CurrentAttack(brain, now);
-        if (now[1] != best[1] || now[0] != best[0]) Attack(brain, chosen, true);
+        AITargetChoice now{-1, nullptr};
+        brain->attention.CurrentAttack(brain, &now);
+        if (now.object != best.object || now.part != best.part) Attack(brain, chosen, true);
         if (target) {
             target.Reset();
             target = nullptr;

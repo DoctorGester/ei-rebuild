@@ -387,24 +387,23 @@ EI_REPLACE_METHOD(0x005302F0, CUnit::ModeSpeed);
 
 // --- Prototypes ------------------------------------------------------------------------------
 
-char* CUnit::GetPrototype() { return unitdb::Prototypes().RecordAt(prototypeId_, unitdb::kPrototypeSize); }
+UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId_); }
 EI_REPLACE_METHOD(0x00530930, CUnit::GetPrototype);
 
-char* CUnit::GetPrototypeModel() {
-    char* prototype = unitdb::Prototypes().RecordAt(prototypeId_, unitdb::kPrototypeSize);
+UnitModelRecord* CUnit::GetPrototypeModel() {
+    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId_);
     if (!prototype) return nullptr;
-    return unitdb::Models().RecordAt(static_cast<std::uint32_t>(reinterpret_cast<const UnitPrototypeRecord*>(prototype)->modelIndex),
-                               unitdb::kModelSize);
+    return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
 EI_REPLACE_METHOD(0x00530970, CUnit::GetPrototypeModel);
 
-char* CUnit::GetPrototype23C() {
-    return unitdb::Prototypes().RecordAt(static_cast<std::uint32_t>(prototype23C), unitdb::kPrototypeSize);
+UnitPrototypeRecord* CUnit::GetPrototype23C() {
+    return unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
 }
 EI_REPLACE_METHOD(0x005309E0, CUnit::GetPrototype23C);
 
-std::uint32_t CUnit::SetPrototype23C(const char* record) {
-    int offset = static_cast<int>(record - unitdb::Prototypes().begin);
+std::uint32_t CUnit::SetPrototype23C(const UnitPrototypeRecord* record) {
+    int offset = static_cast<int>(reinterpret_cast<const char*>(record) - unitdb::Prototypes().begin);
     prototype23C = offset / unitdb::kPrototypeSize;
     return offset < 0 ? 1u : 0u;   // EAX: the sign of the unadjusted quotient
 }

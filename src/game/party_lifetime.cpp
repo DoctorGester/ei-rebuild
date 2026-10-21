@@ -115,18 +115,18 @@ PartyUnitRecord* PartyUnitRecord::DeletingDestruct(unsigned flags) {
 }
 EI_REWRITTEN(0x00664AC0, PartyUnitRecord::DeletingDestruct);
 
-void __fastcall DestructPartyMemberArray(PartyMemberArray* array) {
-    array->vtable = ei::GamePointer<void>(kPartyMemberArrayVtable);
-    array->FreeData();
+void PartyMemberArray::Destruct() {
+    vtable = ei::GamePointer<void>(kPartyMemberArrayVtable);
+    FreeData();
 }
-EI_REWRITTEN(0x00664160, DestructPartyMemberArray);
+EI_REWRITTEN(0x00664160, PartyMemberArray::Destruct);
 
-PartyMemberArray* __fastcall DeletePartyMemberArray(PartyMemberArray* array, void*, unsigned flags) {
-    DestructPartyMemberArray(array);
-    if (flags & 1) gamecrt::operator_delete(array);
-    return array;
+PartyMemberArray* PartyMemberArray::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00664470, DeletePartyMemberArray);
+EI_REPLACE_METHOD(0x00664470, PartyMemberArray::DeletingDestruct);
 
 EI_REWRITTEN(0x00663FA0, PartyMemberArray::SetSize);
 // 006641D0 (A-H17): CArray<PartyUnitRecord>::Serialize, slot 2 of the array's vtable 00742FF4; no

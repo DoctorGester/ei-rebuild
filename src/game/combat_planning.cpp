@@ -306,7 +306,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             } else {
                 spell = unit->GetSpellObject(source);
             }
-            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype())->castType == 0) kind = 2;
+            if (!skip && spell && spell->GetPrototype()->castType == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {

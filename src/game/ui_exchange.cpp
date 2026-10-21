@@ -151,7 +151,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
     return memory ? memory->Construct(ui, 0, top, 200, bottom, kSurfaceFormat, 1) : nullptr;
 }
 
-CUiContainer* AsContainer(CExchangeScreen* screen) { return reinterpret_cast<CUiContainer*>(screen); }
+CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }
 
 // 0041E220 (net::ClientFindParty): the partner's offer that pairs with ours, or null.
 net::PartyMessage* ClientFindPartyAt(net::ClientSession* client) {

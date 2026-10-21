@@ -100,35 +100,35 @@ int CInterface3D::ScalePointFromScreenCopy(POINT* point) const {
 
 // The hooks: with Rebirth's code in place these are also reached with ECX 0, i.e. without an
 // interface (addon's entries 005F7D9E / 005F7DFE, its code at 005FDE94; ui_widescreen.h).
-int __fastcall ScaleRectToScreenEntry(const CInterface3D* self, void*, RECT* rect) {
-    if (!self && widescreen::Active()) return widescreen::RectToScreen(rect, false);
-    return self->CInterface3D::ScaleRectToScreen(rect);
+int CInterface3D::ScaleRectToScreenEntry(RECT* rect) const {
+    if (!this && widescreen::Active()) return widescreen::RectToScreen(rect, false);
+    return ScaleRectToScreen(rect);
 }
-EI_REPLACE(0x005F7CA0, ScaleRectToScreenEntry);
+EI_REPLACE_METHOD(0x005F7CA0, CInterface3D::ScaleRectToScreenEntry);
 
-int __fastcall ScalePointToScreenEntry(const CInterface3D* self, void*, POINT* point) {
-    if (!self && widescreen::Active()) return widescreen::PointToScreen(point, false);
-    return self->CInterface3D::ScalePointToScreen(point);
+int CInterface3D::ScalePointToScreenEntry(POINT* point) const {
+    if (!this && widescreen::Active()) return widescreen::PointToScreen(point, false);
+    return ScalePointToScreen(point);
 }
-EI_REPLACE(0x005F7D20, ScalePointToScreenEntry);
+EI_REPLACE_METHOD(0x005F7D20, CInterface3D::ScalePointToScreenEntry);
 
-int __fastcall ScalePointFromScreenCopyEntry(const CInterface3D* self, void*, POINT* point) {
-    if (!self && widescreen::Active()) return widescreen::PointFromScreen(point, false);
-    return self->CInterface3D::ScalePointFromScreenCopy(point);
+int CInterface3D::ScalePointFromScreenCopyEntry(POINT* point) const {
+    if (!this && widescreen::Active()) return widescreen::PointFromScreen(point, false);
+    return ScalePointFromScreenCopy(point);
 }
-EI_REPLACE(0x005F7E30, ScalePointFromScreenCopyEntry);
+EI_REPLACE_METHOD(0x005F7E30, CInterface3D::ScalePointFromScreenCopyEntry);
 
-int __fastcall ScaleRectFromScreenEntry(const CInterface3D* self, void*, RECT* rect) {
-    if (!self && widescreen::Active()) return widescreen::RectFromScreen(rect, false);
-    return self->CInterface3D::ScaleRectFromScreen(rect);
+int CInterface3D::ScaleRectFromScreenEntry(RECT* rect) const {
+    if (!this && widescreen::Active()) return widescreen::RectFromScreen(rect, false);
+    return ScaleRectFromScreen(rect);
 }
-EI_REPLACE(0x005F7DA0, ScaleRectFromScreenEntry);
+EI_REPLACE_METHOD(0x005F7DA0, CInterface3D::ScaleRectFromScreenEntry);
 
-int __fastcall ScalePointFromScreenEntry(const CInterface3D* self, void*, POINT* point) {
-    if (!self && widescreen::Active()) return widescreen::PointFromScreen(point, false);
-    return self->CInterface3D::ScalePointFromScreen(point);
+int CInterface3D::ScalePointFromScreenEntry(POINT* point) const {
+    if (!this && widescreen::Active()) return widescreen::PointFromScreen(point, false);
+    return ScalePointFromScreen(point);
 }
-EI_REPLACE(0x005F7E00, ScalePointFromScreenEntry);
+EI_REPLACE_METHOD(0x005F7E00, CInterface3D::ScalePointFromScreenEntry);
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
     return stackBegin_ != stackEnd_ ? stackEnd_[-1] : nullptr;

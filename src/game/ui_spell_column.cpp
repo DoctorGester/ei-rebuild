@@ -37,8 +37,8 @@ __declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const 
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
 // a key.
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
-std::uint8_t* SpellPrototypeOf(void* spell) {
-    return reinterpret_cast<std::uint8_t*>(static_cast<CSpell*>(spell)->GetPrototype());
+const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
+    return static_cast<CSpell*>(spell)->GetPrototype();
 }
 
 
@@ -84,14 +84,14 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             line.Format("%s %d  ", static_cast<const char*>(labels[0]), Truncate(Get<float>(data, 0x40)));
             tip += line;
             line = "Unknown";
-            description.Format("school_%d", Get<int>(SpellPrototypeOf(data), 0x10));
+            description.Format("school_%d", SpellPrototypeOf(data)->castType);
             TextsGetString(TheTextManager(), nullptr, description, &line);
             line = mfc::operator+(mfc::operator+(mfc::operator+(labels[1],
                                                                 " "),
                                                  line),
                                   " \n");
             tip += line;
-            if (SpellPrototypeOf(data)[0x7B] == 0)
+            if (SpellPrototypeOf(data)->bytes78[3] == 0)
                 line.Format("%s %s  ", static_cast<const char*>(labels[2]), static_cast<const char*>(labels[12]));
             else
                 line.Format("%s %d  ", static_cast<const char*>(labels[2]), Truncate(Get<float>(data, 0x24)));

@@ -30,10 +30,11 @@ std::uint32_t& GlobalGold() { return GlobalParty()->money_; }
 
 constexpr int kGuardedBytes = 0x704;   // a party record's stats (PartyUnitRecord::stats) or a unit's
 
-void XorRange(std::uint8_t* first, std::uint32_t key) {
-    auto* p = reinterpret_cast<std::uint32_t*>(first);
-    auto* end = reinterpret_cast<std::uint32_t*>(first + kGuardedBytes);
-    for (; p < end; ++p) *p ^= key;
+static_assert(sizeof(UnitStats) == kGuardedBytes);
+
+void XorRange(UnitStats* stats, std::uint32_t key) {
+    auto* p = reinterpret_cast<std::uint32_t*>(stats);
+    for (std::uint32_t* end = p + kGuardedBytes / 4; p < end; ++p) *p ^= key;
 }
 
 } // namespace
@@ -43,14 +44,14 @@ void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t k
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {
         player->Party()->Money() ^= static_cast<int>(key);   // gold
-        for (int i = 0; i < player->Party()->members_.size; ++i) XorRange(player->Party()->members_.data[i].stats, key);
+        for (int i = 0; i < player->Party()->members_.size; ++i) XorRange(&player->Party()->members_.data[i].stats, key);
         if (!units) continue;
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
         // controllers' statistics.
         auto& map = player->units_;
         for (auto* node = map.First(); node && node->value; node = map.After(node)) {
-            auto* controller = reinterpret_cast<CUnitServer*>(node->value->controller);
-            XorRange(reinterpret_cast<std::uint8_t*>(&controller->stats), key);
+            auto* controller = node->value->ServerController();
+            XorRange(&controller->stats, key);
         }
     }
 }
@@ -62,7 +63,7 @@ void __fastcall GuardPlayerData(void* /*glue*/, void*, char plain) {
     GuardPlayers(ServerPlayers(), 1, g_guardKey);
     std::uint32_t key = g_guardKey;
     GlobalGold() ^= key;
-    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(GlobalParty()->members_.data[i].stats, key);
+    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_.data[i].stats, key);
     g_guardPlain = plain;
 }
 

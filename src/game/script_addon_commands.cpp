@@ -54,7 +54,7 @@ CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[
 CUnit* AsCUnit(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
 CUnitServer* ServerOf(CEngineObject* unit) { return AsCUnit(unit)->ServerController(); }
 const UnitPrototypeRecord* PrototypeOf(CEngineObject* unit) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype());
+    return static_cast<CUnit*>(unit)->GetPrototype();
 }
 
 // The float bits of `value` as the dword the player messages take.
@@ -251,7 +251,7 @@ bool GiveUnitWeapon(Call* call) {
     if (slot == -1) return true;
     AsCUnit(unit)->pendingWeapon = slot;
     if (override) {
-        auto* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(item->GetPrototype());
+        auto* weapon = static_cast<const itemdb::WeaponRecord*>(item->GetPrototype());
         CombatStats& stats = ServerOf(unit)->Combat();
         const UnitPrototypeRecord* prototype = PrototypeOf(unit);
         Store(&stats.damage, item->damage_);

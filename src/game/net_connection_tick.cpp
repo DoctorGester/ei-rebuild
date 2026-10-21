@@ -163,11 +163,11 @@ void Connection::Delivered(SentPacket* packet) {
             ReplicaEntry* entry = item->entry;
             EntryMap* tree = &priorities_[entry->flags_ >> 1];
             EntryMap::Node* found;
-            trees::Entries::Find(tree, nullptr, &found, &entry);
+            static_cast<trees::Entries*>(tree)->Find(&found, entry);
             if (found != tree->end()) {
                 entry = item->entry;
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                trees::SentIds::EraseKey(&bySentId_, nullptr, &key);   // 0043BE60
+                static_cast<trees::SentIds*>(&bySentId_)->EraseKey(key);   // 0043BE60
                 FreedId value{};
                 value.id = entry->id_;
                 value.type = entry->type_;
@@ -178,7 +178,7 @@ void Connection::Delivered(SentPacket* packet) {
                 } else {
                     batch.InsertOverflow<stlp::PlainElement<FreedId>>(batch.end(), value, 1);   // 0043B6C0
                 }
-                trees::Entries::EraseAt(tree, nullptr, found);
+                static_cast<trees::Entries*>(tree)->EraseAt(found);
             }
         }
     }

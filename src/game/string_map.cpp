@@ -46,17 +46,17 @@ void CDebugPanel::Set(const char* key, const char* value) {
     stlp::string k(key);
     StringMap& map = entries_;
     Node* it;
-    lib_trees::StringPairs::LowerBound(&map, nullptr, &it, &k);
+    static_cast<lib_trees::StringPairs*>(&map)->LowerBound(&it, k);
     if (it == map.end() || stlp::StringAbi::Less(&k, &it->first)) {
         stlp::string empty;
         stlp::StringElement::Default(&empty);
         alignas(4) std::uint8_t storage[sizeof(stlp::string) * 2];
         auto* pair = reinterpret_cast<Pairs::Value*>(storage);
-        Pairs::MakeValue(pair, nullptr, &k, &empty);
+        static_cast<Pairs::ValueAbi*>(pair)->MakeValue(k, empty);
         Node* inserted;
-        Pairs::InsertHint(&map, nullptr, &inserted, it, pair);
+        static_cast<Pairs*>(&map)->InsertHint(&inserted, it, *pair);
         it = inserted;
-        Pairs::DestroyValue(pair);
+        static_cast<Pairs::ValueAbi*>(pair)->DestroyValue();
     }
     it->second.Assign(value);   // inlined by the original: overwrite, then cut or append
 }
@@ -68,7 +68,7 @@ void CDebugPanel::Remove(const char* key) {
     Node* it;
     {
         stlp::string k(key);
-        lib_trees::StringPairs::Find(&map, nullptr, &it, &k);
+        static_cast<lib_trees::StringPairs*>(&map)->Find(&it, k);
     }
     if (it != map.end()) map.Erase<stlp::TreeElement<StringMap::Value>>(it);
 }
@@ -80,9 +80,9 @@ void CDebugPanel::Destruct() {
     if (map.size()) {
         Node* node = map.end()->parent;
         while (node) {
-            lib_trees::StringPairs::EraseSubtree(&map, nullptr, node->right);
+            static_cast<lib_trees::StringPairs*>(&map)->EraseSubtree(node->right);
             Node* left = node->left;
-            Pairs::DeletingDestroyValue(reinterpret_cast<Pairs::Value*>(&node->first), nullptr, 0);
+            static_cast<Pairs::ValueAbi*>(reinterpret_cast<Pairs::Value*>(&node->first))->DeletingDestroyValue(0);
             stlp::deallocate(node, 40);   // 004452D0
             node = left;
         }

@@ -101,19 +101,19 @@ float ArmourValue(const void* value, const void* factor, float scale) {
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 
 // The surface's drawing (thiscall on the surface).
-struct SurfaceDraw {
-    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }                                                                   // 005FDC00
+struct SurfaceDraw : CUiSurface {
+    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
     int Wrapped(const char* text, RECT* rect, int maxLines, int font, std::uint32_t colour, int format, int flag) {   // 005FDFA0
-        return reinterpret_cast<CUiSurface*>(this)->DrawWrappedText(text, rect, maxLines, font, colour, format, flag);
+        return DrawWrappedText(text, rect, maxLines, font, colour, format, flag);
     }
-    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }                                                                     // 005FDC60
+    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // The text manager (007AF788; thiscall).
-struct Texts {
+struct Texts : CTextManager {
     BOOL Open(const char* key);                          // 004DEFC0
     BOOL NextLine();                                     // 004DF510
     BOOL ReadLine(mfc::CString* out, BOOL advance);      // 004DF8D0
@@ -121,13 +121,13 @@ struct Texts {
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-BOOL Texts::NextLine() { return TextNextLine(reinterpret_cast<CTextManager*>(this)); }
-BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)static_cast<CTextManager*>((void*)this)->ReadLine(a0, (int)a1); }
+BOOL Texts::NextLine() { return TextNextLine(this); }
+BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return CTextManager::ReadLine(a0, a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
-    return reinterpret_cast<CTextManager*>(this)->GetItemTexts(item, name, description, kind);
+    return GetItemTexts(item, name, description, kind);
 }
-Texts* TextManager() { return reinterpret_cast<Texts*>(TheTextManager()); }
+Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
@@ -136,11 +136,11 @@ int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_c
 // (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
 // count (0068BA60, CSpell::GetModifierCount).
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
-    return reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype());
+    return item->GetPrototype();
 }
 int CategoryOf(CItem* item) { return item->GetCategory(); }
 const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
-    return reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype());
+    return static_cast<CSpell*>(spell)->GetPrototype();
 }
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
@@ -198,7 +198,7 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 class Writer {
 public:
     explicit Writer(CItemInfoPanel* panel)
-        : panel_(panel), draw_(reinterpret_cast<SurfaceDraw*>(panel->surfaces_.data[0])), rect_{15, 10, 185, 25} {}
+        : panel_(panel), draw_(static_cast<SurfaceDraw*>(panel->surfaces_.data[0])), rect_{15, 10, 185, 25} {}
 
     SurfaceDraw* Draw() { return draw_; }
     RECT* Rect() { return &rect_; }
@@ -314,7 +314,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
+    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     draw->End();
@@ -683,7 +683,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
     void* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
-        reinterpret_cast<SurfaceDraw*>(surfaces_.data[0])->End();   // without a Begin, as the original
+        static_cast<SurfaceDraw*>(surfaces_.data[0])->End();   // without a Begin, as the original
         return;
     }
     Texts* texts = TextManager();
@@ -693,7 +693,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         key += SpellPrototypeOf(spell)->code;
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
-            reinterpret_cast<CTextManager*>(texts)->ReadToHash(&description, 1);
+            texts->ReadToHash(&description, 1);
         }
     }
     texts->GetString("item_spell", &kindText);

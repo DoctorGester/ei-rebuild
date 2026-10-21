@@ -85,29 +85,16 @@ void ConstructHeader(void* at) {
 // ---- The instantiations' calling conventions ----------------------------------------------------
 
 template <typename T, typename E = PlainElements<T>>
-struct ArrayAbi {
+struct ArrayAbi : CArray<T, E> {
     using Element = T;
     using Array = CArray<T, E>;
 
-    // SetSize(nNewSize, nGrowBy) (RET 8).
-    static void __fastcall SetSize(Array* self, void*, int newSize, int newGrowBy) { self->SetSize(newSize, newGrowBy); }
-    // SetAtGrow(nIndex, ARG_TYPE) (RET 8): ARG_TYPE a reference (the element's address) or, for the
-    // dword instantiations, the value.
-    static void __fastcall SetAtGrow(Array* self, void*, int index, const T* value) { self->SetAtGrow(index, *value); }
-    static void __fastcall SetAtGrowByValue(Array* self, void*, int index, T value) { self->SetAtGrow(index, value); }
-    // Add(ARG_TYPE) (RET 4): the new element's index.
-    static int __fastcall Add(Array* self, void*, const T* value) { return self->Add(*value); }
-    // Copy(const CArray&) (RET 4): SetSize to the source's size, then the elements assigned.
-    static void __fastcall Copy(Array* self, void*, const Array* source) { self->Copy(*source); }
-    // RemoveAt(nIndex, nCount) (RET 8).
-    static void __fastcall RemoveAt(Array* self, void*, int index, int count) { self->RemoveAt(index, count); }
-    // ElementAt(nIndex) (RET 4).
-    static T* __fastcall ElementAt(Array* self, void*, int index) { return &self->data[index]; }
-    // GetAt(nIndex) returning the element by value (RET 8: the hidden result pointer first; returns it).
-    static T* __fastcall GetAt(const Array* self, void*, T* result, int index) {
-        *result = self->data[index];
-        return result;
-    }
+    // The instantiations' SetSize(nNewSize, nGrowBy) (RET 8), SetAtGrow(nIndex, ARG_TYPE) and Add(ARG_TYPE)
+    // (ARG_TYPE a reference: the element's address), Copy(const CArray&) (RET 4), RemoveAt(nIndex, nCount)
+    // (RET 8), ElementAt(nIndex) (RET 4) and the by-value GetAt(nIndex) (RET 8) are CArray's own members
+    // (mfc.h), registered through this type (Abi::SetSize ...).
+    // SetAtGrow for the dword instantiations: ARG_TYPE the value.
+    void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
     // ConstructElements / DestructElements (__stdcall, RET 8).
     static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
     static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
@@ -393,22 +380,22 @@ struct AnimationStepList : AnimationSteps::Array {
 };
 static_assert(sizeof(AnimationStepList) == 0x18);
 
-struct AnimationStepListAbi {
+struct AnimationStepListAbi : AnimationStepList {
     using Array = AnimationSteps::Array;
     // 0054B260: the copy constructor (RET 4): the steps (SetSize to the source's count, then each
     // step), then extra. Returns this.
-    static AnimationStepList* __fastcall CopyConstruct(AnimationStepList* self, void*, const AnimationStepList* source) {
-        CopyConstructSteps(self, nullptr, source);
-        self->extra = source->extra;
-        return self;
+    AnimationStepList* CopyConstruct(const AnimationStepList* source) {
+        CopyConstructSteps(source);
+        this->extra = source->extra;
+        return this;
     }
     // 00556870: the same without extra (the steps' array alone). Defined in mfc_slots.h, after AnimationStepsCopyClass.
-    static Array* __fastcall CopyConstructSteps(Array* self, void*, const Array* source);
+    Array* CopyConstructSteps(const Array* source);
     // 005483C0: operator= (RET 4): Copy, then extra. Returns this.
-    static AnimationStepList* __fastcall Assign(AnimationStepList* self, void*, const AnimationStepList* source) {
-        self->Copy(*source);
-        self->extra = source->extra;
-        return self;
+    AnimationStepList* Assign(const AnimationStepList* source) {
+        this->Copy(*source);
+        this->extra = source->extra;
+        return this;
     }
 };
 
@@ -464,20 +451,4 @@ using AlignedArrays = ArrayAbi<Bytes<16>, EachElements<Bytes<16>, nullptr, FreeA
 // CArray<CString>: built and destroyed by MFC's ConstructElements / DestructElements<CString>
 // (006FE268 / 006FE296, mfc_string.cpp).
 using Strings = ArrayAbi<CString, HelperElements<CString, ConstructStrings, DestructStrings>>;
-struct StringArrayAbi {
-    using Array = Strings::Array;
-    // 004CC840 / 004C2680 (RET 8): element `index` copy-constructed into `result`; returns `result`.
-    static CString* __fastcall GetAt(const Array* self, void*, CString* result, int index) {
-        return new (result) CString(self->data[index]);
-    }
-    // 004C14A0 (RET 4): SetSize to the source's size, then each element assigned from a copy (GetAt).
-    static void __fastcall Copy(Array* self, void*, const Array* source) {
-        self->SetSize(source->size, -1);
-        for (int i = 0; i < source->size; ++i) {
-            CString copy(source->data[i]);
-            self->data[i] = copy;
-        }
-    }
-};
-
 } // namespace mfc::impl

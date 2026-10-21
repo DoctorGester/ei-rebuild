@@ -46,8 +46,8 @@ SuspectionMode* SuspectionMode::ScriptSuspectionModeConstruct() {
 // 004BA710: no enemy, the whole unit as the part to hit, enemy not fixed.
 AggressionMode* AggressionMode::ScriptAggressionModeConstruct() {
     enemy = nullptr;
-    chosen = nullptr;
-    enemyPart = -1;
+    chosen.object = nullptr;
+    chosen.part = -1;
     vtable = aimode::kAggressionVtable;
     fixed = 0;
     return this;
@@ -56,8 +56,8 @@ AggressionMode* AggressionMode::ScriptAggressionModeConstruct() {
 // 004BA830 (RET 4; UMRevenge): Aggression with `fixed` from the argument's low byte.
 AggressionMode* AggressionMode::ScriptRevengeModeConstruct(int newFixed) {
     enemy = nullptr;
-    chosen = nullptr;
-    enemyPart = -1;
+    chosen.object = nullptr;
+    chosen.part = -1;
     vtable = aimode::kAggressionVtable;
     fixed = static_cast<std::uint8_t>(newFixed);
     return this;
@@ -219,7 +219,6 @@ AggressionMode* AggressionMode::AggressionClone() const {
     if (!copy) return nullptr;
     copy->enemy = Reference(enemy);
     copy->fixed = fixed;
-    copy->enemyPart = enemyPart;
     copy->chosen = chosen;
     copy->vtable = aimode::kAggressionVtable;
     return copy;
@@ -228,8 +227,8 @@ AggressionMode* AggressionMode::AggressionClone() const {
 void AggressionMode::AggressionReset() {
     AggressionDestruct();
     enemy = nullptr;
-    chosen = nullptr;
-    enemyPart = -1;
+    chosen.object = nullptr;
+    chosen.part = -1;
     vtable = aimode::kAggressionVtable;
     fixed = 0;
 }

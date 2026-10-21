@@ -17,22 +17,24 @@ constexpr float kZero = 0.0f;   // 0073B858
 
 } // namespace
 
-char* CItem::GetPrototype() {
+ItemRecordHead* CItem::GetPrototype() {
     std::uint32_t index = PrototypeIndex(prototypeId_);
+    char* record = nullptr;
     switch (type_) {
-    case kItemWeapon: return Weapons().RecordAt(index, kWeaponSize);
-    case kItemArmor: return Armors().RecordAt(index, kArmorSize);
-    case kItemQuick: return QuickItems().RecordAt(index, kQuickItemSize);
-    case kItemLoot: return Loot().RecordAt(index, kLootSize);
-    case kItemQuest: return QuestItems().RecordAt(index, kQuestItemSize);
-    default: return nullptr;
+    case kItemWeapon: record = Weapons().RecordAt(index, kWeaponSize); break;
+    case kItemArmor: record = Armors().RecordAt(index, kArmorSize); break;
+    case kItemQuick: record = QuickItems().RecordAt(index, kQuickItemSize); break;
+    case kItemLoot: record = Loot().RecordAt(index, kLootSize); break;
+    case kItemQuest: record = QuestItems().RecordAt(index, kQuestItemSize); break;
+    default: break;
     }
+    return reinterpret_cast<ItemRecordHead*>(record);
 }
 EI_REWRITTEN(0x006A0110, CItem::GetPrototype);
 
 int CItem::GetCategory() {
     // Same lookup as GetPrototype, inlined in the original.
-    auto* prototype = reinterpret_cast<const ItemRecordHead*>(GetPrototype());
+    const ItemRecordHead* prototype = GetPrototype();
     return prototype ? static_cast<int>(prototype->category) : INT_MAX;
 }
 EI_REWRITTEN(0x006A4230, CItem::GetCategory);

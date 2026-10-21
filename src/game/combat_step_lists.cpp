@@ -13,13 +13,13 @@
 
 // The library's list ABI (lib/mfc_array.h) has this layout.
 AnimationSteps* AnimationSteps::CopyConstruct(const AnimationSteps& source) {
-    mfc::impl::AnimationStepListAbi::CopyConstruct(reinterpret_cast<mfc::impl::AnimationStepList*>(this), nullptr,
-                                                   reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
+    static_cast<mfc::impl::AnimationStepListAbi*>(reinterpret_cast<mfc::impl::AnimationStepList*>(this))
+        ->CopyConstruct(reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
     return this;
 }
 void AnimationSteps::Assign(const AnimationSteps& source) {
-    mfc::impl::AnimationStepListAbi::Assign(reinterpret_cast<mfc::impl::AnimationStepList*>(this), nullptr,
-                                            reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
+    static_cast<mfc::impl::AnimationStepListAbi*>(reinterpret_cast<mfc::impl::AnimationStepList*>(this))
+        ->Assign(reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
 }
 namespace {
 using StepArray = mfc::impl::AnimationSteps::Array;
@@ -44,7 +44,7 @@ AnimationSteps* AnimationSteps::ConstructOwn() {
     return this;
 }
 AnimationSteps* AnimationSteps::CopyConstructSteps(const AnimationSteps& source) {
-    mfc::impl::AnimationStepListAbi::CopyConstructSteps(Array(this), nullptr, Array(&source));
+    static_cast<mfc::impl::AnimationStepListAbi*>(static_cast<mfc::impl::AnimationStepList*>(Array(this)))->CopyConstructSteps(Array(&source));
     return this;
 }
 void AnimationSteps::DestructSteps() { mfc::impl::DestructArrayOf<mfc::impl::AnimationStepsClass>(*Array(this)); }

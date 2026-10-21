@@ -128,7 +128,7 @@ void CItemScreen::CreateBase() {
         icons->inputVtable_ = ei::GamePointer<void*>(0x00740410);
     }
     iconWindow_ = icons;
-    reinterpret_cast<CUiContainer*>(this)->AddChild(icons);
+    AddChild(icons);
     iconWindow_->AddObject(objects_.data[0]);
     using BuildFn = void(__thiscall*)(CUiWindow*);
     ei::VirtualSlot<BuildFn>(iconWindow_->vtable_, 18)(iconWindow_);

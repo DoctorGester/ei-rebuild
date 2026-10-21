@@ -412,10 +412,10 @@ void CBriefingScreen::LeaveIfExitOpen() {
     float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);
     if (visited == 1.0f) return;
-    mfc::CArray<std::uint8_t*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
-    mfc::CArray<std::uint8_t*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
+    mfc::CArray<PartyUnitRecord*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
+    mfc::CArray<PartyUnitRecord*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
     records.SetSize(1);
-    records[0] = reinterpret_cast<std::uint8_t*>(party->members_.data);
+    records[0] = party->members_.data;
     if (GamePartyInExit(&records, exit_, &second)) {
         InterfaceHasScreen() = false;
         GameLeaveThroughExit(exit_);

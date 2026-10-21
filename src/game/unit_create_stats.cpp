@@ -634,7 +634,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
         std::memcpy(&mapObject->baseScale, &scale, sizeof(scale));
         mapObject->ApplyBaseScale();
-        static_cast<CUnit*>(object)->SetPrototype23C(reinterpret_cast<const char*>(prototype));
+        static_cast<CUnit*>(object)->SetPrototype23C(reinterpret_cast<const UnitPrototypeRecord*>(prototype));
     }
     char* record = unitdb::PrototypeTable().FindByName(name);
     object->prototypeId_ = record

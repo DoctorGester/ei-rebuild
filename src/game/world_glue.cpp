@@ -216,18 +216,18 @@ EI_REWRITTEN(0x00578960, GamePlayMusic);
 CUnit* __stdcall GameFindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
 EI_REWRITTEN(0x00578980, GameFindClientUnit);
 
-void __stdcall GameCreatePartyUnits(const mfc::CArray<std::uint8_t*>* party, int allArmour) {
+void __stdcall GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour) {
     TheClientWorld()->CreatePartyUnits(party, static_cast<char>(allArmour));
 }
 EI_REWRITTEN(0x005789C0, GameCreatePartyUnits);
 
-void __stdcall GameRemoveUnitsOf(const mfc::CArray<std::uint8_t*>* records) { TheClientWorld()->RemoveUnitsOf(records); }
+void __stdcall GameRemoveUnitsOf(const mfc::CArray<PartyUnitRecord*>* records) { TheClientWorld()->RemoveUnitsOf(records); }
 EI_REWRITTEN(0x005789E0, GameRemoveUnitsOf);
 
 int __stdcall GameFindExitAt(const float* point, int* index) { return TheClientWorld()->FindExitAt(point, index); }
 EI_REWRITTEN(0x00578A00, GameFindExitAt);
 
-int __stdcall GamePartyInExit(const mfc::CArray<std::uint8_t*>* records, int exit, mfc::CArray<std::uint8_t*>* inExit) {
+int __stdcall GamePartyInExit(const mfc::CArray<PartyUnitRecord*>* records, int exit, mfc::CArray<PartyUnitRecord*>* inExit) {
     return TheClientWorld()->PartyInExit(records, exit, inExit);
 }
 EI_REWRITTEN(0x00578A20, GamePartyInExit);

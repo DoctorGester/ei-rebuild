@@ -567,7 +567,7 @@ void CUnitServer::TickAction() {
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
-        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel())->castEffect != 0) {
+        if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
             // The world's timed object manager (+0x48) creates the effect.
             auto* objects = TheServerWorld()->manager48_;
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);

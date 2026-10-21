@@ -48,8 +48,7 @@ struct CacheValue {
 // 004FBD80: multimap insert_equal; the node copies the value (one more reference): lib_trees::MeshCache's.
 void CacheInsertEqual(Cache* cache, const CacheValue* value) {
     lib_trees::MeshCache::Node* inserted;
-    lib_trees::MeshCache::InsertEqual(reinterpret_cast<lib_trees::MeshCache::Tree*>(cache), nullptr, &inserted,
-                                      reinterpret_cast<const lib_trees::MeshCache::Value*>(value));
+    static_cast<lib_trees::MeshCache*>(reinterpret_cast<lib_trees::MeshCache::Tree*>(cache))->InsertEqual(&inserted, *reinterpret_cast<const lib_trees::MeshCache::Value*>(value));
 }
 
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.

@@ -448,7 +448,7 @@ void CMapObjectClientSpecific::DestructBody() {
             }
         }
         int id = light->id_;
-        stlp::ListRemoveInt(&TheLightFactory()->litIds_, nullptr, &id);
+        stlp::ListRemoveInt(&TheLightFactory()->litIds_, id);
         ObjectHolderAssign(&light, nullptr, nullptr);
     }
     owner = nullptr;

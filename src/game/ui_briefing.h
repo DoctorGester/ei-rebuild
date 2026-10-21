@@ -386,7 +386,7 @@ public:
     int hoveredTopic_;               // +0x188 the topic row under the mouse, or -1
     bool briefingStarted_;           // +0x18C a dialogue started by itself (602C90)
     std::uint8_t unused_18D[3];
-    UiDwordArray party_;             // +0x190 the party's units (CArray, SetSize 005EBDB0)
+    mfc::CArray<CUnit*> party_;      // +0x190 the party's units (CArray, SetSize 005EBDB0)
     CUnit* leader_;                  // +0x1A4 the unit the camera follows (the hero speaker)
     CUnit* person_;                  // +0x1A8 the person the dialogue is with
     CUnit* third_;                   // +0x1AC a third speaker, or null
