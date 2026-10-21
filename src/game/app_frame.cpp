@@ -123,21 +123,18 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     alignas(4) std::uint8_t ini[4];
     IniConstruct(ini);
     {
-        alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), &TheDataFolder(), "config\\movie.ini");
-        IniSetPath(ini, nullptr, *path);
-        path->~CString();
+        mfc::CString path(mfc::CString::kUnset);
+        IniSetPath(ini, nullptr, *ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
     }
     reinterpret_cast<CIniFile*>(ini)->GetList(section, "movies", reinterpret_cast<console::CStringArray*>(&list), ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
-        alignas(mfc::CString) unsigned char dirRaw[sizeof(mfc::CString)];
-        alignas(mfc::CString) unsigned char fullRaw[sizeof(mfc::CString)];
-        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), &TheDiscFolder(), "Movies\\");
-        mfc::CString* full = ConcatString(reinterpret_cast<mfc::CString*>(fullRaw), dir, &list.data[i]);
-        PlayMovie(*full, 0, 1, 0, 0, static_cast<char>(a), b);
-        full->~CString();
-        dir->~CString();
+        {
+            mfc::CString dir(mfc::CString::kUnset);
+            mfc::CString full(mfc::CString::kUnset);
+            ConcatText(&dir, &TheDiscFolder(), "Movies\\");
+            PlayMovie(*ConcatString(&full, &dir, &list.data[i]), 0, 1, 0, 0, static_cast<char>(a), b);
+        }
         if (clearAfter) ClearScreen();
     }
     IniDestruct(ini);

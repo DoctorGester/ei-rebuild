@@ -84,11 +84,11 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     }
     Release(temp);
 
-    char* party = (*list->records.Start())->party;
-    reinterpret_cast<CParty*>(party)->AddMember(kHero, kHumanHero, game::EmptyText());
-    *reinterpret_cast<mfc::CString*>(party + 0x68) = kFirstZone;
-    *reinterpret_cast<int*>(party + 0x6C) = 0;
-    reinterpret_cast<NamedFloatTable*>(party + 0x54)->Set(kGameTime, std::bit_cast<float>(kSix));
+    CParty* party = (*list->records.Start())->Party();
+    party->AddMember(kHero, kHumanHero, game::EmptyText());
+    party->zone_ = kFirstZone;
+    party->entrance_ = 0;
+    party->variables_.Set(kGameTime, std::bit_cast<float>(kSix));
 }
 EI_REWRITTEN(0x004A5BD0, PartyRecordsReset);
 

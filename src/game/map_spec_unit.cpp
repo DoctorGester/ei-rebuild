@@ -82,10 +82,8 @@ std::uint32_t Bits(float f) {
 }
 
 void ReadInto(Chunk& c, mfc::CString& field) {
-    alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-    mfc::CString* read = c.ReadString(reinterpret_cast<mfc::CString*>(raw));
-    field = *read;
-    read->~CString();
+    mfc::CString read(mfc::CString::kUnset);
+    field = *c.ReadString(&read);
 }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;

@@ -41,13 +41,6 @@ namespace {
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
 // current line into words.
 
-// A CString constructed by a callee into raw storage, destroyed explicitly.
-struct StringSlot {
-    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    void* Raw() { return storage; }
-    mfc::CString& Get() { return *reinterpret_cast<mfc::CString*>(storage); }
-};
-
 bool IsEmpty(const mfc::CString& s) {
     return gamecrt::mbscmp(static_cast<const char*>(s),
                            game::EmptyText()) == 0;
@@ -77,21 +70,20 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
 }
 
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing) {
-    StringSlot speaker;
-    BriefingSpeakerInto(static_cast<mfc::CString*>(speaker.Raw()), briefing);
-    if (!IsEmpty(speaker.Get())) {
+    mfc::CString speaker(mfc::CString::kUnset);   // BriefingSpeakerInto constructs it
+    BriefingSpeakerInto(&speaker, briefing);
+    if (!IsEmpty(speaker)) {
         mfc::CString prefix(game::briefingwords::VariablePrefix());
-        mfc::CString withSpeaker = prefix + speaker.Get();
+        mfc::CString withSpeaker = prefix + speaker;
         mfc::CString withDot = withSpeaker + flowdata::kDot;
         mfc::CString variable = withDot + briefing;
-        speaker.Get() = variable;
+        speaker = variable;
     } else {
         mfc::CString prefix(game::briefingwords::ElderPrefix());
         mfc::CString variable = prefix + briefing;
-        speaker.Get() = variable;
+        speaker = variable;
     }
-    new (out) mfc::CString(speaker.Get());
-    speaker.Get().~CString();
+    new (out) mfc::CString(speaker);
     return out;
 }
 
@@ -107,10 +99,9 @@ void GameFlow::MarkBriefing(const char* briefing) {
         }
         FlowLoadQuestsOriginal(zone);
     }
-    StringSlot variable;
-    BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
-    player->Party()->variables_.Set(variable.Get(), 1.0f);
-    variable.Get().~CString();
+    mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
+    BriefingVariableInto(&variable, briefing);
+    player->Party()->variables_.Set(variable, 1.0f);
 }
 
 // ---- Forgetting briefings, unloading quest texts --------------------------------------------------
@@ -142,10 +133,9 @@ EI_REPLACE(0x00581090, DestroyQuestFolders);
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
-    StringSlot variable;
-    BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
-    player->Party()->variables_.Remove(variable.Get());
-    variable.Get().~CString();
+    mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
+    BriefingVariableInto(&variable, briefing);
+    player->Party()->variables_.Remove(variable);
 }
 
 void UnloadQuestTexts() {

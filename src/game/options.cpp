@@ -35,7 +35,7 @@ void SetString(CWinRegistry& key, const char* subkey, const char* name, const mf
 struct Text : mfc::CString {
     int FindChar(int c) const;            // 00700E91 Find(TCHAR)
 };
-int Text::FindChar(int c) const { return reinterpret_cast<const mfc::CString*>(this)->Find(static_cast<char>(c)); }
+int Text::FindChar(int c) const { return mfc::CString::Find(static_cast<char>(c)); }
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 

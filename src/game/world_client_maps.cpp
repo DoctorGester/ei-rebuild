@@ -1583,21 +1583,14 @@ void FitGrid(SectorGrid& grid, const Terrain* terrain) {
 
 // The zone of the local player as the map database knows it, or null.
 MapRecord* LocalZoneRecord() {
-    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    MapRecord* record = TheMapDatabase()->FindMap(*zone);
-    zone->~CString();
-    return record;
+    mfc::CString zone(mfc::CString::kUnset);
+    return TheMapDatabase()->FindMap(*LocalPlayerName(&zone));
 }
 
 // Whether the local player is in the last zone ("gz20g", compared as it is).
 bool InFinalZone() {
-    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    const bool final = gamecrt::mbscmp(static_cast<const char*>(*zone),
-                                       worlddata::FinalZoneText()) == 0;
-    zone->~CString();
-    return final;
+    mfc::CString zone(mfc::CString::kUnset);
+    return gamecrt::mbscmp(static_cast<const char*>(*LocalPlayerName(&zone)), worlddata::FinalZoneText()) == 0;
 }
 
 } // namespace

@@ -317,10 +317,8 @@ void Chunk::ReadStringArray(void* strings) {
     array->SetSize(0, -1);
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
-        alignas(mfc::CString) std::uint8_t slot[sizeof(mfc::CString)];   // the original reuses a stack slot
-        mfc::CString* text = child.ReadString(reinterpret_cast<mfc::CString*>(slot));
-        array->SetAtGrow(array->GetSize(), *text);
-        text->~CString();
+        mfc::CString text(mfc::CString::kUnset);   // the original reuses a stack slot
+        array->SetAtGrow(array->GetSize(), *child.ReadString(&text));
     }
 }
 EI_REWRITTEN(0x0042CA20, Chunk::ReadStringArray);

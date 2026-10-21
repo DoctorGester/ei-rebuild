@@ -103,11 +103,6 @@ BOOL Matches(const mfc::CFileFind& finder, unsigned long mask) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&finder)->MatchesMask(mask);
 }
 
-// MFC's result-slot calls (GetFilePath, operator+) write a CString into raw storage.
-struct CStringSlot {
-    alignas(mfc::CString) unsigned char bytes[sizeof(mfc::CString)];
-    mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
-};
 
 // 0049F660 through its address: the harness's deterministic runs replace its entry with a fixed seed
 // (tests/verify/harness.cpp, FixedIsaacSeed).
@@ -123,22 +118,22 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
         if (finder.IsDots()) continue;
         if (Matches(finder, kAttributeSystem) || Matches(finder, kAttributeHidden)) continue;
         if (Matches(finder, kAttributeDirectory)) {
-            CStringSlot path, sub;
-            ::new (path.Get()) mfc::CString(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
-            CStringConcatTextOriginal(sub.Get(), path.Get(), SubdirectoryPattern());
-            int found = FindSeedFile(out, *sub.Get(), target, counter);
-            sub.Get()->~CString();
-            path.Get()->~CString();
+            int found;
+            {
+                // MFC's result-slot calls (GetFilePath, operator+) construct these.
+                mfc::CString path(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
+                mfc::CString sub(mfc::CString::kUnset);
+                CStringConcatTextOriginal(&sub, &path, SubdirectoryPattern());
+                found = FindSeedFile(out, sub, target, counter);
+            }
             if (found == 1) return 1;
             continue;
         }
         if (*counter >= target) {
             if (finder.GetLength() >= kMinimumFileSize) {
-                CStringSlot path;
-                ::new (path.Get()) mfc::CString(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
-                const char* text = *path.Get();
+                mfc::CString path(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
+                const char* text = path;
                 std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the original
-                path.Get()->~CString();
                 return 1;
             }
             --*counter;

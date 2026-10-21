@@ -292,13 +292,12 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
 }
 
 mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* player = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
+    mfc::CString player(mfc::CString::kUnset);
+    LocalPlayerName(&player);
     new (out) mfc::CString(QuestPrefixText());
-    *out += *player;
+    *out += player;
     *out += DotText();
     *out += name;
-    player->~CString();
     return out;
 }
 
@@ -308,10 +307,8 @@ void CWorldClient::ApplyObjectVariables() {
         auto* object = static_cast<CMapObject*>(node->data);
         const char* name = object->name2;
         if (!name || !*name) continue;
-        alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-        mfc::CString* variable = ObjectVariableName(reinterpret_cast<mfc::CString*>(storage), name);
-        object->SetVisibilityLevel(variables->Get(*variable));
-        variable->~CString();
+        mfc::CString variable(mfc::CString::kUnset);
+        object->SetVisibilityLevel(variables->Get(*ObjectVariableName(&variable, name)));
     }
 }
 

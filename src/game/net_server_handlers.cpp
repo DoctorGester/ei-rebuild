@@ -65,11 +65,9 @@ void ServerSession::AnnounceToMaster() {
     description.Assign(empty);
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {
-        alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-        mfc::CString* title = SessionMapNameInto(reinterpret_cast<mfc::CString*>(storage));
-        const char* text = *title;
+        mfc::CString title(mfc::CString::kUnset);
+        const char* text = *SessionMapNameInto(&title);
         description.Assign(text);
-        title->~CString();
     }
     info.players = static_cast<std::uint8_t>(ClientCount());
     info.maxPlayers = static_cast<std::uint8_t>(maxPlayers_);

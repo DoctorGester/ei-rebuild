@@ -321,9 +321,8 @@ EI_REWRITTEN(0x004B6330, ScriptSubCall::Load);
 
 // A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
-    alignas(4) unsigned char temporary[sizeof(mfc::CString)];
-    *out = *reinterpret_cast<CStream*>(stream)->ReadString(temporary);
-    reinterpret_cast<mfc::CString*>(temporary)->~CString();
+    mfc::CString temporary(mfc::CString::kUnset);
+    *out = *reinterpret_cast<CStream*>(stream)->ReadString(&temporary);
 }
 EI_REWRITTEN(0x004B3D10, ScriptStringLoad);
 

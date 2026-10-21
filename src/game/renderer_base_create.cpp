@@ -27,8 +27,7 @@ constexpr const char* kNoFunctionText = "CVisualizator::Create.\n Loaded 2D grap
 } // namespace
 
 void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* settings) {
-    const mfc::CString& workPath = *reinterpret_cast<const mfc::CString*>(
-        reinterpret_cast<const std::uint8_t*>(settings) + options::field::kWorkPath);
+    const mfc::CString& workPath = settings->workPath_;
 
     void* memory = gamecrt::operator_new(kPipelineSize);
     CTransformPipeline* pipeline = memory ? static_cast<CTransformPipeline*>(memory)->TransformPipelineConstruct(workPath) : nullptr;
