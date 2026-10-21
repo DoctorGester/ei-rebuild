@@ -63,26 +63,26 @@ void CInterface3D::LoadState(void* stream) {
 namespace {
 // The text table (007AF788; thiscall): a key's text into `out` (004E0020, RET 8).
 
-const std::uintptr_t kMessageKeys[13] = {
-    0x007931DC,   // "lmp_player_connected"
-    0x007931C4,   // "lmp_player_disconnected"
-    0x007931B0,   // "lmp_player_kicked"
-    0x0079319C,   // "lmp_player_banned"
-    0x00793180,   // "lmp_player_lost_connection"
-    0x00793170,   // "lmp_quest_taken"
-    0x0079315C,   // "lmp_quest_canceled"
-    0x00793148,   // "lmp_quest_completed"
-    0x00793134,   // "lmp_zone_enabled"
-    0x00793120,   // "lmp_zone_disabled"
-    0x0079310C,   // "lmp_trade_requested"
-    0x007930F8,   // "lmp_trade_canceled"
-    0x007930EC,   // "reserved_02"
+const char* const kMessageKeys[13] = {
+    "lmp_player_connected",
+    "lmp_player_disconnected",
+    "lmp_player_kicked",
+    "lmp_player_banned",
+    "lmp_player_lost_connection",
+    "lmp_quest_taken",
+    "lmp_quest_canceled",
+    "lmp_quest_completed",
+    "lmp_zone_enabled",
+    "lmp_zone_disabled",
+    "lmp_trade_requested",
+    "lmp_trade_canceled",
+    "reserved_02",
 };
 } // namespace
 
 void* CInterface3D::MessageText(void* out, int id, const char* value) {
     mfc::CString key, text;
-    if (static_cast<unsigned>(id) <= 12) key = reinterpret_cast<const char*>(kMessageKeys[id]);
+    if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
     void* table = *reinterpret_cast<void* const*>(0x007AF788);
     TextsGetString(table, nullptr, key, &key);
     if (value)

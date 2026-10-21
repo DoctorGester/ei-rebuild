@@ -226,7 +226,7 @@ const std::vector<std::string>& AutoExecLines() {
 
 } // namespace
 
-const AddonCommandRegistration kAddonCommandRegistrations[6] = {
+const CommandRegistration kAddonCommandRegistrations[6] = {
     {true, "help", Help},
     {true, "addon", Addon},
     {true, "execs", Execs},
@@ -237,7 +237,7 @@ const AddonCommandRegistration kAddonCommandRegistrations[6] = {
 
 void RegisterAddonCommands() {
     g_gameHelp = Command(CheatCommands(), mfc::CString("help"));
-    for (const AddonCommandRegistration& r : kAddonCommandRegistrations)
+    for (const CommandRegistration& r : kAddonCommandRegistrations)
         Register(r.cheat ? CheatCommands() : PublicCommands(), r.name, r.handler);
 }
 

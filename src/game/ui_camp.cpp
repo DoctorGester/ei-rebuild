@@ -174,7 +174,7 @@ void CCampPages::ShowPage(int page) {
         static_cast<CItemScreen*>(this)->ReturnAll(PlayerParty(), itemExtra_);
         TakeResults(this, spellResults_, spellParts_[0], spellStrip_);
         TakeResults(this, itemResults_, itemParts_[0], partStrip_);
-        interface_->PlaySound(game::Text(0x0079372C), 0);   // buttons\globalmap\transit.wav
+        interface_->PlaySound("buttons\\globalmap\\transit.wav", 0);
         if (fromHeroScreen_) {
             interface_->SetPendingValue(0);
             return;
@@ -189,7 +189,7 @@ void CCampPages::ShowPage(int page) {
     if (!offered) {
         ShowPage(page_);   // the page is not offered: show the current one again
     } else {
-        if (page_ != page) interface_->PlaySound(game::Text(0x0079374C), 0);   // buttons\camp\slot.wav
+        if (page_ != page) interface_->PlaySound("buttons\\camp\\slot.wav", 0);
         page_ = page;
         statsPanel_->ShowStats(page);
         trade_->SelectHero(hero_);
@@ -448,7 +448,7 @@ int Count(const std::uint8_t* item) { return Read<int>(item, 0x48); }
 
 void CCampPages::UpdateAction() {
     mfc::CString action;
-    mfc::CString label(game::Text(0x0079388C));   // "camp_current_money"
+    mfc::CString label("camp_current_money");
     cost_ = 0;
     actionEnabled_ = false;
     actionShown_ = false;
@@ -456,9 +456,9 @@ void CCampPages::UpdateAction() {
     auto price = [this](void* item, int kind) { return VirtualPrice(item, kind); };
 
     // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
-    auto trade = [&](CParty* bought, int buyKind, CParty* sold, int sellKind, std::uintptr_t text) {
+    auto trade = [&](CParty* bought, int buyKind, CParty* sold, int sellKind, const char* text) {
         if (CountOf(bought) <= 0 && CountOf(sold) <= 0) return;
-        action = game::Text(text);
+        action = text;
         actionEnabled_ = true;
         actionShown_ = true;
         for (int i = 0; i < CountOf(bought); ++i) {
@@ -476,7 +476,7 @@ void CCampPages::UpdateAction() {
     // otherwise the constructor makes what the slots allow.
     auto construct = [&](std::uint8_t*& made, CParty* slots, int slotKind, int recordKind, int apartKind,
                          bool (*isFinished)(const std::uint8_t*), bool (*isMaterial)(const std::uint8_t*),
-                         bool (CCampPages::*canMake)(), std::uintptr_t apartText, std::uintptr_t makeText, int topic) {
+                         bool (CCampPages::*canMake)(), const char* apartText, const char* makeText, int topic) {
         if (made) AsObject(made)->Release();
         made = nullptr;
         deconstructing_ = false;
@@ -494,14 +494,14 @@ void CCampPages::UpdateAction() {
                     deconstructing_ = true;
                     static_cast<CItemInfoPanel*>(helpPanel_)->Describe(AsItem(item));
                     described = true;
-                    action = game::Text(apartText);
+                    action = apartText;
                     break;
                 }
                 if (isMaterial(item)) {
                     actionEnabled_ = (this->*canMake)();
                     static_cast<CItemInfoPanel*>(helpPanel_)->Describe(AsItem(made));
                     described = made != nullptr;
-                    if (actionEnabled_) action = game::Text(makeText);
+                    if (actionEnabled_) action = makeText;
                 }
             }
             if (!actionEnabled_) cost_ = 0;
@@ -518,7 +518,7 @@ void CCampPages::UpdateAction() {
             for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) cost_ += price(hero->weapons[i], 8);
             for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) cost_ += price(hero->armor[i], 8);
             actionEnabled_ = cost_ > 0;
-            if (actionEnabled_) action = game::Text(0x0079387C);   // "camp_repair_all"
+            if (actionEnabled_) action = "camp_repair_all";
         }
         break;
     case 1: {
@@ -526,27 +526,27 @@ void CCampPages::UpdateAction() {
         actionShown_ = up;
         actionEnabled_ = up;
         cost_ = trade_->PurchaseCost();
-        if (actionEnabled_) action = game::Text(0x0079386C);   // "camp_level_up"
-        label = game::Text(0x00793858);                       // "camp_current_exp"
+        if (actionEnabled_) action = "camp_level_up";
+        label = "camp_current_exp";
         break;
     }
     case 2:
-        trade(spellParts_[1], 0, spellParts_[2], 1, 0x007936FC);   // "camp_spell_trade"
+        trade(spellParts_[1], 0, spellParts_[2], 1, "camp_spell_trade");
         break;
     case 3:
         construct(spellMade_, spellResults_, 2, 0, 3, &IsSpellContainer, &IsSpell, &CCampPages::CanMakeSpell,
-                  0x00793844, 0x007936E8, 0x67);   // "camp_spell_deconstr", "camp_spell_constr"
+                  "camp_spell_deconstr", "camp_spell_constr", 0x67);
         break;
     case 4:
-        trade(itemParts_[1], 4, itemParts_[2], 5, 0x007936D8);     // "camp_item_trade"
+        trade(itemParts_[1], 4, itemParts_[2], 5, "camp_item_trade");
         break;
     case 5:
         construct(itemMade_, itemResults_, 6, 4, 7, &IsBlueprint, &IsPart, &CCampPages::CanMakeItem,
-                  0x0079381C, 0x007936C4, 0x66);    // "camp_item_deconstr", "camp_item_constr"
+                  "camp_item_deconstr", "camp_item_constr", 0x66);
         break;
     case 6:
         if (CountOf(itemExtra_) > 0) {
-            action = game::Text(0x00793830);   // "camp_item_repair"
+            action = "camp_item_repair";
             actionEnabled_ = true;
             actionShown_ = true;
             for (int i = 0; i < CountOf(itemExtra_); ++i) {
@@ -579,14 +579,14 @@ void CCampPages::UpdateAction() {
         RECT name = {0, 30, 200, 50};
         DrawLine(draw, text, &name);
         if (cost_ != 0)
-            text.Format(game::Text(0x00793818), -cost_);   // "%+d"
+            text.Format("%+d", -cost_);
         else
-            text = game::Text(0x007856B8);                 // "0"
+            text = "0";
         RECT value = {0, 50, 200, 70};
         DrawLine(draw, text, &value);
     }
     texts->GetString(label, &text);
-    line.Format(game::Text(0x00792F14), static_cast<const char*>(text), amount);   // "%s %d"
+    line.Format("%s %d", static_cast<const char*>(text), amount);
     RECT top = {0, 10, 200, 30};
     DrawLine(draw, line, &top);
     UiSurfaceReleaseDC(draw);
@@ -714,7 +714,7 @@ bool CCampPages::CanMakeSpell() {
     CSpell* made = reinterpret_cast<CSpell*>(constructor->container_->spell_)->Clone(manager);
     constructor->CallSetManager(nullptr);
     void* quickItems = const_cast<RecordTable*>(&itemdb::QuickItems());
-    auto* record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(quickItems), nullptr, game::Text(0x007938A0)));   // "spell container"
+    auto* record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(quickItems), nullptr, "spell container"));
     int index = static_cast<int>(record - itemdb::QuickItems().begin) / 0x8C;
     auto* container = reinterpret_cast<std::uint8_t*>(static_cast<CItemManager*>(factory)->MakeItem(0x3008, index, 0, -1));
     if (container) AsItem(container)->AttachSpell(made);
@@ -1242,7 +1242,7 @@ void CCampPages::ShowHero() {
         own = hero->texts[1];
         int found;
         {
-            mfc::CString prefix(game::Text(0x007937A8));   // "pers "
+            mfc::CString prefix("pers ");
             mfc::CString key = prefix + own;
             found = TextsOpenSection(table, nullptr, key);
         }

@@ -1,5 +1,4 @@
 file,offset access (At<>/Field<>),VCall slot call,__asm block,float_control pragma,raw game address (0x004..0x007 literal),*At view struct,placeholder virtual (SlotNN),byte offset arithmetic,per-file container struct,per-file vector/map/set struct,hand-written vector maths,unknown field,unused field accessed,EI_ORIGINAL forwarder
-src/game/ai_alarm.cpp,0,0,0,0,10,0,0,0,0,0,0,0,0,0
 src/game/ai_area_lists.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
 src/game/ai_footprint.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_map_construct.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,1
@@ -12,26 +11,19 @@ src/game/atexit_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/console.cpp,0,0,0,0,54,0,0,0,0,0,0,0,0,0
 src/game/console.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/console_commands.cpp,0,0,0,0,34,0,0,0,0,0,0,0,0,0
 src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0,0
 src/game/fake_unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/figure_mesh_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/map_spec_effect.cpp,0,0,0,0,3,0,0,0,0,0,0,0,0,0
-src/game/menu_rects.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0,0
 src/game/net_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
 src/game/net_server_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,1
 src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0,0
 src/game/net_session_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
-src/game/options.cpp,0,0,0,0,124,0,0,0,0,0,0,0,0,0
 src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,13
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -49,7 +41,6 @@ src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/random.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/renderer_init.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,1
 src/game/resource.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
-src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0,0,0,0
 src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_exec_run.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_parse.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
@@ -63,7 +54,6 @@ src/game/ui_battle_setup.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,7
 src/game/ui_battle_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_briefing.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_briefing_create.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_camp.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,0
 src/game/ui_connect_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/ui_container_draws.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ui_create_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -78,8 +68,7 @@ src/game/ui_hud_slide.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_hud_tips.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_hud_unit_info.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_interface.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
-src/game/ui_interface_save.cpp,0,0,0,0,13,0,0,0,0,0,0,0,0,0
-src/game/ui_item_info.cpp,0,0,0,0,29,0,0,0,0,0,0,0,0,0
+src/game/ui_item_info.cpp,0,0,0,0,23,0,0,0,0,0,0,0,0,0
 src/game/ui_item_strip_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_item_view.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ui_layouts.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,4

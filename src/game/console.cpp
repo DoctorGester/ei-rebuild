@@ -138,33 +138,33 @@ EI_REPLACE_METHOD(0x005DC1B0, ConsoleStreambuf::Sync);
 // ---- Executor -----------------------------------------------------------------------------------
 
 const CommandRegistration kCommandRegistrations[27] = {
-    {true, 0x007924C4, 0x005DF5E0},    // help
-    {true, 0x007924B8, 0x005DD920},    // debuginfo
-    {false, 0x007924B0, 0x005DDBE0},   // console
-    {true, 0x007924A8, 0x005DDF80},    // history
-    {true, 0x007924A0, 0x005DDFE0},    // filter
-    {true, 0x00792498, 0x005DE460},    // show
-    {true, 0x00792490, 0x005DEA00},    // listvar
-    {true, 0x00792488, 0x005DEC90},    // loadvar
-    {false, 0x00792480, 0x005DEEE0},   // lastfps
-    {false, 0x00792478, 0x005DEF50},   // exec
-    {false, 0x00792470, 0x005DEF50},   // execute
-    {true, 0x00792468, 0x005DF0F0},    // give
-    {true, 0x00792460, 0x005DF8E0},    // fadeout
-    {true, 0x00792458, 0x005DF3A0},    // join
-    {true, 0x00792450, 0x005DF490},    // server
-    {true, 0x00792444, 0x005DF5A0},    // memusage
-    {true, 0x0079243C, 0x005DF5B0},    // lootall
-    {true, 0x00792438, 0x005DF9B0},    // net
-    {true, 0x0079242C, 0x005DFC10},    // disconnect
-    {true, 0x0079241C, 0x005DFDA0},    // generateacks
-    {true, 0x00792414, 0x005E00D0},    // days
-    {true, 0x00792408, 0x005E0570},    // partyresend
-    {false, 0x00792400, 0x005E0590},   // kick
-    {false, 0x007923FC, 0x005E06E0},   // ban
-    {false, 0x007923F8, 0x005E0830},   // fps
-    {false, 0x007923F0, 0x005E0990},   // rate
-    {false, 0x007923E4, 0x005E0A10},   // localrate
+    {true, "help", commands::Help},
+    {true, "debuginfo", commands::DebugInfo},
+    {false, "console", commands::ConsolePos},
+    {true, "history", commands::History},
+    {true, "filter", commands::Filter},
+    {true, "show", commands::Show},
+    {true, "listvar", commands::ListVar},
+    {true, "loadvar", commands::LoadVar},
+    {false, "lastfps", commands::LastFps},
+    {false, "exec", commands::Exec},
+    {false, "execute", commands::Exec},
+    {true, "give", commands::Give},
+    {true, "fadeout", commands::FadeOut},
+    {true, "join", commands::Join},
+    {true, "server", commands::HostServer},
+    {true, "memusage", commands::MemUsage},
+    {true, "lootall", commands::LootAll},
+    {true, "net", commands::Net},
+    {true, "disconnect", commands::Disconnect},
+    {true, "generateacks", commands::GenerateAcks},
+    {true, "days", commands::Days},
+    {true, "partyresend", commands::PartyResend},
+    {false, "kick", commands::Kick},
+    {false, "ban", commands::Ban},
+    {false, "fps", commands::Fps},
+    {false, "rate", commands::Rate},
+    {false, "localrate", commands::LocalRate},
 };
 
 // 005DC620. Every call (re)registers all commands. The first token is the command; "@", "#" and
@@ -173,8 +173,8 @@ const CommandRegistration kCommandRegistrations[27] = {
 // cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
 void __fastcall Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
-        mfc::CString name(game::Text(r.name));
-        Command(r.cheat ? CheatCommands() : PublicCommands(), name) = reinterpret_cast<CommandHandler>(r.handler);
+        mfc::CString name(r.name);
+        Command(r.cheat ? CheatCommands() : PublicCommands(), name) = r.handler;
     }
 
     mfc::CString command;
@@ -192,18 +192,18 @@ void __fastcall Execute(const char* text) {
         if (CheatEnabled() && local) {
             mfc::CString script = Ops(command).Mid(1);
             if (first == '@')
-                RunScriptLine(&script, &args, game::Text(0x00790940), game::Text(0x0078D71C));   // "WorldScript(" ")"
-            else if (first == '#')   // "WorldScript( ConsoleFloat( " " ))"
-                RunScriptLine(&script, &args, game::Text(0x007923C4), game::Text(0x007923E0));
-            else                     // "WorldScript( ConsoleString( " " ))"
-                RunScriptLine(&script, &args, game::Text(0x007923A4), game::Text(0x007923E0));
+                RunScriptLine(&script, &args, "WorldScript(", ")");
+            else if (first == '#')
+                RunScriptLine(&script, &args, "WorldScript( ConsoleFloat( ", " ))");
+            else
+                RunScriptLine(&script, &args, "WorldScript( ConsoleString( ", " ))");
         }
         return;
     }
 
     Ops(command).MakeLower();
     for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeLower();
-    if (Mbscmp(command, game::Text(0x0079239C)) == 0 || Mbscmp(command, game::Text(0x00792394)) == 0) {   // quit, exit
+    if (Mbscmp(command, "quit") == 0 || Mbscmp(command, "exit") == 0) {
         app::QuitGame(0);
         return;
     }
@@ -217,14 +217,14 @@ void __fastcall Execute(const char* text) {
         Ops(command).ReleaseBuffer(-1);
         if (std::strcmp(command, game::consoletexts::CheatWord()) == 0) {
             CheatEnabled() = true;
-            PrintLine(game::Text(0x00792388));   // "Activated!"
+            PrintLine("Activated!");
             return;
         }
     } else if (Command(CheatCommands(), command)) {
         if (!NetworkGame()) (Command(CheatCommands(), command))(&args);
         return;
     }
-    PrintLine(game::Text(0x0078D848));   // "Unknown command"
+    PrintLine("Unknown command");
 }
 EI_REPLACE(0x005DC620, Execute);
 
@@ -288,13 +288,13 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
     mfc::CString line(prefix);
     line += *text;
     for (int i = 0; i < args->GetSize(); ++i) {
-        Ops(line).AppendText(game::Text(0x0078DA40));   // " "
+        Ops(line).AppendText(" ");
         mfc::CString arg((*args)[i]);
         line += arg;
     }
     Ops(line).AppendText(suffix);
     if (!RunScriptText(&line, 1, &error))
-        EndLine(Out() << game::Text(0x007924CC) << static_cast<const char*>(error.text));   // "Script error: "
+        EndLine(Out() << "Script error: " << static_cast<const char*>(error.text));
 }
 EI_REPLACE(0x005DD800, RunScriptLine);
 
