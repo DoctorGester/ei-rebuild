@@ -274,7 +274,7 @@ void CHudMap::BuildMarkers() {
     // The units the local view lists: an arrow, unless dead or outside the circle.
     for (int i = 0; i < unitCount; ++i) {
         out.BeginUnit();
-        auto* unit = static_cast<CUnit*>(objects->FindObject(view->partyUnitIds_[i]));
+        CUnit* unit = UnitWithId(objects, view->partyUnitIds_[i]);
         if (!unit || unit->IsDead() != 0) {
             out.Hide();
             continue;
@@ -305,9 +305,9 @@ void CHudMap::BuildMarkers() {
     for (int i = 0; i < markedCount; ++i, node = node->next) {
         if (node == marked.End()) break;
         out.BeginQuad();
-        auto* object = static_cast<CUnit*>(markers->FindObject(node->data));
+        CLight* light = markers->LightWithId(node->data);
         float x, y;
-        if (object && out.Place(object->position.x, object->position.y, &x, &y)) {
+        if (light && out.Place(light->position_.x, light->position_.y, &x, &y)) {
             out.PutSquare(x, y);
             out.Show(kFrameMarked);
         } else {
@@ -337,7 +337,7 @@ void CHudMap::BuildMarkers() {
     if (IsMultiplayerClient()) {
         for (int i = 0; i < playerCount; ++i) {
             out.BeginQuad();
-            auto* unit = static_cast<CUnit*>(objects->FindObject(view->otherUnitIds_[i]));
+            CUnit* unit = UnitWithId(objects, view->otherUnitIds_[i]);
             float x, y;
             if (unit && out.Place(unit->position.x, unit->position.y, &x, &y)) {
                 out.PutDiamond(x, y);

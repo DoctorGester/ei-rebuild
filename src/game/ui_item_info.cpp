@@ -405,10 +405,11 @@ void CItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
         if (kind == kWeapon) {
+            CItemWeapon* weapon = AsWeapon(item);
             // Damage: min-max and the first damage kind with a weight ("damage_<n>"; the text
             // keeps the material line's otherwise).
             float weights[7];
-            static_cast<CItemWeapon*>(item)->GetDamageTypes(weights);
+            weapon->GetDamageTypes(weights);
             unsigned first = FirstDamageKind(weights);
             if (first < 7) {
                 w.line.Format("damage_%d", first);
@@ -424,7 +425,7 @@ void CItemInfoPanel::DescribeItem() {
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
             w.Number(38, Ftol(WeaponStat84(PackedIdOf(item))));
-            if (static_cast<CItemWeapon*>(item)->GetType() == 5 || static_cast<CItemWeapon*>(item)->GetType() == 6)
+            if (weapon->GetType() == 5 || weapon->GetType() == 6)
                 w.Number(10, FtolOf(Read<float>(item, 0x58)));
             else
                 w.Number(39, Ftol(WeaponStat88(PackedIdOf(item))));
@@ -858,9 +859,9 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
 // Kind 5, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
 // weapon of type 5 or 6, infoitem_34).
 void WeaponLines(Writer& w, const ItemHoverInfo* info) {
-    CItem* weapon = info->weapon;
+    CItemWeapon* weapon = info->weapon;
     UnitStats* stats = info->stats;
-    int type = static_cast<CItemWeapon*>(weapon)->GetType();
+    int type = weapon->GetType();
     if (MbsCmp(info->text, "defense") == 0 && (type == 5 || type == 6)) {
         w.Wrapped(w.T(34), 2);
         w.Down();

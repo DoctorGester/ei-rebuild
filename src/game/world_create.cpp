@@ -132,7 +132,7 @@ CUnit* CWorld::FindUnit(int id) {
 }
 EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
 
-CEngineObject* CWorld::FindMapObject(int id) {
-    return MapObjectManager()->FindObject(static_cast<unsigned>(id));
+CMapObject* CWorld::FindMapObject(int id) {
+    return ObjectSlots(MapObjectManager()->FindObject(static_cast<unsigned>(id)));   // the map object manager's objects
 }
 EI_REPLACE_METHOD(0x0055FAE0, CWorld::FindMapObject);

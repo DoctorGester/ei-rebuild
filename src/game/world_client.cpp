@@ -320,9 +320,9 @@ float* CWorldClient::ExitCentre(float* out, int index) {
     return out;
 }
 
-std::uint32_t CWorldClient::EnvironmentFlags(CEngineObject* unit) {
+std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     std::uint32_t flags = 0;
-    switch (static_cast<std::uint32_t>(static_cast<CUnit*>(unit)->moveMode2)) {
+    switch (static_cast<std::uint32_t>(unit->moveMode2)) {
     case 0: flags = 8; break;
     case 1: flags = 4; break;
     case 2: flags = 2; break;

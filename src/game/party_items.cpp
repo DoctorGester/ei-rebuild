@@ -93,7 +93,7 @@ BOOL CItem::CopyToImpl(CItem* target, CSpellManager* spells) {
 // The subclasses' slot 15: the base copy (0069FFC0), then their own dwords.
 BOOL CItemWeapon::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CItem::CopyToImpl(target, spells)) return 0;
-    auto* weapon = static_cast<CItemWeapon*>(target);
+    CItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
     std::memcpy(&weapon->actionValue_, &actionValue_, sizeof(CItemWeapon) - offsetof(CItemWeapon, actionValue_));
     return 1;
 }

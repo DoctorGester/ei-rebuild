@@ -70,8 +70,8 @@ void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* po
             AIBrain* theirs = other->ServerController()->Brain();
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
-            auto* enemy = static_cast<CUnit*>(theirs->AggressionEnemy());
-            if (enemy && enemy->GetClassId() == kClassUnit && !Allied(self->side, enemy->side)) continue;
+            CUnit* enemy = UnitOrNull(theirs->AggressionEnemy());
+            if (enemy && !Allied(self->side, enemy->side)) continue;
             if (!theirs->memory.seesEnemy) continue;
         }
         out->AddTail(other);

@@ -122,10 +122,10 @@ void CInterface3D::CreateScreen(int id) {
         SetVtables(view, Vtable(0x00740840), Vtable(0x0074080C));
         break;
     }
-    case 8: {   // the titles (CCreditsScreen, ui_screens.h, has no window base in our headers)
-        void* credits = gamecrt::operator_new(sizeof(CCreditsScreen));
+    case 8: {   // the titles (CCreditsScreen, ui_screens.h)
+        auto* credits = gamecrt::operator_new_as<CCreditsScreen>();
         if (credits) Screen8Construct(credits, nullptr, this, 0, "Crdt");
-        screen = static_cast<CUiWindow*>(credits);
+        screen = credits;
         break;
     }
     case 9: {

@@ -340,7 +340,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
 
     if (value <= EntryTicks(unit, index, 0x20)) {
         // The cast fits in the animation.
-        static_cast<AnimationSteps*>((void*)steps)->AddStep(index, AnimationDuration(index));
+        steps->AddStep(index, AnimationDuration(index));
         *duration = AnimationMoment(index);
         return;
     }

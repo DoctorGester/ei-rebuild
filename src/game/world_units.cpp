@@ -315,9 +315,9 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             CUnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
             AIBrain* brain = &controller->brain;
-            AIMode* follow = brain->FindPlayerMode();
+            PlayerMode* follow = brain->FindPlayerMode();
             if (!follow) continue;
-            static_cast<PlayerMode*>(follow)->SetLeader(brain, WorldFindUnit(this, nullptr, record->leaderId));
+            follow->SetLeader(brain, WorldFindUnit(this, nullptr, record->leaderId));
         }
     }
 
@@ -423,7 +423,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     auto timed = [this](CEffect* object) {
         object->startTick_ = tick_;
         ++object->refCount_;
-        static_cast<CEffect*>((void*)object)->MarkChanged();
+        object->MarkChanged();
         timedObjects_.Set(static_cast<unsigned>(object->id_), object);
         return object->id_;
     };
@@ -474,7 +474,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
-        static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
+        object->SetUpAnimatedFigure(spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -578,7 +578,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         object->MarkChanged(7);
         object->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
-        static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
+        object->SetUpAnimatedFigure(spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);

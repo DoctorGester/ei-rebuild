@@ -156,7 +156,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     case kPatrol: {
         auto* mode = NewCounted<PatrolMode>();
         AddMode(mode ? mode->Construct() : nullptr);
-        AddPatrolPoints(static_cast<PatrolMode*>(FindMode(kModePatrol)), record);
+        AddPatrolPoints(FindPatrolMode(), record);
         break;
     }
     default:

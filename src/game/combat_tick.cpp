@@ -415,7 +415,7 @@ bool CUnitServer::StartQueuedOrder() {
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
         int duration = AnimationDuration(animation);
-        static_cast<AnimationSteps*>((void*)&steps)->AddStep(animation, duration);
+        steps.AddStep(animation, duration);
         AnimationSteps copy;
         copy.CopyConstruct(steps);   // 0054B260
         PlayAnimationOrder(copy);
@@ -430,7 +430,7 @@ bool CUnitServer::StartQueuedOrder() {
         steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         steps.SetSize(0, -1);
         steps.extra = -1;
-        static_cast<AnimationSteps*>((void*)&steps)->AddEmote(static_cast<std::uint8_t>(action.param));
+        steps.AddEmote(static_cast<std::uint8_t>(action.param));
         AnimationSteps copy;
         copy.CopyConstruct(steps);   // 0054B260
         PlayEmoteOrder(copy);

@@ -9,6 +9,7 @@
 #include "figure_mesh.h"          // VertexPacket, MeshCorner
 #include "ground_decal.h"
 #include "link_figure.h"          // CLinkMesh, ITransformPipeline
+#include "map_object.h"           // CMapObject (ObjectWithId)
 #include "map_object_figures.h"   // CObject3D
 #include "model.h"                // CTransformPipeline, ScenePipeline
 #include "originals_library.h"    // GameAtExit
@@ -127,7 +128,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
         PartData data;
         for (PlatformNode* face = platforms_.list.head; face;) {
             PlatformNode* next = face->next;
-            auto* object = static_cast<CObject3D*>(ObjectWithId(face->data.id));
+            CObject3D* object = ObjectWithId(face->data.id);
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.

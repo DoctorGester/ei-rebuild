@@ -183,7 +183,7 @@ void* UnitState(CUnit* unit) { return unit->controller; }
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
 AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
 // The brain's patrol mode, null when it has none.
-PatrolMode* PatrolOf(void* state) { return static_cast<PatrolMode*>(BrainOf(state)->FindPatrolMode()); }
+PatrolMode* PatrolOf(void* state) { return BrainOf(state)->FindPatrolMode(); }
 UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->position; }
 
@@ -986,8 +986,8 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x29: {   // UMPatrolClear
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            void* patrol = BrainOf(state)->FindPatrolMode();
-            if (patrol) static_cast<PatrolMode*>(patrol)->points.SetSize(0, -1);
+            PatrolMode* patrol = BrainOf(state)->FindPatrolMode();
+            if (patrol) patrol->points.SetSize(0, -1);
             break;
         }
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)

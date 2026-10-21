@@ -597,9 +597,9 @@ EI_REPLACE_METHOD(0x005D27A0, AggressionMode::Save);
 
 int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (brain->memory.corpses.count != 0) {
-        AIRef corpse;
-        AIRef* popped = brain->PopCorpse(&corpse);
-        brain->memory.Notice(&static_cast<CMapObject*>(popped->object)->position, 800, -3);
+        AIRefTo<CUnit> corpse;
+        AIRefTo<CUnit>* popped = brain->PopCorpse(&corpse);
+        brain->memory.Notice(&popped->object->position, 800, -3);
         if (corpse.object) corpse.object->Release();
     }
     return kNoPriority;
@@ -677,16 +677,9 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        AIBrain* leaderBrain = leader->ServerController()->Brain();
-        for (auto* node = leaderBrain->modes.head; node;) {
-            AIMode* mode = node->data;     // 005D9830 (GetNext)
-            node = node->next;
-            if (mode->GetType() == kModePlayer) {
-                if (mode && static_cast<PlayerMode*>(mode)->state == kStateCommand) return;
-                PlayerUpdateCombatOriginal(this, nullptr, brain);
-                return;
-            }
-        }
+        // (The original inlines the walk, its GetNext 005D9830.)
+        PlayerMode* leaderMode = leader->ServerController()->Brain()->FindPlayerMode();
+        if (leaderMode && leaderMode->state == kStateCommand) return;
         PlayerUpdateCombatOriginal(this, nullptr, brain);
         return;
     }
@@ -833,12 +826,7 @@ EI_REWRITTEN(0x005D3D90, PlayerMode::CommandCastAt);
 
 namespace {
 // The first Player mode (type 6) in the brain of `unit`'s controller, or null.
-PlayerMode* PlayerModeOf(CUnit* unit) {
-    AIBrain* brain = unit->ServerController()->Brain();
-    for (auto* node = brain->modes.head; node; node = node->next)
-        if (node->data->Virtuals()->GetType() == kModePlayer) return static_cast<PlayerMode*>(node->data);
-    return nullptr;
-}
+PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->Brain()->FindPlayerMode(); }
 } // namespace
 
 void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {

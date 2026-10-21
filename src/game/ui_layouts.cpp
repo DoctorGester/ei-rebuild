@@ -447,17 +447,17 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         GameStopAmbience();
         ui->PlaySound(okSound, 0);
         ClearSurfaces();
-        auto* w = static_cast<CCreditsScreen*>(gamecrt::operator_new(sizeof(CCreditsScreen)));
+        auto* w = gamecrt::operator_new_as<CCreditsScreen>();
         if (w) {
-            w->window.Construct(ui);
+            w->CUiContainer::Construct(ui);
             reinterpret_cast<CMappedResource*>(w->archive_)->Construct();
             w->lines_.Construct();   // 00634300
             new (static_cast<void*>(&w->name_)) mfc::CString("Titles");
             Screen8Member1D8(&w->player_);
             w->fromGame_ = true;
-            SetVtables(&w->window, kCreditsVtable, kCreditsInputVtable);
+            SetVtables(w, kCreditsVtable, kCreditsInputVtable);
         }
-        ui->PushWindow(&w->window, 0, 1);
+        ui->PushWindow(w, 0, 1);
         break;
     }
     case 5: {
@@ -675,7 +675,7 @@ struct TitlesTokenizer : TextTokenizer {
 } // namespace
 
 void CCreditsScreen::Build() {
-    CInterface3D* ui = window.interface_;
+    CInterface3D* ui = interface_;
     const mfc::CString& name = name_;
     if (!fromGame_) {
         TheSoundManager()->StopAll(1);
@@ -735,13 +735,13 @@ void CCreditsScreen::Build() {
         void* memory = gamecrt::operator_new(0x58);
         RECT rect = {10, 0x96, 0x316, 0x1C2};
         textSurface_ = static_cast<CUiScrollingSurface*>(
-            window.AddSurface(memory ? static_cast<CUiScrollingSurface*>(memory)->Construct(ui, &rect) : nullptr));
+            AddSurface(memory ? static_cast<CUiScrollingSurface*>(memory)->Construct(ui, &rect) : nullptr));
         textSurface_->Freeze(0, 0);
     }
     {
         CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
         RECT rect = {10, 0x6E, 0x316, 0x8C};
-        headerSurface_ = window.AddSurface(memory ? memory->ConstructOnRect(ui, &rect, 5) : nullptr);
+        headerSurface_ = AddSurface(memory ? memory->ConstructOnRect(ui, &rect, 5) : nullptr);
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) GameSetServerPaused(0);

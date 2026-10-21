@@ -96,7 +96,7 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 
-AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&memory.corpses, nullptr, out); }
+AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return CorpsesPopHead(&memory.corpses, nullptr, out); }
 void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b) {
     // 005D0030 reads `a` as a byte.
     attention.Choose(this, choice, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
@@ -108,9 +108,9 @@ void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vecto
 // copies the head's object into a counted local, unlinks the node, destroys the element in place
 // (0052CEC0 inlined: released, cleared), frees the node (the last one frees every block), then
 // copies the local into `out` and drops the local.
-AIRef* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRef* out) {
+AIRefTo<CUnit>* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRefTo<CUnit>* out) {
     CorpseList::Node* old = list->head;
-    CEngineObject* value = old->data;
+    CUnit* value = old->data;
     if (value) ++value->refCount_;
     list->head = old->next;
     if (list->head) list->head->prev = nullptr;
@@ -265,46 +265,35 @@ AIMode* AIBrain::FindMode(int type) {
 }
 EI_REWRITTEN(0x005D5DD0, AIBrain::FindMode);
 
-AIMode* AIBrain::FindPatrolMode() {
+PatrolMode* AIBrain::FindPatrolMode() {
     for (auto* node = modes.head; node;) {
         AIMode* mode = node->data;
         node = node->next;
-        if (mode->GetType() == kModePatrol) return mode;
+        if (mode->GetType() == kModePatrol) return static_cast<PatrolMode*>(mode);
     }
     return nullptr;
 }
 EI_REWRITTEN(0x005D5E30, AIBrain::FindPatrolMode);
 
-AIMode* AIBrain::FindPlayerMode() {
+PlayerMode* AIBrain::FindPlayerMode() {
     for (auto* node = modes.head; node;) {
         AIMode* mode = node->data;
         node = node->next;
-        if (mode->GetType() == kModePlayer) return mode;
+        if (mode->GetType() == kModePlayer) return static_cast<PlayerMode*>(mode);
     }
     return nullptr;
 }
 EI_REWRITTEN(0x005D5E60, AIBrain::FindPlayerMode);
 
 CUnit* AIBrain::PlayerModeLeader() {
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
-        if (mode->GetType() == kModePlayer) return mode ? static_cast<PlayerMode*>(mode)->leader : nullptr;
-    }
-    return nullptr;
+    PlayerMode* mode = FindPlayerMode();   // (the original inlines the walk)
+    return mode ? mode->leader : nullptr;
 }
 EI_REWRITTEN(0x005D5EE0, AIBrain::PlayerModeLeader);
 
 CMapObject* AIBrain::LeaderOrFollowed() {
     CMapObject* leader = nullptr;
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
-        if (mode->GetType() == kModePlayer) {
-            if (mode) leader = static_cast<PlayerMode*>(mode)->leader;
-            break;
-        }
-    }
+    if (PlayerMode* mode = FindPlayerMode()) leader = mode->leader;   // (the original inlines the walk)
     if (!leader && action == kActionFollow) return target;
     return leader;
 }

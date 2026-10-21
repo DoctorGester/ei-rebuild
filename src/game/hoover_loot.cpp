@@ -73,11 +73,10 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, char* unit, void* dropList, void* itemList,
+int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, CUnit* cunit, void* dropList, void* itemList,
                                  void* /*unused*/, int* gold) {
     auto* drops = static_cast<PtrList*>(dropList);
     auto* items = static_cast<PtrList*>(itemList);
-    auto* cunit = reinterpret_cast<CUnit*>(unit);
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     void* manager = world->ItemFactory();
@@ -111,7 +110,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, char* u
     while (cunit->carriedCount != 0) cunit->RemoveCarried(0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
-            void* armour = (void*)static_cast<const CUnit*>((const void*)unit)->WornItem(slot);
+            void* armour = cunit->WornItem(slot);
             if (!armour) continue;
             Append(drops, armour);
             cunit->UnequipArmour(reinterpret_cast<CItemArmor*>(armour)->GetType());
