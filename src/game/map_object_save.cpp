@@ -15,9 +15,6 @@
 namespace {
 constexpr std::uint32_t kBaseScaleVersion = 0x4E;   // base scale saved after this version
 
-mfc::CString& AsString(char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
-mfc::CString& AsString(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
-
 // A string read up to its terminator (CStream::ReadString into a temporary).
 struct ReadText {
     explicit ReadText(CStream* stream) : text(stream->ReadString(storage)) {}
@@ -38,7 +35,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     stream->Read(&orientation, sizeof(orientation));
     {
         ReadText text(stream);
-        AsString(name) = static_cast<const char*>(*text.text);
+        name = static_cast<const char*>(*text.text);
     }
     stream->Read(&scale, sizeof(scale));
     // The original reads the count into its argument's stack slot: a failed read leaves the stream
@@ -52,7 +49,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     flags_ = flags;
     {
         ReadText text(stream);
-        AsString(name2) = *text.text;
+        name2 = *text.text;
     }
     if (stream->version_ > kBaseScaleVersion) stream->Read(&baseScale, sizeof(baseScale));
 }

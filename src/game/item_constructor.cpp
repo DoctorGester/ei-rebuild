@@ -607,10 +607,7 @@ const mfc::CString* HeadName(const ItemRecordHead* record) { return &record->tex
 } // namespace
 
 void CItemManager::ListMaterialNames(mfc::CStringArray* names) {
-    // The key is a CString (MaterialRecordHead declares its characters).
-    ListRecordNames<MaterialRecordHead>(Materials(), names, [](const MaterialRecordHead* record) {
-        return reinterpret_cast<const mfc::CString*>(&record->key);
-    });
+    ListRecordNames<MaterialRecordHead>(Materials(), names, [](const MaterialRecordHead* record) { return &record->key; });
 }
 void CItemManager::ListWeaponNames(mfc::CStringArray* names) { ListRecordNames<WeaponRecord>(Weapons(), names, HeadName); }
 void CItemManager::ListArmorNames(mfc::CStringArray* names) { ListRecordNames<ArmorRecord>(Armors(), names, HeadName); }

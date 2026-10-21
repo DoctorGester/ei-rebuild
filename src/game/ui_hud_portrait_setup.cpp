@@ -224,7 +224,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].FaceName() = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].ModelPrefix().Format("infa%s", unit->name);
+        slots_[i].ModelPrefix().Format("infa%s", static_cast<const char*>(unit->name));
         const int hair = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair;
         slots_[i].ModelSuffix().Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;

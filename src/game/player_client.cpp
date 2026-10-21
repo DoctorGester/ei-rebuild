@@ -608,13 +608,13 @@ int CPlayerClient::OnNewObject() {
     if (created == nullptr) return 0;
     auto* object = static_cast<CMapObject*>(created);
     auto* figure = static_cast<CObject3D*>(created);
-    *reinterpret_cast<mfc::CString*>(&object->name) = model;
+    object->name = model;
     bool isUnit = created->GetClassId() == kClassUnitObject;
     created->prototypeId_ = header.prototype;
     figure->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, sizeof(scale));
     ObjectSlots(created)->ApplyBaseScale();
-    *reinterpret_cast<mfc::CString*>(&object->name2) = static_cast<const char*>(secondName);   // 0050F150
+    object->name2 = static_cast<const char*>(secondName);   // 0050F150
     if (isUnit) {
         auto* unit = static_cast<CUnit*>(created);
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);

@@ -172,12 +172,11 @@ bool CCampPages::DeconstructItem() {
     // A material per one the prototype needs; a material index out of range reads its key through
     // null, as in the original.
     for (std::uint32_t i = 0; i < reinterpret_cast<const itemdb::ItemRecordHead*>(copy->GetPrototype())->materialUnits; ++i) {
-        auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
-            itemdb::Materials().RecordAt(MaterialIndex(copy->prototypeId_), itemdb::kMaterialSize));
+        const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
         // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.
         mfc::CString name(MaterialText());
         name += ".";
-        name += *reinterpret_cast<const mfc::CString*>(&material->key);
+        name += material->key;
         AddNamed(results, name, 0, false);
     }
     if (copy->spell_) {

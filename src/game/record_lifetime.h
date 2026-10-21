@@ -1,7 +1,7 @@
 #pragma once
 
 // Helpers for the destructors and copies the compiler wrote for game records (S13): STLport
-// vectors destroyed member by member, and CStrings that records declare as plain char pointers.
+// vectors destroyed member by member, and the figure maps' pairs.
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -15,14 +15,6 @@ template <typename T>
 void DestroyVector(stlp::vector<T>& vector) {
     for (T* p = vector.begin(); p != vector.end(); ++p) p->~T();
     vector.FreeStorage();
-}
-
-// A CString member declared as its data pointer.
-inline mfc::CString& AsCString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
-inline mfc::CString& AsCString(const char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
-inline const mfc::CString& AsCString(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
-inline const mfc::CString& AsCString(const char* const& field) {
-    return *reinterpret_cast<const mfc::CString*>(&field);
 }
 
 // 005AE5B0 / 005AE5D0 (RET 4): the deleting destructors of the figure maps' pairs, whose only

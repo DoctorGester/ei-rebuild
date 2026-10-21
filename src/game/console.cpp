@@ -90,7 +90,7 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     Base()->Construct(buffer_, sizeof(buffer_));   // 006FCAD2
     filter_ = filter;
-    line_ = mfc::impl::PchNil();   // CString(): the shared empty string
+    ::new (&line_) mfc::CString;   // the shared empty string
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
@@ -99,7 +99,7 @@ EI_REPLACE_METHOD(0x005DC200, ConsoleStreambuf::Construct);
 // 005DC260
 void ConsoleStreambuf::Destruct() {
     ei::SetVtable(this, kVtableAddress);
-    Line().~CString();
+    line_.~CString();
     Base()->Destruct();   // 006FCB35
 }
 EI_REPLACE_METHOD(0x005DC260, ConsoleStreambuf::Destruct);
@@ -117,8 +117,8 @@ EI_REPLACE_METHOD(0x005DC240, ConsoleStreambuf::DeletingDestruct);
 int ConsoleStreambuf::Overflow(int c) {
     if (filter_ == 0 || (FilterMask() & filter_) != 0) {
         const char* end = pptr_;
-        for (const char* p = pbase_; p < end; ++p) Ops(Line()).AppendChar(*p);
-        if (c != -1) Ops(Line()).AppendChar(static_cast<char>(c));
+        for (const char* p = pbase_; p < end; ++p) Ops(line_).AppendChar(*p);
+        if (c != -1) Ops(line_).AppendChar(static_cast<char>(c));
         pbase_ = base_;
         pptr_ = base_;
         epptr_ = ebuf_;
@@ -132,7 +132,7 @@ int ConsoleStreambuf::Sync() {
     using OverflowFn = int(__thiscall*)(ConsoleStreambuf*, int);
     reinterpret_cast<OverflowFn>(vtable_[7])(this, -1);
     TheInterface()->ConsoleAddText(line_);
-    Line() = game::EmptyText();   // ""
+    line_ = game::EmptyText();   // ""
     return 0;
 }
 EI_REPLACE_METHOD(0x005DC1B0, ConsoleStreambuf::Sync);

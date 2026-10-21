@@ -450,9 +450,9 @@ public:
     void DestructBody();
     CTexture* DeletingDestruct(unsigned flags);
 
-    mfc::CString* Name() { return reinterpret_cast<mfc::CString*>(&name_); }
+    mfc::CString* Name() { return &name_; }
 
-    char* name_;                // +0x1C CString
+    mfc::CString name_;         // +0x1C
     std::uint32_t width_;       // +0x20
     std::uint32_t height_;      // +0x24
     int uploadResult_;          // +0x28 result of 0068FA10 (MmpHeader::FilledBytes); 0 after CreateBlank
@@ -466,7 +466,7 @@ public:
     std::uint8_t* block_;
     std::uint32_t spare64_;     // +0x64 cleared by the constructor, slot 2 and slot 3; nothing reads it
 };
-static_assert(offsetof(CTexture, extra_) == 0x2C);
+static_assert(offsetof(CTexture, name_) == 0x1C && offsetof(CTexture, extra_) == 0x2C);
 static_assert(offsetof(CTexture, format_) == 0x3C);
 static_assert(offsetof(CTexture, surface_) == 0x5C);
 

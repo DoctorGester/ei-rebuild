@@ -89,8 +89,7 @@ int CWorldClient::LoadLights(const char* file) {
     console::CStringArray keys;
     mfc::CString hour;
     DwordArray values{};
-    CIniFile ini;
-    ini.Construct();
+    CIniFile ini;   // the empty path (00695B80), freed at the end (00695BE0)
     {
         mfc::CString folder = TheDataFolder() + ConfigFolder();
         mfc::CString path = folder + file;
@@ -99,7 +98,6 @@ int CWorldClient::LoadLights(const char* file) {
     ReadTable(ini, keys, hour, values, SunlightSection(), sunlight_);
     ReadTable(ini, keys, hour, values, AmbientSection(), ambient_);
     ReadTable(ini, keys, hour, values, SkySection(), sky_);
-    reinterpret_cast<mfc::CString*>(&ini.path_)->~CString();    // 00695BE0
     values.SetSize(0, -1);
     return 1;
 }

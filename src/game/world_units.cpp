@@ -383,7 +383,7 @@ void Copy(void* to, const void* from, std::size_t n) {
 }
 
 // The map object's CString name (+0xA4) as the string it is.
-mfc::CString* NameString(CMapObject* object) { return reinterpret_cast<mfc::CString*>(&object->name); }
+mfc::CString* NameString(CMapObject* object) { return &object->name; }
 
 } // namespace
 

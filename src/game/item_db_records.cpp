@@ -113,19 +113,18 @@ LootItemRecord* LootItemRecord::AssignLoot(const LootItemRecord* source) {
 EI_REPLACE_METHOD(0x006A9DA0, LootItemRecord::AssignLoot);
 
 MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* source) {
-    const auto text = [](const char* const* field) { return reinterpret_cast<const mfc::CString*>(field); };
-    new (&key) mfc::CString(*text(&source->key));
-    new (&soundName) mfc::CString(*text(&source->soundName));
-    new (&name) mfc::CString(*text(&source->name));
+    new (&key) mfc::CString(source->key);
+    new (&soundName) mfc::CString(source->soundName);
+    new (&name) mfc::CString(source->name);
     CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     return this;
 }
 EI_REPLACE_METHOD(0x006A9E40, MaterialRecordHead::CopyConstruct);
 
 void MaterialRecordHead::AssignMaterial(const MaterialRecordHead* source) {
-    records::AsCString(key) = records::AsCString(source->key);
-    records::AsCString(soundName) = records::AsCString(source->soundName);
-    records::AsCString(name) = records::AsCString(source->name);
+    key = source->key;
+    soundName = source->soundName;
+    name = source->name;
     CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
 }
 
@@ -162,9 +161,9 @@ void QuestItemRecord::Destruct() {
 EI_REPLACE_METHOD(0x006A8AE0, QuestItemRecord::Destruct);
 
 void MaterialRecordHead::Destruct() {
-    records::AsCString(name).~CString();
-    records::AsCString(soundName).~CString();
-    records::AsCString(key).~CString();
+    name.~CString();
+    soundName.~CString();
+    key.~CString();
 }
 EI_REPLACE_METHOD(0x006A88F0, MaterialRecordHead::Destruct);
 

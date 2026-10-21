@@ -87,7 +87,7 @@ EI_REPLACE_METHOD(0x005301B0, CUnit::FindAnimation);
 
 char* CUnit::AnimationEntry(std::uint32_t key) {
     char* entry = reinterpret_cast<char*>(AnimationAt(key));
-    if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name);
+    if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), static_cast<const char*>(name));
     return entry;
 }
 EI_REPLACE_METHOD(0x00530240, CUnit::AnimationEntry);

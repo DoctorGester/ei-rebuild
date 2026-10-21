@@ -387,11 +387,11 @@ void AIMemory::Forget(CEngineObject* object) {
 EI_REPLACE_METHOD(0x005CC020, AIMemory::Forget);
 
 
-void AICallRecord::Destruct() { reinterpret_cast<mfc::CString*>(&text)->~CString(); }
+void AICallRecord::Destruct() { text.~CString(); }
 
 AICallRecord& AICallRecord::operator=(const AICallRecord& other) {
-    std::memcpy(this, &other, offsetof(AICallRecord, text));
-    *reinterpret_cast<mfc::CString*>(&text) = *reinterpret_cast<const mfc::CString*>(&other.text);
+    std::memcpy(static_cast<void*>(this), &other, offsetof(AICallRecord, text));
+    text = other.text;
     return *this;
 }
 

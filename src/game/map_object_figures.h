@@ -539,7 +539,7 @@ public:
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
     std::uint32_t spare09C;         // +0x09C cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // +0x0A0 loaded on first use (00518CA0)
-    const char* name;               // +0x0A4 CString: the figure's name
+    mfc::CString name;              // +0x0A4 the figure's name
     // +0x0A8 the particle sources attached to the object (MFC CPtrList, vtable 0073DE4C, block
     // size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;

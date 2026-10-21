@@ -133,7 +133,6 @@ public:
     // 006FCB35 ~streambuf).
     libcrt::Streambuf* Base() { return reinterpret_cast<libcrt::Streambuf*>(this); }
 
-    mfc::CString& Line() { return *reinterpret_cast<mfc::CString*>(&line_); }
 
     void** vtable_;
     int allocated_;            // +0x04 streambuf members (old iostream)
@@ -150,7 +149,7 @@ public:
     int lockFlag_;             // +0x30
     std::uint8_t lock_[0x18];  // +0x34 CRITICAL_SECTION
     unsigned filter_;          // +0x4C message category; 0 = always shown
-    char* line_;               // +0x50 CString
+    mfc::CString line_;        // +0x50
     char buffer_[0x400];       // +0x54
 };
 static_assert(sizeof(ConsoleStreambuf) == 0x454);

@@ -84,7 +84,7 @@ void AIMemory::Load(CStream* stream) {
         call.hostileMask = 0;
         stream->Read(&call.point, 12);
         stream->Read(&call.kind, 4);
-        stream->ReadInto(reinterpret_cast<mfc::CString*>(&call.text));
+        stream->ReadInto(&call.text);
         stream->Read(&call.hostileMask, 4);
     }
     stream->Read(&noticedKind, 4);

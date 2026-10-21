@@ -356,7 +356,7 @@ public:
     int effectCount;                // +0x19C |
     int effectCapacity;             // +0x1A0 |
     int effectGrowBy;               // +0x1A4 /
-    char* name2;                    // +0x1A8 CString
+    mfc::CString name2;             // +0x1A8
     Vector3 baseScale;              // +0x1AC
     int sectorCellX;                // +0x1B8
     int sectorCellY;                // +0x1BC
@@ -370,7 +370,7 @@ public:
 static_assert(sizeof(CObject3D) == 0x170);
 static_assert(offsetof(CMapObject, companion) == 0x170);
 static_assert(offsetof(CMapObject, effects) == 0x198);
-static_assert(offsetof(CMapObject, baseScale) == 0x1AC);
+static_assert(offsetof(CMapObject, name2) == 0x1A8 && offsetof(CMapObject, baseScale) == 0x1AC);
 static_assert(offsetof(CMapObject, changeStamp) == 0x1C0);
 static_assert(offsetof(CMapObject, changedParts) == 0x1DC);
 static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238

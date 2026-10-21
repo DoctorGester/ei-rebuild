@@ -353,7 +353,7 @@ void CItemInfoPanel::DescribeItem() {
     Texts* texts = TextManager();
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     mfc::CString material;
-    material = *reinterpret_cast<const mfc::CString*>(itemdb::Materials().RecordAt(MaterialIndex(PackedIdOf(item)), itemdb::kMaterialSize));
+    material = itemdb::MaterialAt(MaterialIndex(PackedIdOf(item)))->key;
     text::ReplaceChar(&material, ' ', '_');
     material.MakeLower();
     mfc::CString name, description, kindText;
@@ -483,7 +483,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Draw()->Begin();
     w.Head(name, kindText);
     // The material's type: "mattype_<NAME>".
-    mfc::CString text = *reinterpret_cast<const mfc::CString*>(&material->soundName);
+    mfc::CString text = material->soundName;
     text.MakeLower();
     {
         mfc::CString key("mattype_");

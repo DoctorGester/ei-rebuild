@@ -466,9 +466,9 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     request.flags = kFlagDetailed;
     const char* prototype = unitdb::Prototypes().RecordAt(static_cast<std::uint32_t>(unit->prototypeId_), unitdb::kPrototypeSize);
     if (prototype)
-        texture.Format("%sskin_%.2d.mmp", unit->name, Prototype(prototype)->skin);
+        texture.Format("%sskin_%.2d.mmp", static_cast<const char*>(unit->name), Prototype(prototype)->skin);
     else
-        texture.Format("%sskin_00.mmp", unit->name);
+        texture.Format("%sskin_00.mmp", static_cast<const char*>(unit->name));
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
