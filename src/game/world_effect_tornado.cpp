@@ -2,6 +2,7 @@
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "effects.h"
 #include "world_effect.h"
+#include "world_effect_class.h"
 #include "game_data.h"
 
 #include "game_strings.h"
@@ -62,7 +63,6 @@ CWorld* WorldOf(const CEngineObject* object) { return object->WorldContext(); }
 
 } // namespace
 
-std::uintptr_t CEffectTornado::Vtable() { return ei::DataId(0x007438F8); }
 
 CEffectTornado* CEffectTornado::Construct() {
     ConstructEffect();
@@ -203,12 +203,12 @@ void CEffectTornado::SaveState(CStream* s) {
 
 EI_REWRITTEN(0x0067D670, CEffectTornado::Construct);
 EI_REWRITTEN(0x0067D800, CEffectTornado::Destruct);
-EI_REPLACE_METHOD(0x0067D7E0, CEffectTornado::DeletingDestruct);
-EI_REPLACE_METHOD(0x0067D970, CEffectTornado::Reset);
+EI_REWRITTEN(0x0067D7E0, CEffectTornado::DeletingDestruct);
+EI_REWRITTEN(0x0067D970, CEffectTornado::Reset);
 EI_REWRITTEN(0x0067DA50, CEffectTornado::Launch);
-EI_REPLACE_METHOD(0x0067DBD0, CEffectTornado::Tick);
-EI_REPLACE_METHOD(0x0067DDD0, CEffectTornado::Unpack);
-EI_REPLACE_METHOD(0x0067DEB0, CEffectTornado::Pack);
-EI_REPLACE_METHOD(0x0067DF10, CEffectTornado::Start);
-EI_REPLACE_METHOD(0x0067E020, CEffectTornado::LoadState);
-EI_REPLACE_METHOD(0x0067E070, CEffectTornado::SaveState);
+EI_REWRITTEN(0x0067DBD0, CEffectTornado::Tick);
+EI_REWRITTEN(0x0067DDD0, CEffectTornado::Unpack);
+EI_REWRITTEN(0x0067DEB0, CEffectTornado::Pack);
+EI_REWRITTEN(0x0067DF10, CEffectTornado::Start);
+EI_REWRITTEN(0x0067E020, CEffectTornado::LoadState);
+EI_REWRITTEN(0x0067E070, CEffectTornado::SaveState);

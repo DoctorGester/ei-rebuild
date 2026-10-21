@@ -5,6 +5,7 @@
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
+#include "world_effect_class.h"
 
 #include "base_manager.h"
 #include "camera.h"
@@ -41,7 +42,6 @@ constexpr std::uint32_t kLightFlags = 0x840;
 constexpr int kClassArrowFigure = 0x5B;
 
 // The missile base's vtable, stored while the base part is built.
-std::uintptr_t MissileVtable() { return ei::DataId(0x00743754); }
 
 CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
@@ -109,7 +109,6 @@ void CEffectMissile::SetTarget(int objectId) {
 
 // --- CEffectArrow --------------------------------------------------------------------------------
 
-std::uintptr_t CEffectArrow::Vtable() { return ei::DataId(0x007436F0); }
 
 int CEffectArrow::Tick() {
     fromCaster_ = 0;
@@ -256,7 +255,7 @@ void CEffectArrow::SaveState(CStream* s) {
 // constructor bodies (inlined in the original), the empty name, and ends with Reset.
 CEffectArrow* CEffectArrow::Construct() {
     ConstructEffect();
-    SetVtable(this, MissileVtable());
+    SetVtable(this, CEffectMissile::Vtable());
     Particle().Construct();
     Light().Construct();
     Sound().Construct();
@@ -290,7 +289,6 @@ namespace {
 constexpr int kClassFigureObject = 0x38;   // the object manager's class of the drawn arrow
 }
 
-std::uintptr_t CEffectArrowFigure::Vtable() { return ei::DataId(0x007437B8); }
 
 void CEffectArrowFigure::Reset() {
     ResetMissile();
@@ -442,27 +440,27 @@ CEffectArrowFigure* CEffectArrowFigure::DeletingDestruct(unsigned flags) {
 
 EI_REWRITTEN(0x0067BB90, CEffectArrowFigure::Construct);
 EI_REWRITTEN(0x0067BCD0, CEffectArrowFigure::Destruct);
-EI_REPLACE_METHOD(0x0067BCB0, CEffectArrowFigure::DeletingDestruct);
-EI_REPLACE_METHOD(0x0067BAA0, CEffectArrowFigure::Reset);
-EI_REPLACE_METHOD(0x0067BE20, CEffectArrowFigure::Tick);
-EI_REPLACE_METHOD(0x0067BEF0, CEffectArrowFigure::MoveFigure);
-EI_REPLACE_METHOD(0x0067BF20, CEffectArrowFigure::Start);
-EI_REPLACE_METHOD(0x0067C080, CEffectArrowFigure::Unpack);
-EI_REPLACE_METHOD(0x0067C170, CEffectArrowFigure::Pack);
-EI_REPLACE_METHOD(0x0067C200, CEffectArrowFigure::LoadState);
-EI_REPLACE_METHOD(0x0067C290, CEffectArrowFigure::SaveState);
+EI_REWRITTEN(0x0067BCB0, CEffectArrowFigure::DeletingDestruct);
+EI_REWRITTEN(0x0067BAA0, CEffectArrowFigure::Reset);
+EI_REWRITTEN(0x0067BE20, CEffectArrowFigure::Tick);
+EI_REWRITTEN(0x0067BEF0, CEffectArrowFigure::MoveFigure);
+EI_REWRITTEN(0x0067BF20, CEffectArrowFigure::Start);
+EI_REWRITTEN(0x0067C080, CEffectArrowFigure::Unpack);
+EI_REWRITTEN(0x0067C170, CEffectArrowFigure::Pack);
+EI_REWRITTEN(0x0067C200, CEffectArrowFigure::LoadState);
+EI_REWRITTEN(0x0067C290, CEffectArrowFigure::SaveState);
 
 EI_REWRITTEN(0x0067AE30, CEffectArrow::Construct);
 EI_REWRITTEN(0x0067B1C0, CEffectArrow::Destruct);
-EI_REPLACE_METHOD(0x0067B1A0, CEffectArrow::DeletingDestruct);
+EI_REWRITTEN(0x0067B1A0, CEffectArrow::DeletingDestruct);
 EI_REWRITTEN(0x0067AAB0, CEffectMissile::Steer);
-EI_REPLACE_METHOD(0x0067AA00, CEffectMissile::ResetMissile);
+EI_REWRITTEN(0x0067AA00, CEffectMissile::ResetMissile);
 EI_REWRITTEN(0x0067AC70, CEffectMissile::SetTarget);
-EI_REPLACE_METHOD(0x0067AC90, CEffectArrow::Tick);
-EI_REPLACE_METHOD(0x0067AD10, CEffectArrow::Reset);
-EI_REPLACE_METHOD(0x0067B450, CEffectArrow::MoveParts);
-EI_REPLACE_METHOD(0x0067B4E0, CEffectArrow::Start);
-EI_REPLACE_METHOD(0x0067B690, CEffectArrow::Unpack);
-EI_REPLACE_METHOD(0x0067B800, CEffectArrow::Pack);
-EI_REPLACE_METHOD(0x0067B8E0, CEffectArrow::LoadState);
-EI_REPLACE_METHOD(0x0067B9A0, CEffectArrow::SaveState);
+EI_REWRITTEN(0x0067AC90, CEffectArrow::Tick);
+EI_REWRITTEN(0x0067AD10, CEffectArrow::Reset);
+EI_REWRITTEN(0x0067B450, CEffectArrow::MoveParts);
+EI_REWRITTEN(0x0067B4E0, CEffectArrow::Start);
+EI_REWRITTEN(0x0067B690, CEffectArrow::Unpack);
+EI_REWRITTEN(0x0067B800, CEffectArrow::Pack);
+EI_REWRITTEN(0x0067B8E0, CEffectArrow::LoadState);
+EI_REWRITTEN(0x0067B9A0, CEffectArrow::SaveState);

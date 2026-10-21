@@ -1,6 +1,7 @@
 // CEffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
 // and docs/notes/effects.md ("Missiles and visibility").
 #include "world_effect.h"
+#include "world_effect_class.h"
 
 #include "map_object.h"
 #include "originals_engine.h"
@@ -40,7 +41,6 @@ void ReleaseFog(CEngineObject*& fog) {
 
 } // namespace
 
-std::uintptr_t CEffectShowVisibility::Vtable() { return ei::DataId(0x0074381C); }
 
 CEffectShowVisibility* CEffectShowVisibility::Construct() {
     ConstructEffect();
@@ -137,12 +137,12 @@ void CEffectShowVisibility::SaveState(CStream* s) {
 
 EI_REWRITTEN(0x0067C340, CEffectShowVisibility::Construct);
 EI_REWRITTEN(0x0067C490, CEffectShowVisibility::Destruct);
-EI_REPLACE_METHOD(0x0067C470, CEffectShowVisibility::DeletingDestruct);
-EI_REPLACE_METHOD(0x0067C5F0, CEffectShowVisibility::Reset);
+EI_REWRITTEN(0x0067C470, CEffectShowVisibility::DeletingDestruct);
+EI_REWRITTEN(0x0067C5F0, CEffectShowVisibility::Reset);
 EI_REWRITTEN(0x0067C640, CEffectShowVisibility::SetUnits);
-EI_REPLACE_METHOD(0x0067C660, CEffectShowVisibility::Start);
-EI_REPLACE_METHOD(0x0067C6B0, CEffectShowVisibility::Unpack);
-EI_REPLACE_METHOD(0x0067C7A0, CEffectShowVisibility::Pack);
-EI_REPLACE_METHOD(0x0067C840, CEffectShowVisibility::Tick);
-EI_REPLACE_METHOD(0x0067C8E0, CEffectShowVisibility::LoadState);
-EI_REPLACE_METHOD(0x0067C910, CEffectShowVisibility::SaveState);
+EI_REWRITTEN(0x0067C660, CEffectShowVisibility::Start);
+EI_REWRITTEN(0x0067C6B0, CEffectShowVisibility::Unpack);
+EI_REWRITTEN(0x0067C7A0, CEffectShowVisibility::Pack);
+EI_REWRITTEN(0x0067C840, CEffectShowVisibility::Tick);
+EI_REWRITTEN(0x0067C8E0, CEffectShowVisibility::LoadState);
+EI_REWRITTEN(0x0067C910, CEffectShowVisibility::SaveState);

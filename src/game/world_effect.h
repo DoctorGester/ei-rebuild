@@ -45,7 +45,7 @@ public:
 };
 inline CEffectVirtuals* EffectSlots(CEngineObject* object) { return static_cast<CEffectVirtuals*>(object); }
 
-// The common base (vtable 007434AC; slots 11, 12, 21-23 pure). 0x14C bytes.
+// The common base (CEffectBaseClass, world_effect_class.h; slots 11, 12, 21-23 pure). 0x14C bytes.
 class CEffect : public CTransformObject {
 public:
     // 00675B40 / 00675B70. Pack (slot 22) into the state field written in full / as a delta.
@@ -82,7 +82,9 @@ public:
     // 00676910 / 0067B430 (slot 0 of the abstract effect and missile vtables, which no live object
     // has): DestructEffect (out of line at 00675FB0 / 0067B390, otherwise reached only from unwind
     // funclets), then operator delete when bit 0 of `flags` is set.
-    CEffect* DeletingDestructEffect(unsigned flags);
+    CEffect* DeletingDestruct(unsigned flags);
+    // The compiled table the base constructor stores (world_effect_class.h; game.exe's 007434AC).
+    static void* BaseVtable();
     // 00676900 (slot 6 of the base and of CEffectAmbientSound). 1: the effect stays.
     int TickDefault();
 
@@ -108,7 +110,7 @@ public:
     CEffectSound* Construct();                    // 00675DD0
     void Destruct();                              // 006760A0
     CEffectSound* DeletingDestruct(unsigned flags);   // 00676080
-    static std::uintptr_t Vtable();               // 007433EC
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 007433EC)
     void Reset();                                 // 00676200 (slot 18)
     int Tick();                                   // 006762F0 (slot 6)
     void Start(int update);                       // 006763A0 (slot 23)
@@ -138,7 +140,7 @@ public:
     CEffectSoundSeq* Construct();                 // 00676760
     void Destruct();                              // 00676980
     CEffectSoundSeq* DeletingDestruct(unsigned flags);    // 00676960
-    static std::uintptr_t Vtable();               // 0074344C
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 0074344C)
     void Reset();                                 // 00676B10 (slot 18)
     int Tick();                                   // 00677250 (slot 6)
     void Start(int update);                       // 00676C00 (slot 23; world_effect_sequence.cpp)
@@ -166,7 +168,7 @@ public:
     CEffectAmbientSound* Construct();             // 00677510
     void Destruct();                              // 006776E0
     CEffectAmbientSound* DeletingDestruct(unsigned flags);   // 006776C0
-    static std::uintptr_t Vtable();               // 0074350C
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 0074350C)
     void Reset();                                 // 00677870 (slot 18)
     void Start(int update);                       // 00677950 (slot 23)
     int Unpack(int update, DeltaField* field);    // 006779D0 (slot 21)
@@ -192,7 +194,7 @@ public:
     CEffectPointLight* Construct();               // 00677D30
     void Destruct();                              // 00677FC0
     CEffectPointLight* DeletingDestruct(unsigned flags);  // 00677FA0
-    static std::uintptr_t Vtable();               // 0074356C
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 0074356C)
     void Reset();                                 // 006780C0 (slot 18)
     int Tick();                                   // 006781B0 (slot 6)
     void Start(int update);                       // 006782D0 (slot 23)
@@ -200,7 +202,7 @@ public:
     void Pack(DeltaField* field);                 // 00678610 (slot 22)
     void LoadState(CStream* stream);                 // 00678690 (slot 9)
     void SaveState(CStream* stream);                 // 00678740 (slot 10)
-    double Radius();                              // 00677F70 (slot 19): DefaultRadius + range_
+    double Radius();                              // 00677F70 (slot 24; slot 19 is the base's): DefaultRadius + range_
 
     Vector3 color_;            // +0x14C
     float range_;              // +0x158 negative: flag 0x400 on the light
@@ -219,7 +221,7 @@ public:
     CEffectParticle* Construct();                 // 006787B0
     void Destruct();                              // 00678990
     CEffectParticle* DeletingDestruct(unsigned flags);    // 00678970
-    static std::uintptr_t Vtable();               // 007435D0
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 007435D0)
     void Reset();                                 // 00678A90 (slot 18)
     Vector3* Position(void* group);               // 00678BA0 (slot 20)
     void Start(int update);                       // 00678CF0 (slot 23)
@@ -256,7 +258,7 @@ public:
     CEffectWall* Construct();                     // 006797E0
     void Destruct();                              // 006799E0
     CEffectWall* DeletingDestruct(unsigned flags);    // 006799C0
-    static std::uintptr_t Vtable();               // 00743630
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 00743630)
     void Reset();                                 // 00679AF0 (slot 18)
     void SetDirection(const Vector3* direction);  // 00679C30
     int Unpack(int update, DeltaField* field);    // 00679C70 (slot 21)
@@ -276,7 +278,7 @@ public:
     CEffectLightning* Construct();                // 00679FC0
     void Destruct();                              // 0067A0B0
     CEffectLightning* DeletingDestruct(unsigned flags);   // 0067A090
-    static std::uintptr_t Vtable();               // 00743690
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 00743690)
     void Reset();                                 // 0067A1B0 (slot 18)
     void UpdateEnds();                            // 0067A2C0: end points from the objects
     void Start(int update);                       // 0067A370 (slot 23)
@@ -314,6 +316,7 @@ public:
     // 0067AA00 (slot 18 of the abstract missile vtable; the subclasses' Reset inline it).
     // ResetBase, not arrived, no target, not from the caster.
     void ResetMissile();
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 00743754)
 
     int arrived_;              // +0x14C
     int targetId_;             // +0x150 world object id, -1: none
@@ -332,7 +335,7 @@ public:
     CEffectArrow* Construct();                    // 0067AE30
     void Destruct();                              // 0067B1C0
     CEffectArrow* DeletingDestruct(unsigned flags);   // 0067B1A0 (slot 0)
-    static std::uintptr_t Vtable();               // 007436F0
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 007436F0)
     int Tick();                                   // 0067AC90 (slot 6)
     void Reset();                                 // 0067AD10 (slot 18)
     void MoveParts();                             // 0067B450 (slot 24): the parts follow, Start(1)
@@ -376,7 +379,7 @@ public:
     CEffectArrowFigure* Construct();              // 0067BB90
     void Destruct();                              // 0067BCD0
     CEffectArrowFigure* DeletingDestruct(unsigned flags);     // 0067BCB0 (slot 0)
-    static std::uintptr_t Vtable();               // 007437B8
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 007437B8)
     void Reset();                                 // 0067BAA0 (slot 18): figure out of the maps and released
     int Tick();                                   // 0067BE20 (slot 6)
     void MoveFigure();                            // 0067BEF0 (slot 24): the figure follows
@@ -404,7 +407,7 @@ public:
     CEffectShowVisibility* Construct();           // 0067C340
     void Destruct();                              // 0067C490
     CEffectShowVisibility* DeletingDestruct(unsigned flags);  // 0067C470 (slot 0)
-    static std::uintptr_t Vtable();               // 0074381C
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 0074381C)
     void Reset();                                 // 0067C5F0 (slot 18): grid cleared, fog released
     void SetUnits(int observerId, int seerId);    // 0067C640
     void Start(int update);                       // 0067C660 (slot 23)
@@ -438,7 +441,7 @@ public:
     CEffectMoshka* Construct();                   // 0067C950
     void Destruct();                              // 0067CAF0
     CEffectMoshka* DeletingDestruct(unsigned flags);  // 0067CAD0 (slot 0)
-    static std::uintptr_t Vtable();               // 0074387C
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 0074387C)
     void Reset();                                 // 0067CC90 (slot 18): the figure out of the maps, both released
     int Tick();                                   // 0067CD70 (slot 6): Update(game tick), returns 0
     // 0067CD90 (RET 8; `this` unused). A perch seen from 1.5 above `from`: random directions at
@@ -478,7 +481,7 @@ public:
     CEffectTornado* Construct();                  // 0067D670
     void Destruct();                              // 0067D800
     CEffectTornado* DeletingDestruct(unsigned flags); // 0067D7E0 (slot 0)
-    static std::uintptr_t Vtable();               // 007438F8
+    static void* Vtable();   // the compiled table (world_effect_class.h; game.exe's 007438F8)
     void Reset();                                 // 0067D970 (slot 18): source cleared and released, sound stopped
     // 0067DA50 (RET 8). From `from` towards `to` at a random speed 0.096 .. 0.216 per tick; the
     // ticks to go are the distance over the speed (rounded, at least 0; 0 when the points meet).

@@ -276,6 +276,26 @@ vtable,slots,class,file,note
 00743300,8,CMMIOResource,src/game/resource.h,
 00743320,1,CResourceStream,src/game/resource_stream.h,the sound system's file reader
 00743324,1,CResourceBase,src/game/resource.h,the archive readers' base
+007433EC,24,CEffectSoundClass,src/game/world_effect_class.h,positional sound
+0074344C,24,CEffectSoundSeqClass,src/game/world_effect_class.h,sound sequence
+007434AC,24,CEffectBaseClass,src/game/world_effect_class.h,the effects' abstract base
+0074350C,24,CEffectAmbientSoundClass,src/game/world_effect_class.h,ambient sound
+0074356C,18,CEffectPointLightClass,src/game/world_effect_class.h,point light
+007435B4,7,CEffectPointLightClass,src/game/world_effect_class.h,the tail of 0074356C (the destructors call slot 18 through the table's memory)
+007435D0,2,CEffectParticleClass,src/game/world_effect_class.h,particle source
+007435D8,16,CEffectParticleClass,src/game/world_effect_class.h,the tail of 007435D0 (a byte match in 005E1680's FDIV operand)
+00743618,6,CEffectParticleClass,src/game/world_effect_class.h,the tail of 007435D8 (the destructors call slot 18 through the table's memory)
+00743630,18,CEffectWallClass,src/game/world_effect_class.h,particle wall
+00743678,6,CEffectWallClass,src/game/world_effect_class.h,the tail of 00743630 (the destructors call slot 18 through the table's memory)
+00743690,18,CEffectLightningClass,src/game/world_effect_class.h,lightning bolt
+007436D8,6,CEffectLightningClass,src/game/world_effect_class.h,the tail of 00743690 (the destructors call slot 18 through the table's memory)
+007436F0,18,CEffectArrowClass,src/game/world_effect_class.h,spell missile
+00743738,7,CEffectArrowClass,src/game/world_effect_class.h,the tail of 007436F0 (the destructors call slot 18 through the table's memory)
+00743754,25,CEffectMissileClass,src/game/world_effect_class.h,the missiles' abstract base
+007437B8,25,CEffectArrowFigureClass,src/game/world_effect_class.h,bow or crossbow shot
+0074381C,24,CEffectShowVisibilityClass,src/game/world_effect_class.h,shown visibility
+0074387C,24,CEffectMoshkaClass,src/game/world_effect_class.h,the client's bird
+007438F8,24,CEffectTornadoClass,src/game/world_effect_class.h,tornado
 007439C8,13,CSpellConstructorClass,src/game/spell_class.h,spell constructor
 00743A14,26,CSpellManager,src/game/spell.h,
 00743A94,5,CSpellClass,src/game/spell_class.h,spell

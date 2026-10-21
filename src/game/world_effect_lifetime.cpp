@@ -1,6 +1,7 @@
 // The effects' constructor and destructor bodies, their slot 0 (deleting destructor) and the state
 // field's constructor and emptying. See world_effect.h and docs/notes/effects.md ("Missiles and visibility").
 #include "world_effect.h"
+#include "world_effect_class.h"
 
 #include "console.h"
 #include "net_link.h"
@@ -16,9 +17,6 @@
 using ei::SetVtable;
 
 namespace {
-
-// The effect base's vtable (slots 11, 12, 21-23 pure), stored while the base part is built.
-std::uintptr_t EffectBaseVtable() { return ei::DataId(0x007434AC); }
 
 // A counted pointer let go (slot 4); the original tests it for null first.
 void ReleaseIfSet(void* object) {
@@ -77,7 +75,7 @@ void CEffect::ConstructEffect() {
     state_.Construct();
     startTick_ = 0;
     moving_ = 0;
-    SetVtable(this, EffectBaseVtable());
+    SetVtable(this, BaseVtable());
 }
 
 void CEffect::DestructEffect() {
@@ -94,20 +92,19 @@ CEffect* CEffect::Construct() {
 }
 EI_REWRITTEN(0x0067B050, CEffect::Construct);
 
-CEffect* CEffect::DeletingDestructEffect(unsigned flags) {
+CEffect* CEffect::DeletingDestruct(unsigned flags) {
     DestructEffect();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00676910, CEffect::DeletingDestructEffect);
-EI_REPLACE_METHOD(0x0067B430, CEffect::DeletingDestructEffect);
+EI_REWRITTEN(0x00676910, CEffect::DeletingDestruct);
+EI_REWRITTEN(0x0067B430, CEffect::DeletingDestruct);
 
 int CEffect::TickDefault() { return 1; }
-EI_REPLACE_METHOD(0x00676900, CEffect::TickDefault);
+EI_REWRITTEN(0x00676900, CEffect::TickDefault);
 
 // --- CEffectSound --------------------------------------------------------------------------------
 
-std::uintptr_t CEffectSound::Vtable() { return ei::DataId(0x007433EC); }
 
 CEffectSound* CEffectSound::Construct() {
     ConstructEffect();
@@ -127,11 +124,10 @@ void CEffectSound::Destruct() {
 EI_REWRITTEN(0x006760A0, CEffectSound::Destruct);
 
 CEffectSound* CEffectSound::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REPLACE_METHOD(0x00676080, CEffectSound::DeletingDestruct);
+EI_REWRITTEN(0x00676080, CEffectSound::DeletingDestruct);
 
 // --- CEffectSoundSeq -----------------------------------------------------------------------------
 
-std::uintptr_t CEffectSoundSeq::Vtable() { return ei::DataId(0x0074344C); }
 
 CEffectSoundSeq* CEffectSoundSeq::Construct() {
     ConstructEffect();
@@ -155,11 +151,10 @@ void CEffectSoundSeq::Destruct() {
 EI_REWRITTEN(0x00676980, CEffectSoundSeq::Destruct);
 
 CEffectSoundSeq* CEffectSoundSeq::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REPLACE_METHOD(0x00676960, CEffectSoundSeq::DeletingDestruct);
+EI_REWRITTEN(0x00676960, CEffectSoundSeq::DeletingDestruct);
 
 // --- CEffectAmbientSound -------------------------------------------------------------------------
 
-std::uintptr_t CEffectAmbientSound::Vtable() { return ei::DataId(0x0074350C); }
 
 CEffectAmbientSound* CEffectAmbientSound::Construct() {
     ConstructEffect();
@@ -181,11 +176,10 @@ void CEffectAmbientSound::Destruct() {
 EI_REWRITTEN(0x006776E0, CEffectAmbientSound::Destruct);
 
 CEffectAmbientSound* CEffectAmbientSound::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REPLACE_METHOD(0x006776C0, CEffectAmbientSound::DeletingDestruct);
+EI_REWRITTEN(0x006776C0, CEffectAmbientSound::DeletingDestruct);
 
 // --- CEffectPointLight ---------------------------------------------------------------------------
 
-std::uintptr_t CEffectPointLight::Vtable() { return ei::DataId(0x0074356C); }
 
 CEffectPointLight* CEffectPointLight::Construct() {
     ConstructEffect();
@@ -205,11 +199,10 @@ void CEffectPointLight::Destruct() {
 EI_REWRITTEN(0x00677FC0, CEffectPointLight::Destruct);
 
 CEffectPointLight* CEffectPointLight::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REPLACE_METHOD(0x00677FA0, CEffectPointLight::DeletingDestruct);
+EI_REWRITTEN(0x00677FA0, CEffectPointLight::DeletingDestruct);
 
 // --- CEffectParticle and CEffectWall -------------------------------------------------------------
 
-std::uintptr_t CEffectParticle::Vtable() { return ei::DataId(0x007435D0); }
 
 CEffectParticle* CEffectParticle::Construct() {
     ConstructEffect();
@@ -229,9 +222,8 @@ void CEffectParticle::Destruct() {
 EI_REWRITTEN(0x00678990, CEffectParticle::Destruct);
 
 CEffectParticle* CEffectParticle::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REPLACE_METHOD(0x00678970, CEffectParticle::DeletingDestruct);
+EI_REWRITTEN(0x00678970, CEffectParticle::DeletingDestruct);
 
-std::uintptr_t CEffectWall::Vtable() { return ei::DataId(0x00743630); }
 
 CEffectWall* CEffectWall::Construct() {
     ConstructEffect();
@@ -255,11 +247,10 @@ void CEffectWall::Destruct() {
 EI_REWRITTEN(0x006799E0, CEffectWall::Destruct);
 
 CEffectWall* CEffectWall::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REPLACE_METHOD(0x006799C0, CEffectWall::DeletingDestruct);
+EI_REWRITTEN(0x006799C0, CEffectWall::DeletingDestruct);
 
 // --- CEffectLightning ----------------------------------------------------------------------------
 
-std::uintptr_t CEffectLightning::Vtable() { return ei::DataId(0x00743690); }
 
 CEffectLightning* CEffectLightning::Construct() {
     ConstructEffect();
@@ -280,7 +271,7 @@ void CEffectLightning::Destruct() {
 EI_REWRITTEN(0x0067A0B0, CEffectLightning::Destruct);
 
 CEffectLightning* CEffectLightning::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REPLACE_METHOD(0x0067A090, CEffectLightning::DeletingDestruct);
+EI_REWRITTEN(0x0067A090, CEffectLightning::DeletingDestruct);
 
 // --- The effect manager's factory ----------------------------------------------------------------
 
