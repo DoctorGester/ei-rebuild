@@ -1625,6 +1625,15 @@ group = "verification"
 depends = ["SV10f"]
 note = "SV10f moved the harness's image runs to run\\vanilla-clean (no dgVoodoo DLLs, the DirectX check's native path), but launch-vanilla.cmd still starts the image with run\\vanilla's game.exe, so a played session loads dgVoodoo's DDraw.dll and runs the DirectX probe. Point it at run\\vanilla-clean (run_all.clean_run_dir makes it; the script can call that or link the files itself)."
 
+[[ticket]]
+id = "SV10h"
+title = "A slot is free when its game exits: frame packing and other after-game work outside the slot"
+group = "verification"
+size = 1
+model = "opus"
+files = ["tools/run_all.py tools/work_sched.py tools/frame_store.py"]
+note = "User 2026-10-21: fewer than 16 games run within a batch (C11's #2798). Measured from build/live/scheduler.log since 03:00: a run's slot is held on average ~5 s longer than its game (13,276 slot-seconds over 2,515 runs; median 1 s, p90 10 s; render_shadows 29 s and ui_widescreen_screens 27 s against 7-8 s games; some Rebirth runs 30-48 s). In batch #2798 the slots were full but the time with fewer than 16 slots taken was 70 of 127 s. Causes to confirm: run_all.run() packs the run's 4K frames (frame_store.pack_folder, WB11) and stores the reference after run_once() returns, inside the slot; set-up before the game (clean_run_dir for the -clean folders, saves, starter) also counts; and all 16 runner threads share one Python process (GIL), so pure-Python after-game work in one thread slows the others' set-up and reporting. Do: give the slot back when the game process ends (the 16 limit is about games on the GPU), then pack and store from a worker pool (processes, not threads, if Python work dominates; bounded so the CPU stays free for the games). Keep the results identical: a run is reported only after its packing. Measure: the lag (log time minus start minus game seconds) and games running per second over a full suite, before (this note) and after. Unit tests in tools/test_work_sched.py. The running scheduler hands over on a code change, so test on main only after merge; in the worktree run run_all / the scheduler class directly."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
