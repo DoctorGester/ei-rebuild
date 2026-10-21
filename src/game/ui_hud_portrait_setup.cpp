@@ -255,7 +255,7 @@ void CHudPortraits::Rebuild(int wide) {
         }
         SexOf(figure->model, sex);
         build = "me";
-        model.Format("infa%s%s%dface", figure->model, static_cast<const char*>(build), prototype->hair + 1);
+        model.Format("infa%s%s%dface", static_cast<const char*>(figure->model), static_cast<const char*>(build), prototype->hair + 1);
         picture.Format("face%s%02d", static_cast<const char*>(sex), prototype->skin);
         AddPortraitAt(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];

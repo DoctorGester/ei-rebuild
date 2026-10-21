@@ -1440,7 +1440,7 @@ static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 // A figure prototype (the records of the map at 007AF3A4); only the model name the faces use.
 struct FigurePrototypeRecord {
     std::uint8_t unused_000[0xE8];
-    const char* model;               // +0xE8 e.g. "unhuma", "unhufe"
+    mfc::CString model;              // +0xE8 e.g. "unhuma", "unhufe"
 };
 static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
 

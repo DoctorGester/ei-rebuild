@@ -156,7 +156,7 @@ void CMpHeroScreen::FinishRename() {
     mfc::CString& name = MpHeroName(heroIndex_);
     mfc::CString title(name);
     mfc::CString base;
-    int bar = static_cast<const mfc::CString*>(&title)->Find(RenameBar());
+    int bar = title.Find(RenameBar());
     if (bar >= 0)
         base = title.Left(bar);
     else
@@ -405,7 +405,7 @@ void CMpHeroScreen::Rename() {
     renameEdit_->SetEnabled(1, 1);
     renameEdit_->SetFocused(true);
     mfc::CString name(MpHeroName(heroIndex_));
-    int bar = static_cast<const mfc::CString*>(&name)->Find(RenameBar());
+    int bar = name.Find(RenameBar());
     if (bar < 0) {
         EditSetText(renameEdit_, nullptr, game::EmptyText());
     } else {

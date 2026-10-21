@@ -333,7 +333,7 @@ void CMpHeroScreen::Create() {
             stlp::string key(static_cast<const char*>(prototype->modelName));
             figure = reinterpret_cast<const FigurePrototypeRecord*>(unitdb::ModelNamed(key));
         }
-        figureModel = *reinterpret_cast<const mfc::CString*>(&figure->model);
+        figureModel = figure->model;
         auto isModel = [&figureModel](const char* name) {
             return gamecrt::mbsicmp(static_cast<const char*>(figureModel),
                                    name) == 0;

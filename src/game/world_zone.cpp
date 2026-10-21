@@ -107,7 +107,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
         auto* src = reinterpret_cast<const std::uint8_t*>(from);
         auto* dst = reinterpret_cast<std::uint8_t*>(to);
         std::memcpy(dst, src, 0x28);   // ten dwords, copied as integers
-        *reinterpret_cast<mfc::CString*>(&to->target) = *reinterpret_cast<const mfc::CString*>(&from->target);
+        to->target = from->target;
         std::memcpy(dst + 0x2C, src + 0x2C, 8);   // entrance, +0x30
         dst[0x34] = src[0x34];
         std::memcpy(dst + 0x38, src + 0x38, 4);
