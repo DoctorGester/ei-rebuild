@@ -2,19 +2,26 @@
 
 #include <cstdint>
 
+// windows.h's GetClassName macro (GetClassNameA) renames slot 11 in a file that includes windows.h
+// before this header; a derived class's override must see the same name (the headers and files that
+// declare or define one undefine it too).
+#undef GetClassName
+
 class CBaseManager;
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
 // Name provisional; vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall there). Objects
 // are created by original code or by the rewritten constructor bodies, which store the original
-// vtable (kVtableAddress); no C++ constructor is declared. Non-virtual members: object.cpp.
+// vtable (kVtableAddress); no C++ constructor is declared. A derived class with real C++
+// constructors gets the compiler's vtable (C19; CMusicSystem): the default slots are defined
+// (engine_object.cpp) and its constructor calls ClearFields. Non-virtual members: object.cpp.
 class CEngineObject {
 public:
     void SetFlagBits(std::uint32_t bits);
     void ClearFlagBits(std::uint32_t bits);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B8E0);
 
-    virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor)
+    virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor; the body: no owner)
     virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, prototypeId_)
     void CopyFromImpl(const CEngineObject& other);   // body of the slot above (registered by member pointer)
     virtual int Create() = 0;                          // 2

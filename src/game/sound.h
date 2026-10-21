@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 // A volume envelope (0x1C bytes): the music stream's (CSoundManager + 0x144) and the MIDI
 // sequence's (+0x20C). `level` is the Miles volume 0..127 derived from `volume` (0..100) and the
 // fade `factor`.
@@ -442,10 +444,24 @@ struct MusicTheme {
 };
 static_assert(sizeof(MusicTheme) == 0x38);
 
-// CMusicSystem (0x58 bytes, vtable 00744098, class id 0xE): picks the music for the game state.
+// CMusicSystem (0x58 bytes, class id 0xE): picks the music for the game state. A real virtual
+// class: the compiler makes its vtable (C19; game.exe's 00744098 is retired).
 struct CMusicSystem : CEngineObject {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744098);
     static constexpr std::uintptr_t kThemeArrayVtable = std::uintptr_t(0x007440CC);
+
+    // 006B4350. CEngineObject's fields, an empty theme array, the strings empty, then ResetThemes
+    // (theme, +0x3C, is left as it is).
+    CMusicSystem();
+    // 006B44B0. ResetThemes, the theme array's destructor (006B56C0), the strings, CEngineObject's.
+    ~CMusicSystem() override;
+    // The deleting destructor (slot 0, 006B4490) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    int Create() override { return LoadThemes(); }        // 2: 006B4710
+    void Destroy() override { ResetThemes(); }           // 3: 006B4690
+    int RunTick() override { return UpdateMusic(); }     // 6: 006B5350
+    const char* GetClassName() override;                 // 11: 006B4470 "CMusicSystem"
+    int GetClassId() override;                           // 12: 006B4480 (0xE)
 
     void* themesVtable;                 // +0x1C CArray<MusicTheme>
     MusicTheme* themes;                 // +0x20
@@ -477,15 +493,11 @@ struct CMusicSystem : CEngineObject {
     void PlayJingle(const char* name);                 // 006B5270
     int UpdateMusic();                                // 006B5350 (vtable slot 6)
 
-    // A-H13 (sound_music.cpp).
-    // 006B4350. Constructor body: CEngineObject's fields, an empty theme array, the strings
-    // constructed empty, the vtable, then ResetThemes (theme, +0x3C, is left as it is).
-    // Returns this.
+    // A-H13 (sound_music.cpp). The registrations of the constructor and destructors (C20 retires
+    // them): 006B4350 the constructor in place (returns this), 006B44B0 the destructor,
+    // 006B4490 (slot 0, RET 4) the destructor, then operator delete when bit 0 of `flags` is set.
     CMusicSystem* Construct();
-    // 006B44B0. Destructor body: ResetThemes (the array through SetSize(0)), the four strings
-    // destroyed, the theme array's destructor (006B56C0), CEngineObject's.
     void DestructBody();
-    // 006B4490 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
     CMusicSystem* DeletingDestruct(unsigned flags);
     // 006B4690 (slot 3, the engine object's Destroy; named so, rule 4). State 0, the themes
     // destroyed and freed, credits / main menu / jingle / combat track "none", jinglePlaying,

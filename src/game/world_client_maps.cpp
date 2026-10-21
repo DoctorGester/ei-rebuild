@@ -1336,7 +1336,7 @@ int CWorldClient::Setup() {
     arrayManager_ = arrays;
     arrays->Init(this);
     std::uint8_t* memory = New(0x58);
-    CMusicSystem* owned = memory ? reinterpret_cast<CMusicSystem*>(memory)->Construct() : nullptr;
+    CMusicSystem* owned = memory ? new (memory) CMusicSystem() : nullptr;
     music_ = owned;
     owned->Create();
 

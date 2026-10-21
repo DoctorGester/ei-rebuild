@@ -23,6 +23,8 @@
 
 #include <new>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 // The party's fight state, set by the world (2: fighting).
@@ -302,22 +304,17 @@ constexpr int kMusicClassId = 0xE;
 const char* MusicClassNameText() { return "CMusicSystem"; }
 } // namespace
 
-CMusicSystem* CMusicSystem::Construct() {
+CMusicSystem::CMusicSystem() {
     ClearFields();
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
     themesVtable = ei::GamePointer<void>(kThemeArrayVtable);
     themes = nullptr;
     themeGrow = 0;
     themeMax = 0;
     themeCount = 0;
-    new (&credits) mfc::CString();
-    new (&mainMenu) mfc::CString();
-    new (&combatTrack) mfc::CString();
-    new (&jingle) mfc::CString();
-    ei::SetVtable(this, kVtableAddress);
     ResetThemes();
-    return this;
 }
+
+CMusicSystem* CMusicSystem::Construct() { return new (this) CMusicSystem(); }
 EI_REPLACE_METHOD(0x006B4350, CMusicSystem::Construct);
 
 void CMusicSystem::ResetThemes() {
@@ -334,20 +331,18 @@ void CMusicSystem::ResetThemes() {
 }
 EI_REPLACE_METHOD(0x006B4690, CMusicSystem::ResetThemes);
 
-void CMusicSystem::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+// The strings go after the body (jingle, combatTrack, mainMenu, credits: the original's order
+// before its theme array's destructor).
+CMusicSystem::~CMusicSystem() {
     ResetThemes();
-    jingle.~CString();
-    combatTrack.~CString();
-    mainMenu.~CString();
-    credits.~CString();
     ThemesDestruct(&themesVtable);
-    DestructBase();
 }
+
+void CMusicSystem::DestructBody() { this->CMusicSystem::~CMusicSystem(); }
 EI_REPLACE_METHOD(0x006B44B0, CMusicSystem::DestructBody);
 
 CMusicSystem* CMusicSystem::DeletingDestruct(unsigned flags) {
-    DestructBody();
+    this->CMusicSystem::~CMusicSystem();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -369,7 +364,9 @@ void MusicTheme::Assign(const MusicTheme* from) {
 EI_REPLACE_METHOD(0x006B4D40, MusicTheme::Assign);
 
 // 006B4470 / 006B4480: slots 11 and 12.
-const char* __fastcall MusicSystemClassName(CMusicSystem*) { return MusicClassNameText(); }
-int __fastcall MusicSystemClassId(CMusicSystem*) { return kMusicClassId; }
+const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }
+int CMusicSystem::GetClassId() { return kMusicClassId; }
+const char* __fastcall MusicSystemClassName(CMusicSystem* self) { return self->CMusicSystem::GetClassName(); }
+int __fastcall MusicSystemClassId(CMusicSystem* self) { return self->CMusicSystem::GetClassId(); }
 EI_REPLACE(0x006B4470, MusicSystemClassName);
 EI_REPLACE(0x006B4480, MusicSystemClassId);
