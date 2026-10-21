@@ -12,6 +12,7 @@
 #include "lightning.h"
 #include "map_object_shadow.h"
 #include "world.h"
+#include "world_client_class.h"
 #include "world_data.h"
 
 #include "sky_object.h"   // before windows.h (GetClassName)
@@ -1226,7 +1227,7 @@ int CWorldClient::Setup() {
         texts->flags_ = 0;
         texts->owner_ = nullptr;
         stlp::ListAbi<stlp::Opaque<16>>::ConstructDefault(reinterpret_cast<stlp::list<stlp::Opaque<16>>*>(texts->table));   // 00562A80
-        ei::SetVtable(texts, worlddata::kClientTextsVtable);
+        ei::SetVtable(texts, CTextManager::Vtable());
         Construct4DED20(texts);
     }
     texts_ = texts;
@@ -1255,7 +1256,7 @@ int CWorldClient::Setup() {
         terrain->visibleColumnLast.Construct();
         ::new (&terrain->textAE0) mfc::CString;
         mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
-        ei::SetVtable(terrain, worlddata::kTerrainVtable);
+        ei::SetVtable(terrain, Terrain::Vtable());
         terrain->Reset();
     }
     terrain_ = terrain;

@@ -635,9 +635,9 @@ void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float si
 }
 EI_REWRITTEN(0x006C7940, Terrain::BuildTileUv);
 
-EI_REPLACE_METHOD(0x006C5430, Terrain::CreateImpl);
-EI_REPLACE_METHOD(0x006C54D0, Terrain::DestroyImpl);
-EI_REPLACE_METHOD(0x006C6070, Terrain::CombineRotationImpl);
+EI_REWRITTEN(0x006C5430, Terrain::CreateImpl);
+EI_REWRITTEN(0x006C54D0, Terrain::DestroyImpl);
+EI_REWRITTEN(0x006C6070, Terrain::CombineRotationImpl);
 EI_REWRITTEN(0x006C5620, Terrain::Reset);
 EI_REWRITTEN(0x006C57E0, Terrain::BuildWavePhases);
 EI_REWRITTEN(0x006C7D70, Terrain::SetWaveStrength);

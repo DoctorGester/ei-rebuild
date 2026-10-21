@@ -214,6 +214,9 @@ vtable,slots,class,file,note
 0073F5B8,25,CLightningManager,src/game/lightning.h,
 0073F61C,3,ClientObjectList2Class,src/game/game_slots.h,CList (engine objects in the client maps)
 0073F644,25,CParticleManager,src/game/effects.h,
+0073F6A8,16,TerrainClass,src/game/world_client_class.h,the client's terrain
+0073F6E8,2,TerrainClass,src/game/world_client_class.h,the tail of 0073F6A8 (a byte match in 006E81C2)
+0073F6F0,13,CTextManagerClass,src/game/world_client_class.h,the client's text manager
 0073F724,3,ClientList2Class,src/lib/mfc_slots.h,CList (00570EA0's list)
 0073F730,3,ClientMapArrayClass,src/game/record_arrays.h,CArray (the client world's water levels)
 0073F73C,3,ClientList3Class,src/lib/mfc_slots.h,CList (005715D0's list)

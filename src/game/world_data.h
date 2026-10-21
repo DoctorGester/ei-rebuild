@@ -107,8 +107,6 @@ inline float DefaultWindForceOption() { return static_cast<const volatile float&
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
 // Vtables Setup stores while it inlines the constructors.
-constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
-constexpr std::uintptr_t kTerrainVtable = std::uintptr_t(0x0073F6A8);
 constexpr std::uintptr_t kClientHandleVtable = std::uintptr_t(0x0073F628);
 
 // ---- WorldCreateManagers (0055EE40) -----------------------------------------------------------

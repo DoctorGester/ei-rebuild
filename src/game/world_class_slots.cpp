@@ -69,13 +69,13 @@ EI_REPLACE(0x00562790, ParticleManagerClassId);
 
 const char* __fastcall TextManagerClassName(ClientTexts*) { return kTextManagerName; }
 int __fastcall TextManagerClassId(ClientTexts*) { return kTextManagerId; }
-EI_REPLACE(0x00562970, TextManagerClassName);
-EI_REPLACE(0x00562980, TextManagerClassId);
+EI_REWRITTEN(0x00562970, TextManagerClassName);
+EI_REWRITTEN(0x00562980, TextManagerClassId);
 
 const char* __fastcall TerrainClassName(Terrain*) { return kTerrainName; }
 int __fastcall TerrainClassId(Terrain*) { return kTerrainId; }
-EI_REPLACE(0x00562B40, TerrainClassName);
-EI_REPLACE(0x00562B50, TerrainClassId);
+EI_REWRITTEN(0x00562B40, TerrainClassName);
+EI_REWRITTEN(0x00562B50, TerrainClassId);
 
 const char* CLightningManager::GetClassName() { return kLightningManagerName; }
 int CLightningManager::GetClassId() { return kLightningManagerId; }

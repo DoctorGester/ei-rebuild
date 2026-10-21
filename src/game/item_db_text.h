@@ -112,7 +112,7 @@ public:
     BOOL FindLine(const char* key);
 
     // The archive list (text_sources.cpp): 004DEDB0 sources_.Add(path, 0) (RET 4), 004DEDD0
-    // sources_.Remove(path) (RET 4), 004DED40 (vtable 0073F6F0 slot 3) sources_.Clear().
+    // sources_.Remove(path) (RET 4), 004DED40 (slot 3) sources_.Clear().
     BOOL AddSource(const char* path);
     void RemoveSource(const char* path);
     void ClearSources();
@@ -123,8 +123,9 @@ public:
     void ListKeys(mfc::CStringArray* out, const char* pattern);
     int Create();
 
-    // The text manager is an engine object (the first 0x1C bytes) with this vtable.
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F6F0);
+    // The text manager is an engine object (the first 0x1C bytes) with this compiled table
+    // (CTextManagerClass, world_client_class.h; game.exe's 0073F6F0).
+    static void* Vtable();
     // 005629B0 (text_sources.cpp, A-W11). The destructor body: its vtable, ClearSources, the
     // archive list's own clear (004DEB60) and destruction (the sentinel back to the node pool),
     // then the engine object's DestructBase. 00562990 (slot 0, RET 4): it, then operator delete

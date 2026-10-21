@@ -1,6 +1,7 @@
 // The text manager's archive list (004DE930-004DEDDF): adding, removing and clearing the
 // archives the texts are looked up in. The list and its node helpers are in item_db_text.h.
 #include "item_db_text.h"
+#include "world_client_class.h"
 #include "resource.h"
 
 #include "asset_text.h"
@@ -154,7 +155,7 @@ void CTextManager::RemoveSource(const char* path) { sources_.Remove(path); }
 void CTextManager::ClearSources() { sources_.Clear(); }
 
 void CTextManager::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ClearSources();
     sources_.Clear();
     // The list's destructor: its clear (nothing is left) and the sentinel back to the pool.
@@ -218,6 +219,6 @@ EI_REWRITTEN(0x004DEB60, TextSources::Clear);
 EI_REWRITTEN(0x005628E0, TextSources::DestructList);
 EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
 EI_REWRITTEN(0x004DEDD0, CTextManager::RemoveSource);
-EI_REPLACE_METHOD(0x004DED40, CTextManager::ClearSources);
+EI_REWRITTEN(0x004DED40, CTextManager::ClearSources);
 EI_REWRITTEN(0x005629B0, CTextManager::Destruct);
-EI_REPLACE_METHOD(0x00562990, CTextManager::DeletingDestruct);
+EI_REWRITTEN(0x00562990, CTextManager::DeletingDestruct);

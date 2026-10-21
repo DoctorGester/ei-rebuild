@@ -15,6 +15,7 @@
 #include "sector_map.h"
 #include "terrain.h"
 #include "world.h"
+#include "world_client_class.h"
 #include "world_data.h"
 #include "world_deleting_destructors.h"
 
@@ -174,7 +175,7 @@ CParticleManager* CParticleManager::DeletingDestruct(unsigned flags) {
 EI_REWRITTEN(0x005627A0, CParticleManager::DeletingDestruct);
 
 void Terrain::Destruct() {
-    ei::SetVtable(this, worlddata::kTerrainVtable);
+    ei::SetVtable(this, Vtable());
     Terrain::DestroyImpl();
     waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
     waterLevels.FreeData();
@@ -203,7 +204,7 @@ Terrain* Terrain::DeletingDestruct(unsigned flags) {
     Destruct();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x00562B60, Terrain::DeletingDestruct);
+EI_REWRITTEN(0x00562B60, Terrain::DeletingDestruct);
 
 void Sector::Destruct() {
     ei::SetVtable(this, kSectorVtable);
