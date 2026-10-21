@@ -405,6 +405,8 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
 - Cut (no golden changes): the window checks (WB12's out-of-sight check asked DWM about every window five
   times a second: 0.4-2 ms of wall time a frame in the original's runs, ~6% of net_pair_quest's main thread in
   the image's under load) walk the game's own threads' windows and sweep / ask DWM every 2 s; the digest reuses
-  the last-but-one record's map nodes (~20% of its time).
+  the last-but-one record's map nodes (~20% of its time). Suites after: image 124 runs in 173 s (sum 1,033 s,
+  net_pair_quest 153 s); original 114 runs in 227 s (sum 1,192 s, net_pair_quest 176 s), with other workers'
+  games on the machine. Suite times move with that load by ±15%, so the per-frame numbers are the measure.
 - Proposals (tickets SV10a-SV10e): the pair's frame step run while the other game takes its turn, start-up,
   more world updates per drawn frame, drawing only frames a step reads, the harness build's renderer checks.
