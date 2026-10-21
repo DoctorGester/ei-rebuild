@@ -896,6 +896,17 @@ across runs; the goldens check the game state.
    a mesh's arrays in place that sends no signal (found and signalled: the sky's lighting, the link figures' lighting
    outside the part draws; streamed: the interface's quads); `meshcache check` reports it, and every stale mesh is
    logged ("a mesh kept on the GPU was stale") in any run of the harness build.
+   **R16d2 Interface sprites kept on the GPU (measured, not built: about 0.1 ms a frame at most to gain).** What the
+   streamed sprites cost, measured with a temporary counter around their build into the frame's stream (render_stats,
+   vanilla 4K, the harness build, 4 games at once; per frame): zone1's HUD 54 draws, 655 corners, 17.9 KB vertices +
+   6.1 KB indices, 0.010 ms; the fight 52 draws, 18.6 + 6.1 KB, 0.016 ms; the camp 78 draws, 30.5 + 14.5 KB, 0.042 ms;
+   the global map 23 draws, 3869 corners, 105.8 + 74.9 KB, 0.08-0.10 ms; the town and the escape menu none. Their copy
+   into the stream's ring buffer at the end of the frame (one append for the frame) is about 0.02 ms for the map's
+   181 KB. Keeping them would still read and compare each sprite's source corners per draw (the same reads as the
+   build), so the gain is a part of 0.03 ms (HUD) to 0.12 ms (map) of a 3.4 ms (map) to 17-27 ms (zone1, fight)
+   main-thread frame, and nothing on the GPU (the same draws; 181 KB a frame is about 11 MB/s at 60 frames, 170 MB/s
+   for 16 games). Not worth a signal at every writer (the original's and Rebirth's shape code among them) or a check
+   per draw; SetInterfaceDraw stays. Revisit if an interface draws far more sprites (the native interface, ui-native.md).
 5. **R16e Ground decals on the GPU.** Footprints, blood, object shadows, selection markers, light pools and spell marks
    are projected on the CPU (ProjectDecal 0056C750) into flat meshes every frame (12-32 a frame, up to 344 KB in the
    town); instead a box per decal projects onto the depth of the ground and platforms in a shader (the game keeps its
