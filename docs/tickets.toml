@@ -523,7 +523,7 @@ id = "R16c5"
 title = "Inline expansion of unmarked helpers (/Ob2) measured"
 group = "renderer"
 depends = ["R16c4"]
-note = "R16c4 (2026-10-21): the build compiles /O2 /Ob1 (CMake RelWithDebInfo), so file-local helpers not marked inline (Sine, Byte, SignClear in terrain_animation before R16c4; most anonymous-namespace helpers elsewhere) stay calls. Try /Ob2 (or /Ob3) for ei_hook: frame time A/B with render_stats (main thread CPU per frame), goldens both installs and ei_vectors the same (inlining can move x87 spills; /fp:precise should keep the rounding points), the build checks (check_short_functions reads compiled code, check_fp_fold) at 0."
+note = "Done (2026-10-21): /Ob2 (EI_INLINE in CMakeLists). render_stats vanilla, Ob1/Ob2 builds concurrently, 3 rounds, main thread CPU ms/frame: fight 17.1/18.0/26.7 -> 16.0/17.1/23.5, town 5.3/5.5/5.8 -> 4.6/5.0/5.0, zone1 5.3/8.8/5.3 -> 4.4/7.5/4.3. Five folds through inlined constant helpers fixed (HUD clock x2, portraits, unit panel, cylinder particles); addon's 0.001 allow-listed. Goldens 134 the same, ei_vectors 0."
 
 # ---------------------------------------------------------------- native interface drawing
 

@@ -253,7 +253,7 @@ void CHudPortraits::Update() {
                 float t = slot.wobbleTime_;
                 switch (slot.wobbleKind_) {
                 case 1:   // nod
-                    if (D(Pi()) * kWobbleSpan > D(t))
+                    if (static_cast<float>(D(Pi()) * kWobbleSpan) > t)
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
                                            static_cast<float>(D(WobbleAngle()) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
