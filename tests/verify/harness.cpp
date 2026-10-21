@@ -112,6 +112,8 @@
 //   hidefile <path>           an install file (relative to the game folder: maps\z6q1.mq) reads as missing in
 //                             this game until the game writes it (then its overlay copy is read): a player
 //                             who lacks a file the host has (the shared quest files, net_pair_leave)
+//   samefile <path>           require that this game wrote its own copy of that install file (in the overlay)
+//                             and that it is the install's, byte for byte (the received quest file)
 //   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
 //                             master the connection screen asks and a public game announces itself to
 //                             (net_second_master: 127.0.0.1 only)
@@ -328,6 +330,9 @@
 //                             rectangle under Rebirth's WideScreen, which the screen copy takes)
 //   record on|off             the game's frame recorder (0079BC54: a "shotNNNN.bmp" of each presented
 //                             frame, nothing in the shipped game sets it)
+//   discprompt <n>            (a line read before WinMain) the start-up disc check asks for the second disc
+//                             <n> times, each answered OK; "discprompts <n>" requires that count
+//                             (harness_startup.h, app_disc_prompt.txt)
 //   digest <N>|off, digest    a record of the game state (world, generators, players, every world
 //                             object: harness_digest.h) every <N> world updates from now into
 //                             digest.txt, none (off), or one now (no argument); EI_DIGEST=<N> takes
@@ -367,6 +372,7 @@
 #include "harness_leftovers.h"
 #include "harness_save_leftovers.h"
 #include "harness_shadow_turn.h"
+#include "harness_startup.h"
 #include "harness_path_cells.h"
 #include "harness_savetrace.h"
 #include "harness_script_order.h"
@@ -700,7 +706,10 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
 // its own output folder, so in harness runs no other window counts.
 constexpr std::uintptr_t kFindWindowASlot = 0x0073B448;
 decltype(&::FindWindowA) g_findWindow;
-HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) { return nullptr; }
+HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
+    ei::verify::startup::AtWindowClass();   // before the registry is read (harness_startup.h)
+    return nullptr;
+}
 
 // Harness runs stay out of the user's way: the game window never takes focus or comes to the front,
 // it opens at a small size (VideoResolution), and the sound is muted. The game's own code still
@@ -980,6 +989,29 @@ bool Hidden(const char* relative) {
     for (LONG i = 0; i < g_hiddenCount; ++i)
         if (_stricmp(relative, g_hiddenFiles[i]) == 0) return true;
     return false;
+}
+
+// "samefile <path>": the game wrote its own copy of the install file <path> (relative to the game folder; in
+// the overlay), byte for byte the install's (A-I23: the shared quest file a hidefile peer receives).
+std::string SameFileStep(const std::string& relative) {
+    auto read = [](const std::string& path, std::string& out) {
+        FILE* f = nullptr;
+        if (fopen_s(&f, path.c_str(), "rb") != 0 || !f) return false;
+        char block[4096];
+        for (std::size_t n; (n = std::fread(block, 1, sizeof(block), f)) > 0;) out.append(block, n);
+        std::fclose(f);
+        return true;
+    };
+    const char* root = g_rootDirs[1][0] ? g_rootDirs[1] : g_rootDirs[0];
+    std::string install = std::string(root) + (root[std::strlen(root) - 1] == '\\' ? "" : "\\") + relative;
+    std::string written, original;
+    if (!read(std::string(g_savesDir) + "\\" + relative, written)) return "samefile: the game wrote no " + relative;
+    if (!read(install, original)) return "samefile: cannot read " + install;
+    if (written != original)
+        return "samefile: " + relative + " differs from the install's (" + std::to_string(written.size()) + " / " +
+               std::to_string(original.size()) + " bytes)";
+    Log("harness: samefile %s: %u bytes, the install's", relative.c_str(), unsigned(written.size()));
+    return {};
 }
 
 // Install folders a run sees only in its overlay, never the install's own files: mp\ (the multiplayer
@@ -2276,6 +2308,7 @@ void EndRunOnMessageBox(const std::string& caption, const std::string& text) {
 }
 
 int WINAPI HarnessMessageBoxA(HWND, LPCSTR text, LPCSTR caption, UINT) {
+    if (int answer = ei::verify::startup::AnswerMessageBox(caption)) return answer;   // "discprompt"
     EndRunOnMessageBox(caption ? caption : "", text ? text : "");
     return IDABORT;
 }
@@ -2998,9 +3031,10 @@ void RunSteps() {
                    s.verb == "moveregion") {
             HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
-        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile") {
+        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "discprompts") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
-                                : s.verb == "campputon" ? CampPutOn(s.argument) : starter::ModFileStep(s.argument);
+                                : s.verb == "campputon" ? CampPutOn(s.argument)
+                                : s.verb == "discprompts" ? startup::DiscPromptsStep(s.argument) : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
@@ -3082,6 +3116,9 @@ void RunSteps() {
                 InterlockedIncrement(&g_hiddenCount);
                 Log("harness: %s reads as missing until this game writes it", s.argument.c_str());
             }
+        } else if (s.verb == "samefile") {
+            std::string error = SameFileStep(s.argument);
+            if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "masterhost") {
             options::TheOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "waterwaves") {
@@ -4091,7 +4128,8 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
             continue;
         }
-        if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
+        if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
+            ei::verify::startup::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
             g_steps.pop_back();
             continue;
         }

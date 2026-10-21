@@ -1,0 +1,22 @@
+# A-I23: WinMain's disc check (00456440, app_main.cpp CheckDrives; docs/notes/app.md). With a disc folder
+# ("CD-ROM Path") whose text differs from the data folder's, start-up reads the disc folder's volume label and
+# asks for the second disc ("Warning" box, OK) while it is not the options' "CD2 Label". "discprompt 2"
+# (harness_startup.h) gives the run such a disc folder (the game folder written "<folder>.\") and a volume
+# that has the label only after two boxes; the game then starts as usual, reading speech.res and the
+# movies through the disc folder, and plays the new game's start.
+# The vanilla install's game.exe jumps over the check (EB for the target's 74 at 00456BB5, docs/notes/core.md),
+# so its original never asks; the image follows the target (starter\Engine\game.exe, Rebirth's install).
+# no original: vanilla (its game.exe has the disc check jumped over at 00456BB5)
+discprompt 2
+reject Script error
+waitmenu
+vanilla discprompts 2
+rebirth discprompts 2
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+frames 20
+check IsAlive(GetLeader())
+report
+quit

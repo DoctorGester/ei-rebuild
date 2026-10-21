@@ -98,6 +98,13 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   rewrite runs in the vanilla launch only. Every callee is called through its address, so their hooks and
   wrappers keep running. Ours only (`verify_app_main.cpp`: no window at entry, the mouse object released at the
   end); every vanilla scenario runs on it from start to exit.
+- Branches (A-I23): the frame recorder's pass length (`app_record`, golden from the original) and the disc check's
+  second-disc boxes (`app_disc_prompt`, harness_startup.h; golden from Rebirth's original). The vanilla install's
+  game.exe jumps over the disc check (EB at 00456BB5, core.md): with a "CD-ROM Path" whose text differs from the
+  data folder's and a volume without the CD2 label, it starts where the image (the target's behaviour) asks; the
+  harness's registry gives the two folders the same text, so no other run differs. No scenario: the second
+  instance (FindWindowA finds a game window: brought forward, exit -1 before any scenario step), the DirectX 7
+  check, the low-disk-space box (GetDiskFreeSpaceExA through GetProcAddress); a vector test does not fit WinMain.
 - The harness told the loop's calls apart by return address (the two `PeekMessageA` calls that take posted
   input, the frame's `timeGetTime`). The rewrite names the call it makes in `ei::mainloop::g_site`
   (`include/ei/main_loop.h`), which the harness accepts beside the addresses, and makes the frame's last

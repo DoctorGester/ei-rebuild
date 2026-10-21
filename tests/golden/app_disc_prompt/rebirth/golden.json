@@ -1,0 +1,12 @@
+{
+  "scenario": "app_disc_prompt",
+  "install": "rebirth",
+  "recorded": "2026-10-21",
+  "commit": "d5e62271",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 3,
+  "reason": "A-I23: the start-up disc check's second-disc boxes (two, answered OK)",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 3 runs"
+}

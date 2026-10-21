@@ -1,7 +1,9 @@
-# The peer of net_pair_leave: lacks z6q1.mq (offered by the host's server on both installs) and joins the host's
-# game (as in net_pair_join), follows the host into the game zone, then its network is cut there.
+# The peer of net_pair_leave: lacks a quest file the host's server offers (z6q1.mq on Rebirth, z7q2.mq on vanilla,
+# whose offer is z9q1 z6q2 z3q2 z7q2: A-I23) and joins the host's game (as in net_pair_join), follows the host into
+# the game zone, then its network is cut there.
 timeout 300
-hidefile maps\z6q1.mq
+rebirth hidefile maps\z6q1.mq
+vanilla hidefile maps\z7q2.mq
 reject Script error
 waitmenu
 clickregion 5
@@ -35,6 +37,9 @@ waitwindow 40 briefing
 peersignal joined
 
 peerwait 200 entered
+# The received file, written by ClientOnFileChunk 0041ECC0 -> WriteMapFile 005813A0 (vanilla only: Rebirth's
+# MQClient collects the chunks and writes nothing).
+vanilla samefile maps\z7q2.mq
 frames 20
 clickground 61 50 dblclick
 frames 60

@@ -156,8 +156,21 @@ them outside the game. Check each new family with a corrupted copy (one bit of a
 `tools/coverage.py list` writes tests/coverage/coverage.csv: per rewritten function its status, golden (a golden
 scenario reaches it), vector (tests/vectors/data has its file), suite (only scenarios without a golden), unreached,
 startup / dead (tests/coverage/unreachable.txt), with a risk rank (size x area weight, x2 unreached); `who <address or
-name>`, `top [N] [--area]`. The reach data, tests/coverage/reach.txt, is the last hook build's collection (EI_COVER=hooks,
-until S21c); `EI_COVER=<addr,...>` on the original still watches single addresses (src/hook/cover.cpp).
+name>`, `top [N] [--area]`. The reach data, tests/coverage/reach.txt: runs of the original with `EI_COVER=<file>`
+(src/hook/cover.cpp: a one-shot INT3 at each listed address; `coverage.py addresses <file>` lists every rewrite), then
+`coverage.py collect build\verify\runs --add` (a pair's peer\ log counts for its scenario; scenarios not in the runs keep
+their rows, those last collected before S21c from the hook build's EI_COVER=hooks). A-I23 collected the scenarios added
+since that the original runs on vanilla. Cover runs are for reach only: the breakpoints' first hits cost real time, an
+app_record run with them drew a different crt.rand at its first digest record and net_pair_quest fails with them (its
+reach is that failed run's, a lower bound), so goldens come from runs without EI_COVER.
+- Start-up (A-I23): `app_record` (the frame recorder's pass length and files), `app_disc_prompt` (the disc check's
+  second-disc boxes, harness_startup.h; app.md). Not reachable from a scenario: WinMain's second-instance exit (the run
+  would end in WinMain before any step, with no state for a golden), the DirectX 7 check, the low-disk-space box
+  (GetDiskFreeSpaceExA through GetProcAddress); CDib's catch handlers (a CFileException from the MFC file's Read / Write:
+  a failing disk) and the message boxes they end in. CDib::Read and its helpers run only for a loose
+  `textures\<name>.bmp` (A-I23a).
+- Shared files (A-I23): the vanilla offer in net_pair_leave is z9q1 z6q2 z3q2 z7q2 (not z6q1), so its vanilla peer hides
+  z7q2.mq; the received file is written (0041ECC0 -> 005813A0) and `samefile` requires it to be the install's.
 - Dead (SV5c): the fake unit (class 0x39) and its scene loader: no shipped data makes one, no code reaches slot 62, no
   .amf exists. CubicSegment::Evaluate 0040E440 and SetBSpline are dead (the game uses the copy at 004E5660).
 - Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (CEffectTornado

@@ -1,6 +1,6 @@
 # SV5d2: shared files, a client lost in the game zone, the zone left back to the base, its reject topic and the
 # award (a pair of games, harness_pair.h). This game hosts as net_pair_join does; the peer (peer/net_pair_leave.txt)
-# lacks z6q1.mq ("hidefile"), one of the quest files the server shares, and joins.
+# lacks one of the quest files the server shares ("hidefile": z6q1.mq on Rebirth, z7q2.mq on vanilla), and joins.
 # - Shared files: each queued zone's .mq is listed (QueueMapList -> LoadZoneQuests -> ShareFile 00419A00, File
 #   messages); the peer lacks one (ClientOnFile 0041EAC0: a FileRequest), the server lists the request
 #   (0041B690) and sends the chunks; vanilla writes the file (ClientOnFileChunk 0041ECC0 -> WriteMapFile 005813A0),

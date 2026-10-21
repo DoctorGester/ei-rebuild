@@ -3338,6 +3338,13 @@ depends = ["PF1"]
 files = ["src/game/resource.cpp", "src/game/object3d_figure_setup.cpp", "src/game/net_server_players.cpp"]
 note = "Other game _strnicmp callers (CMappedResource::FindEntry, object3d_figure_setup.cpp, net_server_players.cpp) use SameIgnoringCase / CaseFoldTable from lib/crt where hot."
 
+[[ticket]]
+id = "A-I23a"
+title = "Scenario: a texture from a loose .bmp (CTexture::LoadBmp, CDib::Read)"
+group = "port"
+depends = ["A-I23"]
+note = "CTextureManager::LoadTexture 006922A0 loads <data>textures\\<name>.bmp (with a_<name>.bmp as alpha) when the file exists: LoadBmp 00690260 -> LoadBmpFiles 0068FBF0 -> CDib::Construct 006D4AA0, Read 006D5910, Size 006D4D10, MakePalette 006D54D0, all unreached (no install has a loose .bmp). A '# prepare:' tool writing a 24-bit .bmp and an 8-bit alpha for a texture zone1 loads, into the run's overlay, reaches them; golden from the original, a capture compared on the image."
+
 # ---------------------------------------------------------------- docs
 
 [[ticket]]
