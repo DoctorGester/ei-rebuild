@@ -87,14 +87,27 @@ struct SpellRecord {
     int castType;                       // +0x10 1: cast without noise (0054EE10) and without slowing the caster (005536B0); 0: planned as kind 2; the item info shows it
     int school;                         // +0x14
     float mana;                         // +0x18
-    std::uint32_t effectValues[9];      // +0x1C..+0x3C fields 6-14 (+0x20 power, +0x28 radius, +0x2C level, +0x38 duration; floats)
-    int needsSight;                     // +0x40 needs a line of sight to its target (0054BBC0)
+    // +0x1C..+0x3C fields 6-14: what CSpell::InitFromPrototype / CSpellContainer::Build copy into the
+    // spell (CSpell's names), and the item info shows.
+    std::uint32_t complexity;           // +0x1C +1 per modifier in the spell
+    float speed;                        // +0x20 missile speed (the item info's "power")
+    float range;                        // +0x24
+    float area;                         // +0x28 the spell's radius_ (sqrt(area / pi) once built with modifiers)
+    float damage;                       // +0x2C the effect's power (the item info's level)
+    std::uint32_t targetKind;           // +0x30 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
+    std::uint32_t targetCount;          // +0x34
+    std::uint32_t duration;             // +0x38 ticks
+    std::uint32_t value3C;              // +0x3C copied, loaded and saved, not read
+    int needsSight;                    // +0x40 needs a line of sight to its target (0054BBC0)
     int skill;                          // +0x44 the school skill it needs
     stlp::vector<int> list48;           // +0x48 (chunk 16)
     stlp::vector<int> list54;           // +0x54 (chunk 17)
     std::uint32_t icon;                 // +0x60 the number of its picture and figure ("spell%04d", "prototype%04d")
     std::uint32_t extraValues[5];       // +0x64..+0x74 fields 23-27 (nothing reads them)
-    std::uint8_t bytes78[5];            // +0x78
+    // +0x78 which modifiers it accepts, one byte per kind (SpellModifierRecord::kind; by code letter
+    // 'r' +0x78, 't' +0x79, 'a' +0x7A, 'e' +0x7B, 'd' +0x7C); the item info shows the level when the
+    // 'e' byte is set.
+    std::uint8_t bytes78[5];
     std::uint8_t unused_7D[3];
     std::uint32_t classMask;            // +0x80 bit (class - 1): the class templates that may use it (class_templates.cpp)
 };
@@ -103,6 +116,8 @@ static_assert(offsetof(SpellRecord, price) == 0x0C);
 static_assert(offsetof(SpellRecord, castType) == 0x10);
 static_assert(offsetof(SpellRecord, icon) == 0x60);
 static_assert(offsetof(SpellRecord, mana) == 0x18);
+static_assert(offsetof(SpellRecord, complexity) == 0x1C && offsetof(SpellRecord, damage) == 0x2C);
+static_assert(offsetof(SpellRecord, duration) == 0x38 && offsetof(SpellRecord, value3C) == 0x3C);
 static_assert(offsetof(SpellRecord, bytes78) == 0x78);
 static_assert(offsetof(SpellRecord, needsSight) == 0x40);
 static_assert(offsetof(SpellRecord, skill) == 0x44);
@@ -487,19 +502,27 @@ static_assert(sizeof(IndexedRecordTable::NameIndex) == 0x14);
 
 // The spell and spell modifier tables (007C8510 / 007C8530, 0x20 bytes each): the records and the
 // index by code (+0x0C; filled by the Rebirth-patched load 00684550).
+template <typename Record>
 struct CodeIndexedTable {
     // 0068C820 / 0068C920 (RET 4; spell_db_lookup.cpp). The record filed under `code`: the index's
     // operator[] with a copy of the key, so an unknown code is filed with null.
-    char* FindByCode(const char* code);
+    Record* FindByCode(const char* code);
     // The constructor as 0057E2F0 inlines it (database_construct.cpp): no records, an empty index
     // of 100 buckets (193).
     void Construct();
 
-    RecordTable records;            // +0x00 begin, end
-    char* capacityEnd;              // +0x08
-    stlp::hash_map<stlp::string, char*, stlp::StringHash> byCode;   // +0x0C
+    std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
+    // The record at `index`, or nullptr when out of range.
+    Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
+    // The index of `record` in the table, -1 for null.
+    int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.begin()) : -1; }
+
+    stlp::vector<Record> records;   // +0x00 begin, end, end of storage
+    stlp::hash_map<stlp::string, Record*, stlp::StringHash> byCode;   // +0x0C
 };
-static_assert(sizeof(CodeIndexedTable) == 0x20);
+static_assert(sizeof(CodeIndexedTable<SpellRecord>) == 0x20);
+using SpellTable = CodeIndexedTable<SpellRecord>;
+using SpellModifierTable = CodeIndexedTable<SpellModifierRecord>;
 
 // The spell database (007C8510; reset by 0057CE80): the spells and the modifiers by code, and the
 // three lists of spells.sdb's chunks 3-5.
@@ -523,8 +546,8 @@ struct SpellDatabase {
     // Reset: the three lists from the last, the modifiers, the spells.
     void Destruct();
 
-    CodeIndexedTable spells;                    // +0x00 kSpellSize records
-    CodeIndexedTable modifiers;                 // +0x20 kSpellModifierSize
+    SpellTable spells;                          // +0x00
+    SpellModifierTable modifiers;               // +0x20
     stlp::vector<SpellListRecord> lists[3];     // +0x40, +0x4C, +0x58
 };
 static_assert(offsetof(SpellDatabase, lists) == 0x40);
@@ -570,9 +593,11 @@ inline ItemDatabase& TheItemDatabase() { return *g_itemDatabase; }
 // A table as the by-name lookups (stlp::RecordNamed, thiscall on the records and their index) and the name maps
 // (stlp::NamedSlot) see it.
 inline stlp::RecordsByName* Named(IndexedRecordTable& table) { return reinterpret_cast<stlp::RecordsByName*>(&table); }
-inline stlp::RecordsByName* Named(CodeIndexedTable& table) { return reinterpret_cast<stlp::RecordsByName*>(&table); }
-inline stlp::NameMap& NameMapOf(CodeIndexedTable& table) { return reinterpret_cast<stlp::NameMap&>(table.byCode); }
-static_assert(sizeof(stlp::RecordsByName) == sizeof(IndexedRecordTable) && sizeof(stlp::RecordsByName) == sizeof(CodeIndexedTable));
+template <typename Record>
+stlp::RecordsByName* Named(CodeIndexedTable<Record>& table) { return reinterpret_cast<stlp::RecordsByName*>(&table); }
+template <typename Record>
+stlp::NameMap& NameMapOf(CodeIndexedTable<Record>& table) { return reinterpret_cast<stlp::NameMap&>(table.byCode); }
+static_assert(sizeof(stlp::RecordsByName) == sizeof(IndexedRecordTable) && sizeof(stlp::RecordsByName) == sizeof(SpellTable));
 
 inline const RecordTable& Materials() { return TheItemDatabase().materials.records; }
 inline const RecordTable& Weapons() { return TheItemDatabase().weapons.records; }
@@ -580,8 +605,8 @@ inline const RecordTable& Armors() { return TheItemDatabase().armors.records; }
 inline const RecordTable& QuickItems() { return TheItemDatabase().quickItems.records; }
 inline const RecordTable& QuestItems() { return TheItemDatabase().questItems.records; }
 inline const RecordTable& Loot() { return TheItemDatabase().loot.records; }
-inline const RecordTable& Spells() { return TheSpellDatabase().spells.records; }
-inline const RecordTable& SpellModifiers() { return TheSpellDatabase().modifiers.records; }
+inline SpellTable& Spells() { return TheSpellDatabase().spells; }
+inline SpellModifierTable& SpellModifiers() { return TheSpellDatabase().modifiers; }
 
 // The records of those tables typed (null when the index is out of range).
 inline MaterialRecordHead* MaterialAt(std::uint32_t index) {
@@ -596,17 +621,7 @@ inline QuestItemRecord* QuestItemAt(std::uint32_t index) {
     return reinterpret_cast<QuestItemRecord*>(QuestItems().RecordAt(index, kQuestItemSize));
 }
 inline LootItemRecord* LootAt(std::uint32_t index) { return reinterpret_cast<LootItemRecord*>(Loot().RecordAt(index, kLootSize)); }
-inline SpellRecord* SpellAt(std::uint32_t index) { return reinterpret_cast<SpellRecord*>(Spells().RecordAt(index, kSpellSize)); }
-inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) {
-    return reinterpret_cast<SpellModifierRecord*>(SpellModifiers().RecordAt(index, kSpellModifierSize));
-}
-
-// The spell records' fields spell.cpp still reads by offset (SpellRecord::code, price;
-// SpellModifierRecord::code).
-namespace field {
-constexpr int kSpellCode = 0x04;         // int
-constexpr int kSpellPrice = 0x0C;        // float
-constexpr int kModifierCode = 0x04;      // two letters packed little-endian ("ic" = 0x6369)
-} // namespace field
+inline SpellRecord* SpellAt(std::uint32_t index) { return Spells().At(index); }
+inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) { return SpellModifiers().At(index); }
 
 } // namespace itemdb

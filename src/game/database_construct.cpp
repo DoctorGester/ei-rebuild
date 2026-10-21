@@ -28,12 +28,13 @@ EI_REPLACE_METHOD(0x0051FB10, SkillDatabase::Construct);
 
 namespace itemdb {
 
-void CodeIndexedTable::Construct() {
-    records.begin = nullptr;
-    records.end = nullptr;
-    capacityEnd = nullptr;
+template <typename Record>
+void CodeIndexedTable<Record>::Construct() {
+    new (&records) stlp::vector<Record>();
     byCode.InitBuckets(kBuckets);
 }
+template struct CodeIndexedTable<SpellRecord>;
+template struct CodeIndexedTable<SpellModifierRecord>;
 
 SpellDatabase* SpellDatabase::Construct() {
     spells.Construct();

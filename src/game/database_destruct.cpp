@@ -58,10 +58,8 @@ namespace itemdb {
 
 void SpellDatabase::Destruct() {
     for (int i = 2; i >= 0; --i) recordvec::SpellListVector::Destruct(&lists[i]);
-    // A table's first three words are its records' vector.
-    DestroyTable<recordvec::SpellModifierVector>(reinterpret_cast<recordvec::SpellModifierVector::Vector&>(modifiers),
-                                                 modifiers.byCode);
-    DestroyTable<recordvec::SpellVector>(reinterpret_cast<recordvec::SpellVector::Vector&>(spells), spells.byCode);
+    DestroyTable<recordvec::SpellModifierVector>(modifiers.records, modifiers.byCode);
+    DestroyTable<recordvec::SpellVector>(spells.records, spells.byCode);
 }
 
 } // namespace itemdb
