@@ -2548,6 +2548,13 @@ group = "cleanup"
 depends = ["C20a"]
 note = "C20a left the 13,511 funclet code cells out (only __CxxFrameHandler on game.exe's own frames reads FuncInfo tables). The same tables' 3,721 pointer cells into .rdata in image_cells.inc (eh-unwind 2,963 FuncInfo -> unwind map, eh-try 378, eh-handlers 380) and the catch handler types' half of the 38 type-descriptor cells are fixed up at the move for the same dead readers. Check as C20a (no reference from src/ or tests/, the harness's crash report reads only ThrowInfo), leave them out of the cells, keep ThrowInfo / catchable types (CxxThrowException uses them). Goldens are the check."
 
+[[ticket]]
+id = "C20c"
+title = "Registrations: measure what still needs each EI_REPLACE, drop the ones nothing reads"
+group = "cleanup"
+model = "opus"
+note = "After C20a/C20b the image's code cells are 7,928 (6,367 at our code) while src/ has 9,304 EI_REPLACE registrations. Measure, per registration, what still reads its address: a code cell (vtable slot, static initialiser, CRT/MFC table), a code literal through CodeAddress, the harness's address names / profiler / crash report, the scenarios' or goldens' address keys, check tools (check_registrations, check_signatures, check_stolen). Registrations nothing reads go (the function stays, called directly); report the split of the rest by reader so the next batches (C19 vtables, static init, harness names) are sized. Goldens are the check."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
