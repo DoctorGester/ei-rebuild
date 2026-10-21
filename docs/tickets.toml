@@ -510,6 +510,14 @@ title = "Water waves' CPU loop (Animate) faster, bit-exact"
 group = "renderer"
 note = "R16c2 measured SectorData::Animate 006C3E80 at 1.0 ms a frame in zone1 (1.2 Rebirth, 0.35 in the town) with the water waves option on (EnableWaterWaves; off in the harness's registry, so no scenario reaches the waves now). The circling waves' sineX / sineY depend only on the column / row and the world time (read per vertex): 33 values each per call; the time once per call. Same float expressions, so bit-exact; needs a scenario with the option on (a harness step setting enableWaterWaves_ before newgame) and a golden or vectors for Animate. docs/notes/renderer.md section 13 item 3 (R16c2)."
 
+[[ticket]]
+id = "R16c4"
+title = "Inlined FISTP for Animate's per-vertex rounding"
+group = "renderer"
+model = "opus"
+depends = ["R16c3"]
+note = "R16c3 (2026-10-21): each water vertex in SectorData::Animate 006C3E80 still makes up to four out-of-line x87::RoundToInt calls (one sine lookup, three colour bytes). An inlinable FISTP in include/ei/x87.h (same instruction, same control word, so bit-exact) would cut Animate further; check no other caller changes beyond the call, measure Animate A/B with waterwaves 1 (stop under 0.1 ms a harness frame). Also record terrain_water_waves's Rebirth golden (only vanilla exists). Checks: goldens both installs, terrain_water_waves the same."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
