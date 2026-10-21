@@ -215,7 +215,7 @@
 {Patch::ResOverride, 0x006D0717, 5},
 {Patch::ResOverride, 0x006D770E, 5},
 {Patch::ResOverride, 0x007432F4, 4},
-{Patch::MoviesPatch, 0x0073B720, 4},
+{Patch::MoviesPatch, ei::DataId(0x0073B720), 4},
 {Patch::CameraPatch, 0x0040ED42, 5},
 {Patch::StreamPatch, 0x006BB628, 5},
 {Patch::FixProcessLogin, 0x004433D6, 5},

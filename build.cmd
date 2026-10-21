@@ -44,6 +44,8 @@ rem The standalone image's static initialisers (src/standalone/static_init.cpp) 
 python "%~dp0tools\check_static_init.py" || exit /b 1
 rem The image's pointer cells into .data (src/standalone/image_cells.inc, S18b, S18d) against game.exe's data.
 python "%~dp0tools\gen_image_cells.py" --check || exit /b 1
+rem The image's import table (src/standalone/image_imports.inc, S18f) and gameapi.h against game.exe's imports.
+python "%~dp0tools\gen_iat.py" --check || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
 "%~dp0build\%CFG%\ei_vectors.exe" || exit /b 1
 echo Built: %~dp0build\%CFG%

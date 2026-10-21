@@ -3,12 +3,12 @@
 file,section,raw
 *sealed*,bss,0
 *sealed*,data,0
+*sealed*,iat,0
 src/game/ai_map.h,rdata,3
 src/game/ai_shape_cache.h,rdata,1
 src/game/ai_unit_layer.h,rdata,1
 src/game/animation_node_lifetime.cpp,rdata,1
 src/game/base_manager.h,rdata,2
-src/game/bink_video.cpp,iat,10
 src/game/buffered_file.h,rdata,2
 src/game/camera.h,rdata,1
 src/game/chunk_stream.h,rdata,3
@@ -94,8 +94,6 @@ src/game/ui_camp_create.cpp,rdata,1
 src/game/ui_create_screen.cpp,rdata,2
 src/game/ui_exchange.cpp,rdata,1
 src/game/ui_global_map.cpp,rdata,7
-src/game/ui_item_info.cpp,rdata,10
-src/game/ui_item_view.cpp,rdata,3
 src/game/ui_layouts.cpp,rdata,8
 src/game/ui_widescreen.cpp,rdata,2
 src/game/unit.h,rdata,3
@@ -114,13 +112,5 @@ src/game/world_effect_tornado.cpp,rdata,1
 src/game/world_effect_visibility.cpp,rdata,1
 src/game/world_managers.cpp,rdata,1
 src/hook/cover.cpp,rdata,1
-tests/verify/addon_sites.inc,iat,1
 tests/verify/addon_sites.inc,rdata,3
-tests/verify/harness.cpp,iat,34
-tests/verify/harness.cpp,rdata,38
-tests/verify/harness_clock.cpp,iat,16
-tests/verify/harness_heap.cpp,iat,7
-tests/verify/harness_net.cpp,iat,4
-tests/verify/harness_savetrace.cpp,iat,1
-tests/verify/harness_watch.cpp,iat,1
-tests/verify/ui_census.cpp,iat,2
+tests/verify/harness.cpp,rdata,36

@@ -44,7 +44,7 @@ CRITICAL_SECTION g_lock;
 std::unordered_map<void*, Trace>* g_streams;
 
 bool ReturnAddress(std::uintptr_t v) {
-    const bool game = v >= 0x00401000 && v < 0x0073B000;
+    const bool game = v >= 0x00401000 && v < 0x0073A670;   // game.exe's .text
     const bool self = v >= g_selfBase + 0x1000 && v < g_selfEnd;
     if (!game && !self) return false;
     const auto* code = reinterpret_cast<const unsigned char*>(v);

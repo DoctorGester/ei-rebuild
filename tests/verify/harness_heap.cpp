@@ -48,9 +48,10 @@ bool InReservation(const void* p) {
     return a >= g_begin && a < g_end;
 }
 
+// A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f).
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
-    auto* slot = reinterpret_cast<T*>(address);
+    T* slot = ei::GamePointer<T>(address);
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     original = *slot;
@@ -77,7 +78,7 @@ namespace {
 
 // A value on the stack that looks like a return address into game.exe or ours (after a CALL).
 bool ReturnAddress(std::uintptr_t v) {
-    const bool game = v >= 0x00401000 && v < 0x0073B000;
+    const bool game = v >= 0x00401000 && v < 0x0073A670;   // game.exe's .text
     const bool self = v >= g_selfBase + 0x1000 && v < g_selfEnd;
     if (!game && !self) return false;
     const auto* code = reinterpret_cast<const unsigned char*>(v);

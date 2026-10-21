@@ -2,6 +2,7 @@
 #include "harness_crash.h"
 
 #include "../../src/hook/log.h"
+#include "game/game_data.h"
 
 #include <cstdio>
 #include <cstring>
@@ -275,7 +276,7 @@ long long FreeMegabytes(const char* path) {
 }
 
 void WatchWrites(std::uintptr_t writeFileSlot) {
-    auto* slot = reinterpret_cast<decltype(&::WriteFile)*>(writeFileSlot);
+    auto* slot = ei::GamePointer<decltype(&::WriteFile)>(writeFileSlot);   // the image's: ei_hook.dll's table
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     g_writeFile = *slot;

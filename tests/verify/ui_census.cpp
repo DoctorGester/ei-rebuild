@@ -215,7 +215,7 @@ bool ReadSurface(const CUiSurface* surface, SurfaceView* view) {
     if (!SafeRead(surface, raw, sizeof(raw))) return false;
     const auto* copy = reinterpret_cast<const CUiSurface*>(raw);
     auto vtable = reinterpret_cast<std::uintptr_t>(copy->vtable_);
-    if (vtable < 0x0073B000 || vtable >= 0x007D7000) return false;   // game.exe's image ends at 007D7000
+    if (vtable < ei::kImportsEnd || vtable >= 0x007D7000) return false;   // past the import table, in the image
     view->dc = copy->dc_;
     view->holder = copy->holder_;
     view->width = copy->width_;
@@ -237,7 +237,7 @@ std::string Size(int width, int height) {
     return text;
 }
 
-bool InGameVtables(std::uintptr_t vtable) { return vtable >= 0x0073B000 && vtable < 0x007D7000; }
+bool InGameVtables(std::uintptr_t vtable) { return vtable >= ei::kImportsEnd && vtable < 0x007D7000; }   // .rdata, .data, .rsrc
 
 // The game vtable of an object that may wear a verify check's stand-in copy of it for the length of
 // a call: verify_ui_window_slots.cpp's StandInTable (the real vtable in the entry before the table;

@@ -4,8 +4,9 @@
 // its SizeOfImage) inside its own image, as a zero-filled array. There it lays out game.exe's headers
 // and its .rdata and .rsrc from the file on disk (nothing from the code section runs: it is filled with
 // INT3; .data stays zero: ei_hook.dll keeps the section in its own storage, with bytes from the build,
-// src/standalone/image_data.cpp) and resolves game.exe's imports into its import address table. Then it
-// loads ei_hook.dll and hands over: the DLL writes a jump at each rewritten function's address
+// src/standalone/image_data.cpp). Then it loads ei_hook.dll, which resolves game.exe's imports into a table
+// of its own as it initialises (src/standalone/image_imports.cpp; game.exe's path comes from this exe's
+// export EiStandaloneExe), and hands over: the DLL writes a jump at each rewritten function's address
 // (InstallHooks) and runs WinMain. Forwarders, function pointers in the data and vtable slots reach our
 // code through those jumps; an INT3 hit names an address that has no rewrite yet.
 //
@@ -34,6 +35,8 @@ unsigned char g_reserve[kReserve];
 
 // game.exe's code section in the image (INT3 until ei_hook.dll writes its jumps).
 std::uintptr_t g_textBegin, g_textEnd;
+
+std::string g_exe = R"(F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe)";   // --exe
 
 // An INT3 of the image hit before ei_hook.dll's own report is in place (its static constructors run
 // at LoadLibrary): named on stderr (ei_launch's run notes) and the process ends, never silently
@@ -65,63 +68,9 @@ bool ReadWholeFile(const std::string& path, std::vector<unsigned char>& out) {
     return ok;
 }
 
-bool Exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
-
 std::string Folder(const std::string& path) {
     const std::size_t slash = path.find_last_of("\\/");
     return slash == std::string::npos ? std::string(".") : path.substr(0, slash);
-}
-
-// An import of game.exe: from game.exe's folder (Rebirth's dgVoodoo DDraw.dll), then the working
-// directory (mss32.dll, binkw32.dll in the game root), else System32. Rebirth's dinput.dll beside
-// game.exe is a proxy that loads addon.dll, which patches game.exe's code: always the system one.
-HMODULE LoadImport(const char* name, const std::string& exeFolder) {
-    if (_stricmp(name, "dinput.dll") != 0) {
-        char cwd[MAX_PATH];
-        GetCurrentDirectoryA(MAX_PATH, cwd);
-        for (const std::string& folder : {exeFolder, std::string(cwd)}) {
-            const std::string path = folder + "\\" + name;
-            if (Exists(path)) return LoadLibraryA(path.c_str());
-        }
-    }
-    return LoadLibraryExA(name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-}
-
-// Fills game.exe's import address table, as the system loader would. Returns the number of
-// functions that could not be found.
-int ResolveImports(const IMAGE_NT_HEADERS32* nt, const std::string& exeFolder) {
-    const IMAGE_DATA_DIRECTORY& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-    int missing = 0, resolved = 0;
-    for (auto* d = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(kImageBase + dir.VirtualAddress); d->Name; ++d) {
-        const char* dll = reinterpret_cast<const char*>(kImageBase + d->Name);
-        HMODULE module = LoadImport(dll, exeFolder);
-        if (!module) {
-            std::fprintf(stderr, "ei_standalone: cannot load %s (error %lu)\n", dll, GetLastError());
-            ++missing;
-            continue;
-        }
-        const DWORD names = d->OriginalFirstThunk ? d->OriginalFirstThunk : d->FirstThunk;
-        auto* name = reinterpret_cast<const IMAGE_THUNK_DATA32*>(kImageBase + names);
-        auto* slot = reinterpret_cast<IMAGE_THUNK_DATA32*>(kImageBase + d->FirstThunk);
-        for (; name->u1.AddressOfData; ++name, ++slot) {
-            const char* symbol = IMAGE_SNAP_BY_ORDINAL32(name->u1.Ordinal)
-                ? reinterpret_cast<const char*>(static_cast<std::uintptr_t>(IMAGE_ORDINAL32(name->u1.Ordinal)))
-                : reinterpret_cast<const IMAGE_IMPORT_BY_NAME*>(kImageBase + name->u1.AddressOfData)->Name;
-            FARPROC fn = GetProcAddress(module, symbol);
-            if (!fn) {
-                if (IMAGE_SNAP_BY_ORDINAL32(name->u1.Ordinal))
-                    std::fprintf(stderr, "ei_standalone: %s has no #%lu\n", dll, IMAGE_ORDINAL32(name->u1.Ordinal));
-                else
-                    std::fprintf(stderr, "ei_standalone: %s has no %s\n", dll, symbol);
-                ++missing;
-                continue;
-            }
-            slot->u1.Function = reinterpret_cast<DWORD>(fn);
-            ++resolved;
-        }
-    }
-    std::printf("ei_standalone: %d imports resolved, %d missing\n", resolved, missing);
-    return missing;
 }
 
 // Lays out game.exe at its base: headers, .rdata and .rsrc as in the file, the code section INT3, .data zero.
@@ -183,11 +132,14 @@ std::string GameArguments() {
 
 } // namespace
 
+// game.exe's path for ei_hook.dll (the folder its imports load from first), asked for while it initialises.
+extern "C" __declspec(dllexport) const char* __cdecl EiStandaloneExe() { return g_exe.c_str(); }
+
 int main(int argc, char** argv) {
     // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on an INT3 hit
     // (TerminateProcess) loses none of it.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
-    std::string exe = R"(F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe)";
+    std::string& exe = g_exe;
     char self[MAX_PATH];
     GetModuleFileNameA(nullptr, self, MAX_PATH);
     std::string dll = Folder(self) + "\\ei_hook.dll";
@@ -207,7 +159,6 @@ int main(int argc, char** argv) {
     if (!ReadWholeFile(exe, file)) return Fail(("cannot read " + exe).c_str());
     const IMAGE_NT_HEADERS32* nt = nullptr;
     if (!BuildImage(file, nt)) return Fail("cannot lay out game.exe's image");
-    if (ResolveImports(nt, Folder(exe)) != 0) return 1;
 
     const auto* sec = IMAGE_FIRST_SECTION(nt);
     for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i)

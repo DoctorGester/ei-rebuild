@@ -771,11 +771,15 @@ int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void*
     return result;
 }
 
+// A slot of game.exe (an import slot or a vtable's), through the data seam: in the image its import slots are
+// ei_hook.dll's table (S18f).
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
+    T* slot = ei::GamePointer<T>(address);
     // A slot outside the import table (a vtable's) is game data the harness changes (harness_addon.h checks them).
-    if (address < 0x0073B000 || address >= 0x0073B820) ei::NoteHarnessPatch(address, sizeof(T), "a slot the harness takes");
-    auto* slot = reinterpret_cast<T*>(address);
+    const auto at = reinterpret_cast<std::uintptr_t>(slot);
+    if (at - ei::GameAddress(ei::kImportsBegin) >= ei::kImportsEnd - ei::kImportsBegin)
+        ei::NoteHarnessPatch(at, sizeof(T), "a slot the harness takes");
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     original = *slot;
