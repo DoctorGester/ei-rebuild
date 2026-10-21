@@ -141,9 +141,9 @@ EI_REPLACE_METHOD(0x0062A310, TradeRow::CopyConstruct);
 void CTradePanel::BuildLists() {
     using HeroFn = std::uint8_t*(__thiscall*)(CUiWindow*);
     using RefreshFn = void(__thiscall*)(CUiWindow*);
-    std::uint8_t* stats = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_) + 0x20;
+    std::uint8_t* stats = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_) + 0x20;
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
-    reinterpret_cast<RefreshFn>(owner_->vtable_[47])(owner_);
+    ei::VirtualSlot<RefreshFn>(owner_->vtable_, 47)(owner_);
     void* table = GameClientTexts();
     Clear(&perks_);
     Clear(&learnable_);

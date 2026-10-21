@@ -276,7 +276,7 @@ void CUiSurface::SwapContents(int restore) {
     holder_ = nullptr;
     if (released && --released->refCount == 0) {
         using DeleteFn = void(__thiscall*)(SurfaceHolder*, int);
-        reinterpret_cast<DeleteFn>(*static_cast<void**>(released->vtable))(released, 1);
+        ei::VirtualSlot<DeleteFn>(static_cast<void**>(released->vtable), 0)(released, 1);
     }
 }
 

@@ -54,7 +54,7 @@ GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *
 GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }
 GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); return *this; }
 GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
-GameOStream& GameOStream::Apply(void* manipulator) { libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator)); return *this; }
+GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
 
 
 CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return *lib_trees::Commands::Subscript(map, nullptr, &name); }
@@ -76,11 +76,10 @@ bool NetworkGame() { return IsMultiplayerClient(); }
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
 
 
-void* const kFlush = reinterpret_cast<void*>(0x00435000);   // ostream& flush(ostream&)
 
 } // namespace
 
-void EndLine(GameOStream& os) { (os << '\n').Apply(kFlush); }
+void EndLine(GameOStream& os) { (os << '\n').Apply(libcrt::FlushManipulator); }
 
 void PrintLine(const char* text) { EndLine(Out() << text); }
 
@@ -130,7 +129,7 @@ EI_REPLACE_METHOD(0x005DC150, ConsoleStreambuf::Overflow);
 // 005DC1B0: overflow(EOF) through the vtable, the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
     using OverflowFn = int(__thiscall*)(ConsoleStreambuf*, int);
-    reinterpret_cast<OverflowFn>(vtable_[7])(this, -1);
+    ei::VirtualSlot<OverflowFn>(vtable_, 7)(this, -1);
     TheInterface()->ConsoleAddText(line_);
     line_ = game::EmptyText();   // ""
     return 0;

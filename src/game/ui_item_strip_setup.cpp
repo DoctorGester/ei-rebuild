@@ -50,7 +50,7 @@ const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
 // The owner's virtual slot 52 (the hero screen: the figure chosen for the new hero).
 void ChooseFigure(CUiWindow* owner, const char* name) {
     using Fn = void(__thiscall*)(CUiWindow*, const char*);
-    reinterpret_cast<Fn>(owner->vtable_[52])(owner, name);
+    ei::VirtualSlot<Fn>(owner->vtable_, 52)(owner, name);
 }
 
 CUiMesh* Sprite(CUiWindow& w, int index) { return reinterpret_cast<CUiMesh*>(w.sceneObjects_.data[index]); }

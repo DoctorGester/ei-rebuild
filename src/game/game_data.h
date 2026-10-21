@@ -88,4 +88,15 @@ T& GameData(std::uintptr_t address) {
 // A pointer `offset` bytes into an object whose members are not declared yet (a half-built screen).
 inline std::uint8_t* OffsetPtr(void* base, int offset) { return static_cast<std::uint8_t*>(base) + offset; }
 
+// Slot `slot` of a hand-made vtable (an array of code pointers) as the function type Fn.
+template <typename Fn>
+Fn VirtualSlot(const void* const* vtable, int slot) {
+    return reinterpret_cast<Fn>(vtable[slot]);
+}
+// Slot `slot` of an object whose first dword is its vtable pointer, as the function type Fn.
+template <typename Fn>
+Fn ObjectSlot(const void* object, int slot) {
+    return VirtualSlot<Fn>(*static_cast<const void* const* const*>(object), slot);
+}
+
 } // namespace ei

@@ -515,7 +515,7 @@ void CGlobalMap::Create() {
         SetWeather();
     }
     using UpdateFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<UpdateFn>(vtable_[24])(this);   // slot 24 (+0x60)
+    ei::VirtualSlot<UpdateFn>(vtable_, 24)(this);   // slot 24 (+0x60)
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
         if (ei::GameData<const int>(0x0079BE7C) != 0) AutoSaveOriginal("saveb", 1);
@@ -569,7 +569,7 @@ void CGlobalMap::Update() {
         POINT cursor;
         gameapi::GetCursorPos(&cursor);
         using MoveFn = void(__thiscall*)(void*, int, int, int);
-        reinterpret_cast<MoveFn>(inputVtable_[4])(InputSide(), 0, cursor.x, cursor.y);   // +0x10
+        ei::VirtualSlot<MoveFn>(inputVtable_, 4)(InputSide(), 0, cursor.x, cursor.y);   // +0x10
     }
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {

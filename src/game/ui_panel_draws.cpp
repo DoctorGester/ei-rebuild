@@ -113,7 +113,7 @@ BOOL CRepairGrid::Draw(int pass) {
             surface->Draw(text, &r, 1, 2);
         }
         using PriceFn = int(__thiscall*)(CUiWindow*, CItem*, int);
-        int price = reinterpret_cast<PriceFn>(owner_->vtable_[54])(owner_, item, 8);
+        int price = ei::VirtualSlot<PriceFn>(owner_->vtable_, 54)(owner_, item, 8);
         text.Format(NumberFormat(), price);
         RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
         surface->Draw(text, &r, 1, 1);
@@ -220,7 +220,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
     int mana = 0;
     if (hasSpell) {
         using BestFn = void(__thiscall*)(CUiWindow*, int, int*, int*);   // slot 45: the party's best
-        reinterpret_cast<BestFn>(owner_->vtable_[45])(owner_, school, &skill, &mana);
+        ei::VirtualSlot<BestFn>(owner_->vtable_, 45)(owner_, school, &skill, &mana);
     }
     auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();

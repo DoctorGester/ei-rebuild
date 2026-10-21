@@ -95,7 +95,7 @@ EI_REPLACE(0x005BD340, NextParticle);
 int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** holder) {
     EnsureTextureLoaded(holder);
     using BindFn = int(__fastcall*)(void*, void*, int, void*);
-    BindFn bind = reinterpret_cast<BindFn>((*static_cast<void***>(renderer))[11]);
+    BindFn bind = ei::ObjectSlot<BindFn>(renderer, 11);
     return bind(renderer, nullptr, stage, *holder);
 }
 EI_REPLACE(0x00497CE0, BindParticleTexture);
@@ -148,7 +148,7 @@ int CParticleSource::Draw(void* renderer) {
         } while (cursor);
     }
     using DrawFn = int(__fastcall*)(void*, void*, int, ParticleVertexArray*, ParticleSpriteArray*);
-    DrawFn draw = reinterpret_cast<DrawFn>((*static_cast<void***>(renderer))[17]);
+    DrawFn draw = ei::ObjectSlot<DrawFn>(renderer, 17);
     int blend;
     std::memcpy(&blend, &additiveBlend, sizeof(blend));
     return draw(renderer, nullptr, blend != 0, &Vertices(), &Sprites());

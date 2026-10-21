@@ -152,7 +152,7 @@ CParty* NewItemList() {
 // Slot 18 of a panel: its Build.
 void BuildPanel(CUiWindow* panel) {
     using BuildFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<BuildFn>(panel->vtable_[kSlotBuild])(panel);
+    ei::VirtualSlot<BuildFn>(panel->vtable_, kSlotBuild)(panel);
 }
 
 UiPtrArray<char>* ItemsOf(void* list) { return reinterpret_cast<UiPtrArray<char>*>(&AsParty(list)->items_); }
@@ -417,7 +417,7 @@ void CCampPages::BuildPages() {
 
     hero_ = -1;
     using NextHeroFn = void(__thiscall*)(CCampPages*);
-    reinterpret_cast<NextHeroFn>(vtable_[kSlotNextHero])(this);
+    ei::VirtualSlot<NextHeroFn>(vtable_, kSlotNextHero)(this);
 
     // The pages' titles.
     auto* texts = reinterpret_cast<CTextManager*>(GameClientTexts());

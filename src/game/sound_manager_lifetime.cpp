@@ -422,7 +422,7 @@ void WaitForThread(const mfc::impl::WinThread* thread) { gameapi::WaitForSingleO
 
 int CSoundManager::CloseStream() {
     using CloseFn = void(__stdcall*)(void*);
-    if (streamFile != nullptr && streamCodec != nullptr) reinterpret_cast<CloseFn>(streamCodec[3])(streamFile);
+    if (streamFile != nullptr && streamCodec != nullptr) ei::VirtualSlot<CloseFn>(streamCodec, 3)(streamFile);
     if (streamSample != nullptr) AilReleaseSample()(streamSample);
     if (streamDecoder != nullptr) AilReleaseSample()(streamDecoder);
     for (void* buffer : streamBuffers)
@@ -546,17 +546,17 @@ const char* const kLoopMarkers = "Markers2";
 const char* const kSwitchMarkers = "Markers1";
 
 int CodecRead(CSoundManager* m, std::uint8_t* to, int bytes) {
-    return reinterpret_cast<CodecReadFn>(m->streamCodec[kCodecRead])(m->streamFile, to, bytes);
+    return ei::VirtualSlot<CodecReadFn>(m->streamCodec, kCodecRead)(m->streamFile, to, bytes);
 }
 void CodecSeek(CSoundManager* m, int position) {
-    reinterpret_cast<CodecSeekFn>(m->streamCodec[kCodecSeek])(m->streamFile, position);
+    ei::VirtualSlot<CodecSeekFn>(m->streamCodec, kCodecSeek)(m->streamFile, position);
 }
 int CodecAttribute(CSoundManager* m, CodecSlot name) {
-    return reinterpret_cast<CodecAttributeFn>(m->streamCodec[kCodecAttribute])(m->streamFile, m->streamCodec[name]);
+    return ei::VirtualSlot<CodecAttributeFn>(m->streamCodec, kCodecAttribute)(m->streamFile, m->streamCodec[name]);
 }
 void CodecClose(CSoundManager* m) {
     if (m->streamFile == nullptr) return;
-    reinterpret_cast<CodecCloseFn>(m->streamCodec[kCodecClose])(m->streamFile);
+    ei::VirtualSlot<CodecCloseFn>(m->streamCodec, kCodecClose)(m->streamFile);
     m->streamFile = nullptr;
 }
 void Silence(CSoundManager* m, std::uint8_t* to, int bytes) {
@@ -594,7 +594,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
     CodecClose(m);
-    m->streamFile = reinterpret_cast<CodecOpenFn>(m->streamCodec[kCodecOpen])(m, ei::Code<void*>(kStreamReadCallback), 0);
+    m->streamFile = ei::VirtualSlot<CodecOpenFn>(m->streamCodec, kCodecOpen)(m, ei::Code<void*>(kStreamReadCallback), 0);
     int rate = CodecAttribute(m, kCodecOutputRate);
     int channels = CodecAttribute(m, kCodecOutputChannels);
     int bits = CodecAttribute(m, kCodecOutputBits);

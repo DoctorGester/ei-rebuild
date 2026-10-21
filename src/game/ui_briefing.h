@@ -230,7 +230,7 @@ public:
     // Slot 36 (ShowChat for this screen) through the vtable.
     void VirtualShowChat(int show) {
         using Fn = void(__thiscall*)(CBriefingScreen*, int);
-        reinterpret_cast<Fn>(vtable_[36])(this, show);
+        ei::VirtualSlot<Fn>(vtable_, 36)(this, show);
     }
 
     // Input side (window + 0x94; ui_briefing_input.cpp).

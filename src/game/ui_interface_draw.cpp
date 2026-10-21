@@ -63,7 +63,7 @@ constexpr int kFpsFont = 1;
 
 void CallSlot(void* window, int slot) {
     using Fn = void(__thiscall*)(void*);
-    reinterpret_cast<Fn>((*static_cast<void***>(window))[slot])(window);
+    ei::ObjectSlot<Fn>(window, slot)(window);
 }
 
 // A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes

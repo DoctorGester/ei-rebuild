@@ -130,7 +130,7 @@ void CItemScreen::CreateBase() {
     reinterpret_cast<CUiContainer*>(this)->AddChild(icons);
     iconWindow_->AddObject(objects_.data[0]);
     using BuildFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<BuildFn>(iconWindow_->vtable_[18])(iconWindow_);
+    ei::VirtualSlot<BuildFn>(iconWindow_->vtable_, 18)(iconWindow_);
     LoadTexture("modifiers2", 3, 0);
     LoadTexture("campslots", 3, 0);
     std::uint32_t zero = 0;
@@ -142,7 +142,7 @@ void CItemScreen::CreateBase() {
         void* target;
         std::memcpy(&target, inner + 0xC, 4);
         using SetFn = void(__thiscall*)(void*, float, float);
-        reinterpret_cast<SetFn>((*static_cast<void***>(target))[5])(target, 99.0f, 100.0f);
+        ei::ObjectSlot<SetFn>(target, 5)(target, 99.0f, 100.0f);
     }
     // The caches keep 30 entries (20 with 00784754 set).
     if (ei::GameData<const volatile char>(0x00784754) != 0) {

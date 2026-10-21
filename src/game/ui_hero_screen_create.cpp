@@ -123,7 +123,7 @@ CUiEditField* NewEditField(CInterface3D* ui, RECT rect) {
 // Slot 18 of a panel: its Build.
 void BuildPanel(CUiWindow* panel) {
     using BuildFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<BuildFn>(panel->vtable_[kSlotBuild])(panel);
+    ei::VirtualSlot<BuildFn>(panel->vtable_, kSlotBuild)(panel);
 }
 
 // std::sort(begin, end) as the original inlines it (its first level of the introsort loop does

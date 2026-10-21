@@ -368,7 +368,7 @@ EI_REPLACE_METHOD(0x0062D200, CExchangeScreen::CanMove);
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     using CanMoveFn = bool(__thiscall*)(CExchangeScreen*, CItem*, int);
-    if (!reinterpret_cast<CanMoveFn>(vtable_[kSlotCanMove])(this, item, mode)) {
+    if (!ei::VirtualSlot<CanMoveFn>(vtable_, kSlotCanMove)(this, item, mode)) {
         uiorig::PlayUiSound(interface_, kCancelSound, 0);
         return;
     }

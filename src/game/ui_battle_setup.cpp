@@ -236,7 +236,7 @@ void CBattleScreen::Create() {
     AddChild(movePanel_);
     movePanel_->AddObject(objects_.data[2]);
     using CreateFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<CreateFn>(movePanel_->vtable_[18])(movePanel_);   // slot 18 (+0x48)
+    ei::VirtualSlot<CreateFn>(movePanel_->vtable_, 18)(movePanel_);   // slot 18 (+0x48)
 
     memory = gamecrt::operator_new(0x1C8);
     messageLog_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(),
@@ -293,7 +293,7 @@ void CBattleScreen::Create() {
     spare_ = 0;
     if (IsMultiplayerClient()) {
         using SlotFn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<SlotFn>(vtable_[36])(this, 1);   // +0x90
+        ei::VirtualSlot<SlotFn>(vtable_, 36)(this, 1);   // +0x90
     }
     clientParty_.camera = -1;
 }

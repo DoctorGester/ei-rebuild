@@ -91,9 +91,9 @@ public:
     GameOStream& operator<<(int n);              // 006FC91C
     GameOStream& operator<<(double d);           // 006FC7FA
     // 00434FE0: operator<<(ostream& (*)(ostream&)), here only with flush (00435000).
-    GameOStream& Apply(void* manipulator);
+    GameOStream& Apply(libcrt::Manipulator manipulator);
     // Apply(flush): the manipulator ostream& flush(ostream&) at 00435000.
-    GameOStream& Flush() { return Apply(reinterpret_cast<void*>(0x00435000)); }
+    GameOStream& Flush() { return Apply(libcrt::FlushManipulator); }
     // The header's inline operator<<(float): sets x_floatused, prints as double. The game passes
     // the x87 value as is (never rounded to float).
     GameOStream& PutFloat(double d) {
