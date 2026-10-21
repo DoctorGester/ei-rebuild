@@ -7,6 +7,7 @@
 // textures) is read from it, again into the same image when the memory was marked written and
 // changed (R16b); so are window surfaces (WindowSurfaceView).
 #include "render_internal.h"
+#include "render_ui.h"
 
 #include "../hook/log.h"
 
@@ -1332,6 +1333,7 @@ void HolderGone(const void* holder) {
     // What the renderer made for it (a later holder at the same address starts afresh; a texture
     // decoded for the holder would otherwise outlive it).
     detail::ForgetHolder(holder);
+    ui::DropCanvas(holder);
 }
 
 void PictureFromMmp(const void* holder, const void* data) {

@@ -462,6 +462,7 @@ bool RecreateDevice() {
     DestroyTerrain();
     DestroyMeshes();
     DropBlits();
+    DropCanvases();
     DestroySmooth();
     DestroyShadows();
     DropTextures(&kept, &keptBytes);
@@ -1180,6 +1181,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
         }
         case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
         case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
+        case Command::Canvas: DrawCanvasBatch(g_frame.canvasBatches[i], width, height); break;
         }
     }
 }
@@ -1187,8 +1189,9 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
 // Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first
 // clearing it. A frame is drawn in more than one pass when a copy of it is taken in its middle
 // (CopyFrameTo), and with the smooth option one pass per run of world and other commands (the
-// world's into the multisampled target).
+// world's into the multisampled target). The interface canvases' queued drawing goes first (render_ui.cpp).
 bool DrawPending() {
+    RunCanvasCommands();
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height, g_passes == 0)) return false;
     if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
@@ -1232,6 +1235,7 @@ bool DrawPending() {
         k = stop;
     } while (k < end);
     g_drawnCommands = end;
+    CanvasBlitsDrawn();
     return true;
 }
 
@@ -1307,7 +1311,30 @@ struct ChannelPack {
     std::uint32_t operator()(std::uint8_t v) const { return ((static_cast<std::uint32_t>(v) >> down) << up) & mask; }
 };
 
+// Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key, 006570E0
+// with DL 0, R13): the target still holds the last frame, as the original's render target did. A
+// pass now would clear it to the clear colour first.
+bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }
+
 } // namespace
+
+namespace detail {
+
+void SplitFrame() {
+    if (!Active() || !g_started || g_frameDrawn || BetweenFrames()) return;
+    FpuGuard fpu;
+    DrawPendingAlone();
+}
+
+void RunCanvasesNow() {
+    if (!Active() || !EnsureStarted()) return;
+    FpuGuard fpu;
+    if (g_presentsItself) BeginWindowPresent();
+    RunCanvasCommands();
+    if (g_presentsItself) EndWindowPresent(false);
+}
+
+} // namespace detail
 
 bool CopyFrameTo(const void* holder, const Rect& source) {
     if (!holder || !Active() || !EnsureStarted()) return false;
@@ -1315,11 +1342,7 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
     if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
     FpuGuard fpu;
-    // Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key, 006570E0
-    // with DL 0, R13): the target still holds the last frame, as the original's render target did. A
-    // pass now would clear it to the clear colour first.
-    bool betweenFrames = g_haveFrame && g_passes == 0 && g_frame.commands.empty();
-    if (!g_frameDrawn && !betweenFrames && !DrawPendingAlone()) return false;
+    if (!g_frameDrawn && !BetweenFrames() && !DrawPendingAlone()) return false;
     if (!g_colour.id) return false;
     Rect r = source;
     if (r.left < 0) r.left = 0;
@@ -1409,6 +1432,7 @@ void Present() {
     g_frame.meshBatches.clear();
     g_frame.blitBatches.clear();
     g_frame.clears.clear();
+    g_frame.canvasBatches.clear();
     g_frame.commands.clear();
     g_frame.worldRanges.clear();
     g_frame.shadow.haveSun = false;

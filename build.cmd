@@ -50,4 +50,6 @@ rem The image's import table (src/standalone/image_imports.inc, S18f) and gameap
 python "%~dp0tools\gen_iat.py" --check || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
 "%~dp0build\%CFG%\ei_vectors.exe" || exit /b 1
+rem The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
+"%~dp0build\%CFG%\ei_ui_check.exe" || exit /b 1
 echo Built: %~dp0build\%CFG%

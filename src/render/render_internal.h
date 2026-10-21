@@ -70,6 +70,8 @@ extern const ShaderBytecode kTerrainShader;                   // render_terrain.
 extern const ShaderBytecode kPresentShader;                   // render_window.cpp
 extern const ShaderBytecode kIntoMultisampledShader;          // render_smooth.cpp
 extern const ShaderBytecode kCasterShader, kReduceShader, kDilateShader;   // render_shadows.cpp
+extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
+    kUiBlitShader;   // render_ui.cpp
 // The smooth option's depth copy for a multisampled target of `samples` (2, 4 or 8); null ranges for
 // another count.
 ShaderBytecode DepthFromMultisampledShader(int samples);
@@ -161,11 +163,21 @@ struct ClearBatch {
     Rect rect;
 };
 
+// An interface canvas drawn onto the frame (render::ui::DrawCanvas, render_ui.cpp): looked up by its
+// holder when the pass draws it.
+struct CanvasBatch {
+    const void* holder;
+    Rect destination;
+    Rect source;
+    bool keyed;
+    std::uint32_t key;        // 0x00RRGGBB as the canvas holds it
+};
+
 // The draws of a frame in the order the game made them.
 struct Command {
-    enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth };
+    enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Canvas };
     Kind kind;
-    int index;                // into terrainBatches / meshBatches / blitBatches / clears
+    int index;                // into terrainBatches / meshBatches / blitBatches / clears / canvasBatches
 };
 
 // The receivers' shader parameters of the shadow map (render_shadows.cpp; shaders/shadow_receiver.hlsli).
@@ -200,6 +212,7 @@ struct Frame {
     std::vector<MeshBatch> meshBatches;
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
+    std::vector<CanvasBatch> canvasBatches;
     std::vector<Command> commands;
     // The world view's commands (render::BeginWorld .. EndWorld): [first, end) into `commands`, the
     // last range open (end SIZE_MAX) while the world view draws. With the smooth option they are drawn
@@ -509,6 +522,20 @@ void CountUpload(FrameStats::Upload kind, std::size_t bytes);
 // Compares `count` vertices handed over for `key` (a terrain page: sector and page; a mesh: its
 // positions, page 0) with the last frame's for the same key (FrameStats::Reuse).
 void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices, std::size_t count);
+
+// The interface canvases (render_ui.cpp). RunCanvasCommands draws every queued canvas command, outside
+// any pass (render.cpp: at the start of DrawPending, under the present's lock); CanvasBlitsDrawn: the
+// frame's commands recorded so far are drawn; DrawCanvasBatch inside a pass on the frame; DropCanvases:
+// the device is lost (the canvases come back black at their next command).
+void RunCanvasCommands();
+void CanvasBlitsDrawn();
+void DrawCanvasBatch(const CanvasBatch& batch, int width, int height);
+void DropCanvases();
+// For render_ui.cpp (render.cpp): SplitFrame draws the frame's commands recorded so far (a pass split;
+// not between frames, whose target still holds the last frame); RunCanvasesNow runs RunCanvasCommands at
+// once, under the present's lock.
+void SplitFrame();
+void RunCanvasesNow();
 
 // Counts of the images the renderer made (sg_make_image) and updated in place (sg_update_image)
 // by purpose, logged in the verify build (render_blit.cpp).
