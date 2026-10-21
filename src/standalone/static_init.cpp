@@ -532,31 +532,18 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0049B0F0);
     // 0049B110: stores; 4 left out
     d.Begin(0x0049B110);
-    // 0049B460: stores + atexit
+    // 0049B460: stores + atexit; 4 left out
     d.Begin(0x0049B460);
-    d.Store(0x007A9CE0, 0);
-    d.Store(0x007A9CEC, 0);
-    d.Store(0x007A9CE8, 0);
-    d.Store(0x007A9CE4, 0);
     d.AtExit(0x0049B490);
     // 0049B6B0: constructor + atexit
     d.Begin(0x0049B6B0);
     d.Thiscall(0x006FF5EA, 0x007A9CC8);
     d.AtExit(0x0049B6D0);
-    // 0049B6E0: stores + atexit
+    // 0049B6E0: stores + atexit; 4 left out
     d.Begin(0x0049B6E0);
-    d.Store(0x007A9CB8, 0);
-    d.Store(0x007A9CC4, 0);
-    d.Store(0x007A9CC0, 0);
-    d.Store(0x007A9CBC, 0);
     d.AtExit(0x0049B710);
-    // 0049B730: stores + atexit
+    // 0049B730: stores + atexit; 5 left out
     d.Begin(0x0049B730);
-    d.Store(0x007A9CA8, 0);
-    d.Store(0x007A9CB4, 0);
-    d.Store(0x007A9CB0, 0);
-    d.Store(0x007A9CAC, 0);
-    d.AtExit(0x0049B760);
     // 0049BB30: guarded atexit
     d.Begin(0x0049BB30);
     if (d.Once(0x007CAEE4, 1)) {
@@ -785,47 +772,22 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004E5BF0);
     // 004E5C10: stores; 4 left out
     d.Begin(0x004E5C10);
-    // 004E5C40: stores + atexit
+    // 004E5C40: stores + atexit; 4 left out
     d.Begin(0x004E5C40);
-    d.Store(0x007AEE30, 0);
-    d.Store(0x007AEE3C, 0);
-    d.Store(0x007AEE38, 0);
-    d.Store(0x007AEE34, 0);
     d.AtExit(0x004E5C70);
-    // 004E5C90: stores + atexit
+    // 004E5C90: stores + atexit; 4 left out
     d.Begin(0x004E5C90);
-    d.Store(0x007AEE20, 0);
-    d.Store(0x007AEE2C, 0);
-    d.Store(0x007AEE28, 0);
-    d.Store(0x007AEE24, 0);
     d.AtExit(0x004E5CC0);
-    // 004E5CE0: stores + atexit
+    // 004E5CE0: stores + atexit; 4 left out
     d.Begin(0x004E5CE0);
-    d.Store(0x007AEE10, 0);
-    d.Store(0x007AEE1C, 0);
-    d.Store(0x007AEE18, 0);
-    d.Store(0x007AEE14, 0);
     d.AtExit(0x004E5D10);
-    // 004E5D30: stores + atexit
+    // 004E5D30: stores + atexit; 4 left out
     d.Begin(0x004E5D30);
-    d.Store(0x007AEE00, 0);
-    d.Store(0x007AEE0C, 0);
-    d.Store(0x007AEE08, 0);
-    d.Store(0x007AEE04, 0);
     d.AtExit(0x004E5D60);
-    // 004E5D80: stores + atexit
+    // 004E5D80: stores + atexit; 5 left out
     d.Begin(0x004E5D80);
-    d.Store(0x007AEDF0, 0);
-    d.Store(0x007AEDFC, 0);
-    d.Store(0x007AEDF8, 0);
-    d.Store(0x007AEDF4, 0);
-    d.AtExit(0x004E5DB0);
-    // 004E5DD0: stores + atexit
+    // 004E5DD0: stores + atexit; 4 left out
     d.Begin(0x004E5DD0);
-    d.Store(0x007AEDE0, 0);
-    d.Store(0x007AEDEC, 0);
-    d.Store(0x007AEDE8, 0);
-    d.Store(0x007AEDE4, 0);
     d.AtExit(0x004E5E00);
     // 004ECEA0: guarded atexit
     d.Begin(0x004ECEA0);
@@ -867,12 +829,8 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004F2AA0);
     // 004F2AC0: stores; 4 left out
     d.Begin(0x004F2AC0);
-    // 004F2AF0: stores + atexit
+    // 004F2AF0: stores + atexit; 4 left out
     d.Begin(0x004F2AF0);
-    d.Store(0x007AEED0, 0);
-    d.Store(0x007AEEDC, 0);
-    d.Store(0x007AEED8, 0);
-    d.Store(0x007AEED4, 0);
     d.AtExit(0x004F2B20);
     // 004F65D0: guarded atexit
     d.Begin(0x004F65D0);
@@ -1323,23 +1281,14 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00578530);
     d.Thiscall(0x0041DD70, 0x007AFDF8);
     d.AtExit(0x00578550);
-    // 0057F460: stores + atexit (inlined 0057F480)
+    // 0057F460: stores + atexit (inlined 0057F480); 3 left out
     d.Begin(0x0057F460);
-    d.Store(0x007AFDE0, 0);
-    d.Store(0x007AFDE4, 0);
-    d.Store(0x007AFDE8, 0);
     d.AtExit(0x0057F4A0);
-    // 00580980: stores + atexit (inlined 005809A0)
+    // 00580980: stores + atexit (inlined 005809A0); 3 left out
     d.Begin(0x00580980);
-    d.Store(0x007AFDD0, 0);
-    d.Store(0x007AFDD4, 0);
-    d.Store(0x007AFDD8, 0);
     d.AtExit(0x005809C0);
-    // 00581050: stores + atexit (inlined 00581070)
+    // 00581050: stores + atexit (inlined 00581070); 3 left out
     d.Begin(0x00581050);
-    d.Store(0x007AFDC0, 0);
-    d.Store(0x007AFDC4, 0);
-    d.Store(0x007AFDC8, 0);
     d.AtExit(0x00581090);
     // 00589310: guarded atexit
     d.Begin(0x00589310);

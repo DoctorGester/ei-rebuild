@@ -40,9 +40,10 @@ constexpr float kByteScale = 255.0f;  // 0073C370
 
 // The positions of a part moved by its per-vertex offsets (007AEED0: one work array for the draws
 // and the shadow's projection).
-lib::AlignedArray<VertexPacket>& MovedPackets() {
-    return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007AEED0);
-}
+// Zero at the start, as the static initialiser 004F2AF0 leaves it; its exit function frees the block.
+constinit lib::AlignedArray<VertexPacket> g_movedPackets = /*007AEED0*/ {};
+lib::AlignedArray<VertexPacket>& MovedPackets() { return g_movedPackets; }
+void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }   // 004F2B20
 
 // A screen or texture point of the shadow's rasteriser (moved as one qword; texture.h).
 using PixelPair = RasterTriangle::Point;
@@ -298,3 +299,4 @@ int CLinkMesh::RasterisePartImpl(const stlp::string* name, const PixelPair* pixe
     return r.vertices.count << 2;
 }
 EI_REPLACE_METHOD(0x004F4850, CLinkMesh::RasterisePartImpl);
+EI_REPLACE(0x004F2B20, FreeMovedPackets);   // the exit function of 004F2AF0

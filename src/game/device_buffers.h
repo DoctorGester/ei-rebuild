@@ -10,7 +10,6 @@
 
 #include "lib/containers.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstdint>
 
@@ -20,11 +19,19 @@ namespace devicebuffers {
 struct ProjectedVertex : Vector4 {};
 static_assert(sizeof(ProjectedVertex) == 16);
 
-inline lib::AlignedArray<TLVertex>& Vertices() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AEE00); }
-inline lib::AlignedArray<std::uint16_t>& ClipIndices() { return ei::GameData<lib::AlignedArray<std::uint16_t>>(0x007AEDE0); }
-inline lib::AlignedArray<ProjectedVertex>& Projected() { return ei::GameData<lib::AlignedArray<ProjectedVertex>>(0x007AEE10); }
+// The buffers (device_buffers.cpp): zero at the start, as the static initialisers 004E5C40-004E5DD0 leave them; their
+// exit functions free the blocks.
+extern lib::AlignedArray<TLVertex> g_vertices;
+extern lib::AlignedArray<std::uint16_t> g_clipIndices;
+extern lib::AlignedArray<ProjectedVertex> g_projected;
+extern lib::AlignedArray<std::uint8_t> g_cornerOutcodes;
+extern lib::AlignedArray<std::uint8_t> g_outcodes;
+
+inline lib::AlignedArray<TLVertex>& Vertices() { return g_vertices; }
+inline lib::AlignedArray<std::uint16_t>& ClipIndices() { return g_clipIndices; }
+inline lib::AlignedArray<ProjectedVertex>& Projected() { return g_projected; }
 // An outcode per corner (the clipper's input) and per projected vertex.
-inline lib::AlignedArray<std::uint8_t>& CornerOutcodes() { return ei::GameData<lib::AlignedArray<std::uint8_t>>(0x007AEE20); }
-inline lib::AlignedArray<std::uint8_t>& Outcodes() { return ei::GameData<lib::AlignedArray<std::uint8_t>>(0x007AEE30); }
+inline lib::AlignedArray<std::uint8_t>& CornerOutcodes() { return g_cornerOutcodes; }
+inline lib::AlignedArray<std::uint8_t>& Outcodes() { return g_outcodes; }
 
 } // namespace devicebuffers

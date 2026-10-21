@@ -42,7 +42,8 @@ struct LineBuffer {
     int growBy;
 };
 static_assert(sizeof(LineBuffer) == 0x10);
-inline LineBuffer& LineVertices() { return ei::GameData<LineBuffer>(0x007A9CE0); }
+extern LineBuffer g_lineVertices;   // renderer_lines.cpp
+inline LineBuffer& LineVertices() { return g_lineVertices; }
 
 // Four points of a line list as the transform object takes them (0x40 bytes).
 struct LinePacket {
@@ -78,9 +79,8 @@ static_assert(offsetof(LineBatch, count) == 0x14 && sizeof(LineBatch) == 0x20);
 struct ProjectedPoint {
     float x, y, z, rhw;
 };
-inline lib::AlignedArray<ProjectedPoint>& LineProjected() {
-    return ei::GameData<lib::AlignedArray<ProjectedPoint>>(0x007A9CB8);
-}
+extern lib::AlignedArray<ProjectedPoint> g_lineProjected;   // renderer_lines.cpp
+inline lib::AlignedArray<ProjectedPoint>& LineProjected() { return g_lineProjected; }
 inline mfc::CArray<std::uint8_t>& LineOutcodes() { return ei::GameData<mfc::CArray<std::uint8_t>>(0x007A9CC8); }
 
 // 0049B4B0 (fastcall: the device object, the points; the colour on the stack, RET 4).

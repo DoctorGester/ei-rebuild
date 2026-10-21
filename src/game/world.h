@@ -2050,8 +2050,10 @@ static_assert(offsetof(SavedParties, eos_) == 0x0C);
 int __stdcall RequestZone(const char* zone, int entrance);
 
 // 00580F10 (world_briefing.cpp). With the briefing texts loaded (007AF788): every quest text file
-// loaded so far (007AFDD0) is unloaded and the list emptied.
+// loaded so far (g_questFiles) is unloaded and the list emptied.
 void UnloadQuestTexts();
+// The quest text files loaded so far (world_briefing.cpp; the files' paths).
+extern stlp::vector<stlp::string> g_questFiles;
 
 // 005809D0 (RET 4, AL; ECX, the flow, is not read; world_briefing.cpp, A-W15). Loads the quest
 // texts of `zone`: false without the briefing texts (007AF788) or when the maps folder has no
