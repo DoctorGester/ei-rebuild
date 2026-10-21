@@ -1,0 +1,27 @@
+# R16c3: the water waves option on (EnableWaterWaves; the harness's settings have it off, so no other
+# scenario moves the water): SectorData::Animate (006C3E80) lifts and circles the water vertices with the
+# waves and gives the crests a specular colour, every frame for each drawn sector with water. The
+# digest's water group (each cached sector's water layer as hashes of its positions and speculars, in
+# every record and dump) pins what Animate leaves, on zone1 and in the town bz1g.
+reject Script error
+waitmenu
+console thingamabob
+waterwaves 1
+digest water
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+frames 60
+dump zone1_waves
+
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+frames 60
+dump town_waves
+report
+quit

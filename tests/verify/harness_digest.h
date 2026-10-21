@@ -28,7 +28,8 @@
 //
 // Records are taken every N world updates (the scenario's "digest <N>" step, or EI_DIGEST=<N> for a
 // whole run from the first update), after the update (the main loop's server update, which the
-// harness already wraps), and by the step "digest" alone at that moment. "dump <name>" writes the full
+// harness already wraps), and by the step "digest" alone at that moment. A scenario's "digest water"
+// line (WithWater) adds the group "water": the cached sectors' water layers as the waves move them. "dump <name>" writes the full
 // state to dump_<name>.txt. With "randtrace", each record also goes into randtrace.txt as a note.
 // Reading the state calls no game code except each object's GetClassId, the player list's iterator
 // and the CRT's per-thread data (the rand() state); nothing the game sees changes.
@@ -46,6 +47,10 @@ void AfterWorldUpdate(void* server);
 // The scenario's "digest <N>|off" (every N world updates from now; off or 0: none) and "digest" (one
 // record now). "" on success, else the error.
 std::string Step(const std::string& argument);
+
+// The scenario's "digest water" line (read with the scenario, before the first record): the group
+// "water" in every record and dump.
+void WithWater();
 
 // "dump <name>": the full state now into dump_<name>.txt. "" on success, else the error.
 std::string Dump(const std::string& name);
