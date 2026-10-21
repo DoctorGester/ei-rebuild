@@ -424,6 +424,30 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   0073E834 with its tail 0073E850, lever 0073E740, trap 0073E548, magic trap 0073E63C: CMapObject's 61 slots need
   definitions first), the torch spec (0073E954 with its tail 0073E98C), the texture and material managers
   (CResourceManager's 26 slots), CArray<MusicTheme> (007440CC, with the container instantiations).
+- **Batch 3's families**: CTexture (00743D24), CMappedResource / CMMIOResource (007432E0 with its tail 007432FC,
+  00743300), CSoundManager (007440F0), the map objects (torch 0073E834 + 0073E850, lever 0073E740, trap 0073E548, magic
+  trap 0073E63C + 0073E6E8), the torch's spec and its client half (0073D558, 0073E954 + 0073E98C) and the managers
+  CTextureManager (00743CB0), CSpellManager (00743A14), CFigureManager (0073FB88): 17 rows, 21,439 -> 21,037 code cells.
+  - **Bases still built by constructor bodies** (CObject3D, CMapObject, CBaseManager, CResourceManager): CUnit, the
+    plain map objects and the other managers keep `Construct` / `DestructBody` (they store game.exe's vtable). The
+    class also gets protected C++ constructors and a virtual destructor that share the bodies' work
+    (`SetUpMapObject` / `TearDownMapObject`, `SetUpBaseManager` / `TearDownBaseManager`, ...), and every slot is
+    defined (the bodies registered by member pointer get forwarding definitions), so its compiled vtable is a
+    replica of game.exe's: a derived class's base destructors run with it, and a virtual call there (CMapObject's
+    `DestroyMapObject`, CBaseManager's `Destroy`) reaches the same function as in the original. Members whose
+    default constructor only nulls (stlp's vector and hash_map) are fine; base_manager.cpp asserts the rest are trivial.
+  - **Slots with other types in the original**: slot 41 (`ApplyScience(int, int)`) gets the key record's address
+    from combat_actions.cpp; the trap's and lever's overrides cast it back to `const LockKey*`. CTorchObjectSpecSlots
+    (the setters 13-18 reached through the vtable) became CTorchObjectSpec's own virtuals.
+  - **The tails go with their table**: gen_image_cells.py's check accepts a retired row that no code stores when it
+    starts where a retired row it may follow ends (007432FC after 007432E0's 7 slots; 0073E850, 0073E6E8, 0073E98C).
+  - **addon.dll sites**: CMappedResource's table holds addon.dll's ResOverride site 007432F4. addon.dll runs in game.exe
+    only (harness_addon.cpp), so named_data.py exempts the sites in `RETIRED_ADDON_SITES` from the "no addon site
+    inside a retired vtable" rule and does not count tests/verify/addon_sites.inc as naming an address inside one.
+  - **Next**: CMaterialManager (00743C38; material.h, after C18c's pointer tables there), the item manager
+    (CItemManager::kVtableAddress, built by world_create.cpp as a CResourceManager with its vtable stored after),
+    CSkyObject, the other CBaseManager families (the server / client specific managers, particles, lightning, the
+    light factory, the player manager), then CUnit's tables over CMapObject.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
