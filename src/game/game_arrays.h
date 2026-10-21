@@ -45,9 +45,7 @@ inline void InitGroup(ScriptGroup* p) { mfc::impl::ConstructHeader<mfc::impl::Sc
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
 // Quest objectives: the text empty (004CEE80); the destructor.
-inline void InitObjective(ScriptQuestObjective* p) {
-    *reinterpret_cast<char**>(&p->text) = mfc::impl::PchNil();
-}
+inline void InitObjective(ScriptQuestObjective* p) { ::new (&p->text) mfc::CString; }
 inline void DestroyObjective(ScriptQuestObjective* p) { ScriptQuestObjectiveDestruct(p); }
 
 // Effect particles: 005124D0's fields; the source released.
