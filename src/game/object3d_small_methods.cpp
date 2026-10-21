@@ -3,6 +3,8 @@
 // map_object_figures.h.
 #include "map_object_figures.h"
 
+#include "ai_map.h"   // FootprintPart
+
 #include "ei/hook.h"
 #include "lib/crt.h"
 
