@@ -2,8 +2,8 @@
 //
 // The host is linked below game.exe's image base and holds game.exe's address range (0x400000 up to
 // its SizeOfImage) inside its own image, as a zero-filled array. There it lays out game.exe's headers
-// and its .rdata and .rsrc from the file on disk (nothing from the code section runs: it is filled with
-// INT3; .data stays zero: ei_hook.dll keeps the section in its own storage, with bytes from the build,
+// and its .rsrc from the file on disk (nothing from the code section runs: it is filled with INT3; .rdata and
+// .data stay zero: ei_hook.dll keeps both sections in its own storage, with bytes from the build,
 // src/standalone/image_data.cpp). Then it loads ei_hook.dll, which resolves game.exe's imports into a table
 // of its own as it initialises (src/standalone/image_imports.cpp; game.exe's path comes from this exe's
 // export EiStandaloneExe), and hands over: the DLL writes a jump at each rewritten function's address
@@ -27,6 +27,7 @@ namespace {
 
 constexpr std::uintptr_t kImageBase = 0x00400000;   // game.exe has no relocations
 constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;    // game.exe 1.06 (Russian), 2001-03-26
+constexpr DWORD kRdataRva = 0x0033B000;            // game.exe's .rdata (0073B000): ei_hook.dll's (S18h)
 constexpr DWORD kDataRva = 0x00383000;             // game.exe's .data (00783000): ei_hook.dll's (S18d)
 // game.exe's SizeOfImage is 0x3D7000. The host's base (/BASE:0x200000) leaves room below 0x400000
 // for its own code and data; the array then covers the whole range wherever the linker puts it.
@@ -73,7 +74,7 @@ std::string Folder(const std::string& path) {
     return slash == std::string::npos ? std::string(".") : path.substr(0, slash);
 }
 
-// Lays out game.exe at its base: headers, .rdata and .rsrc as in the file, the code section INT3, .data zero.
+// Lays out game.exe at its base: headers and .rsrc as in the file, the code section INT3, .rdata and .data zero.
 bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32*& nt) {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(file.data());
     if (file.size() < 0x1000 || dos->e_magic != IMAGE_DOS_SIGNATURE) return false;
@@ -104,7 +105,7 @@ bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32
             std::memset(to, 0xCC, sec[i].Misc.VirtualSize);
             continue;
         }
-        if (sec[i].VirtualAddress == kDataRva) continue;
+        if (sec[i].VirtualAddress == kRdataRva || sec[i].VirtualAddress == kDataRva) continue;
         const DWORD n = (std::min)(sec[i].SizeOfRawData, sec[i].Misc.VirtualSize);
         if (sec[i].PointerToRawData + n > file.size()) return false;
         std::memcpy(to, file.data() + sec[i].PointerToRawData, n);

@@ -1,40 +1,52 @@
-"""game.exe's .data for the standalone image (S18b, S18d; docs/notes/standalone.md, "Own data"): the pointer cells
-of game.exe's data that point into the range the image moves (src/standalone/image_cells.inc, committed and
-reviewed; image_data.cpp fixes them up when it moves the range), and the range's initial bytes (written into the
-build folder by the build, not committed: --bytes).
+"""game.exe's .rdata and .data for the standalone image (S18b, S18d, S18h; docs/notes/standalone.md, "Own data"): the
+pointer cells of game.exe's data that point into the range the image moves (src/standalone/image_cells.inc,
+committed and reviewed; image_data.cpp fixes them up when it moves the range), and the range's initial bytes
+(written into the build folder by the build, not committed: --bytes).
 
-game.exe has no relocations, so the cells are found by a scan: every aligned dword of .rdata and .data (as the
-file holds them; the zero-filled tail holds none) whose value lies in the moved range, less text that happens to
-read as an address: the tails of strings (the dword's bytes up to its first zero printable, and the four bytes
-before it too), and short words (the dword's bytes up to its zero printable, "Any", "May") whose value would point
-into the middle of text (the byte before the target printable ASCII: a pointer to a string points at its start).
-Each cell found must be in a REVIEWED group below, which says what the cells are and how many there are: a new
-cell (another exe, a scan change) or a changed count fails until someone has looked at it.
+The moved range is 0073B000-007CD000: .rdata (its import address table first, whose slots ei_hook.dll fills itself:
+S18f) and .data with its zero-filled tail. game.exe has no relocations, so the cells are found by a scan: every
+aligned dword of .rdata (past the import table) and .data (as the file holds them; the zero-filled tail holds none)
+whose value lies in the moved range, less text that happens to read as an address: the tails of strings (the
+dword's bytes up to its first zero printable, and the four bytes before it too), and short words (the dword's bytes
+up to its zero printable, "Any", "May") whose value would point into the middle of text (the byte before the target
+printable ASCII: a pointer to a string points at its start).
+
+Each cell found must be reviewed: a cell into .rdata is either part of a structure the tool walks (STRUCTURES: the C++
+exception tables, RTTI, MFC's runtime classes) or in a REVIEWED_RDATA group; a cell into .data is in a REVIEWED_DATA
+group; a candidate that is text after all (a short word the filters keep) is in TEXT and left out. Each group says what
+the cells are and how many there are: a new cell (another exe, a scan change) or a changed count fails until someone
+has looked at it. Every game.exe 1.06 has the same .rdata and .data (vanilla's and Rebirth's differ in one code byte).
 
 usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT]
   (no option)  write src/standalone/image_cells.inc
   --check      exit 1 when the file differs from what the scan writes, or a cell has no review (build.cmd)
-  --bytes OUT  write the moved range's initial bytes (.data's file bytes) to OUT as a C++ initialiser (the build)
+  --bytes OUT  write the moved range's initial bytes (.rdata's and .data's file bytes, the import table zero) to OUT
+               as a C++ initialiser (the build)
 """
-import argparse, os, struct, sys
+import argparse, csv, os, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exe_path  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'standalone', 'image_cells.inc')
+RUNTIME_CLASSES = os.path.join(ROOT, 'config', 'runtime_classes.csv')
 BASE = 0x00400000
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
-# The data that can hold cells (as the file holds it: .data's raw bytes end at 0079C000), and the moved range
-# (game_data.h's kMovedBegin / kMovedEnd: game.exe's whole .data section, its zero-filled tail included).
-SCANNED = [('rdata', 0x0073B000, 0x00783000), ('data', 0x00783000, 0x0079C000)]
-MOVED = ('data', 0x00783000, 0x007CD000)
+# game_data.h's kMovedBegin / kMovedEnd (.rdata and .data, one range, one shift) and kImportsBegin / kImportsEnd.
+MOVED = (0x0073B000, 0x007CD000)
+IMPORTS = (0x0073B000, 0x0073B820)
+TEXT_SECTION = (0x00401000, 0x0073B000)
+# The targets by section, and the data that can hold cells (as the file holds it: .data's raw bytes end at 0079C000;
+# the import table's file bytes are not the image's: ei_hook.dll fills its own slots).
+SECTIONS = {'rdata': (0x0073B000, 0x00783000), 'data': (0x00783000, 0x007CD000)}
+SCANNED = [('rdata', IMPORTS[1], 0x00783000), ('data', 0x00783000, 0x0079C000)]
 
-# The cells by group, as looked at in game.exe (who reads the cells, what the targets hold): (first cell, last cell,
-# the number of cells, what they are[, the one target they all hold]). A cell belongs to the first group that
-# takes it. "Strings" are string literals, which MSVC 6 put in .data.
-REVIEWED = [
+# Cells into .data by group, as looked at in game.exe (who reads the cells, what the targets hold): (first cell,
+# last cell, the number of cells, what they are[, the one target they all hold]). A cell belongs to the first group
+# that takes it. "Strings" are string literals, which MSVC 6 put in .data.
+REVIEWED_DATA = [
     # .rdata
     (0x0073B000, 0x00783000, 74, '".SEC": per-file copies of a const char* const from a header, some read by code '
                                  '(005B5042 reads 0073FD20)', 0x00783CDC),
@@ -86,6 +98,45 @@ REVIEWED = [
     (0x0079AE50, 0x0079AE50, 1, 'the CRT\'s __lconv: __lconv_c'),
 ]
 
+# Cells into .rdata that belong to the structures the tool walks (structures()): kind, the number of cells, what.
+STRUCTURES = [
+    ('eh-unwind', 2963, "C++ EH: FuncInfo (magic 19930520) -> its unwind map"),
+    ('eh-try', 378, 'C++ EH: FuncInfo -> its try block map'),
+    ('eh-handlers', 380, 'C++ EH: try block -> its catch handler array'),
+    ('eh-throw', 10, 'C++ EH: ThrowInfo -> its catchable type array'),
+    ('eh-catchable', 41, 'C++ EH: catchable type array -> its catchable types'),
+    ('rtti-locator', 53, "RTTI: a vtable's complete object locator (the vtable's slot -1)"),
+    ('rtti-hierarchy', 53, 'RTTI: complete object locator -> class hierarchy descriptor'),
+    ('rtti-bases', 53, 'RTTI: class hierarchy descriptor -> base class array'),
+    ('rtti-base', 128, 'RTTI: base class array -> base class descriptors'),
+    ('mfc-name', 40, "MFC CRuntimeClass (config/runtime_classes.csv): the class name"),
+    ('mfc-base', 40, 'MFC CRuntimeClass: the base class\'s CRuntimeClass'),
+]
+
+# Cells into .rdata outside those structures, as looked at in game.exe: as REVIEWED_DATA.
+REVIEWED_RDATA = [
+    (0x007468DC, 0x0074701C, 11, "MFC CCmdTarget's maps (message, dispatch, event sink, interface (IID_IDispatch), "
+                                 "connection, OLE command) and CWnd's and CWinApp's message maps: base map and entries"),
+    (0x00783000, 0x0079C000, 74, 'C++ type descriptors (type_info objects): their vtable, type_info\'s', 0x007472B0),
+    (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories (00797888): their names ("LC_ALL", ...)'),
+    (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
+    (0x00797CCC, 0x00797D94, 26, 'a table of (number, string) pairs read by 006F0FBF: the math functions\' names '
+                                 '("log", "pow", ...)'),
+    (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
+    (0x0079847C, 0x00798BE0, 142, 'the CRT\'s setlocale tables: language and country names'),
+    (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
+]
+
+# Candidates the text filters keep that are text: short words whose bytes read as an address in .rdata.
+TEXT = [
+    (0x0074742C, 0x0074742C, '"Nov": the CRT\'s month names (__lc_time_c\'s strings)'),
+    (0x007474A4, 0x007474A4, '"Thu": the CRT\'s day names (__lc_time_c\'s strings)'),
+    (0x007476C4, 0x007476C4, '"pow": the math functions\' names'),
+    (0x0078CDBC, 0x0078CDBC, '"Div": a script keyword\'s name'),
+    (0x00792438, 0x00792438, '"net": a string'),
+    (0x00797608, 0x00797608, '"pow": a string'),
+]
+
 
 def image(path):
     d = open(path, 'rb').read()
@@ -121,53 +172,148 @@ def mid_text(img, target):
     return 0x20 <= img[target - BASE - 1] < 0x7F
 
 
+def section_of(value):
+    for name, (lo, hi) in SECTIONS.items():
+        if lo <= value < hi:
+            return name
+    return None
+
+
 def scan(img):
-    _, lo, hi = MOVED
     cells = []
     for _, begin, end in SCANNED:
         for a in range(begin, end, 4):
             o = a - BASE
             v = struct.unpack_from('<I', img, o)[0]
-            if not lo <= v <= hi or string_tail(img, o) or (text_word(img, o) and mid_text(img, v)):
+            if not MOVED[0] <= v <= MOVED[1] or string_tail(img, o) or (text_word(img, o) and mid_text(img, v)):
                 continue
             cells.append((a, v))
     return cells
 
 
-def group_of(cell, value):
-    for i, g in enumerate(REVIEWED):
+def structures(img):
+    """{cell: kind} for the cells into .rdata of the structures the tool walks (STRUCTURES)."""
+    def dw(a):
+        return struct.unpack_from('<I', img, a - BASE)[0]
+
+    def rdata(v):
+        return section_of(v) == 'rdata'
+
+    def type_descriptor(v):   # in .data, its decorated name ".?AV...", ".PAV...", ...
+        return section_of(v) == 'data' and img[v + 8 - BASE] == ord('.')
+
+    kinds = {}
+
+    def mark(cell, kind):
+        if rdata(dw(cell)):
+            kinds.setdefault(cell, kind)
+
+    lo, hi = SCANNED[0][1], SCANNED[0][2]
+    for a in range(lo, hi - 20, 4):
+        if dw(a) == 0x19930520:   # FuncInfo: magic, maxState, pUnwindMap, nTryBlocks, pTryBlockMap
+            mark(a + 8, 'eh-unwind')
+            mark(a + 16, 'eh-try')
+            if rdata(dw(a + 16)):
+                for i in range(dw(a + 12)):   # try block: tryLow, tryHigh, catchHigh, nCatches, pHandlerArray
+                    mark(dw(a + 16) + 20 * i + 16, 'eh-handlers')
+        # ThrowInfo: attributes, pmfnUnwind (code or 0), pForwardCompat 0, pCatchableTypeArray (count, entries);
+        # a catchable type: properties, pType (a type descriptor), ...
+        unwind = dw(a + 4)
+        if dw(a) <= 3 and (unwind == 0 or TEXT_SECTION[0] <= unwind < TEXT_SECTION[1]) and dw(a + 8) == 0 \
+                and rdata(dw(a + 12)):
+            array = dw(a + 12)
+            n = dw(array)
+            if 1 <= n <= 16 and all(rdata(dw(array + 4 + 4 * i)) and type_descriptor(dw(dw(array + 4 + 4 * i) + 4))
+                                    for i in range(n)):
+                mark(a + 12, 'eh-throw')
+                for i in range(n):
+                    mark(array + 4 + 4 * i, 'eh-catchable')
+    # RTTI: a complete object locator (signature 0, offset, cdOffset, pTypeDescriptor, pClassHierarchyDescriptor)
+    # is what a vtable's slot -1 holds; its class hierarchy descriptor (signature 0, attributes, numBaseClasses,
+    # pBaseClassArray), the array's base class descriptors (pTypeDescriptor, ...).
+    for a in range(lo, hi, 4):
+        col = dw(a)
+        if not rdata(col) or dw(col) != 0 or not type_descriptor(dw(col + 12)) or not rdata(dw(col + 16)):
+            continue
+        hierarchy = dw(col + 16)
+        bases = dw(hierarchy + 12)
+        if dw(hierarchy) != 0 or not 1 <= dw(hierarchy + 8) <= 64 or not rdata(bases) or \
+                not all(type_descriptor(dw(dw(bases + 4 * i))) for i in range(dw(hierarchy + 8))):
+            continue
+        mark(a, 'rtti-locator')
+        mark(col + 16, 'rtti-hierarchy')
+        mark(hierarchy + 12, 'rtti-bases')
+        for i in range(dw(hierarchy + 8)):
+            mark(bases + 4 * i, 'rtti-base')
+    # MFC's CRuntimeClass: lpszClassName, size, schema, pfnCreateObject, pBaseClass, pNextClass.
+    with open(RUNTIME_CLASSES, newline='') as f:
+        for row in csv.DictReader(f):
+            c = int(row['runtime_class'], 16)
+            mark(c, 'mfc-name')
+            mark(c + 16, 'mfc-base')
+    return kinds
+
+
+def group_of(cell, value, kinds):
+    """('text' | 'structure' | 'data' | 'rdata', index) or None."""
+    for i, (first, last, _) in enumerate(TEXT):
+        if first <= cell <= last:
+            return ('text', i)
+    section = section_of(value)
+    if section == 'rdata' and cell in kinds:
+        return ('structure', [k for k, _, _ in STRUCTURES].index(kinds[cell]))
+    groups = REVIEWED_RDATA if section == 'rdata' else REVIEWED_DATA
+    for i, g in enumerate(groups):
         if g[0] <= cell <= g[1] and (len(g) < 5 or g[4] == value):
-            return i
+            return (section, i)
     return None
 
 
-def render(cells):
+def describe(group):
+    kind, i = group
+    if kind == 'text':
+        return TEXT[i][2]
+    if kind == 'structure':
+        return STRUCTURES[i][2]
+    return (REVIEWED_RDATA if kind == 'rdata' else REVIEWED_DATA)[i][3]
+
+
+def render(cells, img):
+    kinds = structures(img)
     lines = [
         '// Generated by tools/gen_image_cells.py from game.exe. Do not edit.',
         '//',
-        "// The pointer cells of game.exe's .rdata and .data that point into its .data (S18b, S18d): image_data.cpp",
-        '// adds the shift to each when the image moves the section. {cell, the address it holds}; each group\'s',
-        '// review is in the tool.',
+        "// The pointer cells of game.exe's .rdata and .data that point into the range the image moves, .rdata and .data",
+        "// (S18b, S18d, S18h): image_data.cpp adds the shift to each when it moves the range. {cell, the address it",
+        "// holds}, by group; each group's review is in the tool.",
     ]
-    last = None
+    order = [('structure', i) for i in range(len(STRUCTURES))] + [('rdata', i) for i in range(len(REVIEWED_RDATA))] + \
+            [('data', i) for i in range(len(REVIEWED_DATA))]
+    by_group = {}
     for a, v in cells:
-        g = group_of(a, v)
-        if g != last:
-            lines.append(f'// {REVIEWED[g][3] if g is not None else "NOT REVIEWED"}')
-            last = g
-        lines.append(f'{{DataId(0x{a:08X}), DataId(0x{v:08X})}},')
+        g = group_of(a, v, kinds)
+        if g is None or g[0] != 'text':
+            by_group.setdefault(g, []).append((a, v))
+    for g in order + [None]:
+        if g not in by_group:
+            continue
+        lines.append(f'// {describe(g) if g is not None else "NOT REVIEWED"}')
+        for a, v in by_group[g]:
+            lines.append(f'{{DataId(0x{a:08X}), DataId(0x{v:08X})}},')
     return '\n'.join(lines) + '\n'
 
 
 def write_bytes(img, path):
-    _, lo, _ = MOVED
+    lo = MOVED[0]
     end = SCANNED[-1][2]   # the file's bytes; the rest of the range is zero
-    data = bytes(img[lo - BASE:end - BASE])
+    data = bytearray(img[lo - BASE:end - BASE])
+    data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
     while data.endswith(b'\0\0\0\0'):
         data = data[:-4]
     words = struct.unpack(f'<{len(data) // 4}I', data)
     lines = ['// Generated by tools/gen_image_cells.py --bytes from game.exe at build time (not committed). Do not edit.',
-             f"// game.exe's .data from {lo:08X} as its file holds it, up to its last nonzero dword: {len(words)} dwords."]
+             f"// game.exe's .rdata and .data from {lo:08X} as its file holds them (the import table zero), up to the "
+             f"last nonzero dword: {len(words)} dwords."]
     for i in range(0, len(words), 8):
         lines.append(','.join(f'0x{w:X}' for w in words[i:i + 8]) + ',')
     text = '\n'.join(lines) + '\n'
@@ -188,25 +334,39 @@ def main():
     img = image(exe_path.resolve(a.exe))
     if a.bytes:
         n = write_bytes(img, a.bytes)
-        print(f'gen_image_cells: {n} dwords of .data written to {a.bytes}')
+        print(f'gen_image_cells: {n} dwords of .rdata and .data written to {a.bytes}')
         return 0
+    kinds = structures(img)
     cells = scan(img)
     problems = []
-    counts = [0] * len(REVIEWED)
+    counts = {}
+    moved = 0
     for c, v in cells:
-        g = group_of(c, v)
+        g = group_of(c, v, kinds)
         if g is None:
-            problems.append(f'gen_image_cells: {c:08X} -> {v:08X} has no review (tools/gen_image_cells.py REVIEWED)')
-        else:
-            counts[g] += 1
-        if v == MOVED[2]:
-            problems.append(f'gen_image_cells: {c:08X} -> {v:08X} is the end of .{MOVED[0]}: a one-past-the-end '
+            problems.append(f'gen_image_cells: {c:08X} -> {v:08X} has no review (tools/gen_image_cells.py)')
+            continue
+        counts[g] = counts.get(g, 0) + 1
+        moved += g[0] != 'text'
+        if section_of(v) is None:
+            problems.append(f'gen_image_cells: {c:08X} -> {v:08X} is the end of the moved range: a one-past-the-end '
                             'pointer of its last object, or the next section\'s start? decide and review')
-    for g, n in zip(REVIEWED, counts):
-        if n != g[2]:
-            problems.append(f'gen_image_cells: the group {g[0]:08X}-{g[1]:08X} ({g[3][:50]}) has {n} cell(s), '
-                            f'reviewed {g[2]}')
-    text = render(cells)
+        if IMPORTS[0] <= v < IMPORTS[1]:
+            problems.append(f'gen_image_cells: {c:08X} -> {v:08X} points at an import slot: the image\'s slots are '
+                            'its own table (image_imports.cpp); review')
+    expected = [(('text', i), None, g[2]) for i, g in enumerate(TEXT)]
+    for i, (_, n, what) in enumerate(STRUCTURES):
+        expected.append((('structure', i), n, what))
+    for name, groups in (('rdata', REVIEWED_RDATA), ('data', REVIEWED_DATA)):
+        for i, g in enumerate(groups):
+            expected.append(((name, i), g[2], f'{g[0]:08X}-{g[1]:08X} ({g[3]})'))
+    for g, n, what in expected:
+        have = counts.get(g, 0)
+        if n is None:   # a text group: exactly one candidate per cell of its range
+            n = (TEXT[g[1]][1] - TEXT[g[1]][0]) // 4 + 1
+        if have != n:
+            problems.append(f'gen_image_cells: the group {what[:70]} has {have} cell(s), reviewed {n}')
+    text = render(cells, img)
     if a.check:
         current = open(OUT, encoding='utf-8').read() if os.path.exists(OUT) else ''
         if current != text:
@@ -214,13 +374,13 @@ def main():
                             'run python tools/gen_image_cells.py')
         for p in problems:
             print(p)
-        print(f'gen_image_cells: {len(cells)} cell(s) into .{MOVED[0]}, {len(problems)} problem(s)')
+        print(f'gen_image_cells: {moved} cell(s) into .rdata and .data, {len(problems)} problem(s)')
         return 1 if problems else 0
     with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
         f.write(text)
     for p in problems:
         print(p)
-    print(f'{len(cells)} cell(s) into .{MOVED[0]} written to {os.path.relpath(OUT, ROOT)}')
+    print(f'{moved} cell(s) into .rdata and .data written to {os.path.relpath(OUT, ROOT)}')
     return 1 if problems else 0
 
 
