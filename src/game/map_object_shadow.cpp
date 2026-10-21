@@ -37,6 +37,7 @@
 #include <vector>
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where
@@ -52,10 +53,6 @@ int ShadowSwitch(int classId) {
     return ei::GameData<const int>(0x0079BD18);
 }
 const Vector3* DefaultLight() { return ei::GamePointer<const Vector3>(0x007AF230); }
-void* TextureManager() { return ei::GameData<void*>(0x007AF744); }
-void* RenderDevice() { return ei::GameData<void*>(0x007AF080); }
-void* ShadowProjector() { return ei::GamePointer<void>(0x007AF5B8); }
-void* TextureStages() { return ei::GamePointer<void>(0x007AF060); }
 // The work buffers: the parts' points projected into the light's view, their texture pixels, and
 // the ground quad (one block of four corners).
 using ShadowPoints = lib::AlignedArray<Vector2>;
@@ -273,7 +270,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
     // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
     // new renderer's memory, texture_shadow.cpp).
     auto* shadowTexture = static_cast<CTexture*>(self->texture);
-    shadowTexture->LoadPixelsFrom(static_cast<CTextureDevice*>(RenderDevice()), static_cast<const CTexture*>(surface));
+    shadowTexture->LoadPixelsFrom(TheRenderDevice(), static_cast<const CTexture*>(surface));
     // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
     // texture in its memory is read from there instead).
     render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
@@ -458,7 +455,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    static_cast<CWorldClient*>(ShadowProjector())->ProjectDecal(&direction, &point, self->object->radius, &Quads().data,
+    TheClientWorld()->ProjectDecal(&direction, &point, self->object->radius, &Quads().data,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (self->vertices.size != 0) {
@@ -504,7 +501,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     render::CastsShadow(static_cast<const CEngineObject*>(object), strength);
 
     if (!texture) {
-        AssignTexture(&texture, static_cast<CTextureManager*>(TextureManager())->NewShadowTexture());
+        AssignTexture(&texture, TheTextureManager()->NewShadowTexture());
         if (!texture) return game::FatalError("Can't create texture for shadow rendering!\n");
         char name[0x100];
         gamecrt::sprintf(name, "SR%d", object->id_);
@@ -536,11 +533,11 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
-    SetTexture(TextureStages(), nullptr, 0, texture);
+    SetTexture(TheSceneRenderer(), nullptr, 0, texture);
     std::uint8_t lit = static_cast<Terrain*>(LightManager())->EdgeFade(&object->position);
     if (!makeTexture) return 1;   // the shadow map draws it
     render::ClassicShadowDecal();   // drawn only with the classic shadows (the shadow map draws it)
-    static_cast<CTextureDevice*>(RenderDevice())
+    TheRenderDevice()
         ->DrawFlatBlocks(vertices.data, reinterpret_cast<const char*>(texCoords.data), vertices.size, indices.data,
                          indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
                          std::bit_cast<float>(kDrawDepth));

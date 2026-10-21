@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "originals_gameplay.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstddef>
@@ -235,11 +236,11 @@ constexpr float kOpened = 1.0f;
 
 void CParty::OpenEdgeExits() {
     mfc::CString variable;
-    MapRecord* zone = GameMapDatabase()->FindMap(zone_);
+    MapRecord* zone = TheMapDatabase()->FindMap(zone_);
     if (zone == nullptr || zone->kind != kZoneKindEdge) return;
     NamedFloatTable& variables = variables_;
     for (int i = 0; i < zone->exits.size; ++i) {
-        MapRecord* target = GameMapDatabase()->FindMap(zone->exits[i].target);
+        MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable.Format(ZoneVariableFormat(), target->name);
         float value = variables.Get(variable);

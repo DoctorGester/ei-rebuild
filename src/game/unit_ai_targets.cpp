@@ -12,6 +12,7 @@
 #include "spell.h"
 #include "unit_db.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -140,7 +141,7 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
         float range = static_cast<float>(self->ScaledValue(distance));
         float targetRadius = static_cast<float>(MapObject(target)->Radius());
         float minDistance = static_cast<float>(static_cast<double>(MapObject(self)->Radius()) + targetRadius);
-        CWorldServer* server = WorldServer();
+        CWorldServer* server = TheServerWorld();
         // The target is lifted off the sector map so it does not block its own cell.
         SectorMapRemove(server->Sectors(), nullptr, target);
         if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {

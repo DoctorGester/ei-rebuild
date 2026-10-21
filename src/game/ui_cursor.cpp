@@ -19,14 +19,12 @@
 #include "originals_engine.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 // --- 005E4EB0: a cursor image ------------------------------------------------------------------------
 
 namespace {
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
-CTextureManager* TextureManager() { return ei::GameData<CTextureManager*>(0x007AF744); }
-CTextureDevice* DeviceObject() { return ei::GameData<CTextureDevice*>(0x007AF080); }
 // The cursor's size (the hot spots are given for a 32-pixel cursor).
 LONG CursorWidth() { return ei::GameData<LONG>(0x007C7C90); }
 LONG CursorHeight() { return ei::GameData<LONG>(0x007C7C94); }
@@ -48,12 +46,12 @@ void MaskRow(const std::uint8_t* row, T* mask, std::uint32_t count, T colourBits
 CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY, int flag) {
     holder = nullptr;
     frame = 0;
-    CTextureManager* manager = TextureManager();
+    CTextureManager* manager = TheTextureManager();
     void* picture = manager->GetFile(name, nullptr);
     // (The original frees the holder's memory when 004EFC60 throws and passes the exception on; that
     // ends the game.)
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    holder = memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromPicture(DeviceObject(), picture, flag))
+    holder = memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromPicture(TheRenderDevice(), picture, flag))
                     : nullptr;
     if (holder) ++holder->refCount;
     // (The original releases a holder kept before here; there is none: it was cleared above.)
@@ -74,7 +72,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     saved = static_cast<std::uint8_t*>(gamecrt::operator_new(maskBytes));
 
     // The mask, under the device lock.
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     const std::uint8_t* pixels = image.bits;
     std::uint32_t rows = pictureHeight, columns = pictureWidth, pitch = static_cast<std::uint32_t>(image.pitch);
     if (holder->bitsPerPixel == 16) {
@@ -86,7 +84,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
         for (std::uint32_t y = 0; y < rows; ++y)
             MaskRow<std::uint32_t>(pixels + y * ((pitch >> 2) * 4), mask + y * columns, columns, 0xFFFFFF);
     }
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     return this;
 }
 EI_REPLACE_METHOD(0x005E4EB0, CursorImage::Construct);

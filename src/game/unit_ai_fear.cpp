@@ -10,6 +10,7 @@
 #include "random.h"
 #include "unit_db.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -66,7 +67,7 @@ const Vector3* PositionOf(CEngineObject* object) {
     return &static_cast<CMapObject*>(object)->position;
 }
 
-CAIMap* Map() { return WorldServer()->AIMap(); }
+CAIMap* Map() { return TheServerWorld()->AIMap(); }
 
 // The prototype's +0x24 (units below 0.5 count as small).
 float PrototypeSize(CUnit* unit) {

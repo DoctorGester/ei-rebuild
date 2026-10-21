@@ -2064,9 +2064,6 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 // jigran); the zones gz1g and bz7g (case-insensitive) take progres1.bik.
 void __stdcall SelectLoadingMovie(const char* zone);
 
-CWorldServer* WorldServer();   // 007AFF60
-// 007AF5B8: the client world (the interface reaches it as UiClientWorld).
-inline CWorldClient* GameClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
 inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
 // The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
@@ -2074,7 +2071,6 @@ inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
 inline float FogStartDay() { return ei::GameData<const float>(0x0079BED4); }
 inline float FogStartNight() { return ei::GameData<const float>(0x0079BED0); }
 inline float FarClipDistance() { return ei::GameData<const float>(0x0079BE54); }
-CWorldClient* WorldClient();   // 007AF5B8
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
 // world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the

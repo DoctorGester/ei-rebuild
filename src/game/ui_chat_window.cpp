@@ -23,6 +23,7 @@
 #include "originals_ui.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -103,7 +104,7 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
     portraits_ = 0;
     mfc::CString text;
     for (int i = 0; i < kTextCount; ++i) {
-        GameTexts()->GetString(TextKey(i), &text);
+        TheTextManager()->GetString(TextKey(i), &text);
         texts_.SetAtGrow(texts_.size, text);
     }
     return this;
@@ -306,7 +307,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
 void CChatWindow::OnMouseMove(int, int x, int y) {
     int index = RegionAt(x, y);
     int pick = static_cast<CBriefingScreen*>(interface_->GetActiveWindow())->chatActive_;
-    if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) GameCursor()->SetShape(0);
+    if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) TheCursor()->SetShape(0);
 }
 
 namespace {

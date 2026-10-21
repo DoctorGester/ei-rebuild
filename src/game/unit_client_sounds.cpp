@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -67,7 +68,7 @@ int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     float x = unit->position.x;
     float y = unit->position.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
@@ -179,13 +180,13 @@ void Shake(CUnit* unit) {
     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
     float strength = prototype->shake;
     if (strength > 0.0f)
-        camera::TheCamera()->Shake(&unit->position, kShakeDuration, strength,
+        TheCamera()->Shake(&unit->position, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = sound::Manager();
+    CSoundManager* sounds = TheSoundManager();
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 } // namespace
@@ -204,14 +205,14 @@ void CUnitClientSpecific::PlayStepSounds() {
     EI_NAN_AUDIT(now, lastAnimationTime);
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
-    CSoundManager* sounds = sound::Manager();
+    CSoundManager* sounds = TheSoundManager();
     std::uint32_t kind = current->key & kKeyKind;
 
     bool action = false;     // ActionSound at `priority`
     bool steps = false;
     switch (kind) {
     case kKindAttack: {
-        auto* view = reinterpret_cast<LocalView*>(WorldClient()->LocalView());
+        auto* view = reinterpret_cast<LocalView*>(TheClientWorld()->LocalView());
         if (view->player->mode == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
@@ -259,7 +260,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                camera::TheCamera()->Shake(&unit->position, kShakeDuration, strength,
+                TheCamera()->Shake(&unit->position, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
@@ -296,7 +297,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         float scale = prototype->valuesE0[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
-        int id = WorldClient()->AddFootprint(footAt.x - sizeX * facing.x * kHalf,
+        int id = TheClientWorld()->AddFootprint(footAt.x - sizeX * facing.x * kHalf,
                               footAt.y - sizeY * facing.y * kHalf, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);
         if (footprintRepeats > 0) --footprintRepeats;

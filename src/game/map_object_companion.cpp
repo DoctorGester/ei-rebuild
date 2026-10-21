@@ -16,6 +16,7 @@
 #include "originals_effects.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
@@ -40,7 +41,6 @@ const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
 // The sound system (global 007AF784); thiscall.
-void* SoundSystem() { return ei::GameData<void*>(0x007AF784); }
 
 // The light's position (a point light of the light factory, class 0x31).
 float* PositionOf(CEngineObject* light) { return &static_cast<CLight*>(light)->position_.x; }
@@ -107,11 +107,11 @@ int CMapObjectClientSpecific::Update() {
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;   // AL only
             int handle = endSound;
-            void* soundSystem = SoundSystem();
+            void* soundSystem = TheSoundManager();
             if (handle != -1 &&
                 (static_cast<CSoundManager*>(soundSystem)->FindPlaying(handle) || static_cast<CSoundManager*>(soundSystem)->FindDeferred(handle)))
                 continue;
-            endSound = static_cast<CSoundManager*>(SoundSystem())->Play3D(kEndSoundName, 0, &OwnerOf(this)->position.x,
+            endSound = TheSoundManager()->Play3D(kEndSoundName, 0, &OwnerOf(this)->position.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -125,14 +125,14 @@ int CMapObjectClientSpecific::Update() {
             sound->timer = timer;
             if (!(timer & 0x80000000u)) continue;
             mfc::CString name;
-            std::uint32_t variant = ei::GamePointer<IsaacRandom>(0x007A9D40)->Next() % 3 + 1;
+            std::uint32_t variant = (&IsaacRandom::Global())->Next() % 3 + 1;
             if (sound->kind == kSoundStench) {
                 name.Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            static_cast<CSoundManager*>(SoundSystem())->Play3D(name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
+            TheSoundManager()->Play3D(name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
-            static_cast<CSoundManager*>(SoundSystem())->MoveSequence(sound->handle, &OwnerOf(this)->position.x);
+            TheSoundManager()->MoveSequence(sound->handle, &OwnerOf(this)->position.x);
         }
     }
 

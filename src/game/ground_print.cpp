@@ -27,6 +27,7 @@
 #include "lib/crt.h"
 #include "lib/stlp_list.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -47,8 +48,6 @@ constexpr float kAngleMilli = 1000.0f;           // 0073C34C
 constexpr float kSpinDegrees = 30.0f;            // 0073BAF0
 
 // Globals.
-CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
-CTextureManager* Textures() { return ei::GameData<CTextureManager* const>(0x007AF744); }
 // pi / 2 and 2 pi as floats (set by the static initialisers 006CEC90 / 006CEC80).
 float HalfPi() { return ei::GameData<const float>(0x007C899C); }
 float TwoPi() { return ei::GameData<const float>(0x007C8998); }
@@ -115,7 +114,7 @@ void GroundPrint::ConstructBase(std::uint8_t visible, int life, float alphaScale
 
 void GroundPrint::SetTexture(const char* name) {
     texture_.name.Assign(name, name + std::strlen(name));
-    CTextureManager* textures = Textures();
+    CTextureManager* textures = TheTextureManager();
     AssignCounted(&texture_.texture, textures->FindTexture(name));
     if (texture_.texture) return;
     AssignCounted(&texture_.texture, static_cast<CTexture*>(textures->FindOrCreate(kTextureKind, name)));
@@ -227,7 +226,7 @@ int GroundPrint::Draw() {
     if (!visible_) return 1;
     if (!built_) {
         // The quad at the height of the ground or the platform under the point.
-        CWorldClient* world = ClientWorld();
+        CWorldClient* world = TheClientWorld();
         lib::AlignedArray<VertexPacket> quad;
         quad.Construct();
         Vector3 at{position_.x, position_.y, 0.0f};
@@ -273,7 +272,7 @@ int GroundPrint::Draw() {
     }
     std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha_ * kAlphaRange)));
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
-    CTextureDevice* device = RenderDeviceObject();
+    CTextureDevice* device = TheRenderDevice();
     device->BindNamedTexture(0, &texture_);
     return device->DrawFlatBlocks(positions_.data, reinterpret_cast<const char*>(texCoords_.data), positions_.size,
                                   indices_.data, indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);

@@ -18,6 +18,7 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 
@@ -161,7 +162,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     }
     mfc::CString header;
     console::CStringArray words;
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     texts->Open(MapText());
     header.Format(QuestHeader(), name);
     if (texts->FindLine(header)) {

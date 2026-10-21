@@ -33,6 +33,7 @@
 #include "originals_engine.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -111,7 +112,7 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
     self->background_ = 0;
     self->interface_ = static_cast<CInterface3D*>(ui);
-    CBaseManager* manager = static_cast<CBaseManager*>(UiTextureManager());
+    CBaseManager* manager = static_cast<CBaseManager*>(TheTextureManager());
     void* picture;
     {
         mfc::CString file = name + game::MmpExtensionText();   // ".mmp"

@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -36,7 +37,7 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
     }
     mfc::CString text;
     text.Format(kTipText, textId);
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     if (texts->Open(text)) texts->ReadToHash(&text, 1);
     if (tip_) tip_->Delete();
     tip_ = NewTooltip(this, text, flag, extra);

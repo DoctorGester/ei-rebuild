@@ -15,6 +15,7 @@
 #include "lib/vecmath.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -67,7 +68,6 @@ constexpr double kTwoToMinus32 = 2.3283064370807974e-10;   // 0073C468
 float CellSize() { return 1.0f /*007441D0*/; }
 // pi / 2 (007C8930, a static initialiser from 007441C8 * 0.5).
 float HalfPi() { return ei::GameData<const float>(0x007C8930); }
-CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 
 // The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
@@ -112,7 +112,7 @@ mfc::CString* CWorldClient::AmbienceTimeOfDay(mfc::CString* out) {
 }
 
 void Terrain::PlayAmbience() {
-    CSoundManager* sounds = sound::Manager();
+    CSoundManager* sounds = TheSoundManager();
     Vector3 listener = {sounds->listener.x, sounds->listener.y, sounds->listener.z};
     Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);
@@ -210,7 +210,7 @@ void Terrain::PlayAmbience() {
         char name[256];
         {
             mfc::CString time;   // the empty string, replaced (the original passes raw stack storage)
-            ClientWorld()->AmbienceTimeOfDay(&time);
+            TheClientWorld()->AmbienceTimeOfDay(&time);
             gamecrt::sprintf(name, "ambient\\%s\\%s\\%s\\%i.wav", textAE0, kind.name, static_cast<const char*>(time),
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
@@ -251,7 +251,7 @@ void Terrain::PlayAmbience() {
 void Terrain::StopAmbience() {
     landscapeFlags &= ~8u;
     for (int slot = 0; slot < 3; ++slot) {
-        ambientSounds[slot] = sound::Manager()->StopSound(ambientSounds[slot]);
+        ambientSounds[slot] = TheSoundManager()->StopSound(ambientSounds[slot]);
         ambientClasses[slot] = -1;
     }
 }
@@ -267,7 +267,7 @@ void terrain::CountAmbientVariants(const char* set) {
         for (;;) {
             char name[260];
             gamecrt::sprintf(name, "ambient\\%s\\%s\\day\\%i.wav", set, kind.name, kind.variants + 1);
-            if (sound::Manager()->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
+            if (TheSoundManager()->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
             ++kind.variants;
         }
     }

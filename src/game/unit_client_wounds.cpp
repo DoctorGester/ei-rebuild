@@ -23,6 +23,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
@@ -129,7 +130,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                 request->textures.SetAtGrow(request->textures.GetSize(), name);
             }
             name.Format(kWoundCacheName, unit->id_);
-            result = ComposeTexture(UiTextureManager(), nullptr, &out, request, &name, &name, kMipCount, 0, kFormat);
+            result = ComposeTexture(TheTextureManager(), nullptr, &out, request, &name, &name, kMipCount, 0, kFormat);
         }
         request->textures.~CStringArray();
         gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);
@@ -179,7 +180,7 @@ WoundsMaterial* NewWoundsMaterial() {
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    void* manager = UiTextureManager();
+    void* manager = TheTextureManager();
     if (!woundsTexture) {
         AssignTexture(&woundsTexture, static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindTypedTexture(kWoundsTextureKind, name)));
         if (!woundsTexture) {
@@ -203,7 +204,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     }
     if (!woundsMaterial) {
         AsCountedRef(woundsMaterial).Assign(NewWoundsMaterial());
-        CRenderHelper* helper = static_cast<CSceneRenderer*>(SceneContext())->helper_;
+        CRenderHelper* helper = TheSceneRenderer()->helper_;
         AsCountedRef(woundsMaterial->preset).Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
@@ -228,12 +229,12 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     char name[0x400];
     if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->name, prototype->skin);
     else gamecrt::sprintf(name, kFace, unit->name);
-    auto* texture = static_cast<CEngineObject*>(static_cast<CTextureManager*>(UiTextureManager())->FindOrCreate(kFaceTextureKind, name));
+    auto* texture = static_cast<CEngineObject*>(TheTextureManager()->FindOrCreate(kFaceTextureKind, name));
     CEngineObject* old = faceTexture;
     faceTexture = texture;
     if (texture) ++texture->refCount_;
     if (old) old->Release();
-    static_cast<CTextureManager*>(UiTextureManager())->LoadTexture(static_cast<CTexture*>(faceTexture));
+    TheTextureManager()->LoadTexture(static_cast<CTexture*>(faceTexture));
     CEngineObject* face = faceTexture;
     if (face->flags_ & kTextureLoaded) return true;
     faceTexture = nullptr;

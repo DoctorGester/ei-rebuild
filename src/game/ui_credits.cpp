@@ -15,6 +15,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "ui_cursor.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -94,6 +95,6 @@ void CCreditsScreen::OnClose() {
     gameapi::SystemParametersInfoA(kSetFontSmoothing, static_cast<UINT>(fontSmoothing_), nullptr, 0);
     SceneRenderer()->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     InterfaceHasScreen() = true;
-    CursorShowOriginal(GameCursor(), nullptr, 1);
+    CursorShowOriginal(TheCursor(), nullptr, 1);
 }
 EI_REPLACE_METHOD(0x0062BD00, CCreditsScreen::OnClose);

@@ -21,6 +21,7 @@
 #include "world.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
@@ -40,7 +41,7 @@ void __fastcall PlayerRemoveItem(void* player, void*, int index) { static_cast<C
 
 constexpr int kClassQuestItem = 0x14;
 
-void* World() { return WorldServer(); }
+void* World() { return TheServerWorld(); }
 // 00594180: player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return reinterpret_cast<CPlayer*>(static_cast<CWorldServer*>(World())->GetPlayer(0)); }
 std::int32_t GameMode() { return ei::GameData<const std::int32_t>(0x007C2CC4); }

@@ -11,6 +11,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <concepts>
 #include <cstdint>
@@ -88,10 +89,10 @@ EI_REPLACE_METHOD(0x00649AF0, CHudTopPanel::Build);
 void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     mfc::CString name;
     mfc::CString kind;
-    GameTexts()->FormatItemName(item, &name);
+    TheTextManager()->FormatItemName(item, &name);
     const char* key = static_cast<char>(crippled) ? "combat_crippled"
                                                   : "combat_picked_up";
-    GameTexts()->GetString(key, &kind);
+    TheTextManager()->GetString(key, &kind);
     mfc::CString line(kind);
     line += " ";
     line += name;
@@ -107,8 +108,8 @@ void CHudTopPanel::AddMoney(int money) {
     mfc::CString text;
     mfc::CString picked;
     mfc::CString format;
-    GameTexts()->GetString("combat_picked_up", &picked);
-    GameTexts()->GetString("format_money", &format);
+    TheTextManager()->GetString("combat_picked_up", &picked);
+    TheTextManager()->GetString("format_money", &format);
     text.Format(format, money);
     mfc::CString line(picked);
     line += " ";

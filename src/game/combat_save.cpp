@@ -18,6 +18,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "game_singletons.h"
 
 namespace {
 // Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
@@ -70,7 +71,7 @@ CEngineObject* ReadObject(CStream* stream, void* manager) {
 void LoadOrder(CStream* stream, UnitAction* order) {
     stream->Read(&order->kind, 4);
     stream->Read(&order->source, 4);
-    AIRef::Of(&order->target)->Load(stream, WorldServer());
+    AIRef::Of(&order->target)->Load(stream, TheServerWorld());
     stream->Read(&order->point, 0xC);
     stream->Read(&order->param, 4);
     stream->Read(&order->modifier, 1);
@@ -117,7 +118,7 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 
 namespace {
 // The item manager (007AFFB4, the world server's +0x54), which resolves the armour spells' item ids.
-void* ItemManager() { return WorldServer()->itemManager_; }
+void* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
 void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {

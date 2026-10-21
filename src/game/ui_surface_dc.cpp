@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -55,7 +56,7 @@ ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
     if (!holder) return nullptr;
     HDC& dc = surface->dc_;
     dc = nullptr;
-    gameapi::EnterCriticalSection(GameDeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     HBITMAP bitmap = ClientBitmap(holder);
     if (bitmap) dc = CreateCompatibleDC(nullptr);
     if (dc) {
@@ -73,7 +74,7 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
     CDXSurface* holder = surface->holder_;
     if (holder) {
         HDC dc = surface->dc_;
-        gameapi::LeaveCriticalSection(GameDeviceLock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
         auto it = g_memoryDcs.find(dc);
         if (it != g_memoryDcs.end()) {
             GdiFlush();

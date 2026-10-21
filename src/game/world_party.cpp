@@ -30,6 +30,7 @@
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -64,7 +65,7 @@ using RecordArray = RecordPtrArray;
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // 0045E850 (RET 4). The map database's zone record by name.
 const MapRecord* FindZone(const char* name) {
-    return GameMapDatabase()->FindMap(name);
+    return TheMapDatabase()->FindMap(name);
 }
 // 0049ECC0 (RET 8). Quaternion from an axis and an angle.
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
@@ -282,7 +283,7 @@ namespace {
 // 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
 
 // The world server's item manager (CWorld::itemManager_, 007AFFB4).
-CEngineObject* ItemManager() { return WorldServer()->itemManager_; }
+CEngineObject* ItemManager() { return TheServerWorld()->itemManager_; }
 
 } // namespace
 

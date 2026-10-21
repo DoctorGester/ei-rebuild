@@ -14,6 +14,7 @@
 #include <cstdint>
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 namespace {
@@ -354,7 +355,7 @@ void COptionsWindow::Update() {
                 if (id <= 9)
                     shadowsChanged_ = true;
                 else if (id == 0x18)   // the sound system's pan switch
-                    sound::Manager()->panDirect = value != 0;
+                    TheSoundManager()->panDirect = value != 0;
             }
         }
     }

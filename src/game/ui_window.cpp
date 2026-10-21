@@ -17,6 +17,7 @@
 #include "originals_render.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -311,7 +312,7 @@ void CUiWindow::ClearSurfaces() {
 EI_REPLACE_METHOD(0x005FFC50, CUiWindow::ClearSurfaces);
 
 CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
-    void* manager = UiTextureManager();
+    void* manager = TheTextureManager();
     auto* texture = static_cast<CEngineObject*>(static_cast<CTextureManager*>(manager)->FindOrCreate(kind, name));
     if (!texture) return nullptr;
     int loaded = directory ? static_cast<CTextureManager*>(manager)->LoadTextureFrom(static_cast<CTexture*>(texture), directory)
@@ -324,7 +325,7 @@ CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* di
 EI_REPLACE_METHOD(0x005FEF20, CUiWindow::LoadTexture);
 
 CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
-    CEngineObject* texture = static_cast<CTextureManager*>(UiTextureManager())->NewTexture(width, height, kind);
+    CEngineObject* texture = TheTextureManager()->NewTexture(width, height, kind);
     if (!texture) return nullptr;
     int index = objects_.size;
     objects_.SetSize(index + 1, -1);

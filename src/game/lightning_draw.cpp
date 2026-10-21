@@ -35,7 +35,6 @@ void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reint
 // allocation of 16-byte points 00468F70; atexit 006E727B. The sprite records are zero filled (00468F90).
 void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 
-IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     std::uint32_t colour;
@@ -56,7 +55,7 @@ void SizePoints() { GlowPoints().SetSize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
-    return static_cast<float>(static_cast<int>(Rng()->Next() & 3)) * 0.25f /*0073C3B0*/;
+    return static_cast<float>(static_cast<int>((&IsaacRandom::Global())->Next() & 3)) * 0.25f /*0073C3B0*/;
 }
 
 } // namespace

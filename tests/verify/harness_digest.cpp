@@ -4,6 +4,7 @@
 #include "harness_clock.h"
 #include "harness_heap.h"
 #include "harness_starter.h"
+#include "game/game_singletons.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
@@ -51,8 +52,6 @@ constexpr int kClassSound = 0x48, kClassAmbientSound = 0x49, kClassParticle = 0x
               kClassShowVisibility = 0x5E, kClassSoundSeq = 99, kClassTornado = 0x65;
 
 // The client world (a static object of game.exe) and the mission's script (the world's CScript).
-CWorldClient* ClientWorldObject() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
-CScript* MissionScriptObject() { return ei::GamePointer<CScript>(0x007C27D4); }
 
 // A field's value: its name ('#' stands for `index`), how it is written and its 32 bits.
 enum class Kind : char { Int, Unsigned, Float, Bits, Mode };
@@ -833,12 +832,12 @@ void Read(CWorldServer* w, Snapshot& s) {
 
     b.entity = &Slot(s.state, {kScript, 0});
     b.entity->description = "script";
-    ReadScript(MissionScriptObject(), b);
+    ReadScript(TheMissionScript(), b);
 
     std::vector<CUnit*> clientUnits;
     b.entity = &Slot(s.state, {kClient, 0});
     b.entity->description = "client";
-    ReadClientWorld(ClientWorldObject(), b, clientUnits);
+    ReadClientWorld(TheClientWorld(), b, clientUnits);
     for (CUnit* u : clientUnits) {
         b.entity = &Slot(s.state, {kClientUnit, u->id_});
         b.entity->description = Describe(u, true);

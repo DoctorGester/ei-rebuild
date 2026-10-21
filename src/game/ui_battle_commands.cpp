@@ -25,6 +25,7 @@
 #include "originals_units.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -32,11 +33,8 @@
 namespace {
 
 constexpr std::uint32_t kFlagSelected = 0x10;
-void* const kWorld = ei::GamePointer<void>(0x007AF5B8);
-void* const kServerWorld = ei::GamePointer<void>(0x007AFF60);
 void* const kTextGlue = ei::GamePointer<void>(0x007AFEA4);
 
-IsaacRandom& UiRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // A random value times ~-2^-34 * 0.3 (00742760): the portrait's wobble delay, stored as a float.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * (-6.984919588798148e-11 /*00742760*/));
@@ -111,7 +109,7 @@ void DropPendingAction(CBattleScreen* self, bool inlinePanels) {
 
 // Member i's portrait nods after a random delay (as the orders' nod).
 void NodPortrait(CBattleScreen* self, int i) {
-    float delay = PortraitDelay(UiRandom().Next());
+    float delay = PortraitDelay(IsaacRandom::Global().Next());
     static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleTime_ = delay;
     static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleKind_ = 1;
 }
@@ -138,7 +136,7 @@ void CBattleScreen::ToggleMember(int index) {
             if (chosen.data[i] != 0) chosen.data[i] = 0;
         chosen.data[index] = 1;
     }
-    static_cast<CWorldClient*>(kWorld)->Deselect(nullptr);
+    TheClientWorld()->Deselect(nullptr);
 
     for (int i = 0; i < party->size; ++i) {
         auto* portraits = static_cast<CHudPortraits*>(portraits_);
@@ -155,7 +153,7 @@ void CBattleScreen::ToggleMember(int index) {
         portraits->slots_[i].restB_ = *rest;
         CUnit* member = unitAt(i);
         if (member && chosen.data[i] != 0) {
-            static_cast<CWorldClient*>(kWorld)->Select(member);
+            TheClientWorld()->Select(member);
             if (index == i) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 0, 0);
         }
     }
@@ -163,7 +161,7 @@ void CBattleScreen::ToggleMember(int index) {
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection (+0x778), record i against member i.
     if (ei::GameData<const int>(0x007B0098) == 1) {
-        if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(kServerWorld)->GetPlayer(0))) {
+        if (auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0))) {
             for (int i = 0; i < player->mercCount; ++i) {
                 if (i >= party->size) continue;
                 PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
@@ -194,13 +192,13 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         units.SetSize(n + 1, -1);
         units.data[n] = member;
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
-        slot.wobbleTime_ = PortraitDelay(UiRandom().Next());
+        slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
         static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
         int targetLevel = target->Level();
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
-    if (units.size != 0) LocalView(kWorld)->SendAttack(&units, target, kind, ctrl & 0xFF);
+    if (units.size != 0) LocalView(TheClientWorld())->SendAttack(&units, target, kind, ctrl & 0xFF);
     units.vtable = ei::GamePointer<void>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }
@@ -216,10 +214,10 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
         units.SetSize(n + 1, -1);
         units.data[n] = member;
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
-        slot.wobbleTime_ = PortraitDelay(UiRandom().Next());
+        slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
         static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
     }
-    if (units.size != 0) LocalView(kWorld)->SendUseDead(&units, target, ctrl & 0xFF);
+    if (units.size != 0) LocalView(TheClientWorld())->SendUseDead(&units, target, ctrl & 0xFF);
     units.vtable = ei::GamePointer<void>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }
@@ -237,10 +235,10 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
         std::memcpy(&position, &target->position, sizeof(position));
         int refused;
         if (quick == 0) {
-            LocalView(kWorld)->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
+            LocalView(TheClientWorld())->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
             refused = unitAt(i)->CanCastSpell(pendingSlot_, &position.x);
         } else {
-            LocalView(kWorld)->SendItemOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
+            LocalView(TheClientWorld())->SendItemOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &position.x);
         }
@@ -268,11 +266,11 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         }
         int refused;
         if (quick != 0) {
-            ViewQuickAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), &point, 0);
+            ViewQuickAtPoint(LocalView(TheClientWorld()), nullptr, pendingSlot_, unitAt(i), &point, 0);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &point.x);
         } else {
-            ViewSpellAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), &point, 0);
+            ViewSpellAtPoint(LocalView(TheClientWorld()), nullptr, pendingSlot_, unitAt(i), &point, 0);
             refused = unitAt(i)->CanCastSpell(pendingSlot_, &point.x);
         }
         if (refused == 0) NodPortrait(this, i);
@@ -284,7 +282,7 @@ EI_REPLACE_METHOD(0x00637750, CBattleScreen::UseAtPoint);
 // --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
 
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
-    auto* unit = reinterpret_cast<CUnit*>(static_cast<CBaseManager*>(ei::GameData<void*>(0x007AF5F8))->FindObject(id));
+    auto* unit = reinterpret_cast<CUnit*>(TheObjectManager()->FindObject(id));
     if (!unit) return;
     const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
                                                                   : acks::SayAck(unit, static_cast<int>(event));
@@ -330,7 +328,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     } else if (event - 0xB <= 0x15 - 0xB) {
         for (int i = 0; i < party->size; ++i) {
             if (unitAt(i)->id_ != id) continue;
-            static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleTime_ = PortraitDelay(UiRandom().Next());
+            static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
             static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 2;
         }
     }

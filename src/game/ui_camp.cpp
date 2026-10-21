@@ -33,6 +33,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <d3d.h>
@@ -574,7 +575,7 @@ void CCampPages::UpdateAction() {
 
     mfc::CString text;
     mfc::CString line;
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     CUiSurface* draw = surfaces_.data[0];
     UiSurfaceGetDC(draw);
     SurfaceClearOriginal(draw);
@@ -804,7 +805,7 @@ constexpr std::uint32_t kRecordBias = 100000000;
 
 void CCampPages::Close() {
     GameSetServerPaused(0);   // 00578D10 (on the game glue 007AFEA4)
-    device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, 0);
+    device::SetRenderState(static_cast<IDirect3DDevice7*>(TheRenderDevice()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, as the record array the client glue takes (005789E0; a
     // CArray of record pointers, vtable 0073FAA4, SetSize 005719B0), their keys raised meanwhile.

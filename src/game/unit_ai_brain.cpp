@@ -16,6 +16,7 @@
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -305,7 +306,7 @@ void AIBrain::CallAllies(const Vector3* point) {
     units.vtable = kPtrListVtable;
     units.blockSize = 10;
     CUnit* self = owner->unit;
-    WorldServer()->Sectors()->FindUnitsInRadius(PositionOf(self), &units, callRadius);
+    TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(self), &units, callRadius);
     for (auto* node = units.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);
         node = node->next;
@@ -490,7 +491,7 @@ void AIBrain::UpdateMemory(CUnitServer* who) {
     }
     CallsUpdate(&calls, nullptr, who->unit, memory);
     // The AI events are the world server's +0x2838 (007B2798).
-    WorldServer()->AIEvents()->Update(who, this);   // 005CAA00
+    TheServerWorld()->AIEvents()->Update(who, this);   // 005CAA00
     noticedLevel += noticedKind;
 }
 
@@ -620,8 +621,8 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&actionPoint, 12);
     LoadLooks(&looks, stream);
     stream->Read(&actionTime, 4);
-    reinterpret_cast<AIRef*>(&target)->Load(stream, WorldServer());
-    reinterpret_cast<AIRef*>(&seen)->Load(stream, WorldServer());
+    reinterpret_cast<AIRef*>(&target)->Load(stream, TheServerWorld());
+    reinterpret_cast<AIRef*>(&seen)->Load(stream, TheServerWorld());
     stream->Read(&callRadius, 4);
     stream->Read(&nearX, 4);
     stream->Read(&nearY, 4);

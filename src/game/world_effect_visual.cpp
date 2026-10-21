@@ -2,6 +2,7 @@
 // world_effect.h and docs/notes/effects.md.
 
 #include "camera.h"
+#include "random.h"
 #include "effects.h"
 #include "game_lists.h"
 #include "lightning.h"
@@ -17,6 +18,7 @@
 #include "originals_units.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -35,7 +37,6 @@ __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x004
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
 // The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
 __declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
-void* TheRandom() { return ei::GamePointer<void>(0x007A9D40); }
 
 
 void ClearBase(CEffect* e) {
@@ -99,7 +100,7 @@ std::uint32_t InlineRandom() {
     auto* count = ei::GamePointer<std::uint32_t>(0x007A9D44);
     std::uint32_t index = (*count)--;
     if (index == 0) {
-        RandomRefill(TheRandom());
+        RandomRefill(&IsaacRandom::Global());
         *count = 0xFF;
     }
     return ei::GamePointer<const std::uint32_t>(0x007A9D48)[*count];
@@ -347,7 +348,7 @@ void CEffectParticle::Spawn() {
     Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
-    int age = GameTick() - startTick_;
+    int age = CurrentClientTick() - startTick_;
     if (!IsOneShotType(type_) && age >= 30) age = 30;
     if (age > 1) {
         for (int left = age - 1; left != 0; --left) source_->AsObject()->RunTick();
@@ -356,15 +357,15 @@ void CEffectParticle::Spawn() {
     if (type_ == 0x2002) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float radius = param164_;
-        float angle = RandomAngle(RandomNext(static_cast<IsaacRandom*>(TheRandom())));
-        WorldClient()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
+        float angle = RandomAngle(RandomNext((&IsaacRandom::Global())));
+        TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
     if (type_ == 0x2030) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
         float radius = size_;
         float angle = RandomAngle(random);
-        WorldClient()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
+        TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
         static_cast<CCamera*>(CameraObject())->Shake(&localPosition_, size_, 2.0f, 0.25f);
     }
 }
@@ -418,7 +419,7 @@ void CEffectParticle::Attach() {
             return;
         }
     }
-    void* object = FindObject(ObjectManager(), nullptr, attachedTo_);
+    void* object = FindObject(TheObjectManager(), nullptr, attachedTo_);
     Vector3 saved;
     std::memcpy(&saved, &source_->position, sizeof(Vector3));
     ParticleSourceAttachOriginal(source_, nullptr, object);
@@ -526,7 +527,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
         float shape[2];   // angle, outer
         WallScorchShape(&direction_, &half, shape);
         float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
-        WorldClient()->AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
+        TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
     }
     return 1;
 }

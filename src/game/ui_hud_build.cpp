@@ -18,6 +18,7 @@
 #include "lib/vecmath.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -48,7 +49,7 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*
 // The tooltips' labels: the texts "infoitem_<id>" appended in order.
 template <int N>
 void AddLabels(mfc::CStringArray* labels, const int (&ids)[N]) {
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString text;
     for (int id : ids) {
         text.Format("infoitem_%d", id);
@@ -317,7 +318,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
     unit_ = nullptr;
     mfc::CString text;
-    GameTexts()->GetString("infoitem_16", &text);
+    TheTextManager()->GetString("infoitem_16", &text);
     labels->SetAtGrow(labels->size, text);
     widescreen::LeavePanel();        // addon's 10023430
     return this;

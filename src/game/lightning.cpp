@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <concepts>
@@ -27,7 +28,6 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise (00468A00).
@@ -42,7 +42,6 @@ float* NoiseUp() { return ei::GamePointer<float>(0x0079C838); }
 const float* BranchFrequencies() { return ei::GamePointer<const float>(0x00787C8C); }
 
 // World clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
-int GameTicks() { return ei::GameData<const volatile int>(0x007AF61C); }
 float GameTickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
 
 constexpr double kNoiseScale = 0x1.0000000100000p-31;   // 0073C508: about 2 / 2^32
@@ -64,8 +63,8 @@ template <std::floating_point T> float FromBits(T) = delete;
 void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
     float sum = 0.0f;
     for (int i = 0; i < 2; ++i) {
-        key.index[i] = Rng()->Next() & 0xF;
-        double v = Unsigned(Rng()->Next()) * kNoiseScale - 1.0;
+        key.index[i] = (&IsaacRandom::Global())->Next() & 0xF;
+        double v = Unsigned((&IsaacRandom::Global())->Next()) * kNoiseScale - 1.0;
         key.weight[i] = static_cast<float>(v);
         sum = static_cast<float>(v * v + sum);
     }
@@ -324,7 +323,7 @@ EI_REPLACE_METHOD(0x00467150, CLightning::UpdateBounds);
 
 void CLightning::Animate() {
     float sway = amplitude_;
-    float time = static_cast<float>((static_cast<double>(GameTicks()) + GameTickFraction()) / 4.0);
+    float time = static_cast<float>((static_cast<double>(CurrentClientTick()) + GameTickFraction()) / 4.0);
     main_.Animate(time, NoiseAmplitude(power_));
     EI_NAN_AUDIT(power_);
     if (power_ != 0.0f) {
@@ -409,9 +408,9 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
             double reachExt = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * kOffsetFactor;
             float reach = static_cast<float>(reachExt);
             float low = static_cast<float>(-reachExt);
-            std::uint32_t r1 = Rng()->Next();
-            std::uint32_t r2 = Rng()->Next();
-            std::uint32_t r3 = Rng()->Next();
+            std::uint32_t r1 = (&IsaacRandom::Global())->Next();
+            std::uint32_t r2 = (&IsaacRandom::Global())->Next();
+            std::uint32_t r3 = (&IsaacRandom::Global())->Next();
             float ox = static_cast<float>((static_cast<double>(reach) - low) * Unsigned(r3) * kRandomScale + low);
             float oy = static_cast<float>((static_cast<double>(reach) - low) * Unsigned(r2) * kRandomScale + low);
             double ozExt = (static_cast<double>(reach) - low) * Unsigned(r1) * kRandomScale + low;

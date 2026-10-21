@@ -32,6 +32,7 @@
 #include "originals_library.h"
 #include "world_effect.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <bit>
 #include <cstring>
@@ -162,7 +163,7 @@ void CUnitServer::FinishAction(int location, char) {
         if (item && item->GetCategory() == kQuickItemConsumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
-            WorldServer()->UseQuickItem(item, unit);
+            TheServerWorld()->UseQuickItem(item, unit);
             item->Release();
         }
         action.kind = 9;
@@ -223,7 +224,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = ObjectSlots(target)->AimPoint(&point);
-    static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, self, &self->position, target, at, 0);
+    static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, self, &self->position, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
@@ -240,7 +241,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         UseItemCharge(item, cost);
         CUnit* self = unit;
-        static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, self, &self->position, self, &self->position, 0);
+        static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, self, &self->position, self, &self->position, 0);
     }
 }
 EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
@@ -430,8 +431,8 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     void* world = ManagerContext();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
-        if (char* player = unit->player) static_cast<CWorldServer*>(WorldServer())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
-        WorldRemoveObject(WorldServer(), nullptr, target->id_);
+        if (char* player = unit->player) static_cast<CWorldServer*>(TheServerWorld())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
+        WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
         return;

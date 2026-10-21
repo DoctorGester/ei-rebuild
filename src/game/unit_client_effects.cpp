@@ -19,6 +19,7 @@
 #include "originals_effects.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 namespace {
@@ -189,7 +190,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     offset = RandomBelow(x87::fistp(spread));
     at.y = static_cast<float>(offset * kSpreadStep - reach + at.y);
     std::uint32_t variant = DecalVariant();
-    WorldClient()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
+    TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
 EI_REPLACE_METHOD(0x00537500, CUnitClientSpecific::HitEffect);
 
@@ -224,7 +225,7 @@ void CUnitClientSpecific::DeathEffect() {
         at.z = unit->position.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
-    WorldClient()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
+    TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
 EI_REPLACE_METHOD(0x005373D0, CUnitClientSpecific::DeathEffect);
 

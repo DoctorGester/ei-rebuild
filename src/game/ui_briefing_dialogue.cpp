@@ -40,13 +40,12 @@ namespace {
 
 const char* BriefingSection() { return "briefing "; }
 const char* HumanPrototype() { return "unhuma"; }
-void* MusicSystem() { return ei::GameData<void* const>(0x007AF760); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);
 ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0)); }
+WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(0)); }
 
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;
@@ -67,13 +66,13 @@ constexpr int kThirdPlace = 2;
 // --- 00608210 -----------------------------------------------------------------------------------
 
 void CBriefingScreen::StartPhrases() {
-    if (voice_ != -1) sound::Manager()->StopSound(voice_);
+    if (voice_ != -1) TheSoundManager()->StopSound(voice_);
     voice_ = -1;
-    static_cast<CMusicSystem*>(MusicSystem())->FadeOut();
+    TheMusicSystem()->FadeOut();
     // (The original also constructs and destroys an unused CStringArray here.)
     mfc::CString key(BriefingSection());
     key += topic_;
-    if (!TextsOpenSection(GameTexts(), nullptr, key)) {
+    if (!TextsOpenSection(TheTextManager(), nullptr, key)) {
         state_ = 0;
         return;
     }
@@ -81,7 +80,7 @@ void CBriefingScreen::StartPhrases() {
     if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
-    const CCamera* camera = camera::TheCamera();
+    const CCamera* camera = TheCamera();
     savedCamera_ = camera->localPosition_;
     const Quaternion& q = camera->localRotation_;
     double zz = q.z * q.z;
@@ -116,7 +115,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     } else {
         number = human ? kHumanListen[IsaacRandom::Global().Next() & 3] : kListen;
     }
-    auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_));
+    auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_));
     if (!serverUnit) return;
     auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
     controller->StopAction();
@@ -134,7 +133,7 @@ EI_REPLACE_METHOD(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 // briefing screen unchecked, as the original does; the count is read again after each call.
 void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
-    auto* unit = reinterpret_cast<CUnit*>(WorldFindUnit(ei::GamePointer<void>(0x007AF5B8), nullptr, serverUnit->id_));
+    auto* unit = reinterpret_cast<CUnit*>(WorldFindUnit(TheClientWorld(), nullptr, serverUnit->id_));
     if (!unit) return;
     auto* screen = static_cast<CBriefingScreen*>(InterfaceActiveWindowOriginal(TheInterface()));
     for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
@@ -320,7 +319,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         auto* model = reinterpret_cast<CUnitClientSpecific*>(person->controller);
         model->blinks = 0;
         model->BlinkOpen(true);
-        if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, person->id_))) {
+        if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, person->id_))) {
             serverUnit->SetFlag40000000Off(true);
             GameSetUnitHeight(person->id_, 0.0f);
             auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);

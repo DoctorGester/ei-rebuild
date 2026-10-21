@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -21,7 +22,6 @@ namespace {
 
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-CCamera* Camera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
 
 bool ModifierHeld(const CInterface3D* ui) {
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(ui);
@@ -51,9 +51,9 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
     case 16: {
         unsigned slot = static_cast<unsigned>(character - 13);
         if (ModifierHeld(interface_))
-            Camera()->SaveView(slot);
+            TheCamera()->SaveView(slot);
         else
-            Camera()->RestoreView(slot);
+            TheCamera()->RestoreView(slot);
         handled_ = true;
         return;
     }
@@ -68,17 +68,17 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
         float speed = static_cast<float>(D(GameFloat(0x0079BDC0)) * D(GameFloat(0x0079BDB8)));
         direction.x = static_cast<float>(D(y_) * D(speed));
         direction.y = static_cast<float>(D(left) * D(speed));
-        Camera()->Pan(&direction);
-        Camera()->SetTurnRate(0.0f);
-        Camera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
-        Camera()->SetTiltRate(0.0f);
+        TheCamera()->Pan(&direction);
+        TheCamera()->SetTurnRate(0.0f);
+        TheCamera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+        TheCamera()->SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
-    Camera()->Pan(&direction);
-    Camera()->SetTurnRate(static_cast<float>(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
-    Camera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
-    Camera()->SetTiltRate(
+    TheCamera()->Pan(&direction);
+    TheCamera()->SetTurnRate(static_cast<float>(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
+    TheCamera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+    TheCamera()->SetTiltRate(
         static_cast<float>(D(GameFloat(0x0079BDD8)) * D(GameFloat(0x0079BDD0)) * D(x_) * D(50.0f /*0074023C*/)));
 }
 

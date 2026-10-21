@@ -33,6 +33,7 @@
 #include "originals_ui.h"
 #include "originals_engine.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <concepts>
 #include <cstdint>
@@ -67,15 +68,14 @@ float AbsBits(float f) {
 // A zone of the map database: its picture (picture2, the texture shown here), its size in map
 // cells and its exits (the deploy rectangle x1, y1, x2, y2 and the target zone, "none" when it
 // leads nowhere).
-MapRecord* FindZone(const char* name) { return ei::GamePointer<CMapDatabase>(0x0079BF00)->FindMap(name); }
+MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 
-CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 struct UiTexts {
     // 004DEFC0 (not rewritten). Finds text `key`; non-zero when found (the cursor at its start).
     int Find(const char* key);
 };
 int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-int FindText(const char* key) { return reinterpret_cast<UiTexts*>(Texts())->Find(key); }
+int FindText(const char* key) { return reinterpret_cast<UiTexts*>(TheTextManager())->Find(key); }
 
 // The quest the window last selected (a global CString).
 mfc::CString& LastQuest() { return ei::GameData<mfc::CString>(0x007C8178); }
@@ -364,8 +364,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 foundText = FindText(key);
             }
             if (foundText) {
-                Texts()->ReadLine(&title, 1);
-                Texts()->ReadToHash(&text, 1);
+                TheTextManager()->ReadLine(&title, 1);
+                TheTextManager()->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_.data[1];
                 UiSurfaceGetDC(surface);
                 SurfaceClearOriginal(surface);
@@ -407,7 +407,7 @@ bool SameText(const char* a, const char* b) {
 } // namespace
 
 void CObjectivesWindow::ShowQuest() {
-    CTextManager* texts = Texts();
+    CTextManager* texts = TheTextManager();
     mfc::CString line;
     mfc::CString part;
     mfc::CString text;
@@ -530,7 +530,7 @@ void CObjectivesWindow::Build() {
     mfc::CStringArray* objectiveTexts = &objectiveTexts_;
     for (int k = 0; k < 3; ++k) {
         key.Format("obj_%d", k);
-        Texts()->GetString(key, &text);
+        TheTextManager()->GetString(key, &text);
         objectiveTexts->SetAtGrow(objectiveTexts->GetSize(), text);
     }
 
@@ -683,7 +683,7 @@ void CObjectivesWindow::Build() {
     interface_->OpenHelp(0);
 }
 void CObjectivesWindow::DrawQuestList() {
-    CTextManager* texts = Texts();
+    CTextManager* texts = TheTextManager();
     mfc::CString title;
     mfc::CString variable;
     auto mesh = [this](int index) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); };

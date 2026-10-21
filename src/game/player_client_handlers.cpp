@@ -50,7 +50,7 @@ const char* FixedViewZone() { return "gz20g"; }
 const Quaternion& FixedViewRotation() { return ei::GameData<const Quaternion>(0x007C8388); }
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
 
-CEngineObject* FindClientUnit(int id) { return WorldFindUnit(WorldClient(), nullptr, id); }
+CEngineObject* FindClientUnit(int id) { return WorldFindUnit(TheClientWorld(), nullptr, id); }
 
 // CPlayerClient is a CPlayerConnection (vtable 00743180), not declared as one.
 CPlayerConnection* AsConnection(CPlayerClient* client) { return reinterpret_cast<CPlayerConnection*>(client); }
@@ -78,8 +78,8 @@ int CPlayerClient::OnCameraPlacement() {
     in_.Read(&heading, 4);
     int mode;
     const int result = static_cast<int>(in_.Read(&mode, 4));
-    WorldClient()->CentreOn(&point);
-    CCamera* camera = camera::TheCamera();
+    TheClientWorld()->CentreOn(&point);
+    CCamera* camera = TheCamera();
     const char* zone = Owner()->Party()->zone_;
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zone),
                         reinterpret_cast<const unsigned char*>(FixedViewZone())) == 0) {
@@ -109,7 +109,7 @@ int CPlayerClient::OnGameState() {
     player->sessionKind100_ = state;
     TheInterface()->CreateScreen(state);
     WorldTick() = tick;
-    if (state == kGameStateBetweenZones) WorldClient()->LoadUnitFaces();
+    if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
     for (CPlayer::ObjectMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
         AsConnection(this)->UnitChanged(static_cast<CUnit*>(node->value));
     if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(TheGameFlow());
@@ -149,8 +149,8 @@ int CPlayerClient::OnFreeCamera() {
     in_.Read(&to, 12);
     std::uint8_t free = 0;
     in_.Read(&free, 1);
-    camera::TheCamera()->LookFrom(&from, &to, 0);
-    camera::TheCamera()->SetFree(free != 0);
+    TheCamera()->LookFrom(&from, &to, 0);
+    TheCamera()->SetFree(free != 0);
     return 1;
 }
 
@@ -198,7 +198,7 @@ int CPlayerClient::OnUnitControl() {
     auto* unit = static_cast<CUnit*>(FindClientUnit(unitId));
     switch (kind) {
     case 0:
-        if (unit) static_cast<CWorldClient*>(WorldClient())->Select(unit);
+        if (unit) static_cast<CWorldClient*>(TheClientWorld())->Select(unit);
         return 1;
     case 1:
     case 2: {
@@ -210,7 +210,7 @@ int CPlayerClient::OnUnitControl() {
         return 1;
     }
     case 3:
-        WorldClient()->Deselect(nullptr);
+        TheClientWorld()->Deselect(nullptr);
         return 1;
     default:
         return 0;
@@ -241,14 +241,14 @@ int CPlayerClient::OnObjectRemoved() {
     player->knownObjects_.Erase(player->knownObjects_.Find(id));
     object->flags_ |= kFlagGone;
     object->Release();
-    WorldClient()->RemoveObject(object->id_);
+    TheClientWorld()->RemoveObject(object->id_);
     return 1;
 }
 
 int CPlayerClient::OnUnitDied() {
     int id;
     in_.Read(&id, 4);
-    CEngineObject* object = camera::ObjectManager()->FindObject(static_cast<unsigned>(id));
+    CEngineObject* object = TheObjectManager()->FindObject(static_cast<unsigned>(id));
     if (object && object->GetClassId() == kUnitClassId) static_cast<CUnit*>(object)->Controller()->Died();
     return 1;
 }
@@ -300,7 +300,7 @@ int CPlayerClient::OnWeather() {
 int CPlayerClient::OnWorldTime() {
     float values[2];   // time, speed
     in_.Read(values, 8);
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     world->CWorld::SetTimeSpeedImpl(values[1]);
     world->CWorld::SetTimeImpl(values[0]);
     world->UpdateLighting();
@@ -312,12 +312,12 @@ int CPlayerClient::OnWorldPoint() {
     in_.Read(&point, 12);
     int value;
     in_.Read(&value, 4);
-    WorldClient()->ApplyWind(&point, std::bit_cast<float>(value));
+    TheClientWorld()->ApplyWind(&point, std::bit_cast<float>(value));
     return 1;
 }
 
 int CPlayerClient::OnWorldStream() {
-    WorldClient()->ReadWaterLevels(&in_);
+    TheClientWorld()->ReadWaterLevels(&in_);
     return 1;
 }
 

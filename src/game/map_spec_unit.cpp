@@ -25,6 +25,7 @@
 #include "world_data.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace mapspec {
 
@@ -374,10 +375,10 @@ EI_REPLACE(0x0046C2F0, UnitStatsDestruct);
 void __fastcall UnitSpecApply(UnitSpec* self) {
     Spec& b = self->object.base;
     if (!b.object) {
-        WorldMakeObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, &b);
+        WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
         return;
     }
-    SectorMapMove(ei::GamePointer<void>(0x007B01F4), nullptr, AsEngineObject(b.object), &b.position);
+    SectorMapMove(TheSectorMap(), nullptr, AsEngineObject(b.object), &b.position);
     ei::GamePointer<CAIMap>(0x007B00D0)->TurnObject(static_cast<CEngineObject*>(b.object), &b.rotation);
     auto* unit = static_cast<CUnit*>(b.object);
     std::memcpy(&unit->orientation, &b.rotation, 16);

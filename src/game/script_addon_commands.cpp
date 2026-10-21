@@ -24,6 +24,7 @@
 #include "originals_world.h"
 #include "originals_engine.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <windows.h>
 
@@ -43,7 +44,7 @@ int& DrawAllUnits() { return ei::GameData<int>(0x0079BE6C); }
 // 007C554C: the loading screen's movie is off (LoadingMovie::off, bink_video.cpp).
 std::uint8_t& LoadingMovieOff() { return ei::GameData<std::uint8_t>(0x007C554C); }
 
-WorldPlayer* GetPlayer(int number) { return WorldServer()->GetPlayer(number); }
+WorldPlayer* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data; }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
 CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]->object; }
@@ -127,7 +128,7 @@ bool GSGetPlayerVar(Call* call) {
 // the player exists: null takes the multiplayer path).
 bool GiveExp(Call* call) {
     WorldPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
-    WorldServer()->AwardExperience(player, Floats(call)[1]);
+    TheServerWorld()->AwardExperience(player, Floats(call)[1]);
     return true;
 }
 
@@ -184,8 +185,8 @@ bool Loot(Call* call) {
     if (!unit) return Report("Loot", "Object doesn't exist");
     if (!IsUnit(unit)) return Report("Loot", "Object must be a unit");
     if (ObjectSlots(unit)->IsDead() == 0) return Report("Loot", "Object must be dead");
-    WorldServer()->Loot(unit, player);
-    WorldRemoveObject(WorldServer(), nullptr, unit->id_);
+    TheServerWorld()->Loot(unit, player);
+    WorldRemoveObject(TheServerWorld(), nullptr, unit->id_);
     return true;
 }
 
@@ -241,7 +242,7 @@ bool GiveUnitWeapon(Call* call) {
     if (!unit) return Report("GiveUnitWeapon", "Unit doesn't exists");
     if (!IsUnit(unit)) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", unit->id_);
     const char* name = Text(call, 0);
-    auto* item = static_cast<CItemWeapon*>(WorldServer()->CreateItemNamed(name));
+    auto* item = static_cast<CItemWeapon*>(TheServerWorld()->CreateItemNamed(name));
     if (override && unit->id_ >= 1000000000) override = false;   // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
     int slot = static_cast<CUnit*>(unit)->AddWeapon(item);
@@ -279,7 +280,7 @@ bool GiveUnitArmor(Call* call) {
     if (!unit) return Report("GiveUnitArmor", "Unit doesn't exists");
     if (!IsUnit(unit)) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", unit->id_);
     const char* name = Text(call, 0);
-    CEngineObject* item = WorldServer()->CreateItemNamed(name);
+    CEngineObject* item = TheServerWorld()->CreateItemNamed(name);
     if (override && unit->id_ >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
     static_cast<CUnit*>(unit)->EquipArmour(item);
@@ -330,7 +331,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsMultiplayerClient()) WorldClient()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsMultiplayerClient()) TheClientWorld()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 
@@ -347,7 +348,7 @@ bool SetWeather(Call* call) {
         kind = 2;
         strength = 40.0f;
     }
-    WorldServer()->SetWeather(kind, strength);
+    TheServerWorld()->SetWeather(kind, strength);
     return true;
 }
 
@@ -359,7 +360,7 @@ bool AddMobEx(Call* call) {
     file = Text(call, 0);
     bool keepIds = call->cmd->floatArgs.size != 0 && Equals(1.0f, Floats(call)[0]);
     LoadingMovieOff() = 1;
-    int loaded = WorldServer()->LoadMapObjects(file, keepIds ? 1 : 0);
+    int loaded = TheServerWorld()->LoadMapObjects(file, keepIds ? 1 : 0);
     LoadingMovieOff() = 0;
     if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", static_cast<const char*>(file));
     return true;

@@ -26,6 +26,7 @@
 #include "lib/vecmath.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -361,11 +362,11 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
                            std::uint16_t* indices, int indexCount, int flags) {
     // The new renderer (src/render) takes the draw; with the old path's objects off it is skipped.
     if (render::TlDraw(this, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
-        gameapi::EnterCriticalSection(device::Lock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(this), 
             static_cast<D3DPRIMITIVETYPE>(primitive), static_cast<DWORD>(fvf), vertices, static_cast<DWORD>(vertexCount),
             indices, static_cast<DWORD>(indexCount), static_cast<DWORD>(flags));
-        gameapi::LeaveCriticalSection(device::Lock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
     vertexCount_ += vertexCount;
     primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);

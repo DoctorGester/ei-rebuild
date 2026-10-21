@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "originals_world.h"
+#include "game_singletons.h"
 
 namespace {
 constexpr int kCursorArrow = 0;
@@ -28,11 +29,11 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
-        GameCursor()->SetShape(kCursorPickPlayer);
+        TheCursor()->SetShape(kCursorPickPlayer);
         if (portraits_) portraits_->InputMouseMove(buttons, x, y);
         return;
     }
-    GameCursor()->SetShape(kCursorArrow);
+    TheCursor()->SetShape(kCursorArrow);
     if (viewPressed_ && BoxSelectThreshold() > 0 && !IsMultiplayerClient()) {
         int threshold = BoxSelectThreshold();
         if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) boxSelecting_ = true;
@@ -51,7 +52,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     }
     // The original passes the address of its own (x, y) arguments and reads them back.
     int point[2] = {x, y};
-    CUnit* unit = static_cast<CUnit*>(WorldClient()->UnitAt(reinterpret_cast<const long*>(point)));
+    CUnit* unit = static_cast<CUnit*>(TheClientWorld()->UnitAt(reinterpret_cast<const long*>(point)));
     HoverUnit(unit, point[0], point[1]);
 }
 namespace {
@@ -81,7 +82,7 @@ EI_REPLACE_METHOD(0x00638A40, InputForward<&CBattleScreen::OnLButtonDown>::Call)
 // --- 0063B920: a unit's name line --------------------------------------------------------------
 
 void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString name;
     name = unit->GetName();
     if (name.GetLength() != 0) {

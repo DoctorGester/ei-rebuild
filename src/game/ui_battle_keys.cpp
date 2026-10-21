@@ -26,6 +26,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -85,7 +86,7 @@ constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 // The screen as the panels know it (the same object; ui.h).
 CBattleScreen* Hud(CBattleScreen* screen) { return screen; }
-CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
+CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
 
 // The action column's button of an action name: "follow" is button 0, any other name button 1
 // (the original compares the two constant names inline).
@@ -164,7 +165,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 
     const int action = KeyActions()[flags & kScanCodeMask];
-    CCamera* camera = camera::TheCamera();
+    CCamera* camera = TheCamera();
     switch (action) {
     case kActionPause: {
         auto* clock = static_cast<CHudClock*>(clock_);
@@ -234,7 +235,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionMoveMode + 3: {
         auto* panel = static_cast<CHudMovePanel*>(movePanel_);
         const int mode = action - kActionMoveMode;
-        if (WorldClient()->LocalView()) {
+        if (TheClientWorld()->LocalView()) {
             panel->interface_->PlaySound(ClickSound(), 0);
             for (int i = 0; i < panel->owner_->party_.size; ++i) {
                 CUnit* unit = panel->owner_->party_[i];
@@ -342,7 +343,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(OnOffSound(), 0);
         for (int i = 0; i < hud->party_.size; ++i) {
             MarkPortrait(i);
-            if (CUnit* unit = hud->party_[i]) static_cast<CWorldClient*>(WorldClient())->Select(unit);
+            if (CUnit* unit = hud->party_[i]) static_cast<CWorldClient*>(TheClientWorld())->Select(unit);
         }
         if (hud->party_.size != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
         RefreshSelection();

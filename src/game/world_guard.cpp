@@ -15,7 +15,6 @@
 
 namespace {
 
-IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 char& GuardPlain() { return ei::GameData<char>(0x0079026C); }            // 1: data in the clear
 std::uint32_t& GuardKey() { return ei::GameData<std::uint32_t>(0x007AFECC); }
@@ -59,7 +58,7 @@ void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t k
 
 void __fastcall GuardPlayerData(void* /*glue*/, void*, char plain) {
     if (plain == GuardPlain()) return;
-    if (!plain) GuardKey() = Random().Next();   // a new key each time the data is hidden
+    if (!plain) GuardKey() = IsaacRandom::Global().Next();   // a new key each time the data is hidden
     GuardPlayers(ClientPlayers(), 0, GuardKey());
     GuardPlayers(ServerPlayers(), 1, GuardKey());
     std::uint32_t key = GuardKey();

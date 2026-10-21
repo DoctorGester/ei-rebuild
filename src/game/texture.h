@@ -245,7 +245,6 @@ static_assert(offsetof(CTextureDevice, depthFormats_) == 0xB4 && offsetof(CTextu
 static_assert(offsetof(CTextureDevice, batch_) == 0xD4 && offsetof(CTextureDevice, batch2_) == 0xF4);
 
 // The renderer's device object (the global pointer at 007AF080).
-inline CTextureDevice* RenderDeviceObject() { return ei::GameData<CTextureDevice* const>(0x007AF080); }
 // 004EF610 (device_present.cpp): the device object's present, once a frame. Returns the DirectDraw
 // result: 0.
 long __fastcall DevicePresent(CTextureDevice* device);

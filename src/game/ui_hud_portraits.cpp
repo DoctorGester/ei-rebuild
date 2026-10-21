@@ -43,7 +43,6 @@ float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle
 const Quaternion* Identity() { return ei::GamePointer<const Quaternion>(0x007C8150); }
 bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
 int SelectedUnitId() { return ei::GameData<const volatile int>(0x0079B3C4); }
-IsaacRandom* Random() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
@@ -235,16 +234,16 @@ void CHudPortraits::Update() {
         // a turn towards a random target.
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind_ == 0 && dt > 0.0f) {
-            std::uint32_t roll = Random()->Next();
+            std::uint32_t roll = (&IsaacRandom::Global())->Next();
             if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * RandomScale32()) {
-                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(Random()->Next()) * RandomDelayScale());
+                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned((&IsaacRandom::Global())->Next()) * RandomDelayScale());
                 slot.wobbleKind_ = 3;
-                std::uint32_t r1 = Random()->Next();
-                std::uint32_t r2 = Random()->Next();
+                std::uint32_t r1 = (&IsaacRandom::Global())->Next();
+                std::uint32_t r2 = (&IsaacRandom::Global())->Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(Random()->Next()) * RandomScale31() + 1.0f);
+                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned((&IsaacRandom::Global())->Next()) * RandomScale31() + 1.0f);
             }
         }
         if (slot.wobbleKind_ != 0) {

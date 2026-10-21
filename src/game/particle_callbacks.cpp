@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <concepts>
 
@@ -4310,7 +4311,7 @@ Vector3* UnitPoint(void* unit, Vector3* out, int index) {
     return (*static_cast<Fn**>(unit))[52](unit, out, index);
 }
 double TerrainHeight(float x, float y) {
-    void* terrain = ei::GamePointer<void>(0x007AF5B8);
+    void* terrain = TheClientWorld();
     using Fn = double(__thiscall*)(void*, float, float);
     return (*static_cast<Fn**>(terrain))[28](terrain, x, y);
 }
@@ -4352,7 +4353,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
-    Vector3 point = *UnitPoint(unit, &scratch, index + ei::GameData<const int>(0x007AF61C));
+    Vector3 point = *UnitPoint(unit, &scratch, index + CurrentClientTick());
     float* mark = ElementFloat(elements, 0x18);
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     std::memcpy(mark, &point, sizeof(Vector3));

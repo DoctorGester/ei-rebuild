@@ -20,6 +20,7 @@
 #include "device_buffers.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -176,11 +177,11 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
     // The new renderer (src/render) takes the draw (after the fog above); with the old path's
     // objects off it is skipped.
     if (render::TlDraw(this, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
-        gameapi::EnterCriticalSection(device::Lock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(this), 
             D3DPT_TRIANGLELIST, kFvfTlVertex, vertices, static_cast<DWORD>(vertexCount), indices,
             static_cast<DWORD>(indexCount), 0);
-        gameapi::LeaveCriticalSection(device::Lock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
     vertexCount_ += vertexCount;
     primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);

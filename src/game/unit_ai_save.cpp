@@ -6,6 +6,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 
@@ -64,10 +65,10 @@ EI_REPLACE(0x005D91B0, SaveLooks);
 
 void AIBrain::LoadMemory(CStream* stream) {
     noticedKind = -1;
-    CountedListLoad(&nearby, stream, WorldServer());
-    CountedListLoad(&visible, stream, WorldServer());
-    CountedListLoad(&seenCorpses, stream, WorldServer());
-    CountedListLoad(&corpses, stream, WorldServer());
+    CountedListLoad(&nearby, stream, TheServerWorld());
+    CountedListLoad(&visible, stream, TheServerWorld());
+    CountedListLoad(&seenCorpses, stream, TheServerWorld());
+    CountedListLoad(&corpses, stream, TheServerWorld());
     stream->Read(&noticedX, 8);         // x and y
     stream->Read(&noticedLevel, 4);
     stream->Read(&nearbyCountdown, 4);
@@ -75,7 +76,7 @@ void AIBrain::LoadMemory(CStream* stream) {
     stream->Read(&count, 4);
     reports.SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
-        reinterpret_cast<AIRef*>(&reports.data[i].object)->Load(stream, WorldServer());
+        reinterpret_cast<AIRef*>(&reports.data[i].object)->Load(stream, TheServerWorld());
         stream->Read(&reports.data[i].what, 4);
     }
     stream->Read(&count, 4);

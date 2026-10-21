@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -44,7 +45,7 @@ CSpell* SpellOf(CEngineObject* item) { return static_cast<CSpell*>(static_cast<C
 bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, char quick) {
     CUnit* target = unit;
     if (SpellIsOffensiveOriginal(spell)) {
-        target = static_cast<CUnit*>(WorldClient()->NearestVisibleUnit(unit));
+        target = static_cast<CUnit*>(TheClientWorld()->NearestVisibleUnit(unit));
         if (!target) {
             ui->PlaySound(kSoundNoMagic, 0);
             screen->SetPendingAction(kPendingNone, -1, -1);

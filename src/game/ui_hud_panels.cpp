@@ -21,6 +21,7 @@
 #include "unit_db.h"
 #include "world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -69,7 +70,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 CUiScrollText* MessageLog(CBattleScreen* screen) { return static_cast<CUiScrollText*>(screen->children_.data[9]); }
 
 // The local view, whose SetUnitFlag438 (0066AF30) sets a unit's +0x438 flag and sends it to the server.
-CPlayerClient* Orders() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
+CPlayerClient* Orders() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
 
 } // namespace
 
@@ -174,7 +175,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     static constexpr int kPlaceX[kPlaces] = {0, 0, 64, 64, 64, 64};
     static constexpr int kPlaceY[kPlaces] = {128, 192, 0, 64, 128, 192};
 
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     CUiSurface* surface = surfaces_.data[0];
     mfc::CString code, text, number;
     int icons[kPlaces], places[kPlaces];
@@ -279,10 +280,10 @@ void CHudTopPanel::ShowPage() {
 EI_REPLACE_METHOD(0x0064A320, CHudTopPanel::ShowPage);
 
 void CHudTopPanel::ShowItems() {
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
     mfc::CTypedPtrList<CItem> merged{ei::GamePointer<void>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     mfc::CString line;
     mfc::CString format;
     for (auto* node = player->items.head; node;) {
@@ -295,7 +296,7 @@ void CHudTopPanel::ShowItems() {
             same->count_ += item->count_;
             continue;
         }
-        CItem* copy = WorldCopyItemOriginal(WorldClient(), nullptr, item);
+        CItem* copy = WorldCopyItemOriginal(TheClientWorld(), nullptr, item);
         copy->count_ = item->count_;
         ++copy->refCount_;
         merged.AddTail(copy);

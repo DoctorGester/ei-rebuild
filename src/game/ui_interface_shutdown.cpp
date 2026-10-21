@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 namespace {
 constexpr int kCursorWait = 3;
@@ -37,7 +38,7 @@ void CInterface3D::ResetInput() {
 EI_REPLACE_METHOD(0x005F8C50, CInterface3D::ResetInput);
 
 void CInterface3D::Shutdown() {
-    GameCursor()->SetShape(kCursorWait);
+    TheCursor()->SetShape(kCursorWait);
     while (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Input()->Deactivate();
         stackEnd_[-1]->CloseWindow();

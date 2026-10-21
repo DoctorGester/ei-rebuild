@@ -34,9 +34,6 @@
 namespace {
 
 // The game flow.
-void* MusicSystem() { return ei::GameData<void* const>(0x007AF760); }
-IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
-CBaseManager* ObjectManager() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
 
 // The width of the fade at the map's edges (read by 006CB020 / 006CB118; 00578D60 / 00578D70 get
 // and set it). The menu shows its world with 6.
@@ -74,7 +71,7 @@ const char* const kIntroMovie = "Movies\\Intro.bik";
 constexpr int kStoneAnimation[6] = {1, 3, 5, 7, 11, 9};
 
 // A random word scaled to [0, scale) as the original loads it (FILD qword of the unsigned word).
-double RandomScaled(double scale) { return x87::FromUnsigned(Random().Next()) * scale; }
+double RandomScaled(double scale) { return x87::FromUnsigned(IsaacRandom::Global().Next()) * scale; }
 
 } // namespace
 
@@ -104,7 +101,7 @@ void CMainMenu::AddVersionLine() {
     UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     mfc::CString text;
-    TextsGetString(GameTexts(), nullptr, kVersionKey, &text);
+    TextsGetString(TheTextManager(), nullptr, kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
     SurfaceDrawText(surface, nullptr, text, &rect, 2, 0xA7D7E4, 2, 1);
     UiSurfaceReleaseDC(surface);
@@ -135,7 +132,7 @@ void CMainMenu::Create() {
     GamePlayMusic(nullptr);
     savedEdgeFade_ = MapEdgeFade();
     MapEdgeFade() = kMenuEdgeFade;
-    rain_ = (Random().Next() & 1) == 1;
+    rain_ = (IsaacRandom::Global().Next() & 1) == 1;
     // The hour is read three times (the original compares the unrounded result each time).
     EI_NAN_AUDIT(GameServerTimeOfDay());
     daylight_ = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
@@ -144,7 +141,7 @@ void CMainMenu::Create() {
     GameStartAmbience();
     GameShowCameraPath(kCameraPath);
     hour_ = 0.0f;
-    static_cast<CMusicSystem*>(MusicSystem())->PlayMainMenu();
+    TheMusicSystem()->PlayMainMenu();
 }
 EI_REPLACE_METHOD(0x006326B0, CMainMenu::Create);
 
@@ -161,7 +158,7 @@ void CMainMenu::Update() {
         std::uint32_t now = gameapi::GetTickCount();
         if (now > NextLightningTick()) {
             NextLightningTick() = now + 100;
-            if (Random().Next() % 41 == 4) {
+            if (IsaacRandom::Global().Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.
                 float fromX = static_cast<float>(RandomScaled(4.656612874161595e-09));    // 0073CD60
@@ -213,7 +210,7 @@ EI_REPLACE_METHOD(0x00632940, CMainMenu::OnMessageResult);
 // --- 00633400 / 00633540: the mouse move and the keys -------------------------------------------
 
 void CMainMenu::OnMouseMove(int buttons, int x, int y) {
-    if (auto* stones = reinterpret_cast<CObject3D*>(static_cast<CBaseManager*>(ObjectManager())->FindObject(kStonesObject))) {
+    if (auto* stones = reinterpret_cast<CObject3D*>(TheObjectManager()->FindObject(kStonesObject))) {
         int region = RegionAt(x, y);
         mfc::CString name(stones->name);
         if (region != hovered_) {
@@ -221,7 +218,7 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = reinterpret_cast<CMapObjectManager*>(ObjectManager())->FindAnimation(&name, kRestPoseKind);
+                animation = reinterpret_cast<CMapObjectManager*>(TheObjectManager())->FindAnimation(&name, kRestPoseKind);
             static_cast<CObject3D*>(stones)->PlayAnimation(static_cast<FigureAnimation*>(animation), 1);
             interface_->PlaySound(kStoneSound, 0);
         }

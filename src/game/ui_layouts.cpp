@@ -58,7 +58,6 @@ struct UiTexts {
     int Find(const char* key);
 };
 int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 } // namespace
 
 namespace {
@@ -224,12 +223,12 @@ void COptionsWindow::Build() {
         AddSprite(0)->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text.Format("tip option_group_%s", OptionGroupName(k));
-        if (reinterpret_cast<UiTexts*>(Texts())->Find(text) != 0) Texts()->ReadToHash(&text, 1);
+        if (reinterpret_cast<UiTexts*>(TheTextManager())->Find(text) != 0) TheTextManager()->ReadToHash(&text, 1);
         region->SetTipString(text, 1, 0);
         {
             mfc::CString prefix("option_group_");
             mfc::CString key = prefix + OptionGroupName(k);
-            Texts()->GetString(key, &text);
+            TheTextManager()->GetString(key, &text);
         }
         groupNames_.SetAtGrow(groupNames_.GetSize(), text);
     }
@@ -613,8 +612,8 @@ void CDifficultyBox::Build() {
     int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     mfc::CString explanation;
     int textHeight = 0;
-    if (reinterpret_cast<UiTexts*>(Texts())->Find("tip option_difficulty") != 0) {
-        Texts()->ReadToHash(&explanation, 1);
+    if (reinterpret_cast<UiTexts*>(TheTextManager())->Find("tip option_difficulty") != 0) {
+        TheTextManager()->ReadToHash(&explanation, 1);
         explanation.TrimRight("\r\n");   // CR LF
         rect = RECT{15, 0, 385, 300};
         textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
@@ -629,8 +628,8 @@ void CDifficultyBox::Build() {
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     mfc::CString easy;
     mfc::CString hard;
-    Texts()->GetString("difficulty_easy", &easy);
-    Texts()->GetString("difficulty_hard", &hard);
+    TheTextManager()->GetString("difficulty_easy", &easy);
+    TheTextManager()->GetString("difficulty_hard", &hard);
     SIZE easySize = TextExtent(interface_, easy, 2);
     SIZE hardSize = TextExtent(interface_, hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
@@ -692,10 +691,10 @@ void CCreditsScreen::Build() {
     CInterface3D* ui = window.interface_;
     const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
     if (!fromGame_) {
-        static_cast<CSoundManager*>(ei::GameData<void*>(0x007AF784))->StopAll(1);
-        (ei::GameData<CMusicSystem*>(0x007AF760))->Stop();
+        TheSoundManager()->StopAll(1);
+        TheMusicSystem()->Stop();
     }
-    CursorShowOriginal(ei::GamePointer<void>(0x007C7BD8), nullptr, 0);
+    CursorShowOriginal(TheCursor(), nullptr, 0);
     PlayMoviesOriginal(mfc::operator+(name, "fin"), 1, 0, 0, 0);   // "<name>fin"
     nextLineAt_ = 0.0f;
     // (As the original: the field's address goes in as uiParam, so it is never written; then font

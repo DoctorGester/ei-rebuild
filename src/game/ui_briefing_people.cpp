@@ -27,14 +27,13 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 #include <new>
 
 namespace {
 
-void* ServerWorld() { return ei::GamePointer<void>(0x007AFF60); }
-void* SectorMap() { return ei::GamePointer<void>(0x007B01F4); }   // the server world + 0x294
 // The loot table (007C8758): its records, then their name index.
 stlp::RecordsByName* LootTable() { return ei::GamePointer<stlp::RecordsByName>(0x007C8758); }
 float TurnedOver() { return 3.1415927f /*007410D0*/; }   // pi
@@ -81,13 +80,13 @@ Vector3 Normalised(float x, float y, float z) {
 void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
                                  bool immediate, int run) {
     (void)z;   // the server unit's height is used instead
-    auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, unit->id_));
+    auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_));
     if (!serverUnit) return;
     auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
     if (!controller) return;
     Vector3 target{x, y, serverUnit->position.z};
     if (immediate) {
-        SectorMapMove(SectorMap(), nullptr, serverUnit, &target);
+        SectorMapMove(TheSectorMap(), nullptr, serverUnit, &target);
         Vector3 facing = Normalised(dx, dy, dz);
         reinterpret_cast<CTransformObject*>(serverUnit)->SetHeading(&facing.x);
         reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
@@ -146,9 +145,9 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         }
         speakersEnd_[-1].unit = unit;
         speakersEnd_[-1].name = name;
-        auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(ServerWorld())->GetPlayer(0));
+        auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
         if (player->server) static_cast<CPlayerServer*>(player->server)->SendPair19(kEventJoins, unit->id_);
-        if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, unit->id_))) {
+        if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_))) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
             reinterpret_cast<CUnitServer*>(serverUnit->controller)->actionDone = SpeakerActionDone();
         }

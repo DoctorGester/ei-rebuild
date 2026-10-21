@@ -66,7 +66,6 @@ std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
-IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Miles Sound System through game.exe's import table (all __stdcall).
 using SampleIntFn = void(__stdcall*)(void*, int);
@@ -502,7 +501,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
-    if (random != 0) index = static_cast<std::int32_t>(GlobalRandom().Next() % static_cast<std::uint32_t>(names.size));
+    if (random != 0) index = static_cast<std::int32_t>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(names.size));
     int h = manager->Play3D(static_cast<const char*>(names.data[index]), priority, &position.x, nearDistance, farDistance, 0, 0);
     handle = h;
     if (h == -1) return 0;
@@ -719,7 +718,7 @@ void CSoundManager::Tick() {
     std::uint32_t now = gameapi::GetTickCount();
     if (now - emitterTick < 100) return;
     emitterTick = now;
-    IsaacRandom& random = GlobalRandom();
+    IsaacRandom& random = IsaacRandom::Global();
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;
@@ -1132,7 +1131,7 @@ int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
     if (m->reverbOn != 0) AilSetSampleReverb()(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
-        AilSetSampleMsPosition()(slot->sample, GlobalRandom().Next() % range);
+        AilSetSampleMsPosition()(slot->sample, IsaacRandom::Global().Next() % range);
     }
     AilStartSample()(slot->sample);
     return slot->handle;

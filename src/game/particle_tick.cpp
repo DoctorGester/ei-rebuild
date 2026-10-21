@@ -35,7 +35,6 @@ inline double D(float f) { return f; }
 constexpr std::uint32_t kFarBits = 0x47C35000;     // 100000.0f
 constexpr std::uint32_t kNearBits = 0xC7C35000;    // -100000.0f
 
-IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // The world's wind (007AF5DC: direction, then strength), copied as four dwords.
 const void* WorldWind() { return ei::GamePointer<const void>(0x007AF5DC); }
@@ -228,7 +227,7 @@ struct TickSteps {
         if (tries > 0) {
             for (int i = 0; i < tries; ++i) {
                 if (s->particles.count >= s->maxParticles) break;
-                std::uint32_t roll = GlobalRandom().Next();
+                std::uint32_t roll = IsaacRandom::Global().Next();
                 if (static_cast<int>(roll % 100) < s->emitChance) EmitOne(emitted++);
             }
             if (emitted != 0) return;

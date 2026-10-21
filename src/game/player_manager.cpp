@@ -4,6 +4,7 @@
 #include "originals_gameplay.h"
 #include "player_messages.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "../lib/crt.h"
 
@@ -48,7 +49,7 @@ namespace {
 // the player gets the highest number of the server world's other players + 1 (signed), or `id` when
 // there is no player list, no other player or none numbered 0 or more. Written straight into +0x24.
 int NextPlayerNumber(CPlayer* self, int id) {
-    CBaseManager* players = WorldServer()->PlayerList();
+    CBaseManager* players = TheServerWorld()->PlayerList();
     if (!players) return id;
     int highest = -1;
     ForEachPlayer(players, [&](CEngineObject* other) {

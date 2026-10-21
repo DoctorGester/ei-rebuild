@@ -28,6 +28,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -253,7 +254,7 @@ void CUnitServer::TakeQueuedOrder() {
         }
     }
     SyncMoveModes();
-    waitFrame = WorldServer()->tick_;
+    waitFrame = TheServerWorld()->tick_;
 }
 EI_REPLACE_METHOD(0x0054A6E0, CUnitServer::TakeQueuedOrder);
 
@@ -269,7 +270,7 @@ void LeaveMoveMode(CUnitServer* self) {
         if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(kModeRun);
     }
     self->SyncMoveModes();
-    self->waitFrame = WorldServer()->tick_;
+    self->waitFrame = TheServerWorld()->tick_;
 }
 
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
@@ -863,13 +864,13 @@ void CUnitServer::ApproachTarget() {
         }
     }
     float patience = static_cast<float>(unit->ScaledValue(distance) + kFive);
-    CAIMap* aiMap = WorldServer()->AIMap();
+    CAIMap* aiMap = TheServerWorld()->AIMap();
     bool savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->position, goal));
     if (DistanceSquaredXYUnrounded<double>(unit->position, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
-    SectorMapRemove(WorldServer()->Sectors(), nullptr, chased);
+    SectorMapRemove(TheServerWorld()->Sectors(), nullptr, chased);
     float far = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
     float unitY = static_cast<float>(static_cast<double>(unit->position.y) * kLong);
@@ -879,7 +880,7 @@ void CUnitServer::ApproachTarget() {
     point.z = goal.z;
     if (!PathTo(&point.x, static_cast<float>(patience)))
         stoodBlocked = 1;
-    SectorMapAdd(WorldServer()->Sectors(), nullptr, chased);
+    SectorMapAdd(TheServerWorld()->Sectors(), nullptr, chased);
 
     double h = HalfScale();
     float headX = static_cast<float>(h * motion.targetX);
@@ -903,7 +904,7 @@ void CUnitServer::ApproachTarget() {
         state = kStateChasing;
         unit->UpdateSizeClass();
         if (effectObject) {
-            WorldServer()->RemoveTimedObject(effectObject->id_);
+            TheServerWorld()->RemoveTimedObject(effectObject->id_);
             CEngineObject* old = effectObject;
             effectObject = nullptr;
             if (old) old->Release();

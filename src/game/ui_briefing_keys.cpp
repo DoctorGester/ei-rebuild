@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -21,7 +22,6 @@ namespace {
 const char* ClickSound() { return "buttons\\base\\click1.wav"; }
 const char* QuickSaveName() { return "saveq"; }
 const char* QuestPrefix() { return "q."; }
-CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 
 // The escape menu (0x168 bytes, built inline as the battle screen's key handler does).
 constexpr std::size_t kEscMenuSize = 0x168;
@@ -53,7 +53,7 @@ void OpenObjectives(CInterface3D* ui) {
     MapRecord* zone;
     {
         BriefingPlayerName player;
-        zone = MapDatabase()->FindMap(player);
+        zone = TheMapDatabase()->FindMap(player);
     }
     if (!zone) return;
     console::CStringArray parts;
@@ -61,7 +61,7 @@ void OpenObjectives(CInterface3D* ui) {
     for (NamedFloatTable::Node* node = quests.First(); node; node = quests.Next(node)) {
         text::Split(node->value.key, &parts, '.');
         if (parts.size != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
-        MapRecord* questZone = MapDatabase()->FindMap(parts[1]);
+        MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
         void* memory = gamecrt::operator_new(kObjectivesSize);
@@ -150,7 +150,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         OpenObjectives(interface_);
         break;
     case kActionLeader:
-        if (leader_) static_cast<CCamera*>(camera::TheCamera())->SetTarget(leader_);
+        if (leader_) TheCamera()->SetTarget(leader_);
         inputHandled_ = true;
         break;
     case kActionQuickSave:

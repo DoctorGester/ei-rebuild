@@ -39,7 +39,6 @@ namespace {
 // The briefing texts (pointer at 007AF788): 004DEFC0 (RET 4) opens a section by name (0 when
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
 // current line into words.
-void* BriefingTexts() { return ei::GameData<void*>(0x007AF788); }
 
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
@@ -59,7 +58,7 @@ bool IsEmpty(const mfc::CString& s) {
 } // namespace
 
 mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing) {
-    void* texts = BriefingTexts();
+    void* texts = TheTextManager();
     bool missing;
     {
         mfc::CString prefix(game::briefingwords::BriefingSection());
@@ -99,7 +98,7 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
 }
 
 void GameFlow::MarkBriefing(const char* briefing) {
-    auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
+    auto* player = *reinterpret_cast<WorldPlayer**>(TheClientWorld()->LocalView() + 0x1C);
     // "<zone>_N": the zone's quests are loaded first.
     std::size_t length = std::strlen(briefing);
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
@@ -130,7 +129,7 @@ LoadedFiles& QuestFiles() { return ei::GameData<LoadedFiles>(0x007AFDD0); }
 } // namespace
 
 void GameFlow::ForgetBriefing(const char* briefing) {
-    auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
+    auto* player = *reinterpret_cast<WorldPlayer**>(TheClientWorld()->LocalView() + 0x1C);
     StringSlot variable;
     BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
     player->variables.Remove(variable.Get());
@@ -138,7 +137,7 @@ void GameFlow::ForgetBriefing(const char* briefing) {
 }
 
 void UnloadQuestTexts() {
-    void* texts = BriefingTexts();
+    void* texts = TheTextManager();
     if (!texts) return;
     LoadedFiles& files = QuestFiles();
     for (stlp::string* file = files.begin(); file != files.end(); ++file) static_cast<CTextManager*>(texts)->RemoveSource(file->data());
@@ -211,7 +210,7 @@ stlp::string MapFilePath(const mfc::CString& file) {
 } // namespace
 
 bool __stdcall LoadZoneQuests(const char* zone) {
-    auto* texts = static_cast<CTextManager*>(BriefingTexts());
+    auto* texts = TheTextManager();
     if (!texts) return false;
     mfc::CString file = mfc::CString(zone) + kQuestFileSuffix;
     bool found;
@@ -258,7 +257,7 @@ void GameFlow::OnVariableChanged(const void* event) {
     }
     if (quest) {
         TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
-        static_cast<CWorldClient*>(ei::GamePointer<void>(0x007AF5B8))->OnQuestVariable(name, std::bit_cast<float>(value));
+        TheClientWorld()->OnQuestVariable(name, std::bit_cast<float>(value));
     }
 }
 
@@ -286,7 +285,7 @@ bool ActiveSession(const std::uint8_t* s) { return s && !(*reinterpret_cast<cons
 } // namespace
 
 void GameFlow::RegisterQuests(const char* folder) {
-    void* texts = BriefingTexts();
+    void* texts = TheTextManager();
     if (!texts) return;
     if (!FlowLoadQuestFolder(this, nullptr, folder)) return;
     StringVector& folders = QuestFolders();
@@ -305,7 +304,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();
-        static_cast<CMapDatabase*>(ei::GamePointer<void>(0x0079BF00))->Load(path);
+        TheMapDatabase()->Load(path);
     }
     // push_back(folder)
     stlp::string name(folder);
@@ -329,7 +328,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         peer = *reinterpret_cast<std::uint8_t* const*>(server + 0x25A8);
     if (!peer) return new (out) mfc::CString(game::EmptyText());
     name = *reinterpret_cast<const char* const*>(peer + 0x0C);
-    void* texts = BriefingTexts();
+    void* texts = TheTextManager();
     int found;
     {
         mfc::CString prefix(game::briefingwords::QuestSection());

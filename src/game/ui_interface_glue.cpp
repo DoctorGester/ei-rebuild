@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 namespace {
@@ -28,12 +29,12 @@ constexpr std::uint32_t kStatusColour = 0xFF00;
 } // namespace
 
 int CInterface3D::PlaySound(const char* name, int loop) {
-    return sound::Manager()->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
+    return TheSoundManager()->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
 }
 EI_REPLACE_METHOD(0x005F7E60, CInterface3D::PlaySound);
 
 void CInterface3D::StopSound(int handle) {
-    if (handle != kNoSound) sound::Manager()->StopSound(handle);
+    if (handle != kNoSound) TheSoundManager()->StopSound(handle);
 }
 EI_REPLACE_METHOD(0x005F7E90, CInterface3D::StopSound);
 

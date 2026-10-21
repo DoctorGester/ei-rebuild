@@ -19,12 +19,12 @@
 #include "originals_library.h"
 #include "record_arrays.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <new>
 
 namespace {
 
-IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // The party's fight state, set by the world (2: fighting).
 int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
 // ".mp3" (the pointer at 00744094).
@@ -39,7 +39,7 @@ int CompareNoCase(const char* a, const char* b) {
 
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.
 std::uint32_t CalmDelay() {
-    std::uint32_t r = GlobalRandom().Next() % 60001;
+    std::uint32_t r = IsaacRandom::Global().Next() % 60001;
     return gameapi::timeGetTime() + r + 120000;
 }
 
@@ -47,7 +47,7 @@ std::uint32_t CalmDelay() {
 const mfc::CString& PickName(const SoundNameArray& names) {
     std::uint32_t n = static_cast<std::uint32_t>(names.size);
     if (n == 1) return names.data[0];
-    return names.data[GlobalRandom().Next() % n];
+    return names.data[IsaacRandom::Global().Next() % n];
 }
 
 // Waits for the stream thread to take up a request (state 2 -> 1), then asks it to stop after
@@ -146,15 +146,15 @@ EI_REPLACE_METHOD(0x006B4710, CMusicSystem::LoadThemes);
 // 006B4E30. Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
 void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
-    sound::Manager()->StreamNotify(4);
-    sound::Manager()->StopStream(4);
+    TheSoundManager()->StreamNotify(4);
+    TheSoundManager()->StopStream(4);
     holding = 1;
     for (int i = 0; i < themeCount; ++i) {
         if (CompareNoCase(themes[i].name, allod) == 0 && themes[i].dungeon == dungeon) {
             theme = i;
             state = 1;
             calmDue = 1;
-            sound::Manager()->StopStream(4);
+            TheSoundManager()->StopStream(4);
             inCombat = 0;
             combatTrack = game::EmptyText();
             return;
@@ -170,7 +170,7 @@ EI_REPLACE_METHOD(0x006B4E30, CMusicSystem::SetZoneMode);
 // 006B4F70.
 void CMusicSystem::Stop() {
     state = 0;
-    sound::Manager()->StopStream(4);
+    TheSoundManager()->StopStream(4);
 }
 EI_REPLACE_METHOD(0x006B4F70, CMusicSystem::Stop);
 
@@ -187,14 +187,14 @@ void PlayThemeFile(CMusicSystem* music, const char* allod, mfc::CString MusicThe
     }
     if (i == music->themeCount) return;
     mfc::CString path = name + Mp3();
-    sound::Manager()->RequestStream(path, 4);
+    TheSoundManager()->RequestStream(path, 4);
 }
 } // namespace
 
 // 006B4F90.
 void CMusicSystem::PlayBriefing(const char* allod) {
     state = 2;
-    sound::Manager()->StopStream(4);
+    TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::briefing);
 }
 EI_REPLACE_METHOD(0x006B4F90, CMusicSystem::PlayBriefing);
@@ -202,7 +202,7 @@ EI_REPLACE_METHOD(0x006B4F90, CMusicSystem::PlayBriefing);
 // 006B5080.
 void CMusicSystem::PlayConstructor(const char* allod) {
     state = 3;
-    sound::Manager()->StopStream(4);
+    TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::constructor);
 }
 EI_REPLACE_METHOD(0x006B5080, CMusicSystem::PlayConstructor);
@@ -210,18 +210,18 @@ EI_REPLACE_METHOD(0x006B5080, CMusicSystem::PlayConstructor);
 // 006B5170.
 void CMusicSystem::PlayCredits() {
     state = 5;
-    sound::Manager()->StopStream(4);
+    TheSoundManager()->StopStream(4);
     mfc::CString path = credits + Mp3();
-    sound::Manager()->RequestStream(path, 4);
+    TheSoundManager()->RequestStream(path, 4);
 }
 EI_REPLACE_METHOD(0x006B5170, CMusicSystem::PlayCredits);
 
 // 006B51F0.
 void CMusicSystem::PlayMainMenu() {
     state = 4;
-    sound::Manager()->StopStream(4);
+    TheSoundManager()->StopStream(4);
     mfc::CString path = mainMenu + Mp3();
-    sound::Manager()->RequestStream(path, 4);
+    TheSoundManager()->RequestStream(path, 4);
 }
 EI_REPLACE_METHOD(0x006B51F0, CMusicSystem::PlayMainMenu);
 
@@ -234,15 +234,15 @@ void CMusicSystem::PlayJingle(const char* name) {
         mfc::CString path = stem + Mp3();
         jingle = path;
     }
-    sound::Manager()->RequestStream(jingle, 4);
-    WaitAndEndAfter(sound::Manager());
+    TheSoundManager()->RequestStream(jingle, 4);
+    WaitAndEndAfter(TheSoundManager());
     jinglePlaying = 1;
 }
 EI_REPLACE_METHOD(0x006B5270, CMusicSystem::PlayJingle);
 
 // 006B5350 (vtable slot 6, every world frame). Always 1.
 int CMusicSystem::UpdateMusic() {
-    CSoundManager* snd = sound::Manager();
+    CSoundManager* snd = TheSoundManager();
     if (state != 1 || holding == 1) return 1;
     mfc::CString current;
     {
@@ -270,7 +270,7 @@ int CMusicSystem::UpdateMusic() {
     } else if (Compare(current, game::EmptyText()) == 0) {
         combatTrack = game::EmptyText();
         if (calmDue == 0) {
-            std::uint32_t r = GlobalRandom().Next();
+            std::uint32_t r = IsaacRandom::Global().Next();
             calmDue = gameapi::timeGetTime() + r % 60001 + 120000;
         }
         if (gameapi::timeGetTime() >= calmDue) {
@@ -353,8 +353,8 @@ CMusicSystem* CMusicSystem::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x006B4490, CMusicSystem::DeletingDestruct);
 
-void CMusicSystem::FadeOut() { sound::Manager()->FadeOutStream(); }
-void CMusicSystem::FadeIn() { sound::Manager()->FadeInStream(); }
+void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
+void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }
 EI_REPLACE_METHOD(0x006B4E10, CMusicSystem::FadeOut);
 EI_REPLACE_METHOD(0x006B4E20, CMusicSystem::FadeIn);
 

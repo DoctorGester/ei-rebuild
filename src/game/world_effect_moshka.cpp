@@ -17,6 +17,7 @@
 #include "random.h"
 #include "world.h"
 #include "world_effect_internal.h"
+#include "game_singletons.h"
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
@@ -68,7 +69,7 @@ bool Same(float a, float b) {
     return a == b;
 }
 
-CAIMap* AIMap() { return WorldServer()->AIMap(); }
+CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 
 Vector3& PositionOf(CEngineObject* object) { return static_cast<CTransformObject*>(object)->localPosition_; }
 
@@ -105,7 +106,7 @@ CEffectMoshka* CEffectMoshka::DeletingDestruct(unsigned flags) {
 
 void CEffectMoshka::Reset() {
     ResetBase();
-    if (bird_ != nullptr) WorldClient()->RemoveObject(bird_->id_);
+    if (bird_ != nullptr) TheClientWorld()->RemoveObject(bird_->id_);
     if (source_ != nullptr) Source()->Stop();
     CEngineObject* source = source_;
     source_ = nullptr;
@@ -119,7 +120,7 @@ void CEffectMoshka::Reset() {
 }
 
 int CEffectMoshka::Tick() {
-    Update(static_cast<float>(effect::GameTick()));
+    Update(static_cast<float>(CurrentClientTick()));
     return 0;
 }
 
@@ -145,7 +146,7 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
 
 void CEffectMoshka::Update(float now) {
     if (bird_ == nullptr) return;
-    CEngineObject* followedObject = WorldClient()->ObjectWithId(followedId_);
+    CEngineObject* followedObject = TheClientWorld()->ObjectWithId(followedId_);
     if (followedObject == nullptr) return;
     const Vector3& followed = PositionOf(followedObject);
     auto* bird = static_cast<CObject3D*>(bird_);
@@ -220,8 +221,8 @@ void CEffectMoshka::Update(float now) {
 
     // Kept above the surface, the bird moves at most its speed towards the target.
     Vector3 ground{target.x, target.y, 0.0f};
-    double raw = WorldClient()->RawSurfaceHeightAt(target.x, target.y);
-    float floor = static_cast<float>(WorldClient()->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
+    double raw = TheClientWorld()->RawSurfaceHeightAt(target.x, target.y);
+    float floor = static_cast<float>(TheClientWorld()->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
     float z = target.z >= floor ? target.z : floor;
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
@@ -238,7 +239,7 @@ void CEffectMoshka::Update(float now) {
             move.z = static_cast<float>(scale * move.z);
         }
         Vector3 to{static_cast<float>(move.x + birdAt.x), static_cast<float>(move.y + birdAt.y), static_cast<float>(move.z + birdAt.z)};
-        WorldClient()->objectGrid_.Move(bird_, &to.x);
+        TheClientWorld()->objectGrid_.Move(bird_, &to.x);
         static_cast<CTransformObject*>(bird_)->RollTowards(move);
     }
     bird->animation->Advance(frames);
@@ -246,12 +247,12 @@ void CEffectMoshka::Update(float now) {
 
 void CEffectMoshka::Follow(int objectId) {
     followedId_ = objectId;
-    CEngineObject* followed = WorldClient()->ObjectWithId(objectId);
+    CEngineObject* followed = TheClientWorld()->ObjectWithId(objectId);
     if (followed == nullptr) return;
     mfc::CString model(game::MoshkaModelText());
     mfc::CString texture(game::MoshkaTextureText());
     int id = NextClientObjectId()--;
-    CEngineObject* object = camera::ObjectManager()->CreateObject(kClassFigureObject, id);
+    CEngineObject* object = TheObjectManager()->CreateObject(kClassFigureObject, id);
     AIRef::Of(&bird_)->Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, as the original does.
@@ -266,7 +267,7 @@ void CEffectMoshka::Follow(int objectId) {
     bird->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     bird->RestartPose();
     static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
-    WorldClient()->AddObject(bird_);
+    TheClientWorld()->AddObject(bird_);
     static_cast<CObject3DSpecific*>(attached)->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.RemoveAll();

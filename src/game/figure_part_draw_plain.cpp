@@ -20,6 +20,7 @@
 #include "texture.h"           // CTextureDevice
 #include "world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <bit>
 #include <cstdint>
@@ -43,7 +44,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 
 // The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
-    const CWorldClient* world = GameClientWorld();
+    const CWorldClient* world = TheClientWorld();
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
@@ -133,7 +134,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
         }
     }
     if (result != 2) mesh_->flags_ |= 0x40;
-    DrawBounds(ei::GamePointer<CSceneRenderer>(0x007AF060));
+    DrawBounds(TheSceneRenderer());
     return 1;
 }
 EI_REPLACE_METHOD(0x005A7640, FigureMeshDrawer::DrawPlain);

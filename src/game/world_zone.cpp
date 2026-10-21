@@ -31,6 +31,7 @@
 #include "originals_gameplay.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -254,7 +255,7 @@ constexpr const char* kProgres5 = "progres5.bik";
 void __stdcall SelectLoadingMovie(const char* zone) {
     mfc::CString allod;
     if (zone) {
-        MapRecord* map = ei::GamePointer<CMapDatabase>(0x0079BF00)->FindMap(zone);
+        MapRecord* map = TheMapDatabase()->FindMap(zone);
         if (map) allod = *reinterpret_cast<const mfc::CString*>(reinterpret_cast<const char*>(map) + 4);
     }
     if (SameName(allod, "gipat")) {

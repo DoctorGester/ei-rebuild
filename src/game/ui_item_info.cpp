@@ -40,6 +40,7 @@
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -126,7 +127,7 @@ BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetStr
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     return reinterpret_cast<CTextManager*>(this)->GetItemTexts(item, name, description, kind);
 }
-Texts* TextManager() { return reinterpret_cast<Texts*>(GameTexts()); }
+Texts* TextManager() { return reinterpret_cast<Texts*>(TheTextManager()); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 

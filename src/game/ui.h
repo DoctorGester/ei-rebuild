@@ -575,7 +575,6 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
 inline std::uint32_t& UiSurfaceKeptBytes() { return ei::GameData<std::uint32_t>(0x007C7E74); }
 inline std::uint32_t& UiSurfaceBytes() { return ei::GameData<std::uint32_t>(0x007C7E78); }
 // The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
-inline CRITICAL_SECTION* GameDeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
 struct UiDrawPass {
@@ -1055,7 +1054,6 @@ static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 inline bool& InterfaceHasScreen() { return ei::GameData<bool>(0x00784750); }
 
 // The client world (CWorldClient, world.h).
-inline class CWorldClient* UiClientWorld() { return ei::GamePointer<class CWorldClient>(0x007AF5B8); }
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return ei::GameData<int>(0x0079BE74); }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
@@ -1064,7 +1062,6 @@ inline void* DebugInfoPanel() { return ei::GamePointer<void>(0x0079B930); }
 inline const mfc::CString& GameDataPath() { return ei::GameData<const mfc::CString>(0x007AF460); }
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
-inline void* UiTextureManager() { return ei::GameData<void* const>(0x007AF744); }
 // The model manager (007AF5F4) the windows take their sprites and item models from.
 inline void* UiModelManager() { return ei::GameData<void* const>(0x007AF5F4); }
 

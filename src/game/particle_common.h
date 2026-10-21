@@ -17,6 +17,7 @@
 #include "originals_engine.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -45,14 +46,14 @@ inline std::uint32_t Bits(const void* field) {
     return bits;
 }
 
-inline IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
+inline IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
 inline std::uint32_t Next() { return GlobalRandom().Next(); }
 
 // 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.
 inline double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
 // 00564070 CWorldClient::ClientRawSurfaceHeight(x, y) on the client world 007AF5B8 (ST0).
-inline double GroundHeight(float x, float y) { return WorldClient()->ClientRawSurfaceHeight(x, y); }
+inline double GroundHeight(float x, float y) { return TheClientWorld()->ClientRawSurfaceHeight(x, y); }
 
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
 inline float PickIfLess(float a, float b) { return a >= b ? b : a; }

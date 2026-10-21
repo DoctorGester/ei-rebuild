@@ -38,6 +38,7 @@
 #include "world_glue.h"
 #include "render/render_state.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <d3d.h>
 
@@ -86,7 +87,6 @@ constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
 const ClassTemplateVector* ClassTemplates() { return ei::GamePointer<const ClassTemplateVector>(0x007AA5D8); }
-CMusicSystem* Music() { return ei::GameData<CMusicSystem* const>(0x007AF760); }
 CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
 CUiContainer* AsContainer(CCampPages* camp) { return reinterpret_cast<CUiContainer*>(camp); }
@@ -467,18 +467,18 @@ void CCampPages::BuildPages() {
     const MapRecord* zone;
     {
         BriefingPlayerName name;
-        zone = GameMapDatabase()->FindMap(name);
+        zone = TheMapDatabase()->FindMap(name);
     }
-    Music()->PlayConstructor(zone ? zone->allod : "gipat");
+    TheMusicSystem()->PlayConstructor(zone ? zone->allod : "gipat");
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
-    CTextureDevice* display = RenderDeviceObject();
+    CTextureDevice* display = TheRenderDevice();
     D3DDEVICEDESC7 description = {};
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(display->d3dDevice_), &description);
     display->lastLoadResult_ = result;
     if (result != 0) app::FatalErrorCode(result, "Can't get device description.\n");   // "Can't get device description."
     if (description.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT) {
-        device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
+        device::SetRenderState(static_cast<IDirect3DDevice7*>(TheRenderDevice()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
     }
     if (records.data) gamecrt::operator_delete(records.data);

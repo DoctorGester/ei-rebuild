@@ -31,11 +31,9 @@ inline const GUID& IidHalDevice() { return ei::GameData<const GUID>(0x00745A50);
 inline const GUID& IidTnLHalDevice() { return ei::GameData<const GUID>(0x00745A10); }
 
 // The game's device lock (007AEE78), held around Direct3D draws and surface locks.
-inline CRITICAL_SECTION* Lock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 // The surface holders alive (007AEE94; 004EFA60 and the other constructors count them).
 inline int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
 // The texture manager (007AF744).
-inline CTextureManager* TextureManager() { return ei::GameData<CTextureManager* const>(0x007AF744); }
 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
 inline IDirectDraw7* DDraw(const CTextureDevice* device) { return static_cast<IDirectDraw7*>(device->ddraw_); }

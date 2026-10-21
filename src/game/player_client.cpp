@@ -87,7 +87,6 @@ struct TextBuffer {
     mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
 };
 
-CMusicSystem* Music() { return ei::GameData<CMusicSystem*>(0x007AF760); }
 const char* QuestPrefix() { return "q."; }
 
 // A memory stream on the stack, as the original builds (0041DD70 inlined) and destroys it.
@@ -232,7 +231,7 @@ int CPlayerClient::OnSetVariable() {
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
         static_cast<CInterface3D*>(TheInterface())->OnQuestVariable(name, std::bit_cast<float>(value));
-        static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, std::bit_cast<float>(value));
+        static_cast<CWorldClient*>(TheClientWorld())->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
 }
@@ -247,7 +246,7 @@ int CPlayerClient::OnDeleteVariable() {
     Owner()->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
         static_cast<CInterface3D*>(TheInterface())->OnQuestVariable(name, 0.0f);
-        static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, 0.0f);
+        static_cast<CWorldClient*>(TheClientWorld())->OnQuestVariable(name, 0.0f);
     }
     return 1;
 }
@@ -264,7 +263,7 @@ int CPlayerClient::OnZoneChange() {
 int CPlayerClient::OnJingle() {
     TextBuffer name;
     in_.ReadString(name.bytes);
-    Music()->PlayJingle(*name.Get());
+    TheMusicSystem()->PlayJingle(*name.Get());
     return 1;
 }
 
@@ -272,21 +271,21 @@ int CPlayerClient::OnZone() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
     PlayerClearOriginal(Owner());
-    ClientLoadZone(WorldClient(), nullptr, block.Get());
+    ClientLoadZone(TheClientWorld(), nullptr, block.Get());
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock3() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
-    WorldClient()->LoadItemsAndSpells(block.Get());
+    TheClientWorld()->LoadItemsAndSpells(block.Get());
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock5() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
-    WorldClient()->LoadNewItemsAndSpells(block.Get());
+    TheClientWorld()->LoadNewItemsAndSpells(block.Get());
     return 1;
 }
 
@@ -310,7 +309,7 @@ int CPlayerClient::OnExperienceAll() {
     CPlayer::ObjectMap& units = Owner()->units_;
     for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
-        WorldClient()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
+        TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
 }
@@ -320,8 +319,8 @@ int CPlayerClient::OnExperience() {
     float amount;
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
-    auto* unit = static_cast<CUnit*>(WorldFindUnit(WorldClient(), nullptr, id));
-    if (unit != nullptr) WorldClient()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
+    auto* unit = static_cast<CUnit*>(WorldFindUnit(TheClientWorld(), nullptr, id));
+    if (unit != nullptr) TheClientWorld()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
 
@@ -377,7 +376,7 @@ int CPlayerClient::OnItemsReceived() {
             result = 0;
             break;
         }
-        auto* manager = static_cast<CBaseManager*>(WorldClient()->itemManager_);
+        auto* manager = static_cast<CBaseManager*>(TheClientWorld()->itemManager_);
         if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
     }
     if (result != 0) {
@@ -415,7 +414,7 @@ int CPlayerClient::OnParty() {
             std::memcpy(variables.Functors(), saved.Functors(), 3);
             variables.CopyFrom(saved);
         }
-        WorldClient()->ApplyObjectVariables();
+        TheClientWorld()->ApplyObjectVariables();
         GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
         TheGameFlow()->ReturnLocalParty();
     }
@@ -448,7 +447,7 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.Read(&value, 4);
     if (kind != kKindNoPath) {
-        CEngineObject* walker = camera::ObjectManager()->CreateObject(kClassScratchUnit, -1);
+        CEngineObject* walker = TheObjectManager()->CreateObject(kClassScratchUnit, -1);
         ++walker->refCount_;
         // The controller's slot 16 (00533DF0 for the client's): its path.
         AIPath* path = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(walker)->controller)->MotionPath();
@@ -683,10 +682,10 @@ int CPlayerClient::OnNewObject() {
         ObjectSlots(created)->TakePrototype(model);
     static_cast<CMapObject*>(created)->WriteFullState();
     if (static_cast<CMapObject*>(created)->ReadState(0, &in_) == 0) return 0;
-    WorldClient()->AddObject(created);
+    TheClientWorld()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;
-        static_cast<CWorldClient*>(WorldClient())->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
+        static_cast<CWorldClient*>(TheClientWorld())->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)

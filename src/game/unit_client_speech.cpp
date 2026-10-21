@@ -13,6 +13,7 @@
 #include "originals_effects.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "game_singletons.h"
 
 namespace {
 constexpr std::uint32_t kFlagTalking = 0x800000;      // the server unit's flags_ while it speaks
@@ -51,12 +52,12 @@ bool Important(int kind) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = sound::Manager();
+    CSoundManager* sounds = TheSoundManager();
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 void SetTalking(int unitId, bool talking) {
-    CEngineObject* serverUnit = WorldFindUnit(WorldServer(), nullptr, unitId);
+    CEngineObject* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unitId);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= kFlagTalking;
     else serverUnit->flags_ &= ~kFlagTalking;
@@ -118,7 +119,7 @@ EI_REPLACE_METHOD(0x00537D80, CUnitClientSpecific::Say);
 void CUnitClientSpecific::StopSpeech() {
     for (ClientSpeechNode* node = speech->next; node != speech; node = node->next) {
         if (node->value.talking) SetTalking(unit->id_, false);
-        static_cast<CSoundManager*>(sound::Manager())->StopSound(node->value.sound);
+        TheSoundManager()->StopSound(node->value.sound);
     }
     for (ClientSpeechNode* node = speech->next; node != speech;) {
         ClientSpeechNode* next = node->next;
@@ -133,7 +134,7 @@ EI_REPLACE_METHOD(0x00538040, CUnitClientSpecific::StopSpeech);
 bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = gameapi::timeGetTime();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
-    said->sound = sound::Manager()->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
+    said->sound = TheSoundManager()->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
     lastSpeech = said->id;
     lastSpeechTime = now;
     return true;

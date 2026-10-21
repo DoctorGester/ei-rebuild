@@ -30,6 +30,7 @@
 #include "lib/mfc_slots.h"
 #include "game_slots.h"
 #include "game_lists.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 namespace {
@@ -169,7 +170,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (int i = 0; i < points.size; ++i) {
             const TrapPoint& point = points.data[i];
             Vector3 at = {point.x, point.y, 0.0f};
-            static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
+            static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
         }
     } else {
         if (singleTarget != 0) {
@@ -190,7 +191,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
             CEngineObject* unit = node->data;
-            static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, nullptr, &from, unit,
+            static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, nullptr, &from, unit,
                                    &AsMapObject(unit)->position, 0);
             node = next;
         }

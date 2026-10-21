@@ -20,6 +20,7 @@
 #include "lib/mfc_slots.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace mapspec {
 
@@ -29,9 +30,7 @@ namespace {
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
 // (007B01F4); the world object's own updates.
-void* World() { return ei::GamePointer<void>(0x007AFF60); }
 void* Selection() { return ei::GamePointer<void>(0x007B00D0); }
-void* Lists() { return ei::GamePointer<void>(0x007B01F4); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -110,7 +109,7 @@ void Spec::SpecRefresh() { Record()->ApplyObject(); }
 EI_REPLACE_DISPATCH(0x00469E00, Spec::SpecRefresh);
 
 // 00469F20 (slot 2): the object with the record's id.
-void* Spec::SpecWorldObject() { return static_cast<CBaseManager*>(ei::GameData<void*>(0x007AF5F8))->FindObject(id); }
+void* Spec::SpecWorldObject() { return TheObjectManager()->FindObject(id); }
 EI_REPLACE_METHOD(0x00469F20, Spec::SpecWorldObject);
 
 // 00469F40 (slot 5): moves the record, then slot 7.
@@ -285,7 +284,7 @@ EI_REPLACE_METHOD(0x0046AB20, ObjectSpec::ObjectSpecOnChunk);
 // 0046AF70 (slot 6): removes the world object, then slot 7.
 void ObjectSpec::ObjectSpecRemove() {
     if (base.object) {
-        WorldRemoveObject(World(), nullptr, base.id);
+        WorldRemoveObject(TheServerWorld(), nullptr, base.id);
         base.object = nullptr;
     }
     base.Record()->ApplyObject();
@@ -302,11 +301,11 @@ EI_REPLACE_METHOD(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 // scale, visibility) while it is out of the editor's lists.
 void ObjectSpec::ObjectSpecApply() {
     if (!base.object) {
-        WorldMakeObjectOriginal(World(), nullptr, &base);
+        WorldMakeObjectOriginal(TheServerWorld(), nullptr, &base);
         return;
     }
     static_cast<CAIMap*>(Selection())->BeginRefresh();
-    SectorMapRemove(AsSectorMap(Lists()), nullptr, AsEngineObject(base.object));
+    SectorMapRemove(AsSectorMap(TheSectorMap()), nullptr, AsEngineObject(base.object));
     auto* object = static_cast<CMapObject*>(base.object);
     std::memcpy(&object->position, &base.position, 12);
     std::memcpy(&object->orientation, &base.rotation, 16);
@@ -318,7 +317,7 @@ void ObjectSpec::ObjectSpecApply() {
     else flags &= ~8u;
     static_cast<CMapObject*>(base.object)->MarkChanged(2);
     static_cast<CMapObject*>(base.object)->MarkChanged(1);
-    SectorMapAdd(AsSectorMap(Lists()), nullptr, AsEngineObject(base.object));
+    SectorMapAdd(AsSectorMap(TheSectorMap()), nullptr, AsEngineObject(base.object));
     static_cast<CAIMap*>(Selection())->EndRefresh();
 }
 EI_REPLACE_METHOD(0x0046AFB0, ObjectSpec::ObjectSpecApply);
@@ -368,10 +367,10 @@ EI_REPLACE_METHOD(0x0046B1F0, FlameSpec::FlameSpecDelete);
 void FlameSpec::FlameSpecApply() {
     Spec& b = object.base;
     if (b.object) {
-        WorldRemoveObject(World(), nullptr, b.id);
+        WorldRemoveObject(TheServerWorld(), nullptr, b.id);
         b.object = nullptr;
     }
-    WorldMakeObjectOriginal(World(), nullptr, &b);
+    WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
 }
 EI_REPLACE_METHOD(0x0046B310, FlameSpec::FlameSpecApply);
 

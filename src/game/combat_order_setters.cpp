@@ -13,6 +13,7 @@
 #include "sector_map.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -68,7 +69,7 @@ void QueueUse(CUnitServer* self, CEngineObject* target, std::uint32_t source, in
 bool CUnitServer::FitsMoveMode(int mode) {
     int stored = mode == kStyleRun ? kStyleWalk : mode;
     if (stored == moveMode.mode) return true;
-    CAIMap* map = WorldServer()->AIMap();
+    CAIMap* map = TheServerWorld()->AIMap();
     int saved = unit->moveMode;
     map->SectorMap()->Remove(unit);
     unit->moveMode = mode;
@@ -125,7 +126,7 @@ void CUnitServer::OrderSearchBody(CEngineObject* target, int run) {
 EI_REPLACE_METHOD(0x00555630, CUnitServer::OrderSearchBody);
 
 bool CUnitServer::TargetBusy(CEngineObject* target) {
-    if (target->flags_ & kFlagShared) return !WorldServer()->IsObjectShared(target->id_, unit->id_);
+    if (target->flags_ & kFlagShared) return !TheServerWorld()->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
     for (auto* node = ai->nearby.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
@@ -162,7 +163,7 @@ void CUnitServer::StopAction() {
     state = kStateStopped;
     unit->UpdateSizeClass();
     if (effectObject) {
-        WorldServer()->RemoveTimedObject(effectObject->id_);
+        TheServerWorld()->RemoveTimedObject(effectObject->id_);
         CEngineObject* old = effectObject;
         effectObject = nullptr;
         if (old) old->Release();

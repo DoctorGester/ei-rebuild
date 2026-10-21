@@ -32,6 +32,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <algorithm>
 #include <cmath>
@@ -39,11 +40,6 @@
 
 namespace {
 
-void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
-void* ServerWorld() { return ei::GamePointer<void>(0x007AFF60); }
-void* SectorMap() { return ei::GamePointer<void>(0x007B01F4); }   // the server world + 0x294
-CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
-CMusicSystem* Music() { return ei::GameData<CMusicSystem* const>(0x007AF760); }
 float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
 void** ScreenInputVtable() { return ei::GamePointer<void*>(0x00741154); }
@@ -93,14 +89,14 @@ int Compare(const char* a, const char* b) {
 
 MapRecord* FindLocalMap() {
     BriefingPlayerName name;
-    return MapDatabase()->FindMap(name);
+    return TheMapDatabase()->FindMap(name);
 }
 
 WorldPlayer* LocalViewPlayer() {
-    return reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
 }
 
-CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
+CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, id)); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
@@ -129,7 +125,7 @@ void PlaceMover(BriefingMover* node) {
     if (!unit) return;
     CUnitServer* controller = ControllerOf(unit);
     Vector3 target{node->target.x, node->target.y, node->target.z};
-    SectorMapMove(SectorMap(), nullptr, unit, &target);
+    SectorMapMove(TheSectorMap(), nullptr, unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
     reinterpret_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
@@ -177,7 +173,7 @@ void StopTalking(CUnit* speaker) {
 
 // Whether the voice `handle` has ended (neither playing nor waiting).
 bool VoiceEnded(int handle) {
-    CSoundManager* sounds = sound::Manager();
+    CSoundManager* sounds = TheSoundManager();
     return !sounds->FindPlaying(handle) && !sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
@@ -239,10 +235,10 @@ void CBriefingScreen::Create() {
     MapEdgeFade() = kEdgeFade;
 
     if (MapRecord* record = FindLocalMap()) {
-        Music()->PlayBriefing(record->allod);
+        TheMusicSystem()->PlayBriefing(record->allod);
         noWalk_ = record->cage;
     } else {
-        Music()->PlayBriefing(DefaultAllod());
+        TheMusicSystem()->PlayBriefing(DefaultAllod());
         noWalk_ = false;
     }
     GameStartAmbience();
@@ -260,7 +256,7 @@ void CBriefingScreen::Create() {
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null, as the original), the alternate limits, no target.
-    CCamera* camera = camera::TheCamera();
+    CCamera* camera = TheCamera();
     camera->flags_ &= ~CCamera::kFree;
     if (map->restricted) {
         Vector3 centre{map->restrictX, map->restrictY, 0.0f};
@@ -395,9 +391,9 @@ void CBriefingScreen::MarkPeople() {
         open.push_back(id);
     }
     for (int* id = people_.begin(); id != people_.end(); ++id) {
-        if (!WorldFindUnit(ClientWorld(), nullptr, *id)) continue;
+        if (!WorldFindUnit(TheClientWorld(), nullptr, *id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
-        auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(ServerWorld())->GetPlayer(0));
+        auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
         if (player && player->server)
             static_cast<CPlayerServer*>(player->server)->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }

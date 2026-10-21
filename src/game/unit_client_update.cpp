@@ -18,6 +18,7 @@
 #include "originals_world.h"
 #include "lib/stlp_list.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -40,12 +41,12 @@ constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = sound::Manager();
+    CSoundManager* sounds = TheSoundManager();
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 void SetTalking(const CUnit* unit, bool talking) {
-    CEngineObject* serverUnit = WorldFindUnit(WorldServer(), nullptr, unit->id_);
+    CEngineObject* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= kFlagTalking;
     else serverUnit->flags_ &= ~kFlagTalking;

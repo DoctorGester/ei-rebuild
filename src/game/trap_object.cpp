@@ -12,6 +12,7 @@
 #include "lib/mfc.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 void* const kTrapVtable = ei::GamePointer<void>(0x0073E548);
@@ -19,7 +20,6 @@ const char* const kTrapName = "CTrapObject";
 const char* const kMagicTrapName = "CMagicTrapObject";
 // 0078F730: the script the trap runs when set off (x, y, z).
 const char* const kTrapScript = "Worldscript( CreateParticleSource( 100, %g, %g, %g, 1, \"Mushroom\"))";
-void* MissionScript() { return ei::GamePointer<void>(0x007C27D4); }
 constexpr int kClassTrap = 0x55;
 constexpr int kClassMagicTrap = 0x61;
 constexpr std::uint32_t kFlag40 = 0x40;
@@ -70,7 +70,7 @@ int CTrapObject::UpdateTrap() {
         float y = position.y;
         double z = world->RawSurfaceHeightAt(x, y);
         line.Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
-        ScriptLoadLine(MissionScript(), nullptr, &line, 1);
+        ScriptLoadLine(TheMissionScript(), nullptr, &line, 1);
         flags_ &= ~kArmed;
     }
     units.RemoveAll();

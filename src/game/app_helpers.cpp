@@ -10,6 +10,7 @@
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "options.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -69,7 +70,7 @@ std::uint8_t __cdecl MovieMode() { return MovieModeFlag(); }
 void __cdecl ScrambleObjects() {
     options::OptionsResetDefaults(options::TheOptions());
     ObjectListIterator it{};
-    for (CEngineObject* object = it.First(camera::ObjectManager()); object; object = it.Next()) {
+    for (CEngineObject* object = it.First(TheObjectManager()); object; object = it.Next()) {
         static_cast<CMapObject*>(object)->AttachCompanion(reinterpret_cast<CEngineObject*>(Scaled(0x1000) % 0x1000));
         reinterpret_cast<CObject3D*>(object)->SetSpecific(reinterpret_cast<CObject3DSpecific*>(Scaled(0x1000) % 0x1000));
     }

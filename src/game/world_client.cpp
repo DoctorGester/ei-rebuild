@@ -42,7 +42,6 @@
 #include <new>
 
 
-CWorldClient* WorldClient() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 
 // ---- Heights -------------------------------------------------------------------------------------
 

@@ -13,6 +13,7 @@
 #include "unit.h"
 #include "world.h"
 #include "world_effect_internal.h"
+#include "game_singletons.h"
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
@@ -88,7 +89,7 @@ CEffectTornado* CEffectTornado::DeletingDestruct(unsigned flags) {
 void CEffectTornado::Reset() {
     ResetBase();
     if (source_ != nullptr) Source()->StopAndClear();
-    if (sound_ != -1) sound::Manager()->StopSound(sound_);
+    if (sound_ != -1) TheSoundManager()->StopSound(sound_);
     sound_ = -1;
     CEngineObject* source = source_;
     source_ = nullptr;
@@ -121,7 +122,7 @@ int CEffectTornado::Tick() {
         localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
                                  static_cast<float>(localPosition_.z + velocity_.z)};
         if (source_ != nullptr) Source()->position = localPosition_;
-        if (sound_ != -1) sound::Manager()->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
+        if (sound_ != -1) TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
     }
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) Source()->Stop();
     CWorld* world = WorldOf(this);
@@ -169,7 +170,7 @@ void CEffectTornado::Start(int update) {
     }
     if (source_ != nullptr) return;
     if (sound_ == -1) {
-        sound_ = sound::Manager()->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
+        sound_ = TheSoundManager()->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
     }
     auto* source =
         reinterpret_cast<CEngineObject*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kTornadoParticles));
@@ -179,7 +180,7 @@ void CEffectTornado::Start(int update) {
     if (old != nullptr) old->Release();
     Source()->position = localPosition_;
     Source()->ScaleSize(1.0f);
-    int behind = effect::GameTick() - launchTick_;
+    int behind = CurrentClientTick() - launchTick_;
     if (behind >= kMaxCatchUp) behind = kMaxCatchUp;
     for (int i = 1; i < behind; ++i) source_->RunTick();
 }

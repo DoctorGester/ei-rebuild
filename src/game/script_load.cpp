@@ -25,6 +25,7 @@
 #include "game_arrays.h"
 #include "game_lists.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -242,7 +243,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
             ref->Reset();
             ref->object = nullptr;
         } else {
-            CEngineObject* object = WorldFindObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, id);
+            CEngineObject* object = WorldFindObjectOriginal(TheServerWorld(), nullptr, id);
             ref->Reset();
             if (object) ++object->refCount_;
             ref->object = object;
@@ -267,7 +268,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
             int id = 0;
             stream->Read(&id, 4);
             CEngineObject* object =
-                id == -1 ? nullptr : WorldFindObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, id);
+                id == -1 ? nullptr : WorldFindObjectOriginal(TheServerWorld(), nullptr, id);
             group->data[k].Assign(object);
         }
         group->Sort();
@@ -412,7 +413,7 @@ void ScriptVars::Load(ScriptStream* stream) {
             ref->Reset();
             ref->object = nullptr;
         } else {
-            ref->Assign(WorldFindObjectOriginal(ei::GamePointer<void>(0x007AFF60), nullptr, slot));
+            ref->Assign(WorldFindObjectOriginal(TheServerWorld(), nullptr, slot));
         }
         ScriptStringLoad(&objectNames.data[i], stream);
     }

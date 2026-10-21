@@ -38,6 +38,7 @@
 #include "world_glue.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -146,7 +147,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
-        (ei::GameData<CTextManager*>(0x007AF788))->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
+        TheTextManager()->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
@@ -244,7 +245,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         int* unitId = &player->id_;
         int* playerId = &player->serial_;
         if (player->state_ == 0 && *unitId >= 0) {
-            if (!FindUnit(UiClientWorld(), nullptr, *unitId)) {
+            if (!FindUnit(TheClientWorld(), nullptr, *unitId)) {
                 PushId(&ids.without, playerId);
                 continue;
             }
@@ -265,10 +266,10 @@ void RebuildClientParty(CBattleScreen* screen) {
         bool cameraFirst = false;
         for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
             int unitId = *id;
-            CUnit* unit = FindUnit(UiClientWorld(), nullptr, unitId);
+            CUnit* unit = FindUnit(TheClientWorld(), nullptr, unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
-                static_cast<CWorldClient*>(UiClientWorld())->Select(unit);
+                TheClientWorld()->Select(unit);
                 // Insert at the front (the original's inlined InsertAt).
                 int n = party->size;
                 if (n <= 0) {
@@ -286,7 +287,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         }
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
-            static_cast<CCamera*>(ei::GamePointer<void>(0x0079B2A8))->SetTargetId(ids.camera);
+            TheCamera()->SetTargetId(ids.camera);
             static_cast<CBattleScreen*>(screen)->RefreshSelection();
         }
         screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);   // 0064AF30
@@ -374,7 +375,7 @@ void CBattleScreen::Update() {
     if (boxSelecting_) {
         List units;
         units.Construct();   // 00411850
-        UiClientWorld()->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_), reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
+        TheClientWorld()->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_), reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
         List inside;
         inside.Construct();   // 00404A70
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
@@ -463,7 +464,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         return;
     }
     viewPressed_ = false;
-    void* world = UiClientWorld();
+    void* world = TheClientWorld();
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};

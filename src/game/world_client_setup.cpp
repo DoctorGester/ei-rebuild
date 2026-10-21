@@ -21,6 +21,7 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <bit>
 
@@ -39,7 +40,6 @@ constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of th
 
 const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return ei::GameData<const char* const>(0x0079BC94); } // a CString
-void* Renderer() { return ei::GameData<void* const>(0x007AF080); }
 UnitDatabase* Units() { return ei::GamePointer<UnitDatabase>(0x007AF358); }
 
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
@@ -122,7 +122,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     auto* loader = static_cast<CLinkFigureLoader*>(gamecrt::operator_new(sizeof(CLinkFigureLoader)));
     if (loader) {
         stlp::string resource(FiguresResource());
-        loader = ConstructFigureLoader(loader, nullptr, Renderer(), &resource);
+        loader = ConstructFigureLoader(loader, nullptr, TheRenderDevice(), &resource);
     }
     CLinkFigureLoader* old = figureLoader_;
     figureLoader_ = loader;

@@ -21,6 +21,7 @@
 #include "originals_world.h"
 #include "originals_effects.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace mapspec {
 
@@ -31,7 +32,6 @@ namespace {
 
 void __fastcall EffectRestart(void* a0) { static_cast<CEffect*>(a0)->MarkChanged(); }
 
-void* World() { return ei::GamePointer<void>(0x007AFF60); }
 void* Effects() { return ei::GameData<void*>(0x007AFFA8); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -65,7 +65,7 @@ void Notify(void* self, const char* kind, const char* family) {
 
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
-    WorldMakeObjectOriginal(World(), nullptr, &self->base);
+    WorldMakeObjectOriginal(TheServerWorld(), nullptr, &self->base);
     self->effect = static_cast<CBaseManager*>(Effects())->FindObject(self->base.id);
 }
 
@@ -103,7 +103,7 @@ EI_REPLACE_METHOD(0x0046DA00, LightSpec::LightSpecDelete);
 
 // 0046D3D0 (slot 2): effects are managed under -3001 - id.
 void* EffectSpec::EffectSpecWorldObject() {
-    return static_cast<CBaseManager*>(ei::GameData<void*>(0x007AF5F8))->FindObject(-3001 - base.id);
+    return TheObjectManager()->FindObject(-3001 - base.id);
 }
 EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
 
@@ -379,7 +379,7 @@ void SoundSpec::SoundSpecApply() {
         return;
     }
     std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
-    if (effect.effect) static_cast<CWorldServer*>(World())->RemoveTimedObject(b.id);
+    if (effect.effect) TheServerWorld()->RemoveTimedObject(b.id);
     if (sounds.size > 0) MakeEffect(&effect);
     else effect.effect = nullptr;
 }

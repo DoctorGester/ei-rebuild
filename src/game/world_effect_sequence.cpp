@@ -9,6 +9,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
@@ -16,7 +17,6 @@
 namespace {
 
 // The sound manager (*007AF784).
-CSoundManager* SoundManager() { return ei::GameData<CSoundManager*>(0x007AF784); }
 
 std::uint32_t NextRandom() { return IsaacRandom::Global().Next(); }
 
@@ -60,7 +60,7 @@ bool SnapshotReadToEnd() {
 // id, as the original does). A new start lists the first name (when not empty) and the others,
 // and starts the sequence with the chooser for their count.
 void CEffectSoundSeq::Start(int update) {
-    CSoundManager* sounds = SoundManager();
+    CSoundManager* sounds = TheSoundManager();
     if (update != 0) {
         sounds->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
         return;

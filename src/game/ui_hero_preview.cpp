@@ -15,6 +15,7 @@
 #include "render/render.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -41,7 +42,6 @@ R VirtualCall(void* object, int slot, Args... args) {
     return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
 }
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // The device's state around a frame part (thiscall, not rewritten): 004E7840 and 004E7A40.
 void FlushAndRestore(UiRenderer* renderer) {
@@ -89,9 +89,9 @@ unsigned long ClearFlags(const UiRenderer* renderer) {
 
 void ClearDepth(UiRenderer* renderer, unsigned long count, RECT* rects, float z) {
     unsigned long flags = ClearFlags(renderer);
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     renderer->result_ = renderer->device_->Clear(count, rects, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     render::Rect r[6];
     int n = count < 6 ? static_cast<int>(count) : 6;
     for (int i = 0; i < n; ++i) r[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
@@ -110,9 +110,9 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     {
         UiRenderer* renderer = deviceOf();
         unsigned long flags = ClearFlags(renderer);
-        gameapi::EnterCriticalSection(DeviceLock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 0.0f, 0);
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
         render::ClearDepth(0.0f, nullptr, 0);
     }
     RECT rects[6];

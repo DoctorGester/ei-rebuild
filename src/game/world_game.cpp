@@ -1,6 +1,7 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "camera.h"
+#include "random.h"
 #include "item_db.h"
 #include "item_db_text.h"
 #include "net_coder.h"
@@ -88,21 +89,20 @@ std::uint8_t& SessionsOpen() { return ei::GameData<std::uint8_t>(0x007C7DD8); }
 
 void* const kParty = ei::GamePointer<void>(0x007AA5A0);
 void* const kScripts = ei::GamePointer<void>(0x007AFDF8);
-void* const kGlobals = ei::GamePointer<void>(0x0079B2A8);
 libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
 
 // The map database's zone records (MapRecord, object_tables.h).
-MapRecord* ZoneRecords() { return GameMapDatabase()->maps.data; }
-int ZoneRecordCount() { return GameMapDatabase()->maps.size; }
+MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data; }
+int ZoneRecordCount() { return TheMapDatabase()->maps.size; }
 // CMapDatabase::FindMap (0045E850).
-MapRecord* FindZone(const char* name) { return GameMapDatabase()->FindMap(name); }
+MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 
 // A CStream over a file (net_link.h).
 using netlink::FileStream;
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-// The mouse cursor's busy shape (3 while saving, 0 after): GameCursor()->SetShape (005E5200).
+// The mouse cursor's busy shape (3 while saving, 0 after): TheCursor()->SetShape (005E5200).
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
 // The party (007AA5A0) takes the records from / gives them to a record builder (00661050 constructs one, 006611D0
 // destroys it): PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
@@ -205,12 +205,12 @@ int GameFlow::SaveGame(const char* slot) {
     mfc::CString currentFolder; // [0x18]
     if (GameMode() != 1) return 0;
 
-    GameCursor()->SetShape(3);
+    TheCursor()->SetShape(3);
     slotFolder.Format(kSlotFolder, GameFolder(), slot);
     currentFolder.Format(kCurrentFolder, GameFolder());
     ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
-        if (WorldPlayer* player = static_cast<WorldPlayer*>(ei::GamePointer<CWorldServer>(0x007AFF60)->GetPlayer(0)))
+        if (WorldPlayer* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)))
             PartyManagerBeginRedeploy(kParty, nullptr, player->Party());
     }
     LocalRecords records;
@@ -258,7 +258,7 @@ int GameFlow::SaveGame(const char* slot) {
     static_cast<CInterface3D*>(TheInterface())->SaveWindowState();
     StreamSaveScripts(&scenario, nullptr, kScripts);
     ScriptsReset(kScripts);
-    static_cast<CCamera*>(kGlobals)->SaveState(&scenario);
+    TheCamera()->SaveState(&scenario);
     SaveFileWrite(&file.stream, kMagicScenario, SaveVersion(), &scenario);
     file.Close();
 
@@ -278,14 +278,14 @@ int GameFlow::SaveGame(const char* slot) {
         mission.data_ = nullptr;
         mission.Reset();
         mission.version_ = static_cast<std::uint32_t>(SaveVersion());
-        static_cast<CWorldServer*>(ei::GamePointer<void>(0x007AFF60))->SaveWorld(&mission);
+        TheServerWorld()->SaveWorld(&mission);
         SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &mission);
         ei::SetVtable(&mission, kMemoryStreamVtable);
         if (mission.data_) gamecrt::operator_delete(mission.data_);
         file.Close();
     }
 
-    GameCursor()->SetShape(0);
+    TheCursor()->SetShape(0);
     kConsole->PutText(kSaved)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     return 1;
 }
@@ -299,7 +299,6 @@ constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
 
-CWorldServer* World() { return ei::GamePointer<CWorldServer>(0x007AFF60); }
 const mfc::CString& MoviesFolder() { return ei::GameData<const mfc::CString>(0x007AF458); }
 
 
@@ -352,7 +351,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         failed = true;
         return 0;
     }
-    int result = World()->LoadSave(&data, mapOverride);   // 00596E70
+    int result = TheServerWorld()->LoadSave(&data, mapOverride);   // 00596E70
     file.Close();
 
     int entrance = records->entrance;
@@ -374,8 +373,8 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f /*0073B86C*/);
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
-            World()->WakeUnitsAround(&point, kCatchUpRadius);
-            World()->Tick(static_cast<char>(1));
+            TheServerWorld()->WakeUnitsAround(&point, kCatchUpRadius);
+            TheServerWorld()->Tick(static_cast<char>(1));
         }
     }
     return result;
@@ -438,20 +437,20 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
             bool loaded;
             {
                 mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
-                loaded = NewZone(World(), nullptr, map, mob, zoneRecord->name) != 0;
+                loaded = NewZone(TheServerWorld(), nullptr, map, mob, zoneRecord->name) != 0;
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
-            WorldSetTime(World(), nullptr, kStartTime);
+            WorldSetTime(TheServerWorld(), nullptr, kStartTime);
         }
         if (zoneRecord->kind == 2) {
             mfc::CString scripts = RecordMob(zoneRecord) + kMobExtension;
-            World()->LoadZoneScripts(scripts);
+            TheServerWorld()->LoadZoneScripts(scripts);
         } else {
-            ScriptResetZone(World()->MainScript());   // 004BEB00: the scripts reset for a zone without its own
+            ScriptResetZone(TheServerWorld()->MainScript());   // 004BEB00: the scripts reset for a zone without its own
         }
     }
-    World()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
+    TheServerWorld()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
     return result;
 }
 
@@ -518,7 +517,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     ToMainMenu() = 1;
     MapRecord* zoneRecord = FindZone(zone);
     if (!zoneRecord || zoneRecord->kind != 0) return 0;
-    World()->TeardownZone();
+    TheServerWorld()->TeardownZone();
 
     mfc::CString folder;   // [0x14]
     LocalFileStream file;  // [0x20]
@@ -539,7 +538,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         data.Reset();
         bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), ei::GameData<const int>(0x00790268),
                                    &file.stream) &&
-                      World()->LoadSave(&data, nullptr) != 0;
+                      TheServerWorld()->LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
         ei::SetVtable(&data, kMemoryStreamVtable);
         if (data.data_) gamecrt::operator_delete(data.data_);
@@ -552,10 +551,10 @@ int __stdcall StartNetworkZone(const char* zone) {
         {
             mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
             mfc::CString map = RecordMap(zoneRecord) + kMapExtension;
-            loaded = NewZone(World(), nullptr, map, mob, zone) != 0;
+            loaded = NewZone(TheServerWorld(), nullptr, map, mob, zone) != 0;
         }
         if (!loaded) return 0;
-        WorldSetTime(World(), nullptr, kStartTime);
+        WorldSetTime(TheServerWorld(), nullptr, kStartTime);
     }
 
     // The zone's exits, all leading to "MPGame1".
@@ -572,18 +571,18 @@ int __stdcall StartNetworkZone(const char* zone) {
     }
     for (int i = 0; i < exits.size; ++i)
         *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = kNetworkExitTarget;
-    World()->SetZoneExits(&exits);
-    World()->SetClimate(zoneRecord->setting2C);
-    World()->SetCave(zoneRecord->setting30);
+    TheServerWorld()->SetZoneExits(&exits);
+    TheServerWorld()->SetClimate(zoneRecord->setting2C);
+    TheServerWorld()->SetCave(zoneRecord->setting30);
     CampaignMode() = 1;
-    World()->SetGameResult(kGameResultNetwork);
+    TheServerWorld()->SetGameResult(kGameResultNetwork);
     SpectatorFlag() = 1;
 
     if (Active(net::GameServer())) {
         AnnounceHost(zone);
         mfc::CString name(zone);
         mfc::CString mob = name + kMobExtension;
-        static_cast<CWorldServer*>(World())->LoadMobFile(mob);
+        TheServerWorld()->LoadMobFile(mob);
     }
 
     exits.vtable = ei::GamePointer<void>(kExitArrayBaseVtable);
@@ -619,15 +618,15 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     LocalFileStream file;
     mfc::CString path;   // [0x04]
     alignas(4) unsigned char zoneStorage[sizeof(mfc::CString)];
-    mfc::CString& zone = *World()->ZoneNameInto(reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
+    mfc::CString& zone = *TheServerWorld()->ZoneNameInto(reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
     struct ZoneOwner {
         mfc::CString* s;
         ~ZoneOwner() { s->~CString(); }
     } zoneOwner{&zone};
     // `path` must be destroyed after `zone`, as the original does: it is declared first.
 
-    if (Campaign() == 1) static_cast<CCamera*>(kGlobals)->SaveView(7);
-    else if (Campaign() == 3) static_cast<CCamera*>(kGlobals)->SaveView(6);
+    if (Campaign() == 1) TheCamera()->SaveView(7);
+    else if (Campaign() == 3) TheCamera()->SaveView(6);
     path.Format(kCurrentFolder, GameFolder());
     {
         mfc::CString fileName = zone + kSaveExtension;
@@ -637,7 +636,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
         game::FatalError(kCantWrite, static_cast<const char*>(path));
         return 0;
     }
-    World()->PrepareSave();
+    TheServerWorld()->PrepareSave();
     CMemoryStream data;
     std::memset(&data, 0, sizeof(data));
     data.version_ = kStreamLimit;
@@ -646,7 +645,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     data.data_ = nullptr;
     data.Reset();
     data.version_ = static_cast<std::uint32_t>(SaveVersion());
-    World()->SaveWorld(&data);
+    TheServerWorld()->SaveWorld(&data);
     SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &data);
     file.Close();
 
@@ -676,12 +675,12 @@ namespace {
 // game state request to the server (a change goes out with a new version_).
 net::LoginMessage* LocalLogin() { return static_cast<net::LoginMessage*>(net::GameClient()->player_.ptr); }
 // The server world's player list (a CPlayerManager): the number of players registered.
-int ServerPlayerCount() { return static_cast<int>(static_cast<CBaseManager*>(World()->players_)->objects_.Size()); }
+int ServerPlayerCount() { return static_cast<int>(static_cast<CBaseManager*>(TheServerWorld()->players_)->objects_.Size()); }
 
 } // namespace
 
 void GameFlow::UpdateMultiplayerVariable() {
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     NamedFloatTable* variables = &player->variables;
     if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
@@ -764,7 +763,7 @@ constexpr int kRequestDone = 3;   // the client's game state request: answered
 
 void GameFlow::ReturnLocalParty() {
     if (!Active(net::GameClient())) return;
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     CParty* party = player->Party();
     AsParty(GlobalParty())->Assign(party);
     PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, party);
@@ -819,7 +818,7 @@ int GameFlow::SaveGameThunk(const char* slot) { return SaveGameAt(this, nullptr,
 int __stdcall RequestZone(const char* zone, int entrance) {
     ei::GameData<char>(0x007C7D94) = 1;
     // 0066B1B0: the local view asks to go to a zone (name, entrance).
-    return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView())->RequestZone(zone, entrance);
+    return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(zone, entrance);
 }
 
 void GameFlow::DropSessions() {
@@ -880,7 +879,7 @@ void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
     AsParty(RequestParty())->Assign(AsParty(party));
 }
 
-void GameFlow::DisconnectClient() { ei::GamePointer<CWorldClient>(0x007AF5B8)->DisconnectLocalPlayer(); }
+void GameFlow::DisconnectClient() { TheClientWorld()->DisconnectLocalPlayer(); }
 
 // ---- ReadAIGraph ----------------------------------------------------------------------------------
 
@@ -1027,7 +1026,7 @@ void GameFlow::SwitchMultiplayerZone() {
             alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
             mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
             ToMainMenu() = 1;
-            reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView())->RequestZone(*zone, 0);   // 0066B1B0
+            reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(*zone, 0);   // 0066B1B0
             zone->~CString();
         }
         if (host) {
@@ -1058,11 +1057,11 @@ void GameFlow::SwitchMultiplayerZone() {
         }
     }
     LocalRecords records;
-    WorldPlayer* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(World())->GetPlayer(0));
+    WorldPlayer* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
     if (player && player->server->flag70_) {
-        World()->SyncPartyRecords(player);
+        TheServerWorld()->SyncPartyRecords(player);
         AsParty(&records.party)->Assign(player->Party());
-        World()->ClearPlayerItems(player);
+        TheServerWorld()->ClearPlayerItems(player);
     } else {
         AsParty(&records.party)->Assign(AsParty(GlobalParty()));
     }
@@ -1268,7 +1267,7 @@ void __stdcall PickZones(void* outArg, int id, const char* exclude) {
             for (int i = 0; i < group.count;)
                 if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
                 else ++i;
-        unsigned pick = RandomNext(ei::GamePointer<IsaacRandom>(0x007A9D40)) % static_cast<unsigned>(group.count);
+        unsigned pick = RandomNext((&IsaacRandom::Global())) % static_cast<unsigned>(group.count);
         stlp::string name(group.items[pick]->first);
         if (out->Finish() != out->EndOfStorage()) {
             new (out->Finish()) stlp::string(name);
@@ -1293,13 +1292,13 @@ void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { static_cast
 } // namespace
 
 int __stdcall LoadMission(void* file) {
-    static_cast<CSoundManager*>(ei::GameData<void*>(0x007AF784))->StopAll(1);
+    TheSoundManager()->StopAll(1);
     LocalMemoryStream mission;
     if (!SaveFileRead(&mission.s, kMagicMissionFile, ei::GameData<const int>(0x00790260),
                       ei::GameData<const int>(0x00790268), file))
         return 0;
     int version = static_cast<int>(mission.s.version_);
-    if (version < kVersionGlobalsInMission) static_cast<CCamera*>(ei::GamePointer<void>(0x0079B2A8))->LoadState(&mission.s);
+    if (version < kVersionGlobalsInMission) TheCamera()->LoadState(&mission.s);
     if (static_cast<int>(mission.s.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
@@ -1307,7 +1306,7 @@ int __stdcall LoadMission(void* file) {
         StreamCopyRest(&mission.s, nullptr, GameSaveStream());
         ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
     }
-    return ei::GamePointer<CWorldServer>(0x007AFF60)->LoadSave(&mission.s, nullptr);   // 00596E70
+    return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70
 }
 
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
@@ -1361,7 +1360,6 @@ constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
 constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
 
-void* const kClientWorld = ei::GamePointer<void>(0x007AF5B8);
 
 // 0058EEE0 / 0058EEA0 (RET 4). CWorldServer::SetTimeSpeed / SetTime.
 void __fastcall WorldSetTimeSpeedF(CWorldServer* a0, void*, float a2) { a0->SetTimeSpeedImpl(a2); }
@@ -1377,7 +1375,7 @@ float HoursOfDay(double value) { return static_cast<float>(libcrt::CiFmod(value,
 } // namespace
 
 void GameFlow::StartZone(const char* zone, int mode) {
-    GameCursor()->SetShape(3);
+    TheCursor()->SetShape(3);
     MapRecord* zoneRecord = nullptr;
     ToMainMenu() = 1;
     if (libcrt::Stricmp(zone, kEndOfGame) == 0) {
@@ -1385,7 +1383,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     } else {
         zoneRecord = FindZone(zone);
     }
-    World()->TeardownZone();
+    TheServerWorld()->TeardownZone();
 
     bool found;
     if (mode == kModeFromRecord) {
@@ -1418,20 +1416,20 @@ void GameFlow::StartZone(const char* zone, int mode) {
         mode = kModeMainMenu;
     }
 
-    WorldSetTimeSpeedF(World(), nullptr, static_cast<float>(TimeSpeedSetting()));
+    WorldSetTimeSpeedF(TheServerWorld(), nullptr, static_cast<float>(TimeSpeedSetting()));
     int result;
     if (mode == kModeMainMenu) {
-        NewZone(World(), nullptr, kMenuMap, kMenuMob, nullptr);
+        NewZone(TheServerWorld(), nullptr, kMenuMap, kMenuMob, nullptr);
         // The menu shows the local time of day.
         SYSTEMTIME now;
         gameapi::GetLocalTime(&now);
         int minute = now.wMinute;
         int hour = now.wHour;
-        WorldSetTimeF(World(), nullptr, static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
+        WorldSetTimeF(TheServerWorld(), nullptr, static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
         // queue runs in the menu too.
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) World()->scriptsActive_ = 1;
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) TheServerWorld()->scriptsActive_ = 1;
     } else if (mode == kModeEndOfGame) {
         result = kResultPlaying;
     } else {
@@ -1440,21 +1438,21 @@ void GameFlow::StartZone(const char* zone, int mode) {
         PartyManagerEndRedeploy(kParty, nullptr, &records.party);
         EnterZoneAt(&records.party);
         PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
-        WorldSetTimeF(World(), nullptr,
+        WorldSetTimeF(TheServerWorld(), nullptr,
                       HoursOfDay(VariableGet(&records.party.variables, kGTime)));
         if (zoneRecord) {
-            World()->SetClimate(zoneRecord->setting2C);
-            World()->SetCave(zoneRecord->setting30);
+            TheServerWorld()->SetClimate(zoneRecord->setting2C);
+            TheServerWorld()->SetCave(zoneRecord->setting30);
         }
         result = kResultPlaying;
     }
 
     CampaignMode() = mode;
     if (mode == 1) SpectatorFlag() = mode;
-    World()->SetGameResult(result);
+    TheServerWorld()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
-    static_cast<CWorldClient*>(kClientWorld)->SetPlayer(reinterpret_cast<std::uint8_t*>(World()->shared5C_.ptr));
-    ClientWorldLocalView(kClientWorld)->sendParty = 0;
+    TheClientWorld()->SetPlayer(reinterpret_cast<std::uint8_t*>(TheServerWorld()->shared5C_.ptr));
+    ClientWorldLocalView(TheClientWorld())->sendParty = 0;
 }
 
 // ---- New game (0057BD10) ------------------------------------------------------------------------
@@ -1507,7 +1505,6 @@ std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
 const char* ResourcesPath() { return ei::GameData<const char* const>(0x0079BC94); }
-void* SoundSystemObject() { return ei::GameData<void* const>(0x007AF784); }
 UnitDatabase* UnitDatabaseObject() { return ei::GamePointer<UnitDatabase>(0x007AF358); }
 void* SpellTablesObject() { return ei::GamePointer<void>(0x007C8510); }
 void* ItemDatabaseObject() { return ei::GamePointer<void>(0x007C86D8); }
@@ -1518,7 +1515,7 @@ void __fastcall SwitchResourceDatabases(const char* name) {
     UnitDatabase* units = UnitDatabaseObject();
     units->Reset();
     UnitDatabaseLoadOriginal(units, nullptr, ResourcesPath(), name);
-    units->CountSoundFiles(SoundSystemObject());
+    units->CountSoundFiles(TheSoundManager());
     SkillDb()->Reset();
     SkillDatabaseLoadOriginal(SkillDb(), nullptr, ResourcesPath(), name);
     static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Reset();
@@ -1565,11 +1562,11 @@ void GameFlow::ProcessRequest() {
         LeaveZoneAt(&records.party);
     }
     InterfaceCloseAll(TheInterface());
-    World()->TeardownZone();
+    TheServerWorld()->TeardownZone();
     // (0057DEE0's body is inlined here in the original, with the databases' switch 0057CB50 out of line.)
     UseResources(Active(net::GameClient()));
 
-    auto* clientWorld = ei::GamePointer<void>(0x007AF5B8);
+    auto* clientWorld = TheClientWorld();
     switch (state) {
     case kStateMainMenu:
         ToMainMenu() = 1;
@@ -1578,11 +1575,11 @@ void GameFlow::ProcessRequest() {
     case kStateLoad:
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty = 0;
-        World()->SetGameResult(1);
+        TheServerWorld()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
-        ServerUpdateAt(World());
+        ServerUpdateAt(TheServerWorld());
         ClientSegmentAt(clientWorld);
-        ServerUpdateAt(World());
+        ServerUpdateAt(TheServerWorld());
         LoadGameAt(this, nullptr, requestTarget_);
         if (requestArg_) {
             const char* autoplay = kAutoplay;
@@ -1607,7 +1604,7 @@ void GameFlow::ProcessRequest() {
         const char* zone = requestTarget_;
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
         reinterpret_cast<CPlayer*>(player)->AssignParty(reinterpret_cast<CParty*>(RequestParty()));
-        World()->TeardownZone();
+        TheServerWorld()->TeardownZone();
         if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
             if (Active(net::GameClient())) {
                 BeginMultiplayerGame();
@@ -1654,7 +1651,7 @@ int GameFlow::LoadGame(const char* slot) {
     // Rebirth's AutoExec #1 (the CALL at 0057ABE1 redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     ExecuteAt(kExecAutoexec);
-    GameCursor()->SetShape(3);
+    TheCursor()->SetShape(3);
     ToMainMenu() = 1;
     LocalFileStream file;
     mfc::CString zone;          // [0x14]
@@ -1704,7 +1701,7 @@ int GameFlow::LoadGame(const char* slot) {
         version = static_cast<int>(scenario.version_);
         LoadedScriptsVersion() = version;
     }
-    if (version >= kScenarioGlobalsVersion) static_cast<CCamera*>(kGlobals)->LoadState(&scenario);
+    if (version >= kScenarioGlobalsVersion) TheCamera()->LoadState(&scenario);
     file.Close();
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
@@ -1759,7 +1756,7 @@ int GameFlow::LoadGame(const char* slot) {
         if (!opened) return 0;
         LoadMission(&file.stream);
         file.Close();
-        World()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
+        TheServerWorld()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
     }
     kConsole->PutText(kLoadedText)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     return 1;
@@ -1887,13 +1884,13 @@ std::uint32_t ValueBits(const net::VariableMessage* record) {
 
 void GameFlow::UpdateFromServer() {
     if (!Active(net::GameClient())) return;
-    if (void* texts = ei::GameData<void*>(0x007AF788)) {
+    if (void* texts = TheTextManager()) {
         auto* files = ei::GamePointer<std::uint8_t*>(0x007AFDD0);
         for (std::uint8_t* file = files[0]; file != files[1]; file += 0xC)
             static_cast<CTextManager*>(texts)->RemoveSource(*reinterpret_cast<const char**>(file));
         stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(reinterpret_cast<stlp::vector<stlp::string>*>(files));   // 00581860
     }
-    auto* clientWorld = ei::GamePointer<void>(0x007AF5B8);
+    auto* clientWorld = TheClientWorld();
     WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
     LocalVariables unusedEmpty;
     unusedEmpty.table.ConstructDefault();

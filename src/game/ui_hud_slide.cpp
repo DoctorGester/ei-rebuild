@@ -28,6 +28,7 @@
 #include "lib/vecmath.h"
 #include "originals_ui.h"       // SpritePlaceOriginal, WindowFrameTimeOriginal
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <concepts>
 #include <cmath>
@@ -339,7 +340,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     hoverUnit_ = nullptr;
 
     // The panel's texts "infounit_0".."infounit_17" and the four body part labels.
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString text;
     mfc::CString key;
     mfc::CStringArray* infoTexts = &texts_;
@@ -384,7 +385,7 @@ constexpr int kOutlinePoints = 16;
 const MapRecord* LocalZone() {
     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
     mfc::CString* name = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    const MapRecord* zone = GameMapDatabase()->FindMap(*name);
+    const MapRecord* zone = TheMapDatabase()->FindMap(*name);
     name->~CString();
     return zone;
 }

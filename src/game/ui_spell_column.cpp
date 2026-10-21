@@ -14,6 +14,7 @@
 #include "originals_units.h"
 #include "unit.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -40,7 +41,6 @@ std::uint8_t* SpellPrototypeOf(void* spell) {
     return reinterpret_cast<std::uint8_t*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
 
-void* TextManager() { return ei::GameData<void* const>(0x007AF788); }
 
 // The spell's slot 19 (the picture's name) and 20 (the model's name).
 void SpellName(CEngineObject* spell, int slot, ReturnedString* out) {
@@ -73,7 +73,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             SpellName(spell, 20, &model);
             AddSpellSprite(this, nullptr, model.data, image.data);
         }
-        static_cast<CTextManager*>(TextManager())->GetItemTexts(static_cast<CItem*>(spell), &tip, &description, &description);
+        TheTextManager()->GetItemTexts(static_cast<CItem*>(spell), &tip, &description, &description);
 
         // The spell's numbers below its name: one line per label of the panel's table (+0x15C).
         std::uint8_t* data = Get<std::uint8_t*>(spell, 0x44);
@@ -85,7 +85,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
             line = "Unknown";
             description.Format("school_%d", Get<int>(SpellPrototypeOf(data), 0x10));
-            TextsGetString(TextManager(), nullptr, description, &line);
+            TextsGetString(TheTextManager(), nullptr, description, &line);
             line = mfc::operator+(mfc::operator+(mfc::operator+(*reinterpret_cast<const mfc::CString*>(&labels[1]),
                                                                 " "),
                                                  line),

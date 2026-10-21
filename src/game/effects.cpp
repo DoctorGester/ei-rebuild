@@ -11,6 +11,7 @@
 #include "originals_engine.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -47,7 +48,6 @@ constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 0073CC
 const float* SizeCurve() { return ei::GamePointer<const float>(0x0073CB38); }
 const float* AntimagicSizeCurve() { return ei::GamePointer<const float>(0x0073CB78); }
 
-IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Reads a float back from memory, as the original does after storing it (the compiler would
 // otherwise reuse the unrounded register value).
@@ -61,7 +61,6 @@ double Unsigned(std::uint32_t value) {
 
 // 004113A0: the camera's shake around a point (the camera object is 0079B2A8).
 // Arguments: camera, unused EDX, point, strength, range, duration.
-void* TheCamera() { return ei::GamePointer<void>(0x0079B2A8); }
 
 constexpr int kTypeFire = 0x2003;
 constexpr int kTypeSmoke = 0x2004;
@@ -163,7 +162,7 @@ int CParticleSource::UpdateSmoke(Particle* p) {
         if (frame > 7) {
             if (type_ == kTypeFire || type_ == kTypeTendril) return 0;
             p->frameTimer = frameDelay << 2;
-            if ((GlobalRandom().Next() & 3) == 0) return 0;
+            if ((IsaacRandom::Global().Next() & 3) == 0) return 0;
         }
         if (p->frame == 8) p->drift.z = static_cast<float>(p->drift.z * kHalfDouble);
     }
@@ -199,16 +198,16 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     p->frame = type_ != kTypeSmoke ? 0 : 8;
     p->frameTimer = frameDelay;
     std::memcpy(&p->size, &size, sizeof(float));
-    if (GlobalRandom().Next() % 100 + 1 <= 40) {
+    if (IsaacRandom::Global().Next() % 100 + 1 <= 40) {
         p->size = size * kHalf;
         extra = static_cast<float>(size * kPointThree);
     }
     float hi = static_cast<float>(extra + spreadMax.x);
     float lo = static_cast<float>(spreadMin.x - extra);
-    p->velocity.x = static_cast<float>(Unsigned(GlobalRandom().Next()) * (hi - lo) * kRandomScale + lo);
+    p->velocity.x = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * (hi - lo) * kRandomScale + lo);
     hi = static_cast<float>(extra + spreadMax.y);
     lo = static_cast<float>(spreadMin.y - extra);
-    std::uint32_t r = GlobalRandom().Next();
+    std::uint32_t r = IsaacRandom::Global().Next();
     p->velocity.z = 0.0f;
     p->velocity.y = static_cast<float>(Unsigned(r) * (hi - lo) * kRandomScale + lo);
     p->velocity.x = Load(p->velocity.x) * kHalf;
@@ -217,7 +216,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     p->pos.x = origin.x + Load(p->velocity.x);
     p->pos.y = origin.y + Load(p->velocity.y);
     float h = height;
-    r = GlobalRandom().Next();
+    r = IsaacRandom::Global().Next();
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
     p->pos.z = static_cast<float>(Unsigned(r) * h * kRandomScale + origin.z);
@@ -342,7 +341,7 @@ EI_REPLACE_METHOD(0x0048EE20, CParticleSource::TickTendril);
 // its first tick; emission stops after 30 ticks.
 void CParticleSource::TickMushroom(ParticleElement* e) {
     if (type_ == kTypeMushroom && e->ticks == 0 && e == elements)
-        static_cast<CCamera*>(TheCamera())->Shake(&origin, 5.0f, size, 0.25f);
+        TheCamera()->Shake(&origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;

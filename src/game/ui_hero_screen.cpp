@@ -29,6 +29,7 @@
 #include "lib/stlp.h"
 #include "party.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 #include <cstdint>
@@ -89,13 +90,13 @@ void CMpHeroScreen::DrawExperience() {
     mfc::CString line;
     UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
-    TextsGetString(GameTexts(), nullptr, kLevelUpKey, &text);
+    TextsGetString(TheTextManager(), nullptr, kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     SurfaceDrawText(surface, nullptr, text, &title, kTextFormat, kWhite, 1, 1);
     text.Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
     SurfaceDrawText(surface, nullptr, text, &cost, kTextFormat, kWhite, 1, 1);
-    TextsGetString(GameTexts(), nullptr, kCurrentExpKey, &text);
+    TextsGetString(TheTextManager(), nullptr, kCurrentExpKey, &text);
     line.Format(kLabelFormat, static_cast<const char*>(text), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     SurfaceDrawText(surface, nullptr, line, &current, kTextFormat, kWhite, 1, 1);
@@ -302,7 +303,7 @@ void CMpHeroScreen::DrawVoices() {
     SelectionFrame(window)->visible_ = 0;
     mfc::CString title;
     RECT rect = {10, 5, 190, 20};
-    TextsGetString(GameTexts(), nullptr, kVoicesKey, &title);
+    TextsGetString(TheTextManager(), nullptr, kVoicesKey, &title);
     SurfaceDrawText(surface, nullptr, title, &rect, 0, kWhite, 1, 1);
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);

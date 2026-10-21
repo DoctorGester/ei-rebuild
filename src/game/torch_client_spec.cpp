@@ -16,6 +16,7 @@
 #include "ei/vcall.h"      // SetVtable
 #include "lib/crt.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -33,7 +34,6 @@ constexpr int kTorchClassId = 0x41;
 // 0078F7BC: "CTorchObjectClientSpecific".
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
-CSoundManager* Sounds() { return ei::GameData<CSoundManager* const>(0x007AF784); }
 CLightFactory* Lights() { return ei::GameData<CLightFactory* const>(0x007AF748); }
 CParticleManager* Particles() { return static_cast<CParticleManager*>(ParticleManagerObject()); }
 
@@ -122,9 +122,9 @@ void CTorchObjectClientSpec::ShowEffects() {
         light_->flags_ &= ~kLightHidden;
         static_cast<Terrain*>(camera::TheTerrain())->AddLight(light_);
     }
-    if (sound_) Sounds()->StopSound(sound_);
+    if (sound_) TheSoundManager()->StopSound(sound_);
     const float far = values_[1] * kShowFarFactor;
-    sound_ = Sounds()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
 }
 EI_REPLACE_METHOD(0x0052D580, CTorchObjectClientSpec::ShowEffects);
 
@@ -135,7 +135,7 @@ void CTorchObjectClientSpec::HideEffects() {
         static_cast<Terrain*>(camera::TheTerrain())->RemoveLight(light_);
     }
     if (sound_) {
-        Sounds()->StopSound(sound_);
+        TheSoundManager()->StopSound(sound_);
         sound_ = 0;
     }
 }
@@ -194,9 +194,9 @@ EI_REPLACE_METHOD(0x0052D410, CTorchObjectClientSpec::SetLightAt);
 
 void CTorchObjectClientSpec::SetSound(const char* name) {
     SetName(name);
-    if (sound_) Sounds()->StopSound(sound_);
+    if (sound_) TheSoundManager()->StopSound(sound_);
     const float far = values_[1] * kSetFarFactor;
-    sound_ = Sounds()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
 }
 EI_REPLACE_METHOD(0x0052D520, CTorchObjectClientSpec::SetSound);
 

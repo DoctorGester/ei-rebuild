@@ -34,6 +34,7 @@
 #include "originals_core.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -477,7 +478,6 @@ EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 
 namespace {
 
-CTextureManager* TextureManager() { return ei::GameData<CTextureManager* const>(0x007AF744); }
 void* PixelDecoder() { return ei::GameData<void* const>(0x007AF06C); }
 
 
@@ -502,7 +502,7 @@ long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
 } // namespace
 
 void* __fastcall ItemFigureTexture(const char* name) {
-    CTextureManager* manager = TextureManager();
+    CTextureManager* manager = TheTextureManager();
     auto* texture = reinterpret_cast<std::uint8_t*>(manager->NewTexture(0x100, 0x100, 0x20));
     if (!texture) return nullptr;
     Set(texture, 4, Get<int>(texture, 4) + 1);
@@ -530,7 +530,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         void* decoder = PixelDecoder();
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
+    gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
@@ -559,7 +559,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         }
     }
     if (pixels) gamecrt::operator_delete(pixels);
-    gameapi::LeaveCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     VirtualCall(manager, 22);
     return texture;
 }
@@ -574,7 +574,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     {
         mfc::CString base(name);
         mfc::CString file = base + ".mmp";
-        image = static_cast<unsigned char*>(TextureManager()->GetFileData(file));
+        image = static_cast<unsigned char*>(TheTextureManager()->GetFileData(file));
     }
     std::uint32_t* pixels = nullptr;
     if (image) {
@@ -586,7 +586,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         void* decoder = Get<void*>(device, 0x4C);
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
+    gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
@@ -614,8 +614,8 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         }
     }
     if (pixels) gamecrt::operator_delete(pixels);
-    gameapi::LeaveCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
-    VirtualCall(TextureManager(), 22);
+    gameapi::LeaveCriticalSection(TheDeviceLock());
+    VirtualCall(TheTextureManager(), 22);
     return image != nullptr;
 }
 

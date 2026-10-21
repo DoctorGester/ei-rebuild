@@ -87,7 +87,6 @@ float Select(float a, float b, float ifLess, float otherwise) {
     return std::bit_cast<float>(a >= b ? Bits(otherwise) : Bits(ifLess));
 }
 
-IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
 
@@ -330,7 +329,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
             key |= kKeyCastStanding;
         } else {
             if (moveMode.flag4) key |= kKeyFlag10000;
-            key |= (Random().Next() & 1) ? kKeyCastB : kKeyCastA;
+            key |= (IsaacRandom::Global().Next() & 1) ? kKeyCastB : kKeyCastA;
         }
     } else {
         key = kKeyNoUnitCast;
@@ -420,13 +419,13 @@ double RandomHeight(double to, float from, float low, float high) {
     float span = static_cast<float>((to - from) * kHundred);
     if (x87::fistp(span) > 0) {
         std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span));
-        volatile std::int64_t pick = Random().Next() % steps;
+        volatile std::int64_t pick = IsaacRandom::Global().Next() % steps;
         return static_cast<double>(pick) * kPercent + from;
     }
     float span2 = static_cast<float>((static_cast<double>(low) - high) * kHundred);
     if (x87::fistp(span2) > 0) {
         std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span2));
-        volatile std::int64_t pick = Random().Next() % steps;
+        volatile std::int64_t pick = IsaacRandom::Global().Next() % steps;
         return static_cast<double>(pick) * kPercent + high;
     }
     return high;
@@ -471,7 +470,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     int location;
     std::uint32_t source = action.source;
     if (source == 6) {
-        int around = kSkillLocations[Random().Next() % 20];
+        int around = kSkillLocations[IsaacRandom::Global().Next() % 20];
         location = StatsPickLocation(victimStats, nullptr, around);
     } else if (static_cast<int>(source) < 0 || static_cast<int>(source) >= kLocationCount) {
         location = StatsPickLocation(victimStats, nullptr, kLocationBody);
@@ -584,7 +583,7 @@ constexpr int kStepLying = 2;   // +8 of every step of a fall
 // A random side for a hero's fall (0x400000 or 0x800000).
 std::uint32_t RandomSide(std::uint32_t key) {
     key &= kKeySideMask;
-    return key | ((Random().Next() & 1) ? 0x800000u : 0x400000u);
+    return key | ((IsaacRandom::Global().Next() & 1) ? 0x800000u : 0x400000u);
 }
 } // namespace
 

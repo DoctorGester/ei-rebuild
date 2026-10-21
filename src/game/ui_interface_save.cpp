@@ -8,6 +8,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -84,7 +85,7 @@ const char* const kMessageKeys[13] = {
 void* CInterface3D::MessageText(void* out, int id, const char* value) {
     mfc::CString key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
-    void* table = ei::GameData<void* const>(0x007AF788);
+    void* table = TheTextManager();
     TextsGetString(table, nullptr, key, &key);
     if (value)
         text.Format(key, value);

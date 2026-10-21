@@ -21,13 +21,13 @@
 
 #include "../hook/log.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
 
 namespace {
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // The shadow textures: CreateObject's kind, 64 pixels square, the device's 4:4:4:4 format (its
 // texture kind 0x21 in the missing-format report).
@@ -124,7 +124,7 @@ EI_REPLACE_METHOD(0x00692140, CTextureManager::ShadowRenderSurface);
 int CTexture::LockPixels(SurfacePixels* pixels) {
     CDXSurface* holder = surface_;
     if (!holder) return 0;
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     holder->result = 0;
     return DirectPixels(holder, pixels) ? 1 : 0;   // (always memory: CreateBlank made it)
 }
@@ -133,7 +133,7 @@ EI_REPLACE_METHOD(0x00690FC0, CTexture::LockPixels);
 void CTexture::UnlockPixels() {
     CDXSurface* holder = surface_;
     if (!holder) return;
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     holder->result = 0;
 }
 EI_REPLACE_METHOD(0x00691030, CTexture::UnlockPixels);

@@ -17,6 +17,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <initializer_list>
@@ -34,7 +35,6 @@ constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
 
 const char* const kLeverClassName = "CLeverObject";
-int GameTick() { return ei::GameData<const int>(0x007AF61C); }
 
 void SetVtable(Lever* lever) { *reinterpret_cast<void**>(lever) = kLeverVtable; }
 
@@ -89,18 +89,18 @@ int Lever::UpdateLever() {
     Update();
     if (static_cast<CWorld*>(ManagerContext())->IsServer()) return 0;
     Vector3 shown = {scale.x, scale.y, scale.z};
-    double t = (endTick - static_cast<double>(GameTick())) * rate;
+    double t = (endTick - static_cast<double>(CurrentClientTick())) * rate;
     if (t > 0.0) {
         shown.y = static_cast<float>(to - (to - from) * t);
         Object3D()->SetFigureScale(&shown.x);
-        static_cast<CWorldClient*>(ClientWorldObject())->RefreshPlatforms(this);
+        TheClientWorld()->RefreshPlatforms(this);
         return 1;
     }
     EI_NAN_AUDIT(shown.y, to);
     if (shown.y != to) {
         shown.y = to;
         Object3D()->SetFigureScale(&shown.x);
-        static_cast<CWorldClient*>(ClientWorldObject())->RefreshPlatforms(this);
+        TheClientWorld()->RefreshPlatforms(this);
     }
     return 0;
 }
@@ -181,12 +181,12 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     field->EndField();
     if (disabled) flags_ |= kDisabled;
     else flags_ &= ~kDisabled;
-    static_cast<CWorldClient*>(ClientWorldObject())->QueueSynchronised(this);
+    TheClientWorld()->QueueSynchronised(this);
     if (first == 1) {
         const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(LeverTable()), nullptr, name));
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
-            sound::Manager()->Play3D(record->sound, 0, &position.x, kSoundNear, kSoundFar, 0, 0);
+            TheSoundManager()->Play3D(record->sound, 0, &position.x, kSoundNear, kSoundFar, 0, 0);
     }
     return complete;
 }

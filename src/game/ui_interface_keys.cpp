@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "lib/mfc_file.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -59,7 +60,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         consoleWindow->Show(!consoleWindow->shown_);
         return;
     case 0x46: {  // Scroll Lock: a screenshot
-        CDXSurface* capturer = RenderDeviceObject()->renderTarget_;
+        CDXSurface* capturer = TheRenderDevice()->renderTarget_;
         CDib* picture = CaptureSurface(capturer);
         if (!picture) return;
         mfc::CString name;

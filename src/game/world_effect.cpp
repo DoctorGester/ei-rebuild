@@ -7,6 +7,7 @@
 
 #include "lib/mfc.h"
 #include "originals_effects.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -109,7 +110,7 @@ double CEffect::DefaultRadius() { return ConstAt(worlddata::DefaultRadius()); }
 
 void CEffectSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1 && looping_ != 0) static_cast<CSoundManager*>(SoundSystem())->StopSound(sound_);
+    if (sound_ != -1 && looping_ != 0) TheSoundManager()->StopSound(sound_);
     sound_ = -1;
     looping_ = 1;
     std::memset(name_, 0, sizeof(name_));   // SV7b2a: the original clears name_[0] (the harness all of it)
@@ -125,18 +126,18 @@ int CEffectSound::Tick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         // Tests the handle against 0, not -1 (a stopped sound is moved too).
-        if (sound_ != 0) static_cast<CSoundManager*>(SoundSystem())->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
+        if (sound_ != 0) TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
     }
     return looping_ == 0 && wasFresh == 0 ? 0 : 1;
 }
 
 void CEffectSound::Start(int update) {
     if (update == 0) {
-        sound_ = static_cast<CSoundManager*>(SoundSystem())->Play3D(name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
+        sound_ = TheSoundManager()->Play3D(name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
                                             volume_, radius_, looping_, 0);
         return;
     }
-    static_cast<CSoundManager*>(SoundSystem())->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
+    TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
 }
 
 int CEffectSound::Unpack(int update, DeltaField* field) {
@@ -196,7 +197,7 @@ double CEffectSound::Radius() { return radius_; }
 
 void CEffectSoundSeq::Reset() {
     ClearBase(this);
-    if (sound_ != -1) static_cast<CSoundManager*>(SoundSystem())->RemoveSequence(sound_);
+    if (sound_ != -1) TheSoundManager()->RemoveSequence(sound_);
     sound_ = -1;
     volume_ = 0.0f;
     radius_ = 0.0f;
@@ -209,7 +210,7 @@ int CEffectSoundSeq::Tick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         if (sound_ != 0)
-            static_cast<CSoundManager*>(SoundSystem())->UpdateSequence(sound_, &localPosition_.x, volume_, radius_, -1);
+            TheSoundManager()->UpdateSequence(sound_, &localPosition_.x, volume_, radius_, -1);
     }
     return 1;
 }
@@ -260,7 +261,7 @@ double CEffectSoundSeq::Radius() { return radius_; }
 
 void CEffectAmbientSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1) sound_ = static_cast<CSoundManager*>(SoundSystem())->RemoveEmitter(sound_);
+    if (sound_ != -1) sound_ = TheSoundManager()->RemoveEmitter(sound_);
     StringArraySetSize(&names_, nullptr, 0, -1);
     volume_ = 0.0f;
     radius_ = 0.0f;
@@ -270,11 +271,11 @@ void CEffectAmbientSound::Reset() {
 
 void CEffectAmbientSound::Start(int update) {
     if (update == 0) {
-        sound_ = static_cast<CSoundManager*>(SoundSystem())->AddEmitter(&names_, &localPosition_.x, volume_, radius_,
+        sound_ = TheSoundManager()->AddEmitter(&names_, &localPosition_.x, volume_, radius_,
                              minInterval_, maxInterval_);
         return;
     }
-    static_cast<CSoundManager*>(SoundSystem())->MoveEmitter(sound_, &localPosition_.x, volume_, radius_, minInterval_,
+    TheSoundManager()->MoveEmitter(sound_, &localPosition_.x, volume_, radius_, minInterval_,
                 maxInterval_);
 }
 

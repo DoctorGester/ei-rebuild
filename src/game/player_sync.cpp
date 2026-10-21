@@ -29,6 +29,7 @@
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
@@ -307,7 +308,7 @@ int CPlayerServer::SendPartyState() {
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&shared);
     shared.vtable = scriptvtable::kRefs;
     if (IsMultiplayerClient() && player->Party()->members_.size == 1)
-        WorldServer()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unitId), &shared);
+        TheServerWorld()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unitId), &shared);
     int sharedCount = shared.size;
     WriteDword(&out_, static_cast<std::uint32_t>(sharedCount));
     for (int i = 0; i < sharedCount; ++i) WriteDword(&out_, static_cast<std::uint32_t>(shared.data[i].AsUnit()->id_));

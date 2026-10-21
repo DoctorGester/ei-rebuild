@@ -18,6 +18,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -56,11 +57,10 @@ constexpr std::int16_t kFrameMarked = 3;    // marked objects
 
 // The local view (CWorldClient::LocalView): the ids of the units shown on the map (partyUnitIds_)
 // and, in multiplayer, of the other players' units (otherUnitIds_).
-CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
+CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
 // The local player's side: its world player's number.
 int LocalSide() { return LocalView()->Owner()->playerId_; }
 
-CBaseManager* Objects() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
 // The light factory's list of lit ids (CLightFactory::litIds_) is what the minimap marks.
 using IdNode = stlp::list<int>::Node;
 
@@ -254,14 +254,14 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
 
 void CHudMap::BuildMarkers() {
     CUiMesh* mesh = reinterpret_cast<CUiMesh*>(sceneObjects_.data[2]);
-    CBaseManager* objects = Objects();
+    CBaseManager* objects = TheObjectManager();
     CPlayerClient* view = LocalView();
     int unitCount = view ? view->partyUnitIds_.size : 0;
     CLightFactory* markers = TheLightFactory();
     const stlp::list<int>& marked = markers->litIds_;
     int markedCount = 0;
     for (IdNode* node = marked.First(); node != marked.End(); node = node->next) ++markedCount;
-    int exitCount = WorldClient()->exitCount_;
+    int exitCount = TheClientWorld()->exitCount_;
     int playerCount = IsMultiplayerClient() ? view->otherUnitIds_.size : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each
@@ -317,7 +317,7 @@ void CHudMap::BuildMarkers() {
 
     // The zone exits that lead somewhere: squares. (The original copies the exit record and
     // reads the target from the copy, which shares the string.)
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     for (int i = 0; i < exitCount; ++i) {
         out.BeginQuad();
         float x, y;

@@ -8,6 +8,7 @@
 
 #include "ground_print.h"       // NamedTexture
 #include "originals_engine.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -19,7 +20,7 @@ void Flush(CTextureDevice* device, DeviceVertexBatch& batch) {
     CVertexBufferHolder* buffer = batch.buffer;
     if (!buffer) return;
     buffer->result = static_cast<IDirect3DVertexBuffer7*>(buffer->buffer)->Unlock();
-    gameapi::LeaveCriticalSection(device::Lock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     if (buffer->result != 0) app::FatalErrorCode(buffer->result, "Can't unlock vertex buffer.\n");   // "Can't unlock vertex buffer.\n"
     const int vertexCount = batch.vertexCount;
     if (vertexCount != 0) {
@@ -27,11 +28,11 @@ void Flush(CTextureDevice* device, DeviceVertexBatch& batch) {
         if (indexCount != 0) {
             std::uint16_t* indices = batch.indices.data;
             CVertexBufferHolder* drawn = batch.buffer;
-            gameapi::EnterCriticalSection(device::Lock());
+            gameapi::EnterCriticalSection(TheDeviceLock());
             device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitiveVB(
                 D3DPT_TRIANGLELIST, static_cast<IDirect3DVertexBuffer7*>(drawn->buffer), 0,
                 static_cast<DWORD>(vertexCount), indices, static_cast<DWORD>(indexCount), 0);
-            gameapi::LeaveCriticalSection(device::Lock());
+            gameapi::LeaveCriticalSection(TheDeviceLock());
             device->vertexCount_ += vertexCount;
             device->primitiveCount_ += static_cast<int>(static_cast<unsigned>(indexCount) / 3);
             ++device->drawCount_;
@@ -76,7 +77,7 @@ EI_REPLACE_METHOD(0x004EBAF0, CTextureDevice::BindTexture);
 
 int CTextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
     if (!named->texture && named->name.size() != 0) {
-        CTexture* found = device::TextureManager()->FindTexture(named->name.data());
+        CTexture* found = TheTextureManager()->FindTexture(named->name.data());
         CTexture* previous = named->texture;
         named->texture = found;
         if (found) ++found->refCount_;

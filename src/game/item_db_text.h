@@ -107,7 +107,6 @@ static_assert(offsetof(CTextManager, length_) == 0x28);
 static_assert(offsetof(CTextManager::SourceNode, data.source) == 0x14);
 
 // The game's text manager (the global pointer at 007AF788).
-inline CTextManager* GameTexts() { return ei::GameData<CTextManager* const>(0x007AF788); }
 
 // The archive list's members (thiscall on the list).
 using TextSourceNode = TextSourceList::Node;

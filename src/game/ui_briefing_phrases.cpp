@@ -29,6 +29,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -105,7 +106,7 @@ void SetBlink(CUnit* unit, std::uint8_t blinks) {
 
 void CBriefingScreen::NextPhrase(bool skip) {
     console::CStringArray words;
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString speaker;
     mfc::CString phrase;
     bool last = true;       // no "#phrase" follows this one
@@ -171,7 +172,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         const char* cursor = texts->cursor_;
         if (texts->FindLine(PhraseCommand())) last = false;
         texts->cursor_ = cursor;
-        if (voice_ != -1) sound::Manager()->StopSound(voice_);
+        if (voice_ != -1) TheSoundManager()->StopSound(voice_);
         voice_ = -1;
         if (!skip) {
             int number;
@@ -179,7 +180,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 mfc::CString file;
                 int folder = gamecrt::rand() * 2 / 0x7FFF % 2;
                 file.Format(VoiceFormat(), VoiceFolders()[folder], static_cast<const char*>(topic_), number);
-                voice_ = sound::Manager()->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
+                voice_ = TheSoundManager()->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(phrase.GetLength()) * kSecondsPerCharacter;
             if (firstPhrase_) phraseTime_ += 1.0f;
@@ -242,7 +243,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && topic_.GetLength() > 0 && Compare(topic_.Left(1), ZonePrefix()) == 0) {
-                if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0))) {
+                if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(0))) {
                     for (auto* node = player->items.head; node; node = node->next) {
                         CEngineObject* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;
@@ -313,7 +314,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_))) {
+                if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_))) {
                     auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
                     controller->StopAction();
                     controller->actionDone = SpeakerActionDone();
