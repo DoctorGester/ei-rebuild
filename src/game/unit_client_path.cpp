@@ -51,7 +51,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
     if (unit->flags_ & 0x4000000) return;
     float toCells = 1.0f / (kCellScale * kHalf);
-    Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
+    Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
     position.x = toCells * position.x;
     position.y = toCells * position.y;
     Vector3 direction;
@@ -68,13 +68,13 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     ObjectWorld(self)->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;
-        reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);
+        unit->TurnUpTowards(direction, 0);
     }
     if (unit->flags_ & 0x10000000) {
-        reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 1);
+        unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         Vector3 axis;
-        QuaternionAxisY(&unit->orientation, nullptr, &axis);
+        QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
         // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
@@ -95,7 +95,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         direction.x = static_cast<float>(x87::fcos(heading));
         direction.y = static_cast<float>(x87::fsin(heading));
         direction.z = 0.0f;
-        reinterpret_cast<CTransformObject*>(unit)->SetHeading(&direction.x);
+        unit->SetHeading(&direction.x);
     }
 
     // The animation the figure plays (its animation state, CObject3D +0x98).

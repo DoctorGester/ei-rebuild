@@ -72,9 +72,9 @@ int CEffectMissile::Steer() {
         arrived_ = 1;
     } else {
         // At the middle of the target's bounding box.
-        float aimZ = target->above.z * 0.5f + target->center.z + target->position.z;
-        velocity_.x = target->position.x - localPosition_.x;
-        velocity_.y = target->position.y - localPosition_.y;
+        float aimZ = target->above.z * 0.5f + target->center.z + target->localPosition_.z;
+        velocity_.x = target->localPosition_.x - localPosition_.x;
+        velocity_.y = target->localPosition_.y - localPosition_.y;
         velocity_.z = aimZ - localPosition_.z;
         float speed = kMissileSpeed;
         float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
@@ -345,7 +345,7 @@ void CEffectArrowFigure::Start(int update) {
     // figure is made, as the original does.
     auto* figure = static_cast<CObject3D*>(figure_);
     CObject3DClientSpecific* attached = figure->ClientSpecific();
-    std::memcpy(&figure->position, &localPosition_, sizeof(figure->position));
+    std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
     console::CStringArray parts;
     figure->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();

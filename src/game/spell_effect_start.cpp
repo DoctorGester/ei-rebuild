@@ -280,7 +280,7 @@ Next StartHealing(CSpellEffect* e) {
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
     bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;
     if (e->silentEnd == 0 || !full) {
-        e->CreateSound(0, "magic\\Healing\\start.wav", &unit->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, "magic\\Healing\\start.wav", &unit->localPosition_, &kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
@@ -319,7 +319,7 @@ Next StartLink(CSpellEffect* e) {
 
 // 0x1C: teleport: a particle where the caster stands and an inverted one at the target point.
 Next StartTeleport(CSpellEffect* e) {
-    const Vector3* source = e->caster ? &e->caster->position : &e->position;
+    const Vector3* source = e->caster ? &e->caster->localPosition_ : &e->position;
     Vector3 point = *source;
     point.z = GroundPlus(e, kWorldSlotGridHeight, point, &point.z);
     e->CreateParticle(1, 0x2019, &point, 1.0f, 1.0f, &kZeroVector, nullptr);
@@ -350,7 +350,7 @@ Next StartCharm(CSpellEffect* e) {
             return Next::Done;
         }
     }
-    e->CreateSound(0, "magic\\Charm\\start.wav", &e->target->position, &kZeroVector, kVolume, kHearing);
+    e->CreateSound(0, "magic\\Charm\\start.wav", &e->target->localPosition_, &kZeroVector, kVolume, kHearing);
     return Next::Done;
 }
 
@@ -496,7 +496,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CEngineObject* boltTarge
                                    int flag) {
     if (!boltTarget) return;
     auto* hit = static_cast<CUnit*>(boltTarget);
-    Vector3 to = hit->position;
+    Vector3 to = hit->localPosition_;
     HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &hit->above.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
     CEngineObject* bolt = CreateObject(this, kClassLightning);

@@ -53,7 +53,7 @@ char* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) {
 
 // `v` turned by the rotation `q` as the original spells it out: 2 (u.v) u + (s^2 - u.u) v +
 // 2 s (u x v), with u the vector part and s the scalar part.
-Vector3 Rotate(const Quaternion& q, const Vector3& v) {
+Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
     float ux = q.x;
     float uy = q.y;
     float uz = q.z;
@@ -110,7 +110,7 @@ EI_REPLACE_METHOD(0x005304A0, CUnit::BodyExtent);
 double CUnit::GroundHeight(float x, float y) {
     auto* world = World();
     if (movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
-    if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + position.z;
+    if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + localPosition_.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }
 EI_REPLACE_METHOD(0x00530280, CUnit::GroundHeight);
@@ -131,16 +131,16 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
                 return out;
             }
         } else if (!static_cast<CUnitClientSpecific*>(controller)->WeaponPoint(&local)) {
-            out->x = position.x + center.x;
-            out->y = position.y + center.y;
-            out->z = position.z + center.z;
+            out->x = localPosition_.x + center.x;
+            out->y = localPosition_.y + center.y;
+            out->z = localPosition_.z + center.z;
             return out;
         }
     }
-    Vector3 turned = Rotate(orientation, local);
-    out->x = turned.x + position.x;
-    out->y = turned.y + position.y;
-    out->z = turned.z + position.z;
+    Vector3 turned = RotateVector(localRotation_, local);
+    out->x = turned.x + localPosition_.x;
+    out->y = turned.y + localPosition_.y;
+    out->z = turned.z + localPosition_.z;
     return out;
 }
 EI_REPLACE_METHOD(0x00532860, CUnit::EffectPoint);

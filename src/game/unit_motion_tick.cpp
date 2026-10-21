@@ -244,7 +244,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
                       blocker->sizeClass == self->sizeClass && other->state != kStateCasting;
     if (sameAttack) {
         CMapObject* target = c->action.target;
-        sameAttack = FartherThan(&target->position.x, &self->position.x, &worlddata::QueueWaitLimitRef());
+        sameAttack = FartherThan(&target->localPosition_.x, &self->localPosition_.x, &worlddata::QueueWaitLimitRef());
     }
     if (sameAttack) {
         // Both go for the same target: wait behind the other unless the waiting would go round in a
@@ -282,9 +282,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
+        QuaternionAxisY(&UnitOf(c)->localRotation_, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (MotionPathOf(c)->Start(&UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
         c->stoodBlocked = wasFlag;
@@ -294,9 +294,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
+        QuaternionAxisY(&UnitOf(c)->localRotation_, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (MotionPathOf(c)->Start(&UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
         c->stoodBlocked = 0;
@@ -394,7 +394,7 @@ void Exhaustion(CUnitServer* c) {
 void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     CWorldServer* world = ServerOf(c);
     Vector3 position;
-    std::memcpy(&position, &UnitOf(c)->position.x, 12);
+    std::memcpy(&position, &UnitOf(c)->localPosition_.x, 12);
     ToHalfCells(&position.x);
     int time = WorldTime(world);
     bool turning = false;
@@ -449,7 +449,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     }
     if (!replan && canStand && SectorMapMove(world->Sectors(), nullptr, UnitOf(c), &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
-        reinterpret_cast<CTransformObject*>(UnitOf(c))->SetHeading(&direction.x);
+        UnitOf(c)->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);

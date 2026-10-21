@@ -32,7 +32,7 @@ const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\"
 
 // The unit's virtual slot 55 (IsDead: +0x274).
 bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
-void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->position.x, 12); }
+void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->localPosition_.x, 12); }
 
 } // namespace
 
@@ -49,7 +49,7 @@ static float* PredictPosition(CUnit* unit, float* out, int time) {
     auto* order = reinterpret_cast<MotionOrder*>(path);
     if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
         float toCells = 1.0f / (kCellScale * kHalf);
-        Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
+        Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
         position.x = toCells * position.x;
         position.y = toCells * position.y;
         bool turning;
@@ -88,19 +88,19 @@ static float* ActionPoint(CUnit* unit, float* out) {
         std::uint32_t side = entry->flags & 0x1C00000;
         Vector3 axis;
         if (side == 0x800000) {
-            unit->orientation.AxisY(&axis);
+            unit->localRotation_.AxisY(&axis);
             float reach = unit->above.y;
             offset = axis * reach;
         } else if (side == 0x400000) {
-            unit->orientation.AxisY(&axis);
+            unit->localRotation_.AxisY(&axis);
             float reach = unit->above.y;
             offset = -axis * reach;
         } else if (side == 0xC00000) {
-            QuaternionAxisX(&unit->orientation, nullptr, &axis);
+            QuaternionAxisX(&unit->localRotation_, nullptr, &axis);
             float reach = unit->above.x;
             offset = axis * reach;
         } else if (side == 0x1000000) {
-            QuaternionAxisX(&unit->orientation, nullptr, &axis);
+            QuaternionAxisX(&unit->localRotation_, nullptr, &axis);
             float reach = unit->above.x;
             offset = -axis * reach;
         }
@@ -108,15 +108,15 @@ static float* ActionPoint(CUnit* unit, float* out) {
     // The world's slot 26 (IsServer); the server's AI map.
     auto* world = unit->ServerWorld();
     if (world->IsServer()) {
-        Vector3 point = {offset.x + unit->position.x, offset.y + unit->position.y, offset.z + unit->position.z};
+        Vector3 point = {offset.x + unit->localPosition_.x, offset.y + unit->localPosition_.y, offset.z + unit->localPosition_.z};
         if (!world->AIMap()->IsPassableForClass(3, &point)) {
             CopyPosition(out, unit);
             return out;
         }
     }
-    out[0] = offset.x + unit->position.x;
-    out[1] = offset.y + unit->position.y;
-    out[2] = offset.z + unit->position.z;
+    out[0] = offset.x + unit->localPosition_.x;
+    out[1] = offset.y + unit->localPosition_.y;
+    out[2] = offset.z + unit->localPosition_.z;
     return out;
 }
 

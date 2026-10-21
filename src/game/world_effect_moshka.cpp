@@ -151,7 +151,7 @@ void CEffectMoshka::Update(float now) {
     const Vector3& followed = PositionOf(followedObject);
     auto* bird = static_cast<CObject3D*>(bird_);
     Vector3 birdAt;
-    std::memcpy(&birdAt, &bird->position, sizeof(birdAt));
+    std::memcpy(&birdAt, &bird->localPosition_, sizeof(birdAt));
 
     float elapsed = static_cast<float>(now - lastTime_);
     lastTime_ = now;
@@ -178,7 +178,7 @@ void CEffectMoshka::Update(float now) {
             double outward = kHalfPi + angle;
             perch.x = static_cast<float>(x87::fcos(outward) * kPerchSearchRadius + perch.x);
             perch.y = static_cast<float>(x87::fsin(outward) * kPerchSearchRadius + perch.y);
-            if (AIMap()->LineOfSight(&bird->position, &perch) > kClearance) {
+            if (AIMap()->LineOfSight(&bird->localPosition_, &perch) > kClearance) {
                 state_ = kFlyingOff;
                 timer_ = kFlyingOffFrames;
                 localPosition_ = perch;
@@ -260,7 +260,7 @@ void CEffectMoshka::Follow(int objectId) {
     CObject3DClientSpecific* attached = bird->ClientSpecific();
     Vector3 perch;
     FindPerch(&perch, &PositionOf(followed));
-    std::memcpy(&bird->position, &perch, sizeof(bird->position));
+    std::memcpy(&bird->localPosition_, &perch, sizeof(bird->localPosition_));
     console::CStringArray parts;
     bird->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();

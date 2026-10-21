@@ -150,7 +150,7 @@ double Brightness(const CLight* light) {
 // A point light's share: from the light towards the object, scaled by its brightness and its
 // falloff over the squared distance. False when the object is out of its range.
 bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
-    const Vector3& at = object->position;
+    const Vector3& at = object->localPosition_;
     const Vector3& from = light->position_;
     double dx = static_cast<double>(at.x) - from.x;
     double dy = static_cast<double>(at.y) - from.y;
@@ -338,13 +338,13 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // each re-rendered shadow moved the orientation by an ulp, and how often that ran followed the frame
     // timing. Ours keeps the orientation and puts it back (a determinism fix kept in the standalone; the
     // harness does the same in the original, harness_shadow_turn.h, SV7b4a).
-    const Quaternion kept = object->orientation;
-    PreMultiplyAt(&object->orientation, nullptr, &turn);
-    ObjectWorldMatrix(&object->orientation, &object->position, &object->worldMatrix);
+    const Quaternion kept = object->localRotation_;
+    PreMultiplyAt(&object->localRotation_, nullptr, &turn);
+    ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
     turn.x = -turn.x;   // the turn back, still used for the projector below
     turn.y = -turn.y;
     turn.z = -turn.z;
-    self->object->orientation = kept;
+    self->object->localRotation_ = kept;
     view = self->object->worldMatrix;
     std::memcpy(&self->bounds[0], &kFloatMax, 4);
     std::memcpy(&self->bounds[2], &kFloatLowest, 4);
@@ -411,7 +411,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float y2 = static_cast<float>(static_cast<double>(turn.y) + turn.y);
     float z2 = static_cast<float>(static_cast<double>(turn.z) + turn.z);
     Vector3 at;
-    std::memcpy(&at, &self->object->position, sizeof(at));
+    std::memcpy(&at, &self->object->localPosition_, sizeof(at));
     float wx = static_cast<float>(x2 * turn.w);
     float wy = static_cast<float>(static_cast<double>(y2) * turn.w);
     float wz = static_cast<float>(static_cast<double>(z2) * turn.w);
@@ -478,7 +478,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     if (self->vertices.size != 0) {
         pipeline->transform_->FitBounds(&self->sphere, self->vertices.data, self->vertices.size);
-        const Vector3& position = self->object->position;
+        const Vector3& position = self->object->localPosition_;
         self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position.x);
         self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position.y);
         self->sphere.center.z = static_cast<float>(static_cast<double>(self->sphere.center.z) - position.z);
@@ -551,7 +551,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TheSceneRenderer(), nullptr, 0, texture);
-    std::uint8_t lit = LightManager()->EdgeFade(&object->position);
+    std::uint8_t lit = LightManager()->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
     render::ClassicShadowDecal();   // drawn only with the classic shadows (the shadow map draws it)
     TheRenderDevice()

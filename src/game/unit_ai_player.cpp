@@ -31,7 +31,7 @@ constexpr float kMovingSlack = 2.0f;                            // 0x40000000
 constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
 constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
-const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
+const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 
 // A list on the stack as the original builds it (CPtrList, blocks of 10).
@@ -120,8 +120,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         EI_NAN_AUDIT(sight, hearing);
         float reach = sight < hearing ? hearing : sight;
         double limit = static_cast<double>(reach) * kReachScale;
-        double dy = static_cast<double>(other->position.y) - unit->position.y;
-        double dx = static_cast<double>(other->position.x) - unit->position.x;
+        double dy = static_cast<double>(other->localPosition_.y) - unit->localPosition_.y;
+        double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;
         if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.RemoveAt(node);
         node = next;
     }
@@ -229,9 +229,9 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
         PlayerMode* mode = member->ServerController()->Brain()->FindPlayerMode();
         // The original reads the leader of a unit without a Player mode at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
-        double dx = static_cast<double>(member->position.x) - unit->position.x;
-        double dy = static_cast<double>(member->position.y) - unit->position.y;
-        double dz = static_cast<double>(member->position.z) - unit->position.z;
+        double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;
+        double dy = static_cast<double>(member->localPosition_.y) - unit->localPosition_.y;
+        double dz = static_cast<double>(member->localPosition_.z) - unit->localPosition_.z;
         double limit = static_cast<double>(GameLogicSettings().followMaxDist) * slack + kOne;
         EI_NAN_AUDIT(limit, dx, dy, dz);
         if (limit * limit < LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) return false;

@@ -83,7 +83,7 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).
 void DestroyMessage(UnitSpec* message) {
     ei::SetVtable(message, worlddata::kUnitSpecVtable);
-    for (int i = 4; i >= 0; --i) message->lists[i].Destruct();
+    for (int i = 4; i >= 0; --i) message->record.lists[i].Destruct();
     message->prototype.~CString();
     VectorDestruct(message->behaviour, sizeof(mapspec::Behaviour), 5,
                    reinterpret_cast<void*>(worlddata::kBehaviourDestructor));
@@ -261,9 +261,9 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         brain->StopAction();
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
-        std::memcpy(&free, &unit->position.x, sizeof(free));
+        std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
         AIMap()->FindFreeCellNear(unit, position, &free);
-        std::memcpy(&unit->position.x, &free, sizeof(free));
+        std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
         unit->SetPlayer(static_cast<CPlayer*>(player));
@@ -296,7 +296,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
-            bool flagged = AIMap()->IsPassableForClass(1, &unit->position);
+            bool flagged = AIMap()->IsPassableForClass(1, &unit->localPosition_);
             if (flagged) unit->SetMoveModes(placement->value20, placement->value20);
             else unit->moveMode2 = static_cast<int>(placement->value20);
         }
@@ -348,7 +348,7 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     message->parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     std::memset(&message->scale.y, 0, 4);
     // At the unit's position, on the ground.
-    std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->position.x, 12);
+    std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->localPosition_.x, 12);
     std::memset(&message->base.position.z, 0, 4);
     int id = WorldMakeObjectOriginal(this, nullptr, message);
     CEngineObject* effect = ObjectWithId(id);
@@ -417,8 +417,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ObjectSetFigureScaleOriginal(object, nullptr, &spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
-        Copy(&object->position.x, &spec->base.position, 12);
-        Copy(&object->orientation, &spec->base.rotation, 16);
+        Copy(&object->localPosition_.x, &spec->base.position, 12);
+        Copy(&object->localRotation_, &spec->base.rotation, 16);
     };
     auto timed = [this](CEffect* object) {
         object->startTick_ = tick_;
@@ -536,12 +536,12 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             reinterpret_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(unit, unitSpec->prototype);
-            const mfc::CStringArray& worn = unitSpec->lists[1];
+            const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
                 unit->AddQuickItem(ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
             }
-            reinterpret_cast<unitrecord::UnitRecord*>(unitSpec->stats)->ApplyTo(unit);
+            unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
             const char* prototypeName = unitSpec->prototype;
             UnitPrototypeRecord* prototype;

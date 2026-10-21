@@ -223,7 +223,7 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         Vector3 position;   // the target's position, passed to the (unused) argument of the checks
-        std::memcpy(&position, &target->position, sizeof(position));
+        std::memcpy(&position, &target->localPosition_, sizeof(position));
         int refused;
         if (quick == 0) {
             LocalView(TheClientWorld())->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
@@ -249,7 +249,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         if (member == unit) {
             Vector3 axis;
-            unit->orientation.AxisY(&axis);
+            unit->localRotation_.AxisY(&axis);
             const float k = 0.1f /*0073B850*/;   // 0.1
             point.x = point.x + -axis.x * k;
             point.y = point.y + -axis.y * k;

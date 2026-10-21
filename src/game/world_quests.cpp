@@ -635,8 +635,8 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
         if (placements) {
             UnitPlacement entry;
             entry.id = unit->id_;
-            std::memcpy(entry.position, &unit->position.x, sizeof(entry.position));
-            std::memcpy(entry.rotation, &unit->orientation, sizeof(entry.rotation));
+            std::memcpy(entry.position, &unit->localPosition_.x, sizeof(entry.position));
+            std::memcpy(entry.rotation, &unit->localRotation_, sizeof(entry.rotation));
             entry.value20 = static_cast<std::uint32_t>(unit->moveMode2);
             entry.value24 = unit->activeWeapon;
             mfc::impl::ArrayAs<mfc::impl::Placements>(*placements)

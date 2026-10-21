@@ -224,11 +224,11 @@ int CUnitServer::UpdateServer() {
         if ((static_cast<std::uint32_t>(TheServerWorld()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
-                presence->x = unit->position.x;
-                presence->y = unit->position.y;
+                presence->x = unit->localPosition_.x;
+                presence->y = unit->localPosition_.y;
             }
             presence = reinterpret_cast<AIEventPresence*>(
-                static_cast<std::intptr_t>(TheServerWorld()->AIEvents()->StepNoise(&unit->position, this)));
+                static_cast<std::intptr_t>(TheServerWorld()->AIEvents()->StepNoise(&unit->localPosition_, this)));
         }
         TickItemSpells();
         if (unit->player != nullptr) {   // 005301A0
@@ -267,12 +267,12 @@ int CUnitServer::UpdateServer() {
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
     // over, the death is reported and the orders are dropped.
     CWorldServer* world = ServerWorld();
-    if (self->position.z > 0.0f) {
+    if (self->localPosition_.z > 0.0f) {
         float& sinking = sinkSpeed;
         sinking += SinkAcceleration();
-        self->position.z = self->position.z - sinking;
-        float z = unit->position.z;
-        unit->position.z = z <= 0.0f ? 0.0f : z;   // a NaN z is kept
+        self->localPosition_.z = self->localPosition_.z - sinking;
+        float z = unit->localPosition_.z;
+        unit->localPosition_.z = z <= 0.0f ? 0.0f : z;   // a NaN z is kept
         unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
@@ -481,8 +481,8 @@ void CUnitServer::StandStill() {
     static_cast<AIPath*>(Motion(this))->Clear();
     int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
-    Vector3 direction = -RotatedAxisY(unit->orientation);
-    if (MotionPath()->Start(&unit->position, &direction, now)) unit->RefreshMotion();
+    Vector3 direction = -RotatedAxisY(unit->localRotation_);
+    if (MotionPath()->Start(&unit->localPosition_, &direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
 EI_REWRITTEN(0x00547280, CUnitServer::StandStill);
@@ -587,7 +587,7 @@ void CUnitServer::TickAction() {
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
         CWorld* context = WorldContext();
-        Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
+        Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
         Vector3 direction;
         float speed;
         int cellX;
@@ -596,7 +596,7 @@ void CUnitServer::TickAction() {
         unit->Motion()->Sample(context, OrderOf(MotionPath()), static_cast<float>(TickOf(context)),
                                &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
-        reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);
+        unit->TurnUpTowards(direction, 0);
         return;
     }
     // The action's moment has come: it is carried out and the plan cleared.
@@ -619,9 +619,9 @@ void CUnitServer::TickAction() {
     static_cast<AIPath*>(Motion(this))->Clear();
     int time = TickOf(ObjectWorld(this));
     Vector3 axis;
-    QuaternionAxisY(&unit->orientation, nullptr, &axis);
+    QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
     Vector3 backwards = -axis;
-    if (MotionPath()->Start(&unit->position, &backwards, time)) unit->RefreshMotion();
+    if (MotionPath()->Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
     SetStanding(0);
 }
 EI_REWRITTEN(0x00549160, CUnitServer::TickAction);
@@ -648,8 +648,8 @@ bool CUnitServer::ActionInReach() {
     }
     Vector3 where;
     const float* at = &target->PositionAt(&where, Plan(this).endTime)->x;
-    float dx = at[0] - unit->position.x;
-    float dy = at[1] - unit->position.y;
+    float dx = at[0] - unit->localPosition_.x;
+    float dy = at[1] - unit->localPosition_.y;
     float distanceSq = LengthSquared2DUnrounded(dx, dy);
     EI_NAN_AUDIT(distanceSq, Plan(this).rangeSq);
     return distanceSq < Plan(this).rangeSq;   // closer
@@ -680,7 +680,7 @@ void CUnitServer::TickItemSpells() {
         }
         UseItemCharge(item, std::bit_cast<float>(spell->manaCost_));
         CUnit* self = unit;
-        world->CastSpell(spell, self, &self->position, self, &self->position, 1);
+        world->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 1);
         int countdown = static_cast<int>(spell->duration_) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;

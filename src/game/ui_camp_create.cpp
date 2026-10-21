@@ -396,7 +396,7 @@ void CCampPages::BuildPages() {
         auto* unit = GameFindClientUnit(player->members_.data[i].unitId);
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
-        if (FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kIdleAnimation)) {
+        if (FigureAnimation* animation = unit->FindSkillAnimation(kIdleAnimation)) {
             std::uint32_t random = IsaacRandom::Global().Next();
             double frames = FramesNow();
             int start = static_cast<int>(gamecrt::Ftol(frames - static_cast<int>(random % 51)));

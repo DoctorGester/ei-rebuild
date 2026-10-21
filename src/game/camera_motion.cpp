@@ -148,8 +148,8 @@ void CCamera::ClampAboveObjects() {
         if (object->above.x > limit || object->above.y > limit || object->above.z > limit ||
             object->center.z > limit)
             continue;
-        float cx = static_cast<float>(D(object->position.x) + object->center.x);
-        float cy = static_cast<float>(D(object->position.y) + object->center.y);
+        float cx = static_cast<float>(D(object->localPosition_.x) + object->center.x);
+        float cy = static_cast<float>(D(object->localPosition_.y) + object->center.y);
         float cz = p->z;
         double radius = libcrt::Hypot(object->above.x, object->above.y);
         double dx = D(cx) - p->x;
@@ -160,7 +160,7 @@ void CCamera::ClampAboveObjects() {
         EI_NAN_AUDIT(outside);
         if (outside <= CAM_ZERO) factor = CAM_ONE;
         else if (outside <= CAM_OBJECT_FADE) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);
-        float height = static_cast<float>(((D(object->position.z) + object->above.z) + object->center.z) * factor);
+        float height = static_cast<float>(((D(object->localPosition_.z) + object->above.z) + object->center.z) * factor);
         best = best >= height ? best : height;
     }
     CameraSettings* s = settings_;

@@ -353,7 +353,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     unit->SetPrototype23C(unit->GetPrototype());
     previewModel_ = unit;
     if (unit) {
-        FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kPreviewAnimation);
+        FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);
         if (animation) {
             std::uint32_t random = IsaacRandom::Global().Next();
             double frames = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;

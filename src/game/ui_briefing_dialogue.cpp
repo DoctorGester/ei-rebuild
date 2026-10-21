@@ -160,9 +160,9 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         x = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
         y = static_cast<double>(places_[kPersonPlace].x) - places_[kLeaderPlace].x;
     } else {
-        Vector3 place{unit->position.x, unit->position.y, unit->position.z};
+        Vector3 place{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
         Vector3 axis;
-        unit->orientation.AxisY(&axis);
+        unit->localRotation_.AxisY(&axis);
         Vector3 facing{-axis.x, -axis.y, -axis.z};
         int index = -1;
         if (unit == leader_)

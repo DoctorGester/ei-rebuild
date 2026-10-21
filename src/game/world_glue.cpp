@@ -145,9 +145,9 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     auto* unit = world->FindUnit(id);
     if (!unit) return;
     // Nothing when the heights are equal.
-    EI_NAN_AUDIT(unit->position.z, z);
-    if (unit->position.z == z) return;
-    Vector3 target = {unit->position.x, unit->position.y, z};
+    EI_NAN_AUDIT(unit->localPosition_.z, z);
+    if (unit->localPosition_.z == z) return;
+    Vector3 target = {unit->localPosition_.x, unit->localPosition_.y, z};
     SectorMapMove(world->Sectors(), nullptr, unit, &target);   // 005C11D0: Rebirth patches it (rule 9)
     unit->MarkChanged(2);
 }

@@ -57,9 +57,9 @@ using LightList = lib::AlignedArray<CEngineObject*>;
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const CObject3D* object, const CLight* light) {
     const Vector3& at = light->position_;
-    float dx = static_cast<float>(static_cast<double>(object->position.x) - at.x);
-    float dy = static_cast<float>(static_cast<double>(object->position.y) - at.y);
-    float dz = static_cast<float>(static_cast<double>(object->position.z) - at.z);
+    float dx = static_cast<float>(static_cast<double>(object->localPosition_.x) - at.x);
+    float dy = static_cast<float>(static_cast<double>(object->localPosition_.y) - at.y);
+    float dz = static_cast<float>(static_cast<double>(object->localPosition_.z) - at.z);
     double reach = static_cast<double>(light->range_) + kLightMargin;
     double distanceSquared = LengthSquaredUnrounded<Sum3::ZXY, double>(dx, dy, dz);
     return reach * reach >= distanceSquared;   // NaN does not reach
@@ -93,7 +93,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     std::uint32_t anyDirty = 0;
     CTransformPipeline* pipeline = context->pipeline_;
     Vector3 at;
-    std::memcpy(&at, &object->position, sizeof(at));
+    std::memcpy(&at, &object->localPosition_, sizeof(at));
     ObjectSlots(object)->LoadFigures();
     if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
     if (dirty) {
@@ -118,7 +118,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     }
 
     // The object's matrix, and its extra scale when it has one.
-    ObjectWorldMatrix(&object->orientation, &object->position, &object->worldMatrix);
+    ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
     Matrix4 m = object->worldMatrix;
     pipeline->PushMatrix(m.m, kStackView);
     pipeline->PushMatrix(m.m, kStackWorld);

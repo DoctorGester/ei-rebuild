@@ -14,6 +14,7 @@
 // Names are provisional. Layouts mirror the original; unknown bytes are unknown_XXX.
 
 #include "base_manager.h"
+#include "core_transform.h"
 #include "maths.h"
 
 #include "lib/containers.h"
@@ -66,6 +67,7 @@ static_assert(sizeof(ParticleElement) == 0x38);
 
 class CParticleSource;
 class CObject3D;
+class CTexture;   // texture.h
 
 // The particle manager (0xE8 bytes; the client world's +0x19C and *007AF754; a real virtual class:
 // the compiler makes its vtable, C19, game.exe's 0073F644 is retired;
@@ -148,10 +150,10 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
 void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
                                ParticleDepth value, int compare, void* distanceTag);    // 00499C20
 
-// A particle source: an engine object (its real base is the transform object, CTransformObject,
-// whose vtable the factory stores on the way: +0x1C the local position, +0x34 the rotation; the
-// particle code names them position / orientation, so the class derives from CEngineObject).
-class CParticleSource : public CEngineObject {
+// A particle source: a transform object (CTransformObject, whose vtable the factory stores on the
+// way): localPosition_ (+0x1C) is where it emits relative to what it is attached to, localRotation_
+// (+0x34) the identity after Reset.
+class CParticleSource : public CTransformObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073CFD0);
     // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
@@ -328,10 +330,7 @@ public:
 
     // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000..
     // (see the name table at 0078B120); owner_ the particle manager.
-    Vector3 position;               // +0x01C local position
-    std::uint8_t unused_028[0x34 - 0x28];
-    Quaternion orientation;         // +0x034 the identity after Reset (the transform's local rotation)
-    std::uint8_t unused_044[0x94 - 0x44];
+    std::uint8_t unused_054[0x94 - 0x54];
     void* attachedTo;               // +0x094
     Vector3 origin;                 // +0x098 world emission point
     Vector3 motion;                 // +0x0A4 movement since the last tick
@@ -384,11 +383,9 @@ public:
     EmitCallback emitFn;            // +0x1E0
     UpdateCallback updateFn;        // +0x1E4
     ElementCallback elementFn;      // +0x1E8
-    void* texture;                  // +0x1EC texture holder (bound by 00497CE0)
+    CTexture* texture;              // +0x1EC texture holder (bound by 00497CE0)
 };
-static_assert(offsetof(CParticleSource, position) == 0x1C);
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
-static_assert(offsetof(CParticleSource, orientation) == 0x34);
 static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
 static_assert(offsetof(CParticleSource, size) == 0x10C);
 static_assert(offsetof(CParticleSource, extent) == 0x130);
@@ -432,7 +429,7 @@ Particle** __fastcall NextParticle(void* list, void*, mfc::CTypedPtrList<Particl
 
 // 00497CE0. Makes sure the texture in `holder` is loaded (00500970) and binds it to `stage`
 // through the renderer (slot 11). __thiscall on the renderer.
-int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** holder);
+int __fastcall BindParticleTexture(void* renderer, void*, int stage, CTexture** holder);
 
 // 00497EB0 (particle_emitters.cpp). Room for `count` elements, 32-byte aligned, the allocated block
 // stored just below; __fastcall.
@@ -480,7 +477,7 @@ public:
     int BuildSnow(CSceneRenderer* renderer);
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);
 
-    CEngineObject* texture;         // +0x01C counted texture ("RainSnow")
+    CTexture* texture;              // +0x01C counted texture ("RainSnow")
     class CWorldClient* world;      // +0x020 the client world (set after construction)
     int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
     // The draws' work arrays.

@@ -446,9 +446,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     order.target = target;
     ++target->refCount_;
 
-    float x = unit->position.x;
-    float y = unit->position.y;
-    float z = unit->position.z;
+    float x = unit->localPosition_.x;
+    float y = unit->localPosition_.y;
+    float z = unit->localPosition_.z;
     Vector3 aim;
     target->AimPoint(&aim);
     double dz = static_cast<double>(z) - aim.z;

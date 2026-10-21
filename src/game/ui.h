@@ -624,9 +624,9 @@ public:
     void Play(int animation);
     // 005FC3D0. Plays the figure's rest pose (the object manager's object named like the figure).
     void Stop();
-    CObject3D* Figure() const { return reinterpret_cast<CObject3D*>(object_); }
+    CObject3D* Figure() const { return object_; }
 
-    CTransformObject* object_;
+    CObject3D* object_;
 };
 static_assert(sizeof(CUiModel) == 4);
 

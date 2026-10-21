@@ -75,7 +75,7 @@ void __cdecl ScrambleObjects() {
     ObjectListIterator it{};
     for (CEngineObject* object = it.First(TheObjectManager()); object; object = it.Next()) {
         static_cast<CMapObject*>(object)->AttachCompanion(reinterpret_cast<CEngineObject*>(Scaled(0x1000) % 0x1000));
-        reinterpret_cast<CObject3D*>(object)->SetSpecific(reinterpret_cast<CObject3DSpecific*>(Scaled(0x1000) % 0x1000));
+        static_cast<CObject3D*>(object)->SetSpecific(reinterpret_cast<CObject3DSpecific*>(Scaled(0x1000) % 0x1000));
     }
     if (it.manager) --it.manager->refCount_;
 }

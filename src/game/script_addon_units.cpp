@@ -159,7 +159,7 @@ bool NearestUnit(Call* call) {
     CEngineObject* best = nullptr;
     ForObjectsNear(x, y, radius, [&](CEngineObject* object) {
         if (!PassesFilter(object, units, others, living)) return;
-        float distance = Distance(static_cast<CMapObject*>(object)->position.x, static_cast<CMapObject*>(object)->position.y, x, y);
+        float distance = Distance(static_cast<CMapObject*>(object)->localPosition_.x, static_cast<CMapObject*>(object)->localPosition_.y, x, y);
         if (distance < radius) {   // TEST AH,0x41 on FCOMP radius, distance: ordered greater
             best = object;
             radius = distance;

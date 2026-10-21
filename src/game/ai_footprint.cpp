@@ -136,10 +136,10 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     // The object's transform: rotation from its orientation, translation from its position.
     CMapObject* mapObject = ObjectSlots(object);
     float* matrix = mapObject->worldMatrix.m;
-    QuaternionToMatrixOriginal(&mapObject->orientation, nullptr, (float*)matrix);
-    std::memcpy(&matrix[11], &mapObject->position.z, 4);
-    std::memcpy(&matrix[3], &mapObject->position.x, 4);
-    std::memcpy(&matrix[7], &mapObject->position.y, 4);
+    QuaternionToMatrixOriginal(&mapObject->localRotation_, nullptr, (float*)matrix);
+    std::memcpy(&matrix[11], &mapObject->localPosition_.z, 4);
+    std::memcpy(&matrix[3], &mapObject->localPosition_.x, 4);
+    std::memcpy(&matrix[7], &mapObject->localPosition_.y, 4);
     matrix[14] = 0.0f;
     matrix[13] = 0.0f;
     matrix[12] = 0.0f;
@@ -183,10 +183,10 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
                              {hi.x, hi.y, hi.z}, {hi.x, lo.y, hi.z}, {hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}};
         Vector3 normal[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
         Vector3 position;
-        std::memcpy(&position, &mapObject->position, sizeof(position));
+        std::memcpy(&position, &mapObject->localPosition_, sizeof(position));
 
         // Stand the object on the ground (or bridge deck) under its centre.
-        int cx = WorldToCell(mapObject->position.x), cy = WorldToCell(mapObject->position.y);
+        int cx = WorldToCell(mapObject->localPosition_.x), cy = WorldToCell(mapObject->localPosition_.y);
         float ground;
         if (cx < 0 || cy < 0 || cx >= width || cy >= height) {
             ground = 0.0f;
@@ -272,8 +272,8 @@ void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
 }
 
 bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
-    int cellX = WorldToCell(ObjectSlots(object)->position.x);
-    int cellY = WorldToCell(ObjectSlots(object)->position.y);
+    int cellX = WorldToCell(ObjectSlots(object)->localPosition_.x);
+    int cellY = WorldToCell(ObjectSlots(object)->localPosition_.y);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 

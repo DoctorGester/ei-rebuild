@@ -70,8 +70,8 @@ CUnit* MakeUnit(const UnitState& s) {
     void* vtable = g_unitVtable;
     std::memcpy(g_unitBytes, &vtable, sizeof(vtable));
     auto* unit = reinterpret_cast<CUnit*>(g_unitBytes);
-    std::memcpy(&unit->position, s.position, sizeof(s.position));
-    std::memcpy(&unit->orientation, s.orientation, sizeof(s.orientation));
+    std::memcpy(&unit->localPosition_, s.position, sizeof(s.position));
+    std::memcpy(&unit->localRotation_, s.orientation, sizeof(s.orientation));
     unit->sizeClass = s.sizeClass;
     unit->standingHeight = s.standingHeight;
     unit->altPassCosts = s.altPassCosts;

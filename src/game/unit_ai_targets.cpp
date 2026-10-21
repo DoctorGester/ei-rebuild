@@ -45,7 +45,7 @@ const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // 0073FF2C: -1e30
 const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the starting best: -1e20
 
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
-const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
+const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // The prototype's +0x24 (compared with 0.5: units below it count as small).
 float PrototypeSize(CUnit* unit) {
@@ -134,9 +134,9 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     if (self == target || static_cast<char>(fromHere) != 0) {
         point = *PositionOf(self);
     } else {
-        double dz = static_cast<double>(self->position.z) - target->position.z;
-        double dy = static_cast<double>(self->position.y) - target->position.y;
-        double dx = static_cast<double>(self->position.x) - target->position.x;
+        double dz = static_cast<double>(self->localPosition_.z) - target->localPosition_.z;
+        double dy = static_cast<double>(self->localPosition_.y) - target->localPosition_.y;
+        double dx = static_cast<double>(self->localPosition_.x) - target->localPosition_.x;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         float range = static_cast<float>(self->ScaledValue(distance));
         float targetRadius = static_cast<float>(MapObject(target)->Radius());
@@ -189,16 +189,16 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     Vector3 at = *PositionOf(target);
     for (auto* node = brain->memory.nearby.head; node; node = node->next) {
         auto* other = node->data;
-        double dy = static_cast<double>(at.y) - other->position.y;
-        double dx = static_cast<double>(at.x) - other->position.x;
+        double dy = static_cast<double>(at.y) - other->localPosition_.y;
+        double dx = static_cast<double>(at.x) - other->localPosition_.x;
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
         if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && Allied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (PrototypeSize(other) < kHalf) return false;
         }
     }
-    double dy = static_cast<double>(self->position.y) - at.y;
-    double dx = static_cast<double>(self->position.x) - at.x;
+    double dy = static_cast<double>(self->localPosition_.y) - at.y;
+    double dx = static_cast<double>(self->localPosition_.x) - at.x;
     double radius = option->radius;
     EI_NAN_AUDIT(radius, dx, dy);
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
@@ -271,7 +271,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->position, *from)) - reach);
+    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition_, *from)) - reach);
     float penalty = kZero >= beyond ? kZero : beyond;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);

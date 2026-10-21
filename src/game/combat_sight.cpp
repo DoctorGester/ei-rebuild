@@ -164,8 +164,8 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
     float chosen = std::bit_cast<float>(chosenBits);
     double reach = static_cast<double>(chosen) * kRangeSlack;
     CUnit* unit = self->unit;
-    double dy = static_cast<double>(unit->position.y) - point[1];
-    double dx = static_cast<double>(unit->position.x) - point[0];
+    double dy = static_cast<double>(unit->localPosition_.y) - point[1];
+    double dx = static_cast<double>(unit->localPosition_.x) - point[0];
     EI_NAN_AUDIT(reach, dx, dy);
     return reach * reach < LengthSquared2DUnrounded(dx, dy);
 }
@@ -175,9 +175,9 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
 // and less than 0.3 to the side.
 bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* point, int time) {
     CUnit* unit = self->unit;
-    float dx = point[0] - unit->position.x;
-    float dy = point[1] - unit->position.y;
-    float dz = point[2] - unit->position.z;
+    float dx = point[0] - unit->localPosition_.x;
+    float dy = point[1] - unit->localPosition_.y;
+    float dz = point[2] - unit->localPosition_.z;
     double lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
     float ux = static_cast<float>(dx / lengthSq);
     float uy = static_cast<float>(dy / lengthSq);
@@ -196,9 +196,9 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
         if (ObjectSlots(other)->IsDead() != 0) continue;
         Vector3 scratch;
         const Vector3* p = ObjectSlots(other)->PositionAt(&scratch, time);
-        double a = static_cast<double>(p->x) - unit->position.x;
-        double b = static_cast<double>(p->y) - unit->position.y;
-        double c = static_cast<double>(p->z) - unit->position.z;
+        double a = static_cast<double>(p->x) - unit->localPosition_.x;
+        double b = static_cast<double>(p->y) - unit->localPosition_.y;
+        double c = static_cast<double>(p->z) - unit->localPosition_.z;
         float along = static_cast<float>(c * uz + b * uy + a * ux);
         float across = static_cast<float>(c * vz + b * vy + a * vx);
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
@@ -242,14 +242,14 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
     }
-    double apartSq = DistanceSquaredXYUnrounded<double>(sight.point, unit->position);
+    double apartSq = DistanceSquaredXYUnrounded<double>(sight.point, unit->localPosition_);
     EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
     if (apartSq < sight.minDistanceSq) return true;
 
     Vector3 eye;
-    eye.x = unit->position.x;
-    eye.y = unit->position.y;
-    eye.z = unit->position.z;
+    eye.x = unit->localPosition_.x;
+    eye.y = unit->localPosition_.y;
+    eye.z = unit->localPosition_.z;
     eye.z = static_cast<float>(unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
     CAIMap* map = ServerWorld()->AIMap();
     double visibility = map->LineOfSight(&eye, &sight.point);
@@ -298,14 +298,14 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     AnimationSteps steps;
     InitSteps(&steps);
     Vector3 origin;
-    std::memcpy(&origin, &unit->position.x, sizeof(origin));
+    std::memcpy(&origin, &unit->localPosition_.x, sizeof(origin));
     int now = ObjectWorld(this)->tick_;
     CSpell* spell = nullptr;
 
     if (order->flag18) {
         double distance = ActionDistance(order);
         double limitSq = distance * distance;
-        double apartSq = DistanceSquaredXYUnrounded<double>(order->point, unit->position);
+        double apartSq = DistanceSquaredXYUnrounded<double>(order->point, unit->localPosition_);
         EI_NAN_AUDIT(limitSq, apartSq);
         if (limitSq < apartSq) {
             DestroySteps(&steps);
@@ -345,7 +345,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis;
-    unit->orientation.AxisY(&axis);
+    unit->localRotation_.AxisY(&axis);
     Vector3 facing = {-axis.x, -axis.y, -axis.z};
     float heading = static_cast<float>(x87::fpatan(facing.y, facing.x));
     float forward, turnSpeed;

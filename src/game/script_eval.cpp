@@ -232,7 +232,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x55:   // GetX
     case 0x56: { // GetY
         CEngineObject* o = objectArgs.data[0]->object;
-        if (o) CopyFloat(result, id == 0x55 ? &ObjectSlots(o)->position.x : &ObjectSlots(o)->position.y);
+        if (o) CopyFloat(result, id == 0x55 ? &ObjectSlots(o)->localPosition_.x : &ObjectSlots(o)->localPosition_.y);
         else StoreBits(result, kZero);
         return;
     }
@@ -242,7 +242,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             StoreBits(result, kZero);
             return;
         }
-        float x = ObjectSlots(o)->position.x, y = ObjectSlots(o)->position.y, z = ObjectSlots(o)->position.z;
+        float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y, z = ObjectSlots(o)->localPosition_.z;
         if (CUnit* unit = UnitOrNull(o)) *result = static_cast<float>(UnitGroundHeight(unit, x, y) + z);   // (o is not null)
         else *result = TheServerWorld()->GridHeight(x, y) + z;
         return;
@@ -275,7 +275,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x99: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         CEngineObject* o = objectArgs.data[0]->object;
         int inWater = 0;
-        if (o) inWater = TheServerWorld()->AIMap()->CellFlag80At(&ObjectSlots(o)->position) ? 1 : 0;
+        if (o) inWater = TheServerWorld()->AIMap()->CellFlag80At(&ObjectSlots(o)->localPosition_) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
@@ -369,13 +369,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x53: { // DistanceUnitUnit
         CEngineObject* a = objectArgs.data[0]->object;
         CEngineObject* b = objectArgs.data[1]->object;
-        if (a && b) *result = Distance(ObjectSlots(a)->position.x, ObjectSlots(a)->position.y, ObjectSlots(b)->position.x, ObjectSlots(b)->position.y);
+        if (a && b) *result = Distance(ObjectSlots(a)->localPosition_.x, ObjectSlots(a)->localPosition_.y, ObjectSlots(b)->localPosition_.x, ObjectSlots(b)->localPosition_.y);
         else StoreBits(result, kFar);
         return;
     }
     case 0x54: { // DistanceUnitPoint
         CEngineObject* o = objectArgs.data[0]->object;
-        if (o) *result = Distance(ObjectSlots(o)->position.x, ObjectSlots(o)->position.y, f[0], f[1]);
+        if (o) *result = Distance(ObjectSlots(o)->localPosition_.x, ObjectSlots(o)->localPosition_.y, f[0], f[1]);
         else StoreBits(result, kFar);
         return;
     }
@@ -490,7 +490,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         CEngineObject* o = objectArgs.data[0]->object;
         StoreBits(result, kZero);
         if (!o) return;
-        float x = ObjectSlots(o)->position.x, y = ObjectSlots(o)->position.y;
+        float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y;
         EI_NAN_AUDIT(x, y, f[0], f[1], f[2], f[3]);
         bool inside = x >= f[0] && x <= f[2] && y >= f[1] && y <= f[3];
         *result = static_cast<float>(inside ? 1 : 0);

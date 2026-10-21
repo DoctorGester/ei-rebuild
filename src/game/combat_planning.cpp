@@ -312,14 +312,14 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             Vector3 destination;
             const Vector3* at = static_cast<AIPath*>(route.bytes())->Destination(&destination);
             if (!CanReachTarget(order)) return false;
-            float x = unit->position.x, y = unit->position.y, z = unit->position.z;
-            unit->position.x = at->x;
-            unit->position.y = at->y;
-            unit->position.z = at->z;
+            float x = unit->localPosition_.x, y = unit->localPosition_.y, z = unit->localPosition_.z;
+            unit->localPosition_.x = at->x;
+            unit->localPosition_.y = at->y;
+            unit->localPosition_.z = at->z;
             bool can = CanPlanAction(order);
-            unit->position.x = x;
-            unit->position.y = y;
-            unit->position.z = z;
+            unit->localPosition_.x = x;
+            unit->localPosition_.y = y;
+            unit->localPosition_.z = z;
             return can;
         };
         if (order->flag18 == 0) {
@@ -378,7 +378,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         if (!map->CanLeaveCell(unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
-    std::uint32_t flag = map->CellFlag80At(&unit->position);
+    std::uint32_t flag = map->CellFlag80At(&unit->localPosition_);
     CWorldServer* world2 = ServerWorld();
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;

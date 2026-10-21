@@ -127,9 +127,9 @@ struct TickSteps {
         if (s->attachedTo) {
             Vector3 point;
             const Vector3* a = s->AttachmentPoint(&point, s->attachedTo);
-            float wx = static_cast<float>(D(a->x) + D(s->position.x));
-            float wy = static_cast<float>(D(a->y) + D(s->position.y));
-            float wz = static_cast<float>(D(a->z) + D(s->position.z));
+            float wx = static_cast<float>(D(a->x) + D(s->localPosition_.x));
+            float wy = static_cast<float>(D(a->y) + D(s->localPosition_.y));
+            float wz = static_cast<float>(D(a->z) + D(s->localPosition_.z));
             s->motion.x = static_cast<float>(D(wx) - D(s->origin.x));
             s->motion.y = static_cast<float>(D(wy) - D(s->origin.y));
             s->motion.z = static_cast<float>(D(wz) - D(s->origin.z));
@@ -137,10 +137,10 @@ struct TickSteps {
             s->origin.y = wy;
             s->origin.z = wz;
         } else {
-            s->motion.x = static_cast<float>(D(s->position.x) - D(s->origin.x));
-            s->motion.y = static_cast<float>(D(s->position.y) - D(s->origin.y));
-            s->motion.z = static_cast<float>(D(s->position.z) - D(s->origin.z));
-            std::memcpy(&s->origin, &s->position, sizeof(Vector3));
+            s->motion.x = static_cast<float>(D(s->localPosition_.x) - D(s->origin.x));
+            s->motion.y = static_cast<float>(D(s->localPosition_.y) - D(s->origin.y));
+            s->motion.z = static_cast<float>(D(s->localPosition_.z) - D(s->origin.z));
+            std::memcpy(&s->origin, &s->localPosition_, sizeof(Vector3));
         }
     }
 

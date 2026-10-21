@@ -127,8 +127,8 @@ CObject3D::CObject3D() { SetUpObject3D(); }
 
 void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
-    SetIdentity(&orientation);
-    SetIdentity(&worldOrientation);
+    SetIdentity(&localRotation_);
+    SetIdentity(&worldRotation_);
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
     effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
     effectSources.count = 0;
@@ -155,7 +155,7 @@ void CObject3D::SetUpObject3D() {
     // object listed only for its shadow before it was ever in view (a NaN there made UnitOrderLess
     // irreflexive: S17a). It starts at zero here, and in the original through a harness patch
     // (harness_leftovers.cpp).
-    std::memset(&viewPosition, 0, sizeof(viewPosition));
+    std::memset(&worldPosition_, 0, sizeof(worldPosition_));
 }
 
 void CObject3D::DestructBody() {

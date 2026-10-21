@@ -76,7 +76,7 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
             c->Dr0 = reinterpret_cast<std::uintptr_t>(&g_wanted->flags_);
             c->Dr7 = 0x1u | (0xDu << 16);   // L0; R/W 01 (writes), LEN 11
         } else if (g_wanted) {
-            const auto base = reinterpret_cast<std::uintptr_t>(&g_wanted->orientation);
+            const auto base = reinterpret_cast<std::uintptr_t>(&g_wanted->localRotation_);
             c->Dr0 = base;
             c->Dr1 = base + 4;
             c->Dr2 = base + 8;
@@ -132,7 +132,7 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
         c->ContextFlags |= CONTEXT_DEBUG_REGISTERS;
         return EXCEPTION_CONTINUE_EXECUTION;
     }
-    const auto* q = reinterpret_cast<const std::uint32_t*>(&g_unit->orientation);
+    const auto* q = reinterpret_cast<const std::uint32_t*>(&g_unit->localRotation_);
     std::fprintf(g_file, "u%u dr%X", g_updates, unsigned(c->Dr6 & 0xF));
     Print(c->Eip);
     std::fprintf(g_file, " q %08X %08X %08X %08X fcw %04X <", unsigned(q[0]), unsigned(q[1]), unsigned(q[2]),

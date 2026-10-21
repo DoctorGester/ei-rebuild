@@ -31,8 +31,8 @@ void WriteText(CStream* stream, const char* text) {
 void CMapObject::LoadMapObject(CStream* stream) {
     companion->Load(stream);
     stream->Read(&animationSpeed, sizeof(animationSpeed));
-    stream->Read(&position.x, 3 * sizeof(float));
-    stream->Read(&orientation, sizeof(orientation));
+    stream->Read(&localPosition_.x, 3 * sizeof(float));
+    stream->Read(&localRotation_, sizeof(localRotation_));
     {
         ReadText text(stream);
         name = static_cast<const char*>(*text.text);
@@ -59,8 +59,8 @@ void CMapObject::SaveMapObject(CStream* stream) {
     companion->Save(stream);
     float speed = animationSpeed;
     stream->Write(&speed, sizeof(speed));
-    stream->Write(&position.x, 3 * sizeof(float));
-    stream->Write(&orientation, sizeof(orientation));
+    stream->Write(&localPosition_.x, 3 * sizeof(float));
+    stream->Write(&localRotation_, sizeof(localRotation_));
     WriteText(stream, name);
     stream->Write(&scale, sizeof(scale));
     int count = effectCount;

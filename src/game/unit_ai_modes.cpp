@@ -184,7 +184,7 @@ void GuardMode::Execute(AIBrain* brain) {
             DestroyLooks(&order);
             return;
         }
-        if (!brain->FindStandPoint(&brain->owner->unit->position, radius, &order.point)) {
+        if (!brain->FindStandPoint(&brain->owner->unit->localPosition_, radius, &order.point)) {
             LooksDestroyAt(&order.looks);
             return;
         }
@@ -237,7 +237,7 @@ int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;
     // 00791DEC: "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
-    AddPoint(&brain->owner->unit->position);
+    AddPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
 }
 EI_REPLACE_METHOD(0x005D16B0, PatrolMode::Evaluate);
@@ -381,7 +381,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         }
         if (!allied) {
             Vector3 where;
-            std::memcpy(&where, &static_cast<const CMapObject*>(brain->seen.object)->position, sizeof(Vector3));
+            std::memcpy(&where, &static_cast<const CMapObject*>(brain->seen.object)->localPosition_, sizeof(Vector3));
             brain->memory.Notice(&where, 1000, -2);
         }
     }
@@ -410,7 +410,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         EI_NAN_AUDIT(dx, dy);
         if (LengthSquared2DUnrounded(dx, dy) <= kArrivedSq) {
             // Still going to this point: near it, the interest fades.
-            const float* unit = &brain->owner->unit->position.x;
+            const float* unit = &brain->owner->unit->localPosition_.x;
             double ux = unit[0] - point.x;
             double uy = unit[1] - point.y;
             double uz = unit[2] - point.z;
@@ -506,7 +506,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     CUnit* self = brain->owner->unit;
     brain->memory.FindEnemies(self, &Candidates());
-    brain->ChooseTarget(&chosen, &Candidates(), &self->position, 0, 0);
+    brain->ChooseTarget(&chosen, &Candidates(), &self->localPosition_, 0, 0);
     CUnit* best = chosen.object;
     if (best != enemy) {
         if (enemy) enemy->Release();
@@ -521,7 +521,7 @@ EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
 void AggressionMode::Execute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(2);
     if (!chosen.object) return;
-    brain->CallAllies(&chosen.object->position);
+    brain->CallAllies(&chosen.object->localPosition_);
     AITargetChoice attack{-1, nullptr};     // what the brain is attacking now
     brain->attention.CurrentAttack(brain, &attack);
     if (attack.object == chosen.object && attack.part == chosen.part) return;
@@ -599,7 +599,7 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (brain->memory.corpses.count != 0) {
         AIRefTo<CUnit> corpse;
         AIRefTo<CUnit>* popped = brain->PopCorpse(&corpse);
-        brain->memory.Notice(&popped->object->position, 800, -3);
+        brain->memory.Notice(&popped->object->localPosition_, 800, -3);
         if (corpse.object) corpse.object->Release();
     }
     return kNoPriority;

@@ -146,8 +146,8 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             RECT rects[kClearedRects] = {right, below, strip};
             ClearDepthRects(interface_->renderer_, rects, 0.0f);
 
-            savedPosition = model->position;
-            savedOrientation = model->orientation;
+            savedPosition = model->localPosition_;
+            savedOrientation = model->localRotation_;
             ObjectSlots(unit)->AdvanceTime(static_cast<float>(CurrentClientTick()) + WorldTickFraction());
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
@@ -156,7 +156,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * LayoutUnit() - One()) *
                                          DepthUnit() * ModelDepth());
             const float y = static_cast<float>(height / size - static_cast<float>(DepthUnit() * ModelDepth()) * ModelDrop());
-            model->position = Vector3{x, y, ModelDepth()};
+            model->localPosition_ = Vector3{x, y, ModelDepth()};
             // Turned with the sling buttons' angle: about z, about x, about z again.
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
             const Vector3 axisX = {1.0f, 0.0f, 0.0f};
@@ -165,7 +165,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             Quaternion* q2 = second.SetAxisAngle(axisX, SlingTurn() * TurnAboutX());
             const Quaternion tilted = Product(*q1, *q2, false);
             Quaternion* q3 = third.SetAxisAngle(axisZ, SlingTurn() * SecondTurnAboutZ());
-            model->orientation = Product(tilted, *q3, true);
+            model->localRotation_ = Product(tilted, *q3, true);
 
             const float scale = static_cast<float>(One() / size);
             unit->Object3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};
@@ -221,8 +221,8 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
         if (bodyPart_ != kInfoPage) {
             unit->Object3D()->ClientSpecific()->figureScale = Vector3{1.0f, 1.0f, 1.0f};
-            model->position = savedPosition;
-            model->orientation = savedOrientation;
+            model->localPosition_ = savedPosition;
+            model->localRotation_ = savedOrientation;
         }
     }
 

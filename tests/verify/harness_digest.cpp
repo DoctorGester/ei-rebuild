@@ -378,11 +378,11 @@ void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, in
     b.Unsigned("prototype", o->prototypeId_);
     if (!mapObject) return;
     auto* m = static_cast<CMapObject*>(o);
-    b.Vector("pos.x", "pos.y", "pos.z", m->position);
-    b.Float("rot.w", m->orientation.w);
-    b.Float("rot.x", m->orientation.x);
-    b.Float("rot.y", m->orientation.y);
-    b.Float("rot.z", m->orientation.z);
+    b.Vector("pos.x", "pos.y", "pos.z", m->localPosition_);
+    b.Float("rot.w", m->localRotation_.w);
+    b.Float("rot.x", m->localRotation_.x);
+    b.Float("rot.y", m->localRotation_.y);
+    b.Float("rot.z", m->localRotation_.z);
     b.Vector("scale.x", "scale.y", "scale.z", m->scale);
     b.Int("updateCountdown", m->updateCountdown);
     b.Float("animationSpeed", m->animationSpeed);
@@ -690,11 +690,11 @@ void ReadClientWorld(CWorldClient* c, Builder& b, std::vector<CUnit*>& units) {
 // A unit of the client world: what the screen shows (place, animation, the packed vitals).
 void ReadClientUnit(CUnit* u, Builder& b) {
     b.Bits("flags", u->flags_);
-    b.Vector("pos.x", "pos.y", "pos.z", u->position);
-    b.Float("rot.w", u->orientation.w);
-    b.Float("rot.x", u->orientation.x);
-    b.Float("rot.y", u->orientation.y);
-    b.Float("rot.z", u->orientation.z);
+    b.Vector("pos.x", "pos.y", "pos.z", u->localPosition_);
+    b.Float("rot.w", u->localRotation_.w);
+    b.Float("rot.x", u->localRotation_.x);
+    b.Float("rot.y", u->localRotation_.y);
+    b.Float("rot.z", u->localRotation_.z);
     b.Int("animation", u->animationEntry);
     b.Int("animation2", u->secondEntry);
     b.Int("animationStart", u->animationStart);

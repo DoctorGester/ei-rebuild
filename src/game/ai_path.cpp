@@ -33,7 +33,7 @@ __declspec(naked) int __fastcall SmoothPath(PathSmoother*, void*, CUnit*, CAIMap
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
 // build's wrappers see these calls.
 
-const Vector3& PositionOf(const CUnit* unit) { return *&unit->position; }
+const Vector3& PositionOf(const CUnit* unit) { return *&unit->localPosition_; }
 
 bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
     return ((map->cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
@@ -158,7 +158,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
     int count = CurrentWorldTick();
     Vector3 facing;
-    QuaternionAxisY(&unit->orientation, nullptr, &facing);
+    QuaternionAxisY(&unit->localRotation_, nullptr, &facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
     path->Start(&PositionOf(unit), &backwards, count - 1);
 
@@ -320,7 +320,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
 
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing;
-        QuaternionAxisY(&unit->orientation, nullptr, &facing);
+        QuaternionAxisY(&unit->localRotation_, nullptr, &facing);
         float bx = -facing.x, by = -facing.y;
         float px;
         std::memcpy(&px, &path->targetX, 4);

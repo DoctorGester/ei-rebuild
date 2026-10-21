@@ -78,12 +78,12 @@ EI_REWRITTEN(0x0051E280, CObject3DClientSpecific::ClearShadow);
 bool CObject3DClientSpecific::ShadowInView() {
     if (worlddata::ShadowSetting() <= 0 || ShadowSwitchOf(object) == 0) return false;
     if (flags_ & kHalfShown) return true;
-    const Vector3& at = object->position;
+    const Vector3& at = object->localPosition_;
     sphere.center.x = sphere.center.x + at.x;
     sphere.center.y = at.y + sphere.center.y;
     sphere.center.z = at.z + sphere.center.z;
     int side = ScenePipeline()->ClipTest(&sphere);
-    const Vector3& back = object->position;
+    const Vector3& back = object->localPosition_;
     sphere.center.x = sphere.center.x - back.x;
     sphere.center.y = sphere.center.y - back.y;
     sphere.center.z = sphere.center.z - back.z;

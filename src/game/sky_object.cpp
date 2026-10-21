@@ -121,7 +121,7 @@ CSky* CSky::Construct() {
     material = nullptr;
     texture = nullptr;
     turns = 1;
-    TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, kSkyTextureKind, kSkyTextureName);
+    TextureHolderLoad(&texture, nullptr, kSkyTextureKind, kSkyTextureName);
     return this;
 }
 EI_REWRITTEN(0x004D9680, CSky::Construct);
@@ -149,7 +149,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     pipeline->PushMatrix(m, CTransformPipeline::kClipStack);
     pipeline->PushMatrix(m, 1);
-    TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(&texture));
+    TextureHolderEnsureLoaded(&texture);
     renderer->SetTexture(0, texture);
     renderer->DrawFigure(object, kSkyDrawA, kSkyDrawB, 0, 0xFF, nullptr);
     const int stacks[2] = {CTransformPipeline::kClipStack, 1};
@@ -161,7 +161,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
 EI_REWRITTEN(0x004D96E0, CSky::Draw);
 
 void CSky::Destruct() {
-    if (texture) static_cast<CEngineObject*>(texture)->Release();
+    if (texture) texture->Release();
     if (material) material->Release();
     if (object) object->Release();
 }

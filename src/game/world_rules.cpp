@@ -50,8 +50,8 @@ bool DepthLess::Less(const int* a, const int* b) {
     float offset = plane[11];
     const CMapObject* p = ObjectSlots(first);
     const CMapObject* q = ObjectSlots(second);
-    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->position, normal) + offset);
-    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->position, normal) + offset);
+    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->localPosition_, normal) + offset);
+    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->localPosition_, normal) + offset);
     // Living objects come before dead ones; within each kind, by depth. The original asks each
     // object again at every step, so the calls are repeated here in the same order.
     if ((ObjectSlots(first)->IsDead() == 0 && ObjectSlots(second)->IsDead() == 0) ||
@@ -92,8 +92,8 @@ int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
 }
 
 bool DepthBefore(CEngineObject* a, CEngineObject* b) {
-    EI_NAN_AUDIT(Object3D(a)->viewPosition.z, Object3D(b)->viewPosition.z);
-    return Object3D(a)->viewPosition.z < Object3D(b)->viewPosition.z;
+    EI_NAN_AUDIT(Object3D(a)->worldPosition_.z, Object3D(b)->worldPosition_.z);
+    return Object3D(a)->worldPosition_.z < Object3D(b)->worldPosition_.z;
 }
 
 } // namespace
