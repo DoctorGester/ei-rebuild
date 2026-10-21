@@ -63,7 +63,6 @@ constexpr std::uintptr_t kUnitArrayVtable = std::uintptr_t(0x007402AC);
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
-CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
@@ -131,8 +130,8 @@ void CPlayerServer::OnLeaderDied() {
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
     if (!revived || !dead) return;
-    mfc::CTypedPtrList<CUnit>& known = ControllerOf(revived)->Brain()->memory.seenCorpses;
-    for (auto* node = ControllerOf(dead)->Brain()->memory.seenCorpses.head; node;) {
+    mfc::CTypedPtrList<CUnit>& known = revived->ServerController()->Brain()->memory.seenCorpses;
+    for (auto* node = dead->ServerController()->Brain()->memory.seenCorpses.head; node;) {
         CUnit* object = node->data;
         node = node->next;
         if (object && object->GetClassId() == kClassUnit && !known.Find(object)) AddCounted(known, object);
@@ -241,7 +240,7 @@ int CPlayerServer::OnUseOrder() {
             }
             if (!nearest) break;
             if (!first) first = nearest;
-            CUnitServer* controller = ControllerOf(nearest);
+            CUnitServer* controller = nearest->ServerController();
             if (controller->CanReachAndPlan(AsUnitAction(&order))) {
                 chosen = nearest;
                 accepted = true;
@@ -270,7 +269,7 @@ int CPlayerServer::OnUseOrder() {
     }
 
     if (chosen) {
-        AIBrain* brain = ControllerOf(chosen)->Brain();
+        AIBrain* brain = chosen->ServerController()->Brain();
         if (AIMode* mode = brain->FindPlayerMode())
             static_cast<PlayerMode*>(mode)->CommandUse(brain, object, kind, value, flag != 0);
     }
@@ -332,7 +331,7 @@ int MoveUnits(MoveCommand command) {
     in.Read(&to, sizeof(to));
     FormationOffsets(&units, &offsets);
     for (int i = 0; i < units.size; ++i) {
-        AIBrain* brain = ControllerOf(units[i])->Brain();
+        AIBrain* brain = units[i]->ServerController()->Brain();
         if (AIMode* mode = brain->FindPlayerMode())
             (static_cast<PlayerMode*>(mode)->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
     }
@@ -535,7 +534,7 @@ int CPlayerServer::OnAttack() {
     in.Read(&objectId, 4);
     if (CEngineObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < units.size; ++i) {
-            AIBrain* brain = ControllerOf(units[i])->Brain();
+            AIBrain* brain = units[i]->ServerController()->Brain();
             if (AIMode* mode = brain->FindPlayerMode())
                 static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, ctrl != 0);
         }

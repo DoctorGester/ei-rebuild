@@ -62,9 +62,6 @@ const char* TextUnknownType() { return "Serv wrong packet ID prevID=%x curID=%x"
 
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessedId_
 
-// The brain embedded in a unit's controller (CUnitServer + 0x980).
-AIBrain* BrainOf(CUnit* unit) { return &static_cast<CUnitServer*>(unit->controller)->brain; }
-
 // 2.0 (0073CDB8): a unit level at most this asks the client to refresh the party.
 float LowLevel() { return 2.0f /*0073CDB8*/; }
 
@@ -292,11 +289,11 @@ int CPlayerServer::SendPartyState() {
         if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
             if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
-            for (auto* node = BrainOf(unit)->memory.nearby.head; node != nullptr;) {
+            for (auto* node = unit->ServerController()->Brain()->memory.nearby.head; node != nullptr;) {
                 auto* other = node->data;
                 node = node->next;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
-                if (BrainOf(other)->AggressionEnemy() == unit) refreshPending_ = 2;
+                if (other->ServerController()->Brain()->AggressionEnemy() == unit) refreshPending_ = 2;
             }
         }
         WriteDword(&out_, static_cast<std::uint32_t>(unit->id_));
@@ -395,13 +392,13 @@ void CPlayerServer::UpdatePartyUnits() {
         for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
             CUnit* unit = node->value;
             party.Insert(unit);
-            AIBrain* brain = BrainOf(unit);
+            AIBrain* brain = unit->ServerController()->Brain();
             party.InsertAll(&brain->memory.visible);
             known.InsertAll(&brain->memory.seenCorpses);
         }
         partyUnits_.Union(party, known);
         for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node))
-            known.CopyToList(&BrainOf(node->value)->memory.seenCorpses);
+            known.CopyToList(&node->value->ServerController()->Brain()->memory.seenCorpses);
     } else {
         partyUnits_.SetSize(party.size, -1);
         for (int i = 0; i < party.size; ++i) {

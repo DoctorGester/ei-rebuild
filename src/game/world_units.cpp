@@ -254,13 +254,13 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         CMapObjectVirtuals* slots = ObjectSlots(unit);
 
         // A player-controlled AI, standing on a free cell near the requested position.
-        CEngineObject* controller = unit->controller;
-        void* brain = &static_cast<CUnitServer*>(controller)->brain;
-        static_cast<AIBrain*>(brain)->ClearModes();
+        CUnitServer* controller = unit->ServerController();
+        AIBrain* brain = &controller->brain;
+        brain->ClearModes();
         void* memory = gamecrt::operator_new(0x24);
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
-        static_cast<AIBrain*>(brain)->AddMode((memory ? static_cast<PlayerMode*>(memory)->Construct() : nullptr));
-        static_cast<AIBrain*>(brain)->StopAction();
+        brain->AddMode((memory ? static_cast<PlayerMode*>(memory)->Construct() : nullptr));
+        brain->StopAction();
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &unit->position.x, sizeof(free));
@@ -302,7 +302,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             if (flagged) unit->SetMoveModes(placement->value20, placement->value20);
             else unit->moveMode2 = static_cast<int>(placement->value20);
         }
-        static_cast<CUnitServer*>(controller)->ResyncWithUnit();
+        controller->ResyncWithUnit();
         if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
             unit->pendingWeapon = static_cast<int>(record->weaponIndex);
         if (placement && sessionKind_ != kKindNoRangeTest) unit->pendingWeapon = static_cast<int>(placement->value24);
@@ -314,12 +314,12 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             auto* record = reinterpret_cast<PartyUnitRecord*>(records->data[i]);
             CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
             if (!unit) continue;
-            CEngineObject* controller = unit->controller;
+            CUnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
-            void* brain = &static_cast<CUnitServer*>(controller)->brain;
-            void* follow = static_cast<AIBrain*>(brain)->FindPlayerMode();
+            AIBrain* brain = &controller->brain;
+            AIMode* follow = brain->FindPlayerMode();
             if (!follow) continue;
-            static_cast<PlayerMode*>(follow)->SetLeader(static_cast<AIBrain*>(brain), WorldFindUnit(this, nullptr, record->leaderId));
+            static_cast<PlayerMode*>(follow)->SetLeader(brain, WorldFindUnit(this, nullptr, record->leaderId));
         }
     }
 
@@ -475,7 +475,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         object->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
-        if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
+        if (object->GetClassId() == world::kClassUnit) AsUnit(object)->ServerController()->ResyncWithUnit();
         static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
@@ -582,7 +582,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
-        if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
+        if (object->GetClassId() == world::kClassUnit) AsUnit(object)->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);

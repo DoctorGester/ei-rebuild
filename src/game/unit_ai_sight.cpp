@@ -43,7 +43,6 @@ constexpr int kLostKind = -2;
 constexpr std::uint32_t kFlagSeeAll = 0x2000000;    // CUnit::flags_: sees every unit once
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
-CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
@@ -92,7 +91,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     memory->nearbyCountdown = (gamecrt::rand() & 3) + 8;
     int blockX = cellX / 32;
     int blockY = cellY / 32;
-    CUnitServer* control = ControllerOf(self);
+    CUnitServer* control = self->ServerController();
     float hearing = control->stats.valuesB0[2].current;
     float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
     float reach = sight >= hearing ? sight : hearing;
@@ -121,7 +120,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
 EI_REWRITTEN(0x005CA1D0, AIViewer::Refresh);
 
 void AIViewer::See(CUnit* self, AIMemory* memory) {
-    CUnitServer* ours = ControllerOf(self);
+    CUnitServer* ours = self->ServerController();
     bool seesAll = self->player != nullptr || (self->flags_ & kFlagSeeAll) != 0;
     self->flags_ &= ~kFlagSeeAll;
     for (auto* node = memory->nearby.head; node;) {
@@ -140,7 +139,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         Vector3 theirEye;
         static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
         Vector3 d = theirEye - eye;
-        CUnitServer* theirs = ControllerOf(other);
+        CUnitServer* theirs = other->ServerController();
         float coneLimit = ours->stats.sightCone;
         float distance = Length2D({d.x, d.y});
         double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
@@ -221,7 +220,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (Allied(self->side, other->side)) AddCountedTail(&memory->corpses, nullptr, other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
-            CUnitServer* theirs = ControllerOf(other);
+            CUnitServer* theirs = other->ServerController();
             AIBrain* theirBrain = theirs->Brain();
             if (theirs->Busy() && theirBrain->target == self) continue;
             double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.valuesE0[0].current *
@@ -253,8 +252,8 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     reinterpret_cast<SearchGrid<std::uint8_t>*>(&grid->data)->Resize(1, 1);   // the cells (+8) as a SearchGrid
     std::memset(grid->data, 0, static_cast<std::size_t>(grid->height * grid->width));
 
-    CUnitServer* mine = ControllerOf(seer);
-    CUnitServer* theirs = ControllerOf(observer);
+    CUnitServer* mine = seer->ServerController();
+    CUnitServer* theirs = observer->ServerController();
     float cone = mine->stats.sightCone;
     float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
                                theirs->stats.valuesE0[0].current * mine->stats.valuesB0[0].current);

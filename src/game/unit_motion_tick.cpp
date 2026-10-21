@@ -120,7 +120,6 @@ std::uint8_t FailedByte(CUnitServer* c) { return reinterpret_cast<const std::uin
 CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(ManagerContextOf(c)); }
 int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
 CPlayer* PlayerOf(CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
-CUnitServer* ServerControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(unit->controller); }
 int GameMode() { return ei::GameData<const int>(0x007C2CC4); }
 
 constexpr int kStateIdle = 0;
@@ -234,12 +233,12 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     char* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        ServerControllerOf(blocker)->brain.LeaderOrFollowed() == self && CurrentWorldTick() < c->waitFrame + 2) {
+        blocker->ServerController()->brain.LeaderOrFollowed() == self && CurrentWorldTick() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
 
-    CUnitServer* other = ServerControllerOf(blocker);
+    CUnitServer* other = blocker->ServerController();
     auto isAction = [](int kind) { return kind == 3 || kind == 4 || kind == 5; };
     bool sameAttack = blocker->side == self->side && isAction(c->action.kind) &&
                       isAction(other->action.kind) && other->action.target == c->action.target &&
@@ -261,7 +260,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
                 *liftBlocker = true;
                 return kBlockedReplan;
             }
-            link = ServerControllerOf(waitsFor);
+            link = waitsFor->ServerController();
         }
         SetWaitingFor(c, blocker);
         return kBlockedWait;

@@ -77,7 +77,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     for (auto* node = server->Brain()->memory.nearby.head; node; node = node->next) {
         auto* member = node->data;
         if (!(allies & (1u << (member->side & 31)))) continue;
-        int& alarm = static_cast<CUnitServer*>(member->controller)->voice.level;
+        int& alarm = member->ServerController()->voice.level;
         if (alarm <= active) alarm = active;
     }
 }

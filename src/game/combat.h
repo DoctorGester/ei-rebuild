@@ -878,6 +878,8 @@ static_assert(offsetof(CUnitServer, pendingHit) == 0x108);
 static_assert(offsetof(CUnitServer, currentPlan) == 0xC4);
 static_assert(offsetof(CUnitServer, boredTicks) == 0x938);
 static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
+
+inline CUnitServer* CUnit::ServerController() const { return static_cast<CUnitServer*>(controller); }
 static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
 static_assert(offsetof(CUnitServer, searchingTarget) == 0x18E);
 static_assert(offsetof(CUnitServer, tameStage) == 0x908);

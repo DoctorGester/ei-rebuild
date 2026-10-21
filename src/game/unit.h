@@ -174,6 +174,7 @@ struct SpeechRecord; // unit_client_models.h
 class CObject3D;     // map_object_figures.h
 class CMapObject;    // map_object.h
 class CUnit;
+class CUnitServer;   // combat.h
 
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
@@ -626,6 +627,8 @@ public:
     void DestroyUnit();
 
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
+    // The controller as the server unit (combat.h; class 0x3E). Defined in combat.h.
+    CUnitServer* ServerController() const;
     // The parameter block at +0x330 (the fields below repeat parts of it).
     UnitParams* Params() { return reinterpret_cast<UnitParams*>(paramsHead); }
     // The unit as the map object it is (map_object.h).

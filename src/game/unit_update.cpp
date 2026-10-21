@@ -91,7 +91,7 @@ EI_REPLACE_METHOD(0x0052EB30, CUnit::ScaleEffectChangedImpl);
 std::uintptr_t CUnit::SetStatsImpl(const UnitStats* stats) {
     int classId = controller->GetClassId();
     if (classId != kClassUnitServer) return static_cast<std::uintptr_t>(classId);
-    return static_cast<CUnitServer*>(controller)->SetStats(stats);
+    return ServerController()->SetStats(stats);
 }
 EI_REPLACE_METHOD(0x00530A20, CUnit::SetStatsImpl);
 

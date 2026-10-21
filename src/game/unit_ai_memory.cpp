@@ -26,7 +26,6 @@ namespace {
 constexpr float kZero = 0.0f;                   // 0073B858
 const float kFar = 1e30f;                       // 7149F2CA
 
-CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
@@ -68,7 +67,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* po
         auto* other = node->data;
         if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
-            AIBrain* theirs = ControllerOf(other)->Brain();
+            AIBrain* theirs = other->ServerController()->Brain();
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
             auto* enemy = static_cast<CUnit*>(theirs->AggressionEnemy());
@@ -105,8 +104,8 @@ EI_REWRITTEN(0x005CB670, AIMemory::NearestEnemy);
 void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (visible.Find(object)) return;
     CUnit* other = object;
-    CUnitServer* theirs = ControllerOf(other);
-    CUnitServer* ours = ControllerOf(self);
+    CUnitServer* theirs = other->ServerController();
+    CUnitServer* ours = self->ServerController();
     double dx = static_cast<double>(self->position.x) - other->position.x;
     double dy = static_cast<double>(self->position.y) - other->position.y;
     double dz = static_cast<double>(self->position.z) - other->position.z;
@@ -167,7 +166,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     for (auto* node = nearby.head; node; node = node->next) {
         auto* other = node->data;
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
-        CUnitServer* theirs = ControllerOf(other);
+        CUnitServer* theirs = other->ServerController();
         double dx = static_cast<double>(other->position.x) - unit->position.x;
         double dy = static_cast<double>(other->position.y) - unit->position.y;
         double dz = static_cast<double>(other->position.z) - unit->position.z;

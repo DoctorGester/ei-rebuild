@@ -387,7 +387,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     std::uint32_t& flags = unit->flags_;
     if (!self->object.visible) flags |= 8;
     else flags &= ~8u;
-    static_cast<CUnitServer*>(unit->controller)->ResyncWithUnit();
+    unit->ServerController()->ResyncWithUnit();
     static_cast<CMapObject*>(b.object)->MarkChanged(1);
 }
 EI_REPLACE(0x0046C4D0, UnitSpecApply);

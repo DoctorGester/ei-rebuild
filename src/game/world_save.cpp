@@ -308,7 +308,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             world->AIMap()->FindFreeCellNear(unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
             SectorMapAdd(world->Sectors(), nullptr, unit);
-            static_cast<CUnitServer*>(unit->controller)->ResyncWithUnit();
+            unit->ServerController()->ResyncWithUnit();
         } else {
             WorldRemoveObject(world, nullptr, stranded.data[i]);
         }

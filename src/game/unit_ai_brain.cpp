@@ -39,9 +39,6 @@ void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 
 
 namespace {
-AIBrain* BrainOf(CUnit* unit) {
-    return &static_cast<CUnitServer*>(unit->controller)->brain;
-}
 
 const Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 
@@ -308,7 +305,7 @@ void AIBrain::CallAllies(const Vector3* point) {
         node = node->next;
         if (other == self || !(GameDiplomacy()->allied_[self->side] & (1u << (other->side & 31)))) continue;
         mfc::CString message;
-        AIBrain* ally = BrainOf(other);
+        AIBrain* ally = other->ServerController()->Brain();
         if (console::FilterMask() & 1) {
             double dz = self->position.z - other->position.z;
             double dy = self->position.y - other->position.y;
@@ -429,7 +426,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             console::GameOStream* log = &(*AiLog() << "Unit ");
             log = reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(log)->PutInt(unit->id_));
             console::EndLine(*log << " hear delayed sound: " << call.text);
-            static_cast<CUnitServer*>(unit->controller)->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
+            unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
         } else if (memory->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the
             // point is more than sqrt(10) away (TEST AH,0x41: NaN is near).
