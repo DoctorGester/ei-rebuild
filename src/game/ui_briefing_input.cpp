@@ -22,11 +22,10 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
-void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
-void* ServerWorld() { return ei::GamePointer<void>(0x007AFF60); }
 const char* ClickSound() { return "buttons\\base\\click1.wav"; }
 const char* TopicPrefixKey() { return "topic_prefix"; }
 const char* GoodbyeTopic() { return "goodbye"; }
@@ -69,7 +68,7 @@ const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
 
 // The server's unit with the id of a client object, or null.
-CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
+CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, id)); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
@@ -82,7 +81,6 @@ bool CanTalk(CEngineObject* person) {
            controller->action2.kind == kNextCommandNone;
 }
 
-CWorldClient* TheClientWorld() { return static_cast<CWorldClient*>(ClientWorld()); }
 
 bool IsPerson(CEngineObject* object) { return object && static_cast<CMapObjectVirtuals*>(object)->IsDead() == 0; }
 
@@ -91,7 +89,7 @@ bool IsPerson(CEngineObject* object) { return object && static_cast<CMapObjectVi
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
 static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     Vector3 picked;
-    Vector3* p = static_cast<CWorldClient*>(ClientWorld())->PickSurface(&picked, x, y);
+    Vector3* p = TheClientWorld()->PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
     CUnit* unit = ServerUnit(screen->leader_->id_);
@@ -148,11 +146,11 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
 
 void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (chatActive_) {
-        GameCursor()->SetShape(kCursorChat);
+        TheCursor()->SetShape(kCursorChat);
         if (chat_) chat_->Input()->Event(UiInputSide::kMouseMove, buttons, x, y);
         return;
     }
-    GameCursor()->SetShape(kCursorNormal);
+    TheCursor()->SetShape(kCursorNormal);
     InputOf(this)->OnMouseMove(buttons, x, y);
     if (state_ == 1) {
         int region = RegionAt(x, y);
@@ -163,9 +161,9 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
             DrawTopics();
         }
     } else if (state_ == 3) {
-        GameCursor()->SetShape(kCursorTalk);
+        TheCursor()->SetShape(kCursorTalk);
     } else if (state_ == 4) {
-        GameCursor()->SetShape(kCursorNormal);
+        TheCursor()->SetShape(kCursorNormal);
     }
     if (interface_->rightDown_ || state_ != 0) return;
 
@@ -176,7 +174,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
         FindTopics(id);
-        if (topics_.size > 0) GameCursor()->SetShape(kCursorTalk);
+        if (topics_.size > 0) TheCursor()->SetShape(kCursorTalk);
         const PersonTextNode* node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_.data[1];
@@ -192,7 +190,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     Vector3 picked;
-    Vector3* p = static_cast<CWorldClient*>(ClientWorld())->PickSurface(&picked, x, y);
+    Vector3* p = TheClientWorld()->PickSurface(&picked, x, y);
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
@@ -204,7 +202,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     variable += zone;
     float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);
-    if (visited != 1.0f) GameCursor()->SetShape(kCursorExit);
+    if (visited != 1.0f) TheCursor()->SetShape(kCursorExit);
 }
 
 // --- 00603360: input slot 7 ---------------------------------------------------------------------
@@ -255,7 +253,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
 
 void CBriefingScreen::DrawTopics() {
     mfc::CString prefix;
-    GameTexts()->GetString(TopicPrefixKey(), &prefix);
+    TheTextManager()->GetString(TopicPrefixKey(), &prefix);
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);

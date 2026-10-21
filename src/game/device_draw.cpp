@@ -18,6 +18,7 @@
 #include "render/render_state.h"
 #include "render/render.h"
 #include "originals_render.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -58,11 +59,11 @@ struct DrawArgs {
 // old path no longer draws meshes.
 void Draw(CTextureDevice* device, const DrawArgs& a, unsigned triangles) {
     if (render::MeshPass(device)) {
-        gameapi::EnterCriticalSection(device::Lock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             static_cast<D3DPRIMITIVETYPE>(a.primitive), static_cast<DWORD>(a.fvf), a.vertices,
             static_cast<DWORD>(a.vertexCount), const_cast<WORD*>(a.indices), a.indexCount, static_cast<DWORD>(a.flags));
-        gameapi::LeaveCriticalSection(device::Lock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
     device->vertexCount_ += a.vertexCount;
     device->primitiveCount_ += static_cast<int>(triangles);
@@ -89,7 +90,7 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
         return;
     }
     if (!s.name.empty()) {
-        CTexture* texture = device::TextureManager()->FindTexture(s.name.data());
+        CTexture* texture = TheTextureManager()->FindTexture(s.name.data());
         CEngineObject* old = s.texture;
         s.texture = texture;
         if (texture) ++texture->refCount_;
@@ -111,7 +112,7 @@ void SetFirstPassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
         device->BindSurface(stage, TextureSurface(s.texture));
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, device::TextureManager()->FindTexture(s.name.data()));
+        AssignTexture(&s.texture, TheTextureManager()->FindTexture(s.name.data()));
         device->BindTexture(stage, static_cast<CTexture*>(s.texture));
     } else {
         device->BindSurface(stage, nullptr);
@@ -124,7 +125,7 @@ void SetLaterPassStage(CTextureDevice* device, MaterialStage& s) {
     if (s.texture) {
         surface = TextureSurface(s.texture);
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, device::TextureManager()->FindTexture(s.name.data()));
+        AssignTexture(&s.texture, TheTextureManager()->FindTexture(s.name.data()));
         if (s.texture) surface = TextureSurface(s.texture);
     }
     device->BindSurface(0, surface);

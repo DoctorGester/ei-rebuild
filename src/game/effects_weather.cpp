@@ -18,6 +18,7 @@
 #include "originals_render.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -41,7 +42,6 @@ constexpr double kFogJitter = std::bit_cast<double>(0x3DE0000000100000ull);
 constexpr float kFogCellSize = 1.0f;                                    // 0073D6A4
 constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
 
-IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Reads a float back from memory, as the original does after storing it (the compiler would
 // otherwise reuse the unrounded register value).
@@ -53,7 +53,6 @@ double Unsigned(std::uint32_t value) {
 }
 
 // The sound manager (*007AF784): 006B9100 sets a playing sound's volume (0..100), 006B94A0 stops it.
-void* SoundManager() { return ei::GameData<void*>(0x007AF784); }
 
 // The game's atexit (006E727B).
 
@@ -88,19 +87,19 @@ void CRainSnow::UpdateFade(float now) {
     EI_NAN_AUDIT(now, fadeStart);
     if (fadeDuration == kZero) {   // no fade running
         mode = targetMode;
-        if (targetMode == 1 && sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) TheSoundManager()->SetSoundVolume(sound, 100, 0);
     } else if ((now - fadeStart) / fadeDuration <= kOne) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
         float level = static_cast<float>((targetMode == 0 ? c + kOne : kOne - c) * kHalf);
-        if (sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
+        if (sound) TheSoundManager()->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
         density = x87::fistp(level * kDensityScale);
         return;
     } else {
         mode = targetMode;
-        if (targetMode == 1 && sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) TheSoundManager()->SetSoundVolume(sound, 100, 0);
     }
     if (mode == 0 && sound) {
-        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
+        TheSoundManager()->StopSound(sound);
         sound = 0;
     }
     density = 64;
@@ -111,9 +110,9 @@ EI_REPLACE_METHOD(0x004E40B0, CRainSnow::UpdateFade);
 // Ends a fade at once.
 void CRainSnow::FinishFade() {
     mode = targetMode;
-    if (targetMode == 1 && sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, 100, 0);
+    if (targetMode == 1 && sound) TheSoundManager()->SetSoundVolume(sound, 100, 0);
     if (mode == 0 && sound) {
-        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
+        TheSoundManager()->StopSound(sound);
         sound = 0;
     }
     fadeDuration = 0.0f;
@@ -143,7 +142,7 @@ const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
 
 void CRainSnow::Clear() {
     if (sound) {
-        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
+        TheSoundManager()->StopSound(sound);
         sound = 0;
     }
     CEngineObject* old = texture;
@@ -166,10 +165,10 @@ EI_REPLACE_METHOD(0x005617B0, CRainSnow::Clear);
 void CRainSnow::Start(int newMode, float duration) {
     TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
-        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
+        TheSoundManager()->StopSound(sound);
         sound = 0;
     }
-    if (newMode == 1) sound = sound::Manager()->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
+    if (newMode == 1) sound = TheSoundManager()->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
     targetMode = newMode;
     if (mode == 0) mode = newMode;
     std::memcpy(&fadeDuration, &duration, sizeof(fadeDuration));
@@ -305,15 +304,15 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             cell->visible = 1;
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);
-            std::uint32_t r = GlobalRandom().Next();
+            std::uint32_t r = IsaacRandom::Global().Next();
             cell->pos.x = static_cast<float>((Unsigned(r) * kFogJitter + cell->x - kQuarter) * (kFogCellSize * kHalf));
-            r = GlobalRandom().Next();
+            r = IsaacRandom::Global().Next();
             cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * (kFogCellSize * kHalf));
             // The world's slot 30: the water surface height, used unrounded from ST0.
             double ground = static_cast<CWorld*>(World())->SurfaceHeightAt(Load(cell->pos.x), Load(cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = static_cast<float>(ground + kHalf);
-            cell->frame = static_cast<std::int8_t>(GlobalRandom().Next() % 15);
+            cell->frame = static_cast<std::int8_t>(IsaacRandom::Global().Next() % 15);
             boundsValid = 0;
         }
     }

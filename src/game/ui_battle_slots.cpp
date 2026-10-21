@@ -44,7 +44,6 @@ struct LocalPlayerBlock {
 };
 LocalPlayerBlock* LocalPlayer() { return reinterpret_cast<LocalPlayerBlock*>(LocalPlayerData()); }
 
-void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 // The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
 float SelectedFaceAngle() {
     return ei::GameData<const volatile float>(0x007C8144) * 0.14285715f /*0073CDCC*/;
@@ -69,9 +68,9 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 // --- 00635E60: slot 26 --------------------------------------------------------------------------
 
 void CBattleScreen::Close() {
-    camera::TheCamera()->flags_ |= CCamera::kFree;
+    TheCamera()->flags_ |= CCamera::kFree;
     WorldUpdatePeriod() = kDefaultUpdatePeriod;
-    GameCursor()->SetHeld(0);
+    TheCursor()->SetHeld(0);
     GameStopSounds(1);
     GameStopAmbience();
     party_.SetSize(0, -1);
@@ -83,7 +82,7 @@ EI_REPLACE_METHOD(0x00635E60, CBattleScreen::Close);
 bool CBattleScreen::PollShown() {
     if (hasHero_) {
         auto& party = party_;
-        if (party.size > 0) static_cast<CCamera*>(camera::TheCamera())->SetTarget(party.data[0]);
+        if (party.size > 0) TheCamera()->SetTarget(party.data[0]);
         if (AutoSaveEnabled()) AutoSaveOriginal(AutoSaveName(), 1);
         hasHero_ = false;
         interface_->OpenHelp(0);
@@ -202,7 +201,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     }
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
     if (selected) {
-        static_cast<CWorldClient*>(ClientWorld())->Select(unit);
+        TheClientWorld()->Select(unit);
         MarkPortrait(place);
     }
     // A hero the save had selected.
@@ -211,7 +210,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         int after = heroes_.size - i - 1;
         if (after != 0) std::memmove(&heroes_.data[i], &heroes_.data[i + 1], after * sizeof(heroes_.data[0]));
         --heroes_.size;
-        static_cast<CWorldClient*>(ClientWorld())->Select(unit);
+        TheClientWorld()->Select(unit);
         MarkPortrait(place);
         break;
     }

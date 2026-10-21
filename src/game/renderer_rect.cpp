@@ -12,6 +12,7 @@
 #include "render/render.h"
 #include "render/render_state.h"
 #include "originals_render.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -59,10 +60,10 @@ int CSceneRenderer::DrawRectangleImpl(int left, int top, int right, int bottom, 
     device::SetRenderState(device::D3D(device), kZBias, 0);
     render::state::Render(kZBias, 0);
     if (render::ScreenDraw(device, v, 4, indices, 6)) {
-        gameapi::EnterCriticalSection(device::Lock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             D3DPT_TRIANGLELIST, kFvf, v, 4, const_cast<std::uint16_t*>(indices), 6, 0);
-        gameapi::LeaveCriticalSection(device::Lock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
     Count(device, 4, 2);
     if (!outline) return 1;
@@ -84,9 +85,9 @@ int CSceneRenderer::DrawRectangleImpl(int left, int top, int right, int bottom, 
     device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, kOpDisable);
     render::state::Stage(0, kAlphaOp, kOpDisable);
     if (render::ScreenDraw(device, v, 5, nullptr, 0)) {
-        gameapi::EnterCriticalSection(device::Lock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         device->lastLoadResult_ = device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, v, 5, 0);
-        gameapi::LeaveCriticalSection(device::Lock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
     Count(device, 5, 1);
     device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, kOpModulate);

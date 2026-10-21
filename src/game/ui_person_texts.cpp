@@ -11,6 +11,7 @@
 #include "originals_engine.h"
 #include "originals_ui.h"
 #include "library_trees.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -26,7 +27,7 @@ struct PersonTextPair {
 } // namespace
 
 void LoadPersonTexts(PersonTextMap* map) {
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     console::CStringArray keys;
     mfc::CString line;
     texts->ListKeys(&keys, PersonPattern());

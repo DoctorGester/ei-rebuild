@@ -15,6 +15,7 @@
 #include "ui.h"            // GameDeviceLock, UiTextureManager
 #include "originals_engine.h"   // game::FatalError
 #include "originals_render.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"      // SetVtable
@@ -116,7 +117,7 @@ EI_REPLACE_METHOD(0x00500800, CSceneRenderer::SetSunAndAmbient);
 // --- The renderer (vtable 0073D93C) --------------------------------------------------------------
 
 // 00500960 (cdecl, no arguments). The renderer.
-CSceneRenderer* __cdecl SceneRenderer() { return static_cast<CSceneRenderer*>(SceneContext()); }
+CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
 EI_REPLACE(0x00500960, SceneRenderer);
 
 CSceneRenderer* CSceneRenderer::ConstructRenderer() {
@@ -164,9 +165,9 @@ int CSceneRenderer::ClearFrame() {
     CTextureDevice* device = device_;
     DWORD flags = D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER;
     if ((device->depthFormat_.words[1] & DDPF_STENCILBUFFER) && device->depthFormat_.words[4] != 0) flags |= D3DCLEAR_STENCIL;
-    gameapi::EnterCriticalSection(GameDeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     device->lastLoadResult_ = device::Clear(D3DDevice(device), 0, nullptr, flags, colour, 1.0f, 0);
-    gameapi::LeaveCriticalSection(GameDeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     return 1;
 }
 int __fastcall RendererClearFrameHook(CSceneRenderer* self) { return self->CSceneRenderer::ClearFrame(); }
@@ -257,7 +258,7 @@ int __fastcall TextureHolderEnsureLoaded(CTexture** holder) {
     CTexture* texture = *holder;
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & kTextureIsLoaded) return 1;
-    return static_cast<CTextureManager*>(UiTextureManager())->LoadTexture(texture);
+    return TheTextureManager()->LoadTexture(texture);
 }
 EI_REPLACE(0x00500970, TextureHolderEnsureLoaded);
 
@@ -266,7 +267,7 @@ void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char
         *holder = nullptr;
         old->Release();
     }
-    auto* manager = static_cast<CTextureManager*>(UiTextureManager());
+    auto* manager = TheTextureManager();
     auto* texture = static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindTypedTexture(kind, name));
     if (!texture) texture = static_cast<CTexture*>(manager->CreateObject(kind, -1));
     *reinterpret_cast<mfc::CString*>(&texture->name_) = name;

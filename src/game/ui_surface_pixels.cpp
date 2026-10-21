@@ -22,6 +22,7 @@
 #include "originals_engine.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -35,7 +36,6 @@ using SurfaceHolder = CDXSurface;
 SurfaceHolder* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // Pixels of a surface's format go to and from 0xAARRGGBB through ChannelLayout (texture.h:
 // Split 004EDAA0, FromNative 004EDC70, ToNative 004EDC00).
@@ -123,7 +123,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
     auto* pixels = static_cast<std::uint16_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 2));
     SurfaceHolder* holder = HolderOf(copy);
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels copied;
     bool direct = DirectPixels(holder, &copied, true);
     int bytes = copied.bitsPerPixel >> 3;
@@ -139,7 +139,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
             source += bytes;
         } while (--left != 0);
     }
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     if (copy) {
         copy->ReleaseContents();
         gamecrt::operator_delete(copy);
@@ -151,10 +151,10 @@ void CUiSurface::Greyscale() {
     ObservePixels(this, "Greyscale", true, _AddressOfReturnAddress());
     if (!HolderOf(this)) return;
     SurfaceHolder* holder = HolderOf(this);
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels desc;
     if (!DirectPixels(holder, &desc)) {
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
         return;
     }
     std::uint32_t count = static_cast<std::uint32_t>(desc.width) * static_cast<std::uint32_t>(desc.height);
@@ -206,7 +206,7 @@ void CUiSurface::Greyscale() {
             } while (--count != 0);
         }
     }
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
 }
 
 namespace {
@@ -241,10 +241,10 @@ void CUiSurface::SwapContents(int restore) {
         }
         if (!kept_) return;
         SurfaceHolder* holder = holder_;
-        gameapi::EnterCriticalSection(DeviceLock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         if (DirectPixels(holder, &desc)) std::memcpy(desc.bits, kept_, keptSize_);
         KeptBytesTotal() -= keptSize_;
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
         gamecrt::operator_delete(kept_);
         kept_ = nullptr;
         keptSize_ = 0;
@@ -252,14 +252,14 @@ void CUiSurface::SwapContents(int restore) {
     }
     SurfaceHolder* holder = holder_;
     if (!holder) return;
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     bool direct = DirectPixels(holder, &desc, true);   // (no memory: an empty copy)
     if (kept_) gamecrt::operator_delete(kept_);
     keptSize_ = static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
     kept_ = static_cast<std::uint8_t*>(gamecrt::operator_new(keptSize_));
     if (direct) std::memcpy(kept_, desc.bits, keptSize_);
     KeptBytesTotal() += keptSize_;
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     SurfaceBytesTotal() -= keptSize_;
     SurfaceHolder* released = holder_;
     holder_ = nullptr;
@@ -276,10 +276,10 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     SurfaceHolder* holder = HolderOf(this);
     if (!holder || x < 0 || y < 0) return 0;
     if (x >= width_ || y >= height_) return 0;
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels desc;
     if (!DirectPixels(holder, &desc, true)) {
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
         return 0;
     }
     int bytes = desc.bitsPerPixel >> 3;
@@ -287,7 +287,7 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
                              static_cast<std::size_t>(bytes) * static_cast<std::uint32_t>(x);
     std::uint32_t value = bytes > 0 ? ReadPixel(at, bytes) : 0;
     std::uint32_t rgb = LayoutOf(desc).FromNative(value);
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     return rgb;
 }
 EI_REPLACE_METHOD(0x005FD240, CUiSurface::PixelAt);

@@ -31,6 +31,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 
@@ -42,9 +43,8 @@ const char* BriefingSection() { return "briefing "; }
 const char* ShowLine() { return "#show"; }
 const ClassTemplateVector* ClassTemplates() { return ei::GamePointer<const ClassTemplateVector>(0x007AA5D8); }
 const char* TopicPrefix() { return "b."; }
-void* MusicSystem() { return ei::GameData<void* const>(0x007AF760); }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0)); }
+WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(0)); }
 
 constexpr int kStateWalking = 0;
 constexpr int kEventEnds = 0;
@@ -132,7 +132,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     }
     person_ = nullptr;
     third_ = nullptr;
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString key(BriefingSection());
     if (!texts->Open(key + topic_)) {
         state_ = 0;
@@ -244,9 +244,9 @@ void CBriefingScreen::ClearShownItems() {
 }
 
 void CBriefingScreen::FinishDialogue() {
-    if (voice_ != -1) sound::Manager()->StopSound(voice_);
+    if (voice_ != -1) TheSoundManager()->StopSound(voice_);
     voice_ = -1;
-    static_cast<CMusicSystem*>(MusicSystem())->FadeIn();
+    TheMusicSystem()->FadeIn();
     ClearShownItems();
 
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {
@@ -256,7 +256,7 @@ void CBriefingScreen::FinishDialogue() {
         auto* model = reinterpret_cast<CUnitClientSpecific*>(unit->controller);
         model->blinks = 0;
         model->BlinkOpen(true);
-        auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_));
+        auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, unit->id_));
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeight(unit->id_, 0.0f);
@@ -288,7 +288,7 @@ void CBriefingScreen::FinishDialogue() {
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         text::Split(node->value.key, &parts, '.');
         if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
-        WorldCompleteBriefingOriginal(WorldServer(), nullptr, 0, node->value.key);
+        WorldCompleteBriefingOriginal(TheServerWorld(), nullptr, 0, node->value.key);
         break;
     }
 
@@ -298,7 +298,7 @@ void CBriefingScreen::FinishDialogue() {
     Vector3 at = Position(leader_);
     if (briefingStarted_) {
         static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition04(&at, 0, 1);
-        camera::TheCamera()->flags_ &= ~CCamera::kFree;
+        TheCamera()->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {
         static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition0F(&savedCamera_, &lookAt_, 0);

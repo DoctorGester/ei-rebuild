@@ -37,7 +37,7 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 // (007AFE20) Disconnect (0057ECA0) and LeaveGame (00581660), the client's server flag (00578D10),
 // a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
-void SetCursorShape(int shape) { static_cast<CCursor*>(ei::GamePointer<void>(0x007C7BD8))->ChangeShape(shape); }
+void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
 
 // 00458220: dispatches the window messages waiting in the queue.
 

@@ -20,6 +20,7 @@
 #include "originals_ui.h"
 #include "ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -41,8 +42,6 @@ namespace {
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
 
 // The saved / console script (the world's command script).
-CScript* const kScripts = ei::GamePointer<CScript>(0x007C27D4);
-void* const kRenderer = ei::GamePointer<void>(0x007C7BD8);
 int* const kSpectator = ei::GamePointer<int>(0x0079BE6C);
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
@@ -135,16 +134,16 @@ void __fastcall Addon(CStringArray* args) {
 
 // execs file: loads a script file into the script loader and runs it.
 void __fastcall Execs(CStringArray* args) {
-    if (kScripts->LoadFile((*args)[0])) {
-        ScriptTick(kScripts);
+    if (TheMissionScript()->LoadFile((*args)[0])) {
+        ScriptTick(TheMissionScript());
         return;
     }
-    SayFormat("Script error: line %d: %s", kScripts->errorLine_, static_cast<const char*>(kScripts->errorText_));
+    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, static_cast<const char*>(TheMissionScript()->errorText_));
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
 void __fastcall ListGlobals(CStringArray*) {
-    const ScriptVars& globals = kScripts->globals_;
+    const ScriptVars& globals = TheMissionScript()->globals_;
     auto name = [](const mfc::CArray<mfc::CString>& names, int i) { return static_cast<const char*>(names.data[i]); };
     for (int i = 0; i < globals.floats.size; ++i)
         SayFormat("%s : float = %f", name(globals.floatNames, i), static_cast<double>(globals.floats.data[i]));
@@ -178,7 +177,7 @@ void __fastcall NoGui(CStringArray* args) {
     g_guiShown = mode == 0;
     g_applyGui = true;
     SayFormat("GUI: %s, cursor: %s", g_guiShown ? "show" : "hide", g_cursorShown ? "show" : "hide");
-    CursorShowOriginal(kRenderer, nullptr, g_cursorShown ? 1 : 0);
+    CursorShowOriginal(TheCursor(), nullptr, g_cursorShown ? 1 : 0);
 }
 
 void Register(CommandMap* map, const char* name, CommandHandler handler) {

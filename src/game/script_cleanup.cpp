@@ -9,6 +9,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
@@ -100,7 +101,7 @@ void __fastcall ScriptResetZone(CScript* script) {
     mfc::CArray<ScriptPointLight>& lights = script->pointLights_;
     for (int i = 0; i < lights.size; ++i) {
         if (CEngineObject* object = lights.data[i].object) {
-            WorldServer()->RemoveTimedObject(object->id_);
+            TheServerWorld()->RemoveTimedObject(object->id_);
             lights.data[i].object->Release();
         }
     }
@@ -109,7 +110,7 @@ void __fastcall ScriptResetZone(CScript* script) {
     RemoveAll(script->fxSources_, [](ScriptFxSource* source) { source->ScriptFxSourceDestruct(); });
     RemoveAll(script->particles_, [](ScriptParticleSource* source) {
         if (CEngineObject* object = source->object) {
-            WorldServer()->RemoveTimedObject(object->id_);
+            TheServerWorld()->RemoveTimedObject(object->id_);
             source->object->Release();
         }
         source->object = nullptr;

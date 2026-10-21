@@ -28,6 +28,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -60,7 +61,7 @@ float CellScaleB() { return 0.5f /*0073B86C*/; }
 constexpr std::uintptr_t kUnitArrayVtable = std::uintptr_t(0x007402AC);
 using UnitArray = mfc::CArray<CUnit*>;
 
-CUnit* FindUnit(int id) { return static_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, id)); }
+CUnit* FindUnit(int id) { return static_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, id)); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
@@ -98,13 +99,13 @@ void CPlayerServer::OnLeaderDied() {
         if (hero) SendObject0B(hero, kLeaderDiedValue);
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
-        while (WorldServer()->FindObject(static_cast<unsigned>(newId))) ++newId;
-        WorldServer()->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
+        while (TheServerWorld()->FindObject(static_cast<unsigned>(newId))) ++newId;
+        TheServerWorld()->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
         player->TakeAllItems();
     }
     auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     if (flag70_) {
-        WorldServer()->CollectParty(worldPlayer, nullptr);
+        TheServerWorld()->CollectParty(worldPlayer, nullptr);
         flag70_ = 0;
     }
     if (party->members_.size == 1) {
@@ -123,7 +124,7 @@ void CPlayerServer::OnLeaderDied() {
     SendParty();
     lastPosition_.z = kUnknownZ;
     if (!flag70_) {
-        WorldServer()->Redeploy(worldPlayer, nullptr, 1);
+        TheServerWorld()->Redeploy(worldPlayer, nullptr, 1);
         flag70_ = 1;
     }
     CUnit* revived = FindUnit(newId);
@@ -210,7 +211,7 @@ int CPlayerServer::OnUseOrder() {
     in.Read(&kind, 4);
     in.Read(&value, 4);
     in.Read(&objectId, 4);
-    CEngineObject* object = WorldServer()->FindObject(static_cast<unsigned>(objectId));
+    CEngineObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId));
 
     CUnit* chosen = nullptr;
     if (units.size >= 2) {
@@ -246,7 +247,7 @@ int CPlayerServer::OnUseOrder() {
                 break;
             }
             Vector3 from;
-            if (WorldServer()->AIMap()->FindPath(nearest, &aim, &path, kPathRange, 0.0f)) {
+            if (TheServerWorld()->AIMap()->FindPath(nearest, &aim, &path, kPathRange, 0.0f)) {
                 Vector3 end;
                 from = *path.TargetPoint(&end);
             } else {
@@ -408,7 +409,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     }
     auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     if (flag70_) {
-        WorldServer()->CollectParty(worldPlayer, nullptr);
+        TheServerWorld()->CollectParty(worldPlayer, nullptr);
         flag70_ = 0;
     }
     state_ = 3;
@@ -433,7 +434,7 @@ EI_REPLACE_METHOD(0x0066F310, CPlayerServer::LeaveToZone);
 void CPlayerServer::Leave() {
     if (state_ == 1) {
         if (flag70_) {
-            WorldServer()->CollectParty(reinterpret_cast<WorldPlayer*>(Owner()), nullptr);
+            TheServerWorld()->CollectParty(reinterpret_cast<WorldPlayer*>(Owner()), nullptr);
             flag70_ = 0;
         }
         if (GameMode() == 2) SendParty();
@@ -458,7 +459,7 @@ int CPlayerServer::OnTakeExit() {
     int exit = 0;
     int entrance = 0;
     ReceivedMessages().Read(&exit, 4);
-    if (!WorldServer()->GetZoneExit(exit, &zone, &entrance)) return 0;
+    if (!TheServerWorld()->GetZoneExit(exit, &zone, &entrance)) return 0;
     LeaveToZone(zone, entrance);
     return 1;
 }
@@ -468,7 +469,7 @@ int CPlayerServer::OnJoined() {
     state_ = 1;
     CPlayer* player = Owner();
     player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->sessionKind_;
-    WorldServer()->Redeploy(reinterpret_cast<WorldPlayer*>(player), &placements_, 1);
+    TheServerWorld()->Redeploy(reinterpret_cast<WorldPlayer*>(player), &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;
 }
@@ -495,7 +496,7 @@ int CPlayerServer::OnBriefingDone() {
         name = *read;
         read->~CString();
     }
-    WorldServer()->CompleteBriefing(Owner()->playerId_, name);
+    TheServerWorld()->CompleteBriefing(Owner()->playerId_, name);
     return 1;
 }
 
@@ -507,7 +508,7 @@ int CPlayerServer::OnNewParty() {
     int* key = reinterpret_cast<int*>(&Owner()->partyId_);
     PartyNextId(key);
     int& next = NextRecordObjectId();
-    while (WorldServer()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
+    while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_.data[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
     PartyMapStore(PartyManager(), nullptr, key, party);
@@ -518,7 +519,7 @@ int CPlayerServer::OnResume() {
     if (state_ != 4) return 0;
     state_ = 1;
     if (!flag70_) {
-        WorldServer()->Redeploy(reinterpret_cast<WorldPlayer*>(Owner()), nullptr, 1);
+        TheServerWorld()->Redeploy(reinterpret_cast<WorldPlayer*>(Owner()), nullptr, 1);
         flag70_ = 1;
     }
     return 1;
@@ -535,7 +536,7 @@ int CPlayerServer::OnAttack() {
     in.Read(&ctrl, 4);
     in.Read(&how, 4);
     in.Read(&objectId, 4);
-    if (CEngineObject* object = WorldServer()->FindObject(static_cast<unsigned>(objectId))) {
+    if (CEngineObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < units.size; ++i) {
             AIBrain* brain = ControllerOf(units[i])->Brain();
             if (AIMode* mode = brain->FindPlayerMode())
@@ -662,9 +663,9 @@ void CPlayerServer::ResendParty() {
     CPlayer* player = Owner();
     GameCout()->PutText(kResendingParty)->PutInt(player->playerId_)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
-    WorldServer()->SyncPartyRecords(worldPlayer);
+    TheServerWorld()->SyncPartyRecords(worldPlayer);
     SendParty();
-    WorldServer()->ClearPlayerItems(worldPlayer);
+    TheServerWorld()->ClearPlayerItems(worldPlayer);
 }
 EI_REPLACE_METHOD(0x0066F450, CPlayerServer::ResendParty);
 

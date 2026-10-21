@@ -413,18 +413,18 @@ DWORD CreateRenderer() {
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY;
-    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_), &caps, &total, &free);
+    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(TheRenderDevice()->ddraw_), &caps, &total, &free);
     DWORD other = free;
     caps.dwCaps = DDSCAPS_TEXTURE;
-    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_), &caps, &total, &free);
+    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(TheRenderDevice()->ddraw_), &caps, &total, &free);
     LittleTextureMemory() = free <= kLittleMemory;
     if (free < other) other -= free;
     LittleOtherMemory() = other <= kLittleMemory;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM;
-    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_), &caps, &total, &free);
+    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(TheRenderDevice()->ddraw_), &caps, &total, &free);
     LittleNonLocalMemory() = free <= kLittleMemory;
     DeviceNamed() = options->driverIndex_ != 0;
-    static_cast<CSceneRenderer*>(SceneContext())->SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
     return free;
 }
 
@@ -526,8 +526,8 @@ WorldUpdate ClientSegment() {
 void TakeActivationChange() {
     if (!ActivationChanged()) return;
     if (Active()) {
-        if (static_cast<CSceneRenderer*>(SceneContext())->flags_ & 2) {
-            CTextureDevice* device = RenderDeviceObject();
+        if (TheSceneRenderer()->flags_ & 2) {
+            CTextureDevice* device = TheRenderDevice();
             gameapi::EnterCriticalSection(DeviceLock());
             device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
             gameapi::LeaveCriticalSection(DeviceLock());
@@ -697,11 +697,11 @@ int RunMainLoop(bool interfaceInput) {
 void ShutDown(gamecrt::NewHandler previousHandler) {
     DeleteComposedTextures();
     InterfaceShutdownAt(TheInterface());
-    static_cast<CCursor*>(GameCursor())->Shutdown();
+    TheCursor()->Shutdown();
     CDirectInputMouse* mouse = Mouse();
     Mouse() = nullptr;
     if (mouse) ReleaseMouse(mouse);
-    static_cast<CSceneRenderer*>(SceneContext())->SetGamma(0.0f, 0.0f, 0.0f);
+    TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     static_cast<CSceneRenderer*>(SceneRenderer())->DestroyRenderer();
     OptionsSaveAt(options::TheOptions(), nullptr, RegistryRoot());
     Client()->SetCamera(nullptr);
@@ -770,15 +770,15 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     CloseLoadingMovie();
     LoadDatabases();
     Mouse()->Setup(MainWindow(), instance);
-    Client()->SetUpGraphics(RenderDeviceObject());
+    Client()->SetUpGraphics(TheRenderDevice());
     // The last argument's upper three bytes are whatever the call before left in ECX in the
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
                  DeviceNamed() == 0);
-    InterfaceCreateAt(TheInterface(), nullptr, RenderDeviceObject());
+    InterfaceCreateAt(TheInterface(), nullptr, TheRenderDevice());
     static_cast<CMapDatabase*>(MapDatabaseObject())->LoadAll();
     StartFirstMap();
-    static_cast<CSceneRenderer*>(SceneContext())->SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 
     const int result = RunMainLoop((reusedSlot >> 24) != 0);
     ShutDown(previousHandler);

@@ -11,6 +11,7 @@
 #include "sector_map.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -95,11 +96,11 @@ void CUnitServer::Resettle() {
             DamageInfo hit;
             ResetDamageInfo(&hit);
             ServerSlots(this)->TakeHitSlot(&hit, nullptr, nullptr);
-            WorldServer()->AIMap()->SectorMap()->Add(unit);
+            TheServerWorld()->AIMap()->SectorMap()->Add(unit);
             return;
         }
     }
-    WorldServer()->AIMap()->SectorMap()->Add(unit);
+    TheServerWorld()->AIMap()->SectorMap()->Add(unit);
 }
 EI_REPLACE_METHOD(0x00553260, CUnitServer::Resettle);
 

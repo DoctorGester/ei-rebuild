@@ -17,6 +17,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -75,7 +76,7 @@ void CViewScreen::Build() {
     memory = gamecrt::operator_new(0x2C);
     AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
 
-    CCamera* camera = camera::TheCamera();
+    CCamera* camera = TheCamera();
     camera->flags_ &= ~CCamera::kFree;
     Vector3 focus{30.0f, 30.0f, 0.0f};
     camera->SetFocus(&focus);
@@ -92,7 +93,7 @@ BOOL CViewScreen::DrawView(int) {
 }
 EI_REPLACE_METHOD(0x0062AA50, CViewScreen::DrawView);
 
-void CViewScreen::OnClose() { camera::TheCamera()->flags_ |= CCamera::kFree; }
+void CViewScreen::OnClose() { TheCamera()->flags_ |= CCamera::kFree; }
 EI_REPLACE_METHOD(0x0062AA40, CViewScreen::OnClose);
 
 // --- UnitPickInput ------------------------------------------------------------------------------
@@ -120,7 +121,7 @@ UnitPickInput* UnitPickInput::DeleteThis(int flags) {
 EI_REPLACE_METHOD(0x005EB8F0, UnitPickInput::DeleteThis);
 
 void UnitPickInput::OnLeftDown(int, int x, int y) {
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     const int point[2] = {x, y};
     CEngineObject* unit = world->UnitAt2(reinterpret_cast<const long*>(point));
     if (!static_cast<CInterface3D*>(owner_)->ctrlDown_) {
@@ -157,13 +158,13 @@ void UnitPickInput::OnRightDown(int, int, int) {
     }
     picked_.maxSize = 0;
     picked_.size = 0;
-    static_cast<CWorldClient*>(WorldClient())->Deselect(nullptr);
+    static_cast<CWorldClient*>(TheClientWorld())->Deselect(nullptr);
 }
 EI_REPLACE_METHOD(0x005EBB40, UnitPickInput::OnRightDown);
 
 void UnitPickInput::OnKeyDown(int key, int, int) {
     if (key == kVkControl) {
-        GameCursor()->SetShape(kCursorCtrl);
+        TheCursor()->SetShape(kCursorCtrl);
     } else if (key == kVkSpace) {
         GameSetServerPaused(GameServerPaused() == 0);
     }
@@ -171,6 +172,6 @@ void UnitPickInput::OnKeyDown(int key, int, int) {
 EI_REPLACE_METHOD(0x005EBB80, UnitPickInput::OnKeyDown);
 
 void UnitPickInput::OnKeyUp(int key, int, int) {
-    if (key == kVkControl) GameCursor()->SetShape(kCursorNormal);
+    if (key == kVkControl) TheCursor()->SetShape(kCursorNormal);
 }
 EI_REPLACE_METHOD(0x005EBBC0, UnitPickInput::OnKeyUp);

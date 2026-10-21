@@ -41,7 +41,6 @@ double Zero() { return 0.0 /*0073B858 f*/; }         // 0
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
 
-IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Element helpers of the original (DestroyRecords is in terrain_lights.cpp): the flag arrays'
 // (006C4F90 / 006C4F60) and the tile lists' (006C5050 / 006C5010) instantiations.
@@ -341,7 +340,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         a.frameBase = index;
                         a.vertices = entry;
                         a.rotation = rotation;
-                        std::uint32_t r = GlobalRandom().Next();
+                        std::uint32_t r = IsaacRandom::Global().Next();
                         a.frames = frames;
                         a.frame = static_cast<int>(r % static_cast<std::uint32_t>(frames));
                         a.speed = ei::GamePointer<const int>(0x00796960)[ClassOf(owner, texture)];

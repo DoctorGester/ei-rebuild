@@ -12,6 +12,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "game_singletons.h"
 
 #include <cstring>
 #include <new>
@@ -101,7 +102,7 @@ mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) 
         isConstructor = GameMbscmp(start, ConstructorTopic()) == 0;
     }
     if (isConstructor) key = ConstructorTopic();
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString section(BriefingSection());
     section += key;
     if (TextsOpenSection(texts, nullptr, section)) texts->ReadLine(&title, 1);

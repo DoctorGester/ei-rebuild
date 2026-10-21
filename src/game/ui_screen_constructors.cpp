@@ -11,6 +11,7 @@
 #include "lib/stlp.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <new>
 
@@ -51,7 +52,7 @@ CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, cons
     vtable_ = MessageBoxVtable();
     inputVtable_ = MessageBoxInputVtable();
     mfc::CString text;
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     texts->GetString(titleKey, &text);
     AsString(&title_) = text;
     if (flags_ & kEditField) {

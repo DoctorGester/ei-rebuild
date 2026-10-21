@@ -41,13 +41,14 @@
 #include "originals_ui.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 00794460
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";     // 00794428
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";   // 00794444
 
-CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
+CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
 
 // The multiplayer session's player records (STLport list of PlayerMessage pointers).
 
@@ -338,7 +339,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
         if (region < owner->party_.size) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
     }
-    if (region >= 0 && region < count_) GameCursor()->SetShape(0);
+    if (region >= 0 && region < count_) TheCursor()->SetShape(0);
 }
 UI_INPUT_HANDLER(0x00641EA0, CHudPortraits, OnMouseMove);
 
@@ -392,7 +393,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         const float worldY = static_cast<float>(centreY_ - down / scale_);
         if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
             // The camera stops following its unit and looks there.
-            CCamera* view = camera::TheCamera();
+            CCamera* view = TheCamera();
             view->flags_ &= ~kCameraFollows;
             view->SetTargetId(-1);
             Vector3 focus = view->focus_;
@@ -405,7 +406,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     }
     case 5:     // "camera north"
         interface_->PlaySound(kSoundClick, 0);
-        camera::TheCamera()->SetHeading(0.0f);
+        TheCamera()->SetHeading(0.0f);
         northTime_ = 0.5f;
         inputHandled_ = true;
         return;
@@ -539,7 +540,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
         return;
     }
     int mode = region - 1;
-    if (!WorldClient()->LocalView()) return;
+    if (!TheClientWorld()->LocalView()) return;
     if (mode >= 0 && mode < 4) {
         interface_->PlaySound(kSoundClick, 0);
         for (int i = 0; i < owner_->party_.size; ++i) {
@@ -583,7 +584,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
 EI_REPLACE_METHOD(0x00649910, CHudMovePanel::ShowModeVanilla);
 
 void CHudMovePanel::Update() {
-    if (!WorldClient()->LocalView()) return;
+    if (!TheClientWorld()->LocalView()) return;
     // The common value over the selected units: -1 none selected, -2 mixed.
     int mode = -1;
     int flag = -1;
@@ -686,7 +687,7 @@ void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHu
 void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>(a0)->Highlight(a2, a3); }
 void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>(a0)->Highlight(a2, a3); }
 void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)->ClearHighlights(); }
-// The client world (WorldClient(), 007AF5B8): the object under a screen point (x, y pair), the
+// The client world (TheClientWorld(), 007AF5B8): the object under a screen point (x, y pair), the
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
 // CPlayerClient::SendFollow, through its address).
@@ -725,13 +726,13 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = static_cast<CWorldClient*>(WorldClient())->PickSurface(&out, x, y);
+        Vector3* p = static_cast<CWorldClient*>(TheClientWorld())->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return static_cast<CUnit*>(WorldClient()->PickAt2(reinterpret_cast<const long*>(point)));
+        return static_cast<CUnit*>(TheClientWorld()->PickAt2(reinterpret_cast<const long*>(point)));
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) { NodPortrait(this, index); };
@@ -782,7 +783,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             if (unit != party_[i]) continue;
             interface_->PlaySound(game::SoundOnOffText(), 0);
             if (interface_->doubleClick_) {
-                if (i < party_.size) static_cast<CCamera*>(camera::TheCamera())->SetTarget(party_[i]);
+                if (i < party_.size) TheCamera()->SetTarget(party_[i]);
             } else {
                 ToggleMember(i);
             }
@@ -825,7 +826,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (unit != party_[i]) continue;
                 interface_->PlaySound(game::SoundOnOffText(), 0);
                 if (interface_->doubleClick_) {
-                    if (i < party_.size) static_cast<CCamera*>(camera::TheCamera())->SetTarget(party_[i]);
+                    if (i < party_.size) TheCamera()->SetTarget(party_[i]);
                 } else {
                     ToggleMember(i);
                 }

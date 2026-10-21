@@ -2,7 +2,7 @@
 // LandscapeDrawRadius and ObjectsDrawRadius behind their flags. See world.h and
 // docs/notes/world.md.
 //
-// Both talk to Direct3D 7 through the renderer (RenderDeviceObject(), 007AF080: d3dDevice_ the
+// Both talk to Direct3D 7 through the renderer (TheRenderDevice(), 007AF080: d3dDevice_ the
 // IDirect3DDevice7, lastLoadResult_ the last state block result) and to the scene pipeline's matrix
 // stacks (ScenePipeline(), 007AF068), exactly as the original: the same calls in the same order.
 // Callees are reached through their original addresses (rewritten ones included, so the verify
@@ -50,6 +50,7 @@
 #include "world_effect.h"
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
 
@@ -175,7 +176,7 @@ float Reload(float v) { return v; }
 int Ftol(float v) { return static_cast<int>(gamecrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).
 float AnimationTime() {
-    const CWorldClient* world = UiClientWorld();
+    const CWorldClient* world = TheClientWorld();
     return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
@@ -211,15 +212,15 @@ void DrawEach(FrameList list, Draw draw) {
 // object the meshes of a figure draw belong to (its shadow map's casters, R16j).
 constexpr auto kDraw = [](CMapObjectVirtuals* object) {
     render::BeginCaster(static_cast<const CEngineObject*>(object));
-    object->DrawFigure(SceneContext());
+    object->DrawFigure(TheSceneRenderer());
     render::EndCaster();
 };
 constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) {
     render::BeginCaster(static_cast<const CEngineObject*>(object));
-    object->DrawCollectDirty(SceneContext());
+    object->DrawCollectDirty(TheSceneRenderer());
     render::EndCaster();
 };
-constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(SceneContext()); };
+constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(TheSceneRenderer()); };
 
 // Empties the deferred unit list: each node's counted pointer released, the node freed (0056FB40
 // or 0056F700).
@@ -274,12 +275,12 @@ int CWorldClient::Render() {
         const float direction[3] = {d.x, d.y, d.z};
         render::ShadowSun(direction);
     }
-    CTextureDevice* renderer = RenderDeviceObject();
+    CTextureDevice* renderer = TheRenderDevice();
     CTransformPipeline* device = ScenePipeline();
     UpdateLighting();
     Flush(renderer);
     Matrix4 view;
-    view::CameraViewMatrix(view.m, camera::TheCamera());   // 004F0EF0 (thiscall on the pipeline, not read)
+    view::CameraViewMatrix(view.m, TheCamera());   // 004F0EF0 (thiscall on the pipeline, not read)
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
@@ -296,7 +297,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
         renderer->distanceFog_ = 0;
-        static_cast<CSky*>(skyDome_)->Draw(static_cast<CSceneRenderer*>(SceneContext()), static_cast<const Vector3*>(&camera_->localPosition_));
+        static_cast<CSky*>(skyDome_)->Draw(TheSceneRenderer(), static_cast<const Vector3*>(&camera_->localPosition_));
         Flush(renderer);
         renderer->distanceFog_ = 1;
         SetRenderState(renderer, 22, 2);
@@ -310,7 +311,7 @@ int CWorldClient::Render() {
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         ApplyStateBlock(renderer, StateBlockTerrain());
-        terrain_->DrawGround(static_cast<CSceneRenderer*>(SceneContext()));
+        terrain_->DrawGround(TheSceneRenderer());
         Flush(renderer);
     }
     DrawPassAt(this);
@@ -323,33 +324,33 @@ int CWorldClient::Render() {
         Flush(renderer);
         SetRenderState(renderer, 15, 0);
         ApplyStateBlock(renderer, StateBlockScene());
-        terrain_->DrawWater(static_cast<CSceneRenderer*>(SceneContext()));
+        terrain_->DrawWater(TheSceneRenderer());
         Flush(renderer);
     }
     net::Pump();
     if (flags_ & 0x400) {
         Flush(renderer);
         ApplyStateBlock(renderer, StateBlockAlpha());
-        SetRenderState(RenderDeviceObject(), 27, 1);
-        SetRenderState(RenderDeviceObject(), 15, 0);
-        SetRenderState(RenderDeviceObject(), 19, 5);
-        SetRenderState(RenderDeviceObject(), 20, 6);
+        SetRenderState(TheRenderDevice(), 27, 1);
+        SetRenderState(TheRenderDevice(), 15, 0);
+        SetRenderState(TheRenderDevice(), 19, 5);
+        SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        static_cast<ClientArrayManager*>(arrayManager_)->DrawImpl(static_cast<CSceneRenderer*>(SceneContext()));
+        static_cast<ClientArrayManager*>(arrayManager_)->DrawImpl(TheSceneRenderer());
         Flush(renderer);
-        SetRenderState(RenderDeviceObject(), 19, 5);
-        SetRenderState(RenderDeviceObject(), 20, 6);
+        SetRenderState(TheRenderDevice(), 19, 5);
+        SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
         CParticleManager* particles = ClientParticleManager();
-        static_cast<CParticleManager*>(particles)->DrawAll(SceneContext());
+        static_cast<CParticleManager*>(particles)->DrawAll(TheSceneRenderer());
         Flush(renderer);
-        SetRenderState(RenderDeviceObject(), 19, 5);
-        SetRenderState(RenderDeviceObject(), 20, 6);
-        LightningDraw(listManager_, nullptr, SceneContext());
+        SetRenderState(TheRenderDevice(), 19, 5);
+        SetRenderState(TheRenderDevice(), 20, 6);
+        LightningDraw(listManager_, nullptr, TheSceneRenderer());
         Flush(renderer);
-        SetRenderState(RenderDeviceObject(), 19, 5);
-        SetRenderState(RenderDeviceObject(), 20, 6);
-        static_cast<CRainSnow*>(RainSnow())->DrawImpl(static_cast<CSceneRenderer*>(SceneContext()));
+        SetRenderState(TheRenderDevice(), 19, 5);
+        SetRenderState(TheRenderDevice(), 20, 6);
+        static_cast<CRainSnow*>(RainSnow())->DrawImpl(TheSceneRenderer());
         Flush(renderer);
         SetRenderState(renderer, 14, 1);
     }
@@ -363,7 +364,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 7, 0);
         ApplyStateBlock(renderer, StateBlockAlpha());
         renderer->distanceFog_ = 0;
-        static_cast<CFlyingHitPoints*>(numbers_)->Draw(static_cast<CSceneRenderer*>(SceneContext()));
+        static_cast<CFlyingHitPoints*>(numbers_)->Draw(TheSceneRenderer());
         renderer->distanceFog_ = 1;
         Flush(renderer);
         SetRenderState(renderer, 7, renderer->zEnable_);
@@ -376,7 +377,7 @@ EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
 // 00569D60 (A-W13).
 int CWorldClient::DrawLineLists() {
     for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
-        static_cast<LineBatch*>(node->value)->Draw(ScenePipeline(), RenderDeviceObject());
+        static_cast<LineBatch*>(node->value)->Draw(ScenePipeline(), TheRenderDevice());
     return 1;
 }
 EI_REPLACE_METHOD(0x00569D60, CWorldClient::DrawLineLists);
@@ -441,7 +442,7 @@ EI_REPLACE_METHOD(0x00569B20, CWorldClient::HideWorldData);
 int CWorldClient::DrawPass() {
     Terrain* terrain = terrain_;
     if (!terrain || !terrain->mapLoaded) return 0;
-    CTextureDevice* renderer = RenderDeviceObject();
+    CTextureDevice* renderer = TheRenderDevice();
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
@@ -575,7 +576,7 @@ int CWorldClient::DrawPass() {
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
         Vector3 sun;
-        QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, &sun);
+        QuaternionAxisZ(&TheCamera()->localRotation_, nullptr, &sun);
         const float scale = ShadowLength();
         float product = sun.x * scale;
         matrix.m[3] = product;
@@ -604,7 +605,7 @@ int CWorldClient::DrawPass() {
     stlp::list<void*>& selected = list7BC_;
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
-        static_cast<CSceneRenderer*>(SceneContext())->SetTextureImpl(0, nullptr);
+        TheSceneRenderer()->SetTextureImpl(0, nullptr);
         CEngineObject* manager = manager40_;
         using Node = stlp::list<void*>::Node;
         Node* head = selected.head;
@@ -626,7 +627,7 @@ int CWorldClient::DrawPass() {
                     Vector3 axisY, axisX;
                     QuaternionAxisY(orientation, nullptr, &axisY);
                     QuaternionAxisX(orientation, nullptr, &axisX);
-                    static_cast<CSceneRenderer*>(SceneContext())->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
+                    TheSceneRenderer()->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;

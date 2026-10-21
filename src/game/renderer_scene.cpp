@@ -12,6 +12,7 @@
 #include "ui.h"        // GameDeviceLock, DebugInfoPanel
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -36,9 +37,9 @@ IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return static_cast<IDirect
 // The device calls run under the game's device lock; the result goes to the device's +8.
 template <typename Call>
 long Locked(CTextureDevice* device, Call call) {
-    gameapi::EnterCriticalSection(GameDeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     device->lastLoadResult_ = call(D3DDevice(device));
-    gameapi::LeaveCriticalSection(GameDeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     return device->lastLoadResult_;
 }
 

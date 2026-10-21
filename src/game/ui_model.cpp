@@ -16,6 +16,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -27,7 +28,6 @@ void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int res
 FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
     return static_cast<FigureAnimation*>(static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind));
 }
-void* ObjectManager() { return ei::GameData<void* const>(0x007AF5F8); }
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
 // A part is hidden while bit 0x80 of its flags is set.
@@ -84,7 +84,7 @@ EI_REPLACE_METHOD(0x005FC3B0, CUiModel::Play);
 void CUiModel::Stop() {
     CObject3D* object = Figure();
     mfc::CString name(object->name);
-    PlayAnimation(object, nullptr, FindNamed(ObjectManager(), nullptr, &name, kRestPoseKind), 1);
+    PlayAnimation(object, nullptr, FindNamed(TheObjectManager(), nullptr, &name, kRestPoseKind), 1);
 }
 EI_REPLACE_METHOD(0x005FC3D0, CUiModel::Stop);
 
@@ -118,7 +118,7 @@ EI_REPLACE_METHOD(0x005FC2F0, CUiModel::Draw);
 
 // 005FC1F0 (RET 0xC). The figure's steps go through their addresses (rewritten, with wrappers).
 void CUiModel::Load(const char* name, const char* from, const char* to) {
-    auto* manager = static_cast<CBaseManager*>(UiClientWorld()->MapObjectManager());
+    auto* manager = static_cast<CBaseManager*>(TheClientWorld()->MapObjectManager());
     auto* object = static_cast<CObject3D*>(manager->CreateObject(kPreviewClass, kPreviewId));
     object_ = reinterpret_cast<CTransformObject*>(object);
     ++object->refCount_;

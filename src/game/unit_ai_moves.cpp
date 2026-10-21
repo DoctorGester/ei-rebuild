@@ -68,8 +68,7 @@ constexpr float kSamePointSq = 0.01f;               // 0073C548
 float FollowNear() { return ei::GameData<const float>(0x007C5404); }
 float FollowFar() { return ei::GameData<const float>(0x007C5408); }
 
-IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
-CAIMap* AIMap() { return WorldServer()->AIMap(); }
+CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
@@ -91,7 +90,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     planned.maxSize = 0;
     planned.size = 0;
 
-    IsaacRandom* random = GameRandom();
+    IsaacRandom* random = (&IsaacRandom::Global());
     int count = static_cast<int>(random->Next() & 3) + 1;
     Vector3 eye = order->point;
     eye.z = static_cast<float>(AIMap()->TopHeightAt(&eye) + kEyeHeight);
@@ -140,7 +139,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         --standCooldown;
         return false;
     }
-    IsaacRandom* random = GameRandom();
+    IsaacRandom* random = (&IsaacRandom::Global());
     float low = -radius;
     float dx = static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low);
     double dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
@@ -162,7 +161,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     mfc::CTypedPtrList<CEngineObject> units;
     InitUnitList(units);
     CUnit* self = owner->unit;
-    WorldServer()->Sectors()->FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
+    TheServerWorld()->Sectors()->FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
     for (auto* node = units.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (GameDiplomacy()->allied_[other->side] & (1u << (self->side & 31))) {
@@ -324,9 +323,9 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     CUnit* unit = brain->owner->unit;
     Vector3 saved = *PositionOf(unit);
     float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
-    SectorMapMove(WorldServer()->Sectors(), nullptr, unit, from);
+    SectorMapMove(TheServerWorld()->Sectors(), nullptr, unit, from);
     bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
-    SectorMapMove(WorldServer()->Sectors(), nullptr, unit, &saved);
+    SectorMapMove(TheServerWorld()->Sectors(), nullptr, unit, &saved);
     return found;
 }
 EI_REPLACE_METHOD(0x005D37E0, PlayerMode::PathClear);

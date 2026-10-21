@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 UiInputSide* CInterface3D::MouseTarget() const {
     if (mouseCapture_) return static_cast<UiInputSide*>(mouseCapture_);
@@ -119,7 +120,7 @@ EI_REPLACE_METHOD(0x005E47E0, console::ConsoleWindow::OnKeyUp);
 // --- 005F74F0 / 005F5AB0: every window closed --------------------------------------------------
 
 void CInterface3D::CloseAll() {
-    GameCursor()->SetShape(kCursorWait);
+    TheCursor()->SetShape(kCursorWait);
     while (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Input()->Deactivate();
         stackEnd_[-1]->CloseWindow();

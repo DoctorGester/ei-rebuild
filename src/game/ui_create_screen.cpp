@@ -24,6 +24,7 @@
 #include "game_data.h"
 #include "world_glue.h"
 #include "library_trees.h"
+#include "game_singletons.h"
 #include "ei/vcall.h"
 
 #include <cstdint>
@@ -130,7 +131,7 @@ void CInterface3D::CreateScreen(int id) {
 
 namespace {
 
-CCursor* Cursor() { return GameCursor(); }   // 005E5200 SetShape (RET 4)
+CCursor* Cursor() { return TheCursor(); }   // 005E5200 SetShape (RET 4)
 
 // 00458220: the message pump.
 // 0057F440 (on 007AFE20): a multiplayer client session; returns AL.

@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "originals_engine.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -24,7 +25,7 @@
 namespace {
 
 // The local player record through the client's local view (no null checks, as the original).
-WorldPlayer* LocalPlayer() { return reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player; }
+WorldPlayer* LocalPlayer() { return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player; }
 
 // 00460AF0: a player's named float variable (WorldPlayer::variables).
 float Variable(WorldPlayer* player, const char* name) { return player->variables.Get(name); }
@@ -139,7 +140,7 @@ BOOL IsMultiplayerClient() {
 }
 
 float GameTime() {
-    CWorldClient* client = WorldClient();
+    CWorldClient* client = TheClientWorld();
     return static_cast<float>(client->tick_) + client->tickFraction_;
 }
 
@@ -153,7 +154,7 @@ float __stdcall LocalPlayerVariable(const char* name) { return Variable(LocalPla
 
 float __stdcall PlayerZeroVariable(const char* name) {
     if (IsMultiplayerClient()) return Variable(LocalPlayer(), name);
-    WorldPlayer* player = WorldServer()->GetPlayer(0);
+    WorldPlayer* player = TheServerWorld()->GetPlayer(0);
     if (!player) return 0.0f;
     return Variable(player, name);
 }

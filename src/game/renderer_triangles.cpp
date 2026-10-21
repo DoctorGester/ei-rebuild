@@ -7,6 +7,7 @@
 #include "clip.h"     // TLVertex
 #include "device.h"
 #include "model.h"    // CSceneRenderer, ITransformPipeline
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -24,11 +25,11 @@ int CSceneRenderer::DrawTrianglesImpl(void* vertices, int vertexCount, const std
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(static_cast<TLVertex*>(vertices), vertexCount);
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), vertexCount, indices, static_cast<int>(indexCount),
                        static_cast<int>(D3DPT_TRIANGLELIST))) {
-        gameapi::EnterCriticalSection(device::Lock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             D3DPT_TRIANGLELIST, kFvf, vertices, static_cast<DWORD>(vertexCount), const_cast<WORD*>(indices),
             static_cast<DWORD>(indexCount), 0);
-        gameapi::LeaveCriticalSection(device::Lock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
     device->vertexCount_ += vertexCount;
     device->primitiveCount_ += static_cast<int>(indexCount / 3);

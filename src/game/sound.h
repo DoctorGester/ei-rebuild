@@ -518,5 +518,4 @@ int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
 int __fastcall MusicSystemClassId(CMusicSystem* self);
 
 namespace sound {
-inline CSoundManager* Manager() { return ei::GameData<CSoundManager* const>(0x007AF784); }
 }

@@ -27,6 +27,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 const mfc::CString* GameDataPathString() {
@@ -69,9 +70,9 @@ EI_REPLACE(0x005785D0, RunScriptText);
 void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     WorldPlayer* player;
     if (IsMultiplayerClient()) {
-        player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+        player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     } else {
-        player = WorldServer()->GetPlayer(0);
+        player = TheServerWorld()->GetPlayer(0);
         if (!player) {
             out->Clear();
             return;
@@ -106,38 +107,38 @@ float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 const char* DefaultMusic() { return ei::GameData<const char*>(0x0079BECC); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
-CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
+CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
 } // namespace
 
 void __stdcall GameSetConstructionVariable(std::uint32_t value) {
-    WorldPlayer* player = WorldServer()->GetPlayer(0);
+    WorldPlayer* player = TheServerWorld()->GetPlayer(0);
     if (player) player->server->SetVariable(kConstructionVariable, value);
 }
 EI_REPLACE(0x00578560, GameSetConstructionVariable);
 
-void __stdcall GameSetWeather(int weather, float strength) { WorldServer()->SetWeather(weather, strength); }
+void __stdcall GameSetWeather(int weather, float strength) { TheServerWorld()->SetWeather(weather, strength); }
 EI_REPLACE(0x005786A0, GameSetWeather);
 
 double GameServerTimeOfDay() {
-    CWorldServer* world = WorldServer();
+    CWorldServer* world = TheServerWorld();
     return std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, kHoursPerDay);
 }
 EI_REPLACE(0x005786E0, GameServerTimeOfDay);
 
 void __stdcall GamePassTime(float offset) {
     // FCOMP 0 with TEST AH,1: nothing for a negative offset or a NaN.
-    if (offset >= 0.0f) WorldServer()->UpdatePlayerTimes(offset);
+    if (offset >= 0.0f) TheServerWorld()->UpdatePlayerTimes(offset);
 }
 EI_REPLACE(0x00578700, GamePassTime);
 
-void __stdcall GameEnsureZone(const char* map, const char* mob) { WorldServer()->EnsureZone(map, mob); }
+void __stdcall GameEnsureZone(const char* map, const char* mob) { TheServerWorld()->EnsureZone(map, mob); }
 EI_REPLACE(0x00578730, GameEnsureZone);
 
 void* GameObject7C2D60() { return ei::GamePointer<void>(0x007C2D60); }
 EI_REPLACE(0x00578750, GameObject7C2D60);
 
 void __stdcall GameSetUnitHeight(int id, float z) {
-    CWorldServer* world = WorldServer();
+    CWorldServer* world = TheServerWorld();
     auto* unit = static_cast<CUnit*>(world->FindUnit(id));
     if (!unit) return;
     // Nothing when the heights are equal.
@@ -149,31 +150,31 @@ void __stdcall GameSetUnitHeight(int id, float z) {
 }
 EI_REPLACE(0x00578760, GameSetUnitHeight);
 
-std::uint8_t GameServerPaused() { return WorldServer()->paused_; }
+std::uint8_t GameServerPaused() { return TheServerWorld()->paused_; }
 EI_REPLACE(0x00578D00, GameServerPaused);
 
-void __stdcall GameSetServerPaused(int paused) { WorldServer()->SetServerPaused(static_cast<std::uint8_t>(paused)); }
+void __stdcall GameSetServerPaused(int paused) { TheServerWorld()->SetServerPaused(static_cast<std::uint8_t>(paused)); }
 EI_REPLACE(0x00578D10, GameSetServerPaused);
 
-void GameStopCameraPath() { WorldClient()->camera_->flags_ &= ~CCamera::kPlaying; }
+void GameStopCameraPath() { TheClientWorld()->camera_->flags_ &= ~CCamera::kPlaying; }
 EI_REPLACE(0x005787C0, GameStopCameraPath);
 
 void GameStopCameraRecording() {
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     CameraCloseFile(world->camera_);
     world->flags_ &= ~kClientRecordingCamera;
 }
 EI_REPLACE(0x005787D0, GameStopCameraRecording);
 
 int __stdcall GameStartCameraRecording(const char* name) {
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     world->flags_ |= kClientRecordingCamera;
     return world->camera_->OpenFile(name);
 }
 EI_REPLACE(0x005787F0, GameStartCameraRecording);
 
 int __stdcall GamePlayCameraPath(const char* name, int flag) {
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     if (!CameraLoadPathOriginal(world->camera_, nullptr, name, flag)) return 0;
     CCamera* camera = world->camera_;
     camera->flags_ |= CCamera::kPlaying;
@@ -184,54 +185,54 @@ int __stdcall GamePlayCameraPath(const char* name, int flag) {
 EI_REPLACE(0x00578820, GamePlayCameraPath);
 
 int __stdcall GameShowCameraPath(const char* name) {
-    CWorldClient* world = WorldClient();
+    CWorldClient* world = TheClientWorld();
     int loaded = CameraLoadPathOriginal(world->camera_, nullptr, name, 0);
     if (!loaded) return loaded;
     return world->camera_->PlaybackStart();
 }
 EI_REPLACE(0x00578880, GameShowCameraPath);
 
-std::uint32_t GameCameraPathPlaying() { return WorldClient()->camera_->flags_ & CCamera::kPlaying; }
+std::uint32_t GameCameraPathPlaying() { return TheClientWorld()->camera_->flags_ & CCamera::kPlaying; }
 EI_REPLACE(0x005788B0, GameCameraPathPlaying);
 
 // 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
-int GameRender() { return ClientRenderOriginal(WorldClient()); }
+int GameRender() { return ClientRenderOriginal(TheClientWorld()); }
 EI_REPLACE(0x00578910, GameRender);
 
-void __stdcall GameStopSounds(int stopStream) { WorldClient()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
+void __stdcall GameStopSounds(int stopStream) { TheClientWorld()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
 EI_REPLACE(0x00578920, GameStopSounds);
 
-void GameStopAmbience() { WorldClient()->terrain_->StopAmbience(); }
+void GameStopAmbience() { TheClientWorld()->terrain_->StopAmbience(); }
 EI_REPLACE(0x00578940, GameStopAmbience);
 
-void GameStartAmbience() { WorldClient()->terrain_->landscapeFlags |= kTerrainAmbience; }
+void GameStartAmbience() { TheClientWorld()->terrain_->landscapeFlags |= kTerrainAmbience; }
 EI_REPLACE(0x00578950, GameStartAmbience);
 
 int __stdcall GamePlayMusic(const char* name) {
-    return WorldClient()->sounds_->RequestStream(name ? name : DefaultMusic(), 4);
+    return TheClientWorld()->sounds_->RequestStream(name ? name : DefaultMusic(), 4);
 }
 EI_REPLACE(0x00578960, GamePlayMusic);
 
-CEngineObject* __stdcall GameFindClientUnit(int id) { return WorldClient()->FindUnit(id); }
+CEngineObject* __stdcall GameFindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
 EI_REPLACE(0x00578980, GameFindClientUnit);
 
 void __stdcall GameCreatePartyUnits(const mfc::CArray<std::uint8_t*>* party, int allArmour) {
-    WorldClient()->CreatePartyUnits(party, static_cast<char>(allArmour));
+    TheClientWorld()->CreatePartyUnits(party, static_cast<char>(allArmour));
 }
 EI_REPLACE(0x005789C0, GameCreatePartyUnits);
 
-void __stdcall GameRemoveUnitsOf(const mfc::CArray<std::uint8_t*>* records) { WorldClient()->RemoveUnitsOf(records); }
+void __stdcall GameRemoveUnitsOf(const mfc::CArray<std::uint8_t*>* records) { TheClientWorld()->RemoveUnitsOf(records); }
 EI_REPLACE(0x005789E0, GameRemoveUnitsOf);
 
-int __stdcall GameFindExitAt(const float* point, int* index) { return WorldClient()->FindExitAt(point, index); }
+int __stdcall GameFindExitAt(const float* point, int* index) { return TheClientWorld()->FindExitAt(point, index); }
 EI_REPLACE(0x00578A00, GameFindExitAt);
 
 int __stdcall GamePartyInExit(const mfc::CArray<std::uint8_t*>* records, int exit, mfc::CArray<std::uint8_t*>* inExit) {
-    return WorldClient()->PartyInExit(records, exit, inExit);
+    return TheClientWorld()->PartyInExit(records, exit, inExit);
 }
 EI_REPLACE(0x00578A20, GamePartyInExit);
 
-const char* __stdcall GameExitTarget(int index) { return WorldClient()->ExitTarget(index); }
+const char* __stdcall GameExitTarget(int index) { return TheClientWorld()->ExitTarget(index); }
 EI_REPLACE(0x00578A40, GameExitTarget);
 
 void __stdcall GameLeaveThroughExit(int exit) {
@@ -255,18 +256,18 @@ void GameRejoin() {
 EI_REPLACE(0x00578B20, GameRejoin);
 
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out) {
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     player->variables.CopyPrefixed(prefix, out);
 }
 EI_REPLACE(0x00578B70, GameLocalPlayerVariables);
 
-std::uint8_t* GameLocalView() { return WorldClient()->LocalView(); }
+std::uint8_t* GameLocalView() { return TheClientWorld()->LocalView(); }
 EI_REPLACE(0x00578BC0, GameLocalView);
 
-int __stdcall GameSendFlag10(int value) { return WorldClient()->SendFlag10(value); }
+int __stdcall GameSendFlag10(int value) { return TheClientWorld()->SendFlag10(value); }
 EI_REPLACE(0x00578D30, GameSendFlag10);
 
-std::uint8_t GameClientPaused() { return WorldClient()->paused_; }
+std::uint8_t GameClientPaused() { return TheClientWorld()->paused_; }
 EI_REPLACE(0x00578D50, GameClientPaused);
 
 double GameMapEdgeFade() { return MapEdgeFade(); }
@@ -275,12 +276,12 @@ EI_REPLACE(0x00578D60, GameMapEdgeFade);
 void __stdcall GameSetMapEdgeFade(float value) { MapEdgeFade() = value; }
 EI_REPLACE(0x00578D70, GameSetMapEdgeFade);
 
-ClientTexts* GameClientTexts() { return WorldClient()->texts_; }
+ClientTexts* GameClientTexts() { return TheClientWorld()->texts_; }
 EI_REPLACE(0x00578E20, GameClientTexts);
 
 void __stdcall GameStartLocalSession(std::uint8_t* player) {
-    WorldServer()->TeardownZone();
-    CWorldClient* world = WorldClient();
+    TheServerWorld()->TeardownZone();
+    CWorldClient* world = TheClientWorld();
     world->SetPlayer(player);
     reinterpret_cast<LocalViewData*>(world->LocalView())->localSession = 1;
     reinterpret_cast<LocalViewData*>(world->LocalView())->sendParty = 0;

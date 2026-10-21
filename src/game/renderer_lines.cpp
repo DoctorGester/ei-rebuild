@@ -15,6 +15,7 @@
 #include "device.h"
 #include "model.h"
 #include "texture.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -47,10 +48,10 @@ void DeleteVertices(LineVertex* data) { gamecrt::operator_delete(reinterpret_cas
 // The draw itself, under the device lock, after the new renderer has taken it.
 void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), count, nullptr, 0, D3DPT_LINESTRIP)) {
-        gameapi::EnterCriticalSection(device::Lock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         device->lastLoadResult_ =
             device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, vertices, static_cast<DWORD>(count), 0);
-        gameapi::LeaveCriticalSection(device::Lock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
     device->vertexCount_ += count;
     device->primitiveCount_ += static_cast<unsigned>(count) / 3;

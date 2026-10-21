@@ -19,6 +19,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "game_singletons.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -90,7 +91,7 @@ void ResetMotion(CCamera* c) {
 
 void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
-    double centre = WorldClient()->ClientRawSurfaceHeight(p->x, p->y);
+    double centre = TheClientWorld()->ClientRawSurfaceHeight(p->x, p->y);
     *minimum = static_cast<float>(centre);
     *maximum = static_cast<float>(centre);
     *average = static_cast<float>(centre);
@@ -101,7 +102,7 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, f
             float y = static_cast<float>(D(p->y) - halfY);
             while (y <= D(halfY) + p->y) {
                 if (y >= 0.0f && camera::TheTerrain()->height > y) {
-                    float h = static_cast<float>(WorldClient()->ClientRawSurfaceHeight(x, y));
+                    float h = static_cast<float>(TheClientWorld()->ClientRawSurfaceHeight(x, y));
                     float low = *minimum;
                     *minimum = h >= low ? low : h;
                     float high = *maximum;
@@ -281,14 +282,14 @@ void CCamera::Update(float dt) {
     std::memcpy(&listener, &localPosition_, sizeof(Vector3));
     if (!(flags_ & kPlaced)) {
         std::memcpy(&listener, &focus_, sizeof(Vector3));
-        if (camera::TheTerrain()) listener.z = static_cast<float>(WorldClient()->ClientRawSurfaceHeight(focus_.x, focus_.y) + focusHeight_);
+        if (camera::TheTerrain()) listener.z = static_cast<float>(TheClientWorld()->ClientRawSurfaceHeight(focus_.x, focus_.y) + focusHeight_);
     }
     Vector3 forward;
     localRotation_.AxisZ(&forward);
-    sound::Manager()->SetListener(&listener.x, &forward.x);
+    TheSoundManager()->SetListener(&listener.x, &forward.x);
     if (flags_ & kPlaced) return;
 
-    CEngineObject* target = camera::ObjectManager()->FindObject(static_cast<unsigned>(targetId_));
+    CEngineObject* target = TheObjectManager()->FindObject(static_cast<unsigned>(targetId_));
     if (flags_ & kFollowing) {
         if (target) {
             // Behind the target, looking along its heading.

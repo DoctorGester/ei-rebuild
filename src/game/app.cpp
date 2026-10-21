@@ -56,7 +56,6 @@ libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8)
 // Objects told about activation changes: the cursor (007C7BD8), the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
 // (pointer at 007AF784).
-CCursor* TheCursor() { return ei::GamePointer<CCursor>(0x007C7BD8); }
 CDirectInputMouse* TheMouse() { return Global<CDirectInputMouse*>(0x0079BA08); }
 
 std::uint8_t& ActiveFlag() { return Global<std::uint8_t>(0x0079BC5C); }
@@ -74,7 +73,7 @@ LRESULT OnActivate(WPARAM wParam) {
         ActiveFlag() = 0;
         ActivationSeen() = 1;
         TheCursor()->ShowImage(0);
-        CTextureDevice* device = RenderDeviceObject();
+        CTextureDevice* device = TheRenderDevice();
         if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
         if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(0);
         if (sounds) sounds->PauseAll();
@@ -86,10 +85,10 @@ LRESULT OnActivate(WPARAM wParam) {
     ActivationSeen() = 1;
     gameapi::ShowWindow(MainWindow(), SW_RESTORE);
     if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(1);
-    CTextureDevice* device = RenderDeviceObject();
+    CTextureDevice* device = TheRenderDevice();
     if (device && (device->flags_ & 1)) {
         SceneRenderer()->RestoreSurfaces();
-        device = RenderDeviceObject();
+        device = TheRenderDevice();
         if (device) {
             // 005DAE70 (ResetCursors) after the device was restored. The original pushes the last
             // argument from EAX after loading only AL, so its upper bytes are those of the device
@@ -260,16 +259,16 @@ int __cdecl StartFirstMap() {
         MenuOpen(TheGameFlow());
         return 1;
     }
-    void* world = ei::GamePointer<void>(0x007AFF60);
+    void* world = TheServerWorld();
     if (!WorldLoadMap(world, nullptr, map, cmdMode, 0))
         return game::FatalError("Can't load map \"%s\".\n", static_cast<const char*>(map));
     static_cast<CWorldServer*>(world)->SetGameResult(1);
-    void* client = ei::GamePointer<void>(0x007AF5B8);
+    void* client = TheClientWorld();
     static_cast<CWorldClient*>(client)->SetPlayer(Global<std::uint8_t*>(0x007AFFBC));
     static_cast<CWorldClient*>(client)->LocalView()[0x85] = 0;
     Global<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;
-    void* script = ei::GamePointer<void>(0x007C27D4);
+    void* script = TheMissionScript();
     BOOL loaded;
     {
         mfc::CString root(Global<mfc::CString>(0x007AF460));
@@ -294,7 +293,7 @@ const char* WindowTitle() { return ei::GamePointer<const char>(0x0079BB24); }   
 // 004560D0 (A-E2).
 int __fastcall ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
-    CTextureDevice* device = RenderDeviceObject();
+    CTextureDevice* device = TheRenderDevice();
     if (device && (device->flags_ & 1)) {
         long result = device::FlipToGDISurface(static_cast<IDirectDraw7*>(device->ddraw_));
         device->lastLoadResult_ = result;

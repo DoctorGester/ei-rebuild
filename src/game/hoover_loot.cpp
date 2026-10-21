@@ -37,7 +37,6 @@ using PtrListNode = PtrList::Node;
 static char* UnitPrototype(void* unit) { return reinterpret_cast<char*>(static_cast<CUnit*>(unit)->GetPrototype()); }
 void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
 
-IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // An object referenced once more and appended to `list`.
 void Append(PtrList* list, void* object) {
@@ -65,7 +64,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
     float high = roll.maximum;
     int amount = x87::fistp(low);
     if (high > low) {
-        double random = x87::FromUnsigned(Rng()->Next());
+        double random = x87::FromUnsigned((&IsaacRandom::Global())->Next());
         double scale;
         std::memcpy(&scale, ei::GamePointer<const void>(0x0073C468), sizeof(scale));
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);

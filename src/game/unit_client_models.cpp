@@ -23,6 +23,7 @@
 #include "originals_units.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
@@ -64,7 +65,6 @@ const char* ArmourRecord(std::uint32_t type) { return itemdb::Armors().RecordAt(
 
 // The figure manager (global 007AF5F4) and the texture manager (007AF744).
 void* FigureManager() { return ei::GameData<void* const>(0x007AF5F4); }
-void* TextureManager() { return ei::GameData<void* const>(0x007AF744); }
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
@@ -498,7 +498,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
 } // namespace
 
 void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
-    void* textureManager = TextureManager();
+    void* textureManager = TheTextureManager();
     SkinLayerArray layers{ei::GamePointer<void>(0x0073EEA0), nullptr, 0, 0, 0};
     void* result;
     {

@@ -28,6 +28,7 @@
 #include "world.h"
 #include "library_trees.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -156,7 +157,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 
 // The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
-    const CWorldClient* world = GameClientWorld();
+    const CWorldClient* world = TheClientWorld();
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
@@ -406,7 +407,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     } else {
         DrawThroughDevice(part);
     }
-    DrawBounds(static_cast<CSceneRenderer*>(SceneContext()));
+    DrawBounds(TheSceneRenderer());
     return 1;
 }
 EI_REPLACE_METHOD(0x005A7A70, FigureMeshDrawer::DrawLit);

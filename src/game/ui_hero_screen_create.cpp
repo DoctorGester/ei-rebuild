@@ -30,6 +30,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -305,7 +306,7 @@ void CMpHeroScreen::Create() {
     // The figures a new hero can take, men (model "unhuma") and women ("unhufe"): every creature
     // record whose unit prototype has one of the two models, with a numbered voice when the
     // record has its flag.
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString male;
     mfc::CString female;
     mfc::CString figureModel;

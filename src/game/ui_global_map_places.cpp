@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 #include "render/render_state.h"
 
 #include <cstdint>
@@ -34,7 +35,7 @@ constexpr const char* kMissingNumber = "0";        // 007856B8
 
 // The text `prefix` + `name` (empty when there is none), constructed into `out`.
 mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name) {
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString text;
     if (texts->Open(mfc::CString(prefix) + name)) texts->ReadLine(&text, 1);
     return new (out) mfc::CString(text);
@@ -74,7 +75,7 @@ EI_REPLACE_METHOD(0x00630F50, CGlobalMap::QuestTitle);
 // --- 00630E00 / 00630CC0: positions -------------------------------------------------------------
 
 bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine) {
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString key;
     console::CStringArray words;
     texts->Open(kMapText);

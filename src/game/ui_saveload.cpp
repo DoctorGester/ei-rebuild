@@ -55,13 +55,9 @@ namespace {
 
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 // The game's folder (the CString 007AF460 that 00578DB0 returns).
 const char* GameFolder() { return ei::GameData<char* const>(0x007AF460); }
-CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 
-CMapDatabase* const kMapDatabase = ei::GamePointer<CMapDatabase>(0x0079BF00);
-void* const kCursor = ei::GamePointer<void>(0x007C7BD8);
 
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
@@ -200,7 +196,7 @@ void CSaveLoadWindow::ShowPicture() {
     }
     if (!found) return;
     CDXSurface* holder = HolderOf(objects_.data[1]);
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     PicturePixels pixels(holder);
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
     mfc::CFile file;
@@ -210,7 +206,7 @@ void CSaveLoadWindow::ShowPicture() {
     }
     file.Read(pixels.Bits(), kShotBytes);
     file.Close();
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_.data[1];
 }
@@ -237,9 +233,9 @@ void SaveEntry::MakeTitle(int) {
     mfc::CString quick;
     mfc::CString autoEnter;
     mfc::CString autoExit;
-    Texts()->GetString(kQuickTitle, &quick);
-    Texts()->GetString(kAutoEnterTitle, &autoEnter);
-    Texts()->GetString(kAutoExitTitle, &autoExit);
+    TheTextManager()->GetString(kQuickTitle, &quick);
+    TheTextManager()->GetString(kAutoEnterTitle, &autoEnter);
+    TheTextManager()->GetString(kAutoExitTitle, &autoExit);
     mfc::CString& title = Str(title_);
     if (SameFolder(folder_, kQuickFolder)) {
         title.Format(kPlainFormat, static_cast<const char*>(quick));
@@ -278,10 +274,10 @@ void CSaveLoadWindow::SaveGame() {
     mfc::CString folder;
     folder.Format(flowdata::kSlotFolder, GameFolder(), entry->folder_);
     mfc::CString notice;
-    Texts()->GetString(game::savewords::NotifySaving(), &notice);
+    TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
     static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
     static_cast<GameFlow*>(TheGameFlow())->SaveGameThunk(entry->folder_);
-    CursorSetShape(kCursor, nullptr, 3);
+    CursorSetShape(TheCursor(), nullptr, 3);
 
     // info.sav: the new save's entry (the first) with the title being given.
     LocalFileStream info;
@@ -311,7 +307,7 @@ void CSaveLoadWindow::SaveGame() {
     // shot.sav: the game's picture.
     if (dialog_) {
         CDXSurface* holder = HolderOf(dialog_);
-        gameapi::EnterCriticalSection(DeviceLock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         PicturePixels pixels(holder);
         if (!pixels.Begin()) {
             // (The device lock stays held and the cursor busy, as in the original.)
@@ -325,9 +321,9 @@ void CSaveLoadWindow::SaveGame() {
         }
         shot.Write(pixels.Bits(), kShotBytes);
         shot.Close();
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
     }
-    CursorSetShape(kCursor, nullptr, 0);
+    CursorSetShape(TheCursor(), nullptr, 0);
     interface_->SetPendingValue(kClosed);
 }
 EI_REPLACE_METHOD(0x00655550, CSaveLoadWindow::SaveGame);
@@ -431,7 +427,7 @@ void CSaveLoadWindow::FillEntries() {
             Str(entry->zone_) = *zone;
             zone->~CString();
         }
-        if (MapRecord* record = kMapDatabase->FindMap(entry->zone_))
+        if (MapRecord* record = TheMapDatabase()->FindMap(entry->zone_))
             Str(entry->map_) = Str(record->allod);
         entry->MakeTitle(1);
         entry->broken_ = false;
@@ -445,13 +441,13 @@ void CSaveLoadWindow::FillEntries() {
             ++shot->refCount_;
             RemoveObjectAt(objects_.size - 1);
             CDXSurface* holder = HolderOf(dialog_);
-            gameapi::EnterCriticalSection(DeviceLock());
+            gameapi::EnterCriticalSection(TheDeviceLock());
             PicturePixels pixels(holder);
             // A failed Lock whose report says stop leaves with the device lock held and the scroll
             // bar as it was (the original's tail 00656464).
             if (!pixels.Begin()) return;
             std::memcpy(pixels.Bits(), SavePicture(interface_), kShotBytes);
-            gameapi::LeaveCriticalSection(DeviceLock());
+            gameapi::LeaveCriticalSection(TheDeviceLock());
         }
     }
 
@@ -499,10 +495,10 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
                                                                             kScreenHeight, 4, 1)
                               : nullptr;
     surface->CaptureScreen();
-    CursorSetShape(kCursor, nullptr, 3);
+    CursorSetShape(TheCursor(), nullptr, 3);
     Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
     mfc::CString notice;
-    Texts()->GetString(game::savewords::NotifySaving(), &notice);
+    TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
     static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
     static_cast<GameFlow*>(TheGameFlow())->SaveGameThunk(slot);
 
@@ -519,7 +515,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         zone = *current;
         current->~CString();
     }
-    if (const MapRecord* record = kMapDatabase->FindMap(zone))
+    if (const MapRecord* record = TheMapDatabase()->FindMap(zone))
         map = *reinterpret_cast<const mfc::CString*>(&record->allod);
     mfc::CString folder = SlotFolder(slot);
     LocalFileStream info;
@@ -543,7 +539,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
-    CursorSetShape(kCursor, nullptr, 0);
+    CursorSetShape(TheCursor(), nullptr, 0);
 }
 EI_REPLACE(0x006570E0, QuickSave);
 
@@ -552,7 +548,7 @@ void __fastcall QuickLoad(const char* slot) {
     mfc::CString folder = SlotFolder(slot);
     if (libcrt::Access(folder, 0) == -1) return;
     mfc::CString notice;
-    Texts()->GetString(kNotifyLoading, &notice);
+    TheTextManager()->GetString(kNotifyLoading, &notice);
     static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
@@ -567,7 +563,7 @@ const mfc::CString& View(char* const& field) { return *reinterpret_cast<const mf
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
 mfc::CString FirstLineOf(const char* prefix, const mfc::CString& suffix) {
     mfc::CString line;
-    CTextManager* texts = Texts();
+    CTextManager* texts = TheTextManager();
     BOOL found = texts->Open(mfc::CString(prefix) + suffix);
     if (found) texts->ReadLine(&line, 1);
     return line;
@@ -591,7 +587,7 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 
 mfc::CString SaveEntry::ZoneTitle() const {
     mfc::CString title = FirstLineOf("zone ", View(zone_));   // 007941F8: the key has a space
-    if (title.GetLength() == 0) Texts()->GetString("save_camp", &title);
+    if (title.GetLength() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REPLACE_METHOD(0x00653BD0, SaveEntry::ZoneTitle);
@@ -665,7 +661,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     if (entriesBegin_[selected].broken_) return;
     mfc::CString notice;
-    Texts()->GetString(kNotifyLoading, &notice);
+    TheTextManager()->GetString(kNotifyLoading, &notice);
     static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);

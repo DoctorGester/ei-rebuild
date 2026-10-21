@@ -55,6 +55,7 @@
 #include "game_lists.h"
 #include "bink_video.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -113,10 +114,10 @@ using LightningList = mfc::CList<ScriptLightning>;
 void* __cdecl Renderer() { return SceneRenderer(); }
 
 // The world server.
-CWorldServer* TheWorld() { return static_cast<CWorldServer*>(WorldServer()); }
+CWorldServer* TheWorld() { return static_cast<CWorldServer*>(TheServerWorld()); }
 
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
-CAIMap* TheAIMap() { return WorldServer()->AIMap(); }
+CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 
 // Unit modes (the brain's behaviour list): operator new for a mode, then its script constructor.
 // The command zeroes the reference dword (+4) before testing the pointer.
@@ -165,10 +166,10 @@ bool ServerActive() {
 }
 
 // The world's player list (CWorld::players_): the event dispatch.
-CPlayerManager* TheEvents() { return static_cast<CPlayerManager*>(WorldServer()->players_); }
+CPlayerManager* TheEvents() { return static_cast<CPlayerManager*>(TheServerWorld()->players_); }
 
 // The world's spell manager (CWorld::manager4C_).
-CSpellManager* TheSpellManager() { return static_cast<CSpellManager*>(WorldServer()->manager4C_); }
+CSpellManager* TheSpellManager() { return static_cast<CSpellManager*>(TheServerWorld()->manager4C_); }
 
 // A particle source's effect (ScriptParticleSource::object).
 CEffectParticle* ParticleOf(ScriptParticleSource* source) { return static_cast<CEffectParticle*>(source->object); }
@@ -672,7 +673,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            static_cast<CWorldServer*>(WorldServer())->LoadMobFile(Text(cmd, 0));
+            static_cast<CWorldServer*>(TheServerWorld())->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             GamePlayCameraPath(Text(cmd, 0), 0);
@@ -1208,7 +1209,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
-            auto* list = static_cast<CBaseManager*>(WorldServer()->itemManager_);
+            auto* list = static_cast<CBaseManager*>(TheServerWorld()->itemManager_);
             ObjectIterator it;
             it.manager = nullptr;
             for (CEngineObject* object = it.First(list); object; object = it.Next()) static_cast<CItem*>(object)->Repair();

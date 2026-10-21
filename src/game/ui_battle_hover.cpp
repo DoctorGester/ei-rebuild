@@ -23,6 +23,7 @@
 #include "originals_ui.h"
 #include "world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -47,7 +48,6 @@ struct HoverCursor {
 int HoverCursor::SetShape(int a2) { return static_cast<CCursor*>((void*)this)->ChangeShape(a2); }
 void SetCursor(int shape) { ei::GamePointer<HoverCursor>(0x007C7BD8)->SetShape(shape); }
 
-void* const kClientWorld = ei::GamePointer<void>(0x007AF5B8);
 
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
@@ -73,12 +73,12 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = static_cast<CWorldClient*>(kClientWorld)->PickSurface(&out, x, y);
+        Vector3* p = TheClientWorld()->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return static_cast<CUnit*>(static_cast<CWorldClient*>(kClientWorld)->PickAt2(reinterpret_cast<const long*>(point)));
+        return static_cast<CUnit*>(TheClientWorld()->PickAt2(reinterpret_cast<const long*>(point)));
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;
@@ -118,7 +118,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (interface_->altDown_) {
         Vector3 at = pick();
         int exit;
-        if (!static_cast<CWorldClient*>(kClientWorld)->FindExitAt(&at.x, &exit)) return;
+        if (!TheClientWorld()->FindExitAt(&at.x, &exit)) return;
         SetCursor(kCursorExit);
         return;
     }
@@ -156,7 +156,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             // is asked as is).
             Vector3 at = pick();
             int exit;
-            if (!static_cast<CWorldClient*>(kClientWorld)->FindExitAt(&at.x, &exit)) return;
+            if (!TheClientWorld()->FindExitAt(&at.x, &exit)) return;
             mfc::CString name(GameExitTarget(exit));
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                                 reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {

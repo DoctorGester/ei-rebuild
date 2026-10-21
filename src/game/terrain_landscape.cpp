@@ -18,6 +18,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -153,7 +154,7 @@ EI_REPLACE_METHOD(0x006C7A80, Terrain::BuildVertexTiles);
 
 void Terrain::ClearMap() {
     for (int slot = 0; slot < 3; ++slot) {
-        ambientSounds[slot] = sound::Manager()->StopSound(ambientSounds[slot]);
+        ambientSounds[slot] = TheSoundManager()->StopSound(ambientSounds[slot]);
         ambientClasses[slot] = -1;
     }
     while (sectorCache.count != 0) {
@@ -329,7 +330,6 @@ void Terrain::SetWaves(const Vector3* direction, float strength) {
 namespace {
 
 // The texture manager (007AF744) and the material manager (007AF740).
-CTextureManager* Textures() { return ei::GameData<CTextureManager* const>(0x007AF744); }
 void* Materials() { return ei::GameData<void* const>(0x007AF740); }
 
 constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
@@ -347,12 +347,12 @@ int Terrain::SetupPages(int count) {
             name.Format("%s%3.3i", textF8, i);
         } else {
             name.Format("%sL%2.2i", textF8, i - count);
-            if (!Textures()->HasFile(name + ".mmp")) return 1;
+            if (!TheTextureManager()->HasFile(name + ".mmp")) return 1;
             ++extraPages;
             pageTextures.SetAtGrow(pageTextures.size, nullptr);
             pageMaterials.SetAtGrow(pageMaterials.size, nullptr);
         }
-        CTexture* texture = static_cast<CTexture*>(Textures()->FindOrCreate(kPageTexture, name));
+        CTexture* texture = static_cast<CTexture*>(TheTextureManager()->FindOrCreate(kPageTexture, name));
         pageTextures[i] = texture;
         ++texture->refCount_;
         CMaterial* material = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(Materials())->NewMaterial(kPageMaterial));
@@ -365,7 +365,7 @@ int Terrain::SetupPages(int count) {
         material->colors.emissive.x = material->colors.emissive.y = material->colors.emissive.z = 0.0f;
         material->colors.diffuse.w = 1.0f;
         material->colors.power = 5.0f;
-        if (!static_cast<CTextureManager*>(Textures())->LoadTexture(pageTextures[i])) return 0;
+        if (!TheTextureManager()->LoadTexture(pageTextures[i])) return 0;
     }
     return 1;
 }

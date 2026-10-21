@@ -10,6 +10,7 @@
 #include "lib/mfc.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -40,7 +41,7 @@ UnitStats* HeroStats(CUiWindow* owner) {
 // --- 006242E0: a labelled value ---------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maximum) {
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     mfc::CString name;
     mfc::CString number;
     BOOL found;
@@ -85,7 +86,7 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     mfc::CString unused;
     {
         mfc::CString key = mfc::CString(kPartPrefix) + name;
-        TextsGetString(GameTexts(), nullptr, key, &label);
+        TextsGetString(TheTextManager(), nullptr, key, &label);
     }
     label = mfc::CString(kPartIndent) + label;
     CUiSurface* surface = surfaces_.data[0];

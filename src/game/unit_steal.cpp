@@ -12,7 +12,6 @@ namespace {
 constexpr int kQuickSlots = 4;
 constexpr int kPartItems = 5;     // MarkChanged part
 
-IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 } // namespace
 
 CEngineObject* CUnit::TakeRandomItem() {
@@ -32,7 +31,7 @@ CEngineObject* CUnit::TakeRandomItem() {
     for (int i = 0; i < kQuickSlots; ++i)
         if (quickItems[i]) filled[count++] = i;
     if (count == 0) return nullptr;
-    int slot = filled[Random().Next() % count];   // the draw is inlined in the original
+    int slot = filled[IsaacRandom::Global().Next() % count];   // the draw is inlined in the original
     CEngineObject* item = quickItems[slot];
     quickItems[slot] = nullptr;
     MarkChanged(kPartItems);

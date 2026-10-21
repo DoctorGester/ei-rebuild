@@ -32,10 +32,7 @@ namespace {
 template <typename T>
 T& Global(std::uintptr_t address) { return ei::GameData<T>(address); }
 
-void* Game() { return ei::GamePointer<void>(0x007AF060); }
-void* Screen() { return ei::GamePointer<void>(0x007C7BD8); }
 bool Running() { return Global<std::uint8_t>(0x0079BC5C) != 0 && Global<std::uint8_t>(0x00784750) != 0; }
-CRITICAL_SECTION* RenderLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
 // The software cursor's lock (005E65F0) is called through the target of the original CALL at
@@ -71,10 +68,10 @@ mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, c
 // lastLoadResult_. The primary is a holder without a surface (renderer.md section 9): nothing to
 // fill, the result 0.
 void ClearScreen() {
-    CTextureDevice* device = RenderDeviceObject();
-    gameapi::EnterCriticalSection(RenderLock());
+    CTextureDevice* device = TheRenderDevice();
+    gameapi::EnterCriticalSection(TheDeviceLock());
     device->lastLoadResult_ = 0;
-    gameapi::LeaveCriticalSection(RenderLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
 }
 
 } // namespace
@@ -87,15 +84,15 @@ void __fastcall FrameStep(bool draw, bool cursor) {
         gameapi::Sleep(50);
         return;
     }
-    if (!static_cast<CSceneRenderer*>(Game())->BeginScene()) return;
+    if (!TheSceneRenderer()->BeginScene()) return;
     static_cast<CInterface3D*>(TheInterface())->Draw();
-    static_cast<CSceneRenderer*>(Game())->EndScene();
+    TheSceneRenderer()->EndScene();
     if (cursor) InterfaceDrawCursor(TheInterface());
     if (!draw || !Running()) return;
-    CursorLockAtCallSite()(Screen());
-    CursorDrawFrame(static_cast<CCursor*>(Screen()));   // 005E54A0
-    if (DevicePresent(RenderDeviceObject())) game::FatalError("Can't flip render surface");   // 004EF610: "Can't flip render surface"
-    static_cast<CCursor*>(Screen())->ReleaseLock();
+    CursorLockAtCallSite()(TheCursor());
+    CursorDrawFrame(TheCursor());   // 005E54A0
+    if (DevicePresent(TheRenderDevice())) game::FatalError("Can't flip render surface");   // 004EF610: "Can't flip render surface"
+    TheCursor()->ReleaseLock();
     if (!Global<std::uint8_t>(0x0079BC54)) return;
     char path[256];
     gamecrt::sprintf(path, "%sshot%.4d.bmp", Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));
@@ -108,7 +105,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     // {0, 0, width, height} of the render target's surface; without one the original passes two
     // stack words it never set.
     std::uint32_t rect[5];
-    CTextureDevice* device = RenderDeviceObject();
+    CTextureDevice* device = TheRenderDevice();
     std::uint32_t width = rect[4], height = rect[4];
     if (device->primary_) {
         CDXSurface* target = device->renderTarget_;

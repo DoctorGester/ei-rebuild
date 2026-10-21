@@ -16,6 +16,7 @@
 #include "lib/vecmath.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -67,7 +68,7 @@ void ReleaseDragCursor() {
     int y = MouseScreenY();
     MouseDragY() = 0;
     MouseDragX() = 0;
-    GameCursor()->SetHeld(0);
+    TheCursor()->SetHeld(0);
     gameapi::SetCursorPos(x, y);
 }
 
@@ -87,7 +88,7 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     dragAngle_ = angle_;
     MouseDragY() = 0;
     MouseDragX() = 0;
-    GameCursor()->SetHeld(1);
+    TheCursor()->SetHeld(1);
 }
 
 void CGlobalMap::OnRightUp(int, int, int) {

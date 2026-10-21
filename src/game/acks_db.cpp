@@ -18,6 +18,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -25,7 +26,7 @@ namespace acks {
 
 namespace {
 
-CWorldClient& ClientWorld() { return ei::GameData<CWorldClient>(0x007AF5B8); }
+
 
 // The roll a speech's chance is compared with: rand() scaled to 0..99.
 int Roll() { return gamecrt::rand() * 100 / 0x7FFF % 100; }
@@ -109,7 +110,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     if (!prototype) return nullptr;
 
     if (kind == 0x25 || kind == 0x26) {
-        sound::Manager()->Play3D("weapons\\timecrash.wav", 0, &unit->position.x, 8.0f, 20.0f, 0, 0);
+        TheSoundManager()->Play3D("weapons\\timecrash.wav", 0, &unit->position.x, 8.0f, 20.0f, 0, 0);
         return nullptr;
     }
     AckDatabase& db = Database();
@@ -117,7 +118,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     const stlp::vector<EnvironmentSpeech>* environmentList = nullptr;
     if (kind <= 0x29) {
         if (kind == 0x23 || kind == 0x24)
-            sound::Manager()->Play3D("weapons\\crash.wav", 0, &unit->position.x, 8.0f, 20.0f, 0, 0);
+            TheSoundManager()->Play3D("weapons\\crash.wav", 0, &unit->position.x, 8.0f, 20.0f, 0, 0);
         UnitAcks* record = db.units.Find(prototype->name);
         if (!record) return nullptr;
         if (kind == 0x29) {
@@ -151,7 +152,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         if (!animation) return nullptr;
         std::uint32_t animationKind = animation->key & 0x3C0000;
         if (animationKind != 0x100000 && animationKind != 0x140000 && animationKind != 0x180000) return nullptr;
-        std::uint32_t environment = ClientWorld().EnvironmentFlags(unit);
+        std::uint32_t environment = TheClientWorld()->EnvironmentFlags(unit);
         speech = PickEnvironmentSpeech(environmentList, nullptr, environment, Roll());
     } else {
         speech = PickSpeech(list, nullptr, Roll());

@@ -26,6 +26,7 @@
 #include "render/render.h"
 #include "render/render_state.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <d3d.h>
 
@@ -50,7 +51,6 @@ float SecondTurnAboutZ() { return 0.4f /*0073B868*/; } // 0.4
 float BarHeight() { return 15.0f /*00742430*/; }        // 15
 float PanelHeight() { return 220.0f /*00742AE4*/; }      // 220
 // The world time: whole ticks (007AF61C) plus the fraction of the current one (007AFCA8).
-int WorldTick() { return ei::GameData<const int>(0x007AF61C); }
 float WorldTickFraction() { return GameFloat(0x007AFCA8); }
 
 constexpr int kBackground = 0;        // scene objects
@@ -91,9 +91,9 @@ void ClearDepthRects(UiRenderer* renderer, RECT* rects, float z) {
     renderer->FlushBatchB();
     DWORD flags = D3DCLEAR_ZBUFFER;
     if ((renderer->caps_ & kStencilFormat) != 0 && renderer->stencil_ != 0) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
-    gameapi::EnterCriticalSection(GameDeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     renderer->result_ = device::Clear(D3DDevice(renderer), kClearedRects, reinterpret_cast<D3DRECT*>(rects), flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(GameDeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     render::Rect mirrored[kClearedRects];
     for (DWORD i = 0; i < kClearedRects; ++i)
         mirrored[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
@@ -150,7 +150,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
             savedPosition = model->position;
             savedOrientation = model->orientation;
-            ObjectSlots(unit)->AdvanceTime(static_cast<float>(WorldTick()) + WorldTickFraction());
+            ObjectSlots(unit)->AdvanceTime(static_cast<float>(CurrentClientTick()) + WorldTickFraction());
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
@@ -179,7 +179,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
             // Texture stage 0's mip filter off around the model's draw.
             DWORD mipFilter = 0;
-            CTextureDevice* device = RenderDeviceObject();
+            CTextureDevice* device = TheRenderDevice();
             device->lastLoadResult_ = device::GetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, &mipFilter);
             device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, D3DTFP_NONE);
             render::state::Stage(0, D3DTSS_MIPFILTER, D3DTFP_NONE);

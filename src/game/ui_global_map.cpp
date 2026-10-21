@@ -37,6 +37,7 @@
 #include "originals_ui.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "ei/vcall.h"
 #include "lib/nan_audit.h"
 
@@ -84,11 +85,10 @@ struct AllodView {
 };
 static_assert(sizeof(AllodView) == 0x2C);
 
-CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 // A zone of the map database: its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
-MapRecord* FindZone(const char* name) { return MapDatabase()->FindMap(name); }
-MapRecord* ZoneAt(int index) { return MapDatabase()->maps.data + index; }
+MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
+MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
 bool NonEmpty(const char* cstring) { return reinterpret_cast<const int*>(cstring)[-2] != 0; }
 
@@ -122,7 +122,6 @@ struct SoundMixer {
     void ResetMusic() { reinterpret_cast<CMusicSystem*>(this)->Stop(); }   // 006B4F70 (the object at *007AF760)
 };
 // The scene renderer (007AF060, what 00500960 returns).
-CSceneRenderer* Renderer() { return ei::GamePointer<CSceneRenderer>(0x007AF060); }
 // 006570E0: saves the game into saves\<name> (ECX name, DL flag).
 
 // --- Sprite fields set directly -------------------------------------------------------------------
@@ -242,7 +241,7 @@ void CGlobalMap::Create() {
     autosave_ = false;
     if (ei::GameData<const int>(0x007AFE1C) != 0)
         GameSaveStream()->Resize(0);
-    else if (reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player->lastScreen != 5)
+    else if (reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player->lastScreen != 5)
         autosave_ = true;   // not back from the camp
     depth_ = Bits(0x41200000);     // 10
     centreX_ = Bits(0x43C80000);   // 400
@@ -257,7 +256,7 @@ void CGlobalMap::Create() {
         current = FindZone(*name);
         name->~CString();
     }
-    AllodView* allod = reinterpret_cast<AllodView*>(MapDatabase()->FindAllod(current->allod));
+    AllodView* allod = reinterpret_cast<AllodView*>(TheMapDatabase()->FindAllod(current->allod));
     {
         alignas(4) std::uint8_t raw[4];
         mfc::CString* title = AllodTitle(reinterpret_cast<mfc::CString*>(raw), allod->name);
@@ -436,7 +435,7 @@ void CGlobalMap::Create() {
         glow->visible_ = 0;
         SetPlain(glow);
     }
-    Renderer()->fogColour_ = 0xFF3C005A;
+    TheSceneRenderer()->fogColour_ = 0xFF3C005A;
 
     {
         void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -479,7 +478,7 @@ void CGlobalMap::Create() {
     minutes -= hour * 60;
     mfc::CString clock;
     mfc::CString dayText;
-    (ei::GameData<CTextManager*>(0x007AF788))->GetString("save_day", &dayText);
+    TheTextManager()->GetString("save_day", &dayText);
     clock.Format("%s  %d,  %d:%02d", static_cast<const char*>(dayText), day + 1, hour, minutes);
     {
         void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -678,7 +677,7 @@ void CGlobalMap::Update() {
     // (00691D80, ticket R8), drawn into directly (the original: between a Lock and an Unlock).
     if (objects_.size > 4) {
         CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
-        auto* lock = ei::GamePointer<CRITICAL_SECTION>(0x007AEE78);
+        auto* lock = TheDeviceLock();
         gameapi::EnterCriticalSection(lock);
         SurfacePixels pixels;
         if (DirectPixels(holder, &pixels)) {   // (always: the texture has memory)
@@ -687,7 +686,7 @@ void CGlobalMap::Update() {
         }
         gameapi::LeaveCriticalSection(lock);
     }
-    static_cast<CCursor*>(ei::GamePointer<void>(0x007C7BD8))->ChangeShape(dragging_ ? 0x16 : 0);
+    TheCursor()->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
 EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);

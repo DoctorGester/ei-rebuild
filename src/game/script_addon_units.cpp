@@ -18,6 +18,7 @@
 #include "originals_world.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -28,18 +29,16 @@ namespace scriptaddon {
 namespace {
 
 // The world (007AFF60): the player with a number (00594180).
-void* GetPlayer(int number) { return ei::GamePointer<CWorldServer>(0x007AFF60)->GetPlayer(number); }
+void* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).
-CSectorMap* const kSectorMap = ei::GamePointer<CSectorMap>(0x007B01F4);
 
 // A unit's prototype record (00530930): its name and, at +4, its model name (the race).
 static const UnitPrototypeRecord* UnitPrototype(void* unit) { return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype()); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
-IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
@@ -64,7 +63,7 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
     list.vtable = ei::GamePointer<void>(0x0073D454);
     list.blockSize = 10;
     Vector3 point = {x, y, 0.0f};
-    kSectorMap->FindUnitsInRadius(&point, &list, radius);
+    TheSectorMap()->FindUnitsInRadius(&point, &list, radius);
     for (auto* node = list.head; node; node = node->next) visit(node->data);
     mfc::impl::DestructList<mfc::impl::ItemListClass>(list);
 }
@@ -192,7 +191,7 @@ bool RandObj(Call* call) {
     ScriptGroup* group = call->cmd->groupArgs.data[0];
     int size = group->size;
     if (size) {
-        std::uint32_t index = GameRandom()->Next() % static_cast<std::uint32_t>(size);
+        std::uint32_t index = (&IsaacRandom::Global())->Next() % static_cast<std::uint32_t>(size);
         (*static_cast<ScriptObjectRef**>(call->result))->Assign(group->data[index].object);
     }
     return true;

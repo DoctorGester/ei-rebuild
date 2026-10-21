@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 #include "render/render_state.h"
 
 #include <cmath>
@@ -58,7 +59,7 @@ __declspec(naked) void CHelpWindow::ShowPage() EI_ORIGINAL(0x00659420)
 void CHelpWindow::Build() {
     LoadTexture(SaveLoadTexture(), 3, nullptr);
     CreateTexture(0x100, 0x100, 0x20);
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     BOOL found;
     {
         mfc::CString section = mfc::CString(TutorialSection()) + text_;

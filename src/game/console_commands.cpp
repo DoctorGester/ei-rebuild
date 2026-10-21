@@ -50,10 +50,10 @@ bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || Arg
 // 007C7D50: the interface manager.
 
 // The world's player `id` (00594180, through its address), or null.
-WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(id)); }
+WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(id)); }
 // The client world's local player (its local view's player).
 WorldPlayer* LocalPlayer() {
-    return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(WorldClient())->LocalView())->player;
+    return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(TheClientWorld())->LocalView())->player;
 }
 
 // 0079B5D8: the network client session, active unless it was detached.
@@ -195,8 +195,8 @@ void __fastcall Show(CStringArray* args) {
     } else {
         return PrintLine("Invalid parameters in command 'show'");
     }
-    if (ArgOn(args, 1)) (WorldClient()->*on)();
-    else if (ArgOff(args, 1)) (WorldClient()->*off)();
+    if (ArgOn(args, 1)) (TheClientWorld()->*on)();
+    else if (ArgOff(args, 1)) (TheClientWorld()->*off)();
 }
 EI_REPLACE(0x005DE460, Show);
 
@@ -368,7 +368,7 @@ EI_REPLACE(0x005DFC10, Disconnect);
 // 005DF5B0: lootall.
 void __fastcall LootAll(CStringArray*) {
     PrintLine("Looting...");
-    WorldServer()->LootDeadUnits();
+    TheServerWorld()->LootDeadUnits();
 }
 EI_REPLACE(0x005DF5B0, LootAll);
 

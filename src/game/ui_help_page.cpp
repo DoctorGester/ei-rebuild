@@ -23,6 +23,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -119,7 +120,7 @@ void CHelpWindow::ShowPageVanilla() {
     ClearRegions();
     ClearSceneObjects();
 
-    CTextManager* texts = GameTexts();
+    CTextManager* texts = TheTextManager();
     console::CStringArray words;
     BOOL found;
     {

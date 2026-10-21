@@ -16,6 +16,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstddef>
@@ -122,7 +123,7 @@ EI_REPLACE_METHOD(0x005C98C0, AIViewer::Noise);
 
 int AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
-    auto* ground = static_cast<const AITerrainType*>(WorldServer()->AIMap()->MaterialRecordAt(position));
+    auto* ground = static_cast<const AITerrainType*>(TheServerWorld()->AIMap()->MaterialRecordAt(position));
     float loudness = source->moveFactors[0] * source->stats.valuesE0[3].current;
     loudness *= ground->noise;
     Noise(source, loudness, kStepNoise, nullptr);

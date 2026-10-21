@@ -5,14 +5,13 @@
 #include "originals_ui.h"
 #include "ui_cursor.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
 namespace {
 // The cursor object (007C7BD8) and its methods (thiscall).
-void* CursorObject() { return ei::GamePointer<void>(0x007C7BD8); }
 // The device the cursor is drawn on (007AF080).
-CTextureDevice* CursorDevice() { return ei::GameData<CTextureDevice* const>(0x007AF080); }
 // 005E62E0: stops the drawing thread and releases the shapes.
 void __fastcall CursorShutdown(void* cursor) { static_cast<CCursor*>(cursor)->Shutdown(); }
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
@@ -58,17 +57,17 @@ const CursorShape kShapes[] = {
 // 005DAEA0 (fastcall, RET 8). `modeTwo` picks the cursor's mode 2 (else 1); `context` and
 // `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
 void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags) {
-    static_cast<CCursor*>(CursorObject())->Init(CursorDevice(), modeTwo ? 2 : 1,
+    TheCursor()->Init(TheRenderDevice(), modeTwo ? 2 : 1,
                                                 reinterpret_cast<CDirectInputMouse*>(context), smallCursors);   // 005E60B0
     bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     for (const CursorShape& shape : kShapes)
-        static_cast<CCursor*>(CursorObject())->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
-    static_cast<CCursor*>(CursorObject())->Start();
+        TheCursor()->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
+    TheCursor()->Start();
 }
 
 // 005DAE70 (fastcall, RET 8). Shuts the cursor down and sets it up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags) {
-    CursorShutdown(CursorObject());
+    CursorShutdown(TheCursor());
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);
 }
 

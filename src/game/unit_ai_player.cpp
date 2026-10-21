@@ -9,6 +9,7 @@
 #include "originals_ai.h"
 #include "player_messages.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -171,7 +172,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     AIObjectList nearby;
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
-    WorldServer()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
+    TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
                                GameLogicSettings().playerCallForHelp);
     for (auto* node = nearby.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);

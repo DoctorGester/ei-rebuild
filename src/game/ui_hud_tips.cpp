@@ -18,6 +18,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 namespace {
@@ -29,7 +30,6 @@ template <typename T> T Get(const void* base, int offset) {
     return v;
 }
 
-CTextManager* Texts() { return ei::GameData<CTextManager* const>(0x007AF788); }
 
 // 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
 // 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture
@@ -80,7 +80,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             ItemName(weapon, 20, &model);
             AddWeaponSprite(this, nullptr, model.data, image.data);
         }
-        Texts()->GetItemTexts(weapon, &tip, &description, &line);
+        TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
         tip += "\n";   // "\n"
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
@@ -93,7 +93,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         description = "Unknown";
         if (type < 7) {
             line.Format("damage_%d", type);
-            Texts()->GetString(line, &description);
+            TheTextManager()->GetString(line, &description);
         }
         line.Format("%s %d-%d %s\n", labels_[0], Truncate(weapon->damage_),   // "%s %d-%d %s\n"
                     Truncate(weapon->damageSpread_ + weapon->damage_), static_cast<const char*>(description));
@@ -106,10 +106,10 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // A weapon with a spell: the spell's name ("spell <name>").
         if (void* spell = weapon->spell_) {
             description = "Unknown";
-            int found = TextsOpenSection(Texts(), nullptr,
+            int found = TextsOpenSection(TheTextManager(), nullptr,
                                  mfc::operator+(mfc::CString("spell "),
                                                 *reinterpret_cast<const mfc::CString*>(SpellPrototype(spell) + 4)));
-            if (found) Texts()->ReadLine(&description, 1);
+            if (found) TheTextManager()->ReadLine(&description, 1);
             line.Format("%s %s\n", labels_[3], static_cast<const char*>(description));   // "%s %s\n"
             tip += line;
         }
@@ -131,7 +131,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     mfc::CString line;
     text->Empty();
     // (The original passes one CString as the description and the kind.)
-    Texts()->GetItemTexts(item, text, &line, &line);
+    TheTextManager()->GetItemTexts(item, text, &line, &line);
     auto* data = reinterpret_cast<std::uint8_t*>(item->spell_);
     if (!data) return;
     const float one = 1.0f /*0073B84C*/;
@@ -222,10 +222,10 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     mfc::CString hint;
     AddActionButton(this, nullptr, "initqi1item", "skill0009", 0);
     title = "Science";
-    int found = TextsOpenSection(Texts(), nullptr, mfc::operator+(mfc::CString("perk "), title));
-    if (found) Texts()->ReadLine(&tip, 1);
+    int found = TextsOpenSection(TheTextManager(), nullptr, mfc::operator+(mfc::CString("perk "), title));
+    if (found) TheTextManager()->ReadLine(&tip, 1);
     title.Format("%s %d\n", labels_[0], Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
-    if (TextsOpenSection(Texts(), nullptr, "tip 10511") != 0) Texts()->ReadToHash(&hint, 1);
+    if (TextsOpenSection(TheTextManager(), nullptr, "tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);   // "\n"
     regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);
 }

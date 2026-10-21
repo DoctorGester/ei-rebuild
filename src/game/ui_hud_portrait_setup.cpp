@@ -22,6 +22,7 @@
 #include "originals_world.h"
 #include "record_vectors.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -37,7 +38,6 @@ float Thin() { return 0.2f /*0073BAD4*/; }            // 0.2
 float Fat() { return 0.8f /*0073CCA8*/; }             // 0.8
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle (ui_hud_portraits.cpp)
 const Quaternion& Identity() { return ei::GameData<const Quaternion>(0x007C8150); }
-void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 
 // The slots' STLport vector (CHudPortraits +0x158): 0064AB20 appends a default slot (identity
 // orientations, empty strings), 0064AD40 erases [first, last): recordvec::HudPortraitSlotVector's.
@@ -238,7 +238,7 @@ void CHudPortraits::Rebuild(int wide) {
     for (PlayerNode* node = PlayersHead()->next; node != PlayersHead(); node = node->next) {
         auto* player = static_cast<net::PlayerMessage*>(node->data.ptr);
         CEngineObject* unit = nullptr;
-        if (player->id_ >= 0) unit = WorldFindUnit(ClientWorld(), nullptr, player->id_);
+        if (player->id_ >= 0) unit = WorldFindUnit(TheClientWorld(), nullptr, player->id_);
         if (player->state_ == 0 && player->id_ >= 0 && unit) continue;
 
         UnitPrototypeRecord* prototype;

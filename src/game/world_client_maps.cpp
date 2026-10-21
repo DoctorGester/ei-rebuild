@@ -62,6 +62,7 @@
 #include "unit_create.h"
 #include "game_arrays.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <windows.h>
 
@@ -990,7 +991,7 @@ void DropAndDelete(T*& slot) {
 } // namespace
 
 void CWorldClient::Teardown() {
-    camera::TheCamera()->SetTarget(nullptr);
+    TheCamera()->SetTarget(nullptr);
     if (CFlyingHitPoints* p = numbers_) {
         p->Destruct();
         gamecrt::operator_delete(p);
@@ -1604,7 +1605,7 @@ void FitGrid(SectorGrid& grid, const Terrain* terrain) {
 MapRecord* LocalZoneRecord() {
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
     mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    MapRecord* record = GameMapDatabase()->FindMap(*zone);
+    MapRecord* record = TheMapDatabase()->FindMap(*zone);
     zone->~CString();
     return record;
 }

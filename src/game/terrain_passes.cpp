@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -115,7 +116,7 @@ void Terrain::ChooseDetail(SectorData* sector) {
                             (sector->maxZ + sector->minZ) * 0.5f};
     // (z^2 + y^2) + x^2. The original keeps the sum unrounded; the passes run on the main thread
     // (24-bit precision), where the helper's stores change nothing.
-    const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, camera::TheCamera()->localPosition_);
+    const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, TheCamera()->localPosition_);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared < DetailNear() * DetailNear() && minDetail <= 0) level = 0;

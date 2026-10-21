@@ -31,6 +31,7 @@
 #include "originals_ui.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 using console::CStringArray;
 
@@ -319,7 +320,7 @@ BOOL CBattleScreen::Draw(void* target) {
     UiRenderer* renderer = interface_->renderer_;
     DWORD flags = kClearTarget;
     if ((renderer->caps_ & 0x4000) && renderer->stencil_) flags = kClearStencil;
-    auto* lock = ei::GamePointer<CRITICAL_SECTION>(0x007AEE78);
+    auto* lock = TheDeviceLock();
     gameapi::EnterCriticalSection(lock);
     renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);

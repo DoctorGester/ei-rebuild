@@ -20,6 +20,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -29,7 +30,6 @@
 
 namespace {
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 const char* CantLoadText() { return "CTexture::FillSurface.\n Can't Load texture %s.\n"; }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"
 const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead of %d"; }
 
@@ -118,9 +118,9 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     if (previous) previous->Release();
     SurfacePixels pixels;
     DirectPixels(memory, &pixels);
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     WritePixels(pixels.bits, pixels.pitch, width, height, pixels.height, pixels.width, colour->bits, alphaBits, layout);
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     flags_ |= kTextureLoaded;
     return 1;
 }

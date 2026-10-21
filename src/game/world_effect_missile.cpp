@@ -22,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -295,7 +296,7 @@ std::uintptr_t CEffectArrowFigure::Vtable() { return ei::DataId(0x007437B8); }
 
 void CEffectArrowFigure::Reset() {
     ResetMissile();
-    if (figure_ != nullptr) WorldClient()->RemoveObject(figure_->id_);
+    if (figure_ != nullptr) TheClientWorld()->RemoveObject(figure_->id_);
     hit_ = DamageInfo{};
     hit_.multiplier = 1.0f;
     if (figure_ != nullptr) {
@@ -324,7 +325,7 @@ int CEffectArrowFigure::Tick() {
 
 void CEffectArrowFigure::MoveFigure() {
     if (figure_ == nullptr) return;
-    WorldClient()->objectGrid_.Move(figure_, &localPosition_.x);
+    TheClientWorld()->objectGrid_.Move(figure_, &localPosition_.x);
     static_cast<CTransformObject*>(figure_)->RollTowards(velocity_);
 }
 
@@ -336,7 +337,7 @@ void CEffectArrowFigure::Start(int update) {
     mfc::CString model(game::ArrowFigureModelText());
     mfc::CString texture(game::ArrowFigureTextureText());
     int id = NextClientObjectId()--;
-    CEngineObject* object = camera::ObjectManager()->CreateObject(kClassFigureObject, id);
+    CEngineObject* object = TheObjectManager()->CreateObject(kClassFigureObject, id);
     if (object != figure_) {
         CountedRefResetOriginal(&figure_);
         if (object != nullptr) ++object->refCount_;
@@ -353,7 +354,7 @@ void CEffectArrowFigure::Start(int update) {
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
     static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
-    WorldClient()->AddObject(figure_);
+    TheClientWorld()->AddObject(figure_);
 }
 
 int CEffectArrowFigure::Unpack(int update, DeltaField* field) {

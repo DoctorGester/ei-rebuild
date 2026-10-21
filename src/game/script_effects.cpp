@@ -7,6 +7,7 @@
 #include "originals_library.h"
 #include "world.h"
 #include "world_effect.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -26,7 +27,7 @@ constexpr int kClassLightning = 0x4D;   // CEffectLightning
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
-CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
+CBaseManager* EffectManager() { return static_cast<CBaseManager*>(TheServerWorld()->manager48_); }
 
 // The id saved for an effect object: -1 for none.
 int ObjectId(const CEngineObject* object) { return object ? object->id_ : -1; }
@@ -48,7 +49,7 @@ std::size_t Length(const char* s) { return std::strlen(s); }
 // Takes the effect object out of the world's timed objects and drops the reference to it.
 void DropEffect(CEngineObject** slot) {
     if (CEngineObject* object = *slot) {
-        WorldServer()->RemoveTimedObject(object->id_);
+        TheServerWorld()->RemoveTimedObject(object->id_);
         (*slot)->Release();
     }
     *slot = nullptr;
@@ -90,7 +91,7 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     sound->looping_ = 0;
     const char* name = cmd->stringArgs.data[0];
     std::memcpy(sound->name_, name, Length(name) + 1);
-    WorldServer()->AddTimedObject(sound);
+    TheServerWorld()->AddTimedObject(sound);
 }
 
 // 004BD310: CreateFXSource / CreateRandomizedFXSource (script.h). A new source's element is the
@@ -148,7 +149,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     std::memcpy(&sound->radius_, &source->radius, 4);
     const char* name = source->name;
     std::memcpy(sound->name_, name, Length(name) + 1);
-    WorldServer()->AddTimedObject(sound);
+    TheServerWorld()->AddTimedObject(sound);
     source->idle = 0;
     ++source->object->refCount_;
 }
@@ -174,7 +175,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
     bolt->SetEnds(&from, &to, f[7]);
-    WorldServer()->AddTimedObject(bolt);
+    TheServerWorld()->AddTimedObject(bolt);
 }
 
 // 004BD9A0: CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
@@ -221,7 +222,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     particles->localPosition_ = {f[1], f[2], f[3]};
     ++particles->refCount_;
     std::memcpy(&particles->size_, &f[4], 4);
-    WorldServer()->AddTimedObject(particles);
+    TheServerWorld()->AddTimedObject(particles);
 
     source->object = particles;
     source->id = id;

@@ -22,6 +22,7 @@
 #include <cstring>
 #include "originals_render.h"
 #include "originals_units.h"
+#include "game_singletons.h"
 
 // The light range test keeps its sums on the FPU stack like the original.
 
@@ -156,7 +157,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         }
         CEngineObject* temporary = nullptr;
         // The first set takes +0xDC (woundsMaterial) as stage 0's texture.
-        RenderDeviceObject()->SetMaterial(static_cast<CDeviceMaterial*>(k == 0 ? static_cast<void*>(woundsMaterial) : temporary));
+        TheRenderDevice()->SetMaterial(static_cast<CDeviceMaterial*>(k == 0 ? static_cast<void*>(woundsMaterial) : temporary));
         if (k != 0 && temporary) ReleaseTemporary(temporary);   // never set
         set = partSets[k];
         for (int g = 0; g < set->groups.size; ++g) {
@@ -214,7 +215,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     }
     if (anyDirty) object->flags_ |= kObjectDirty;
     else object->flags_ &= ~kObjectDirty;
-    RenderDeviceObject()->SetMaterial(nullptr);
+    TheRenderDevice()->SetMaterial(nullptr);
     Finish(lights, list);
     return 1;
 }

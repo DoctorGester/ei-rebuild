@@ -69,7 +69,6 @@ void EraseId(ObjectIdMap& map, unsigned id) {
 
 } // namespace
 
-CWorldServer* WorldServer() { return ei::GamePointer<CWorldServer>(0x007AFF60); }
 
 // ---- Id maps -------------------------------------------------------------------------------------
 

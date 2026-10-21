@@ -11,6 +11,7 @@
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "lib/nan_audit.h"
@@ -188,7 +189,7 @@ void AIBrain::MeasureExposure(CUnitServer* self, float* out) {
         if (distance < sight) {
             Vector3 theirEye;
             Vector3 to = *static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
-            double range = WorldServer()->AIMap()->LineOfSight(&eye, &to) * sight;
+            double range = TheServerWorld()->AIMap()->LineOfSight(&eye, &to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
         KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.valuesB0[2].current) * self->stats.valuesE0[2].current));

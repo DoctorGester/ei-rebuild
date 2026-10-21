@@ -15,6 +15,7 @@
 #include "originals_script.h"
 #include "game_arrays.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,7 +32,7 @@ void World::AddTimedObject(void* object) { WorldAddTimed(this, nullptr, static_c
 World* TheWorld() { return ei::GamePointer<World>(0x007AFF60); }
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
-CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
+CBaseManager* EffectManager() { return static_cast<CBaseManager*>(TheServerWorld()->manager48_); }
 
 // CArray<ScriptAreaPart>::SetSize(newSize, -1) as the area functions inline it.
 void SetPartCount(mfc::CArray<ScriptAreaPart>* parts, int newSize) {
@@ -151,7 +152,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
         ScriptPointLight* light = &Lights(this)[i];
         if (!light->object) break;
         if (light->id == id) {
-            WorldServer()->RemoveTimedObject(Lights(this)[i].object->id_);
+            TheServerWorld()->RemoveTimedObject(Lights(this)[i].object->id_);
             Lights(this)[i].object->Release();
             break;
         }
@@ -206,7 +207,7 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
     for (int i = 0; i < LightCount(this); ++i) {
         ScriptPointLight* light = &Lights(this)[i];
         if (!light->object || light->id != id) continue;
-        WorldServer()->RemoveTimedObject(light->object->id_);
+        TheServerWorld()->RemoveTimedObject(light->object->id_);
         Lights(this)[i].object->Release();
         Lights(this)[i].object = nullptr;
         return;

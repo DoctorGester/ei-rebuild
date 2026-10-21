@@ -1,5 +1,6 @@
 // The orientation watch (harness_watch.h; tickets SV7b4 / SV3f).
 #include "harness_watch.h"
+#include "game/game_singletons.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
@@ -34,7 +35,6 @@ unsigned g_updates;
 DWORD g_mainThread;
 std::uintptr_t g_addonBase, g_addonEnd, g_selfBase, g_selfEnd;
 
-CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 
 void ModuleRange(HMODULE module, std::uintptr_t& base, std::uintptr_t& end) {
     if (!module) return;
@@ -151,7 +151,7 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
 }
 
 CUnit* FindUnit() {
-    CWorldClient* c = ClientWorld();
+    CWorldClient* c = TheClientWorld();
     if (!c || !c->objects_.head) return nullptr;
     for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
         if (n->data && static_cast<unsigned>(n->data->id_) == g_id && n->data->GetClassId() == world::kClassUnit)

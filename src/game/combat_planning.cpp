@@ -31,6 +31,7 @@
 #include "originals_units.h"
 #include "originals_gameplay.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -81,8 +82,8 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 
 // The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
 // map (007B01F4).
-bool& PathFlag() { return WorldServer()->AIMap()->refreshUnits; }
-CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
+bool& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
+CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 CAIMap* MapOf(void* world) { return static_cast<CWorldServer*>(world)->AIMap(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 

@@ -291,9 +291,7 @@ inline double D(float f) { return f; }
 
 inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
-inline CCamera* TheCamera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
 inline Terrain* TheTerrain() { return ei::GameData<Terrain* const>(0x007AF738); }   // width / height
-inline CBaseManager* ObjectManager() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
 inline float CellSize() { return ei::GameData<const float>(0x0079BDB4); }
 inline float ClockFloat() { return ei::GameData<const float>(0x0079B2A4); }
 inline const Vector3& ZeroVector() { return ei::GameData<const Vector3>(0x0079B5C8); }

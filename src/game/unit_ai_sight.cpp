@@ -11,6 +11,7 @@
 #include "originals_library.h"
 #include "sector_map.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -268,7 +269,7 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     EI_NAN_AUDIT(sight);
     float radius = kZero < sight ? sight : kZero;
     float height = static_cast<float>(observer->ModeSpeed());
-    CAIMap* map = WorldServer()->AIMap();
+    CAIMap* map = TheServerWorld()->AIMap();
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.valuesB0[2].current) * theirs->stats.valuesE0[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);

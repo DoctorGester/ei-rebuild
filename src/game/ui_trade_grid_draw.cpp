@@ -19,13 +19,13 @@
 #include <cstdint>
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // 005ECA10 (thiscall on the grid's +0x14C object): draws an item's model in a cell.
 // The window's surface text helpers (Rebirth patches 005FDE20).
@@ -41,9 +41,9 @@ int SurfaceText::Draw(const char* text, RECT* rect, int format, std::uint32_t co
 // `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
 void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
     unsigned long flags = (renderer->caps_ & 0x4000) && renderer->stencil_ ? 6ul : 2ul;
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     renderer->result_ = renderer->device_->Clear(1ul, rect, flags, 0ul, z, 0ul);
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     render::Rect nr{rect->left, rect->top, rect->right, rect->bottom};
     render::ClearDepth(z, &nr, 1);
 }

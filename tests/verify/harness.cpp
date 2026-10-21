@@ -1590,7 +1590,7 @@ std::string CursorCheck(const std::string& argument) {
         "frames checked, %d differed; in all %u moves handed over, refused: %u picture, %u no frame, %u recent frame, %u outside",
         count, info.lastTo.left, info.lastTo.top, info.lastTo.right, info.lastTo.bottom, info.checks, info.mismatches, info.calls,
         info.refused[0], info.refused[1], info.refused[2], info.refused[3]);
-    const CCursor* game = GameCursor();
+    const CCursor* game = TheCursor();
     Log("harness: cursorcheck: the cursor: mode %d, thread %s, image shown %d", game->mode_, game->thread_ ? "running" : "none",
         game->imageShown_);
     char what[240];
@@ -1611,7 +1611,7 @@ std::string CursorCheck(const std::string& argument) {
     if (!render::ReadCursorPresent(&width, &height, &bgr) || !capture::WriteFrame(name, width, height, bgr, &path))
         return std::string("cursorcheck: cannot write the cursor thread's frame ") + name;
     g_capturedFrames.push_back(path + " (the cursor thread's last present)");
-    const CursorImage* image = GameCursor()->image_;
+    const CursorImage* image = TheCursor()->image_;
     if (!image) return "cursorcheck: the cursor has no image";
     int fx = g_mouseX, fy = g_mouseY;
     render::WindowToFrame(&fx, &fy);
@@ -3816,9 +3816,9 @@ void RestoreAfterMinimise() {
         g_showWindow(g_minimised, SW_SHOWNOACTIVATE);
         Log("harness: the game window was minimised (a focus off step, or the user): shown again");
     }
-    CTextureDevice* device = RenderDeviceObject();
+    CTextureDevice* device = TheRenderDevice();
     if (device && device->ddraw_) {
-        auto* lock = ei::GamePointer<CRITICAL_SECTION>(0x007AEE78);   // the render device's lock
+        auto* lock = TheDeviceLock();   // the render device's lock
         EnterCriticalSection(lock);
         HRESULT result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
         device->lastLoadResult_ = result;

@@ -31,7 +31,6 @@ namespace {
 // 0057F440 on 007AFE20: whether this is a network game.
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
 
-IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
@@ -109,7 +108,7 @@ bool StrLen(Call* call) {
 
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
-    std::uint32_t index = GameRandom()->Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
+    std::uint32_t index = (&IsaacRandom::Global())->Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
     *StringResult(call) = static_cast<const char*>(Arg(call, static_cast<int>(index)));
     return true;
 }

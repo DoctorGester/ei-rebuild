@@ -18,6 +18,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -112,12 +113,12 @@ void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, CO
 
 // The text key `key` read up to its '#' into `text` (unchanged when there is no such text).
 void ReadTip(mfc::CString* text) {
-    if (TextsOpenSection(GameTexts(), nullptr, *text) != 0) GameTexts()->ReadToHash(text, 1);
+    if (TextsOpenSection(TheTextManager(), nullptr, *text) != 0) TheTextManager()->ReadToHash(text, 1);
 }
 
 // The shown name: the text of prefix + name, else the name itself.
 void ShownName(mfc::CString* out, const char* prefix, const char* name) {
-    if (!GameTexts()->GetString(mfc::CString(prefix) + name, out)) *out = name;
+    if (!TheTextManager()->GetString(mfc::CString(prefix) + name, out)) *out = name;
 }
 
 // A blank binding row appended as the original's push_back of a temporary does: in place while
@@ -268,15 +269,15 @@ void COptionsWindow::BuildSettings() {
         } else if (definition->kind_ == kSpinKind) {
             mfc::CString text;
             text = TextOffDefault();
-            GameTexts()->GetString(TextOptionOff(), &text);
-            if (i == kDifficultySetting) GameTexts()->GetString(TextDifficultyHard(), &text);
+            TheTextManager()->GetString(TextOptionOff(), &text);
+            if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyHard(), &text);
             void* memory = gamecrt::operator_new(sizeof(CUiSpin));
             setting.spin_ = memory ? static_cast<CUiSpin*>(memory)->Construct(interface_, RECT{530, top + 160, 690, top + 176},
                                                                              text)
                                    : nullptr;
             text = TextOnDefault();
-            GameTexts()->GetString(TextOptionOn(), &text);
-            if (i == kDifficultySetting) GameTexts()->GetString(TextDifficultyEasy(), &text);
+            TheTextManager()->GetString(TextOptionOn(), &text);
+            if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyEasy(), &text);
             setting.spin_->AddText(text);
             AddChild(setting.spin_);
             setting.bar_ = nullptr;
@@ -459,7 +460,7 @@ void COptionsWindow::Apply() {
         OptDifficultyCopy() = s[25].value_;
         GameDifficulty() = s[25].value_;
     }
-    if (shadowsChanged_) static_cast<CWorldClient*>(ClientWorldObject())->DropShadows();
+    if (shadowsChanged_) TheClientWorld()->DropShadows();
 }
 EI_REPLACE_METHOD(0x006524A0, COptionsWindow::Apply);
 

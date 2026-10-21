@@ -20,6 +20,7 @@
 #include "originals_library.h"
 #include "originals_ai.h"
 #include "originals_units.h"
+#include "game_singletons.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
@@ -37,7 +38,6 @@ constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
 // Diplomacy: one mask of allied sides per side (007C2BC4).
 const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
 
-IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // The server side of a unit's player (CPlayer::connection_, a CPlayerServer here; CUnit::player is
 // kept as bytes in unit.h). Its refreshPending_ == 2 is what the modes take as the player
@@ -80,7 +80,7 @@ constexpr int kRemarkIdle = 1;
 
 // The idle remark every mode's Execute starts with (1 in 1001).
 void MaybeRemark(AIBrain* brain, int what) {
-    if (GameRandom()->Next() % 1001 == 1) brain->owner->voice.Raise(what);
+    if ((&IsaacRandom::Global())->Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
 // An order on the stack: the looks array is constructed and given its derived vtable.
@@ -134,7 +134,7 @@ EI_REPLACE_METHOD(0x005D0A80, AIMode::Priority50);
 void AIMode::EnterIdle(AIBrain* brain) {
     ReleaseRef(brain->target);
     brain->action = AIBrain::kActionNone;
-    std::uint32_t roll = GameRandom()->Next();
+    std::uint32_t roll = (&IsaacRandom::Global())->Next();
     volatile std::int64_t wide = roll;             // FILD qword of the zero-extended value
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
     brain->owner->SetBusy(0);
@@ -203,7 +203,7 @@ void GuardMode::Execute(AIBrain* brain) {
         direction.y = static_cast<float>(direction.y * scale);
         direction.z = static_cast<float>(direction.z * scale);
     }
-    bool farLook = GameRandom()->Next() % 11 == 0;
+    bool farLook = (&IsaacRandom::Global())->Next() % 11 == 0;
     brain->PlanLooks(&order, &direction, wander, farLook);
     StartMove(brain, &order);
     DestroyLooks(&order);
@@ -324,7 +324,7 @@ void SentryMode::Execute(AIBrain* brain) {
     ConstructOrder(&order);
     order.looks.SetSize(0, -1);
     std::memcpy(&order.point, &point, sizeof(Vector3));
-    bool farLook = GameRandom()->Next() % 11 == 0;
+    bool farLook = (&IsaacRandom::Global())->Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
     // 007C53FC / 007C5400: the wander radii of a far and a near look-around.
     float wanderRadius = farLook ? GlobalFloat(0x007C53FC) : GlobalFloat(0x007C5400);
@@ -361,7 +361,7 @@ void FollowMode::OnObjectDeleted(CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x005D1DE0, FollowMode::OnObjectDeleted);
 
-void FollowMode::Load(CStream* stream) { reinterpret_cast<AIRef*>(&leader)->Load(stream, WorldServer()); }
+void FollowMode::Load(CStream* stream) { reinterpret_cast<AIRef*>(&leader)->Load(stream, TheServerWorld()); }
 EI_REPLACE_METHOD(0x005D1E60, FollowMode::Load);
 
 void FollowMode::Save(CStream* stream) { reinterpret_cast<AIRef*>(&leader)->Save(stream); }
@@ -516,7 +516,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
 
 void AggressionMode::Execute(AIBrain* brain) {
-    if (GameRandom()->Next() % 1001 == 1) brain->owner->voice.Raise(2);
+    if ((&IsaacRandom::Global())->Next() % 1001 == 1) brain->owner->voice.Raise(2);
     if (!chosen) return;
     brain->CallAllies(&static_cast<CMapObject*>(chosen)->position);
     int attack[2] = {-1, 0};        // {part, object} the brain is attacking now
@@ -579,7 +579,7 @@ void AggressionMode::Leave(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D2710, AggressionMode::Leave);
 
 void AggressionMode::Load(CStream* stream) {
-    reinterpret_cast<AIRef*>(&enemy)->Load(stream, WorldServer());
+    reinterpret_cast<AIRef*>(&enemy)->Load(stream, TheServerWorld());
     stream->Read(&fixed, 1);
 }
 EI_REPLACE_METHOD(0x005D2770, AggressionMode::Load);
@@ -885,8 +885,8 @@ EI_REPLACE_METHOD(0x005D37A0, PlayerMode::OnObjectDeleted);
 void PlayerMode::Load(CStream* stream) {
     // The save versions that wrote a group of objects after the mode.
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
-    reinterpret_cast<AIRef*>(&target)->Load(stream, WorldServer());
-    reinterpret_cast<AIRef*>(&leader)->Load(stream, WorldServer());
+    reinterpret_cast<AIRef*>(&target)->Load(stream, TheServerWorld());
+    reinterpret_cast<AIRef*>(&leader)->Load(stream, TheServerWorld());
     stream->Read(&point, sizeof(Vector3));
     stream->Read(&state, 4);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {

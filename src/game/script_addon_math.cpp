@@ -31,7 +31,6 @@ double CrtCos(double x) { return std::cos(x); }
 double CrtPow(double x, double y) { return std::pow(x, y); }
 
 // 00488970 IsaacRandom::Range (on the game's generator 007A9D40): the result is left in ST0.
-IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 } // namespace
 
@@ -177,7 +176,7 @@ bool Random(Call* call) {
     Store(&low, Floats(call)[0]);
     Store(&high, Floats(call)[1]);
     if (high > low) {
-        *FloatResult(call) = static_cast<float>(RandomRange(GameRandom(), nullptr, low, high));
+        *FloatResult(call) = static_cast<float>(RandomRange((&IsaacRandom::Global()), nullptr, low, high));
     } else {
         Store(FloatResult(call), low);
     }

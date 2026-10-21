@@ -26,6 +26,7 @@
 #include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -185,7 +186,7 @@ void DropLight(CMapObjectClientSpecific* self) {
 // 005114D0 (__fastcall; RET 0xC).
 void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix) {
-    CSoundManager* sounds = sound::Manager();
+    CSoundManager* sounds = TheSoundManager();
     if (kind == kStench) {
         record->timer = 0;
         return;
@@ -200,11 +201,11 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
             // The folder is empty here: the original plays the bare suffix.
             mfc::CString name;
             name += suffix;
-            sound::Manager()->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
+            TheSoundManager()->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
         } else {
             sounds->RemoveSequence(record->handle);
             record->handle = -1;
-            sound::Manager()->Play3D("magic\\FeebleMind\\end.wav", 0, position, SoundNear(), SoundFar(), 0, 0);
+            TheSoundManager()->Play3D("magic\\FeebleMind\\end.wav", 0, position, SoundNear(), SoundFar(), 0, 0);
         }
         return;
     }

@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_effects.h"
+#include "game_singletons.h"
 
 #include <bit>
 #include <cstdint>
@@ -70,7 +71,7 @@ RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node*
 // ScriptVars::operator= (all eight arrays).
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
-CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
+CBaseManager* EffectManager() { return static_cast<CBaseManager*>(TheServerWorld()->manager48_); }
 
 // 00675CA0: an effect object took a new position.
 void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
@@ -111,7 +112,7 @@ void RespawnFxSources(CScript* script) {
         int minDelay = fx.minDelay;
         fx.countdown = static_cast<int>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
         if (fx.object) {
-            WorldServer()->RemoveTimedObject(fx.object->id_);
+            TheServerWorld()->RemoveTimedObject(fx.object->id_);
             fx.object->Release();
         }
         fx.object = nullptr;
@@ -129,7 +130,7 @@ void RespawnFxSources(CScript* script) {
         ++sound->refCount_;
         const char* name = fx.name;
         std::memcpy(sound->name_, name, std::strlen(name) + 1);
-        WorldServer()->AddTimedObject(sound);
+        TheServerWorld()->AddTimedObject(sound);
     }
 }
 
@@ -145,7 +146,7 @@ void UpdatePointLights(CScript* script) {
             light->moving = 0;
             if (!light->removeWhenDone) continue;
             light = &lights.data[i];
-            WorldServer()->RemoveTimedObject(light->object->id_);
+            TheServerWorld()->RemoveTimedObject(light->object->id_);
             lights.data[i].object->Release();
             lights.data[i].object = nullptr;
             continue;

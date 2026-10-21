@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -41,7 +42,6 @@ constexpr int kOptionRows = 14;
 const UiKeyName* KeyNamesBegin() { return ei::GamePointer<const UiKeyName>(0x007857B0); }
 const UiKeyName* KeyNamesEnd() { return ei::GamePointer<const UiKeyName>(0x00787070); }
 
-CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top (rewritten
@@ -255,7 +255,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
                                     : nullptr;
             mfc::CString format;
             mfc::CString message;
-            Texts()->GetString(game::menukeytexts::KeyMappedText(), &format);
+            TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (a null box is written through, as in the original).
             *reinterpret_cast<mfc::CString*>(&static_cast<CMessageBox*>(box)->text_) = static_cast<const char*>(message);

@@ -75,7 +75,6 @@ __declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/
 // the texture pages of `allod`; `cave` is read as a byte. All of EAX: 0 when the file or a page does not load.
 __declspec(naked) inline int __fastcall LandscapeLoadMapOriginal(void* /*terrain*/, void*, const char* /*path*/,
                                                                 const char* /*allod*/, bool /*cave*/) EI_ORIGINAL(0x006C68B0)
-inline void* ClientWorldObject() { return ei::GamePointer<void>(0x007AF5B8); }
 // The game's glue object before it (007AFEA4; the glue functions of world_glue.h do not read it).
 inline void* GameGlueObject() { return ei::GamePointer<void>(0x007AFEA4); }
 // A-X5. 0056C750 (CWorldClient::ProjectDecal, world_client_decals.cpp; called through its address so its

@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "render/render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cmath>
 #include <cstdint>
@@ -26,7 +27,6 @@ constexpr std::uint32_t kCapsStencil = 0x4000;
 
 const char* NumberFormat() { return "%d"; }
 const char* CostFormat() { return "%s %d (%d)"; }
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // 005ECA10 (rewritten, ui_item_view.cpp): the owner screen draws
 // an item's model in a cell (RET 8).
@@ -47,9 +47,9 @@ struct SurfaceText {
 void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
     std::uint32_t flags = (renderer->caps_ & kCapsStencil) && renderer->stencil_ ? kClearZBuffer | kClearStencil
                                                                                     : kClearZBuffer;
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     renderer->result_ = renderer->device_->Clear(rect ? 1 : 0, rect, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     if (!rect) {
         render::ClearDepth(z, nullptr, 0);
         return;

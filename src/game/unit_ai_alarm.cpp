@@ -7,6 +7,7 @@
 #include "net_classes.h"
 #include "originals_ai.h"
 #include "world.h"
+#include "game_singletons.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -137,7 +138,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
         break;
     }
     case kGuardAlarm: {
-        const WorldAlarm& alarmAt = WorldServer()->alarms_[slot];
+        const WorldAlarm& alarmAt = TheServerWorld()->alarms_[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
         auto* mode = NewCounted<GuardMode>();
         AddMode(mode ? mode->ScriptGuardModeConstruct(&point, record->guardRadius, kNoWander) : nullptr);
@@ -200,7 +201,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     reinterpret_cast<AIRef*>(&target)->Assign(nullptr);
     action = kActionNone;
     attention.Build(owner->unit);
-    if (alwaysUpdated) WorldServer()->AddToUpdateMap(owner->unit);
+    if (alwaysUpdated) TheServerWorld()->AddToUpdateMap(owner->unit);
 }
 EI_REPLACE_METHOD(0x005D6630, AIBrain::ApplyBehaviour);
 

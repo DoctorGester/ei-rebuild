@@ -33,10 +33,10 @@
 #include "originals_engine.h"
 #include "originals_library.h"   // CxxThrowException
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
 // The holder's vtable and its base class's.
 void SetHolderVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D774); }
@@ -311,9 +311,9 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
         // The screen's pixel format. Without a owner the original reads through a null pointer
         // here; 004EFC60 always passes one. (The low byte of the flag asked for video memory.)
         PixelFormat format = {};
-        gameapi::EnterCriticalSection(DeviceLock());
+        gameapi::EnterCriticalSection(TheDeviceLock());
         ReadScreenFormat(this->device, &format);
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::LeaveCriticalSection(TheDeviceLock());
         // (The original's "no DXDD" report for a this without a owner is unreachable after the
         // read above, as is its release of an earlier surface: there is none on this path.)
         const int pictureWidth = static_cast<int>(picture->width), pictureHeight = static_cast<int>(picture->height);
@@ -334,9 +334,9 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
     SurfacePixels pixels;
     // (Always memory here: made above, or the dead loaders' holder.)
     if (!DirectPixels(this, &pixels)) return game::FatalError("Can't get surface pixel format to load picture.\n");   // "Can't get newSurface pixel format to load picture."
-    gameapi::EnterCriticalSection(DeviceLock());
+    gameapi::EnterCriticalSection(TheDeviceLock());
     FillPicture(this, picture, pixels);
-    gameapi::LeaveCriticalSection(DeviceLock());
+    gameapi::LeaveCriticalSection(TheDeviceLock());
     return 1;
 }
 EI_REPLACE_METHOD(0x004F0060, CDXSurface::LoadPictureData);

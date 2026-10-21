@@ -28,15 +28,12 @@ namespace effect {
 
 // --- Globals -------------------------------------------------------------------------------------
 
-inline void* SoundSystem() { return ei::GameData<void*>(0x007AF784); }
 // The light manager: ::LightManager (map_object.h).
 inline CLightFactory* LightFactory() { return ei::GameData<CLightFactory*>(0x007AF748); }   // CreateObject makes lights
 inline void* ParticleManager() { return ei::GameData<void*>(0x007AF754); }
 inline CLightningManager* BoltFactory() { return ei::GameData<CLightningManager*>(0x007AF758); }   // CreateObject makes bolts
-inline void* ObjectManager() { return ei::GameData<void*>(0x007AF5F8); }    // CBaseManager
 inline void* CameraObject() { return ei::GameData<void*>(0x007AF7C8); }
 inline int ChangeStamp() { return ei::GameData<const int>(0x007AFFC8); }
-inline int GameTick() { return ei::GameData<const int>(0x007AF61C); }
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(CurrentWorldTick()); }
 // While unpacking: the snapshot the field is read against (delta::ReadSnapshot in net_delta.h).
 inline BitStream* ReadSnapshot() { return ei::GameData<BitStream*>(0x007A9794); }

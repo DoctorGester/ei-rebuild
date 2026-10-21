@@ -18,6 +18,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <windows.h>
 
@@ -89,13 +90,13 @@ int CPlayerServer::OnGameStateRequest() {
     int state;
     Received().Read(&state, 4);
     player->sessionKind100_ = state;
-    WorldServer()->CollectParty(reinterpret_cast<WorldPlayer*>(player), &placements_);
+    TheServerWorld()->CollectParty(reinterpret_cast<WorldPlayer*>(player), &placements_);
     SendParty();
     std::uint8_t type = kMessageGameState;
     out_.Write(&type, 1);
     int value = player->sessionKind100_;
     out_.Write(&value, 4);
-    value = WorldServer()->tick_;
+    value = TheServerWorld()->tick_;
     out_.Write(&value, 4);
     player->dirty_ &= ~kDirtyGameState;
     state_ = kStateSendingCamera;

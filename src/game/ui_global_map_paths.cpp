@@ -20,6 +20,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "library_trees.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -72,7 +73,7 @@ mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&
 MapRecord* PlayerZone() {
     alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
     mfc::CString* name = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
-    MapRecord* zone = GameMapDatabase()->FindMap(*name);
+    MapRecord* zone = TheMapDatabase()->FindMap(*name);
     name->~CString();
     return zone;
 }
@@ -97,7 +98,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     mfc::CString variable;   // one string for every "z.<zone>" name, as in the original
     for (int i = 0; i < from->exits.size; ++i) {
         bool goesBeyond = false;
-        MapRecord* zone = GameMapDatabase()->FindMap(from->exits.data[i].target);
+        MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target);
         if (!zone) continue;
         float passTime = from->exits.data[i].passTime;
         if (SameName(zone->name, target_)) {

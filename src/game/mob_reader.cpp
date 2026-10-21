@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <new>
 
@@ -45,7 +46,6 @@ constexpr int kBehaviourCount = 5;
 // The limit the .mob wind strength is clamped to (never written: 0).
 float MobWindLimit() { return ei::GameData<const float>(0x0079BE58); }
 // The mission script (CScript at 007C27D4).
-CScript* MissionScript() { return ei::GamePointer<CScript>(0x007C27D4); }
 
 // A record of the given chunk id, allocated and constructed, or null for other ids.
 Spec* NewRecord(std::uint32_t id) {
@@ -120,7 +120,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     chunk.ReadHeader();
     chunk.ReadFloat();
-    CWorldServer* server = WorldServer();
+    CWorldServer* server = TheServerWorld();
     server->CWorldServer::SetTimeImpl(time);
     float limit = MobWindLimit();
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
@@ -208,7 +208,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
             for (int c = 0; c < 32; ++c)
                 trap->diplomacy |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
-        WorldMakeObjectOriginal(WorldServer(), nullptr, spec);
+        WorldMakeObjectOriginal(TheServerWorld(), nullptr, spec);
         auto* object = reinterpret_cast<ObjectSpec*>(spec);
         bool skip = spec->id == 2 && GameMbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
@@ -221,7 +221,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }
 
-    if (!(keepIds & 0xFF)) MissionScript()->Load(scripts, 1);
+    if (!(keepIds & 0xFF)) TheMissionScript()->Load(scripts, 1);
     scripts->~CString();
     StringArrayDestruct(&diplomacy->names);
     records.byId.Destroy();

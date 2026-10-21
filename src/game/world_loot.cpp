@@ -17,6 +17,7 @@
 #include "originals_library.h"
 #include "lib/mfc_list.h"
 #include "game_lists.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -219,13 +220,13 @@ void CWorldServer::LootDeadUnits() {
     IdList dead;
     while (node) {
         if (object->GetClassId() == world::kClassUnit && ObjectSlots(object)->IsDead()) {
-            static_cast<CWorldServer*>(WorldServer())->Loot(object, local);
+            static_cast<CWorldServer*>(TheServerWorld())->Loot(object, local);
             dead.PushBack(static_cast<unsigned>(object->id_));
         }
         node = objects_.map.After(node);
         object = node ? node->value : nullptr;
     }
-    for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) WorldRemoveObject(WorldServer(), nullptr, id->value);
+    for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) WorldRemoveObject(TheServerWorld(), nullptr, id->value);
 }
 
 EI_REPLACE_METHOD(0x005942D0, CWorldServer::Loot);

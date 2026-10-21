@@ -18,6 +18,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -36,7 +37,6 @@ ParticleSpriteArray& Sprites() { return ei::GameData<ParticleSpriteArray>(0x007A
 std::uint8_t& ArraysConstructed() { return ei::GameData<std::uint8_t>(0x007A9BF4); }
 
 // The world clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
-int WorldTicks() { return ei::GameData<const volatile int>(0x007AF61C); }
 float TickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
 
 constexpr int kReserve = 0x1000;
@@ -63,7 +63,7 @@ void ConstructArrays() {
 
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
-    double ticks = WorldTicks();
+    double ticks = CurrentClientTick();
     float fraction = static_cast<float>((ticks + D(TickFraction())) - ticks);
     float one;
     std::uint32_t oneBits = 0x3F800000;

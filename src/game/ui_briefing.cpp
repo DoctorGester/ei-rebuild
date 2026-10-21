@@ -54,8 +54,6 @@ struct LocalPartyRecords {
 LocalPartyRecords* LocalRecords() { return reinterpret_cast<LocalPartyRecords*>(LocalPlayerData()); }
 int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
 
-CMapDatabase* MapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
-void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 const char* ZoneTopicFormat() { return "b.%s"; }
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kTopicNameParts = 3;
@@ -81,7 +79,7 @@ void CBriefingScreen::Close() {
     MapEdgeFade() = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
-    std::uint32_t& flags = camera::TheCamera()->flags_;
+    std::uint32_t& flags = TheCamera()->flags_;
     flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
 EI_REPLACE_METHOD(0x00602BB0, CBriefingScreen::Close);
@@ -158,12 +156,12 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     if (unit->id_ != RecordUnitId(player->records[0])) return;
 
     leader_ = unit;
-    static_cast<CWorldClient*>(ClientWorld())->Select(unit);
-    static_cast<CCamera*>(camera::TheCamera())->SetTarget(unit);
+    TheClientWorld()->Select(unit);
+    TheCamera()->SetTarget(unit);
     MapRecord* zone;
     {
         BriefingPlayerName name;
-        zone = MapDatabase()->FindMap(name);
+        zone = TheMapDatabase()->FindMap(name);
     }
     mfc::CString prefix;
     prefix.Format(ZoneTopicFormat(), zone->name);

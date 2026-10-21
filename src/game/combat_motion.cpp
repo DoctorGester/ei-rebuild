@@ -36,6 +36,7 @@
 #include "originals_gameplay.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -98,8 +99,8 @@ void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 
 // The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
-CAIMap* ServerAIMap() { return WorldServer()->AIMap(); }
-CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
+CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
+CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 float HeroWalkLimit() { return ei::GameData<const float>(0x007C5448); }
 float HeroRunLimit() { return ei::GameData<const float>(0x007C5440); }
@@ -136,7 +137,7 @@ void ShowHead(CUnitServer* self) {
 
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    WorldServer()->RemoveTimedObject(self->effectObject->id_);
+    TheServerWorld()->RemoveTimedObject(self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
     if (effect) effect->Release();

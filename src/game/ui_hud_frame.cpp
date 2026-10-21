@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -60,7 +61,7 @@ constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, t
 
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod 006E95AA), stored.
 float TimeOfDay() {
-    const CWorldClient* world = GameClientWorld();
+    const CWorldClient* world = TheClientWorld();
     return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 

@@ -38,6 +38,7 @@
 #include "originals_core.h"
 #include "originals_gameplay.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -124,7 +125,7 @@ void StartQueueIfUnset(CUnitServer* self) {
 // The effect object (+0x17C, referenced) leaves the world.
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    WorldServer()->RemoveTimedObject(self->effectObject->id_);
+    TheServerWorld()->RemoveTimedObject(self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
     if (effect) effect->Release();
@@ -221,14 +222,14 @@ int CUnitServer::UpdateServer() {
             static_cast<CMapObject*>(unit)->MarkChanged(4);
         }
         // Every (speedClass + 1) updates the unit's step noise (005C9770 returns 0: no record).
-        if ((static_cast<std::uint32_t>(WorldServer()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
+        if ((static_cast<std::uint32_t>(TheServerWorld()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
                 presence->x = unit->position.x;
                 presence->y = unit->position.y;
             }
             presence = reinterpret_cast<AIEventPresence*>(
-                static_cast<std::intptr_t>(WorldServer()->AIEvents()->StepNoise(&unit->position, this)));
+                static_cast<std::intptr_t>(TheServerWorld()->AIEvents()->StepNoise(&unit->position, this)));
         }
         TickItemSpells();
         if (unit->player != nullptr) {   // 005301A0
@@ -569,7 +570,7 @@ void CUnitServer::TickAction() {
         ShowCurrentStep();
         if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel())->castEffect != 0) {
             // The world's timed object manager (+0x48) creates the effect.
-            auto* objects = static_cast<CBaseManager*>(WorldServer()->manager48_);
+            auto* objects = static_cast<CBaseManager*>(TheServerWorld()->manager48_);
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
             int kind = plan.castKind;

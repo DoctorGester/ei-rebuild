@@ -17,6 +17,7 @@
 // reads back as black, and in full screen the window is not on the desktop at all.
 #include "harness_capture.h"
 #include "harness_hooks.h"
+#include "game/game_singletons.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
@@ -41,7 +42,6 @@ constexpr std::uintptr_t kCursorLockCall = 0x004580D7;   // CALL 005E65F0 in 004
 constexpr std::uintptr_t kCursorLock = 0x005E65F0;       // CCursor::Lock (__fastcall, ECX = 007C7BD8)
 constexpr std::uintptr_t kDeviceObject = 0x007AF080;     // the renderer's (007AF060) +0x20
 
-CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 volatile unsigned g_frames = 0;
 State g_state = State::Idle;
@@ -245,9 +245,9 @@ void Capture() {
     }
     Image image;
     std::string how, why;
-    EnterCriticalSection(DeviceLock());
+    EnterCriticalSection(TheDeviceLock());
     bool ok = ReadLocked(surface, image, how, why) || ReadThroughDc(surface, image, how, why);
-    LeaveCriticalSection(DeviceLock());
+    LeaveCriticalSection(TheDeviceLock());
     if (!ok) {
         g_state = State::Failed;
         g_detail = why;
