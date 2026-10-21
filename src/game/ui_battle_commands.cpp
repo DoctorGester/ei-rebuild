@@ -15,6 +15,7 @@
 #include "ui_camp.h"
 #include "unit.h"
 #include "unit_client_models.h"
+#include "party.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -150,10 +151,10 @@ void CBattleScreen::ToggleMember(int index) {
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection (+0x778), record i against member i.
     if (ei::GameData<const int>(0x007B0098) == 1) {
-        if (auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0))) {
-            for (int i = 0; i < player->mercCount; ++i) {
+        if (auto* player = TheServerWorld()->GetPlayer(0)) {
+            for (int i = 0; i < player->Party()->members_.size; ++i) {
                 if (i >= party->size) continue;
-                PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
+                PartyUnitRecord* record = &player->Party()->members_.data[i];
                 CUnit* member = unitAt(i);
                 if (member->id_ == static_cast<int>(record->unitId))   // the record's unit id
                     record->selected = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);

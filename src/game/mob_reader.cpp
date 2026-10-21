@@ -135,12 +135,10 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
 
 // The scripts' text, plain or encoded.
 void ReadScripts(Chunk* chunk, mfc::CString* scripts, bool encoded) {
-    alignas(mfc::CString) std::uint8_t slot[sizeof(mfc::CString)];   // the callee constructs it
-    auto* text = reinterpret_cast<mfc::CString*>(slot);
-    if (encoded) chunk->ReadEncodedString(text);
-    else chunk->ReadString(text);
-    *scripts = *text;
-    text->~CString();
+    mfc::CString text(mfc::CString::kUnset);   // the callee constructs it
+    if (encoded) chunk->ReadEncodedString(&text);
+    else chunk->ReadString(&text);
+    *scripts = text;
 }
 
 } // namespace

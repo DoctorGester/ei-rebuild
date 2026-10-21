@@ -208,7 +208,7 @@ int GameFlow::SaveGame(const char* slot) {
     currentFolder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
-        if (WorldPlayer* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)))
+        if (CPlayer* player = TheServerWorld()->GetPlayer(0))
             ThePartyManager()->BeginRedeploy(player->Party());
     }
     LocalRecords records;
@@ -667,8 +667,8 @@ int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->ob
 } // namespace
 
 void GameFlow::UpdateMultiplayerVariable() {
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
-    NamedFloatTable* variables = &player->variables;
+    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    NamedFloatTable* variables = &player->Party()->variables_;
     if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
         if (on) VariableSet(variables, kMultiplayerVariable, 1.0f);
@@ -695,7 +695,7 @@ namespace {
 // The party manager (007AA5A0): 004A88C0 resets it (PartyManagerNewGameFour), 004A8890 (originals_world.h)
 // begins a redeploy of a party.
 
-// The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
+// The party outside a game (007C82B0, the party records as CPlayer::Party has them).
 CParty* GlobalParty() { return reinterpret_cast<CParty*>(TheSavedParties().outsideGame_); }
 // A CParty through an untyped pointer; Assign / CopyConstruct (00661300 / 006613C0) read the
 // source non-const.
@@ -745,7 +745,7 @@ constexpr int kRequestDone = 3;   // the client's game state request: answered
 
 void GameFlow::ReturnLocalParty() {
     if (!Active(net::GameClient())) return;
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     CParty* party = player->Party();
     GlobalParty()->Assign(party);
     ThePartyManager()->BeginRedeploy(party);
@@ -1031,8 +1031,8 @@ void GameFlow::SwitchMultiplayerZone() {
         }
     }
     LocalRecords records;
-    WorldPlayer* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
-    if (player && player->server->flag70_) {
+    CPlayer* player = TheServerWorld()->GetPlayer(0);
+    if (player && player->Server()->flag70_) {
         TheServerWorld()->SyncPartyRecords(player);
         records.Party()->Assign(player->Party());
         TheServerWorld()->ClearPlayerItems(player);
@@ -1158,12 +1158,12 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
     for (auto* node = joined.head; node;) {
         auto* next = node->next;
         netlink::NetLink* connection = node->data;
-        WorldPlayer* player = static_cast<WorldPlayer*>(PlayerCreateOriginal(players_));
-        reinterpret_cast<CPlayer*>(player)->Connect(connection);
-        player->dirty = 0xFFFFFFFFu;
-        player->sessionKind = sessionKind_;
-        std::memcpy(&player->server->lastPosition_, &startPosition_, 12);
-        int id = player->id;
+        CPlayer* player = static_cast<CPlayer*>(PlayerCreateOriginal(players_));
+        player->Connect(connection);
+        player->dirty_ = 0xFFFFFFFFu;
+        player->sessionKind100_ = sessionKind_;
+        std::memcpy(&player->Server()->lastPosition_, &startPosition_, 12);
+        int id = player->playerId_;
         kNetLog->PutText(kAcceptedPlayer)->PutInt(id)->PutChar('\n')->Apply(libcrt::FlushManipulator);
         node = next;
     }
@@ -1564,8 +1564,8 @@ void GameFlow::ProcessRequest() {
         break;
     case kStatePartyZone: {
         const char* zone = requestTarget_;
-        WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
-        reinterpret_cast<CPlayer*>(player)->AssignParty(RequestParty());
+        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        player->AssignParty(RequestParty());
         TheServerWorld()->TeardownZone();
         if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
             if (Active(net::GameClient())) {
@@ -1580,8 +1580,8 @@ void GameFlow::ProcessRequest() {
     }
     case kStateNetworkZone: {
         StartNetworkZoneAt(requestTarget_);
-        WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
-        reinterpret_cast<CPlayer*>(player)->AssignParty(RequestParty());
+        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        player->AssignParty(RequestParty());
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty = 1;
         break;
@@ -1846,10 +1846,10 @@ void GameFlow::UpdateFromServer() {
         stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(&g_questFiles);   // 00581860
     }
     auto* clientWorld = TheClientWorld();
-    WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
+    CPlayer* player = ClientWorldLocalView(clientWorld)->player;
     LocalVariables unusedEmpty;
     unusedEmpty.table.ConstructDefault();
-    NamedFloatTable* variables = &player->variables;
+    NamedFloatTable* variables = &player->Party()->variables_;
     // The local player's variables are replaced by the server's; "constr.current" survives.
     // Rebirth's PersistentGlobalVars (the CALL at 00580177 redirected) keeps the "gvar." ones.
     float construction = static_cast<float>(VariableGet(variables, kConstructionVariable));
@@ -1907,7 +1907,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The server's variables, by stamp.
-    if (ClientWorldLocalView(clientWorld)->player->sessionKind == 1) {
+    if (ClientWorldLocalView(clientWorld)->player->sessionKind100_ == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
         NodeVector changed;

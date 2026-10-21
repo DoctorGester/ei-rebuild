@@ -26,7 +26,7 @@ void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 using UnitList = mfc::CTypedPtrList<CUnit>;
 
 // A player's server connection (CPlayer::connection_ on the server is a CPlayerServer).
-CPlayerServer* ServerOf(CPlayer* player) { return reinterpret_cast<CPlayerServer*>(player->connection_); }
+CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
 
 // --- State 1 -------------------------------------------------------------------------------------
 
@@ -268,7 +268,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
 // 10 a closing particle and sound. Ends with the timer or without a caster.
 void Clairvoyance(CSpellEffect* e, UnitList& units) {
     if (IsUnit(e->caster)) {
-        auto* player = reinterpret_cast<CPlayer*>(e->caster->player);
+        auto* player = e->caster->player;
         if (player) {
             ScriptGroup* group = &ServerOf(player)->group50F8_;
             e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
@@ -297,7 +297,7 @@ void Possession(CSpellEffect* e) {
         e->state = 3;
         return;
     }
-    auto* player = reinterpret_cast<CPlayer*>(e->caster->player);
+    auto* player = e->caster->player;
     if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
         CEngineObject* target = e->target;
         CUnitServer* server = ControllerOf(target);

@@ -424,7 +424,7 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     InitArray(r.points, scenedata::PointArrayVtable());
     InitArray(r.texCoords, scenedata::TexCoordArrayVtable());
     InitArray(r.faces, scenedata::FileFaceArrayVtable());
-    InitArray(r.groups, scenedata::GroupArrayVtable());
+    InitArray(r.groups, recordarrays::FaceGroupArrayClass::Vtable());
     InitArray(r.rotKeys, scenedata::RotKeyArrayVtable());
     InitArray(r.posKeys, scenedata::PosKeyArrayVtable());
     InitArray(r.morphHeads, scenedata::MorphHeadArrayVtable());
@@ -585,7 +585,6 @@ mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
 }
 
 // The arrays' vtables the destructors write back.
-constexpr std::uintptr_t kFaceGroupArrayVtable = std::uintptr_t(0x0073C2BC);
 constexpr std::uintptr_t kRotationKeysVtable = std::uintptr_t(0x0073C1AC);
 constexpr std::uintptr_t kPositionKeysVtable = std::uintptr_t(0x0073C1B8);
 constexpr std::uintptr_t kMorphKeysVtable = std::uintptr_t(0x0073C114);
@@ -618,7 +617,7 @@ void FaceGroup::Destruct() {
 }
 
 void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
-    groups->vtable = ei::GamePointer<void>(kFaceGroupArrayVtable);
+    groups->vtable = recordarrays::FaceGroupArrayClass::Vtable();
     if (!groups->data) return;
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
     gamecrt::operator_delete(groups->data);
@@ -661,7 +660,7 @@ SceneMesh::SceneMesh() {
     ClearFields();
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
-    groups.Construct(kFaceGroupArrayVtable);
+    groups.Construct(recordarrays::FaceGroupArrayClass::Vtable());
 }
 
 // Each group is destroyed by its scalar deleting destructor with 0 (00454D90), FaceGroup::Destruct.

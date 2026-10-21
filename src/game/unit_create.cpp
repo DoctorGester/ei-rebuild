@@ -36,7 +36,7 @@ constexpr int kPtrListBlockSize = 10;
 // 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
 
 // The player's message writer (CPlayerServer, player + 0x20).
-void* PlayerMessages(const char* player) { return *reinterpret_cast<void* const*>(player + 0x20); }
+CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
 // The item's condition (CItem +0x20, a float kept as a dword) rounds to nothing.
 bool IsBroken(const CItem* item) {
@@ -86,7 +86,7 @@ EI_REWRITTEN(0x00552780, CUnitServer::Shout);
 // --- Broken equipment -------------------------------------------------------------------------
 
 void CUnit::DropBrokenEquipment() {
-    char* owner = player;
+    CPlayer* owner = player;
     if (!owner) return;   // the empty list's destructor (00429F10) has nothing to free
     ItemList broken{};
     broken.vtable = mfc::impl::ItemListClass::Vtable();
@@ -126,7 +126,7 @@ void CUnit::DropBrokenEquipment() {
     if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (broken.count != 0) {
-        reinterpret_cast<CPlayer*>(owner)->GiveItems(&broken, 1);
+        owner->GiveItems(&broken, 1);
         for (ItemList::Node* node = broken.head; node;) {
             ItemList::Node* next = node->next;
             node->data->Release();

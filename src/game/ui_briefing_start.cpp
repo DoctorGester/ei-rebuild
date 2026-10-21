@@ -45,7 +45,7 @@ const char* ShowLine() { return "#show"; }
 const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
 const char* TopicPrefix() { return "b."; }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)); }
+CPlayer* LocalServerPlayer() { return TheServerWorld()->GetPlayer(0); }
 
 constexpr int kStateWalking = 0;
 constexpr int kEventEnds = 0;
@@ -252,8 +252,8 @@ void CBriefingScreen::FinishDialogue() {
 
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {
         CUnit* unit = speaker->unit;
-        void* server = LocalServerPlayer()->server;
-        if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventLeaves, unit->id_);
+        CPlayerServer* server = LocalServerPlayer()->Server();
+        if (server) server->SendPair19(kEventLeaves, unit->id_);
         auto* model = reinterpret_cast<CUnitClientSpecific*>(unit->controller);
         model->blinks = 0;
         model->BlinkOpen(true);
@@ -294,15 +294,15 @@ void CBriefingScreen::FinishDialogue() {
     }
 
     state_ = kStateWalking;
-    void* server = LocalServerPlayer()->server;
-    if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventEnds, leader_->id_);
+    CPlayerServer* server = LocalServerPlayer()->Server();
+    if (server) server->SendPair19(kEventEnds, leader_->id_);
     Vector3 at = Position(leader_);
     if (briefingStarted_) {
-        static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition04(&at, 0, 1);
+        LocalServerPlayer()->Server()->SendPosition04(&at, 0, 1);
         TheCamera()->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {
-        static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition0F(&savedCamera_, &lookAt_, 0);
+        LocalServerPlayer()->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);
     }
 }
 EI_REWRITTEN(0x00608450, CBriefingScreen::FinishDialogue);

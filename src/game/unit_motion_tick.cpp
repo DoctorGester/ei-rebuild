@@ -119,7 +119,6 @@ std::uint8_t FailedByte(CUnitServer* c) { return reinterpret_cast<const std::uin
 // The world server (ManagerContextOf) and an object's world (ObjectWorld).
 CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(ManagerContextOf(c)); }
 int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
-CPlayer* PlayerOf(CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
 int GameMode() { return ei::GameData<const int>(0x007C2CC4); }
 
 constexpr int kStateIdle = 0;
@@ -231,7 +230,7 @@ void HitWhileMoving(CUnitServer* c) {
 // lifted while replanning.
 int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason) {
     CUnit* self = UnitOf(c);
-    char* selfPlayer = self->player;
+    CPlayer* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
         blocker->ServerController()->brain.LeaderOrFollowed() == self && CurrentWorldTick() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
@@ -353,7 +352,7 @@ void Exhaustion(CUnitServer* c) {
     CUnit* unit = UnitOf(c);
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
-    CPlayer* player = PlayerOf(unit);
+    CPlayer* player = unit->player;
     if (c->moveMode.wasMode3 && player && player->godMode_ == 0 && GameMode() != 3) {
         UnitVitals& vitals = static_cast<CMapObjectServer*>(unit->companion)->vitals;
         float* stamina = &vitals.mana;
@@ -371,7 +370,7 @@ void Exhaustion(CUnitServer* c) {
         } else {
             if (Drain(stamina, rate)) {
                 if (UnitOf(c)->player)
-                    PlayerSendObject0BOriginal(PlayerOf(UnitOf(c))->connection_, nullptr, UnitOf(c), 0x1D);
+                    PlayerSendObject0BOriginal(UnitOf(c)->player->connection_, nullptr, UnitOf(c), 0x1D);
                 std::memset(stamina, 0, 4);
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;

@@ -127,7 +127,7 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(11)) {
-        char* target = unit->player;
+        CPlayer* target = unit->player;
         std::uint32_t id = target ? static_cast<std::uint32_t>(AsPlayer(target)->id_) : 0xFFFFFFFFu;
         PutWord(field, unit->relationsB & unit->relationsA);
         PutByte(field, static_cast<std::uint8_t>(unit->side));
@@ -329,10 +329,10 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(9)) {
-        void* text;
-        void* read = field->ReadString(&text);
-        unit->scriptName = *reinterpret_cast<const mfc::CString*>(read);
-        CStringDestroy(&text);
+        {
+            mfc::CString text(mfc::CString::kUnset);
+            unit->scriptName = *static_cast<mfc::CString*>(field->ReadString(&text));
+        }
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -360,23 +360,23 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         field->ReadDelta(&unit->side, 1);
         int id;
         field->ReadDelta(&id, 4);
-        char* current = unit->player;
+        CPlayer* current = unit->player;
         if (id == -1) {
             if (current) {
                 unit->player = nullptr;
-                reinterpret_cast<CPlayer*>(current)->RemoveUnit(unit);
-                if (char* now = unit->player) reinterpret_cast<CPlayer*>(now)->AddUnit(unit);
+                current->RemoveUnit(unit);
+                if (CPlayer* now = unit->player) now->AddUnit(unit);
                 unit->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
-        } else if (!current || AsPlayer(current)->id_ != id) {
+        } else if (!current || current->id_ != id) {
             auto* view = reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(ManagerContextOf(unit))->LocalView());
-            char* local = reinterpret_cast<char*>(view->player);
-            if ((AsPlayer(local)->id_ == id || view->localSession) && unit->player != local) {
-                char* old = unit->player;
+            CPlayer* local = view->player;
+            if ((local->id_ == id || view->localSession) && unit->player != local) {
+                CPlayer* old = unit->player;
                 unit->player = local;
-                if (old) reinterpret_cast<CPlayer*>(old)->RemoveUnit(unit);
-                if (char* now = unit->player) reinterpret_cast<CPlayer*>(now)->AddUnit(unit);
+                if (old) old->RemoveUnit(unit);
+                if (CPlayer* now = unit->player) now->AddUnit(unit);
                 unit->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(local);
             }

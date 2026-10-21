@@ -482,7 +482,7 @@ Hazards and facts:
   part records (+0x374, 0x1C bytes) with label positions from 00742434 / 0074244C. ToggleFlag's third frame value 0.48046875 is
   unreachable. Texts go through DrawText 005FDE20 and Place 005E6FA0 by address.
 - Top panel: `ShowItems` builds page 1: "format_money" with the local party's +0x50 when above 0, then the local player's item
-  list (WorldPlayer +0xE0) merged by kind (slot 14) into the client world's copies (0055E940), one FormatItemName line each, the
+  list (CPlayer::items_ +0xE0) merged by kind (slot 14) into the client world's copies (0055E940), one FormatItemName line each, the
   copies released; into the log when page 1 is up. The original builds lines with CString operator+ temporaries; ours appends to
   one CString.
 

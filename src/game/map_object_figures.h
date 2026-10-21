@@ -140,7 +140,7 @@ class CObject3D;
 // A bone of a figure's skeleton (class id 0x300C, made by 0050CC60 from the skeleton links; names
 // provisional). The animation state's bone list holds them, its +0x20 the root. Only the fields
 // the pose code uses. A real virtual class (C19): the compiler makes its vtable (game.exe's
-// 0073DA0C is retired); the child list keeps game.exe's CPtrList table 0073DA40 (the containers).
+// 0073DA0C is retired), the child list's too (mfc_slots.h's BoneListClass).
 struct FigureBone : CEngineObject {
     mfc::CString name;                      // +0x1C the piece's name (0050CC60 links children by it)
     mfc::CString name2;                     // +0x20 its parent's name (empty for the root)
@@ -220,8 +220,8 @@ public:
 
 // The figure's animation state (class id 0x300D, 0x78 bytes; CObject3D + 0x98): the skeleton's
 // bones, the animation playing and the queue behind it, the frame reached. A real virtual class
-// (C19): the compiler makes its vtable (game.exe's 0073DA4C is retired); the lists keep game.exe's
-// CPtrList tables 0073DA40 / 0073DA80 (the containers).
+// (C19): the compiler makes its vtable (game.exe's 0073DA4C is retired), its lists' too (mfc_slots.h's
+// BoneListClass, AnimationStateListClass).
 class CFigureAnimationState : public CEngineObject {
 public:
     // map_object_animation_state.cpp (A-U2).
@@ -323,10 +323,10 @@ public:
 
     CObject3D* owner;               // +0x1C
     FigureBone* root;               // +0x20 the skeleton's root bone (FindRoot)
-    // +0x24 the skeleton's bones (MFC CPtrList, vtable 0073DA40; LinkBone adds).
+    // +0x24 the skeleton's bones (MFC CPtrList, BoneListClass; LinkBone adds).
     mfc::CTypedPtrList<FigureBone> bones;
     FigureAnimation* current;       // +0x40 the animation playing, or null
-    // +0x44 the animations queued after it (MFC CPtrList, vtable 0073DA80; the client update
+    // +0x44 the animations queued after it (MFC CPtrList, AnimationStateListClass; the client update
     // keeps fewer than 3).
     mfc::CTypedPtrList<FigureAnimation> queue;
     float time;                     // +0x60 the frame reached
@@ -411,7 +411,7 @@ public:
 
     // map_object_lifetime.cpp.
     // 00515BD0. The constructor: the engine object and transform bases (vtables 0073B8E0,
-    // 0073BA38), identity orientations, empty name, part list (vtable 0073DE4C), arrays and
+    // 0073BA38), identity orientations, empty name, part list (Object3DListClass), arrays and
     // string array, the bounds cleared, then the vtable 0073DDD4 and the default figure scale
     // from 007AF1D0. Returns this.
     CObject3D* Construct();
@@ -622,7 +622,7 @@ public:
     std::uint32_t spare09C;         // +0x09C cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // +0x0A0 loaded on first use (00518CA0)
     mfc::CString name;              // +0x0A4 the figure's name
-    // +0x0A8 the particle sources attached to the object (MFC CPtrList, vtable 0073DE4C, block
+    // +0x0A8 the particle sources attached to the object (MFC CPtrList, Object3DListClass, block
     // size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;
     Vector3 scale;                  // +0x0C4

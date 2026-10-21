@@ -48,7 +48,7 @@ void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
 
 } // namespace
 
-bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
+bool CWorldServer::Loot(CEngineObject* object, CPlayer* player) {
     GivenItems items;    // [0x18]
     ObjectList second;   // [0x5C]
     ObjectList third;    // [0x40]
@@ -99,7 +99,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             items.tail = entry;
         }
         player->Party()->Money() += static_cast<int>(node->data.money);
-        reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
+        player->GiveItems(&items, 0);
         if (node == list.head) list.head = node->next;
         else node->prev->next = node->next;
         if (node == list.tail) list.tail = node->prev;
@@ -115,11 +115,11 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
     }
     if (IsMultiplayerClient()) {
         // Quest items go to player 0.
-        WorldPlayer* first = nullptr;
+        CPlayer* first = nullptr;
         {
             PlayerIterator it;
-            for (WorldPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
-                if (p->id == 0) {
+            for (CPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
+                if (p->playerId_ == 0) {
                     first = p;
                     break;
                 }
@@ -137,14 +137,14 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
                 }
                 node = next;
             }
-            if (quest.count > 0) reinterpret_cast<CPlayer*>(first)->GiveItems(&quest, 0);
+            if (quest.count > 0) first->GiveItems(&quest, 0);
             for (GivenItems::Node* position = quest.head; position;)
                 NextItem(&quest, &position)->Release();
             mfc::impl::DestructList<mfc::impl::ItemListClass>(quest);
         }
     }
     player->Party()->Money() += gold;
-    reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
+    player->GiveItems(&items, 0);
     for (GivenItems::Node* position = items.head; position;)
         NextItem(&items, &position)->Release();
     bool found = items.count > 0 || gold > 0;
@@ -206,11 +206,11 @@ void CWorldServer::LootDeadUnits() {
     // empty entry.
     auto* node = objects_.map.First();
     CEngineObject* object = node ? node->value : nullptr;
-    WorldPlayer* local = nullptr;
+    CPlayer* local = nullptr;
     {
         PlayerIterator it;
-        for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-            if (player->id == 0) {
+        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+            if (player->playerId_ == 0) {
                 local = player;
                 break;
             }

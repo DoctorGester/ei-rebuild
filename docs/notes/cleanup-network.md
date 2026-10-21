@@ -90,7 +90,7 @@ functions are the game's `stlp::vector<Query>` instantiation, forwarded with it 
 
 - `CEngineObject` +0x18 is `prototypeId_`: the database prototype (items: index << 16 | material; spells: index << 16; units: the plain
   index).
-- `CPlayer` takes `WorldPlayer`'s names: +0xFC `partyId_`, +0x104 `lastScreen_`, +0x108 `godMode_`, +0x110 `lastTick_`; `CPlayerClient`
+- `CPlayer` is the one player class (world.h's `WorldPlayer` and `WorldSession` views folded in, C15): +0xFC `partyId_`, +0x104 `lastScreen_`, +0x108 `godMode_`, +0x110 `lastTick_`; `CPlayerClient`
   +0x84 is `localSession_` (`LocalViewData`). The login's +0x84 is the party id.
 - `CPlayerServer` +0x24 `possessedId_`: -1, or the Possession spell's target; the next party refresh sends group50F8_ and resets it.
   world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a pending possession passes).

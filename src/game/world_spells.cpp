@@ -137,7 +137,7 @@ void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* fr
     units.blocks = nullptr;
     units.blockSize = 10;
     if (caster) {
-        if (char* owner = caster->player) heroes = reinterpret_cast<WorldPlayer*>(owner)->server;
+        if (CPlayer* owner = caster->player) heroes = owner->Server();
     }
     if ((flags & kSpellAreaFlag) && !(flags & kSpellNoTargetFlag)) {
         --targets;

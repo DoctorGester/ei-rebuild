@@ -134,8 +134,8 @@ struct FaceGroup {
     mfc::CArray<std::uint32_t> faces;   // +04 CDWordArray of face indices
 };
 static_assert(sizeof(FaceGroup) == 0x18);
-// 00454CE0 (S7a): CArray<FaceGroup>'s destructor (vtable 0073C2BC): each group destroyed, the
-// storage freed.
+// 00454CE0 (S7a): CArray<FaceGroup>'s destructor (record_arrays.h's FaceGroupArrayClass): each group
+// destroyed, the storage freed.
 void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups);
 
 // Mesh (element of the caller's +0x544 array, 0x18C bytes, constructed by 004545C0).
@@ -483,7 +483,6 @@ namespace scenedata {
 inline void* PointArrayVtable() { return ei::GamePointer<void>(0x0073C860); }       // A
 inline void* TexCoordArrayVtable() { return ei::GamePointer<void>(0x0073C854); }    // B
 inline void* FileFaceArrayVtable() { return ei::GamePointer<void>(0x0073C848); }    // C
-inline void* GroupArrayVtable() { return ei::GamePointer<void>(0x0073C2BC); }       // D
 inline void* RotKeyArrayVtable() { return ei::GamePointer<void>(0x0073C83C); }      // E
 inline void* PosKeyArrayVtable() { return ei::GamePointer<void>(0x0073C830); }      // F
 inline void* MorphHeadArrayVtable() { return ei::GamePointer<void>(0x0073C824); }   // G

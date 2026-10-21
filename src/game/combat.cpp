@@ -97,7 +97,7 @@ float DifficultyAttackFactor() {
 // The unit's server object (CUnit + 0x170): its mana.
 float ServerMana(const CUnit* unit) { return static_cast<const CMapObjectServer*>(unit->companion)->vitals.mana; }
 
-std::uint8_t PlayerGodMode(const char* player) { return reinterpret_cast<const CPlayer*>(player)->godMode_; }
+std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
 // The map objects' virtual slots (map_object.h) and the server controller's (CUnitServerVirtuals).
 float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
@@ -631,7 +631,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         GameLog()->PutChar(10)->Apply(kLogEndLine);
     }
 
-    char* player = unit->player;
+    CPlayer* player = unit->player;
     if (player) {
         if (PlayerGodMode(player) != 0) return 0;
         if (source && source->player && player != source->player) return 0;
@@ -670,8 +670,8 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                         static_cast<CWorldServer*>(world)->AwardExperience(nullptr, std::bit_cast<float>(prototype->experienceValue));
                         return 1;
                     }
-                    char* killer = source->player;
-                    static_cast<CWorldServer*>(world)->AwardExperience(reinterpret_cast<WorldPlayer*>(killer), std::bit_cast<float>(prototype->experienceValue));
+                    CPlayer* killer = source->player;
+                    static_cast<CWorldServer*>(world)->AwardExperience(killer, std::bit_cast<float>(prototype->experienceValue));
                 }
             }
             return 1;

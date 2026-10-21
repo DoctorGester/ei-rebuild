@@ -56,7 +56,7 @@ const char* ZoneVariablePrefix() { return "z."; }
 // 00608D20: a network client's chat window (0x170 bytes; RET 4, returns this).
 __declspec(naked) CUiWindow* __fastcall ChatWindowConstruct(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x00608D20)
 
-constexpr int kFromCamp = 5;              // WorldPlayer::lastScreen
+constexpr int kFromCamp = 5;              // CPlayer::lastScreen_
 constexpr float kEdgeFade = 4.0f;
 constexpr int kTextureKind = 3;
 constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in flatColour_
@@ -93,7 +93,7 @@ MapRecord* FindLocalMap() {
     return TheMapDatabase()->FindMap(name);
 }
 
-WorldPlayer* LocalViewPlayer() {
+CPlayer* LocalViewPlayer() {
     return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
 }
 
@@ -186,7 +186,7 @@ void CBriefingScreen::Create() {
     autosave_ = false;
     if (LoadingGame())
         GameSaveStream()->Resize(0);
-    else if (LocalViewPlayer()->lastScreen != kFromCamp)
+    else if (LocalViewPlayer()->lastScreen_ != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();
     LoadPersonTexts();
@@ -279,7 +279,7 @@ void CBriefingScreen::Create() {
 
     // The people of the base: the local player's objects whose ids are text keys. The walk ends
     // at an empty entry, as the original's does.
-    const auto& objects = LocalViewPlayer()->objects.map;
+    const auto& objects = LocalViewPlayer()->knownObjects_;
     for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
         int id = node->value->id_;
         if (IsTextKey(id)) people_.push_back(id);
@@ -393,9 +393,9 @@ void CBriefingScreen::MarkPeople() {
     for (int* id = people_.begin(); id != people_.end(); ++id) {
         if (!WorldFindUnit(TheClientWorld(), nullptr, *id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
-        auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
-        if (player && player->server)
-            static_cast<CPlayerServer*>(player->server)->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
+        auto* player = TheServerWorld()->GetPlayer(0);
+        if (player && player->Server())
+            player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }
     open.clear();
     open.FreeStorage();

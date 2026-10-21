@@ -8,6 +8,7 @@ vtable,slots,class,file,note
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C1C4,24,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
 0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
+0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
@@ -22,8 +23,11 @@ vtable,slots,class,file,note
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
 0073D9D8,13,AnimationTrack,src/game/map_object_animation.h,class 0x300B (the figure factory)
 0073DA0C,13,FigureBone,src/game/map_object_figures.h,class 0x300C (the figure factory)
+0073DA40,3,BoneListClass,src/lib/mfc_slots.h,CList (a figure bone's children and an animation state's bones)
 0073DA4C,13,CFigureAnimationState,src/game/map_object_figures.h,class 0x300D (the figure and map object factories)
+0073DA80,3,AnimationStateListClass,src/lib/mfc_slots.h,CList (an animation state's queue)
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
+0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
 0073E178,61,PlainMapObject,src/game/map_object_kinds.h,CTree (PlainMapObject<0x52>)
 0073E26C,61,PlainMapObject,src/game/map_object_kinds.h,CBuilding (PlainMapObject<0x54>)
 0073E360,61,PlainMapObject,src/game/map_object_kinds.h,CStone (PlainMapObject<0x53>)
@@ -38,6 +42,11 @@ vtable,slots,class,file,note
 0073E98C,5,CTorchObjectClientSpec,src/game/torch_client_spec.h,the tail of 0073E954 (a byte match)
 0073EA8C,5,CUnit,src/game/unit.h,
 0073EAA0,57,CUnit,src/game/unit.h,the tail of 0073EA8C (0052E310 calls slot 5 through the table's memory)
+0073EB84,3,CarriedArrayClass,src/lib/mfc_slots.h,CArray (a unit's carried objects)
+0073EB90,3,MotionWaypointArrayClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints; derived from 0073EBB4)
+0073EB9C,3,MotionPointsClass,src/lib/mfc_slots.h,CArray (a unit motion's points; derived from 0073EBA8)
+0073EBA8,3,MotionPointArrayClass,src/lib/mfc_slots.h,CArray (a unit motion's points)
+0073EBB4,3,MotionWaypointBaseClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,

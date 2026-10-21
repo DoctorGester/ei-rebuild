@@ -268,7 +268,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         std::memcpy(&unit->position.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
-        unit->SetPlayer(reinterpret_cast<char*>(player));
+        unit->SetPlayer(static_cast<CPlayer*>(player));
         slots->SetScriptName(record->texts[0]);
         unit->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();

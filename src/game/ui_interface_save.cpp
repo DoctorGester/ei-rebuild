@@ -22,10 +22,8 @@ int Version(const CStream* stream) { return static_cast<int>(stream->version_); 
 // A string read into a temporary (ReadString constructs it), assigned to `field`
 // (CString::operator=, 00700AA9), then destroyed.
 void ReadInto(CStream* stream, mfc::CString* field) {
-    alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
-    auto* text = reinterpret_cast<mfc::CString*>(storage);
-    *field = *stream->ReadString(text);
-    text->~CString();
+    mfc::CString text(mfc::CString::kUnset);
+    *field = *stream->ReadString(&text);
 }
 
 } // namespace

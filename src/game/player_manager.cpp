@@ -20,7 +20,7 @@ constexpr int kConnectionType = 0x49;    // the side's player connection (CPlaye
 
 // The player's connection: the server side of it (only the server's manager sends to all).
 CPlayerServer* Server(CEngineObject* player) {
-    return reinterpret_cast<CPlayerServer*>(static_cast<CPlayer*>(player)->connection_);
+    return static_cast<CPlayer*>(player)->Server();
 }
 
 // Walks every player of `manager`, as the original's inlined iterator does (the manager counted

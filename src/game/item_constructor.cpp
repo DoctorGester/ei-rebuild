@@ -405,10 +405,10 @@ const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and mate
 // CString members used here (MFC; the original implementations).
 struct ItemText : mfc::CString {
     int Find(char c) const;               // 00700E91
-    void TrimSpaceLeft() { reinterpret_cast<mfc::CString*>(this)->TrimLeft(); }     // 006FE216 TrimLeft() (moves the text, memmove)
-    void TrimSpaceRight() { reinterpret_cast<mfc::CString*>(this)->TrimRight(); }   // 006FE11F TrimRight()
+    void TrimSpaceLeft() { mfc::CString::TrimLeft(); }     // 006FE216 TrimLeft() (moves the text, memmove)
+    void TrimSpaceRight() { mfc::CString::TrimRight(); }   // 006FE11F TrimRight()
 };
-int ItemText::Find(char c) const { return reinterpret_cast<const mfc::CString*>(this)->Find(c); }
+int ItemText::Find(char c) const { return mfc::CString::Find(c); }
 ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 
 // 006E80D8 atoi.

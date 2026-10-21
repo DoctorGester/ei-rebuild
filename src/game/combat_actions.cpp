@@ -79,8 +79,8 @@ bool ListContains(const UnitList* list, const CUnit* unit) {
 
 // OnDamaged's search of the party (the player's units, walked as 00455830 begin() and 004558B0
 // operator++ do): the first member that is not `self`; a null member ends it.
-CUnit* FirstOtherPartyMember(WorldPlayer* player, const CUnit* self) {
-    const auto& map = player->units.map;
+CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
+    const auto& map = player->units_;
     for (auto* node = map.First(); node; node = map.After(node)) {
         CUnit* member = node->value;
         if (!member) return nullptr;
@@ -245,14 +245,14 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     void* world = ManagerContext();
     item->charge_ = item->charge_ - cost;
     static_cast<CWorldServer*>(world)->AddCounted(item);
-    auto* player = reinterpret_cast<WorldPlayer*>(unit->player);
+    auto* player = unit->player;
     const auto* link = reinterpret_cast<const CItemLink*>(static_cast<std::uintptr_t>(item->link_));
     if (!player || !link) return;
     CResourceManager* items = player->Party()->ItemManager();
     auto* copy = static_cast<CItem*>(items->FindObject(link->value));
     if (!copy) return;
     std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
-    reinterpret_cast<CPlayer*>(player)->ItemUsed(copy);   // 00665BE0
+    player->ItemUsed(copy);   // 00665BE0
 }
 EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
 
@@ -384,7 +384,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->player) {     // 005301A0
             CUnit* killer = attacker->ServerController()->unit;
             if (killer->player)
-                PlayerMessage(reinterpret_cast<WorldPlayer*>(killer->player)->server, nullptr, killer, kMessageKilled);
+                PlayerMessage(killer->player->Server(), nullptr, killer, kMessageKilled);
         } else if (unit->player) {
             static_cast<AIAlarm*>(&attacker->ServerController()->voice)->Raise(9);
         }
@@ -411,8 +411,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     copy.extra = animation.extra;
     PlayAnimationOrder(copy);
     AIEventsOf(world)->ForgetUnit(this);
-    if (char* player = unit->player) {
-        if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
+    if (CPlayer* player = unit->player) {
+        if (CUnit* member = FirstOtherPartyMember(player, unit))
             member->ServerController()->brain.memory.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
@@ -425,7 +425,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     void* world = ManagerContext();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
-        if (char* player = unit->player) TheServerWorld()->Loot(target, reinterpret_cast<WorldPlayer*>(player));
+        if (CPlayer* player = unit->player) TheServerWorld()->Loot(target, player);
         WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
@@ -486,7 +486,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
         CItem* item = other->TakeRandomItem();
         if (item) {
             GameLog()->Put("Item has been stolen from")->PutChar(10)->Apply(kLogEndLine);
-            if (char* player = unit->player) {
+            if (CPlayer* player = unit->player) {
                 mfc::CTypedPtrList<CItem> list;
                 list.blocks = nullptr;
                 list.vtable = kPtrListVtable;
@@ -496,15 +496,15 @@ void CUnitServer::UseSkill(CEngineObject* target) {
                 list.free = nullptr;
                 list.blockSize = 10;
                 list.AddHead(item);
-                reinterpret_cast<CPlayer*>(player)->GiveItems(&list, 0);
+                player->GiveItems(&list, 0);
                 list.vtable = kPtrListVtable;
                 list.RemoveAll();
             }
             item->Release();
             return;
         }
-        char* player = unit->player;
-        if (player && static_cast<CWorldServer*>(world)->Loot(other, reinterpret_cast<WorldPlayer*>(player))) return;
+        CPlayer* player = unit->player;
+        if (player && static_cast<CWorldServer*>(world)->Loot(other, player)) return;
         if (!unit->player) return;
         message = kMessageStealFailed;
         break;
@@ -521,7 +521,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
         return;
     }
     CUnit* self = unit;
-    PlayerMessage(reinterpret_cast<WorldPlayer*>(self->player)->server, nullptr, self, message);
+    PlayerMessage(self->player->Server(), nullptr, self, message);
 }
 EI_REWRITTEN(0x0054F000, CUnitServer::UseSkill);
 

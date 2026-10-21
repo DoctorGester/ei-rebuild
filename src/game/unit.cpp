@@ -46,7 +46,7 @@ float ItemWeight(const CItem* item) { return item->Weight(); }
 float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
 
 // The party of the unit's player (CPlayer +0x70).
-CParty* RecordsOf(char* player) { return reinterpret_cast<CPlayer*>(player)->Party(); }
+CParty* RecordsOf(CPlayer* player) { return player->Party(); }
 
 bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == kClassPartyController; }
 

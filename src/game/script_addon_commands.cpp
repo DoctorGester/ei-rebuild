@@ -44,7 +44,7 @@ int& DrawAllUnits() { return ei::GameData<int>(0x0079BE6C); }
 // 007C554C: the loading screen's movie is off (LoadingMovie::off, bink_video.cpp).
 std::uint8_t& LoadingMovieOff() { return ei::GameData<std::uint8_t>(0x007C554C); }
 
-WorldPlayer* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
+CPlayer* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data; }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
 CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]->object; }
@@ -67,8 +67,8 @@ bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.
 CPlayerServer* FirstPlayerState() {
-    WorldPlayer* player = GetPlayer(0);
-    return player ? player->server : nullptr;
+    CPlayer* player = GetPlayer(0);
+    return player ? player->Server() : nullptr;
 }
 
 // The folder IsFileExists looks in: addon's mod folder (100BD184). Without a mod (as here) it is
@@ -107,9 +107,9 @@ bool GSSetPlayerVar(Call* call) {
     float value;
     Store(&value, Floats(call)[1]);
     const char* name = Text(call, 0);
-    WorldPlayer* player = GetPlayer(number);
+    CPlayer* player = GetPlayer(number);
     if (!player) return Report("GSSetPlayerVar", "There is no player with number %d", number);
-    player->server->SetVariable(name, Bits(value));
+    player->Server()->SetVariable(name, Bits(value));
     return true;
 }
 
@@ -118,16 +118,16 @@ bool GSSetPlayerVar(Call* call) {
 bool GSGetPlayerVar(Call* call) {
     int number = Ftol(Floats(call)[0]);
     const char* name = Text(call, 0);
-    WorldPlayer* player = GetPlayer(number);
+    CPlayer* player = GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
-    *static_cast<float*>(call->result) = static_cast<float>(static_cast<double>(player->variables.Get(name)));
+    *static_cast<float*>(call->result) = static_cast<float>(static_cast<double>(player->Party()->variables_.Get(name)));
     return true;
 }
 
 // GiveExp(player, value): the world's experience award of `value` to the player (no check that
 // the player exists: null takes the multiplayer path).
 bool GiveExp(Call* call) {
-    WorldPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
+    CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
     TheServerWorld()->AwardExperience(player, Floats(call)[1]);
     return true;
 }
@@ -139,8 +139,8 @@ bool GiveUnitExp(Call* call) {
     if (!data) return InvalidArguments("GiveUnitExp");
     static_cast<CUnitServer*>(data)->AddExperience(Floats(call)[0]);
     CUnit* unit = data->unit;
-    if (auto* party = reinterpret_cast<WorldPlayer*>(unit->player))
-        if (CPlayerServer* state = party->server)
+    if (auto* party = unit->player)
+        if (CPlayerServer* state = party->Server())
             state->SendPair18(static_cast<std::uint32_t>(unit->id_), Bits(Floats(call)[0]));
     return true;
 }
@@ -170,16 +170,16 @@ bool ResetTarget(Call* call) {
 
 bool SendCurrentParty(Call* call) {
     int number = Ftol(Floats(call)[0]);
-    WorldPlayer* player = GetPlayer(number);
+    CPlayer* player = GetPlayer(number);
     if (!player) return Report("SendCurrentParty", "There is no player with number %d", number);
-    static_cast<CPlayerServer*>(player->server)->ResendParty();
+    player->Server()->ResendParty();
     return true;
 }
 
 // Loot(player, unit): the player loots the dead unit, which is then removed.
 bool Loot(Call* call) {
     int number = Ftol(Floats(call)[0]);
-    WorldPlayer* player = GetPlayer(number);
+    CPlayer* player = GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
     CEngineObject* unit = ObjectArg(call, 0);
     if (!unit) return Report("Loot", "Object doesn't exist");
@@ -224,7 +224,7 @@ bool IsFileExists(Call* call) {
 // GSListPlayerVars(player): "<name> = <value>" for each of the player's variables, in the
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
-    WorldPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
+    CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
     const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         mfc::CString line;

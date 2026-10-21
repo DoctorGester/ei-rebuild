@@ -18,7 +18,7 @@ class Terrain;
 namespace net { class ClientSession; }
 namespace mfc { class CString; }
 struct ObjectIdMap;
-struct WorldPlayer;
+class CPlayer;
 struct CDiplomacy;
 struct Vector3;
 struct VertexPacket;
