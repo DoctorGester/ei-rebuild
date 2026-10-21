@@ -21,6 +21,8 @@
 #include <cstdint>
 
 class CStream;   // core_streams.h
+class CEngineObject;   // engine_object.h
+class CMapObject;      // map_object.h
 
 namespace mapspec {
 
@@ -123,7 +125,7 @@ struct Spec {
 
     Chunk chunk;                 // +0x00
     std::int32_t id;             // +0x18 the object's id (-1)
-    void* object;                // +0x1C the world object made from the record (null: none)
+    CEngineObject* object;       // +0x1C the world object made from the record (null: none)
     Vector3 position;            // +0x20
     Quaternion rotation;         // +0x2C (1, 0, 0, 0)
     mfc::CString name;           // +0x3C
@@ -162,6 +164,9 @@ struct ObjectSpec {
     void ObjectSpecApply();
     // 0046B090 (slot 4, RET 4). The type name in `out`: the player number ("%i").
     mfc::CString* ObjectSpecTypeName(mfc::CString* out);
+
+    // The world object an object record makes is a map object (a unit for a unit record).
+    CMapObject* MapObject() const;
 
     Spec base;                   // +0x00
     mfc::CString model;          // +0x4C (from 0079B298, empty)

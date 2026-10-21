@@ -534,7 +534,7 @@ void AddMakerPictures(CConstructorPage* page) {
 }
 } // namespace
 
-void CConstructorPage::BuildSpellMaker(void* slots) {
+void CConstructorPage::BuildSpellMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 6;
     slots_ = slots;
@@ -563,7 +563,7 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
 }
 EI_REWRITTEN(0x006280C0, CConstructorPage::BuildSpellMaker);
 
-void CConstructorPage::BuildItemMaker(void* slots) {
+void CConstructorPage::BuildItemMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 7;
     slots_ = slots;

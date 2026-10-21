@@ -9,6 +9,7 @@
 // it builds was compared with the original's tables once at start-up (verify_ai_static_tables.cpp,
 // until S21d); the goldens check it now.
 #include "ai_map.h"
+#include "game_arrays.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -16,6 +17,7 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -356,5 +358,45 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
 
 // 005C42B0 (cdecl, no arguments; the static initialiser's second half, after the 81 tables have
 // been constructed empty).
-void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(const_cast<SmoothTable*>(SmoothTables())); }
+void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
 EI_REPLACE(0x005C42B0, BuildSmoothTables);
+
+// ---- The pool and the tables (ai_map.h) ----------------------------------------------------------
+
+// Zero at the start; each is built empty by its static initialiser in the list's order (the tables first) and
+// destroyed by the exit function the initialiser registers with the game's atexit; both are ported on the names and
+// registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+static_assert(sizeof(SmoothTable[81]) == 0x12FC);
+constinit lib::StaticObject<SmoothPool> g_smoothPool = /*007C3038*/ {};
+constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
+
+namespace {
+
+using AtExitFunction = void(__cdecl*)();
+void RegisterExit(std::uintptr_t exitFunction) { GameAtExit(ei::Code<AtExitFunction>(exitFunction)); }
+
+// 005C41C0: the tables built empty in order (the `eh vector constructor iterator` 006E8693 over 005C4210).
+void __cdecl ConstructSmoothTables() {
+    for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
+    RegisterExit(0x005C41F0);
+}
+// 005C41F0: the tables destroyed, the last one first (the `eh vector destructor iterator` 006E859F over 005C4250).
+void __cdecl DestroySmoothTables() {
+    SmoothTable* tables = g_smoothTables.Get();
+    for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
+}
+
+// 005C4460: the pool's node array built empty (005C44B0); the rest stays zero.
+void __cdecl ConstructSmoothPool() {
+    mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
+    RegisterExit(0x005C4480);
+}
+// 005C4480: the node array's destructor (005C4490).
+void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
+
+} // namespace
+
+EI_REPLACE(0x005C41C0, ConstructSmoothTables);
+EI_REPLACE(0x005C41F0, DestroySmoothTables);
+EI_REPLACE(0x005C4460, ConstructSmoothPool);
+EI_REPLACE(0x005C4480, DestroySmoothPool);

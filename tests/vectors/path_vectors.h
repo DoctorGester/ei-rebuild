@@ -41,15 +41,16 @@ constexpr Range kTableRanges[] = {
     {ei::DataId(0x0079169C), 32},   // the size classes' standing heights
     {ei::DataId(0x0073F0A8), 8},    // PlanLongPath's distance for aiming at the best cell
     {ei::DataId(0x0073B86C), 4},    // 0.5
-    {ei::DataId(0x007C2FEC), 8},    // the spiral's radius tree: depth, mask
 };
-// CArrays read through their data pointer: {address of the CArray, element size}.
-constexpr Range kTableArrays[] = {
-    {ei::DataId(0x007C2FC0), 4},   // the spiral's lengths per radius
-    {ei::DataId(0x007C2FD8), 4},   // the radius tree's keys
-    {ei::DataId(0x007C2FF8), 4},   // the spiral's offsets {dx, dy}
-};
-constexpr std::uintptr_t kSmoothTables = 0x007C3058;   // 81 SmoothTables (3 CArrays each)
+// Then the named tables (sector_map.h, ai_map.h; the record reads game.exe's at their addresses, the
+// replay fills ours), each range with game.exe's address: the spiral's radius tree's depth and mask
+// (8 bytes) as the last range; three CArrays read through their data pointer ({address of the CArray,
+// element size}, in this order: the spiral's lengths per radius, the radius tree's keys, the spiral's
+// offsets {dx, dy}); the smoother's 81 SmoothTables (3 CArrays each).
+constexpr std::uint32_t kTableRangeCount = static_cast<std::uint32_t>(std::size(kTableRanges)) + 1;
+constexpr std::uint32_t kRadiusTreeBytes = 8;
+constexpr std::uint32_t kTableArrayCount = 3;
+constexpr std::uint32_t kTableArrayElementSize = 4;
 constexpr int kSmoothTableCount = 81;
 constexpr std::uint32_t kSmoothCopySize = sizeof(SmoothCopy);
 constexpr std::uint32_t kSmoothStepSize = sizeof(SmoothStep);

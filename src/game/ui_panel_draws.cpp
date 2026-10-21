@@ -5,6 +5,7 @@
 #include "ui_item_info.h"
 #include "item.h"
 #include "item_db.h"
+#include "party.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -163,17 +164,11 @@ void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
 
 CUiMesh* Highlight(CUiWindow* window) { return window->SceneMesh(4); }
 
-struct SpellSlots {
-    std::uint8_t unused_00[0x40];
-    CItem** items;                   // +0x40
-    int count;                       // +0x44
-};
-
 } // namespace
 
 BOOL CConstructorPage::DrawSpellMaker(int pass) {
     auto* self = static_cast<CSpellMakerPage*>(this);
-    auto* slots = static_cast<SpellSlots*>(slots_);
+    const PartyItemArray& slots = slots_->items_;
     int needed = 0;
     float manaSum = 0.0f;
     float lastMana = 0.0f;
@@ -182,8 +177,8 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
     bool hasSpell = false;
     int row = 0;
     int column = 0;
-    for (int i = 0; i < slots->count; ++i) {
-        CItem* item = slots->items[i];
+    for (int i = 0; i < slots.size; ++i) {
+        CItem* item = slots.data[i];
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode_};
         if (IsSpellContainer(item)) {
             cell.x = 250.0f;
@@ -290,15 +285,15 @@ const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
 
 BOOL CConstructorPage::DrawItemMaker(int pass) {
     DrawBase(pass);
-    auto* slots = static_cast<SpellSlots*>(slots_);
+    const PartyItemArray& slots = slots_->items_;
     bool hasBlueprint = false;   // or a spell container
     bool hasPart = false;
     const itemdb::ItemRecordHead* part = nullptr;
     int materials = 0;
     int row = 0;
     int column = 0;
-    for (int i = 0; i < slots->count; ++i) {
-        CItem* item = slots->items[i];
+    for (int i = 0; i < slots.size; ++i) {
+        CItem* item = slots.data[i];
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode_};
         if (UiItemKinds::IsBuildable(item)) {
             cell.x = 250.0f;

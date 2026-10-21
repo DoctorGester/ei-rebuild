@@ -437,9 +437,9 @@ void CMapObjectClientSpecific::DestructBody() {
     mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
     if (light) {
         light->flags_ &= ~0x200u;
-        if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
+        if (CLight* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
             shown->flags_ |= 0x80;
-            LightManager()->RemoveLight(static_cast<CLight*>(light));
+            LightManager()->RemoveLight(light);
             if (CUnit* unit = Unit()) {
                 if (CEngineObject* half = unit->Object3D()->attached)
                     static_cast<CObject3DSpecific*>(half)->SetLit(0);
@@ -447,7 +447,7 @@ void CMapObjectClientSpecific::DestructBody() {
         }
         int id = light->id_;
         stlp::ListRemoveInt(&TheLightFactory()->litIds_, id);
-        ObjectHolderAssign(&light, nullptr, nullptr);
+        AssignHeld(&light, nullptr);
     }
     owner = nullptr;
     if (light) light->Release();

@@ -85,8 +85,8 @@ constexpr int kSharedObjectNodeSize = 0x28;
 // MFC CArray<int> (vtable 0073C3D0; SetSize 0059C660).
 using IdArray = mfc::CArray<int>;
 
-// MFC CArray of object pointers (SharedObject::objects, world.h).
-using ObjectPtrArray = EngineObjectPtrs;
+// MFC CArray of counted item pointers (SharedObject::objects, world.h).
+using ObjectPtrArray = CountedPtrs<CItem>;
 
 // The shared-object list is CWorldServer::sharedObjects_ (+0x12E60, world.h).
 using SharedObjectNode = SharedObjectList::Node;
@@ -758,14 +758,17 @@ void ObjectPtrArrayCopy(ObjectPtrArray* to, const ObjectPtrArray* from) {
     to->CopyFrom(*from);
 }
 // 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
-void __stdcall CountedRangeRelease(CEngineObject** a0, int a1) { gamearrays::ObjectPtrs::DestructElements(a0, a1); }
+void CountedRangeRelease(CItem** items, int count) {
+    for (int i = 0; i < count; ++i)
+        if (items[i]) items[i]->Release();
+}
 // 00403F40 (RET 4). The item manager's (007AFFB4, WorldItemManager) object by id, or null.
 
 // SetAtGrow(size, object) on a CArray<CRefPtr>: the new slot holds a reference.
-void Append(ObjectPtrArray& array, CEngineObject* object) {
+void Append(ObjectPtrArray& array, CItem* object) {
     int index = array.size;
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(array).SetSize(index + 1, -1);   // 0059C8C0
-    CEngineObject* old = array.data[index];
+    CItem* old = array.data[index];
     array.data[index] = object;
     if (object) ++object->refCount_;
     if (old) old->Release();
@@ -797,7 +800,7 @@ void SharedObject::Load(WorldStream* stream) {
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
-        CEngineObject* object = WorldItemManager()->FindObject(id);
+        CItem* object = FindItem(WorldItemManager(), id);
         if (object) Append(entry->objects, object);   // the original inlines the SetSize
     }
 }

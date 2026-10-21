@@ -9,6 +9,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "lib/mfc_slots.h"
 
 #include <cstddef>
@@ -683,8 +684,11 @@ struct SmoothPool {
     SmoothNode* next;                   // the next free node
 };
 static_assert(sizeof(SmoothPool) == 0x1C);
-inline SmoothPool& SmoothNodePool() { return ei::GameData<SmoothPool>(0x007C3038); }
-inline const SmoothTable* SmoothTables() { return ei::GameData<const SmoothTable[81]>(0x007C3058); }
+// The pool and the 81 tables: defined, built and destroyed in ai_path_smooth.cpp.
+extern lib::StaticObject<SmoothPool> g_smoothPool;
+extern lib::StaticObject<SmoothTable[81]> g_smoothTables;
+inline SmoothPool& SmoothNodePool() { return *g_smoothPool; }
+inline const SmoothTable* SmoothTables() { return g_smoothTables.Get(); }
 // The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx], the
 // middle of the nine words at 00791978.
 inline const int* DirectionSteps() { return ei::GameData<const int[9]>(0x00791978) + 4; }

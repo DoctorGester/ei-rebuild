@@ -172,7 +172,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
         light_ = nullptr;
         if (old) old->Release();
     }
-    auto* light = static_cast<CLight*>(Lights()->CreateObject(kPointLightClass, -1));
+    CLight* light = Lights()->CreateLight(kPointLightClass);
     CLight* old = light_;
     light_ = light;
     if (light) ++light->refCount_;

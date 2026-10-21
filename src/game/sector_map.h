@@ -6,6 +6,7 @@
 #include "maths.h"
 
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -99,9 +100,13 @@ static_assert(sizeof(SpiralOffset) == 4);
 // The sector spiral's tables, built by the static initialiser 005BF8F0: the 441 offsets of a 21 x 21
 // square of sectors ordered by distance (007C2FF8), the number of offsets within each distinct
 // distance (007C2FC0) and the tree that finds a distance's place among them (007C2FD8).
-inline mfc::CArray<int>* SpiralLengthArray() { return ei::GamePointer<mfc::CArray<int>>(0x007C2FC0); }
-inline RadiusTree* SpiralRadiusTree() { return ei::GamePointer<RadiusTree>(0x007C2FD8); }
-inline mfc::CArray<SpiralOffset>* SpiralOffsetArray() { return ei::GamePointer<mfc::CArray<SpiralOffset>>(0x007C2FF8); }
+// Defined, built and destroyed in sector_spiral.cpp.
+extern lib::StaticObject<mfc::CArray<int>> g_spiralLengths;
+extern lib::StaticObject<RadiusTree> g_spiralRadii;
+extern lib::StaticObject<mfc::CArray<SpiralOffset>> g_spiralOffsets;
+inline mfc::CArray<int>* SpiralLengthArray() { return &*g_spiralLengths; }
+inline RadiusTree* SpiralRadiusTree() { return &*g_spiralRadii; }
+inline mfc::CArray<SpiralOffset>* SpiralOffsetArray() { return &*g_spiralOffsets; }
 // What 005BF8F0 does, on any three constructed tables (sector_map.cpp).
 void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets);
 

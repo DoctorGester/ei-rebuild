@@ -28,8 +28,8 @@ bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiIt
 
 // The `nth` (from 0) of the slots' items that `matches`, or null.
 template <typename Predicate>
-CItem* NthSlot(void* slots, int nth, Predicate matches) {
-    const auto& items = static_cast<CParty*>(slots)->items_;
+CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
+    const auto& items = slots->items_;
     int found = 0;
     for (int i = 0; i < items.size; ++i) {
         if (!matches(items.data[i])) continue;
