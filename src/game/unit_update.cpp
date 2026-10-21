@@ -150,7 +150,7 @@ EI_REPLACE_METHOD(0x00532A20, CUnit::SetFromStats);
 int CUnit::Level() {
     if (IsTextKey(id_) & 0xFF) return Controller()->Level();
     const auto* prototype =
-        reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(prototypeId_, unitdb::kPrototypeSize));
+        unitdb::PrototypeRecord(prototypeId_);
     return static_cast<int>(prototype->level);
 }
 EI_REPLACE_METHOD(0x00532D40, CUnit::Level);

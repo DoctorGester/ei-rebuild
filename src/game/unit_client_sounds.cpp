@@ -66,7 +66,7 @@ const char* SkillSound(std::uint32_t number) {
 } // namespace
 
 int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+    const auto* prototype = unit->GetPrototype();
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
@@ -91,7 +91,7 @@ EI_REWRITTEN(0x00534590, CUnitClientSpecific::FootstepSound);
 
 int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out,
                                      std::uint8_t miss) {
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
+    const auto* prototype = unit->GetPrototype23C();
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     int frame = animation->soundFrame;
@@ -171,7 +171,7 @@ bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0;
 bool PassedFrame(double frame, float last, float now) { return frame > last && frame <= now; }
 
 void Shake(CUnit* unit) {
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+    const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
         TheCamera()->Shake(&unit->position, kShakeDuration, strength,
@@ -249,7 +249,7 @@ void CUnitClientSpecific::PlayStepSounds() {
             FootstepSound(ground, &sound);
         }
         if (unit->moveMode == 0) break;
-        const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+        const auto* prototype = unit->GetPrototype();
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)

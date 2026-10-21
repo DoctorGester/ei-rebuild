@@ -224,7 +224,7 @@ constexpr const char* kFace = "%smouth";               // 0078FC68
 
 bool CUnitClientSpecific::LoadFaceTexture() {
     if (faceTexture) return true;
-    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+    const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
     char name[0x400];
     if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, static_cast<const char*>(unit->name), prototype->skin);

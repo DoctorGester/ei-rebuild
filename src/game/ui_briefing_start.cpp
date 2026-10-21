@@ -159,7 +159,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         return;
     }
 
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(person_->GetPrototype());
+    auto* prototype = person_->GetPrototype();
     float reach = static_cast<float>(prototype->viewDistance + kSpacing);
     Vector3& personPlace = places_[0];
     Vector3& leaderPlace = places_[1];

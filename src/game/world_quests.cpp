@@ -16,6 +16,7 @@
 #include "player_messages.h"
 #include "ui_briefing.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "lib/crt.h"
 #include "text_split.h"
@@ -282,8 +283,6 @@ void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
 namespace {
 
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
-// 00530930. The unit's prototype record; its first field is the prototype name.
-static const char** UnitPrototype(CUnit* object, void*) { return reinterpret_cast<const char**>(object->GetPrototype()); }
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
 
 // One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
@@ -324,7 +323,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
-            const char* prototype = unit ? *UnitPrototype(unit, nullptr) : worlddata::HumanHeroText();
+            const char* prototype = unit ? static_cast<const char*>(unit->GetPrototype()->name) : worlddata::HumanHeroText();
             party->AddMember(v.merc, prototype, game::EmptyText());
         }
     }

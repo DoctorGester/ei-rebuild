@@ -72,7 +72,7 @@ CAIMap* Map() { return TheServerWorld()->AIMap(); }
 
 // The prototype's +0x24 (units below 0.5 count as small).
 float PrototypeSize(CUnit* unit) {
-    return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height);
+    return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
 // The original builds the move order's looks with the derived array constructor (005D8B40), then

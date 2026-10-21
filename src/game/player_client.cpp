@@ -556,7 +556,7 @@ bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 
 const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
+    return unitdb::PrototypeRecord(index);
 }
 
 // FindPart, then RemovePart when there is one (the original inlines both calls).
@@ -678,7 +678,7 @@ int CPlayerClient::OnNewObject() {
     player->knownObjects_[header.id] = created;
     ++created->refCount_;
     if (CUnit* unit = UnitOrNull(created))
-        ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name);
+        ObjectSlots(created)->TakePrototype(unit->GetPrototype()->name);
     else
         ObjectSlots(created)->TakePrototype(model);
     static_cast<CMapObject*>(created)->WriteFullState();

@@ -391,7 +391,7 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
         CItemWeapon* weapon = ActiveWeapon(unit);
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
-    float offset = std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(other->GetPrototype())->height);
+    float offset = std::bit_cast<float>(other->GetPrototype()->height);
     double height = static_cast<double>(offset) + other->position.z;
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
@@ -662,7 +662,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             if (!dead) {
                 OnDamaged(attacker, hit->hitKind);
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
-                    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+                    const auto* prototype = unit->GetPrototype();
                     if (IsMultiplayerClient() & 0xFF) {
                         world->AwardExperience(nullptr, std::bit_cast<float>(prototype->experienceValue));
                         return 1;

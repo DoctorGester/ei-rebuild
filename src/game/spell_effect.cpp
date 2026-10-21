@@ -5,6 +5,7 @@
 #include "map_object.h"
 #include "sector_map.h"
 #include "unit.h"
+#include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -48,8 +49,7 @@ void DestroyList(UnitList& list) {
 bool AcceptsAreaSpells(CEngineObject* object) {
     auto* unit = static_cast<CUnit*>(object);
     if (unit->sizeClass != 0) return true;
-    float value;
-    std::memcpy(&value, unit->GetPrototype() + 0x24, sizeof(value));
+    float value = std::bit_cast<float>(unit->GetPrototype()->height);
     EI_NAN_AUDIT(value);
     return value < kTargetThreshold;
 }

@@ -26,6 +26,7 @@ class CParty;   // party.h
 class CPlayer;   // player_messages.h
 struct UnitStats;
 struct UnitParams;
+struct UnitPrototypeRecord;   // unit_db.h
 struct DamageInfo;   // spell.h
 struct FootprintPart;   // ai_map.h
 
@@ -268,14 +269,14 @@ public:
     double TotalItemWeight();
 
     // 00530930. The unit's prototype record (index prototypeId_), or null.
-    char* GetPrototype();
+    UnitPrototypeRecord* GetPrototype();
     // 00530970. The record (0x168 bytes) the prototype's +0x08 indexes, or null.
     char* GetPrototypeModel();
     // 005309E0. The prototype record of index unknown_23C, or null.
-    char* GetPrototype23C();
+    UnitPrototypeRecord* GetPrototype23C();
     // 005308A0. Stores the index of prototype record `record` in unknown_23C.
     // Returns what the original leaves in EAX (1 when `record` lies before the table).
-    std::uint32_t SetPrototype23C(const char* record);
+    std::uint32_t SetPrototype23C(const UnitPrototypeRecord* record);
 
     // 00530FA0. Is the active weapon (+0x26C) of type 5 or 6 (ranged)? Returns AL only.
     bool HasRangedWeapon();
@@ -683,6 +684,10 @@ constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
 // The unit database's tables and the skill database's vectors as record tables (begin / end; unit_db_destroy.cpp).
 const RecordTable& Prototypes();
+// Prototype record `index` of Prototypes(), or null past the end.
+inline UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
+    return reinterpret_cast<UnitPrototypeRecord*>(Prototypes().RecordAt(index, kPrototypeSize));
+}
 const RecordTable& Models();
 const RecordTable& Skills();
 const RecordTable& SkillLevels();

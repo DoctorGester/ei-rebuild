@@ -175,7 +175,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
             place = places_[index];
             facing = directions_[index];
         }
-        auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+        auto* prototype = unit->GetPrototype();
         float reach = prototype->viewDistance;
         float reachX = static_cast<float>(facing.x * reach);
         float reachY = static_cast<float>(facing.y * reach);

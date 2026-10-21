@@ -34,7 +34,6 @@ using PtrListNode = PtrList::Node;
 
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
 // and weapons (with the same effects).
-static char* UnitPrototype(void* unit) { return reinterpret_cast<char*>(static_cast<CUnit*>(unit)->GetPrototype()); }
 
 
 // An object referenced once more and appended to `list`.
@@ -82,10 +81,10 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, char* u
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     void* manager = world->ItemFactory();
-    char* prototype = UnitPrototype(unit);
+    const UnitPrototypeRecord* prototype = cunit->GetPrototype();
     *gold = 0;
     if (prototype) {
-        const CStringVector& itemNames = reinterpret_cast<const UnitPrototypeRecord*>(prototype)->lootItems;
+        const CStringVector& itemNames = prototype->lootItems;
         auto names = [&] { return reinterpret_cast<const char* const*>(itemNames.begin()); };
         auto bytes = [&] { return reinterpret_cast<std::intptr_t>(itemNames.end()) - reinterpret_cast<std::intptr_t>(itemNames.begin()); };
         auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };
@@ -97,7 +96,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, char* u
                 AppendShared(items, item);
             }
         }
-        const auto* record = reinterpret_cast<const UnitPrototypeRecord*>(prototype);
+        const UnitPrototypeRecord* record = prototype;
         RollGold(record->gold, gold);
         RollGold(record->secondGold, gold);
         if (*gold < 0) *gold = 0;

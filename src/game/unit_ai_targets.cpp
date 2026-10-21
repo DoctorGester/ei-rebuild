@@ -49,7 +49,7 @@ const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // The prototype's +0x24 (compared with 0.5: units below it count as small).
 float PrototypeSize(CUnit* unit) {
-    return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height);
+    return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
