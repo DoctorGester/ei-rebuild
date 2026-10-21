@@ -140,6 +140,7 @@ address,size,name,file
 0079BC58,4,g_movieFrame,src/game/app_frame.cpp
 0079BC64,4,g_serverBacklog,src/game/app_main.cpp
 0079BC68,4,g_clientBacklog,src/game/app_main.cpp
+0079BC70,620,g_options,src/game/options_global.cpp
 0079C1A0,32,g_leverTable,src/game/lever_table.cpp
 0079C1F4,1,g_glowGuards,src/game/lightning_draw.cpp
 0079C1F8,1600,g_noiseSide,src/game/lightning.cpp
@@ -193,6 +194,7 @@ address,size,name,file
 007AFDD0,12,g_questFiles,src/game/world_briefing.cpp
 007AFDE0,12,g_zoneTable,src/game/world_game.cpp
 007AFDF0,1,g_lastResourcesGuard,src/game/world_game.cpp
+007AFE20,132,g_gameFlow,src/game/world_game.cpp
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
 007AFED0,4,g_serverStamp,src/game/world_game.cpp
 007AFED4,4,g_appliedStamp,src/game/world_game.cpp
@@ -221,8 +223,8 @@ address,size,name,file
 007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
 007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
 007C551C,4,g_loadingHolder,src/game/bink_video.cpp
-007C7C60,4,g_mouseDragX,src/game/ui.h
-007C7C64,4,g_mouseDragY,src/game/ui.h
+007C7BD8,184,g_cursor,src/game/ui_cursor_setup.cpp
+007C7D50,176,g_interface,src/game/ui_small_members.cpp
 007C7E24,4,g_shotCounter,src/game/ui_interface_keys.cpp
 007C811C,4,g_nextLightningTick,src/game/ui_main_menu.cpp
 007C8174,1,g_lastQuestDestroyed,src/game/ui_objectives.cpp

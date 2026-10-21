@@ -6,6 +6,7 @@
 // are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
 // the rest still run original code or their own replacement's verify wrapper.
 #include "ai_map.h"
+#include "options.h"
 #include "object_tables.h"
 #include "script.h"
 #include "game_arrays.h"
@@ -90,7 +91,7 @@ const char* MoviesFolder() { return "Movies\\"; }
 // 0073C36C: 1 / 255, the background colour scale.
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 // 0079BE5C: the configured world time speed (an int).
-int ConfiguredTimeSpeed() { return ei::GameData<const int>(0x0079BE5C); }
+int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
 // Script helpers (script.h types, original addresses).
 __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)

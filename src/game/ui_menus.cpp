@@ -1,6 +1,8 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
 // drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
 #include "model.h"
+#include "options.h"
+#include <bit>
 #include "ui.h"
 #include "ui_screens.h"
 #include "sound.h"
@@ -205,13 +207,14 @@ EI_REPLACE_METHOD(0x00654450, CSaveLoadWindow::OnDialogResult);
 
 void COptionsWindow::RestoreSettings() {
     // The values the window saved when it opened (0079BCC4..0079BD04).
-    Global<UiSoundSystem*>(0x007AF784)->SetVolumeA(Global<int>(0x0079BCC8));
-    Global<UiSoundSystem*>(0x007AF784)->SetVolumeB(Global<int>(0x0079BCC4));
-    Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(Global<int>(0x0079BCCC));
+    Global<UiSoundSystem*>(0x007AF784)->SetVolumeA(options::TheOptions()->audioSfx_);
+    Global<UiSoundSystem*>(0x007AF784)->SetVolumeB(options::TheOptions()->audioStreaming_);
+    Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(options::TheOptions()->audioSpeech_);
     UiDisplaySettings* display = DisplaySettings();
     using Fn = void(__thiscall*)(UiDisplaySettings*, std::uint32_t, std::uint32_t, std::uint32_t);
-    ei::VirtualSlot<Fn>(display->vtable_, 22)(display, Global<std::uint32_t>(0x0079BCFC),
-                                               Global<std::uint32_t>(0x0079BD00), Global<std::uint32_t>(0x0079BD04));
+    ei::VirtualSlot<Fn>(display->vtable_, 22)(display, std::bit_cast<std::uint32_t>(options::TheOptions()->brightness_),
+                                               std::bit_cast<std::uint32_t>(options::TheOptions()->contrast_),
+                                               std::bit_cast<std::uint32_t>(options::TheOptions()->gamma_));
 }
 
 void COptionsWindow::OnMouseDown(int buttons, int x, int y) {

@@ -213,8 +213,6 @@ static_assert(offsetof(ConsoleWindow, lines_) == 0x58 && offsetof(ConsoleWindow,
 static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWindow, input_) == 0x24 &&
               offsetof(ConsoleWindow, width_) == 0x30 && offsetof(ConsoleWindow, ctrl_) == 0x78);
 
-inline ConsoleWindow* TheConsoleWindow() { return ei::GameData<ConsoleWindow*>(0x007C7D64); }   // 007C7D50 + 0x14
-
 // Console commands: void handler(CStringArray* args) with the arguments (lower case) in ECX.
 using CommandHandler = void(__fastcall*)(CStringArray* args);
 

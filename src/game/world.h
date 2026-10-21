@@ -7,6 +7,7 @@
 // else is provisional. Only the members used by the rewritten functions are declared.
 
 #include <cstddef>
+#include "options.h"
 #include <cstdint>
 
 #include "base_manager.h"
@@ -1923,6 +1924,11 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78 && offsetof(GameFlow, zone7C_) == 0x7C);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
+static_assert(sizeof(GameFlow) == 0x84);
+
+// The game flow (the object at 007AFE20; world_game.cpp): built by the static initialiser 00578440 in the list's order,
+// destroyed by the exit function it registers (005784C0).
+extern lib::StaticObject<GameFlow> g_gameFlow;
 
 struct MpHeroRecord;   // ui_screens.h: a party (0x70 bytes) and its file name
 
@@ -2025,12 +2031,12 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 void __stdcall SelectLoadingMovie(const char* zone);
 
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
-inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
+inline int TimeSpeedSetting() { return options::TheOptions()->defaultTimeScale_; }
 // The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
 // the far clip (the transform pipeline's depth range, 00500B70 / 00566360).
-inline float FogStartDay() { return ei::GameData<const float>(0x0079BED4); }
-inline float FogStartNight() { return ei::GameData<const float>(0x0079BED0); }
-inline float FarClipDistance() { return ei::GameData<const float>(0x0079BE54); }
+inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_; }
+inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
+inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
 // world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the

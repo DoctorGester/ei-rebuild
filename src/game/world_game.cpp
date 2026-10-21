@@ -1,6 +1,7 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "camera.h"
+#include "options.h"
 #include "random.h"
 #include "item_db.h"
 #include "item_db_text.h"
@@ -83,9 +84,9 @@ constexpr unsigned kMagicMission = 0x102;
 int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
 int Campaign() { return ei::GameData<const int>(0x007C2CC4); }        // 4: the party is player 0's
 int SaveVersion() { return ei::GameData<const int>(0x00790260); }
-std::uint8_t& ToMainMenu() { return ei::GameData<std::uint8_t>(0x007C7D94); }
-// 007C7DD8: the network sessions are open (BeginMultiplayerGame sets it, a missing zone clears it).
-std::uint8_t& SessionsOpen() { return ei::GameData<std::uint8_t>(0x007C7DD8); }
+bool& ToMainMenu() { return TheInterface()->closeAll_; }
+// The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
+bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
 void* const kScripts = ei::GamePointer<void>(0x007AFDF8);
 libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
@@ -457,7 +458,7 @@ constexpr int kHostPort = 8000;
 constexpr int kServerMessageZone = 8;
 
 int& CampaignMode() { return ei::GameData<int>(0x007C2CC4); }
-int& SpectatorFlag() { return ei::GameData<int>(0x0079BE6C); }
+int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
 
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
@@ -798,7 +799,7 @@ __declspec(naked) int __fastcall SaveGameAt(GameFlow*, void*, const char*) EI_OR
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGameAt(this, nullptr, slot); }
 
 int __stdcall RequestZone(const char* zone, int entrance) {
-    ei::GameData<char>(0x007C7D94) = 1;
+    TheInterface()->closeAll_ = true;
     // 0066B1B0: the local view asks to go to a zone (name, entrance).
     return TheClientWorld()->LocalView()->RequestZone(zone, entrance);
 }
@@ -1461,12 +1462,12 @@ int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOrigina
 mfc::CString& LastResources() { return ei::GameData<mfc::CString>(0x007AFDEC); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
-int& SavedSpectator() { return ei::GameData<int>(0x0079BEC4); }
-int& Spectator0() { return ei::GameData<int>(0x0079BEC0); }
+int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
+int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
-const char* ResourcesPath() { return ei::GameData<const char* const>(0x0079BC94); }
+const char* ResourcesPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
@@ -1741,6 +1742,23 @@ void GameFlow::Destruct() {
     requestTarget_.~CString();
 }
 EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
+
+// The flow, zero at the start: built by the static initialiser 00578440 in the list's order and destroyed by the exit
+// function it registers (005784C0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// "The static initialisers' objects").
+constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
+GameFlow* TheGameFlow() { return &*g_gameFlow; }
+
+namespace {
+void __cdecl ConstructGameFlow() {   // 00578440
+    g_gameFlow->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
+}
+void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }   // 005784C0
+} // namespace
+
+EI_REPLACE(0x00578440, ConstructGameFlow);
+EI_REPLACE(0x005784C0, DestroyGameFlow);
 
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;

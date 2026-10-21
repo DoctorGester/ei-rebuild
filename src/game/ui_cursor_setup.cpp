@@ -11,6 +11,8 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/mfc_thread.h"
+#include "game_singletons.h"
+#include "originals_library.h"
 #include "originals_render.h"
 #include "game_data.h"
 
@@ -128,6 +130,27 @@ void CCursor::DestroyBody() {
     if (device_) device_->Release();
 }
 EI_REPLACE_METHOD(0x005E4E00, CCursor::DestroyBody);
+
+// The cursor, zero at the start: built by the static initialiser 005E4DD0 in the list's order and destroyed by the exit
+// function it registers (005E4DF0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// "The static initialisers' objects").
+constinit lib::StaticObject<CCursor> g_cursor = /*007C7BD8*/ {};
+CCursor* TheCursor() { return &*g_cursor; }
+long& MouseScreenX() { return g_cursor->position_.x; }
+long& MouseScreenY() { return g_cursor->position_.y; }
+long& MouseDragX() { return g_cursor->motion_.x; }
+long& MouseDragY() { return g_cursor->motion_.y; }
+
+namespace {
+void __cdecl ConstructGameCursor() {   // 005E4DD0
+    g_cursor->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
+}
+void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }   // 005E4DF0
+} // namespace
+
+EI_REPLACE(0x005E4DD0, ConstructGameCursor);
+EI_REPLACE(0x005E4DF0, DestroyGameCursor);
 
 namespace {
 // The current image's current frame as the part shown.

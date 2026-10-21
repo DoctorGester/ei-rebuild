@@ -2,6 +2,7 @@
 #include "texture.h"
 #include "world.h"
 #include "world_data.h"
+#include "ui.h"
 #include "hash_tables_400.h"
 
 #include "core_maths.h"
@@ -460,7 +461,7 @@ int CWorldClient::Segment() {
         if (owned1B0_) owned1B0_->RunTick();
     }
     if (IsMultiplayerClient()) {
-        if (static_cast<int>(worlddata::PeerList().size()) > 1) {
+        if (static_cast<int>(TheInterface()->stackEnd_ - TheInterface()->stackBegin_) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;
             for (auto* node = dynamicObjects_.head; node;) {

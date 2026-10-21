@@ -2,6 +2,7 @@
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
 #include "ai_map.h"
+#include "options.h"
 #include "map_object_shadow.h"
 #include "object_tables.h"
 #include "player_client.h"
@@ -354,7 +355,7 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
 // 0079BE70: path markers are shown (written by 006524A0).
-bool MarkersShown() { return ei::GameData<const int>(0x0079BE70) != 0; }
+bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 

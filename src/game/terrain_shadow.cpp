@@ -2,6 +2,7 @@
 // from SectorData::ShadeSun) and the fade of the light at the map's edges (006CB020, from the vertex
 // lighting, the figures' draws and the ground prints).
 #include "terrain.h"
+#include "options.h"
 #include "terrain_sector.h"
 #include "spell.h"
 
@@ -20,7 +21,7 @@ constexpr int kLastCell = 31;       // the column / row a ray enters a sector at
 constexpr int kLoaded = 1;          // SectorAt's stage: the vertex positions
 
 // The width of the fade at the map's edges (0079BD34; the interface's screens set it).
-float MapEdgeFade() { return ei::GameData<const float>(0x0079BD34); }
+float MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;

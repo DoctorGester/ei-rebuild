@@ -538,7 +538,18 @@ kinds given.
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp), the
         party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
-        and the unread set 007AB8D8. Left for C18k5: options, GameFlow, CCursor, CInterface3D.
+        and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
+        0079BC70 (options_global.cpp holds the definition so the vector replay links it; options_construct.cpp the
+        initialiser), GameFlow 007AFE20 (world_game.cpp), CCursor 007C7BD8 (ui_cursor_setup.cpp) and CInterface3D 007C7D50
+        (ui_small_members.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
+        volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position_ /
+        motion_: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
+        (007C7D84 was misnamed PeerList), close-all and sessions flags. Accessors of the objects whose header only
+        forward-declares them (TheGameFlow, TheInterface, TheCursor) are out-of-line functions. **The harness** reads
+        them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor: ours
+        in the image, `ei::OriginalGameData` at the address in --no-hooks runs); the stats recorder reads the
+        difficulty from game.exe's options the same way. Left: string_map 0079B930, CMapDatabase 0079BF00, the renderer
+        007AF060 and the other vtable-storing objects (C19).
       - gen_static_init still decodes a hand-ported initialiser (SHADOW) for unread_objects only: its instructions,
         the cells it stores and its exit function's instructions stay the initialisers' own (without that, two unread
         objects above the folder strings, 007AF43C and 007AF468, lost their proof).

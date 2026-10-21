@@ -1,6 +1,7 @@
 // Combat: CUnitServer's weapon and spell queries, the attack hit (damage calculation), the attack
 // roll and hit resolution. See combat.h and docs/notes/combat.md.
 #include "combat.h"
+#include "options.h"
 #include "combat_internal.h"
 
 #include "item.h"
@@ -90,7 +91,7 @@ float Global7C5488() { return GameLogicSettings().considerModifier; }
 float Global7C548C() { return GameLogicSettings().considerLogBase; }
 // Difficulty (0079BEC0) and the attack factor per difficulty (007C54AC, floats).
 float DifficultyAttackFactor() {
-    int difficulty = ei::GameData<const int>(0x0079BEC0);
+    int difficulty = options::TheOptions()->difficulty_;
     return GameLogicSettings().attack[difficulty];
 }
 

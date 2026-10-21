@@ -5,6 +5,7 @@
 // world_units.cpp; names are provisional.
 
 #include <cstdint>
+#include "options.h"
 
 #include "engine_object.h"
 #include "lib/stlp.h"
@@ -83,7 +84,7 @@ inline const char* TextsLmpFileText() { return "textsLmp.res"; }
 inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
 // sets its flag 0x200.
-inline int ShadowSetting() { return ei::GameData<const volatile int>(0x0079BD0C); }
+inline int ShadowSetting() { return static_cast<const volatile int&>(options::TheOptions()->shadowQuality_); }
 
 // ---- The client world's zone load (00567AB0) ----------------------------------------------------
 
@@ -100,11 +101,11 @@ inline const char* FinalMusicText() { return "final"; }
 // Options (the object at 0079BC70; options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
 // LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
 // DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
-inline int AudioOption() { return ei::GameData<const volatile int>(0x0079BCC0); }
-inline int WaterWavesOption() { return ei::GameData<const volatile int>(0x0079BD38); }
-inline int SelfShadowingOption() { return ei::GameData<const volatile int>(0x0079BD3C); }
-inline int LightingFrequencyOption() { return ei::GameData<const volatile int>(0x0079BD44); }
-inline float DefaultWindForceOption() { return ExeFloat(std::uintptr_t(0x0079BE58)); }
+inline int AudioOption() { return static_cast<const volatile int&>(options::TheOptions()->audio_); }
+inline int WaterWavesOption() { return static_cast<const volatile int&>(options::TheOptions()->enableWaterWaves_); }
+inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::TheOptions()->enableSelfShadowing_); }
+inline int LightingFrequencyOption() { return static_cast<const volatile int&>(options::TheOptions()->lightingFreq_); }
+inline float DefaultWindForceOption() { return static_cast<const volatile float&>(options::TheOptions()->defaultWindForce_); }
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
@@ -123,9 +124,9 @@ constexpr std::uintptr_t kClientArrayListVtable = std::uintptr_t(0x0073F73C);   
 // text pointers).
 inline void* TextFolderString() { return &TheTextFolder(); }
 inline void* BaseFolderString() { return &TheDiscFolder(); }
-inline const char* ConfiguredDataPath() { return ei::GameData<const char* const>(0x0079BC90); }
-inline const char* ConfiguredTextPath() { return ei::GameData<const char* const>(0x0079BC94); }
-inline const char* ConfiguredBasePath() { return ei::GameData<const char* const>(0x0079BC98); }
+inline const char* ConfiguredDataPath() { return static_cast<const char*>(options::TheOptions()->workPath_); }
+inline const char* ConfiguredTextPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
+inline const char* ConfiguredBasePath() { return static_cast<const char*>(options::TheOptions()->cdRomPath_); }
 // The counted helper's vtable (+0x5C), which WorldCreateManagers stores.
 constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 
@@ -136,18 +137,16 @@ inline const char* AutosaveEventText() { return "autosave"; }
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
 // The volume settings the sound manager takes on the client's tenth tick (006B7740 / 006B78A0 /
 // 006B7A00; the last is the movies' volume, bink_video.cpp).
-inline int VolumeSettingA() { return ei::GameData<const int>(0x0079BCC8); }
-inline int VolumeSettingB() { return ei::GameData<const int>(0x0079BCCC); }
-inline int MovieVolumeSetting() { return ei::GameData<const int>(0x0079BCC4); }
+inline int VolumeSettingA() { return options::TheOptions()->audioSfx_; }
+inline int VolumeSettingB() { return options::TheOptions()->audioSpeech_; }
+inline int MovieVolumeSetting() { return options::TheOptions()->audioStreaming_; }
 // 007AFC9C: 2 while the party fights (sound_music.cpp).
 inline int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
-// The interface's list of the multiplayer peers (an STLport vector of 4-byte entries at 007C7D84).
-inline const stlp::vector<int>& PeerList() { return ei::GameData<const stlp::vector<int>>(0x007C7D84); }
 // The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
 // period (0078FF34) per tick and restarts at 0079BD24.
-inline int LightLevelsSetting() { return ei::GameData<const int>(0x0079BD58); }
+inline int LightLevelsSetting() { return options::TheOptions()->enableBloodprintsRelight_; }
 inline int WorldUpdatePeriod() { return ei::GameData<const int>(0x0078FF34); }
-inline int LightLevelsPeriod() { return ei::GameData<const int>(0x0079BD24); }
+inline int LightLevelsPeriod() { return options::TheOptions()->shadowLightingFreq_; }
 // The scene's sun light (007AF07C; figure_part_draw.cpp) and the point 007AFDB0 the grey levels
 // start from (its distance to the sun; meaning unknown).
 inline CLight* SceneSun() { return ei::GameData<CLight* const>(0x007AF07C); }

@@ -7,6 +7,7 @@
 // finds its address only in the test at 00481704), so the branch never runs and is not
 // reproduced: see docs/notes/script.md.
 #include "map_spec.h"
+#include "options.h"
 
 #include "bink_video.h"
 #include "combat.h"
@@ -44,7 +45,7 @@ constexpr int kRelationHostile = 2;
 constexpr int kBehaviourCount = 5;
 
 // The limit the .mob wind strength is clamped to (never written: 0).
-float MobWindLimit() { return ei::GameData<const float>(0x0079BE58); }
+float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
 // The mission script (CScript at 007C27D4).
 
 // A record of the given chunk id, allocated and constructed, or null for other ids.
