@@ -12,13 +12,15 @@
 # player hides it). "cursorcheck" also checks the cursor's rectangle against the mouse and the
 # image's hot spot. The thread exists only with the options' FPSIndependentCursor on (the game's default;
 # off, the cursor runs in mode 1 without it and the original draws the cursor only in frames): answered
-# 1 for this run ("fpscursor").
+# 1 for this run ("fpscursor"). "windowicon" draws the window's class icons, game.exe's icon 105 from the
+# host's own module (S18j: game.exe's resources built into ei_standalone.exe), to frames\menu_icon.bmp.
 # no original: vanilla rebirth (the cursor thread's presents between frames: our renderer only; S21a)
 # Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 fpscursor 1
 render new,present,checkall
 reject Script error
 waitmenu
+windowicon menu_icon
 console thingamabob
 
 # The main menu: one long frame.

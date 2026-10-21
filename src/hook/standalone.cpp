@@ -1,5 +1,6 @@
 // ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2).
-// The host has laid out game.exe's headers at 0x400000 with its code section guarded; the DLL's static
+// The host holds game.exe's address range with nothing of game.exe in it (its headers, code section and .rsrc
+// guarded; game.exe's resources are the host's own, S18j); the DLL's static
 // initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
 // image_imports.cpp); here the registrations become game.exe's code (image_code.cpp), the code cells of
 // its data are pointed at them, and WinMain runs.
@@ -78,7 +79,6 @@ namespace {
 char g_exePath[MAX_PATH];
 std::string g_commandLine;      // as the CRT would see game.exe's: "<game.exe>" and the game's arguments
 std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's command line)
-HMODULE g_resources;            // game.exe loaded as an image resource
 void (*g_missingCodeHandler)(const char* what);
 
 constexpr std::uintptr_t kWinMain = 0x00456440;
@@ -148,52 +148,12 @@ std::size_t CheckGuard() {
 }
 
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
-// 0x400000 is not a loaded module in the host's process, yet the game hands it (its hInstance) to
-// LoadIconA, LoadStringA, FindResourceA ... The image's import slots of those calls lead here: the
-// image's handle becomes game.exe loaded as an image resource, and to the game the process's own
-// module (NULL, GetModuleHandleA(NULL)) is game.exe, as in a hooked run. For LoadIconA, LoadCursorA
-// and LoadBitmapA NULL names the system's images and stays.
+// The game's module is the host's (S18j): WinMain's hInstance and GetModuleHandleA(NULL) are ei_standalone.exe,
+// which has game.exe's resources built in (tools/gen_resources.py), so LoadIconA, LoadStringA, FindResourceA ...
+// and DirectInput take the handle as it is, and GetModuleFileNameA(NULL) names the host. Only the command line
+// is routed: the game's arguments after game.exe's path, as the original's.
 
-HMODULE ImageModule() { return reinterpret_cast<HMODULE>(kImageBase); }
-
-HMODULE Resources(HMODULE module, bool nullIsExe) {
-    return module == ImageModule() || (nullIsExe && !module) ? g_resources : module;
-}
-
-HICON WINAPI ImageLoadIcon(HINSTANCE instance, LPCSTR name) { return LoadIconA(Resources(instance, false), name); }
-HCURSOR WINAPI ImageLoadCursor(HINSTANCE instance, LPCSTR name) { return LoadCursorA(Resources(instance, false), name); }
-HBITMAP WINAPI ImageLoadBitmap(HINSTANCE instance, LPCSTR name) { return LoadBitmapA(Resources(instance, false), name); }
-int WINAPI ImageLoadString(HINSTANCE instance, UINT id, LPSTR buffer, int size) {
-    return LoadStringA(Resources(instance, true), id, buffer, size);
-}
-HRSRC WINAPI ImageFindResource(HMODULE module, LPCSTR name, LPCSTR type) {
-    return FindResourceA(Resources(module, true), name, type);
-}
-HGLOBAL WINAPI ImageLoadResource(HMODULE module, HRSRC resource) { return LoadResource(Resources(module, true), resource); }
-HMODULE WINAPI ImageModuleHandle(LPCSTR name) { return name ? GetModuleHandleA(name) : ImageModule(); }
-// As GetModuleFileNameA: truncated to `size` with its terminator, then ERROR_INSUFFICIENT_BUFFER.
-DWORD WINAPI ImageModuleFileName(HMODULE module, LPSTR out, DWORD size) {
-    if (module && module != ImageModule()) return GetModuleFileNameA(module, out, size);
-    if (size == 0) return 0;
-    const DWORD length = static_cast<DWORD>(std::strlen(g_exePath));
-    const DWORD copied = length < size ? length : size - 1;
-    std::memcpy(out, g_exePath, copied);
-    out[copied] = 0;
-    if (copied < length) {
-        SetLastError(ERROR_INSUFFICIENT_BUFFER);
-        return size;
-    }
-    return length;
-}
 LPSTR WINAPI ImageCommandLine() { return g_commandLine.data(); }
-// DirectInput checks its instance is a loaded module (E_INVALIDARG otherwise): the image's handle
-// becomes the host's.
-using DirectInputCreateExFn = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);
-DirectInputCreateExFn g_directInputCreateEx;
-HRESULT WINAPI ImageDirectInputCreateEx(HINSTANCE instance, DWORD version, REFIID iid, LPVOID* out, LPUNKNOWN outer) {
-    if (instance == ImageModule()) instance = GetModuleHandleA(nullptr);
-    return g_directInputCreateEx(instance, version, iid, out, outer);
-}
 
 // The image's import slots that lead to a wrapper here instead of their export (ImageRoute).
 struct Route {
@@ -201,7 +161,7 @@ struct Route {
     const char* function;
     const void* replacement;
 };
-constexpr int kRoutes = 10;
+constexpr int kRoutes = 1;
 bool g_routed[kRoutes];   // zero before any static constructor: ImageRoute runs from image_imports.cpp's
 
 // Points `base`'s import slots of `dll`!`function` at `replacement` (another module's import table: Miles's).
@@ -244,32 +204,23 @@ HMODULE WINAPI MilesLoadLibrary(LPCSTR name) {
     return LoadLibraryA(name);
 }
 
-// The image's resource, module, command-line and DirectInput imports and the wrappers that take their slots.
+// The image's command-line import and the wrapper that takes its slot.
 const Route* Routes() {
     static const Route routes[kRoutes] = {
-        {"USER32.dll", "LoadIconA", reinterpret_cast<const void*>(&ImageLoadIcon)},
-        {"USER32.dll", "LoadCursorA", reinterpret_cast<const void*>(&ImageLoadCursor)},
-        {"USER32.dll", "LoadBitmapA", reinterpret_cast<const void*>(&ImageLoadBitmap)},
-        {"USER32.dll", "LoadStringA", reinterpret_cast<const void*>(&ImageLoadString)},
-        {"KERNEL32.dll", "FindResourceA", reinterpret_cast<const void*>(&ImageFindResource)},
-        {"KERNEL32.dll", "LoadResource", reinterpret_cast<const void*>(&ImageLoadResource)},
-        {"KERNEL32.dll", "GetModuleHandleA", reinterpret_cast<const void*>(&ImageModuleHandle)},
-        {"KERNEL32.dll", "GetModuleFileNameA", reinterpret_cast<const void*>(&ImageModuleFileName)},
         {"KERNEL32.dll", "GetCommandLineA", reinterpret_cast<const void*>(&ImageCommandLine)},
-        {"DINPUT.dll", "DirectInputCreateEx", reinterpret_cast<const void*>(&ImageDirectInputCreateEx)},
     };
     return routes;
 }
 
-// Loads game.exe's resources, checks that ImageRoute took every route and routes Miles's LoadLibraryA. False
-// when game.exe's resources cannot be loaded or an import is not found.
+// Checks that the host has game.exe's resources (its icon), that ImageRoute took every route and routes Miles's
+// LoadLibraryA. False when one of them is not so.
 bool RouteImageCalls() {
-    g_resources = LoadLibraryExA(g_exePath, nullptr, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
-    if (!g_resources) {
-        Log("standalone: cannot load %s's resources (error %lu)", g_exePath, GetLastError());
-        return false;
-    }
     bool ok = true;
+    constexpr int kGameIcon = 0x69;   // the window class's icon (app_main.cpp's kIcon)
+    if (!FindResourceA(GetModuleHandleA(nullptr), MAKEINTRESOURCEA(kGameIcon), RT_GROUP_ICON)) {
+        Log("standalone: the host has no game.exe resources (icon %d)", kGameIcon);
+        ok = false;
+    }
     for (int i = 0; i < kRoutes; ++i) {
         if (g_routed[i]) continue;
         Log("standalone: game.exe's import %s!%s not found to route", Routes()[i].dll, Routes()[i].function);
@@ -287,15 +238,13 @@ bool RouteImageCalls() {
 
 } // namespace
 
-// The wrapper image_imports.cpp puts in the image's slot of `dll`!`function` instead of its export `real`, or
-// nullptr. Called during ei_hook.dll's static initialisation, before this file's: the table is a function's
-// static (made at its first call), the flags and DirectInput's export are zero-initialised.
-const void* ImageRoute(const char* dll, const char* function, const void* real) {
+// The wrapper image_imports.cpp puts in the image's slot of `dll`!`function` instead of its export, or nullptr.
+// Called during ei_hook.dll's static initialisation, before this file's: the table is a function's static (made
+// at its first call), the flags are zero-initialised.
+const void* ImageRoute(const char* dll, const char* function) {
     for (int i = 0; i < kRoutes; ++i) {
         const Route& r = Routes()[i];
         if (_stricmp(r.dll, dll) != 0 || std::strcmp(r.function, function) != 0) continue;
-        if (r.replacement == reinterpret_cast<const void*>(&ImageDirectInputCreateEx))
-            g_directInputCreateEx = reinterpret_cast<DirectInputCreateExFn>(const_cast<void*>(real));
         g_routed[i] = true;
         return r.replacement;
     }
@@ -342,7 +291,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     Log("standalone: game.exe's code section %s (%zu byte(s) not)", open ? "NOT all guarded" : "guarded", open);
     const int stray = open ? 1 : 0;
     const bool routed = RouteImageCalls();
-    Log("standalone: game.exe's resources, module and command line%s routed; arguments: '%s'", routed ? "" : " not all",
+    Log("standalone: game.exe's resources in the host, its command line%s routed; arguments: '%s'", routed ? "" : " not",
         g_commandLine.c_str() + g_argumentsAt);
     const int missingImports = ImageImportsMissing();
     // What the static initialisers call that has no code yet (logged; not a failure of the check).
@@ -360,7 +309,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     libcrt::InitMultibyteTable();
     static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
-    const int result = Code<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr,
+    const int result = Code<WinMainFn>(kWinMain)(GetModuleHandleA(nullptr), nullptr,
                                                   g_commandLine.data() + g_argumentsAt, SW_SHOWNORMAL);
     libcrt::Exit(result);
     return result;

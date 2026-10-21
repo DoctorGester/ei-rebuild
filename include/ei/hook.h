@@ -90,7 +90,7 @@ const char* HarnessPatchAt(std::uintptr_t address, std::size_t size);
 int UnexpectedSkips();
 
 // True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): no
-// game.exe code, only its headers at kImageBase and its data in ei_hook.dll's storage; the plain
+// game.exe code or headers, its data in ei_hook.dll's storage, its resources the host's own; the plain
 // replacements are game.exe's code (CodeAddress). standalone.cpp.
 bool Standalone();
 // The game.exe file the standalone host built the image from.

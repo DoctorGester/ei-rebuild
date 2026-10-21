@@ -4,8 +4,8 @@
 // game's copy has them (ticket S8b, docs/notes/standalone.md section 2). The strings are game.exe's
 // string table (MFC's 0xF0xx / 0xF1xx prompts): LoadStringA on the module state's resource handle,
 // which is null in both builds (the game never runs AfxWinInit), through the exe's import slot. In
-// game.exe that is the process's own module; in the standalone image the host's LoadStringA wrapper
-// maps null to game.exe loaded as a data file (S14). Registered at the library addresses
+// game.exe that is the process's own module; in the standalone image too: the host, which has game.exe's
+// resources built in (S18j). Registered at the library addresses
 // (mfc_resource.cpp), checked in game by verify_mfc_resource.cpp until S21d.
 
 #include "mfc_string.h"
