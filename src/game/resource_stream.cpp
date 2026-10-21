@@ -205,7 +205,7 @@ void CMappedResource::ListFiles(void* stringArray, const char* pattern) const {
 }
 
 void CMappedResource::ListFilesPlain(void* stringArray, const char* pattern) const {
-    StringArraySetSize(stringArray, nullptr, 0, -1);
+    reinterpret_cast<mfc::CStringArray*>(stringArray)->SetSize(0, -1);
     for (std::uint32_t i = 0; i < header_.count; ++i) {
         const ResEntry& entry = entries_[i];
         char name[0x400];
@@ -223,7 +223,7 @@ void CMappedResource::ListFilesPlain(void* stringArray, const char* pattern) con
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
         }
         int count = static_cast<const int*>(stringArray)[2];
-        StringArraySetAtGrowTextOriginal(stringArray, nullptr, count, name);
+        reinterpret_cast<mfc::CStringArray*>(stringArray)->SetAtGrow(count, name);
     }
 }
 

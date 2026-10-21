@@ -46,7 +46,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     for (int dot = rest.Find('.'); dot != -1; dot = rest.Find('.')) {
         {
             mfc::CString part = rest.Left(dot);
-            StringArraySetAtGrowStringOriginal(&parts, nullptr, parts.size, &part);
+            reinterpret_cast<mfc::CStringArray*>(&parts)->SetAtGrow(parts.size, part);
         }
         mfc::CString tail = rest.Right(rest.GetLength() - dot - 1);
         rest = tail;

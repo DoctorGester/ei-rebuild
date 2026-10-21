@@ -31,7 +31,7 @@ _args = _ap.parse_args()
 APPLY = _args.apply
 ONLY = _args.only
 SKIP = set(x for x in _args.skip.split(',') if x)
-BAD_BODY = re.compile(r'bit_cast|__asm|\[\s*[&=]|\bif\b|\bfor\b|\bwhile\b|\bswitch\b|\bdo\b|\{')
+BAD_BODY = re.compile(r'__asm|\[\s*[&=]|\bif\b|\bfor\b|\bwhile\b|\bswitch\b|\bdo\b|\{')
 
 
 def load():
@@ -225,6 +225,7 @@ def scope_paths(files, d):
 def find_uses(files, codes, d):
     calls = []
     others = []
+    decls = []
     pat = re.compile(r'\b' + re.escape(d['name']) + r'\b')
     for p in scope_paths(files, d):
         code = codes[p]
@@ -234,7 +235,9 @@ def find_uses(files, codes, d):
             s = m.start()
             if p == d['path'] and d['sigstart'] <= s < d['bodystart']:
                 continue
-            if code[max(0, s - 2):s] == '::' or code[max(0, s - 1):s] == '.' or code[max(0, s - 2):s] == '->':
+            if code[max(0, s - 1):s] == '.' or code[max(0, s - 2):s] == '->':
+                continue  # a member of the same name, not the free function
+            if code[max(0, s - 2):s] == '::':
                 others.append((p, s))
                 continue
             j = m.end()
@@ -248,15 +251,44 @@ def find_uses(files, codes, d):
                 others.append((p, s))
                 continue
             args = split_args(code[j + 1:c])
+            pre = code[max(0, s - 40):s]
+            if re.search(r'__fastcall\s*$', pre) and re.match(r'\s*;', code[c + 1:c + 20]) and len(args) == len(d['ptypes']):
+                span = decl_span(code, s)
+                if span:
+                    decls.append((p,) + span)
+                    continue
             if len(args) != len(d['ptypes']) or args[1] not in ('nullptr', '0'):
                 others.append((p, s))
                 continue
-            pre = code[max(0, s - 40):s]
             if re.search(r'__fastcall\s*$', pre):
                 others.append((p, s))
                 continue
             calls.append((p, s, c + 1, args))
-    return calls, others
+    return calls, others, decls
+
+
+def decl_span(code, s):
+    """(start, end) of the whole-line declaration statement `[inline] Ret __fastcall Name(...);` around s."""
+    b = max(code.rfind(';', 0, s), code.rfind('}', 0, s), code.rfind('{', 0, s))
+    for m in re.finditer(r'^[ \t]*#[^\n]*$', code[b + 1:s], re.M):
+        b = b + 1 + m.end()
+    first = b + 1
+    while first < s and code[first] in ' \t\r\n':
+        first += 1
+    line_start = code.rfind('\n', 0, first) + 1
+    if code[line_start:first].strip():
+        return None
+    if re.search(r'\b(?:template|EI_\w+)\b|\(|#', code[first:s]):
+        return None
+    semi = code.find(';', s)
+    eol = code.find('\n', semi)
+    if eol < 0 or code[semi + 1:eol].strip():
+        return None
+    return line_start, eol + 1
+
+
+VOID_PTR = re.compile(r'^(?:const\s+)?void\s*\*\s*\w*$')
+CAST_OF_VOID = re.compile(r'static_cast\s*<((?:[^<>]|<[^<>]*>)*\*)\s*>\s*\(\s*$')
 
 
 def build_replacement(d, args, code, s, e):
@@ -286,6 +318,15 @@ def build_replacement(d, args, code, s, e):
             before = expr[:m.start()].rstrip()
             rest = expr[m.end():]
             after = rest.lstrip()
+            if VOID_PTR.match(d['ptypes'][idx]):
+                # `static_cast<T*>(p)` of a void* parameter: the argument is typed, so the cast is a pointer
+                # reinterpretation (the same address the implicit conversion to void* gave).
+                cast = CAST_OF_VOID.search(expr[:m.start()])
+                if cast and after.startswith(')'):
+                    close = m.end() + (len(rest) - len(after))
+                    keyword = 'static_cast' if a in ('nullptr', '0') else 'reinterpret_cast'
+                    edits.append((cast.start(), close + 1, f'{keyword}<{cast.group(1)}>({a})'))
+                    continue
             if a == 'this' and after.startswith('->'):
                 edits.append((m.start(), m.end() + (len(rest) - len(after)) + 2, ''))
                 continue
@@ -332,7 +373,7 @@ def run():
         edits = collections.defaultdict(list)
         chosen = collections.defaultdict(list)
         for d in elig:
-            calls, others = find_uses(files, codes, d)
+            calls, others, _ = find_uses(files, codes, d)
             if others:
                 continue
             for (p, s, e, args) in calls:
@@ -358,9 +399,11 @@ def run():
         rem = collections.defaultdict(list)
         nrem = 0
         for d in elig2:
-            calls, others = find_uses(files, codes, d)
+            calls, others, decls = find_uses(files, codes, d)
             if calls or others:
                 continue
+            for (dp, ds, de) in decls:
+                rem[dp].append((ds, de, d['name']))
             t = files[d['path']]
             st = d['start']
             above = []

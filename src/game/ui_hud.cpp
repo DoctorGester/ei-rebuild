@@ -690,9 +690,6 @@ void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)-
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
 // CPlayerClient::SendFollow, through its address).
 // The sprite's SetScale with the scale's bits (CUiMesh::SetScale).
-void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
-    static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(scaleBits));
-}
 
 constexpr int kCategoryWand = 8;
 // 00742760: the factor turning a random dword into the portraits' negative start delay.
@@ -911,7 +908,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             int slot = quick->regionItem_[i];
             if (slot < 0 || slot >= quick->shownCount_) continue;
             CEngineObject* sprite = quick->sceneObjects_.data[slot];
-            SpriteSetScale(sprite, nullptr, i < 4 ? kScaleSmall : kScaleLarge);
+            static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(i < 4 ? kScaleSmall : kScaleLarge));
             reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
         }
         quick->selected_ = -1;
@@ -919,7 +916,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         auto unhighlight = [](auto* panel) {
             for (int i = 0; i < panel->count_; ++i) {
                 CEngineObject* sprite = panel->sceneObjects_.data[i];
-                SpriteSetScale(sprite, nullptr, kScaleOne);
+                static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(kScaleOne));
                 reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
                 panel->selected_ = i;
             }

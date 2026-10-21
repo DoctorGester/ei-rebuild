@@ -163,9 +163,6 @@ using NameList = BriefingRecord::NameList;
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
-void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) {
-    reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3);
-}
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
@@ -207,7 +204,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         else items.head = node;
         items.tail = node;
     }
-    if (items.count) PlayerGiveItems(player, nullptr, &items, 0);
+    if (items.count) reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
 
     for (const mfc::CString* name = record->removeItems.begin(); name != record->removeItems.end(); ++name) {
         CEngineObject* item = CreateNamedItem(*name, false);

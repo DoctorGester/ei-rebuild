@@ -122,13 +122,6 @@ void* __fastcall StringAt(const void* a0, void*, void* a2, int a3) {
     return mfc::impl::StringArrayAbi::GetAt(static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr,
                                             static_cast<mfc::impl::CString*>(a2), a3);
 }
-ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) {
-    return gamearrays::ObjectRefGetAt(static_cast<const gamearrays::ObjectRefs::Array*>(a0), nullptr,
-                                      static_cast<ScriptObjectRef*>(a2), a3);
-}
-ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) {
-    return gamearrays::GroupGetAt(static_cast<const gamearrays::Groups::Array*>(a0), nullptr, static_cast<ScriptGroup*>(a2), a3);
-}
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
@@ -235,7 +228,8 @@ template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRe
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptObjectRef value;
-        RefAt(&other->values, nullptr, &value, i);
+        gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&other->values), nullptr,
+                                      reinterpret_cast<ScriptObjectRef*>(&value), i);
         ScriptObjectRef* slot = &values.data[i];
         Release(slot->object);
         slot->object = nullptr;
@@ -255,12 +249,13 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
     mfc::impl::ArrayAs<gamearrays::Groups>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptGroup copy;
-        GroupAt(&other->values, nullptr, &copy, i);
+        gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&other->values), nullptr, reinterpret_cast<ScriptGroup*>(&copy), i);
         ScriptGroup* group = &values.data[i];
         group->SetSize(copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
-            RefAt(&copy, nullptr, &member, k);
+            gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy), nullptr,
+                                      reinterpret_cast<ScriptObjectRef*>(&member), k);
             group->data[k].Reset();
             group->data[k].Construct(member);
             member.Reset();
@@ -289,7 +284,8 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
-        RefAt(&other->objects, nullptr, &value, i);
+        gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&other->objects), nullptr,
+                                      reinterpret_cast<ScriptObjectRef*>(&value), i);
         ScriptObjectRef* slot = &objects.data[i];
         slot->Reset();
         slot->Construct(value);
@@ -301,7 +297,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
-        GroupAt(&other->groups, nullptr, &copy, i);
+        gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&other->groups), nullptr, reinterpret_cast<ScriptGroup*>(&copy), i);
         gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&groups.data[i]), nullptr,
                                   reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy));
         GroupDestruct(&copy);

@@ -43,13 +43,6 @@ void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOrigi
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's
 // destructor; 004C2050 SetSize.
 inline void __fastcall GroupDestruct(ScriptGroup* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
-ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) {
-    return gamearrays::GroupGetAt(static_cast<const gamearrays::Groups::Array*>(a0), nullptr, a2, a3);
-}
-mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) {
-    return reinterpret_cast<mfc::CString*>(mfc::impl::StringArrayAbi::GetAt(
-        static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr, reinterpret_cast<mfc::impl::CString*>(a2), a3));
-}
 ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) {
     return gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a0), nullptr, a2, a3);
 }
@@ -124,14 +117,15 @@ int CWorldServer::Update() {
         bool found;
         {
             alignas(4) unsigned char storage[sizeof(mfc::CString)];
-            mfc::CString* name = NamesGetAt(&names, nullptr, reinterpret_cast<mfc::CString*>(storage), i);
+            mfc::CString* name = reinterpret_cast<mfc::CString*>(mfc::impl::StringArrayAbi::GetAt(
+        reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&names), nullptr, reinterpret_cast<mfc::impl::CString*>(reinterpret_cast<mfc::CString*>(storage)), i));
             found = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(*name)),
                                     reinterpret_cast<const unsigned char*>(worlddata::HeroesGroupText())) == 0;
             name->~CString();
         }
         if (found) {
             alignas(4) std::uint8_t storage[sizeof(ScriptGroup)];
-            ScriptGroup* group = GroupsGetAt(&globals.groups, nullptr, reinterpret_cast<ScriptGroup*>(storage), i);
+            ScriptGroup* group = gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&globals.groups), nullptr, reinterpret_cast<ScriptGroup*>(storage), i);
             gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&heroes), nullptr,
                               reinterpret_cast<const gamearrays::ObjectRefs::Array*>(group));
             GroupDestruct(reinterpret_cast<ScriptGroup*>(storage), nullptr);

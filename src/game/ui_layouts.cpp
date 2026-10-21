@@ -374,7 +374,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     if (open) ui->PushWindow(static_cast<CUiWindow*>(opened), 1, 1);
-    UiContainerMouseDown(window.InputSide(), nullptr, buttons, x, y);
+    reinterpret_cast<UiContainerInput*>(window.InputSide())->OnLeftDown(buttons, x, y);
 }
 
 namespace {
@@ -499,7 +499,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     default:
         break;
     }
-    UiContainerMouseDown(InputSide(), nullptr, buttons, x, y);
+    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
 }
 
 namespace {

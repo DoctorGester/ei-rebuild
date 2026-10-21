@@ -34,7 +34,6 @@ using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 
 // The world (0x7AFF60) and its players (outside this range).
-void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { static_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.
 
@@ -81,7 +80,7 @@ void ClientSession::ApplyAwards() {
             ObjectList none;
             InitList(none, mfc::impl::ItemListClass::Vtable());
             player->Party()->Money() += static_cast<int>(gamecrt::Ftol(award->value_));
-            PlayerGiveItems(player, nullptr, &none, 0);
+            reinterpret_cast<CPlayer*>(player)->GiveItems(&none, 0);
             none.vtable = mfc::impl::ItemListClass::Vtable();
             none.RemoveAll();
             break;
@@ -95,7 +94,7 @@ void ClientSession::ApplyAwards() {
             if (items.tail) items.tail->next = added;
             else items.head = added;
             items.tail = added;
-            PlayerGiveItems(player, nullptr, &items, 0);
+            reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
             items.vtable = gameslots::ItemObjectListClass::Vtable();
             mfc::impl::ListAs<gamelists::EngineObjects>(&items)->RemoveAll();   // 00429E50
             break;

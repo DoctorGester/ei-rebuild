@@ -148,7 +148,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     side = 0;
     parentIname = none;
     skinTexture = none;
-    StringArraySetSize(&parts, nullptr, 0, -1);
+    reinterpret_cast<mfc::CStringArray*>(&parts)->SetSize(0, -1);
     return this;
 }
 EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
@@ -202,8 +202,8 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     side = from->side;
     parentIname = from->parentIname;
     skinTexture = from->skinTexture;
-    StringArraySetSize(&parts, nullptr, 0, -1);
-    StringArrayCopyOriginal(&parts, nullptr, &from->parts);
+    reinterpret_cast<mfc::CStringArray*>(&parts)->SetSize(0, -1);
+    reinterpret_cast<mfc::CStringArray*>(&parts)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&from->parts));
 }
 EI_REPLACE_METHOD(0x0046A710, ObjectSpec::ObjectSpecAssign);
 
@@ -600,7 +600,7 @@ ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     }
     for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
-        StringArraySetAtGrowTextOriginal(names, nullptr, names->size, game::EmptyText());
+        reinterpret_cast<mfc::CStringArray*>(names)->SetAtGrow(names->size, game::EmptyText());
         names->data[i].Format("Player-%i", i);
     }
     return self;

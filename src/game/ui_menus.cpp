@@ -77,9 +77,6 @@ T Global(std::uintptr_t address) {
 // --- Forwarders --------------------------------------------------------------------------------
 
 BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
-void __fastcall UiContainerMouseDown(void* input, void*, int buttons, int x, int y) {
-    static_cast<UiContainerInput*>(input)->OnLeftDown(buttons, x, y);
-}
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
 
 // --- Save/load window --------------------------------------------------------------------------
@@ -122,7 +119,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
         }
         break;
     }
-    UiContainerMouseDown(InputSide(), nullptr, buttons, x, y);
+    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
 }
 
 void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
@@ -247,7 +244,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
             }
         }
     }
-    UiContainerMouseDown(InputSide(), nullptr, buttons, x, y);
+    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
 }
 
 void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {

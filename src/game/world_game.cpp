@@ -307,8 +307,6 @@ const mfc::CString& MoviesFolder() { return ei::GameData<const mfc::CString>(0x0
 // addresses (rewritten in world_tick / world_zone).
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
-// 0058EEA0 (RET 4). CWorldServer::SetTime.
-void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { a0->SetTimeImpl(std::bit_cast<float>(a2)); }
 
 // The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world
 // catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
@@ -438,7 +436,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
-            WorldSetTime(TheServerWorld(), nullptr, kStartTime);
+            TheServerWorld()->SetTimeImpl(std::bit_cast<float>(kStartTime));
         }
         if (zoneRecord->kind == 2) {
             mfc::CString scripts = RecordMob(zoneRecord) + kMobExtension;
@@ -551,7 +549,7 @@ int __stdcall StartNetworkZone(const char* zone) {
             loaded = NewZone(TheServerWorld(), nullptr, map, mob, zone) != 0;
         }
         if (!loaded) return 0;
-        WorldSetTime(TheServerWorld(), nullptr, kStartTime);
+        TheServerWorld()->SetTimeImpl(std::bit_cast<float>(kStartTime));
     }
 
     // The zone's exits, all leading to "MPGame1".

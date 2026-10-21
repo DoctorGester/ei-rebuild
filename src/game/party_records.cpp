@@ -35,7 +35,6 @@ void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Con
 // 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
-void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -89,7 +88,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     reinterpret_cast<CParty*>(party)->AddMember(kHero, kHumanHero, game::EmptyText());
     CStringAssignTextOriginal(party + 0x68, nullptr, kFirstZone);
     *reinterpret_cast<int*>(party + 0x6C) = 0;
-    PartySetVar(party + 0x54, nullptr, kGameTime, kSix);
+    reinterpret_cast<NamedFloatTable*>(party + 0x54)->Set(kGameTime, std::bit_cast<float>(kSix));
 }
 EI_REPLACE(0x004A5BD0, PartyRecordsReset);
 

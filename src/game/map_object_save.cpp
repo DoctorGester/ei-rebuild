@@ -91,7 +91,7 @@ void CMapObjectServer::LoadServer(CStream* stream) {
     stream->Read(&count, sizeof(count));
     for (int i = 0; i < count; ++i) {
         ReadText text(stream);
-        StringArraySetAtGrowStringOriginal(&stringsVtable, nullptr, stringCount, text.text);
+        reinterpret_cast<mfc::CStringArray*>(&stringsVtable)->SetAtGrow(stringCount, *text.text);
     }
 }
 EI_REPLACE_METHOD(0x005159D0, CMapObjectServer::LoadServer);

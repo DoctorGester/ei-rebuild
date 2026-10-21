@@ -108,10 +108,10 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
         if (std::strcmp(part, worlddata::HairPartText()) == 0) {
             if (hairStyle != -1) {
                 scratch.Format(worlddata::HairFormat(), hairStyle);
-                StringArraySetAtGrowStringOriginal(parts, nullptr, parts->size, &scratch);
+                reinterpret_cast<mfc::CStringArray*>(parts)->SetAtGrow(parts->size, scratch);
             }
         } else {
-            StringArraySetAtGrowTextOriginal(parts, nullptr, parts->size, part);
+            reinterpret_cast<mfc::CStringArray*>(parts)->SetAtGrow(parts->size, part);
         }
     }
 }
@@ -225,7 +225,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         object.side = 0;
         object.parentIname = record->texts[3];
         object.skinTexture = record->texts[4];
-        StringArraySetSize(&object.parts, nullptr, 0, -1);
+        reinterpret_cast<mfc::CStringArray*>(&object.parts)->SetSize(0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeObjectClass(prototypeName);
         object.parentId = type;   // +0x50: the object's type
@@ -408,7 +408,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     auto companionTexts = [spec](CMapObjectServer* companion) {
         CStringAssignOriginal(&companion->name78, nullptr, &spec->parentIname);
         CStringAssignOriginal(&companion->name7C, nullptr, &spec->skinTexture);
-        StringArrayCopyOriginal(&companion->stringsVtable, nullptr, &spec->parts);
+        reinterpret_cast<mfc::CStringArray*>(&companion->stringsVtable)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&spec->parts));
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
@@ -602,7 +602,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         auto* sound = reinterpret_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
-            StringArrayCopyOriginal(&ambient->names_, nullptr, &sound->sounds);
+            reinterpret_cast<mfc::CStringArray*>(&ambient->names_)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&sound->sounds));
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->volume);
             ambient->radius_ = static_cast<float>(sound->radius);

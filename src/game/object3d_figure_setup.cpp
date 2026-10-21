@@ -105,7 +105,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         animation->UpdatePose();
         int count = animation->bones.count;
         SetBoxCount(this, count);
-        StringArraySetSize(&partNameArrayVtable, nullptr, animation->bones.count, -1);
+        reinterpret_cast<mfc::CStringArray*>(&partNameArrayVtable)->SetSize(animation->bones.count, -1);
 
         void* figureModel;
         {

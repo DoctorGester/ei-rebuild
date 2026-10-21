@@ -66,7 +66,6 @@ __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, Ve
 void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>((void*)a0)->Highlight(a2, a3); }
 void __fastcall SpellPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>((void*)a0)->Highlight(a2, a3); }
 void __fastcall ActionPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>((void*)a0)->Highlight(a2, a3); }
-void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { static_cast<CUiMesh*>(a0)->SetScale(std::bit_cast<float>(a2)); }
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr int kQuickSlots = 8;
@@ -79,7 +78,7 @@ void DropColumn(Column* panel, bool inlinePanels, void(__fastcall* setPanel)(CUi
     for (int i = 0; i < panel->count_; ++i) {
         if (inlinePanels) {
             CUiMesh* sprite = reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data[i]);
-            SpriteSetScale(sprite, nullptr, kScaleOne);
+            reinterpret_cast<CUiMesh*>(sprite)->SetScale(std::bit_cast<float>(kScaleOne));
             sprite->flatSpecular_ = kSpriteOpaque;
             panel->selected_ = i;
         } else {

@@ -134,7 +134,7 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
     chunk.ReadHeader();
     chunk.ReadBytes(diplomacy->relations, sizeof(diplomacy->relations));
     chunk.ReadHeader();
-    StringArraySetSize(&diplomacy->names, nullptr, 0, -1);
+    reinterpret_cast<mfc::CStringArray*>(&diplomacy->names)->SetSize(0, -1);
     chunk.ReadStringArray(&diplomacy->names);
     chunk.Destruct();
 }

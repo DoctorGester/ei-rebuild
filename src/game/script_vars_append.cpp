@@ -33,13 +33,6 @@ mfc::CString* __fastcall StringAt(const void* a0, void*, void* a2, int a3) {
     return reinterpret_cast<mfc::CString*>(mfc::impl::StringArrayAbi::GetAt(
         static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr, static_cast<mfc::impl::CString*>(a2), a3));
 }
-ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) {
-    return gamearrays::ObjectRefGetAt(static_cast<const gamearrays::ObjectRefs::Array*>(a0), nullptr,
-                                      static_cast<ScriptObjectRef*>(a2), a3);
-}
-ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) {
-    return gamearrays::GroupGetAt(static_cast<const gamearrays::Groups::Array*>(a0), nullptr, static_cast<ScriptGroup*>(a2), a3);
-}
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 
 void Release(CEngineObject* object) {
@@ -87,7 +80,8 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedVal
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         ScriptObjectRef value;
-        RefAt(&other->values, nullptr, &value, i);
+        gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&other->values), nullptr,
+                                      reinterpret_cast<ScriptObjectRef*>(&value), i);
         ScriptObjectRef* slot = &values.data[old + i];
         Release(slot->object);
         slot->object = nullptr;
@@ -106,12 +100,13 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         ScriptGroup copy;
-        GroupAt(&other->values, nullptr, &copy, i);
+        gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&other->values), nullptr, reinterpret_cast<ScriptGroup*>(&copy), i);
         ScriptGroup* group = &values.data[old + i];
         group->SetSize(copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
-            RefAt(&copy, nullptr, &member, k);
+            gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy), nullptr,
+                                      reinterpret_cast<ScriptObjectRef*>(&member), k);
             group->data[k].Reset();
             group->data[k].Construct(member);
             Release(member.object);

@@ -31,8 +31,6 @@ CEngineObject* NextItem(ObjectList* list, ObjectList::Node** position) {
     return *reinterpret_cast<CEngineObject**>(
         NextParticle(list, nullptr, reinterpret_cast<mfc::CTypedPtrList<Particle>::Node**>(position)));
 }
-// 00665470 (RET 8). The player receives the objects of a list.
-void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
 // world's hoover); 0 when there is nothing to take.
 
@@ -99,7 +97,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             items.tail = entry;
         }
         player->Party()->Money() += static_cast<int>(node->data.money);
-        PlayerGiveItems(player, nullptr, &items, 0);
+        reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
         if (node == list.head) list.head = node->next;
         else node->prev->next = node->next;
         if (node == list.tail) list.tail = node->prev;
@@ -137,14 +135,14 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
                 }
                 node = next;
             }
-            if (quest.count > 0) PlayerGiveItems(first, nullptr, &quest, 0);
+            if (quest.count > 0) reinterpret_cast<CPlayer*>(first)->GiveItems(&quest, 0);
             for (ObjectList::Node* position = quest.head; position;)
                 NextItem(&quest, &position)->Release();
             mfc::impl::DestructList<mfc::impl::ItemListClass>(quest);
         }
     }
     player->Party()->Money() += gold;
-    PlayerGiveItems(player, nullptr, &items, 0);
+    reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
     for (ObjectList::Node* position = items.head; position;)
         NextItem(&items, &position)->Release();
     bool found = items.count > 0 || gold > 0;

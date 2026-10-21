@@ -36,9 +36,6 @@ inline void* __fastcall StringArrayConstruct(void* array) {
 // 006FE958 (destructor, plain RET) and 006FE9B8 (SetSize(count, growBy), RET 8; -1 keeps the grow step):
 // neither returns a result.
 inline void __fastcall StringArrayDestruct(void* array) { static_cast<mfc::CStringArray*>(array)->Destruct(); }
-inline void __fastcall StringArraySetSize(void* array, void*, int count, int growBy) {
-    static_cast<mfc::CStringArray*>(array)->SetSize(count, growBy);
-}
 // The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
 // `this` (plain RET), 004DA910 destroys it (plain RET).
 __declspec(naked) inline void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)
@@ -58,12 +55,6 @@ inline double CIpow(double x, double y) { return libcrt::CiPow(x, y); }
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
 // MFC CStringArray::SetAtGrow(index, const char*) 006FEBCE / (index, const CString&) 006FEBFA (both RET 8, EAX not a
 // result). CString::operator=(const CString&) 00700AA9 (RET 4, returns this). src/lib/mfc.cpp keeps its member.
-inline void __fastcall StringArraySetAtGrowTextOriginal(void* array, void*, int index, const char* text) {
-    static_cast<mfc::CStringArray*>(array)->SetAtGrow(index, text);
-}
-inline void __fastcall StringArraySetAtGrowStringOriginal(void* array, void*, int index, const mfc::CString* value) {
-    static_cast<mfc::CStringArray*>(array)->SetAtGrow(index, *value);
-}
 // C3n batch 5: the CString calls below are the lib members (src/lib/mfc.cpp holds the one forwarder per address).
 // MFC CString::operator=(const CString&) 00700AA9 (RET 4, returns this).
 inline void* __fastcall CStringAssignOriginal(void* destination, void*, const void* source) {
@@ -85,9 +76,6 @@ inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDat
 // 004C98F0: pointer list AddTail (RET 4, EAX not a result). 0041FCD0: list end() iterator written to `out` (RET 4,
 // returns out).
 // 006FEB61: CStringArray::Copy(source) (RET 4, EAX not a result).
-inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* source) {
-    static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
-}
 
 // Container instantiations inside the exe, decided from the disassembly.
 // 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET).

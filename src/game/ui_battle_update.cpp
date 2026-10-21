@@ -167,8 +167,6 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
-// 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
-void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { a0->UnitName(a2, static_cast<mfc::CString*>(a3)); }
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
@@ -331,8 +329,7 @@ void CBattleScreen::Update() {
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
                 ShowPanelView(panel, first);
-                ShowPanelUnit(panel->owner_, nullptr, panel->shownUnit_,
-                              panel->strings_);
+                panel->owner_->UnitName(panel->shownUnit_, reinterpret_cast<mfc::CString*>(panel->strings_));
             }
         }
     }
@@ -667,8 +664,7 @@ void CBattleScreen::RefreshSelection() {
         panel->shownUnit_ = first;
         if (first) {
             ShowPanelView(panel, first);
-            ShowPanelUnit(panel->owner_, nullptr, panel->shownUnit_,
-                          panel->strings_);
+            panel->owner_->UnitName(panel->shownUnit_, reinterpret_cast<mfc::CString*>(panel->strings_));
         }
     }
 
