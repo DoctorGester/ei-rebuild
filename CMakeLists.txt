@@ -25,6 +25,12 @@ string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO
 # (tests/vectors/record_*.cpp, installed only in the original game.exe with EI_VECTORS=1).
 option(EI_HARNESS "Build ei_hook with the harness and the vector recorders (tests/verify, tests/vectors)" OFF)
 
+# UTF-8 inside the game (docs/notes/standalone.md section 4, src/game/asset_text.h): asset text converted
+# from EI_ASSET_CODEPAGE where it is read. `build.cmd <cfg> utf8` builds it into build/<cfg>-utf8.
+option(EI_UTF8 "Every string inside the game in UTF-8 (asset text converted where it is read)" OFF)
+set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets' text (EI_UTF8)")
+add_compile_definitions(EI_UTF8=$<BOOL:${EI_UTF8}> EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
+
 # x87 floating point, as in the original: SSE rounds differently and would change behaviour.
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
 # an ulp (SV7d1). Precise's extra rounding stores change nothing on the main thread, which runs

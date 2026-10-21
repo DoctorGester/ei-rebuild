@@ -23,6 +23,8 @@
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "game/record_arrays.h"
+#include "game/game_slots.h"
 
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 
@@ -33,11 +35,7 @@ constexpr std::uintptr_t kParticleListVtable = std::uintptr_t(0x0073D018);   // 
 constexpr std::uintptr_t kWaterLevelsVtable = std::uintptr_t(0x0073F730);    // CArray<CArray<float>>
 constexpr std::uintptr_t kSectorCacheVtable = std::uintptr_t(0x0073F724);    // CList<SectorData*>
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
-constexpr std::uintptr_t kCountedArrayVtable = std::uintptr_t(0x0073F53C);   // the client's +0xA0
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
-constexpr std::uintptr_t kSharedObjectListVtable = std::uintptr_t(0x0073FA10); // CList<SharedObject>
-constexpr std::uintptr_t kCountedListVtable = std::uintptr_t(0x0073BE74);      // CList<CEngineObject*>
-constexpr std::uintptr_t kProjectileListVtable = std::uintptr_t(0x0073F9D0);   // CList<Projectile*>
 
 // The client's ground print lists: each print's destructor (the client's copies 0056D080,
 // 0056D400, 0056D680 of GroundPrint's).
@@ -63,7 +61,7 @@ struct SharedObjectElements {
     static void Destruct(SharedObject* entry, int count) {
         for (; count > 0; --count, ++entry) {
             auto& objects = entry->objects;
-            objects.vtable = SharedObject::ObjectsBaseVtable();
+            objects.vtable = gamearrays::ObjectPtrArrayBaseClass::Vtable();
             if (!objects.data) continue;
             for (int i = 0; i < objects.size; ++i)
                 if (CEngineObject* object = objects.data[i]) object->Release();
@@ -89,9 +87,9 @@ struct ProjectileElements {
 // A list emptied as its instantiation's destructor does: the vtable back, then RemoveAll with the
 // elements destroyed.
 template <typename Elements, typename T>
-void DestroyList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
+void DestroyList(mfc::CList<T>& list, void* vtable) {
     auto& typed = reinterpret_cast<mfc::CList<T, Elements>&>(list);
-    typed.vtable = ei::GamePointer<void>(vtableAddress);
+    typed.vtable = vtable;
     typed.RemoveAll();
 }
 
@@ -119,18 +117,18 @@ T* DeleteIf(T* self, unsigned flags) {
 void CScript::Destruct() {
     ScriptReset(this);
     errorText_.~CString();
-    DestroyScriptList<gamelists::ObjectRefs, gamelists::TempObjectListClass>(tempObjects_);
-    DestroyScriptList<gamelists::Groups, gamelists::TempGroupListClass>(tempGroups_);
-    DestroyScriptArray<gamearrays::Areas, gamearrays::AreaArrayClass>(areas_);
-    DestroyScriptList<gamelists::Decls, gamelists::DeclListClass>(worldBlocks_);
-    DestroyScriptList<gamelists::Runs, gamelists::RunListClass>(runs_);
-    DestroyScriptList<gamelists::Definitions, gamelists::InstanceListClass>(instances_);
+    DestroyScriptList<gamelists::ObjectRefs, gameslots::ObjectRefListClass>(tempObjects_);
+    DestroyScriptList<gamelists::Groups, gameslots::GroupListClass>(tempGroups_);
+    DestroyScriptArray<gamearrays::Areas, mfc::impl::ScriptAreaArrayClass>(areas_);
+    DestroyScriptList<gamelists::Decls, gameslots::DeclListClass>(worldBlocks_);
+    DestroyScriptList<gamelists::Runs, gameslots::RunListClass>(runs_);
+    DestroyScriptList<gamelists::Definitions, gameslots::DefinitionListClass>(instances_);
     ScriptVarsDestruct(&globals_);
-    DestroyScriptArray<gamearrays::Definitions, gamearrays::DefinitionArrayClass>(definitions_);
-    DestroyScriptList<gamelists::Decls, gamelists::DeclListClass>(blocks_);
-    DestroyScriptList<gamelists::Lightnings, gamelists::LightningListClass>(lightning_);
-    DestroyScriptList<gamelists::FxSources, gamelists::FxSourceListClass>(fxSources_);
-    DestroyScriptList<gamelists::ParticleSources, gamelists::ParticleSourceListClass>(particles_);
+    DestroyScriptArray<gamearrays::Definitions, recordarrays::DefinitionArrayClass>(definitions_);
+    DestroyScriptList<gamelists::Decls, gameslots::DeclListClass>(blocks_);
+    DestroyScriptList<gamelists::Lightnings, gameslots::LightningListClass>(lightning_);
+    DestroyScriptList<gamelists::FxSources, gameslots::FxSourceListClass>(fxSources_);
+    DestroyScriptList<gamelists::ParticleSources, gameslots::ParticleSourceListClass>(particles_);
     DestroyScriptArray<gamearrays::PointLights, gamearrays::PointLightArrayClass>(pointLights_);
 }
 EI_REWRITTEN(0x0058A140, CScript::Destruct);
@@ -256,7 +254,7 @@ void CWorldClient::Destruct() {
     dynamicObjects_.RemoveAll();
     objects_.Destroy();
     DestroySectorList(&heroes_);
-    countedA0_.vtable = ei::GamePointer<void>(kCountedArrayVtable);
+    countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();   // the client's +0xA0
     if (countedA0_.data) {
         for (int i = 0; i < countedA0_.size; ++i) ObjectHolderDelete(&countedA0_.data[i], nullptr, 0);
         gamecrt::operator_delete(countedA0_.data);
@@ -275,9 +273,9 @@ EI_REPLACE_METHOD(0x00561A00, CWorldClient::DeletingDestruct);
 void CWorldServer::Destruct() {
     ei::SetVtable(this, kServerVtable);
     Teardown();
-    DestroyList<SharedObjectElements>(sharedObjects_, kSharedObjectListVtable);
-    DestroyList<ReleasedElements>(counted_, kCountedListVtable);
-    DestroyList<ProjectileElements>(projectiles_, kProjectileListVtable);
+    DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
+    DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
+    DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<Projectile*>
     zoneHeader_.Destruct();
     timedObjects_.map.Destroy();
     namedObjects_.map.Destroy();

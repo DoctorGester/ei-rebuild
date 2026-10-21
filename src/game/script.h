@@ -46,20 +46,11 @@ inline void* const kStringsBase = ei::GamePointer<void>(0x0073D2F8);
 inline void* const kRefs = ei::GamePointer<void>(0x0073D110);         // object references (ScriptGroup)
 inline void* const kRefsBase = ei::GamePointer<void>(0x0073D11C);
 inline void* const kGroups = ei::GamePointer<void>(0x0073D304);       // ScriptVars group values
-inline void* const kGroupsBase = ei::GamePointer<void>(0x0073D310);
 inline void* const kIfThen = ei::GamePointer<void>(0x0073D430);       // CArray<ScriptIfThen>
 // The CScript members' (the constructor 004BDE40 installs them; A-E1).
 inline void* const kPointLights = ei::GamePointer<void>(0x0073D394);  // CArray<ScriptPointLight>
-inline void* const kParticleList = ei::GamePointer<void>(0x0073D388);
-inline void* const kFxSourceList = ei::GamePointer<void>(0x0073D37C);
-inline void* const kLightningList = ei::GamePointer<void>(0x0073D370);
-inline void* const kBlockList = ei::GamePointer<void>(0x0073D364);    // blocks_ and worldBlocks_
 inline void* const kDefinitions = ei::GamePointer<void>(0x0073D358);  // CArray<ScriptDefinition>
-inline void* const kInstanceList = ei::GamePointer<void>(0x0073D34C);
-inline void* const kRunList = ei::GamePointer<void>(0x0073D340);
 inline void* const kAreas = ei::GamePointer<void>(0x0073D334);        // CArray<ScriptArea>
-inline void* const kTempGroupList = ei::GamePointer<void>(0x0073D43C);
-inline void* const kTempObjectList = ei::GamePointer<void>(0x0073D448);
 } // namespace scriptvtable
 
 // A CString returned by value into raw storage; destroyed at the end of the scope.

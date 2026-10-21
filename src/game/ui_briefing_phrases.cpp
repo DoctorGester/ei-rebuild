@@ -5,6 +5,7 @@
 #include "world_glue.h"
 #include "combat.h"
 #include "ui_briefing.h"
+#include "asset_text.h"
 
 #include "console.h"
 #include "item.h"
@@ -31,6 +32,8 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+
+#include <string_view>
 
 namespace {
 
@@ -183,7 +186,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 file.Format(VoiceFormat(), VoiceFolders()[folder], static_cast<const char*>(topic_), number);
                 voice_ = TheSoundManager()->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
-            phraseTime_ = static_cast<float>(phrase.GetLength()) * kSecondsPerCharacter;
+            phraseTime_ = static_cast<float>(text::CharacterCount(
+                              std::string_view(phrase, static_cast<std::size_t>(phrase.GetLength())))) *
+                          kSecondsPerCharacter;
             if (firstPhrase_) phraseTime_ += 1.0f;
             text_->AddText(phrase);
         }

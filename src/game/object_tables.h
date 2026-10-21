@@ -98,7 +98,6 @@ struct CMapDatabase {
     // vtable back, each record's destructor 00460970, the storage freed), then the allods' (each
     // allod's map indices freed, its six strings from the last), as the compiler wrote it.
     void Destruct();
-    static constexpr std::uintptr_t kAllodArrayVtable = std::uintptr_t(0x0073C3DC);
     static constexpr std::uintptr_t kMapArrayVtable = std::uintptr_t(0x0073C3E8);
 
     mfc::CArray<AllodRecord> allods;   // +0x00

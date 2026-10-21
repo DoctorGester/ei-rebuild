@@ -1,6 +1,7 @@
 // The CArray<T> instantiations that destroy game elements (game_arrays.h), registered at their
 // library addresses (ticket S6; the plain ones are in lib/mfc_array.cpp).
 #include "game/game_arrays.h"
+#include "game/record_arrays.h"
 #include "game/world.h"
 
 #include "ei/hook.h"
@@ -36,8 +37,8 @@ EI_REWRITTEN(0x004CC7D0, ObjectRefs::DestructElements);
 EI_REWRITTEN(0x0052CEC0, ObjectRefs::DestructElements);
 EI_REPLACE_METHOD(0x004C2290, ScriptGroup::DestructBody);   // byte-identical to 004B5EF0
 EI_REWRITTEN(0x004CB150, PointLights::Destruct<PointLightArrayClass>);
-EI_REWRITTEN(0x004CB650, Areas::Destruct<AreaArrayClass>);
-EI_REWRITTEN(0x004CB310, Definitions::Destruct<DefinitionArrayClass>);
+EI_REWRITTEN(0x004CB650, Areas::Destruct<mfc::impl::ScriptAreaArrayClass>);
+EI_REWRITTEN(0x004CB310, Definitions::Destruct<recordarrays::DefinitionArrayClass>);
 EI_REWRITTEN(0x004C5CB0, PointLights::SetSize);
 EI_REWRITTEN(0x004C3B20, Groups::Destruct<GroupArrayClass>);
 EI_REWRITTEN(0x0059C8C0, ObjectPtrs::SetSize);

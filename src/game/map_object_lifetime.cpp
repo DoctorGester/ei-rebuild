@@ -35,6 +35,7 @@
 #include "originals_ai.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "game/game_slots.h"
 
 #include <cstring>
 #include <new>
@@ -46,11 +47,9 @@ using ei::SetVtable;
 // The unit motion's step speeds while constructed / destroyed (its points and waypoints: mfc_slots.h).
 constexpr std::uintptr_t kMotionSpeedsVtable = std::uintptr_t(0x0073D490);
 constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
-constexpr std::uintptr_t kParticleArrayVtable = std::uintptr_t(0x0073DC48);
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
 constexpr std::uintptr_t kServerArrayVtable = std::uintptr_t(0x0073EF2C);
-constexpr std::uintptr_t kArmourSpellListVtable = std::uintptr_t(0x0073F010);
 
 constexpr std::uint32_t kStreamLimit = 2000000000;   // a memory stream's size limit
 constexpr std::uint32_t kOne = 0x3F800000;
@@ -417,7 +416,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     InitEngineObject(this);
     owner = nullptr;
     // The effect particles (0x10 each) and looping sounds (0x14 each), MFC CArrays.
-    SetVtable(&particles, kParticleArrayVtable);
+    SetVtable(&particles, gameslots::EffectObjectArrayClass::Vtable());
     particles.data = nullptr;
     particles.growBy = 0;
     particles.maxSize = 0;
@@ -457,7 +456,7 @@ void CMapObjectClientSpecific::DestructBody() {
     owner = nullptr;
     if (light) light->Release();
     DestroyArray(sounds, mfc::impl::EffectSoundArrayClass::Vtable());
-    SetVtable(&particles, kParticleArrayVtable);
+    SetVtable(&particles, gameslots::EffectObjectArrayClass::Vtable());
     if (EffectParticle* data = particles.data) {
         for (int i = 0; i < particles.size; ++i)
             if (data[i].source) data[i].source->Release();
@@ -481,13 +480,13 @@ void CUnitServer::DestructBody() {
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
     mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
-    gamelists::OwnedRefs::Destruct<gamelists::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));   // 005575F0
+    gamelists::OwnedRefs::Destruct<gameslots::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));   // 005575F0
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
     Brain14Destroy(&b->looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
-    SetVtable(&armourSpells, kArmourSpellListVtable);
+    SetVtable(&armourSpells, gameslots::ArmourSpellListClass::Vtable());
     mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();   // 00558020
     if (CEngineObject* leader = followedLeader) leader->Release();
     if (CEngineObject* target = action2.target) target->Release();

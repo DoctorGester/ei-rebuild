@@ -664,8 +664,8 @@ namespace {
 // A CArray's constructor body, inlined by the original: the instantiation's vtable, then the
 // storage, grow step, capacity and size cleared in that order.
 template <typename Array>
-void EmptyArray(Array* array, std::uintptr_t vtableAddress) {
-    array->vtable = ei::GamePointer<void>(vtableAddress);
+void EmptyArray(Array* array, void* vtable) {
+    array->vtable = vtable;
     array->data = nullptr;
     array->growBy = 0;
     array->maxSize = 0;
@@ -676,9 +676,9 @@ void EmptyArray(Array* array, std::uintptr_t vtableAddress) {
 CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     reinterpret_cast<CUiContainer*>(this)->Construct(ui);
     ::new (&allodTitle_) mfc::CString;
-    EmptyArray(&zones_, 0x00740BFC);
-    EmptyArray(&links_, 0x00740BF0);
-    EmptyArray(&quests_, 0x00740BE4);
+    EmptyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
+    EmptyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
+    EmptyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
     path_.Start() = nullptr;
     path_.Finish() = nullptr;
     path_.EndOfStorage() = nullptr;   // the allocator proxy (005FA0C0)
@@ -706,8 +706,8 @@ namespace {
 // A CArray's destructor: its vtable back, each entry's strings destroyed (title, then name:
 // 005FBDD0 / 005FBD80 the places', 005FBD30 the zones'), the storage freed.
 template <typename Array>
-void DestroyArray(Array* array, std::uintptr_t vtableAddress) {
-    array->vtable = ei::GamePointer<void>(vtableAddress);
+void DestroyArray(Array* array, void* vtable) {
+    array->vtable = vtable;
     if (!array->data) return;
     int size = array->size;
     for (int i = 0; i < size; ++i) {
@@ -725,9 +725,9 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self) {
     CStringDestroy(&self->target_);
     stlp::deallocate(self->path_.Start(), static_cast<std::size_t>(self->path_.EndOfStorage() - self->path_.Start()) *
                                               sizeof(GlobalMapStep));   // 005FA7E0
-    DestroyArray(&self->quests_, 0x00740BE4);
-    DestroyArray(&self->links_, 0x00740BF0);
-    DestroyArray(&self->zones_, 0x00740BFC);
+    DestroyArray(&self->quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
+    DestroyArray(&self->links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
+    DestroyArray(&self->zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
     CStringDestroy(&self->allodTitle_);
     DestroyContainerBody(self);
 }

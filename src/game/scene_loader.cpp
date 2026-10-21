@@ -96,7 +96,7 @@ using NodeRecordArray = recordarrays::SceneNodes::Array;       // 00454F80 / 004
 // One CMap<DWORD, DWORD> per group (00477380 builds them; destroyed through slot 1 by 004763C0).
 using MapRecordArray = mfc::impl::OwnedDwordMaps::Array;
 
-using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (vtable 0073C800)
+using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (IndexArrayClass)
 
 // The value of `key` in `map`, inserted as 0 when missing (CMap::operator[], 00476050).
 std::uint32_t& At(DwordMap& map, std::uint32_t key) { return *Map32::ElementAt(&map, nullptr, &key); }
@@ -364,8 +364,8 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     VertexMerge m;
     InitMap(m.seen);
     InitMap(m.index);
-    InitArray(m.maps, scenedata::MapArrayVtable());
-    InitArray(m.sources, scenedata::IndexArrayVtable());
+    InitArray(m.maps, mfc::impl::SceneObjectArrayClass::Vtable());
+    InitArray(m.sources, mfc::impl::IndexArrayClass::Vtable());
     m.positions = {};
     m.texCoords = {};
 
@@ -421,14 +421,14 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     mfc::CString name;
     mfc::CString parent;
     RecordArrays r;
-    InitArray(r.normals, scenedata::NormalArrayVtable());
-    InitArray(r.points, scenedata::PointArrayVtable());
-    InitArray(r.texCoords, scenedata::TexCoordArrayVtable());
-    InitArray(r.faces, scenedata::FileFaceArrayVtable());
+    InitArray(r.normals, mfc::impl::NormalArrayClass::Vtable());
+    InitArray(r.points, mfc::impl::FilePointArrayClass::Vtable());
+    InitArray(r.texCoords, mfc::impl::FileUvArrayClass::Vtable());
+    InitArray(r.faces, mfc::impl::FileFaceArrayClass::Vtable());
     InitArray(r.groups, recordarrays::FaceGroupArrayClass::Vtable());
-    InitArray(r.rotKeys, scenedata::RotKeyArrayVtable());
-    InitArray(r.posKeys, scenedata::PosKeyArrayVtable());
-    InitArray(r.morphHeads, scenedata::MorphHeadArrayVtable());
+    InitArray(r.rotKeys, mfc::impl::RotKeyArrayClass::Vtable());
+    InitArray(r.posKeys, mfc::impl::PosKeyArrayClass::Vtable());
+    InitArray(r.morphHeads, mfc::impl::MorphHeadArrayClass::Vtable());
 
     RecordHeader h;
     Read(file_, &h, sizeof(h));
@@ -586,7 +586,6 @@ mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
 }
 
 // The arrays' vtables the destructors write back.
-constexpr std::uintptr_t kMorphKeysVtable = std::uintptr_t(0x0073C114);
 constexpr std::uintptr_t kFramesVtable = std::uintptr_t(0x0073C12C);
 
 template <typename A>
@@ -630,7 +629,7 @@ void SceneNode::Destruct() {
     FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
     FreeArray(frames, kFramesVtable);
     FreeArray(normals, mfc::impl::Vector3ArrayClass::Vtable());
-    FreeArray(morphKeys, kMorphKeysVtable);
+    FreeArray(morphKeys, mfc::impl::AlignedAt4ArrayClass::Vtable());
     FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
     FreeArray(rotationKeys, mfc::impl::NodeItemsAClass::Vtable());
     parent.~CString();
@@ -651,7 +650,7 @@ void SceneNode::Construct() {
     restRotation.SetIdentity();
     rotationKeys.Construct(mfc::impl::NodeItemsAClass::Vtable());
     positionKeys.Construct(mfc::impl::NodeItemsBClass::Vtable());
-    morphKeys.Construct(kMorphKeysVtable);
+    morphKeys.Construct(mfc::impl::AlignedAt4ArrayClass::Vtable());
     normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     frames.Construct(kFramesVtable);
     children.Construct(mfc::impl::NodeItemsCClass::Vtable());   // 00455150
@@ -744,7 +743,7 @@ struct TextureLinks : VtArray {
     const TextureLinkRecord& Record(int i) const { return reinterpret_cast<const TextureLinkRecord*>(data)[i]; }
 };
 struct TextureNames : VtArray {
-    TextureNames() : VtArray{scenedata::TextureNameArrayVtable(), nullptr, 0, 0, 0} {}
+    TextureNames() : VtArray{mfc::impl::TextureNameArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureNames() {
         if (!data) return;
         for (int i = 0; i < size; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&Records()[i]));

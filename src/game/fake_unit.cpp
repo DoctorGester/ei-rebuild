@@ -60,10 +60,10 @@ void DestructArray(Array& a, const void* vtable, Destroy destroy) {
 } // namespace fakeunit
 
 FakeUnitScene::FakeUnitScene() {
-    figures.Construct(mfc::impl::FakeUnitPartArrayClass::Vtable());
-    meshes.Construct(mfc::impl::FakeUnitSceneRecordArrayClass::Vtable());
+    figures.Construct(recordarrays::FakeUnitPartArrayClass::Vtable());
+    meshes.Construct(recordarrays::FakeUnitSceneRecordArrayClass::Vtable());
     boneLinks.Construct(mfc::impl::FakeUnitBoneArraysClass::Vtable());
-    helpers.Construct(mfc::impl::FakeUnitRecord9CArrayClass::Vtable());
+    helpers.Construct(recordarrays::FakeUnitRecord9CArrayClass::Vtable());
 }
 
 void FakeUnitScene::ReleaseParts() {
@@ -80,12 +80,12 @@ FakeUnitScene::~FakeUnitScene() {
     scene::Typed<recordarrays::FigureParts::Array>(figures).SetSize(0, -1);   // 0044FCD0
     FigureArray& figureRecords = Figures(this);
     for (int i = 0; i < figureRecords.size; ++i) --figureRecords.data[i].refCount_;
-    DestructArray(Helpers(this), mfc::impl::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });
+    DestructArray(Helpers(this), recordarrays::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });
     DestructArray(BoneLinks(this), mfc::impl::FakeUnitBoneArraysClass::Vtable(), [](scene::VtArray& links) {
         reinterpret_cast<mfc::CObjectVirtuals*>(&links)->DeletingDestructor(0);
     });
-    DestructArray(Meshes(this), mfc::impl::FakeUnitSceneRecordArrayClass::Vtable(), [](scene::SceneMesh& mesh) { DestroyRecord(&mesh); });
-    DestructArray(figureRecords, mfc::impl::FakeUnitPartArrayClass::Vtable(), [](CFigureMesh& record) { DestroyRecord(&record); });
+    DestructArray(Meshes(this), recordarrays::FakeUnitSceneRecordArrayClass::Vtable(), [](scene::SceneMesh& mesh) { DestroyRecord(&mesh); });
+    DestructArray(figureRecords, recordarrays::FakeUnitPartArrayClass::Vtable(), [](CFigureMesh& record) { DestroyRecord(&record); });
 }
 
 void FakeUnitScene::Destroy() {

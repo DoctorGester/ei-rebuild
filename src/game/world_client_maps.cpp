@@ -65,6 +65,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
+#include "game/game_slots.h"
 
 #include <new>
 #include <windows.h>
@@ -1490,7 +1491,7 @@ void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* str
 EI_REWRITTEN(0x0055E8A0, SaveListedObjects);
 
 CLightningManager::CLightningManager() {
-    newBolts_.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
+    newBolts_.vtable = gameslots::ClientObjectList2Class::Vtable();
     newBolts_.count = 0;
     newBolts_.free = nullptr;
     newBolts_.tail = nullptr;
@@ -1500,7 +1501,7 @@ CLightningManager::CLightningManager() {
 }
 
 CLightningManager::~CLightningManager() {
-    newBolts_.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
+    newBolts_.vtable = gameslots::ClientObjectList2Class::Vtable();
     for (auto* node = newBolts_.head; node; node = node->next)
         if (node->data) node->data->Release();
     newBolts_.RemoveAll();

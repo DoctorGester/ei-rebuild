@@ -95,6 +95,16 @@ using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour,
 struct BehaviourArrayClass final
     : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &mfc::impl::SerializeCArray<Behaviours>> {};
 
+// A fake unit's 0x220-byte figure parts, 0x18C-byte scene records and 0x9C-byte records (FakeUnitConstruct).
+struct FakeUnitPartArrayClass final
+    : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>, &mfc::impl::SerializeCArray<FigureParts>> {};
+struct FakeUnitSceneRecordArrayClass final
+    : mfc::impl::CompiledCollection<FakeUnitSceneRecordArrayClass, &mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>,
+                                    &mfc::impl::SerializeCArray<SceneMeshes>> {};
+struct FakeUnitRecord9CArrayClass final
+    : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>,
+                                    &mfc::impl::SerializeCArray<Materials>> {};
+
 // CStringArray over the part names of a map object (the server companion's, the object's own). 004698C0
 // (and 004698A0 calling it; RET 8, S16): GetAt by value, the element copy-constructed into `result`,
 // which is returned.
@@ -126,6 +136,9 @@ struct BindingArrayClass final : mfc::impl::BindingsBaseClass {
 // Definitions (built by 004CEB80, destroyed by 004BE9D0), runs (004BCAE0) and command blocks
 // (004BF7E0).
 using Definitions = ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
+// CScript's definitions (+0x8C; destructor 004CB310).
+struct DefinitionArrayClass final
+    : mfc::impl::CompiledCollection<DefinitionArrayClass, &gamearrays::Definitions::Destruct<DefinitionArrayClass>, &mfc::impl::SerializeCArray<Definitions>> {};
 using Runs = ArrayAbi<ScriptRun, EachElements<ScriptRun, nullptr, gamelists::DestroyRun>>;
 using Decls = ArrayAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, gamelists::DestroyDecl>>;
 
@@ -149,9 +162,6 @@ using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
 // The terrain's 16-byte records, an aligned block at +0 (006C4C40).
 struct TerrainAlignedArrayClass final
     : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, &mfc::impl::SerializeCArray<mfc::impl::AlignedArrays>> {};
-struct WaveListClass {   // the sound cache's CList<WaveRecord> (destructor 006BC870)
-    static void* Vtable() { return ei::GamePointer<void>(0x00744124); }
-};
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
 // A terrain sector's vertex records (destructor 006C4690).

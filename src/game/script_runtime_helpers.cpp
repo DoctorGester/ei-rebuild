@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "originals_ai.h"
 #include "originals_library.h"
+#include "game/game_slots.h"
 
 namespace {
 
@@ -34,7 +35,7 @@ EI_REWRITTEN(0x004B5EF0, ScriptGroup::DestructBody);
 
 void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
     mfc::CArray<SSCCmd>& commands = block->commands;
-    SetVtable(&commands, 0x0073D3D0);   // CArray<SSCCmd>
+    ei::SetVtable(&commands, gameslots::CommandArrayClass::Vtable());   // CArray<SSCCmd>
     if (!commands.data) return;
     for (int i = 0; i < commands.size; ++i) ScriptCmdDestruct(&commands.data[i]);
     gamecrt::operator_delete(commands.data);
@@ -42,7 +43,7 @@ void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
 EI_REWRITTEN(0x004BF7E0, ScriptDeclDestruct);
 
 void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines) {
-    SetVtable(defines, 0x0073D4C0);   // CList<ScriptDefine>
+    ei::SetVtable(defines, gameslots::DefineListClass::Vtable());   // CList<ScriptDefine>
     defines->RemoveAll();
 }
 EI_REWRITTEN(0x004D6340, ScriptDefinesDestruct);

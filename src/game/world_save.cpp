@@ -821,7 +821,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     if (shared.head) shared.head->prev = node;
     else shared.tail = node;
     shared.head = node;
-    empty.vtable = SharedObject::ObjectsBaseVtable();
+    empty.vtable = gamearrays::ObjectPtrArrayBaseClass::Vtable();
     if (empty.data) {
         CountedRangeRelease(empty.data, empty.size);
         gamecrt::operator_delete(empty.data);

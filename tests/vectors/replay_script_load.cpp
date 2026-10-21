@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "game/game_data.h"
+#include "game/game_slots.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -70,7 +71,7 @@ void ReadVars(Reader& r, ScriptVars* v) {
 }
 
 void InitBlocks(mfc::CList<ScriptDecl>* list, int count) {
-    list->vtable = scriptvtable::kBlockList;
+    list->vtable = gameslots::DeclListClass::Vtable();
     list->head = list->tail = list->free = nullptr;
     list->blocks = nullptr;
     list->count = count;
@@ -173,7 +174,7 @@ void ReadRun(Reader& r, Run* run) {
     }
     new (&run->tail.data.text) mfc::CString;
     run->tail.data.line = r.Get<std::int32_t>();
-    run->list.vtable = ei::GamePointer<void>(0x0073D424);
+    run->list.vtable = gameslots::TokenListClass::Vtable();
     run->list.head = linked ? &run->nodes[0] : nullptr;
     run->list.tail = &run->tail;   // only its line is read
     run->list.count = static_cast<int>(linked);

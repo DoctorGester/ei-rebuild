@@ -17,11 +17,6 @@ struct PlatformSet;   // game/world.h
 
 namespace gameslots {
 
-// The script's #define list (004D6340).
-struct DefineListClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D4C0); }
-};
-
 // A script group's destructor body as a free function (004C2290).
 void __fastcall GroupDestruct(ScriptGroup* group);
 
@@ -216,67 +211,85 @@ using DefinesThrough = ListTemporary<DefineNodes, InitDefine, AssignDefine, Dest
 using SharedObjectsThrough = ListTemporary<SharedObjectNodes, InitSharedObject, AssignSharedObject, gamelists::DestroySharedObject>;
 using WavesThrough = ListTemporary<gamelists::Waves, gamelists::InitWave, AssignWave, gamelists::DestroyWave>;
 
-// ---- The instantiations' vtables (game data) -------------------------------------------------------
+// ---- The instantiations' vtables (C19: the compiler's) ----------------------------------------------
+//
+// Each tag is a CompiledCollection (lib/mfc_slots.h) over the destructor and Serialize registered for the game.exe
+// table it replaces; the script's lists and arrays (game_lists.h / game_arrays.h had their own tags for the same
+// addresses: one tag each now).
 
-struct ItemObjectListClass {   // a list of engine objects released through slot 4 (00427600)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073BE74); }
-};
-struct ClientObjectList2Class {   // the same in the client maps (00571F10)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F61C); }
-};
-struct ObjectRefListClass {   // CList<ScriptObjectRef>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D448); }
-};
-struct VictimListClass {   // a magic trap's victims (counted references)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073E730); }
-};
-struct PointLightArrayClass {   // the script's point lights
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3A0); }
-};
-struct DefinitionArrayClass {   // CArray<ScriptDefinition>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3B8); }
-};
-struct MemoryObjectArrayClass {   // a unit memory's object records
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F058); }
-};
-struct ClientObjectPtrArrayClass {   // the client maps' engine object pointers
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F53C); }
-};
-struct EffectObjectArrayClass {   // a map object client's effect records
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DC48); }
-};
-struct RefListAClass {   // counted pointer lists of the world server (00598F40)
+using mfc::impl::CompiledCollection;
+using mfc::impl::SerializeCArray;
+using mfc::impl::SerializeCListThrough;
+
+// Counted pointer lists of the world server (00598F40): left to a later batch (its table is not derivable yet).
+struct RefListAClass {
     static void* Vtable() { return ei::GamePointer<void>(0x0073FA4C); }
 };
-struct RefListBClass {   // (00599D60)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F9D0); }
-};
-struct ParticleSourceListClass {   // the script's particle sources
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D388); }
-};
-struct FxSourceListClass {   // the script's FX sources
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D37C); }
-};
-struct LightningListClass {   // the script's lightnings
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D370); }
-};
-struct DeclListClass {   // CList<ScriptDecl>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D364); }
-};
-struct DefinitionListClass {   // CList<ScriptDefinition>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D34C); }
-};
-struct RunListClass {   // CList<ScriptRun>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D340); }
-};
-struct GroupListClass {   // CList<ScriptGroup>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D43C); }
-};
-struct ArmourSpellListClass {   // the armour spells (12-byte records holding an engine object)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F010); }
-};
-struct CommandArrayClass {   // CArray<SSCCmd> (a command block)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3D0); }
-};
+// A list of engine objects released through slot 4 (00427600).
+struct ItemObjectListClass final
+    : CompiledCollection<ItemObjectListClass, &gamelists::EngineObjects::Destruct<ItemObjectListClass>, &SerializeCListThrough<EngineObjectsThrough>> {};
+// The same in the client maps (00571F10), and the lightning manager's new bolts.
+struct ClientObjectList2Class final
+    : CompiledCollection<ClientObjectList2Class, &gamelists::EngineObjects::Destruct<ClientObjectList2Class>, &SerializeCListThrough<EngineObjectsThrough>> {};
+// CList<ScriptObjectRef> (CScript's temporary objects, +0x1CC).
+struct ObjectRefListClass final
+    : CompiledCollection<ObjectRefListClass, &gamelists::ObjectRefs::Destruct<ObjectRefListClass>, &SerializeCListThrough<ObjectRefsThrough>> {};
+// A magic trap's victims (counted references).
+struct VictimListClass final
+    : CompiledCollection<VictimListClass, &gamelists::ObjectRefs::Destruct<VictimListClass>, &SerializeCListThrough<VictimsThrough>> {};
+// Counted pointer lists of the world server (00599D60).
+struct RefListBClass final
+    : CompiledCollection<RefListBClass, &gamelists::Refs::Destruct<RefListBClass>, &SerializeCListThrough<RefsThrough>> {};
+// A map object controller's counted pointer list (005575F0).
+struct OwnedRefListClass final
+    : CompiledCollection<OwnedRefListClass, &gamelists::OwnedRefs::Destruct<OwnedRefListClass>, &SerializeCListThrough<OwnedRefsThrough>> {};
+// The world server's shared objects (0059A3C0).
+struct SharedObjectListClass final
+    : CompiledCollection<SharedObjectListClass, &gamelists::SharedObjects::Destruct<SharedObjectListClass>, &SerializeCListThrough<SharedObjectsThrough>> {};
+// The armour spells (12-byte records holding an engine object).
+struct ArmourSpellListClass final
+    : CompiledCollection<ArmourSpellListClass, &gamelists::Holders::Destruct<ArmourSpellListClass>, &SerializeCListThrough<ArmourSpellsThrough>> {};
+// The sound cache's CList<WaveRecord> (destructor 006BC870).
+struct WaveListClass final
+    : CompiledCollection<WaveListClass, &gamelists::Waves::Destruct<WaveListClass>, &SerializeCListThrough<WavesThrough>> {};
+
+// CScript's lists (their destructors, S13b: 004C92C0, 004C8E20, 004C7560, 004C8520, 004C7E30, 004C6760, 004C6410,
+// 004C6120).
+struct ParticleSourceListClass final
+    : CompiledCollection<ParticleSourceListClass, &gamelists::ParticleSources::Destruct<ParticleSourceListClass>, &SerializeCListThrough<ParticleSourcesThrough>> {};
+struct FxSourceListClass final
+    : CompiledCollection<FxSourceListClass, &gamelists::FxSources::Destruct<FxSourceListClass>, &SerializeCListThrough<FxSourcesThrough>> {};
+struct LightningListClass final
+    : CompiledCollection<LightningListClass, &gamelists::Lightnings::Destruct<LightningListClass>, &SerializeCListThrough<LightningsThrough>> {};
+// The command blocks (+0x70 and +0x178).
+struct DeclListClass final
+    : CompiledCollection<DeclListClass, &DeclList::Destruct<DeclListClass>, &SerializeCListThrough<DeclsThrough>> {};
+// The script instances (+0x140).
+struct DefinitionListClass final
+    : CompiledCollection<DefinitionListClass, &gamelists::Definitions::Destruct<DefinitionListClass>, &SerializeCListThrough<DefinitionsThrough>> {};
+struct RunListClass final
+    : CompiledCollection<RunListClass, &gamelists::Runs::Destruct<RunListClass>, &SerializeCListThrough<RunsThrough>> {};
+// CScript's temporary groups (+0x1B0).
+struct GroupListClass final
+    : CompiledCollection<GroupListClass, &GroupList::Destruct<GroupListClass>, &SerializeCListThrough<GroupsThrough>> {};
+// The script parser's tokens (004CA260).
+struct TokenListClass final
+    : CompiledCollection<TokenListClass, &gamelists::Tokens::Destruct<TokenListClass>, &SerializeCListThrough<TokensThrough>> {};
+// The script's #define list (004D6340).
+struct DefineListClass final
+    : CompiledCollection<DefineListClass, &ScriptDefinesDestruct, &SerializeCListThrough<DefinesThrough>> {};
+
+// A unit memory's object records.
+struct MemoryObjectArrayClass final
+    : CompiledCollection<MemoryObjectArrayClass, &ObjectValues::Destruct<MemoryObjectArrayClass>, &SerializeCArray<ObjectValues>> {};
+// The client maps' engine object pointers.
+struct ClientObjectPtrArrayClass final
+    : CompiledCollection<ClientObjectPtrArrayClass, &gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>, &SerializeCArray<gamearrays::ObjectPtrs>> {};
+// A map object client's effect records.
+struct EffectObjectArrayClass final
+    : CompiledCollection<EffectObjectArrayClass, &EffectObjects::Destruct<EffectObjectArrayClass>, &SerializeCArray<gamearrays::Particles>> {};
+// CArray<SSCCmd> (a command block).
+struct CommandArrayClass
+    : CompiledCollection<CommandArrayClass, &Commands::Destruct<CommandArrayClass>, &SerializeCArray<BuiltCommands>> {};
 
 } // namespace gameslots

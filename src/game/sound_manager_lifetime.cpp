@@ -18,6 +18,7 @@
 #include "lib/mfc_thread.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "game/game_slots.h"
 
 #include <cstring>
 #include <new>
@@ -149,7 +150,6 @@ EI_REPLACE(0x006BA950, SoundStreamRead);
 
 namespace {
 
-constexpr std::uintptr_t kCacheListVtable = std::uintptr_t(0x00744124);
 constexpr int kListBlockSize = 10;
 constexpr unsigned kMapBuckets = 100;
 constexpr int kFullVolume = 100;
@@ -225,7 +225,7 @@ CSoundManager::CSoundManager() {
                               reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));
     libcrt::ConstructElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceConstruct),
                               reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
-    ConstructList(cacheList, ei::GamePointer<void>(kCacheListVtable));
+    ConstructList(cacheList, gameslots::WaveListClass::Vtable());
     // hashtable(n, hash, equal, allocator) (006BBF90 / 006BC2B0); the functor bytes, never read,
     // are 0 here (the original's are stack bytes).
     cache.Construct(kMapBuckets, 0, 0, 0);
@@ -243,7 +243,7 @@ CSoundManager::~CSoundManager() {
     AilShutdown()();
     deferred.Destroy();   // clear 006BD100, the buckets 006BC510
     cache.Destroy();      // clear 006BCE00, the buckets 006BC4D0
-    cacheList.vtable = ei::GamePointer<void>(kCacheListVtable);
+    cacheList.vtable = gameslots::WaveListClass::Vtable();
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
     libcrt::DestroyElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));

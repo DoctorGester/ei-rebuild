@@ -50,7 +50,8 @@ int Clamp(int value, int high) {
 int PromptWidth(GameDC* dc, const mfc::CString& input, int count) {
     mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
-    gameapi::GetTextExtentPoint32A(dc->hdc, text, Length(text), &size);
+    const ::text::ForAnsiCall ansi(text, Length(text));   // EI_UTF8: until U3
+    gameapi::GetTextExtentPoint32A(dc->hdc, ansi.data(), ansi.length(), &size);
     return size.cx;
 }
 

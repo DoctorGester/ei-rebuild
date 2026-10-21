@@ -54,9 +54,6 @@ EI_REWRITTEN(0x0050A1C0, AlignedAt8Records::Destruct<AlignedAt8ArrayClass>);
 EI_REWRITTEN(0x00450500, FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>);
 EI_REWRITTEN(0x006C49D0, ByteArrays::Destruct<TerrainByteArraysClass>);
 EI_REWRITTEN(0x004763C0, SceneObjects::Destruct<SceneObjectArrayClass>);
-EI_REWRITTEN(0x0044FE80, FigureParts::Destruct<FakeUnitPartArrayClass>);
-EI_REWRITTEN(0x004500F0, SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>);
-EI_REWRITTEN(0x00450770, FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>);
 EI_REWRITTEN(0x00451C40, Map32::Destruct<FigureRegistryMapClass>);
 EI_REWRITTEN(0x00452090, Map32::Destruct<CornerMapAClass>);
 EI_REWRITTEN(0x00452330, Map32::Destruct<CornerMapBClass>);
@@ -128,28 +125,25 @@ EI_REPLACE(0x0041F760, ExceptionDestruct);
 // ---- Scalar deleting destructors (vtable slot 1; the exception classes' slot 0) --------------------
 
 // Over the destructors of arrays whose elements own something.
-EI_REPLACE(0x004528D0, ScalarDelete<&FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>>);
-EI_REPLACE(0x006C4EA0, ScalarDelete<&ByteArrays::Destruct<TerrainByteArraysClass>>);
-EI_REPLACE(0x00476D70, ScalarDelete<&SceneObjects::Destruct<SceneObjectArrayClass>>);
-EI_REPLACE(0x00452890, ScalarDelete<&FigureParts::Destruct<FakeUnitPartArrayClass>>);
-EI_REPLACE(0x004528B0, ScalarDelete<&SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>>);
-EI_REPLACE(0x004528F0, ScalarDelete<&FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>>);
-EI_REPLACE(0x00452950, ScalarDelete<&AlignedAt4Records::Destruct<AlignedAt4ArrayClass>>);
-EI_REPLACE(0x0050A410, ScalarDelete<&AlignedAt8Records::Destruct<AlignedAt8ArrayClass>>);
-EI_REPLACE(0x00452A30, ScalarDelete<&TextureNames::Destruct<TextureNameArrayClass>>);
+EI_REWRITTEN(0x004528D0, ScalarDelete<&FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>>);
+EI_REWRITTEN(0x006C4EA0, ScalarDelete<&ByteArrays::Destruct<TerrainByteArraysClass>>);
+EI_REWRITTEN(0x00476D70, ScalarDelete<&SceneObjects::Destruct<SceneObjectArrayClass>>);
+EI_REWRITTEN(0x00452950, ScalarDelete<&AlignedAt4Records::Destruct<AlignedAt4ArrayClass>>);
+EI_REWRITTEN(0x0050A410, ScalarDelete<&AlignedAt8Records::Destruct<AlignedAt8ArrayClass>>);
+EI_REWRITTEN(0x00452A30, ScalarDelete<&TextureNames::Destruct<TextureNameArrayClass>>);
 EI_REPLACE(0x00460470, ScalarDelete<&ExitTargets::Destruct<ExitArrayClass>>);
 EI_REPLACE(0x00460A60, ScalarDelete<&ExitTargets::Destruct<ExitArrayClass>>);
 EI_REPLACE(0x00556B50, ScalarDelete<&MemoryRecords::Destruct<MemoryRecordArrayClass>>);
-EI_REPLACE(0x00558720, ScalarDelete<&MemoryRecords::Destruct<MemoryRecordArrayClass>>);
+EI_REWRITTEN(0x00558720, ScalarDelete<&MemoryRecords::Destruct<MemoryRecordArrayClass>>);
 EI_REPLACE(0x004CB790, ScalarDelete<&NamedRecords::Destruct<NamedRecordArrayClass>>);
-EI_REPLACE(0x005FB870, ScalarDelete<&GlobalMapPoints::Destruct<GlobalMapPointArrayClass>>);
-EI_REPLACE(0x005FB890, ScalarDelete<&GlobalMapPoints::Destruct<GlobalMapPathArrayClass>>);
-EI_REPLACE(0x005FB850, ScalarDelete<&GlobalMapZones::Destruct<GlobalMapZoneArrayClass>>);
-EI_REPLACE(0x0045D890, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
-EI_REPLACE(0x0045E070, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
-EI_REPLACE(0x004600F0, ScalarDelete<&OwnedAllods::Destruct<AllodArrayClass>>);
+EI_REWRITTEN(0x005FB870, ScalarDelete<&GlobalMapPoints::Destruct<GlobalMapPointArrayClass>>);
+EI_REWRITTEN(0x005FB890, ScalarDelete<&GlobalMapPoints::Destruct<GlobalMapPathArrayClass>>);
+EI_REWRITTEN(0x005FB850, ScalarDelete<&GlobalMapZones::Destruct<GlobalMapZoneArrayClass>>);
+EI_REWRITTEN(0x0045D890, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
+EI_REWRITTEN(0x0045E070, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
+EI_REWRITTEN(0x004600F0, ScalarDelete<&OwnedAllods::Destruct<AllodArrayClass>>);
 EI_REPLACE(0x004C1A60, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
-EI_REPLACE(0x004CB630, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
+EI_REWRITTEN(0x004CB630, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
 
 // Over the destructors of the arrays, lists and maps whose elements need nothing.
 
@@ -178,15 +172,15 @@ EI_REWRITTEN(0x0046E8F0, ScalarDelete<&ArrayHeader<TrapCircleArrayClass>::Destru
 EI_REWRITTEN(0x0046E930, ScalarDelete<&ArrayHeader<TrapPointArrayClass>::Destruct>);   // 0046E950
 EI_REWRITTEN(0x0046EF20, ScalarDelete<&ArrayHeader<TrapCircleArrayClass>::Destruct>);   // 0046EF40
 EI_REWRITTEN(0x0046EF60, ScalarDelete<&ArrayHeader<TrapPointArrayClass>::Destruct>);   // 0046EF80
-EI_REPLACE(0x00476C90, ScalarDelete<&ArrayHeader<FilePointArrayClass>::Destruct>);   // 00474F30
-EI_REPLACE(0x00476CB0, ScalarDelete<&ArrayHeader<FileUvArrayClass>::Destruct>);   // 00475110
-EI_REPLACE(0x00476CD0, ScalarDelete<&ArrayHeader<FileFaceArrayClass>::Destruct>);   // 004752F0
-EI_REPLACE(0x00476CF0, ScalarDelete<&ArrayHeader<RotKeyArrayClass>::Destruct>);   // 00475680
-EI_REPLACE(0x00476D10, ScalarDelete<&ArrayHeader<PosKeyArrayClass>::Destruct>);   // 004759E0
-EI_REPLACE(0x00476D30, ScalarDelete<&ArrayHeader<MorphHeadArrayClass>::Destruct>);   // 00475D40
+EI_REWRITTEN(0x00476C90, ScalarDelete<&ArrayHeader<FilePointArrayClass>::Destruct>);   // 00474F30
+EI_REWRITTEN(0x00476CB0, ScalarDelete<&ArrayHeader<FileUvArrayClass>::Destruct>);   // 00475110
+EI_REWRITTEN(0x00476CD0, ScalarDelete<&ArrayHeader<FileFaceArrayClass>::Destruct>);   // 004752F0
+EI_REWRITTEN(0x00476CF0, ScalarDelete<&ArrayHeader<RotKeyArrayClass>::Destruct>);   // 00475680
+EI_REWRITTEN(0x00476D10, ScalarDelete<&ArrayHeader<PosKeyArrayClass>::Destruct>);   // 004759E0
+EI_REWRITTEN(0x00476D30, ScalarDelete<&ArrayHeader<MorphHeadArrayClass>::Destruct>);   // 00475D40
 EI_REPLACE(0x00476D50, ScalarDelete<&Map32::Destruct<DwordMapClass>>);   // 00476140
-EI_REPLACE(0x00476D90, ScalarDelete<&ArrayHeader<IndexArrayClass>::Destruct>);   // 00476780
-EI_REPLACE(0x00476DB0, ScalarDelete<&ArrayHeader<NormalArrayClass>::Destruct>);   // 00476AB0
+EI_REWRITTEN(0x00476D90, ScalarDelete<&ArrayHeader<IndexArrayClass>::Destruct>);   // 00476780
+EI_REWRITTEN(0x00476DB0, ScalarDelete<&ArrayHeader<NormalArrayClass>::Destruct>);   // 00476AB0
 EI_REPLACE(0x00499020, ScalarDelete<&PtrList::Destruct<ClientListClass>>);   // 00498CA0
 EI_REPLACE(0x00499040, ScalarDelete<&ArrayHeader<Array0498Class>::Destruct>);   // 00498E80
 EI_REPLACE(0x004C1800, ScalarDelete<&ArrayHeader<ScriptAreaClass>::Destruct>);   // 004C1820
@@ -272,14 +266,14 @@ EI_REPLACE(0x0045FA40, SerializeCArray<Plain4>);   // IntArrayClass
 EI_REPLACE(0x00468DA0, SerializeCArray<Plain8>);   // SpriteArrayClass
 EI_REWRITTEN(0x0046EC10, SerializeCArray<Plain12>);   // TrapCircleArrayClass
 EI_REWRITTEN(0x0046EDA0, SerializeCArray<Plain8>);   // TrapPointArrayClass
-EI_REPLACE(0x00474F50, SerializeCArray<Plain12>);   // FilePointArrayClass
-EI_REPLACE(0x00475130, SerializeCArray<Plain12>);   // FileUvArrayClass
-EI_REPLACE(0x00475310, SerializeCArray<Plain28>);   // FileFaceArrayClass
-EI_REPLACE(0x004756A0, SerializeCArray<Plain20>);   // RotKeyArrayClass
-EI_REPLACE(0x00475A00, SerializeCArray<Plain24>);   // PosKeyArrayClass
-EI_REPLACE(0x00475D60, SerializeCArray<Plain8>);   // MorphHeadArrayClass
-EI_REPLACE(0x004767A0, SerializeCArray<Plain4>);   // IndexArrayClass
-EI_REPLACE(0x00476AD0, SerializeCArray<Plain20>);   // NormalArrayClass
+EI_REWRITTEN(0x00474F50, SerializeCArray<Plain12>);   // FilePointArrayClass
+EI_REWRITTEN(0x00475130, SerializeCArray<Plain12>);   // FileUvArrayClass
+EI_REWRITTEN(0x00475310, SerializeCArray<Plain28>);   // FileFaceArrayClass
+EI_REWRITTEN(0x004756A0, SerializeCArray<Plain20>);   // RotKeyArrayClass
+EI_REWRITTEN(0x00475A00, SerializeCArray<Plain24>);   // PosKeyArrayClass
+EI_REWRITTEN(0x00475D60, SerializeCArray<Plain8>);   // MorphHeadArrayClass
+EI_REWRITTEN(0x004767A0, SerializeCArray<Plain4>);   // IndexArrayClass
+EI_REWRITTEN(0x00476AD0, SerializeCArray<Plain20>);   // NormalArrayClass
 EI_REPLACE(0x00498EA0, SerializeCArray<Plain8>);   // Array0498Class
 EI_REPLACE(0x004C1E70, SerializeCArray<Plain20>);   // ScriptAreaClass
 EI_REPLACE(0x004C29E0, SerializeCArray<Plain4>);   // ScriptFloatsClass
@@ -352,22 +346,22 @@ EI_REWRITTEN(0x006CD8A0, SerializeCArray<Plain16>);   // TerrainArrayBClass
 EI_REWRITTEN(0x00519B50, SerializeCArray<Plain56>);   // FrameArrayClass
 
 // Arrays whose elements SetSize builds and destroys (a shrinking load destroys the ones past the count).
-EI_REPLACE(0x0045DC60, SerializeCArray<OwnedPatrols>);   // PatrolArrayClass
-EI_REPLACE(0x0045FCB0, SerializeCArray<OwnedAllods>);   // AllodArrayClass
+EI_REWRITTEN(0x0045DC60, SerializeCArray<OwnedPatrols>);   // PatrolArrayClass
+EI_REWRITTEN(0x0045FCB0, SerializeCArray<OwnedAllods>);   // AllodArrayClass
 EI_REPLACE(0x004C88E0, SerializeCArray<ScriptAreas>);   // ScriptAreaArrayClass
-EI_REPLACE(0x006C4A40, SerializeCArray<ByteArrays>);   // TerrainByteArraysClass
+EI_REWRITTEN(0x006C4A40, SerializeCArray<ByteArrays>);   // TerrainByteArraysClass
 EI_REPLACE(0x005D9610, SerializeCArray<AiLookRecords>);   // vtable 0073FF74
-EI_REPLACE(0x00450D40, SerializeCArray<AlignedAt4Records>);   // AlignedAt4ArrayClass
-EI_REPLACE(0x0050A210, SerializeCArray<AlignedAt8Records>);   // AlignedAt8ArrayClass
-EI_REPLACE(0x00450570, SerializeCArray<OwnedBoneLinkArrays>);   // FakeUnitBoneArraysClass
-EI_REPLACE(0x00476430, SerializeCArray<OwnedDwordMaps>);   // SceneObjectArrayClass
+EI_REWRITTEN(0x00450D40, SerializeCArray<AlignedAt4Records>);   // AlignedAt4ArrayClass
+EI_REWRITTEN(0x0050A210, SerializeCArray<AlignedAt8Records>);   // AlignedAt8ArrayClass
+EI_REWRITTEN(0x00450570, SerializeCArray<OwnedBoneLinkArrays>);   // FakeUnitBoneArraysClass
+EI_REWRITTEN(0x00476430, SerializeCArray<OwnedDwordMaps>);   // SceneObjectArrayClass
 EI_REWRITTEN(0x006C4C90, SerializeCArray<AlignedArrays>);   // vtable 007441B4
-EI_REPLACE(0x00451A70, SerializeCArray<NamedStrings>);   // TextureNameArrayClass
+EI_REWRITTEN(0x00451A70, SerializeCArray<NamedStrings>);   // TextureNameArrayClass
 
 // Records with CStrings.
-EI_REPLACE(0x005FB120, SerializeCArray<GlobalMapZoneRecords>);    // GlobalMapZoneArrayClass
-EI_REPLACE(0x005FB380, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPointArrayClass
-EI_REPLACE(0x005FB5F0, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPathArrayClass
+EI_REWRITTEN(0x005FB120, SerializeCArray<GlobalMapZoneRecords>);    // GlobalMapZoneArrayClass
+EI_REWRITTEN(0x005FB380, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPointArrayClass
+EI_REWRITTEN(0x005FB5F0, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPathArrayClass
 EI_REPLACE(0x00557050, SerializeCArray<MemoryCallRecords>);       // MemoryRecordArrayClass
 
 // More lists of plain elements (the AI's, the client maps' platforms) and AIAttention's records.

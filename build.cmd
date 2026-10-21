@@ -1,12 +1,14 @@
 @echo off
 rem Builds the standalone image (ei_standalone.exe, ei_hook.dll), ei_launch.exe and the tools (32-bit) with
 rem the VS 2022 Build Tools.
-rem usage: build.cmd [release|verify|debug]
+rem usage: build.cmd [release|verify|debug] [utf8]
 rem   release  the product: the standalone image
 rem   verify   the harness build: the same image plus the harness (tests/verify) and the vector recorders
 rem            (tests/vectors), for run_all / work.py test (the image's runs, and the original game.exe's
 rem            with --no-hooks for goldens and EI_VECTORS recording)
 rem   debug    the release build unoptimised
+rem   utf8     with EI_UTF8 (every string inside the game in UTF-8, src/game/asset_text.h), into
+rem            build\<cfg>-utf8 (run_all / work.py test with EI_BUILD_DIR=build\verify-utf8)
 setlocal
 set VSROOT=E:\bin\vs\buildtools
 set CFG=%~1
@@ -19,15 +21,19 @@ set HARNESS=OFF
 set BUILDTYPE=RelWithDebInfo
 if /i "%CFG%"=="verify" set HARNESS=ON
 if /i "%CFG%"=="debug" set BUILDTYPE=Debug
+set UTF8=OFF
+set OUT=%~dp0build\%CFG%
+if /i "%~2"=="utf8" set UTF8=ON
+if /i "%~2"=="utf8" set OUT=%~dp0build\%CFG%-utf8
 
-cmake -S "%~dp0." -B "%~dp0build\%CFG%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% || exit /b 1
-cmake --build "%~dp0build\%CFG%" || exit /b 1
+cmake -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_UTF8=%UTF8% || exit /b 1
+cmake --build "%OUT%" || exit /b 1
 rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide rule 4).
 python "%~dp0tools\check_thunks.py" || exit /b 1
 rem One address, one registration per kind (replacement, recorder), read from the built DLL (SV6d).
-python "%~dp0tools\check_registrations.py" --dll "%~dp0build\%CFG%\ei_hook.dll" || exit /b 1
+python "%~dp0tools\check_registrations.py" --dll "%OUT%\ei_hook.dll" || exit /b 1
 rem Double constants folded from a product the original computes at 24 bits (SV7d1a); not in the debug build.
-if /i not "%CFG%"=="debug" python "%~dp0tools\check_fp_fold.py" --dll "%~dp0build\%CFG%\ei_hook.dll" || exit /b 1
+if /i not "%CFG%"=="debug" python "%~dp0tools\check_fp_fold.py" --dll "%OUT%\ei_hook.dll" || exit /b 1
 rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<area>.h (ticket C3).
 python "%~dp0tools\check_forwarders.py" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
@@ -42,7 +48,7 @@ rem else reaching their ranges, whose bytes the image's copy leaves zero (config
 python "%~dp0tools\named_data.py" --check || exit /b 1
 rem Functions under five bytes (EI_REPLACE_SHORT): each port's kind against game.exe's bytes and our
 rem compiled code (not in the debug build, whose code is unoptimised).
-set SHORTMAP=--map "%~dp0build\%CFG%\ei_hook.map"
+set SHORTMAP=--map "%OUT%\ei_hook.map"
 if /i "%CFG%"=="debug" set SHORTMAP=
 python "%~dp0tools\check_short_functions.py" %SHORTMAP% || exit /b 1
 rem The standalone image's static initialisers (src/standalone/static_init.cpp) against game.exe's.
@@ -52,7 +58,7 @@ python "%~dp0tools\gen_image_cells.py" --check || exit /b 1
 rem The image's import table (src/standalone/image_imports.inc, S18f) and gameapi.h against game.exe's imports.
 python "%~dp0tools\gen_iat.py" --check || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
-"%~dp0build\%CFG%\ei_vectors.exe" || exit /b 1
+"%OUT%\ei_vectors.exe" || exit /b 1
 rem The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
-"%~dp0build\%CFG%\ei_ui_check.exe" || exit /b 1
-echo Built: %~dp0build\%CFG%
+"%OUT%\ei_ui_check.exe" || exit /b 1
+echo Built: %OUT%

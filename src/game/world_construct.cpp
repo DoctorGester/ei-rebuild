@@ -20,6 +20,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/mfc_slots.h"
+#include "game/game_slots.h"
 
 #include <initializer_list>
 #include <new>
@@ -29,11 +30,7 @@ namespace {
 // The instantiations' vtables the constructors write.
 constexpr std::uintptr_t kZoneExitArrayVtable = std::uintptr_t(0x0073C400);     // CArray<ZoneExit> (both worlds)
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
-constexpr std::uintptr_t kProjectileListVtable = std::uintptr_t(0x0073F9D0);
-constexpr std::uintptr_t kCountedListVtable = std::uintptr_t(0x0073BE74);
-constexpr std::uintptr_t kSharedObjectListVtable = std::uintptr_t(0x0073FA10);
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
-constexpr std::uintptr_t kCountedArrayVtable = std::uintptr_t(0x0073F53C);     // the client's +0xA0
 constexpr std::uintptr_t kPlatformListVtable = std::uintptr_t(0x0073F548);
 constexpr std::uintptr_t kPlatformSetVtable = std::uintptr_t(0x0073F4FC);       // CBridgeManager
 constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);         // CByteArray
@@ -98,9 +95,9 @@ CWorldServer* CWorldServer::Construct() {
     for (ObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_, &timedObjects_})
         map->Construct();
     zoneHeader_.ConstructQueueStream();
-    ConstructList(projectiles_, kProjectileListVtable);
-    ConstructList(counted_, kCountedListVtable);
-    ConstructList(sharedObjects_, kSharedObjectListVtable);
+    ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
+    ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());
+    ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
     ei::SetVtable(this, kServerVtable);
     ResetState();
     return this;
@@ -112,7 +109,7 @@ EI_REPLACE_METHOD(0x00589ED0, CWorldServer::Construct);
 CWorldClient* CWorldClient::Construct() {
     ConstructBase();
     reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->Construct(kZoneExitArrayVtable);
-    countedA0_.Construct(kCountedArrayVtable);
+    countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     heroes_.Construct();
     objects_.Construct();
     ConstructList(dynamicObjects_, mfc::impl::ClientObjectListClass::Vtable());

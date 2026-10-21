@@ -805,6 +805,33 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     mfc_slots.h); the owned-element arrays whose Serialize alias lives in a game header (record_arrays.h, game_arrays.h:
     FakeUnit*, NamedRecord, the global map's) or later in mfc_slots.h; game_slots.h's and game_lists.h's script lists
     (SerializeCListThrough over aliases of game_slots.h); synonyms of the same address in two headers (game_arrays.h's).
+- **Batch 10's families** (2026-10-21): 51 more container tags, 6,476 -> 6,323 code cells, 93 slot registrations
+  EI_REWRITTEN: the owned-element arrays of mfc_slots.h (FakeUnitBoneArrays, SceneObject, TerrainByteArrays,
+  AlignedAt4 / AlignedAt8, TextureName, MemoryRecord, the global map's Point / Path / Zone, Patrol with the derived
+  BehaviourPatrols, Allod, ScriptArea: their element-policy aliases moved above the tags); the owned-element arrays whose
+  Serialize alias lived in a game header (record_arrays.h: FakeUnitPart / SceneRecord / Record9C and Definition;
+  game_arrays.h: PointLight, Group, the object pointer base ObjectPtrArrayBase); game_slots.h's script lists and arrays
+  (ItemObject, ClientObject2, ObjectRef, Victim, RefListB, OwnedRef, SharedObject, ArmourSpell, Wave, the script's
+  ParticleSource / FxSource / Lightning / Decl / Definition / Run / Group / Token / Define lists, MemoryObject,
+  ClientObjectPtr, EffectObject and CommandArray); and mfc_array.h's model and animation file arrays (RotKey, PosKey,
+  MorphHead, Normal, FilePoint, FileUv, FileFace, Index) moved into mfc_slots.h.
+  - **Duplicates made one**: game_arrays.h / game_slots.h / mfc::impl each had a tag for 0073D3A0 (PointLight) and 0073D3B8
+    (Definition) and game_lists.h another for the script lists (TempObject / TempGroup / Instance names), the owned and
+    shared lists and the token list; each address has one tag now (game_slots.h's `gameslots::`, record_arrays.h's
+    `recordarrays::`, game_arrays.h's `gamearrays::`). The raw constants (script.h's `scriptvtable::kXxxList` and
+    kGroupsBase, world.h's ObjectsBaseVtable, worlddata::kClientListVtable, combat_lifetime / world_destructors /
+    world_construct / sound_manager_lifetime / map_object_lifetime's `kXxxVtable`, scene_loader.h's `scenedata::` array
+    accessors) became `Tag::Vtable()`. The sound cache's WaveListClass registrations moved to game_slots.cpp: its
+    Serialize names WaveRecord::Assign (sound_manager.cpp), which tests/vectors does not link.
+  - **Skipped, for a later batch**: the tables static_init.cpp stores in generated initialisers (0073D024, 0073FDEC,
+    0073FE34, plus FloatArrayClass 0073D3E8 and the Objective / NamedRecord array 0073D46C, 007AA608); the sector occluder
+    array 0073FAE0; RefListAClass 0073FA4C (kept as the old tag); mfc_array.h's remaining tags (IntArray, UnitPtr,
+    Float, ArgFloat, ObjectRef, ScriptGroup, ScriptFloats, ScriptArea, ScriptIfThen, PartySlot, AiLook, Sprite, BoneLink,
+    Waypoint, Exit, MapRecordItems, Point, AttackOption, AnimationSteps(Copy), ClientMap, ObjectPtr, Sector, CellRow,
+    AreaList, StringArray, ArrayBase, AiLookRecord) and mfc_list.h's (PtrList, ItemList, TempList, CellList, LootList,
+    PlatformList, Client / Client2 / Client3, NodeList, BlockCostList, AiMapList, WaypointList, StaticList, DwordMap,
+    ScriptCommands): the shared base tags (mfc::PtrListVtable / DWordArrayVtable) and the element aliases that name them
+    in mfc_array.h need their dependencies reordered first.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
@@ -1159,6 +1186,51 @@ charset comes from the "Font CharSet" option; typed characters arrive as WM_CHAR
 | U5 Audit | Identifier (leave) or display text (fix) per site: 99 case-insensitive compares and case changes (Cyrillic needs a small case table once the CRT's code page is gone), 95 fixed `char` buffers, per-byte indexing of text (about 37 sites), `%-20s` padding in console tables, word wrap inside a long word. | 1-2 |
 
 Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
+
+### U1: the switch and the asset boundary (2026-10-21)
+
+- **Switch**: CMake option `EI_UTF8` (off by default) and cache string `EI_ASSET_CODEPAGE` (1251), both compile
+  definitions; `build.cmd <config> utf8` builds it into `build\<config>-utf8`. Code tests `text::kUtf8` with
+  `if constexpr`; with the switch off nothing changes a byte (the gallery's frames and goldens are the same as
+  main's).
+- **Helpers** (src/game/asset_text.h): `text::FromAssetText` (asset bytes to UTF-8; a `std::string` overload and an
+  in-place `CString*` one), `text::ToAssetText` (back to the asset code page, false for ASCII or text that is not
+  valid UTF-8), `text::CharacterCount` (a length that means time: one per character, a colour escape `\007C`+3
+  bytes by its bytes) and `text::ForAnsiCall`, the one boundary helper U2-U4 remove: at an ANSI call it turns
+  valid UTF-8 back into the asset code page (the original's bytes, so drawing and measuring do not change) and
+  passes anything else (8-bit text not converted yet: typed characters, file names, resource strings).
+- **Sites converted**: the text database (`TextSources::FindText`, which `CTextManager::Open` reads through; the
+  copies are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names)
+  and the key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`,
+  `GetStringBuffer`, `GetStringArray`; Chunk's `ReadString` / `ReadEncodedString` (.mob); credits.scr
+  (`CCreditsScreen::Build`). The archives also hold binary files: `GameFlow::RegisterQuests` reads a zone's
+  quest.reg from the text cursor, so it opens it with `CTextManager::OpenData` (bytes as they are), and
+  `TextSources::Find` (004DEBC0) stays the raw lookup.
+- **ANSI boundaries with `ForAnsiCall`**: `GameDC::DrawText` (ui_gdi.h, every interface text draw),
+  `CInterface3D::TextExtent` (005F8340), the console prompt's width (`PromptWidth`), `ShowMessageBox` (until U2).
+  Until U4 the save window's name editor works in 8 bits: `ToAssetText` when a title is taken into it
+  (ui_menus.cpp, ui_menu_keys.cpp), `FromAssetText` when the typed name is saved (ui_saveload.cpp).
+- **Behaviour by length**: a briefing phrase lasts 0.05 s per character (`CBriefingScreen::NextPhrase`): counted
+  with `CharacterCount`.
+- **Check** (repeat for U2-U5): build `build.cmd verify` and `build.cmd verify utf8`; run the gallery on each,
+  `python tools/work.py test <ID> ui_gallery_menus ui_gallery_game ui_gallery_camp ui_gallery_mp ui_gallery_base
+  ui_gallery_deals render_titles_present --golden --jobs 4`, the second time with
+  `EI_BUILD_DIR=<worktree>\build\verify-utf8`; copy the first run's `build\verify\runs\<scenario>-standalone\frames`
+  away and compare each scenario with `python tools/compare_frames.py <off frames> <on frames> --tolerance 0
+  --max-fraction 0`. U1's result: 51 of the 54 frames identical (menus, in-game HUD and dialogue, camp, base,
+  trade, titles and credits). The 3 others are ui_gallery_mp's briefing, chat_typed and chat_sent: the base
+  screen's player list (the face and "На базе", top right) is missing. That is not the text: with the switch off,
+  a few leaked game-heap allocations during the run (`gamecrt::operator_new` of 16, 64 or 100 bytes on every other
+  text lookup) lose the same face and status (the same 27249 pixels), so the chat window's drawing depends on the
+  heap's layout and the UTF-8 copies only move it. Goldens with the switch on differ only in ui_gallery_game's
+  saves (the save title and the top panel text are UTF-8 now), which is allowed.
+- **Found for U2-U5**: the save name editor edits bytes (U4); `GetStringBuffer` cuts UTF-8 by bytes at the
+  buffer size (U5); the clipboard copy converts with CP_ACP and `CharUpperA` in script_addon_strings upper-cases
+  bytes (U2/U5); network player names pass an `isprint` filter byte by byte (multiplayer, U5); the script string
+  length (script_addon_strings) counts bytes (U5); the CRT's LC_CTYPE is "english" (1252) from the Font CharSet
+  option, so `tolower`/`MakeLower` and the `_ismbc*` classes treat UTF-8 bytes as 1252 letters (U5: a UTF-8-aware
+  case table); the system ANSI code page here is 1252, so ANSI file and window calls of Cyrillic need U2's wide
+  calls.
 
 ## 5. The hook retirement (S21-S21e, 2026-10-16)
 
