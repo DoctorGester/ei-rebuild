@@ -320,6 +320,11 @@ inline std::uint32_t& GlobalFlags() { return ei::GameData<std::uint32_t>(0x007AF
 #define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians (pi * 1/180 at 24 bits)
 #define CAM_RIGHT_ANGLE static_cast<float>(CAM_DEGREE * CAM_NINETY)
 
+// The smooth camera (R18, render::SmoothCamera; docs/notes/renderer.md section 14): the main loop
+// calls this after each of the client's ticks instead of CCamera::Update. It keeps the position of
+// the camera's target after its last two ticks, which Update blends by the client's tickFraction_.
+void NoteTargetTick(const CCamera* camera);
+
 } // namespace camera
 
 int __fastcall CameraCloseFile(CCamera* self);

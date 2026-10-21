@@ -30,6 +30,7 @@
 #include "party.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 #include <cmath>
 #include <cstdint>
@@ -49,7 +50,7 @@ float FullTurn() { return ei::GameData<const volatile float>(0x007C7F10); }
 // The multiplayer heroes object (its vector at +4: SavedHero).
 void* MpHeroesObject() { return &TheSavedParties(); }
 // CArray<record*> (the party's records handed to the client world).
-void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }
+void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;

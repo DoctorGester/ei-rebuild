@@ -2,6 +2,7 @@
 // client reads from the server list (net_server_list.cpp). See net_classes.h and
 // docs/notes/network.md.
 #include "net_classes.h"
+#include "options.h"
 #include "game_strings.h"
 #include "core_refcount.h"
 
@@ -41,10 +42,9 @@ void ServerSession::DescribeImpl(RefPtr* out) {
 
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
-        std::uint32_t title = 0;   // CString
-        const char* text = *SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
+        mfc::CString title(mfc::CString::kUnset);
+        const char* text = *SessionMapNameInto(&title);
         description->Assign(text);   // inlined: overwrite, then cut or append
-        CStringDestroy(&title);
     }
 
     entry->players_ = static_cast<std::uint8_t>(ClientCount());
@@ -66,7 +66,7 @@ void ServerSession::DescribeImpl(RefPtr* out) {
 // 28004.
 void ServerSession::SetPublic(bool announce) {
     public_ = announce;
-    if (announce) masterAddress_.Parse(ei::GameData<const char* const>(0x0079BED8), 0x6D64);
+    if (announce) masterAddress_.Parse(static_cast<const char*>(options::TheOptions()->masterServerName_), 0x6D64);
 }
 
 EI_REPLACE_METHOD(0x0041A7E0, ServerSession::DescribeImpl);

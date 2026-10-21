@@ -16,14 +16,11 @@ constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
 constexpr const char* kClientClassName = "CUnitClientSpecific";
 constexpr int kClientClassId = 0x3D;
 
-// A particle source as the counted engine object it is (effects.h declares only its own members).
-CEngineObject* AsObject(CParticleSource* particleSource) { return reinterpret_cast<CEngineObject*>(particleSource); }
-
 // A marker source stopped, released and forgotten.
 void DropMarker(CParticleSource*& marker) {
     if (!marker) return;
     marker->StopAndClear();
-    AsObject(marker)->Release();
+    marker->Release();
     marker = nullptr;
 }
 } // namespace

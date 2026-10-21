@@ -2,6 +2,7 @@
 // box answers, a unit leaving the party, game over, the "briefing" command, the chat window and the
 // saved state. See docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
+#include "options.h"
 #include "ui_briefing.h"
 #include "game_strings.h"
 
@@ -30,7 +31,7 @@
 namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
-float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
+float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
 void** SaveLoadVtable() { return ei::GamePointer<void*>(0x00741388); }

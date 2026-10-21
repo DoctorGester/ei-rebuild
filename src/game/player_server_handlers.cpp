@@ -24,6 +24,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_library.h"
 
 #include "ei/hook.h"
@@ -104,9 +105,8 @@ void CPlayerServer::OnLeaderDied() {
         TheServerWorld()->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
         player->TakeAllItems();
     }
-    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     if (flag70_) {
-        TheServerWorld()->CollectParty(worldPlayer, nullptr);
+        TheServerWorld()->CollectParty(player, nullptr);
         flag70_ = 0;
     }
     if (party->members_.size == 1) {
@@ -125,7 +125,7 @@ void CPlayerServer::OnLeaderDied() {
     SendParty();
     lastPosition_.z = kUnknownZ;
     if (!flag70_) {
-        TheServerWorld()->Redeploy(worldPlayer, nullptr, 1);
+        TheServerWorld()->Redeploy(player, nullptr, 1);
         flag70_ = 1;
     }
     CUnit* revived = FindUnit(newId);
@@ -301,7 +301,6 @@ int& NextRecordObjectId() { return ei::GameData<int>(0x00794E3C); }
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer +0x130
-constexpr std::uintptr_t kPointArrayVtable = std::uintptr_t(0x0073C120);
 using PointArray = mfc::CArray<Vector3>;
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
@@ -318,6 +317,11 @@ void ReadUnits(CMemoryStream& in, UnitArray* units) {
 }
 // The arrays' inlined destructors: the vtable back, the storage freed.
 template <typename T>
+void FreeArray(mfc::CArray<T>* array, void* vtable) {
+    array->vtable = vtable;
+    if (array->data) gamecrt::operator_delete(array->data);
+}
+template <typename T>
 void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtableAddress) {
     array->vtable = ei::GamePointer<void>(vtableAddress);
     if (array->data) gamecrt::operator_delete(array->data);
@@ -327,7 +331,7 @@ using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, con
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = ReceivedMessages();
     UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
-    PointArray offsets{ei::GamePointer<void>(kPointArrayVtable), nullptr, 0, 0, 0};
+    PointArray offsets{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
     int run = 0;
     Vector3 to{};
@@ -339,7 +343,7 @@ int MoveUnits(MoveCommand command) {
         if (AIMode* mode = brain->FindPlayerMode())
             (static_cast<PlayerMode*>(mode)->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
     }
-    FreeArray(&offsets, kPointArrayVtable);
+    FreeArray(&offsets, mfc::impl::Vector3ArrayClass::Vtable());
     FreeArray(&units, kUnitArrayVtable);
     return 1;
 }
@@ -353,10 +357,10 @@ struct LocalStream {
 };
 // A party on the stack (constructor 00661050, destructor body 006611D0).
 struct LocalParty {
-    alignas(4) unsigned char bytes[sizeof(CParty)];
+    PartyStorage storage;
     LocalParty() { Get()->Construct(); }
     ~LocalParty() { Get()->DestructBody(); }
-    CParty* Get() { return reinterpret_cast<CParty*>(bytes); }
+    CParty* Get() { return storage.Party(); }
 };
 
 } // namespace
@@ -403,13 +407,12 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (campaign == 1 || campaign == 3) {
         CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unitId));
         if (leader == nullptr || ObjectSlots(leader)->IsDead() != 0) {
-            reinterpret_cast<CPlayerConnection*>(this)->LeaderDied();
+            LeaderDied();   // slot 20 (OnLeaderDied)
             if (!IsMultiplayerClient()) return;
         }
     }
-    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     if (flag70_) {
-        TheServerWorld()->CollectParty(worldPlayer, nullptr);
+        TheServerWorld()->CollectParty(player, nullptr);
         flag70_ = 0;
     }
     state_ = 3;
@@ -431,10 +434,10 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
 EI_REWRITTEN(0x0066F310, CPlayerServer::LeaveToZone);
 
 // 0066D020 (slot 16; A-H15).
-void CPlayerServer::Leave() {
+void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
         if (flag70_) {
-            TheServerWorld()->CollectParty(reinterpret_cast<WorldPlayer*>(Owner()), nullptr);
+            TheServerWorld()->CollectParty(Owner(), nullptr);
             flag70_ = 0;
         }
         if (GameMode() == 2) SendParty();
@@ -446,7 +449,7 @@ void CPlayerServer::Leave() {
     }
     Flush();
 }
-EI_REPLACE_METHOD(0x0066D020, CPlayerServer::Leave);
+EI_REPLACE_METHOD(0x0066D020, CPlayerServer::LeaveAndFlush);
 
 int CPlayerServer::OnRefreshParty() {
     Owner()->ForgetKnownObjects();
@@ -469,7 +472,7 @@ int CPlayerServer::OnJoined() {
     state_ = 1;
     CPlayer* player = Owner();
     player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->sessionKind_;
-    TheServerWorld()->Redeploy(reinterpret_cast<WorldPlayer*>(player), &placements_, 1);
+    TheServerWorld()->Redeploy(player, &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;
 }
@@ -519,7 +522,7 @@ int CPlayerServer::OnResume() {
     if (state_ != 4) return 0;
     state_ = 1;
     if (!flag70_) {
-        TheServerWorld()->Redeploy(reinterpret_cast<WorldPlayer*>(Owner()), nullptr, 1);
+        TheServerWorld()->Redeploy(Owner(), nullptr, 1);
         flag70_ = 1;
     }
     return 1;
@@ -576,7 +579,7 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) 
 EI_REWRITTEN(0x0047ADA0, IsPrintableText);
 
 int CPlayerServer::OnLogin() {
-    LoginMessage login;
+    PlayerLoginMessage login;
     login.partyId = 0;
     ReceivedMessages().Read(&login, sizeof(login));
     if (state_ != 0) return 0;
@@ -662,10 +665,9 @@ void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
     CPlayer* player = Owner();
     GameCout()->PutText(kResendingParty)->PutInt(player->playerId_)->PutChar('\n')->Apply(libcrt::FlushManipulator);
-    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
-    TheServerWorld()->SyncPartyRecords(worldPlayer);
+    TheServerWorld()->SyncPartyRecords(player);
     SendParty();
-    TheServerWorld()->ClearPlayerItems(worldPlayer);
+    TheServerWorld()->ClearPlayerItems(player);
 }
 EI_REWRITTEN(0x0066F450, CPlayerServer::ResendParty);
 

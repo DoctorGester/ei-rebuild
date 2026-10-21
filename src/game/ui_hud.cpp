@@ -48,7 +48,7 @@ constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 0079446
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";     // 00794428
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";   // 00794444
 
-CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
+CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 
 // The multiplayer session's player records (STLport list of PlayerMessage pointers).
 

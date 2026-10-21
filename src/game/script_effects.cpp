@@ -386,9 +386,10 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
     object = ReadObject(stream);
     stream->Read(&id, 4);
-    alignas(4) unsigned char nameStorage[sizeof(mfc::CString)];
-    name = *stream->ReadString(nameStorage);
-    reinterpret_cast<mfc::CString*>(nameStorage)->~CString();
+    {
+        mfc::CString read(mfc::CString::kUnset);
+        name = *stream->ReadString(&read);
+    }
     stream->Read(&position, 12);
     stream->Read(&volume, 4);
     stream->Read(&radius, 4);

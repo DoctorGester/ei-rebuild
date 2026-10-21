@@ -6,6 +6,7 @@
 // are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
 // the rest still run original code or their own replacement's verify wrapper.
 #include "ai_map.h"
+#include "options.h"
 #include "object_tables.h"
 #include "script.h"
 #include "game_arrays.h"
@@ -90,7 +91,7 @@ const char* MoviesFolder() { return "Movies\\"; }
 // 0073C36C: 1 / 255, the background colour scale.
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 // 0079BE5C: the configured world time speed (an int).
-int ConfiguredTimeSpeed() { return ei::GameData<const int>(0x0079BE5C); }
+int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
 // Script helpers (script.h types, original addresses).
 __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
@@ -132,10 +133,6 @@ SuspectionMode* ConstructSuspicion(SuspectionMode* mode) {
     mode->ClearFields();
     return mode->ScriptSuspectionModeConstruct();
 }
-
-// A player (CWorldServer::GetPlayer): the world's view of the CPlayer it is.
-CPlayer* PlayerOf(WorldPlayer* player) { return reinterpret_cast<CPlayer*>(player); }
-
 
 // The named party records (party_records.h), through the originals: find 004A5E10 (a party),
 // add 004A5E90, remove 004A5FA0.
@@ -311,9 +308,9 @@ void GiveSkill(const SSCCmd* cmd) {
 }
 
 void RedeployParty(const SSCCmd* cmd) {
-    WorldPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]));
+    CPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]));
     if (!player) return;
-    CPlayerServer* state = player->server;
+    CPlayerServer* state = player->Server();
     PartyArray slots;
     mfc::impl::ConstructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
     TheWorld()->CollectParty(player, &slots);
@@ -324,7 +321,7 @@ void RedeployParty(const SSCCmd* cmd) {
     const PartyMemberArray& members = player->Party()->members_;
     if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unitId);
     state->SendParty();
-    player->server->lastPosition_.z = -1313.0f;
+    player->Server()->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);
     mfc::impl::DestructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
 }
@@ -602,8 +599,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheEvents()->SendTextToAll(Ftol(f[0]), Text(cmd, 0));
             break;
         case 0x97: {   // GodMode(player, on): player +0x108
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) player->godMode = static_cast<std::uint8_t>(Ftol(f[1]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            if (player) player->godMode_ = static_cast<std::uint8_t>(Ftol(f[1]));
             break;
         }
         case 0x37: {   // SetDiplomacy(a, b, value): > 0 allied (0), < 0 enemies (2), else (0 or NaN) neutral (1)
@@ -782,9 +779,9 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
-            if (player && unit) unit->SetPlayer(reinterpret_cast<char*>(player));
+            if (player && unit) unit->SetPlayer(player);
             break;
         }
         case 0x84: {   // RemoveUnitFromControl(player, unit)
@@ -1080,8 +1077,8 @@ BOOL ScriptRun::Execute(CScript* script) {
                 GSSetVarMultiplayer(cmd);
                 break;
             }
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) player->server->SetVariable(Text(cmd, 0), std::bit_cast<std::uint32_t>(f[1]));   // the float bits
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            if (player) player->Server()->SetVariable(Text(cmd, 0), std::bit_cast<std::uint32_t>(f[1]));   // the float bits
             break;
         }
         case 0x98:     // GSSetVarMax(player, name, value)
@@ -1091,20 +1088,20 @@ BOOL ScriptRun::Execute(CScript* script) {
                 GSVarMultiplayer(cmd, setMax);
                 break;
             }
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            if (setMax) player->server->SetVariableMax(Text(cmd, 0), f[1]);
-            else player->server->DeleteVariable(Text(cmd, 0));
+            if (setMax) player->Server()->SetVariableMax(Text(cmd, 0), f[1]);
+            else player->Server()->DeleteVariable(Text(cmd, 0));
             break;
         }
         case 0x1D: {   // PlayMusic(player, name)
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) player->server->SendText0D(Text(cmd, 0));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            if (player) player->Server()->SendText0D(Text(cmd, 0));
             break;
         }
         case 0x8A: {   // LeaveToZone(player, zone, point)
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) player->server->LeaveToZone(Text(cmd, 0), Ftol(f[1]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            if (player) player->Server()->LeaveToZone(Text(cmd, 0), Ftol(f[1]));
             break;
         }
         case 0xD3:   // RedeployParty(player)
@@ -1112,7 +1109,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case 0x86:     // AddUnitToParty(player, party.unit, prototype)
         case 0x87: {   // RemoveUnitFromParty(player, party.unit)
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CString name(cmd->stringArgs.data[0]);
             CParty* records = PartyForScript(player, &name);
@@ -1126,7 +1123,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0xD4:     // CopyItems(player, from, to)
         case 0x9D: {   // CopyStats(player, from, to)
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CString from(cmd->stringArgs.data[0]);
             mfc::CString to(cmd->stringArgs.data[1]);
@@ -1164,32 +1161,32 @@ BOOL ScriptRun::Execute(CScript* script) {
             CopyLoot(cmd, true);
             break;
         case 0xA7: {   // GiveMoney(player, amount): player +0xC0
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CTypedPtrList<CItem> items;
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             player->Party()->Money() += Ftol(f[1]);
-            PlayerOf(player)->GiveItems(&items, 0);
+            player->GiveItems(&items, 0);
             mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x92:     // GiveQuestItem(player, item)
         case 0xA6: {   // GiveItem(player, item)
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CTypedPtrList<CItem> items;
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
                 items.AddTail(item);
-                PlayerOf(player)->GiveItems(&items, 0);
+                player->GiveItems(&items, 0);
             }
             mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x93: {   // EraseQuestItem(player, id)
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) PlayerOf(player)->TakeLoot(Ftol(f[1]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            if (player) player->TakeLoot(Ftol(f[1]));
             break;
         }
         case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
@@ -1213,7 +1210,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 }
                 break;
             }
-            WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             void* quest = TheQuestTable()->Find(Text(cmd, 0));
             if (!quest) break;

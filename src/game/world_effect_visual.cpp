@@ -251,7 +251,7 @@ void CEffectParticle::Reset() {
         StopSource(source_);
         CParticleSource* old = source_;
         source_ = nullptr;
-        if (old != nullptr) old->AsObject()->Release();
+        if (old != nullptr) old->Release();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
@@ -288,7 +288,7 @@ void CEffectParticle::Start(int update) {
         StopSource(source_);
         CParticleSource* old = source_;
         source_ = nullptr;
-        if (old != nullptr) old->AsObject()->Release();
+        if (old != nullptr) old->Release();
     }
     Spawn();
 }
@@ -334,7 +334,7 @@ void CEffectParticle::Spawn() {
     }
 
     TexturePointerAssign(reinterpret_cast<CEngineObject**>(&source_), nullptr,   // 0056F1A0
-                         reinterpret_cast<CEngineObject*>(reinterpret_cast<CParticleManager*>(ParticleManager())->CreateSource(type_)));
+                         reinterpret_cast<CParticleManager*>(ParticleManager())->CreateSource(type_));
     std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);
@@ -348,7 +348,7 @@ void CEffectParticle::Spawn() {
     int age = CurrentClientTick() - startTick_;
     if (!IsOneShotType(type_) && age >= 30) age = 30;
     if (age > 1) {
-        for (int left = age - 1; left != 0; --left) source_->AsObject()->RunTick();
+        for (int left = age - 1; left != 0; --left) source_->RunTick();
     }
 
     if (type_ == 0x2002) {
@@ -495,7 +495,7 @@ void CEffectWall::Reset() {
         StopSource(source_);
         CParticleSource* old = source_;
         source_ = nullptr;
-        if (old != nullptr) old->AsObject()->Release();
+        if (old != nullptr) old->Release();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;

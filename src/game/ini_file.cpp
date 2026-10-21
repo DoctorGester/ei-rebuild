@@ -115,11 +115,11 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
 
 } // namespace
 
-int TextOps::Find(char c) const { return reinterpret_cast<const mfc::CString*>(this)->Find(c); }
-int TextOps::Find(char c, int start) const { return reinterpret_cast<const mfc::CString*>(this)->Find(c, start); }
-void TextOps::TrimLeft() { reinterpret_cast<mfc::CString*>(this)->TrimLeft(); }
-void TextOps::TrimRight() { reinterpret_cast<mfc::CString*>(this)->TrimRight(); }
-void TextOps::AppendChar(char a0) { *reinterpret_cast<mfc::CString*>(this) += a0; }
+int TextOps::Find(char c) const { return mfc::CString::Find(c); }
+int TextOps::Find(char c, int start) const { return mfc::CString::Find(c, start); }
+void TextOps::TrimLeft() { mfc::CString::TrimLeft(); }
+void TextOps::TrimRight() { mfc::CString::TrimRight(); }
+void TextOps::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 
 // --- Construction ----------------------------------------------------------------------------------
 

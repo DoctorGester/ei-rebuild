@@ -35,7 +35,7 @@ bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(s
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-__declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058B750)
+__declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, CPlayer*) EI_ORIGINAL(0x0058B750)
 // 00665A10. Disconnects a player (its connection and units).
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
@@ -44,18 +44,18 @@ __declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*
 void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 
 // A player that lost its connection leaves the game.
-void DropPlayer(CWorldServer* world, WorldPlayer* player) {
+void DropPlayer(CWorldServer* world, CPlayer* player) {
     PlayerDisconnectOriginal(player);
-    static_cast<CPlayerManager*>(world->PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
-    NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->id)->PutChar('\n')
+    static_cast<CPlayerManager*>(world->PlayerList())->ReleasePlayer(player);
+    NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->playerId_)->PutChar('\n')
         ->Apply(libcrt::FlushManipulator);
 }
 
 // Every unit of a connected player wakes the units within its hearing range (as SyncPlayer
 // computes it, with another margin: the server half's movement factor 3 and statistics B0
 // values 0 and 2).
-void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
-    auto& units = player->units.map;
+void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
+    auto& units = player->units_;
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         CUnit* unit = node->value;
         auto* controller = unit->ServerController();
@@ -76,9 +76,9 @@ void InitGroup(ScriptGroup* group) {
 
 int CWorldServer::Update() {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        netlink::NetLink* link = player->link;
-        if (link && link->Connected() && player->Connection()->Receive() != 0)
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        netlink::NetLink* link = player->link_;
+        if (link && link->Connected() && player->connection_->Receive() != 0)
             WakeAroundUnits(this, player);
         else
             DropPlayer(this, player);
@@ -95,12 +95,12 @@ int CWorldServer::Update() {
     }
 
     if (!paused_) {
-        for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
             PlayerTickOriginal(player);
         Tick(static_cast<char>(0));
     }
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        player->server->UpdatePartyUnits();
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        player->Server()->UpdatePartyUnits();
 
     // The local players' heroes: the global "Heroes" group plus each one's own heroes, then given
     // back to every local player.
@@ -126,8 +126,8 @@ int CWorldServer::Update() {
             break;
         }
     }
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->server;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* state = player->Server();
         if (!NoPendingPossession(state)) continue;
         ScriptGroup sum;
         InitGroup(&sum);
@@ -139,8 +139,8 @@ int CWorldServer::Update() {
             gamecrt::operator_delete(sum.data);
         }
     }
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->server;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* state = player->Server();
         if (!NoPendingPossession(state)) continue;
         ScriptGroup& own = state->partyUnits_;
         own.SetSize(heroes.size, -1);
@@ -160,7 +160,7 @@ int CWorldServer::Update() {
         gamecrt::operator_delete(heroes.data);
     }
 
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
         if (!SyncPlayerAt(this, nullptr, player)) DropPlayer(this, player);
 
     ++updateCount_;

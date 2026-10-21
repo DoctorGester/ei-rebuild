@@ -6,6 +6,7 @@
 // or Alt held: interface +0x7C / +0x7E). While a direction is held (+0x8), the camera pans (or with
 // a modifier turns and tilts) at the option speeds 0079BDB8..0079BDE4.
 #include "ui_camera_keys.h"
+#include "options.h"
 
 #include "ui.h"
 
@@ -21,7 +22,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+float GameFloat(const float& setting) { return static_cast<const volatile float&>(setting); }
 
 bool ModifierHeld(const CInterface3D* ui) {
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(ui);
@@ -65,21 +66,21 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
     if (!ModifierHeld(interface_)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
         float left = -x_;
-        float speed = static_cast<float>(D(GameFloat(0x0079BDC0)) * D(GameFloat(0x0079BDB8)));
+        float speed = static_cast<float>(D(GameFloat(options::TheOptions()->cameraScroll_.powerKeyboard)) * D(GameFloat(options::TheOptions()->cameraScroll_.speed)));
         direction.x = static_cast<float>(D(y_) * D(speed));
         direction.y = static_cast<float>(D(left) * D(speed));
         TheCamera()->Pan(&direction);
         TheCamera()->SetTurnRate(0.0f);
-        TheCamera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+        TheCamera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(options::TheOptions()->cameraZoom_.powerKeyboard)) * D(GameFloat(options::TheOptions()->cameraZoom_.speed)) * D(z_))));
         TheCamera()->SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     TheCamera()->Pan(&direction);
-    TheCamera()->SetTurnRate(static_cast<float>(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
-    TheCamera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+    TheCamera()->SetTurnRate(static_cast<float>(D(GameFloat(options::TheOptions()->cameraRotate_.powerKeyboard)) * D(GameFloat(options::TheOptions()->cameraRotate_.speed)) * D(y_)));
+    TheCamera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(options::TheOptions()->cameraZoom_.powerKeyboard)) * D(GameFloat(options::TheOptions()->cameraZoom_.speed)) * D(z_))));
     TheCamera()->SetTiltRate(
-        static_cast<float>(D(GameFloat(0x0079BDD8)) * D(GameFloat(0x0079BDD0)) * D(x_) * D(50.0f /*0074023C*/)));
+        static_cast<float>(D(GameFloat(options::TheOptions()->cameraPitch_.powerKeyboard)) * D(GameFloat(options::TheOptions()->cameraPitch_.speed)) * D(x_) * D(50.0f /*0074023C*/)));
 }
 
 void __fastcall CameraKeysOnKeyDown(void* self, void*, int key, int repeat, int flags) {

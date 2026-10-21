@@ -31,10 +31,10 @@ struct PartyManager;   // party_manager.h
 struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
 // 007AFE20: the game flow object (its state machine, sessions and requests).
-inline GameFlow* TheGameFlow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
+GameFlow* TheGameFlow();   // g_gameFlow (world_game.cpp)
 
 // 007C7D50: the interface manager (windows, the quest log, status text, the console window).
-inline CInterface3D* TheInterface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
+CInterface3D* TheInterface();   // g_interface (ui_small_members.cpp)
 
 // 007AFFC4: the world tick, advanced once per simulation step.
 inline int CurrentWorldTick() { return ei::GameData<const int>(0x007AFFC4); }
@@ -64,7 +64,7 @@ inline CSceneRenderer* TheSceneRenderer() { return ei::GamePointer<CSceneRendere
 
 // 007C7BD8: the cursor. 0079BF00: the map database. 007C27D4: the mission script. 007B01F4: the sector map.
 // 0079B2A8: the camera.
-inline CCursor* TheCursor() { return ei::GamePointer<CCursor>(0x007C7BD8); }
+CCursor* TheCursor();   // g_cursor (ui_cursor_setup.cpp)
 inline CMapDatabase* TheMapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 inline CScript* TheMissionScript() { return ei::GamePointer<CScript>(0x007C27D4); }
 inline CSectorMap* TheSectorMap() { return ei::GamePointer<CSectorMap>(0x007B01F4); }

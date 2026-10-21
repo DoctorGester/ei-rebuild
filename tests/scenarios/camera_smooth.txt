@@ -1,0 +1,129 @@
+# The smooth camera (R18; docs/notes/renderer.md section 14): at a fixed frame time of 8 ms (a 120 Hz
+# screen's frames, on the virtual clock) the battle camera pans (an arrow key held), turns (Ctrl and an
+# arrow key) and zooms (Page Down / Page Up) once without the option and once with it (smoothcamera on),
+# for the same frames. camtrace records the camera's focus, heading and distance after each frame:
+# with the option each covers the same distance as without it (camsame: the frame moves the camera by
+# the client time the ticks moved it by), and it moves without jumps (camsmooth), where the game's camera
+# jumps at every world tick (jerky: 55 ms of motion on top of the frame's 8 ms). Each motion is undone
+# (the opposite key) between the two, so both start from the same view.
+# no original: vanilla rebirth (the smooth camera is the image's option)
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+frametime 8
+frames 30
+
+# Pan: held for 110 frames (880 ms: 16 ticks), then 60 frames to come to rest.
+camtrace start
+keydown left
+frames 110
+keyup left
+frames 60
+camtrace stop pan
+keydown right
+frames 110
+keyup right
+frames 60
+smoothcamera on
+camtrace start
+keydown left
+frames 110
+keyup left
+frames 60
+camtrace stop pan_smooth
+keydown right
+frames 110
+keyup right
+frames 60
+smoothcamera off
+
+# Turn.
+hold ctrl
+camtrace start
+keydown left
+frames 110
+keyup left
+frames 60
+camtrace stop turn
+keydown right
+frames 110
+keyup right
+frames 60
+smoothcamera on
+camtrace start
+keydown left
+frames 110
+keyup left
+frames 60
+camtrace stop turn_smooth
+keydown right
+frames 110
+keyup right
+frames 60
+smoothcamera off
+release ctrl
+
+# Zoom.
+camtrace start
+keydown pgdn
+frames 55
+keyup pgdn
+frames 60
+camtrace stop zoom
+keydown pgup
+frames 55
+keyup pgup
+frames 60
+smoothcamera on
+camtrace start
+keydown pgdn
+frames 55
+keyup pgdn
+frames 60
+camtrace stop zoom_smooth
+keydown pgup
+frames 55
+keyup pgup
+frames 60
+smoothcamera off
+
+# Follow: the camera tracks the hero (Home) while it walks six units east, and back west.
+keydown home
+keyup home
+frames 30
+smoothcamera on
+console @GSSetVar(0,"x0",GetX(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+camtrace start
+frames 150
+camtrace stop follow_smooth
+smoothcamera off
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
+frames 30
+console @MoveToPoint(GetLeader(),GSGetVar(0,"x0"),GetY(GetLeader()))
+camtrace start
+frames 150
+camtrace stop follow
+waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"x0"),1))
+
+camsame pan pan_smooth pan 0.03
+camsame turn turn_smooth turn 0.03
+camsame zoom zoom_smooth zoom 0.03
+camsmooth pan pan jerky
+camsmooth pan_smooth pan
+camsmooth turn turn jerky
+camsmooth turn_smooth turn
+camsmooth zoom zoom jerky
+camsmooth zoom_smooth zoom
+camsmooth follow_smooth pan
+frametime 0
+check IsAlive(GetLeader())
+report
+quit

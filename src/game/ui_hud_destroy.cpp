@@ -8,10 +8,11 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 // The vtables the inlined MFC array destructors write before freeing the storage.
-void* QuickEntriesVtable() { return ei::GamePointer<void>(0x007428A0); }   // CArray<Entry>
+void* QuickEntriesVtable() { return mfc::impl::QuickEntryArrayClass::Vtable(); }   // CArray<Entry>
 void* DwordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }     // CDWordArray
 } // namespace
 

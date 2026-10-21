@@ -2,6 +2,7 @@
 // file chunk sender at 00479EF4). Float maths in plain C++ (rewrite-guide rule 7). See
 // net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
+#include "options.h"
 #include "game_data.h"
 #include "game_strings.h"
 #include "core_refcount.h"
@@ -21,7 +22,7 @@ namespace {
 // through its address).
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
 
-const char* MasterHost() { return ei::GameData<const char*>(0x0079BED8); }   // the master server's host name
+const char* MasterHost() { return static_cast<const char*>(options::TheOptions()->masterServerName_); }   // the master server's host name
 
 bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);

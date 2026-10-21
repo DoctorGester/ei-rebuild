@@ -261,13 +261,13 @@ namespace {
 } // namespace
 
 void CPlayer::Tick() {
-    auto* node = objects_.head;
+    auto* node = recharging_.head;
     while (node != nullptr) {
         auto* current = node;
         node = node->next;
-        int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
+        int id = static_cast<int>(current->data);
         CEngineObject* object = static_cast<CBaseManager*>(Party()->ItemManager())->FindObject(id);
-        if (object == nullptr || object->RunTick() == 0) objects_.RemoveAt(current);
+        if (object == nullptr || object->RunTick() == 0) recharging_.RemoveAt(current);
     }
     connection_->TickDone();
 }
@@ -301,7 +301,7 @@ void ReleaseAll(PlayerObjectArray& objects) {
 
 } // namespace
 
-void CPlayerServer::ClearState() {
+void CPlayerServer::ClearServerState() {
     out_.Resize(0);
     ReleaseAll(sentObjects_);
     ReleaseAll(sentTimed_);
@@ -322,7 +322,7 @@ void CPlayerServer::ClearState() {
 }
 
 BOOL CPlayerServer::CreateServer() {
-    ClearState();
+    ClearServerState();
     handlers_.SetSize(kServerHandlerCount);
     std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
     for (const HandlerEntry& entry : kServerHandlers)
@@ -348,9 +348,6 @@ void ConstructGroup(ScriptGroup& group) {
     group.vtable = scriptvtable::kRefs;
 }
 
-// The engine object part (CPlayerServer does not derive from CEngineObject in C++).
-CEngineObject* EngineObject(CPlayerServer* server) { return reinterpret_cast<CEngineObject*>(server); }
-
 // A delta field on the stack (four memory streams), as 0066D490 builds and destroys it inline.
 struct LocalDeltaField {
     alignas(4) unsigned char bytes[sizeof(DeltaField)];
@@ -364,8 +361,8 @@ constexpr int kPathKindNoPath = 3;
 } // namespace
 
 CPlayerServer* CPlayerServer::Construct() {
-    EngineObject(this)->ClearFields();
-    vtable_ = ei::GamePointer<void>(kConnectionVtable);
+    ClearFields();
+    ei::SetVtable(this, kConnectionVtable);
     player_ = nullptr;
     handlers_.Construct();
     out_.ConstructQueueStream();
@@ -381,14 +378,14 @@ CPlayerServer* CPlayerServer::Construct() {
     ConstructGroup(group50F8_);
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
     partyUnits_.vtable = scriptvtable::kRefs;
-    vtable_ = ei::GamePointer<void>(kServerVtable);
-    ClearState();
+    ei::SetVtable(this, kServerVtable);
+    ClearServerState();
     return this;
 }
 
 void CPlayerServer::DestructBody() {
-    vtable_ = ei::GamePointer<void>(kServerVtable);
-    ClearState();
+    ei::SetVtable(this, kServerVtable);
+    ClearServerState();
     ScriptGroupDestructOriginal(&partyUnits_);
     ScriptGroupDestructOriginal(&group50F8_);
     sentTimed_.FreeData();
@@ -399,9 +396,9 @@ void CPlayerServer::DestructBody() {
     if (placements_.data) gamecrt::operator_delete(placements_.data);
     out_.Destruct();
     handlers_.FreeData();
-    vtable_ = ei::GamePointer<void>(kConnectionVtable);
+    ei::SetVtable(this, kConnectionVtable);
     player_ = nullptr;
-    EngineObject(this)->DestructBase();
+    DestructBase();
 }
 
 CPlayerServer* CPlayerServer::DeletingDestruct(unsigned flags) {
@@ -413,7 +410,7 @@ CPlayerServer* CPlayerServer::DeletingDestruct(unsigned flags) {
 const char* __fastcall PlayerServerClassName(CPlayerServer*) { return kClassNameAddress; }
 int __fastcall PlayerServerClassId(CPlayerServer*) { return kClassId; }
 
-void CPlayerServer::ForgetSentObjects() {
+void CPlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects_);
     ReleaseAll(sentTimed_);
     group50F8_.SetSize(0, -1);
@@ -456,9 +453,9 @@ EI_REWRITTEN(0x0066C770, CPlayerServer::DestructBody);
 EI_REPLACE_METHOD(0x0066C750, CPlayerServer::DeletingDestruct);
 EI_REPLACE(0x0066C730, PlayerServerClassName);
 EI_REPLACE(0x0066C740, PlayerServerClassId);
-EI_REPLACE_METHOD(0x0066CC50, CPlayerServer::ClearState);
-EI_REPLACE_METHOD(0x0066CF20, CPlayerServer::ClearState);
-EI_REPLACE_METHOD(0x0066CE50, CPlayerServer::ForgetSentObjects);
+EI_REPLACE_METHOD(0x0066CC50, CPlayerServer::ClearServerState);
+EI_REPLACE_METHOD(0x0066CF20, CPlayerServer::ClearServerState);
+EI_REPLACE_METHOD(0x0066CE50, CPlayerServer::ReleaseSentObjects);
 EI_REPLACE_METHOD(0x0066D090, CPlayerServer::ClearGroup50F8);
 EI_REWRITTEN(0x0066D490, CPlayerServer::SendPathMessage);
 

@@ -1,6 +1,7 @@
 // CWorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
 #include "model.h"
+#include "options.h"
 #include "world.h"
 
 #include "core_maths.h"
@@ -91,8 +92,8 @@ ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result,
 }
 ObjectList* DeferredUnits() { return FrameDeferredUnits(); }
 
-const std::uint32_t& g_multiplayerView = ei::GameData<const std::uint32_t>(0x0079BE6C);
-const std::uint32_t& g_modelTouchDelay = ei::GameData<const std::uint32_t>(0x0079BD24);
+const std::uint32_t& g_multiplayerView = reinterpret_cast<const std::uint32_t&>(options::TheOptions()->drawVisibleOnly_);
+const std::uint32_t& g_modelTouchDelay = reinterpret_cast<const std::uint32_t&>(options::TheOptions()->shadowLightingFreq_);
 // 007AFDB0: the point PickGround / PickSurface return without a view matrix.
 const float* NoPickPoint() { return ei::GamePointer<const float>(0x007AFDB0); }
 
@@ -122,7 +123,7 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
-    if (g_multiplayerView != 0 && Session()->gameKind == 1) drawAllUnits = false;
+    if (g_multiplayerView != 0 && Session()->sessionKind100_ == 1) drawAllUnits = false;
 
     ObjectListNode* node = static_cast<ObjectList*>(list)->head->next;
     if (node == static_cast<ObjectList*>(list)->head) return 0;

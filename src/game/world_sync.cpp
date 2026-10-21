@@ -2,6 +2,7 @@
 // player is a client of the server). SyncPlayer runs once per world update for every player
 // (0058DFF0); SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
 #include "world.h"
+#include "options.h"
 
 #include "combat.h"
 #include "core_maths.h"
@@ -41,12 +42,12 @@ float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around 
 float HearingScale() { return 2.0f /*0073F910*/; }     // unit perception scale
 float HearingMargin() { return 5.0f /*0073BF34*/; }    // added to it
 // Non-zero in a multiplayer game seen from a spectator (no camera-range test for map objects).
-int SpectatorView() { return ei::GameData<const int>(0x0079BE6C); }
+int SpectatorView() { return options::TheOptions()->drawVisibleOnly_; }
 
 constexpr int kTypeNoSync = 0x3B;            // CEngineObject::type_ of objects never sent
 constexpr std::uint32_t kFlagHidden = 0x10000;   // flags_: invisible (HideObject)
 
-// Dirty bits (WorldPlayer::dirty) SyncPlayer sends.
+// Dirty bits (CPlayer::dirty_) SyncPlayer sends.
 constexpr std::uint32_t kDirtyZone = 0x01;
 constexpr std::uint32_t kDirtyWeather = 0x02;
 constexpr std::uint32_t kDirtyTime = 0x04;
@@ -171,7 +172,7 @@ namespace {
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into Collected().
-CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPlayerServer* state, CEngineObject** out) {
+CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerServer* state, CEngineObject** out) {
     if (world->sessionKind_ == kKindSinglePlayer && SpectatorView() == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto* node = world->mapObjects_.map.First(); node && node->value; node = world->mapObjects_.map.After(node)) {
@@ -179,7 +180,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
             if (object->type_ == kTypeNoSync) continue;
             if (!OutOfView(PositionOf(object), state) ||
                 (object->GetClassId() == world::kClassUnit &&
-                 reinterpret_cast<WorldPlayer*>(static_cast<CUnit*>(object)->player) == player))
+                 static_cast<CUnit*>(object)->player == player))
                 *out++ = object;
         }
         return out;
@@ -207,7 +208,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
 
     // The units each of the player's units can hear: max(perception * factor, minimum) * scale +
     // margin around it (the server half's movement factor 3 and statistics B0 values 0 and 2).
-    auto& units = player->units.map;
+    auto& units = player->units_;
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         CUnit* unit = node->value;
         mfc::CTypedPtrList<CUnit> heard;
@@ -249,15 +250,15 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
 
 } // namespace
 
-int CWorldServer::SyncPlayer(WorldPlayer* player) {
+int CWorldServer::SyncPlayer(CPlayer* player) {
     InitStatic(1, Collected(), CollectedDestructor());
     InitStatic(2, Added(), AddedDestructor());
     InitStatic(4, Kept(), KeptDestructor());
     InitStatic(8, Removed(), RemovedDestructor());
 
-    CPlayerServer* state = player->server;
+    CPlayerServer* state = player->Server();
     if (state->state_ == kModePlaying && zoneLoaded_ != 0) {
-        std::uint32_t dirty = player->dirty;
+        std::uint32_t dirty = player->dirty_;
         if (dirty & kDirtyZone) {
             int sent = SendZone(player);
             if (!sent) return sent;
@@ -271,20 +272,20 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
             // the callee reads the byte.
             if (!state->SendState70(static_cast<std::uint8_t>(weather_), static_cast<std::uint16_t>(strength))) return 0;
         }
-        if (player->dirty & kDirtyTime) {
+        if (player->dirty_ & kDirtyTime) {
             float time;
             float speed;
             GetTime(&time, &speed);
             if (!state->SendState71(std::bit_cast<std::uint32_t>(time), std::bit_cast<std::uint32_t>(speed))) return 0;
         }
-        if (player->dirty & kDirtyWind) {
+        if (player->dirty_ & kDirtyWind) {
             Vector3 direction;
             std::memcpy(&direction, windDirection_, sizeof(direction));
             if (!state->SendState72(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
                                     std::bit_cast<std::uint32_t>(direction.z), windStrength_))
                 return 0;
         }
-        if (player->dirty & kDirtyCountdowns) state->SendState73(&countdowns_);
+        if (player->dirty_ & kDirtyCountdowns) state->SendState73(&countdowns_);
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();
@@ -315,13 +316,13 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
     if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded_ != 0) state->SendPartyState();
     mode = state->state_;
     if (mode == kModeLeaving) return 1;
-    if (mode != 0 && (player->dirty & kDirtyLeave) && mode != kModeGone) state->SendGameTime();
+    if (mode != 0 && (player->dirty_ & kDirtyLeave) && mode != kModeGone) state->SendGameTime();
     return state->Flush();
 }
 
 // ---- SendZone ---------------------------------------------------------------------------------
 
-int CWorldServer::SendZone(WorldPlayer* player) {
+int CWorldServer::SendZone(CPlayer* player) {
     CMemoryStream message;
     std::memset(&message, 0, sizeof(message));
     message.version_ = 2000000000;
@@ -330,7 +331,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
     message.data_ = nullptr;
     message.Reset();
 
-    CPlayerServer* state = player->server;
+    CPlayerServer* state = player->Server();
     int result;
     if (state->state_ != kModePlaying) {
         result = 1;
@@ -359,9 +360,9 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         result = state->SendState02(&message);   // 0066EBD0
         if (result != 0 && sendsStartPosition_ != 0) {
             result = 1;
-            if (player->units.map.Size() != 0) {
+            if (player->units_.Size() != 0) {
                 // The player starts at its first unit, on the ground there.
-                auto* first = player->units.map.First();
+                auto* first = player->units_.First();
                 const float* at = PositionOf(first ? first->value : nullptr);
                 Vector3 start;
                 std::memcpy(&start, at, sizeof(start));
@@ -369,7 +370,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
                 result = state->SendPosition04(&start, 0, sessionKind_);
             }
         }
-        if (result != 0) reinterpret_cast<CPlayer*>(player)->connection_->ItemsGiven(&player->items, 0);
+        if (result != 0) player->connection_->ItemsGiven(&player->items_, 0);
     }
     ei::SetVtable(&message, kMemoryStreamVtable);
     if (message.data_) gamecrt::operator_delete(message.data_);

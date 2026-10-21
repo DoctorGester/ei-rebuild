@@ -244,11 +244,11 @@ SSCCmd* SSCCmd::Construct() {
     };
     init(floatArgs, ei::GamePointer<void>(0x0073D490));
     init(stringArgs, ei::GamePointer<void>(0x0073D2D4));
-    init(objectArgs, ei::GamePointer<void>(0x0073D484));
-    init(groupArgs, ei::GamePointer<void>(0x0073D478));
-    init(localBindings, ei::GamePointer<void>(0x0073D49C));
-    init(globalBindings, ei::GamePointer<void>(0x0073D49C));
-    init(subCalls, ei::GamePointer<void>(0x0073D4A8));
+    init(objectArgs, mfc::impl::ArgObjectsClass::Vtable());
+    init(groupArgs, mfc::impl::ArgGroupsClass::Vtable());
+    init(localBindings, recordarrays::BindingArrayClass::Vtable());
+    init(globalBindings, recordarrays::BindingArrayClass::Vtable());
+    init(subCalls, recordarrays::SubCallArrayClass::Vtable());
     id = 0;
     calledScript = nullptr;
     return this;

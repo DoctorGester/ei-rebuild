@@ -15,17 +15,16 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 
-// The vtable of the recharge list (an MFC CList instantiation; Serialize 00666050).
-constexpr std::uintptr_t kRechargeListVtable = std::uintptr_t(0x00743138);
 // The given items' list is a CPtrList (vtable 0073BE80, the pointer lists the units fill).
 constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);
 
 template <typename T>
-void InitList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
-    list.vtable = ei::GamePointer<void>(vtableAddress);
+void InitList(mfc::CList<T>& list, void* vtable) {
+    list.vtable = vtable;
     list.tail = nullptr;
     list.count = 0;
     list.head = nullptr;
@@ -47,14 +46,14 @@ CPlayer* CPlayer::Construct() {
     knownTimed_.InitBuckets(100);
     maxTimedId_ = 0;
     Party()->Construct();
-    InitList(items_, kItemListVtable);
+    InitList(items_, ei::GamePointer<void>(kItemListVtable));
     partyId_ = 0;
-    InitList(objects_, kRechargeListVtable);
+    InitList(recharging_, mfc::impl::PlayerListClass::Vtable());   // an MFC CList instantiation
     ei::SetVtable(this, kVtableAddress);
     connection_ = nullptr;
     logTraffic_ = 0;
     Party()->Create();
-    objects_.RemoveAll();
+    recharging_.RemoveAll();
     Clear();
     Party()->Destroy();
     Party()->Create();
@@ -76,8 +75,8 @@ void CPlayer::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
     DestroyPlayer();
     Party()->Destroy();
-    objects_.vtable = ei::GamePointer<void>(kRechargeListVtable);
-    objects_.RemoveAll();
+    recharging_.vtable = mfc::impl::PlayerListClass::Vtable();
+    recharging_.RemoveAll();
     items_.vtable = ei::GamePointer<void>(kItemListVtable);
     items_.RemoveAll();
     Party()->DestructBody();
@@ -119,7 +118,7 @@ BOOL CPlayer::CreatePlayer() {
 EI_REPLACE_METHOD(0x00665010, CPlayer::CreatePlayer);
 
 void CPlayer::DestroyPlayer() {
-    objects_.RemoveAll();
+    recharging_.RemoveAll();
     Clear();
     Party()->Destroy();
     Party()->Create();
@@ -157,7 +156,7 @@ void CPlayer::Clear() {
         first->value->SetPlayer(nullptr);
     units_.Clear();
     maxUnitId_ = 0;
-    objects_.RemoveAll();
+    recharging_.RemoveAll();
     if (connection_ != nullptr) connection_->ForgetSentObjects();
 }
 EI_REPLACE_METHOD(0x00665200, CPlayer::Clear);
@@ -215,7 +214,7 @@ void CPlayer::ForgetKnownObjects() {
     ObjectMapClearOriginal(&knownTimed_);
     ObjectMapClearOriginal(&knownObjects_);
     if (connection_ != nullptr) connection_->ForgetSentObjects();
-    dirty_ = -1;
+    dirty_ = 0xFFFFFFFFu;
 }
 EI_REWRITTEN(0x006651D0, CPlayer::ForgetKnownObjects);
 
@@ -308,14 +307,14 @@ void CPlayer::RemoveUnit(CUnit* unit) {
 EI_REWRITTEN(0x00665B50, CPlayer::RemoveUnit);
 
 void CPlayer::ItemUsed(CEngineObject* item) {
-    void* id = reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_));
-    if (objects_.Find(id) == nullptr) objects_.AddTail(id);
+    std::uint32_t id = static_cast<std::uint32_t>(item->id_);
+    if (recharging_.Find(id) == nullptr) recharging_.AddTail(id);
     connection_->ItemUsed(item);
 }
 EI_REWRITTEN(0x00665BE0, CPlayer::ItemUsed);
 
 CParty* CPlayer::AssignParty(CParty* source) {
-    objects_.RemoveAll();
+    recharging_.RemoveAll();
     return Party()->Assign(source);
 }
 EI_REWRITTEN(0x00665CC0, CPlayer::AssignParty);

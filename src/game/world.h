@@ -7,6 +7,7 @@
 // else is provisional. Only the members used by the rewritten functions are declared.
 
 #include <cstddef>
+#include "options.h"
 #include <cstdint>
 
 #include "base_manager.h"
@@ -16,6 +17,7 @@
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "object_tables.h"
+#include "player_messages.h"
 #include "player_source.h"
 #include "unit_looks.h"
 #include "water_tweens.h"
@@ -35,6 +37,7 @@ class CItem;       // item.h
 class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
+class CPlayerClient;   // player_client.h
 class CScript;   // script.h
 struct AIEventTable;   // unit_ai.h
 namespace netlink {
@@ -86,97 +89,15 @@ struct ObjectIdMap {
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
-// ObjectIdMap's shape for a map that only holds units (WorldPlayer::units).
-struct UnitIdMap {
-    stlp::hash_map<unsigned, CUnit*, stlp::IntHash> map;   // +0x00
-    int maxId;                                              // +0x14
-};
-static_assert(sizeof(UnitIdMap) == 0x18);
-
-// 0073F530: the vtable the game stores in its CTypedPtrList<CPtrList, CEngineObject*> locals
-// (SendFreshObjects, world_map.cpp; world_zone.cpp).
-inline void* ObjectPtrListVtable() { return ei::GamePointer<void>(0x0073F530); }
-
-
-// A player (one per human or AI side). Fields named only as far as used here.
-struct WorldPlayer {
-    std::uint8_t engineObject[0x1C];     // CPlayer's engine object fields (vtable, count, id, ...)
-    netlink::NetLink* link;              // +0x01C the link to the player's client (CPlayer::link_), or null
-    CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
-
-    int id;                              // +0x024 player number (0 = the local player)
-    ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
-    UnitIdMap units;                     // +0x040 its units by id (CPlayer::units_ / maxUnitId_)
-    std::uint8_t knownTimed[0x70 - 0x58]; // CPlayer::knownTimed_ / maxTimedId_ (read through CPlayer)
-    // +0x070 the player's party (a CParty, party.h, 0x70 bytes to +0xE0: Party()); mercs,
-    // mercCount and variables below are its members_ and variables_ seen from here. Loaded and
-    // saved by 006618C0 / 00661C10 (world_save.cpp).
-    std::uint8_t party[0xA0 - 0x70];
-    std::uint8_t* mercs;                 // +0x0A0 0x784-byte records, unit id at +0x1C
-    int mercCount;                       // +0x0A4
-    std::uint8_t partyItems[0xC4 - 0xA8]; // the party's members_ tail, items_ and money (through Party())
-    NamedFloatTable variables;           // +0x0C4 named float variables ("gtime", quest flags)
-    std::uint8_t partyZone[0xE0 - 0xD8];  // the party's zone_ and +0x6C (through Party())
-    // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
-    mfc::CTypedPtrList<CItem> items;
-    // +0x0FC the key the party is stored under in the party manager (a fresh one from PartyNextId
-    // for a new party; the client's login sends it); saved with the world.
-    std::uint32_t partyId;
-    // +0x100 saved with the world; CPlayer::sessionKind100_: set from the server world's +0x12D64
-    // on joining (AcceptNewPlayers); 1: the flow applies the server's variables by stamp.
-    std::uint32_t sessionKind;
-    int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
-    // +0x108 the script's GodMode(player, on) (CPlayer::godMode_; the combat code tests it).
-    // Saved with the world (one byte).
-    std::uint8_t godMode;
-    std::uint8_t unused_109[0x10C - 0x109];
-    int logTraffic;                      // +0x10C logs the size of every flush (the console's "net")
-    int lastTick;                        // +0x110
-    mfc::CList<std::uint32_t> ids;       // +0x114 saved with the world from version 0x55 (AddTail 0059CC60)
-    std::uint32_t dirty;                 // +0x130 changes still to send to this player
-
-    class CParty* Party() { return reinterpret_cast<class CParty*>(party); }
-    // The connection seen through its virtual slots (CPlayerConnection, player_messages.h).
-    CPlayerConnection* Connection() { return reinterpret_cast<CPlayerConnection*>(server); }
-};
-static_assert(offsetof(WorldPlayer, link) == 0x1C);
-static_assert(offsetof(WorldPlayer, party) == 0x70);
-static_assert(offsetof(WorldPlayer, partyId) == 0xFC);
-static_assert(offsetof(WorldPlayer, godMode) == 0x108);
-static_assert(offsetof(WorldPlayer, logTraffic) == 0x10C);
-static_assert(offsetof(WorldPlayer, lastTick) == 0x110);
-static_assert(offsetof(WorldPlayer, ids) == 0x114);
-static_assert(offsetof(WorldPlayer, server) == 0x20);
-static_assert(offsetof(WorldPlayer, mercs) == 0xA0);
-static_assert(offsetof(WorldPlayer, variables) == 0xC4);
-static_assert(offsetof(WorldPlayer, items) == 0xE0);
-static_assert(offsetof(WorldPlayer, objects) == 0x28);
-static_assert(offsetof(WorldPlayer, units) == 0x40);
-static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
-
-// What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
-struct LocalViewData {
-    std::uint8_t engineObject[0x1C];     // the CPlayerClient's engine object fields
-    WorldPlayer* player;                 // +0x1C
-    std::uint8_t clientState[0x84 - 0x20]; // the CPlayerClient's state, handlers and streams
-    // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
-    // player whatever its id (UnitReadNetState), and the game-state message only presses Enter.
-    std::uint8_t localSession;
-    std::uint8_t sendParty;              // +0x85 CPlayerClient::sendParty_: the flow sets it once the local player took the requested party (the login then sends the party first), clears it for a new zone
-};
-static_assert(offsetof(LocalViewData, localSession) == 0x84);
-static_assert(offsetof(LocalViewData, sendParty) == 0x85);
-static_assert(offsetof(WorldPlayer, dirty) == 0x130);
-
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
-// it; its MFC list head is at +0x38 and each node's data (+8) is a WorldPlayer.
+// it; its MFC list head is at +0x38 and each node's data (+8) is a CPlayer.
 struct PlayerIterator : ObjectListIterator {
     PlayerIterator() : ObjectListIterator{nullptr, nullptr} {}
 
-    WorldPlayer* First(CEngineObject* players) {   // 00404920
-        return reinterpret_cast<WorldPlayer*>(ObjectListIterator::First(static_cast<CBaseManager*>(players)));
+    CPlayer* First(CEngineObject* players) {   // 00404920
+        return static_cast<CPlayer*>(ObjectListIterator::First(static_cast<CBaseManager*>(players)));
     }
-    WorldPlayer* Next() { return reinterpret_cast<WorldPlayer*>(ObjectListIterator::Next()); }   // 00404960
+    CPlayer* Next() { return static_cast<CPlayer*>(ObjectListIterator::Next()); }   // 00404960
     // The original inlines this: drop the list's count without releasing it.
     ~PlayerIterator() {
         if (manager) --manager->refCount_;
@@ -356,7 +277,6 @@ public:
     CWorld* DeletingDestruct(unsigned flags);
 
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073F18C);
-    static constexpr std::uintptr_t kCountdownsVtable = std::uintptr_t(0x0073F234);
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
@@ -492,7 +412,7 @@ public:
     // (null read); Rebirth's FixRemoveMapObject ignores it.
     void RemoveObject(unsigned id);
     // 00594180. Player number `id`, or null.
-    WorldPlayer* GetPlayer(int id);
+    CPlayer* GetPlayer(int id);
     // 00594220, vtable slot 27. Ground height from the server's coarse height grid; 0 outside.
     float GridHeight(float x, float y);
     // 00591740. Living mercenaries of player `id`, not counting the leader (0 without the player).
@@ -566,13 +486,13 @@ public:
     // 00593AF0 (RET 4; a unit's death becoming final). Every player with `unit` among its party
     // units is sent the unit's message 0x43 (SendObject43).
     void TellPartiesGone(CEngineObject* unit);
-    // 00590160 (RET 8; CollectParty). The items the player holds (WorldPlayer::items) put into
+    // 00590160 (RET 8; CollectParty). The items the player holds (CPlayer::items_) put into
     // `party` (CParty::AddItem(item, 1, 1)) and released, the list emptied. Nothing without a player.
-    void StorePlayerItems(WorldPlayer* player, class CParty* party);
+    void StorePlayerItems(CPlayer* player, class CParty* party);
     // 00591070 (RET 4; world_quests.cpp; `this` is not read). After a player's party was sent again
     // (the multiplayer zone switch 0057EE10, ResendParty 0066F450): every item of the player's
     // party (+0x70) taken out (CParty::RemoveItem(first, 1)) until none is left.
-    void ClearPlayerItems(WorldPlayer* player);
+    void ClearPlayerItems(CPlayer* player);
     // 00593FA0 (RET 0xC; world_small_calls.cpp; the script's SetWaterLevel). The water level `key`
     // moves to `target` over `steps` ticks (TweenSetTarget on +0x70).
     void SetWaterLevel(int key, float target, int steps);
@@ -737,7 +657,7 @@ public:
     // (flags_ 0x20000000, removed afterwards) or what 00461CB0 collects (in a multiplayer client
     // game quest items go to player 0); the gold is added to the player. False for no player, a
     // living owned unit, or nothing to take.
-    bool Loot(CEngineObject* object, WorldPlayer* player);
+    bool Loot(CEngineObject* object, CPlayer* player);
     // 00593D60. The local player (id 0) loots every dead unit, which is then removed (both
     // through the global server 007AFF60). Nothing without a local player.
     void LootDeadUnits();
@@ -766,16 +686,16 @@ public:
     // b.mercN.n8_N clears that variable, n10_N removes the mercenary from the party and the
     // world, n2_N from the party, n1_N / n3_N hire it (amerc_N = 2, added to the party with its
     // unit's prototype or "Human Hero"); then UpdateMercBriefings.
-    void ApplyMercBriefing(WorldPlayer* player, const char* name);
+    void ApplyMercBriefing(CPlayer* player, const char* name);
     // 005911C0 (RET 8). Gives `amount` experience: with a player, shared equally by its living
     // heroes (units and party records); without one, shared by the players that have a single
     // hero, in proportion to sqrt(+0x8E0 + +0x1E4) of each hero's controller. Zero (or NaN) does
     // nothing.
-    void AwardExperience(WorldPlayer* player, float amount);
+    void AwardExperience(CPlayer* player, float amount);
     // 00590C70 (RET 4). Brings the player's party records (+0x70) up to date with its living
     // units: the player's own items, then every record's quick, worn and belt items and spells
     // rebuilt from the unit (each item's +0x1C record pointing at its entry) and the statistics.
-    void SyncPartyRecords(WorldPlayer* player);
+    void SyncPartyRecords(CPlayer* player);
     // 0058FD90 (RET 0xC). Before a zone change: every record of `records` (CArray of record
     // pointers) notes its unit's leader, gets a placement (if `placements`), is rebuilt from its
     // unit through `partyRecords`, and the unit is removed (a dead one just loses its owner).
@@ -783,7 +703,7 @@ public:
     // 00590A40 (RET 8). The player's party leaves the zone: gtime, its items, then (single player
     // and kind 3, with +0x15C) its records without a unit are dropped and the rest stored
     // (StoreParty).
-    void CollectParty(WorldPlayer* player, void* placements);
+    void CollectParty(CPlayer* player, void* placements);
 
     // world_party.cpp
     // 005901E0 (RET 8). Moves quest items (class 0x14) from `itemArray` (a CArray of item
@@ -792,12 +712,12 @@ public:
     void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
     // 00590460 (RET 4). Gives the player fresh copies of the items it brings into the zone (all
     // of them on a client, the zone's quest items otherwise; nothing in a network game).
-    void RestorePlayerItems(WorldPlayer* player);
+    void RestorePlayerItems(CPlayer* player);
     // 00590700 (RET 0xC). The party arrives in the zone (single player and kind 3, with +0x15C):
     // its units are created at the entrance's centre (the target zone's exit), facing away from
     // the map centre or along the exit's heading, the player state gets the start; `runScripts`
     // runs the script command queue five times.
-    void Redeploy(WorldPlayer* player, void* placements, char runScripts);
+    void Redeploy(CPlayer* player, void* placements, char runScripts);
     // 00594CE0 (slot 24, RET 4). A new item like `item`: made by the item factory (slot 18) from
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
@@ -828,10 +748,10 @@ public:
     // it changed (SendZone), weather, time, wind and countdowns when dirty, then the map objects
     // and timed objects it should see compared with what it was sent. Returns what the player
     // state's flush returns (0 drops the player), 1 for a player that is leaving.
-    int SyncPlayer(WorldPlayer* player);
+    int SyncPlayer(CPlayer* player);
     // 0058C890 (RET 4). Sends `player` the zone to load (tick, map and .mob names, exits, the
     // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
-    int SendZone(WorldPlayer* player);
+    int SendZone(CPlayer* player);
 
     // +0x084 WorldDayTime's value (0058CCD0; float bits): the script's IsNight reads it, the units'
     // movement factors scale by it.
@@ -899,7 +819,7 @@ public:
     CScript* SecondScript() { return reinterpret_cast<CScript*>(commandsB_); }
     CDiplomacy diplomacy_;                // +0x12C64 (object_diplomacy.h)
     // +0x12D64 the session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld
-    // updates the players' "gtime" first. Joining players take it (WorldPlayer::sessionKind).
+    // updates the players' "gtime" first. Joining players take it (CPlayer::sessionKind100_).
     int sessionKind_;
     mfc::CString mobName_;                // +0x12D68 the zone's .mob file
     mfc::CString mapName_;                // +0x12D6C the zone's map
@@ -1242,19 +1162,6 @@ struct RadiusMarker {
 };
 static_assert(offsetof(RadiusMarker, radius) == 0x8C);
 
-// The client's local session (CWorldClient + 0x20C, made by 0066C180), as far as the maps read it:
-// the local CPlayer (player_messages.h; its Tick 00665DE0 and Disconnect 00665A10 run on it).
-struct WorldSession : CEngineObject {
-    std::uint8_t link[4];                 // CPlayer::link_
-    // +0x20 the local view: the player's connection (CPlayer::connection_), a CPlayerClient.
-    class CPlayerConnection* localView;
-    class CPlayerClient* LocalClient() const { return reinterpret_cast<class CPlayerClient*>(localView); }
-    std::uint8_t playerFields[0x100 - 0x24]; // CPlayer's id, object maps, party, items and party id
-    int gameKind;                         // +0x100 1 / 3: kinds of multiplayer session
-};
-static_assert(offsetof(WorldSession, localView) == 0x20);
-static_assert(offsetof(WorldSession, gameKind) == 0x100);
-
 // The client's rain / snow layer (CWorldClient + 0x6F4, 0xC8 bytes; constructor 004E3C20, drawn by
 // 004E5680): an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
 class CRainSnow;            // effects.h
@@ -1378,8 +1285,8 @@ public:
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see
     // (relation masks +0x244/+0x248 of the candidate); null when none or `unit` is null.
     CUnit* NearestVisibleUnit(CUnit* unit);
-    // 005699F0. The local view (session +0x20; its +0x1C is the local WorldPlayer), or null.
-    std::uint8_t* LocalView();
+    // 005699F0. The local view (the session's connection; its player_ is the local CPlayer), or null.
+    CPlayerClient* LocalView();
     // 00566EC0. Whether the local view is in mode 2 (+0x20).
     bool IsLocalViewMode2();
     // world_small_calls.cpp (A-W14).
@@ -1669,7 +1576,7 @@ public:
     CWorldClient* DeletingDestruct(unsigned flags);
 
     // The local session (+0x20C) as the maps read it.
-    WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
+    CPlayer* Session() const { return session_; }
 
     int unused84_;                       // +0x084 -100000 after Setup
     std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
@@ -1731,7 +1638,9 @@ public:
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
     ClientTexts* texts_;                  // +0x1D0 the text resources (counted)
     PlatformSet platforms_;               // +0x1D4
-    std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view
+    // +0x20C the local session (made by 0066C180): the local CPlayer; its connection is the local
+    // view (a CPlayerClient), its sessionKind100_ 1 / 3 for kinds of multiplayer session.
+    CPlayer* session_;
     CCamera* camera_;                     // +0x210 the view camera (DrawPass, Render)
     std::uint8_t unused_214[0x224 - 0x214];
     mfc::CString texturePath_;            // +0x224 <data path>textures\ (Setup)
@@ -1992,9 +1901,8 @@ struct GameFlow {
     // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
     void UpdateFromServer();
 
-    // The party of a request (party.h; RequestPartyZone5 / 6 copy one in; the constructor and
-    // destructor run on these bytes).
-    class CParty* RequestParty() { return reinterpret_cast<class CParty*>(requestParty_); }
+    // The party of a request (party_storage.h; RequestPartyZone5 / 6 copy one in).
+    class CParty* RequestParty() { return requestParty_.Party(); }
 
     // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
     // function call them). The constructor body: empty names, the party constructed (00661050), no
@@ -2008,7 +1916,7 @@ struct GameFlow {
 
     int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
     mfc::CString requestTarget_;          // +0x04 the request's zone or save name
-    std::uint8_t requestParty_[0x70];     // +0x08 a CParty: RequestParty()
+    PartyStorage requestParty_;           // +0x08 a CParty: RequestParty()
     int requestArg_;                      // +0x78 the entrance (4) or the load flag (2)
     mfc::CString zone7C_;                 // +0x7C the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // +0x80 set by SwitchMultiplayerZone, cleared by the game's start
@@ -2016,6 +1924,11 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78 && offsetof(GameFlow, zone7C_) == 0x7C);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
+static_assert(sizeof(GameFlow) == 0x84);
+
+// The game flow (the object at 007AFE20; world_game.cpp): built by the static initialiser 00578440 in the list's order,
+// destroyed by the exit function it registers (005784C0).
+extern lib::StaticObject<GameFlow> g_gameFlow;
 
 struct MpHeroRecord;   // ui_screens.h: a party (0x70 bytes) and its file name
 
@@ -2118,12 +2031,12 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 void __stdcall SelectLoadingMovie(const char* zone);
 
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
-inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
+inline int TimeSpeedSetting() { return options::TheOptions()->defaultTimeScale_; }
 // The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
 // the far clip (the transform pipeline's depth range, 00500B70 / 00566360).
-inline float FogStartDay() { return ei::GameData<const float>(0x0079BED4); }
-inline float FogStartNight() { return ei::GameData<const float>(0x0079BED0); }
-inline float FarClipDistance() { return ei::GameData<const float>(0x0079BE54); }
+inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_; }
+inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
+inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
 // world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the

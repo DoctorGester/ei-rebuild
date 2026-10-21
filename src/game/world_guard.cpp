@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "party.h"
 #include "random.h"
+#include "ui_screens.h"   // MpHeroRecord (the party outside a game)
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -21,16 +22,13 @@ std::uint32_t g_guardKey = /*007AFECC*/ {};
 // The players_ lists (+0x38) of the client world (007AF5B8) and the server world (007AFF60).
 CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0); }
 CEngineObject* ServerPlayers() { return ei::GameData<CEngineObject*>(0x007AFF98); }
-// The party outside a game (007C82B0, a CParty like WorldPlayer + 0x70): its records, their
+// The party outside a game (007C82B0, a CParty like CPlayer + 0x70): its records, their
 // count and its gold.
-CParty* GlobalParty() { return reinterpret_cast<CParty*>(TheSavedParties().outsideGame_); }
-std::uint8_t* GlobalRecords() { return reinterpret_cast<std::uint8_t*>(GlobalParty()->members_.data); }
+CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 int GlobalRecordCount() { return GlobalParty()->members_.size; }
 std::uint32_t& GlobalGold() { return GlobalParty()->money_; }
 
-constexpr int kRecordSize = 0x784;
-constexpr int kRecordGuarded = 0x20;   // the 0x704 bytes from +0x20 of a party record
-constexpr int kGuardedBytes = 0x704;
+constexpr int kGuardedBytes = 0x704;   // a party record's stats (PartyUnitRecord::stats) or a unit's
 
 void XorRange(std::uint8_t* first, std::uint32_t key) {
     auto* p = reinterpret_cast<std::uint32_t*>(first);
@@ -43,13 +41,13 @@ void XorRange(std::uint8_t* first, std::uint32_t key) {
 void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(players); player; player = it.Next()) {
+    for (CPlayer* player = it.First(players); player; player = it.Next()) {
         player->Party()->Money() ^= static_cast<int>(key);   // gold
-        for (int i = 0; i < player->mercCount; ++i) XorRange(player->mercs + i * kRecordSize + kRecordGuarded, key);
+        for (int i = 0; i < player->Party()->members_.size; ++i) XorRange(player->Party()->members_.data[i].stats, key);
         if (!units) continue;
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
         // controllers' statistics.
-        auto& map = player->units.map;
+        auto& map = player->units_;
         for (auto* node = map.First(); node && node->value; node = map.After(node)) {
             auto* controller = reinterpret_cast<CUnitServer*>(node->value->controller);
             XorRange(reinterpret_cast<std::uint8_t*>(&controller->stats), key);
@@ -64,7 +62,7 @@ void __fastcall GuardPlayerData(void* /*glue*/, void*, char plain) {
     GuardPlayers(ServerPlayers(), 1, g_guardKey);
     std::uint32_t key = g_guardKey;
     GlobalGold() ^= key;
-    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(GlobalRecords() + i * kRecordSize + kRecordGuarded, key);
+    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(GlobalParty()->members_.data[i].stats, key);
     g_guardPlain = plain;
 }
 

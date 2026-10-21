@@ -15,6 +15,7 @@
 #include "ui_camp.h"
 #include "unit.h"
 #include "unit_client_models.h"
+#include "party.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -46,7 +47,7 @@ using OrderUnits = mfc::CArray<CUnit*>;
 
 // The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
 // the selection, 00566030 (RET 4) controls a unit.
-inline CPlayerClient* LocalView(void* client) { return reinterpret_cast<CPlayerClient*>(static_cast<CWorldClient*>(client)->LocalView()); }
+inline CPlayerClient* LocalView(void* client) { return static_cast<CWorldClient*>(client)->LocalView(); }
 // The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
 // CPlayerClient::SendAttack), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
@@ -150,10 +151,10 @@ void CBattleScreen::ToggleMember(int index) {
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection (+0x778), record i against member i.
     if (ei::GameData<const int>(0x007B0098) == 1) {
-        if (auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0))) {
-            for (int i = 0; i < player->mercCount; ++i) {
+        if (auto* player = TheServerWorld()->GetPlayer(0)) {
+            for (int i = 0; i < player->Party()->members_.size; ++i) {
                 if (i >= party->size) continue;
-                PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
+                PartyUnitRecord* record = &player->Party()->members_.data[i];
                 CUnit* member = unitAt(i);
                 if (member->id_ == static_cast<int>(record->unitId))   // the record's unit id
                     record->selected = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);

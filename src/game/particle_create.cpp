@@ -844,7 +844,7 @@ void CParticleSource::Clear() {
     texture = nullptr;
     if (held) (*static_cast<void (__fastcall***)(void*, void*)>(held))[4](held, nullptr);
     if (attachedTo)   // 00518AE0: detached from the object it is attached to
-        static_cast<CObject3D*>(attachedTo)->RemoveEffectSource(reinterpret_cast<CEngineObject*>(this));
+        static_cast<CObject3D*>(attachedTo)->RemoveEffectSource(this);
     Reset();
 }
 EI_REPLACE_METHOD(0x00484710, CParticleSource::Clear);
@@ -902,7 +902,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     if (!memory) return nullptr;
     auto* bytes = static_cast<std::uint8_t*>(memory);
     auto* s = static_cast<CParticleSource*>(memory);
-    EngineObjectConstruct(reinterpret_cast<CEngineObject*>(s));
+    EngineObjectConstruct(s);
     reinterpret_cast<Quaternion*>(bytes + 0x34)->SetIdentity();
     reinterpret_cast<Quaternion*>(bytes + 0x44)->SetIdentity();
     ei::SetVtable(s, CTransformObject::kVtableAddress);
@@ -932,7 +932,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
 EI_REWRITTEN(0x004981B0, NewParticleSource);
 
 CEngineObject* CParticleManager::NewObject(int type) {
-    return reinterpret_cast<CEngineObject*>(NewParticleSource(this, nullptr, type));
+    return NewParticleSource(this, nullptr, type);
 }
 
 // 00498310. The destructor body: Clear (particles back to the pool, detached, Reset), release the
@@ -952,7 +952,7 @@ void CParticleSource::Destruct() {
     particles.blocks = nullptr;
     if (elements) gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
     ei::SetVtable(this, CTransformObject::kVtableAddress);
-    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+    DestructBase();
 }
 EI_REWRITTEN(0x00498310, CParticleSource::Destruct);
 

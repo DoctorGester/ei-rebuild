@@ -44,11 +44,8 @@ mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, con
 
 // Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {
-    alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-    mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), GameDataPathString(), "config\\keyboard.ini");
-    bool opened = file.Open(*path, flags, nullptr) != 0;
-    path->~CString();
-    return opened;
+    mfc::CString path(mfc::CString::kUnset);
+    return file.Open(*ConcatText(&path, GameDataPathString(), "config\\keyboard.ini"), flags, nullptr) != 0;
 }
 
 } // namespace

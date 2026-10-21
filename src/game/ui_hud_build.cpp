@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 #include <cstdint>
 
@@ -32,7 +33,6 @@ float TexelStep() { return 0.00390625f /*0073EEB8*/; }
 // The layout y the columns' bottom button sits at (00742948, 490).
 float ColumnBottom() { return 490.0f /*00742948*/; }
 
-constexpr std::uintptr_t kQuickEntriesVtable = std::uintptr_t(0x007428A0);
 constexpr std::uintptr_t kDwordArrayVtable = std::uintptr_t(0x0073C3D0);
 
 constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in flatColour_
@@ -197,7 +197,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     CUiWindow::Construct(ui);
     owner_ = owner;
     auto* entries = reinterpret_cast<mfc::CArray<Entry>*>(&entriesVtable_);
-    entries->Construct(kQuickEntriesVtable);
+    entries->Construct(mfc::impl::QuickEntryArrayClass::Vtable());
     labels_.Construct();
     vtable_ = Vtable(0x0074283C);
     inputVtable_ = Vtable(0x00742808);

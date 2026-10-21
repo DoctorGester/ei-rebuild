@@ -18,7 +18,7 @@
 
 namespace {
 // Game-wide paths set at startup. Names provisional.
-const mfc::CString& GameRoot() { return ei::GameData<const mfc::CString>(0x0079BC90); }
+const mfc::CString& GameRoot() { return options::TheOptions()->workPath_; }
 
 // Format id for a .bmp texture, by texture kind.
 int BmpFormatFor(int type) {

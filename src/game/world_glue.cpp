@@ -1,12 +1,15 @@
 // The game glue's small functions (game.exe 0x00578000-0x00578E30). See world_glue.h and
 // docs/notes/world.md.
 #include "world_glue.h"
+#include "options.h"
 
 #include "net_classes.h"
 #include "object_tables.h"
 #include "script.h"
+#include "party.h"
 #include "world.h"
 #include "world_data.h"
+#include "ui.h"
 
 #include "camera.h"
 #include "player_client.h"
@@ -68,9 +71,9 @@ int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error
 EI_REWRITTEN(0x005785D0, RunScriptText);
 
 void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
-    WorldPlayer* player;
+    CPlayer* player;
     if (IsMultiplayerClient()) {
-        player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+        player = TheClientWorld()->LocalView()->player_;
     } else {
         player = TheServerWorld()->GetPlayer(0);
         if (!player) {
@@ -78,7 +81,7 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
             return;
         }
     }
-    player->variables.CopyPrefixed(prefix, out);
+    player->Party()->variables_.CopyPrefixed(prefix, out);
 }
 EI_REWRITTEN(0x00578C40, PlayerZeroVariables);
 
@@ -102,17 +105,17 @@ constexpr double kHoursPerDay = 24.0;   // 0073D108
 const char kConstructionVariable[] = "constr.current";   // 00790384
 // The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
 // input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
-char& CloseAllRequested() { return ei::GameData<char>(0x007C7D94); }
-float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
-const char* DefaultMusic() { return ei::GameData<const char*>(0x0079BECC); }
+bool& CloseAllRequested() { return TheInterface()->closeAll_; }
+float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
+const char* DefaultMusic() { return static_cast<const char*>(options::TheOptions()->defaultStreamingSound_); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
-CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
+CPlayerClient* LocalClient() { return TheClientWorld()->LocalView(); }
 } // namespace
 
 void __stdcall GameSetConstructionVariable(std::uint32_t value) {
-    WorldPlayer* player = TheServerWorld()->GetPlayer(0);
-    if (player) player->server->SetVariable(kConstructionVariable, value);
+    CPlayer* player = TheServerWorld()->GetPlayer(0);
+    if (player) player->Server()->SetVariable(kConstructionVariable, value);
 }
 EI_REWRITTEN(0x00578560, GameSetConstructionVariable);
 
@@ -253,12 +256,12 @@ void GameRejoin() {
 EI_REWRITTEN(0x00578B20, GameRejoin);
 
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out) {
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
-    player->variables.CopyPrefixed(prefix, out);
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
+    player->Party()->variables_.CopyPrefixed(prefix, out);
 }
 EI_REWRITTEN(0x00578B70, GameLocalPlayerVariables);
 
-std::uint8_t* GameLocalView() { return TheClientWorld()->LocalView(); }
+CPlayerClient* GameLocalView() { return TheClientWorld()->LocalView(); }
 EI_REWRITTEN(0x00578BC0, GameLocalView);
 
 int __stdcall GameSendFlag10(int value) { return TheClientWorld()->SendFlag10(value); }

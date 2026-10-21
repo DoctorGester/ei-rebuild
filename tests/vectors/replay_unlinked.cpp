@@ -21,6 +21,7 @@
 #include "../../src/lib/crt.h"
 #include "../../src/lib/mfc_exception.h"
 #include "../../src/lib/mfc_resource.h"
+#include "../../src/lib/mfc_state.h"
 #include "../../src/lib/mfc_time.h"
 
 #include <cstdio>
@@ -110,6 +111,7 @@ std::size_t __cdecl libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecr
 libcrt::Exception* libcrt::Exception::Construct() EI_UNLINKED("libcrt::Exception::Construct")
 void __stdcall libcrt::CxxThrowException(void*, const void*) EI_UNLINKED("libcrt::CxxThrowException")
 void __stdcall mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
+void __stdcall mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
 int __stdcall mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")
 mfc::ExceptionLink* __fastcall mfc::ConstructExceptionLink(mfc::ExceptionLink*) EI_UNLINKED("mfc::ConstructExceptionLink")
 void __cdecl mfc::TryCleanup() EI_UNLINKED("mfc::TryCleanup")

@@ -27,6 +27,7 @@
 // last frame is reported too.
 #include "ui_census.h"
 #include "slot_recorder.h"
+#include "harness_objects.h"
 #include "harness_starter.h"
 
 #include "../../src/game/console.h"
@@ -59,7 +60,6 @@ namespace ei::verify::census {
 
 namespace {
 
-constexpr std::uintptr_t kInterface = 0x007C7D50;   // CInterface3D
 constexpr unsigned kMaxDetails = 8;                  // distinct details kept per row
 
 // --- code modules and call chains ----------------------------------------------------------------
@@ -293,7 +293,7 @@ std::vector<Candidate> Candidates(const State& s) {
     std::vector<Candidate> out;
     out.reserve(s.owners.size() + 6);
     for (const auto& [surface, window] : s.owners) out.push_back({surface, window, nullptr});
-    const auto* ui = ei::GamePointer<const CInterface3D>(kInterface);
+    const auto* ui = HarnessInterface();
     out.push_back({ui->backdrop_, nullptr, "backdrop"});
     out.push_back({ui->secondBackdrop_, nullptr, "backdrop2"});
     out.push_back({ui->fpsSurface_, nullptr, "fps"});

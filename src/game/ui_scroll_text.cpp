@@ -12,6 +12,7 @@
 #include "originals_ui.h"
 #include "game_data.h"
 #include "lib/mfc_string.h"
+#include "lib/mfc_slots.h"
 
 #include <cstdint>
 #include <cstring>
@@ -258,8 +259,6 @@ EI_REWRITTEN(0x0065D150, CUiScrollText::DrawLines);
 namespace {
 constexpr std::uintptr_t kScrollTextVtable = std::uintptr_t(0x00742E9C);
 constexpr std::uintptr_t kScrollTextInputVtable = std::uintptr_t(0x00742E68);
-constexpr std::uintptr_t kTokenArrayVtable = std::uintptr_t(0x00742F14);   // CArray<UiTextToken*>
-constexpr std::uintptr_t kLineArrayVtable = std::uintptr_t(0x00742F08);    // CArray<UiTextLine*>
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
 constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
 constexpr int kSurfaceFormat = 5;
@@ -279,8 +278,8 @@ void LayOut(CUiScrollText* self) { self->Layout(); }
 
 CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT rect, float depth) {
     CUiScrollbar::Construct(ui, rect, depth, 0, kScrollSpeed);
-    tokens_.Construct(kTokenArrayVtable);
-    lines_.Construct(kLineArrayVtable);
+    tokens_.Construct(mfc::impl::TokenPtrArrayClass::Vtable());   // CArray<UiTextToken*>
+    lines_.Construct(mfc::impl::LinePtrArrayClass::Vtable());   // CArray<UiTextLine*>
     vtable_ = ei::GamePointer<void*>(kScrollTextVtable);
     inputVtable_ = ei::GamePointer<void*>(kScrollTextInputVtable);
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -317,9 +316,9 @@ void CUiScrollText::DestroyBody() {
     tokens_.SetSize(0, -1);
     for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
     lines_.SetSize(0, -1);
-    lines_.vtable = ei::GamePointer<void>(kLineArrayVtable);
+    lines_.vtable = mfc::impl::LinePtrArrayClass::Vtable();
     lines_.FreeData();
-    tokens_.vtable = ei::GamePointer<void>(kTokenArrayVtable);
+    tokens_.vtable = mfc::impl::TokenPtrArrayClass::Vtable();
     tokens_.FreeData();
     CUiScrollbar::DestroyBody();
 }

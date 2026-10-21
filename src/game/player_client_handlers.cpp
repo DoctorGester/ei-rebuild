@@ -52,8 +52,6 @@ constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 CUnit* FindClientUnit(int id) { return WorldFindUnit(TheClientWorld(), nullptr, id); }
 
-// CPlayerClient is a CPlayerConnection (vtable 00743180), not declared as one.
-CPlayerConnection* AsConnection(CPlayerClient* client) { return reinterpret_cast<CPlayerConnection*>(client); }
 
 } // namespace
 
@@ -111,7 +109,7 @@ int CPlayerClient::OnGameState() {
     WorldTick() = tick;
     if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
     for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
-        AsConnection(this)->UnitChanged(node->value);
+        UnitChanged(node->value);
     if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(TheGameFlow());
     return 1;
 }
@@ -226,7 +224,7 @@ int CPlayerClient::OnObjectChanged() {
     if (static_cast<CMapObject*>(object)->ReadState(1, &in_) == 0) return 0;
     const int classId = object->GetClassId();
     if (classId == kPlatformClassA || classId == kPlatformClassB)
-        static_cast<CWorldClient*>(AsConnection(this)->ManagerContext())->RefreshPlatforms(object);   // the client's own
+        static_cast<CWorldClient*>(ManagerContext())->RefreshPlatforms(object);   // the client's own
     return 1;
 }
 

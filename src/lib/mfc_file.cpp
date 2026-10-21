@@ -1,6 +1,7 @@
 // MFC 4.2's CFile, CStdioFile and CFileFind, registered at their library addresses (mfc_file.h).
 #include "crt.h"
 #include "mfc_file.h"
+#include "mfc_runtime_class.h"
 
 #include "ei/hook.h"
 #include "gameapi.h"
@@ -54,10 +55,6 @@ const mfc::CFileVirtuals* Virtuals(const CFile* file) { return reinterpret_cast<
 const FindSlots* Virtuals(const CFileFind* find) { return reinterpret_cast<const FindSlots*>(find); }
 FindSlots* Virtuals(CFileFind* find) { return reinterpret_cast<FindSlots*>(find); }
 
-// The classes' CRuntimeClass records and AfxThrowNotSupportedException's thrown object.
-void* FileClass() { return ei::GamePointer<void>(0x00745DB0); }
-void* StdioFileClass() { return ei::GamePointer<void>(0x007464C8); }
-void* FileFindClass() { return ei::GamePointer<void>(0x00745EC0); }
 // "*.*", FindFile's pattern when given none; "file://", GetFileURL's prefix.
 const char* AllFiles() { return "*.*"; }
 const char* FileUrlPrefix() { return "file://"; }
@@ -204,9 +201,9 @@ unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max) 
     return title ? 0 : static_cast<unsigned>(gameapi::lstrlenA(into) + 1);
 }
 
-void* __fastcall FileRuntimeClass(const void*) { return FileClass(); }
-void* __fastcall StdioFileRuntimeClass(const void*) { return StdioFileClass(); }
-void* __fastcall FileFindRuntimeClass(const void*) { return FileFindClass(); }
+const void* __fastcall FileRuntimeClass(const void*) { return &kClassCFile; }
+const void* __fastcall StdioFileRuntimeClass(const void*) { return &kClassCStdioFile; }
+const void* __fastcall FileFindRuntimeClass(const void*) { return &kClassCFileFind; }
 
 // ---- CFile ----------------------------------------------------------------------------------------
 

@@ -14,6 +14,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 #include "originals_library.h"
 #include "game_data.h"
 
@@ -60,12 +61,12 @@ auto* const kCompareRecords = reinterpret_cast<int(__cdecl*)(const void*, const 
 auto* const kComparePairs = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF60);
 
 template <typename MapT>
-MapT NewMap(std::uintptr_t vtable) { return MapT{ei::GamePointer<void>(vtable), nullptr, 17, 0, nullptr, nullptr, 10}; }
+MapT NewMap(void* vtable) { return MapT{vtable, nullptr, 17, 0, nullptr, nullptr, 10}; }
 
 // The inlined destructor of the second and third maps: RemoveAll and the base vtable.
 template <typename MapT>
-void DestroyMap(MapT& map, std::uintptr_t vtableAddress) {
-    map.vtable = ei::GamePointer<void>(vtableAddress);
+void DestroyMap(MapT& map, void* vtable) {
+    map.vtable = vtable;
     map.RemoveAll();
 }
 
@@ -146,7 +147,7 @@ void IndexFaceCorners(SceneMesh* mesh) {
 // Step 5: the distinct (vertex, position) pairs, sorted, padded to a multiple of four with copies
 // of the last vertex and following positions, into +0x118.
 void BuildPairs(SceneMesh* mesh) {
-    PairMap pairs = NewMap<PairMap>(0x0073C178);
+    PairMap pairs = NewMap<PairMap>(mfc::impl::CornerMapCClass::Vtable());
     for (int f = 0; f < mesh->faces.size; ++f) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
@@ -183,7 +184,7 @@ void BuildPairs(SceneMesh* mesh) {
     out.SetSize(list.size, -1);
     std::memcpy(out.data, list.data, static_cast<std::size_t>(list.size) * 4);
     list.FreeData();
-    DestroyMap(pairs, 0x0073C178);
+    DestroyMap(pairs, mfc::impl::CornerMapCClass::Vtable());
 }
 
 } // namespace
@@ -191,18 +192,18 @@ void BuildPairs(SceneMesh* mesh) {
 // 0044CFF0 (__fastcall: the unit's mesh array). The record list (vtable 0073C19C) is shared by all
 // meshes and freed at the end.
 void __fastcall IndexMeshCorners(VtArray* meshes) {
-    RecordArray records{ei::GamePointer<void>(0x0073C19C), nullptr, 0, 0, 0};
+    RecordArray records{mfc::impl::MeshCornerArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int m = 0; m < meshes->size; ++m) {
-        CornerMap corners = NewMap<CornerMap>(0x0073C190);
-        IndexMap indices = NewMap<IndexMap>(0x0073C184);
+        CornerMap corners = NewMap<CornerMap>(mfc::impl::CornerMapAClass::Vtable());
+        IndexMap indices = NewMap<IndexMap>(mfc::impl::CornerMapBClass::Vtable());
         BuildCornerTable(&Typed<MeshArray>(*meshes).data[m], records, corners, indices);
         IndexFaceCorners(&Typed<MeshArray>(*meshes).data[m]);
         BuildPairs(&Typed<MeshArray>(*meshes).data[m]);
-        DestroyMap(indices, 0x0073C184);
-        corners.vtable = ei::GamePointer<void>(0x0073C190);
+        DestroyMap(indices, mfc::impl::CornerMapBClass::Vtable());
+        corners.vtable = mfc::impl::CornerMapAClass::Vtable();
         corners.RemoveAll();   // 00453F80
     }
-    records.vtable = ei::GamePointer<void>(0x0073C19C);
+    records.vtable = mfc::impl::MeshCornerArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REWRITTEN(0x0044CFF0, IndexMeshCorners);

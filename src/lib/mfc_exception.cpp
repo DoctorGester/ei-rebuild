@@ -3,9 +3,9 @@
 #include "mfc_exception.h"
 
 #include "ei/hook.h"
-#include "game/originals_library.h"   // CxxThrowException
 #include "gameapi.h"
 #include "mfc_resource.h"
+#include "mfc_runtime_class.h"
 #include "mfc_window.h"
 #include "game/game_data.h"
 
@@ -17,24 +17,11 @@ namespace mfc::impl {
 
 namespace {
 
-// The exe's throw information for a CFileException* and a CArchiveException* (the pointer to the
-// class and to each base, ".PAVCFileException@@" ... ".PAX").
-const void* FileExceptionThrowInfo() { return ei::GamePointer<const void>(0x0077F440); }
-const void* ArchiveExceptionThrowInfo() { return ei::GamePointer<const void>(0x0077F2B0); }
-// _simpleNotSupportedException (a static CNotSupportedException) and the throw information of a
-// CNotSupportedException*.
+// _simpleNotSupportedException (a static CNotSupportedException).
 void* SimpleNotSupportedException() { return ei::GamePointer<void>(0x007C8D50); }
-const void* NotSupportedThrowInfo() { return ei::GamePointer<const void>(0x0077EE80); }
-// _simpleMemoryException and _simpleResourceException (static, not auto-deleted) and the throw
-// information of a CMemoryException* and a CResourceException*.
+// _simpleMemoryException and _simpleResourceException (static, not auto-deleted).
 void* SimpleMemoryException() { return ei::GamePointer<void>(0x007C8DE8); }
-const void* MemoryThrowInfo() { return ei::GamePointer<const void>(0x0077EE38); }
 void* SimpleResourceException() { return ei::GamePointer<void>(0x007C8C58); }
-const void* ResourceThrowInfo() { return ei::GamePointer<const void>(0x0077EC28); }
-
-// The two classes' CRuntimeClass records.
-void* FileExceptionClass() { return ei::GamePointer<void>(0x00746820); }
-void* ArchiveExceptionClass() { return ei::GamePointer<void>(0x007467D8); }
 
 mfc::CObjectVirtuals* Virtuals(CException* exception) { return reinterpret_cast<mfc::CObjectVirtuals*>(exception); }
 CExceptionVirtuals* Slots(CException* exception) { return reinterpret_cast<CExceptionVirtuals*>(exception); }
@@ -253,8 +240,7 @@ void __stdcall ThrowFileException(int cause, long osError, const char* fileName)
         exception->osError = osError;
         exception->fileName = fileName;
     }
-    CFileException* thrown = exception;
-    libcrt::CxxThrowException(&thrown, FileExceptionThrowInfo());
+    throw reinterpret_cast<::CFileException*>(exception);
 }
 
 void __stdcall ThrowOsError(long osError, const char* fileName) {
@@ -270,29 +256,23 @@ void __stdcall ThrowArchiveException(int cause, const char* fileName) {
         exception->cause = cause;
         exception->fileName = fileName;
     }
-    CArchiveException* thrown = exception;
-    libcrt::CxxThrowException(&thrown, ArchiveExceptionThrowInfo());
+    throw reinterpret_cast<::CArchiveException*>(exception);
 }
 
 void __stdcall ThrowNotSupported() {
-    void* thrown = SimpleNotSupportedException();
-    libcrt::CxxThrowException(&thrown, NotSupportedThrowInfo());
+    throw static_cast<::CNotSupportedException*>(SimpleNotSupportedException());
 }
 
 void __stdcall ThrowMemoryException() {
-    void* thrown = SimpleMemoryException();
-    libcrt::CxxThrowException(&thrown, MemoryThrowInfo());
-    __assume(false);
+    throw static_cast<::CMemoryException*>(SimpleMemoryException());
 }
 
 void __stdcall ThrowResourceException() {
-    void* thrown = SimpleResourceException();
-    libcrt::CxxThrowException(&thrown, ResourceThrowInfo());
-    __assume(false);
+    throw static_cast<::CResourceException*>(SimpleResourceException());
 }
 
-void* __fastcall FileExceptionRuntimeClass(const void*) { return FileExceptionClass(); }
-void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return ArchiveExceptionClass(); }
+const void* __fastcall FileExceptionRuntimeClass(const void*) { return &kClassCFileException; }
+const void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return &kClassCArchiveException; }
 
 EI_REWRITTEN(0x00702053, CException::Construct);
 EI_REWRITTEN(0x0070205D, CException::ConstructAutoDelete);

@@ -2,6 +2,7 @@
 // stream's file reading (A-H14); the constructor / destructor bodies (006B6040 / 006B65D0, A-H15);
 // the Miles setup Open / Close / Reset (006B6A30 / 006B6D80 / 006B73E0, A-H18).
 #include "sound.h"
+#include "options.h"
 #include "game_strings.h"
 #include "mod_folders.h"
 #include "originals_engine.h"
@@ -16,6 +17,7 @@
 #include "ei/vcall.h"
 #include "lib/mfc_thread.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 #include <new>
@@ -147,7 +149,6 @@ EI_REPLACE(0x006BA950, SoundStreamRead);
 
 namespace {
 
-constexpr std::uintptr_t kWaveSourceListVtable = std::uintptr_t(0x00744130);
 constexpr std::uintptr_t kCacheListVtable = std::uintptr_t(0x00744124);
 constexpr int kListBlockSize = 10;
 constexpr unsigned kMapBuckets = 100;
@@ -166,8 +167,8 @@ using AilVoidFn = void(__stdcall*)();
 AilVoidFn AilStartup() { return ei::GameData<AilVoidFn>(0x0073B7D4); }
 AilVoidFn AilShutdown() { return ei::GameData<AilVoidFn>(0x0073B7D0); }
 
-template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, std::uintptr_t vtableAddress) {
-    list.vtable = ei::GamePointer<void>(vtableAddress);
+template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, void* vtable) {
+    list.vtable = vtable;
     list.head = nullptr;
     list.tail = nullptr;
     list.count = 0;
@@ -208,7 +209,7 @@ CSoundManager::CSoundManager() {
     streamReader.Construct();
     soundRegistry.Construct();
     registry0CC.Construct();
-    ConstructList(waveSources, kWaveSourceListVtable);
+    ConstructList(waveSources, mfc::impl::SoundListClass::Vtable());
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
@@ -224,7 +225,7 @@ CSoundManager::CSoundManager() {
                               reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));
     libcrt::ConstructElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceConstruct),
                               reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
-    ConstructList(cacheList, kCacheListVtable);
+    ConstructList(cacheList, ei::GamePointer<void>(kCacheListVtable));
     // hashtable(n, hash, equal, allocator) (006BBF90 / 006BC2B0); the functor bytes, never read,
     // are 0 here (the original's are stack bytes).
     cache.Construct(kMapBuckets, 0, 0, 0);
@@ -254,7 +255,7 @@ CSoundManager::~CSoundManager() {
     gameapi::DeleteCriticalSection(Lock(nameLock));
     markers2.FreeData();
     markers.FreeData();
-    waveSources.vtable = ei::GamePointer<void>(kWaveSourceListVtable);
+    waveSources.vtable = mfc::impl::SoundListClass::Vtable();
     waveSources.RemoveAll();
     registry0CC.Destroy();
     soundRegistry.Destroy();
@@ -317,7 +318,7 @@ constexpr int kMixerChannels = 0x12;
 constexpr unsigned kPrefUseWaveOut = 0xF;
 
 // The sound option (0 off: startup does not open sound; 2 the wave mapper).
-int SoundOption() { return ei::GameData<const int>(0x0079BCC0); }
+int SoundOption() { return options::TheOptions()->audio_; }
 
 // The voice constructor / destructor the CRT's eh vector iterators run (compiler-generated, the
 // name string's; config/library.csv), the DirectSoundEnumerateA callback appending each device's

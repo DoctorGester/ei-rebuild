@@ -60,9 +60,9 @@ struct FaceGroupElements {
     }
 };
 using FaceGroups = ArrayAbi<scene::FaceGroup, FaceGroupElements>;
-struct FaceGroupArrayClass {   // CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C2BC); }
-};
+// CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50), its vtable the compiler's (C19, mfc_slots.h).
+struct FaceGroupArrayClass final
+    : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &mfc::impl::SerializeCArray<FaceGroups>> {};
 
 // ---- Records -------------------------------------------------------------------------------------
 
@@ -91,9 +91,9 @@ using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave,
 inline void InitBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourConstruct(p); }
 inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct(p); }
 using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, InitBehaviour, DestroyBehaviour>>;
-struct BehaviourArrayClass {   // CArray<Behaviour> (the server unit's brain)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F034); }
-};
+// CArray<Behaviour> (the server unit's brain).
+struct BehaviourArrayClass final
+    : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &mfc::impl::SerializeCArray<Behaviours>> {};
 
 // CStringArray over the part names of a map object (the server companion's, the object's own). 004698C0
 // (and 004698A0 calling it; RET 8, S16): GetAt by value, the element copy-constructed into `result`,
@@ -119,11 +119,9 @@ void InitSubCall(ScriptSubCall* p);
 inline void DestroySubCall(ScriptSubCall* p) { p->DestroyElement(0); }
 using SubCalls = ArrayAbi<ScriptSubCall, EachElements<ScriptSubCall, InitSubCall, DestroySubCall>>;
 using Bindings = ArrayAbi<ScriptBinding>;
-struct BindingArrayClass {   // a command's binding arrays (copy constructor 004CCCB0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D49C); }
-};
-struct SubCallArrayClass {   // a command's nested calls (copy constructor 004CCD90)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D4A8); }
+// A command's binding arrays (copy constructor 004CCCB0): derived from BindingsBaseClass (mfc_slots.h).
+struct BindingArrayClass final : mfc::impl::BindingsBaseClass {
+    static void* Vtable() { return mfc::impl::CompiledVtable<BindingArrayClass>(); }
 };
 // Definitions (built by 004CEB80, destroyed by 004BE9D0), runs (004BCAE0) and command blocks
 // (004BF7E0).
@@ -134,27 +132,31 @@ using Decls = ArrayAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, gamelists::
 
 // ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
 
-struct SceneNodeArrayClass {   // CArray<SceneNode> (destructor 004514B0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C15C); }
+// CArray<SceneNode> (destructor 004514B0).
+struct SceneNodeArrayClass final
+    : mfc::impl::CompiledCollection<SceneNodeArrayClass, &SceneNodes::Destruct<SceneNodeArrayClass>, &mfc::impl::SerializeCArray<SceneNodes>> {};
+// The nested calls' base array (destructors 004C5180 / 004CCF70).
+struct SubCallBaseClass
+    : mfc::impl::CompiledCollection<SubCallBaseClass, &SubCalls::Destruct<SubCallBaseClass>, &mfc::impl::SerializeCArray<SubCalls>> {};
+// A command's nested calls (copy constructor 004CCD90): derived from SubCallBaseClass.
+struct SubCallArrayClass final : SubCallBaseClass {
+    static void* Vtable() { return mfc::impl::CompiledVtable<SubCallArrayClass>(); }
 };
-struct SubCallBaseClass {   // the nested calls' base array (destructors 004C5180 / 004CCF70)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D418); }
-};
-struct DeltaFieldArrayClass {   // CArray<DeltaField> (destructor 0050FBC0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DB94); }
-};
-struct TerrainAlignedArrayClass {   // the terrain's 16-byte records, an aligned block at +0 (006C4C40)
-    static void* Vtable() { return ei::GamePointer<void>(0x007441B4); }
-};
+// CArray<DeltaField> (destructor 0050FBC0).
+struct DeltaFieldArrayClass final
+    : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &mfc::impl::SerializeCArray<DeltaFields>> {};
 using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
+// The terrain's 16-byte records, an aligned block at +0 (006C4C40).
+struct TerrainAlignedArrayClass final
+    : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, &mfc::impl::SerializeCArray<mfc::impl::AlignedArrays>> {};
 struct WaveListClass {   // the sound cache's CList<WaveRecord> (destructor 006BC870)
     static void* Vtable() { return ei::GamePointer<void>(0x00744124); }
 };
-struct SectorVertexArrayClass {   // a terrain sector's vertex records (destructor 006C4690)
-    static void* Vtable() { return ei::GamePointer<void>(0x00744184); }
-};
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
+// A terrain sector's vertex records (destructor 006C4690).
+struct SectorVertexArrayClass final
+    : mfc::impl::CompiledCollection<SectorVertexArrayClass, &SectorVertices::Destruct<SectorVertexArrayClass>, &mfc::impl::SerializeCArray<SectorVertices>> {};
 
 // The client world's water levels, CArray<CArray<float>> (vtable 0073F730, mfc::impl::
 // ClientMapArrayClass; Serialize 00571240): each element an empty CArray<float> (00575690),

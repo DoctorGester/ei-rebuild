@@ -67,9 +67,9 @@ static char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_c
 // destructor 006611D0) given one member by 006628D0 (RET 0xC); CreateUnits takes a pointer to the
 // member's 0x784-byte record.
 struct UnitRecordBuilder {
-    alignas(4) std::uint8_t storage[sizeof(CParty)];
+    PartyStorage storage;
 
-    CParty* Party() { return reinterpret_cast<CParty*>(storage); }
+    CParty* Party() { return storage.Party(); }
     void Construct() { Party()->Construct(); }
     void Fill(const char* text, const char* prototype, const char* name) {
         Party()->AddMember(text, prototype, name);
@@ -183,7 +183,7 @@ int CWorldServer::LoadMobFile(const char* file) {
 void CWorldServer::ClearMapObjects() {
     // The objects are collected first (an MFC list, block size 10), then removed one by one.
     mfc::CTypedPtrList<CEngineObject> pending;
-    pending.vtable = ObjectPtrListVtable();
+    pending.vtable = mfc::impl::ClientObjectListClass::Vtable();
     pending.head = nullptr;
     pending.tail = nullptr;
     pending.count = 0;
@@ -211,7 +211,7 @@ void CWorldServer::ClearMapObjects() {
 
     countdowns_.RemoveAll();
 
-    pending.vtable = ObjectPtrListVtable();
+    pending.vtable = mfc::impl::ClientObjectListClass::Vtable();
     pending.RemoveAll();   // 00570470 (the list destructor's body)
 }
 

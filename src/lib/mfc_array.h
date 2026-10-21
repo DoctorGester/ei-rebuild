@@ -248,12 +248,6 @@ struct ExitArrayClass {   // a zone's exits
 struct MapRecordItemsClass {   // the array inside a map record
     static void* Vtable() { return ei::GamePointer<void>(0x0073C400); }
 };
-struct MotionWaypointArrayClass {   // a unit's motion waypoints
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EB90); }
-};
-struct MotionPointArrayClass {   // a unit's motion points
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EBA8); }
-};
 struct PointArrayClass {   // a unit's point lists
     static void* Vtable() { return ei::GamePointer<void>(0x0073F07C); }
 };

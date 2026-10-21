@@ -7,6 +7,7 @@
 // geometry arrays) and destroyed. Its table entry in prints.db (by the ground's surface class)
 // gives the alpha and the life; the client world's +0x7A8 picks the entry's second set.
 #include "ground_print.h"
+#include "options.h"
 
 #include "camera.h"              // TheTerrain
 #include "core_streams.h"
@@ -55,9 +56,9 @@ constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 double Pi() { return 3.141592653589793 /*00744238*/; }
 double PerDegree() { return 0.005555555555555556 /*0073BA30*/; }
 // The prints settings: blood, footprints, scorch marks (0 off).
-bool BloodPrintsOn() { return ei::GameData<const int>(0x0079BD50) != 0; }
-bool FootprintsOn() { return ei::GameData<const int>(0x0079BD4C) != 0; }
-bool ScorchMarksOn() { return ei::GameData<const int>(0x0079BD54) != 0; }
+bool BloodPrintsOn() { return options::TheOptions()->enableBloodprints_ != 0; }
+bool FootprintsOn() { return options::TheOptions()->enableFootprints_ != 0; }
+bool ScorchMarksOn() { return options::TheOptions()->enableFireprints_ != 0; }
 
 // 004EBE60, inlined: *slot = value with counted references, the old one released.
 void AssignCounted(CTexture** slot, CTexture* value) {

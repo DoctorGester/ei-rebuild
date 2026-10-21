@@ -9,6 +9,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <new>
 
@@ -33,7 +34,7 @@ std::uint32_t CreateFlag(int type) {
 } // namespace
 
 CTextureManager::CTextureManager() {
-    cache_ = mfc::CTypedPtrList<CTexture>{ei::GamePointer<void>(kCacheVtableAddress), nullptr, nullptr, 0,
+    cache_ = mfc::CTypedPtrList<CTexture>{mfc::impl::TextureListClass::Vtable(), nullptr, nullptr, 0,
                                           nullptr, nullptr, kListBlockSize};
     shadowRenderSurface_ = nullptr;
     device_ = nullptr;
@@ -89,7 +90,7 @@ CTextureManager::~CTextureManager() {
     CResourceManager::Destroy();
     SetDevice(nullptr);
     // The members' destructors: both counted pointers are empty by now; the cache's.
-    cache_.vtable = ei::GamePointer<void>(kCacheVtableAddress);
+    cache_.vtable = mfc::impl::TextureListClass::Vtable();
     cache_.RemoveAll();
 }
 

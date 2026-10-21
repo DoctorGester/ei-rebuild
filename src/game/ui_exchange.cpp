@@ -19,6 +19,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <cstdint>
 
@@ -123,7 +124,7 @@ VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)};
 VtablePair ForwardingStripVtables() { return {Vtable(0x0074197C), Vtable(0x00741948)}; }
 VtablePair FigureStripVtables() { return {Vtable(0x00741BF4), Vtable(0x00741C60)}; }
 VtablePair TradeGridVtables() { return {Vtable(0x0074170C), Vtable(0x007416D8)}; }
-std::uintptr_t ItemArrayVtable() { return ei::DataId(0x00741BC0); }   // the strip's CArray<char*>
+void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strip's CArray<char*>
 constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list
 constexpr int kSurfaceFormat = 5;
 constexpr int kStripActionTake = 1;
@@ -188,8 +189,8 @@ void CExchangeScreen::Create() {
     scratch_ = memory ? static_cast<CParty*>(memory)->Construct() : nullptr;
     scratch_->Create();
     net::ClientSession* client = net::GameClient();
-    ownOffer_ = reinterpret_cast<CParty*>(&client->parties_[0]);
-    partnerOffer_ = reinterpret_cast<CParty*>(&client->parties_[1]);
+    ownOffer_ = client->parties_[0].Party();
+    partnerOffer_ = client->parties_[1].Party();
     PartyResetOriginal(ownOffer_, nullptr, 1, 0);
 
     // The description panel (its item list and text arrays constructed in place).

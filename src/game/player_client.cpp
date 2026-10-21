@@ -2,6 +2,7 @@
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
 #include "ai_map.h"
+#include "options.h"
 #include "map_object_shadow.h"
 #include "object_tables.h"
 #include "player_client.h"
@@ -83,9 +84,8 @@ void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 // A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of
 // the scope.
 struct TextBuffer {
-    alignas(4) unsigned char bytes[sizeof(mfc::CString)];
-    ~TextBuffer() { Get()->~CString(); }
-    mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
+    mfc::CString text{mfc::CString::kUnset};
+    mfc::CString* Get() { return &text; }
 };
 
 const char* QuestPrefix() { return "q."; }
@@ -222,7 +222,7 @@ int CPlayerClient::OnSetVariable() {
     mfc::CString name;
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         name = *text.Get();
     }
     std::uint32_t value;
@@ -241,7 +241,7 @@ int CPlayerClient::OnDeleteVariable() {
     mfc::CString name;
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         name = *text.Get();
     }
     Owner()->Party()->variables_.Remove(name);
@@ -254,7 +254,7 @@ int CPlayerClient::OnDeleteVariable() {
 
 int CPlayerClient::OnZoneChange() {
     TextBuffer zone;
-    ReadText(zone.bytes);
+    ReadText(zone.Get());
     int entrance;
     in_.Read(&entrance, 4);
     TheGameFlow()->RequestZoneChange(*zone.Get(), entrance);
@@ -263,7 +263,7 @@ int CPlayerClient::OnZoneChange() {
 
 int CPlayerClient::OnJingle() {
     TextBuffer name;
-    in_.ReadString(name.bytes);
+    in_.ReadString(name.Get());
     TheMusicSystem()->PlayJingle(*name.Get());
     return 1;
 }
@@ -355,7 +355,7 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
 // 0079BE70: path markers are shown (written by 006524A0).
-bool MarkersShown() { return ei::GameData<const int>(0x0079BE70) != 0; }
+bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 
@@ -398,13 +398,13 @@ int CPlayerClient::OnParty() {
         block.Get()->CMemoryStream::SeekImpl(0);
         if (in_.ok_) {
             party->LoadParty(block.Get(), 1);
-            mfc::CTypedPtrList<void>& recharging = Owner()->objects_;
+            mfc::CList<std::uint32_t>& recharging = Owner()->recharging_;
             recharging.RemoveAll();
             ObjectListIterator walk{nullptr, nullptr};
             for (CEngineObject* object = walk.First(party->ItemManager()); object != nullptr; object = walk.Next()) {
                 auto* item = static_cast<CItem*>(object);
                 if (item->chargeMax_ > item->charge_)
-                    recharging.AddTail(reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_)));
+                    recharging.AddTail(static_cast<std::uint32_t>(item->id_));
             }
             if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
         }
@@ -435,7 +435,7 @@ int CPlayerClient::OnPathMarker() {
     alignas(4) unsigned char fieldBytes[sizeof(DeltaField)];
     auto* field = reinterpret_cast<DeltaField*>(fieldBytes);
     field->Construct();
-    CEngineObject* pathSource = nullptr;
+    CParticleSource* pathSource = nullptr;
     int kind;
     in_.Read(&kind, 4);
     int flag;
@@ -462,7 +462,7 @@ int CPlayerClient::OnPathMarker() {
             static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
             auto* source = static_cast<CParticleSource*>(
                 ParticleManagerObject()->CreateSource(kPathParticles));
-            pathSource = reinterpret_cast<CEngineObject*>(source);
+            pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
             if (kind == 0) source->alpha = 1.0f;
@@ -478,7 +478,7 @@ int CPlayerClient::OnPathMarker() {
         marker->position = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
-        if (unit != nullptr) static_cast<CUnitClientSpecific*>(unit->controller)->SetMarkers(reinterpret_cast<CParticleSource*>(pathSource), reinterpret_cast<CParticleSource*>(marker));
+        if (unit != nullptr) static_cast<CUnitClientSpecific*>(unit->controller)->SetMarkers(pathSource, marker);
     }
     field->Destruct();
     return 1;
@@ -486,7 +486,7 @@ int CPlayerClient::OnPathMarker() {
 
 int CPlayerClient::OnStringEvent() {
     TextBuffer text;
-    ReadText(text.bytes);
+    ReadText(text.Get());
     InterfaceStringEventOriginal(TheInterface(), nullptr, *text.Get());
     return 1;
 }
@@ -577,7 +577,7 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&scale, sizeof(scale));
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         secondName = *text.Get();
     }
     if (!in_.ok_) return 0;
@@ -597,7 +597,7 @@ int CPlayerClient::OnNewObject() {
     }
     {
         TextBuffer text;
-        in_.ReadString(text.bytes);
+        in_.ReadString(text.Get());
         scriptName = *text.Get();
     }
     int prototypeValue;
@@ -686,7 +686,7 @@ int CPlayerClient::OnNewObject() {
     TheClientWorld()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;
-        TheClientWorld()->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
+        TheClientWorld()->ObjectVariableName(variable.Get(), object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)
@@ -762,14 +762,11 @@ constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x00743180);
 constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
 constexpr const char* kClientClassName = "CPlayerClient";
 constexpr int kClientClassId = 0x3C;
-
-// The engine object part (CPlayerClient does not derive from CEngineObject in C++).
-CEngineObject* EngineObject(CPlayerClient* client) { return reinterpret_cast<CEngineObject*>(client); }
 } // namespace
 
 CPlayerClient* CPlayerClient::Construct() {
-    EngineObject(this)->ClearFields();
-    vtable_ = ei::GamePointer<void>(kConnectionVtable);
+    ClearFields();
+    ei::SetVtable(this, kConnectionVtable);
     player_ = nullptr;
     handlers_.Construct();
     in_.ConstructQueueStream();
@@ -778,13 +775,13 @@ CPlayerClient* CPlayerClient::Construct() {
     decompressor_.Construct();
     partyUnitIds_.Construct();
     otherUnitIds_.Construct();
-    vtable_ = ei::GamePointer<void>(kClientVtable);
+    ei::SetVtable(this, kClientVtable);
     Clear();
     return this;
 }
 
 void CPlayerClient::DestructBody() {
-    vtable_ = ei::GamePointer<void>(kClientVtable);
+    ei::SetVtable(this, kClientVtable);
     Clear();
     otherUnitIds_.FreeData();
     partyUnitIds_.FreeData();
@@ -793,9 +790,9 @@ void CPlayerClient::DestructBody() {
     out_.Destruct();
     in_.Destruct();
     handlers_.FreeData();
-    vtable_ = ei::GamePointer<void>(kConnectionVtable);
+    ei::SetVtable(this, kConnectionVtable);
     player_ = nullptr;
-    EngineObject(this)->DestructBase();
+    DestructBase();
 }
 
 CPlayerClient* CPlayerClient::DeletingDestruct(unsigned flags) {

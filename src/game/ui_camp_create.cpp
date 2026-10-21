@@ -40,6 +40,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "party_manager.h"
+#include "lib/mfc_slots.h"
 
 #include <d3d.h>
 
@@ -63,8 +64,8 @@ VtablePair TradeGridVtables() { return {Vtable(0x0074170C), Vtable(0x007416D8)};
 VtablePair SpellMakerVtables() { return {Vtable(0x00741670), Vtable(0x0074163C)}; }         // CSpellMakerPage
 VtablePair ItemMakerVtables() { return {Vtable(0x007415D4), Vtable(0x007415A0)}; }          // CConstructorPage
 VtablePair RepairGridVtables() { return {Vtable(0x00741538), Vtable(0x00741504)}; }         // CRepairGrid
-std::uintptr_t ItemArrayVtable() { return ei::DataId(0x00741BC0); }      // the strips' CArray<char*>
-void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }    // CArray<record*>
+void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strips' CArray<char*>
+void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // CArray<record*>
 
 // The objects' sizes where the class declares less than the original allocates.
 constexpr std::size_t kTradePanelSize = 0x1B8;
@@ -187,8 +188,8 @@ void CCampPages::BuildPages() {
         spellConstructor_ = constructor_->flag0D != 0;
         itemConstructor_ = constructor_->flag0C != 0;
         for (int i = 0; i < kPriceWeights; ++i) priceWeights_[i] = constructor_->weights[i];
-        spellParts_[0] = reinterpret_cast<CParty*>(constructor_->spells);
-        itemParts_[0] = reinterpret_cast<CParty*>(constructor_->items);
+        spellParts_[0] = constructor_->SpellsParty();
+        itemParts_[0] = constructor_->ItemsParty();
     }
     noConstructor_ = PlayerSwitch("i.noconstr");
     if (PlayerSwitch("i.offspellconstr")) spellConstructor_ = false;

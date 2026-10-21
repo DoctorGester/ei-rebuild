@@ -27,6 +27,9 @@ DWORD MainThread();
 // import table. `tickLength` is the game's world update length in ms (0078FF34).
 void InstallVirtual(const unsigned* tickLength);
 bool Virtual();
+// The virtual clock's advance at each main loop frame ("frametime <ms>", R18): `ms`, or with 0 (the
+// default) five world updates.
+void SetFrameTime(unsigned ms);
 
 // Held clocks for "freeze" outside deterministic mode: timeGetTime and GetTickCount hold still
 // while frozen and resume without a jump.

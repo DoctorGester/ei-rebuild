@@ -26,9 +26,6 @@ constexpr int kFirstFigureClass = 0x41;
 constexpr int kLastFigureClass = 0x44;
 constexpr int kDrawerClass = 0x45;
 
-// The drawer and the mesh as the engine objects they are (reference count, Release).
-CEngineObject* AsObject(FigureMeshDrawer* drawer) { return reinterpret_cast<CEngineObject*>(drawer); }
-
 } // namespace
 
 // --- Construction -------------------------------------------------------------------------------
@@ -103,7 +100,7 @@ void CFigureMesh::Clear() {
     meshType_ = 0;
     if (drawer_ != nullptr) {
         drawer_->mesh_ = nullptr;
-        AsObject(drawer_)->Release();
+        drawer_->Release();
     }
     drawer_ = nullptr;
     flags_ = 0;
@@ -236,12 +233,12 @@ void CPlainFigureMesh::MirrorY() { MirrorYImpl(); }
 void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
     if (drawer_ != nullptr) {
         drawer_->mesh_ = nullptr;
-        AsObject(drawer_)->Release();
+        drawer_->Release();
     }
     drawer_ = drawer;
     if (drawer != nullptr) {
         drawer->mesh_ = this;
-        ++AsObject(drawer_)->refCount_;
+        ++drawer_->refCount_;
     }
 }
 EI_REWRITTEN(0x0059F390, CFigureMesh::SetDrawer);
@@ -267,8 +264,8 @@ CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
     if (type < kFirstFigureClass || type > kLastFigureClass || object == nullptr) return object;
     CBaseManager* drawers = static_cast<CManagerContext*>(context_)->SpecificManager();
-    auto* drawer = reinterpret_cast<FigureMeshDrawer*>(drawers->CreateObject(kDrawerClass, -1));
-    reinterpret_cast<CFigureMesh*>(object)->SetDrawer(drawer);
+    auto* drawer = static_cast<FigureMeshDrawer*>(drawers->CreateObject(kDrawerClass, -1));
+    static_cast<CFigureMesh*>(object)->SetDrawer(drawer);
     return object;
 }
 EI_REWRITTEN(0x005AAE00, CFigureManager::CreateFigureObject);

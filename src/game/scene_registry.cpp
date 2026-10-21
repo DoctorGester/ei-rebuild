@@ -18,6 +18,7 @@
 #include "lib/mfc_list.h"
 #include "originals_library.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -43,7 +44,7 @@ constexpr auto ConstructNamed = mfc::impl::ConstructElementsAt<mfc::impl::NamedD
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
 using SeenMap = DwordMap;
-void* SeenMapVtable() { return ei::GamePointer<void>(0x0073C16C); }
+void* SeenMapVtable() { return mfc::impl::FigureRegistryMapClass::Vtable(); }
 
 // map[key] as the original inlines it: the association (created with value 0 when missing).
 MapAssoc* MapLookup(SeenMap& map, std::uint32_t key) {
@@ -149,12 +150,12 @@ struct GroupStrings {
 void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, int meshIndex,
               int group, int helper, SeenMap& seen) {
     CMaterial* helperRecord = &Typed<HelperArray>(unit->helpers).data[helper];   // ElementAt (00450750)
-    alignas(mfc::CString) unsigned char found[sizeof(mfc::CString)];
-    auto* foundString = reinterpret_cast<mfc::CString*>(found);
-    // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name`.
-    FindListedName(foundString, &sections, helperRecord->name2);
-    s.section = *foundString;
-    foundString->~CString();
+    {
+        mfc::CString found(mfc::CString::kUnset);
+        // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name`.
+        FindListedName(&found, &sections, helperRecord->name2);
+        s.section = found;
+    }
     s.mapping = reg.GetString(s.section, "Main Texture Name", mfc::CString("none"));   // "Main Texture Name", "none"
 
     Mapping m;

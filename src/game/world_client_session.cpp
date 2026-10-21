@@ -14,11 +14,9 @@
 
 namespace {
 
-CPlayer* LocalPlayer(std::uint8_t* session) { return reinterpret_cast<CPlayer*>(session); }
-
 // The local player's link when it is there and not detached (the dword +4's bit 31), else null.
-netlink::NetLink* ActiveLink(std::uint8_t* session) {
-    netlink::NetLink* link = LocalPlayer(session)->link_;
+netlink::NetLink* ActiveLink(CPlayer* session) {
+    netlink::NetLink* link = session->link_;
     if (link && !(link->flags7_ & CRefCounted::kDetached)) return link;
     return nullptr;
 }
@@ -30,17 +28,17 @@ void CWorldClient::SetPlayer(std::uint8_t* player) {
     netlink::NetLink* link = netlink::LoopbackLink::CreatePair(shared5C_.ptr, nullptr, player);
     ClearMaps();
     ResetZoneObjects();
-    LocalPlayer(session_)->Connect(nullptr);
-    LocalPlayer(session_)->Connect(link);
+    session_->Connect(nullptr);
+    session_->Connect(link);
 }
 
 void CWorldClient::PlayRecording(const char* path) {
-    LocalPlayer(session_)->Connect(nullptr);
+    session_->Connect(nullptr);
     netlink::NetLink* link = netlink::ReplayLink::Create(handle_.ptr, nullptr, path);
     ClearMaps();
     ResetZoneObjects();
-    LocalPlayer(session_)->Connect(nullptr);
-    LocalPlayer(session_)->Connect(link);
+    session_->Connect(nullptr);
+    session_->Connect(link);
 }
 
 bool CWorldClient::JoinGameClient(const char*) {
@@ -52,8 +50,8 @@ bool CWorldClient::JoinGameClient(const char*) {
         static_cast<netlink::DriverSession*>(netSession_)->Start(client->clients_->next->connection);
     ClearMaps();
     ResetZoneObjects();
-    LocalPlayer(session_)->Connect(nullptr);
-    LocalPlayer(session_)->Connect(link);
+    session_->Connect(nullptr);
+    session_->Connect(link);
     return true;
 }
 
@@ -80,7 +78,7 @@ int CWorldClient::PumpIncomingCount() {
 }
 
 void CWorldClient::DisconnectLocalPlayer() {
-    CPlayerConnection* view = session_ ? Session()->localView : nullptr;
+    CPlayerConnection* view = session_ ? Session()->connection_ : nullptr;
     view->player_->Disconnect();
 }
 

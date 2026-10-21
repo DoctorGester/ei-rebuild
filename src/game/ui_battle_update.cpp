@@ -3,6 +3,7 @@
 // item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
 #include "item.h"
+#include "player_client.h"
 #include "player_messages.h"
 #include "game_strings.h"
 #include "item_db_text.h"
@@ -40,6 +41,7 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -123,16 +125,16 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 
     // The local player's own unit also shows up to four of the player's 0x3009 items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
-    std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
-    if (!reinterpret_cast<CPlayer*>(player)->IsLeader(unit_)) return;
-    player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
-    std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(player + 0xE8);
+    CPlayer* player = GameLocalView()->player_;
+    if (!player->IsLeader(unit_)) return;
+    player = GameLocalView()->player_;
+    auto* node = player->items_.tail;
     if (!node) return;
     int slot = 4;
     while (node) {
         if (slot - 4 >= 4) break;
-        CEngineObject* item = *reinterpret_cast<CEngineObject**>(node + 8);
-        node = *reinterpret_cast<std::uint8_t**>(node + 4);
+        CEngineObject* item = node->data;
+        node = node->prev;
         if (!item || item->type_ != kItemQuest)
             continue;
         {
@@ -340,8 +342,8 @@ void CBattleScreen::Update() {
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
-        mfc::CArray<std::uint8_t*> records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
-        mfc::CArray<std::uint8_t*> second = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> second = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
         CParty* data = LocalPlayerData();
         for (int i = 0; i < data->members_.size; ++i)
             records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->members_.data[i]));   // 0059D2E0
@@ -352,9 +354,9 @@ void CBattleScreen::Update() {
             interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             exitPending_ = 0;
         }
-        second.vtable = ei::GamePointer<void>(0x0073FAA4);
+        second.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
         if (second.data) gamecrt::operator_delete(second.data);
-        records.vtable = ei::GamePointer<void>(0x0073FAA4);
+        records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
         if (records.data) gamecrt::operator_delete(records.data);
     }
 

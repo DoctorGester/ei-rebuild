@@ -11,26 +11,27 @@
 // link off the thread's chain, after the handler has run.
 //
 // A rewrite writes exactly that. What makes it work across the two C++ runtimes:
-// - the game throws through its own _CxxThrowException (006E7819): RaiseException(0xE06D7363) with
-//   the magic 0x19930520 and the throw information, the layout this compiler's frame handler still
-//   reads (x86);
+// - a throw is `throw` of a pointer to one of the classes below (C18e): this compiler makes the throw
+//   information, which lists the pointer to the class and to each base like the game's did
+//   (".PAVCFileException@@", ".PAVCException@@", ".PAVCObject@@", ".PAX");
 // - a handler matches a thrown object when the type descriptors are the same object or carry the
-//   same decorated name, and the game's throw information lists the pointer to the class and to
-//   each base (".PAVCFileException@@", ".PAVCException@@", ".PAVCObject@@", ".PAX"). So a handler
-//   here must name a class with the game's name in the global namespace; nothing else of the class
-//   is used (the two below are never made here);
-// - the unwind runs the game's frames between the throw and the handler through their own frame
-//   handlers (RtlUnwind), then ours.
+//   same decorated name. So the classes are in the global namespace under the game's names and have
+//   its bases; nothing else of them is used (they are never made here: the objects are the game's
+//   MFC objects, thrown through a cast pointer);
+// - the unwind runs the frames between the throw and the handler through their frame handlers
+//   (RtlUnwind), then ours.
 // verify_mfc_try.cpp proved it at every start until S21d (a missing file: the game's CStdioFile
 // constructor throws, the handler in script_text_file.cpp catches).
 
-// The handler types (the names are the game's: see above).
-class CException {
-    CException() = delete;
-};
-class CFileException {
-    CFileException() = delete;
-};
+// The thrown and handler types (the names and bases are the game's: see above).
+class CObject {};
+class CException : public CObject {};
+class CSimpleException : public CException {};
+class CFileException : public CException {};
+class CArchiveException : public CException {};
+class CNotSupportedException : public CSimpleException {};
+class CMemoryException : public CSimpleException {};
+class CResourceException : public CSimpleException {};
 
 namespace mfc {
 

@@ -159,8 +159,8 @@ unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max);  
 unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max);    // 00701AC9
 
 // The classes' CRuntimeClass records (GetRuntimeClass, slot 0).
-void* __fastcall FileRuntimeClass(const void* self);            // 0070BE58
-void* __fastcall StdioFileRuntimeClass(const void* self);       // 0070C15B
-void* __fastcall FileFindRuntimeClass(const void* self);        // 0070BE5E
+const void* __fastcall FileRuntimeClass(const void* self);      // 0070BE58
+const void* __fastcall StdioFileRuntimeClass(const void* self); // 0070C15B
+const void* __fastcall FileFindRuntimeClass(const void* self);  // 0070BE5E
 
 } // namespace mfc::impl

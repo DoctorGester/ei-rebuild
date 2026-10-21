@@ -146,8 +146,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         }
         speakersEnd_[-1].unit = unit;
         speakersEnd_[-1].name = name;
-        auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0));
-        if (player->server) static_cast<CPlayerServer*>(player->server)->SendPair19(kEventJoins, unit->id_);
+        auto* player = TheServerWorld()->GetPlayer(0);
+        if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
             reinterpret_cast<CUnitServer*>(serverUnit->controller)->actionDone = SpeakerActionDone();

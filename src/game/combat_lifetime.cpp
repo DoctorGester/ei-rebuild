@@ -6,6 +6,7 @@
 #include "core_refcount.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "record_arrays.h"
 #include "unit_ai.h"
 
 #include "ei/hook.h"
@@ -26,7 +27,6 @@ constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 void* const kArmourSpellListVtable = ei::GamePointer<void>(0x0073F010);
 void* const kModeListVtable = ei::GamePointer<void>(0x0073F028);
 void* const kAlarmRecordsVtable = ei::GamePointer<void>(0x0073F04C);
-void* const kAlarmRecordsBaseVtable = ei::GamePointer<void>(0x0073F034);
 void* const kAttackOptionsVtable = ei::GamePointer<void>(0x0073F040);
 void* const kObjectListVtable = ei::GamePointer<void>(0x0073E730);
 void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
@@ -224,7 +224,7 @@ void AIBrain::Destruct() {
     memory.Destruct();
     DestroyAttackOptions(attention.spells);
     DestroyAttackOptions(attention.weapons);
-    alarmRecords.vtable = kAlarmRecordsBaseVtable;
+    alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();
     if (alarmRecords.data) {
         AIAlarmRecordElements::Destruct(alarmRecords.data, alarmRecords.size);   // 005588F0
         gamecrt::operator_delete(alarmRecords.data);

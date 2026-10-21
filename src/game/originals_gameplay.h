@@ -15,7 +15,7 @@ class CItemArmor;
 class CItemConstructor;
 class CSpell;
 struct Projectile;
-struct WorldPlayer;
+class CPlayer;
 
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or

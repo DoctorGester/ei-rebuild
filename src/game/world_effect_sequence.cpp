@@ -80,20 +80,20 @@ void CEffectSoundSeq::Start(int update) {
 int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    alignas(4) unsigned char text[sizeof(mfc::CString)];
-    field->ReadString(text);
-    auto* read = reinterpret_cast<mfc::CString*>(text);
-    name_ = *read;
-    read->~CString();
+    {
+        mfc::CString read(mfc::CString::kUnset);
+        field->ReadString(&read);
+        name_ = read;
+    }
     // The count is read into the stack slot of `field` (ReadDelta always stores it).
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));
     field->ReadDelta(&count, 4);
     mfc::CStringArray& others = names_;
     others.SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
-        field->ReadString(text);
-        others[i] = *read;
-        read->~CString();
+        mfc::CString read(mfc::CString::kUnset);   // the original reuses the name's stack slot
+        field->ReadString(&read);
+        others[i] = read;
     }
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);

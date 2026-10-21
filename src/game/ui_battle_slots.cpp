@@ -1,6 +1,7 @@
 // The battle screen's main-vtable slots for closing, the first poll, picked-up items, a unit leaving
 // the party and the saved state (CBattleScreen, ui.h). See docs/notes/ui.md, section 6.
 #include "ui.h"
+#include "options.h"
 #include "ui_camp.h"
 
 #include "camera.h"
@@ -29,7 +30,7 @@ namespace {
 int& WorldUpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
 constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
-bool AutoSaveEnabled() { return ei::GameData<const int>(0x0079BE7C) != 0; }
+bool AutoSaveEnabled() { return options::TheOptions()->autosave_ != 0; }
 const char* AutoSaveName() { return "savea"; }
 
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit

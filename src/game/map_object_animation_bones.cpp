@@ -16,6 +16,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
@@ -24,8 +25,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kBoneListVtable = std::uintptr_t(0x0073DA40);
-constexpr std::uintptr_t kQueueVtable = std::uintptr_t(0x0073DA80);
 constexpr int kListBlockSize = 10;
 constexpr int kBoneClass = 0x300C;   // FigureBone's class id
 
@@ -37,13 +36,12 @@ CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {
     return static_cast<CWorld*>(state->ManagerContext())->FigureManager();
 }
 
-// A bone's mesh is a counted figure part (an engine object; figure_mesh.h declares no base).
-CEngineObject* AsObject(CFigureMesh* mesh) { return reinterpret_cast<CEngineObject*>(mesh); }
-CFigureMesh* AsMesh(CEngineObject* part) { return reinterpret_cast<CFigureMesh*>(part); }
+// A bone's mesh is a counted figure part (CFigureMesh, an engine object).
+CFigureMesh* AsMesh(CEngineObject* part) { return static_cast<CFigureMesh*>(part); }
 
 template <typename T>
-void ConstructList(mfc::CTypedPtrList<T>* list, std::uintptr_t vtableAddress) {
-    list->vtable = ei::GamePointer<void>(vtableAddress);
+void ConstructList(mfc::CTypedPtrList<T>* list, void* vtable) {
+    list->vtable = vtable;
     list->count = 0;
     list->free = nullptr;
     list->tail = nullptr;
@@ -86,8 +84,8 @@ void ClearTrack(AnimationTrack* track) {
 
 CFigureAnimationState::CFigureAnimationState() {
     ClearFields();
-    ConstructList(&bones, kBoneListVtable);
-    ConstructList(&queue, kQueueVtable);
+    ConstructList(&bones, mfc::impl::BoneListClass::Vtable());
+    ConstructList(&queue, mfc::impl::AnimationStateListClass::Vtable());
     Reset();
 }
 
@@ -97,9 +95,9 @@ EI_REPLACE_METHOD(0x0050C5F0, CFigureAnimationState::Construct);
 CFigureAnimationState::~CFigureAnimationState() {
     ReleaseBones();
     Reset();
-    queue.vtable = ei::GamePointer<void>(kQueueVtable);
+    queue.vtable = mfc::impl::AnimationStateListClass::Vtable();
     queue.RemoveAll();
-    bones.vtable = ei::GamePointer<void>(kBoneListVtable);
+    bones.vtable = mfc::impl::BoneListClass::Vtable();
     bones.RemoveAll();
 }
 
@@ -217,7 +215,7 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
         bone->mesh->localPosition_ = bone->position;
         bone->mesh->localRotation_ = bone->rotation;
     }
-    if (old) AsObject(old)->Release();
+    if (old) old->Release();
     return 1;
 }
 EI_REPLACE_METHOD(0x0050D0E0, CFigureAnimationState::AttachMesh);
@@ -247,7 +245,7 @@ int CFigureAnimationState::DetachMesh(CEngineObject* part) {
         if (bone->mesh && bone->mesh == AsMesh(part)) {
             CFigureMesh* old = bone->mesh;
             bone->mesh = nullptr;
-            AsObject(old)->Release();
+            old->Release();
             return 1;
         }
     }
@@ -262,7 +260,7 @@ int CFigureAnimationState::DetachMeshes() {
         node = node->next;
         CFigureMesh* old = bone->mesh;
         bone->mesh = nullptr;
-        if (old) AsObject(old)->Release();
+        if (old) old->Release();
     }
     return 1;
 }

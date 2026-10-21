@@ -14,9 +14,9 @@
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
 // list, carries the smooth option ("smooth", SetSmooth), the classic shadows ("classicshadows",
-// SetClassicShadows), the interface canvases' "uiboth" / "uinative" (render_ui.h) and the harness
-// build's "removable"; "new",
-// "present" and "cpuwindows" are accepted and change nothing.
+// SetClassicShadows), the smooth camera ("smoothcamera", SetSmoothCamera), the interface canvases'
+// "uiboth" / "uinative" (render_ui.h) and the harness build's "removable"; "new", "present" and
+// "cpuwindows" are accepted and change nothing.
 
 #include <cstdint>
 #include <vector>
@@ -80,6 +80,15 @@ void SetSmoothOrder(SmoothOrder order);
 // the next frame; ST2's options screen).
 void SetClassicShadows(bool on);
 bool ClassicShadows();
+
+// The smooth camera (R18; docs/notes/renderer.md section 14; off by default): the battle camera moves
+// once a frame by the frame's time plus the client time that passed (no extra update at each world
+// tick), its tracking drift and focus height lag ease by time instead of by call, and it follows its
+// target's position blended between the target's last two ticks. Read by the main loop and
+// CCamera::Update (src/game/app_main.cpp, camera.cpp), not by the renderer. Its switch: EI_RENDER's
+// word "smoothcamera" or SetSmoothCamera (from the next pass). Off: the game's camera.
+void SetSmoothCamera(bool on);
+bool SmoothCamera();
 // The sun for this frame's world view: the direction its light travels (CLight::direction_, z
 // negative by day), from CWorldClient::Render. Without it no shadow map is made.
 void ShadowSun(const float direction[3]);

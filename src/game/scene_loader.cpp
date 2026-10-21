@@ -29,6 +29,7 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 #include "lib/mfc_window.h"
 #include "game_data.h"
 
@@ -424,7 +425,7 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     InitArray(r.points, scenedata::PointArrayVtable());
     InitArray(r.texCoords, scenedata::TexCoordArrayVtable());
     InitArray(r.faces, scenedata::FileFaceArrayVtable());
-    InitArray(r.groups, scenedata::GroupArrayVtable());
+    InitArray(r.groups, recordarrays::FaceGroupArrayClass::Vtable());
     InitArray(r.rotKeys, scenedata::RotKeyArrayVtable());
     InitArray(r.posKeys, scenedata::PosKeyArrayVtable());
     InitArray(r.morphHeads, scenedata::MorphHeadArrayVtable());
@@ -585,14 +586,14 @@ mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
 }
 
 // The arrays' vtables the destructors write back.
-constexpr std::uintptr_t kFaceGroupArrayVtable = std::uintptr_t(0x0073C2BC);
-constexpr std::uintptr_t kRotationKeysVtable = std::uintptr_t(0x0073C1AC);
-constexpr std::uintptr_t kPositionKeysVtable = std::uintptr_t(0x0073C1B8);
 constexpr std::uintptr_t kMorphKeysVtable = std::uintptr_t(0x0073C114);
-constexpr std::uintptr_t kNormalsVtable = std::uintptr_t(0x0073C120);
 constexpr std::uintptr_t kFramesVtable = std::uintptr_t(0x0073C12C);
-constexpr std::uintptr_t kChildrenVtable = std::uintptr_t(0x0073C138);
 
+template <typename A>
+void FreeArray(A& array, void* vtable) {
+    array.vtable = vtable;
+    array.FreeData();
+}
 template <typename A>
 void FreeArray(A& array, std::uintptr_t vtableAddress) {
     array.vtable = ei::GamePointer<void>(vtableAddress);
@@ -618,7 +619,7 @@ void FaceGroup::Destruct() {
 }
 
 void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
-    groups->vtable = ei::GamePointer<void>(kFaceGroupArrayVtable);
+    groups->vtable = recordarrays::FaceGroupArrayClass::Vtable();
     if (!groups->data) return;
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
     gamecrt::operator_delete(groups->data);
@@ -626,12 +627,12 @@ void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
 EI_REWRITTEN(0x00454CE0, FaceGroupArrayDestruct);
 
 void SceneNode::Destruct() {
-    FreeArray(children, kChildrenVtable);
+    FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
     FreeArray(frames, kFramesVtable);
-    FreeArray(normals, kNormalsVtable);
+    FreeArray(normals, mfc::impl::Vector3ArrayClass::Vtable());
     FreeArray(morphKeys, kMorphKeysVtable);
-    FreeArray(positionKeys, kPositionKeysVtable);
-    FreeArray(rotationKeys, kRotationKeysVtable);
+    FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
+    FreeArray(rotationKeys, mfc::impl::NodeItemsAClass::Vtable());
     parent.~CString();
     name.~CString();
 }
@@ -648,12 +649,12 @@ void SceneNode::Construct() {
     spareRotation040.SetIdentity();
     rotation.SetIdentity();
     restRotation.SetIdentity();
-    rotationKeys.Construct(kRotationKeysVtable);
-    positionKeys.Construct(kPositionKeysVtable);
+    rotationKeys.Construct(mfc::impl::NodeItemsAClass::Vtable());
+    positionKeys.Construct(mfc::impl::NodeItemsBClass::Vtable());
     morphKeys.Construct(kMorphKeysVtable);
-    normals.Construct(kNormalsVtable);
+    normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     frames.Construct(kFramesVtable);
-    children.Construct(kChildrenVtable);   // 00455150
+    children.Construct(mfc::impl::NodeItemsCClass::Vtable());   // 00455150
 }
 
 // 004545C0's element.
@@ -661,7 +662,7 @@ SceneMesh::SceneMesh() {
     ClearFields();
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
-    groups.Construct(kFaceGroupArrayVtable);
+    groups.Construct(recordarrays::FaceGroupArrayClass::Vtable());
 }
 
 // Each group is destroyed by its scalar deleting destructor with 0 (00454D90), FaceGroup::Destruct.
@@ -723,7 +724,7 @@ using BoneLinkArray =
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
 // construction order, so C++ destroys them in its order.
 struct SceneNodes : VtArray {
-    SceneNodes() : VtArray{scenedata::NodeArrayVtable(), nullptr, 0, 0, 0} {}
+    SceneNodes() : VtArray{recordarrays::SceneNodeArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~SceneNodes() {
         if (!data) return;
         for (int i = 0; i < size; ++i) static_cast<SceneNode*>(&Typed<NodeArray>(*this).data[i])->Destruct();
@@ -736,7 +737,7 @@ struct Registry {
     ~Registry() { reinterpret_cast<CFileRegistry*>(bytes)->Destroy(); }
 };
 struct TextureLinks : VtArray {
-    TextureLinks() : VtArray{scenedata::TextureLinkArrayVtable(), nullptr, 0, 0, 0} {}
+    TextureLinks() : VtArray{mfc::impl::TextureLinkArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureLinks() {
         if (data) gamecrt::operator_delete(data);
     }

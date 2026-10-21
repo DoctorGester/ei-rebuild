@@ -1,6 +1,8 @@
 // MFC 4.2's CStringArray and plain arrays, registered at their library addresses (mfc_coll.h).
 #include "mfc_archive.h"
 #include "mfc_coll.h"
+#include "mfc_runtime_class.h"
+#include "mfc_state.h"
 
 #include "ei/hook.h"
 
@@ -223,7 +225,59 @@ void CStringArray::Serialize(CArchive* ar) {
     }
 }
 
+// ---- The serializable classes' runtime classes ----------------------------------------------------
+
+// The create functions: a new array from operator new, constructed; null when out of memory.
+void* __stdcall CreateCStringArray() {
+    auto* array = static_cast<CStringArray*>(gamecrt::operator_new(sizeof(CStringArray)));
+    return array ? array->Construct() : nullptr;
+}
+
+void* __stdcall CreateCWordArray() {
+    auto* array = static_cast<CWordArray*>(gamecrt::operator_new(sizeof(CWordArray)));
+    return array ? array->Construct() : nullptr;
+}
+
+void* __stdcall CreateCDWordArray() {
+    auto* array = static_cast<CDWordArray*>(gamecrt::operator_new(sizeof(CDWordArray)));
+    return array ? array->Construct() : nullptr;
+}
+
+void* __stdcall CreateCByteArray() {
+    auto* array = static_cast<CByteArray*>(gamecrt::operator_new(sizeof(CByteArray)));
+    return array ? array->Construct() : nullptr;
+}
+
+// mfc_slots.h's compiled collections' slot 0 (C19).
+const CRuntimeClass* ObjectRuntimeClass() { return &kClassCObject; }
+
+namespace {
+
+// IMPLEMENT_SERIAL (schema 0): the record is linked into the module state's class list by the class's static
+// initialiser (AfxClassInit writes m_pNextClass).
+constinit CRuntimeClass g_classCStringArray = /*00796EE8*/ {"CStringArray", 0x14, 0, &CreateCStringArray, &kClassCObject, nullptr};
+constinit CRuntimeClass g_classCWordArray = /*00796F20*/ {"CWordArray", 0x14, 0, &CreateCWordArray, &kClassCObject, nullptr};
+constinit CRuntimeClass g_classCDWordArray = /*00797140*/ {"CDWordArray", 0x14, 0, &CreateCDWordArray, &kClassCObject, nullptr};
+constinit CRuntimeClass g_classCByteArray = /*00797198*/ {"CByteArray", 0x14, 0, &CreateCByteArray, &kClassCObject, nullptr};
+
+// The static initialisers (the exe's list holds the first instruction of each: a jump to the body).
+void __cdecl LinkStringArrayClass() { AfxClassInit(&g_classCStringArray); }
+void __cdecl LinkWordArrayClass() { AfxClassInit(&g_classCWordArray); }
+void __cdecl LinkDWordArrayClass() { AfxClassInit(&g_classCDWordArray); }
+void __cdecl LinkByteArrayClass() { AfxClassInit(&g_classCByteArray); }
+
+} // namespace
+
 // ---- Registrations ------------------------------------------------------------------------------
+
+EI_REPLACE(0x0070BE64, CreateCStringArray);
+EI_REPLACE(0x0070BEAC, CreateCWordArray);
+EI_REPLACE(0x0070C113, CreateCDWordArray);
+EI_REPLACE(0x0070C161, CreateCByteArray);
+EI_REPLACE(0x0070BE81, LinkStringArrayClass);
+EI_REPLACE(0x0070BEC9, LinkWordArrayClass);
+EI_REPLACE(0x0070C130, LinkDWordArrayClass);
+EI_REPLACE(0x0070C17E, LinkByteArrayClass);
 
 EI_REPLACE_METHOD(0x006FEE9A, CWordArray::Construct);
 EI_REPLACE_METHOD(0x006FEEB1, CWordArray::DeletingDestructor);

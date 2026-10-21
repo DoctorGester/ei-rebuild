@@ -239,13 +239,12 @@ mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, c
 class Sum {
 public:
     Sum(const mfc::CString& a, const mfc::CString& b) { ConcatString(Get(), &a, &b); }
-    ~Sum() { Get()->~CString(); }
     Sum(const Sum&) = delete;
     Sum& operator=(const Sum&) = delete;
-    mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(raw_); }
+    mfc::CString* Get() { return &value_; }
 
 private:
-    alignas(mfc::CString) unsigned char raw_[sizeof(mfc::CString)];
+    mfc::CString value_{mfc::CString::kUnset};   // constructed by ConcatString
 };
 
 } // namespace

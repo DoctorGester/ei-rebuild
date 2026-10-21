@@ -65,8 +65,8 @@ Quaternion TiltTimesSpin(const Quaternion& tilt, const Quaternion& spin) {
 void ReleaseDragCursor() {
     int x = MouseScreenX();
     int y = MouseScreenY();
-    g_mouseDragY = 0;
-    g_mouseDragX = 0;
+    MouseDragY() = 0;
+    MouseDragX() = 0;
     TheCursor()->SetHeld(0);
     gameapi::SetCursorPos(x, y);
 }
@@ -85,8 +85,8 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     turning_ = 0;
     interface_->CallScalePointFromScreen(&dragStart_);
     dragAngle_ = angle_;
-    g_mouseDragY = 0;
-    g_mouseDragX = 0;
+    MouseDragY() = 0;
+    MouseDragX() = 0;
     TheCursor()->SetHeld(1);
 }
 
@@ -98,7 +98,7 @@ void CGlobalMap::OnRightUp(int, int, int) {
 
 void CGlobalMap::OnMouseMove(int, int x, int y) {
     if (dragging_) {
-        POINT drag{g_mouseDragX, g_mouseDragY};
+        POINT drag{MouseDragX(), MouseDragY()};
         (console::Out7C5760() <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
         // Rebirth's WideScreen scales the drag without the margin (0063008C: addon's entry 005F7DFE).
         interface_->CallScalePointFromScreenNoMargin(&drag);
@@ -110,8 +110,8 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f /*00742098*/ * 0.8f /*0073CCA8*/);   // pi * 0.8
         Quaternion turn = TiltTimesSpin(tilt, spin);
         std::memcpy(&turn_, &turn, sizeof(turn));
-        g_mouseDragX = 0;
-        g_mouseDragY = 0;
+        MouseDragX() = 0;
+        MouseDragY() = 0;
         return;
     }
     bool isLink = false;

@@ -8,6 +8,7 @@
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
 #include "player_messages.h"
+#include "party.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -91,8 +92,8 @@ using ObjectPtrArray = EngineObjectPtrs;
 using SharedObjectNode = SharedObjectList::Node;
 static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 
-// A player's MFC list of plain dwords (WorldPlayer::ids, AddTail 0059CC60) and of objects
-// (WorldPlayer::items, AddTail 004C98F0); only head and the node layout are read here.
+// A player's MFC list of plain dwords (CPlayer::recharging_, AddTail 0059CC60) and of objects
+// (CPlayer::items_, AddTail 004C98F0); only head and the node layout are read here.
 using DwordList = mfc::CList<std::uint32_t>;
 
 // The item link record of an item of the item manager (CItem::link_).
@@ -210,13 +211,13 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
     const char* name = game::GTimeText();
     int now = tick_;
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick));
-        player->lastTick = now;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick_));
+        player->lastTick_ = now;
         if (elapsed < 0) elapsed = 0;
-        double current = player->variables.Get(name);
+        double current = player->Party()->variables_.Get(name);
         float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
-        player->server->SetVariable(name, std::bit_cast<std::uint32_t>(value));
+        player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }
 }
 
@@ -322,24 +323,24 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
     if (it) it->manager = nullptr;
-    for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
-        CPlayerServer* state = player->server;
-        stream->Read(&player->partyId, 4);
-        PlayerRecordsLoad(player->party, nullptr, stream, 1);
-        player->lastTick = world->tick_;
-        stream->Read(&player->sessionKind, 4);
+    for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
+        CPlayerServer* state = player->Server();
+        stream->Read(&player->partyId_, 4);
+        PlayerRecordsLoad(player->Party(), nullptr, stream, 1);
+        player->lastTick_ = world->tick_;
+        stream->Read(&player->sessionKind100_, 4);
         CBaseManager* items = world->ItemFactory();
         for (;;) {
             int id = ReadValue<int>(stream);
             if (id == -1) break;
             auto* object = static_cast<CItem*>(items->FindObject(id));
             if (!object) continue;
-            player->items.AddTail(object);
+            player->items_.AddTail(object);
             ++object->refCount_;
         }
-        stream->Read(&player->godMode, 1);
+        stream->Read(&player->godMode_, 1);
         if (stream->version_ >= kVersionPlayerLists) {
-            DwordList& ids = player->ids;
+            DwordList& ids = player->recharging_;
             int count = ReadValue<int>(stream);
             for (int i = 0; i < count; ++i) ids.AddTail(0);   // 0059CC60
             for (auto* node = ids.head; node;) {
@@ -381,7 +382,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     scriptsActive_ = 0;
     if (PlayerList()) {
         PlayerIterator it;
-        for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult_ = 1;
             scriptsActive_ = 1;
             PlayerClearOriginal((void*)player);
@@ -400,8 +401,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
-        for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-            player->dirty = 0xFFFFFFFFu;
+        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+            player->dirty_ = 0xFFFFFFFFu;
     }
 
     stream->Read(windDirection_, 12);
@@ -590,18 +591,18 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
     if (it) it->manager = nullptr;
-    for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
-        stream->Write(&player->partyId, 4);
-        PlayerRecordsSave(player->party, nullptr, stream, 1);
-        stream->Write(&player->sessionKind, 4);
-        for (auto* node = player->items.head; node;) {
+    for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
+        stream->Write(&player->partyId_, 4);
+        PlayerRecordsSave(player->Party(), nullptr, stream, 1);
+        stream->Write(&player->sessionKind100_, 4);
+        for (auto* node = player->items_.head; node;) {
             auto* next = node->next;
             WriteCopy(stream, node->data->id_);
             node = next;
         }
         WriteCopy(stream, -1);
-        WriteCopy(stream, player->godMode);
-        DwordList& ids = player->ids;
+        WriteCopy(stream, player->godMode_);
+        DwordList& ids = player->recharging_;
         WriteCopy(stream, ids.count);
         for (auto* node = ids.head; node;) {
             auto* next = node->next;

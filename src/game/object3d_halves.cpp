@@ -3,6 +3,7 @@
 // 0x38, vtable 0073DFBC, 0x20 bytes), the wounds material's destructor and the copies of a named
 // texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
 #include "map_object_shadow.h"
+#include "options.h"
 
 #include "figure_mesh.h"        // VertexPacket
 #include "game_data.h"
@@ -28,22 +29,19 @@ constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073DFBC);
 constexpr const char* kServerClassName = "CObject3DServer";
 constexpr int kServerClassId = 0x38;
 // The shadow switches by the object's class: units (0x50), class 0x52, any other.
-constexpr std::uintptr_t kUnitShadows = ei::DataId(0x0079BD14);
-constexpr std::uintptr_t kOtherShadows = ei::DataId(0x0079BD18);
-constexpr std::uintptr_t kClass52Shadows = ei::DataId(0x0079BD1C);
 constexpr int kClassUnit = 0x50;
 constexpr int kClass52 = 0x52;
 constexpr std::uint32_t kHalfShown = 0x20;
 constexpr int kOutsideView = 2;
 
-int Setting(std::uintptr_t address) { return *ei::GamePointer<const volatile int>(address); }
+int Setting(const int& setting) { return static_cast<const volatile int&>(setting); }
 
 // The switch for the class of `object` (its slot 12).
 int ShadowSwitchOf(CObject3D* object) {
     int classId = object->GetClassId();
-    if (classId == kClassUnit) return Setting(kUnitShadows);
-    if (classId == kClass52) return Setting(kClass52Shadows);
-    return Setting(kOtherShadows);
+    if (classId == kClassUnit) return Setting(options::TheOptions()->unitShadow_);
+    if (classId == kClass52) return Setting(options::TheOptions()->floraShadow_);
+    return Setting(options::TheOptions()->buildingShadow_);
 }
 
 } // namespace

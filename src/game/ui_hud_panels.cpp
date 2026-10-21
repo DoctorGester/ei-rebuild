@@ -70,7 +70,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 CUiScrollText* MessageLog(CBattleScreen* screen) { return static_cast<CUiScrollText*>(screen->children_.data[9]); }
 
 // The local view, whose SetUnitFlag438 (0066AF30) sets a unit's +0x438 flag and sends it to the server.
-CPlayerClient* Orders() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
+CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
 
 } // namespace
 
@@ -283,10 +283,10 @@ void CHudTopPanel::ShowItems() {
     CTextManager* texts = TheTextManager();
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
     mfc::CTypedPtrList<CItem> merged{ei::GamePointer<void>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     mfc::CString line;
     mfc::CString format;
-    for (auto* node = player->items.head; node;) {
+    for (auto* node = player->items_.head; node;) {
         CItem* item = node->data;
         node = node->next;
         CItem* same = nullptr;

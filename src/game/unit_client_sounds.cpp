@@ -1,10 +1,12 @@
 // The sound names the client controller picks for a unit's footsteps and actions. See
 // unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
+#include "options.h"
 
 #include "camera.h"
 #include "item.h"
 #include "map_object_figures.h"
+#include "player_client.h"
 #include "sound.h"
 #include "terrain_sector.h"
 #include "unit.h"
@@ -149,7 +151,7 @@ constexpr float kSoundFar = 40.0f;           // 0073EC20
 constexpr float kShakeDuration = 5.0f;
 constexpr float kShakeDecay = 0.25f;
 constexpr std::uint32_t kEffectSilence = 0x10;
-constexpr int kViewNoAttackSounds = 3;       // the local view player's +0x100
+constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind100_
 constexpr double kMinAxisLength = 0.0001;    // 0073EE98
 constexpr float kPi = 3.14159274f;           // 0073EBE8
 constexpr float kHalf = 0.5f;                // 0073B86C
@@ -160,17 +162,9 @@ constexpr int kStepFrames = 4;
 constexpr int kMaxFootPart = 9;
 
 // The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
-struct LocalViewPlayer {
-    std::uint8_t unused_000[0x100];
-    int mode;                       // +0x100 3: attacks play no sounds
-};
-struct LocalView {
-    std::uint8_t unused_00[0x1C];
-    LocalViewPlayer* player;        // +0x1C
-};
 
 // 0079BE6C: footprints show for every unit (else only for units with flags_ 0x400000).
-bool AllFootprintsShown() { return ei::GameData<const int>(0x0079BE6C) == 0; }
+bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
 // callers have returned on a NaN `now`).
@@ -212,8 +206,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     bool steps = false;
     switch (kind) {
     case kKindAttack: {
-        auto* view = reinterpret_cast<LocalView*>(TheClientWorld()->LocalView());
-        if (view->player->mode == kViewNoAttackSounds) break;
+        if (TheClientWorld()->LocalView()->player_->sessionKind100_ == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->type_ == kUnitTypeHero && unit->actionSound &&

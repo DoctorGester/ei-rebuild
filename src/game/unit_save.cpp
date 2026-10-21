@@ -176,7 +176,7 @@ void CUnit::LoadUnit(CStream* stream) {
     ReadItems(this, stream, armor, 7);
     stream->Read(levels4C8, sizeof(levels4C8));
     StatsChanged();
-    SetPlayer(static_cast<char*>(newPlayer));   // inlined by the original
+    SetPlayer(static_cast<CPlayer*>(newPlayer));   // inlined by the original
 
     stream->Read(&relationsB, 4);
     int count;
@@ -208,7 +208,7 @@ void CUnit::SaveUnit(CStream* stream) {
     controller->Save(stream);
     WriteString(stream, scriptName);
     WriteCopy(stream, relationsA);
-    WriteCopy<int>(stream, player ? reinterpret_cast<CPlayer*>(player)->playerId_ : -1);
+    WriteCopy<int>(stream, player ? player->playerId_ : -1);
     WriteCopy(stream, side);
     WriteCopy(stream, animationEntry);
     WriteCopy(stream, secondEntry);

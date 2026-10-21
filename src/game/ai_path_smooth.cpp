@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <cstdint>
 
@@ -25,10 +26,6 @@ constexpr int kStates = 9;
 constexpr float kTurnCost = 60.0f;          // 0073F090
 constexpr float kDiagonalEndCost = 2048.0f; // 0073FE40
 
-// The vtables of the tables' arrays: CArray<SmoothCopy>, CArray<SmoothStep>, CArray<SmoothEdge>.
-constexpr std::uintptr_t kCopyArrayVtable = std::uintptr_t(0x0073FE10);
-constexpr std::uintptr_t kStepArrayVtable = std::uintptr_t(0x0073FE1C);
-constexpr std::uintptr_t kEdgeArrayVtable = std::uintptr_t(0x0073FE28);
 // A step's cost factor in 1/1024 by its turn against the previous step, in eighths: straight on
 // (1 or the diagonal's length), 1, 2 (again by whether the previous step was diagonal), 3; a full
 // turn back costs nothing.
@@ -279,19 +276,19 @@ void SmoothEdges::BuildEdges(int direction, bool incoming) {
 EI_REWRITTEN(0x005C3690, SmoothEdges::BuildEdges);
 
 SmoothTable* SmoothTable::Construct() {
-    copies.Construct(kCopyArrayVtable);
-    steps.Construct(kStepArrayVtable);
-    chained.Construct(kStepArrayVtable);
+    copies.Construct(mfc::impl::SmoothCopyArrayClass::Vtable());
+    steps.Construct(mfc::impl::SmoothStepArrayClass::Vtable());
+    chained.Construct(mfc::impl::SmoothStepArrayClass::Vtable());
     return this;
 }
 EI_REPLACE_METHOD(0x005C4210, SmoothTable::Construct);
 
 void SmoothTable::Destruct() {
-    chained.vtable = ei::GamePointer<void>(kStepArrayVtable);
+    chained.vtable = mfc::impl::SmoothStepArrayClass::Vtable();
     chained.FreeData();
-    steps.vtable = ei::GamePointer<void>(kStepArrayVtable);
+    steps.vtable = mfc::impl::SmoothStepArrayClass::Vtable();
     steps.FreeData();
-    copies.vtable = ei::GamePointer<void>(kCopyArrayVtable);
+    copies.vtable = mfc::impl::SmoothCopyArrayClass::Vtable();
     copies.FreeData();
 }
 EI_REPLACE_METHOD(0x005C4250, SmoothTable::Destruct);
@@ -334,8 +331,8 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
     for (int previous = 0; previous < kStates; ++previous) {
         for (int next = 0; next < kStates; ++next) {
             SmoothEdges from, to;
-            from.Construct(kEdgeArrayVtable);
-            to.Construct(kEdgeArrayVtable);
+            from.Construct(mfc::impl::SmoothEdgeArrayClass::Vtable());
+            to.Construct(mfc::impl::SmoothEdgeArrayClass::Vtable());
             from.BuildEdges(previous, false);
             to.BuildEdges(next, true);
             if (previous != 0) {

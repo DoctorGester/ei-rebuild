@@ -22,6 +22,7 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
 #include "originals_effects.h"
@@ -129,7 +130,7 @@ struct LocalUnitMotion {
     UnitMotion motion;
     LocalUnitMotion() {
         mfc::impl::ConstructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
-        motion.points.vtable = ei::GamePointer<void>(0x0073EB9C);
+        motion.points.vtable = mfc::impl::MotionPointsClass::Vtable();
         mfc::impl::ConstructArrayOf<mfc::impl::MotionWaypointArrayClass>(motion.waypoints);
         mfc::impl::ConstructArrayOf<mfc::impl::ArgFloatArrayClass>(motion.stepSpeeds);
         motion.curveX = {};   // the segment part (0054E5D0): no curves, no segment
@@ -142,10 +143,8 @@ struct LocalUnitMotion {
     }
     ~LocalUnitMotion() {
         mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(motion.stepSpeeds);
-        motion.waypoints.vtable = ei::GamePointer<void>(0x0073EBB4);
-        if (motion.waypoints.data) gamecrt::operator_delete(motion.waypoints.data);
-        motion.points.vtable = ei::GamePointer<void>(0x0073EBA8);
-        if (motion.points.data) gamecrt::operator_delete(motion.points.data);
+        mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(motion.waypoints);
+        mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
     }
     LocalUnitMotion(const LocalUnitMotion&) = delete;
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;
@@ -158,10 +157,10 @@ using SpotArray = mfc::CArray<float[3]>;
 using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 
 // The messages of a unit's player (CPlayer::connection_).
-void* PlayerConnection(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
+CPlayerServer* PlayerConnection(CPlayer* player) { return player->Server(); }
 
 void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, int flag, float limit) {
-    if (unit->player) reinterpret_cast<CPlayerServer*>(PlayerConnection(unit->player))->SendPathMessage(unit, const_cast<void*>(motion), point, kind, flag, std::bit_cast<std::uint32_t>(limit));
+    if (unit->player) PlayerConnection(unit->player)->SendPathMessage(unit, const_cast<void*>(motion), point, kind, flag, std::bit_cast<std::uint32_t>(limit));
 }
 
 } // namespace
@@ -172,7 +171,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     void* world = ObjectWorld(this);
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
-    SpotArray spots{ei::GamePointer<void>(0x0073C120), nullptr, 0, 0, 0};
+    SpotArray spots{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
     float size = static_cast<float>(Slots(unit)->Radius());
     Slots(order->target)->UseSpots(&spots, size);
     bool result = true;
@@ -205,7 +204,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             std::memcpy(&order->point, &bestSpot, sizeof(bestSpot));
         }
     }
-    spots.vtable = ei::GamePointer<void>(0x0073C120);
+    spots.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     if (spots.data) gamecrt::operator_delete(spots.data);
     return result;
 }
@@ -275,7 +274,7 @@ EI_REWRITTEN(0x0054E250, CUnitServer::TimeUntilAction);
 // --- Planning an order's way ---------------------------------------------------------------------
 
 bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
-    char* player = unit->player;
+    CPlayer* player = unit->player;
     if (order->kind != kOrderSkill && !player) return true;
     float best = kFar;
     LocalMotionOrder route;

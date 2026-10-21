@@ -515,7 +515,6 @@ void __cdecl DeleteComposedTextures();
 // vtable (C19; game.exe's 00743CB0 is retired).
 class CTextureManager : public CResourceManager {
 public:
-    static constexpr std::uintptr_t kCacheVtableAddress = std::uintptr_t(0x00743D18);   // cache_'s CPtrList
 
     // texture_manager_lifetime.cpp (A-H23).
     // 00691140. CResourceManager's constructor, an empty cache (blocks of 10), no shadow surface

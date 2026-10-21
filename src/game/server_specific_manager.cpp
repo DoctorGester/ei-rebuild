@@ -71,7 +71,7 @@ CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
         return nullptr;
     case kPlayerServer:
         if (void* p = gamecrt::operator_new_zeroed(0x5128))   // 0066C540
-            return reinterpret_cast<CEngineObject*>(static_cast<CPlayerServer*>(p)->Construct());
+            return static_cast<CPlayerServer*>(p)->Construct();
         return nullptr;
     case kTorchObjectSpec:
         if (void* p = gamecrt::operator_new_zeroed(sizeof(CTorchObjectSpec))) return new (p) CTorchObjectSpec();

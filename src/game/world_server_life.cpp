@@ -77,9 +77,9 @@ void CWorldServer::Teardown() {
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
     if (it) it->manager = nullptr;
     if (PlayerList()) {
-        for (WorldPlayer* player = it->First(PlayerList()); player; player = it->Next()) {
+        for (CPlayer* player = it->First(PlayerList()); player; player = it->Next()) {
             PlayerDisconnectOriginal(player);
-            static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
+            static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(player);
         }
     }
     if (it) {

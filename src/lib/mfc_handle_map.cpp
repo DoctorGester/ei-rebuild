@@ -20,7 +20,7 @@ std::uint32_t HashKey(const void* key) { return static_cast<std::uint32_t>(reint
 
 // ---- CRuntimeClass and the new handler ------------------------------------------------------------
 
-void* CRuntimeClass::CreateObject() {
+void* CRuntimeClass::CreateObject() const {
     if (!create) return nullptr;
     void* object = nullptr;
     try {
@@ -182,7 +182,7 @@ EI_REWRITTEN(0x007004DB, CMapPtrToPtr::RemoveKey);
 
 // ---- CHandleMap -----------------------------------------------------------------------------------
 
-CHandleMap* CHandleMap::Construct(CRuntimeClass* cls, unsigned offset, int handles) {
+CHandleMap* CHandleMap::Construct(const CRuntimeClass* cls, unsigned offset, int handles) {
     permanentMap.Construct(10);
     temporaryMap.Construct(4);
     vtable = Vtable();

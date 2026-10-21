@@ -2,6 +2,7 @@
 #include "texture.h"
 #include "world.h"
 #include "world_data.h"
+#include "ui.h"
 #include "hash_tables_400.h"
 
 #include "core_maths.h"
@@ -134,7 +135,7 @@ Vector3* MatrixRows::Transform(Vector3* out, const Vector3* v) const {
 // ---- Units and players ---------------------------------------------------------------------------
 
 CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
-    CPlayerClient* view = Session()->LocalClient();
+    CPlayerClient* view = LocalView();
     if (!view || !unit) return nullptr;
     float best = 1e38f;
     CUnit* nearest = nullptr;
@@ -161,21 +162,20 @@ FootprintPart* CObject3D::PartBox(int index) {
     return reinterpret_cast<FootprintPart*>(&part->bounds_);
 }
 
-std::uint8_t* CWorldClient::LocalView() {
-    if (session_) return reinterpret_cast<std::uint8_t*>(Session()->localView);
+CPlayerClient* CWorldClient::LocalView() {
+    if (session_) return static_cast<CPlayerClient*>(Session()->connection_);
     return nullptr;
 }
 
 bool CWorldClient::IsLocalViewMode2() {
-    if (!session_) return false;
-    CPlayerClient* view = Session()->LocalClient();
+    CPlayerClient* view = LocalView();
     if (!view) return false;
     return view->state_ == 2;
 }
 
 bool CWorldClient::IsLocalPlayerIdle() {
     if (!session_) return false;
-    CPlayerConnection* view = Session()->localView;
+    CPlayerConnection* view = Session()->connection_;
     if (!view) return false;
     netlink::NetLink* link = view->player_->link_;
     if (link && !(link->flags7_ & CRefObject::kDetached) && link->Alive()) return false;
@@ -229,7 +229,7 @@ void CWorldClient::CreateExitMarkers() {
         }
         auto* source = static_cast<CParticleSource*>(
             ParticleManagerObject()->CreateSource(kExitParticles));
-        auto* marker = reinterpret_cast<CEngineObject*>(source);
+        CEngineObject* marker = source;
         AssignCounted(&countedA0_[i], marker);
         const ZoneExit& exit = exits_[i];
         source->position = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
@@ -272,7 +272,7 @@ void CWorldClient::SummonBird() {
         owned1B0_ = memory ? memory->Construct() : nullptr;
     }
     TimedSlots(owned1B0_)->Reset();
-    auto* leader = reinterpret_cast<CPlayer*>(session_)->Party()->members_.data;
+    auto* leader = session_->Party()->members_.data;
     static_cast<CEffectMoshka*>(owned1B0_)->Follow(static_cast<int>(leader->unitId));
 }
 
@@ -292,26 +292,23 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
 }
 
 mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* player = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
+    mfc::CString player(mfc::CString::kUnset);
+    LocalPlayerName(&player);
     new (out) mfc::CString(QuestPrefixText());
-    *out += *player;
+    *out += player;
     *out += DotText();
     *out += name;
-    player->~CString();
     return out;
 }
 
 void CWorldClient::ApplyObjectVariables() {
-    NamedFloatTable* variables = &reinterpret_cast<WorldPlayer*>(session_)->variables;
+    NamedFloatTable* variables = &session_->Party()->variables_;
     for (SectorListNode* node = objects_.First(); node != objects_.End(); node = node->next) {
         auto* object = static_cast<CMapObject*>(node->data);
         const char* name = object->name2;
         if (!name || !*name) continue;
-        alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-        mfc::CString* variable = ObjectVariableName(reinterpret_cast<mfc::CString*>(storage), name);
-        object->SetVisibilityLevel(variables->Get(*variable));
-        variable->~CString();
+        mfc::CString variable(mfc::CString::kUnset);
+        object->SetVisibilityLevel(variables->Get(*ObjectVariableName(&variable, name)));
     }
 }
 
@@ -351,7 +348,7 @@ namespace {
 // Callees, through their addresses (thiscall as fastcall).
 // 005F8070: InterfaceStringEventOriginal (originals_ui.h).
 // 00665A10 CPlayer::Disconnect on the local session.
-void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
+void __fastcall SessionDisconnect(CPlayer* session) { PlayerDisconnectOriginal(session); }
 
 // FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (the original's bit trick).
 float SelectLess(float a, float b, float ifLess, float otherwise) {
@@ -430,8 +427,8 @@ int CWorldClient::Segment() {
     if (shared5C_.ptr) static_cast<CWorldHandle*>(shared5C_.ptr)->Pump();
     if (handle_.ptr) static_cast<CWorldHandle*>(handle_.ptr)->Pump();
     if (void* p = netSession_) static_cast<netlink::DriverSession*>(p)->PumpDrivers(net::GameClient());
-    if (WorldSession* session = Session()) {
-        CPlayerConnection* view = session->localView;
+    if (CPlayer* session = Session()) {
+        CPlayerConnection* view = session->connection_;
         if (!paused_) PlayerTickOriginal(session);
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport (5 NOPs at 00564330)
@@ -464,7 +461,7 @@ int CWorldClient::Segment() {
         if (owned1B0_) owned1B0_->RunTick();
     }
     if (IsMultiplayerClient()) {
-        if (static_cast<int>(worlddata::PeerList().size()) > 1) {
+        if (static_cast<int>(TheInterface()->stackEnd_ - TheInterface()->stackBegin_) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;
             for (auto* node = dynamicObjects_.head; node;) {

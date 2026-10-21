@@ -78,7 +78,7 @@ static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && size
 } // namespace
 
 int CPlayerServer::OnLeave() {
-    reinterpret_cast<CPlayerConnection*>(this)->Leave();
+    Leave();   // slot 16 (LeaveAndFlush)
     return 1;
 }
 
@@ -88,7 +88,7 @@ int CPlayerServer::OnGameStateRequest() {
     int state;
     Received().Read(&state, 4);
     player->sessionKind100_ = state;
-    TheServerWorld()->CollectParty(reinterpret_cast<WorldPlayer*>(player), &placements_);
+    TheServerWorld()->CollectParty(player, &placements_);
     SendParty();
     std::uint8_t type = kMessageGameState;
     out_.Write(&type, 1);

@@ -1,6 +1,7 @@
 // The client world's set-up at startup: SetUpGraphics (00563710) and the light colours by hour
 // from the lights table (LoadLights, 00563930; config\LightsGipat.ini). See world.h.
 #include "material.h"
+#include "options.h"
 #include "world.h"
 
 #include "model.h"
@@ -38,7 +39,7 @@ constexpr int kNumbersKind = 6;
 constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of the digits' texture
 
 const char* NumbersName() { return "numbers"; }
-const char* FiguresResource() { return ei::GameData<const char* const>(0x0079BC94); } // a CString
+const char* FiguresResource() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); } // a CString
 UnitDatabase* Units() { return &unitdb::Database(); }
 
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the

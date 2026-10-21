@@ -25,6 +25,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 #include <new>
@@ -493,7 +494,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
 
 void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
     void* textureManager = TheTextureManager();
-    SkinLayerArray layers{ei::GamePointer<void>(0x0073EEA0), nullptr, 0, 0, 0};
+    SkinLayerArray layers{mfc::impl::SkinLayerArrayClass::Vtable(), nullptr, 0, 0, 0};
     void* result;
     {
         mfc::CString unitKey;

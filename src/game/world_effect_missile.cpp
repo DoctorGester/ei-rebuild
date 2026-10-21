@@ -172,11 +172,11 @@ void CEffectArrow::Start(int update) {
 int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&targetId_, 4);
     field->ReadDelta(&casterId_, 4);
-    alignas(4) unsigned char text[sizeof(mfc::CString)];
-    field->ReadString(text);
-    auto* name = reinterpret_cast<mfc::CString*>(text);
-    soundName_ = *name;
-    name->~CString();
+    {
+        mfc::CString name(mfc::CString::kUnset);
+        field->ReadString(&name);
+        soundName_ = name;
+    }
     field->ReadFloat16x3(&lightColor_.x);
     field->ReadFloat16(&lightRange_);
     field->ReadDelta(&particleType_, 4);

@@ -49,7 +49,7 @@ constexpr std::uint32_t kEmoteKeyBit = 0x80000000u;   // FigureAnimation::key: a
 constexpr std::uint32_t kFlagShared = 0x20000000u;    // CEngineObject::flags_: on the world's shared list
 constexpr int kStateActing = 5;                       // CUnitServer::state
 
-CPlayerServer* PlayerConnection(CUnit* unit) { return reinterpret_cast<WorldPlayer*>(unit->player)->server; }
+CPlayerServer* PlayerConnection(CUnit* unit) { return unit->player->Server(); }
 
 // The shared tail of the kind 6 setters: the queued order (reset first, inlined 0054B230) becomes
 // a use of `target` with `source`, +0x1C `spot` and +0x20 `run`, and is planned; reset again when the

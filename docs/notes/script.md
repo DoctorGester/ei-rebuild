@@ -383,7 +383,7 @@ Facts:
 - `CTransformPipeline` (model.h) has `transform_` +0x0C (3DfpFPU's object); 0059F030 (CFigure's destructor body) is
   `FigureDestructBodyOriginal` (originals_core.h); the figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are shared in
   originals_world.h; 004A91B0 is `PartyMapAtOriginal` (originals_gameplay.h); 006617F0 `CParty::ArchiveParty`. Counted
-  pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the party map's party is `PartyInPlace` storage.
+  pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the party map's party is `PartyInPlace` (a `PartyStorage`, party_storage.h).
   The archive on the stack: `ChunkArchive::ConstructLocal` / `DestructLocal` (chunk_archive.cpp).
 
 Classification of 0x004A0000-0x00500000: library.csv holds the STLport / MFC members (mesh maps, the link loader's cache

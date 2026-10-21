@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/mfc_slots.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 
@@ -15,7 +16,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kChildListVtable = std::uintptr_t(0x0073DA40);
 constexpr int kChildBlockSize = 10;
 
 // The animation tracks' defaults (AnimationTrack::Evaluate without key frames).
@@ -23,14 +23,14 @@ const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF110
 const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF100); }
 
 // The mesh is a counted engine object (its slot 4 releases it).
-void ReleaseMesh(CFigureMesh* mesh) { reinterpret_cast<CEngineObject*>(mesh)->Release(); }
+void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
 
 } // namespace
 
 // The names are members (empty strings before the body).
 FigureBone::FigureBone() {
     ClearFields();
-    children.vtable = ei::GamePointer<void>(kChildListVtable);
+    children.vtable = mfc::impl::BoneListClass::Vtable();
     children.count = 0;
     children.free = nullptr;
     children.tail = nullptr;
@@ -90,7 +90,7 @@ FigureBone::~FigureBone() {
     DestroyBone();   // its reset empties the matrices through 0050DD40 here, the same SetSize
     if (matrices.data) lib::AlignedArray<Matrix4>::Free(matrices.data);
     // The child list's destructor: its vtable, RemoveAll again.
-    children.vtable = ei::GamePointer<void>(kChildListVtable);
+    children.vtable = mfc::impl::BoneListClass::Vtable();
     children.RemoveAll();
 }
 

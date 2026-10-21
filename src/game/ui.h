@@ -8,6 +8,7 @@
 // mouse position before hit testing.
 
 #include "core_transform.h"
+#include "options.h"
 #include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
@@ -17,6 +18,7 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "lib/stlp.h"
 #include "lib/stlp_tree_cstring.h"
 
@@ -395,6 +397,11 @@ static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface
 static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
 static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
 static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
+static_assert(sizeof(CInterface3D) == 0xB0);
+
+// The game's interface manager (the object at 007C7D50; ui_small_members.cpp): built by the static initialiser 005F4680
+// in the list's order, destroyed by the exit function it registers (005F4780).
+extern lib::StaticObject<CInterface3D> g_interface;
 
 // The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray).
 // The original has one out-of-line SetSize per array (006003D0, 006004E0, 00600730, 00600840,
@@ -1054,7 +1061,7 @@ inline bool& InterfaceHasScreen() { return ei::GameData<bool>(0x00784750); }
 
 // The client world (CWorldClient, world.h).
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
-inline int& ShowHitNumbersOption() { return ei::GameData<int>(0x0079BE74); }
+inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
 inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CDebugPanel>(0x0079B930); }
 
@@ -3416,12 +3423,13 @@ public:
 static_assert(offsetof(CDifficultyBox, easy_) == 0x180);
 static_assert(sizeof(CDifficultyBox) == 0x184);
 
-// The mouse (007C7C50: the position in screen pixels; 007C7C60: the motion a right-button drag
-// accumulates, read and cleared by the drag's mouse-move handlers 00630010 / 005EB210).
-inline int& MouseScreenX() { return ei::GameData<int>(0x007C7C50); }
-inline int& MouseScreenY() { return ei::GameData<int>(0x007C7C54); }
-inline int g_mouseDragX = /*007C7C60*/ {};
-inline int g_mouseDragY = /*007C7C64*/ {};
+// The mouse, members of the cursor (ui_cursor_setup.cpp): the position in screen pixels (CCursor::position_) and the
+// motion a right-button drag accumulates, read and cleared by the drag's mouse-move handlers 00630010 / 005EB210
+// (CCursor::motion_).
+long& MouseScreenX();
+long& MouseScreenY();
+long& MouseDragX();
+long& MouseDragY();
 
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
-inline int& GameDifficulty() { return ei::GameData<int>(0x0079BEC0); }
+inline int& GameDifficulty() { return options::TheOptions()->difficulty_; }

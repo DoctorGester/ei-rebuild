@@ -33,7 +33,7 @@ constexpr std::uint32_t kRestPoseKind = 0x80590000;
 // A part is hidden while bit 0x80 of its flags is set.
 constexpr std::uint32_t kHidden = 0x80;
 void ShowFigurePart(CFigureMesh* part, int show) {
-    auto* object = reinterpret_cast<CEngineObject*>(part);
+    CEngineObject* object = part;
     if (static_cast<std::uint8_t>(show)) object->flags_ &= ~kHidden;
     else object->flags_ |= kHidden;
 }
@@ -67,7 +67,7 @@ constexpr std::uint32_t kPreviewDraw = 0x800;
 
 // 005FC1D0. The object released (slot 4) and forgotten.
 void CUiModel::ReleaseObject() {
-    if (object_) reinterpret_cast<CEngineObject*>(object_)->Release();
+    if (object_) object_->Release();
     object_ = nullptr;
 }
 EI_REWRITTEN(0x005FC1D0, CUiModel::ReleaseObject);

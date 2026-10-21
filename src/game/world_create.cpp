@@ -31,6 +31,7 @@
 #include "originals_library.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 
@@ -109,7 +110,7 @@ CWorld* CWorld::ConstructBase() {
     figureLoader_ = nullptr;
     shared5C_.ptr = nullptr;
     netSession_ = nullptr;
-    countdowns_.Construct(kCountdownsVtable);
+    countdowns_.Construct(mfc::impl::CountdownArrayClass::Vtable());
     ei::SetVtable(this, kBaseVtableAddress);
     players_ = nullptr;
     manager3C_ = nullptr;

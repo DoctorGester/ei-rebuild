@@ -6,6 +6,7 @@
 #include "game/originals_library.h"   // CWndDestroyWindow
 #include "gameapi.h"
 #include "mfc.h"
+#include "mfc_runtime_class.h"
 #include "mfc_string.h"
 #include "game/game_data.h"
 
@@ -18,6 +19,10 @@ bool IsStaticWindow(const CWnd* wnd) {
     return wnd == ei::GamePointer<const CWnd>(0x007CAA28) || wnd == ei::GamePointer<const CWnd>(0x007CA9E8) ||
            wnd == ei::GamePointer<const CWnd>(0x007CA9A8) || wnd == ei::GamePointer<const CWnd>(0x007CA968);
 }
+
+// The fixed allocators of CTempWnd (0x3C bytes) and CTempMenu (8).
+CFixedAlloc& TempWndAlloc() { return ei::GameData<CFixedAlloc>(0x007CA940); }
+CFixedAlloc& TempMenuAlloc() { return ei::GameData<CFixedAlloc>(0x007CAAA8); }
 
 } // namespace
 
@@ -57,7 +62,40 @@ void CWnd::Destruct() {
     base.Destruct();
 }
 
+void* __stdcall CreateCWnd() {
+    auto* wnd = static_cast<CWnd*>(gamecrt::operator_new(sizeof(CWnd)));
+    return wnd ? wnd->Construct(nullptr) : nullptr;
+}
+
+void* __stdcall CreateCTempWnd() {
+    auto* wnd = static_cast<CWnd*>(TempWndAlloc().Alloc());
+    if (!wnd) return nullptr;
+    wnd->Construct(nullptr);
+    wnd->base.vtable = CWnd::TempVtable();
+    return wnd;
+}
+
+void* __stdcall CreateCMenu() {
+    auto* menu = static_cast<CMenu*>(gamecrt::operator_new(sizeof(CMenu)));
+    if (!menu) return nullptr;
+    menu->vtable = CMenu::Vtable();
+    menu->menu = nullptr;
+    return menu;
+}
+
+void* __stdcall CreateCTempMenu() {
+    auto* menu = static_cast<CMenu*>(TempMenuAlloc().Alloc());
+    if (!menu) return nullptr;
+    menu->menu = nullptr;
+    menu->vtable = CMenu::TempVtable();
+    return menu;
+}
+
 EI_REWRITTEN(0x00703EAE, CCmdTarget::Construct);
+EI_REPLACE(0x0070D32B, CreateCWnd);
+EI_REPLACE(0x0070D363, CreateCTempWnd);
+EI_REPLACE(0x0070DC80, CreateCMenu);
+EI_REPLACE(0x0070DCA0, CreateCTempMenu);
 EI_REWRITTEN(0x00703EC8, CCmdTarget::Destruct);
 EI_REPLACE_METHOD(0x00704546, CWnd::Construct);
 EI_REPLACE_METHOD(0x00704FE3, CWnd::Destruct);

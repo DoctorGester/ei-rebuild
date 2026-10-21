@@ -119,7 +119,7 @@ ScriptCommands* ScriptCommands::ConstructEmpty() {
     growBy = 0;
     maxSize = 0;
     size = 0;
-    vtable = scriptvtable::kCmds;
+    vtable = recordarrays::SubCallArrayClass::Vtable();   // the loader arrays
     return this;
 }
 EI_REWRITTEN(0x004D5A10, ScriptCommands::ConstructEmpty);

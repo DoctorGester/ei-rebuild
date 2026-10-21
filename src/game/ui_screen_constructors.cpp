@@ -12,6 +12,7 @@
 #include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 #include <new>
 
@@ -21,7 +22,7 @@ void** MessageBoxVtable() { return ei::GamePointer<void*>(0x00742348); }
 void** MessageBoxInputVtable() { return ei::GamePointer<void*>(0x00742314); }
 void** ObjectivesVtable() { return ei::GamePointer<void*>(0x007411BC); }
 void** ObjectivesInputVtable() { return ei::GamePointer<void*>(0x00741188); }
-void* ObjectiveExitsVtable() { return ei::GamePointer<void>(0x00741264); }
+void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }
 void** PortraitsVtable() { return ei::GamePointer<void*>(0x00742A18); }
 void** PortraitsInputVtable() { return ei::GamePointer<void*>(0x007429E4); }
 

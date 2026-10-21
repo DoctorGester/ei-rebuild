@@ -40,10 +40,8 @@ std::uint32_t Bits(float f) {
 
 // A string chunk into `field` (the read string is a temporary, as in the original).
 void ReadInto(Chunk& c, mfc::CString& field) {
-    alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-    mfc::CString* read = c.ReadString(reinterpret_cast<mfc::CString*>(raw));
-    field = *read;
-    read->~CString();
+    mfc::CString read(mfc::CString::kUnset);
+    field = *c.ReadString(&read);
 }
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 

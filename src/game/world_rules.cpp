@@ -11,6 +11,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "party.h"
+#include "player_client.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -25,10 +26,10 @@
 namespace {
 
 // The local player record through the client's local view (no null checks, as the original).
-WorldPlayer* LocalPlayer() { return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player; }
+CPlayer* LocalPlayer() { return TheClientWorld()->LocalView()->player_; }
 
-// 00460AF0: a player's named float variable (WorldPlayer::variables).
-float Variable(WorldPlayer* player, const char* name) { return player->variables.Get(name); }
+// 00460AF0: a player's named float variable (its party's variables_).
+float Variable(CPlayer* player, const char* name) { return player->Party()->variables_.Get(name); }
 
 CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
@@ -156,7 +157,7 @@ float __stdcall LocalPlayerVariable(const char* name) { return Variable(LocalPla
 
 float __stdcall PlayerZeroVariable(const char* name) {
     if (IsMultiplayerClient()) return Variable(LocalPlayer(), name);
-    WorldPlayer* player = TheServerWorld()->GetPlayer(0);
+    CPlayer* player = TheServerWorld()->GetPlayer(0);
     if (!player) return 0.0f;
     return Variable(player, name);
 }

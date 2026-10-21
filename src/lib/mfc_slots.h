@@ -144,166 +144,237 @@ void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
     }
 }
 
+// ---- Compiler-made vtables (C19) -------------------------------------------------------------------
+//
+// The collection templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the table
+// its constructor and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++ class whose
+// vtable the compiler makes in place of game.exe's table for the instantiation (docs/notes/standalone.md,
+// "Compiler-made vtables"): CObject's three slots over the header's layout (the CArray / CList whose first field
+// holds the table). Slot 0 is CObject's GetRuntimeClass (007005E3), slot 1 the destructor `Destroy` (the
+// instantiation's own: the table written, the elements destroyed, the storage freed; the compiler's scalar deleting
+// destructor frees the object into the game's heap), slot 2 Serialize (`Store`). Our code calls the header's
+// functions by name; the slots are what the original's dispatch through the table reaches (DestructElements' slot 1
+// on an element that is a collection, CArchive's slot 2). A tag derived from another is the derived
+// instantiation's (its destructor ends in the base's, which stores the base's table, as the original's does).
+
+// CObject::GetRuntimeClass (007005E3): CObject's record (mfc_runtime_class.h's kClassCObject; mfc_coll.cpp).
+struct CRuntimeClass;
+const CRuntimeClass* ObjectRuntimeClass();
+
+// The table a T's constructor stores in its first dword (T built in a buffer and left: it holds nothing to destroy).
+template <typename T>
+void* CompiledVtable() {
+    static_assert(std::is_polymorphic_v<T>);
+    alignas(T) unsigned char storage[sizeof(T)];
+    return *reinterpret_cast<void**>(::new (static_cast<void*>(storage)) T);
+}
+
+template <typename F>
+struct SerializeTarget;
+template <typename T>
+struct SerializeTarget<void(__fastcall*)(T*, void*, CArchive*)> {
+    using Type = T;
+};
+
+template <typename Self, auto Destroy, auto Store>
+class CompiledCollection {
+public:
+    static void* Vtable() { return CompiledVtable<Self>(); }
+
+    virtual const CRuntimeClass* GetRuntimeClass() const { return ObjectRuntimeClass(); }   // 0
+    virtual ~CompiledCollection() {                                                         // 1
+        Destroy(reinterpret_cast<typename DestructTarget<decltype(Destroy)>::Type*>(this));
+    }
+    virtual void Serialize(CArchive& archive) {                                             // 2
+        Store(reinterpret_cast<typename SerializeTarget<decltype(Store)>::Type*>(this), nullptr, &archive);
+    }
+
+    static void operator delete(void* p) { gamecrt::operator_delete(p); }
+
+protected:
+    CompiledCollection() = default;
+    CompiledCollection(const CompiledCollection&) = delete;
+    CompiledCollection& operator=(const CompiledCollection&) = delete;
+};
+
+using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
+using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
+
+// AIAttention::Choose's 12-byte records: -1, then 0 (005DA2B0).
+struct Attention12 {
+    int id;
+    int value;
+    int extra;
+};
+inline void InitAttention12(Attention12* p) {
+    p->value = 0;
+    p->id = -1;
+}
+using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
+
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 // Arrays whose elements need nothing.
-struct NodeItemsAClass {   // inside the scene loader's 0x120-byte node records (00454F80)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C1AC); }
-};
-struct NodeItemsBClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C1B8); }
-};
-struct NodeItemsCClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C138); }
-};
-struct TextureLinkArrayClass {   // the scene loader's {id, value} links
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C150); }
-};
-struct MeshCornerArrayClass {   // the scene meshes' corner records (IndexMeshCorners)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C19C); }
-};
-struct Vector3ArrayClass {   // 12-byte points: animation node normals, use spots, terrain sector data
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C120); }
-};
-struct TrapCircleArrayClass {   // a trap's circles (map_spec, magic_trap)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C698); }
-};
-struct TrapPointArrayClass {   // a trap's points
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C6A4); }
-};
+// Inside the scene loader's 0x120-byte node records (00454F80).
+struct NodeItemsAClass final
+    : CompiledCollection<NodeItemsAClass, &ArrayHeader<NodeItemsAClass>::Destruct, &SerializeCArray<Plain20>> {};
+struct NodeItemsBClass final
+    : CompiledCollection<NodeItemsBClass, &ArrayHeader<NodeItemsBClass>::Destruct, &SerializeCArray<Plain24>> {};
+struct NodeItemsCClass final
+    : CompiledCollection<NodeItemsCClass, &ArrayHeader<NodeItemsCClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The scene loader's {id, value} links.
+struct TextureLinkArrayClass final
+    : CompiledCollection<TextureLinkArrayClass, &ArrayHeader<TextureLinkArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+// The scene meshes' corner records (IndexMeshCorners).
+struct MeshCornerArrayClass final
+    : CompiledCollection<MeshCornerArrayClass, &ArrayHeader<MeshCornerArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+// 12-byte points: animation node normals, use spots, terrain sector data.
+struct Vector3ArrayClass final
+    : CompiledCollection<Vector3ArrayClass, &ArrayHeader<Vector3ArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+// A trap's circles (map_spec, magic_trap).
+struct TrapCircleArrayClass
+    : CompiledCollection<TrapCircleArrayClass, &ArrayHeader<TrapCircleArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+// A trap's points.
+struct TrapPointArrayClass
+    : CompiledCollection<TrapPointArrayClass, &ArrayHeader<TrapPointArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
 struct Array0498Class {   // constructed by 00498E60 only
     static void* Vtable() { return ei::GamePointer<void>(0x0073D024); }
 };
-struct ArgObjectsClass {   // a script command's object arguments, the derived class (script_copy)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D484); }
+// A script command's object arguments (script_destroy).
+struct ArgObjectsBaseClass
+    : CompiledCollection<ArgObjectsBaseClass, &ArrayHeader<ArgObjectsBaseClass>::Destruct, &SerializeCArray<Plain4>> {};
+// A script command's object arguments, the derived class (script_copy).
+struct ArgObjectsClass final : ArgObjectsBaseClass {
+    static void* Vtable() { return CompiledVtable<ArgObjectsClass>(); }
 };
-struct ArgGroupsClass {   // a script command's group arguments, the derived class
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D478); }
+// A script command's group arguments.
+struct ArgGroupsBaseClass
+    : CompiledCollection<ArgGroupsBaseClass, &ArrayHeader<ArgGroupsBaseClass>::Destruct, &SerializeCArray<Plain4>> {};
+// A script command's group arguments, the derived class.
+struct ArgGroupsClass final : ArgGroupsBaseClass {
+    static void* Vtable() { return CompiledVtable<ArgGroupsClass>(); }
 };
-struct ArgObjectsBaseClass {   // a script command's object arguments (script_destroy)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3F4); }
+// A script command's bindings.
+struct BindingsBaseClass
+    : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &SerializeCArray<Plain12>> {};
+// A map object's effects.
+struct EffectArrayClass final
+    : CompiledCollection<EffectArrayClass, &ArrayHeader<EffectArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+// A map object's effect sounds.
+struct EffectSoundArrayClass final
+    : CompiledCollection<EffectSoundArrayClass, &ArrayHeader<EffectSoundArrayClass>::Destruct, &SerializeCArray<SoundRecords>> {};
+// A 3D object's frames.
+struct FrameArrayClass final
+    : CompiledCollection<FrameArrayClass, &ArrayHeader<FrameArrayClass>::Destruct, &SerializeCArray<Plain56>> {};
+// A unit's motion (UnitMotion's points and waypoints): the arrays the unit's constructor builds are derived
+// instantiations of the ones they are destroyed as (game.exe's 0073EB9C / 0073EB90 over 0073EBA8 / 0073EBB4).
+struct MotionPointArrayClass
+    : CompiledCollection<MotionPointArrayClass, &ArrayHeader<MotionPointArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+struct MotionPointsClass final : MotionPointArrayClass {
+    static void* Vtable() { return CompiledVtable<MotionPointsClass>(); }
 };
-struct ArgGroupsBaseClass {   // a script command's group arguments
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D400); }
+struct MotionWaypointBaseClass
+    : CompiledCollection<MotionWaypointBaseClass, &ArrayHeader<MotionWaypointBaseClass>::Destruct, &SerializeCArray<Plain12>> {};
+struct MotionWaypointArrayClass final : MotionWaypointBaseClass {
+    static void* Vtable() { return CompiledVtable<MotionWaypointArrayClass>(); }
 };
-struct BindingsBaseClass {   // a script command's bindings
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D40C); }
-};
-struct EffectArrayClass {   // a map object's effects
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DBA0); }
-};
-struct EffectSoundArrayClass {   // a map object's effect sounds
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DC3C); }
-};
-struct FrameArrayClass {   // a 3D object's frames
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DE40); }
-};
-struct MotionWaypointBaseClass {   // a unit's motion waypoints once destroyed
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EBB4); }
-};
-struct CarriedArrayClass {   // a unit's carried objects
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EB84); }
-};
-struct IdArrayClass {   // CArray<int> of quest item ids (world_party)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EBD4); }
-};
-struct SkinLayerArrayClass {   // a unit's skin layers (ComposeSkin)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EEA0); }
-};
-struct CountdownArrayClass {   // the world's countdowns
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F234); }
-};
-struct PartyUnitArrayClass {   // the server's and interface's party unit arrays
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FAA4); }
-};
+// A unit's carried objects (CUnit +0x49C).
+struct CarriedArrayClass final
+    : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// CArray<int> of quest item ids (world_party).
+struct IdArrayClass final
+    : CompiledCollection<IdArrayClass, &ArrayHeader<IdArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// A unit's skin layers (ComposeSkin).
+struct SkinLayerArrayClass final
+    : CompiledCollection<SkinLayerArrayClass, &ArrayHeader<SkinLayerArrayClass>::Destruct, &SerializeCArray<PathRecords>> {};
+// The world's countdowns.
+struct CountdownArrayClass final
+    : CompiledCollection<CountdownArrayClass, &ArrayHeader<CountdownArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+// The server's and interface's party unit arrays.
+struct PartyUnitArrayClass final
+    : CompiledCollection<PartyUnitArrayClass, &ArrayHeader<PartyUnitArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
 struct SectorOccluderArrayClass {   // a sector's occluders
     static void* Vtable() { return ei::GamePointer<void>(0x0073FAE0); }
 };
 struct SectorCellArrayClass {   // constructed by 005C18C0
     static void* Vtable() { return ei::GamePointer<void>(0x0073FDEC); }
 };
-struct SpiralCellArrayClass {   // the sector spiral's cells
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FDE0); }
-};
+// The sector spiral's cells.
+struct SpiralCellArrayClass final
+    : CompiledCollection<SpiralCellArrayClass, &ArrayHeader<SpiralCellArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
 struct SmoothRowArrayClass {   // the path smoothing tables' rows
     static void* Vtable() { return ei::GamePointer<void>(0x0073FE34); }
 };
-struct SmoothEdgeArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE28); }
-};
-struct SmoothCopyArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE10); }
-};
-struct SmoothStepArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE1C); }
-};
-struct ObjectiveExitArrayClass {   // the objectives window's exits
-    static void* Vtable() { return ei::GamePointer<void>(0x00741264); }
-};
-struct ItemStripArrayClass {   // an item strip's CArray<char*>
-    static void* Vtable() { return ei::GamePointer<void>(0x00741BC0); }
-};
-struct QuickEntryArrayClass {   // the HUD's quick item entries
-    static void* Vtable() { return ei::GamePointer<void>(0x007428A0); }
-};
-struct TokenPtrArrayClass {   // the scroll text's token pointers
-    static void* Vtable() { return ei::GamePointer<void>(0x00742F14); }
-};
-struct LinePtrArrayClass {   // the scroll text's line pointers
-    static void* Vtable() { return ei::GamePointer<void>(0x00742F08); }
-};
-struct TerrainArrayAClass {   // the terrain builder's arrays (006CBE60)
-    static void* Vtable() { return ei::GamePointer<void>(0x00744210); }
-};
-struct TerrainArrayBClass {   // (006CC2A0, 006CC3E0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0074421C); }
-};
-struct TerrainArrayCClass {   // (006CC530)
-    static void* Vtable() { return ei::GamePointer<void>(0x00744228); }
-};
+struct SmoothEdgeArrayClass final
+    : CompiledCollection<SmoothEdgeArrayClass, &ArrayHeader<SmoothEdgeArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+struct SmoothCopyArrayClass final
+    : CompiledCollection<SmoothCopyArrayClass, &ArrayHeader<SmoothCopyArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+struct SmoothStepArrayClass final
+    : CompiledCollection<SmoothStepArrayClass, &ArrayHeader<SmoothStepArrayClass>::Destruct, &SerializeCArray<Plain36>> {};
+// The objectives window's exits.
+struct ObjectiveExitArrayClass final
+    : CompiledCollection<ObjectiveExitArrayClass, &ArrayHeader<ObjectiveExitArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+// An item strip's CArray<char*>.
+struct ItemStripArrayClass final
+    : CompiledCollection<ItemStripArrayClass, &ArrayHeader<ItemStripArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The HUD's quick item entries.
+struct QuickEntryArrayClass final
+    : CompiledCollection<QuickEntryArrayClass, &ArrayHeader<QuickEntryArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+// The scroll text's token pointers.
+struct TokenPtrArrayClass final
+    : CompiledCollection<TokenPtrArrayClass, &ArrayHeader<TokenPtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The scroll text's line pointers.
+struct LinePtrArrayClass final
+    : CompiledCollection<LinePtrArrayClass, &ArrayHeader<LinePtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The terrain builder's arrays (006CBE60).
+struct TerrainArrayAClass final
+    : CompiledCollection<TerrainArrayAClass, &ArrayHeader<TerrainArrayAClass>::Destruct, &SerializeCArray<Plain4>> {};
+// (006CC2A0, 006CC3E0).
+struct TerrainArrayBClass final
+    : CompiledCollection<TerrainArrayBClass, &ArrayHeader<TerrainArrayBClass>::Destruct, &SerializeCArray<Plain16>> {};
+// (006CC530).
+struct TerrainArrayCClass final
+    : CompiledCollection<TerrainArrayCClass, &ArrayHeader<TerrainArrayCClass>::Destruct, &SerializeCArray<Plain4>> {};
 
 // Lists whose elements need nothing.
-struct BoneListClass {   // a figure bone's and an animation state's lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DA40); }
-};
-struct AnimationStateListClass {   // an animation state's second list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DA80); }
-};
-struct Object3DListClass {   // a 3D object's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DE4C); }
-};
-struct ClientObjectListClass {   // the client world's and the sectors' object lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F530); }
-};
-struct ExperienceListClass {   // CWorldServer::AwardExperience's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FAB0); }
-};
-struct AttentionListClass {   // AIAttention::Choose's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FF34); }
-};
-struct PlayerListClass {   // a player's list
-    static void* Vtable() { return ei::GamePointer<void>(0x00743138); }
-};
-struct TextureListClass {   // the texture manager's list
-    static void* Vtable() { return ei::GamePointer<void>(0x00743D18); }
-};
-struct SoundListClass {   // the sound manager's list
-    static void* Vtable() { return ei::GamePointer<void>(0x00744130); }
-};
+// A figure bone's children and an animation state's bones.
+struct BoneListClass final : CompiledCollection<BoneListClass, &PtrList::Destruct<BoneListClass>, &SerializeCList<PtrList>> {};
+// An animation state's queue.
+struct AnimationStateListClass final
+    : CompiledCollection<AnimationStateListClass, &PtrList::Destruct<AnimationStateListClass>, &SerializeCList<PtrList>> {};
+// A 3D object's effect sources.
+struct Object3DListClass final
+    : CompiledCollection<Object3DListClass, &PtrList::Destruct<Object3DListClass>, &SerializeCList<PtrList>> {};
+// The client world's and the sectors' object lists.
+struct ClientObjectListClass final
+    : CompiledCollection<ClientObjectListClass, &PtrList::Destruct<ClientObjectListClass>, &SerializeCList<PtrList>> {};
+// CWorldServer::AwardExperience's list.
+struct ExperienceListClass final
+    : CompiledCollection<ExperienceListClass, &PtrList::Destruct<ExperienceListClass>, &SerializeCList<List8>> {};
+// AIAttention::Choose's list.
+struct AttentionListClass final
+    : CompiledCollection<AttentionListClass, &PtrList::Destruct<AttentionListClass>, &SerializeCList<AttentionList>> {};
+// A player's list.
+struct PlayerListClass final
+    : CompiledCollection<PlayerListClass, &PtrList::Destruct<PlayerListClass>, &SerializeCList<PtrList>> {};
+// The texture manager's list.
+struct TextureListClass final
+    : CompiledCollection<TextureListClass, &PtrList::Destruct<TextureListClass>, &SerializeCList<PtrList>> {};
+// The sound manager's list.
+struct SoundListClass final
+    : CompiledCollection<SoundListClass, &PtrList::Destruct<SoundListClass>, &SerializeCList<PtrList>> {};
 
 // Maps whose elements need nothing.
-struct FigureRegistryMapClass {   // LoadFigureRegistry's map
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C16C); }
-};
-struct CornerMapAClass {   // IndexMeshCorners' maps
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C190); }
-};
-struct CornerMapBClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C184); }
-};
-struct CornerMapCClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C178); }
-};
+// LoadFigureRegistry's map.
+struct FigureRegistryMapClass final
+    : CompiledCollection<FigureRegistryMapClass, &Map32::Destruct<FigureRegistryMapClass>, &SerializeCMap<Map32>> {};
+// IndexMeshCorners' maps.
+struct CornerMapAClass final
+    : CompiledCollection<CornerMapAClass, &Map32::Destruct<CornerMapAClass>, &SerializeCMap<Map64x64>> {};
+struct CornerMapBClass final
+    : CompiledCollection<CornerMapBClass, &Map32::Destruct<CornerMapBClass>, &SerializeCMap<Map64x32>> {};
+struct CornerMapCClass final
+    : CompiledCollection<CornerMapCClass, &Map32::Destruct<CornerMapCClass>, &SerializeCMap<Map32>> {};
 
 // Arrays whose elements own something.
 struct FakeUnitBoneArraysClass {   // a fake unit's 20-byte CObject elements (FakeUnitConstruct)
@@ -409,27 +480,15 @@ using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
 using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
 using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
 
-// AIAttention::Choose's 12-byte records: -1, then 0 (005DA2B0).
-struct Attention12 {
-    int id;
-    int value;
-    int extra;
-};
-inline void InitAttention12(Attention12* p) {
-    p->value = 0;
-    p->id = -1;
-}
-using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
 using List30 = ListAbi<Bytes<0x30>>;
 
-using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
-using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
-
-struct TrapAreasArrayClass {   // a map trap record's areas (12-byte elements; the magic trap's circles)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C68C); }
+// A map trap record's areas (12-byte elements; the magic trap's circles).
+struct TrapAreasArrayClass final : TrapCircleArrayClass {
+    static void* Vtable() { return CompiledVtable<TrapAreasArrayClass>(); }
 };
-struct TrapTargetsArrayClass {   // a map trap record's targets (8-byte elements; the magic trap's points)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C680); }
+// A map trap record's targets (8-byte elements; the magic trap's points).
+struct TrapTargetsArrayClass final : TrapPointArrayClass {
+    static void* Vtable() { return CompiledVtable<TrapTargetsArrayClass>(); }
 };
 struct BehaviourPatrolsArrayClass {   // a unit record behaviour's patrols (mapspec::Patrol elements)
     static void* Vtable() { return ei::GamePointer<void>(0x0073C37C); }
