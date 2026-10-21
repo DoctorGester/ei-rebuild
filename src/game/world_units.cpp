@@ -83,7 +83,7 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).
 void DestroyMessage(UnitSpec* message) {
     ei::SetVtable(message, worlddata::kUnitSpecVtable);
-    for (int i = 4; i >= 0; --i) message->lists[i].Destruct();
+    for (int i = 4; i >= 0; --i) message->record.lists[i].Destruct();
     message->prototype.~CString();
     VectorDestruct(message->behaviour, sizeof(mapspec::Behaviour), 5,
                    reinterpret_cast<void*>(worlddata::kBehaviourDestructor));
@@ -536,12 +536,12 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             reinterpret_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(unit, unitSpec->prototype);
-            const mfc::CStringArray& worn = unitSpec->lists[1];
+            const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
                 unit->AddQuickItem(ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
             }
-            reinterpret_cast<unitrecord::UnitRecord*>(unitSpec->stats)->ApplyTo(unit);
+            unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
             const char* prototypeName = unitSpec->prototype;
             UnitPrototypeRecord* prototype;

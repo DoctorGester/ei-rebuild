@@ -13,6 +13,7 @@
 // provisional; see docs/notes/objects.md ("Rewritten").
 #include "chunk_stream.h"
 #include "maths.h"
+#include "unit_record.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -400,15 +401,11 @@ struct UnitSpec {
     std::int32_t behaviours;     // +0x08C records read so far
     Behaviour behaviour[5];      // +0x090
     mfc::CString prototype;      // +0x20C ("none")
-    std::uint8_t stats[0xAC];    // +0x210 (applied to the unit by 00477B00)
-    mfc::CStringArray lists[5];   // +0x2BC ... +0x30C (chunks BBBB0005 ... BBBB0009); [1]: the item
-                                 // names the unit wears (CreateObject, 005927C0)
-    std::uint32_t field0A;       // +0x320 chunk BBBB000A (a byte), only read and written with the record
+    unitrecord::UnitRecord record;   // +0x210 the statistics and item lists (applied to the unit by 00477B00)
 };
 static_assert(offsetof(UnitSpec, behaviour) == 0x90);
 static_assert(offsetof(UnitSpec, prototype) == 0x20C);
-static_assert(offsetof(UnitSpec, stats) == 0x210);
-static_assert(offsetof(UnitSpec, lists) == 0x2BC);
+static_assert(offsetof(UnitSpec, record) == 0x210);
 static_assert(sizeof(UnitSpec) == 0x324);
 
 // Record constructors (each returns this), by .mob chunk id.

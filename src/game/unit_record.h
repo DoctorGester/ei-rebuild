@@ -2,7 +2,10 @@
 
 // The unit record the world server applies to a unit it creates (00477B00, called from
 // CWorldServer's object creation 005927C0): base stats, skills, the inventory, spells and
-// equipment. Names are provisional; see docs/notes/objects.md ("Rewritten").
+// equipment. It is the tail of a .mob unit record (mapspec::UnitSpec + 0x210). Names are
+// provisional; see docs/notes/objects.md ("Rewritten").
+
+#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -11,30 +14,63 @@ class CUnit;
 
 namespace unitrecord {
 
-// Offsets in the record.
-namespace field {
-constexpr std::size_t kStats = 0x00;          // 4 ints -> stats +0x28, +0x2C, +0x34, +0x38 as floats
-constexpr std::size_t kNoStats1 = 0x04;       // with kNoStats0 / 2 == 0: only the items are applied
-constexpr std::size_t kNoStats0 = 0x10;       // float
-constexpr std::size_t kNoStats2 = 0x14;       // float
-constexpr std::size_t kValues = 0x10;         // 0x10..0x53: copied to the controller (see the .cpp)
-constexpr std::size_t kBytes54 = 0x54;        // 7 bytes -> controller +0x270
-constexpr std::size_t kModelScale = 0x70;     // byte: times the prototype model's +0x6C..+0x84
-constexpr std::size_t kPairsA = 0x74;         // 6 floats, each stored twice (controller +0x290)
-constexpr std::size_t kPairsB = 0x8C;         // 6 floats, each stored twice (controller +0x2C0)
-constexpr std::size_t kBytesA4 = 0xA4;        // 3 bytes -> controller +0x8A8
-constexpr std::size_t kCarried = 0xB0;        // dword array {data, size}: item ids
-constexpr std::size_t kQuickItems = 0xC4;
-constexpr std::size_t kSpells = 0xD8;
-constexpr std::size_t kWeapons = 0xEC;
-constexpr std::size_t kArmour = 0x100;
-constexpr std::size_t kApplyStats = 0x110;    // 0: only the items
-} // namespace field
+// The statistics block (chunk BBBB0004, 0xAC bytes). The values go to the server companion's
+// vitals (CMapObjectServer + 0x20) and the controller's statistics (CUnitServer + 0x1E0).
+struct UnitRecordStats {
+    std::int32_t hitPoints;         // +0x00 -> vitals hitPoints (as a float)
+    std::int32_t maxHitPoints;      // +0x04 -> vitals maxHitPoints; 0 with speed / rate 0: only the items
+    std::int32_t mana;              // +0x08 -> vitals mana
+    std::int32_t maxMana;           // +0x0C -> vitals maxMana
+    float speed;                    // +0x10 -> UnitStats speed
+    float rate;                     // +0x14 -> rate
+    float modeSpeeds[4];            // +0x18 -> modeSpeeds
+    float sightCone;                // +0x28 -> sightCone
+    float peripheralRange;          // +0x2C -> peripheralRange
+    float sideCone;                 // +0x30 -> sideCone
+    std::uint32_t modelField8;      // +0x34 -> modelField8
+    std::uint8_t sizeClass;         // +0x38 -> sizeClass
+    std::uint8_t sizeClassSmall;    // +0x39 -> sizeClass20 and sizeClass60
+    std::uint8_t unused_3A[2];
+    float reach;                    // +0x3C -> combat[0]
+    float attack;                   // +0x40 -> combat[1]
+    float defence;                  // +0x44 -> combat[3]
+    float combatSpeed;              // +0x48 -> combat[4]
+    float damage;                   // +0x4C -> damage
+    float damageSpread;             // +0x50 -> damageSpread
+    std::uint8_t damageWeights[7];  // +0x54 the first 7 bytes of UnitStats::damageWeights
+    std::uint8_t unused_5B[0x70 - 0x5B];
+    std::uint8_t protectionScale;   // +0x70 times the prototype model's protection (vitals, each twice)
+    std::uint8_t unused_71[3];
+    float valuesB0[6];              // +0x74 -> UnitStats valuesB0 (base and current)
+    float valuesE0[6];              // +0x8C -> valuesE0
+    std::uint8_t attributes[3];     // +0xA4 -> attributes
+    std::uint8_t unused_A7[0xAC - 0xA7];
+};
+static_assert(offsetof(UnitRecordStats, speed) == 0x10);
+static_assert(offsetof(UnitRecordStats, modelField8) == 0x34);
+static_assert(offsetof(UnitRecordStats, reach) == 0x3C);
+static_assert(offsetof(UnitRecordStats, damageWeights) == 0x54);
+static_assert(offsetof(UnitRecordStats, protectionScale) == 0x70);
+static_assert(offsetof(UnitRecordStats, valuesB0) == 0x74);
+static_assert(offsetof(UnitRecordStats, valuesE0) == 0x8C);
+static_assert(offsetof(UnitRecordStats, attributes) == 0xA4);
+static_assert(sizeof(UnitRecordStats) == 0xAC);
 
 class UnitRecord {
 public:
     // 00477B00. Applies the record to `unit`.
     void ApplyTo(CUnit* unit);
+
+    UnitRecordStats stats;          // +0x000 (chunk BBBB0004)
+    // +0x0AC (chunks BBBB0005 ... BBBB0009) the item names: carried, quick items (worn; also
+    // CreateObject 005927C0), spells, weapons, armour.
+    mfc::CStringArray lists[5];
+    std::uint32_t applyStats;       // +0x110 (chunk BBBB000A, a byte) 0: only the items are applied
+
+    enum List { kCarried, kQuickItems, kSpells, kWeapons, kArmour };
 };
+static_assert(offsetof(UnitRecord, lists) == 0xAC);
+static_assert(offsetof(UnitRecord, applyStats) == 0x110);
+static_assert(sizeof(UnitRecord) == 0x114);
 
 } // namespace unitrecord

@@ -4,6 +4,7 @@
 #include "unit_db.h"
 #include "unit_record.h"
 
+#include "combat.h"
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -13,128 +14,84 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
-#include <bit>
-#include <cstring>
-
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace unitrecord {
 namespace {
 
-// The unit's body slots (controller +0x1E0, unit.h UnitStats).
-struct Slots {
-    void* RefillSlots();                                   // 00525AF0
-};
-void* Slots::RefillSlots() { return UnitStatsRefillSlotsOriginal(this); }
-
 // The item and spell factory (global pointer at 007AFFB4) and the spell manager the spells are made for
-// (007AFFAC). The record names its items by the pointers to their names.
+// (007AFFAC). The record names its items by their names.
 CItem* CreateItem(CItemManager* factory, const char* name) {   // 006AC970 (patched by Rebirth)
     return ItemManagerCreateItemOriginal(factory, nullptr, name);
 }
 CItemManager* TheFactory() { return ei::GameData<CItemManager*>(0x007AFFB4); }
 CSpellManager* SpellOwner() { return ei::GameData<CSpellManager*>(0x007AFFAC); }
 
-
-// *a = *b = float(value * *factor), the product rounded by the FPU's precision.
-void StoreScaledTwice(void* a, void* b, int value, const void* factor) {
-    const float scaled = static_cast<float>(static_cast<double>(value) * *static_cast<const float*>(factor));
-    std::memcpy(a, &scaled, sizeof scaled);
-    std::memcpy(b, &scaled, sizeof scaled);
+void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
+    const mfc::CStringArray& quick = record.lists[UnitRecord::kQuickItems];
+    for (int i = 0; i < quick.size; ++i) unit->AddQuickItem(CreateItem(factory, quick.data[i]));
+    const mfc::CStringArray& carried = record.lists[UnitRecord::kCarried];
+    for (int i = 0; i < carried.size; ++i) unit->AddCarried(CreateItem(factory, carried.data[i]));
 }
-
-std::uint32_t Dword(const char* p, std::size_t offset) {
-    std::uint32_t v;
-    std::memcpy(&v, p + offset, 4);
-    return v;
-}
-void SetDword(char* p, std::size_t offset, std::uint32_t v) { std::memcpy(p + offset, &v, 4); }
-void SetFloat(char* p, std::size_t offset, float v) { std::memcpy(p + offset, &v, 4); }
-
-// A dword array of the record ({data, size} at `offset`).
-const char* const* Ids(const char* r, std::size_t offset) {
-    const char* const* names;
-    std::memcpy(&names, r + offset, sizeof names);
-    return names;
-}
-int Count(const char* r, std::size_t offset) { return static_cast<int>(Dword(r, offset + 4)); }
-
-void AddItems(const char* r, CUnit* unit, CItemManager* factory) {
-    for (int i = 0; i < Count(r, field::kQuickItems); ++i) unit->AddQuickItem(CreateItem(factory, Ids(r, field::kQuickItems)[i]));
-    for (int i = 0; i < Count(r, field::kCarried); ++i) unit->AddCarried(CreateItem(factory, Ids(r, field::kCarried)[i]));
-}
-
-// The controller fields taken from the record (record offset, controller offset).
-constexpr std::uint16_t kControllerCopies[][2] = {
-    {0x10, 0x208}, {0x14, 0x210}, {0x18, 0x214}, {0x1C, 0x218}, {0x20, 0x21C}, {0x24, 0x220},
-    {0x28, 0x224}, {0x2C, 0x228}, {0x30, 0x22C}, {0x34, 0x244},
-};
-constexpr std::uint16_t kControllerCopies2[][2] = {
-    {0x3C, 0x250}, {0x40, 0x254}, {0x44, 0x25C}, {0x48, 0x260}, {0x4C, 0x264}, {0x50, 0x268},
-};
 
 } // namespace
 
 void UnitRecord::ApplyTo(CUnit* target) {
-    const char* r = reinterpret_cast<const char*>(this);
+    const UnitRecordStats& r = stats;
     CItemManager* factory = TheFactory();
     CUnit* unit = target;
-    float k0;
-    std::memcpy(&k0, ei::GamePointer<const void>(0x0073B858), 4);   // 0.0
-    float f10, f14;
-    std::memcpy(&f10, r + field::kNoStats0, 4);
-    std::memcpy(&f14, r + field::kNoStats2, 4);
-    EI_NAN_AUDIT(f10, f14);
-    bool noStats = f10 == k0 && Dword(r, field::kNoStats1) == 0 && f14 == k0;
-    if (noStats || Dword(r, field::kApplyStats) == 0) {
-        AddItems(r, unit, factory);
+    const float k0 = ei::GameData<float>(0x0073B858);   // 0.0
+    EI_NAN_AUDIT(r.speed, r.rate);
+    bool noStats = r.speed == k0 && r.maxHitPoints == 0 && r.rate == k0;
+    if (noStats || applyStats == 0) {
+        AddItems(*this, unit, factory);
         return;
     }
 
     target->ReleaseAllItems();
-    char* stats = reinterpret_cast<char*>(target->companion);   // +0x170
-    char* controller = reinterpret_cast<char*>(target->controller);
-    SetFloat(stats, 0x28, static_cast<float>(static_cast<int>(Dword(r, 0x0))));
-    SetFloat(stats, 0x2C, static_cast<float>(static_cast<int>(Dword(r, 0x4))));
-    SetFloat(stats, 0x34, static_cast<float>(static_cast<int>(Dword(r, 0x8))));
-    SetFloat(stats, 0x38, static_cast<float>(static_cast<int>(Dword(r, 0xC))));
-    Slots* slots = reinterpret_cast<Slots*>(controller + 0x1E0);
-    reinterpret_cast<UnitStats*>(slots)->SetSlotMaxima(std::bit_cast<float>(Dword(stats, 0x2C)));   // 00525A00
-    slots->RefillSlots();
-    SetDword(controller, 0x8DC, Dword(stats, 0x2C));
-    for (const auto& c : kControllerCopies) SetDword(controller, c[1], Dword(r, c[0]));
-    std::uint16_t b38 = static_cast<std::uint8_t>(r[0x38]);
-    std::uint16_t b39 = static_cast<std::uint8_t>(r[0x39]);
-    std::memcpy(controller + 0x248, &b38, 2);
-    std::memcpy(controller + 0x24C, &b39, 2);
-    std::memcpy(controller + 0x24E, &b39, 2);
-    for (const auto& c : kControllerCopies2) SetDword(controller, c[1], Dword(r, c[0]));
-    libcrt::Memmove(controller + 0x270, r + field::kBytes54, 7);
+    UnitVitals& vitals = target->ServerCompanion()->vitals;   // +0x170
+    UnitStats& s = target->ServerController()->stats;         // controller +0x1E0
+    vitals.hitPoints = static_cast<float>(r.hitPoints);
+    vitals.maxHitPoints = static_cast<float>(r.maxHitPoints);
+    vitals.mana = static_cast<float>(r.mana);
+    vitals.maxMana = static_cast<float>(r.maxMana);
+    s.SetSlotMaxima(vitals.maxHitPoints);   // 00525A00
+    s.RefillSlots();                        // 00525AF0
+    s.fixedMaxHitPoints = vitals.maxHitPoints;
+    s.speed = r.speed;
+    s.rate = r.rate;
+    for (int i = 0; i < 4; ++i) s.modeSpeeds[i] = r.modeSpeeds[i];
+    s.sightCone = r.sightCone;
+    s.peripheralRange = r.peripheralRange;
+    s.sideCone = r.sideCone;
+    s.modelField8 = r.modelField8;
+    s.sizeClass = r.sizeClass;
+    s.sizeClass20 = r.sizeClassSmall;
+    s.sizeClass60 = r.sizeClassSmall;
+    s.combat[0] = r.reach;
+    s.combat[1] = r.attack;
+    s.combat[3] = r.defence;
+    s.combat[4] = r.combatSpeed;
+    s.damage = r.damage;
+    s.damageSpread = r.damageSpread;
+    libcrt::Memmove(s.damageWeights, r.damageWeights, sizeof r.damageWeights);
 
     // Seven model values scaled by the record's byte, each stored twice.
     for (std::size_t k = 0; k < 7; ++k) {
         const UnitModelRecord* model = target->GetPrototypeModel();
-        StoreScaledTwice(stats + 0x40 + k * 8, stats + 0x44 + k * 8, static_cast<std::uint8_t>(r[field::kModelScale]),
-                         &model->protection[k]);
+        const float scaled = static_cast<float>(static_cast<double>(r.protectionScale) * model->protection[k]);
+        vitals.protection[k].base = scaled;
+        vitals.protection[k].current = scaled;
     }
-    for (std::size_t i = 0; i < 6; ++i) {
-        std::uint32_t v;
-        std::memcpy(&v, r + field::kPairsA + i * 4, 4);
-        SetDword(controller, 0x290 + i * 8, v);
-        SetDword(controller, 0x294 + i * 8, v);
-    }
-    for (std::size_t i = 0; i < 6; ++i) {
-        std::uint32_t v;
-        std::memcpy(&v, r + field::kPairsB + i * 4, 4);
-        SetDword(controller, 0x2C0 + i * 8, v);
-        SetDword(controller, 0x2C4 + i * 8, v);
-    }
-    libcrt::Memmove(controller + 0x8A8, r + field::kBytesA4, 3);
+    for (std::size_t i = 0; i < 6; ++i) s.valuesB0[i].base = s.valuesB0[i].current = r.valuesB0[i];
+    for (std::size_t i = 0; i < 6; ++i) s.valuesE0[i].base = s.valuesE0[i].current = r.valuesE0[i];
+    libcrt::Memmove(s.attributes, r.attributes, sizeof r.attributes);
 
-    for (int i = 0; i < Count(r, field::kSpells); ++i) unit->AddSpell(factory->CreateSpellItem(Ids(r, field::kSpells)[i], SpellOwner()));
-    AddItems(r, unit, factory);
-    for (int i = 0; i < Count(r, field::kArmour); ++i) unit->EquipArmour(CreateItem(factory, Ids(r, field::kArmour)[i]));
-    for (int i = 0; i < Count(r, field::kWeapons); ++i) unit->AddWeapon(CreateItem(factory, Ids(r, field::kWeapons)[i]));
+    const mfc::CStringArray& spells = lists[kSpells];
+    for (int i = 0; i < spells.size; ++i) unit->AddSpell(factory->CreateSpellItem(spells.data[i], SpellOwner()));
+    AddItems(*this, unit, factory);
+    const mfc::CStringArray& armour = lists[kArmour];
+    for (int i = 0; i < armour.size; ++i) unit->EquipArmour(CreateItem(factory, armour.data[i]));
+    const mfc::CStringArray& weapons = lists[kWeapons];
+    for (int i = 0; i < weapons.size; ++i) unit->AddWeapon(CreateItem(factory, weapons.data[i]));
 }
 EI_REWRITTEN(0x00477B00, UnitRecord::ApplyTo);
 

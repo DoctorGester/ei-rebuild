@@ -330,14 +330,14 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
     self->object.ObjectSpecConstruct();
     VectorConstruct(self->behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
     new (&self->prototype) mfc::CString();
-    for (mfc::CStringArray& list : self->lists) list.Construct();
-    self->field0A = 0;
+    for (mfc::CStringArray& list : self->record.lists) list.Construct();
+    self->record.applyStats = 0;
     ei::SetVtable(self, worlddata::kUnitSpecVtable);
     self->object.base.kind = 5;
     self->prototype = "none";
     self->behaviours = 0;
     self->behaviour[0].enabled = 1;
-    std::memset(self->stats, 0, sizeof(self->stats));
+    std::memset(&self->record.stats, 0, sizeof(self->record.stats));
     return self;
 }
 EI_REWRITTEN(0x0046C010, UnitSpecConstruct);
@@ -347,7 +347,7 @@ const void* UnitSpecBehaviours(const UnitSpec* spec) { return spec->behaviour; }
 // 0046C140: the destructor body.
 void __fastcall UnitSpecDestruct(UnitSpec* self) {
     ei::SetVtable(self, worlddata::kUnitSpecVtable);
-    for (int i = 4; i >= 0; --i) self->lists[i].Destruct();
+    for (int i = 4; i >= 0; --i) self->record.lists[i].Destruct();
     self->prototype.~CString();
     VectorDestruct(self->behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
     self->object.ObjectSpecDestruct();
@@ -364,10 +364,10 @@ EI_REPLACE_METHOD(0x0046C120, UnitSpec::DeleteScalar);
 
 // 0046C2F0: the destructor of the block at +0x210 (the five string lists; reached only when an
 // exception unwinds the constructor).
-void __fastcall UnitStatsDestruct(std::uint8_t* self) {
-    for (int i = 4; i >= 0; --i) reinterpret_cast<mfc::CStringArray*>(self + 0xAC + i * 0x14)->Destruct();
+void __fastcall UnitRecordDestruct(unitrecord::UnitRecord* self) {
+    for (int i = 4; i >= 0; --i) self->lists[i].Destruct();
 }
-EI_REWRITTEN(0x0046C2F0, UnitStatsDestruct);
+EI_REWRITTEN(0x0046C2F0, UnitRecordDestruct);
 
 // 0046C4D0 (slot 7): makes the unit, or moves, turns and rescales it.
 void __fastcall UnitSpecApply(UnitSpec* self) {
@@ -396,10 +396,10 @@ EI_REPLACE(0x0046C4D0, UnitSpecApply);
 void __fastcall UnitSpecSave(UnitSpec* self) {
     Chunk& c = self->object.base.chunk;
     c.BeginWrite(0xBBBB0000);
-    c.WriteByte(0xBBBB000A, static_cast<std::uint8_t>(self->field0A));
+    c.WriteByte(0xBBBB000A, static_cast<std::uint8_t>(self->record.applyStats));
     c.WriteString(0xBBBB0002, self->prototype);
-    for (int i = 4; i >= 0; --i) c.WriteStringArray(0xBBBB0005 + i, &self->lists[i]);
-    c.WriteBlob(0xBBBB0004, self->stats, sizeof(self->stats));
+    for (int i = 4; i >= 0; --i) c.WriteStringArray(0xBBBB0005 + i, &self->record.lists[i]);
+    c.WriteBlob(0xBBBB0004, &self->record.stats, sizeof(self->record.stats));
     self->object.ObjectSpecWriteFields();
     BehaviourChunk writer;
     writer.chunk.Construct(nullptr);
@@ -421,13 +421,13 @@ void __fastcall UnitSpecOnChunk(UnitSpec* self) {
     Chunk& c = self->object.base.chunk;
     switch (c.id_) {
     case 0xBBBB0002: ReadInto(c, self->prototype); break;
-    case 0xBBBB0004: c.ReadBytes(self->stats, sizeof(self->stats)); break;
+    case 0xBBBB0004: c.ReadBytes(&self->record.stats, sizeof(self->record.stats)); break;
     case 0xBBBB0005:
     case 0xBBBB0006:
     case 0xBBBB0007:
     case 0xBBBB0008:
-    case 0xBBBB0009: c.ReadStringArray(&self->lists[c.id_ - 0xBBBB0005]); break;
-    case 0xBBBB000A: self->field0A = c.ReadByte(); break;
+    case 0xBBBB0009: c.ReadStringArray(&self->record.lists[c.id_ - 0xBBBB0005]); break;
+    case 0xBBBB000A: self->record.applyStats = c.ReadByte(); break;
     case 0xBBBC0000: {
         BehaviourChunk reader;
         reader.chunk.Construct(nullptr);

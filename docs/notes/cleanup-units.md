@@ -25,6 +25,11 @@ is still left. The units themselves are in `units.md`; the conventions are those
 - 005327D0 is `CUnit::ActionSpeed(const FigureAnimation*)`: it reads the entry's key (bits 18-21, the action kind), not
   a hit's damage type, so it is no longer ResistanceTo.
 - `SkillLevelRecord::Value()` (the exact FILD load of values[7]; three copies merged) and `WorthExponent()` (values[6]).
+- `unitrecord::UnitRecord` (unit_record.h) is the tail of a .mob unit record (`mapspec::UnitSpec::record`, +0x210,
+  0x114 bytes): `UnitRecordStats` (chunk BBBB0004, 0xAC bytes, typed fields), the five item name lists and
+  `applyStats` (chunk BBBB000A). ApplyTo (00477B00) writes the server companion's `vitals` and the controller's
+  `stats` by name; 0046C2F0 is `UnitRecordDestruct`. The record's +0x54 copies 7 bytes into `UnitStats::damageWeights`
+  (as the original does).
 - Duplicates merged: unit_save's ChangePlayer is `CUnit::SetPlayer`; the level value loads above.
 
 ## Left
@@ -71,8 +76,6 @@ fake_unit, class_templates (and class_template_stock), hoover_loot, zone_records
 Left:
 - combat.h's `CombatStats` overlay repeats UnitStats +0x64..+0x10F (`Combat()` reinterprets the stats); its users
   include script_addon_commands.cpp, so the merge waits for that file's owner.
-- map_spec_unit's `UnitStatsDestruct` (0046C2F0) reaches the five lists from UnitSpec +0x210 by arithmetic on a byte
-  pointer (not counted by the check). Embedding a block struct in UnitSpec touches world_units.cpp.
 - unit_create_stats keeps its `__asm` (FpuCopy2, GameFtol) and raw addresses (the record tables, 0x007846F0 "none").
 - `SceneHelper` / `CFigureMesh` declare no virtuals; `ClassTemplate` does not derive from CRefCounted (the delete
   goes through a reinterpret_cast); party_manager.cpp still reinterpret_casts the template parties.
