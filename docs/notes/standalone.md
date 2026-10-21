@@ -562,6 +562,17 @@ kinds given.
         stock generation's scratch vectors (item_stock.cpp, 007C8640-007C8680), the command line's CStrings and the
         mouse pointer (app_main.cpp, 0079BA08-0079BA1C; the movie folder's default ".\capture\" is our literal),
         the script's quest name 007AA61C and the folder strings (game_folders.cpp, 007AF450-007AF460).
+      - C18k1 / C18k2 (1,505 -> 1,461 game data addresses) named the aligned arrays whose exit function is a plain
+        free: map_object_shadow's points / pixels / quads (007AF1F8 / 007AF1E0 / 007AF208, the guard 007AF1F0 with
+        them), figure_mesh's offset vertices 007C2E18, terrain_sector's projection buffers 007C88F8 / 007C88E8 (their
+        guard byte 007C88C9 stays at its address: bit 4 is the outcodes' destructor 006BFAE0, which the generated
+        static_exit.cpp still runs until the CByteArray 007C88D0 is named, C19), and the function-local statics of
+        renderer_strip (007AF000-007AF040), renderer_sprites (007AEF90, 007AEFA0, 007AEFB8-007AEFE8),
+        figure_rasterise 007C2E00, the two part draws 007C2E48 / 007C2E60, lightning_draw 0079C1D0, particle_render
+        007A9BD0, effects_weather_draw 007ABA30, link_mesh_draw 007AEEB8 and terrain_animation 007C8938. The hand code's
+        GameAtExit keeps passing the exit function's address (or the port itself). Not named, because unported code
+        reaches them: camera 0079B1E0 / 0079B1F8 / 0079B210 (00402310), terrain 007C8890 / 007C88A8 / 007C88B8
+        (006BFF40) and 007C8950 (006C8990); their `free` exit functions stay generated until those functions are ported.
       - Not this rule (C19): an object that carries game.exe's vtable: the particle draw order 007A9C50, the CArrays
         007A9CC8 / 007AA608, the save stream (CMemoryStream 007AFDF8), the console's log ostream 007C5810 (built by
         006FC42F with the iostream virtual base table 00748284; combat's 007AF3E8, the AI's 007C53C4 and the
