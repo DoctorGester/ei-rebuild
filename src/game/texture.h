@@ -316,7 +316,7 @@ static_assert(sizeof(CDXSurface) == 0x20);
 
 // The start of the target the pixel converter's triangle rasterisers (slots 8 / 9) read: a shadow
 // triangle's three corners, each a screen and a texture point (moved as qwords), and the keyed
-// texture's texels; the surface follows (map_object_shadow.cpp fills it).
+// texture's texels; the surface follows (RasterTarget).
 struct RasterTriangle {
     struct Point {
         int x;
@@ -334,12 +334,21 @@ struct RasterTriangle {
 };
 static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, keyTexels) == 0x30);
 
+// The whole target a shadow's parts are rasterised into (map_object_shadow.cpp fills it): the
+// triangle the callees write, then the surface's bits.
+struct RasterTarget : RasterTriangle {
+    void* bits;                // +0x34
+    int keyPitch;              // +0x38 the key texels' row pitch in bytes (only slot 9 reads it)
+    int pitch;                 // +0x3C
+};
+static_assert(offsetof(RasterTarget, bits) == 0x34 && sizeof(RasterTarget) == 0x40);
+
 class CFigureMesh;   // figure_mesh.h
 class CPixelConverter;
 // figure_rasterise.cpp. 005A0E80 (RET 0xC): the figure mesh's projected `points` rasterised into
-// `triangle`'s target through `rasteriser`; returns the number of points it used.
+// `target` through `rasteriser`; returns the number of points it used.
 int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser,
-                                   const RasterTriangle::Point* points, RasterTriangle* triangle);
+                                   const RasterTriangle::Point* points, RasterTarget* target);
 
 // 2DintMMX's graphics processor, the pixel converter (*007AF06C, also CTextureDevice::converter_).
 // Its code is in the DLL; only the slots the rewritten code calls are named. Never constructed here.
@@ -362,9 +371,9 @@ public:
     virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
     // 8: rasterises one triangle of a shadow: `target` starts with its three corners (a screen and
     // a texture point each, pairs of ints) and goes on with the surface (004F4850, 005A0E80).
-    virtual void RasteriseTriangle(void* target);
+    virtual void RasteriseTriangle(RasterTarget* target);
     // 9: the same, masked by a keyed texture's texels (RasterTriangle::keyTexels; 005A0E80).
-    virtual void RasteriseKeyedTriangle(void* target);
+    virtual void RasteriseKeyedTriangle(RasterTarget* target);
     // 10: decodes a DXT block image into 16-bit pixels (texture_fill.cpp).
     virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
     // 11 / 12: the two passes of the shadow's blur over a 16-bit image of `width` x `height` pixels

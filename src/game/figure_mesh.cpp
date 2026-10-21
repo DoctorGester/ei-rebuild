@@ -676,7 +676,7 @@ void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
 void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
 EI_REPLACE_METHOD(0x005A0B10, CFigureMesh::SetOffsets);
 
-int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, float* points, float* bounds) {
+int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds) {
     void* vertices = buffers_.vertices;
     if (offsets_.size != 0) {
         const VertexPacket* source = static_cast<const VertexPacket*>(buffers_.vertices);

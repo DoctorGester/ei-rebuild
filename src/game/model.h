@@ -108,7 +108,7 @@ public:
     virtual void Unknown28();
     // 29: the `blocks` packets projected with `matrix` into `points` (x, y per vertex), `bounds`
     // (min x, min y, max x, max y) grown around them (a shadow's points, 004F4680).
-    virtual void ProjectFlat(const float* matrix, const VertexPacket* vertices, float* points, int blocks,
+    virtual void ProjectFlat(const float* matrix, const VertexPacket* vertices, Vector2* points, int blocks,
                              float* bounds);
     virtual void Unknown30();
     virtual void Unknown31();

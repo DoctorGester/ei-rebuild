@@ -255,7 +255,7 @@ EI_REPLACE_METHOD(0x004F4150, CLinkMesh::DrawPartTexturedImpl);
 // 004F4680 (slot 13, RET 0x14). The part's positions (moved by `offsets` when it has any) through
 // the transform object's flat projection; four points per packet.
 int CLinkMesh::ProjectPartImpl(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
-                           float* points, float* bounds) {
+                           Vector2* points, float* bounds) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
@@ -270,7 +270,7 @@ EI_REPLACE_METHOD(0x004F4680, CLinkMesh::ProjectPartImpl);
 // nearest integer), then every triangle's corners - the projected point of the corner's position
 // and the texture point of its coordinate - handed to the pixel converter's rasteriser at the
 // start of `target`.
-int CLinkMesh::RasterisePartImpl(const stlp::string* name, int* pixels, void* target) {
+int CLinkMesh::RasterisePartImpl(const stlp::string* name, const PixelPair* pixels, RasterTarget* target) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
@@ -287,13 +287,11 @@ int CLinkMesh::RasterisePartImpl(const stlp::string* name, int* pixels, void* ta
 
     const IndexTriangle* corners = corners_.data + r.corners.start;
     const std::uint16_t* indices = indices_.data + r.indices.start;
-    const auto* screen = reinterpret_cast<const PixelPair*>(pixels);
-    auto* triangle = static_cast<RasterTriangle*>(target);
     for (unsigned n = 0; n < static_cast<unsigned>(r.indices.count); n += 3) {
         for (int k = 0; k < 3; ++k) {
             const IndexTriangle& corner = corners[indices[n + k]];
-            std::memcpy(&triangle->corners[k].screen, &screen[corner.index[0]], sizeof(PixelPair));
-            std::memcpy(&triangle->corners[k].texture, &texturePixels.data[corner.index[2]], sizeof(PixelPair));
+            std::memcpy(&target->corners[k].screen, &pixels[corner.index[0]], sizeof(PixelPair));
+            std::memcpy(&target->corners[k].texture, &texturePixels.data[corner.index[2]], sizeof(PixelPair));
         }
         converter->RasteriseTriangle(target);
     }

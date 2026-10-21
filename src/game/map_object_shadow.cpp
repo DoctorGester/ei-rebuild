@@ -200,14 +200,6 @@ bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::X
 
 CFigureMesh* PartAt(const CObject3D* object, int i) { return static_cast<CFigureMesh*>(object->parts.data[i]); }
 
-// The bits a part is rasterised into: the callee's triangle corners and key texels, then the target
-// surface.
-struct RasterTarget : RasterTriangle {
-    void* bits;                // +0x34
-    int keyPitch;              // +0x38 the key texels' row pitch in bytes (only slot 9 reads it)
-    int pitch;                 // +0x3C
-};
-static_assert(sizeof(RasterTarget) == 0x40);
 constexpr int kKeyTexelPitch = 0x200;   // 256 texels of 2 bytes
 
 
@@ -264,7 +256,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += figure->RasterisePart(&key, &Pixels()[count].x, &target);
+            count += figure->RasterisePart(&key, &Pixels()[count], &target);
         } else {
             count += RasteriseFigureMesh(part, nullptr, static_cast<CPixelConverter*>(device), &Pixels()[count],
                                          &target);   // 005A0E80
@@ -359,11 +351,11 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &Points()[count].x,
+            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &Points()[count],
                                          self->bounds);
         } else {
-            count += PartAt(self->object, i)->DrawOffset(pipeline, const_cast<float*>(TopMatrix(pipeline)),
-                                 &Points()[count].x, self->bounds);
+            count += PartAt(self->object, i)->DrawOffset(pipeline, TopMatrix(pipeline), &Points()[count],
+                                                         self->bounds);
         }
         pipeline->PopMatrix(kShadowStack);
     }
