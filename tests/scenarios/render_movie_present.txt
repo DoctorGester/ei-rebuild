@@ -8,7 +8,7 @@
 # Captures cannot be taken inside the movie (the console step that starts it runs it to its end);
 # the capture after it checks the game's frames still come. (render_movie, the same beside the old
 # path, went with S21a: on the image it was this run, and its golden this one's.)
-render new,present
+render new,present,checkall
 reject Script error
 waitmenu
 console thingamabob

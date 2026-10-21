@@ -16,7 +16,7 @@
 # no original: vanilla rebirth (the cursor thread's presents between frames: our renderer only; S21a)
 # Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 fpscursor 1
-render new,present
+render new,present,checkall
 reject Script error
 waitmenu
 console thingamabob

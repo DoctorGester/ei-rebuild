@@ -8,7 +8,7 @@
 # "resolution" scenario alone.
 # no original: vanilla (full screen at 800x600 without our renderer would switch the display mode, which the user forbids; S20b)
 # Its golden is the image's own (golden.py record --image, S20b): the world it plays does not follow the renderer.
-render new,present
+render new,present,checkall
 resolution 800x600
 fullscreen 1
 reject Script error

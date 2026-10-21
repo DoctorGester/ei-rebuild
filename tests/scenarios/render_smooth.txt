@@ -8,7 +8,7 @@
 # screen copy between frames) must still show that frame. R16c: the smooth frame with the terrain pages
 # built and uploaded again (smooth_fresh) matches the one with them kept on the GPU.
 # no original: vanilla rebirth (the smooth option is our renderer's)
-render new,present,smooth
+render new,present,smooth,checkall
 reject Script error
 waitmenu
 console thingamabob

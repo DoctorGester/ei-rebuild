@@ -57,6 +57,7 @@ Ramp g_rampTable;   // (kept across devices: the game sets it once, a new device
 std::uint8_t (&g_ramp)[256 * 4] = g_rampTable.entries;
 bool g_rampDirty = true;     // to be uploaded before the next present
 bool g_rampIdentity = true;
+long g_rampsSet = 0;          // verify build: ramps set so far (the ramp check is sampled)
 bool g_checkRamp = false;     // verify build: compare the next presented frame with the ramp applied
 WindowPresentInfo g_info;
 
@@ -422,7 +423,13 @@ void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const st
                 g_ramp[257], g_ramp[258], g_ramp[512], g_ramp[513], g_ramp[514]);
     g_rampIdentity = identity;
     g_rampDirty = true;
+#if defined(EI_RENDER_VALIDATION)
+    // Reading the presented frame back stalls on the GPU: sampled (ReadBackDue).
+    g_checkRamp = detail::ReadBackDue(g_rampsSet);
+    ++g_rampsSet;
+#else
     g_checkRamp = true;
+#endif
 }
 
 WindowPresentInfo WindowPresents() {

@@ -13,7 +13,7 @@
 # pixels through render::FrameToWindow, the game maps the messages back: present_window.h).
 # no original: vanilla rebirth (the gamma step and the scaled window are our renderer's; S21a)
 # Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
-render new,present
+render new,present,checkall
 resolution 800x600
 fullscreen 0
 reject Script error

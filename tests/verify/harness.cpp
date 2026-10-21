@@ -216,7 +216,7 @@
 //                             rectangle must sit at the mouse less the cursor's hot spot (within the
 //                             distance the mouse covers in two steps of the cursor thread)
 //   render <spec>             the new renderer's options for a run of the image (src/render/render.h;
-//                             the format of EI_RENDER: "removable"). Read before the game starts.
+//                             the format of EI_RENDER: "removable", "checkall"). Read before the game starts.
 //                             Ignored in a run of the original code (game.exe), which never runs it
 //   samecapture <a> <b> [tolerance] [fraction]
 //                             require frames <a> and <b> to match: at most <fraction> (default

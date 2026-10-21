@@ -9,7 +9,7 @@
 # textures are loaded on the new device, and the device is lost once more there.
 # no original: vanilla rebirth (losedevice needs our renderer; S21a)
 # Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
-render new,present
+render new,present,checkall
 reject Script error
 waitmenu
 waitpresent 10
