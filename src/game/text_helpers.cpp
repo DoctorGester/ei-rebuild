@@ -29,7 +29,6 @@ const char* TextTokenizer::Start() {
     position = 0;
     return Next();
 }
-EI_REPLACE_METHOD(0x00445D20, TextTokenizer::Start);
 
 int __fastcall RemoveCarriageReturns(mfc::CString* text) { return text->Remove('\r'); }
 EI_REPLACE(0x004461E0, RemoveCarriageReturns);

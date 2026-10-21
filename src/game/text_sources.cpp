@@ -112,7 +112,6 @@ void* TextSources::Find(const char* key, std::uint32_t* size) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x004DEBC0, TextSources::Find);
 
 void TextSources::ListKeys(mfc::CStringArray* out, const char* pattern) {
     console::CStringArray found;
@@ -139,11 +138,9 @@ int CTextManager::Create() {
 EI_REPLACE_METHOD(0x004DED20, CTextManager::Create);
 
 EI_REPLACE_METHOD(0x004DE930, TextSources::Add);
-EI_REPLACE_METHOD(0x004DEAF0, TextSources::Remove);
 EI_REPLACE_METHOD(0x004DEB60, TextSources::Clear);
 EI_REPLACE_METHOD(0x005628E0, TextSources::DestructList);
 EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
-EI_REPLACE_METHOD(0x004DEDD0, CTextManager::RemoveSource);
 EI_REPLACE_METHOD(0x004DED40, CTextManager::ClearSources);
 EI_REPLACE_METHOD(0x005629B0, CTextManager::Destruct);
 EI_REPLACE_METHOD(0x00562990, CTextManager::DeletingDestruct);

@@ -88,13 +88,6 @@ void PartyUnitRecord::ClearItems() {
 }
 EI_REPLACE_METHOD(0x0065F860, PartyUnitRecord::ClearItems);
 
-// The record lists' own copies of AlignedPtrArray::SetSize (00519D70; the same code): the record
-// load 0065F9B0 and 006621F0 call them.
-EI_REPLACE_METHOD(0x00663960, AlignedPtrArray::SetSize);
-EI_REPLACE_METHOD(0x00663AD0, AlignedPtrArray::SetSize);
-EI_REPLACE_METHOD(0x00663C00, AlignedPtrArray::SetSize);
-EI_REPLACE_METHOD(0x00663D30, AlignedPtrArray::SetSize);
-
 // --- The record array ---------------------------------------------------------------------------
 
 void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
@@ -131,8 +124,6 @@ PartyMemberArray* __fastcall DeletePartyMemberArray(PartyMemberArray* array, voi
 }
 EI_REPLACE(0x00664470, DeletePartyMemberArray);
 
-// 00663FA0: CArray<PartyUnitRecord>::SetSize.
-EI_REPLACE_METHOD(0x00663FA0, PartyMemberArray::SetSize);
 // 006641D0 (A-H17): CArray<PartyUnitRecord>::Serialize, slot 2 of the array's vtable 00742FF4; no
 // code calls it (the parties go through CStream, party_save.cpp).
 EI_REPLACE_METHOD(0x006641D0, PartyMemberArray::Serialize);
@@ -149,7 +140,6 @@ CItemConstructor* CItemConstructor::Construct() {
     manager_ = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x006A5AB0, CItemConstructor::Construct);
 
 CSpellConstructor* CSpellConstructor::Construct() {
     ClearFields();
@@ -159,7 +149,6 @@ CSpellConstructor* CSpellConstructor::Construct() {
     manager_ = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x00683FF0, CSpellConstructor::Construct);
 
 CSpellManager::CSpellManager() {
     sequences_.InitBuckets(100);
@@ -210,7 +199,6 @@ CParty* CParty::Construct() {
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x00661050, CParty::Construct);
 
 void CParty::DestructBody() {
     ei::SetVtable(this, kVtableAddress);

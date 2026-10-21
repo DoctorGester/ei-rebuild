@@ -68,7 +68,6 @@ CItem* CItem::Clone(CSpellManager* spells) {
     copy->Release();
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0069FF70, CItem::Clone);
 
 BOOL CItem::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (target->type_ != type_) return 0;
@@ -185,7 +184,6 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00661F30, CParty::RemoveItem);
 
 namespace {
 constexpr int kQuestItemClassId = 0x14;   // CItemQuest
@@ -217,13 +215,9 @@ CItem* PartyUnitRecord::AddSpell(CItem* item) { return AddEntry(spells, item); }
 EI_REPLACE_METHOD(0x00660E70, PartyUnitRecord::AddSpell);
 
 void PartyUnitRecord::RemoveWeapon(CItem* entry) { RemoveEntry(weapons, entry); }
-EI_REPLACE_METHOD(0x00660A50, PartyUnitRecord::RemoveWeapon);
 void PartyUnitRecord::RemoveQuickItem(CItem* entry) { RemoveEntry(quickItems, entry); }
-EI_REPLACE_METHOD(0x00660C30, PartyUnitRecord::RemoveQuickItem);
 void PartyUnitRecord::RemoveArmor(CItem* entry) { RemoveEntry(armor, entry); }
-EI_REPLACE_METHOD(0x00660E10, PartyUnitRecord::RemoveArmor);
 void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
-EI_REPLACE_METHOD(0x00660FF0, PartyUnitRecord::RemoveSpell);
 
 // --- 00660840 (A-H25): the weight a unit record carries ---------------------------------------------
 
@@ -244,4 +238,3 @@ float PartyUnitRecord::CarriedWeight() const {
     AddListWeight(weight, armor, armorCount);
     return weight;
 }
-EI_REPLACE_METHOD(0x00660840, PartyUnitRecord::CarriedWeight);

@@ -581,7 +581,6 @@ void Terrain::SetLightInterval(int frames) {
     if (frames < 0) lightCountdown = -1;
     if (lightCountdown < frames) lightCountdown = frames;
 }
-EI_REPLACE_METHOD(0x006C9290, Terrain::SetLightInterval);
 
 void Terrain::SetWaterLevel(int material, float level) {
     if (material < 0 || material >= materials.size) return;
@@ -592,7 +591,6 @@ void Terrain::SetWaterLevel(int material, float level) {
         sectorLevel = change + sectorLevel;
     }
 }
-EI_REPLACE_METHOD(0x006CC7F0, Terrain::SetWaterLevel);
 
 void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, char wholePage) {
     constexpr int kSide = 3;                  // a tile's vertices per row
@@ -641,13 +639,4 @@ EI_REPLACE_METHOD(0x006C6070, Terrain::CombineRotationImpl);
 EI_REPLACE_METHOD(0x006C5620, Terrain::Reset);
 EI_REPLACE_METHOD(0x006C57E0, Terrain::BuildWavePhases);
 EI_REPLACE_METHOD(0x006C7D70, Terrain::SetWaveStrength);
-EI_REPLACE_METHOD(0x006C7EB0, Terrain::SetWaves);
 
-// ---- Aligned arrays of 4-byte elements (lib::AlignedArray) ----------------------------------------
-// SetSize(count, growBy) (RET 8): 006CD5C0 (the client setup's array, from 006C7750), 006CE890 (the
-// light countdown's sorted sectors, 006C8ED0). SetAtGrow(index, value) (RET 8): 006CDD50 /
-// 006CDE90 (the map loader's tables, 006C5AA0).
-EI_REPLACE_METHOD(0x006CD5C0, lib::AlignedArray<std::uint32_t>::SetSize);
-EI_REPLACE_METHOD(0x006CE890, lib::AlignedArray<std::uint32_t>::SetSize);
-EI_REPLACE_METHOD(0x006CDD50, lib::AlignedArray<std::uint32_t>::SetAtGrow);
-EI_REPLACE_METHOD(0x006CDE90, lib::AlignedArray<std::uint32_t>::SetAtGrow);

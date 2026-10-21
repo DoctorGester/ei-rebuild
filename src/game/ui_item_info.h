@@ -123,11 +123,6 @@ inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(
 
 class CParty;
 class CItemScreen;
-// 005EC010 / 005EC2F0 (identical; ui_small_members.cpp). What the item screens' cache destructors
-// (005F6470, 005F6620, 005F7010, 005F8FC0, 00634500, 00634560) call per cached model / texture:
-// the object's slot 4 (its release), as a tail call; the slot's EAX is returned.
-int __fastcall UiReleaseCachedModel(void* object);
-int __fastcall UiReleaseCachedTexture(void* object);
 // 005F6470 / 005F6620 (__fastcall on the screen). Destructor bodies of the item screens (vtable
 // 00740A2C's screen; the camp, vtable 0074091C, which also has a CStringArray at +0x240 and a
 // CArray at +0x19C): both caches' objects released and their maps destroyed, then the container

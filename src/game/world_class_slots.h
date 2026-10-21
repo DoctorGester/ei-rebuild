@@ -39,8 +39,6 @@ const char* __fastcall LightningManagerClassName(ClientListManager*);   // 00562
 int __fastcall LightningManagerClassId(ClientListManager*);          // 00562D90: 0x35
 const char* __fastcall VisFogManagerClassName(ClientArrayManager*);  // 00562DB0 (0073F554) "CVisFogManager"
 int __fastcall VisFogManagerClassId(ClientArrayManager*);            // 00562DC0: 0x60
-const char* __fastcall FigureManagerClassName(CFigureManager*);      // 005AA180 (0073FB88) "CFigureManager"
-int __fastcall FigureManagerClassId(CFigureManager*);                // 005AA190: 0x28
 const char* __fastcall I3DFigureClassName(CEngineObject*);           // 005AACC0 (0073FC48) "CI3DFigure"
 int __fastcall I3DFigureClassId(CEngineObject*);                     // 005AACD0: 0x46
 const char* __fastcall FigureClientSpecificClassName(CEngineObject*);   // 005A7040 (0073FB10) "CFigureClientSpecific"
@@ -53,7 +51,6 @@ int __fastcall UiObjectClassId(CEngineObject*);                      // 00579590
 
 // Slot 25 of a resource manager: the name of its resource folder.
 const char* __fastcall ItemManagerResourceName(CItemManager*);       // 0055F3B0 (0073F25C) "items"
-const char* __fastcall FigureManagerResourceName(CFigureManager*);   // 005AA170 (0073FB88) "figures"
 
 // 0055FAD0: slot 6 (RunTick) of the worlds' base vtable 0073F18C answers 1.
 int __fastcall WorldBaseRunTick(CWorld*);

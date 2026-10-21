@@ -294,7 +294,6 @@ void CSoundManager::SetReverb(float room, float level, float time) {
     std::memcpy(&reverb[1], &level, 4);
     std::memcpy(&reverb[2], &time, 4);
 }
-EI_REPLACE_METHOD(0x006B69E0, CSoundManager::SetReverb);
 
 // 006B7320 / 006B7380. The game window lost / regained focus.
 void CSoundManager::PauseAll() {
@@ -303,7 +302,6 @@ void CSoundManager::PauseAll() {
             if (slots[i].playing != 0) AilStopSample()(slots[i].sample);
     if (enabled != 0 && streamSample != nullptr) AilStopSample()(streamSample);
 }
-EI_REPLACE_METHOD(0x006B7320, CSoundManager::PauseAll);
 
 void CSoundManager::ResumeAll() {
     if (slots != nullptr)
@@ -311,7 +309,6 @@ void CSoundManager::ResumeAll() {
             if (slots[i].playing != 0) AilResumeSample()(slots[i].sample);
     if (enabled != 0 && streamSample != nullptr) AilResumeSample()(streamSample);
 }
-EI_REPLACE_METHOD(0x006B7380, CSoundManager::ResumeAll);
 
 // --- Per-handle controls --------------------------------------------------------------------------
 
@@ -332,7 +329,6 @@ DeferredSound* CSoundManager::FindDeferred(std::uint32_t handle) {
     DeferredNode* node = deferred.Find(static_cast<std::int32_t>(handle));
     return node != nullptr ? node->value : nullptr;
 }
-EI_REPLACE_METHOD(0x006B7CB0, CSoundManager::FindDeferred);
 
 // 006B9100. Makes a sound 2D with the given volume (0..100) and pan.
 int CSoundManager::SetSoundVolume(int handle, int volume, int pan) {
@@ -448,7 +444,6 @@ void CSoundManager::MoveEmitter(int index, const float* position, float inner, f
     e->minInterval = minInterval;
     e->maxInterval = maxInterval;
 }
-EI_REPLACE_METHOD(0x006B9A30, CSoundManager::MoveEmitter);
 
 // 006B9950. Returns the emitter index or -1.
 int CSoundManager::AddEmitter(const SoundNameArray* names, const float* position, float inner, float outer,
@@ -482,7 +477,6 @@ int CSoundManager::RemoveEmitter(int index) {
     e->lastPlayed = 0;
     return -1;
 }
-EI_REPLACE_METHOD(0x006B9AA0, CSoundManager::RemoveEmitter);
 
 // --- Sound sequences ------------------------------------------------------------------------------
 
@@ -509,7 +503,6 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
     if (remaining > 0) --remaining;
     return 1;
 }
-EI_REPLACE_METHOD(0x006BA140, SoundSequence::PlayNext);
 
 // 006BA2D0. Returns the sequence id (generation << 8 | slot) or -1.
 int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist,
@@ -769,7 +762,6 @@ void CSoundManager::FadeOutStream() {
     musicFader.step = FloatBits(FadeStepBits());
     musicFader.holdUntil = 0;
 }
-EI_REPLACE_METHOD(0x006BAFA0, CSoundManager::FadeOutStream);
 
 void CSoundManager::FadeInStream() {
     if (enabled == 0) return;
@@ -779,7 +771,6 @@ void CSoundManager::FadeInStream() {
     musicFader.step = FloatBits(FadeStepBits());
     musicFader.holdUntil = 0;
 }
-EI_REPLACE_METHOD(0x006BAFE0, CSoundManager::FadeInStream);
 
 // 006BB020. Asks the stream thread to switch to `name` (an .mp3 path). `mode` says when:
 // 1 after the current file, 2 now with a fade out, 3 at the next marker of the current file,
@@ -968,7 +959,6 @@ double CSoundManager::WaveLength(const void* data, int /*size*/) {
     }
     return static_cast<double>(static_cast<std::int32_t>(samples)) / static_cast<std::int32_t>(info.rate);
 }
-EI_REPLACE_METHOD(0x006B96E0, CSoundManager::WaveLength);
 
 // --- The volume envelope ----------------------------------------------------------------------------
 

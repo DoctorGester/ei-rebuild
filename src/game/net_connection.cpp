@@ -112,7 +112,6 @@ std::uint16_t IdPool::Allocate() {
     --free.Finish();
     return *free.end();
 }
-EI_REPLACE_METHOD(0x00435F10, IdPool::Allocate);
 
 // 00433B10 (no Ghidra function; the client base's 00442A20 jumps to it with its first
 // connection). Plain float maths (rewrite-guide rule 7): a silence within rounding of the limit
@@ -148,7 +147,6 @@ void Connection::WriteAcks(std::uint8_t** p) {
         }
     }
 }
-EI_REPLACE_METHOD(0x00434C20, Connection::WriteAcks);
 
 void Connection::QueueHeader(int budget) {
     if (headers_.Empty()) {
@@ -199,7 +197,6 @@ void Connection::RollBack(SentPacket* packet) {
     if (packet->header.Size() != 0) Chunks::Insert<ChunkElement>(headers_.End(), packet->header);   // 00439C50
     packet->rolledBack = 1;
 }
-EI_REPLACE_METHOD(0x00433F20, Connection::RollBack);
 
 void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
     AttachedMap::Node* lb;
@@ -215,7 +212,6 @@ void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32
     lb->second.id = static_cast<std::uint16_t>(key);
     lb->second.type = static_cast<std::uint8_t>(type);
 }
-EI_REPLACE_METHOD(0x004352F0, Connection::AttachRecord);
 
 bool Connection::SendUpdate(int budget) {
     bool complete = true;
@@ -574,7 +570,6 @@ void BufferCursor::PutBit(std::uint32_t bit) {
         ++p;
     }
 }
-EI_REPLACE_METHOD(0x004357C0, BufferCursor::PutBit);
 
 namespace net {
 
@@ -625,7 +620,6 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     *cursor->p++ = 0;
     cursor->WriteBytes(&zero, 2);
 }
-EI_REPLACE_METHOD(0x004355B0, Connection::WriteObjectRef);
 
 // The original reads the type and id into dwords whose upper bytes it masks off (and passes the
 // type dword on to AttachRecord, which keeps only its low byte in use); they start as zero here.
@@ -679,9 +673,6 @@ EI_REPLACE_METHOD(0x00435820, Connection::ReadObjectRef);
 
 namespace net {
 
-namespace {
-} // namespace
-
 void Connection::Acknowledge(std::uint16_t sequence) {
     for (HistoryNode* node = history_.First(); node != history_.End(); node = node->next) {
         if (node->data.sequence == sequence) {
@@ -729,7 +720,6 @@ void Connection::ReadAcks(BufferCursor* cursor) {
         if (fresh & (1u << (k - 1))) Acknowledge(older);
     }
 }
-EI_REPLACE_METHOD(0x00434D70, Connection::ReadAcks);
 
 bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived_;
@@ -833,7 +823,6 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     CurrentConnection() = nullptr;
     return true;
 }
-EI_REPLACE_METHOD(0x00436470, Connection::ReadUpdate);
 
 void Connection::Close() {
     CurrentConnection() = this;
@@ -855,6 +844,5 @@ void Connection::Close() {
     }
     CurrentConnection() = nullptr;
 }
-EI_REPLACE_METHOD(0x00436620, Connection::Close);
 
 } // namespace net

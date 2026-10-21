@@ -280,11 +280,8 @@ int CPlayerServer::OnUseOrder() {
 }
 
 EI_REPLACE_METHOD(0x0066F4C0, CPlayerServer::OnLeaderDied);
-EI_REPLACE(0x00670670, UseOrderDistanceSquared);
 EI_REPLACE_METHOD(0x006706A0, AIPath::Construct);
 EI_REPLACE_METHOD(0x00670730, AIPath::TargetPoint);
-EI_REPLACE_METHOD(0x00670760, AIOrder::MakeUse);
-EI_REPLACE_METHOD(0x006707D0, AIOrder::AimPoint);
 EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
 
 // --- A-H14: zone changes, joining, party blocks, the walk / attack orders -----------------------------
@@ -573,7 +570,6 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) 
     }
     return 1;
 }
-EI_REPLACE(0x0047ADA0, IsPrintableText);
 
 int CPlayerServer::OnLogin() {
     LoginMessage login;
@@ -675,4 +671,3 @@ void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
     out_.Write(&a, 1);
     out_.Write(&b, 4);
 }
-EI_REPLACE_METHOD(0x0066F840, CPlayerServer::SendPair19);

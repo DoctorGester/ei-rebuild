@@ -84,9 +84,3 @@ void CWorldClient::DisconnectLocalPlayer() {
     view->player_->Disconnect();
 }
 
-EI_REPLACE_METHOD(0x00566CE0, CWorldClient::SetPlayer);
-EI_REPLACE_METHOD(0x00566D30, CWorldClient::PlayRecording);
-EI_REPLACE_METHOD(0x00566D80, CWorldClient::JoinGameClient);
-EI_REPLACE_METHOD(0x00566E20, CWorldClient::PumpHasIncoming);
-EI_REPLACE_METHOD(0x00566E70, CWorldClient::PumpIncomingCount);
-EI_REPLACE_METHOD(0x00566E00, CWorldClient::DisconnectLocalPlayer);

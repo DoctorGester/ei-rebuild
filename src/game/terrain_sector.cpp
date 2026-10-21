@@ -536,11 +536,6 @@ std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
 
 EI_REPLACE_METHOD(0x006C13A0, SectorData::Load);
 EI_REPLACE_METHOD(0x006C1C00, SectorData::Build);
-EI_REPLACE_METHOD(0x006C30E0, SectorData::ApplyWaterLevels);
-EI_REPLACE_METHOD(0x006C3DD0, SectorData::Ensure);
-EI_REPLACE_METHOD(0x006C53C0, Terrain::TileUv);
-EI_REPLACE_METHOD(0x006C8D40, Terrain::SurfaceClass);
-EI_REPLACE_METHOD(0x006C8930, Terrain::GroundAndWaterDepth);
 
 // ---------------------------------------------------------------------------------------------
 // Construction and projection (A-H18)
@@ -670,7 +665,6 @@ int SectorData::Project(CTransformPipeline* pipeline) {
     }
     return clipMode;
 }
-EI_REPLACE_METHOD(0x006BFC80, SectorData::Project);
 
 } // namespace terrain
 

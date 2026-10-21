@@ -85,11 +85,6 @@ const char* CFigureManager::GetClassName() { return kFigureManagerName; }
 int CFigureManager::GetClassId() { return kFigureManagerId; }
 const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
 
-const char* __fastcall FigureManagerClassName(CFigureManager* self) { return self->CFigureManager::GetClassName(); }
-int __fastcall FigureManagerClassId(CFigureManager* self) { return self->CFigureManager::GetClassId(); }
-EI_REPLACE(0x005AA180, FigureManagerClassName);
-EI_REPLACE(0x005AA190, FigureManagerClassId);
-
 const char* __fastcall I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
 int __fastcall I3DFigureClassId(CEngineObject*) { return kI3DFigureId; }
 EI_REPLACE(0x005AACC0, I3DFigureClassName);
@@ -108,9 +103,7 @@ EI_REPLACE(0x00579580, UiObjectClassName);
 EI_REPLACE(0x00579590, UiObjectClassId);
 
 const char* __fastcall ItemManagerResourceName(CItemManager*) { return kItemsFolderName; }
-const char* __fastcall FigureManagerResourceName(CFigureManager* self) { return self->CFigureManager::GetFolderName(); }
 EI_REPLACE(0x0055F3B0, ItemManagerResourceName);
-EI_REPLACE(0x005AA170, FigureManagerResourceName);
 
 int __fastcall WorldBaseRunTick(CWorld*) { return 1; }
 int __fastcall WorldServerIsServer(CWorldServer*) { return 1; }

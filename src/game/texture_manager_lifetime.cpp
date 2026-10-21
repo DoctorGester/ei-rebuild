@@ -115,7 +115,6 @@ void __fastcall TextureManagerDestroyHook(CTextureManager* self) { self->CTextur
 } // namespace
 EI_REPLACE(0x00691500, TextureManagerCreateHook);
 EI_REPLACE(0x00691630, TextureManagerDestroyHook);
-EI_REPLACE_METHOD(0x00691AA0, CTextureManager::CreateObjectImpl);
 
 CEngineObject* CTextureManager::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
 int CTextureManager::ReleaseObject(CEngineObject* object) { return ReleaseObjectImpl(object); }
@@ -124,9 +123,3 @@ const char* CTextureManager::GetClassName() { return kClassName; }
 int CTextureManager::GetClassId() { return 0x26; }
 const char* CTextureManager::GetFolderName() { return kFolder; }
 
-const char* __fastcall TextureManagerClassName(CTextureManager* self) { return self->CTextureManager::GetClassName(); }
-int __fastcall TextureManagerClassId(CTextureManager* self) { return self->CTextureManager::GetClassId(); }
-const char* __fastcall TextureManagerFolder(CTextureManager* self) { return self->CTextureManager::GetFolderName(); }
-EI_REPLACE(0x00691210, TextureManagerClassName);
-EI_REPLACE(0x00691220, TextureManagerClassId);
-EI_REPLACE(0x00691200, TextureManagerFolder);

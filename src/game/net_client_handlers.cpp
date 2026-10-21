@@ -177,7 +177,6 @@ void ClientSession::RecordTrade(const void* party) {
     record->parties[1].Party()->Assign(parties_[1].Party());
     record->parties[2].Party()->Assign(static_cast<CParty*>(const_cast<void*>(party)));
 }
-EI_REPLACE_METHOD(0x0041E0A0, ClientSession::RecordTrade);
 
 // 0041E270: starts our trade offer to `partner` when the binding (+0x25F0) and its player are
 // live: kept at +0x260C, from the binding's player.
@@ -218,7 +217,6 @@ EI_REPLACE_METHOD(0x0041E270, ClientSession::StartParty);
 
 // 0041E3E0: drops the party description.
 void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }
-EI_REPLACE(0x0041E3E0, ClientDropParty);
 
 // --- Handlers ----------------------------------------------------------------------------------
 

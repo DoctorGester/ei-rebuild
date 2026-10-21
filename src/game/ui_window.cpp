@@ -53,16 +53,6 @@ void* AllocAligned(std::size_t bytes) {
 
 void FreeAligned(void* data) { gamecrt::operator_delete(static_cast<void**>(data)[-1]); }
 
-// The original has a separate (identical) copy of SetSize for each of the window's arrays; the two
-// CEngineObject lists share one instantiation here.
-EI_REPLACE_METHOD(0x006003D0, UiPtrArray<CEngineObject>::SetSize);
-EI_REPLACE_METHOD(0x006004E0, UiPtrArray<CEngineObject>::SetSize);
-EI_REPLACE_METHOD(0x00600730, UiPtrArray<CUiSurface>::SetSize);
-EI_REPLACE_METHOD(0x00600840, UiPtrArray<CUiRegion>::SetSize);
-EI_REPLACE_METHOD(0x00600950, UiPtrArray<CUiModel>::SetSize);
-EI_REPLACE_METHOD(0x006005F0, UiPtrArray<CEngineObject>::SetAtGrow);
-EI_REPLACE_METHOD(0x00601D00, UiPtrArray<CUiWindow>::SetSize);   // the containers' children
-
 // --- CUiTooltip ------------------------------------------------------------------------------
 
 __declspec(naked) void CUiTooltip::OnMouseMove(int, int) EI_ORIGINAL(0x0065E580)
@@ -88,14 +78,12 @@ BOOL CUiRegion::HitTest(int x, int y) const {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x005FC8F0, CUiRegion::HitTest);
 
 BOOL CUiRegion::HasActiveTip() const {
     if (!tip_) return 0;
     int state = tip_->state_;
     return state != 0 && state != 1;
 }
-EI_REPLACE_METHOD(0x005FC660, CUiRegion::HasActiveTip);
 
 // Rebirth's WideScreen replaces SetRect and AddPoint (addon's 100230F0, and 100232CC before the
 // original's body from 005FCA79): x is moved by the panel offset its panel builders set
@@ -219,7 +207,6 @@ void CUiWindow::SetEnabled(int enabled, int notify) {
     enabled_ = enabled;
     if (notify) CallSlot19(this, enabled);
 }
-EI_REPLACE_METHOD(0x006002A0, CUiWindow::SetEnabled);
 
 void CUiWindow::AddObject(CEngineObject* object) {
     if (!object) return;
@@ -238,13 +225,11 @@ void CUiWindow::RemoveObject(CEngineObject* object) {
         }
     }
 }
-EI_REPLACE_METHOD(0x005FF110, CUiWindow::RemoveObject);
 
 void CUiWindow::RemoveObjectAt(int index) {
     objects_.data[index]->Release();
     objects_.RemoveAt(index);
 }
-EI_REPLACE_METHOD(0x005FF180, CUiWindow::RemoveObjectAt);
 
 BOOL CUiWindow::RemoveSceneObject(CEngineObject* object) {
     for (int i = 0; i < sceneObjects_.size; ++i) {
@@ -257,13 +242,11 @@ BOOL CUiWindow::RemoveSceneObject(CEngineObject* object) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x005FF700, CUiWindow::RemoveSceneObject);
 
 void CUiWindow::RemoveSceneObjectAt(int index) {
     sceneObjects_.data[index]->Release();
     sceneObjects_.RemoveAt(index);
 }
-EI_REPLACE_METHOD(0x005FF770, CUiWindow::RemoveSceneObjectAt);
 
 void CUiWindow::ClearSceneObjects() {
     for (int i = 0; i < sceneObjects_.size; ++i) sceneObjects_.data[i]->Release();
@@ -539,7 +522,6 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     CallSlot19(this, 1);
     return this;
 }
-EI_REPLACE_METHOD(0x005FE700, CUiWindow::Construct);
 
 // --- 00600D30: CUiContainer::AddChild ------------------------------------------------------------
 

@@ -699,7 +699,6 @@ void CWorldServer::ClearPlayerItems(WorldPlayer* player) {
     CParty* party = player->Party();
     while (party->items_.size != 0) party->RemoveItem(party->items_.data[0], 1);
 }
-EI_REPLACE_METHOD(0x00591070, CWorldServer::ClearPlayerItems);
 
 void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
     PlayerIterator it;
@@ -719,8 +718,6 @@ void CWorldServer::TellPartiesGone(CEngineObject* unit) {
 }
 
 EI_REPLACE_METHOD(0x00590160, CWorldServer::StorePlayerItems);
-EI_REPLACE_METHOD(0x0058D340, CWorldServer::TellParties);
-EI_REPLACE_METHOD(0x00593AF0, CWorldServer::TellPartiesGone);
 EI_REPLACE_METHOD(0x00591800, CWorldServer::UpdateMercBriefings);
 EI_REPLACE_METHOD(0x0058FD90, CWorldServer::StoreParty);
 EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);

@@ -409,7 +409,6 @@ EI_REPLACE_METHOD(0x0065DAA0, CUiScrollText::Layout);
 // --- The scroll bar's maximum ------------------------------------------------------------------
 
 int CUiScrollbar::Maximum() const { return maxPosition_; }
-EI_REPLACE_METHOD(0x0065B720, CUiScrollbar::Maximum);
 
 void CUiScrollbar::SetMaximum(int maximum) {
     if (maximum < 0) maximum = 0;
@@ -421,13 +420,10 @@ void CUiScrollbar::SetMaximum(int maximum) {
     position_ = position - 1;
     CallSetPosition(position);
 }
-EI_REPLACE_METHOD(0x0065AFE0, CUiScrollbar::SetMaximum);
 
 // --- The tokens' destructors ---------------------------------------------------------------------
 
 void UiTextToken::DestroyBase() { ei::SetVtable(this, UiTextToken::kVtableAddress); }
-EI_REPLACE_METHOD(0x0065D8E0, UiTextToken::DestroyBase);
-EI_REPLACE_METHOD(0x0065D960, UiTextToken::DestroyBase);
 
 void UiWordToken::DestroyWord() {
     ei::SetVtable(this, kVtableAddress);

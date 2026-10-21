@@ -98,10 +98,8 @@ FileStream* FileStream::Construct() {   // 00478470
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x00478470, FileStream::Construct);
 
 FileStream* FileStream::CopyConstruct(const FileStream*) { return Construct(); }   // 00479B10
-EI_REPLACE_METHOD(0x00479B10, FileStream::CopyConstruct);
 
 void FileStream::Destruct() {   // 00477FB0
     ei::SetVtable(this, kVtableAddress);
@@ -158,7 +156,6 @@ NetLink* NetLink::Construct() {   // 00477E60
     recording_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00477E60, NetLink::Construct);
 
 void NetLink::ConstructCopyOf(const NetLink* source) {
     ei::SetVtable(this, CRefObject::kVtableAddress);
@@ -204,13 +201,11 @@ void NetLink::OpenRecording(const char* path) {   // 004780B0
     skipNext_ = 1;
     recording_ = 1;
 }
-EI_REPLACE_METHOD(0x004780B0, NetLink::OpenRecording);
 
 void NetLink::CloseRecording() {   // 004780E0
     record_.Close();
     recording_ = 0;
 }
-EI_REPLACE_METHOD(0x004780E0, NetLink::CloseRecording);
 
 namespace {
 int __fastcall LinkIncomingCountHook(NetLink* self) { return self->NetLink::IncomingCount(); }
@@ -493,7 +488,6 @@ void FramedLink::Append(const void* data, std::uint32_t size) {   // 0047B980
     inbox->Seek(end);
     inbox->Write(data, size);
 }
-EI_REPLACE_METHOD(0x0047B980, FramedLink::Append);
 
 // The inbox is emptied only when it held anything.
 void FramedLink::TakeAll(CStream* out) {   // 0047B9B0
@@ -505,7 +499,6 @@ void FramedLink::TakeAll(CStream* out) {   // 0047B9B0
     out->Write(data, size);
     inbox->Clear();
 }
-EI_REPLACE_METHOD(0x0047B9B0, FramedLink::TakeAll);
 
 // Whether the inbox holds a whole message (a length and that many bytes).
 bool FramedLink::HasIncoming() {   // 0047B9F0
@@ -601,7 +594,6 @@ DriverLink* DriverLink::Construct() {   // 0047A030
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x0047A030, DriverLink::Construct);
 
 // The inbox's unread bytes, with the player's incoming reliable bytes after them, written back over
 // the start of that stream (when there were any and the player is alive); then the player let go.

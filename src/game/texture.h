@@ -633,8 +633,3 @@ static_assert(offsetof(CTextureManager, cachedBytes_) == 0xD8);
 static_assert(offsetof(CTextureManager, shadowRenderSurface_) == 0xE0);
 static_assert(offsetof(CTextureManager, device_) == 0xE4);
 static_assert(offsetof(CTextureManager, limitTo512_) == 0xEC);
-// 00691210 / 00691220 (slots 11 / 12): "CTextureManager", class id 0x26. 00691200 (slot 25): the
-// archive folder, "textures".
-const char* __fastcall TextureManagerClassName(CTextureManager*);
-int __fastcall TextureManagerClassId(CTextureManager*);
-const char* __fastcall TextureManagerFolder(CTextureManager*);

@@ -74,12 +74,10 @@ CWinRegistry* CWinRegistry::Construct() {
     key_ = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x006972A0, CWinRegistry::Construct);
 
 void CWinRegistry::Destroy() {
     Close();
 }
-EI_REPLACE_METHOD(0x006972B0, CWinRegistry::Destroy);
 
 BOOL CWinRegistry::Open(const char* path, std::uint32_t root) {
     Close();
@@ -93,7 +91,6 @@ BOOL CWinRegistry::Open(const char* path, std::uint32_t root) {
     key_ = key;
     return 1;
 }
-EI_REPLACE_METHOD(0x00697340, CWinRegistry::Open);
 
 void CWinRegistry::Close() {
     if (key_) {
@@ -101,7 +98,6 @@ void CWinRegistry::Close() {
         key_ = nullptr;
     }
 }
-EI_REPLACE_METHOD(0x006973A0, CWinRegistry::Close);
 
 BOOL CWinRegistry::SetDWord(const char* subkey, const char* name, std::uint32_t value) {
     return SetDWordValue(key_, subkey, name, value);

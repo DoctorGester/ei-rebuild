@@ -349,7 +349,6 @@ static_assert(sizeof(SpellSequence) == 0x18);
 // container there, or null at the end (and when the walk had ended already). The manager's
 // Destroy 00688B40 (rewritten: it walks the table itself) and the unreferenced 00688D70 call it.
 using SpellContainerWalk = stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash>::Iterator;
-CSpellContainer* __fastcall NextSpellContainer(SpellContainerWalk* walk);
 
 // The spell manager (GetClassName "CSpellManager", 0xD4 bytes; a real virtual class: the compiler
 // makes its vtable, C19, game.exe's 00743A14 is retired). Only what the construction code uses;
@@ -415,9 +414,6 @@ public:
 };
 static_assert(offsetof(CSpellManager, sequences_) == 0xBC);
 // 00688950 / 00688960 (slots 11 / 12): "CSpellManager", class id 0x33.
-const char* __fastcall SpellManagerClassName(CSpellManager*);
-int __fastcall SpellManagerClassId(CSpellManager*);
-const char* __fastcall SpellManagerFolder(CSpellManager*);   // 00688940 (slot 25) "spells"
 static_assert(sizeof(CSpellManager) == 0xD4);
 
 // The spell constructor (GetClassName "CSpellConstructor", vtable 007439C8, 0x24 bytes).

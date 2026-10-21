@@ -37,9 +37,3 @@ void CWorldServer::SetWaterLevel(int key, float target, int steps) {
     countdowns_.SetTarget(key, target, steps);
 }
 
-EI_REPLACE_METHOD(0x005655D0, CWorldClient::NewTexture);
-EI_REPLACE_METHOD(0x005655F0, CWorldClient::NewMaterial);
-EI_REPLACE_METHOD(0x00565670, CWorldClient::SetCamera);
-EI_REPLACE_METHOD(0x00566C10, CWorldClient::SetWorldValue);
-EI_REPLACE_METHOD(0x005683B0, CWorldClient::ReadWaterLevels);
-EI_REPLACE_METHOD(0x00593FA0, CWorldServer::SetWaterLevel);

@@ -166,7 +166,6 @@ CEngineObject* CTextureManager::NewObjectImpl(int type) {
 }
 EI_REPLACE_METHOD(0x00691810, CTextureManager::NewObjectImpl);
 // The extra block's out-of-line SetSize.
-EI_REPLACE_METHOD(0x00694300, lib::AlignedArray<std::uint8_t>::SetSize);
 
 EI_REPLACE_METHOD(0x006922A0, CTextureManager::LoadTexture);
 EI_REPLACE_METHOD(0x006926F0, CTextureManager::LoadTextureFrom);

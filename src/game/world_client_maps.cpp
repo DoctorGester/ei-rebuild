@@ -224,21 +224,18 @@ int PendingIndex::Lookup(const std::uint32_t* key, void** value) const {
     *value = node->value;
     return 1;
 }
-EI_REPLACE_METHOD(0x0056FC60, PendingIndex::Lookup);
 
 const std::uint8_t* RecordBytes::At50(std::uint32_t index) const {
     int count = static_cast<int>(size() / 0x50);
     if (index < static_cast<std::uint32_t>(count)) return begin() + index * 0x50;
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0056E400, RecordBytes::At50);
 
 const std::uint8_t* RecordBytes::AtB4(std::uint32_t index) const {
     int count = static_cast<int>(size() / 0xB4);
     if (index < static_cast<std::uint32_t>(count)) return begin() + index * 0xB4;
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0056E440, RecordBytes::AtB4);
 
 // ---- The client's object maps --------------------------------------------------------------------
 
@@ -533,7 +530,6 @@ bool ReleaseIdentified::Test(CEngineObject* object) {
     }
     return false;
 }
-EI_REPLACE_METHOD(0x005726B0, ReleaseIdentified::Test);
 
 void CWorldClient::ClearMaps() {
     SectorGrid& second = secondGrid_;
@@ -1094,7 +1090,6 @@ void CWorldClient::Select(CEngineObject* object) {
     if (node != selected.head) return;
     stlp::list<void*>::Insert(selected.head, id);   // 00404A40
 }
-EI_REPLACE_METHOD(0x00566030, CWorldClient::Select);
 
 // ---- Set up (00561E50) ---------------------------------------------------------------------------
 
@@ -1170,7 +1165,6 @@ void __fastcall SectorListDestruct(SectorList* list) { DestroySectorList(list); 
 EI_REPLACE(0x0056DEF0, SectorListDestruct);
 
 EI_REPLACE(0x00572B30, SectorListsDelete);
-EI_REPLACE(0x00572C50, SectorListsDelete);
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
@@ -1186,7 +1180,6 @@ void SectorGrid::Allocate() {
     for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_ + y * unknown08_;
 }
 EI_REPLACE_METHOD(0x00572820, SectorGrid::Allocate);
-EI_REPLACE_METHOD(0x005728D0, SectorGrid::Allocate);
 
 void SectorGrid::Resize(int width, int height) {
     if (unknown08_ == width && unknown0C_ == height) return;
@@ -1197,7 +1190,6 @@ void SectorGrid::Resize(int width, int height) {
     Allocate();
 }
 EI_REPLACE_METHOD(0x00572450, SectorGrid::Resize);
-EI_REPLACE_METHOD(0x005724F0, SectorGrid::Resize);
 
 int CWorldClient::Setup() {
     WorldCreateManagers(this);
@@ -1460,7 +1452,6 @@ int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
         ++object->refCount_;
     }
 }
-EI_REPLACE(0x005679A0, LoadManagerObjects);
 
 int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     block->Seek(0);
@@ -1468,7 +1459,6 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     if (!LoadManagerObjects(SpellManager(), block)) return 0;
     return LoadManagerObjects(ItemFactory(), block) != 0;
 }
-EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
 int PlatformSet::Clear() {
     list.RemoveAll();
@@ -1510,7 +1500,6 @@ void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* str
     std::uint8_t more = 0;
     stream->Write(&more, 1);
 }
-EI_REPLACE(0x0055E8A0, SaveListedObjects);
 
 void ClientListManager::DestructBody() {
     list.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
@@ -1725,23 +1714,16 @@ EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);
 EI_REPLACE_METHOD(0x005651A0, CWorldClient::RefreshPlatforms);
 EI_REPLACE_METHOD(0x0056D7E0, CWorldClient::QueueSynchronised);
-EI_REPLACE_METHOD(0x0056D7A0, CWorldClient::DropShadows);
 EI_REPLACE_METHOD(0x00564BE0, CWorldClient::RemoveObject);
 EI_REPLACE_METHOD(0x00564E70, CWorldClient::ClearMaps);
 EI_REPLACE_METHOD(0x00565790, CWorldClient::PickAt);
 EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
 EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
 EI_REPLACE_METHOD(0x00565D00, CWorldClient::UnitAt2);
-EI_REPLACE_METHOD(0x005656A0, CWorldClient::UnitsInBox);
-EI_REPLACE_METHOD(0x0056D740, CWorldClient::MarkFootprintsInSight);
-EI_REPLACE_METHOD(0x00564190, CWorldClient::ApplyWind);
 EI_REPLACE_METHOD(0x005662B0, CWorldClient::CentreOn);
-EI_REPLACE_METHOD(0x00578A60, CWorldClient::ExitTarget);
 EI_REPLACE_METHOD(0x005618E0, CWorldClient::ClientGroundHeight);
 EI_REPLACE_METHOD(0x00561930, CWorldClient::ClientSurfaceHeight);
-EI_REPLACE_METHOD(0x0056CE40, CWorldClient::ShowNumber);
 EI_REPLACE_METHOD(0x0056DE80, CWorldClient::LoadUnitFaces);
 EI_REPLACE_METHOD(0x00567400, CWorldClient::RemoveUnitsOf);
-EI_REPLACE_METHOD(0x00566330, CWorldClient::SendFlag10);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);

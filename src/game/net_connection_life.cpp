@@ -24,8 +24,6 @@ namespace net {
 
 namespace {
 
-using ObjectMap = stlp::map<CRefObject*, RefPtr>;
-using SentIdMap = stlp::map<std::int32_t, RefPtr>;
 using AttachedMap = stlp::map<CRefObject*, AttachedId>;
 
 // CRT eh vector constructor / destructor iterators (stdcall).
@@ -304,7 +302,6 @@ void ReplicaEntry::Destruct() {
     ReleaseEntryObject(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x004344C0, ReplicaEntry::Destruct);
 
 // 004344A0 (entry slot 0): the deleting destructor.
 ReplicaEntry* ReplicaEntry::DeletingDestruct(unsigned flags) {
@@ -321,6 +318,5 @@ IdPool* __fastcall IdPoolConstruct(IdPool* self) {
     self->next = 0;
     return self;
 }
-EI_REPLACE(0x00433040, IdPoolConstruct);
 
 } // namespace net

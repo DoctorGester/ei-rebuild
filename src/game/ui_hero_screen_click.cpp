@@ -384,12 +384,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     CallShowHero(index);
 }
 
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00617050, InputForward<&CMpHeroScreen::OnLButtonDown>::Call);
 
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00618A10, InputForward<&CMpHeroScreen::OnKeyDown>::Call);
 
 // --- 00618060: rename ---------------------------------------------------------------------------
@@ -587,7 +583,6 @@ MpHeroRecord* MpHeroRecord::Construct() {
     new (&file) mfc::CString();
     return this;
 }
-EI_REPLACE_METHOD(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
     file.~CString();

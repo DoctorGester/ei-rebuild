@@ -124,10 +124,6 @@ EI_REPLACE_METHOD(0x006D4270, PrintRecord2::SerializeImpl);
 
 // ---- WaterTweens --------------------------------------------------------------------------------
 
-// 006D43E0 / 006D4840: RemoveAll / SetSize (RET 8).
-EI_REPLACE_METHOD(0x006D43E0, WaterTweens::RemoveAll);
-EI_REPLACE_METHOD(0x006D4840, WaterTweens::SetSize);
-
 void WaterTweens::SetTarget(int key, float target, int steps) {
     if (steps < 1) steps = 1;
     int count = size;
@@ -167,15 +163,12 @@ bool WaterTweens::Tick() {
     }
     return moving;
 }
-EI_REPLACE_METHOD(0x006D44E0, WaterTweens::Tick);
 
 void WaterTweens::Save(CStream* stream) const {
     int count = size;
     stream->Write(&count, 4);
     for (int i = 0; i < size; ++i) stream->Write(&data[i], 16);
 }
-EI_REPLACE_METHOD(0x006D4570, WaterTweens::Save);
-EI_REPLACE_METHOD(0x006D47E0, WaterTweens::Save);
 
 void WaterTweens::ReadEntries(CStream* stream, int unread) {
     int count = unread;

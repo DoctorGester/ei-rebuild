@@ -182,8 +182,6 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
 
 // --- Name lookups -----------------------------------------------------------------------------
 
-EI_REPLACE_METHOD(0x005144D0, UnitPrototypeTable::FindByName);
-
 char* NpcPrototypeTable::FindByName(const char* name) {
     stlp::string key(name);
     stlp::string pairKey(key);
@@ -240,7 +238,6 @@ int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x005134F0, UnitStatsBuilder::SetDefaults);
 
 int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
@@ -380,7 +377,6 @@ int __stdcall PrototypeObjectClass(const char* name) {
     if (!model) return kDefaultClass;
     return model->objectClass;
 }
-EI_REPLACE(0x00513240, PrototypeObjectClass);
 
 // --- Statistics from their bases -----------------------------------------------------------------
 

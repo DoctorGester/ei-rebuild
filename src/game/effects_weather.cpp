@@ -105,7 +105,7 @@ void CRainSnow::UpdateFade(float now) {
     density = 64;
     fadeDuration = 0.0f;
 }
-EI_REPLACE_METHOD(0x004E40B0, CRainSnow::UpdateFade);   // check_fp_fold's link to its original
+EI_REPLACE_METHOD(0x004E40B0, CRainSnow::UpdateFade);
 
 // Ends a fade at once.
 void CRainSnow::FinishFade() {

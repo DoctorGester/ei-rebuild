@@ -211,7 +211,6 @@ void CUiEditField::SetText(const char* text) {
 EI_REPLACE_METHOD(0x0065C290, CUiEditField::SetText);
 
 void CUiEditField::SetFocused(bool focused) { focused_ = focused; }
-EI_REPLACE_METHOD(0x0065C2D0, CUiEditField::SetFocused);
 
 // --- 0065C2E0 (A-H26): the text and the caret drawn ---------------------------------------------------
 

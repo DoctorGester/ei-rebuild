@@ -200,7 +200,6 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
     light->steps = x87::fistp(f[4]);
     LightStep(light, &f[1], &static_cast<CEffectPointLight*>(light->object)->localPosition_.x);
 }
-EI_REPLACE_METHOD(0x004BD820, CScript::MovePointLight);
 
 void CScript::DeletePointLight(const SSCCmd* cmd) {
     int id = x87::fistp(cmd->floatArgs.data[0]);
@@ -213,7 +212,6 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x004BD920, CScript::DeletePointLight);
 
 // ---- QFinish ------------------------------------------------------------------------------------
 

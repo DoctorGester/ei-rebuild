@@ -462,8 +462,6 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     inputHandled_ = true;
 }
 
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
 EI_REPLACE_METHOD(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
 EI_REPLACE_METHOD(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
@@ -842,7 +840,6 @@ CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* ti
     BufferPut(&link_.out, &extra, sizeof(extra));
     return this;
 }
-EI_REPLACE_METHOD(0x0061E2F0, CMasterRequestBox::Construct);
 
 void CMasterRequestBox::Update() {
     double share = net::GameClient()->BufferRatioImpl(&link_.in);

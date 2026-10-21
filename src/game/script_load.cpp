@@ -214,7 +214,6 @@ template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE_METHOD(0x004C2D40, ScriptNamedValues<float>::Load);
 
 template <> void ScriptNamedValues<mfc::CString>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
@@ -225,7 +224,6 @@ template <> void ScriptNamedValues<mfc::CString>::Load(ScriptStream* stream) {
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE_METHOD(0x004C3200, ScriptNamedValues<mfc::CString>::Load);
 
 // An object variable: the world's object with the saved id (FindObject), -1 = none. The old
 // reference is released after the lookup.
@@ -249,7 +247,6 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE_METHOD(0x004C36B0, ScriptNamedValues<ScriptObjectRef>::Load);
 
 // A group variable: its size, the member ids (each assigned in place, missing objects stay null),
 // then sorted.
@@ -273,7 +270,6 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE_METHOD(0x004C40D0, ScriptNamedValues<ScriptGroup>::Load);
 
 // ---- SSCCmd::Load -----------------------------------------------------------------------------------
 
@@ -317,7 +313,6 @@ void ScriptSubCall::Load(ScriptStream* stream) {
     stream->Read(&argIndex, 4);
     cmd->Load(stream);
 }
-EI_REPLACE_METHOD(0x004B6330, ScriptSubCall::Load);
 
 // A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
@@ -361,7 +356,6 @@ void ScriptIfThen::Load(ScriptStream* stream) {
     stream->Read(&id, 4);   // the same variable: keeps the first id when the read leaves it
     commands = FindBlock(id);
 }
-EI_REPLACE_METHOD(0x004BB590, ScriptIfThen::Load);
 
 // The block lists are MFC CLists of ScriptDecl; the id is compared as the block's +0x14.
 ScriptDecl* CScript::FindBlock(int id) const {
@@ -373,7 +367,6 @@ ScriptDecl* CScript::FindBlock(int id) const {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x004BFA50, CScript::FindBlock);
 
 // ---- ScriptVars::Load ------------------------------------------------------------------------------
 

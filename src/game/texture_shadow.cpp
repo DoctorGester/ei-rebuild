@@ -128,7 +128,6 @@ int CTexture::LockPixels(SurfacePixels* pixels) {
     holder->result = 0;
     return DirectPixels(holder, pixels) ? 1 : 0;   // (always memory: CreateBlank made it)
 }
-EI_REPLACE_METHOD(0x00690FC0, CTexture::LockPixels);
 
 void CTexture::UnlockPixels() {
     CDXSurface* holder = surface_;
@@ -136,7 +135,6 @@ void CTexture::UnlockPixels() {
     gameapi::LeaveCriticalSection(TheDeviceLock());
     holder->result = 0;
 }
-EI_REPLACE_METHOD(0x00691030, CTexture::UnlockPixels);
 
 // --- 0051CE60's copy -------------------------------------------------------------------------------
 

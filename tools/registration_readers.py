@@ -20,22 +20,23 @@ holds the address itself. The readers, each a set of addresses:
     harness          the address written in tests/verify (RedirectCode, Code<F> of harness hooks, address tables)
     vectors          the address written in tests/vectors (EI_RECORD recorders, ReplayStandIn)
     scenario / golden  a code address in a scenario's steps (comments left out) or a golden file
-  tools only (they read every registration, so they are listed, not counted as readers):
-    check_signatures, check_thunks, check_registrations, check_fp_fold (matches a registered function with
-    the original's constants), coverage.py (the watch list of rewrites), direct_calls.py, standalone_gaps.py,
-    save_trace.py, ui_census_report.py, progress.py, gen_static_init.py (registered callees are called, not
-    inlined: covered by "static init"), gen_short_functions.py (a short game function registered by a rewrite:
-    listed as "short generator", kept: the generator would write an EI_REPLACE_SHORT for it).
-  exit generator   an exit function game.exe registers with atexit that a rewrite registers (atexit_400.cpp, ...):
-                   gen_static_init.py writes the ones no rewrite registers into static_exit.cpp, so it is kept
-  check_fp_fold    a registration whose comment names check_fp_fold: without it check_fp_fold compares the function
-                   with its callers' originals and reports their missing constants as folds (C20c found 11); the
-                   comment keeps the link to its own original
+  the generators and checks that need a registration's address:
+    short generator  a short game function (under five bytes) a rewrite registers: gen_short_functions.py would
+                     write an EI_REPLACE_SHORT for it
+    exit generator   an exit function game.exe registers with atexit that a rewrite registers (atexit_400.cpp, ...):
+                     gen_static_init.py writes the ones no rewrite registers into static_exit.cpp
+    check_fp_fold    the registration of a function whose x87 constants check_fp_fold compares with its original's,
+                     or of a registered caller it compares a helper's with (check_fp_fold.py --linked on the built
+                     DLL, --dll): without it the function is compared with its callers' originals or with every
+                     constant of the exe, and C20c's first try reported 24 folds that were none
+  tools that read every registration but need none of them: check_signatures, check_thunks, check_registrations
+  (they check the registration itself), coverage.py (its watch list of rewrites), direct_calls.py,
+  standalone_gaps.py, save_trace.py, ui_census_report.py, progress.py (names and counts).
 
 A registration none of these read is "unread": nothing reaches its address; our code calls the function by name,
 or nothing does (then the function is dead in the image).
 
-usage: python tools/registration_readers.py [--list READER] [--unread] [--files]
+usage: python tools/registration_readers.py [--dll build/verify/ei_hook.dll] [--list READER] [--unread] [--files]
                                            [--drop [--exclude RE ...] [--exclude-name RE ...] [--kinds K,...]]
   (no option)  the split: per reader the registrations it reads (a registration can have several), and per
                first reader in the order above (each counted once)
@@ -224,10 +225,22 @@ def exit_generator_readers():
     return {a: {'exit generator'} for a in found}
 
 
-def measure():
+def fp_fold_readers(dll):
+    """The registrations check_fp_fold compares x87 constants through (check_fp_fold.py --linked)."""
+    import subprocess, tempfile
+    if not os.path.exists(dll):
+        raise SystemExit(f'{dll} is not built: check_fp_fold reads its registrations from the DLL and its map')
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, 'linked.txt')
+        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'check_fp_fold.py'), '--dll', dll, '--linked', out],
+                       check=True, stdout=subprocess.DEVNULL)
+        return {int(line, 16): {'check_fp_fold'} for line in open(out) if line.strip()}
+
+
+def measure(dll):
     regs = registrations()
     readers = [code_cells(), literal_readers(regs), named_data_readers(regs), text_readers(),
-               short_generator_readers(regs), exit_generator_readers()]
+               short_generator_readers(regs), exit_generator_readers(), fp_fold_readers(dll)]
     for r in regs:
         for table in readers:
             r.readers |= table.get(r.address, set())
@@ -332,8 +345,10 @@ def main(argv):
     ap.add_argument('--exclude-name', action='append', default=[], help='leave registrations whose name matches')
     ap.add_argument('--kinds', default='EI_REPLACE,EI_REPLACE_METHOD,EI_REPLACE_DISPATCH,EI_REPLACE_STANDALONE',
                     help='the kinds --drop takes (EI_REPLACE_SHORT is generated: gen_short_functions.py)')
+    ap.add_argument('--dll', default=os.path.join(ROOT, 'build', 'verify', 'ei_hook.dll'),
+                    help='the built DLL check_fp_fold reads (built from the sources measured)')
     args = ap.parse_args(argv)
-    regs = measure()
+    regs = measure(args.dll)
     if args.drop:
         drop(regs, args.exclude, args.exclude_name, args.kinds.split(','))
         return 0

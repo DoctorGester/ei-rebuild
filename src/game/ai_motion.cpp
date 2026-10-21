@@ -582,7 +582,7 @@ void UnitMotion::Build(AIPath* path) {
     NormalizeTurn(this, angle - startAngle);
     AssignCells(path);
 }
-EI_REPLACE_METHOD(0x005C67D0, UnitMotion::Build);   // check_fp_fold's link to its original
+EI_REPLACE_METHOD(0x005C67D0, UnitMotion::Build);
 
 void UnitMotion::AssignCells(AIPath* path) {
     PathCellList::Node* head = path->steps.head;

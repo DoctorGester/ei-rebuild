@@ -507,8 +507,6 @@ EI_REPLACE_METHOD(0x00669A30, CPlayerClient::OnParty);
 EI_REPLACE_METHOD(0x00669C90, CPlayerClient::OnPartyUpdate);
 EI_REPLACE_METHOD(0x00669FA0, CPlayerClient::OnPathMarker);
 EI_REPLACE_METHOD(0x00667E60, CPlayerClient::OnStringEvent);
-EI_REPLACE_METHOD(0x00669710, CPlayerClient::StartRecording);
-EI_REPLACE_METHOD(0x00669750, CPlayerClient::StopRecording);
 
 // --- A-H10: a new map object (message 0x40, multiplayer) ----------------------------------------
 
@@ -820,15 +818,12 @@ CPlayerConnection* CPlayerConnection::DeleteScalar(unsigned flags) {
 const char* __fastcall PlayerClientClassName(CPlayerClient*) { return kClientClassName; }
 int __fastcall PlayerClientClassId(CPlayerClient*) { return kClientClassId; }
 
-EI_REPLACE_METHOD(0x00666D10, CPlayerClient::Construct);
 EI_REPLACE_METHOD(0x00666FD0, CPlayerClient::DestructBody);
 EI_REPLACE_METHOD(0x00666FB0, CPlayerClient::DeletingDestruct);
-EI_REPLACE(0x00666EC0, ConnectionDestructBody);
 EI_REPLACE_METHOD(0x00666F70, CPlayerConnection::DeleteScalar);
 EI_REPLACE(0x00666F90, PlayerClientClassName);
 EI_REPLACE(0x00666FA0, PlayerClientClassId);
 
-EI_REPLACE_METHOD(0x006671A0, CoderState::Reset);
 EI_REPLACE_METHOD(0x00667510, CPlayerClient::Clear);
 EI_REPLACE_METHOD(0x00667600, CPlayerClient::Clear);
 
@@ -900,4 +895,3 @@ void CPlayerClient::AppendReceived(BitStream* source) {
     in_.Write(source->data_, source->Size());
     in_.Seek(position);
 }
-EI_REPLACE_METHOD(0x00667B40, CPlayerClient::AppendReceived);
