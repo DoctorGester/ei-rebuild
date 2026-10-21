@@ -230,6 +230,7 @@ void FrameDone(unsigned frame) {
     EndTurn();
     const LONG n = g_shared->done[g_side];
     if (g_alone) {
+        g_turnStart.QuadPart = 0;   // no more turns to time
         InterlockedExchange(&g_handedOff, 0);
         return;
     }
@@ -261,7 +262,8 @@ void FrameDone(unsigned frame) {
         }
     }
     g_waitedMs += GetTickCount() - start;
-    QueryPerformanceCounter(&g_turnStart);
+    if (g_alone) g_turnStart.QuadPart = 0;
+    else QueryPerformanceCounter(&g_turnStart);
     g_stamp = 2 * (n + 1) + g_side;
     InterlockedExchange(&g_handedOff, 0);   // this game's next turn
 }

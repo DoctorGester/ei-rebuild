@@ -258,7 +258,8 @@ happen (the harness logs "share id" if one does).
 - **Pairs** (SV5d, tests/verify/harness_pair.{h,cpp}): a scenario's `peer <name>` line makes ei_launch start a second
   game on tests/scenarios/peer/<name>.txt (both the image or both the original, one job object, either side's hang
   ends both; the peer's report in the run folder's peer\, merged into the host's as `FAILED: peer: ...`). The two run
-  in lockstep (turns a frame at a time through a shared mapping, so a datagram always arrives in the same frame) and
+  in lockstep (turns a frame at a time through a shared mapping, so a datagram always arrives in the same frame; each
+  game's frame step runs beside the other's turn, SV10a: section 10) and
   their UDP sockets talk through a mailbox of virtual ports, not the loopback adapter (the real sockets are still
   bound on 127.0.0.1; the `NET:` check is unchanged); `peersignal` / `peerwait` order the two scenarios. `netcut`
   pulls one side's cable (its datagrams and those sent to it are lost; SV5d2), `hidefile <path>` makes an install
@@ -401,14 +402,33 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   (terrain projection, mesh lighting, the classic shadow textures rasterised on the CPU, GDI text on the
   interface surfaces), our renderer's submission ~6%, the camera ~5%, the harness build's upload read-backs
   (CheckUpload) ~3%.
-- **Pairs take turns**: only one game of a pair runs at a time (harness_pair.h), so a frame of
-  net_pair_quest costs both games' frames: 19.3 ms median, 8-10 ms each game's own work and 11-12 ms waiting
-  for the other (image and original alike; 6,437 frames).
+- **Pairs overlap** (SV10a, harness_pair.h): a game's turn runs from its after-frame peek (steps, messages, the
+  next pass's worlds and net::Pump, the interface's update) to just before the pass's frame step (CALL 00458010 at
+  004575FD, the rewritten loop's `frameStep` hook point); the frame step (the drawing and the present, most of a
+  frame) runs while the other game takes its turn. The frame step pumps the network too: CWorldClient::Render
+  00569E40 calls net::Pump between its drawing stages (four times), and the server answers the lobby's pings from
+  there. So the mailbox keeps the order it had when the frame step was inside the turn: every datagram carries its
+  sender's segment (a turn and the frame step after it, stamp 2 * turn + side), a receive takes datagrams of
+  earlier segments or its own, oldest segment first, then oldest sent; the frame step may send only to its own
+  ports (the host's client and server), to nobody (netcut) or to the fake master. A frame-step send to the other
+  game, a bind, a close or a signal there fails the run (the guard; none in the suites). Goldens unchanged by
+  construction (all 5 pairs, 4 installs, plain and EI_HEAP_JITTER 1 / `2,fill`, several at once).
+  - Measured (net_pair_quest, 2,819 frames, image; overlap off with `EI_PAIR_OVERLAP=0`, runs alternated so the
+    load is the same): machine otherwise quiet, median frame 9.9-10.6 ms against 18.4-22.2 ms, the run's frames
+    40.6-44.2 s against 58.3-72.0 s, pair wait 1.6-2.9 ms a frame against 10-13.5; the original 8.7 ms against
+    16.9 ms median. In a full image suite (16 slots): net_pair_quest 76 s -> 61 s, median frame 24.7 -> 17.4 ms,
+    the suite 80 s -> 65 s. Under load the two games' drawing now competes for the cores (the frame step's own
+    time grows ~25%), so the gain is smaller than the ~45% of a quiet machine.
+  - The report's second `PAIR:` line: the mean time in the turn (4-5 ms) and of the frame step after the hand-off
+    (8-15 ms). A first try that ended the turn after Render's last net::Pump left only 1-2 ms a frame outside the
+    turn (the world's drawing sits between the pumps): 15-25%.
+  - Before SV10a: only one game of a pair ran at a time, a frame of net_pair_quest cost both games' frames (19.3 ms
+    median: 8-10 ms each game's own work, 11-12 ms waiting).
 - Cut (no golden changes): the window checks (WB12's out-of-sight check asked DWM about every window five
   times a second: 0.4-2 ms of wall time a frame in the original's runs, ~6% of net_pair_quest's main thread in
   the image's under load) walk the game's own threads' windows and sweep / ask DWM every 2 s; the digest reuses
   the last-but-one record's map nodes (~20% of its time). Suites after: image 124 runs in 173 s (sum 1,033 s,
   net_pair_quest 153 s); original 114 runs in 227 s (sum 1,192 s, net_pair_quest 176 s), with other workers'
   games on the machine. Suite times move with that load by ±15%, so the per-frame numbers are the measure.
-- Proposals (tickets SV10a-SV10e): the pair's frame step run while the other game takes its turn, start-up,
-  more world updates per drawn frame, drawing only frames a step reads, the harness build's renderer checks.
+- Proposals (tickets SV10b-SV10e): start-up, more world updates per drawn frame, drawing only frames a step reads,
+  the harness build's renderer checks (SV10a: the pair overlap above).
