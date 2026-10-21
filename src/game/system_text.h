@@ -12,11 +12,16 @@
 // Without EI_UTF8 nothing is routed and text::sys is the ANSI calls: nothing changes.
 //
 // Text going in that is not valid UTF-8 is taken in the ANSI code page, as the ANSI call took it (8-bit text
-// that has not crossed text::FromAssetText yet: typed characters until U4). Text coming out is UTF-8.
+// that has not crossed text::FromAssetText). Text coming out is UTF-8.
+//
+// The windows are Unicode ones (U4): RegisterClassExA registers the class wide, and DefWindowProcA,
+// GetMessageA, PeekMessageA and DispatchMessageA's slots lead to the wide calls (the same arguments), so a typed character arrives as UTF-16 (app.cpp's DispatchInput passes it on as a code point; asset_text.h,
+// "Typing").
 //
 // Not routed (still ANSI): the profile calls (GetPrivateProfile*, WritePrivateProfileString), whose values
 // round-trip as bytes in the ANSI calls (the config\*.ini files are the game's own and their names are
-// ASCII); GDI's text draw and extent (U3); the window's messages (WM_CHAR: U4).
+// ASCII); GDI's text draw and extent (U3); SendMessageA to the titles' RichEdit control (RTF names its own
+// code page).
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -71,7 +76,15 @@ LSTATUS WINAPI RegCreateKeyExA(HKEY key, LPCSTR subKey, DWORD reserved, LPSTR ke
 LSTATUS WINAPI RegQueryValueExA(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size);
 LSTATUS WINAPI RegSetValueExA(HKEY key, LPCSTR name, DWORD reserved, DWORD type, const BYTE* data, DWORD size);
 
-// The window title, the message box, key names, resource strings.
+// The window class (registered wide: the window is a Unicode one, U4), the window title, the message box, key
+// names, resource strings.
+ATOM WINAPI RegisterClassExA(const WNDCLASSEXA* windowClass);
+// The window's messages: the wide calls (a Unicode window's messages are taken and passed on wide; WM_CHAR then
+// carries UTF-16).
+LRESULT WINAPI DefWindowProcA(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL WINAPI GetMessageA(LPMSG message, HWND window, UINT first, UINT last);
+BOOL WINAPI PeekMessageA(LPMSG message, HWND window, UINT first, UINT last, UINT remove);
+LRESULT WINAPI DispatchMessageA(const MSG* message);
 HWND WINAPI CreateWindowExA(DWORD exStyle, LPCSTR className, LPCSTR title, DWORD style, int x, int y, int width,
                             int height, HWND parent, HMENU menu, HINSTANCE instance, LPVOID parameter);
 HWND WINAPI FindWindowA(LPCSTR className, LPCSTR title);

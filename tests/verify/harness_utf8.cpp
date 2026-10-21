@@ -1,12 +1,17 @@
-// The UTF-8 build's file names through the game's file calls. See harness_utf8.h.
+// The UTF-8 build's file names through the game's file calls, and its typing. See harness_utf8.h.
 #include "harness_utf8.h"
 
+#include "../../src/game/console.h"
 #include "../../src/game/system_text.h"
+#include "../../src/game/ui.h"
 #include "../../src/hook/log.h"
+#include "harness_objects.h"
 #include "lib/gameapi.h"
 
 #include <windows.h>
 
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace ei::verify::utf8files {
@@ -71,3 +76,59 @@ std::string Check(const char* savesDir) {
 }
 
 } // namespace ei::verify::utf8files
+
+namespace ei::verify::utf8typing {
+
+std::string Type(HWND window, const std::string& typed) {
+    if constexpr (!text::kUtf8) {
+        (void)window;
+        Log("harness: typeunicode skipped (the UTF-8 build's)");
+        return {};
+    } else {
+        if (!window) return "typeunicode: no game window yet";
+        const std::wstring wide = text::Wide(typed);
+        for (wchar_t unit : wide) {
+            if (!PostMessageW(window, WM_CHAR, static_cast<WPARAM>(unit), 1))
+                return "typeunicode: WM_CHAR was not posted";
+        }
+        Log("harness: typeunicode: %u UTF-16 units posted as WM_CHAR", static_cast<unsigned>(wide.size()));
+        return {};
+    }
+}
+
+std::string CheckConsoleLine(const std::string& argument) {
+    if constexpr (!text::kUtf8) {
+        (void)argument;
+        Log("harness: consoleline skipped (the UTF-8 build's)");
+        return {};
+    } else {
+        char* rest = nullptr;
+        const long characters = std::strtol(argument.c_str(), &rest, 10);
+        if (rest == argument.c_str() || characters < 0) return "consoleline needs <characters> <text>";
+        const std::string expected = *rest == ' ' ? std::string(rest + 1) : std::string(rest);
+        // The caret's byte offset: the bytes of the first <characters> characters (continuation bytes 10xxxxxx
+        // belong to the character before).
+        std::size_t caret = 0;
+        for (long n = 0; n < characters && caret < expected.size(); ++n) {
+            ++caret;
+            while (caret < expected.size() && (static_cast<unsigned char>(expected[caret]) & 0xC0) == 0x80) ++caret;
+        }
+        const console::ConsoleWindow* console = HarnessInterface()->console_;
+        if (!console) return "consoleline: no console window";
+        const mfc::CString& input = console->input_;
+        const std::string line(static_cast<const char*>(input), static_cast<std::size_t>(input.GetLength()));
+        if (line != expected || console->caret_ != static_cast<int>(caret)) {
+            char failure[512];
+            std::snprintf(failure, sizeof(failure), "consoleline: the line is \"%s\" (%d bytes), caret at byte %d; expected \"%s\" (%u bytes), caret at byte %u",
+                          line.c_str(), input.GetLength(), console->caret_, expected.c_str(), static_cast<unsigned>(expected.size()),
+                          static_cast<unsigned>(caret));
+            return failure;
+        }
+        Log("harness: consoleline: \"%s\" in UTF-8 (%u bytes, %d characters), caret at character %ld (byte %u)",
+            line.c_str(), static_cast<unsigned>(line.size()), text::CharacterCount(line), characters,
+            static_cast<unsigned>(caret));
+        return {};
+    }
+}
+
+} // namespace ei::verify::utf8typing

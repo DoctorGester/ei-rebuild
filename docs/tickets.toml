@@ -601,7 +601,7 @@ title = "Chat window's face and status vanish depending on the game heap's layou
 group = "renderer"
 model = "opus"
 files = ["src/render/render_textures.cpp", "src/render/render_ui.cpp"]
-note = "Found by U1 (2026-10-21): in ui_gallery_mp's briefing / chat_typed / chat_sent frames the base screen's player list loses its face and status (top right, 27249 pixels) when the game heap shifts. Reproduced with the UTF-8 switch off by leaking gamecrt::operator_new(16/64/100) on every other text lookup; game state digests the same. Guess: a window texture or canvas keyed by holder address in render_textures / render_ui is reused or stale. Fix it so the frames do not depend on heap layout; it otherwise shows in every U ticket's frame check and can make goldens flaky."
+note = "Found by U1 (2026-10-21): in ui_gallery_mp's briefing / chat_typed / chat_sent frames the base screen's player list loses its face and status (top right, 27249 pixels) when the game heap shifts. Reproduced with the UTF-8 switch off by leaking gamecrt::operator_new(16/64/100) on every other text lookup; game state digests the same. Guess: a window texture or canvas keyed by holder address in render_textures / render_ui is reused or stale. Fix it so the frames do not depend on heap layout; it otherwise shows in every U ticket's frame check and can make goldens flaky. Done (2026-10-21): not the renderer. Connection::SendUpdate writes a priority's entries in the order of their ReplicaEntry addresses (priorities_ keyed by pointer), so the player record can reach the client before its binding; ShowPlayers lists nobody without the binding and the original's binding handler 0041E430 does not refresh: face and status gone. Fix as the T2f address orders: with address_order::ById the binding refreshes the list (OnPlayersChanged(1)) when players came first; the harness patches the original's 0041E430 to a stub doing the same. Regression check: scenario step checkplayers (ui_gallery_mp) fails when the list is short; run with EI_HEAP_JITTER. Before: image failed seeds 2,fill and 4, the original even plain in this build; after: image plain/1-6 and original plain/1/2,fill/3-6 pass, frames pixel-identical to main's plain frames. Suites: image 121 same, original 114 same."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -3581,7 +3581,7 @@ title = "Typing: Unicode WM_CHAR; edit field, console, chat and name entry move 
 group = "standalone"
 model = "opus"
 depends = ["U2"]
-note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup. Done 2026-10-21: with EI_UTF8 the window is Unicode (RegisterClassExA, DefWindowProcA, Get/Peek/DispatchMessageA slots routed wide; 33 routed), DispatchInput passes a code point, the edit field / console / chat line / save name edit by character (asset_text.h Typing helpers); U1's save-name convert pair gone. Checks: utf8_typing (Cyrillic + U+1F600 into the console, caret/Backspace/Delete by character) passes on verify-utf8; gallery off vs on 51/54 identical (ui_gallery_mp's 3 = UB1). Routes must be our own functions (static init)."
 
 [[ticket]]
 id = "U5"

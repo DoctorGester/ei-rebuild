@@ -1,0 +1,38 @@
+# Typing in the UTF-8 build (EI_UTF8, ticket U4; docs/notes/standalone.md section 4): the game window is a
+# Unicode one, so characters typed into the console's line arrive as UTF-16 WM_CHAR ("typeunicode" posts them
+# as Windows gives a Unicode window a typed character; a character past U+FFFF as a surrogate pair), are
+# stored as UTF-8, and the caret, Backspace and Delete go by character ("consoleline" checks the line's bytes
+# and the caret's place). Without EI_UTF8 both steps are skipped and the console is only opened and closed.
+# no original: vanilla rebirth (Unicode typing is the UTF-8 build's)
+waitmenu
+key grave
+frames 2
+typeunicode Жук
+frames 2
+consoleline 3 Жук
+key left
+frames 2
+consoleline 2 Жук
+key backspace
+frames 2
+consoleline 1 Жк
+typeunicode ё😀
+frames 2
+consoleline 3 Жё😀к
+key left
+key delete
+frames 2
+consoleline 2 Жёк
+key home
+key right
+frames 2
+consoleline 1 Жёк
+key end
+frames 2
+consoleline 3 Жёк
+key esc
+frames 2
+consoleline 0
+key grave
+frames 2
+quit

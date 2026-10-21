@@ -237,6 +237,7 @@ heap.
 | Script groups ordered by object id | comparator 004B2D80, inline compares in Union / Difference / Intersection / Insert (harness_script_order) | | SV7b1 |
 | Object sets by id; lit sectors by (sy, sx) | 0047ADF0, 0047B4C0, 006C8E90 (harness_address_order) | | T2f |
 | Draw lists by texture / figure name, then depth | 005740D0 and 00574390 jump to ours (both: mixed orders ran off the array) | | SV7b6 |
+| A client's player list refreshed by its binding too (an update's objects come in the server's ReplicaEntry address order; players before the binding were listed as nobody: the base screen's faces) | 0041E430 jumps to a stub (harness_address_order); scenario step `checkplayers` | | UB1 |
 | The shadow's turn undone exactly (no ulp drift per re-render) | CALLs 0051D479 / 0051D4E0 (harness_shadow_turn) | `EI_SHADOW_TURN=0` | SV7b4a |
 
 Script groups order by id because the script engine saves groups by id and ids are unique while referenced; ties cannot

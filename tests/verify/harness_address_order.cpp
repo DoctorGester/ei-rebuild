@@ -3,6 +3,11 @@
 
 #include "../../src/game/address_order.h"
 #include "../../src/game/engine_object.h"
+#include "../../src/game/game_data.h"
+#include "../../src/game/net_classes.h"
+#include "../../src/game/ui.h"
+#include "../../src/game/ui_briefing.h"
+#include "harness_objects.h"
 #include "../../src/game/terrain_sector.h"
 #include "../../src/game/world.h"
 #include "../../src/hook/log.h"
@@ -84,6 +89,19 @@ __declspec(naked) void MergeStep() {
     }
 }
 
+// 0041E430 (the client's binding handler; ECX the client, EDX the binding, plain RET): the original's
+// counted assignment, then, when players came before the binding, the interface's refresh 005F82D0
+// (RET 4) on game.exe's interface 007C7D50, as ours does (net_client_handlers.cpp ClientOnBinding, UB1).
+void __fastcall OnBindingForOriginal(net::ClientSession* self, CRefObject* binding) {
+    CRefObject* previous = self->binding_;
+    self->binding_ = binding;
+    if (binding) ++binding->refs_;
+    if (previous && --previous->refs_ == 0) delete previous;
+    if (self->players_.Empty()) return;
+    using RefreshFn = void(__thiscall*)(CInterface3D*, int);
+    ei::Code<RefreshFn>(0x005F82D0)(&ei::OriginalGameData<CInterface3D>(0x007C7D50), 1);
+}
+
 struct Site {
     std::uintptr_t address;
     unsigned char expected[14];
@@ -105,6 +123,9 @@ const Site kSites[] = {
      "the draw lists' sort 005740D0"},
     {0x00574390, {0x83, 0xEC, 0x14, 0x8B, 0xC2}, 5, reinterpret_cast<void*>(&FinalSortByModel),
      "the draw lists' final sort 00574390"},
+    // The client's player list when the update brings the players before the binding (UB1).
+    {0x0041E430, {0x8B, 0x81, 0xF0, 0x25, 0x00, 0x00}, 6, reinterpret_cast<void*>(&OnBindingForOriginal),
+     "the client's binding handler 0041E430"},
 };
 
 } // namespace
@@ -139,7 +160,32 @@ void PatchOriginal() {
         FlushInstructionCache(GetCurrentProcess(), code, site.size);
         ++patched;
     }
-    Log("harness: address orders by object id, sector and name (%d of %d original sites)", patched, int(sizeof(kSites) / sizeof(kSites[0])));
+    Log("harness: address orders by object id, sector and name, the player list by binding (%d of %d original sites)", patched, int(sizeof(kSites) / sizeof(kSites[0])));
+}
+
+bool CheckPlayerList(const std::uintptr_t (&briefing)[2], std::string* text) {
+    CUiWindow* top = HarnessInterface()->GetActiveWindow();
+    const std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
+    auto* client = ei::Standalone() ? net::GameClient() : ei::OriginalGameData<net::ClientSession*>(0x0079B5D8);
+    char line[200];
+    bool ok = false;
+    if (!top || (vtable != briefing[0] && vtable != briefing[1])) {
+        std::snprintf(line, sizeof(line), "the base screen is not on top");
+    } else if (!client || !static_cast<CBriefingScreen*>(top)->chat_) {
+        std::snprintf(line, sizeof(line), "no network client, or its base screen has no player list");
+    } else {
+        int players = 0;
+        for (auto* node = client->players_.First(); node != client->players_.End(); node = node->next) ++players;
+        const CRefObject* binding = client->binding_;
+        const bool bound = binding && !(binding->flags7_ & CRefObject::kDetached);
+        const int listed = static_cast<CChatWindow*>(static_cast<CBriefingScreen*>(top)->chat_)->listed_;
+        ok = bound && players > 0 && listed == players;
+        std::snprintf(line, sizeof(line), "the base screen lists %d of the client's %d players (binding %s)", listed, players,
+                      bound ? "live" : "missing");
+    }
+    *text = line;
+    Log("harness: checkplayers: %s: %s", line, ok ? "ok" : "FAIL");
+    return ok;
 }
 
 } // namespace ei::verify::address_order
