@@ -1,0 +1,119 @@
+# Interface gallery, the camp and the global map (ticket N4; docs/notes/ui-native.md, "N4: the
+# gallery"): the inventory, trade and maker pages, held still (freeze) and captured. Frames:
+# camp_items (page 0: equipment, the item strip, the item description panel over a spell weapon),
+# camp_stats (page 0 with the statistics panel's row described), camp_levelup (page 1: the trade
+# panel's skill rows and the hero statistics), camp_trade (page 2 with trader class 1: the trade grid),
+# camp_trade4 (page 4, the item constructor's trade page), camp_spells / camp_makeitem (class 3: the
+# spell and item makers, the strips filled by "give 0 assortment"), map (the global map with a
+# quest's title) and map_escmenu (the escape menu over it). Layout coordinates are the 800x600 ones
+# of ui_describe and ui_camp_make.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GiveItem(0,"Axe.steel")
+frames 5
+console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
+frames 5
+console @GiveItem(0,"potion 1")
+frames 5
+console @GiveItem(0,"rune.e2")
+frames 5
+waitwindow 15 battle
+
+# Trader class 1 (as a base dialogue's "constr1" answer).
+screen 5 1
+waitwindow 15 camp
+# The item strip's last tab (every item), the mouse on the second slot (the spell weapon).
+click 785 580
+frames 5
+move 200 550
+frames 5
+freeze
+capture camp_items
+unfreeze
+move 100 202
+frames 5
+freeze
+capture camp_stats
+unfreeze
+# Page 1 (region 5): the trade panel, a skill row under the mouse.
+clickregion 5
+wait 500
+move 340 157
+frames 5
+freeze
+capture camp_levelup
+unfreeze
+# Pages 2 and 4 (regions 6 and 8): the trade pages.
+clickregion 6
+wait 500
+move 400 20
+frames 5
+freeze
+capture camp_trade
+unfreeze
+clickregion 8
+wait 500
+move 400 20
+frames 5
+freeze
+capture camp_trade4
+unfreeze
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+# Trader class 3 (the spell and item constructors), the strips filled.
+console @GiveSkill(GetLeader(),"elemental",5)
+console @GiveIntelligence(GetLeader(),60)
+screen 5 3
+waitwindow 15 camp
+console give 0 assortment
+frames 10
+# Page 3 (region 7): the spell maker, a school tab picked, the mouse on a strip slot.
+clickregion 7
+wait 300
+click 17 22
+frames 3
+move 100 43
+frames 5
+freeze
+capture camp_spells
+unfreeze
+# Page 5 (region 9): the item maker.
+clickregion 9
+wait 300
+move 100 43
+frames 5
+freeze
+capture camp_makeitem
+unfreeze
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+# The global map (screen 4) with a held quest (zone1's q0g: its title and place), then the escape
+# menu over it (Esc), closed with Esc.
+console @GSSetVar(0,"q.gz1g.q0g",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
+screen 4
+waitwindow 15 map
+move 400 20
+frames 5
+freeze
+capture map
+unfreeze
+key esc
+waitwindow 10 escmenu
+move 400 20
+frames 5
+freeze
+capture map_escmenu
+unfreeze
+key esc
+waitwindow 10 map
+report
+quit

@@ -214,6 +214,34 @@ for text until P2, `Image` the DrawText rectangle from the memory after GDI draw
 mirror `SwapContents` (a swapped-out holder has no memory to compare). The UI scenarios then run with `render new,present,uiboth`.
 P2 tunes `uidiff text / block / textlimit` for our own fonts (whole-word shifts need wider blocks or a looser limit).
 
+### N4: the gallery (2026-10-21): `tests/scenarios/ui_gallery_*.txt`
+
+Five scenarios open every window family the original reaches with menus, keys and clicks, hold each still (`freeze`) and
+capture it (`frames\<name>.bmp` in the run folder). Each has a vanilla golden from three agreeing runs of the original
+(plain, `EI_HEAP_JITTER=1`, `2,fill`; no EI_COVER), so the suite checks that the steps keep doing the same; the frames
+themselves are not in the golden. They are the coverage for N3's per-surface diff and for P1-P8: run them under `uiboth`
+/ `uinative` and compare.
+
+| Scenario | Frames | Families (census vtable) |
+|---|---|---|
+| `ui_gallery_menus` (no game) | menu, options, help, help_tip, options_keys, bind_box, difficulty, quit_box, load_empty, heroes, hero_new, titles | main menu and its version line (drawn before AddSurface); options 00741FAC with its spins CUiSpin 00742D5C and key rows; help 00740E28 (the options' topic); tooltip CUiTooltip 00742F64 (the help's OK button, FrameRect); message boxes (key binding, quit) and the difficulty box (BoxText, DT_CALCRECT); save / load 00741388 with an empty list; hero list 0074214C; new hero: edit field CUiEditField 00742DF4 with typed text and caret, voice list, CHeroStatsPanel 00741ABC; titles 00740C3C (RichEdit EM_FORMATRANGE) |
+| `ui_gallery_game` | hud, quest_notice, top_page2, hud_tip, console, objectives, help, escmenu, save, load, view | HUD: unit panel CHudUnitPanel 007426F8, map CHudMap 00742660 (SetPixel marker), top / movement / weapon panels, the FPS surface (`console fps on`); message log CUiScrollText 00742E9C with a quest line; HUD tooltip (movement panel); console window (lines, typed line, 2-px caret); objectives; help from the objectives; escape menu over the greyed backdrop (CaptureScreen, Greyscale, Rgb565Copy); save window (list with pen lines, picture, the name edit field) and load window with two saves; the debug view (screen 7) |
+| `ui_gallery_camp` | camp_items, camp_stats, camp_levelup, camp_trade, camp_trade4, camp_spells, camp_makeitem, map, map_escmenu | camp 0074091C; item strip 0074197C / 00621B50; item description CItemInfoPanel 007404DC (a spell weapon, a statistics row); trade panel rows 007417A8 and hero statistics (page 1); trader class 1's trade pages 2 and 4 (CTradeGrid); class 3's spell and item makers with filled strips; global map with a quest title, and the escape menu over it |
+| `ui_gallery_mp` (timeout 120) | hero_stats, connect, briefing, chat_typed, chat_sent | a made hero's statistics page; connection screen CMpConnectScreen 00741CD0 (the game list with its pen lines); the hosted game's base screen with the player list CChatWindow 00741478; chat line CChatOverlay 007400DC (typed text, caret) and a sent line (the unowned chat line surface) |
+| `ui_gallery_base` | base, base_topics, base_phrase, base_rewards | bz1g's base screen (briefing): Smith's topic list, a dialogue phrase with the shown items, the rewards |
+
+**Not captured, and why:**
+- The status surface (005F75B0, "saving" / "loading" notices): it is drawn during the save inside one frame and gone by the
+  next, so no capture can hold it. `ui_gallery_game`'s save reaches it (the per-surface diff sees it).
+- The debug panel (0079B930): it cannot be drawn in 1.06 (ui-census.md); only a direct call of 00444F50 would show it.
+- The repair grid (CRepairGrid draw): no scenario reaches it yet (ui.md section 5, "Not reached").
+- The exchange window (`ui_exchange.cpp`): it needs a second player; `net_pair_zone` reaches it (a pair, no frames).
+- The global map's pick picture: never shown on screen; `ui_global_map_pick` reaches its PixelAt reads.
+- The hero list's arrow tooltip (region 0, tip 0x9CA5): a 2.5 s hover showed none in the original; the help OK button and
+  the HUD's movement panel give the tooltip family instead.
+- Rebirth launches: the gallery's goldens are vanilla only (the suite's install); Rebirth's layout is WideScreen's
+  frames (`run_all --widescreen`).
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -227,8 +255,8 @@ they depend on.
   (method in ui-census.md "How it was measured").
 - **N1** the 2D canvas layer (done, section 3 "N1 done"; `src/render/render_ui.{h,cpp}`, checked offline by `ei_ui_check`). **N2** glyph atlas and DrawText layout (done, section 2).
   **N3** comparison harness (done, section 3 "N3 done"; `uinative` / `uiboth` / `uipath`, the per-surface diff (a), UI mask
-  capture, `compare_frames.py --mask-file`; `tests/verify/harness_ui.cpp`). **N4** `ui_gallery` scenario (every window family captured frozen; needs the virtual
-  clock). **N5** cursor and per-frame images cached (`render_blit.cpp`).
+  capture, `compare_frames.py --mask-file`; `tests/verify/harness_ui.cpp`). **N4** the `ui_gallery_*` scenarios (done, every
+  window family captured frozen; section 3 "N4: the gallery"). **N5** cursor and per-frame images cached (`render_blit.cpp`).
 - **P1** surface plumbing (canvas per native surface, blit, Get/ReleaseDC as the metrics DC, Fill / Clear / FrameRect, readback for
   PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs
   N1, N3). **P2** text (005FDE20 records glyph runs, GDI on the metrics DC for the return value; 005FDFA0 unchanged; needs N2, P1).

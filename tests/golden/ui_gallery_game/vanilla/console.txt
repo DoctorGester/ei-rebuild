@@ -1,0 +1,7 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Saved savea
+  1
+  1
+  Current FPS: 3.63636
+  Saved save1

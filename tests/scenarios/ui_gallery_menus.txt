@@ -1,0 +1,138 @@
+# Interface gallery, menus (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): every window
+# family reached from the main menu, each held still (freeze) and captured, for the native window
+# surfaces (P1-P8) and the per-surface diff (N3). Only menus, keys and clicks the original takes.
+# Frames: menu (the menu and its version line), options and options_keys (the option rows, spins,
+# key rows), help (the help page from the options) and help_tip (its OK button's tooltip),
+# bind_box (the key binding's message box), difficulty (the new game's box with check boxes),
+# quit_box (the plain message box), load_empty (the save / load window, no saves yet), heroes (the
+# multiplayer hero list), hero_new (a new hero: the name edit
+# field with typed text, the voice list, the statistics panel), titles (the RichEdit credits).
+# Nothing is saved, no hero is created (no .mp file), the key table is not stored (options cancelled).
+reject Script error
+waitmenu
+move 400 20
+frames 5
+freeze
+capture menu
+unfreeze
+
+# Options (region 3), the first group; then the key group (region 6, its first row selected).
+clickregion 3
+waitwindow 10 options
+move 400 20
+frames 5
+freeze
+capture options
+unfreeze
+# The options' help (H: its topic has a tutorial text), then the OK button's tooltip (region 1).
+key h
+waitwindow 10 help
+frames 10
+freeze
+capture help
+unfreeze
+moveregion 1
+wait 2500
+freeze
+capture help_tip
+unfreeze
+clickregion 1
+waitwindow 10 options
+clickregion 6
+frames 10
+move 400 20
+frames 5
+freeze
+capture options_keys
+unfreeze
+# Enter waits for a key; Q is weapon1's, so the message box asks (ui_options_bind); OK binds it, Cancel
+# (region 1) drops the options.
+key enter
+frames 5
+key q
+waitwindow 10 msgbox
+frames 5
+freeze
+capture bind_box
+unfreeze
+clickregion 0
+waitwindow 10 options
+clickregion 1
+waitwindow 10 menu
+
+# The new game's difficulty question (region 0), cancelled.
+clickregion 0
+waitwindow 10 difficulty
+frames 5
+freeze
+capture difficulty
+unfreeze
+clickregion 1
+waitwindow 10 menu
+
+# The quit box (Esc on the menu), cancelled with Esc.
+key esc
+waitwindow 10 msgbox
+frames 5
+freeze
+capture quit_box
+unfreeze
+key esc
+waitwindow 10 menu
+
+# The load window (region 1): no saves in a fresh run's saves folder. Cancel (region 1).
+clickregion 1
+waitwindow 10 saveload
+move 400 20
+frames 5
+freeze
+capture load_empty
+unfreeze
+clickregion 1
+waitwindow 10 menu
+
+# Multiplayer (region 5): the hero list, then a new hero (region 5) with its defaults (region 4, which clears the name) and a typed name.
+clickregion 5
+waitwindow 15 heroes
+wait 1000
+move 400 20
+frames 5
+freeze
+capture heroes
+unfreeze
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key t
+frames 3
+key e
+frames 3
+key s
+frames 3
+key t
+frames 5
+move 400 20
+frames 5
+freeze
+capture hero_new
+unfreeze
+# Esc back to the list (no hero made), Esc to the menu.
+key esc
+frames 20
+key esc
+waitwindow 15 menu
+
+# The titles (region 4): the scrolling RichEdit text; a click ends them. (About 2 s first, as in
+# ui_main_menu: with 1 s the vanilla game sometimes stopped on "Can't begin scene".)
+clickregion 4
+waitwindow 10 titles
+wait 2000
+freeze
+capture titles
+unfreeze
+click 400 300
+waitwindow 15 menu
+wait 500
+report
+quit
