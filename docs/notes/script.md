@@ -275,7 +275,7 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   +0x34, +0x38 and the angle; read from version 0x68 on, else 0 (world.h's +0x24 is `angle`). `ReadInto` 004E5840 reads a
   string into a temporary and assigns. Covered by zone_base_bz1g, newgame, saves.
 - Ground decals: ClipPlane / AddTriangle / AddTerrainTriangle are in tests/verify/disabled.txt (X17).
-- .mob: `ReadMobChunks` 00481F00 (scripts, weather, records, players); `LoadMobFile` 00481660 (relations applied, traps get
+- .mob: `MobFile::ReadChunks` 00481F00 (scripts, weather, records, players); `MobFile::Load` 00481660 (relations applied, traps get
   their hostile mask and origin, units their alarm records 005D6D20, records deleted, scripts loaded unless keepIds);
   `MobScriptDecoder::Decode` 004D8E10 (resize 004D8EB0 = `CharVectorResizeOriginal`); zone_gz2g_traps.
 - Trader stock: `ClassTemplateSetLevels` 004A6DC0, `GenerateItems` 004A6DF0, `GenerateMagic` 004A6F60 (a list<CItem*>

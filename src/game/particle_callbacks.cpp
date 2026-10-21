@@ -3398,7 +3398,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     Vector3 target;
     std::memcpy(&target, &origin, sizeof(Vector3));
     if (attachedTo) {
-        const auto* carrier = static_cast<const CObject3D*>(attachedTo);
+        const CObject3D* carrier = attachedTo;
         const Quaternion& turn = carrier->localRotation_;
         double w = D(turn.w), x = D(turn.x), y = D(turn.y), z = D(turn.z);
         double xx = x * x;
@@ -3651,7 +3651,7 @@ EI_REWRITTEN(0x00495C80, CParticleSource::UpdateFeetCloud);
 // source. +0x18 gets the carrier figure's radius and the countdown +0x30 is reset.
 void CParticleSource::TickFeetCloud(ParticleElement* e) {
     if (attachedTo && ClassOf(attachedTo) == kUnitClass) {
-        void* unit = attachedTo;
+        CObject3D* unit = attachedTo;
         void* part = FindFigurePart(unit, *ElementInt(e, 0x34) ? kLeftFoot : kRightFoot);
         if (!part) part = FindFigurePart(unit, kBody);
         if (part) {
@@ -3659,8 +3659,8 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
             FigurePartPosition(unit, &at, part);
             e->pos = at;
         } else {
-            const float* place = &static_cast<const CObject3D*>(unit)->localPosition_.x;
-            float raise = static_cast<const CObject3D*>(unit)->above.z;
+            const float* place = &unit->localPosition_.x;
+            float raise = unit->above.z;
             std::memcpy(&e->pos, place, 2 * sizeof(float));
             e->pos.z = static_cast<float>(D(place[2]) + D(raise));
         }
@@ -3762,7 +3762,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     double radius;
     float* kept = ParticleFloat(p, 0x34);
     if (attachedTo) {
-        radius = D(static_cast<const CObject3D*>(attachedTo)->radius) *
+        radius = D(attachedTo->radius) *
                  D(0.5f /*0073B86C*/);
         *kept = static_cast<float>(radius);
     } else {

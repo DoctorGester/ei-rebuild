@@ -17,8 +17,6 @@
 
 #include <cstring>
 
-// 005ACE80 (menu_rects.cpp; thiscall on the manager, RET 4): the menus' button rectangles.
-int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects);
 
 namespace {
 
@@ -54,7 +52,7 @@ int CFigureManager::CreateWithArchives() {
     mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
     AddArchive(folder + kFiguresArchive);
     AddArchive(folder + kMenusArchive);
-    LoadMenuRects(this, nullptr, ei::GamePointer<std::uint8_t>(kMenuRects));
+    LoadMenuRects(ei::GamePointer<std::uint8_t>(kMenuRects));
     return 1;
 }
 EI_REWRITTEN(0x005AA510, CFigureManager::CreateWithArchives);

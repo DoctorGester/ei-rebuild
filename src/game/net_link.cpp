@@ -701,21 +701,13 @@ bool DriverLink::SendBytes(const void* data, std::uint32_t size) {   // 004796B0
     return IsLive(player_);
 }
 
-namespace {
-int __fastcall DriverResetHook(DriverLink* self) { return self->DriverLink::OnShutdown(); }
-DriverLink* __fastcall DriverCloneHook(DriverLink* self) { return self->DriverLink::Clone(); }
-int __fastcall DriverConnectedHook(DriverLink* self) { return self->DriverLink::Connected() ? 1 : 0; }
-void __fastcall DriverPumpHook(DriverLink* self) { self->DriverLink::Pump(); }
-void __fastcall DriverDisconnectHook(DriverLink* self) { self->DriverLink::Disconnect(); }
-int __fastcall DriverSendBytesHook(DriverLink* self, void*, const void* data, std::uint32_t size) {
-    return self->DriverLink::SendBytes(data, size) ? 1 : 0;
-}
-} // namespace
-EI_REPLACE(0x00479C10, DriverResetHook);
-EI_REPLACE(0x00479A30, DriverCloneHook);
-EI_REPLACE(0x00479780, DriverConnectedHook);
-EI_REPLACE(0x004797A0, DriverPumpHook);
-EI_REPLACE(0x00479810, DriverDisconnectHook);
-EI_REPLACE(0x004796B0, DriverSendBytesHook);
+// The slots of game.exe's 0073C990 are the compiled table's (DriverLinkClass); nothing reaches their
+// addresses (tools/registration_readers.py).
+EI_REWRITTEN(0x00479C10, DriverLink::OnShutdown);
+EI_REWRITTEN(0x00479A30, DriverLink::Clone);
+EI_REWRITTEN(0x00479780, DriverLink::Connected);
+EI_REWRITTEN(0x004797A0, DriverLink::Pump);
+EI_REWRITTEN(0x00479810, DriverLink::Disconnect);
+EI_REWRITTEN(0x004796B0, DriverLink::SendBytes);
 
 } // namespace netlink

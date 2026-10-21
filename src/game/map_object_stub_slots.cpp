@@ -174,9 +174,9 @@ Vector3* CMapObject::EyePoint(Vector3* out) {
     return out;
 }
 std::uint32_t CMapObject::ReadNetState(int first) {
-    return MapObjectReadNetState(reinterpret_cast<std::uint8_t*>(this), nullptr, first);
+    return ReadNetStateImpl(first);
 }
-void CMapObject::WriteNetState() { MapObjectWriteNetState(reinterpret_cast<std::uint8_t*>(this)); }
+void CMapObject::WriteNetState() { WriteNetStateImpl(); }
 void CMapObject::PlaceOnGround(float offset) { PlaceOnGroundImpl(offset); }
 Vector3* CMapObject::PositionAt(Vector3* out, int time) {
     GetPosition(&out->x, time);

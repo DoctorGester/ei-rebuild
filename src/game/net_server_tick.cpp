@@ -75,7 +75,7 @@ bool ServerSession::PlayerStateIs3(void* connection) {
         auto* binding = static_cast<BindingMessage*>(node->data.ptr);
         if (binding->ConnectionRef().ptr != connection) continue;
         if (!Live(binding)) return false;
-        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+        auto* player = binding->Player();
         if (!Live(player)) return false;
         return player->state_ == 3;
     }

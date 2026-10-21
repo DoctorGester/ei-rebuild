@@ -322,7 +322,7 @@ int CEffectArrowFigure::Tick() {
 void CEffectArrowFigure::MoveFigure() {
     if (figure_ == nullptr) return;
     TheClientWorld()->objectGrid_.Move(figure_, &localPosition_.x);
-    static_cast<CTransformObject*>(figure_)->RollTowards(velocity_);
+    figure_->RollTowards(velocity_);
 }
 
 void CEffectArrowFigure::Start(int update) {
@@ -333,7 +333,7 @@ void CEffectArrowFigure::Start(int update) {
     mfc::CString model(game::ArrowFigureModelText());
     mfc::CString texture(game::ArrowFigureTextureText());
     int id = NextClientObjectId()--;
-    CEngineObject* object = TheObjectManager()->CreateObject(kClassFigureObject, id);
+    auto* object = static_cast<CMapObject*>(TheObjectManager()->CreateObject(kClassFigureObject, id));
     if (object != figure_) {
         CountedRefResetOriginal(&figure_);
         if (object != nullptr) ++object->refCount_;
@@ -341,7 +341,7 @@ void CEffectArrowFigure::Start(int update) {
     }
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, as the original does.
-    auto* figure = static_cast<CObject3D*>(figure_);
+    CObject3D* figure = figure_;
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
     console::CStringArray parts;

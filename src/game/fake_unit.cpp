@@ -133,18 +133,10 @@ EI_REPLACE(0x00446910, FakeUnitDestruct);
 
 EI_REPLACE_METHOD(0x004468F0, FakeUnitScene::DeleteScalar);
 
-// 00446B20 (slot 3).
-void __fastcall FakeUnitDestroy(FakeUnitScene* self) { self->FakeUnitScene::Destroy(); }
-EI_REPLACE(0x00446B20, FakeUnitDestroy);
-
-// 00446BA0 (slot 62, RET 8).
-int __fastcall FakeUnitLoadScene(FakeUnitScene* self, void*, const char* file, const char* regFile) {
-    return self->FakeUnitScene::LoadScene(file, regFile);
-}
-EI_REPLACE(0x00446BA0, FakeUnitLoadScene);
-
-// 004468E0 (slot 12): the class id.
-int __fastcall FakeUnitClassId(FakeUnitScene* self) { return self->FakeUnitScene::GetClassId(); }
-EI_REPLACE(0x004468E0, FakeUnitClassId);
+// The slots of game.exe's 0073BFE8 (retired) are the compiled table's; nothing reaches their
+// addresses (tools/registration_readers.py).
+EI_REWRITTEN(0x00446B20, FakeUnitScene::Destroy);     // slot 3
+EI_REWRITTEN(0x00446BA0, FakeUnitScene::LoadScene);   // slot 62, RET 8
+EI_REWRITTEN(0x004468E0, FakeUnitScene::GetClassId);  // slot 12: the class id
 
 } // namespace fakeunit

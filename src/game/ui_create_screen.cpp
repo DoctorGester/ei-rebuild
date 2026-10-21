@@ -124,13 +124,13 @@ void CInterface3D::CreateScreen(int id) {
     }
     case 8: {   // the titles (CCreditsScreen, ui_screens.h)
         auto* credits = gamecrt::operator_new_as<CCreditsScreen>();
-        if (credits) Screen8Construct(credits, nullptr, this, 0, "Crdt");
+        if (credits) credits->Construct(this, 0, "Crdt");
         screen = credits;
         break;
     }
     case 9: {
         auto* exchange = gamecrt::operator_new_as<CExchangeScreen>();
-        if (exchange) Screen9Construct(exchange, nullptr, this);
+        if (exchange) exchange->Construct(this);
         screen = exchange;
         break;
     }
@@ -385,8 +385,9 @@ std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 
 } // namespace
 
-// 005F6F30 (thiscall, RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
-void* __fastcall Screen9Construct(CExchangeScreen* self, void*, CInterface3D* ui) {
+// 005F6F30 (RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
+CExchangeScreen* CExchangeScreen::Construct(CInterface3D* ui) {
+    CExchangeScreen* self = this;
     self->CUiContainer::Construct(ui);
     SetDword(self, 0x168, 0);
     // The original passes a stack byte and its argument slot as the allocators.
@@ -403,13 +404,14 @@ void* __fastcall Screen9Construct(CExchangeScreen* self, void*, CInterface3D* ui
     SetVtables(self, Vtable(0x00740D18), Vtable(0x00740CE4));
     return self;
 }
-EI_REWRITTEN(0x005F6F30, Screen9Construct);
+EI_REWRITTEN(0x005F6F30, CExchangeScreen::Construct);
 
-// 005F6D50 (thiscall, RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list
-// at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
-void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
-    static_cast<CUiContainer*>(self)->Construct(ui);
-    static_cast<CCreditsScreen*>(self)->archive_->Construct();
+// 005F6D50 (RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list at +0x1C8
+// gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
+CCreditsScreen* CCreditsScreen::Construct(CInterface3D* ui, int flag, const char* text) {
+    CCreditsScreen* self = this;
+    CUiContainer::Construct(ui);
+    archive_->Construct();
     std::uint8_t* list = Bytes(self) + 0x1C8;
     list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten
     SetDword(list, 0, 0);
@@ -424,7 +426,7 @@ void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag,
     ei::SetVtable(Bytes(self) + 0x94, 0x00740C08);
     return self;
 }
-EI_REWRITTEN(0x005F6D50, Screen8Construct);
+EI_REWRITTEN(0x005F6D50, CCreditsScreen::Construct);
 
 // 005F6E40 (thiscall). Screen 8's destructor body: its members, the list (entries with two
 // CStrings at +0x10 / +0x14) back to the node allocator, then the container base.

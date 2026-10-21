@@ -26,7 +26,7 @@ bool Live(const void* object) {
 void* Value(RefNode* node) { return node->data.ptr; }
 PlayerMessage* PlayerAt(RefNode* node) { return static_cast<PlayerMessage*>(node->data.ptr); }
 BindingMessage* BindingAt(RefNode* node) { return static_cast<BindingMessage*>(node->data.ptr); }
-PlayerMessage* PlayerOf(BindingMessage* binding) { return static_cast<PlayerMessage*>(binding->PlayerRef().ptr); }
+PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
 void* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRef().ptr; }
 
 // The connection of the first binding whose player is live and the host, or null.

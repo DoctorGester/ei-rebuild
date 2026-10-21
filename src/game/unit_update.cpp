@@ -179,8 +179,8 @@ Vector3* CUnit::EyePoint(Vector3* out) {
     StandPoint(&out->x);
     return out;
 }
-std::uint32_t CUnit::ReadNetState(int first) { return UnitReadNetState(reinterpret_cast<std::uint8_t*>(this), nullptr, first); }
-void CUnit::WriteNetState() { UnitWriteNetState(reinterpret_cast<std::uint8_t*>(this)); }
+std::uint32_t CUnit::ReadNetState(int first) { return ReadNetStateImpl(first); }
+void CUnit::WriteNetState() { WriteNetStateImpl(); }
 void CUnit::PlaceOnGround(float offset) { PlaceOnGroundImpl(offset); }
 Vector3* CUnit::PositionAt(Vector3* out, int time) {
     PositionAtImpl(&out->x, time);

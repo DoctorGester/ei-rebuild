@@ -289,7 +289,7 @@ at the end. Risk: scenario wolves are placed 5 to 13 units from the hero without
 
 ## Quest database (006AE8E0, quest_database.cpp, quest_records.cpp)
 
-`QuestDatabaseLoad` (thiscall on the database 007C87A8, RET 4, bool in AL) is called by the quest registration 005810A0, so
+`QuestDatabase::LoadRegistry` (006AE8E0, on the database 007C87A8, RET 4, bool in AL) is called by the quest registration 005810A0, so
 by every scenario that registers quests. Verified by running the original into a fresh database (constructor 006AE0F0,
 destructor 006ADF40; both in library.csv) and ours into the real one: the records ours appended must equal the original's
 whose names the real database did not have yet. A record is added unless the name index already holds it with a record; after

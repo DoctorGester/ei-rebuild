@@ -679,9 +679,9 @@ void __stdcall SoundEndOfSample(void* sample) {
 }
 EI_REPLACE(0x006B75E0, SoundEndOfSample);
 
-int __fastcall SoundOpenStream(void* stream, void*, void* driver) { return ManagerOf(stream)->OpenStream(driver); }
+// 006BAAC0's `this` is the manager's +0x100 (StreamOf); CSoundManager::OpenStream takes the manager.
 int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }
-EI_REWRITTEN(0x006BAAC0, SoundOpenStream);
+EI_REWRITTEN(0x006BAAC0, CSoundManager::OpenStream);
 EI_REWRITTEN(0x006BAC90, SoundCloseStream);
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
@@ -706,7 +706,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
         return 0;
     }
     AilSetDirectSoundWindow()(waveDriver, window);
-    if (SoundOpenStream(StreamOf(this), nullptr, waveDriver) != 0)
+    if (OpenStream(waveDriver) != 0)
         streamThread = mfc::impl::AfxBeginThread(StreamThreadEntry, this, kStreamThreadPriority, 0, 0, nullptr);
     // operator new[]: the count, then the voices.
     auto* block = static_cast<std::int32_t*>(gamecrt::operator_new(sizeof(std::int32_t) + kVoiceCount * sizeof(SoundSlot)));

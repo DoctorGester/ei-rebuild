@@ -23,22 +23,21 @@ namespace {
 
 } // namespace
 
-int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char* modelName, const char* animation) {
-    if (!animation) return static_cast<CFigureAnimationState*>(figure)->ClearBoneTracks();
+int CFigureManager::SetFigureAnimation(CFigureAnimationState* figure, const char* modelName, const char* animation) {
+    if (!animation) return figure->ClearBoneTracks();
     stlp::string key(modelName);
-    void* model = static_cast<CFigureManager*>(manager)->FindModel(&key);
+    FigureModel* model = FindModel(&key);
     if (!model) {
         game::DebugLog("Can't open model \"%s\"\n", modelName);
         return 0;
     }
     stlp::string name(animation);
-    void* found = static_cast<FigureModel*>(model)->FindAnimation(&name);
+    void* found = model->FindAnimation(&name);
     if (!found) {
         game::DebugLog("Can't open animation \"%s\" for model \"%s\"\n", animation, modelName);
         return 0;
     }
-    return static_cast<CFigureAnimationState*>(figure)->LoadBoneTracks(static_cast<CFigureModelPart*>(found),
-                                                                       reinterpret_cast<const FigureAnimation*>(animation));
+    return figure->LoadBoneTracks(static_cast<CFigureModelPart*>(found), reinterpret_cast<const FigureAnimation*>(animation));
 }
 
-EI_REWRITTEN(0x005ACCF0, SetFigureAnimation);
+EI_REWRITTEN(0x005ACCF0, CFigureManager::SetFigureAnimation);

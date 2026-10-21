@@ -9,6 +9,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
+#include "map_object_figures.h"
 
 #include "random.h"
 
@@ -266,7 +267,7 @@ int CParticleSource::Tick() {
     SetBits(boundsMax.x, kNearBits);
     SetBits(boundsMax.y, kNearBits);
     SetBits(boundsMax.z, kNearBits);
-    if (attachedTo && (static_cast<const std::uint8_t*>(attachedTo)[8] & 1)) Attach(nullptr);
+    if (attachedTo && (attachedTo->flags_ & 1)) Attach(nullptr);
 
     TickSteps steps{this};
     steps.Follow();

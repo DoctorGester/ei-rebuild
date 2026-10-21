@@ -16,10 +16,5 @@ void ListRemoveInt(list<int>* self, const int& value) {
     self->Remove(value, [](int a, int b) { return a == b; });
 }
 
-char __stdcall ListForEachRelease(list<CEngineObject*>::Node* first, list<CEngineObject*>::Node* last, char f) {
-    for (; first != last; first = first->next) HeldObject::Destroy(&first->data);
-    return f;
-}
-
 } // namespace stlp
 

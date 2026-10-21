@@ -608,8 +608,8 @@ int CWorldClient::DrawPass() {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;
                         // The side half's slots 25 (empty) and 26 with 0: the marker light goes off.
-                        static_cast<CObject3DSpecific*>(object->attached)->Unused25(0);
-                        static_cast<CObject3DSpecific*>(object->attached)->SetLit(0);
+                        object->attached->Unused25(0);
+                        object->attached->SetLit(0);
                     }
                     stlp::list<void*>::Erase(node);   // 00512030
                 }

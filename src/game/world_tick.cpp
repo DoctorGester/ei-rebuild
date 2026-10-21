@@ -39,8 +39,7 @@ __declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORI
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
 __declspec(naked) void __fastcall TimeWheelAdvance(void*, void*, int /*tick*/) EI_ORIGINAL(0x005C9530)
-// 005D5940. An AI brain (unit controller + 0x980) hears alarm `index`.
-void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBrain*>(brain)->HearAlarm(index); }
+
 // The game's atexit (006E727B).
 
 
@@ -205,7 +204,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
         if (CUnit* unit = UnitOrNull(object)) {
             if (!unit->player) {
                 AIBrain* brain = unit->ServerController()->Brain();
-                BrainHearAlarm(brain, nullptr, index);
+                brain->HearAlarm(index);   // 005D5940
                 if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }
         }

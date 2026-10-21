@@ -66,10 +66,7 @@ class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
-// hoover_loot.cpp. 00461CB0 (RET 0x18; ECX the world's hoover, not read): the loot of the dead
-// `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
-int __fastcall HooverCollectLoot(void* hoover, void*, CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
-                                 mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
+
 class CWorldServer;
 
 namespace world {
@@ -1030,6 +1027,9 @@ struct SectorCellObjects : stlp::list<CEngineObject*> {
 };
 using SectorList = SectorCellObjects;
 using SectorListNode = SectorList::Node;
+// The client's filed objects (+0xB8): the same plain STLport list, of map objects only (every
+// object filed is one the player client created through the map object manager, or a unit).
+using MapObjectList = stlp::list<CMapObject*>;
 // A cell's list destroyed (world_client_maps.cpp; STLport's list<counted pointer>::~list, 0056DEF0
 // / 00572E90, inlined by the client's destructor for its heroes): each object released (slot 4)
 // and its node returned to the pool, the sentinel last.
@@ -1396,11 +1396,11 @@ public:
     // session of kind 1 (+0x6EC >= 1, unit +0x24C clear); then the list +0xB8 (with a
     // reference), the sector grid +0x120 (removed first, then appended) and, for heroes with a
     // text-key id, the list +0xB4. Returns 1.
-    int AddObject(CEngineObject* object);
+    int AddObject(CMapObject* object);
     // 005651A0 (RET 4; a platform object moved: 0052B490, the client's 00668840). When an object
     // with `object`'s id is filed (+0xB8): its platform faces are removed and, for classes 0x54 /
     // 0x5D, its platform items added again where it now stands (as AddObject). EAX is not read.
-    void RefreshPlatforms(CEngineObject* object);
+    void RefreshPlatforms(CMapObject* object);
     // 0056D7E0 (RET 4). Files `object` in the synchronised list +0xBC and the id map +0xD8 (as
     // AddObject does) unless its id is there already. AL: 1 when added (the upper bytes of EAX
     // are not a result; the callers do not read it).
@@ -1626,7 +1626,7 @@ public:
     // own SetSize 00570000 releases the dropped ones; CreateExitMarkers / UpdateExitMarkers).
     CountedPtrs<CParticleSource> countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
-    SectorList objects_;                  // +0x0B8 every filed object (one reference each)
+    MapObjectList objects_;               // +0x0B8 every filed object (one reference each)
     // +0x0BC the objects answering slot 29 (IsSynchronised), with their nodes by id in +0x0D8 and
     // the highest id at +0x0EC (Segment drops those whose update returns 0).
     mfc::CList<CEngineObject*> dynamicObjects_;

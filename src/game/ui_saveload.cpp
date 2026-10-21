@@ -72,8 +72,7 @@ constexpr int kVisibleRows = 16;
 // 004800E0 (cdecl): DirectX error report; nonzero to go on.
 // 0057BC30 (thiscall on the game flow): the space a save needs.
 __declspec(naked) int __fastcall SaveSpaceNeeded(void* /*flow*/) EI_ORIGINAL(0x0057BC30)
-// 005E5200 (RET 4): the cursor's shape (3 busy, 0 normal).
-int __fastcall CursorSetShape(void* a0, void*, int a2) { return static_cast<CCursor*>(a0)->ChangeShape(a2); }
+// 005E5200 (CCursor::ChangeShape): the cursor's shape (3 busy, 0 normal).
 // 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
 // 006E80D8: atoi.
 // 006FE925: CStringArray's constructor.
@@ -269,7 +268,7 @@ void CSaveLoadWindow::SaveGame() {
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
     TheInterface()->ShowStatusText(notice);
     TheGameFlow()->SaveGameThunk(entry->folder_);
-    CursorSetShape(TheCursor(), nullptr, 3);
+    TheCursor()->ChangeShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
     LocalFileStream info;
@@ -315,7 +314,7 @@ void CSaveLoadWindow::SaveGame() {
         shot.Close();
         gameapi::LeaveCriticalSection(TheDeviceLock());
     }
-    CursorSetShape(TheCursor(), nullptr, 0);
+    TheCursor()->ChangeShape(0);
     interface_->SetPendingValue(kClosed);
 }
 EI_REPLACE_METHOD(0x00655550, CSaveLoadWindow::SaveGame);
@@ -484,7 +483,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
                                                                             kScreenHeight, 4, 1)
                               : nullptr;
     surface->CaptureScreen();
-    CursorSetShape(TheCursor(), nullptr, 3);
+    TheCursor()->ChangeShape(3);
     Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
     mfc::CString notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
@@ -526,7 +525,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
-    CursorSetShape(TheCursor(), nullptr, 0);
+    TheCursor()->ChangeShape(0);
 }
 EI_REPLACE(0x006570E0, QuickSave);
 

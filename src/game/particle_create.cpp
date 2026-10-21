@@ -845,7 +845,7 @@ void CParticleSource::Clear() {
     texture = nullptr;
     if (held) held->Release();
     if (attachedTo)   // 00518AE0: detached from the object it is attached to
-        static_cast<CObject3D*>(attachedTo)->RemoveEffectSource(this);
+        attachedTo->RemoveEffectSource(this);
     Reset();
 }
 EI_REPLACE_METHOD(0x00484710, CParticleSource::Clear);

@@ -8,6 +8,7 @@
 #include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "game_data.h"
+#include "raster_target.h"
 
 #include <windows.h>
 
@@ -284,41 +285,9 @@ struct DirectDrawClass final : ei::CompiledDeleter<DirectDrawClass, &CTextureDev
 struct DeviceObjectClass final : ei::CompiledDeleter<DeviceObjectClass, &CTextureDevice::DeleteDevice> {};
 struct DXSurfaceClass final : ei::CompiledDeleter<DXSurfaceClass, &CDXSurface::DeleteScalar> {};
 
-// The start of the target the pixel converter's triangle rasterisers (slots 8 / 9) read: a shadow
-// triangle's three corners, each a screen and a texture point (moved as qwords), and the keyed
-// texture's texels; the surface follows (RasterTarget).
-struct RasterTriangle {
-    struct Point {
-        int x;
-        int y;
-    };
-    struct Corner {
-        Point screen;
-        Point texture;
-    };
-    Corner corners[3];
-    // +0x30 a keyed texture's texels (CTexture::block_), or null. Set: the figure meshes (005A0E80)
-    // rasterise through slot 9, which samples them as 16-bit 1:5:5:5 texels at the corners' texture
-    // points (wrapping at the row pitch, RasterTarget +0x38) and shadows only where the top bit is set.
-    const std::uint8_t* keyTexels;
-};
-static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, keyTexels) == 0x30);
+// RasterTriangle / RasterTarget: raster_target.h.
 
-// The whole target a shadow's parts are rasterised into (map_object_shadow.cpp fills it): the
-// triangle the callees write, then the surface's bits.
-struct RasterTarget : RasterTriangle {
-    void* bits;                // +0x34
-    int keyPitch;              // +0x38 the key texels' row pitch in bytes (only slot 9 reads it)
-    int pitch;                 // +0x3C
-};
-static_assert(offsetof(RasterTarget, bits) == 0x34 && sizeof(RasterTarget) == 0x40);
 
-class CFigureMesh;   // figure_mesh.h
-class CPixelConverter;
-// figure_rasterise.cpp. 005A0E80 (RET 0xC): the figure mesh's projected `points` rasterised into
-// `target` through `rasteriser`; returns the number of points it used.
-int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser,
-                                   const RasterTriangle::Point* points, RasterTarget* target);
 
 // 2DintMMX's graphics processor, the pixel converter (*007AF06C, also CTextureDevice::converter_).
 // Its code is in the DLL; only the slots the rewritten code calls are named. Never constructed here.

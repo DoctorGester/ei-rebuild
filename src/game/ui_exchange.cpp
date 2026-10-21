@@ -341,7 +341,7 @@ BOOL CExchangeScreen::Draw(int pass) {
 
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;
     // the third one lit while the partner accepted.
-    bool accepted = LiveAccepted(static_cast<net::PartyMessage*>(client->party_.ptr));
+    bool accepted = LiveAccepted(client->party_.Get());
     SetTint(Sprite(sceneObjects_.data[0]), accepted ? 0.5f : 1.0f);
     SetTint(Sprite(sceneObjects_.data[1]), accepted ? 1.0f : 0.5f);
     partner = ClientFindPartyAt(client);
