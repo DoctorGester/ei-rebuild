@@ -9,6 +9,7 @@
 #include "../lib/mfc.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "game_data.h"
 
 #include <new>
 
@@ -17,7 +18,7 @@ using ei::SetVtable;
 namespace {
 
 // The effect base's vtable (slots 11, 12, 21-23 pure), stored while the base part is built.
-std::uintptr_t EffectBaseVtable() { return static_cast<std::uintptr_t>(0x007434AC); }
+std::uintptr_t EffectBaseVtable() { return ei::DataId(0x007434AC); }
 
 // A counted pointer let go (slot 4); the original tests it for null first.
 void ReleaseIfSet(void* object) {
@@ -106,7 +107,7 @@ EI_REPLACE_METHOD(0x00676900, CEffect::TickDefault);
 
 // --- CEffectSound --------------------------------------------------------------------------------
 
-std::uintptr_t CEffectSound::Vtable() { return static_cast<std::uintptr_t>(0x007433EC); }
+std::uintptr_t CEffectSound::Vtable() { return ei::DataId(0x007433EC); }
 
 CEffectSound* CEffectSound::Construct() {
     ConstructEffect();
@@ -130,7 +131,7 @@ EI_REPLACE_METHOD(0x00676080, CEffectSound::DeletingDestruct);
 
 // --- CEffectSoundSeq -----------------------------------------------------------------------------
 
-std::uintptr_t CEffectSoundSeq::Vtable() { return static_cast<std::uintptr_t>(0x0074344C); }
+std::uintptr_t CEffectSoundSeq::Vtable() { return ei::DataId(0x0074344C); }
 
 CEffectSoundSeq* CEffectSoundSeq::Construct() {
     ConstructEffect();
@@ -158,7 +159,7 @@ EI_REPLACE_METHOD(0x00676960, CEffectSoundSeq::DeletingDestruct);
 
 // --- CEffectAmbientSound -------------------------------------------------------------------------
 
-std::uintptr_t CEffectAmbientSound::Vtable() { return static_cast<std::uintptr_t>(0x0074350C); }
+std::uintptr_t CEffectAmbientSound::Vtable() { return ei::DataId(0x0074350C); }
 
 CEffectAmbientSound* CEffectAmbientSound::Construct() {
     ConstructEffect();
@@ -184,7 +185,7 @@ EI_REPLACE_METHOD(0x006776C0, CEffectAmbientSound::DeletingDestruct);
 
 // --- CEffectPointLight ---------------------------------------------------------------------------
 
-std::uintptr_t CEffectPointLight::Vtable() { return static_cast<std::uintptr_t>(0x0074356C); }
+std::uintptr_t CEffectPointLight::Vtable() { return ei::DataId(0x0074356C); }
 
 CEffectPointLight* CEffectPointLight::Construct() {
     ConstructEffect();
@@ -208,7 +209,7 @@ EI_REPLACE_METHOD(0x00677FA0, CEffectPointLight::DeletingDestruct);
 
 // --- CEffectParticle and CEffectWall -------------------------------------------------------------
 
-std::uintptr_t CEffectParticle::Vtable() { return static_cast<std::uintptr_t>(0x007435D0); }
+std::uintptr_t CEffectParticle::Vtable() { return ei::DataId(0x007435D0); }
 
 CEffectParticle* CEffectParticle::Construct() {
     ConstructEffect();
@@ -230,7 +231,7 @@ EI_REPLACE_METHOD(0x00678990, CEffectParticle::Destruct);
 CEffectParticle* CEffectParticle::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x00678970, CEffectParticle::DeletingDestruct);
 
-std::uintptr_t CEffectWall::Vtable() { return static_cast<std::uintptr_t>(0x00743630); }
+std::uintptr_t CEffectWall::Vtable() { return ei::DataId(0x00743630); }
 
 CEffectWall* CEffectWall::Construct() {
     ConstructEffect();
@@ -258,7 +259,7 @@ EI_REPLACE_METHOD(0x006799C0, CEffectWall::DeletingDestruct);
 
 // --- CEffectLightning ----------------------------------------------------------------------------
 
-std::uintptr_t CEffectLightning::Vtable() { return static_cast<std::uintptr_t>(0x00743690); }
+std::uintptr_t CEffectLightning::Vtable() { return ei::DataId(0x00743690); }
 
 CEffectLightning* CEffectLightning::Construct() {
     ConstructEffect();

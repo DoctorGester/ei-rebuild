@@ -438,7 +438,7 @@ inline void* RotKeyArrayVtable() { return ei::GamePointer<void>(0x0073C83C); }  
 inline void* PosKeyArrayVtable() { return ei::GamePointer<void>(0x0073C830); }      // F
 inline void* MorphHeadArrayVtable() { return ei::GamePointer<void>(0x0073C824); }   // G
 inline void* NormalArrayVtable() { return ei::GamePointer<void>(0x0073C86C); }      // H
-inline std::uintptr_t DwordMapVtable() { return std::uintptr_t(0x0073C818); }
+inline void* DwordMapVtable() { return ei::GamePointer<void>(0x0073C818); }
 inline void* MapArrayVtable() { return ei::GamePointer<void>(0x0073C80C); }
 inline void* IndexArrayVtable() { return ei::GamePointer<void>(0x0073C800); }
 inline void* NodeArrayVtable() { return ei::GamePointer<void>(0x0073C15C); }

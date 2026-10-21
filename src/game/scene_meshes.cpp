@@ -64,8 +64,8 @@ MapT NewMap(std::uintptr_t vtable) { return MapT{ei::GamePointer<void>(vtable), 
 
 // The inlined destructor of the second and third maps: RemoveAll and the base vtable.
 template <typename MapT>
-void DestroyMap(MapT& map, std::uintptr_t vtable) {
-    map.vtable = ei::GamePointer<void>(vtable);
+void DestroyMap(MapT& map, std::uintptr_t vtableAddress) {
+    map.vtable = ei::GamePointer<void>(vtableAddress);
     map.RemoveAll();
 }
 

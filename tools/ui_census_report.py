@@ -165,7 +165,7 @@ def window_names():
     vtable in src/game."""
     names = {}
     text = open(os.path.join(ROOT, 'tests', 'verify', 'harness.cpp'), encoding='utf-8', errors='replace').read()
-    for m in re.finditer(r'\{"(\w+)", \{0x([0-9A-Fa-f]{8}), 0x([0-9A-Fa-f]{8})\}\}', text):
+    for m in re.finditer(r'\{"(\w+)", \{(?:ei::DataId\()?0x([0-9A-Fa-f]{8})\)?, (?:ei::DataId\()?0x([0-9A-Fa-f]{8})\)?\}\}', text):
         names[m.group(2).upper()] = m.group(1)
         names[m.group(3).upper()] = m.group(1)
     return names

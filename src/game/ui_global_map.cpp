@@ -37,6 +37,7 @@
 #include "originals_ui.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "ei/vcall.h"
 
 #include <concepts>
 
@@ -535,7 +536,7 @@ void CGlobalMap::Create() {
         auto* weather = static_cast<CCloudNoise*>(gamecrt::operator_new(0x34));
         if (weather) {
             weather->Construct(0x100);
-            *reinterpret_cast<std::uintptr_t*>(weather) = kWeatherVtable;
+            ei::SetVtable(weather, kWeatherVtable);
         }
         weather_ = reinterpret_cast<GlobalMapWeather*>(weather);
         weather->Start();
@@ -696,8 +697,8 @@ char* EmptyCString() { return ei::GameData<char* const>(0x00796E48); }
 // A CArray's constructor body, inlined by the original: the instantiation's vtable, then the
 // storage, grow step, capacity and size cleared in that order.
 template <typename Array>
-void EmptyArray(Array* array, std::uintptr_t vtable) {
-    array->vtable = ei::GamePointer<void>(vtable);
+void EmptyArray(Array* array, std::uintptr_t vtableAddress) {
+    array->vtable = ei::GamePointer<void>(vtableAddress);
     array->data = nullptr;
     array->growBy = 0;
     array->maxSize = 0;
@@ -738,8 +739,8 @@ namespace {
 // A CArray's destructor: its vtable back, each entry's strings destroyed (title, then name:
 // 005FBDD0 / 005FBD80 the places', 005FBD30 the zones'), the storage freed.
 template <typename Array>
-void DestroyArray(Array* array, std::uintptr_t vtable) {
-    array->vtable = ei::GamePointer<void>(vtable);
+void DestroyArray(Array* array, std::uintptr_t vtableAddress) {
+    array->vtable = ei::GamePointer<void>(vtableAddress);
     if (!array->data) return;
     int size = array->size;
     for (int i = 0; i < size; ++i) {

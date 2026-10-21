@@ -429,7 +429,7 @@ EI_REPLACE_METHOD(0x00430960, CoderState::Decompress);
 // --- The fixed view (0073CA64) and its base (0073CA48) --------------------------------------------
 
 namespace {
-void SetVtable(GameBuffer* b, std::uintptr_t vtable) { ei::SetVtable(b, vtable); }
+void SetVtable(GameBuffer* b, std::uintptr_t vtable) { ei::SetVtable(b, ei::GamePointer<const void>(vtable)); }
 } // namespace
 
 std::uint8_t* GameBuffer::SeekView(std::int32_t position) {

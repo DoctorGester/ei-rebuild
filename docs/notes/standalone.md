@@ -192,6 +192,30 @@ each step green on the goldens and removing a measured tie:
   agree (single operations of floats round the same through 53 bits; the three chains give 40 and 30 exactly). The `d.Log` of a
   literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
   cells 0073D720, 0073D728) stay.
+- **.rdata sealed** (S18g; `rdata` sealed in config/data_seam.csv, raw 365 -> 0): every use of 0073B820-00783000 reaches the
+  seam. **Vtables**: `ei::SetVtable(object, std::uintptr_t)` (include/ei/vcall.h) resolves its argument with `GameAddress`, so
+  the per-class `kVtableAddress` constants and the `SetVtable(this, 0x...)` literals are ids / helper arguments; the
+  `const void*` overload takes a pointer already resolved (`X::Vtable()` accessors returning `GamePointer<void>`). A file's own
+  vtable helper (`SetVtable(CUnitShape*, std::uintptr_t)`, `ConstructList`, `FreeArray`, `DestroyArray`, `InitList`,
+  `SetVtables`, `NewPlainPanel`, ...) stores `ei::GamePointer<void>(id)` or forwards `GamePointer<const void>(id)` to the
+  `const void*` overload (forwarding the id to `ei::SetVtable` again reads to data_seam.py as recursion, no helper). A comparison
+  with an object's vtable compares with `ei::GameAddress(X::kVtableAddress)` (harness_digest's CSpellEffect, record_coder's
+  buffers, the harness's save / options windows). A vtable that is a template argument (map_object_kinds.h's `PlainMapObject`) or
+  a table entry (the harness's `kKnownWindows`, the effects' `Vtable()` accessors returning `std::uintptr_t`) is `ei::DataId`,
+  resolved by its reader (`SetVtable`, `WindowVtables`). Resolving twice is harmless (the storage lies outside game.exe's
+  ranges, so `GameAddress` of a resolved address is that address) but not the convention. **Other tables**: unit_hits' armour
+  rows through `ArmourTable` (GamePointer), ui_widescreen's two layout floats (addon.dll writes them) through Read/WriteFloat,
+  the addon-site table's .rdata entries as `DataId` (make_addon_sites.py, from 0073B000 to .data's end). cover.cpp's code bound
+  is the last byte of .text (0073AFFF), not the start of .rdata. **data_seam.py**: an alias constant
+  (`constexpr std::uintptr_t kStreamVtable = CStream::kVtableAddress;`) passes for the constant it names when all of its own
+  mentions reach the seam. A helper's parameter that shares a member's name (`list.vtable = GamePointer<void>(vtable)`) is not
+  seen as routed (the member counts as a use): name the parameter `vtableAddress`. Lambdas are no helpers (pass
+  `GamePointer<void>(0x...)` to them).
+  **Left for S18h**: the generated static initialisers' 12 remaining .rdata reads (`gen`: pointer cells, a .data operand); values the harness prints from objects
+  (DescribeTopWindow's top-window vtable, harness_digest's "vtable 0x%08X" of a missile that is no CSpellEffect) would print
+  the image's addresses once .rdata moves (none is in a golden today; map them back with the inverse shift if one is); the
+  cells of .data and .rdata pointing into .rdata (RTTI locators, type descriptors, EH tables, vtable cells of static objects)
+  need the same fix-up the .data cells have.
 | Sub-ticket | Step | Tie it removes |
 |---|---|---|
 | S18a | the seam, the check, .bss sealed, the casts of the other sections | raw uses: .bss 883 -> 0, .data 495 -> 64, .rdata 2028 -> 381, IAT 563 -> 76 |
@@ -201,7 +225,7 @@ each step green on the goldens and removing a measured tie:
 | S18e | .rdata constants (floats, doubles, integers no code writes) as literals | .rdata uses 2288 -> 1295 (helper 968 -> 88, seam 603 -> 507, raw 381 -> 367) |
 | S18e1 | the static initialisers' float fold operands as literals | .rdata uses 1541 -> 1298 (generated 255 -> 12) |
 | S18f | own import table: generated slots resolved by the DLL into the storage (one shift with .data); gameapi.h and the harness's routes through it; old slots trap; iat sealed | the host's import resolution, the IAT |
-| S18g | .rdata sealed: vtables, RTTI and throw infos, tables, the harness's vtable tables | raw .rdata uses |
+| S18g | .rdata sealed: vtables (SetVtable through the seam), tables, the harness's vtable tables | raw .rdata uses 365 -> 0 |
 | S18h | .rdata moves | the host's copy of .rdata |
 | S18i | code pointers in our sections fixed up to our functions (a stub reports an unregistered one), static init calls and forwarders direct, .text guarded | the jumps in .text |
 | S18j | game.exe's resources built into ei_standalone.exe, the module handle the host's | the read of game.exe's .rsrc |

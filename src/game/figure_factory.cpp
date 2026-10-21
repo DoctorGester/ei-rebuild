@@ -12,6 +12,7 @@
 #include "sky_object.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "scene_loader.h"
@@ -39,7 +40,7 @@ CFigureMesh* NewPart(std::size_t size) {
     return static_cast<CFigureMesh*>(object);
 }
 
-void SetVtable(CFigureMesh* mesh, std::uintptr_t address) { ei::SetVtable(mesh, address); }
+void SetVtable(CFigureMesh* mesh, std::uintptr_t address) { ei::SetVtable(mesh, ei::GamePointer<const void>(address)); }
 
 void* Create(int classId) {
     switch (classId) {

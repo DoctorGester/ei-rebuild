@@ -27,6 +27,7 @@
 #include "originals_core.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
@@ -35,7 +36,7 @@ namespace {
 using Construct = void* (__fastcall*)(void*);
 
 // operator new, the constructor (null without memory), an optional vtable, the reference.
-CEngineObject* Make(std::size_t size, Construct construct, std::uintptr_t vtable) {
+CEngineObject* Make(std::size_t size, Construct construct, const void* vtable) {
     void* memory = gamecrt::operator_new(size);
     CEngineObject* object = nullptr;
     if (memory) {
@@ -66,22 +67,22 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->windStrength_ = 0;
 
-    world->players_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, worlddata::kPlayerListVtable);
+    world->players_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kPlayerListVtable));
     Attach(world->players_, world);
-    world->manager40_ = Make(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, 0);   // 005125E0
+    world->manager40_ = Make(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
     Attach(world->manager40_, world);
-    world->manager3C_ = Make(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, 0);   // 005AA070
+    world->manager3C_ = Make(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, nullptr);   // 005AA070
     Attach(world->manager3C_, world);
-    world->manager48_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, worlddata::kTimedObjectsVtable);
+    world->manager48_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kTimedObjectsVtable));
     Attach(world->manager48_, world);
-    world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, 0);   // 00683FF0
+    world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, nullptr);   // 00683FF0
     world->manager50_->Create();
-    world->manager4C_ = Make(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, 0);   // 00688840
+    world->manager4C_ = Make(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
     Attach(world->manager4C_, world);
-    world->manager58_ = Make(0x34, ConstructOn<CItemConstructor, &CItemConstructor::Construct>, 0);   // 006A5AB0
+    world->manager58_ = Make(0x34, ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
     world->manager58_->Create();
     world->itemManager_ = Make(CItemManager::kSize, ConstructOn<CResourceManager, &CResourceManager::Construct>,   // 00674D90
-                               CItemManager::kVtableAddress);
+                               ei::GamePointer<void>(CItemManager::kVtableAddress));
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).

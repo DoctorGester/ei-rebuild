@@ -295,8 +295,8 @@ namespace {
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 void SetVtables(CUiWindow* window, std::uintptr_t main, std::uintptr_t input) {
-    window->vtable_ = reinterpret_cast<void**>(main);
-    window->inputVtable_ = reinterpret_cast<void**>(input);
+    window->vtable_ = ei::GamePointer<void*>(main);
+    window->inputVtable_ = ei::GamePointer<void*>(input);
 }
 
 // What the original's inlined CSaveLoadWindow constructor does. Null when allocation failed.

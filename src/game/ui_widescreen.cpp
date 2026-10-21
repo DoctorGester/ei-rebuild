@@ -94,10 +94,10 @@ bool g_computed;
 
 int g_panelOffset;                 // ours (addon's 100BD0A0)
 
-float ReadFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float ReadFloat(std::uintptr_t address) { return *ei::GamePointer<const volatile float>(address); }
 
 void WriteFloat(std::uintptr_t address, float value) {
-    auto* p = reinterpret_cast<float*>(address);
+    auto* p = ei::GamePointer<float>(address);
     DWORD old;
     VirtualProtect(p, sizeof(float), PAGE_READWRITE, &old);
     *p = value;

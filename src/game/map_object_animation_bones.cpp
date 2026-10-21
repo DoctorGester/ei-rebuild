@@ -43,8 +43,8 @@ CEngineObject* AsObject(CFigureMesh* mesh) { return reinterpret_cast<CEngineObje
 CFigureMesh* AsMesh(CEngineObject* part) { return reinterpret_cast<CFigureMesh*>(part); }
 
 template <typename T>
-void ConstructList(mfc::CTypedPtrList<T>* list, std::uintptr_t vtable) {
-    list->vtable = reinterpret_cast<void*>(vtable);
+void ConstructList(mfc::CTypedPtrList<T>* list, std::uintptr_t vtableAddress) {
+    list->vtable = ei::GamePointer<void>(vtableAddress);
     list->count = 0;
     list->free = nullptr;
     list->tail = nullptr;

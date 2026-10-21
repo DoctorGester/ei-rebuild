@@ -45,6 +45,7 @@
 #include "originals_script.h"
 #include "originals_core.h"
 #include "game_data.h"
+#include "ei/vcall.h"
 
 #include <cstring>
 
@@ -86,7 +87,7 @@ CUnit* AsUnit(CEngineObject* object) { return static_cast<CUnit*>(object); }
 
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).
 void DestroyMessage(UnitSpec* message) {
-    *reinterpret_cast<std::uintptr_t*>(message) = worlddata::kUnitSpecVtable;
+    ei::SetVtable(message, worlddata::kUnitSpecVtable);
     for (int i = 4; i >= 0; --i) StringArrayDestruct(&message->lists[i]);
     message->prototype.~CString();
     VectorDestruct(message->behaviour, sizeof(mapspec::Behaviour), 5,
@@ -341,7 +342,7 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     alignas(4) std::uint8_t storage[sizeof(ObjectSpec)];
     auto* message = reinterpret_cast<ObjectSpec*>(storage);
     message->ObjectSpecConstruct();
-    *reinterpret_cast<std::uintptr_t*>(message) = worlddata::kQuickEffectSpecVtable;
+    ei::SetVtable(message, worlddata::kQuickEffectSpecVtable);
     message->base.kind = kQuickEffectType;
     message->texture = worlddata::QuickEffectPrototype();
     message->base.id = -1;

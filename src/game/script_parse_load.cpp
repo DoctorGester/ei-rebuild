@@ -235,20 +235,20 @@ const char* kTypeLetter[] = {nullptr, "f", "s", "o", "g"};
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
 SSCCmd* SSCCmd::Construct() {
-    auto init = [](auto& a, std::uintptr_t vtable) {
+    auto init = [](auto& a, void* vtable) {
         a.data = nullptr;
         a.growBy = 0;
         a.maxSize = 0;
         a.size = 0;
-        a.vtable = reinterpret_cast<void*>(vtable);
+        a.vtable = vtable;
     };
-    init(floatArgs, 0x0073D490);
-    init(stringArgs, 0x0073D2D4);
-    init(objectArgs, 0x0073D484);
-    init(groupArgs, 0x0073D478);
-    init(localBindings, 0x0073D49C);
-    init(globalBindings, 0x0073D49C);
-    init(subCalls, 0x0073D4A8);
+    init(floatArgs, ei::GamePointer<void>(0x0073D490));
+    init(stringArgs, ei::GamePointer<void>(0x0073D2D4));
+    init(objectArgs, ei::GamePointer<void>(0x0073D484));
+    init(groupArgs, ei::GamePointer<void>(0x0073D478));
+    init(localBindings, ei::GamePointer<void>(0x0073D49C));
+    init(globalBindings, ei::GamePointer<void>(0x0073D49C));
+    init(subCalls, ei::GamePointer<void>(0x0073D4A8));
     id = 0;
     calledScript = nullptr;
     return this;

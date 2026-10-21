@@ -4,6 +4,7 @@
 #include "ai_unit_layer.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 
@@ -17,7 +18,7 @@ constexpr double kHalfCell = 1.0 * 0.5;
 constexpr double kLevelsPerUnit = 16.0;
 constexpr int kMiddle = 8;
 
-void SetVtable(CUnitShape* shape, std::uintptr_t vtable) { std::memcpy(static_cast<void*>(shape), &vtable, sizeof(vtable)); }
+void SetVtable(CUnitShape* shape, std::uintptr_t vtable) { ei::SetVtable(static_cast<void*>(shape), ei::GamePointer<const void>(vtable)); }
 
 // operator new and the counted header's constructor: no references, no flags (the original
 // writes them before it tests the allocation).

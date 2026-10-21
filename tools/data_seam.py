@@ -8,7 +8,7 @@ zero-filled tail .bss, .rsrc) in src/, tests/ or include/ is one of:
   helper     the address argument of a function whose every definition hands that parameter to the
              seam (per-file helpers such as GameFloat(std::uintptr_t)); found from the definitions
   id         the value of a constant (constexpr std::uintptr_t kName = 0x...) whose every use is the
-             address argument of the seam or a helper
+             address argument of the seam or a helper, or the whole value of an alias constant whose every use is
   generated  src/standalone/static_init.cpp / static_exit.cpp: an address argument of the visitor's
              operations, which resolve it (static_init.h)
   raw        anything else: read at game.exe's address whatever the image does
@@ -296,38 +296,62 @@ class Scan:
                 if kind == 'id?':
                     pending.append(use)
                     self.ids.setdefault(detail, [])
-        # An id is seam when every other mention of its name is a seam or helper argument.
+        # An id is seam when every other mention of its name is a seam or helper argument, or the value of an
+        # alias constant (constexpr std::uintptr_t kStreamVtable = CStream::kVtableAddress;) whose every mention is.
         self.id_failures = {}
+        self.alias_memo = {}
         for name in self.ids:
-            bad = []
-            rx = re.compile(r'(?<![\w.])' + re.escape(name) + r'\b')
-            # A constant of a .cpp file is seen there only; a header's wherever it is named.
             homes = {u[0] for u in pending if u[5] == name}
-            where = self.paths if any(not h.endswith('.cpp') for h in homes) else sorted(homes)
-            for path in where:
-                code = self.code[path]
-                if name not in code:
-                    continue
-                for m in rx.finditer(code):
-                    if self.defines(code, m.start(), name):
-                        continue
-                    start = m.start()
-                    while start >= 2 and code[start - 2:start] == '::':   # Class::kName
-                        k = start - 2
-                        while k > 0 and (code[k - 1].isalnum() or code[k - 1] == '_'):
-                            k -= 1
-                        start = k
-                    owner = argument_owner(code, start)
-                    ok = False
-                    if owner:
-                        callee, index = owner
-                        n = last(callee)
-                        ok = (n in OPENERS and index == 0) or bool(self.helpers.get(n, {}).get(index))
-                    if not ok:
-                        bad.append((path, m.start()))
-            self.id_failures[name] = bad
+            self.id_failures[name] = self.mention_failures(name, homes, frozenset())
         for use in pending:
             use[4] = 'raw' if self.id_failures[use[5]] else 'id'
+
+    def mention_failures(self, name, homes, stack):
+        """The mentions of constant `name` (defined in `homes`) that do not reach the seam."""
+        bad = []
+        rx = re.compile(r'(?<![\w.])' + re.escape(name) + r'\b')
+        # A constant of a .cpp file is seen there only; a header's wherever it is named.
+        where = self.paths if any(not h.endswith('.cpp') for h in homes) else sorted(homes)
+        for path in where:
+            code = self.code[path]
+            if name not in code:
+                continue
+            for m in rx.finditer(code):
+                if self.defines(code, m.start(), name):
+                    continue
+                start = m.start()
+                while start >= 2 and code[start - 2:start] == '::':   # Class::kName
+                    k = start - 2
+                    while k > 0 and (code[k - 1].isalnum() or code[k - 1] == '_'):
+                        k -= 1
+                    start = k
+                owner = argument_owner(code, start)
+                ok = False
+                if owner:
+                    callee, index = owner
+                    n = last(callee)
+                    ok = (n in OPENERS and index == 0) or bool(self.helpers.get(n, {}).get(index))
+                if not ok:
+                    alias = self.alias_of(code, start, m.end())
+                    ok = bool(alias) and alias not in stack and not self.alias_failures(alias, path, stack | {name})
+                if not ok:
+                    bad.append((path, m.start()))
+        return bad
+
+    def alias_of(self, code, start, end):
+        """The constant whose whole value is the name at start..end (an alias), or None."""
+        head = code[self.statement_start(code, start):start]
+        m = re.search(r'(?:constexpr|const)\s+(?:static\s+)?(?:const\s+)?(?:std::)?(?:uintptr_t|uint32_t)\s+(\w+)\s*=\s*$',
+                      head)
+        if not m or not re.match(r'\s*;', code[end:]):
+            return None
+        return m.group(1)
+
+    def alias_failures(self, alias, path, stack):
+        key = (alias, path if path.endswith('.cpp') else None)
+        if key not in self.alias_memo:
+            self.alias_memo[key] = self.mention_failures(alias, {path}, stack)
+        return self.alias_memo[key]
 
     @staticmethod
     def statement_start(code, at):

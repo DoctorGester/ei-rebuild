@@ -2,6 +2,7 @@
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "effects.h"
 #include "world_effect.h"
+#include "game_data.h"
 
 #include "game_strings.h"
 #include "map_object.h"
@@ -59,7 +60,7 @@ CWorld* WorldOf(const CEngineObject* object) { return static_cast<CWorld*>(objec
 
 } // namespace
 
-std::uintptr_t CEffectTornado::Vtable() { return static_cast<std::uintptr_t>(0x007438F8); }
+std::uintptr_t CEffectTornado::Vtable() { return ei::DataId(0x007438F8); }
 
 CEffectTornado* CEffectTornado::Construct() {
     ConstructEffect();

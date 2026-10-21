@@ -10,6 +10,7 @@
 #include "ai_map.h"
 #include "core_streams.h"
 #include "effects.h"
+#include "game_data.h"
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "originals_world.h"
@@ -47,8 +48,8 @@ constexpr int kClientConstant228 = 10;
 // CList's constructor as inlined (or 0059A340 / 0056FD70): the instantiation's vtable, empty, no
 // blocks.
 template <typename T>
-void ConstructList(mfc::CList<T>& list, std::uintptr_t vtable) {
-    list.vtable = reinterpret_cast<void*>(vtable);
+void ConstructList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
+    list.vtable = ei::GamePointer<void>(vtableAddress);
     list.head = nullptr;
     list.tail = nullptr;
     list.count = 0;

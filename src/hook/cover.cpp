@@ -58,7 +58,7 @@ void Watch(std::uintptr_t code, std::uintptr_t game) {
     it->second.addresses.push_back(game);
 }
 
-bool InImage(unsigned long address) { return address >= 0x00401000 && address < 0x00740000; }
+bool InImage(unsigned long address) { return address >= 0x00401000 && address <= 0x0073AFFF; }   // game.exe's .text
 
 } // namespace
 

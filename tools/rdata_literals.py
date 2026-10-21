@@ -43,7 +43,7 @@ def addon_sites():
     out = []
     with open(os.path.join(ROOT, 'tests', 'verify', 'addon_sites.inc')) as f:
         for line in f:
-            m = re.search(r'0x([0-9A-Fa-f]{8}),\s*(\d+)', line)
+            m = re.search(r'0x([0-9A-Fa-f]{8})\)?,\s*(\d+)', line)   # 0x.. or ei::DataId(0x..)
             if m:
                 out.append((int(m.group(1), 16), int(m.group(2))))
     return out

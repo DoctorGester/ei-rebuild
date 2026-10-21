@@ -483,7 +483,7 @@ std::string DescribeMissile(const Projectile* p) {
     const auto* e = reinterpret_cast<const CSpellEffect*>(p);
     std::uint32_t vtable;
     std::memcpy(&vtable, e->header, 4);
-    if (vtable != CSpellEffect::kVtableAddress) {
+    if (vtable != ei::GameAddress(CSpellEffect::kVtableAddress)) {
         char text[24];
         std::snprintf(text, sizeof(text), "vtable 0x%08X", vtable);
         return text;
@@ -495,7 +495,7 @@ void ReadMissile(const Projectile* p, Builder& b) {
     const auto* e = reinterpret_cast<const CSpellEffect*>(p);
     std::uint32_t vtable;
     std::memcpy(&vtable, e->header, 4);
-    if (vtable != CSpellEffect::kVtableAddress) return;   // not a CSpellEffect: its description says so
+    if (vtable != ei::GameAddress(CSpellEffect::kVtableAddress)) return;   // not a CSpellEffect: its description says so
     b.Int("state", e->state);
     b.Bits("flags", e->flags);
     b.Vector("pos.x", "pos.y", "pos.z", e->position);

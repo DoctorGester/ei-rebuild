@@ -2019,37 +2019,38 @@ struct KnownWindow {
     std::uintptr_t vtables[2];
 };
 constexpr KnownWindow kKnownWindows[] = {
-    {"menu", {0x00740688, 0x00740654}},         // CMainMenu (CreateScreen 2)
-    {"battle", {0x00740764, 0x00740730}},       // the in-game screen (CreateScreen 1)
-    {"briefing", {0x007405AC, 0x00740578}},     // the base / briefing screen (CreateScreen 3)
-    {"map", {0x00740B08, 0x00740B3C}},          // the island map (CreateScreen 4)
-    {"camp", {0x007408E8, 0x0074091C}},         // CCampScreen (CreateScreen 5)
-    {"view", {0x00740840, 0x0074080C}},         // CViewScreen (CreateScreen 7)
-    {"trade", {0x00740D18, 0x00740CE4}},        // trading between players (CreateScreen 9)
-    {"escmenu", {0x00741270, 0x007412A4}},      // CEscMenu
-    {"saveload", {0x00741388, 0x00741354}},     // CSaveLoadWindow
-    {"options", {0x00741FAC, 0x00741F78}},      // COptionsWindow
-    {"objectives", {0x007411BC, 0x00741188}},   // CObjectivesWindow
-    {"help", {0x00740E28, 0x00740DF4}},         // the help / message window
-    {"msgbox", {0x00742348, 0x00742314}},       // CMessageBox
-    {"difficulty", {0x0074225C, 0x00742228}},   // CDifficultyBox
-    {"heroes", {0x00742118, 0x0074214C}},       // the multiplayer hero screen (main menu region 5)
-    {"titles", {0x00740C08, 0x00740C3C}},       // CCreditsScreen
+    {"menu", {ei::DataId(0x00740688), ei::DataId(0x00740654)}},         // CMainMenu (CreateScreen 2)
+    {"battle", {ei::DataId(0x00740764), ei::DataId(0x00740730)}},       // the in-game screen (CreateScreen 1)
+    {"briefing", {ei::DataId(0x007405AC), ei::DataId(0x00740578)}},     // the base / briefing screen (CreateScreen 3)
+    {"map", {ei::DataId(0x00740B08), ei::DataId(0x00740B3C)}},          // the island map (CreateScreen 4)
+    {"camp", {ei::DataId(0x007408E8), ei::DataId(0x0074091C)}},         // CCampScreen (CreateScreen 5)
+    {"view", {ei::DataId(0x00740840), ei::DataId(0x0074080C)}},         // CViewScreen (CreateScreen 7)
+    {"trade", {ei::DataId(0x00740D18), ei::DataId(0x00740CE4)}},        // trading between players (CreateScreen 9)
+    {"escmenu", {ei::DataId(0x00741270), ei::DataId(0x007412A4)}},      // CEscMenu
+    {"saveload", {ei::DataId(0x00741388), ei::DataId(0x00741354)}},     // CSaveLoadWindow
+    {"options", {ei::DataId(0x00741FAC), ei::DataId(0x00741F78)}},      // COptionsWindow
+    {"objectives", {ei::DataId(0x007411BC), ei::DataId(0x00741188)}},   // CObjectivesWindow
+    {"help", {ei::DataId(0x00740E28), ei::DataId(0x00740DF4)}},         // the help / message window
+    {"msgbox", {ei::DataId(0x00742348), ei::DataId(0x00742314)}},       // CMessageBox
+    {"difficulty", {ei::DataId(0x0074225C), ei::DataId(0x00742228)}},   // CDifficultyBox
+    {"heroes", {ei::DataId(0x00742118), ei::DataId(0x0074214C)}},       // the multiplayer hero screen (main menu region 5)
+    {"titles", {ei::DataId(0x00740C08), ei::DataId(0x00740C3C)}},       // CCreditsScreen
 };
 
-// The vtables of `name` (a name above or one vtable in hex); false when unknown.
+// The vtables of `name` (a name above or one vtable in hex, game.exe's address), where they are in this
+// process (the data seam); false when unknown.
 bool WindowVtables(const std::string& name, std::uintptr_t (&vtables)[2]) {
     for (const KnownWindow& w : kKnownWindows) {
         if (name == w.name) {
-            vtables[0] = w.vtables[0];
-            vtables[1] = w.vtables[1];
+            vtables[0] = ei::GameAddress(w.vtables[0]);
+            vtables[1] = ei::GameAddress(w.vtables[1]);
             return true;
         }
     }
     char* end = nullptr;
     unsigned long value = std::strtoul(name.c_str(), &end, 16);
     if (name.empty() || *end || value < 0x00401000 || value >= 0x00800000) return false;
-    vtables[0] = vtables[1] = value;
+    vtables[0] = vtables[1] = ei::GameAddress(value);
     return true;
 }
 
@@ -2060,8 +2061,10 @@ bool WindowReady(std::uintptr_t (&vtables)[2]) {
     if (!top || ui->queuedWindow_ || g_request.kind != 0) return false;
     std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(top);
     if (vtable != vtables[0] && vtable != vtables[1]) return false;
-    if (vtable == 0x00741388 || vtable == 0x00741354) return !reinterpret_cast<CSaveLoadWindow*>(top)->sliding_;
-    if (vtable == 0x00741FAC || vtable == 0x00741F78) return !reinterpret_cast<COptionsWindow*>(top)->sliding_;
+    if (vtable == ei::GameAddress(CSaveLoadWindow::kVtableAddress) || vtable == ei::GameAddress(CSaveLoadWindow::kInputVtableAddress))
+        return !reinterpret_cast<CSaveLoadWindow*>(top)->sliding_;
+    if (vtable == ei::GameAddress(COptionsWindow::kVtableAddress) || vtable == ei::GameAddress(COptionsWindow::kInputVtableAddress))
+        return !reinterpret_cast<COptionsWindow*>(top)->sliding_;
     return true;
 }
 
@@ -2072,7 +2075,7 @@ std::string DescribeTopWindow() {
     std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
     const char* name = "?";
     for (const KnownWindow& w : kKnownWindows)
-        if (vtable == w.vtables[0] || vtable == w.vtables[1]) name = w.name;
+        if (vtable == ei::GameAddress(w.vtables[0]) || vtable == ei::GameAddress(w.vtables[1])) name = w.name;
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
                   unsigned(vtable), top ? name : "none", ui->queuedWindow_, g_request.kind,
