@@ -64,8 +64,8 @@ bool IsMade(CItem* item) {
 
 // 005EE1B0 (CItemScreen::MoveItem, through its address): moves `item` from `from` to `to`; returns
 // the item now held.
-CItem* MoveBetween(CCampPages* camp, CItem* item, void* to, void* from, int limit, int merge, int turning) {
-    return camp->CItemScreen::MoveItem(item, static_cast<CParty*>(to), static_cast<CParty*>(from), limit, merge, turning);
+CItem* MoveBetween(CCampPages* camp, CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
+    return camp->CItemScreen::MoveItem(item, to, from, limit, merge, turning);
 }
 // 00621570 (CUiItemStrip::ScrollToItem, through its address).
 void ScrollTo(CUiItemStrip* strip, CItem* item) { strip->ScrollToItem(item); }
@@ -78,7 +78,7 @@ void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiIte
         if (IsMade(item)) {
             ScrollTo(strip, MoveBetween(camp, item, owner, list, 0, 1, 0));
         } else {
-            void* player = LocalPlayerData();
+            CParty* player = LocalPlayerData();
             ScrollTo(camp->itemStrip_, MoveBetween(camp, item, player, list, 0, 1, 0));
         }
     }

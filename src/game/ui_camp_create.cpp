@@ -90,7 +90,6 @@ constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
 const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
 CParty* LocalParty() { return LocalPlayerData(); }
-CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
 CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 
 // Whether the local player's variable `name` is 1 (0073B84C). The original's FCOMP also takes an
@@ -157,7 +156,7 @@ void BuildPanel(CUiWindow* panel) {
     ei::VirtualSlot<BuildFn>(panel->vtable_, kSlotBuild)(panel);
 }
 
-UiPtrArray<char>* ItemsOf(void* list) { return reinterpret_cast<UiPtrArray<char>*>(&AsParty(list)->items_); }
+UiPtrArray<char>* ItemsOf(CParty* list) { return reinterpret_cast<UiPtrArray<char>*>(&list->items_); }
 
 // The time in animation frames: milliseconds / 1024 (0073BB24) * 15 (0073C518).
 double FramesNow() {
@@ -333,7 +332,7 @@ void CCampPages::BuildPages() {
         auto* grid = static_cast<CTradeGrid*>(NewPanel(sizeof(CTradeGrid), interface_, this, TradeGridVtables()));
         spellConstructor1_ = grid;
         AsContainer(this)->AddChild(grid);
-        static_cast<CTradeGrid*>(spellConstructor1_)->Build(&AsParty(spellParts_[1])->items_, &AsParty(spellParts_[2])->items_, 1, 0);
+        static_cast<CTradeGrid*>(spellConstructor1_)->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, 1, 0);
         static_cast<CTradeGrid*>(spellConstructor1_)->mode_ = kModeSpellTrade;
 
         auto* maker = static_cast<CSpellMakerPage*>(NewPanel(kSpellMakerSize, interface_, this, ItemPanelVtables()));
@@ -358,7 +357,7 @@ void CCampPages::BuildPages() {
         auto* grid = static_cast<CTradeGrid*>(NewPanel(sizeof(CTradeGrid), interface_, this, TradeGridVtables()));
         itemConstructor1_ = grid;
         AsContainer(this)->AddChild(grid);
-        static_cast<CTradeGrid*>(itemConstructor1_)->Build(&AsParty(itemParts_[1])->items_, &AsParty(itemParts_[2])->items_, 0, 0);
+        static_cast<CTradeGrid*>(itemConstructor1_)->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, 0, 0);
         static_cast<CTradeGrid*>(itemConstructor1_)->mode_ = kModeItemTrade;
 
         auto* maker = static_cast<CConstructorPage*>(NewPanel(sizeof(CConstructorPage), interface_, this, ItemMakerVtables()));
@@ -369,7 +368,7 @@ void CCampPages::BuildPages() {
         auto* repairs = static_cast<CRepairGrid*>(NewPanel(sizeof(CRepairGrid), interface_, this, RepairGridVtables()));
         itemConstructor3_ = repairs;
         AsContainer(this)->AddChild(repairs);
-        static_cast<CRepairGrid*>(itemConstructor3_)->Build(&AsParty(itemExtra_)->items_);
+        static_cast<CRepairGrid*>(itemConstructor3_)->Build(&itemExtra_->items_);
     }
 
     // The party's heroes become units of the client world: every record's id is raised while the

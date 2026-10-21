@@ -52,7 +52,6 @@ constexpr int kWeaponClass = 0x3004;
 constexpr int kArmorClass = 0x3005;
 constexpr int kQuickItemClass = 0x3006;
 
-CParty* PartyOf(void* list) { return static_cast<CParty*>(list); }
 CParty* PlayerParty() { return LocalPlayerData(); }
 CItem* ItemAt(CParty* party, int index) { return party->items_.data[index]; }
 int ItemCount(const CParty* party) { return party->items_.size; }
@@ -69,8 +68,8 @@ ItemStock* AllowedList(ClassTemplate* t) { return &t->allowed; }
 ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
 // Every item of `list` back to `to`, then the strip scrolled to the last one.
-void ReturnToStrip(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) {
-    CItem* last = camp->ReturnAll(static_cast<CParty*>(to), static_cast<CParty*>(list));
+void ReturnToStrip(CCampPages* camp, CParty* to, CParty* list, CUiItemStrip* strip) {
+    CItem* last = camp->ReturnAll(to, list);
     strip->ScrollToItem(last);
 }
 
@@ -85,12 +84,12 @@ void TakeMade(CParty* results, CItem*& made) {
 
 // Every result moved back: made items to the constructor's first list and strip, the others to the
 // player and the item strip.
-void ReturnResults(CCampPages* camp, CParty* results, void* constructorList, CUiItemStrip* constructorStrip) {
+void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, CUiItemStrip* constructorStrip) {
     while (ItemCount(results) != 0) {
         CItem* item = ItemAt(results, 0);
         bool made = MadeByConstructor(item);
-        void* to = made ? constructorList : static_cast<void*>(PlayerParty());
-        CItem* moved = camp->CItemScreen::MoveItem(item, static_cast<CParty*>(to), results, 0, 1, 0);
+        CParty* to = made ? constructorList : PlayerParty();
+        CItem* moved = camp->CItemScreen::MoveItem(item, to, results, 0, 1, 0);
         (made ? constructorStrip : camp->itemStrip_)->ScrollToItem(moved);
     }
 }
@@ -113,7 +112,7 @@ void AddAndRelease(CParty* party, CItemLoot* item) {
 } // namespace
 
 bool CCampPages::DeconstructSpell() {
-    CParty* results = PartyOf(spellResults_);
+    CParty* results = spellResults_;
     CItem* copy = results->CopyItem(ItemAt(results, 0));
     spellMade_ = copy;
     ++copy->refCount_;
@@ -161,7 +160,7 @@ void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, b
 } // namespace
 
 bool CCampPages::DeconstructItem() {
-    CParty* results = PartyOf(itemResults_);
+    CParty* results = itemResults_;
     CItem* copy = results->CopyItem(ItemAt(results, 0));
     itemMade_ = copy;
     ++copy->refCount_;
@@ -276,7 +275,7 @@ void CCampPages::DoAction() {
         return;
     case kSpellTrade:
         constructor_->SpellsParty()->SpellManager();
-        StockSpells(this, PartyOf(spellParts_[2]));
+        StockSpells(this, spellParts_[2]);
         ReturnToStrip(this, spellParts_[0], spellParts_[2], spellStrip_);
         ReturnToStrip(this, PlayerParty(), spellParts_[1], itemStrip_);
         break;
@@ -284,12 +283,12 @@ void CCampPages::DoAction() {
         if (deconstructing_) {
             DeconstructSpell();
         } else if (spellMade_) {
-            TakeMade(PartyOf(spellResults_), spellMade_);
+            TakeMade(spellResults_, spellMade_);
         }
         break;
     case kItemTrade:
         constructor_->ItemsParty()->ItemManager();
-        StockItems(this, PartyOf(itemParts_[2]));
+        StockItems(this, itemParts_[2]);
         ReturnToStrip(this, itemParts_[0], itemParts_[2], partStrip_);
         ReturnToStrip(this, PlayerParty(), itemParts_[1], itemStrip_);
         break;
@@ -297,11 +296,11 @@ void CCampPages::DoAction() {
         if (deconstructing_) {
             DeconstructItem();
         } else if (itemMade_) {
-            TakeMade(PartyOf(itemResults_), itemMade_);
+            TakeMade(itemResults_, itemMade_);
         }
         break;
     case kRepair:
-        RepairAll(PartyOf(itemExtra_));
+        RepairAll(itemExtra_);
         ReturnToStrip(this, PlayerParty(), itemExtra_, itemStrip_);
         break;
     default:
@@ -324,14 +323,14 @@ void CCampPages::UndoAction() {
         ReturnToStrip(this, PlayerParty(), spellParts_[2], itemStrip_);
         break;
     case kSpellMaker:
-        ReturnResults(this, PartyOf(spellResults_), spellParts_[0], spellStrip_);
+        ReturnResults(this, spellResults_, spellParts_[0], spellStrip_);
         break;
     case kItemTrade:
         ReturnToStrip(this, itemParts_[0], itemParts_[1], partStrip_);
         ReturnToStrip(this, PlayerParty(), itemParts_[2], itemStrip_);
         break;
     case kItemMaker:
-        ReturnResults(this, PartyOf(itemResults_), itemParts_[0], partStrip_);
+        ReturnResults(this, itemResults_, itemParts_[0], partStrip_);
         break;
     case kRepair:
         ReturnToStrip(this, PlayerParty(), itemExtra_, itemStrip_);
