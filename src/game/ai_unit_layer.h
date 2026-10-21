@@ -13,7 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// A unit's footprint on the layers (0x10C bytes, vtable 0073FD5C): 16 x 16 cell levels around the
+// A unit's footprint on the layers (0x10C bytes; the compiled CUnitShapeClass, ai_unit_shape.cpp): 16 x 16 cell levels around the
 // unit, shared by radius through the shape cache (007C2F70, ai_shape_cache.cpp; its handles are
 // UnitShapeHandle). Methods in ai_unit_shape.cpp. Names provisional.
 class __declspec(novtable) CUnitShape : public CRefObject {
@@ -26,13 +26,14 @@ public:
     int Empty();
     // 005B34F0 (slot 3, Clone). A new shape with the same levels and radius (no references yet).
     CUnitShape* Copy();
+    // The compiled table (CUnitShapeClass, ai_unit_shape.cpp; game.exe's 0073FD5C).
+    static void* Vtable();
 
     std::uint8_t levels[16][16];    // +0x008 rows of 16
     float radius;                   // +0x108
 };
 static_assert(offsetof(CUnitShape, levels) == 8);
 static_assert(sizeof(CUnitShape) == 0x10C);
-constexpr std::uintptr_t kUnitShapeVtable = std::uintptr_t(0x0073FD5C);
 
 // The shape cache's handle (ai_shape_cache.h); its height is the shape's radius.
 using UnitShapeHandle = ShapeCacheHandle;

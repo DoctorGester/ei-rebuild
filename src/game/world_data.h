@@ -51,9 +51,6 @@ inline float Half() { return 0.5f /*0073B86C*/; }
 inline float LineAngleOffset() { return 3.1415927f /*0073F8EC*/; }
 inline float LineSpacing() { return 1.2f /*0073CDF4*/; }
 
-// The vtable of the counted record an item built from a party record points at (ItemSourceRef,
-// item.h), stored after the reference value constructor 00419720.
-constexpr std::uintptr_t kItemSourceRefVtable = std::uintptr_t(0x0073FA88);
 // The unit record's (mapspec::UnitSpec) vtable and its behaviour records' destructor body.
 constexpr std::uintptr_t kUnitSpecVtable = std::uintptr_t(0x0073C6E0);
 constexpr std::uintptr_t kBehaviourDestructor = std::uintptr_t(0x0046C290);

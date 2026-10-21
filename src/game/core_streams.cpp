@@ -50,7 +50,7 @@ CRefCounted* CRefCounted::RootDeletingDestruct(unsigned flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x00412730, CRefCounted::RootDeletingDestruct);
-EI_REPLACE_METHOD(0x005B3570, CRefCounted::RootDeletingDestruct);   // S13: the unit shape's (calls its copy 005B3590)
+EI_REWRITTEN(0x005B3570, CRefCounted::RootDeletingDestruct);   // S13: the unit shape's (calls its copy 005B3590)
 
 void* __fastcall RefValueConstructBase(void* self) {
     SetVtable(self, CRefObject::kVtableAddress);
@@ -65,7 +65,7 @@ CRefObject* CRefObject::ValueDeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00412700, CRefObject::ValueDeletingDestruct);
 EI_REPLACE_METHOD(0x00562750, CRefObject::ValueDeletingDestruct);   // byte-identical copies (A-W12)
-EI_REPLACE_METHOD(0x0058FBC0, CRefObject::ValueDeletingDestruct);
+EI_REWRITTEN(0x0058FBC0, CRefObject::ValueDeletingDestruct);
 
 // --- CStream -----------------------------------------------------------------------------------
 

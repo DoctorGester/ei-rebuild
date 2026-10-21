@@ -232,6 +232,7 @@ vtable,slots,class,file,note
 0073FA04,3,CellRowArrayClass,src/lib/mfc_slots.h,CArray (the AI map's cell rows)
 0073FA10,3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
 0073FA4C,3,RefListAClass,src/game/game_slots.h,CList (the world server's new connections; 00598F40)
+0073FA88,4,CItemLinkClass,src/game/item_link.cpp,an item's link record (the world server's)
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)
 0073FABC,3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
@@ -246,6 +247,7 @@ vtable,slots,class,file,note
 0073FCF0,3,AiMapListClass,src/lib/mfc_slots.h,CList (the AI map's lists)
 0073FCFC,3,BlockCostListClass,src/lib/mfc_slots.h,CList (the AI's block cost lists)
 0073FD58,1,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
+0073FD5C,4,CUnitShapeClass,src/game/ai_unit_shape.cpp,a unit's footprint on the AI map's unit layers
 0073FD9C,3,WaypointListClass,src/lib/mfc_slots.h,CList (the AI plan's waypoint lists)
 0073FDE0,3,SpiralCellArrayClass,src/lib/mfc_slots.h,CArray (the sector spiral's cells)
 0073FDEC,3,SpiralOffsetArrayClass,src/game/game_arrays.h,CArray (the sector spiral's offsets 007C2FF8)

@@ -165,7 +165,7 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
     if (memory) {
         if (refValueBase) {
             RefValueConstructBase(memory);
-            memory->vtable = ei::GamePointer<void>(worlddata::kItemSourceRefVtable);
+            memory->vtable = CItemLink::Vtable();
             record = memory;
         } else {
             record = reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
