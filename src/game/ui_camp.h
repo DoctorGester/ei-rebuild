@@ -30,6 +30,10 @@ struct VtablePair {
 };
 static_assert(sizeof(VtablePair) == 8 && offsetof(VtablePair, input) == 4);
 
+// The hero panel's seven body slots: their centres (800 x 600 layout; the panel's frames and its depth clear).
+inline constexpr int kBodySlotX[7] = /*00741EC4*/ {250, 250, 250, 550, 550, 550, 550};
+inline constexpr int kBodySlotY[7] = /*00741EE0*/ {150, 300, 450, 150, 350, 450, 250};
+
 // (UiDwordArray, the MFC CArray<DWORD>-like array, is in ui.h.)
 
 // --- Battle screen (CBattleScreen and PersonTextMap are in ui.h) ---------------------------

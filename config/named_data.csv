@@ -1,0 +1,12 @@
+address,size,name,file
+007402F8,24,kWideClearLeft,src/game/ui_hero_preview.cpp
+00740310,24,kWideClearTop,src/game/ui_hero_preview.cpp
+00740328,24,kWideClearRight,src/game/ui_hero_preview.cpp
+00740340,24,kWideClearBottom,src/game/ui_hero_preview.cpp
+00740358,128,kSchoolGlow,src/game/ui_item_view.cpp
+0074111C,28,kSlotXs,src/game/ui_briefing_people.cpp
+00741138,28,kSlotYs,src/game/ui_briefing_people.cpp
+00741EC4,28,kBodySlotX,src/game/ui_camp.h
+00741EE0,28,kBodySlotY,src/game/ui_camp.h
+00742434,24,kPartX,src/game/ui_hud_slide.cpp
+0074244C,24,kPartY,src/game/ui_hud_slide.cpp

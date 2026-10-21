@@ -2450,6 +2450,36 @@ model = "opus"
 depends = ["C19"]
 note = "End state of the cleanup track: once data are named globals (C18) and vtables are the compiler's (C19), the 9,304 EI_REPLACE registrations and the 21,636 code cells only serve callbacks stored in data and the harness's address names. Measure what still needs them, replace the rest, and drop gen_image_cells' code cells; the image then needs no address map of game.exe's code."
 
+[[ticket]]
+id = "C18a"
+title = "Named data: the DirectX / DirectInput interface ids (GUID tables)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18"]
+note = "C18's method (docs/notes/standalone.md 'Named data (C18)'): the 15 .rdata GUIDs of src/game/app_dxversion.cpp (6), input_mouse.cpp (6) and device.h (3) as tagged constexpr GUID definitions (named_data.py's TYPES has GUID), named after the interface (kIidDirectDraw7, kGuidSysMouse, kGuidXAxis ...). Check: named_data.py --check, goldens (every run creates the devices)."
+
+[[ticket]]
+id = "C18b"
+title = "Named data: the remaining .rdata number tables of src/game"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18"]
+note = "C18's method: the .rdata constant tables named by one hand-written file (python tools/named_data.py --split 'rdata constant'): unit.h 0073E048, unit_hits.cpp 0073E09C/A0/A4 (one overlapping armour table: one definition, the three reads as offsets into it), unit_client_effects 0073EC78, unit_params_protection 0073E0FC, unit_client_models.h 0073EC24 (rows of names: add a char-array element to TYPES), effects.cpp 0073CB38/0073CB78, figure_models 0073B914, net_connection 0073BAA4, net_lobby 0073BFA0, hoover_loot 0073C468, random 0073D080, link_mesh_draw 0073D780, world_server_life 0073F918, terrain_sector 00744164, terrain_landscape 007441D4. Some are single scalars (rdata_literals literals) or hold pointers (leave those, C18c); read the extent from the uses."
+
+[[ticket]]
+id = "C18c"
+title = "Named data: tables that hold pointers (pointer-aware packing)"
+group = "cleanup"
+depends = ["C18"]
+note = "named_data.py refuses a range with a pointer cell inside (material.h 00743BF8, sound_music.cpp 00744090, src/lib's CRuntimeClass / EH ThrowInfo records). Teach the check to compare a pointer element with the name it points at (the cell's target is another named range or a string literal), then name them. Opus: decides the form."
+
+[[ticket]]
+id = "C18d"
+title = "Named data: the first .data objects (one area)"
+group = "cleanup"
+depends = ["C18"]
+note = "Set the pattern for written globals (docs/notes/standalone.md 'Named data (C18)', '.data and .bss objects'): pick one area whose .data objects only hand-written code names (named_data.py --split 'data object': particle* 29, app* 16, net* 12), make each a tagged non-const definition, check that no generated static initialiser stores into it, no harness file reads it (the harness runs in game.exe too), no vector stand-in fills it and no cell points at it. Opus for the first, sonnet after."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]

@@ -154,7 +154,8 @@ each step green on the goldens and removing a measured tie:
   the log line counts the old range's nonzero bytes (0).
   **The bytes**: the host copies neither section (it skips RVAs 0033B000 and 00383000); the build writes
   their file bytes from 0073B000 up to .data's last nonzero dword, the import table's 0x820 bytes zero (our slots;
-  ResolveImageImports fills them), .rdata's tail past 007828B2 zero (`tools/gen_image_cells.py --bytes`, a CMake
+  ResolveImageImports fills them), .rdata's tail past 007828B2 zero, the ranges our named globals hold zero
+  (config/named_data.csv, "Named data (C18)" below) (`tools/gen_image_cells.py --bytes`, a CMake
   custom command from `EI_GAME_EXE`; empty by default: `tools/exe_path.py` finds it) into
   build/<cfg>/image/image_data_bytes.inc, not committed (user 2026-10-21: the interim before named globals);
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
@@ -292,8 +293,65 @@ each step green on the goldens and removing a measured tie:
 | S18j | game.exe's resources built into ei_standalone.exe (a .res from the build), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
 | S18k | an ordinary host (no fixed base, no range in its image; free parts of the range reserved as the guard), no read of game.exe (dispatch bytes from the build, imports from the game folder), stray game addresses reported by the seam | the address image (dashboard "image ties" 5 -> 0) |
 
-Not on this path: named, typed globals in place of a section's bytes and vtables as real virtual classes
-(cleanup after S18k), plain new / delete and standard containers (C14), Win32 calls linked directly.
+Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
+classes (C19), plain new / delete and standard containers (C14), Win32 calls linked directly.
+
+### Named data (C18)
+
+The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
+after its first batch). C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
+vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
+eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
+that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
+kinds given.
+- **The form**: a typed definition whose initialiser carries the original's address as a tag right after the `=`:
+  `constexpr int kSlotXs[7] = /*0074111C*/ {300, 500, 200, 400, 600, 75, 725};`. The code names the global
+  (`kSlotXs[i]`), never the address. It lives in the file that reads it (its anonymous namespace), or as
+  `inline constexpr` in the subsystem's header when several files read it (ui_camp.h's `kBodySlotX`). A single float,
+  double or integer is no table: it is rdata_literals' tagged literal (`5.0f /*007402EC*/`, S18e), even when the code
+  copied its bytes with memcpy.
+- **The check** (`python tools/named_data.py --check`, build.cmd): the initialiser's numbers, packed by the declared
+  element type (`TYPES`: the scalars, GUID as `IHH8B`; nested braces are flattened, a `[n]` bound must match the
+  count), are game.exe's bytes at the tag (.rdata past the import table, or .data and its zero-filled tail);
+  config/named_data.csv lists exactly the tagged ranges (address, size, name, file; `--update` writes it); and
+  nothing else reaches a range: no address literal of src/ or tests/ (.cpp, .h, .inc, comments blanked) inside it,
+  no pointer cell of game.exe's data inside it or pointing into it (image_cells.inc), no code cell inside it
+  (image_code_cells.inc), no addon.dll site, no two ranges overlapping. A wrong value fails with its first
+  differing byte.
+- **The bytes**: gen_image_cells.py --bytes writes the csv's ranges zero (CMake's custom command depends on the
+  csv), so the image's copy of the sections no longer carries them; what the check proves unreachable is also
+  unread at run time.
+- **A batch** (the method; batch 1 did the interface's .rdata tables, 13 addresses: ui_hero_preview's four clear
+  rectangle tables, ui_item_view's school glow colours and its pi / 5.0 floats, ui_briefing_people's speaker places,
+  ui_hud_slide's part positions, the camp body slots of ui_container_draws / ui_hero_panels):
+  1. `python tools/named_data.py --split "<kind>"`: take the addresses of one kind whose owner is your area.
+  2. Per address: read its uses for the extent (the count the code indexes, the original's bound, the next tagged
+     neighbour) and the element type; write the definition with the tag (the values from game.exe:
+     `gen_image_cells.image(exe_path.find_exe())` in a `python -c`, or write zeros and let --check name the first
+     difference).
+  3. Replace every read (`GamePointer<const T>(0x...)`, `GameData<const T>(0x...)`, the per-file accessor
+     returning the pointer) with the name; drop the accessor and the comments that repeated the address or the
+     values.
+  4. `python tools/named_data.py --update`, then `--check`, `data_seam.py --check`, `rdata_literals.py --check`,
+     `check_cleanup.py` (`--update` when its counts went down), `build.cmd verify` and `release`, and
+     `python tools/work.py test <ID> --golden --jobs 4`.
+- **What the other kinds need** (later batches):
+  - .rdata tables of numbers or GUIDs (app_dxversion, input_mouse, device.h: the DirectX interface ids; unit*,
+    effects, figure_models, net*, terrain*, random): as batch 1. Keep the original's bound on an index the data
+    gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
+    array where the original read the neighbouring .rdata; no database has one).
+  - Tables that hold pointers (material.h 00743BF8, sound_music 00744090, the CRuntimeClass and EH records of
+    src/lib): the check refuses them (a pointer cell inside the range); they need pointers to our own objects, which
+    the packing does not compare yet.
+  - .data and .bss objects (written at run time): the same form without constexpr (`int g_x = /*0079xxxx*/ {5};`,
+    `{}` for the zero-filled tail). Before converting, every reader must use the name: the generated static
+    initialisers and exit functions (static_init.cpp / static_exit.cpp store into or destroy it: the definition's
+    initialiser or constructor takes the store's place, in the list's order when it has a constructor), the
+    harness (tests/verify runs in game.exe too, where a name is our copy and not the original's object: it keeps
+    the address there), the vectors' stand-ins (tests/vectors fill recorded values by address), and game.exe's
+    data pointing at it (a cell keeps it at its address). Saves and messages carry values, not addresses: the
+    goldens catch a changed value.
+  - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
