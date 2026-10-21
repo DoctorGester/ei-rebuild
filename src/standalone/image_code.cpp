@@ -3,8 +3,9 @@
 // address of game.exe's code is CodeAddress's: the harness's replacement (RedirectCode), the replacement registered for
 // it (InstallHooks hands the table over: SetCodeTable), else a stub that reports there is no code at the address. The
 // code cells of game.exe's data (vtable slots, callback tables, the static initialiser list: image_code_cells.inc,
-// tools/gen_image_cells.py) are pointed at it once the table is in (FixCodeCells), the forwarders (EI_ORIGINAL) reach
-// it through ei_code_dispatch, and the static initialisers, the code literals and the harness ask CodeAddress.
+// tools/gen_image_cells.py) are pointed at it once the table is in (FixCodeCells), the forwarders (EI_ORIGINAL) jump
+// to it through their CodeLink once it is fixed (BindCode; S18i1), and the static initialisers, the code literals and
+// the harness ask CodeAddress.
 // In game.exe (the original's runs) every address is its own code.
 #include "ei/hook.h"
 #include "game/game_data.h"
@@ -108,16 +109,61 @@ void* Stub(std::uintptr_t address) {
     return result;
 }
 
+// The forwarders' bindings (BindCode): the bound links, listed once (ended by kLinksEnd, so a listed link's next is
+// never null), and whether binding is on (the harness's A/B measurement turns it off). RedirectCode and turning it
+// off unbind every link, under the lock that binding takes.
+SRWLOCK g_linkLock = SRWLOCK_INIT;
+CodeLink* const kLinksEnd = reinterpret_cast<CodeLink*>(1);
+CodeLink* g_links = kLinksEnd;
+bool g_binding = true;
+
+void UnbindLinks() {
+    for (CodeLink* link = g_links; link != kLinksEnd; link = link->next) link->code = nullptr;
+}
+
+// How often CodeAddress was asked, and by forwarders (the harness's renderstats; counted without locking).
+std::uint64_t g_lookups;
+std::uint64_t g_forwarderLookups;
+
 std::atomic<bool> g_cellsFixed{false};
 std::vector<std::uintptr_t*> g_notedPointers;   // FixUpCodePointer's before the cells are fixed (start-up only)
 
 } // namespace
 
 std::uintptr_t CodeAddress(std::uintptr_t address) {
+    ++g_lookups;
     if (!Standalone() || !InText(address)) return address;
     if (const void* to = RedirectedTo(address)) return reinterpret_cast<std::uintptr_t>(to);
     if (void* replacement = Registered(address)) return reinterpret_cast<std::uintptr_t>(replacement);
     return reinterpret_cast<std::uintptr_t>(Stub(address));
+}
+
+// The forwarder's link is bound when its code is fixed: the address itself (game.exe, or outside game.exe's code)
+// or the registration; never the harness's redirection or a stub, and not before the table is in.
+std::uintptr_t BindCode(CodeLink* link) {
+    ++g_forwarderLookups;
+    const std::uintptr_t address = link->address;
+    const std::uintptr_t code = CodeAddress(address);
+    if (Standalone() && InText(address) && !Registered(address)) return code;
+    AcquireSRWLockExclusive(&g_linkLock);
+    if (g_binding && !RedirectedTo(address)) {
+        if (!link->next) {
+            link->next = g_links;
+            g_links = link;
+        }
+        link->code = reinterpret_cast<const void*>(code);
+    }
+    ReleaseSRWLockExclusive(&g_linkLock);
+    return code;
+}
+
+CodeLookupCounts CodeLookups() { return {g_lookups, g_forwarderLookups}; }
+
+void SetCodeBinding(bool on) {
+    AcquireSRWLockExclusive(&g_linkLock);
+    g_binding = on;
+    if (!on) UnbindLinks();
+    ReleaseSRWLockExclusive(&g_linkLock);
 }
 
 bool RedirectedByHarness(std::uintptr_t address) { return RedirectedTo(address) != nullptr; }
@@ -133,8 +179,11 @@ void RedirectCode(std::uintptr_t address, const void* to) {
         Log("standalone: the harness's replacement of %08X not taken: the table is full", static_cast<unsigned>(address));
         return;
     }
+    AcquireSRWLockExclusive(&g_linkLock);
     g_redirects[n] = {address, to};
     g_redirectCount.store(n + 1, std::memory_order_release);
+    UnbindLinks();
+    ReleaseSRWLockExclusive(&g_linkLock);
     if (!g_cellsFixed.load(std::memory_order_acquire)) return;
     int cells = 0;
     for (const CodeCell& c : kCodeCells) {
@@ -191,19 +240,19 @@ int FixCodeCells() {
 
 } // namespace ei
 
-// Where an EI_ORIGINAL forwarder to `address` goes (called from ei_code_dispatch with the caller's registers saved).
-extern "C" std::uintptr_t __cdecl ei_code_lookup(std::uintptr_t address) { return ei::CodeAddress(address); }
+// An unbound EI_ORIGINAL forwarder's code (called from ei_code_bind with the caller's registers saved).
+extern "C" std::uintptr_t __cdecl ei_code_bind_lookup(ei::CodeLink* link) { return ei::BindCode(link); }
 
-// EI_ORIGINAL's target: [ESP] the address, [ESP+4] the caller's return address, the arguments in their registers
-// (EAX too: some originals take one there; ECX, EDX) and on the stack as the forwarder received them. The code is
-// reached with all of them as they were.
-extern "C" __declspec(naked) void ei_code_dispatch() {
+// An unbound EI_ORIGINAL forwarder's target: [ESP] its CodeLink, [ESP+4] the caller's return address, the arguments
+// in their registers (EAX too: some originals take one there; ECX, EDX) and on the stack as the forwarder received
+// them. The code is reached with all of them as they were.
+extern "C" __declspec(naked) void ei_code_bind() {
     __asm {
         push eax
         push ecx
         push edx
         push dword ptr [esp + 12]
-        call ei_code_lookup
+        call ei_code_bind_lookup
         add esp, 4
         mov [esp + 12], eax
         pop edx

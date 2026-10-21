@@ -382,14 +382,14 @@ bool AfterFunctionEnd(std::uintptr_t target) {
 }
 
 // Follows the jump at the entry of a function (E9 rel32: an incremental link's thunk, a hook's
-// redirected entry; `push imm32; jmp ei_code_dispatch`: EI_ORIGINAL's forwarders, to the code for the address) to
-// where it goes; 0 when the code at `entry` is not such a jump.
+// redirected entry; `cmp [link], 0; je; jmp [link]`: EI_ORIGINAL's forwarders, to the code for their CodeLink's
+// address) to where it goes; 0 when the code at `entry` is not such a jump.
 std::uintptr_t JumpTarget(std::uintptr_t entry) {
     const auto* q = reinterpret_cast<const std::uint8_t*>(entry);
     if (q[0] == 0xE9) return entry + 5 + *reinterpret_cast<const std::int32_t*>(entry + 1);
-    if (q[0] == 0x68 && q[5] == 0xE9 &&
-        entry + 10 + *reinterpret_cast<const std::int32_t*>(entry + 6) == reinterpret_cast<std::uintptr_t>(&ei_code_dispatch))
-        return ei::CodeAddress(*reinterpret_cast<const std::uintptr_t*>(entry + 1));
+    if (q[0] == 0x83 && q[1] == 0x3D && q[6] == 0x00 && q[7] == 0x74 && q[9] == 0xFF && q[10] == 0x25 &&
+        std::memcmp(q + 2, q + 11, 4) == 0)
+        return ei::CodeAddress((*reinterpret_cast<ei::CodeLink* const*>(entry + 2))->address);
     return 0;
 }
 

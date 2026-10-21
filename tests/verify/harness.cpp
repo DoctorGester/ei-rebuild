@@ -286,11 +286,14 @@
 //                             again as new images with their levels made on the CPU (remake: as before
 //                             R16b); every one is read again at its next use. Ignored in a run of the
 //                             original code
+//   codebinding on|off        the EI_ORIGINAL forwarders jump to their code once it is fixed (ei::SetCodeBinding,
+//                             S18i1; the default) or ask ei::CodeAddress at every call (off, as before S18i1)
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time, morphed meshes; R16e: the
 //                             ground decals' projections, flat draws and object shadow builds) and the
-//                             main thread's CPU and wall time per frame; "-" only starts a new
+//                             main thread's CPU and wall time per frame, ei::CodeAddress's lookups per
+//                             frame (all / by forwarders, S18i1); "-" only starts a new
 //                             count. Skipped in a run of the original code
 //   checkshot [recorder] <n> <frame> [tolerance] [fraction]
 //                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
@@ -3286,6 +3289,9 @@ void RunSteps() {
             } else {
                 g_failures.push_back("meshcache needs on, off or check");
             }
+        } else if (s.verb == "codebinding") {
+            if (s.argument == "on" || s.argument == "off") ei::SetCodeBinding(s.argument == "on");
+            else g_failures.push_back("codebinding needs on or off");
         } else if (s.verb == "meshcorners") {
             if (!render::Active()) {
                 Log("harness: meshcorners %s: not the new renderer (the original code): ignored", s.argument.c_str());
@@ -3336,6 +3342,11 @@ void RunSteps() {
             // computes at the game's 24-bit precision.
             static unsigned long long lastCycles = 0;
             static long long lastTicks = 0;
+            static ei::CodeLookupCounts lastLookups{};
+            const ei::CodeLookupCounts lookups = ei::CodeLookups();
+            const double codeLookups = static_cast<double>(lookups.all - lastLookups.all);
+            const double forwarderLookups = static_cast<double>(lookups.forwarders - lastLookups.forwarders);
+            lastLookups = lookups;
             unsigned long long cycles = 0;
             double msPerCycle = 0.0, msPerTick = 0.0;
             LARGE_INTEGER now{}, frequency{};
@@ -3376,7 +3387,7 @@ void RunSteps() {
                 "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f shadows %.3f ms, "
                 "%.1f others %.3f ms (%.0f vertices); shadow builds %.1f (textures %.1f, %.1f only for the texture), %.3f ms; "
                 "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
-                "(%.0f corners); main thread ms CPU %.2f / wall %.2f",
+                "(%.0f corners); main thread ms CPU %.2f / wall %.2f; code lookups %.1f (forwarders %.1f)",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
                 per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
                 per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
@@ -3398,7 +3409,7 @@ void RunSteps() {
                 t.shadowBuildMs / n,
                 per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
                 t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
-                frameWallMs / n);
+                frameWallMs / n, codeLookups / n, forwarderLookups / n);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
         } else if (s.verb == "checkshot") {
