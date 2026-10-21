@@ -58,6 +58,9 @@ int g_side = -1;
 HANDLE g_turn[2];          // auto-reset events: "your turn may have come"
 HANDLE g_peerProcess;
 bool g_alone = false;      // the other game has ended (or never came): no more waiting
+volatile LONG g_handedOff = 0;   // this game's turn has ended (HandOff) and the next has not begun
+unsigned g_frame = 0;            // the last FrameDone's frame (for the guard's message)
+LONG g_outOfTurn = 0;            // mailbox calls and signals outside the turn (the guard)
 bool g_cut = false;        // "netcut": nothing sent arrives, nothing sent here is received
 std::uint16_t g_fakeMaster = 0;   // "fakemaster": the virtual port this game's master answers on
 unsigned g_masterAnswers = 0;
@@ -113,6 +116,29 @@ std::uint16_t PortOf(std::uintptr_t s) {
     return port;
 }
 
+// The guard (SV10a): the mailbox and the signals are only for a game in its turn. After the hand-off the
+// rest of the frame step runs while the other game takes its turn, so a datagram or a signal from it could
+// land before or after the other game's reads depending on the machine. A call there fails the run (the
+// first is logged).
+void InTurn(const char* call) {
+    if (!g_handedOff || g_alone) return;
+    if (InterlockedIncrement(&g_outOfTurn) != 1) return;
+    char what[200];
+    std::snprintf(what, sizeof(what),
+                  "pair: %s outside this game's turn (after the hand-off in frame %u's frame step, thread %lu); "
+                  "after the world view's last net::Pump the frame step must not reach the pair's network or signals",
+                  call, g_frame + 1, GetCurrentThreadId());
+    Log("harness: %s", what);
+    Locked lock;   // the report reads g_failures from another thread
+    g_failures.push_back(what);
+}
+
+void EndTurn() {
+    if (InterlockedExchange(&g_handedOff, 1)) return;
+    InterlockedIncrement(&g_shared->done[g_side]);
+    SetEvent(g_turn[1 - g_side]);
+}
+
 } // namespace
 
 bool Active() { return g_shared != nullptr; }
@@ -153,12 +179,20 @@ bool Install() {
     return true;
 }
 
+void HandOff() {
+    if (g_shared) EndTurn();
+}
+
 void FrameDone(unsigned frame) {
     if (!g_shared) return;
     const int other = 1 - g_side;
-    const LONG n = InterlockedIncrement(&g_shared->done[g_side]);
-    SetEvent(g_turn[other]);
-    if (g_alone) return;
+    g_frame = frame;
+    EndTurn();
+    const LONG n = g_shared->done[g_side];
+    if (g_alone) {
+        InterlockedExchange(&g_handedOff, 0);
+        return;
+    }
     ++g_turns;
     auto ready = [&] {
         const LONG theirs = g_shared->done[other];
@@ -187,10 +221,12 @@ void FrameDone(unsigned frame) {
         }
     }
     g_waitedMs += GetTickCount() - start;
+    InterlockedExchange(&g_handedOff, 0);   // this game's next turn
 }
 
 void Signal(const std::string& tag) {
     if (!g_shared) return;
+    InTurn("Signal");
     Locked lock;
     for (SignalTag& s : g_shared->signals) {
         if (s.used) continue;
@@ -204,6 +240,7 @@ void Signal(const std::string& tag) {
 
 bool Signaled(const std::string& tag) {
     if (!g_shared) return false;
+    InTurn("Signaled");
     Locked lock;
     for (const SignalTag& s : g_shared->signals)
         if (s.used && s.side != g_side && tag == s.tag) return true;
@@ -211,6 +248,7 @@ bool Signaled(const std::string& tag) {
 }
 
 bool Bind(std::uintptr_t s, std::uint16_t port) {
+    InTurn("Bind");
     {
         Locked lock;
         if (port == 0) {
@@ -239,6 +277,7 @@ bool Bind(std::uintptr_t s, std::uint16_t port) {
 }
 
 int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
+    InTurn("SendTo");
     if (length < 0 || length > kDatagramBytes) {
         WSASetLastError(WSAEMSGSIZE);
         return SOCKET_ERROR;
@@ -305,6 +344,7 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
 }
 
 int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* fromLength) {
+    InTurn("RecvFrom");
     const std::uint16_t port = PortOf(s);
     Datagram* oldest = nullptr;
     Locked lock;
@@ -344,6 +384,7 @@ int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* from
 }
 
 void Close(std::uintptr_t s) {
+    InTurn("Close");
     const std::uint16_t port = PortOf(s);
     if (!port) return;
     AcquireSRWLockExclusive(&g_socketsLock);

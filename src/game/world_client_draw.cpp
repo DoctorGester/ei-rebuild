@@ -25,6 +25,7 @@
 #include "texture.h"
 #include "device.h"
 #include "ei/hook.h"
+#include "ei/main_loop.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -349,7 +350,8 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, StateBlockScene());
-    net::Pump();
+    if (auto hook = ei::mainloop::g_harnessHooks.worldLastPump) hook();   // the verify harness's (ei/main_loop.h)
+    else net::Pump();
     DrawLineLists();
     PopMatrix(device->stacks_[kStackWorld]);
     PopMatrix(device->stacks_[kStackScene2]);

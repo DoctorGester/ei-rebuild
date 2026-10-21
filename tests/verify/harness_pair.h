@@ -11,11 +11,18 @@
 //
 // What makes a pair repeat, so that each side has a golden of its own (tools/golden.py, the run
 // folder's peer\ subfolder):
-// - Lockstep: the two main loops take turns a frame at a time. Side 0's frame n+1 starts once side 1's
-//   frame n has ended, side 1's frame n+1 once side 0's frame n+1 has ended (the frames before each
-//   side's first main loop pass, start-up and the menu's first frame, run at once). Only one game runs
-//   between two passes of its main loop, so which frame a game's datagram reaches the other in never
-//   depends on the machine. A game whose peer has ended (its process handle) goes on alone.
+// - Lockstep: the two main loops take turns a frame at a time. A turn runs from the after-frame peek
+//   (the steps, the messages, the next pass's worlds, net::Pump, the interface's update) into the pass's
+//   frame step (00458010) up to the world view's last net::Pump (CWorldClient::Render 00569E40 pumps
+//   the network between its drawing stages); the rest of the frame step (the line lists, the interface's
+//   windows, EndScene, the present) runs outside it, while the other game takes its turn (SV10a). A
+//   frame step that draws no world view stays in the turn whole. Side 0's turn n+1 starts once side
+//   1's turn n has ended, side 1's turn n+1 once side 0's turn n+1 has ended (the frames before each
+//   side's first main loop pass, start-up and the menu's first frame, run at once). Only one game is in
+//   its turn at a time and every mailbox call and signal is inside a turn, so they happen in the same
+//   order as when the turns ended at the after-frame peek, and which frame a game's datagram reaches the
+//   other in never depends on the machine. Guard: a mailbox call or a signal outside the turn fails the
+//   run. A game whose peer has ended (its process handle) goes on alone.
 // - The pair's own network: the games' UDP sockets (the server and client sessions', the lobby's) do
 //   not talk over the loopback adapter. A datagram goes into the pair's shared mailbox, addressed by
 //   virtual ports: a bind claims the port asked (the game's 8888 stays: no port of its own is needed),
@@ -39,7 +46,12 @@ int Side();
 // Opens the pair's shared state (once, at harness start). False without EI_PAIR.
 bool Install();
 
-// After each frame of the main loop: ends this game's turn and waits for its next one.
+// In a main loop pass's frame step, after the world view's last net::Pump: ends this game's turn (the
+// other game's may run while this one draws the rest).
+void HandOff();
+
+// After each frame of the main loop (the after-frame peek): ends this game's turn if HandOff did not
+// (a pass without a frame step), and waits for its next one.
 void FrameDone(unsigned frame);
 
 // "peersignal": marks <tag> as reached by this side. "peerwait": whether the other side has marked it.
