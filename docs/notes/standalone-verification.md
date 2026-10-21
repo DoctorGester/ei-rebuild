@@ -376,3 +376,35 @@ happen (the harness logs "share id" if one does).
 - SV5d3 (watch): net_pair_quest's Rebirth original parted once in five passes at world update 10040 (a fight in
   z9q2: an extra block of random draws); the golden is from three agreeing passes.
 - WB12a: the original's runs are not cloaked.
+
+## 10. Run time (SV10)
+
+Where a run's wall time goes, from the report's `TIMING:` lines (tests/verify/harness_timing.h: per frame the
+main thread's wall time and CPU in the server's updates, the digest, the client's ticks, the steps, a pair's
+wait, the window checks and the rest; start-up to the first frame; frames of 200 ms or more) and EI_PROFILE
+samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4070 Ti SUPER, 4K back buffer.
+- **The suite's wall is net_pair_quest's.** 124 runs of `--golden --jobs 4` (the scheduler fills all 16
+  slots): 178-215 s; net_pair_quest starts first and takes 171-186 s of it, the golden comparison ~7 s; the
+  other 119 runs sum to 725-860 s (about 55 s spread over the free slots). Median run 6-7 s.
+- **Start-up** (process start to the first frame): image 1.5-2.3 s, original 2.3-3.2 s; exit and ei_launch
+  ~0.3 s. About a third of all the suite's game time. Image start-up by profile: d3dcompiler compiling the
+  renderer's shaders 0.35 s, GetDxVersion's DirectDraw probing 0.45 s, the sound device open 0.3 s, the exe
+  check through imagehlp 0.18 s, the rest loading.
+- **A frame** (four games, machine otherwise idle): median 6-8 ms (image), 7-9 ms (original); with 16 games
+  1.3-1.6x that (the main thread's own CPU per frame grows too: shared cores and memory). Per frame: server
+  0.2-0.4 ms (render_stats' fights 2.5-3), client 1-4, digest 0.3-0.8 (every 20 updates, about every 4th
+  frame), steps ~0.1, window checks 0.01-0.07, the rest 6-10 ms. The rest is CPU (its wall time is its
+  main-thread CPU within 10%): no vsync wait (Present(0, 0) on a flip-discard chain), the GPU does 0.6-1.0 ms a
+  frame at 4K (renderstats). By profile (render_stats): the game's own drawing code about half the main thread
+  (terrain projection, mesh lighting, the classic shadow textures rasterised on the CPU, GDI text on the
+  interface surfaces), our renderer's submission ~6%, the camera ~5%, the harness build's upload read-backs
+  (CheckUpload) ~3%.
+- **Pairs take turns**: only one game of a pair runs at a time (harness_pair.h), so a frame of
+  net_pair_quest costs both games' frames: 19.3 ms median, 8-10 ms each game's own work and 11-12 ms waiting
+  for the other (image and original alike; 6,437 frames).
+- Cut (no golden changes): the window checks (WB12's out-of-sight check asked DWM about every window five
+  times a second: 0.4-2 ms of wall time a frame in the original's runs, ~6% of net_pair_quest's main thread in
+  the image's under load) walk the game's own threads' windows and sweep / ask DWM every 2 s; the digest reuses
+  the last-but-one record's map nodes (~20% of its time).
+- Proposals (tickets SV10a-SV10e): the pair's frame step run while the other game takes its turn, start-up,
+  more world updates per drawn frame, drawing only frames a step reads, the harness build's renderer checks.
