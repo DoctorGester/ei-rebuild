@@ -491,7 +491,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 CEngineObject* item = itemManager_->FindObject(id);
                 if (!item) continue;
                 auto* node = counted_.NewNode(nullptr, counted_.head);
-                ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
+                HeldEngineObject::Of(&node->data)->Assign(item);
                 if (counted_.head) counted_.head->prev = node;
                 else counted_.tail = node;
                 counted_.head = node;

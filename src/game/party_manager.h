@@ -10,6 +10,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/stlp_hash.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 
@@ -38,8 +39,27 @@ struct PartyInPlace {
     CParty* Get() { return storage.Party(); }
 };
 
+namespace gamehash {
+
+// hash_map<int, CParty> (the party manager's parties): 0x78-byte nodes. A node's party is copied by
+// CParty's copy constructor (006613C0; it reads its source non-const) and destroyed by its
+// destructor body (006611D0) (game_hashes.cpp).
+struct PartyElement {
+    static void Construct(PartyInPlace* to, const PartyInPlace& from);
+    static void Destroy(PartyInPlace* p);
+};
+using PartyTraits = stlp::DwordObjectTraits<PartyInPlace, PartyElement>;
+// 004A91B0 (RET 4; game_hashes.cpp). hash_map<int, CParty>::operator[]: a party constructed on the
+// stack, a pair of the key and a copy of it, find_or_insert of the pair (a new node copies it
+// again), then the pair's party and the stack party destroyed. The node's party.
+struct PartyTable : stlp::hashtable<PartyTraits> {
+    PartyInPlace* At(const int* key);
+};
+
+} // namespace gamehash
+
 // The parties by key (STLport hash_map<int, CParty>; 0x78-byte nodes).
-using PartyMap = stlp::hash_map<int, PartyInPlace, stlp::IntHash>;
+using PartyMap = gamehash::PartyTable;
 
 struct PartyManager {
     PartyMap parties;                           // +0x00 (004A8790 / 004A8800 load and store)

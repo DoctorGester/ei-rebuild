@@ -342,8 +342,6 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
 }
 EI_REWRITTEN(0x0046C010, UnitSpecConstruct);
 
-const void* UnitSpecBehaviours(const UnitSpec* spec) { return spec->behaviour; }
-
 // 0046C140: the destructor body.
 void __fastcall UnitSpecDestruct(UnitSpec* self) {
     ei::SetVtable(self, worlddata::kUnitSpecVtable);
@@ -369,6 +367,8 @@ void __fastcall UnitRecordDestruct(unitrecord::UnitRecord* self) {
 }
 EI_REWRITTEN(0x0046C2F0, UnitRecordDestruct);
 
+CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(base.object); }
+
 // 0046C4D0 (slot 7): makes the unit, or moves, turns and rescales it.
 void __fastcall UnitSpecApply(UnitSpec* self) {
     Spec& b = self->object.base;
@@ -376,7 +376,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
         WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
         return;
     }
-    auto* unit = static_cast<CUnit*>(b.object);
+    CUnit* unit = self->object.Unit();
     SectorMapMove(TheSectorMap(), nullptr, unit, &b.position);
     ei::GamePointer<CAIMap>(0x007B00D0)->TurnObject(unit, &b.rotation);
     std::memcpy(&unit->localRotation_, &b.rotation, 16);

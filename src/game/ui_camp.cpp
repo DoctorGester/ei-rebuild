@@ -753,7 +753,7 @@ bool CCampPages::CanMakeItem() {
         CItem* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
             CSpell* copy = item->spell_->Clone(manager);
-            ObjectHolderAssign(&spell, nullptr, copy);   // 0052C690
+            HeldEngineObject::Of(&spell)->Assign(copy);   // 0052C690
         } else if (IsPart(item)) {
             switch (static_cast<int>(RecordType(item))) {
             case 0: type = 0x3004; part = PartRecord(item, 0); break;

@@ -18,7 +18,7 @@ EI_REWRITTEN(0x0059A050, EngineObjects::RemoveAt);
 EI_REWRITTEN(0x00429E50, EngineObjects::RemoveAll);
 CountedEngineList::Node* CountedEngineList::AddTailCounted(CEngineObject* object) {
     Node* node = NewNode(tail, nullptr);
-    ObjectHolderAssign(&node->data, nullptr, object);
+    HeldEngineObject::Of(&node->data)->Assign(object);
     if (tail) tail->next = node;
     else head = node;
     tail = node;

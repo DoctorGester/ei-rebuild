@@ -153,8 +153,7 @@ int CEffectPointLight::Tick() {
 
 void CEffectPointLight::Start(int update) {
     if (update == 0) {
-        CEngineObject* created = LightFactory()->CreateObject(0x31, -1);
-        ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&light_), nullptr, created);
+        AssignHeld(&light_, LightFactory()->CreateLight(0x31));
         Vector3 position;
         std::memcpy(&position.x, &localPosition_.x, sizeof(float));
         std::memcpy(&position.y, &localPosition_.y, sizeof(float));
