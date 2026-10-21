@@ -46,7 +46,7 @@ using namespace net;
 
 EI_REWRITTEN(0x004128C0, DeletingDestructor<&ServerEntry::Destruct>);          // 004128E0
 EI_REWRITTEN(0x00412970, DeletingDestructor<RefObjectDestructBase>);           // 00412960
-EI_REPLACE(0x004132D0, DeletingDestructor<&ServerBase::DestructBase>);       // 004132F0
+EI_REWRITTEN(0x004132D0, DeletingDestructor<&ServerBase::DestructBase>);       // 004132F0
 EI_REWRITTEN(0x00413410, DeletingDestructor<RefObjectDestructBase>);           // 00413430: Message (0073BC10)
 EI_REWRITTEN(0x004137E0, DeletingDestructor<&LoginMessage::Destruct>);         // 00413800: 0073BBF8
 EI_REWRITTEN(0x00413C20, DeletingDestructor<&SayMessage::Destruct>);           // 00413C40: 0073BC28
@@ -65,7 +65,7 @@ EI_REWRITTEN(0x00416D50, DeletingDestructor<&AwardMessage::Destruct>);         /
 EI_REWRITTEN(0x00416FA0, DeletingDestructor<&TradeMessage::Destruct>);         // 00416FC0: 0073BD60 trade
 EI_REWRITTEN(0x00417600, DeletingDestructor<&PartyMemberMessage::Destruct>);   // 00417620: 0073BD78 party member
 EI_REWRITTEN(0x004178D0, DeletingDestructor<&PartyMessage::Destruct>);         // 004178F0
-EI_REPLACE(0x0041C450, DeletingDestructor<&ClientBase::DestructBase>);       // 0041C530
+EI_REWRITTEN(0x0041C450, DeletingDestructor<&ClientBase::DestructBase>);       // 0041C530
 // Counted pointer holders (bodies 0041DDA0 and 00421640); the world range has a byte-identical copy
 // of each (A-W12).
 constexpr auto* CountedHolderDelete = &DeletingDestructor<RefPtrRelease>;

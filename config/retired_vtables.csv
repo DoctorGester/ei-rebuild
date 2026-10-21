@@ -2,9 +2,11 @@ vtable,slots,class,file,note
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
-0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base (slots 2-5 _purecall))
+0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
+0073BB70,17,ServerSessionClass,src/game/net_classes.h,the game server (ServerSession)
+0073BBB4,17,ServerBaseClass,src/game/net_classes.h,the server base (ServerBase; slot 15 _purecall)
 0073BBF8,6,LoginMessageClass,src/game/net_messages.h,ReplicatedClass (message type 5)
-0073BC10,6,MessageClass,src/game/net_messages.h,ReplicatedClass (the message base (slots 2-5 _purecall))
+0073BC10,6,MessageClass,src/game/net_messages.h,ReplicatedClass (the message base; slots 2-5 _purecall)
 0073BC28,6,SayMessageClass,src/game/net_messages.h,ReplicatedClass (message type 6)
 0073BC40,6,CommandMessageClass,src/game/net_messages.h,ReplicatedClass (message type 7)
 0073BC58,6,FileRequestMessageClass,src/game/net_messages.h,ReplicatedClass (message type 13)
@@ -21,12 +23,15 @@ vtable,slots,class,file,note
 0073BD60,6,TradeMessageClass,src/game/net_messages.h,ReplicatedClass (message type 17)
 0073BD78,6,PartyMemberMessageClass,src/game/net_messages.h,ReplicatedClass (message type 16)
 0073BDD0,6,PartyMessageClass,src/game/net_messages.h,ReplicatedClass (message type 15)
+0073BDEC,17,ClientSessionClass,src/game/net_classes.h,the game client (ClientSession)
+0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
 0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)
 0073BE80,3,ItemListClass,src/lib/mfc_slots.h,CList (the item and object pointer lists (CTypedPtrList))
 0073BE94,2,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
 0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
+0073BF5C,15,SessionBaseClass,src/game/net_classes.h,the session base (SessionBase)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C0E4,3,FakeUnitRecord9CArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x9C-byte records)

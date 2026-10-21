@@ -349,11 +349,11 @@ void ClientBase::RemoveClientImpl(ClientNode* node) {
     joinState_ = kNotJoined;
 }
 
-EI_REPLACE_METHOD(0x004418F0, ClientBase::OnUpdateImpl);
-EI_REPLACE_METHOD(0x00441940, ClientBase::OnAcceptedImpl);
-EI_REPLACE_METHOD(0x00441B40, ClientBase::OnRejectedImpl);
-EI_REPLACE_METHOD(0x00441D40, ClientBase::OnInfoImpl);
-EI_REPLACE_METHOD(0x004420E0, ClientBase::RemoveClientImpl);
+EI_REWRITTEN(0x004418F0, ClientBase::OnUpdateImpl);
+EI_REWRITTEN(0x00441940, ClientBase::OnAcceptedImpl);
+EI_REWRITTEN(0x00441B40, ClientBase::OnRejectedImpl);
+EI_REWRITTEN(0x00441D40, ClientBase::OnInfoImpl);
+EI_REWRITTEN(0x004420E0, ClientBase::RemoveClientImpl);
 
 // ---- Client: the lobby's requests ---------------------------------------------------------------
 
@@ -574,7 +574,7 @@ void ClientBase::TickImpl(double dt) {
     retryInterval_ = retryInterval_ + retryInterval_;
     retryTimer_ = retryInterval_;
 }
-EI_REPLACE_METHOD(0x00442AD0, ClientBase::TickImpl);
+EI_REWRITTEN(0x00442AD0, ClientBase::TickImpl);
 
 // ---- Server base ------------------------------------------------------------------------------------
 
@@ -738,11 +738,11 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     GrowingBufferDestruct(&b);
 }
 
-EI_REPLACE_METHOD(0x00443080, ServerBase::OnLoginImpl);
-EI_REPLACE_METHOD(0x00443060, ServerBase::OnGetInfoImpl);
-EI_REPLACE_METHOD(0x00443050, ServerBase::AdmitImpl);
-EI_REPLACE_METHOD(0x004434F0, ServerBase::OnUpdateImpl);
-EI_REPLACE_METHOD(0x00443590, ServerBase::TickImpl);
+EI_REWRITTEN(0x00443080, ServerBase::OnLoginImpl);
+EI_REWRITTEN(0x00443060, ServerBase::OnGetInfoImpl);
+EI_REWRITTEN(0x00443050, ServerBase::AdmitImpl);
+EI_REWRITTEN(0x004434F0, ServerBase::OnUpdateImpl);
+EI_REWRITTEN(0x00443590, ServerBase::TickImpl);
 
 // ---- Saving the queries -----------------------------------------------------------------------
 

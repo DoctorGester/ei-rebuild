@@ -51,7 +51,7 @@ ClientSession* ClientSession::Construct() {
     ClientVectorConstruct(&queries_);
     waiting_.Construct();
     alwaysAsk_ = NetAddress{};
-    ei::SetVtable(this, ClientBase::kVtableAddress);
+    ei::SetVtable(this, ClientBase::Vtable());
     joinState_ = kNotJoined;
     joinId_ = 0;
     socket_.Open(-1);
@@ -74,7 +74,7 @@ ClientSession* ClientSession::Construct() {
     trade_ = nullptr;
     PartyConstruct(&parties_[0]);
     PartyConstruct(&parties_[1]);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
 
     // The local player's login.
     auto* record = NewMessageMemory<LoginMessage>();
@@ -152,6 +152,6 @@ void ClientSession::CollectReplicatedImpl(ReplicatedVector** out) {
         }
     }
 }
-EI_REPLACE_METHOD(0x0041D050, ClientSession::CollectReplicatedImpl);
+EI_REWRITTEN(0x0041D050, ClientSession::CollectReplicatedImpl);
 
 } // namespace net

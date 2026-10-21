@@ -466,7 +466,6 @@ inline std::uint32_t g_variableSerial = /*0079B608*/ {};
 // of the flags is set; returns the object: deleting_destructors_400.cpp's bodies), 1 Serialize (empty, RET 4:
 // 00412580), 2-5 the class's OnShutdown, Clone, Write and Read called qualified (no dispatch). An abstract class's
 // slots 2-5 are the compiler CRT's `_purecall`, as game.exe's 006E73EB in the bases' tables.
-extern "C" int __cdecl _purecall();
 
 template <typename Self, typename T, auto Destroy>
 class ReplicatedClass : public ei::CompiledTag<Self> {

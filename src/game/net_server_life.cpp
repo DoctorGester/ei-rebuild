@@ -65,6 +65,6 @@ ServerSession* ServerSession::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00417A10, ServerSession::DeletingDestruct);
+EI_REWRITTEN(0x00417A10, ServerSession::DeletingDestruct);
 
 } // namespace net

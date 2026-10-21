@@ -70,7 +70,7 @@ void ServerSession::SetPublic(bool announce) {
     if (announce) masterAddress_.Parse(static_cast<const char*>(options::TheOptions()->masterServerName_), 0x6D64);
 }
 
-EI_REPLACE_METHOD(0x0041A7E0, ServerSession::DescribeImpl);
+EI_REWRITTEN(0x0041A7E0, ServerSession::DescribeImpl);
 EI_REWRITTEN(0x00417E10, ServerSession::SetPublic);
 
 } // namespace net

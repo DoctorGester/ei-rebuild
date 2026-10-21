@@ -116,14 +116,14 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
     }
     out->Share(entry);
 }
-EI_REPLACE_METHOD(0x0041D420, ClientSession::CreateEntryImpl);
+EI_REWRITTEN(0x0041D420, ClientSession::CreateEntryImpl);
 
 // 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
 void ClientSession::OnJoined() { TheGameFlow()->BeginMultiplayerGame(); }
 namespace {
 void __fastcall ClientBeginGameHook(ClientSession* self) { self->ClientSession::OnJoined(); }
 } // namespace
-EI_REPLACE(0x0041D410, ClientBeginGameHook);
+EI_REWRITTEN(0x0041D410, ClientBeginGameHook);
 
 // 0041D9A0 (called with the client by the transfer screen 0061E4E0): a buffer's stream size (its
 // base plus the highest written position, from `begin`) over the dword at its start (1 when 0),
