@@ -121,7 +121,6 @@ void ServerSession::SetMap(const stlp::string* name) {
 // 0073BCD0) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
-    void* flow = TheGameFlow();
     UnloadQuestTexts();
     struct {
         stlp::string* start;
