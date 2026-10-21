@@ -732,8 +732,8 @@ class SchedTest(unittest.TestCase):
         self.assertIn('standalone image', hooked[2][0])
 
     def test_standalone(self):
-        """--standalone (the default since S21): every scenario, install "standalone", ei_launch --standalone on run\\vanilla's
-        game.exe, always our renderer (never the display mode), not with the original code."""
+        """--standalone (the default since S21): every scenario, install "standalone", ei_launch --standalone on the vanilla
+        install's data, no game.exe (S18k1), always our renderer (never the display mode), not with the original code."""
         seen = []
 
         def fake_subprocess_run(cmd, **kw):
@@ -796,10 +796,11 @@ class SchedTest(unittest.TestCase):
             run_all.subprocess.run = old_run
         cmd, env = seen[0]
         self.assertIn('--standalone', cmd)
-        self.assertEqual(cmd[cmd.index('--exe') + 1], os.path.join(run_all.run_dir(self.tmp), 'vanilla-clean', 'game.exe'))
+        self.assertNotIn('--exe', cmd)                  # the image reads no game.exe: --game is its data (EI_GAME_ROOT)
+        self.assertEqual(cmd[cmd.index('--game') + 1], r'F:\games\EvilIslands')
         self.assertEqual(env['EI_RENDER'], 'new,present')
         self.assertEqual(notes, ['ei_standalone: the game returned 0'])
-        # standalone-rebirth: run\rebirth's game.exe in ei_launch's default (Rebirth) game folder, the ini's flags
+        # standalone-rebirth: ei_launch's default (Rebirth) game folder, the ini's flags
         os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
         with open(os.path.join(self.tmp, 'config', 'ei_rebirth_standalone.ini'), 'w') as f:
             f.write('[Rebirth]\nDefault=0\nNivalRegistry=1\nWideScreen=1\nMaps=0\nNPlayers=7\n')
@@ -811,34 +812,9 @@ class SchedTest(unittest.TestCase):
         cmd, env = seen[1]
         self.assertIn('--standalone', cmd)
         self.assertNotIn('--game', cmd)
-        self.assertEqual(cmd[cmd.index('--exe') + 1], os.path.join(run_all.run_dir(self.tmp), 'rebirth-clean', 'game.exe'))
+        self.assertNotIn('--exe', cmd)
         self.assertEqual((env['EI_RENDER'], env['EI_REBIRTH']), ('new,present', 'NivalRegistry,WideScreen'))
         self.assertEqual(run_all.GOLDEN_INSTALL['standalone-rebirth'], 'rebirth')
-
-    def test_clean_run_dir(self):
-        """SV10f: the image runs from run\\<install>-clean, run\\<install>'s files without dgVoodoo's, kept up to date;
-        run\\<install> stays as it is."""
-        source = os.path.join(run_all.run_dir(self.tmp), 'rebirth')
-        os.makedirs(source)
-        for name in ('game.exe', 'dinput.dll', 'DDraw.dll', 'D3D8.dll', 'D3D9.dll', 'D3DImm.dll', 'dgVoodoo.conf',
-                     'dgVoodoo.conf.orig', 'dgVoodooCpl.exe', 'mss32.dll'):
-            with open(os.path.join(source, name), 'w') as f:
-                f.write(name)
-        clean = run_all.clean_run_dir(self.tmp, 'rebirth')
-        self.assertEqual(clean, source + '-clean')
-        self.assertEqual(sorted(os.listdir(clean)), ['dinput.dll', 'game.exe', 'mss32.dll'])
-        self.assertEqual(len(os.listdir(source)), 10)
-        self.assertTrue(os.path.samefile(os.path.join(source, 'game.exe'), os.path.join(clean, 'game.exe')))
-        # a new game.exe in run\rebirth (its setup run again) reaches the clean folder
-        os.remove(os.path.join(source, 'game.exe'))
-        with open(os.path.join(source, 'game.exe'), 'w') as f:
-            f.write('new')
-        run_all.clean_run_dir(self.tmp, 'rebirth')
-        with open(os.path.join(clean, 'game.exe')) as f:
-            self.assertEqual(f.read(), 'new')
-        self.assertEqual(sorted(os.listdir(clean)), ['dinput.dll', 'game.exe', 'mss32.dll'])
-        # no install copy: the folder's name all the same (ei_launch then says the exe is missing)
-        self.assertEqual(run_all.clean_run_dir(self.tmp, 'vanilla'), os.path.join(run_all.run_dir(self.tmp), 'vanilla-clean'))
 
     def test_reference_cache(self):
         repo = os.path.join(self.tmp, 'repo')

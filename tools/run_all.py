@@ -6,12 +6,11 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
        python tools/run_all.py --widescreen [--record] [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
   default          the standalone image (S21: game.exe only runs the original, docs/notes/standalone.md section 5), as
-                   --standalone: ei_launch --standalone, build\\verify\\ei_standalone.exe lays out run\\vanilla's
-                   game.exe without its code and loads ei_hook.dll, on the vanilla install's data with
-                   EI_RENDER=new,present (install "standalone", vanilla goldens), and on the Rebirth install's data
-                   with run\\rebirth's game.exe and the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no
-                   dgVoodoo either way: the game.exe of run\\<install>-clean, clean_run_dir(); SV10f; no
-                   addon.dll, no EI_Plugin.asi; install "standalone-rebirth", Rebirth goldens). Every scenario runs
+                   --standalone: ei_launch --standalone, build\\verify\\ei_standalone.exe lays out game.exe's data
+                   without its code (it reads no game.exe, S18k1) and loads ei_hook.dll, on the vanilla install's data
+                   with EI_RENDER=new,present (install "standalone", vanilla goldens), and on the Rebirth install's data
+                   with the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no dgVoodoo, addon.dll or
+                   EI_Plugin.asi either way; install "standalone-rebirth", Rebirth goldens). Every scenario runs
                    on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after every merge):
                    --rebirth adds the smoke set (rebirth_scenarios(): config/rebirth_scenarios.csv's marks and every
                    scenario with a step for one install, rebirthflags, addonpath or widescreen) or the named
@@ -167,58 +166,6 @@ def run_dir(root):
         if os.path.isdir(main):
             return main
     return own
-
-
-# dgVoodoo's files in run\<install> (tools/setup_vanilla_run.cmd, setup_rebirth_run.cmd), which draw the original
-# game.exe's runs. The image draws with its own renderer and has no dgVoodoo dependency (SV10f, user 2026-10-21).
-DGVOODOO_FILES = ('ddraw.dll', 'd3d8.dll', 'd3d9.dll', 'd3dimm.dll')
-_clean_lock = threading.Lock()
-
-
-def is_dgvoodoo(name):
-    name = name.lower()
-    return name in DGVOODOO_FILES or name.startswith('dgvoodoo')   # dgVoodoo.conf(.orig), dgVoodooCpl.exe
-
-
-def _same_file(a, b):
-    """b is a's hard link, or a copy with its size and time (where linking failed)."""
-    with contextlib.suppress(OSError):
-        if os.path.samefile(a, b):
-            return True
-        sa, sb = os.stat(a), os.stat(b)
-        return sa.st_size == sb.st_size and sa.st_mtime_ns == sb.st_mtime_ns
-    return False
-
-
-def clean_run_dir(root, install):
-    """The folder the image runs from on install ('vanilla', 'rebirth'): run\\<install>-clean, run\\<install>'s files
-    but dgVoodoo's (hard links, copies where linking fails), made or brought up to date before each image run. So the
-    image's imports come from the system as in a player's clean folder, and the game's DirectX check takes the native
-    path (app_dxversion.cpp, PF3) instead of loading dgVoodoo's DDraw.dll and D3D8.dll (SV10f). run\\<install> itself
-    is left as it is (the original's runs). Returns the folder."""
-    source = os.path.join(run_dir(root), install)
-    clean = source + '-clean'
-    with _clean_lock:
-        if not os.path.isdir(source):
-            return clean   # no install copy: ei_launch says what is missing
-        os.makedirs(clean, exist_ok=True)
-        for entry in os.scandir(source):
-            target = os.path.join(clean, entry.name)
-            if not entry.is_file() or is_dgvoodoo(entry.name) or _same_file(entry.path, target):
-                continue
-            # Another checkout's run_all may be making the same link: each makes its own and replaces the target.
-            tmp = f'{target}.{os.getpid()}.{threading.get_ident()}.tmp'
-            try:
-                os.link(entry.path, tmp)
-            except OSError:
-                shutil.copy2(entry.path, tmp)
-            try:
-                os.replace(tmp, target)
-            except OSError:
-                os.remove(tmp)
-                if not _same_file(entry.path, target):
-                    raise   # an old copy in use by a running image
-    return clean
 
 
 def switches_display(scenario):
@@ -434,19 +381,14 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if game_env is not None:
         env = {k: v for k, v in os.environ.items() if k not in game_environment()}
         env.update(game_env)
-    if install in STANDALONE_INSTALLS:
-        copy = 'vanilla' if install == 'standalone' else 'rebirth'   # the install copy whose game.exe it lays out
-        try:
-            exe = os.path.join(clean_run_dir(root, copy), 'game.exe')
-        except OSError as e:
-            return 'FAIL', 0.0, [f'cannot bring run\\{copy}-clean up to date: {e}'], {}, []
     if install == 'standalone':
-        # Never the display mode: our renderer whatever the environment says.
-        cmd += ['--game', r'F:\games\EvilIslands', '--exe', exe, '--standalone']
+        # Never the display mode: our renderer whatever the environment says. The image reads no game.exe (S18k1):
+        # --game is the install whose data it plays (ei_launch sets EI_GAME_ROOT from it).
+        cmd += ['--game', r'F:\games\EvilIslands', '--standalone']
         env = dict(os.environ if env is None else env, EI_RENDER=renderer)
     elif install == 'standalone-rebirth':
         # ei_launch's default game folder is the Rebirth install's.
-        cmd += ['--exe', exe, '--standalone']
+        cmd += ['--standalone']
         env = dict(os.environ if env is None else env, EI_RENDER=renderer, EI_REBIRTH=standalone_rebirth_flags(root))
     else:
         # The original code only (S21c: no tool runs ours inside game.exe), drawn by dgVoodoo. On the vanilla data

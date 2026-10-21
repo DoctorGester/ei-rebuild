@@ -108,9 +108,10 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
   `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
-  mode change). run_all still names run\<install>-clean's game.exe to ei_launch (run_all.clean_run_dir: hard links of
-  run\<install>'s files but dgVoodoo's, SV10f), which the image no longer reads or loads imports beside (S18k);
-  run\<install> keeps dgVoodoo for the original's runs.
+  mode change). run_all passes ei_launch no game.exe for them (S18k1; the run\<install>-clean folders of SV10f are gone):
+  `--game` is the install whose data they play, and ei_launch --standalone sets EI_GAME_ROOT from it; `--exe` only
+  places the shared host copy of a launch without a scenario (launch-vanilla.cmd). run\<install> keeps dgVoodoo for
+  the original's runs.
 
 ### Own data (S18)
 
@@ -302,8 +303,7 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
   `windowicon menu_icon` (the window class's icons are the module's icon 105, drawn to frames\menu_icon.bmp; its
   `cursorcheck` frames show the game's cursor, which is game data, not a resource).
 - **game.exe at run time**: none since S18k ("What comes from game.exe at build time", above). The harness's run_all
-  still hands ei_launch run\<install>-clean's game.exe (its place for the shared host copy and EI_GAME_ROOT); the
-  image never opens it.
+  hands ei_launch none (S18k1).
 - **Command line**: `ei_standalone ... -- <game args>` is WinMain's line and GetCommandLineA's after `"<game.exe>"`.
 - **Code bytes read as data**: app_main's `CallTarget` (camera 00457595, server update 00457314, client segment
   00457368) and app_frame's cursor lock (004580D7) call our rewrites directly in the image; the harness reaches those

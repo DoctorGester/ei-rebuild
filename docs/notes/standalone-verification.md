@@ -417,7 +417,9 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   root, the working directory); Rebirth's dinput.dll stays in the clean folder and the host never loads it. How it
   was checked before the merge: `work.py test` games run main's run_all (the scheduler's code), so the worktree's
   run\ was a folder of its own whose vanilla and rebirth were junctions to run\vanilla-clean / run\rebirth-clean for
-  the image suite, and the usual junction to the main checkout's run\ for the original's suite. Goldens the same (248 runs, --all-rebirth). Start-up, suites with the scheduler's 16 slots full: vanilla
+  the image suite, and the usual junction to the main checkout's run\ for the original's suite. Since S18k1 the
+  clean folders and clean_run_dir are gone: the image loads nothing from beside any game.exe (S18k), so it runs with
+  no game.exe argument. Goldens the same (248 runs, --all-rebirth). Start-up, suites with the scheduler's 16 slots full: vanilla
   median 2.2 s, mean 2.35 s, 10-90% 1.6-3.4 s before (main, 106 runs, 2026-10-21); median 1.1 s, mean 1.47 s, 10-90%
   0.7-2.2 s after (121 runs); Rebirth after median 1.5 s, mean 1.74 s (no TIMING lines on main's Rebirth runs to
   compare). For a scenario: boot 1.9 -> 0.7 s, world_load 1.9 -> 1.1, ui_widescreen 2.9 -> 1.1, net_pair_quest
