@@ -2579,6 +2579,13 @@ group = "cleanup"
 model = "opus"
 note = "After C20a/C20b the image's code cells are 7,928 (6,367 at our code) while src/ has 9,304 EI_REPLACE registrations. Measure, per registration, what still reads its address: a code cell (vtable slot, static initialiser, CRT/MFC table), a code literal through CodeAddress, the harness's address names / profiler / crash report, the scenarios' or goldens' address keys, check tools (check_registrations, check_signatures, check_stolen). Registrations nothing reads go (the function stays, called directly); report the split of the rest by reader so the next batches (C19 vtables, static init, harness names) are sized. Goldens are the check."
 
+[[ticket]]
+id = "C22"
+title = "Comments cleanup: describe what the code does, drop porting history"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-10-21: 'We should also eventually do a massive comments cleanup.' Measured on main: src/ has 980 files, 252k lines, ~51k comment lines (~20%), ~23k game.exe addresses inside comments, ~1,460 ticket ids (S18i, C11 ...) and ~1,660 mentions of 'the original'. Aim: comments say what the code does and why (behaviour the original relies on, x87 rounding points, layout constraints still real); porting history, ticket ids, 'was a shim / hook' notes and addresses nothing needs go. Addresses stay only where a registration or a harness name still needs them (after C20c) or as a single tag per function if the user wants traceability: decide the rule with the user first, write it in docs/cleanup-plan.md, add a comment-lines / addresses-in-comments count to progress.py and the dashboard, then sonnet batches by area after the C18/C19/C20 code churn settles."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
