@@ -18,7 +18,7 @@ constexpr float kMinSight = std::bit_cast<float>(0x3DCCCCCDu);       // 0073EEC0
 
 bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
                                     CUnit* target, const Vector3* at) {
-    const auto* record = reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype());
+    const auto* record = spell->GetPrototype();
     if (!record->needsSight) return true;
     Vector3 to;
     if (!target) {

@@ -228,7 +228,7 @@ void CBriefingScreen::ClearShownItems() {
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
         if (node->item) {
             RemoveObject(node->item->texture_);
-            RemoveSceneObject(reinterpret_cast<CEngineObject*>(node->item));
+            RemoveSceneObject(node->item);
         }
         if (node->back) RemoveSceneObject(node->back);
         if (node->frame) RemoveSceneObject(node->frame);

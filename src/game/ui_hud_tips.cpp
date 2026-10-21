@@ -51,8 +51,8 @@ void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
 int Truncate(float value) { return static_cast<int>(value); }
 
 // The spell's prototype record (0068BA20) of a spell's data block (an item's +0x44).
-std::uint8_t* SpellPrototype(void* spell) {
-    return reinterpret_cast<std::uint8_t*>(static_cast<CSpell*>(spell)->GetPrototype());
+const itemdb::SpellRecord* SpellPrototype(void* spell) {
+    return static_cast<CSpell*>(spell)->GetPrototype();
 }
 
 } // namespace
@@ -99,7 +99,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
                     Truncate(weapon->damageSpread_ + weapon->damage_), static_cast<const char*>(description));
         tip += line;
         float value = weapon->reach_;
-        int category = Get<int>(weapon->GetPrototype(), 0x6C);
+        int category = static_cast<int>(weapon->GetPrototype()->category);
         line.Format("%s %d  %s %d\n", static_cast<const char*>(labels_[1]), category, static_cast<const char*>(labels_[2]), Truncate(value));   // "%s %d  %s %d\n"
         tip += line;
 
@@ -108,7 +108,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             description = "Unknown";
             int found = TextsOpenSection(TheTextManager(), nullptr,
                                  mfc::operator+(mfc::CString("spell "),
-                                                *reinterpret_cast<const mfc::CString*>(SpellPrototype(spell) + 4)));
+                                                SpellPrototype(spell)->code));
             if (found) TheTextManager()->ReadLine(&description, 1);
             line.Format("%s %s\n", static_cast<const char*>(labels_[3]), static_cast<const char*>(description));   // "%s %s\n"
             tip += line;
@@ -147,7 +147,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
         int maximum = Truncate(charges);
         line.Format("%s %d/%d (%d)\n", static_cast<const char*>(labels_[0]), Truncate(level), maximum, now);   // "%s %d/%d (%d)\n"
         *text += line;
-        if (SpellPrototype(data)[0x7B] == 0)
+        if (SpellPrototype(data)->bytes78[3] == 0)
             line.Format("%s %s  ", static_cast<const char*>(labels_[1]), static_cast<const char*>(labels_[11]));
         else
             line.Format("%s %d  ", static_cast<const char*>(labels_[1]), Truncate(Get<float>(data, 0x24)));
@@ -183,7 +183,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     if (item->GetCategory() == 8) {
         // A scroll: mana and time.
         *text += " \n";   // " \n"
-        if (SpellPrototype(data)[0x7B] == 0)
+        if (SpellPrototype(data)->bytes78[3] == 0)
             line.Format("%s %s\n", static_cast<const char*>(labels_[1]), static_cast<const char*>(labels_[11]));   // "%s %s\n"
         else
             line.Format("%s %d\n", static_cast<const char*>(labels_[1]), Truncate(Get<float>(data, 0x24)));   // "%s %d\n"

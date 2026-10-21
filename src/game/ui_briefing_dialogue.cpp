@@ -302,7 +302,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
                 continue;
             if (node->item) {
                 RemoveObject(node->item->texture_);
-                RemoveSceneObject(reinterpret_cast<CEngineObject*>(node->item));
+                RemoveSceneObject(node->item);
             }
             if (node->back) RemoveSceneObject(node->back);
             if (node->frame) RemoveSceneObject(node->frame);

@@ -136,11 +136,11 @@ int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_c
 // (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
 // count (0068BA60, CSpell::GetModifierCount).
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
-    return reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype());
+    return item->GetPrototype();
 }
 int CategoryOf(CItem* item) { return item->GetCategory(); }
 const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
-    return reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype());
+    return static_cast<CSpell*>(spell)->GetPrototype();
 }
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700

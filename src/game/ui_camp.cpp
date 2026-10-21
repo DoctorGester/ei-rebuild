@@ -718,7 +718,7 @@ bool CCampPages::CanMakeSpell() {
         constructor->CallSetManager(nullptr);
         return false;
     }
-    CSpell* made = reinterpret_cast<CSpell*>(constructor->container_->spell_)->Clone(manager);
+    CSpell* made = constructor->container_->Spell()->Clone(manager);
     constructor->CallSetManager(nullptr);
     void* quickItems = const_cast<RecordTable*>(&itemdb::QuickItems());
     auto* record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(quickItems), nullptr, "spell container"));

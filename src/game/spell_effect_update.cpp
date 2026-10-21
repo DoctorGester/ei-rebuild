@@ -90,7 +90,7 @@ void FireballFlight(CSpellEffect* e) {
         Vector3 at = e->targetPoint;
         float power = Power(e);
         float curve;
-        AreaCurve(&e->radius, reinterpret_cast<const float*>(Prototype(e) + 0x28), &curve);
+        AreaCurve(&e->radius, reinterpret_cast<const float*>(&Prototype(e)->effectValues[3]), &curve);
         float size = curve >= power ? curve : power;
         CEngineObject* blast = e->CreateParticle(0, 0x2002, &at, size, 1.0f, &kZeroVector, nullptr);
         float radius = e->radius;

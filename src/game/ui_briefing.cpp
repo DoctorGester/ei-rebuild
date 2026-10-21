@@ -129,7 +129,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     for (; record < count; ++record) {
         int id = RecordUnitId(player->members_.data[record]);
         if (unit->id_ == id) break;
-        if (place < party_.size && reinterpret_cast<CUnit*>(party_.data[place])->id_ == id) ++place;
+        if (place < party_.size && party_.data[place]->id_ == id) ++place;
     }
     if (record < count) {
         // CArray::InsertAt(place, unit) inlined (the slot is zeroed, 0060AEC0, then written); the
@@ -141,12 +141,12 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
             party_.SetSize(size + 1, -1);
             std::memmove(&party_.data[place + 1], &party_.data[place], (size - place) * sizeof(party_.data[0]));
         }
-        party_.data[place] = reinterpret_cast<std::uintptr_t>(unit);
+        party_.data[place] = unit;
     } else {
         // 0060AD50: SetAtGrow(size, unit).
         int size = party_.size;
         party_.SetSize(size + 1, -1);
-        party_.data[size] = reinterpret_cast<std::uintptr_t>(unit);
+        party_.data[size] = unit;
     }
     if (unit->id_ != RecordUnitId(player->members_.data[0])) return;
 
@@ -182,7 +182,7 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
     int count = party_.size;
     int index = 0;
-    while (index < count && reinterpret_cast<CUnit*>(party_.data[index])->id_ != unit->id_) ++index;
+    while (index < count && party_.data[index]->id_ != unit->id_) ++index;
     if (index >= count) return;
     int after = count - index - 1;
     if (after != 0) std::memmove(&party_.data[index], &party_.data[index + 1], after * sizeof(party_.data[0]));

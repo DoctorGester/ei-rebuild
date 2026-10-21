@@ -274,7 +274,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         int kind = Get<int>(itemBytes, 0x10);
         void* spell = Get<void*>(itemBytes, 0x44);
         if (spell && (kind == 0x3004 || kind == 0x3005)) {
-            int school = Get<int>(reinterpret_cast<CSpell*>(spell)->GetPrototype(), 0x14);
+            int school = reinterpret_cast<CSpell*>(spell)->GetPrototype()->school;
             if (school < 8)
                 Set(model, 0xD8, Glow(dt, turn, kSchoolGlow[school]));
             else
@@ -311,7 +311,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                                       static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
         Set(frame, 0x280, objects_.data[2]);
         AsSprite(frame)->Draw(PassRenderer(pass));
-        RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
+        RemoveSceneObject(frame);
     }
 
     Set(model, 0xD4, PackColour(reinterpret_cast<const float*>(model + 0x224)));
@@ -357,7 +357,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             AsSprite(mark)->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
             AsSprite(mark)->Draw(PassRenderer(pass));
         }
-        RemoveSceneObject(reinterpret_cast<CEngineObject*>(mark));
+        RemoveSceneObject(mark);
     }
 
     // Items the strip's mode cannot take get a dark square in front.
@@ -373,7 +373,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         Set(shade, 0x08, Get<std::uint32_t>(shade, 0x08) | 0x100);
         Set<std::uint32_t>(shade, 0xD4, 0x82804040);
         AsSprite(shade)->Draw(PassRenderer(pass));
-        RemoveSceneObject(reinterpret_cast<CEngineObject*>(shade));
+        RemoveSceneObject(shade);
     }
 }
 EI_REWRITTEN(0x005ECA10, CItemScreen::DrawItem);
@@ -464,7 +464,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
                                   static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
     Set(frame, 0x280, objects_.data[2]);
     AsSprite(frame)->Draw(PassRenderer(pass));
-    RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
+    RemoveSceneObject(frame);
     AsSprite(model)->Draw(PassRenderer(pass));
 }
 EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);

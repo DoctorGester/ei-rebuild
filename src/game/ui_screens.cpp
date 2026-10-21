@@ -421,8 +421,7 @@ int HeroManaUnits(UnitStats* stats) {
 bool HeroCanUseSpell(UnitStats* stats, char* spell) {
     bool ok = true;
     int required = *reinterpret_cast<int*>(spell + 0x50);
-    const char* prototype = reinterpret_cast<CSpell*>(spell)->GetPrototype();
-    if (HeroSchoolSkill(stats, *reinterpret_cast<const int*>(prototype + 0x14)) < required) ok = false;
+    if (HeroSchoolSkill(stats, reinterpret_cast<CSpell*>(spell)->GetPrototype()->school) < required) ok = false;
     float cost = *reinterpret_cast<float*>(spell + 0x40);
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(gamecrt::Ftol(cost))) ok = false;

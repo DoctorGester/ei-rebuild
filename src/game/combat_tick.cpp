@@ -573,7 +573,7 @@ int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
     if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN
     int base;
     if (weapon) {
-        base = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(weapon->GetPrototype())->category);
+        base = static_cast<int>(weapon->GetPrototype()->category);
     } else {
         double value = self->Combat().attackCategory;
         // _ftol (006E853C), as the original truncates it.

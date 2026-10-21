@@ -188,8 +188,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     figure.Format(ItemFigureFormat(), record->number);
     CUiMesh* item = AddSprite(figure);
     if (!item) {
-        if (back) RemoveSceneObject(reinterpret_cast<CEngineObject*>(back));
-        if (frame) RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
+        if (back) RemoveSceneObject(back);
+        if (frame) RemoveSceneObject(frame);
         return;
     }
     if (index >= kTintFrom) {
@@ -210,8 +210,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     auto* node = static_cast<BriefingShownItem*>(stlp::allocate(sizeof(BriefingShownItem)));
     new (&node->name) mfc::CString(name);
     node->item = item;
-    node->back = reinterpret_cast<CEngineObject*>(back);
-    node->frame = reinterpret_cast<CEngineObject*>(frame);
+    node->back = back;
+    node->frame = frame;
     BriefingShownItem* first = shown_->next;
     node->next = first;
     node->prev = first->prev;

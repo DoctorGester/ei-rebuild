@@ -148,7 +148,7 @@ void AIBrain::Think() {
     for (auto* node = memory.visible.head; node;) {
         CUnit* other = node->data;
         node = node->next;
-        if (unit->IsHostileTo(reinterpret_cast<CUnit*>(other)) && IsGone(other) == 0) {
+        if (unit->IsHostileTo(other) && IsGone(other) == 0) {
             memory.seesEnemy = 1;
             break;
         }

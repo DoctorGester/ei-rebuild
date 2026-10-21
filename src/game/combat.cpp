@@ -207,7 +207,7 @@ int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
     if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
     if (kind != 3) return 0;
     int value;
-    if (item) value = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype())->category);
+    if (item) value = static_cast<int>(item->GetPrototype()->category);
     else value = static_cast<int>(gamecrt::Ftol(Combat().attackCategory));
     float scaled = static_cast<float>(static_cast<double>(value) * factor);
     return x87::fistp(scaled);
@@ -743,7 +743,7 @@ void CUnitServer::UpdateMoveFactors() {
     }
     if (state == 5 && (action.kind == 4 || action.kind == 5)) {
         CSpell* spell = SpellOfSource(action.source);
-        if (spell && reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype())->castType != 1)
+        if (spell && spell->GetPrototype()->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];
     }
     if (state != 0) {

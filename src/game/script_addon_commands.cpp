@@ -251,7 +251,7 @@ bool GiveUnitWeapon(Call* call) {
     if (slot == -1) return true;
     AsCUnit(unit)->pendingWeapon = slot;
     if (override) {
-        auto* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(item->GetPrototype());
+        auto* weapon = static_cast<const itemdb::WeaponRecord*>(item->GetPrototype());
         CombatStats& stats = ServerOf(unit)->Combat();
         const UnitPrototypeRecord* prototype = PrototypeOf(unit);
         Store(&stats.damage, item->damage_);
