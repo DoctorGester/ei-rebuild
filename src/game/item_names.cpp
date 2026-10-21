@@ -271,19 +271,19 @@ mfc::CString CItemLoot::PictureNameImpl() {
 
 // --- The virtual slots' entry points (rule 4): the name built in the caller's result -------------
 
-EI_REPLACE_METHOD(0x006A0840, CItemWeapon::ModelNameImpl);
-EI_REPLACE_METHOD(0x006A0F70, CItemWeapon::FirstListNameImpl);
-EI_REPLACE_METHOD(0x006A2750, CItemWeapon::FigureNameImpl);
-EI_REPLACE_METHOD(0x006A27E0, CItemWeapon::PictureNameImpl);
-EI_REPLACE_METHOD(0x006A3240, CItemArmor::ModelNameImpl);
-EI_REPLACE_METHOD(0x006A36A0, CItemArmor::FirstListNameImpl);
-EI_REPLACE_METHOD(0x006A3720, CItemArmor::FigureNameImpl);
-EI_REPLACE_METHOD(0x006A37B0, CItemArmor::PictureNameImpl);
-EI_REPLACE_METHOD(0x006A3CD0, CItemQuick::FigureNameImpl);
-EI_REPLACE_METHOD(0x006A4040, CItemQuick::PictureNameImpl);
-EI_REPLACE_METHOD(0x006A45C0, CItemQuest::FigureNameImpl);
-EI_REPLACE_METHOD(0x006A47B0, CItemQuest::PictureNameImpl);
-EI_REPLACE_METHOD(0x006A5820, CItemSpell::FigureNameImpl);
-EI_REPLACE_METHOD(0x006A58E0, CItemSpell::PictureNameImpl);
-EI_REPLACE_METHOD(0x006A4B90, CItemLoot::FigureNameImpl);
-EI_REPLACE_METHOD(0x006A5030, CItemLoot::PictureNameImpl);
+EI_REWRITTEN(0x006A0840, CItemWeapon::ModelNameImpl);
+EI_REWRITTEN(0x006A0F70, CItemWeapon::FirstListNameImpl);
+EI_REWRITTEN(0x006A2750, CItemWeapon::FigureNameImpl);
+EI_REWRITTEN(0x006A27E0, CItemWeapon::PictureNameImpl);
+EI_REWRITTEN(0x006A3240, CItemArmor::ModelNameImpl);
+EI_REWRITTEN(0x006A36A0, CItemArmor::FirstListNameImpl);
+EI_REWRITTEN(0x006A3720, CItemArmor::FigureNameImpl);
+EI_REWRITTEN(0x006A37B0, CItemArmor::PictureNameImpl);
+EI_REWRITTEN(0x006A3CD0, CItemQuick::FigureNameImpl);
+EI_REWRITTEN(0x006A4040, CItemQuick::PictureNameImpl);
+EI_REWRITTEN(0x006A45C0, CItemQuest::FigureNameImpl);
+EI_REWRITTEN(0x006A47B0, CItemQuest::PictureNameImpl);
+EI_REWRITTEN(0x006A5820, CItemSpell::FigureNameImpl);
+EI_REWRITTEN(0x006A58E0, CItemSpell::PictureNameImpl);
+EI_REWRITTEN(0x006A4B90, CItemLoot::FigureNameImpl);
+EI_REWRITTEN(0x006A5030, CItemLoot::PictureNameImpl);

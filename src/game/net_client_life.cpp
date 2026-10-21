@@ -86,6 +86,6 @@ ClientSession* ClientSession::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0041C8B0, ClientSession::DeletingDestruct);
+EI_REWRITTEN(0x0041C8B0, ClientSession::DeletingDestruct);
 
 } // namespace net

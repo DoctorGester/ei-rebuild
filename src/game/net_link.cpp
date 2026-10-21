@@ -95,7 +95,7 @@ FileStream* FileStream::Construct() {   // 00478470
     version_ = kStreamLimit;
     ok_ = 1;
     new (file_) mfc::CFile();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
 EI_REWRITTEN(0x00478470, FileStream::Construct);
@@ -104,7 +104,7 @@ FileStream* FileStream::CopyConstruct(const FileStream*) { return Construct(); }
 EI_REWRITTEN(0x00479B10, FileStream::CopyConstruct);
 
 void FileStream::Destruct() {   // 00477FB0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     reinterpret_cast<mfc::CFile*>(file_)->~CFile();
     ei::SetVtable(this, kStreamVtable);
 }
@@ -154,7 +154,7 @@ EI_REPLACE(0x00477F80, FileStreamPositionHook);
 NetLink* NetLink::Construct() {   // 00477E60
     ei::SetVtable(this, CRefObject::kVtableAddress);
     record_.Construct();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     recording_ = 0;
     return this;
 }
@@ -165,7 +165,7 @@ void NetLink::ConstructCopyOf(const NetLink* source) {
     recording_ = source->recording_;
     skipNext_ = source->skipNext_;
     record_.CopyConstruct(&source->record_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
 }
 
 void NetLink::Destruct() {   // 00478050
@@ -230,7 +230,7 @@ LoopbackLink* LoopbackLink::New() {
     self->NetLink::Construct();
     static_cast<Queue*>(AsQueue(&self->queue_))->Construct(nullptr);
     self->peer_ = nullptr;   // 00478FB0, the null counted pointer
-    ei::SetVtable(self, kVtableAddress);
+    ei::SetVtable(self, Vtable());
     return self;
 }
 
@@ -267,7 +267,7 @@ LoopbackLink* __fastcall LoopbackLink::CreatePair(void*, void*, std::uint8_t* pl
 EI_REWRITTEN(0x004782E0, LoopbackLink::CreatePair);
 
 void LoopbackLink::Destruct() {   // 004787A0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(peer_);
     DestroyQueue();
     record_.Destruct();
@@ -285,7 +285,7 @@ EI_REPLACE_METHOD(0x00478780, LoopbackLink::DeletingDestruct);
 // Destroyed and built again in place (the reference count and +9 kept): no peer, an empty queue, a
 // closed file, not recording.
 int LoopbackLink::OnShutdown() {   // 00478610
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(peer_);
     Queue::Clear(AsQueue(&queue_));
     stlp::deallocate(queue_, 48);   // 00479530
@@ -294,7 +294,7 @@ int LoopbackLink::OnShutdown() {   // 00478610
     NetLink::Construct();
     static_cast<Queue*>(AsQueue(&queue_))->Construct(nullptr);
     peer_ = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 
@@ -312,7 +312,7 @@ LoopbackLink* LoopbackLink::Clone() {   // 004784D0
     static_cast<Queue*>(AsQueue(&copy->queue_))->InsertRange(AsNode(copy->queue_->next), AsNode(queue_->next), AsNode(queue_));
     copy->peer_ = peer_;
     if (copy->peer_) ++copy->peer_->refs_;
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 
@@ -390,7 +390,7 @@ EI_REPLACE(0x00478140, LoopbackDisconnectHook);
 void ReplayLink::ConstructInPlace() {
     NetLink::Construct();
     replay_.Construct();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
 }
 
 // modeRead; the stream's ok tells whether it opened. Without memory the original crashes (on the
@@ -404,7 +404,7 @@ ReplayLink* __fastcall ReplayLink::Create(void*, void*, const char* path) {   //
 EI_REWRITTEN(0x00478960, ReplayLink::Create);
 
 void ReplayLink::Destruct() {   // 00478CC0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     replay_.Destruct();
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -432,7 +432,7 @@ ReplayLink* ReplayLink::Clone() {   // 00478A50
     if (!copy) return nullptr;
     copy->ConstructCopyOf(this);
     copy->replay_.Construct();
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 
@@ -598,7 +598,7 @@ DriverLink* DriverLink::Construct() {   // 0047A030
     inbox_.bitMask_ = 0x80;
     inbox_.bitsIndex_ = -1;
     player_ = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
 EI_REWRITTEN(0x0047A030, DriverLink::Construct);
@@ -629,7 +629,7 @@ void DriverLink::Disconnect() {   // 00479810
 }
 
 void DriverLink::Destruct() {   // 00479D40
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     DriverLink::Disconnect();
     ReleaseCounted(player_);
     FramedLink::Destruct();
@@ -668,10 +668,10 @@ DriverLink* DriverLink::Clone() {   // 00479A30
     inbox->SetSize(inbox_.size_);
     CStream* stream = inbox;
     stream->Read(inbox_.data_, inbox->size_);
-    ei::SetVtable(copy, FramedLink::kVtableAddress);
+    ei::SetVtable(copy, FramedLink::Vtable());
     copy->player_ = player_;
     if (copy->player_) ++copy->player_->refs_;
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 

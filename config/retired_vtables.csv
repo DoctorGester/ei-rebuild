@@ -1,12 +1,39 @@
 vtable,slots,class,file,note
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
+0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
+0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
+0073BB70,17,ServerSessionClass,src/game/net_classes.h,the game server (ServerSession)
+0073BBB4,17,ServerBaseClass,src/game/net_classes.h,the server base (ServerBase; slot 15 _purecall)
+0073BBF8,6,LoginMessageClass,src/game/net_messages.h,ReplicatedClass (message type 5)
+0073BC10,6,MessageClass,src/game/net_messages.h,ReplicatedClass (the message base; slots 2-5 _purecall)
+0073BC28,6,SayMessageClass,src/game/net_messages.h,ReplicatedClass (message type 6)
+0073BC40,6,CommandMessageClass,src/game/net_messages.h,ReplicatedClass (message type 7)
+0073BC58,6,FileRequestMessageClass,src/game/net_messages.h,ReplicatedClass (message type 13)
+0073BC70,6,PlayerMessageClass,src/game/net_messages.h,ReplicatedClass (message type 1)
+0073BC88,6,LineMessageClass,src/game/net_messages.h,ReplicatedClass (message type 2)
+0073BCA0,6,HostMessageClass,src/game/net_messages.h,ReplicatedClass (message type 3)
+0073BCB8,6,BindingMessageClass,src/game/net_messages.h,ReplicatedClass (message type 4)
+0073BCD0,6,ZoneMessageClass,src/game/net_messages.h,ReplicatedClass (message type 8)
+0073BCE8,6,VariableMessageClass,src/game/net_messages.h,ReplicatedClass (message type 10)
+0073BD00,6,MapMessageClass,src/game/net_messages.h,ReplicatedClass (message type 9)
+0073BD18,6,FileMessageClass,src/game/net_messages.h,ReplicatedClass (message type 11)
+0073BD30,6,FileChunkMessageClass,src/game/net_messages.h,ReplicatedClass (message type 12)
+0073BD48,6,AwardMessageClass,src/game/net_messages.h,ReplicatedClass (message type 14)
+0073BD60,6,TradeMessageClass,src/game/net_messages.h,ReplicatedClass (message type 17)
+0073BD78,6,PartyMemberMessageClass,src/game/net_messages.h,ReplicatedClass (message type 16)
+0073BDD0,6,PartyMessageClass,src/game/net_messages.h,ReplicatedClass (message type 15)
+0073BDEC,17,ClientSessionClass,src/game/net_classes.h,the game client (ClientSession)
+0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
 0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)
 0073BE80,3,ItemListClass,src/lib/mfc_slots.h,CList (the item and object pointer lists (CTypedPtrList))
 0073BE94,2,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
 0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
+0073BF38,4,ConnectionClass,src/game/net_connection.h,a connection (Connection)
+0073BF4C,4,ReplicaEntryClass,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
+0073BF5C,15,SessionBaseClass,src/game/net_classes.h,the session base (SessionBase)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C0E4,3,FakeUnitRecord9CArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x9C-byte records)
@@ -54,6 +81,12 @@ vtable,slots,class,file,note
 0073C854,3,FileUvArrayClass,src/lib/mfc_slots.h,CArray (a model file's texture coordinates)
 0073C860,3,FilePointArrayClass,src/lib/mfc_slots.h,CArray (a model file's points)
 0073C86C,3,NormalArrayClass,src/lib/mfc_slots.h,CArray (a model file's normals)
+0073C8A4,13,NetLinkClass,src/game/net_link.h,the link base (NetLink; slots 2-6 and 11 _purecall)
+0073C8D8,8,FileStreamClass,src/game/net_link.h,the file stream (FileStream; the recordings and the save files)
+0073C8F8,13,LoopbackLinkClass,src/game/net_link.h,the loopback link (LoopbackLink)
+0073C92C,13,ReplayLinkClass,src/game/net_link.h,the replay link (ReplayLink)
+0073C990,14,DriverLinkClass,src/game/net_link.h,the driver link (DriverLink)
+0073C9C8,14,FramedLinkClass,src/game/net_link.h,the framed link (FramedLink; slots 2-5 / 11 / 13 _purecall)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,1,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,1,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
@@ -170,6 +203,7 @@ vtable,slots,class,file,note
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
+0073F3A8,7,DriverSessionClass,src/game/net_link.h,the network session (DriverSession)
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
 0073F548,3,PlatformListClass,src/lib/mfc_slots.h,CList (the client maps' platform lists)
@@ -246,6 +280,14 @@ vtable,slots,class,file,note
 00743CB0,26,CTextureManager,src/game/texture.h,
 00743D18,3,TextureListClass,src/lib/mfc_slots.h,CList (the texture manager's list)
 00743D24,13,CTexture,src/game/texture.h,
+00743DA4,22,CItemClass,src/game/item_class.h,item (the base)
+00743DFC,22,CItemWeaponClass,src/game/item_class.h,weapon
+00743E54,22,CItemArmorClass,src/game/item_class.h,armour
+00743EAC,22,CItemQuickClass,src/game/item_class.h,quick item (potions and wands)
+00743F04,22,CItemQuestClass,src/game/item_class.h,quest item
+00743F5C,22,CItemLootClass,src/game/item_class.h,loot
+00743FB4,22,CItemSpellClass,src/game/item_class.h,scroll
+00744020,13,CItemConstructorClass,src/game/item_class.h,item constructor
 00744054,1,LootItemRecordClass,src/game/item_db.h,a loot item record (LootItemRecord)
 00744058,1,QuestItemRecordClass,src/game/item_db.h,a quest item record (QuestItemRecord)
 0074405C,1,QuickItemRecordClass,src/game/item_db.h,a quick item record (QuickItemRecord)

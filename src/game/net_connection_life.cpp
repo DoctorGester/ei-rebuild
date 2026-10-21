@@ -104,7 +104,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     sentinel->prev = sentinel;
     reliableOut_.ConstructGrowing();
     reliableIn_.ConstructGrowing();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     std::uint32_t tick = gameapi::GetTickCount();
     id_ = 0;
     SessionBase* session = g_currentSession;
@@ -139,7 +139,7 @@ EI_REWRITTEN(0x00432DA0, Connection::Construct);
 // 00433320 (slot 2): tears every container down (in the order the destructor's unwinding would)
 // and constructs the connection again with id 0.
 int Connection::OnShutdown() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     DestroyForReset(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     return static_cast<int>(reinterpret_cast<std::uintptr_t>(Construct(0)));
@@ -147,11 +147,11 @@ int Connection::OnShutdown() {
 namespace {
 int __fastcall ResetHook(Connection* self) { return self->Connection::OnShutdown(); }
 } // namespace
-EI_REPLACE(0x00433320, ResetHook);
+EI_REWRITTEN(0x00433320, ResetHook);
 
 // 004334E0: the destructor body.
 void Connection::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     GrowingBufferDestruct(&reliableIn_);
     GrowingBufferDestruct(&reliableOut_);
     incoming_.Clear<ChunkElement>();   // 0043D420
@@ -185,7 +185,7 @@ Connection* Connection::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004334C0, Connection::DeletingDestruct);
+EI_REWRITTEN(0x004334C0, Connection::DeletingDestruct);
 
 } // namespace net
 
@@ -224,13 +224,13 @@ Connection* Connection::Clone() {
     copy->ackBase_ = ackBase_;
     copy->reliableOut_.ConstructCopy(&reliableOut_);
     copy->reliableIn_.ConstructCopy(&reliableIn_);
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 namespace {
 Connection* __fastcall CloneHook(Connection* self) { return self->Connection::Clone(); }
 } // namespace
-EI_REPLACE(0x00433060, CloneHook);
+EI_REWRITTEN(0x00433060, CloneHook);
 
 } // namespace net
 
@@ -272,18 +272,18 @@ ReplicaEntry* ReplicaEntry::Clone() {
     copy->flags_ = flags_;   // the original merges bit 0 and then the other bits: all of them
     copy->object_.ptr = object_.ptr;
     if (copy->object_.ptr) ++copy->object_.ptr->refs_;
-    ei::SetVtable(copy, kVtableAddress);
+    ei::SetVtable(copy, Vtable());
     return copy;
 }
 
 // 00434430 (entry slot 2): releases the object, then constructs again in place (object, version
 // and id cleared; type and flags kept). Returns what EAX held (nothing in particular).
 int ReplicaEntry::OnShutdown() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseEntryObject(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     object_.ptr = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     version_ = 0;
     id_ = 0;
     return 0;
@@ -293,12 +293,12 @@ namespace {
 ReplicaEntry* __fastcall ReplicaEntryCloneHook(ReplicaEntry* self) { return self->ReplicaEntry::Clone(); }
 int __fastcall ReplicaEntryResetHook(ReplicaEntry* self) { return self->ReplicaEntry::OnShutdown(); }
 } // namespace
-EI_REPLACE(0x004343C0, ReplicaEntryCloneHook);
-EI_REPLACE(0x00434430, ReplicaEntryResetHook);
+EI_REWRITTEN(0x004343C0, ReplicaEntryCloneHook);
+EI_REWRITTEN(0x00434430, ReplicaEntryResetHook);
 
 // 004344C0: the destructor body.
 void ReplicaEntry::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseEntryObject(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -310,7 +310,7 @@ ReplicaEntry* ReplicaEntry::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004344A0, ReplicaEntry::DeletingDestruct);
+EI_REWRITTEN(0x004344A0, ReplicaEntry::DeletingDestruct);
 
 // 00433040 (no Ghidra function; the element constructor the connection's constructor passes to the
 // vector constructor iterator): an empty id pool (no free ids, next 0). Returns this.

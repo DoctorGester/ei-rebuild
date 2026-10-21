@@ -28,11 +28,11 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     auto* line = NewMessageMemory<LineMessage>();
     if (line) {
         RefValueConstructBase(line);
-        ei::SetVtable(line, kMessageVtable);
+        ei::SetVtable(line, Message::Vtable());
         line->version_ = 1;
         stlp::StringElement::Default(&line->text_);
         line->connection_.ptr = nullptr;   // RefPtr() (0041FF70)
-        ei::SetVtable(line, LineMessage::kVtableAddress);
+        ei::SetVtable(line, LineMessage::Vtable());
     }
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, line);   // 00428030

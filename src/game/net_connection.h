@@ -37,7 +37,7 @@ static_assert(sizeof(IdPool) == 0x10);
 // The tracking record of one replicated object (vtable 0073BF4C, 0x14 bytes).
 class __declspec(novtable) ReplicaEntry : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BF4C);
+    static void* Vtable();   // the compiled table (below; game.exe's 0073BF4C)
 
     // 0: 004344A0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
     int OnShutdown() override;              // 2: 00434430 reset: the object let go, version and id cleared
@@ -133,7 +133,7 @@ struct AttachedId {
 
 class __declspec(novtable) Connection : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BF38);
+    static void* Vtable();   // the compiled table (below; game.exe's 0073BF38)
 
     using EntryMap = stlp::map<ReplicaEntry*, RefPtr>;
     using RecordMap = stlp::map<std::int32_t, Record>;
@@ -266,5 +266,28 @@ static_assert(offsetof(Connection, ackMask_) == 0x1124);
 static_assert(offsetof(Connection, reliableOut_) == 0x112C);
 static_assert(offsetof(Connection, reliableIn_) == 0x1148);
 static_assert(sizeof(Connection) == 0x1168);
+
+// ---- The compiled tables ------------------------------------------------------------------------
+
+// The connection's and the tracking record's compiled tables (C19, lib/compiled_vtable.h) in place of game.exe's:
+// slot 0 the class's DeletingDestruct, 1 Serialize (empty, RET 4: 00412580), 2 / 3 its OnShutdown and Clone called
+// qualified (no dispatch).
+template <typename Self, typename T>
+class RefObjectClass : public ei::CompiledTag<Self> {
+public:
+    virtual void* DeleteScalar(unsigned flags) { return Object()->DeletingDestruct(flags); }   // 0
+    virtual void Serialize(ChunkArchive*) {}                                                   // 1
+    virtual int OnShutdown() { return Object()->T::OnShutdown(); }                             // 2
+    virtual CRefObject* Clone() { return Object()->T::Clone(); }                               // 3
+
+private:
+    T* Object() { return reinterpret_cast<T*>(this); }
+};
+
+struct ReplicaEntryClass final : RefObjectClass<ReplicaEntryClass, ReplicaEntry> {};   // 0073BF4C
+struct ConnectionClass final : RefObjectClass<ConnectionClass, Connection> {};         // 0073BF38
+
+inline void* ReplicaEntry::Vtable() { return ReplicaEntryClass::Vtable(); }
+inline void* Connection::Vtable() { return ConnectionClass::Vtable(); }
 
 } // namespace net

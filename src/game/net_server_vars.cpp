@@ -48,10 +48,10 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
     auto* variable = NewMessageMemory<VariableMessage>();
     if (variable) {
         RefValueConstructBase(variable);
-        ei::SetVtable(variable, kMessageVtable);
+        ei::SetVtable(variable, Message::Vtable());
         variable->version_ = 1;
         stlp::StringElement::Default(&variable->name_);
-        ei::SetVtable(variable, VariableMessage::kVtableAddress);
+        ei::SetVtable(variable, VariableMessage::Vtable());
     }
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, variable);   // 00427FD0

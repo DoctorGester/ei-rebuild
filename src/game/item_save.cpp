@@ -127,15 +127,15 @@ void CItemLoot::SaveImpl(CStream* stream) {
 
 // --- The virtual slots' entry points (rule 4) -----------------------------------------------------
 
-EI_REPLACE_METHOD(0x006A0270, CItem::LoadImpl);
-EI_REPLACE_METHOD(0x006A0360, CItem::SaveImpl);
-EI_REPLACE_METHOD(0x006A2E60, CItemWeapon::LoadImpl);
-EI_REPLACE_METHOD(0x006A2EB0, CItemWeapon::SaveImpl);
-EI_REPLACE_METHOD(0x006A3A70, CItemArmor::LoadImpl);
-EI_REPLACE_METHOD(0x006A3AA0, CItemArmor::SaveImpl);
-EI_REPLACE_METHOD(0x006A3C80, CItemQuick::LoadImpl);
-EI_REPLACE_METHOD(0x006A3CA0, CItemQuick::SaveImpl);
-EI_REPLACE_METHOD(0x006A4570, CItemQuest::LoadImpl);
-EI_REPLACE_METHOD(0x006A4590, CItemQuest::SaveImpl);
-EI_REPLACE_METHOD(0x006A5630, CItemLoot::LoadImpl);
-EI_REPLACE_METHOD(0x006A5680, CItemLoot::SaveImpl);
+EI_REWRITTEN(0x006A0270, CItem::LoadImpl);
+EI_REWRITTEN(0x006A0360, CItem::SaveImpl);
+EI_REWRITTEN(0x006A2E60, CItemWeapon::LoadImpl);
+EI_REWRITTEN(0x006A2EB0, CItemWeapon::SaveImpl);
+EI_REWRITTEN(0x006A3A70, CItemArmor::LoadImpl);
+EI_REWRITTEN(0x006A3AA0, CItemArmor::SaveImpl);
+EI_REWRITTEN(0x006A3C80, CItemQuick::LoadImpl);
+EI_REWRITTEN(0x006A3CA0, CItemQuick::SaveImpl);
+EI_REWRITTEN(0x006A4570, CItemQuest::LoadImpl);
+EI_REWRITTEN(0x006A4590, CItemQuest::SaveImpl);
+EI_REWRITTEN(0x006A5630, CItemLoot::LoadImpl);
+EI_REWRITTEN(0x006A5680, CItemLoot::SaveImpl);

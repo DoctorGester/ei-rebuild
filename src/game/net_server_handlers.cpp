@@ -96,7 +96,7 @@ void ServerSession::OnMasterImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0041ACA0, ServerSession::OnMasterImpl);
+EI_REWRITTEN(0x0041ACA0, ServerSession::OnMasterImpl);
 
 // 0041B1C0 (the server in ECX, the message in EDX). A chat line from the connection being read
 // (g_currentConnection; nothing when it is gone or detached): the first binding of that connection names the

@@ -189,12 +189,12 @@ void ClientSession::StartParty(CRefObject* partner) {
     auto* party = NewMessageMemory<PartyMessage>();
     if (party) {
         RefValueConstructBase(party);
-        ei::SetVtable(party, kMessageVtable);
+        ei::SetVtable(party, Message::Vtable());
         party->version_ = 1;
         party->members_.ConstructEmpty();   // 0041FFF0
         party->player_.ptr = nullptr;
         party->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
-        ei::SetVtable(party, PartyMessage::kVtableAddress);
+        ei::SetVtable(party, PartyMessage::Vtable());
         party->acceptedRevision_ = 0;
         party->revision_ = 1;
         party->accepted_ = 0;
@@ -288,11 +288,11 @@ void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0
     auto* request = NewMessageMemory<FileRequestMessage>();
     if (request) {
         RefValueConstructBase(request);
-        ei::SetVtable(request, kMessageVtable);
+        ei::SetVtable(request, Message::Vtable());
         request->version_ = 1;
         request->FileRef().ptr = nullptr;
         request->ConnectionRef().ptr = nullptr;   // RefPtr() (0041FF70)
-        ei::SetVtable(request, FileRequestMessage::kVtableAddress);
+        ei::SetVtable(request, FileRequestMessage::Vtable());
     }
     AssignRef(&request->FileRef(), message);
     AppendRaw(self->fileRequests_, request);

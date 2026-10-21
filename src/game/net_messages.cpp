@@ -37,10 +37,10 @@ const char* EmptyText() { return "?"; }
 void CloneHeader(Message* copy, const Message* source) {
     ei::SetVtable(copy, CRefObject::kVtableAddress);
     copy->version_ = source->version_;
-    ei::SetVtable(copy, kMessageVtable);
+    ei::SetVtable(copy, Message::Vtable());
 }
 void FreshHeader(Message* self) {
-    ei::SetVtable(self, kMessageVtable);
+    ei::SetVtable(self, Message::Vtable());
     self->version_ = 1;
 }
 
@@ -125,7 +125,7 @@ void* __fastcall NewRefObject(std::size_t size) {   // 00413250
 EI_REWRITTEN(0x00413250, NewRefObject);
 
 Message* __fastcall MessageConstructBase(Message* self) {   // 004186E0
-    ei::SetVtable(self, kMessageVtable);
+    ei::SetVtable(self, Message::Vtable());
     self->version_ = 1;
     return self;
 }
@@ -140,7 +140,7 @@ void InitLogin(LoginMessage* m) {
     StringEmpty(m->name_);
     StringEmpty(m->text_);
     m->binding_.ptr = nullptr;
-    ei::SetVtable(m, LoginMessage::kVtableAddress);
+    ei::SetVtable(m, LoginMessage::Vtable());
     m->host_ = 0;
     m->state_ = 4;
     m->id_ = -1;
@@ -164,7 +164,7 @@ LoginMessage* LoginMessage::Construct() {   // 00413350
     StringEmpty(name_);
     StringEmpty(text_);
     binding_.ptr = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     host_ = 0;
     state_ = 4;
     id_ = -1;
@@ -180,11 +180,11 @@ LoginMessage* LoginMessage::Clone() {   // 00413440
     p->state_ = state_;
     p->id_ = id_;
     CopyCounted(p->binding_, binding_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int LoginMessage::OnShutdown() {   // 00413570
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     FreeLogin(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
@@ -206,7 +206,7 @@ void LoginMessage::Read(BufferCursor* cursor) {   // 00413750
     Take(cursor, id_);
 }
 void LoginMessage::Destruct() {   // 00413800
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     FreeLogin(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -214,7 +214,7 @@ void LoginMessage::Destruct() {   // 00413800
 // ================================================================================================
 // TextMessage: SayMessage 0073BC28, ZoneMessage 0073BCD0, MapMessage 0073BD00.
 
-Message* TextMessage::CreateAs(std::uintptr_t vtable) {
+Message* TextMessage::CreateAs(const void* vtable) {
     auto* p = NewMessageMemory<TextMessage>();
     if (!p) return nullptr;
     FreshHeader(p);
@@ -222,7 +222,7 @@ Message* TextMessage::CreateAs(std::uintptr_t vtable) {
     ei::SetVtable(p, vtable);
     return p;
 }
-TextMessage* TextMessage::CloneAs(std::uintptr_t vtable) {
+TextMessage* TextMessage::CloneAs(const void* vtable) {
     auto* p = NewMessageMemory<TextMessage>();
     if (!p) return nullptr;
     CloneHeader(p, this);
@@ -230,7 +230,7 @@ TextMessage* TextMessage::CloneAs(std::uintptr_t vtable) {
     ei::SetVtable(p, vtable);
     return p;
 }
-void TextMessage::ResetAs(std::uintptr_t vtable) {
+void TextMessage::ResetAs(const void* vtable) {
     ei::SetVtable(this, vtable);
     StringFree(text_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -240,53 +240,53 @@ void TextMessage::ResetAs(std::uintptr_t vtable) {
 }
 void TextMessage::WriteText(BufferCursor* cursor) { PutString(cursor, text_); }
 void TextMessage::ReadText(BufferCursor* cursor) { TakeString(cursor, text_); }
-void TextMessage::DestructAs(std::uintptr_t vtable) {
+void TextMessage::DestructAs(const void* vtable) {
     ei::SetVtable(this, vtable);
     StringFree(text_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
-Message* __fastcall SayMessage::Create() { return CreateAs(kVtableAddress); }   // 004171A0
+Message* __fastcall SayMessage::Create() { return CreateAs(Vtable()); }   // 004171A0
 SayMessage* SayMessage::Construct() {   // 004138A0
     MessageConstructBase(this);
     StringEmpty(text_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
-SayMessage* SayMessage::Clone() { return static_cast<SayMessage*>(CloneAs(kVtableAddress)); }   // 00413930
+SayMessage* SayMessage::Clone() { return static_cast<SayMessage*>(CloneAs(Vtable())); }   // 00413930
 int SayMessage::OnShutdown() {   // 00413A50
-    ResetAs(kVtableAddress);
+    ResetAs(Vtable());
     return 0;
 }
 void SayMessage::Write(BufferCursor* cursor) { WriteText(cursor); }   // 00413B10
 void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }     // 00413B50
-void SayMessage::Destruct() { DestructAs(kVtableAddress); }           // 00413C40
+void SayMessage::Destruct() { DestructAs(Vtable()); }           // 00413C40
 
-Message* __fastcall ZoneMessage::Create() { return CreateAs(kVtableAddress); }   // 00415570
+Message* __fastcall ZoneMessage::Create() { return CreateAs(Vtable()); }   // 00415570
 ZoneMessage* ZoneMessage::Construct() {   // 00418C30
     MessageConstructBase(this);
     StringEmpty(text_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
-ZoneMessage* ZoneMessage::Clone() { return static_cast<ZoneMessage*>(CloneAs(kVtableAddress)); }   // 00415620
+ZoneMessage* ZoneMessage::Clone() { return static_cast<ZoneMessage*>(CloneAs(Vtable())); }   // 00415620
 int ZoneMessage::OnShutdown() {   // 00415740
-    ResetAs(kVtableAddress);
+    ResetAs(Vtable());
     return 0;
 }
 void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }   // 00415800
 void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }     // 00415840
-void ZoneMessage::Destruct() { DestructAs(kVtableAddress); }           // 00415930
+void ZoneMessage::Destruct() { DestructAs(Vtable()); }           // 00415930
 
-Message* __fastcall MapMessage::Create() { return CreateAs(kVtableAddress); }   // 00415D50
-MapMessage* MapMessage::Clone() { return static_cast<MapMessage*>(CloneAs(kVtableAddress)); }   // 00415E00
+Message* __fastcall MapMessage::Create() { return CreateAs(Vtable()); }   // 00415D50
+MapMessage* MapMessage::Clone() { return static_cast<MapMessage*>(CloneAs(Vtable())); }   // 00415E00
 int MapMessage::OnShutdown() {   // 00415F20
-    ResetAs(kVtableAddress);
+    ResetAs(Vtable());
     return 0;
 }
 void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }   // 00415FE0
 void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }     // 00416020
-void MapMessage::Destruct() { DestructAs(kVtableAddress); }           // 00416110
+void MapMessage::Destruct() { DestructAs(Vtable()); }           // 00416110
 
 // ================================================================================================
 // 0073BC40 CommandMessage.
@@ -296,13 +296,13 @@ Message* __fastcall CommandMessage::Create() {   // 00417250
     if (!p) return nullptr;
     FreshHeader(p);
     StringEmpty(p->text_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 CommandMessage* CommandMessage::Construct() {   // 00413C90
     MessageConstructBase(this);
     StringEmpty(text_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
 CommandMessage* CommandMessage::Clone() {   // 00413D20
@@ -311,16 +311,16 @@ CommandMessage* CommandMessage::Clone() {   // 00413D20
     CloneHeader(p, this);
     p->kind_ = kind_;
     StringCopy(p->text_, text_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int CommandMessage::OnShutdown() {   // 00413E40
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(text_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(text_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void CommandMessage::Write(BufferCursor* cursor) {   // 00413F00
@@ -332,7 +332,7 @@ void CommandMessage::Read(BufferCursor* cursor) {   // 00413F50
     TakeString(cursor, text_);
 }
 void CommandMessage::Destruct() {   // 00414060
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(text_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -340,7 +340,7 @@ void CommandMessage::Destruct() {   // 00414060
 // ================================================================================================
 // PairMessage: BindingMessage 0073BCB8, FileRequestMessage 0073BC58.
 
-Message* PairMessage::CreateAs(std::uintptr_t vtable) {
+Message* PairMessage::CreateAs(const void* vtable) {
     auto* p = NewMessageMemory<PairMessage>();
     if (!p) return nullptr;
     FreshHeader(p);
@@ -349,13 +349,13 @@ Message* PairMessage::CreateAs(std::uintptr_t vtable) {
     ei::SetVtable(p, vtable);
     return p;
 }
-void PairMessage::ConstructAs(std::uintptr_t vtable) {
+void PairMessage::ConstructAs(const void* vtable) {
     version_ = 1;
     first_.ptr = nullptr;
     second_.ptr = nullptr;
     ei::SetVtable(this, vtable);
 }
-PairMessage* PairMessage::CloneAs(std::uintptr_t vtable) {
+PairMessage* PairMessage::CloneAs(const void* vtable) {
     auto* p = NewMessageMemory<PairMessage>();
     if (!p) return nullptr;
     CloneHeader(p, this);
@@ -364,7 +364,7 @@ PairMessage* PairMessage::CloneAs(std::uintptr_t vtable) {
     ei::SetVtable(p, vtable);
     return p;
 }
-void PairMessage::ResetAs(std::uintptr_t vtable) {
+void PairMessage::ResetAs(const void* vtable) {
     ei::SetVtable(this, vtable);
     ReleaseCounted(second_);
     ReleaseCounted(first_);
@@ -376,40 +376,40 @@ void PairMessage::ResetAs(std::uintptr_t vtable) {
 }
 void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first_); }
 void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first_); }
-void PairMessage::DestructAs(std::uintptr_t vtable) {
+void PairMessage::DestructAs(const void* vtable) {
     ei::SetVtable(this, vtable);
     ReleaseCounted(second_);
     ReleaseCounted(first_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
-Message* __fastcall BindingMessage::Create() { return CreateAs(kVtableAddress); }   // 00415320
+Message* __fastcall BindingMessage::Create() { return CreateAs(Vtable()); }   // 00415320
 BindingMessage* BindingMessage::Construct() {   // 0041C870
-    ConstructAs(kVtableAddress);
+    ConstructAs(Vtable());
     return this;
 }
-BindingMessage* BindingMessage::Clone() { return static_cast<BindingMessage*>(CloneAs(kVtableAddress)); }   // 00415350
+BindingMessage* BindingMessage::Clone() { return static_cast<BindingMessage*>(CloneAs(Vtable())); }   // 00415350
 int BindingMessage::OnShutdown() {   // 004153B0
-    ResetAs(kVtableAddress);
+    ResetAs(Vtable());
     return 0;
 }
 void BindingMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }   // 00415450
 void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }     // 00415470
-void BindingMessage::Destruct() { DestructAs(kVtableAddress); }            // 004154D0
+void BindingMessage::Destruct() { DestructAs(Vtable()); }            // 004154D0
 
-Message* __fastcall FileRequestMessage::Create() { return CreateAs(kVtableAddress); }   // 004179E0
+Message* __fastcall FileRequestMessage::Create() { return CreateAs(Vtable()); }   // 004179E0
 FileRequestMessage* FileRequestMessage::Construct() {   // 004140B0
-    ConstructAs(kVtableAddress);
+    ConstructAs(Vtable());
     return this;
 }
-FileRequestMessage* FileRequestMessage::Clone() { return static_cast<FileRequestMessage*>(CloneAs(kVtableAddress)); }   // 004140D0
+FileRequestMessage* FileRequestMessage::Clone() { return static_cast<FileRequestMessage*>(CloneAs(Vtable())); }   // 004140D0
 int FileRequestMessage::OnShutdown() {   // 00414130
-    ResetAs(kVtableAddress);
+    ResetAs(Vtable());
     return 0;
 }
 void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }   // 004141F0
 void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }     // 00414210
-void FileRequestMessage::Destruct() { DestructAs(kVtableAddress); }            // 00414270
+void FileRequestMessage::Destruct() { DestructAs(Vtable()); }            // 00414270
 
 // ================================================================================================
 // 0073BC70 PlayerMessage.
@@ -421,7 +421,7 @@ void InitPlayer(PlayerMessage* m) {
     m->id_ = -1;
     m->number_ = -1;
     m->serial_ = -1;
-    ei::SetVtable(m, PlayerMessage::kVtableAddress);
+    ei::SetVtable(m, PlayerMessage::Vtable());
     m->host_ = 0;
     m->state_ = 1;
 }
@@ -438,7 +438,7 @@ PlayerMessage* PlayerMessage::Construct() {   // 0041C680
     MessageConstructBase(this);
     StringEmpty(name_);
     StringEmpty(text_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     id_ = -1;
     number_ = -1;
     serial_ = -1;
@@ -458,11 +458,11 @@ PlayerMessage* PlayerMessage::Clone() {   // 00414500
     p->serial_ = serial_;
     p->number_ = number_;
     p->firstLine_ = firstLine_;
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int PlayerMessage::OnShutdown() {   // 00414650
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(text_);
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -487,7 +487,7 @@ void PlayerMessage::Read(BufferCursor* cursor) {   // 00414820
     Take(cursor, serial_);
 }
 void PlayerMessage::Destruct() {   // 004148E0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(text_);
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -502,14 +502,14 @@ Message* __fastcall LineMessage::Create() {   // 00414960
     FreshHeader(p);
     StringEmpty(p->text_);
     p->connection_.ptr = nullptr;
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 LineMessage* LineMessage::Construct() {   // 0041C740
     MessageConstructBase(this);
     StringEmpty(text_);
     connection_.ptr = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
 LineMessage* LineMessage::Clone() {   // 00414A00
@@ -519,18 +519,18 @@ LineMessage* LineMessage::Clone() {   // 00414A00
     p->number_ = number_;
     StringCopy(p->text_, text_);
     CopyCounted(p->connection_, connection_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int LineMessage::OnShutdown() {   // 00414AC0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(connection_);
     StringFree(text_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(text_);
     connection_.ptr = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void LineMessage::Write(BufferCursor* cursor) {   // 00414BB0
@@ -542,7 +542,7 @@ void LineMessage::Read(BufferCursor* cursor) {   // 00414C00
     TakeString(cursor, text_);
 }
 void LineMessage::Destruct() {   // 00414D10
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(connection_);
     StringFree(text_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -557,14 +557,14 @@ Message* __fastcall HostMessage::Create() {   // 00414DB0
     FreshHeader(p);
     StringEmpty(p->address_);
     StringEmpty(p->zone_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 HostMessage* HostMessage::Construct() {   // 0041C7C0
     MessageConstructBase(this);
     StringEmpty(address_);
     StringEmpty(zone_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
 HostMessage* HostMessage::Clone() {   // 00414E80
@@ -573,18 +573,18 @@ HostMessage* HostMessage::Clone() {   // 00414E80
     CloneHeader(p, this);
     StringCopy(p->address_, address_);
     StringCopy(p->zone_, zone_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int HostMessage::OnShutdown() {   // 00414FA0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(zone_);
     StringFree(address_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(address_);
     StringEmpty(zone_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void HostMessage::Write(BufferCursor* cursor) {   // 004150B0
@@ -596,7 +596,7 @@ void HostMessage::Read(BufferCursor* cursor) {   // 00415120
     TakeString(cursor, zone_);
 }
 void HostMessage::Destruct() {   // 004152A0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(zone_);
     StringFree(address_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -610,7 +610,7 @@ Message* __fastcall VariableMessage::Create() {   // 00415980
     if (!p) return nullptr;
     FreshHeader(p);
     StringEmpty(p->name_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 VariableMessage* VariableMessage::Clone() {   // 00415A30
@@ -620,16 +620,16 @@ VariableMessage* VariableMessage::Clone() {   // 00415A30
     StringCopy(p->name_, name_);
     std::memcpy(&p->value_, &value_, 4);
     p->serial_ = serial_;
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int VariableMessage::OnShutdown() {   // 00415B60
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(name_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void VariableMessage::Write(BufferCursor* cursor) {   // 00415C20
@@ -643,7 +643,7 @@ void VariableMessage::Read(BufferCursor* cursor) {   // 00415C80
     Take(cursor, serial_);
 }
 void VariableMessage::Destruct() {   // 00415D00
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -657,7 +657,7 @@ Message* __fastcall FileMessage::Create() {   // 00416160
     FreshHeader(p);
     StringEmpty(p->name_);
     ClearRefs(p->chunks_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 FileMessage* FileMessage::Clone() {   // 00416220
@@ -676,11 +676,11 @@ FileMessage* FileMessage::Clone() {   // 00416220
     to.Finish() = block;
     to.EndOfStorage() = block + n;
     to.Finish() = stlp::SharedRefVector::UninitializedCopy(from.begin(), from.end(), block, nullptr);   // 0042AE90
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int FileMessage::OnShutdown() {   // 00416390
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();   // 0042B880 (flags 0)
     stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * 4);   // 004251B0
     StringFree(name_);
@@ -688,7 +688,7 @@ int FileMessage::OnShutdown() {   // 00416390
     FreshHeader(this);
     StringEmpty(name_);
     ClearRefs(chunks_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void FileMessage::Write(BufferCursor* cursor) {   // 004164D0
@@ -702,7 +702,7 @@ void FileMessage::Read(BufferCursor* cursor) {   // 00416530
     TakeString(cursor, name_);
 }
 void FileMessage::Destruct() {   // 00416640
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();
     stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
     StringFree(name_);
@@ -717,7 +717,7 @@ Message* __fastcall FileChunkMessage::Create() {   // 004166F0
     if (!p) return nullptr;
     p->version_ = 1;
     p->file_.ptr = nullptr;
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 FileChunkMessage* FileChunkMessage::Clone() {   // 00416720
@@ -727,16 +727,16 @@ FileChunkMessage* FileChunkMessage::Clone() {   // 00416720
     CopyCounted(p->file_, file_);
     p->index_ = index_;
     std::memcpy(p->data_, data_, kDataSize);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int FileChunkMessage::OnShutdown() {   // 00416780
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(file_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     file_.ptr = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void FileChunkMessage::Write(BufferCursor* cursor) {   // 00416800
@@ -750,7 +750,7 @@ void FileChunkMessage::Read(BufferCursor* cursor) {   // 00416850
     TakeBytes(cursor, data_, kDataSize);
 }
 void FileChunkMessage::Destruct() {   // 004168E0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(file_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -764,7 +764,7 @@ Message* __fastcall AwardMessage::Create() {   // 00416940
     FreshHeader(p);
     p->connection_.ptr = nullptr;
     StringEmpty(p->text_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 AwardMessage* AwardMessage::Clone() {   // 00416A10
@@ -775,18 +775,18 @@ AwardMessage* AwardMessage::Clone() {   // 00416A10
     p->kind_ = kind_;
     std::memcpy(&p->value_, &value_, 4);
     StringCopy(p->text_, text_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int AwardMessage::OnShutdown() {   // 00416B30
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(text_);
     ReleaseCounted(connection_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     connection_.ptr = nullptr;
     StringEmpty(text_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void AwardMessage::Write(BufferCursor* cursor) {   // 00416C00
@@ -800,7 +800,7 @@ void AwardMessage::Read(BufferCursor* cursor) {   // 00416C60
     TakeString(cursor, text_);
 }
 void AwardMessage::Destruct() {   // 00416D70
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(text_);
     ReleaseCounted(connection_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -815,7 +815,7 @@ void InitTrade(TradeMessage* m) {
     m->partner_.ptr = nullptr;
     m->offer_.ptr = nullptr;
     m->partnerOffer_.ptr = nullptr;
-    ei::SetVtable(m, TradeMessage::kVtableAddress);
+    ei::SetVtable(m, TradeMessage::Vtable());
     m->done_ = 0;
     m->revision_ = 0;
     m->partnerRevision_ = 0;
@@ -846,11 +846,11 @@ TradeMessage* TradeMessage::Clone() {   // 00416E30
     p->done_ = done_;
     p->revision_ = revision_;
     p->partnerRevision_ = partnerRevision_;
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int TradeMessage::OnShutdown() {   // 00416EB0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     FreeTrade(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
@@ -872,7 +872,7 @@ void TradeMessage::Read(BufferCursor* cursor) {   // 00412CE0
     Take(cursor, partnerRevision_);
 }
 void TradeMessage::Destruct() {   // 00416FC0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     FreeTrade(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -906,7 +906,7 @@ Message* __fastcall PartyMemberMessage::Create() {   // 00417300
     if (!p) return nullptr;
     p->version_ = 1;
     InitMemberStream(p->stream_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 // Original bug kept: the copy's stream is sized like ours, then its (uninitialised) bytes are
@@ -920,16 +920,16 @@ PartyMemberMessage* PartyMemberMessage::Clone() {   // 00417420
     stream.SetSize(stream_.size_);
     CStream* copy = &stream;
     copy->Read(stream_.data_, stream.size_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int PartyMemberMessage::OnShutdown() {   // 004174F0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     FreeMemberStream(stream_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     InitMemberStream(stream_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return 0;
 }
 void PartyMemberMessage::Write(BufferCursor* cursor) {   // 00417560
@@ -945,7 +945,7 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {   // 004175B0
     TakeBytes(cursor, stream_.data_, n);
 }
 void PartyMemberMessage::Destruct() {   // 00417620
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     FreeMemberStream(stream_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
@@ -958,7 +958,7 @@ void InitParty(PartyMessage* m) {
     ClearRefs(m->members_);
     m->player_.ptr = nullptr;
     m->partner_.ptr = nullptr;
-    ei::SetVtable(m, PartyMessage::kVtableAddress);
+    ei::SetVtable(m, PartyMessage::Vtable());
     m->acceptedRevision_ = 0;
     m->revision_ = 1;
     m->accepted_ = 0;
@@ -985,12 +985,12 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     p->revision_ = revision_;
     CopyCounted(p->player_, player_);
     CopyCounted(p->partner_, partner_);
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     p->trading_ = trading_;
     return p;
 }
 int PartyMessage::OnShutdown() {   // 004177A0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
     for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p) RefPtrRelease(p);   // 004292A0, flags 0
@@ -1027,7 +1027,7 @@ void PartyMessage::Read(BufferCursor* cursor) {   // 00412B70
     TakeObject(cursor, partner_);
 }
 void PartyMessage::Destruct() {   // 004178F0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
     for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p)
@@ -1049,25 +1049,25 @@ ServerEntry* ServerEntry::Clone() {   // 00412590
     std::memcpy(&p->ping_, &ping_, 4);
     p->foreign_ = foreign_;
     p->state_ = state_;
-    ei::SetVtable(p, ServerEntryBase::kVtableAddress);
+    ei::SetVtable(p, ServerEntryBase::Vtable());
     StringCopy(p->name_, name_);
     p->kind_ = kind_;
     StringCopy(p->description_, description_);
     p->players_ = players_;
     p->maxPlayers_ = maxPlayers_;
     p->password_ = password_;
-    ei::SetVtable(p, kVtableAddress);
+    ei::SetVtable(p, Vtable());
     return p;
 }
 int ServerEntry::OnShutdown() {   // 00412750
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(description_);
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     ConstructBase();
     StringEmpty(name_);
     StringEmpty(description_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     AssignEmptyText(name_);
     kind_ = 4;
     AssignEmptyText(description_);
@@ -1093,7 +1093,7 @@ void ServerEntry::Read(BufferCursor* cursor) {   // 00412A30
     Take(cursor, password_);
 }
 void ServerEntry::Destruct() {   // 004128E0
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     StringFree(description_);
     StringFree(name_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -1136,112 +1136,112 @@ EI_MESSAGE_SLOT_SHIMS(ServerEntry)
 
 // Factory, reset, clone, write, read and destructor body per class.
 EI_REWRITTEN(0x004170A0, LoginMessage::Create);
-EI_REPLACE(0x00413570, LoginMessageResetHook);
-EI_REPLACE(0x00413440, LoginMessageCloneHook);
-EI_REPLACE(0x004136B0, LoginMessageWriteHook);
-EI_REPLACE(0x00413750, LoginMessageReadHook);
+EI_REWRITTEN(0x00413570, LoginMessageResetHook);
+EI_REWRITTEN(0x00413440, LoginMessageCloneHook);
+EI_REWRITTEN(0x004136B0, LoginMessageWriteHook);
+EI_REWRITTEN(0x00413750, LoginMessageReadHook);
 EI_REWRITTEN(0x00413800, LoginMessage::Destruct);
 EI_REWRITTEN(0x004171A0, SayMessage::Create);
-EI_REPLACE(0x00413A50, SayMessageResetHook);
-EI_REPLACE(0x00413930, SayMessageCloneHook);
-EI_REPLACE(0x00413B10, SayMessageWriteHook);
-EI_REPLACE(0x00413B50, SayMessageReadHook);
+EI_REWRITTEN(0x00413A50, SayMessageResetHook);
+EI_REWRITTEN(0x00413930, SayMessageCloneHook);
+EI_REWRITTEN(0x00413B10, SayMessageWriteHook);
+EI_REWRITTEN(0x00413B50, SayMessageReadHook);
 EI_REWRITTEN(0x00413C40, SayMessage::Destruct);
 EI_REWRITTEN(0x00417250, CommandMessage::Create);
-EI_REPLACE(0x00413E40, CommandMessageResetHook);
-EI_REPLACE(0x00413D20, CommandMessageCloneHook);
-EI_REPLACE(0x00413F00, CommandMessageWriteHook);
-EI_REPLACE(0x00413F50, CommandMessageReadHook);
+EI_REWRITTEN(0x00413E40, CommandMessageResetHook);
+EI_REWRITTEN(0x00413D20, CommandMessageCloneHook);
+EI_REWRITTEN(0x00413F00, CommandMessageWriteHook);
+EI_REWRITTEN(0x00413F50, CommandMessageReadHook);
 EI_REWRITTEN(0x00414060, CommandMessage::Destruct);
 EI_REWRITTEN(0x004179E0, FileRequestMessage::Create);
-EI_REPLACE(0x00414130, FileRequestMessageResetHook);
-EI_REPLACE(0x004140D0, FileRequestMessageCloneHook);
-EI_REPLACE(0x004141F0, FileRequestMessageWriteHook);
-EI_REPLACE(0x00414210, FileRequestMessageReadHook);
+EI_REWRITTEN(0x00414130, FileRequestMessageResetHook);
+EI_REWRITTEN(0x004140D0, FileRequestMessageCloneHook);
+EI_REWRITTEN(0x004141F0, FileRequestMessageWriteHook);
+EI_REWRITTEN(0x00414210, FileRequestMessageReadHook);
 EI_REWRITTEN(0x00414270, FileRequestMessage::Destruct);
 EI_REWRITTEN(0x00417650, PartyMessage::Create);
-EI_REPLACE(0x004177A0, PartyMessageResetHook);
-EI_REPLACE(0x004176A0, PartyMessageCloneHook);
-EI_REPLACE(0x00412AC0, PartyMessageWriteHook);
-EI_REPLACE(0x00412B70, PartyMessageReadHook);
+EI_REWRITTEN(0x004177A0, PartyMessageResetHook);
+EI_REWRITTEN(0x004176A0, PartyMessageCloneHook);
+EI_REWRITTEN(0x00412AC0, PartyMessageWriteHook);
+EI_REWRITTEN(0x00412B70, PartyMessageReadHook);
 EI_REWRITTEN(0x004178F0, PartyMessage::Destruct);
 EI_REWRITTEN(0x00417300, PartyMemberMessage::Create);
-EI_REPLACE(0x004174F0, PartyMemberMessageResetHook);
-EI_REPLACE(0x00417420, PartyMemberMessageCloneHook);
-EI_REPLACE(0x00417560, PartyMemberMessageWriteHook);
-EI_REPLACE(0x004175B0, PartyMemberMessageReadHook);
+EI_REWRITTEN(0x004174F0, PartyMemberMessageResetHook);
+EI_REWRITTEN(0x00417420, PartyMemberMessageCloneHook);
+EI_REWRITTEN(0x00417560, PartyMemberMessageWriteHook);
+EI_REWRITTEN(0x004175B0, PartyMemberMessageReadHook);
 EI_REWRITTEN(0x00417620, PartyMemberMessage::Destruct);
 EI_REWRITTEN(0x00414420, PlayerMessage::Create);
-EI_REPLACE(0x00414650, PlayerMessageResetHook);
-EI_REPLACE(0x00414500, PlayerMessageCloneHook);
-EI_REPLACE(0x00414770, PlayerMessageWriteHook);
-EI_REPLACE(0x00414820, PlayerMessageReadHook);
+EI_REWRITTEN(0x00414650, PlayerMessageResetHook);
+EI_REWRITTEN(0x00414500, PlayerMessageCloneHook);
+EI_REWRITTEN(0x00414770, PlayerMessageWriteHook);
+EI_REWRITTEN(0x00414820, PlayerMessageReadHook);
 EI_REWRITTEN(0x004148E0, PlayerMessage::Destruct);
 EI_REWRITTEN(0x00414960, LineMessage::Create);
-EI_REPLACE(0x00414AC0, LineMessageResetHook);
-EI_REPLACE(0x00414A00, LineMessageCloneHook);
-EI_REPLACE(0x00414BB0, LineMessageWriteHook);
-EI_REPLACE(0x00414C00, LineMessageReadHook);
+EI_REWRITTEN(0x00414AC0, LineMessageResetHook);
+EI_REWRITTEN(0x00414A00, LineMessageCloneHook);
+EI_REWRITTEN(0x00414BB0, LineMessageWriteHook);
+EI_REWRITTEN(0x00414C00, LineMessageReadHook);
 EI_REWRITTEN(0x00414D10, LineMessage::Destruct);
 EI_REWRITTEN(0x00414DB0, HostMessage::Create);
-EI_REPLACE(0x00414FA0, HostMessageResetHook);
-EI_REPLACE(0x00414E80, HostMessageCloneHook);
-EI_REPLACE(0x004150B0, HostMessageWriteHook);
-EI_REPLACE(0x00415120, HostMessageReadHook);
+EI_REWRITTEN(0x00414FA0, HostMessageResetHook);
+EI_REWRITTEN(0x00414E80, HostMessageCloneHook);
+EI_REWRITTEN(0x004150B0, HostMessageWriteHook);
+EI_REWRITTEN(0x00415120, HostMessageReadHook);
 EI_REWRITTEN(0x004152A0, HostMessage::Destruct);
 EI_REWRITTEN(0x00415320, BindingMessage::Create);
-EI_REPLACE(0x004153B0, BindingMessageResetHook);
-EI_REPLACE(0x00415350, BindingMessageCloneHook);
-EI_REPLACE(0x00415450, BindingMessageWriteHook);
-EI_REPLACE(0x00415470, BindingMessageReadHook);
+EI_REWRITTEN(0x004153B0, BindingMessageResetHook);
+EI_REWRITTEN(0x00415350, BindingMessageCloneHook);
+EI_REWRITTEN(0x00415450, BindingMessageWriteHook);
+EI_REWRITTEN(0x00415470, BindingMessageReadHook);
 EI_REWRITTEN(0x004154D0, BindingMessage::Destruct);
 EI_REWRITTEN(0x00415570, ZoneMessage::Create);
-EI_REPLACE(0x00415740, ZoneMessageResetHook);
-EI_REPLACE(0x00415620, ZoneMessageCloneHook);
-EI_REPLACE(0x00415800, ZoneMessageWriteHook);
-EI_REPLACE(0x00415840, ZoneMessageReadHook);
+EI_REWRITTEN(0x00415740, ZoneMessageResetHook);
+EI_REWRITTEN(0x00415620, ZoneMessageCloneHook);
+EI_REWRITTEN(0x00415800, ZoneMessageWriteHook);
+EI_REWRITTEN(0x00415840, ZoneMessageReadHook);
 EI_REWRITTEN(0x00415930, ZoneMessage::Destruct);
 EI_REWRITTEN(0x00415D50, MapMessage::Create);
-EI_REPLACE(0x00415F20, MapMessageResetHook);
-EI_REPLACE(0x00415E00, MapMessageCloneHook);
-EI_REPLACE(0x00415FE0, MapMessageWriteHook);
-EI_REPLACE(0x00416020, MapMessageReadHook);
+EI_REWRITTEN(0x00415F20, MapMessageResetHook);
+EI_REWRITTEN(0x00415E00, MapMessageCloneHook);
+EI_REWRITTEN(0x00415FE0, MapMessageWriteHook);
+EI_REWRITTEN(0x00416020, MapMessageReadHook);
 EI_REWRITTEN(0x00416110, MapMessage::Destruct);
 EI_REWRITTEN(0x00415980, VariableMessage::Create);
-EI_REPLACE(0x00415B60, VariableMessageResetHook);
-EI_REPLACE(0x00415A30, VariableMessageCloneHook);
-EI_REPLACE(0x00415C20, VariableMessageWriteHook);
-EI_REPLACE(0x00415C80, VariableMessageReadHook);
+EI_REWRITTEN(0x00415B60, VariableMessageResetHook);
+EI_REWRITTEN(0x00415A30, VariableMessageCloneHook);
+EI_REWRITTEN(0x00415C20, VariableMessageWriteHook);
+EI_REWRITTEN(0x00415C80, VariableMessageReadHook);
 EI_REWRITTEN(0x00415D00, VariableMessage::Destruct);
 EI_REWRITTEN(0x00416160, FileMessage::Create);
-EI_REPLACE(0x00416390, FileMessageResetHook);
-EI_REPLACE(0x00416220, FileMessageCloneHook);
-EI_REPLACE(0x004164D0, FileMessageWriteHook);
-EI_REPLACE(0x00416530, FileMessageReadHook);
+EI_REWRITTEN(0x00416390, FileMessageResetHook);
+EI_REWRITTEN(0x00416220, FileMessageCloneHook);
+EI_REWRITTEN(0x004164D0, FileMessageWriteHook);
+EI_REWRITTEN(0x00416530, FileMessageReadHook);
 EI_REWRITTEN(0x00416640, FileMessage::Destruct);
 EI_REWRITTEN(0x004166F0, FileChunkMessage::Create);
-EI_REPLACE(0x00416780, FileChunkMessageResetHook);
-EI_REPLACE(0x00416720, FileChunkMessageCloneHook);
-EI_REPLACE(0x00416800, FileChunkMessageWriteHook);
-EI_REPLACE(0x00416850, FileChunkMessageReadHook);
+EI_REWRITTEN(0x00416780, FileChunkMessageResetHook);
+EI_REWRITTEN(0x00416720, FileChunkMessageCloneHook);
+EI_REWRITTEN(0x00416800, FileChunkMessageWriteHook);
+EI_REWRITTEN(0x00416850, FileChunkMessageReadHook);
 EI_REWRITTEN(0x004168E0, FileChunkMessage::Destruct);
 EI_REWRITTEN(0x00416940, AwardMessage::Create);
-EI_REPLACE(0x00416B30, AwardMessageResetHook);
-EI_REPLACE(0x00416A10, AwardMessageCloneHook);
-EI_REPLACE(0x00416C00, AwardMessageWriteHook);
-EI_REPLACE(0x00416C60, AwardMessageReadHook);
+EI_REWRITTEN(0x00416B30, AwardMessageResetHook);
+EI_REWRITTEN(0x00416A10, AwardMessageCloneHook);
+EI_REWRITTEN(0x00416C00, AwardMessageWriteHook);
+EI_REWRITTEN(0x00416C60, AwardMessageReadHook);
 EI_REWRITTEN(0x00416D70, AwardMessage::Destruct);
 EI_REWRITTEN(0x00416DF0, TradeMessage::Create);
-EI_REPLACE(0x00416EB0, TradeMessageResetHook);
-EI_REPLACE(0x00416E30, TradeMessageCloneHook);
-EI_REPLACE(0x00412C80, TradeMessageWriteHook);
-EI_REPLACE(0x00412CE0, TradeMessageReadHook);
+EI_REWRITTEN(0x00416EB0, TradeMessageResetHook);
+EI_REWRITTEN(0x00416E30, TradeMessageCloneHook);
+EI_REWRITTEN(0x00412C80, TradeMessageWriteHook);
+EI_REWRITTEN(0x00412CE0, TradeMessageReadHook);
 EI_REWRITTEN(0x00416FC0, TradeMessage::Destruct);
 
-EI_REPLACE(0x00412750, ServerEntryResetHook);
-EI_REPLACE(0x00412590, ServerEntryCloneHook);
-EI_REPLACE(0x00412990, ServerEntryWriteHook);
-EI_REPLACE(0x00412A30, ServerEntryReadHook);
+EI_REWRITTEN(0x00412750, ServerEntryResetHook);
+EI_REWRITTEN(0x00412590, ServerEntryCloneHook);
+EI_REWRITTEN(0x00412990, ServerEntryWriteHook);
+EI_REWRITTEN(0x00412A30, ServerEntryReadHook);
 EI_REWRITTEN(0x004128E0, ServerEntry::Destruct);
 
 EI_REWRITTEN(0x00413350, LoginMessage::Construct);

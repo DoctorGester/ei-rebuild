@@ -106,7 +106,7 @@ void SessionBase::TickImpl(double dt) {
     ++frame_;
     g_currentSession = nullptr;
 }
-EI_REPLACE_METHOD(0x00437370, SessionBase::TickImpl);
+EI_REWRITTEN(0x00437370, SessionBase::TickImpl);
 
 } // namespace net
 
@@ -192,15 +192,15 @@ void SessionBase::OnAcceptedImpl(const NetAddress*, BufferCursor*) { LogText(gam
 void SessionBase::OnRejectedImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleRejected()); }
 void SessionBase::OnMasterImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleMaster()); }
 
-EI_REPLACE_METHOD(0x00436CF0, SessionBase::RemoveClientImpl);
-EI_REPLACE_METHOD(0x00437080, SessionBase::OnUpdateImpl);
-EI_REPLACE_METHOD(0x00437240, SessionBase::OnLeaveImpl);
-EI_REPLACE_METHOD(0x004371E0, SessionBase::OnGetInfoImpl);    // slot 4, kind 3
-EI_REPLACE_METHOD(0x00437210, SessionBase::OnLoginImpl);      // slot 5, kind 4
-EI_REPLACE_METHOD(0x004372B0, SessionBase::OnInfoImpl);       // slot 7, kind 5
-EI_REPLACE_METHOD(0x004372E0, SessionBase::OnAcceptedImpl);   // slot 8, kind 6
-EI_REPLACE_METHOD(0x00437310, SessionBase::OnRejectedImpl);   // slot 9, kind 7
-EI_REPLACE_METHOD(0x00437340, SessionBase::OnMasterImpl);     // slot 10, kind -1
+EI_REWRITTEN(0x00436CF0, SessionBase::RemoveClientImpl);
+EI_REWRITTEN(0x00437080, SessionBase::OnUpdateImpl);
+EI_REWRITTEN(0x00437240, SessionBase::OnLeaveImpl);
+EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfoImpl);    // slot 4, kind 3
+EI_REWRITTEN(0x00437210, SessionBase::OnLoginImpl);      // slot 5, kind 4
+EI_REWRITTEN(0x004372B0, SessionBase::OnInfoImpl);       // slot 7, kind 5
+EI_REWRITTEN(0x004372E0, SessionBase::OnAcceptedImpl);   // slot 8, kind 6
+EI_REWRITTEN(0x00437310, SessionBase::OnRejectedImpl);   // slot 9, kind 7
+EI_REWRITTEN(0x00437340, SessionBase::OnMasterImpl);     // slot 10, kind -1
 
 } // namespace net
 
@@ -281,7 +281,7 @@ constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
 } // namespace
 
 void SessionBase::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     for (ClientNode* node = clients_->next; node != clients_; node = node->next) {
         Connection* connection = node->connection;
         std::uint32_t id = connection->id_;
@@ -325,7 +325,7 @@ SessionBase* SessionBase::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004368D0, SessionBase::DeletingDestruct);
+EI_REWRITTEN(0x004368D0, SessionBase::DeletingDestruct);
 
 } // namespace net
 
