@@ -19,17 +19,15 @@ using AttackOrder = AIOrder;
 } // namespace
 
 void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
-    CEngineObject*& object = choice->object;
     if (brain->action == AIBrain::kActionAttack) {
         choice->part = -1;
     } else if (brain->action == AIBrain::kActionCast) {
         choice->part = brain->actionTime;     // the spell being cast
     } else {
-        object = nullptr;
+        choice->object = nullptr;
         return;
     }
-    object = brain->target;
-    if (object && object->GetClassId() != kClassUnit) object = nullptr;
+    choice->object = UnitOrNull(brain->target);
 }
 EI_REWRITTEN(0x005CF220, AIAttention::CurrentAttack);
 
@@ -40,7 +38,7 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
     AITargetChoice best{-1, nullptr};
     Vector3 from = *&brain->owner->unit->position;
     brain->ChooseTarget(&best, &candidates, &from, 1, unused);
-    CEngineObject* chosen = best.object;
+    CUnit* chosen = best.object;
     if (chosen) {
         AITargetChoice now{-1, nullptr};
         CurrentAttack(brain, &now);

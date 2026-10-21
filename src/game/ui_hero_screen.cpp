@@ -115,7 +115,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
     if (!hoveredItem_ && topic == 0) hoveredItem_ = spellPanel_->VirtualItemAt(x, y, &topic);
 
     if (hoveredItem_) {
-        if (descPanel_) descPanel_->Describe(reinterpret_cast<CItem*>(hoveredItem_));
+        if (descPanel_) descPanel_->Describe(hoveredItem_);
     } else if (topic != 0) {
         if (descPanel_) descPanel_->ShowHelp(topic);
     } else {

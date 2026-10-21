@@ -132,7 +132,7 @@ int CPlayerClient::OnObjectValues() {
         in_.Read(&id, 4);
         if (id == -1) return 1;
         if (!in_.ok_) return 0;
-        auto* item = static_cast<CItem*>(ItemManager()->FindObject(static_cast<unsigned>(id)));
+        CItem* item = FindItem(ItemManager(), static_cast<unsigned>(id));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
         in_.Read(&value, 4);
@@ -167,7 +167,7 @@ int CPlayerClient::OnItemValue() {
     float value;
     in_.Read(&value, 4);
     CPlayer* player = Owner();
-    auto* item = static_cast<CItem*>(player->Party()->ItemManager()->FindObject(static_cast<unsigned>(id)));
+    CItem* item = FindItem(player->Party()->ItemManager(), static_cast<unsigned>(id));
     if (item) {
         item->charge_ = value;
         player->ItemUsed(item);

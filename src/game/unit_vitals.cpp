@@ -79,14 +79,13 @@ double IntelligenceFactor(const float* intelligence) {
 double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
     if (level == 0) return kZero;
-    auto* record = reinterpret_cast<const SkillLevelRecord*>(
-        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize));
+    const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(skill * 3 - 1 + level));
     if (!record) return kZero;
     return record->Value();
 }
 
 // The same for a level record pointer from UnitStats::SkillLevelRecord.
-double RecordValue(const char* record) { return reinterpret_cast<const SkillLevelRecord*>(record)->Value(); }
+double RecordValue(const SkillLevelRecord* record) { return record->Value(); }
 
 // The original's branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
 float SelectLess(float a, float b, float ifLess, float otherwise) { return a >= b ? otherwise : ifLess; }
@@ -352,13 +351,13 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     }
 
     double bonus = kZero;
-    if (const char* record = SkillLevelRecord(kSkillBodyB0)) {
+    if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         double level = RecordValue(record);
         EI_NAN_AUDIT(level);
         if (level != kZero) bonus = level * valuesB0[1].current * kPercentB;
     }
     valuesB0[1].current = static_cast<float>(bonus + valuesB0[1].current);
-    const char* record = SkillLevelRecord(kSkillStat10);
+    const ::SkillLevelRecord* record = SkillLevelRecord(kSkillStat10);
     stat10 = static_cast<float>((record ? RecordValue(record) : kZero) + stat10);
     record = SkillLevelRecord(kSkillStat18);
     stat18 = static_cast<float>((record ? RecordValue(record) : kZero) + stat18);
@@ -541,7 +540,7 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     stat10Base = static_cast<float>(static_cast<double>(amount) + stat10Base);
     double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
     float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
-    const char* record = SkillLevelRecord(kSkillHitPoints);
+    const ::SkillLevelRecord* record = SkillLevelRecord(kSkillHitPoints);
     float maxHitPoints =
         static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
     vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);

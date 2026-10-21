@@ -232,15 +232,15 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
-            ObjectSlots(object)->TakePrototype(static_cast<const char*>(name));
+            mapObject->TakePrototype(static_cast<const char*>(name));
         }
-        static_cast<CMapObject*>(static_cast<void*>(object))->WriteFullState();
+        mapObject->WriteFullState();
         object->Load(stream);
         int changed = ReadValue<int>(stream);
         if (!object) continue;   // (the object was already used above)
 
         ++object->refCount_;
-        static_cast<CMapObject*>(object)->MarkChanged(-1);
+        mapObject->MarkChanged(-1);
         if (object->type_ != 0x3B) {
             static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(mapObject->name);
             SectorMapAdd(Sectors(), nullptr, object);
@@ -252,19 +252,19 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         if (*mapObject->name2 != '\0')
             namedObjects_.Set(static_cast<unsigned>(object->id_), object);
 
-        if (object->GetClassId() == world::kClassUnit) {
+        if (CUnit* unit = UnitOrNull(object)) {
             // The unit's six dwords at +0x4B0 come from its prototype's model record (+0x2C). A
             // prototype or model out of range is read through null, as in the original.
-            auto* prototype = unitdb::PrototypeRecord(object->prototypeId_);
+            auto* prototype = unitdb::PrototypeRecord(unit->prototypeId_);
             auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-            std::memcpy(static_cast<CUnit*>(object)->actionSpeeds, model->actionSpeeds, 24);
+            std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
         }
 
         // Every part is marked changed when any change was saved (the original tests the part's
         // bit 1 << i itself, never `changed & bit`).
         int parts = mapObject->NetState()->fieldCount_;
         for (int i = 0; i < parts; ++i)
-            if (changed != 0 && (1u << (i & 31)) != 0) static_cast<CMapObject*>(object)->MarkChanged(i);
+            if (changed != 0 && (1u << (i & 31)) != 0) mapObject->MarkChanged(i);
 
         CUnit* unit = UnitOrNull(object);
         if (unit && unit->ServerController()->Brain()->alwaysUpdated == 0)
@@ -331,7 +331,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         for (;;) {
             int id = ReadValue<int>(stream);
             if (id == -1) break;
-            auto* object = static_cast<CItem*>(items->FindObject(id));
+            CItem* object = FindItem(items, id);
             if (!object) continue;
             player->items_.AddTail(object);
             ++object->refCount_;

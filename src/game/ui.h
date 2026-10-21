@@ -28,6 +28,7 @@
 #include <windows.h>
 
 namespace console { class ConsoleWindow; }
+class CItem;
 namespace ui_gdi { struct GameFont; struct GameDC; }
 
 // A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
@@ -905,8 +906,8 @@ public:
     void VirtualUpdate() { CallVirtual(24); }
     // Slot 25 (+0x64) of the item panels and strips: the item under the screen point (x, y), or
     // null; a panel may set a help topic instead.
-    std::uint8_t* VirtualItemAt(int x, int y, int* topic) {
-        using Fn = std::uint8_t*(__thiscall*)(CUiWindow*, int, int, int*);
+    CItem* VirtualItemAt(int x, int y, int* topic) {
+        using Fn = CItem*(__thiscall*)(CUiWindow*, int, int, int*);
         return ei::VirtualSlot<Fn>(vtable_, 25)(this, x, y, topic);
     }
     // Slot 19 (+0x4C): show or hide the window's surfaces (and a container's children).

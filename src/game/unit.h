@@ -28,6 +28,7 @@ struct UnitStats;
 struct UnitParams;
 struct UnitPrototypeRecord;   // unit_db.h
 struct UnitModelRecord;       // unit_db.h
+struct SkillLevelRecord;      // unit_db.h
 struct DamageInfo;   // spell.h
 struct FootprintPart;   // ai_map.h
 
@@ -295,7 +296,7 @@ public:
 
     // 005318B0 / 00531920 / 005319A0. The weapon / quick item / spell in slot `slot`, from the
     // player's party record for party units. Null when out of range.
-    CItem* GetWeapon(std::uint32_t slot);
+    CItemWeapon* GetWeapon(std::uint32_t slot);
     CItem* GetQuickItem(std::uint32_t slot);
     CItem* GetSpell(std::uint32_t slot);
     // 00531A10. The CSpell (+0x44) of the spell item in slot `slot`, or null.
@@ -600,6 +601,10 @@ static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
 static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
 
+// The item of a weapon slot (CUnit::weapons, PartyUnitRecord::weapons) as the weapon it is: the slots
+// hold CItemWeapon only, and the original calls the weapon's methods without a class test.
+inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
+
 // The object as a unit when it is one (class id kClassUnit; one GetClassId call), else null.
 inline CUnit* UnitOrNull(CEngineObject* object) {
     return object && object->GetClassId() == kClassUnit ? static_cast<CUnit*>(object) : nullptr;
@@ -806,7 +811,7 @@ struct UnitStats {
     // 005267E0. +0x34 of the level record of skill `index` (0 without one), exact in ST0.
     double SkillLevelValue(int index);
     // 00528270. The level record of skill `index` (level byte at +0x6D3), or null.
-    char* SkillLevelRecord(int index);
+    ::SkillLevelRecord* SkillLevelRecord(int index);
     // 00524280. stat10 * 12 scaled by (1 + 0.01 * level value) of the level byte at +0x6E8.
     double Value6E8();
     // 00525CD0. global 007C5430 + 0.01 * level value of the byte at +0x6E9.
@@ -919,13 +924,13 @@ struct UnitStats {
     // attribute (+0x14 name, +0x18 index, +0x20 value) and skill level (+0x0C name) present unless
     // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
     // record's own level (by its name, +0x04) above the one known. 0/1 in EAX.
-    BOOL CanLearn(const void* database, const char* record);
+    BOOL CanLearn(const void* database, const ::SkillLevelRecord* record);
     // unit_skill_price.cpp. 00528050. The experience learning skill level `record` (of the level
     // records 007AF274) costs: what its +0x30 is worth over the level below's (1.61 ^ (value /
     // 007C5480) * 007C547C, truncated; the first level of a skill over 0), times 007C5484 ^ (the
     // sum of the known skill levels, a byte), rounded to one significant digit, or two when the
     // first digit is below 4; a price of 10 or less with a first digit below 4 is rounded up.
-    int SkillPrice(const char* record);
+    int SkillPrice(const ::SkillLevelRecord* record);
     // unit_hit_location.cpp (U6). 00525B20. The hit location an attack aimed at `location` lands
     // on: `location` while its slot works (kind 3; read without a range check), else the first
     // working neighbour (head: 1, 2, 3; body: 0, 2-5; hands 2 / 3: the other hand, then the body;
@@ -1224,6 +1229,7 @@ static_assert(offsetof(CMapObjectServer, name78) == 0x78);
 static_assert(offsetof(CMapObjectServer, strings) == 0x80);
 static_assert(sizeof(CMapObjectServer) == 0x94);
 static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);
+inline CMapObjectServer* CMapObject::ServerCompanion() const { return static_cast<CMapObjectServer*>(companion); }
 
 class CParticleSource;   // effects.h
 

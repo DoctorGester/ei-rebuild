@@ -573,6 +573,10 @@ inline ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<Armor
 inline QuickItemRecord* QuickItemAt(std::uint32_t index) {
     return reinterpret_cast<QuickItemRecord*>(QuickItems().RecordAt(index, kQuickItemSize));
 }
+inline QuestItemRecord* QuestItemAt(std::uint32_t index) {
+    return reinterpret_cast<QuestItemRecord*>(QuestItems().RecordAt(index, kQuestItemSize));
+}
+inline LootItemRecord* LootAt(std::uint32_t index) { return reinterpret_cast<LootItemRecord*>(Loot().RecordAt(index, kLootSize)); }
 inline SpellRecord* SpellAt(std::uint32_t index) { return reinterpret_cast<SpellRecord*>(Spells().RecordAt(index, kSpellSize)); }
 inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) {
     return reinterpret_cast<SpellModifierRecord*>(SpellModifiers().RecordAt(index, kSpellModifierSize));

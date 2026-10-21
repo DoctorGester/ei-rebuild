@@ -121,7 +121,7 @@ float SpellDamage(const CSpell* spell) { return std::bit_cast<float>(spell->dama
 float SpellRange(const CSpell* spell) { return std::bit_cast<float>(spell->range_); }
 float SpellCost(const CSpell* spell) { return std::bit_cast<float>(spell->manaCost_); }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
+CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 } // namespace
 
 // Not rewritten (forwarders). UnitStats and CUnit methods of the unit range, as __fastcall with
@@ -218,7 +218,7 @@ void CUnitServer::GetDamageByType(std::int16_t* out) {
     CUnit* self = unit;
     CItemWeapon* weapon;
     if (self->player && self->activeWeapon < 4 &&
-        (weapon = static_cast<CItemWeapon*>(self->weapons[self->activeWeapon])) != nullptr) {
+        (weapon = AsWeapon(self->weapons[self->activeWeapon])) != nullptr) {
         float total = weapon->damageSpread_ + weapon->damage_;
         float scale = ScaleDamageByEffects(self, total);   // 00523D30 (thiscall on the stats, not read)
         float weights[7];
@@ -339,7 +339,7 @@ EI_REPLACE_METHOD(0x0054B520, CUnitServer::GetMovePoint);
 float CUnitServer::ActionDistance(const UnitAction* order) {
     if (order->flag18) return kPointTwo;
     int kind = order->kind;
-    CEngineObject* target = order->target;
+    CMapObject* target = order->target;
     if (kind >= 4 && kind <= 5) {
         if (!unit->player && Combat().naturalWeapon == kNoNaturalWeapon) return Combat().reach;
         std::uint32_t source = order->source;
@@ -542,7 +542,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     std::memset(out, 0, sizeof(DamageInfo));
     out->multiplier = kOne;
     CItemWeapon* weapon = nullptr;
-    if (keyed && self->activeWeapon < 4) weapon = static_cast<CItemWeapon*>(self->weapons[self->activeWeapon]);
+    if (keyed && self->activeWeapon < 4) weapon = AsWeapon(self->weapons[self->activeWeapon]);
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
         out->weaponValue = weapon->actionValue_;
@@ -581,11 +581,9 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
 }
 EI_REWRITTEN(0x0054F630, CUnitServer::BuildAttackHit);
 
-BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char calledShot) {
+BOOL CUnitServer::PrepareAttack(CMapObject* target, int location, char calledShot) {
     int backstab = unit->IsBehind(target) & 0xFF;
-    if (target->GetClassId() == kClassUnit &&
-        static_cast<CUnit*>(target)->ServerController()->NoBackstab())
-        backstab = 0;
+    if (CUnit* victim = UnitOrNull(target); victim && victim->ServerController()->NoBackstab()) backstab = 0;
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow))
         return BuildAttackHit(&pendingHit, 0, location, calledShot);

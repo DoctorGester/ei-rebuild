@@ -645,26 +645,26 @@ CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, poin
 namespace {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
 // object is gone or is not a unit; null at the end.
-CEngineObject* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
+CUnit* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
     while (object->GetClassId() != world::kClassUnit) {
         do {
             if (++client->hitCursor_ == client->hits_.finish) return nullptr;
             object = client->manager40_->FindObject(client->hitCursor_->objectId);
         } while (!object);
     }
-    return object;
+    return static_cast<CUnit*>(object);   // a unit (tested above)
 }
 } // namespace
 
-CEngineObject* CWorldClient::UnitAt(const long* point) {
+CUnit* CWorldClient::UnitAt(const long* point) {
     if (CEngineObject* picked = PickAt2(point)) {
-        if (CEngineObject* unit = FirstUnitHit(this, picked)) return unit;
+        if (CUnit* unit = FirstUnitHit(this, picked)) return unit;
     }
     CEngineObject* picked = PickAt(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-CEngineObject* CWorldClient::UnitAt2(const long* point) {
+CUnit* CWorldClient::UnitAt2(const long* point) {
     CEngineObject* picked = PickAt2(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }

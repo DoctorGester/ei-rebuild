@@ -256,8 +256,8 @@ void CSaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = SaveSpaceNeeded(TheGameFlow());
         if (static_cast<double>(needed) > space) {
-            void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1)
+            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+            CUiWindow* box = memory ? memory->Construct(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1)
                                     : nullptr;
             interface_->PushWindow(box, 1, 1);
             return;
@@ -557,7 +557,6 @@ mfc::CString FirstLineOf(const char* prefix, const mfc::CString& suffix) {
 
 constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";            // 00793A88
 constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";       // 00794994
-constexpr int kMessageBoxBytes = 0x180;
 constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
 constexpr const char* kFolderFormat = "%ssaves\\%s";
 constexpr const char* kEveryFile = "\\*.*";                             // 0078B054
@@ -565,8 +564,8 @@ constexpr const char* kEveryFile = "\\*.*";                             // 0078B
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
 // original does).
 void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
-    void* memory = gamecrt::operator_new(kMessageBoxBytes);
-    CUiWindow* box = memory != nullptr ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(ui, name, text, result, 3, 1) : nullptr;
+    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+    CUiWindow* box = memory != nullptr ? memory->Construct(ui, name, text, result, 3, 1) : nullptr;
     ui->PushWindow(box, 1, 1);
 }
 } // namespace

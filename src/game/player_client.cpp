@@ -379,7 +379,7 @@ int CPlayerClient::OnItemsReceived() {
             break;
         }
         auto* manager = TheClientWorld()->itemManager_;
-        if (auto* item = static_cast<CItem*>(manager->FindObject(static_cast<unsigned>(id)))) items.AddHead(item);
+        if (CItem* item = FindItem(manager, static_cast<unsigned>(id))) items.AddHead(item);
     }
     if (result != 0) {
         Owner()->GiveItems(&items, flag);
@@ -608,13 +608,13 @@ int CPlayerClient::OnNewObject() {
     CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;
     auto* object = static_cast<CMapObject*>(created);
-    auto* figure = static_cast<CObject3D*>(created);
+    CObject3D* figure = object;
     object->name = model;
     bool isUnit = created->GetClassId() == kClassUnitObject;
     created->prototypeId_ = header.prototype;
     figure->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, sizeof(scale));
-    ObjectSlots(created)->ApplyBaseScale();
+    object->ApplyBaseScale();
     object->name2 = static_cast<const char*>(secondName);   // 0050F150
     if (isUnit) {
         auto* unit = static_cast<CUnit*>(created);
@@ -677,11 +677,11 @@ int CPlayerClient::OnNewObject() {
     player->knownObjects_[header.id] = created;
     ++created->refCount_;
     if (CUnit* unit = UnitOrNull(created))
-        ObjectSlots(created)->TakePrototype(unit->GetPrototype()->name);
+        object->TakePrototype(unit->GetPrototype()->name);
     else
-        ObjectSlots(created)->TakePrototype(model);
-    static_cast<CMapObject*>(created)->WriteFullState();
-    if (static_cast<CMapObject*>(created)->ReadState(0, &in_) == 0) return 0;
+        object->TakePrototype(model);
+    object->WriteFullState();
+    if (object->ReadState(0, &in_) == 0) return 0;
     TheClientWorld()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;

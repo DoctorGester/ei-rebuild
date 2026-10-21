@@ -804,21 +804,17 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     name.TrimRight("0");
     name += "1";
     int group = SkillDb()->IndexOf(name) / 3;
-    const RecordTable& levels = unitdb::SkillLevels();
     for (int i = 0; i < 3; ++i) {
-        std::uint32_t index = static_cast<std::uint32_t>(group * 3 + i);
-        std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(levels.end - levels.begin) / 0x44);
-        if (index >= count) continue;
-        const char* level = levels.begin + group * 0xCC + i * 0x44;
+        const SkillLevelRecord* level = unitdb::SkillLevelAt(static_cast<std::uint32_t>(group * 3 + i));
         if (!level) continue;
         mfc::CString key("perk ");
-        key += *reinterpret_cast<const mfc::CString*>(level + 4);
+        key += level->name;
         if (texts->Open(key)) texts->ReadLine(&title, 1);
         w.Text(title);
         if (info->index > i) w.Draw()->Text(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
         w.Down();
         // The level's effect by the perk group.
-        int value = Read<int>(level, 0x34);
+        int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";
         const char* plain = "     %s %d";
         bool drawn = true;

@@ -12,6 +12,6 @@ constexpr int kClassMapObjectServer = 0x39;
 void CMapObject::ClearProtectionBases() {
     if (companion->GetClassId() != kClassMapObjectServer) return;
     // The original reloads the companion pointer for each store (two stores per pair, both +0).
-    for (UnitStatPair& pair : static_cast<CMapObjectServer*>(companion)->vitals.protection) pair.base = 0.0f;
+    for (UnitStatPair& pair : ServerCompanion()->vitals.protection) pair.base = 0.0f;
 }
 EI_REPLACE_METHOD(0x0050F080, CMapObject::ClearProtectionBases);

@@ -77,7 +77,7 @@ bool Greater(double a, double b) { return a > b; }   // TEST AH,0x41 not taken
 
 bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
+CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
 // _ftol (006E853C) of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
@@ -117,7 +117,7 @@ namespace {
 bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
     if (order->flag18) return false;
     CWorldServer* world = ServerWorld();
-    CEngineObject* target = order->target;
+    CMapObject* target = order->target;
 
     if (order->kind == kOrderCast || order->kind == kOrderCastAt) {
         CSpell* spell;
@@ -358,7 +358,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     int castDelay = 0;
 
     Vector3 aim;
-    if (order->target) ObjectSlots(order->target)->AimPoint(&aim);
+    if (order->target) order->target->AimPoint(&aim);
     else std::memcpy(&aim, &order->point, sizeof(aim));
     Vector3 delta;
     delta.x = aim.x - origin.x;
@@ -415,7 +415,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     for (int tick = 0; tick < ticks; ++tick) {
         if (predict) {
             Vector3 scratch;
-            const Vector3* p = ObjectSlots(order->target)->PositionAt(&scratch, tick + castDelay + duration + now);
+            const Vector3* p = order->target->PositionAt(&scratch, tick + castDelay + duration + now);
             std::memcpy(&aim, p, sizeof(aim));
             delta.x = aim.x - origin.x;
             delta.y = aim.y - origin.y;
@@ -477,7 +477,7 @@ bool CUnitServer::CanPlanAction(const UnitAction* order) {
     OrderPlan plan;
     std::memset(&plan, 0, sizeof(plan));
     plan.animation.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-    CEngineObject* target = order->target;
+    CMapObject* target = order->target;
     if (IsUnit(target)) target->flags_ |= kFlagPlanned;
     bool result = PlanAction(order, &plan);
     if (IsUnit(target)) target->flags_ &= ~kFlagPlanned;

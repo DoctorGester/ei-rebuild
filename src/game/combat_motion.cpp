@@ -117,7 +117,7 @@ int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x9
 int TickOf(const CWorld* world) { return world->tick_; }
 CWorldServer* ContextOf(CUnitServer* self) { return self->ServerWorld(); }
 // The unit's server object (CUnit + 0x170) and its vitals.
-UnitVitals& ServerVitals(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->companion)->vitals; }
+UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
 void StartQueueIfUnset(CUnitServer* self) {
     if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
@@ -730,7 +730,8 @@ EI_REWRITTEN(0x0054EB30, CUnitServer::ReportPath);
 
 namespace {
 // 0052B030 a reference's release, 0052A8F0 its assignment; 00544E70 does the queue hold `steps`.
-void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
+template <typename T>
+void __fastcall ReferenceRelease(T** a0) { CountedRefResetOriginal((void*)a0); }
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
 void RecordFromMode(MoveModeState* record, int mode) {
@@ -801,7 +802,7 @@ EI_REWRITTEN(0x00554450, CUnitServer::ResyncWithUnit);
 // --- Reset ---------------------------------------------------------------------------------------
 
 void CUnitServer::ResetController() {
-    auto releaseRef = [](CEngineObject*& ref) {   // 0052B030
+    auto releaseRef = [](CMapObject*& ref) {   // 0052B030
         if (ref) ref->Release();
         ref = nullptr;
     };

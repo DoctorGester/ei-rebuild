@@ -11,6 +11,7 @@
 #include <cstdint>
 
 class CAIMap;
+class CMapObject;
 class CUnit;
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
@@ -30,7 +31,6 @@ struct SectorOccluder {
 static_assert(sizeof(SectorOccluder) == 8);
 
 constexpr std::uintptr_t kSectorVtable = std::uintptr_t(0x0073FADC);
-constexpr std::uintptr_t kSectorOccluderArrayVtable = std::uintptr_t(0x0073FAE0);
 
 struct __declspec(novtable) Sector {
     virtual ~Sector() {}                         // 0: 0059E080
@@ -53,10 +53,10 @@ struct __declspec(novtable) Sector {
     // 0059E080 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
     Sector* DeletingDestruct(unsigned flags);
 
-    mfc::CTypedPtrList<CEngineObject> objects;   // +0x04 non-unit objects
+    mfc::CTypedPtrList<CMapObject> objects;      // +0x04 non-unit objects
     mfc::CTypedPtrList<CUnit> units;             // +0x20
     int freeOccluder;                            // +0x3C head of the free records (-1 none)
-    mfc::CArray<SectorOccluder> occluders;       // +0x40 (vtable 0073FAE0)
+    mfc::CArray<SectorOccluder> occluders;       // +0x40 (mfc_slots.h's SectorOccluderArrayClass)
 };
 static_assert(sizeof(Sector) == 0x54);
 static_assert(offsetof(Sector, freeOccluder) == 0x3C);
@@ -109,7 +109,7 @@ class CSectorMap {
 public:
     // 005C0DF0. Registers `object` in the sector under its position and stamps its footprint.
     // Undone again if the footprint does not fit.
-    bool Add(CEngineObject* object);
+    bool Add(CMapObject* object);
 
     // 005C0BD0. Fills `result` (cleared first) with the units within `radius` of `position`,
     // nearest sectors first; each match is inserted at the head of the list.
@@ -118,13 +118,13 @@ public:
     // 005C11D0. Moves `object` to `position`, re-stamping its footprint (restored on failure) and
     // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
     // first refuses a position with x or y below 0 (or NaN).
-    bool Move(CEngineObject* object, const Vector3* position);
+    bool Move(CMapObject* object, const Vector3* position);
 
     // 005C0930. The unit list of sector (sx, sy), null outside the map.
     mfc::CTypedPtrList<CUnit>* UnitsAt(int sx, int sy);
 
     // 005C1010. Unregisters `object` from the sector it was added to and clears its footprint.
-    bool Remove(CEngineObject* object);
+    bool Remove(CMapObject* object);
 
     // 005C06F0 (RET 0xC; called by CAIMap::Load). Sizes the map for a cell grid: width and
     // height in sectors (cells / 32, rounded towards zero), `added` 0, the sector array set to

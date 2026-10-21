@@ -44,8 +44,6 @@ namespace {
 using ei::SetVtable;
 
 // Vtables.
-// The unit motion's step speeds while constructed / destroyed (its points and waypoints: mfc_slots.h).
-constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
 
@@ -365,7 +363,7 @@ CUnit::~CUnit() {
     carriedVtable = mfc::impl::CarriedArrayClass::Vtable();
     if (carried) gamecrt::operator_delete(carried);
     UnitMotion* m = Motion();
-    DestroyArray(m->stepSpeeds, kMotionSpeedsEndVtable);
+    DestroyArray(m->stepSpeeds, mfc::impl::FloatArrayClass::Vtable());
     mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(m->waypoints);
     mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(m->points);
 }
@@ -487,9 +485,9 @@ void CUnitServer::DestructBody() {
     SetVtable(&armourSpells, gameslots::ArmourSpellListClass::Vtable());
     mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();   // 00558020
     if (CEngineObject* leader = followedLeader) leader->Release();
-    if (CEngineObject* target = action2.target) target->Release();
+    if (CMapObject* target = action2.target) target->Release();
     action2.target = nullptr;
-    if (CEngineObject* target = action.target) target->Release();
+    if (CMapObject* target = action.target) target->Release();
     action.target = nullptr;
     if (CEngineObject* effect = effectObject) effect->Release();
     DestroyArray(savedQueue, mfc::impl::AnimationStepsClass::Vtable());

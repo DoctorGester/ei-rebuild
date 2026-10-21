@@ -14,7 +14,10 @@
 // height to look up.
 struct ShapeCacheHandle {
     void* cache;
-    CRefObject* ref;
+    union {
+        CRefObject* ref;
+        RefPtr counted;   // the same dword as the owning pointer it is (Assign adds a reference)
+    };
     std::uint32_t key;
     float height;
 };

@@ -407,12 +407,12 @@ double HitPointExperienceCurve(const float* experience) {
 }
 
 // A level record's value (+0x34, unsigned) as the original's FILD of a zero-extended qword.
-double LevelOf(const char* record) {
-    volatile std::int64_t wide = reinterpret_cast<const SkillLevelRecord*>(record)->values[7];
+double LevelOf(const SkillLevelRecord* record) {
+    volatile std::int64_t wide = record->values[7];
     return static_cast<double>(wide);
 }
 double LevelOrZero(UnitStats* stats, int skill) {
-    const char* record = stats->SkillLevelRecord(skill);
+    const SkillLevelRecord* record = stats->SkillLevelRecord(skill);
     return record ? LevelOf(record) : kZero;
 }
 
@@ -427,7 +427,7 @@ void UnitStats::ResetToBase(float newLoad) {
         std::memcpy(&valuesE0[i].current, &valuesE0[i].base, 4);
     }
     double bonus = kZero;
-    if (const char* record = SkillLevelRecord(kSkillBodyB0)) {
+    if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         double level = LevelOf(record);
         EI_NAN_AUDIT(level);
         if (level != kZero) bonus = level * valuesB0[1].current * kPercent;
@@ -509,8 +509,7 @@ __declspec(naked) double __fastcall SkillWithBonusAt(UnitStats*, void*, std::uin
 float LevelAsFloat(const UnitStats* stats, int index) {
     std::uint8_t level = stats->skillLevels[index];   // unchecked
     if (level == 0) return kZero;
-    const char* record =
-        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
+    const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
     if (!record) return kZero;
     return static_cast<float>(LevelOf(record));
 }
@@ -558,13 +557,10 @@ bool NamesRequirement(const mfc::CString& text) {
     return gamecrt::mbscmp(static_cast<const char*>(text),
                            "none") != 0;
 }
-const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) {
-    return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));
-}
+const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
 } // namespace
 
-BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
-    const auto* record = reinterpret_cast<const ::SkillLevelRecord*>(recordBytes);
+BOOL UnitStats::CanLearn(const void* database, const ::SkillLevelRecord* record) {
     if (!record->learnable) return 0;
     EI_NAN_AUDIT(stat10, stat18, stat20);
     if (stat10 < record->RequiredStat(0)) return 0;

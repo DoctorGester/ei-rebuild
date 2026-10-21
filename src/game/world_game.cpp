@@ -13,6 +13,7 @@
 #include "ui_screens.h"
 #include "world.h"
 #include "game_flow_data.h"
+#include "game_slots.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -1142,7 +1143,7 @@ libcrt::Ostream* const kNetLog = ei::GamePointer<libcrt::Ostream>(0x007C56B0);  
 
 void CWorldServer::AcceptNewPlayers(void* lobby) {
     mfc::CTypedPtrList<netlink::NetLink> joined;
-    joined.vtable = ei::GamePointer<void>(kSessionListVtable);
+    joined.vtable = gameslots::RefListAClass::Vtable();
     joined.head = nullptr;
     joined.tail = nullptr;
     joined.count = 0;
@@ -1167,7 +1168,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         node = next;
     }
     // The list's inlined destructor: every reference released, then the blocks.
-    joined.vtable = ei::GamePointer<void>(kSessionListVtable);
+    joined.vtable = gameslots::RefListAClass::Vtable();
     for (auto* node = joined.head; node; node = node->next) ReleaseSession(node->data);
     joined.count = 0;
     joined.free = nullptr;
@@ -1269,7 +1270,7 @@ int __stdcall LoadMission(CStream* file) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
         TheInterface()->LoadState(&mission.s);
-        mission.s.ReadSized(static_cast<CStream*>(GameSaveStream()));
+        mission.s.ReadSized(GameSaveStream());
         ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
     }
     return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70

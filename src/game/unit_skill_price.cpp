@@ -44,16 +44,14 @@ int __fastcall SchoolPrice(int from, int to) {
 }
 EI_REPLACE(0x00527FF0, SchoolPrice);
 
-int UnitStats::SkillPrice(const char* record) {
-    auto* level = reinterpret_cast<const ::SkillLevelRecord*>(record);
+int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     int index = SkillDb()->IndexOfLevel(level);
     double worth = Worth(level->WorthExponent());
     double below;
     if (index % 3 > 0) {
         // The level below in the same skill: the record before it (read unchecked: a missing one
         // faults, as in the original).
-        auto* previous = reinterpret_cast<const ::SkillLevelRecord*>(
-            unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(index - 1), unitdb::kSkillLevelSize));
+        const ::SkillLevelRecord* previous = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index - 1));
         below = Worth(previous->WorthExponent());
     } else {
         below = Worth(0);

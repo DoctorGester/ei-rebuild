@@ -350,7 +350,7 @@ Next StartCharm(CSpellEffect* e) {
             return Next::Done;
         }
     }
-    e->CreateSound(0, "magic\\Charm\\start.wav", &static_cast<CUnit*>(e->target)->position, &kZeroVector, kVolume, kHearing);
+    e->CreateSound(0, "magic\\Charm\\start.wav", &e->target->position, &kZeroVector, kVolume, kHearing);
     return Next::Done;
 }
 

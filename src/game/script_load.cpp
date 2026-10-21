@@ -538,7 +538,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
             mfc::CArray<ScriptIfThen> ifThen;
             ScriptVars vars;
         } temp{};
-        temp.ifThen.vtable = ei::GamePointer<void>(0x0073D430);
+        temp.ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
         temp.vars.ScriptVarsConstruct();
         AppendNode(list, NewInstanceNode, [&](char* data) {
             auto* instance = reinterpret_cast<ScriptDefinition*>(data);

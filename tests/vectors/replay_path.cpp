@@ -88,8 +88,8 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
 
 // sector_map.cpp is not linked: FindPath's map was recorded with the unit taken out, and putting it
 // back changes nothing the search reads (IsPassableWithoutSelf, linked with ai_map.cpp, calls these).
-bool CSectorMap::Add(CEngineObject*) { return true; }
-bool CSectorMap::Remove(CEngineObject*) { return true; }
+bool CSectorMap::Add(CMapObject*) { return true; }
+bool CSectorMap::Remove(CMapObject*) { return true; }
 
 namespace {
 

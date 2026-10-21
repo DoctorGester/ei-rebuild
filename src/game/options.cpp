@@ -37,7 +37,6 @@ struct Text : mfc::CString {
 };
 int Text::FindChar(int c) const { return mfc::CString::Find(static_cast<char>(c)); }
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
-int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 constexpr std::uint32_t kCurrentUser = 0x80000001;   // HKEY_CURRENT_USER
 constexpr float kTimes255 = 255.0f;           // 0073C370
@@ -64,144 +63,150 @@ enum Kind { kInt, kDword, kFloat };
 
 // One value: the getter, the subkey field, the value name's address, the field it goes to (and
 // whose value is the default).
+using KeyField = mfc::CString GameOptions::*;
 struct Value {
     Kind kind;
-    std::uint8_t key;
+    KeyField key;
     const char* name;
     std::uint16_t field;
 };
 
 constexpr Value kVideoValues[] = {
-    {kDword, 0x0C, "VideoColorDepthInBits", 0x038},
-    {kDword, 0x0C, "VideoZBufferDepthInBits", 0x03C},
-    {kDword, 0x0C, "VideoRefreshRate", 0x040},
-    {kInt, 0x0C, "FullScreen", 0x044},
+    {kDword, &GameOptions::keyGeneral_, "VideoColorDepthInBits", 0x038},
+    {kDword, &GameOptions::keyGeneral_, "VideoZBufferDepthInBits", 0x03C},
+    {kDword, &GameOptions::keyGeneral_, "VideoRefreshRate", 0x040},
+    {kInt, &GameOptions::keyGeneral_, "FullScreen", 0x044},
 };
 // Joystick (+0x48, default 0) comes between these two lists.
 constexpr Value kAudioToGeneralValues[] = {
-    {kInt, 0x0C, "Video", 0x04C},
-    {kInt, 0x0C, "Audio", 0x050},
-    {kInt, 0x0C, "AudioStreaming", 0x054},
-    {kInt, 0x0C, "AudioSFX", 0x058},
-    {kInt, 0x0C, "AudioSpeech", 0x05C},
-    {kInt, 0x0C, "Antialiasing", 0x068},
-    {kInt, 0x0C, "Dithering", 0x060},
-    {kInt, 0x0C, "Specular", 0x064},
-    {kInt, 0x0C, "TextureQuality", 0x06C},
-    {kInt, 0x0C, "Mipmapping", 0x070},
-    {kInt, 0x0C, "Filtering", 0x074},
-    {kInt, 0x0C, "PerspectiveCorrection", 0x078},
-    {kInt, 0x0C, "ShowParticles", 0x07C},
-    {kInt, 0x0C, "FPSIndependentCursor", 0x080},
-    {kInt, 0x0C, "AutomaticQuantization", 0x084},
-    {kInt, 0x0C, "MovieCapturingFPS", 0x088},
-    {kFloat, 0x0C, "Brightness", 0x08C},
-    {kFloat, 0x0C, "Contrast", 0x090},
-    {kFloat, 0x0C, "Gamma", 0x094},
-    {kInt, 0x0C, "Reverse Stereo", 0x098},
-    {kInt, 0x14, "ShadowQuality", 0x09C},
-    {kInt, 0x14, "HeroShadow", 0x0A0},
-    {kInt, 0x14, "UnitShadow", 0x0A4},
-    {kInt, 0x14, "BuildingShadow", 0x0A8},
-    {kInt, 0x14, "FloraShadow", 0x0AC},
-    {kInt, 0x14, "OtherShadow", 0x0B0},
-    {kInt, 0x14, "LightingFreq", 0x0B4},
-    {kInt, 0x14, "FloraSpecialLight", 0x0B8},
-    {kFloat, 0x08, "LOD1", 0x0BC},
-    {kFloat, 0x08, "LOD2", 0x0C0},
-    {kFloat, 0x08, "BorderFogDistance", 0x0C4},
-    {kInt, 0x08, "EnableWaterWaves", 0x0C8},
-    {kInt, 0x08, "EnableDynamicLights", 0x0D0},
-    {kInt, 0x08, "EnableSelfShadowing", 0x0CC},
-    {kInt, 0x08, "LightingFreq", 0x0D4},
-    {kInt, 0x08, "ShadowingFreq", 0x0D8},
-    {kInt, 0x08, "EnableFootprints", 0x0DC},
-    {kInt, 0x08, "EnableBloodprints", 0x0E0},
-    {kInt, 0x08, "EnableFireprints", 0x0E4},
-    {kInt, 0x08, "EnableBloodprintsRelight", 0x0E8},
-    {kInt, 0x00, "CreateOutputInfo", 0x0EC},
-    {kInt, 0x00, "NumberOfFrames", 0x0F0},
+    {kInt, &GameOptions::keyGeneral_, "Video", 0x04C},
+    {kInt, &GameOptions::keyGeneral_, "Audio", 0x050},
+    {kInt, &GameOptions::keyGeneral_, "AudioStreaming", 0x054},
+    {kInt, &GameOptions::keyGeneral_, "AudioSFX", 0x058},
+    {kInt, &GameOptions::keyGeneral_, "AudioSpeech", 0x05C},
+    {kInt, &GameOptions::keyGeneral_, "Antialiasing", 0x068},
+    {kInt, &GameOptions::keyGeneral_, "Dithering", 0x060},
+    {kInt, &GameOptions::keyGeneral_, "Specular", 0x064},
+    {kInt, &GameOptions::keyGeneral_, "TextureQuality", 0x06C},
+    {kInt, &GameOptions::keyGeneral_, "Mipmapping", 0x070},
+    {kInt, &GameOptions::keyGeneral_, "Filtering", 0x074},
+    {kInt, &GameOptions::keyGeneral_, "PerspectiveCorrection", 0x078},
+    {kInt, &GameOptions::keyGeneral_, "ShowParticles", 0x07C},
+    {kInt, &GameOptions::keyGeneral_, "FPSIndependentCursor", 0x080},
+    {kInt, &GameOptions::keyGeneral_, "AutomaticQuantization", 0x084},
+    {kInt, &GameOptions::keyGeneral_, "MovieCapturingFPS", 0x088},
+    {kFloat, &GameOptions::keyGeneral_, "Brightness", 0x08C},
+    {kFloat, &GameOptions::keyGeneral_, "Contrast", 0x090},
+    {kFloat, &GameOptions::keyGeneral_, "Gamma", 0x094},
+    {kInt, &GameOptions::keyGeneral_, "Reverse Stereo", 0x098},
+    {kInt, &GameOptions::keyShadows_, "ShadowQuality", 0x09C},
+    {kInt, &GameOptions::keyShadows_, "HeroShadow", 0x0A0},
+    {kInt, &GameOptions::keyShadows_, "UnitShadow", 0x0A4},
+    {kInt, &GameOptions::keyShadows_, "BuildingShadow", 0x0A8},
+    {kInt, &GameOptions::keyShadows_, "FloraShadow", 0x0AC},
+    {kInt, &GameOptions::keyShadows_, "OtherShadow", 0x0B0},
+    {kInt, &GameOptions::keyShadows_, "LightingFreq", 0x0B4},
+    {kInt, &GameOptions::keyShadows_, "FloraSpecialLight", 0x0B8},
+    {kFloat, &GameOptions::keyTerrain_, "LOD1", 0x0BC},
+    {kFloat, &GameOptions::keyTerrain_, "LOD2", 0x0C0},
+    {kFloat, &GameOptions::keyTerrain_, "BorderFogDistance", 0x0C4},
+    {kInt, &GameOptions::keyTerrain_, "EnableWaterWaves", 0x0C8},
+    {kInt, &GameOptions::keyTerrain_, "EnableDynamicLights", 0x0D0},
+    {kInt, &GameOptions::keyTerrain_, "EnableSelfShadowing", 0x0CC},
+    {kInt, &GameOptions::keyTerrain_, "LightingFreq", 0x0D4},
+    {kInt, &GameOptions::keyTerrain_, "ShadowingFreq", 0x0D8},
+    {kInt, &GameOptions::keyTerrain_, "EnableFootprints", 0x0DC},
+    {kInt, &GameOptions::keyTerrain_, "EnableBloodprints", 0x0E0},
+    {kInt, &GameOptions::keyTerrain_, "EnableFireprints", 0x0E4},
+    {kInt, &GameOptions::keyTerrain_, "EnableBloodprintsRelight", 0x0E8},
+    {kInt, &GameOptions::keyStatistics_, "CreateOutputInfo", 0x0EC},
+    {kInt, &GameOptions::keyStatistics_, "NumberOfFrames", 0x0F0},
 };
 constexpr Value kCameraValues[] = {
-    {kFloat, 0x10, "CameraMinHeight", 0x0FC},
-    {kFloat, 0x10, "CameraMaxHeight", 0x100},
-    {kFloat, 0x10, "CameraDefaultHeight", 0x104},
-    {kFloat, 0x10, "CameraDefaultXDeploy", 0x108},
-    {kFloat, 0x10, "CameraDefaultYDeploy", 0x10C},
-    {kFloat, 0x10, "CameraMinDistanceToCarrier", 0x110},
-    {kFloat, 0x10, "CameraMaxDistanceToCarrier", 0x114},
-    {kFloat, 0x10, "CameraMinLimitDistanceToCarrier", 0x118},
-    {kFloat, 0x10, "CameraMaxLimitDistanceToCarrier", 0x11C},
-    {kFloat, 0x10, "CameraDefaultDistanceToCarrier", 0x120},
-    {kFloat, 0x10, "NearClipDistance", 0x1E0},
-    {kFloat, 0x10, "FarClipDistance", 0x1E4},
-    {kFloat, 0x10, "CameraDefaultMinPitch", 0x1D8},
-    {kFloat, 0x10, "CameraDefaultMaxPitch", 0x1DC},
-    {kFloat, 0x10, "CameraBriefingMinDistanceToCarrier", 0x124},
-    {kFloat, 0x10, "CameraBriefingMaxDistanceToCarrier", 0x128},
-    {kFloat, 0x10, "CameraBriefingMinLimitDistanceToCarrier", 0x12C},
-    {kFloat, 0x10, "CameraBriefingMaxLimitDistanceToCarrier", 0x130},
-    {kFloat, 0x10, "CameraBriefingMinPitch", 0x134},
-    {kFloat, 0x10, "CameraBriefingMaxPitch", 0x138},
-    {kInt, 0x10, "CameraBorderScrollArea", 0x13C},
-    {kInt, 0x10, "CameraFrameSelectionSensetiveArea", 0x140},
-    {kFloat, 0x10, "CameraTerrainSensetiveArea", 0x144},
-    {kFloat, 0x10, "CameraDefaultScrollSpeed", 0x148},
-    {kFloat, 0x10, "CameraDefaultScrollPowerMouse", 0x14C},
-    {kFloat, 0x10, "CameraDefaultScrollPowerKeyboard", 0x150},
-    {kFloat, 0x10, "CameraDefaultRotateSpeed", 0x154},
-    {kFloat, 0x10, "CameraDefaultRotatePowerMouse", 0x158},
-    {kFloat, 0x10, "CameraDefaultRotatePowerKeyboard", 0x15C},
-    {kFloat, 0x10, "CameraDefaultPitchSpeed", 0x160},
-    {kFloat, 0x10, "CameraDefaultPitchPowerMouse", 0x164},
-    {kFloat, 0x10, "CameraDefaultPitchPowerKeyboard", 0x168},
-    {kFloat, 0x10, "CameraDefaultZoomSpeed", 0x16C},
-    {kFloat, 0x10, "CameraDefaultZoomPowerMouse", 0x170},
-    {kFloat, 0x10, "CameraDefaultZoomPowerKeyboard", 0x174},
+    {kFloat, &GameOptions::keyCamera_, "CameraMinHeight", 0x0FC},
+    {kFloat, &GameOptions::keyCamera_, "CameraMaxHeight", 0x100},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultHeight", 0x104},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultXDeploy", 0x108},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultYDeploy", 0x10C},
+    {kFloat, &GameOptions::keyCamera_, "CameraMinDistanceToCarrier", 0x110},
+    {kFloat, &GameOptions::keyCamera_, "CameraMaxDistanceToCarrier", 0x114},
+    {kFloat, &GameOptions::keyCamera_, "CameraMinLimitDistanceToCarrier", 0x118},
+    {kFloat, &GameOptions::keyCamera_, "CameraMaxLimitDistanceToCarrier", 0x11C},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultDistanceToCarrier", 0x120},
+    {kFloat, &GameOptions::keyCamera_, "NearClipDistance", 0x1E0},
+    {kFloat, &GameOptions::keyCamera_, "FarClipDistance", 0x1E4},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultMinPitch", 0x1D8},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultMaxPitch", 0x1DC},
+    {kFloat, &GameOptions::keyCamera_, "CameraBriefingMinDistanceToCarrier", 0x124},
+    {kFloat, &GameOptions::keyCamera_, "CameraBriefingMaxDistanceToCarrier", 0x128},
+    {kFloat, &GameOptions::keyCamera_, "CameraBriefingMinLimitDistanceToCarrier", 0x12C},
+    {kFloat, &GameOptions::keyCamera_, "CameraBriefingMaxLimitDistanceToCarrier", 0x130},
+    {kFloat, &GameOptions::keyCamera_, "CameraBriefingMinPitch", 0x134},
+    {kFloat, &GameOptions::keyCamera_, "CameraBriefingMaxPitch", 0x138},
+    {kInt, &GameOptions::keyCamera_, "CameraBorderScrollArea", 0x13C},
+    {kInt, &GameOptions::keyCamera_, "CameraFrameSelectionSensetiveArea", 0x140},
+    {kFloat, &GameOptions::keyCamera_, "CameraTerrainSensetiveArea", 0x144},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultScrollSpeed", 0x148},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultScrollPowerMouse", 0x14C},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultScrollPowerKeyboard", 0x150},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultRotateSpeed", 0x154},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultRotatePowerMouse", 0x158},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultRotatePowerKeyboard", 0x15C},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultPitchSpeed", 0x160},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultPitchPowerMouse", 0x164},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultPitchPowerKeyboard", 0x168},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultZoomSpeed", 0x16C},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultZoomPowerMouse", 0x170},
+    {kFloat, &GameOptions::keyCamera_, "CameraDefaultZoomPowerKeyboard", 0x174},
 };
 constexpr Value kGameValues[] = {
-    {kFloat, 0x04, "DefaultWindForce", 0x1E8},
-    {kInt, 0x04, "DefaultTimeScale", 0x1EC},
-    {kInt, 0x04, "UseSWCursors", 0x1F0},
-    {kInt, 0x04, "SelectionType", 0x1F4},
-    {kFloat, 0x04, "CornerSize", 0x1F8},
-    {kInt, 0x04, "DrawVisibleOnly", 0x1FC},
-    {kInt, 0x04, "DrawPath", 0x200},
-    {kInt, 0x04, "DrawFlyingHP", 0x204},
-    {kInt, 0x04, "ShowTutorial", 0x208},
-    {kInt, 0x04, "Autosave", 0x20C},
-    {kFloat, 0x04, "ToolTip Time", 0x210},
-    {kInt, 0x04, "SwitchFilters", 0x214},
+    {kFloat, &GameOptions::keyGame_, "DefaultWindForce", 0x1E8},
+    {kInt, &GameOptions::keyGame_, "DefaultTimeScale", 0x1EC},
+    {kInt, &GameOptions::keyGame_, "UseSWCursors", 0x1F0},
+    {kInt, &GameOptions::keyGame_, "SelectionType", 0x1F4},
+    {kFloat, &GameOptions::keyGame_, "CornerSize", 0x1F8},
+    {kInt, &GameOptions::keyGame_, "DrawVisibleOnly", 0x1FC},
+    {kInt, &GameOptions::keyGame_, "DrawPath", 0x200},
+    {kInt, &GameOptions::keyGame_, "DrawFlyingHP", 0x204},
+    {kInt, &GameOptions::keyGame_, "ShowTutorial", 0x208},
+    {kInt, &GameOptions::keyGame_, "Autosave", 0x20C},
+    {kFloat, &GameOptions::keyGame_, "ToolTip Time", 0x210},
+    {kInt, &GameOptions::keyGame_, "SwitchFilters", 0x214},
 };
 constexpr Value kGameValues2[] = {
-    {kDword, 0x04, "Keyboard Layout", 0x228},
-    {kFloat, 0x04, "ObjectsLightingCoeff", 0x22C},
+    {kDword, &GameOptions::keyGame_, "Keyboard Layout", 0x228},
+    {kFloat, &GameOptions::keyGame_, "ObjectsLightingCoeff", 0x22C},
 };
 constexpr Value kFogValues[] = {
-    {kFloat, 0x04, "FogNightStartDistance", 0x260},
-    {kFloat, 0x04, "FogDayStartDistance", 0x264},
+    {kFloat, &GameOptions::keyGame_, "FogNightStartDistance", 0x260},
+    {kFloat, &GameOptions::keyGame_, "FogDayStartDistance", 0x264},
 };
 
 // One string option: subkey field, value name, field.
+using StringField = mfc::CString& (*)(GameOptions&);
+template <mfc::CString GameOptions::*Member>
+mfc::CString& StringOf(GameOptions& options) { return options.*Member; }
+template <int Index>
+mfc::CString& CdLabel(GameOptions& options) { return options.cdLabels_[Index]; }
 struct StringValue {
-    std::uint8_t key;
+    KeyField key;
     const char* name;
-    std::uint16_t field;
+    StringField field;
 };
 constexpr StringValue kPathValues[] = {
-    {0x18, "Work path", 0x020},
-    {0x18, "Resources path", 0x024},
-    {0x18, "CD-ROM Path", 0x028},
+    {&GameOptions::keyPaths_, "Work path", &StringOf<&GameOptions::workPath_>},
+    {&GameOptions::keyPaths_, "Resources path", &StringOf<&GameOptions::resourcesPath_>},
+    {&GameOptions::keyPaths_, "CD-ROM Path", &StringOf<&GameOptions::cdRomPath_>},
 };
 constexpr StringValue kCdValues[] = {
-    {0x04, "CD1 Label", 0x218},
-    {0x04, "CD2 Label", 0x21C},
-    {0x04, "CD3 Label", 0x220},
-    {0x04, "Font CharSet", 0x224},
+    {&GameOptions::keyGame_, "CD1 Label", &CdLabel<0>},
+    {&GameOptions::keyGame_, "CD2 Label", &CdLabel<1>},
+    {&GameOptions::keyGame_, "CD3 Label", &CdLabel<2>},
+    {&GameOptions::keyGame_, "Font CharSet", &StringOf<&GameOptions::fontCharSet_>},
 };
 constexpr StringValue kDefaultValues[] = {
-    {0x04, "DefaultMapName", 0x258},
-    {0x04, "DefaultStreamingSound", 0x25C},
+    {&GameOptions::keyGame_, "DefaultMapName", &StringOf<&GameOptions::defaultMapName_>},
+    {&GameOptions::keyGame_, "DefaultStreamingSound", &StringOf<&GameOptions::defaultStreamingSound_>},
 };
 
 // The lights: r, g, b stored as 0..1 (the registry holds 0..255), then the radius.
@@ -223,9 +228,9 @@ constexpr struct {
 
 class Loader {
 public:
-    Loader(char* options, CWinRegistry& key) : o_(options), key_(key) {}
+    Loader(GameOptions* options, CWinRegistry& key) : options_(options), o_(reinterpret_cast<char*>(options)), key_(key) {}
 
-    const char* Key(std::size_t offset) const { return *reinterpret_cast<const char* const*>(o_ + offset); }
+    const char* Key(KeyField field) const { return options_->*field; }
     std::uint32_t Bits(std::size_t offset) const {
         std::uint32_t v;
         std::memcpy(&v, o_ + offset, 4);
@@ -233,7 +238,7 @@ public:
     }
     void SetBits(std::size_t offset, std::uint32_t v) { std::memcpy(o_ + offset, &v, 4); }
     void SetFloat(std::size_t offset, float v) { std::memcpy(o_ + offset, &v, 4); }
-    mfc::CString& String(std::size_t offset) { return *reinterpret_cast<mfc::CString*>(o_ + offset); }
+    mfc::CString& String(StringField field) { return field(*options_); }
 
     void Read(const Value& v) {
         switch (v.kind) {
@@ -254,7 +259,7 @@ public:
     // Stored as -1 / 1 floats, kept in the registry as booleans.
     void ReadCameraFlip(std::size_t offset, const char* name) {
         int flipped = Bits(offset) == 0xBF800000u ? 1 : 0;   // the current value is -1
-        int value = key_.GetInt(Key(field::kKeyCamera), name, flipped);
+        int value = key_.GetInt(Key(&GameOptions::keyCamera_), name, flipped);
         SetFloat(offset, static_cast<float>(value ? -1 : 1));
     }
 
@@ -264,7 +269,7 @@ public:
             std::size_t base = field::kCameraShortcuts + i * 0x18;
             for (const auto& v : kShortcutValues) {
                 gamecrt::sprintf(name, v.format, i);
-                SetFloat(base + v.offset, static_cast<float>(key_.GetFloat(Key(field::kKeyCamera), name, Bits(base + v.offset))));
+                SetFloat(base + v.offset, static_cast<float>(key_.GetFloat(Key(&GameOptions::keyCamera_), name, Bits(base + v.offset))));
             }
         }
     }
@@ -273,15 +278,16 @@ public:
     void ReadLight(std::size_t offset, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c) {
             std::size_t f = offset + c * 4;
-            int value = key_.GetDWord(Key(field::kKeyGame), names[c], FtolProduct(o_ + f, kTimes255));
+            int value = key_.GetDWord(Key(&GameOptions::keyGame_), names[c], FtolProduct(o_ + f, kTimes255));
             StoreUnsignedProduct(o_ + f, static_cast<std::uint32_t>(value), kOver255);
         }
         std::size_t f = offset + 12;
-        int radius = key_.GetDWord(Key(field::kKeyGame), names[3], Ftol(o_ + f));
+        int radius = key_.GetDWord(Key(&GameOptions::keyGame_), names[3], Ftol(o_ + f));
         StoreUnsigned(o_ + f, static_cast<std::uint32_t>(radius));
     }
 
 private:
+    GameOptions* options_;
     char* o_;
     CWinRegistry& key_;
 };
@@ -290,15 +296,15 @@ private:
 // getter (GetInt -> SetInt, GetDword -> SetDword).
 class Saver {
 public:
-    Saver(char* options, CWinRegistry& key) : o_(options), key_(key) {}
+    Saver(GameOptions* options, CWinRegistry& key) : options_(options), o_(reinterpret_cast<char*>(options)), key_(key) {}
 
-    const char* Key(std::size_t offset) const { return *reinterpret_cast<const char* const*>(o_ + offset); }
+    const char* Key(KeyField field) const { return options_->*field; }
     std::uint32_t Bits(std::size_t offset) const {
         std::uint32_t v;
         std::memcpy(&v, o_ + offset, 4);
         return v;
     }
-    const mfc::CString& String(std::size_t offset) const { return *reinterpret_cast<const mfc::CString*>(o_ + offset); }
+    const mfc::CString& String(StringField field) const { return field(*options_); }
 
     void Write(const Value& v) {
         switch (v.kind) {
@@ -318,7 +324,7 @@ public:
 
     // 1 when the stored float is exactly -1 (compared as bits).
     void WriteCameraFlip(std::size_t offset, const char* name) {
-        key_.SetInt(Key(field::kKeyCamera), name, Bits(offset) == 0xBF800000u ? 1 : 0);
+        key_.SetInt(Key(&GameOptions::keyCamera_), name, Bits(offset) == 0xBF800000u ? 1 : 0);
     }
 
     void WriteCameraShortcuts() {
@@ -327,7 +333,7 @@ public:
             std::size_t base = field::kCameraShortcuts + i * 0x18;
             for (const auto& v : kShortcutValues) {
                 gamecrt::sprintf(name, v.format, i);
-                key_.SetFloat(Key(field::kKeyCamera), name, Bits(base + v.offset));
+                key_.SetFloat(Key(&GameOptions::keyCamera_), name, Bits(base + v.offset));
             }
         }
     }
@@ -335,11 +341,12 @@ public:
     // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
     void WriteLight(std::size_t offset, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c)
-            key_.SetDWord(Key(field::kKeyGame), names[c], FtolProduct(o_ + offset + c * 4, kTimes255));
-        key_.SetDWord(Key(field::kKeyGame), names[3], Ftol(o_ + offset + 12));
+            key_.SetDWord(Key(&GameOptions::keyGame_), names[c], FtolProduct(o_ + offset + c * 4, kTimes255));
+        key_.SetDWord(Key(&GameOptions::keyGame_), names[3], Ftol(o_ + offset + 12));
     }
 
 private:
+    GameOptions* options_;
     char* o_;
     CWinRegistry& key_;
 };
@@ -347,27 +354,26 @@ private:
 } // namespace
 
 void GameOptions::LoadFromRegistry(const char* path) {
-    char* o = reinterpret_cast<char*>(this);
     mfc::CString resolution;   // the original's local is constructed first, read later
     CWinRegistry key;
     key.Construct();
     key.Open(path, kCurrentUser);
-    Loader l(o, key);
+    Loader l(this, key);
 
     l.Read(kPathValues);
-    l.Read(Value{kInt, 0x0C, "DrawingTarget", 0x02C});
+    l.Read(Value{kInt, &GameOptions::keyGeneral_, "DrawingTarget", 0x02C});
     {
         // VideoResolution goes through the local string the original built first.
-        resolution = GetString(key, l.Key(field::kKeyVideo), "VideoResolution", resolution);
+        resolution = GetString(key, l.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
         int x = Ops(resolution).FindChar('x');
         if (x != -1) {
             l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(libcrt::Atoi(resolution.Left(x))));
             l.SetBits(field::kResolutionY,
-                      static_cast<std::uint32_t>(libcrt::Atoi(Ops(resolution).Right(Length(resolution) - x - 1))));
+                      static_cast<std::uint32_t>(libcrt::Atoi(Ops(resolution).Right(resolution.GetLength() - x - 1))));
         }
     }
     l.Read(kVideoValues);
-    l.SetBits(0x048, static_cast<std::uint32_t>(key.GetInt(l.Key(field::kKeyVideo), "Joystick", 0)));
+    l.SetBits(0x048, static_cast<std::uint32_t>(key.GetInt(l.Key(&GameOptions::keyGeneral_), "Joystick", 0)));
     l.Read(kAudioToGeneralValues);
     l.ReadCameraFlip(field::kCameraFlipX, "CameraFlipXAxis");
     l.ReadCameraFlip(field::kCameraFlipY, "CameraFlipYAxis");
@@ -378,33 +384,32 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(kGameValues2);
     l.ReadLight(field::kHeroLight, kHeroLightNames);
     l.ReadLight(field::kQuestLight, kQuestLightNames);
-    int difficulty = key.GetDWord(l.Key(field::kKeyGame), "Difficulty Level", static_cast<int>(l.Bits(field::kDifficulty + 4)));
+    int difficulty = key.GetDWord(l.Key(&GameOptions::keyGame_), "Difficulty Level", static_cast<int>(l.Bits(field::kDifficulty + 4)));
     l.SetBits(field::kDifficulty + 4, static_cast<std::uint32_t>(difficulty));
     l.SetBits(field::kDifficulty, static_cast<std::uint32_t>(difficulty));
     l.Read(kDefaultValues);
     l.Read(kFogValues);
-    l.String(field::kMasterServerName) =
-        GetString(key, l.Key(field::kKeyNetwork), "Master Server Name", l.String(field::kMasterServerName));
+    l.String(&StringOf<&GameOptions::masterServerName_>) =
+        GetString(key, l.Key(&GameOptions::keyNetwork_), "Master Server Name", l.String(&StringOf<&GameOptions::masterServerName_>));
     key.Close();
     key.Destroy();
 }
 EI_REPLACE_METHOD(0x0045B210, GameOptions::LoadFromRegistry);
 
 void GameOptions::SaveToRegistry(const char* path) {
-    char* o = reinterpret_cast<char*>(this);
     mfc::CString resolution;
     CWinRegistry key;
     key.Construct();
     key.Open(path, kCurrentUser);
-    Saver s(o, key);
+    Saver s(this, key);
 
     s.Write(kPathValues);
-    s.Write(Value{kInt, 0x0C, "DrawingTarget", 0x02C});
+    s.Write(Value{kInt, &GameOptions::keyGeneral_, "DrawingTarget", 0x02C});
     resolution.Format("%dx%d", static_cast<int>(s.Bits(field::kResolutionX)),
                       static_cast<int>(s.Bits(field::kResolutionY)));
-    SetString(key, s.Key(field::kKeyVideo), "VideoResolution", resolution);
+    SetString(key, s.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
     s.Write(kVideoValues);
-    key.SetInt(s.Key(field::kKeyVideo), "Joystick", 0);
+    key.SetInt(s.Key(&GameOptions::keyGeneral_), "Joystick", 0);
     s.Write(kAudioToGeneralValues);
     s.WriteCameraFlip(field::kCameraFlipX, "CameraFlipXAxis");
     s.WriteCameraFlip(field::kCameraFlipY, "CameraFlipYAxis");
@@ -415,12 +420,12 @@ void GameOptions::SaveToRegistry(const char* path) {
     s.Write(kGameValues2);
     s.WriteLight(field::kHeroLight, kHeroLightNames);
     s.WriteLight(field::kQuestLight, kQuestLightNames);
-    key.SetDWord(s.Key(field::kKeyGame), "Difficulty Level", static_cast<int>(s.Bits(field::kDifficulty + 4)));
+    key.SetDWord(s.Key(&GameOptions::keyGame_), "Difficulty Level", static_cast<int>(s.Bits(field::kDifficulty + 4)));
     s.Write(kDefaultValues);
     s.Write(kFogValues);
     // EI_Plugin's NewMaster NOPs these 42 bytes (0045D330): the Master Server Name is not saved.
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
-        SetString(key, s.Key(field::kKeyNetwork), "Master Server Name", s.String(field::kMasterServerName));
+        SetString(key, s.Key(&GameOptions::keyNetwork_), "Master Server Name", s.String(&StringOf<&GameOptions::masterServerName_>));
     key.Close();
     key.Destroy();
 }

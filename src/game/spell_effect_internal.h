@@ -311,7 +311,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     e->GetDamage(&hit);
     e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
     for (auto* node = units.head; node;) {
-        CEngineObject* unit = node->data;
+        CUnit* unit = node->data;
         node = node->next;
         if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }

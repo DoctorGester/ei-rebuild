@@ -9,6 +9,8 @@
 #include "ui_camp.h"
 #include "ui_briefing.h"
 #include "ui_create_screen.h"
+#include "ui_screens.h"
+#include "ui_view_screen.h"
 
 #include "ui.h"
 #include "ui_cursor.h"
@@ -48,8 +50,7 @@ Node* EmptyList() {
 
 // The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
 void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
-void SetVtables(void* window, void** vtable, void** inputVtable) {
-    auto* w = static_cast<CUiWindow*>(window);
+void SetVtables(CUiWindow* w, void** vtable, void** inputVtable) {
     w->vtable_ = vtable;
     w->Input()->vtable_ = inputVtable;
 }
@@ -57,34 +58,36 @@ void SetVtables(void* window, void** vtable, void** inputVtable) {
 } // namespace
 
 void CInterface3D::CreateScreen(int id) {
-    void* screen = nullptr;
+    CUiWindow* screen = nullptr;
     switch (id) {
     case 0:
         return;
     case 1: {   // the in-game screen (ui_camp.h)
-        screen = gamecrt::operator_new(0x230);
-        if (!screen) break;
-        static_cast<CUiContainer*>(screen)->Construct(this);
-        auto* battle = static_cast<CBattleScreen*>(screen);
+        auto* battle = gamecrt::operator_new_as<CBattleScreen>();
+        screen = battle;
+        if (!battle) break;
+        battle->CUiContainer::Construct(this);
         mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&battle->party_);
         mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&battle->heroes_);
         battle->personTexts_.Construct();          // 005F8F30
         battle->clientParty_.Construct();          // 005F6080
         battle->itemUseKey_.ConstructItemUseKey();  // 005F5F90
-        SetVtables(screen, Vtable(0x00740764), Vtable(0x00740730));
+        SetVtables(battle, Vtable(0x00740764), Vtable(0x00740730));
         break;
     }
-    case 2:
-        screen = gamecrt::operator_new(0x17C);
-        if (!screen) break;
-        static_cast<CUiContainer*>(screen)->Construct(this);
-        SetVtables(screen, Vtable(0x00740688), Vtable(0x00740654));
+    case 2: {   // the main menu
+        auto* menu = gamecrt::operator_new_as<CMainMenu>();
+        screen = menu;
+        if (!menu) break;
+        menu->CUiContainer::Construct(this);
+        SetVtables(menu, Vtable(0x00740688), Vtable(0x00740654));
         break;
+    }
     case 3: {   // the base / briefing screen
-        screen = gamecrt::operator_new(0x2A4);
-        if (!screen) break;
-        static_cast<CUiContainer*>(screen)->Construct(this);
-        auto* briefing = static_cast<CBriefingScreen*>(screen);
+        auto* briefing = gamecrt::operator_new_as<CBriefingScreen>();
+        screen = briefing;
+        if (!briefing) break;
+        briefing->CUiContainer::Construct(this);
         briefing->topics_.Construct();
         new (&briefing->topic_) mfc::CString();
         mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&briefing->party_);
@@ -96,36 +99,46 @@ void CInterface3D::CreateScreen(int id) {
         briefing->speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
         briefing->speakersEnd_ = nullptr;
         briefing->speakersCapacity_ = nullptr;
-        SetVtables(screen, Vtable(0x007405AC), Vtable(0x00740578));
+        SetVtables(briefing, Vtable(0x007405AC), Vtable(0x00740578));
         break;
     }
-    case 4:
-        screen = gamecrt::operator_new(0x294);
-        if (screen) static_cast<CGlobalMap*>(screen)->Construct(this);
+    case 4: {
+        auto* map = gamecrt::operator_new_as<CGlobalMap>();
+        if (map) map->Construct(this);
+        screen = map;
         break;
-    case 5:
-        screen = gamecrt::operator_new(0x260);
-        if (screen) static_cast<CCampPages*>(screen)->Construct(this, 0);
+    }
+    case 5: {
+        auto* camp = gamecrt::operator_new_as<CCampPages>();
+        if (camp) camp->Construct(this, 0);
+        screen = camp;
         break;
-    case 7:
-        screen = gamecrt::operator_new(0x168);
-        if (!screen) break;
-        static_cast<CUiContainer*>(screen)->Construct(this);
-        SetVtables(screen, Vtable(0x00740840), Vtable(0x0074080C));
+    }
+    case 7: {
+        auto* view = gamecrt::operator_new_as<CViewScreen>();
+        screen = view;
+        if (!view) break;
+        view->CUiContainer::Construct(this);
+        SetVtables(view, Vtable(0x00740840), Vtable(0x0074080C));
         break;
-    case 8:
-        screen = gamecrt::operator_new(0x1FC);
-        if (screen) Screen8Construct(screen, nullptr, this, 0, "Crdt");
+    }
+    case 8: {   // the titles (CCreditsScreen, ui_screens.h, has no window base in our headers)
+        void* credits = gamecrt::operator_new(sizeof(CCreditsScreen));
+        if (credits) Screen8Construct(credits, nullptr, this, 0, "Crdt");
+        screen = static_cast<CUiWindow*>(credits);
         break;
-    case 9:
-        screen = gamecrt::operator_new(0x1B8);
-        if (screen) Screen9Construct(screen, nullptr, this);
+    }
+    case 9: {
+        auto* exchange = gamecrt::operator_new_as<CExchangeScreen>();
+        if (exchange) Screen9Construct(exchange, nullptr, this);
+        screen = exchange;
         break;
+    }
     default:   // 6 and above 9: the id itself
-        screen = reinterpret_cast<void*>(static_cast<std::uintptr_t>(static_cast<unsigned>(id)));
+        screen = reinterpret_cast<CUiWindow*>(static_cast<std::uintptr_t>(static_cast<unsigned>(id)));
         break;
     }
-    Activate(static_cast<CUiWindow*>(screen));
+    Activate(screen);
 }
 
 // --- 005F7350: PushWindow --------------------------------------------------------------------------
@@ -274,12 +287,11 @@ void CInterface3D::ShowMessage(int force) {
     }
     if (messageText_.GetLength() == 0) return;
     if (options::TheOptions()->showTutorial_ == 0 && !forced) return;
-    void* memory = gamecrt::operator_new(0x194);
+    auto* win = gamecrt::operator_new_as<CHelpWindow>();
     CUiWindow* window = nullptr;
-    if (memory) {
+    if (win) {
         int value = messageFlag_;
-        static_cast<CUiContainer*>(memory)->Construct(this);
-        auto* win = static_cast<CHelpWindow*>(memory);
+        win->CUiContainer::Construct(this);
         win->message_ = true;
         new (&win->text_) mfc::CString(messageText_);
         ::new (&win->title_) mfc::CString;   // afxEmptyString
@@ -323,11 +335,10 @@ void CInterface3D::OpenHelp(int flag) {
     } else if (!forced) {
         return;
     }
-    void* memory = gamecrt::operator_new(0x194);
+    auto* win = gamecrt::operator_new_as<CHelpWindow>();
     CUiWindow* window = nullptr;
-    if (memory) {
-        static_cast<CUiContainer*>(memory)->Construct(this);
-        auto* win = static_cast<CHelpWindow*>(memory);
+    if (win) {
+        win->CUiContainer::Construct(this);
         win->message_ = false;
         new (&win->text_) mfc::CString(topic);
         ::new (&win->title_) mfc::CString;   // afxEmptyString
@@ -375,8 +386,8 @@ std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 } // namespace
 
 // 005F6F30 (thiscall, RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
-void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
-    static_cast<CUiContainer*>(self)->Construct(ui);
+void* __fastcall Screen9Construct(CExchangeScreen* self, void*, CInterface3D* ui) {
+    self->CUiContainer::Construct(ui);
     SetDword(self, 0x168, 0);
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;

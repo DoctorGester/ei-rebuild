@@ -148,7 +148,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     // Part names: the server companion's string array (+0x80) if it has any, else the object's own.
     // The AI map lives on the server, so the companion is a CMapObjectServer (the client one is 0x58
     // bytes).
-    auto* server = static_cast<CMapObjectServer*>(mapObject->companion);
+    auto* server = mapObject->ServerCompanion();
     const NameArray* names = reinterpret_cast<const NameArray*>(&server->strings);
     if (names->size == 0) names = reinterpret_cast<const NameArray*>(&mapObject->partNames);
 

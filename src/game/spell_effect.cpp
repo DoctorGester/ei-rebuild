@@ -46,8 +46,7 @@ void DestroyList(UnitList& list) {
 }
 
 // The test of IsSpellTarget, inlined by the original in the area loops.
-bool AcceptsAreaSpells(CEngineObject* object) {
-    auto* unit = static_cast<CUnit*>(object);
+bool AcceptsAreaSpells(CUnit* unit) {
     if (unit->sizeClass != 0) return true;
     float value = std::bit_cast<float>(unit->GetPrototype()->height);
     EI_NAN_AUDIT(value);
@@ -64,7 +63,7 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
 
 BOOL CSpellEffect::CallGetDamage(DamageInfo* out) { return GetDamage(out); }
 
-int __fastcall IsSpellTarget(CEngineObject* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
+int __fastcall IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
 EI_REWRITTEN(0x00681B80, IsSpellTarget);
 
 void CSpellEffect::HitUnit(DamageInfo* hit, CEngineObject* unit) { Deliver(this, hit, unit); }

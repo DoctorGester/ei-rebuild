@@ -259,10 +259,10 @@ void* CAIMap::MaterialRecordAt(const Vector3* position) {
 }
 EI_REWRITTEN(0x005BC1F0, CAIMap::MaterialRecordAt);
 
-void CAIMap::TurnObject(CEngineObject* object, const Quaternion* rotation) {
+void CAIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {
     CSectorMap* map = SectorMap();
     map->Remove(object);
-    static_cast<CMapObject*>(object)->orientation = *rotation;
+    object->orientation = *rotation;
     map->Add(object);
 }
 EI_REWRITTEN(0x005BC180, CAIMap::TurnObject);

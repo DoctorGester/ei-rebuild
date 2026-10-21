@@ -55,7 +55,7 @@ void FreeRefs(mfc::CArray<ScriptObjectRef>* a) {
 template <typename T>
 ScriptNamedValues<T>* Construct(ScriptNamedValues<T>* vars, void* valuesVtable) {
     InitArray(&vars->values, valuesVtable);
-    InitArray(&vars->names, scriptvtable::kStrings);
+    InitArray(&vars->names, gamearrays::ScriptStringValuesClass::Vtable());
     return vars;
 }
 
@@ -63,16 +63,16 @@ ScriptNamedValues<T>* Construct(ScriptNamedValues<T>* vars, void* valuesVtable) 
 
 // 004BC690 / 004BC740 / 004BC870 / 004BC950
 ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars) {
-    return Construct(vars, scriptvtable::kFloats);
+    return Construct(vars, mfc::impl::ScriptFloatValuesClass::Vtable());
 }
 ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsConstruct(ScriptNamedValues<mfc::CString>* vars) {
-    return Construct(vars, scriptvtable::kStrings);
+    return Construct(vars, gamearrays::ScriptStringValuesClass::Vtable());
 }
 ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars) {
     return Construct(vars, mfc::impl::ScriptGroupClass::Vtable());
 }
 ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars) {
-    return Construct(vars, scriptvtable::kGroups);
+    return Construct(vars, gamearrays::ScriptGroupValuesClass::Vtable());
 }
 
 // 004BC6C0

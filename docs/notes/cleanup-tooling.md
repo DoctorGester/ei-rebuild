@@ -48,6 +48,12 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   (write `w->CUiContainer::Construct(ui)`), `CCampPages::MoveItem` hides the item screen's
   (`camp->CItemScreen::MoveItem(...)`); an `auto*` local keeps the base type it had (`CEngineObject* texture = ...`).
 - A cast in a template body shows for one instantiation only: leave it.
+- The forced header is C++20-only (`_MSVC_LANG` guard): CMake's compiler check builds a test file with the
+  default standard under the same `/FI`. One site does not build (`world_server.cpp`, a volatile
+  pointer-to-pointer CONST cast); the scan lists the rest.
+- Downcasts that stay should go through one named accessor where the class is known by construction
+  (`CMapObject::ServerCompanion()`, `CUnit::GetWeapon` / `AsWeapon`, `FindItem`, `UnitOrNull` after a class
+  test, `ObjectSlots` where a generic lookup is a map object), not a cast at each use.
 
 ## Shared forwarder headers (cleanup ticket C3)
 

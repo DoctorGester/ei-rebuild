@@ -76,9 +76,9 @@ void ReturnToStrip(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) 
 
 // The made spell or item replaces the results: every result removed, the made one added
 // and released.
-void TakeMade(CParty* results, CEngineObject*& made) {
+void TakeMade(CParty* results, CItem*& made) {
     while (ItemCount(results) != 0) results->RemoveItem(ItemAt(results, 0), 0);
-    results->AddItem(static_cast<CItem*>(made), 0, 0);
+    results->AddItem(made, 0, 0);
     made->Release();
     made = nullptr;
 }
@@ -115,7 +115,7 @@ void AddAndRelease(CParty* party, CItemLoot* item) {
 bool CCampPages::DeconstructSpell() {
     CParty* results = PartyOf(spellResults_);
     CItem* copy = results->CopyItem(ItemAt(results, 0));
-    spellMade_ = reinterpret_cast<std::uint8_t*>(copy);
+    spellMade_ = copy;
     ++copy->refCount_;
     results->RemoveItem(ItemAt(results, 0), 0);
     auto* spell = copy->spell_;
@@ -128,7 +128,7 @@ bool CCampPages::DeconstructSpell() {
         rune->index_ = spell->modifiers_[i] - 1;
         AddAndRelease(results, rune);
     }
-    reinterpret_cast<CEngineObject*>(spellMade_)->Release();
+    spellMade_->Release();
     spellMade_ = nullptr;
     return true;
 }
@@ -163,7 +163,7 @@ void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, b
 bool CCampPages::DeconstructItem() {
     CParty* results = PartyOf(itemResults_);
     CItem* copy = results->CopyItem(ItemAt(results, 0));
-    itemMade_ = reinterpret_cast<std::uint8_t*>(copy);
+    itemMade_ = copy;
     ++copy->refCount_;
     results->RemoveItem(ItemAt(results, 0), 0);
 
@@ -171,7 +171,7 @@ bool CCampPages::DeconstructItem() {
         AddNamed(results, instruction, PrototypeIndex(copy), true);
     // A material per one the prototype needs; a material index out of range reads its key through
     // null, as in the original.
-    for (std::uint32_t i = 0; i < reinterpret_cast<const itemdb::ItemRecordHead*>(copy->GetPrototype())->materialUnits; ++i) {
+    for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
         // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.
         mfc::CString name(MaterialText());
@@ -192,7 +192,7 @@ bool CCampPages::DeconstructItem() {
             container->Release();
         }
     }
-    reinterpret_cast<CEngineObject*>(itemMade_)->Release();
+    itemMade_->Release();
     itemMade_ = nullptr;
     return true;
 }
@@ -284,9 +284,7 @@ void CCampPages::DoAction() {
         if (deconstructing_) {
             DeconstructSpell();
         } else if (spellMade_) {
-            auto* made = reinterpret_cast<CEngineObject*>(spellMade_);
-            TakeMade(PartyOf(spellResults_), made);
-            spellMade_ = nullptr;
+            TakeMade(PartyOf(spellResults_), spellMade_);
         }
         break;
     case kItemTrade:
@@ -299,9 +297,7 @@ void CCampPages::DoAction() {
         if (deconstructing_) {
             DeconstructItem();
         } else if (itemMade_) {
-            auto* made = reinterpret_cast<CEngineObject*>(itemMade_);
-            TakeMade(PartyOf(itemResults_), made);
-            itemMade_ = nullptr;
+            TakeMade(PartyOf(itemResults_), itemMade_);
         }
         break;
     case kRepair:

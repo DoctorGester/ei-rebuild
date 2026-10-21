@@ -17,11 +17,6 @@
 
 namespace {
 
-// The world position of an object (+0x1C, +0x20; common to all objects in the sector map).
-float PosX(const CEngineObject* o) { return static_cast<const CMapObject*>(o)->position.x; }
-float PosY(const CEngineObject* o) { return static_cast<const CMapObject*>(o)->position.y; }
-CUnit* AsUnit(CEngineObject* o) { return static_cast<CUnit*>(o); }
-
 constexpr float kCellSize = 1.0f;   // 0073FDD0
 constexpr float kZero = 0.0f;
 } // namespace
@@ -78,7 +73,7 @@ void __stdcall ConstructSectors(Sector* sectors, int count) {
     for (; count != 0; --count, ++sectors) {
         sectors->objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->units = {mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-        sectors->occluders.Construct(kSectorOccluderArrayVtable);
+        sectors->occluders.Construct(mfc::impl::SectorOccluderArrayClass::Vtable());
         ei::SetVtable(sectors, kSectorVtable);
         sectors->Clear();
     }
@@ -118,29 +113,29 @@ CSectorMap* CSectorMap::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0058A780, CSectorMap::DeletingDestruct);
 
-bool CSectorMap::Add(CEngineObject* object) {
-    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * PosX(object) - 0.5f);
-    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * PosY(object) - 0.5f);
+bool CSectorMap::Add(CMapObject* object) {
+    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->position.x - 0.5f);
+    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * object->position.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
     Sector& sector = sectors[width * sy + sx];
-    if (object->GetClassId() == kClassUnit) sector.units.AddTail(AsUnit(object));
+    if (CUnit* unit = UnitOrNull(object)) sector.units.AddTail(unit);
     else sector.objects.AddTail(object);
 
     bool fits = aiMap->MarkFootprint(object, false);
     if (fits) {
         ++added;
         object->flags_ |= kInSectorMap;
-        AsUnit(object)->sectorCellY = cellY;
-        AsUnit(object)->sectorCellX = cellX;
+        object->sectorCellY = cellY;
+        object->sectorCellX = cellX;
         return true;
     }
 
     // Does not fit: take it out of the list again.
     Sector& again = sectors[width * sy + sx];
-    if (object->GetClassId() == kClassUnit) {
-        if (auto* node = again.units.Find(AsUnit(object))) again.units.RemoveAt(node);
+    if (CUnit* unit = UnitOrNull(object)) {
+        if (auto* node = again.units.Find(unit)) again.units.RemoveAt(node);
     } else {
         if (auto* node = again.objects.Find(object)) again.objects.RemoveAt(node);
     }
@@ -154,13 +149,12 @@ mfc::CTypedPtrList<CUnit>* CSectorMap::UnitsAt(int sx, int sy) {
 }
 EI_REWRITTEN(0x005C0930, CSectorMap::UnitsAt);
 
-bool CSectorMap::Remove(CEngineObject* object) {
-    CUnit* unit = AsUnit(object);
-    int sx = unit->sectorCellX / 32, sy = unit->sectorCellY / 32;
+bool CSectorMap::Remove(CMapObject* object) {
+    int sx = object->sectorCellX / 32, sy = object->sectorCellY / 32;
     if (sx >= width || sy >= height) return false;
 
     Sector& sector = sectors[width * sy + sx];
-    if (object->GetClassId() == kClassUnit) {
+    if (CUnit* unit = UnitOrNull(object)) {
         auto* node = sector.units.Find(unit);
         if (!node) return false;
         sector.units.RemoveAt(node);
@@ -172,9 +166,9 @@ bool CSectorMap::Remove(CEngineObject* object) {
 
     bool cleared = aiMap->MarkFootprint(object, true);
     if (cleared) {
-        unit->NotifyCompanion();   // 0050E930
-        unit->sectorCellX = -1;
-        unit->sectorCellY = -1;
+        object->NotifyCompanion();   // 0050E930
+        object->sectorCellX = -1;
+        object->sectorCellY = -1;
     }
     return cleared;
 }
@@ -233,8 +227,6 @@ namespace {
 constexpr int kSpiralReach = 10;                                    // sectors either way
 constexpr int kSpiralCells = (kSpiralReach * 2 + 1) * (kSpiralReach * 2 + 1);
 constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA: the last radius
-// The vtables of the builder's own arrays: the cells (CArray of 8-byte records) and the radii.
-constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);
 
 // A sector of the square and how far it is: the gap between the sectors, in sectors.
 struct SpiralCell {
@@ -279,7 +271,7 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
 
     // A length per distinct distance: the offsets up to and including that distance.
     mfc::CArray<float> radii;
-    radii.Construct(kFloatArrayVtable);
+    radii.Construct(mfc::impl::FloatArrayClass::Vtable());
     lengths->SetSize(0, -1);
     radii.Add(0.0f);
     lengths->Add(1);
@@ -326,7 +318,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
         for (auto* node = sector.units.head; node;) {
             CUnit* unit = node->data;
             node = node->next;
-            float dx = PosX(unit) - px, dy = PosY(unit) - py;
+            float dx = unit->position.x - px, dy = unit->position.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
             if (distance < radiusSquared) result->AddHead(unit);
@@ -335,19 +327,18 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
 }
 EI_REWRITTEN(0x005C0BD0, CSectorMap::FindUnitsInRadius);
 
-bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
+bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     // Rebirth's FixMoveObject runs before the original: no move to a negative (or NaN) x or y.
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= kZero) || !(position->y >= kZero)))
         return false;
-    CUnit* unit = AsUnit(object);
-    Vector3& current = static_cast<CMapObject*>(object)->position;
+    Vector3& current = object->position;
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
     int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
     Vector3 saved;
     std::memcpy(&saved, &current, sizeof(saved));   // bitwise, like the original (no x87 round trip)
 
-    int oldSx = unit->sectorCellX / 32, oldSy = unit->sectorCellY / 32;
+    int oldSx = object->sectorCellX / 32, oldSy = object->sectorCellY / 32;
     if (oldSx >= width || oldSy >= height) return false;
     int newSx = cellX / 32, newSy = cellY / 32;
     if (newSx >= width || newSy >= height) return false;
@@ -368,7 +359,7 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
     if (changesSector) {
         Sector& from = sectors[width * oldSy + oldSx];
         Sector& to = sectors[width * newSy + newSx];
-        if (object->GetClassId() == kClassUnit) {
+        if (CUnit* unit = UnitOrNull(object)) {
             if (auto* node = from.units.Find(unit)) from.units.RemoveAt(node);
             to.units.AddTail(unit);
         } else {
@@ -377,8 +368,8 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
         }
     }
     object->flags_ |= kInSectorMap;
-    unit->sectorCellY = cellY;
-    unit->sectorCellX = cellX;
+    object->sectorCellY = cellY;
+    object->sectorCellX = cellX;
     return true;
 }
 EI_REPLACE_METHOD(0x005C11D0, CSectorMap::Move);

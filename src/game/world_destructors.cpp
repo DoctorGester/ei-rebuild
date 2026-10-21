@@ -136,7 +136,7 @@ void CWorld::Destruct() {
     auto* countdowns = &countdowns_;
     countdowns->vtable = mfc::impl::CountdownArrayClass::Vtable();
     countdowns->FreeData();
-    reinterpret_cast<RefPtr*>(&netSession_)->Destroy();
+    netSession_.Destroy();
     shared5C_.Destroy();
     if (CLinkFigureLoader* loader = figureLoader_)
         if (--loader->refCount_ == 0) loader->DeleteThis(1);
@@ -208,7 +208,7 @@ EI_REPLACE_METHOD(0x00562B60, Terrain::DeletingDestruct);
 void Sector::Destruct() {
     ei::SetVtable(this, kSectorVtable);
     Clear();
-    occluders.vtable = ei::GamePointer<void>(kSectorOccluderArrayVtable);
+    occluders.vtable = mfc::impl::SectorOccluderArrayClass::Vtable();
     occluders.FreeData();
     units.vtable = mfc::impl::PtrListClass::Vtable();
     units.RemoveAll();

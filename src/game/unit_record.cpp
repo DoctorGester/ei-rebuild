@@ -21,39 +21,19 @@
 namespace unitrecord {
 namespace {
 
-// The unit's methods used here, through their original addresses (006AC970 is patched by Rebirth;
-// the others may be rewritten elsewhere).
-struct Unit {
-    int AddQuickItem(void* item);           // 00531180
-    void AddCarried(void* item);            // 00531220
-    int AddSpell(void* spell);              // 00531820
-    void* EquipArmour(void* item);          // 00530730
-    int AddWeapon(void* item);              // 00531070
-};
-int Unit::AddQuickItem(void* a0) { return reinterpret_cast<CUnit*>(this)->AddQuickItem(static_cast<CItem*>(a0)); }
-void Unit::AddCarried(void* a0) { reinterpret_cast<CUnit*>(this)->AddCarried(static_cast<CItem*>(a0)); }
-int Unit::AddSpell(void* a0) { return reinterpret_cast<CUnit*>(this)->AddSpell(static_cast<CItem*>(a0)); }
-void* Unit::EquipArmour(void* a0) { return reinterpret_cast<CUnit*>(this)->EquipArmour(static_cast<CItem*>(a0)); }
-int Unit::AddWeapon(void* a0) { return reinterpret_cast<CUnit*>(this)->AddWeapon(static_cast<CItem*>(a0)); }
-
 // The unit's body slots (controller +0x1E0, unit.h UnitStats).
 struct Slots {
     void* RefillSlots();                                   // 00525AF0
 };
 void* Slots::RefillSlots() { return UnitStatsRefillSlotsOriginal(this); }
 
-// The item and spell factory (global pointer at 007AFFB4).
-struct Factory {
-    void* CreateItem(std::uint32_t id) {                        // 006AC970
-        return ItemManagerCreateItemOriginal(this, nullptr, reinterpret_cast<const char*>(id));
-    }
-    void* CreateSpell(std::uint32_t id, std::uint32_t owner);   // 006AD1E0
-};
-void* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) {
-    return reinterpret_cast<CItemManager*>(this)->CreateSpellItem(reinterpret_cast<const char*>(a0), reinterpret_cast<CSpellManager*>(a1));
+// The item and spell factory (global pointer at 007AFFB4) and the spell manager the spells are made for
+// (007AFFAC). The record names its items by the pointers to their names.
+CItem* CreateItem(CItemManager* factory, const char* name) {   // 006AC970 (patched by Rebirth)
+    return ItemManagerCreateItemOriginal(factory, nullptr, name);
 }
-Factory* TheFactory() { return ei::GameData<Factory*>(0x007AFFB4); }
-std::uint32_t SpellOwner() { return ei::GameData<const std::uint32_t>(0x007AFFAC); }
+CItemManager* TheFactory() { return ei::GameData<CItemManager*>(0x007AFFB4); }
+CSpellManager* SpellOwner() { return ei::GameData<CSpellManager*>(0x007AFFAC); }
 
 
 // *a = *b = float(value * *factor), the product rounded by the FPU's precision.
@@ -72,16 +52,16 @@ void SetDword(char* p, std::size_t offset, std::uint32_t v) { std::memcpy(p + of
 void SetFloat(char* p, std::size_t offset, float v) { std::memcpy(p + offset, &v, 4); }
 
 // A dword array of the record ({data, size} at `offset`).
-const std::uint32_t* Ids(const char* r, std::size_t offset) { return *reinterpret_cast<const std::uint32_t* const*>(r + offset); }
+const char* const* Ids(const char* r, std::size_t offset) {
+    const char* const* names;
+    std::memcpy(&names, r + offset, sizeof names);
+    return names;
+}
 int Count(const char* r, std::size_t offset) { return static_cast<int>(Dword(r, offset + 4)); }
 
-// The unit's fields (CUnit, ai_map.h owns the layout).
-constexpr std::size_t kUnitStats = 0x170;
-constexpr std::size_t kUnitController = 0x240;
-
-void AddItems(const char* r, Unit* unit, Factory* factory) {
-    for (int i = 0; i < Count(r, field::kQuickItems); ++i) unit->AddQuickItem(factory->CreateItem(Ids(r, field::kQuickItems)[i]));
-    for (int i = 0; i < Count(r, field::kCarried); ++i) unit->AddCarried(factory->CreateItem(Ids(r, field::kCarried)[i]));
+void AddItems(const char* r, CUnit* unit, CItemManager* factory) {
+    for (int i = 0; i < Count(r, field::kQuickItems); ++i) unit->AddQuickItem(CreateItem(factory, Ids(r, field::kQuickItems)[i]));
+    for (int i = 0; i < Count(r, field::kCarried); ++i) unit->AddCarried(CreateItem(factory, Ids(r, field::kCarried)[i]));
 }
 
 // The controller fields taken from the record (record offset, controller offset).
@@ -97,8 +77,8 @@ constexpr std::uint16_t kControllerCopies2[][2] = {
 
 void UnitRecord::ApplyTo(CUnit* target) {
     const char* r = reinterpret_cast<const char*>(this);
-    Factory* factory = TheFactory();
-    Unit* unit = reinterpret_cast<Unit*>(target);
+    CItemManager* factory = TheFactory();
+    CUnit* unit = target;
     float k0;
     std::memcpy(&k0, ei::GamePointer<const void>(0x0073B858), 4);   // 0.0
     float f10, f14;
@@ -112,9 +92,8 @@ void UnitRecord::ApplyTo(CUnit* target) {
     }
 
     target->ReleaseAllItems();
-    char* u = reinterpret_cast<char*>(target);
-    char* stats = *reinterpret_cast<char**>(u + kUnitStats);
-    char* controller = *reinterpret_cast<char**>(u + kUnitController);
+    char* stats = reinterpret_cast<char*>(target->companion);   // +0x170
+    char* controller = reinterpret_cast<char*>(target->controller);
     SetFloat(stats, 0x28, static_cast<float>(static_cast<int>(Dword(r, 0x0))));
     SetFloat(stats, 0x2C, static_cast<float>(static_cast<int>(Dword(r, 0x4))));
     SetFloat(stats, 0x34, static_cast<float>(static_cast<int>(Dword(r, 0x8))));
@@ -152,10 +131,10 @@ void UnitRecord::ApplyTo(CUnit* target) {
     }
     libcrt::Memmove(controller + 0x8A8, r + field::kBytesA4, 3);
 
-    for (int i = 0; i < Count(r, field::kSpells); ++i) unit->AddSpell(factory->CreateSpell(Ids(r, field::kSpells)[i], SpellOwner()));
+    for (int i = 0; i < Count(r, field::kSpells); ++i) unit->AddSpell(factory->CreateSpellItem(Ids(r, field::kSpells)[i], SpellOwner()));
     AddItems(r, unit, factory);
-    for (int i = 0; i < Count(r, field::kArmour); ++i) unit->EquipArmour(factory->CreateItem(Ids(r, field::kArmour)[i]));
-    for (int i = 0; i < Count(r, field::kWeapons); ++i) unit->AddWeapon(factory->CreateItem(Ids(r, field::kWeapons)[i]));
+    for (int i = 0; i < Count(r, field::kArmour); ++i) unit->EquipArmour(CreateItem(factory, Ids(r, field::kArmour)[i]));
+    for (int i = 0; i < Count(r, field::kWeapons); ++i) unit->AddWeapon(CreateItem(factory, Ids(r, field::kWeapons)[i]));
 }
 EI_REWRITTEN(0x00477B00, UnitRecord::ApplyTo);
 

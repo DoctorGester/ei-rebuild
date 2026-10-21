@@ -55,13 +55,13 @@ std::uint8_t CAIMap::SetRefreshUnits(int on) {
 }
 EI_REWRITTEN(0x004BA090, CAIMap::SetRefreshUnits);
 
-bool CAIMap::AddToSectors(CEngineObject* object) { return Sectors(this)->Add(object); }
+bool CAIMap::AddToSectors(CMapObject* object) { return Sectors(this)->Add(object); }
 EI_REWRITTEN(0x004BA0A0, CAIMap::AddToSectors);
 
-bool CAIMap::RemoveFromSectors(CEngineObject* object) { return Sectors(this)->Remove(object); }
+bool CAIMap::RemoveFromSectors(CMapObject* object) { return Sectors(this)->Remove(object); }
 EI_REWRITTEN(0x004BA0C0, CAIMap::RemoveFromSectors);
 
-bool CAIMap::MoveInSectors(CEngineObject* object, const Vector3* position) {
+bool CAIMap::MoveInSectors(CMapObject* object, const Vector3* position) {
     return SectorMapMove(Sectors(this), nullptr, object, position);
 }
 EI_REWRITTEN(0x004BA0E0, CAIMap::MoveInSectors);

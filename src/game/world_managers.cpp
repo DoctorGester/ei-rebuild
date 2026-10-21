@@ -45,7 +45,7 @@ void CWorld::DestroyManagers() {
     }
     DeleteManager(players_);
     DropShared(&shared5C_);
-    DropShared(reinterpret_cast<RefPtr*>(&netSession_));
+    DropShared(&netSession_);
     DeleteManager(manager40_);
     DeleteManager(manager3C_);
     if (CLinkFigureLoader* loader = figureLoader_) {

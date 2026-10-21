@@ -54,11 +54,6 @@ EI_REWRITTEN(0x00599FA0, CountedEngineList::AddTailCounted);
 
 namespace {
 
-// The if-then array of a definition the lists build (the array's derived vtable).
-struct DefinitionIfThenClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D430); }
-};
-
 // A command block's copy constructor (inlined by 004C69B0): the array's constructor, SetSize to the
 // source's size, each command a GetAt copy assigned and destroyed; then the id.
 void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
@@ -79,7 +74,7 @@ void CopyConstructDefinition(ScriptDefinition* to, const ScriptDefinition* from)
     to->index = from->index;
     new (&to->name) mfc::CString(from->name);
     new (&to->params) mfc::CString(from->params);
-    mfc::impl::ConstructHeader<DefinitionIfThenClass>(&to->ifThen);
+    mfc::impl::ConstructHeader<mfc::impl::ScriptIfThenPairsClass>(&to->ifThen);
     to->ifThen.SetSize(from->ifThen.size, -1);
     for (int i = 0; i < from->ifThen.size; ++i) to->ifThen.data[i] = from->ifThen.data[i];
     to->vars.ScriptVarsCopyConstruct(&from->vars);
@@ -135,7 +130,7 @@ typename List::Node* LinkTail(List* self, typename List::Node* node) {
 void InitDefinition(ScriptDefinition* p) {
     new (&p->name) mfc::CString();
     new (&p->params) mfc::CString();
-    mfc::impl::ConstructHeader<DefinitionIfThenClass>(&p->ifThen);
+    mfc::impl::ConstructHeader<mfc::impl::ScriptIfThenPairsClass>(&p->ifThen);
     p->vars.ScriptVarsConstruct();
     p->index = 0;
 }

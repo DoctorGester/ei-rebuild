@@ -113,12 +113,12 @@ void CEffectShowVisibility::Pack(DeltaField* field) {
 
 int CEffectShowVisibility::Tick() {
     if (!WorldContext()->IsServer()) return 1;
-    CEngineObject* seer = WorldFindUnit(ObjectWorld(this), nullptr, seerId_);
-    CEngineObject* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
+    CUnit* seer = WorldFindUnit(ObjectWorld(this), nullptr, seerId_);
+    CUnit* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
     if (seer == nullptr || observer == nullptr) return 0;
-    std::memcpy(&localPosition_, &static_cast<CMapObject*>(seer)->position.x, sizeof(Vector3));
+    std::memcpy(&localPosition_, &seer->position.x, sizeof(Vector3));
     // 005CD210: the squares `seer` sees, with `observer`'s skills (the fog grid is a VisibilityGrid).
-    MarkSightCells(static_cast<CUnit*>(seer), static_cast<CUnit*>(observer), reinterpret_cast<VisibilityGrid*>(&grid_));
+    MarkSightCells(seer, observer, reinterpret_cast<VisibilityGrid*>(&grid_));
     MarkChanged();
     return 1;
 }

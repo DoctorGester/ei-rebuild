@@ -54,7 +54,7 @@ CPlayerServer* PlayerConnection(CUnit* unit) { return unit->player->Server(); }
 // The shared tail of the kind 6 setters: the queued order (reset first, inlined 0054B230) becomes
 // a use of `target` with `source`, +0x1C `spot` and +0x20 `run`, and is planned; reset again when the
 // planner refuses.
-void QueueUse(CUnitServer* self, CEngineObject* target, std::uint32_t source, int spot, int run, int shout) {
+void QueueUse(CUnitServer* self, CMapObject* target, std::uint32_t source, int spot, int run, int shout) {
     UnitAction& order = self->action2;
     order.Reset();
     order.kind = kOrderUse;
@@ -99,33 +99,33 @@ void CUnitServer::SetWantedWeapon(int slot) {
 }
 EI_REPLACE_METHOD(0x005552E0, CUnitServer::SetWantedWeapon);
 
-void CUnitServer::OrderSteal(CEngineObject* target, int run) {
-    if (!target || ObjectSlots(target)->IsDead() != 0 || target == unit) return;
+void CUnitServer::OrderSteal(CMapObject* target, int run) {
+    if (!target || target->IsDead() != 0 || target == unit) return;
     QueueUse(this, target, kSourceSteal, 0, run, kShoutSteal);
 }
 EI_REPLACE_METHOD(0x005553B0, CUnitServer::OrderSteal);
 
-void CUnitServer::OrderTame(CEngineObject* target, int run) {
-    if (!target || ObjectSlots(target)->IsDead() != 0 || target == unit) return;
+void CUnitServer::OrderTame(CMapObject* target, int run) {
+    if (!target || target->IsDead() != 0 || target == unit) return;
     auto* other = static_cast<CUnit*>(target);
     if (other->player == unit->player || other->prototypeId_ == kUntameable) return;
     QueueUse(this, target, kSourceTame, 0, run, kShoutTame);
 }
 EI_REPLACE_METHOD(0x00555480, CUnitServer::OrderTame);
 
-void CUnitServer::OrderUse(CEngineObject* target, int spot, int run) {
+void CUnitServer::OrderUse(CMapObject* target, int spot, int run) {
     if (!target) return;
     QueueUse(this, target, kSourceUse, spot, run, kShoutUse);
 }
 EI_REPLACE_METHOD(0x00555570, CUnitServer::OrderUse);
 
-void CUnitServer::OrderSearchBody(CEngineObject* target, int run) {
-    if (!target || ObjectSlots(target)->IsDead() == 0 || target == unit) return;
+void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
+    if (!target || target->IsDead() == 0 || target == unit) return;
     QueueUse(this, target, kSourceSearchBody, 0, run, kShoutSearchBody);
 }
 EI_REPLACE_METHOD(0x00555630, CUnitServer::OrderSearchBody);
 
-bool CUnitServer::TargetBusy(CEngineObject* target) {
+bool CUnitServer::TargetBusy(CMapObject* target) {
     if (target->flags_ & kFlagShared) return !TheServerWorld()->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
     for (auto* node = ai->memory.nearby.head; node; node = node->next) {

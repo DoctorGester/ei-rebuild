@@ -68,9 +68,9 @@ std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
     UnitStatsRefillSlotsOriginal(&stats);
     ServerSlots(this)->RefreshVitals(0);
     // The companion's vitals: hit points and mana at their maxima (the companion read again).
-    auto* companion = static_cast<CMapObjectServer*>(unit->companion);
+    auto* companion = unit->ServerCompanion();
     std::memcpy(&companion->vitals.hitPoints, &companion->vitals.maxHitPoints, 4);
-    companion = static_cast<CMapObjectServer*>(unit->companion);
+    companion = unit->ServerCompanion();
     std::memcpy(&companion->vitals.mana, &companion->vitals.maxMana, 4);
     return reinterpret_cast<std::uintptr_t>(companion);
 }
