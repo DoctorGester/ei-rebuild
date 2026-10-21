@@ -128,7 +128,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = far;
-        ScriptLooksSetAtGrow(reinterpret_cast<mfc::CArray<AILook>*>(&planned), nullptr, planned.size, &look);
+        planned.SetAtGrow(planned.size, look);
     }
 }
 EI_REPLACE_METHOD(0x005D5B40, AIBrain::PlanLooks);

@@ -256,16 +256,15 @@ BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
 }
 EI_REPLACE_METHOD(0x004E13E0, CTextManager::FormatItemName);
 
-void __fastcall TextSourcesBegin(TextSourceList* list, void*, TextSourceNode** out) { *out = list->head->next; }
-EI_REPLACE(0x004E1530, TextSourcesBegin);
+void TextSources::Begin(Node** out) { *out = head->next; }
+EI_REPLACE_METHOD(0x004E1530, TextSources::Begin);
 // Byte-identical copies (other lists' begin in the world range; A-W12).
-EI_REPLACE(0x00560030, TextSourcesBegin);
-EI_REPLACE(0x00560040, TextSourcesBegin);
-EI_REPLACE(0x0056DF90, TextSourcesBegin);
-EI_REPLACE(0x0056DFE0, TextSourcesBegin);
+EI_REPLACE_METHOD(0x00560030, TextSources::Begin);
+EI_REPLACE_METHOD(0x00560040, TextSources::Begin);
+EI_REPLACE_METHOD(0x0056DF90, TextSources::Begin);
+EI_REPLACE_METHOD(0x0056DFE0, TextSources::Begin);
 
-TextSourceNode** __fastcall TextSourcesErase(TextSourceList*, void*, TextSourceNode** out, TextSourceNode* pos) {
-    using Node = TextSourceNode;
+TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     Node* next = pos->next;
     Node* prev = pos->prev;
     prev->next = next;
@@ -280,16 +279,15 @@ TextSourceNode** __fastcall TextSourcesErase(TextSourceList*, void*, TextSourceN
     *out = next;
     return out;
 }
-EI_REPLACE(0x004E1550, TextSourcesErase);
+EI_REPLACE_METHOD(0x004E1550, TextSources::Erase);
 
-TextSourceNode* __fastcall TextSourcesCreateNode(TextSourceList*, void*, const TextSource* value) {
-    return TextSourceList::CreateNode(*value);
+TextSources::Node* TextSources::CreateNode(const TextSource* value) {
+    return stlp::list<TextSource>::CreateNode(*value);
 }
-EI_REPLACE(0x004E15C0, TextSourcesCreateNode);
+EI_REPLACE_METHOD(0x004E15C0, TextSources::CreateNode);
 
-TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextSourceNode** out, TextSourceNode* pos,
-                                              const TextSource* value) {
-    TextSourceNode* node = TextSourcesCreateNode(list, nullptr, value);
+TextSources::Node** TextSources::Insert(Node** out, Node* pos, const TextSource* value) {
+    Node* node = CreateNode(value);
     node->next = pos;
     node->prev = pos->prev;
     pos->prev->next = node;
@@ -297,7 +295,7 @@ TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextS
     *out = node;
     return out;
 }
-EI_REPLACE(0x004E1590, TextSourcesInsert);
+EI_REPLACE_METHOD(0x004E1590, TextSources::Insert);
 
 CTextManager::SourceNode** TextSourceIterator::CopyTo(CTextManager::SourceNode** out) {
     *out = node;

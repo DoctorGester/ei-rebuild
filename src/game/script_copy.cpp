@@ -92,17 +92,15 @@ ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
 }
 EI_REPLACE_METHOD(0x004CB2D0, ScriptDecl::ScriptDeclAssign);
 
-// The FX source element (0x34 bytes): words copied, the name (+0x08) assigned.
-void* __fastcall ScriptFxSourceAssign(void* self, void*, const void* other) {
-    auto* to = static_cast<std::uint32_t*>(self);
-    auto* from = static_cast<const std::uint32_t*>(other);
-    to[0] = from[0];
-    to[1] = from[1];
-    *reinterpret_cast<mfc::CString*>(&to[2]) = *reinterpret_cast<const mfc::CString*>(&from[2]);
-    for (int i = 3; i < 0x34 / 4; ++i) to[i] = from[i];
-    return self;
+// The FX source element (0x34 bytes): the first two words, the name assigned, the rest copied as words.
+ScriptFxSource* ScriptFxSource::ScriptFxSourceAssign(const ScriptFxSource* other) {
+    object = other->object;
+    id = other->id;
+    name = other->name;
+    std::memcpy(static_cast<void*>(&position), &other->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position));
+    return this;
 }
-EI_REPLACE(0x004CB220, ScriptFxSourceAssign);
+EI_REPLACE_METHOD(0x004CB220, ScriptFxSource::ScriptFxSourceAssign);
 
 // ---- Copy constructors ---------------------------------------------------------------------------
 //
@@ -118,9 +116,9 @@ namespace {
 
 // GetAt by value: CString (004C2680), a referenced ScriptObjectRef (004C21E0), a ScriptGroup copy
 // (004C3B00); __thiscall (out, index), returning out.
-void* __fastcall StringAt(const void* a0, void*, void* a2, int a3) {
-    return mfc::impl::StringArrayAbi::GetAt(static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr,
-                                            static_cast<mfc::impl::CString*>(a2), a3);
+void* StringAt(const void* array, void* out, int index) {
+    return mfc::impl::StringArrayAbi::GetAt(static_cast<const mfc::impl::StringArrayAbi::Array*>(array), nullptr,
+                                            static_cast<mfc::impl::CString*>(out), index);
 }
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
@@ -143,7 +141,7 @@ void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::
     to->SetSize(from->size, -1);
     for (int i = 0; i < from->size; ++i) {
         TempString s;
-        StringAt(from, nullptr, &s, i);
+        StringAt(from, &s, i);
         to->data[i] = s.Get();
     }
 }
@@ -173,17 +171,16 @@ void Release(CEngineObject* object) {
 
 } // namespace
 
-SSCCmd* __fastcall ScriptCmdCopyAt(const mfc::CArray<SSCCmd>* self, void*, SSCCmd* out, int index) {
-    CopyConstructCmd(out, &self->data[index]);
+SSCCmd* ScriptCommands::CopyAt(SSCCmd* out, int index) const {
+    CopyConstructCmd(out, &data[index]);
     return out;
 }
-EI_REPLACE(0x004CE750, ScriptCmdCopyAt);
+EI_REPLACE_METHOD(0x004CE750, ScriptCommands::CopyAt);
 
 // The nested call's command is deep-copied into a new one; when operator new fails, the copy's
 // command is null.
-ScriptSubCall* __fastcall ScriptSubCallCopyAt(const mfc::CArray<ScriptSubCall>* self, void*, ScriptSubCall* out,
-                                              int index) {
-    const ScriptSubCall* from = &self->data[index];
+ScriptSubCall* ScriptSubCalls::CopyAt(ScriptSubCall* out, int index) const {
+    const ScriptSubCall* from = &data[index];
     out->type = from->type;
     out->argIndex = from->argIndex;
     auto* cmd = static_cast<SSCCmd*>(gamecrt::operator_new(sizeof(SSCCmd)));
@@ -195,31 +192,30 @@ ScriptSubCall* __fastcall ScriptSubCallCopyAt(const mfc::CArray<ScriptSubCall>* 
     out->cmd = cmd;
     return out;
 }
-EI_REPLACE(0x004CCAA0, ScriptSubCallCopyAt);
+EI_REPLACE_METHOD(0x004CCAA0, ScriptSubCalls::CopyAt);
 
 // A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
 // name assigned from a GetAt copy.
-mfc::CArray<mfc::CString>* __fastcall ScriptNamesCopyConstruct(mfc::CArray<mfc::CString>* self, void*,
-                                                            const mfc::CArray<mfc::CString>* other) {
-    InitArray(self, scriptvtable::kStrings);
+ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
+    InitArray(this, scriptvtable::kStrings);
     int n = other->size;
     if (n == 0) {
-        self->maxSize = 0;
-        self->size = 0;
+        maxSize = 0;
+        size = 0;
     } else {
-        self->data = static_cast<mfc::CString*>(gamecrt::operator_new(static_cast<std::size_t>(n) * 4));
-        ConstructStrings(self->data, n);
-        self->maxSize = n;
-        self->size = n;
+        data = static_cast<mfc::CString*>(gamecrt::operator_new(static_cast<std::size_t>(n) * 4));
+        ConstructStrings(data, n);
+        maxSize = n;
+        size = n;
     }
     for (int i = 0; i < other->size; ++i) {
         TempString s;
-        StringAt(other, nullptr, &s, i);
-        self->data[i] = s.Get();
+        StringAt(other, &s, i);
+        data[i] = s.Get();
     }
-    return self;
+    return this;
 }
-EI_REPLACE(0x004CBA00, ScriptNamesCopyConstruct);
+EI_REPLACE_METHOD(0x004CBA00, ScriptStrings::CopyConstruct);
 
 // Object values: each slot drops its (null) object and takes the GetAt copy's object with a
 // reference of its own; the copy is released (all inline in the original).
@@ -276,9 +272,9 @@ EI_REPLACE_METHOD(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     InitArray(&floats, scriptvtable::kFloats);
     CopyFloats(&floats, &other->floats);
-    ScriptNamesCopyConstruct(&floatNames, nullptr, &other->floatNames);
+    floatNames.CopyConstruct(&other->floatNames);
     CopyConstructStrings(&strings, &other->strings);
-    ScriptNamesCopyConstruct(&stringNames, nullptr, &other->stringNames);
+    stringNames.CopyConstruct(&other->stringNames);
 
     InitArray(&objects, scriptvtable::kRefs);
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(other->objects.size, -1);
@@ -291,7 +287,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
         slot->Construct(value);
         value.Reset();
     }
-    ScriptNamesCopyConstruct(&objectNames, nullptr, &other->objectNames);
+    objectNames.CopyConstruct(&other->objectNames);
 
     InitArray(&groups, scriptvtable::kGroups);
     mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(other->groups.size, -1);
@@ -302,7 +298,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
                                   reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy));
         GroupDestruct(&copy);
     }
-    ScriptNamesCopyConstruct(&groupNames, nullptr, &other->groupNames);
+    groupNames.CopyConstruct(&other->groupNames);
     return this;
 }
 EI_REPLACE_METHOD(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
@@ -327,7 +323,7 @@ EI_REPLACE_METHOD(0x004C00D0, ScriptVars::ScriptVarsConstruct);
 template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(const ScriptNamedValues<float>* other) {
     InitArray(&values, scriptvtable::kFloats);
     CopyFloats(&values, &other->values);
-    ScriptNamesCopyConstruct(&names, nullptr, &other->names);
+    names.CopyConstruct(&other->names);
     return this;
 }
 EI_REPLACE_METHOD(0x004CBB80, ScriptNamedValues<float>::CopyConstruct);

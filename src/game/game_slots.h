@@ -134,7 +134,7 @@ inline void InitFxSource(ScriptFxSource* p) {
     p->object = nullptr;
     new (&p->name) mfc::CString;
 }
-inline void AssignFxSource(ScriptFxSource* to, const ScriptFxSource* from) { ScriptFxSourceAssign(to, nullptr, from); }
+inline void AssignFxSource(ScriptFxSource* to, const ScriptFxSource* from) { to->ScriptFxSourceAssign(from); }
 inline void InitLightning(ScriptLightning* p) {
     p->object = nullptr;
     p->id = -1;

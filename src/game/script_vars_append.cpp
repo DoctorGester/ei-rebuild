@@ -29,9 +29,9 @@ namespace {
 // CArray members called out of line: 004C2510 CStringArray SetSize, 004C2680 GetAt (CString by
 // value; also on string values), 004C21E0 GetAt of a reference array (ScriptObjectRef by value,
 // referenced), 004C3B00 GetAt of a group array (ScriptGroup by value).
-mfc::CString* __fastcall StringAt(const void* a0, void*, void* a2, int a3) {
+mfc::CString* StringAt(const void* array, void* out, int index) {
     return reinterpret_cast<mfc::CString*>(mfc::impl::StringArrayAbi::GetAt(
-        static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr, static_cast<mfc::impl::CString*>(a2), a3));
+        static_cast<const mfc::impl::StringArrayAbi::Array*>(array), nullptr, static_cast<mfc::impl::CString*>(out), index));
 }
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 
@@ -42,7 +42,7 @@ void Release(CEngineObject* object) {
 // The name of the other set's variable i into slot `to` of this set's names.
 void CopyName(mfc::CArray<mfc::CString>* names, int to, const mfc::CArray<mfc::CString>* otherNames, int i) {
     TempString name;
-    StringAt(otherNames, nullptr, &name, i);
+    StringAt(otherNames, &name, i);
     names->data[to] = name.Get();
 }
 
@@ -66,7 +66,7 @@ template <> void ScriptNamedValues<mfc::CString>::Append(const ScriptNamedValues
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         TempString value;
-        StringAt(&other->values, nullptr, &value, i);
+        StringAt(&other->values, &value, i);
         values.data[old + i] = value.Get();
     }
 }

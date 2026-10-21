@@ -122,38 +122,36 @@ void PrintRecord2::SerializeImpl(ChunkArchive* ar) {
 EI_REPLACE_METHOD(0x006D41D0, PrintRecord::SerializeImpl);
 EI_REPLACE_METHOD(0x006D4270, PrintRecord2::SerializeImpl);
 
-// ---- TweenArray ---------------------------------------------------------------------------------
+// ---- WaterTweens --------------------------------------------------------------------------------
 
 // 006D43E0 / 006D4840: RemoveAll / SetSize (RET 8).
-EI_REPLACE_METHOD(0x006D43E0, TweenArray::RemoveAll);
-EI_REPLACE_METHOD(0x006D4840, TweenArray::SetSize);
+EI_REPLACE_METHOD(0x006D43E0, WaterTweens::RemoveAll);
+EI_REPLACE_METHOD(0x006D4840, WaterTweens::SetSize);
 
-void __fastcall TweenSetTarget(TweenArray* tweens, void*, int key, float target, int steps) {
-    TweenArray& a = *tweens;
+void WaterTweens::SetTarget(int key, float target, int steps) {
     if (steps < 1) steps = 1;
-    int count = a.size;
+    int count = size;
     for (int i = 0; i < count; ++i) {
-        if (a.data[i].key != key) continue;
-        a.data[i].step = (target - a.data[i].value) / steps;
-        a.data[i].steps = steps;
+        if (data[i].key != key) continue;
+        data[i].step = (target - data[i].value) / steps;
+        data[i].steps = steps;
         return;
     }
     // A new entry. The original first copies an uninitialised local into it; every field is
     // overwritten below.
-    a.SetSize(count + 1, -1);
-    TweenEntry& e = a.data[a.size - 1];
+    SetSize(count + 1, -1);
+    TweenEntry& e = data[size - 1];
     e.key = key;
     e.value = 0.0f;
     e.steps = steps;
-    e.step = (target - a.data[count].value) / steps;
+    e.step = (target - data[count].value) / steps;
 }
-EI_REPLACE(0x006D4410, TweenSetTarget);
+EI_REPLACE_METHOD(0x006D4410, WaterTweens::SetTarget);
 
-bool __fastcall TweenTick(TweenArray* tweens) {
-    TweenArray& a = *tweens;
+bool WaterTweens::Tick() {
     bool moving = false;
-    for (int i = 0; i < a.size; ++i) {
-        TweenEntry* e = &a.data[i];
+    for (int i = 0; i < size; ++i) {
+        TweenEntry* e = &data[i];
         EI_NAN_AUDIT(e->value);
         if (e->steps > 0) {
             --e->steps;
@@ -161,40 +159,40 @@ bool __fastcall TweenTick(TweenArray* tweens) {
             e->value = e->step + e->value;
         } else if (e->value == 0.0f) {
             // Finished and back at zero: remove it.
-            int after = a.size - i - 1;
+            int after = size - i - 1;
             if (after != 0) std::memmove(e, e + 1, static_cast<unsigned>(after) << 4);
-            --a.size;
+            --size;
             --i;
         }
     }
     return moving;
 }
-EI_REPLACE(0x006D44E0, TweenTick);
+EI_REPLACE_METHOD(0x006D44E0, WaterTweens::Tick);
 
-void __fastcall TweenSave(const TweenArray* tweens, void*, ScriptStream* stream) {
-    int count = tweens->size;
+void WaterTweens::Save(CStream* stream) const {
+    int count = size;
     stream->Write(&count, 4);
-    for (int i = 0; i < tweens->size; ++i) stream->Write(&tweens->data[i], 16);
+    for (int i = 0; i < size; ++i) stream->Write(&data[i], 16);
 }
-EI_REPLACE(0x006D4570, TweenSave);
-EI_REPLACE(0x006D47E0, TweenSave);
+EI_REPLACE_METHOD(0x006D4570, WaterTweens::Save);
+EI_REPLACE_METHOD(0x006D47E0, WaterTweens::Save);
 
-void TweenReadEntries(TweenArray& a, ScriptStream* stream, int unread) {
+void WaterTweens::ReadEntries(CStream* stream, int unread) {
     int count = unread;
     stream->Read(&count, 4);
-    a.SetSize(count, -1);
-    for (int i = 0; i < a.size; ++i) stream->Read(&a.data[i], 16);
+    SetSize(count, -1);
+    for (int i = 0; i < size; ++i) stream->Read(&data[i], 16);
 }
 
-void __fastcall TweenLoad(TweenArray* tweens, void*, ScriptStream* stream, void* world) {
+void WaterTweens::Load(CStream* stream, void* terrain) {
     // The original reads the count into its `stream` argument slot.
-    TweenReadEntries(*tweens, stream, reinterpret_cast<int>(stream));
-    for (int i = 0; i < tweens->size; ++i) static_cast<Terrain*>(world)->SetWaterLevel(tweens->data[i].key, tweens->data[i].value);
+    ReadEntries(stream, reinterpret_cast<int>(stream));
+    for (int i = 0; i < size; ++i) static_cast<Terrain*>(terrain)->SetWaterLevel(data[i].key, data[i].value);
 }
-EI_REPLACE(0x006D45D0, TweenLoad);
+EI_REPLACE_METHOD(0x006D45D0, WaterTweens::Load);
 
-void __fastcall TweenLoadEntries(TweenArray* tweens, void*, ScriptStream* stream) {
+void WaterTweens::LoadEntries(CStream* stream) {
     // The original reads the count into an uninitialised local; the game's streams always write it.
-    TweenReadEntries(*tweens, stream, 0);
+    ReadEntries(stream, 0);
 }
-EI_REPLACE(0x006D4660, TweenLoadEntries);
+EI_REPLACE_METHOD(0x006D4660, WaterTweens::LoadEntries);
