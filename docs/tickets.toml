@@ -3545,6 +3545,44 @@ group = "standalone"
 depends = ["S18k"]
 note = "Since S18k the image reads no game.exe and loads no import beside it: run_all still builds run\\<install>-clean and hands its game.exe to ei_launch --standalone (only the shared host copy's place and EI_GAME_ROOT use it). Drop the clean folders and --exe for the standalone installs (tools/test_work_sched.py asserts them), keep EI_GAME_ROOT."
 
+[[ticket]]
+id = "U1"
+title = "Asset boundary: one FromAssetText(bytes, codepage) where display text is read (texts.res, .reg strings, .mob strings, credits.scr; RTF keeps its own code page)"
+group = "standalone"
+model = "opus"
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+
+[[ticket]]
+id = "U2"
+title = "System boundary: wide file, registry, window title, message box, clipboard and key name calls (19 direct ANSI sites plus gameapi.h, CFile, CFileFind)"
+group = "standalone"
+model = "opus"
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+
+[[ticket]]
+id = "U3"
+title = "Drawing and measuring: the interface's text draw and extent, console and debug panel through wide GDI; the charset option dropped"
+group = "standalone"
+model = "opus"
+depends = ["U1"]
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+
+[[ticket]]
+id = "U4"
+title = "Typing: Unicode WM_CHAR; edit field, console, chat and name entry move the caret, delete and limit length by character"
+group = "standalone"
+model = "opus"
+depends = ["U2"]
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+
+[[ticket]]
+id = "U5"
+title = "Audit: case-insensitive compares and case changes (Cyrillic case table), fixed char buffers, per-byte indexing, console padding, word wrap"
+group = "standalone"
+model = "opus"
+depends = ["U1", "U2", "U3", "U4"]
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
