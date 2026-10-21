@@ -220,7 +220,7 @@ def exit_generator_readers():
     import gen_static_init as g
     img = g.Image(exe_path.resolve(None))
     decoded, _ = g.decode_all(img)
-    found = {fn for _, _, _, targets, _ in decoded for kind, fn in targets if kind == 'exit'}
+    found = {fn for d in decoded for kind, fn in d[3] if kind == 'exit'}
     found |= set(g.runtime_atexits(img, capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)))
     return {a: {'exit generator'} for a in found}
 

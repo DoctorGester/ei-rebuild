@@ -651,6 +651,18 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
 - `EI_REPLACE` / `_METHOD` / `_DISPATCH` / `_SHORT` / `_STANDALONE` all go in (the last name is historical: it was
   "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
+- A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
+  split by reader (code cells by kind, forwarders, code literals, static init, named data, harness, vectors,
+  scenarios / goldens, the short-function and exit-function generators, check_fp_fold's links from
+  `check_fp_fold.py --linked` on the built DLL), `--unread` / `--files` what nothing reads, `--drop` removes those
+  (with `--exclude` / `--exclude-name` for files another worker holds). After C20c (2026-10-21): 5,257 left of
+  9,347, first reader: vtable cells 2,281, check_fp_fold only 1,718, static init 324, forwarders 270, code literals
+  143, harness / vectors / other 72, unread 452 (65 short functions the generator would write again, 387 in C19's
+  managers and the map objects, left for C19). A dropped function is called by name; one whose registration was the
+  only instantiation of a template needs an explicit instantiation (AckTable<ExtraAcks>::RecordAt).
+- check_fp_fold compares a function's x87 constants with its original through the function's own registration, or
+  a helper's through its registered callers: dropping those reported folds that were none (24 at C20c's first try),
+  so they count as readers until check_fp_fold has another link to the original (C20d).
 - Library functions need a row in config/extra_function_sizes.csv even when Ghidra has a function (the installer
   skips an unknown start); some Ghidra sizes run past the RET (0070CAD2, 006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
