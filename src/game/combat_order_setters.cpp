@@ -182,14 +182,14 @@ BOOL CUnitServer::HasOtherArmour() {
         if (unit->armor[slot]) return 1;
     return 0;
 }
-EI_REPLACE_METHOD(0x005567A0, CUnitServer::HasOtherArmour);
+EI_REWRITTEN(0x005567A0, CUnitServer::HasOtherArmour);
 
 BOOL CUnitServer::HasMainArmour() {
     for (int slot = 0; slot < 3; ++slot)
         if (unit->armor[slot]) return 1;
     return 0;
 }
-EI_REPLACE_METHOD(0x005567E0, CUnitServer::HasMainArmour);
+EI_REWRITTEN(0x005567E0, CUnitServer::HasMainArmour);
 
 FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, const char* name) {
     AnimationDatabase* database;

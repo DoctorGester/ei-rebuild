@@ -191,7 +191,8 @@ static_assert(sizeof(LightColour) == 0x10);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
-    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Slots
+    // Virtual slots after CEngineObject's 13 (the compiled tags of world_class.h; game.exe's server
+    // vtable 0073F928, client 0073F41C). Slots
     // 13-24 are the manager context's getters (CParty has the same slots). Slots declared
     // `void Name()` keep their place in the order only (their return types are not declared; give
     // them their signature when calling them); rewritten slots stay plain members, rewrite guide
@@ -284,7 +285,7 @@ public:
     void SetPaused(std::uint8_t value);
     void SetServerPaused(std::uint8_t value);
     // 0055EAB0 (world_create.cpp; the two worlds' constructors 005612F0 / 00589ED0). The base
-    // constructor: the engine object's fields, the base vtable 0073F18C, no figure loader, helper,
+    // constructor: the engine object's fields, the base vtable (BaseVtable()), no figure loader, helper,
     // session or managers, the clock at 0 and the empty countdown array. Returns this.
     CWorld* ConstructBase();
     // 0055EC80 (S13a, world_destructors.cpp; also the end of the client's 00561B00 and the
@@ -296,7 +297,8 @@ public:
     // is set. Returns this.
     CWorld* DeletingDestruct(unsigned flags);
 
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073F18C);
+    // The base's compiled table (CWorldBaseClass, world_class.h; game.exe's 0073F18C).
+    static void* BaseVtable();
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
@@ -416,7 +418,7 @@ static_assert(sizeof(SharedObject) == 0x20);
 // MFC CList<SharedObject> (its NewNode 0059CA60 constructs the element).
 using SharedObjectList = mfc::CList<SharedObject>;
 
-// The game rules side (vtable 0073F928).
+// The game rules side (game.exe's vtable 0073F928; world_class.h's CWorldServerClass).
 class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
@@ -602,10 +604,12 @@ public:
     // 00589ED0 (the static initialiser 00589BE0). The constructor: the base (ConstructBase), the
     // members' constructors in order (the zone exits, the update map, the strings and .mob list, the
     // messages registry, the AI map, both scripts, the diplomacy, the id maps, the zone header (a
-    // queue stream), the three lists), the vtable 0073F928, then ResetState. Returns this.
+    // queue stream), the three lists), the vtable (Vtable()), then ResetState. Returns this.
     CWorldServer* Construct();
+    // The compiled table (CWorldServerClass, world_class.h; game.exe's 0073F928).
+    static void* Vtable();
     // world_destructors.cpp
-    // 0058AAD0 (the global's exit function 00589C00). The vtable 0073F928, Teardown, then the members
+    // 0058AAD0 (the global's exit function 00589C00). The vtable (Vtable()), Teardown, then the members
     // last to first: the lists, the zone header, the id maps, the strings, the diplomacy (its Reset),
     // both scripts (the second's destructor inlined), the AI map, the messages registry, the .mob
     // list, the zone name, the update map, the zone exits, then the base body (CWorld::Destruct).
@@ -1258,7 +1262,7 @@ static_assert(offsetof(MatrixDevice, objectStack) == 0x24);
 static_assert(offsetof(MatrixDevice, viewStack) == 0x5C);
 inline MatrixDevice* TheMatrixDevice() { return ei::GameData<MatrixDevice*>(0x007AF068); }
 
-// The drawing side (vtable 0073F41C).
+// The drawing side (game.exe's vtable 0073F41C; world_class.h's CWorldClientClass).
 class CWorldClient : public CWorld {
 public:
     // Body of the slot at 005618C0 (registered by member pointer).
@@ -1592,8 +1596,10 @@ public:
     // (ConstructBase), the members' constructors in order (the zone exits, the counted array, the
     // lists and maps, both sector grids at 1 x 1, the ground print lists, the platform set, the rain
     // and snow layer (cleared), the selection list, the window's names), the flags 0x3DC0, the vtable
-    // 0073F41C and the fields it zeroes. Returns this.
+    // (Vtable()) and the fields it zeroes. Returns this.
     CWorldClient* Construct();
+    // The compiled table (CWorldClientClass, world_class.h; game.exe's 0073F41C).
+    static void* Vtable();
     // 00561B00 (S13a, world_destructors.cpp; also the global client world's exit function). The
     // destructor's body: the client vtable, Teardown, then the members last to first (the window
     // names, the lists, the rain and snow layer, the platforms, the handle, the ground prints, both

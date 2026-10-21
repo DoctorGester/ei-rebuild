@@ -1704,10 +1704,10 @@ int CWorldClient::LoadZone(CStream* block) {
 }
 EI_REPLACE_METHOD(0x00567AB0, CWorldClient::LoadZone);
 
-EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
+EI_REWRITTEN(0x00561E50, CWorldClient::Setup);
 EI_REWRITTEN(0x00560650, PlatformSet::AddFace);
 EI_REWRITTEN(0x00560820, PlatformSet::AddBox);
-EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
+EI_REWRITTEN(0x00563290, CWorldClient::Teardown);
 EI_REWRITTEN(0x00565090, CWorldClient::ResetZoneObjects);
 EI_REWRITTEN(0x00566100, CWorldClient::Deselect);
 EI_REWRITTEN(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
@@ -1729,8 +1729,8 @@ EI_REWRITTEN(0x0056D740, CWorldClient::MarkFootprintsInSight);
 EI_REWRITTEN(0x00564190, CWorldClient::ApplyWind);
 EI_REWRITTEN(0x005662B0, CWorldClient::CentreOn);
 EI_REWRITTEN(0x00578A60, CWorldClient::ExitTarget);
-EI_REPLACE_METHOD(0x005618E0, CWorldClient::ClientGroundHeight);
-EI_REPLACE_METHOD(0x00561930, CWorldClient::ClientSurfaceHeight);
+EI_REWRITTEN(0x005618E0, CWorldClient::ClientGroundHeight);
+EI_REWRITTEN(0x00561930, CWorldClient::ClientSurfaceHeight);
 EI_REWRITTEN(0x0056CE40, CWorldClient::ShowNumber);
 EI_REPLACE_METHOD(0x0056DE80, CWorldClient::LoadUnitFaces);
 EI_REWRITTEN(0x00567400, CWorldClient::RemoveUnitsOf);

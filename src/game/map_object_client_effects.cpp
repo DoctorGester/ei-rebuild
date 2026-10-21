@@ -218,7 +218,7 @@ void CMapObjectClientSpecific::OnEffectsChanged(bool first) {
     UpdateEffectParticles(first);
     UpdateEffectSounds(first);
 }
-EI_REPLACE_METHOD(0x005117D0, CMapObjectClientSpecific::OnEffectsChanged);
+EI_REWRITTEN(0x005117D0, CMapObjectClientSpecific::OnEffectsChanged);
 
 void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
@@ -474,7 +474,7 @@ void CMapObjectClientSpecific::ApplyLightMode(int mode) {
     }
     if (mode == 2 && light) DropLight(this);
 }
-EI_REPLACE_METHOD(0x00511A00, CMapObjectClientSpecific::ApplyLightMode);
+EI_REWRITTEN(0x00511A00, CMapObjectClientSpecific::ApplyLightMode);
 
 void CMapObjectClientSpecific::DestroyClientCompanion() {
     lightStateA = 0;
@@ -483,4 +483,4 @@ void CMapObjectClientSpecific::DestroyClientCompanion() {
     if (light) DropLight(this);
     owner = nullptr;
 }
-EI_REPLACE_METHOD(0x005107B0, CMapObjectClientSpecific::DestroyClientCompanion);
+EI_REWRITTEN(0x005107B0, CMapObjectClientSpecific::DestroyClientCompanion);

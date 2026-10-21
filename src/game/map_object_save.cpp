@@ -91,7 +91,7 @@ void CMapObjectServer::LoadServer(CStream* stream) {
         strings.SetAtGrow(strings.size, *text.text);
     }
 }
-EI_REPLACE_METHOD(0x005159D0, CMapObjectServer::LoadServer);
+EI_REWRITTEN(0x005159D0, CMapObjectServer::LoadServer);
 
 void CMapObjectServer::SaveServer(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
@@ -101,4 +101,4 @@ void CMapObjectServer::SaveServer(CStream* stream) {
     stream->Write(&count, sizeof(count));
     for (int i = 0; i < strings.size; ++i) WriteText(stream, strings[i]);
 }
-EI_REPLACE_METHOD(0x00515AC0, CMapObjectServer::SaveServer);
+EI_REWRITTEN(0x00515AC0, CMapObjectServer::SaveServer);

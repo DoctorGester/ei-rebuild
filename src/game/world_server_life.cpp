@@ -111,5 +111,5 @@ void CWorldServer::Teardown() {
     DestroyManagers();
 }
 
-EI_REPLACE_METHOD(0x0058AE10, CWorldServer::Setup);
-EI_REPLACE_METHOD(0x0058B020, CWorldServer::Teardown);
+EI_REWRITTEN(0x0058AE10, CWorldServer::Setup);
+EI_REWRITTEN(0x0058B020, CWorldServer::Teardown);

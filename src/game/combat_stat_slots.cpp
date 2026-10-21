@@ -41,7 +41,7 @@ BOOL CUnitServer::RefreshVitals(char withHitPoints) {
     unit->MarkChanged(0);
     return 1;
 }
-EI_REPLACE_METHOD(0x005533B0, CUnitServer::RefreshVitals);
+EI_REWRITTEN(0x005533B0, CUnitServer::RefreshVitals);
 
 void CUnitServer::UpdateProtection() {
     stats.PackBodyProtection(unit, &VitalsOf(unit), protection);
@@ -65,7 +65,7 @@ void CUnitServer::RepackStats() {
     unit->MarkChanged(4);
     if (std::memcmp(speedsBefore, unit->modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
 }
-EI_REPLACE_METHOD(0x00553500, CUnitServer::RepackStats);
+EI_REWRITTEN(0x00553500, CUnitServer::RepackStats);
 
 bool CUnitServer::AddArmourLayerOf(std::uint32_t key) {
     // A key out of range gives no record; the original then faults reading its type, as this does.
@@ -73,29 +73,29 @@ bool CUnitServer::AddArmourLayerOf(std::uint32_t key) {
     stats.AddArmourLayer(unit->armor[record->type]);
     return false;
 }
-EI_REPLACE_METHOD(0x00553560, CUnitServer::AddArmourLayerOf);
+EI_REWRITTEN(0x00553560, CUnitServer::AddArmourLayerOf);
 
 bool CUnitServer::RebuildArmourLayers(int) {
     stats.RebuildArmourLayers(unit);
     return true;
 }
-EI_REPLACE_METHOD(0x005535C0, CUnitServer::RebuildArmourLayers);
+EI_REWRITTEN(0x005535C0, CUnitServer::RebuildArmourLayers);
 
 int CUnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
-EI_REPLACE_METHOD(0x005535E0, CUnitServer::ClearOuterArmourLayers);
+EI_REWRITTEN(0x005535E0, CUnitServer::ClearOuterArmourLayers);
 
 BOOL CUnitServer::RefreshEquipment() {
     RefreshItemSpells();
     BrainOf(this)->attention.Build(unit);
     return 1;
 }
-EI_REPLACE_METHOD(0x005535F0, CUnitServer::RefreshEquipment);
+EI_REWRITTEN(0x005535F0, CUnitServer::RefreshEquipment);
 
 void CUnitServer::ForgetClaims() {
     claimedHostile = 0;
     BrainOf(this)->memory.calls.RemoveClaims();
 }
-EI_REPLACE_METHOD(0x00552CD0, CUnitServer::ForgetClaims);
+EI_REWRITTEN(0x00552CD0, CUnitServer::ForgetClaims);
 
 void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
 EI_REPLACE_METHOD(0x00553360, CUnitServer::CopyStats);

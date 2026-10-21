@@ -126,9 +126,9 @@ public:
     // effects (005285D0, max first), the attack spread is the parameters' byte, and 0052E0D0 scales
     // attack and defence by the difficulty for units without a text key.
     void GetAttackParams(AttackParams* out);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073ECD8);
-    // The controller base class's vtable (the destructor body ends with it).
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073EDBC);
+    // The compiled table (CUnitClientSpecificClass, unit_controller_slots.cpp; game.exe's 0073ECD8). The
+    // destructor body ends with the controller base's (CUnitController::Vtable()).
+    static void* Vtable();
 
     // 005381B0. Virtual slot 26: the unit puts on armour piece `itemId` (packed: prototype index
     // in the high half, number in the low half). For a body armour, trousers or helmet not
@@ -283,15 +283,15 @@ public:
     int CreateClient();
     // 00533E80. Virtual slot 0, the deleting destructor: the destructor body (00533EA0), then the
     // memory freed for bit 0 of `flags`. Returns this.
-    CUnitClientSpecific* DeleteClient(std::uint32_t flags);
+    CUnitClientSpecific* DeletingDestruct(std::uint32_t flags);
     // 00533EA0 (unit_client_lifetime.cpp, A-U4). The destructor body: the three particle sources
     // stop and are released, the face texture released (no blink), the speech queue's nodes and
-    // header freed, the MFC list +0x58 emptied, then the base (vtable 0073EDBC, no unit) and
+    // header freed, the MFC list +0x58 emptied, then the base (CUnitController::Vtable(), no unit) and
     // CEngineObject's destructor body.
     void DestructClientBody();
     // 00533AD0 (unit_client_lifetime.cpp, A-U4). The constructor: the engine object's fields, no
     // unit, the list +0x58 (vtable 0073EDB0, block size 0x80), an empty speech queue (its header
-    // node allocated), no face texture, fully faded in, the vtable 0073ECD8. Returns this.
+    // node allocated), no face texture, fully faded in, the vtable (Vtable()). Returns this.
     CUnitClientSpecific* ConstructClient();
     // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
     // and are released, the face texture released; no blink.
@@ -418,6 +418,10 @@ static_assert(offsetof(CUnitClientSpecific, weaponIds) == 0xBC);
 static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
 static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
 static_assert(sizeof(CUnitClientSpecific) == 0xDC);
+
+// 00535B20 (slot 41 MotionChanged; unit_client_path.cpp): the unit placed on its new path at the time it was
+// last advanced to, without turning.
+void __fastcall ClientMotionChanged(CUnitClientSpecific* self);
 
 // 00535CB0 (__fastcall). The figure part names a unit of prototype `prototype` shows with the
 // armour pieces `armourIds` (appended to `names`: "<part>.armor<number>", the hair as

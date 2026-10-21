@@ -47,28 +47,28 @@ int CMapObjectClientSpecific::CreateClientCompanion() {
     owner = nullptr;
     return 1;
 }
-EI_REPLACE_METHOD(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
+EI_REWRITTEN(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
 
-CUnitClientSpecific* CUnitClientSpecific::DeleteClient(std::uint32_t flags) {
+CUnitClientSpecific* CUnitClientSpecific::DeletingDestruct(std::uint32_t flags) {
     DestructClientBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00533E80, CUnitClientSpecific::DeleteClient);
+EI_REWRITTEN(0x00533E80, CUnitClientSpecific::DeletingDestruct);
 
 int CMapObjectServer::CreateServer() {
     owner = nullptr;
     vitals.Reset();
     return 1;
 }
-EI_REPLACE_METHOD(0x005157C0, CMapObjectServer::CreateServer);
+EI_REWRITTEN(0x005157C0, CMapObjectServer::CreateServer);
 
 void CMapObjectServer::DestroyServer() {
     vitals.Reset();
     strings.SetSize(0, -1);
     owner = nullptr;
 }
-EI_REPLACE_METHOD(0x005157E0, CMapObjectServer::DestroyServer);
+EI_REWRITTEN(0x005157E0, CMapObjectServer::DestroyServer);
 
 int CMapObject::CompanionQuery(int first, int second, int) {
     return static_cast<CMapObjectCompanion*>(companion)->Query(first, second);
@@ -82,11 +82,11 @@ int CUnitClientSpecific::HasWeaponModels() {
         if (armourIds[slot] != kNoModel) return 1;
     return 0;
 }
-EI_REPLACE_METHOD(0x005391B0, CUnitClientSpecific::HasWeaponModels);
+EI_REWRITTEN(0x005391B0, CUnitClientSpecific::HasWeaponModels);
 
 int CUnitClientSpecific::HasArmourModels() {
     for (int slot = 0; slot < kDressedArmourSlots; ++slot)
         if (armourIds[slot] != kNoModel) return 1;
     return 0;
 }
-EI_REPLACE_METHOD(0x005391E0, CUnitClientSpecific::HasArmourModels);
+EI_REWRITTEN(0x005391E0, CUnitClientSpecific::HasArmourModels);

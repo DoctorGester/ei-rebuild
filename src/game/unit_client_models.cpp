@@ -126,7 +126,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     }
     return true;
 }
-EI_REPLACE_METHOD(0x005381B0, CUnitClientSpecific::WearArmourModel);
+EI_REWRITTEN(0x005381B0, CUnitClientSpecific::WearArmourModel);
 
 namespace {
 // The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
@@ -179,7 +179,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     }
     return true;
 }
-EI_REPLACE_METHOD(0x005385A0, CUnitClientSpecific::RemoveArmourModel);
+EI_REWRITTEN(0x005385A0, CUnitClientSpecific::RemoveArmourModel);
 
 namespace {
 
@@ -226,7 +226,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     static_cast<CUnitController*>(static_cast<CEngineObject*>(this))->RefreshModel();
     return 1;
 }
-EI_REPLACE_METHOD(0x00535590, CUnitClientSpecific::ChangeWeaponModel);
+EI_REWRITTEN(0x00535590, CUnitClientSpecific::ChangeWeaponModel);
 
 // --- The weapon in hand and the bow's arrow during animations (A-U) ------------------------------
 
