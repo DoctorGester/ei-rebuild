@@ -151,7 +151,7 @@ EI_REWRITTEN(0x00691D40, CTextureManager::NewTextureOfType);
 
 CTexture* CTextureManager::FindOrCreate(int type, const char* name) {
     CTexture* texture = FindTypedTexture(type, name);
-    if (!texture) texture = static_cast<CTexture*>(CreateObject(type, -1));
+    if (!texture) texture = NewTextureOfType(type);
     *texture->Name() = name;
     return texture;
 }
@@ -160,7 +160,7 @@ EI_REWRITTEN(0x00691D00, CTextureManager::FindOrCreate);
 CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
     if (CTexture* found = FindTexture(name)) return found;
     CTexture* texture = FindTypedTexture(type, name);
-    if (!texture) texture = static_cast<CTexture*>(CreateObject(type, -1));
+    if (!texture) texture = NewTextureOfType(type);
     *texture->Name() = name;
     LoadTexture(texture);
     return texture;

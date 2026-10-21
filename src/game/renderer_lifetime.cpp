@@ -257,7 +257,7 @@ void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char
     }
     auto* manager = TheTextureManager();
     auto* texture = manager->FindTypedTexture(kind, name);
-    if (!texture) texture = static_cast<CTexture*>(manager->CreateObject(kind, -1));
+    if (!texture) texture = manager->NewTextureOfType(kind);
     texture->name_ = name;
     CTexture* old = *holder;
     *holder = texture;

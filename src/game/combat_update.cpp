@@ -638,7 +638,7 @@ bool CUnitServer::ActionInReach() {
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (!target) {
         if (!cast) return false;
-        auto* spell = static_cast<CSpell*>(SpellOfSource(action.source));
+        CSpell* spell = SpellOfSource(action.source);
         if (!spell) return false;
         if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).

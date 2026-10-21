@@ -297,7 +297,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         int kind = order->kind == kOrderAttack ? 2 : 1;
         if (order->kind == kOrderCastAt || order->kind == kOrderCast) {
             std::uint32_t source = action.source;
-            void* spell = nullptr;
+            CSpell* spell = nullptr;
             bool skip = false;
             if (source & kQuickItemSource) {
                 CItem* carrier = SpellCarrier(source);
@@ -306,7 +306,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             } else {
                 spell = unit->GetSpellObject(source);
             }
-            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype())->castType == 0) kind = 2;
+            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype())->castType == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {

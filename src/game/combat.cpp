@@ -117,9 +117,9 @@ double Unsigned(std::uint32_t value) {
 
 // A CSpell's dword fields that hold floats: +0x24 (prototype +0x2C, the damage), +0x34 (+0x24,
 // the range) and +0x40 (+0x18, the mana cost).
-float SpellDamage(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->damage_); }
-float SpellRange(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->range_); }
-float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
+float SpellDamage(const CSpell* spell) { return std::bit_cast<float>(spell->damage_); }
+float SpellRange(const CSpell* spell) { return std::bit_cast<float>(spell->range_); }
+float SpellCost(const CSpell* spell) { return std::bit_cast<float>(spell->manaCost_); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
 } // namespace
@@ -239,11 +239,11 @@ void CUnitServer::GetDamageByType(std::int16_t* out) {
 EI_REPLACE_METHOD(0x0054BA30, CUnitServer::GetDamageByType);
 
 void CUnitServer::GetSpellDamage(std::uint32_t source, std::int16_t* out) {
-    void* spell = SpellOfSource(source);
+    CSpell* spell = SpellOfSource(source);
     std::memset(out, 0, 16);
     if (spell) {
         auto value = static_cast<std::int16_t>(gamecrt::Ftol(SpellDamage(spell)));
-        int type = static_cast<CSpell*>(spell)->GetDamageType();
+        int type = spell->GetDamageType();
         out[1 + type] = value;
     }
     out[0] = 0x7FFF;
@@ -268,7 +268,7 @@ bool CUnitServer::IsScrollSource(std::uint32_t source) {
 }
 EI_REPLACE_METHOD(0x0054B820, CUnitServer::IsScrollSource);
 
-void* CUnitServer::SpellOfSource(std::uint32_t source) {
+CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != kClassQuickItem) return nullptr;
@@ -279,7 +279,7 @@ EI_REPLACE_METHOD(0x0054B880, CUnitServer::SpellOfSource);
 
 bool CUnitServer::IsFighting() {
     if (action.kind == 4 || action.kind == 5) {
-        void* spell = nullptr;
+        CSpell* spell = nullptr;
         if (action.source & kQuickItemSource) {
             auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
             if (item && item->GetClassId() == kClassQuickItem && (item->GetCategory() == 5 || item->GetCategory() == 8))
@@ -288,7 +288,7 @@ bool CUnitServer::IsFighting() {
             spell = unit->GetSpellObject(action.source);
         }
         if (spell) {
-            std::uint32_t type = static_cast<CSpell*>(spell)->prototypeId_ >> 16;
+            std::uint32_t type = spell->prototypeId_ >> 16;
             if (type <= 8) return true;
             // Rebirth's FixPlaingBattleMusicFromAntimagic: JMP over the 0x1A test.
             if (type == 0x1A && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
@@ -305,13 +305,13 @@ bool CUnitServer::CanCast(const UnitAction* order) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != kClassQuickItem) return false;
         if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
-        void* spell = item->spell_;
+        CSpell* spell = item->spell_;
         if (!spell) return false;
         if (item->GetCategory() != 5) return true;
         // FCOMPP of the charge against the cost: less (or unordered) refuses.
         return item->charge_ >= SpellCost(spell);
     }
-    void* spell = unit->GetSpellObject(source);
+    CSpell* spell = unit->GetSpellObject(source);
     if (!spell) return false;
     if (unit->player != nullptr) {      // 005301A0
         float cost = SpellCost(spell);
@@ -343,7 +343,7 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
     if (kind >= 4 && kind <= 5) {
         if (!unit->player && Combat().naturalWeapon == kNoNaturalWeapon) return Combat().reach;
         std::uint32_t source = order->source;
-        void* spell;
+        CSpell* spell;
         if (source & kQuickItemSource) {
             CItem* carrier = SpellCarrier(source);
             if (!carrier) return kTen;
@@ -746,8 +746,8 @@ void CUnitServer::UpdateMoveFactors() {
         moveFactors[0] = kZero;
     }
     if (state == 5 && (action.kind == 4 || action.kind == 5)) {
-        void* spell = SpellOfSource(action.source);
-        if (spell && reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype())->castType != 1)
+        CSpell* spell = SpellOfSource(action.source);
+        if (spell && reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype())->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];
     }
     if (state != 0) {

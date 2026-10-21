@@ -229,13 +229,13 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     char name[0x400];
     if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, static_cast<const char*>(unit->name), prototype->skin);
     else gamecrt::sprintf(name, kFace, static_cast<const char*>(unit->name));
-    CEngineObject* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
-    CEngineObject* old = faceTexture;
+    CTexture* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
+    CTexture* old = faceTexture;
     faceTexture = texture;
     if (texture) ++texture->refCount_;
     if (old) old->Release();
-    TheTextureManager()->LoadTexture(static_cast<CTexture*>(faceTexture));
-    CEngineObject* face = faceTexture;
+    TheTextureManager()->LoadTexture(faceTexture);
+    CTexture* face = faceTexture;
     if (face->flags_ & kTextureLoaded) return true;
     faceTexture = nullptr;
     if (face) face->Release();

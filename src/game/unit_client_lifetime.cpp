@@ -4,6 +4,7 @@
 
 #include "ai_map.h"
 #include "effects.h"
+#include "texture.h"   // CTexture
 
 #include "ei/hook.h"
 #include "game_data.h"
@@ -16,7 +17,7 @@ constexpr int kList58BlockSize = 0x80;
 
 // Takes the face texture and releases it.
 void ReleaseFace(CUnitClientSpecific* self) {
-    CEngineObject* face = self->faceTexture;
+    CTexture* face = self->faceTexture;
     self->faceTexture = nullptr;
     if (face) face->Release();
 }

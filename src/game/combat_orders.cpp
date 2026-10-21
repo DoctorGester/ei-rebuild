@@ -91,7 +91,7 @@ void CUnitServer::FinishCast() {
         carrier = item;
         spell = item->spell_;
     } else {
-        spell = static_cast<CSpell*>(unit->GetSpellObject(source));
+        spell = unit->GetSpellObject(source);
     }
     if (!spell) return;
     Vector3 at;
@@ -215,7 +215,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
         if (!carrier) return !(self->unit->flags_ & kFlagSpellBlocked);
         spell = carrier->spell_;
     } else {
-        spell = static_cast<CSpell*>(self->unit->GetSpellObject(source));
+        spell = self->unit->GetSpellObject(source);
     }
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->skillNeeded_);

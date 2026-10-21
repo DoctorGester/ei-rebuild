@@ -391,7 +391,7 @@ public:
     CItem* GetQuickItem(std::uint32_t slot);
     CItem* GetSpell(std::uint32_t slot);
     // 00531A10. The CSpell (+0x44) of the spell item in slot `slot`, or null.
-    void* GetSpellObject(std::uint32_t slot);
+    CSpell* GetSpellObject(std::uint32_t slot);
 
     // 005327D0. The unit's speed factor for the action of animation `entry` (its key's bits
     // 18-21: 0x80000 attack, 0xC0000 cast, 0x240000 mode transition (heroes: the global

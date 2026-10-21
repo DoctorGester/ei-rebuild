@@ -77,7 +77,7 @@ void CUnitClientSpecific::BlinkClose(bool force) {
     CTexture* skin = SkinOf(unit);
     if (!skin) return;
     auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
-    auto* face = static_cast<CTexture*>(faceTexture);
+    CTexture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
     double scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
@@ -94,7 +94,7 @@ void CUnitClientSpecific::BlinkOpen(bool force) {
     CTexture* skin = SkinOf(unit);
     if (!skin) return;
     auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
-    auto* face = static_cast<CTexture*>(faceTexture);
+    CTexture* face = faceTexture;
     EyeFrame frame = Frame(skin, face, model);
     double scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);

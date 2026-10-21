@@ -524,7 +524,7 @@ void CUnitServer::ContinueAction() {
     if (!(cast && (unit->flags_ & kFlagNoCasting))) {
         if (!action.target) {
             if (cast) {
-                auto* spell = static_cast<CSpell*>(SpellOfSource(action.source));
+                CSpell* spell = SpellOfSource(action.source);
                 carryOn = spell && (spell->targetFlags_ & kSpellNoTarget);
             }
         } else if (!IsDead(action.target)) {
