@@ -194,7 +194,7 @@ EI_REWRITTEN(0x005D7F80, AIBrain::FindStandPoint);
 // 005D6F90
 void AIBrain::UpdateFollow() {
     if (!target || ObjectSlots(target)->IsDead()) {
-        reinterpret_cast<AIRef*>(&target)->Assign(nullptr);
+        target.Assign(nullptr);
         action = kActionNone;
         return;
     }
@@ -203,7 +203,7 @@ void AIBrain::UpdateFollow() {
     float farSq = static_cast<float>(FollowFar() * FollowFar());
     CUnit* self = owner->unit;
     float nearSq = static_cast<float>(FollowNear() * FollowNear());
-    auto* leader = static_cast<CUnit*>(target);
+    auto* leader = static_cast<CUnit*>(target.object);
     Vector3 toLeader{static_cast<float>(leader->position.x - self->position.x), static_cast<float>(leader->position.y - self->position.y),
                      static_cast<float>(leader->position.z - self->position.z)};
     int now = CurrentWorldTick();

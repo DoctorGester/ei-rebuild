@@ -69,18 +69,18 @@ int AttackFlags(AIBrain* brain, CEngineObject* object, bool clearTwice) {
         order.Clear();
         order.kind = 3;
         order.what = kAttackHow;
-        reinterpret_cast<AIRef*>(&order.object)->Assign(object);
+        order.object.Assign(object);
     } else {
         order.MakeAttack(object);
     }
     if (brain->owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
-    reinterpret_cast<AIRef*>(&order.object)->Reset();
+    order.object.Reset();
     return flags;
 }
 
 void Attack(AIBrain* brain, CEngineObject* object, bool clearTwice) {
     brain->action = AIBrain::kActionAttack;
-    reinterpret_cast<AIRef*>(&brain->target)->Assign(object);
+    brain->target.Assign(object);
     int flags = AttackFlags(brain, object, clearTwice);
     brain->owner->OrderAttack(brain->target, kAttackHow, 0, flags);
 }
@@ -92,7 +92,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     // The commanded target first, when it can be reached from here.
     if (target && MapObject(target)->IsDead() == 0) {
-        int partAndObject[2] = {-1, static_cast<int>(reinterpret_cast<std::uintptr_t>(target))};
+        int partAndObject[2] = {-1, static_cast<int>(reinterpret_cast<std::uintptr_t>(target.object))};
         if (brain->attention.CanReach(brain, partAndObject, 1)) {
             Attack(brain, target, false);
             return;
@@ -146,7 +146,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
                 mode->state = kStateFollow;
                 if (theirs->target) {
-                    reinterpret_cast<AIRef*>(&theirs->target)->Reset();
+                    theirs->target.Reset();
                     theirs->target = nullptr;
                 }
                 theirs->action = AIBrain::kActionNone;
@@ -157,7 +157,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         brain->attention.CurrentAttack(brain, now);
         if (now[1] != best[1] || now[0] != best[0]) Attack(brain, chosen, true);
         if (target) {
-            reinterpret_cast<AIRef*>(&target)->Reset();
+            target.Reset();
             target = nullptr;
         }
     }
@@ -177,7 +177,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
         node = node->next;
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = other->ServerController()->Brain();
-        auto* foe = static_cast<CUnit*>(theirs->target);
+        auto* foe = static_cast<CUnit*>(theirs->target.object);
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
             foe->GetClassId() != kClassUnit)
             continue;

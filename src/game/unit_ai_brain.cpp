@@ -167,8 +167,8 @@ void AIBrain::Init() {
     memory.Reset();
     actionPoint = Vector3{0.0f, 0.0f, 0.0f};
     looks.SetSize(0, -1);
-    if (target) reinterpret_cast<AIRef*>(&target)->Reset();
-    if (seen) reinterpret_cast<AIRef*>(&seen)->Reset();
+    if (target) target.Reset();
+    if (seen) seen.Reset();
     owner = nullptr;
     alerted = 0;
     alarm = 0;
@@ -599,8 +599,8 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&actionPoint, 12);
     LoadLooks(&looks, stream);
     stream->Read(&actionTime, 4);
-    reinterpret_cast<AIRef*>(&target)->Load(stream, TheServerWorld());
-    reinterpret_cast<AIRef*>(&seen)->Load(stream, TheServerWorld());
+    target.Load(stream, TheServerWorld());
+    seen.Load(stream, TheServerWorld());
     stream->Read(&callRadius, 4);
     stream->Read(&nearX, 4);
     stream->Read(&nearY, 4);
@@ -657,8 +657,8 @@ void AIBrain::Save(CStream* stream) {
     stream->Write(&actionPoint, 12);
     SaveLooks(&looks, stream);
     WriteCopy(stream, actionTime);
-    reinterpret_cast<AIRef*>(&target)->Save(stream);
-    reinterpret_cast<AIRef*>(&seen)->Save(stream);
+    target.Save(stream);
+    seen.Save(stream);
     WriteCopy(stream, callRadius);
     WriteCopy(stream, nearX);
     WriteCopy(stream, nearY);

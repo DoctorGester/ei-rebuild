@@ -163,7 +163,7 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
         order.MakeCast(part, target);
     }
     bool allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), &point);
-    reinterpret_cast<AIRef*>(&order.object)->Reset();
+    order.object.Reset();
     return allowed;
 }
 EI_REWRITTEN(0x005CF3C0, AIAttention::CanReach);
@@ -375,7 +375,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
                     order.MakeCast(partAndObject[0], object);
                 }
                 allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), PositionOf(self));
-                reinterpret_cast<AIRef*>(&order.object)->Reset();
+                order.object.Reset();
             }
             if (allowed && CanReach(brain, partAndObject, reachArg)) return;
         }

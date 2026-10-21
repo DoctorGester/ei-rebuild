@@ -196,7 +196,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     alerted = 0;
     int delay = static_cast<int>(record->alarmDelay);
     alarmCountdown = delay < 1 ? 1 : delay;
-    reinterpret_cast<AIRef*>(&target)->Assign(nullptr);
+    target.Assign(nullptr);
     action = kActionNone;
     attention.Build(owner->unit);
     if (alwaysUpdated) TheServerWorld()->AddToUpdateMap(owner->unit);

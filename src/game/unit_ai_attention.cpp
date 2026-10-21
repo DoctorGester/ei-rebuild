@@ -15,8 +15,6 @@ namespace {
 // clears it with 00545F40 and makes it an attack (3, 6) on the target inline).
 using AttackOrder = AIOrder;
 
-// Holds `object` in `ref` with a counted reference (AIRef::Assign, 0052A8F0).
-void Hold(CEngineObject*& ref, CEngineObject* object) { reinterpret_cast<AIRef*>(&ref)->Assign(object); }
 } // namespace
 
 void AIAttention::CurrentAttack(AIBrain* brain, int* partAndObject) {
@@ -49,7 +47,7 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
             int part = best[0];
             if (part == -1) {
                 brain->action = AIBrain::kActionAttack;
-                Hold(brain->target, chosen);
+                brain->target.Assign(chosen);
                 int flags = 0x1C;
                 if (brain->owner->unit->player) {
                     AttackOrder order{};
@@ -58,12 +56,12 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
                     ++chosen->refCount_;
                     order.object = chosen;
                     if (brain->owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
-                    reinterpret_cast<AIRef*>(&order.object)->Reset();
+                    order.object.Reset();
                 }
                 brain->owner->OrderAttack(brain->target, 6, 0, flags);
             } else {
                 if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
-                Hold(brain->target, chosen);
+                brain->target.Assign(chosen);
                 brain->actionTime = part;
                 brain->owner->OrderCast(part, chosen, 0);
             }

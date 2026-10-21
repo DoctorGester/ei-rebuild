@@ -56,7 +56,7 @@ void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream
     stream->Read(&count, 4);
     while (count-- > 0) {
         auto* node = list->AddTail(nullptr);
-        reinterpret_cast<AIRef*>(&node->data)->Load(stream, context);
+        AIRef::Of(&node->data)->Load(stream, context);
     }
 }
 EI_REWRITTEN(0x0052AF20, CountedListLoad);

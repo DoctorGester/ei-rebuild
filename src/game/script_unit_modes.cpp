@@ -115,12 +115,6 @@ CEngineObject* Reference(CEngineObject* object) {
     return object;
 }
 
-// The held object released (its slot 4) and dropped.
-void Drop(CEngineObject*& object) {
-    if (object) object->Release();
-    object = nullptr;
-}
-
 template <typename T>
 T* DeleteIf(T* mode, int flags) {
     if (flags & 1) gamecrt::operator_delete(mode);
@@ -200,7 +194,7 @@ FollowMode* FollowMode::FollowDeletingDestruct(int flags) {
 
 void FollowMode::FollowDestruct() {
     vtable = aimode::kFollowVtable;
-    Drop(leader);
+    leader.Reset();
     vtable = aimode::kRootVtable;
 }
 
@@ -241,7 +235,7 @@ void AggressionMode::AggressionReset() {
 }
 
 void AggressionMode::AggressionObjectDeleted(CEngineObject* object) {
-    if (enemy == object && enemy) Drop(enemy);
+    if (enemy == object && enemy) enemy.Reset();
 }
 
 AggressionMode* AggressionMode::AggressionDeletingDestruct(int flags) {
@@ -251,7 +245,7 @@ AggressionMode* AggressionMode::AggressionDeletingDestruct(int flags) {
 
 void AggressionMode::AggressionDestruct() {
     vtable = aimode::kAggressionVtable;
-    Drop(enemy);
+    enemy.Reset();
     vtable = aimode::kRootVtable;
 }
 

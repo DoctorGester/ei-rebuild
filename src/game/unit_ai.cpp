@@ -38,14 +38,6 @@ constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
 
 
-// CEngineObject::Release through the object's vtable, then clear the slot (inlined everywhere).
-void ReleaseRef(CEngineObject*& ref) {
-    if (ref) {
-        ref->Release();
-        ref = nullptr;
-    }
-}
-
 // Virtual slot 55 (0xDC) of units and objects: non-zero when dead / gone.
 int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 
@@ -210,10 +202,10 @@ void AIBrain::Think() {
     if (current) {
         current->Execute(this);
     } else {
-        ReleaseRef(target);
+        target.Reset();
         action = kActionNone;
     }
-    ReleaseRef(seen);
+    seen.Reset();
 
     // The corpses seen this tick are forgotten (RemoveAll with element destruction).
     for (auto* node = memory.corpses.head; node; node = node->next) DestructRefs(&node->data, 1);
@@ -226,16 +218,16 @@ void AIBrain::Think() {
 
     switch (action) {
     case kActionNone:
-        ReleaseRef(target);
+        target.Reset();
         owner->Idle();
         return;
     case kActionWalk:
-        ReleaseRef(target);
+        target.Reset();
         if (owner->action.kind == 1 || owner->action2.kind == 1 || owner->action.kind == 2 || owner->action2.kind == 2) return;
         action = kActionNone;
         return;
     case kActionMove:
-        ReleaseRef(target);
+        target.Reset();
         UpdateMove();
         return;
     case kActionAttack:
@@ -244,11 +236,11 @@ void AIBrain::Think() {
     case kActionCast:
         if (owner->action.kind == 4 || owner->action.kind == 5 || owner->action2.kind == 4 || owner->action2.kind == 5) return;
         if (target && owner->orderStopped) memory.reports.Report(target, 0xF);
-        ReleaseRef(target);
+        target.Reset();
         action = kActionNone;
         return;
     case kActionUse:
-        ReleaseRef(target);
+        target.Reset();
         if (owner->action.kind == 6 || owner->action2.kind == 6) return;
         action = kActionNone;
         return;
@@ -382,8 +374,8 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
         node = node->next;
         mode->OnObjectDeleted(object);
     }
-    if (target == object && target) ReleaseRef(target);
-    if (seen == object && seen) ReleaseRef(seen);
+    if (target == object && target) target.Reset();
+    if (seen == object && seen) seen.Reset();
     memory.Forget(object);
 }
 EI_REWRITTEN(0x005D58D0, AIBrain::OnObjectDeleted);
@@ -399,7 +391,7 @@ void AIBrain::UpdateMove() {
         double dx = actionPoint.x - unit->position.x;
         // TEST AH,0x41; JNZ: continue below when <= or unordered.
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
-            if (target) reinterpret_cast<AIRef*>(&target)->Reset();
+            if (target) target.Reset();
             target = nullptr;
             action = kActionNone;
             return;
@@ -408,7 +400,7 @@ void AIBrain::UpdateMove() {
     if (actionTime == kNoTime) {
         if (looks.size == 0) {
             if (target) {
-                reinterpret_cast<AIRef*>(&target)->Reset();
+                target.Reset();
                 target = nullptr;
             }
             action = kActionNone;
@@ -455,7 +447,7 @@ void AIBrain::UpdateAttack() {
         giveUp = true;
     }
     if (giveUp) {
-        if (IsGone(target) == 0) memory.Notice(&static_cast<CMapObject*>(target)->position, 1000, -2);
+        if (IsGone(target) == 0) memory.Notice(&static_cast<CMapObject*>(target.object)->position, 1000, -2);
         action = kActionNone;
         return;
     }
@@ -469,26 +461,14 @@ void AIBrain::UpdateAttack() {
 EI_REWRITTEN(0x005D76A0, AIBrain::UpdateAttack);
 
 void AIBrain::StopAction() {
-    ReleaseRef(target);
+    target.Reset();
     action = kActionNone;
 }
 EI_REWRITTEN(0x005D7790, AIBrain::StopAction);
 
-namespace {
-// Holds `object` in `ref` with a counted reference (the inlined assignment of the original).
-void HoldRef(CEngineObject*& ref, CEngineObject* object) {
-    if (object == ref) return;
-    if (ref) ref->Release();
-    ref = nullptr;
-    if (object) ++object->refCount_;
-    ref = object;
-}
-
-} // namespace
-
 void AIBrain::AttackTarget(CEngineObject* object) {
     action = kActionAttack;
-    HoldRef(target, object);
+    target.Assign(object);
     int flags = 0x1C;
     if (owner->unit->player) {
         AIOrder order{};
@@ -511,7 +491,7 @@ EI_REWRITTEN(0x005D7B50, AIBrain::AttackTarget);
 void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
     if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, object) == 0) return;
     action = kActionAttack;
-    HoldRef(target, object);
+    target.Assign(object);
     owner->OrderAttack(target, how, unknown, 2);
 }
 EI_REWRITTEN(0x005D7C60, AIBrain::AttackWith);
@@ -519,7 +499,7 @@ EI_REWRITTEN(0x005D7C60, AIBrain::AttackWith);
 void AIBrain::UseOn(CEngineObject* object, int kind, int a, int b) {
     if (!object) return;
     action = kActionUse;
-    ReleaseRef(target);
+    target.Reset();
     switch (kind) {
     case 0:
         owner->OrderUse(object, a, b);
@@ -560,7 +540,7 @@ EI_REWRITTEN(0x005D7DA0, AIBrain::CastAt);
 
 void AIBrain::Follow(CEngineObject* object) {
     action = kActionFollow;
-    HoldRef(target, object);
+    target.Assign(object);
 }
 EI_REWRITTEN(0x005D7E40, AIBrain::Follow);
 
@@ -569,11 +549,11 @@ const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0
 } // namespace
 
 void AIBrain::SetSeen(CEngineObject* object) {
-    HoldRef(seen, object);
+    seen.Assign(object);
     if (object) {
         bool allied = false;
         if (seen && seen->GetClassId() == kClassUnit) {
-            std::uint32_t bit = 1u << (static_cast<CUnit*>(seen)->side & 31);
+            std::uint32_t bit = 1u << (static_cast<CUnit*>(seen.object)->side & 31);
             allied = (Diplomacy()[owner->unit->side] & bit) != 0;
         }
         if (!allied) CallAllies(&static_cast<CMapObject*>(object)->position);

@@ -191,7 +191,7 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
         out->z = point.z;
         return out;
     }
-    static_cast<CMapObjectVirtuals*>(object)->AimPoint(out);
+    static_cast<CMapObjectVirtuals*>(object.object)->AimPoint(out);
     return out;
 }
 
