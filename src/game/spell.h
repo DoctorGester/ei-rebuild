@@ -547,13 +547,20 @@ int __fastcall LightClassId(CLight*);
 // global pointer at 007AF748): CreateObject (slot 23) makes lights by class (0x2E: the renderer's
 // default light, 00500B70; 0x31: point lights). Its +0xD4 list holds the ids of the lights held on
 // (00511FB0 erases from it). light.cpp (A-H23).
+// The light manager ("CLightManager", class id 0x29; light.cpp; a real virtual class: the compiler
+// makes its vtable, C19, game.exe's 00743B50 is retired).
 class CLightFactory : public CBaseManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743B50);
+    // 0068D850. CBaseManager's constructor, +0xB0..+0xC0 and +0xCC 0, an empty list, +0xD0 1.
+    CLightFactory();
+    // 0068D990. The list freed, +0xCC 0, +0xC0 released, then CBaseManager's destructor.
+    ~CLightFactory() override;
+    const char* GetClassName() override;     // 11: 0068D950 "CLightManager"
+    int GetClassId() override;               // 12: 0068D960 (0x29)
 
-    // 0068D850. CBaseManager's constructor body, +0xB0..+0xC0 and +0xCC 0, an empty list, +0xD0 1.
-    // Returns this. 0068D990: the destructor body (the list freed, +0xCC 0, +0xC0 released, then
-    // CBaseManager's). 0068D970: slot 0.
+    // The registrations (C20 retires them): 0068D850 the constructor in place (returns this),
+    // 0068D990 the destructor, 0068D970 (slot 0) the destructor, then operator delete when bit 0
+    // of `flags` is set (returns this).
     CLightFactory* Construct();
     void Destruct();
     CLightFactory* DeletingDestruct(unsigned flags);

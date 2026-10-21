@@ -2,12 +2,15 @@ vtable,slots,class,file,note
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073BE94,2,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
+0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
+0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
+0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
@@ -36,6 +39,7 @@ vtable,slots,class,file,note
 007432FC,9,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,
 00743A14,26,CSpellManager,src/game/spell.h,
+00743B50,25,CLightFactory,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
 00743C38,26,CMaterialManager,src/game/material.h,
 00743CB0,26,CTextureManager,src/game/texture.h,
