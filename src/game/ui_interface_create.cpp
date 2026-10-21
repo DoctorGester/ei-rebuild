@@ -30,7 +30,7 @@ namespace {
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 // The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
 // share of the screen width.
-const char* FontFace() { return game::Text(0x00793034); }   // "Times New Roman"
+const char* FontFace() { return "Times New Roman"; }
 constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
 void** FontVtable() { return reinterpret_cast<void**>(0x0073BFB4); }
@@ -46,7 +46,7 @@ ui_gdi::GameFont* NewFont() {
 
 bool CreateFont(ui_gdi::GameFont* font, int size) {
     if (font->CreatePointFont(size, FontFace(), nullptr)) return true;
-    game::FatalError(game::Text(0x00793008));   // "CInterface3D::Create.\n Cannot create font.\n"
+    game::FatalError("CInterface3D::Create.\n Cannot create font.\n");   // "CInterface3D::Create.\n Cannot create font.\n"
     return false;
 }
 
@@ -70,7 +70,7 @@ void ChooseKeyboardLayout() {
         char name[12];
         if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
         unsigned id = 0;
-        libcrt::Sscanf(name, game::Text(0x00793004), &id);   // "%x"
+        libcrt::Sscanf(name, "%x", &id);
         id &= 0xFFFF;
         if (id == wanted) {
             found = i;

@@ -42,23 +42,23 @@ namespace {
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-const char* CancelSound() { return game::Text(0x007937E4); }    // "buttons\messbox\cancel.wav"
-const char* SelectSound() { return game::Text(0x00793A60); }    // "buttons\save\select.wav"
-const char* OkSound() { return game::Text(0x00793A88); }        // "buttons\messbox\ok.wav"
-const char* MessageSuffix() { return game::Text(0x00793B24); }  // "_msg"
-const char* WrongProtocolKey() { return game::Text(0x00793B78); }       // "lmp_wrong_protocol"
-const char* WrongProtocolTextKey() { return game::Text(0x00793B8C); }   // "lmp_wrong_protocol_msg"
-const char* NewGameText() { return game::Text(0x00793BA4); }    // the new game entry's name and description
-const char* DefaultGameName() { return game::Text(0x00783D6C); }
-const char* EmptyText() { return game::Text(0x0079B298); }      // ""
-const char* AddressBookFile() { return game::Text(0x00793ADC); }   // "config\addrbook.ini"
+const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
+const char* SelectSound() { return "buttons\\save\\select.wav"; }
+const char* OkSound() { return "buttons\\messbox\\ok.wav"; }
+const char* MessageSuffix() { return "_msg"; }
+const char* WrongProtocolKey() { return "lmp_wrong_protocol"; }
+const char* WrongProtocolTextKey() { return "lmp_wrong_protocol_msg"; }
+const char* NewGameText() { return "??"; }    // the new game entry's name and description
+const char* DefaultGameName() { return "?"; }
+const char* EmptyText() { return ""; }
+const char* AddressBookFile() { return "config\\addrbook.ini"; }
 // The texts of the refusals the client can be given (ClientBase::refusal_ 1..3), else the fourth.
 const char* RefusalKey(int refusal) {
     switch (refusal) {
-    case 1: return game::Text(0x00793B2C);   // "lmp_server_full"
-    case 2: return game::Text(0x00793B3C);   // "lmp_you_are_banned"
-    case 3: return game::Text(0x00793B50);   // "lmp_wrong_password"
-    default: return game::Text(0x00793B64);  // "lmp_cannot_connect"
+    case 1: return "lmp_server_full";
+    case 2: return "lmp_you_are_banned";
+    case 3: return "lmp_wrong_password";
+    default: return "lmp_cannot_connect";
     }
 }
 // The port an address typed without one gets (8888), and the master server's host name.
@@ -132,16 +132,16 @@ struct LocalQueries {
 };
 
 // Create's layout (0061B2C0).
-const char* SaveLoadTexture() { return game::Text(0x00793380); }       // "saveload"
-const char* ScrollbarTexture() { return game::Text(0x00793B18); }      // "scrollbar"
-const char* MenuModel() { return game::Text(0x0078A5C0); }             // "unmoco2"
-const char* MenuTexture() { return game::Text(0x007939F0); }           // "MainMenu00"
-const char* MenuLabels() { return game::Text(0x007939FC); }            // "MainMenu00labels"
-const char* MenuButtonPart() { return game::Text(0x007939E8); }        // "but03"
-const char* MenuButtonLabel() { return game::Text(0x007939D0); }       // "button03_multiplayer"
-const char* AllodNameFormat() { return game::Text(0x00793B04); }       // "lmp_allod_name_%d"
-const char* ConnectionTextFormat() { return game::Text(0x00793AF0); }  // "lmp_connection_%d"
-const char* NameEnd() { return game::Text(0x00793AA4); }               // "|"
+const char* SaveLoadTexture() { return "saveload"; }
+const char* ScrollbarTexture() { return "scrollbar"; }
+const char* MenuModel() { return "unmoco2"; }
+const char* MenuTexture() { return "MainMenu00"; }
+const char* MenuLabels() { return "MainMenu00labels"; }
+const char* MenuButtonPart() { return "but03"; }
+const char* MenuButtonLabel() { return "button03_multiplayer"; }
+const char* AllodNameFormat() { return "lmp_allod_name_%d"; }
+const char* ConnectionTextFormat() { return "lmp_connection_%d"; }
+const char* NameEnd() { return "|"; }
 // The model's turn about x: 007C7F40 (an angle set at start) times 1.2 (0073CDF4).
 float MenuTurn() { return GameFloat(0x007C7F40) * GameFloat(0x0073CDF4); }
 // The interface's text colour (the list draw changes it per row).

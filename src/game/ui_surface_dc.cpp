@@ -63,7 +63,7 @@ ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
         SetBoundsRect(dc, nullptr, DCB_ENABLE | DCB_RESET);   // the bounds of what is drawn from now on
     }
     holder->result = dc ? 0 : -1;
-    if (!dc && !app::FatalErrorCode(-1, game::Text(0x00793290))) return nullptr;   // "Can't get surface's DC"
+    if (!dc && !app::FatalErrorCode(-1, "Can't get surface's DC.\n")) return nullptr;   // "Can't get surface's DC"
     return static_cast<ui_gdi::GameDC*>(CdcFromHandle(dc));
 }
 EI_REPLACE(0x005FDC00, UiSurfaceGetDC);

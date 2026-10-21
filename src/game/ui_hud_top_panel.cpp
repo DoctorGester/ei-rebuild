@@ -66,7 +66,7 @@ void CHudTopPanel::Build(int page, int shown) {
     bar->flags_ |= 0x100;
     bar->flatColour_ = 0xB4000000;
 
-    CUiMesh* arrow = AddSprite(game::Text(0x007945B0));   // "in25arrow"
+    CUiMesh* arrow = AddSprite("in25arrow");
     arrow->textureOffsetU_ = 0.22265625f;
     arrow->textureOffsetV_ = 0.140625f;
     Quaternion turn;
@@ -88,13 +88,13 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     mfc::CString name;
     mfc::CString kind;
     GameTexts()->FormatItemName(item, &name);
-    const char* key = static_cast<char>(crippled) ? game::Text(0x00794634)    // "combat_crippled"
-                                                  : game::Text(0x00794620);   // "combat_picked_up"
+    const char* key = static_cast<char>(crippled) ? "combat_crippled"
+                                                  : "combat_picked_up";
     GameTexts()->GetString(key, &kind);
     mfc::CString line(kind);
-    line += game::Text(0x0078DA40);   // " "
+    line += " ";
     line += name;
-    line += game::Text(0x00784340);   // "\n"
+    line += "\n";   // "\n"
     name = line;
     PageText(0) += name;
     if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(name);
@@ -106,13 +106,13 @@ void CHudTopPanel::AddMoney(int money) {
     mfc::CString text;
     mfc::CString picked;
     mfc::CString format;
-    GameTexts()->GetString(game::Text(0x00794620), &picked);   // "combat_picked_up"
-    GameTexts()->GetString(game::Text(0x00794644), &format);   // "format_money"
+    GameTexts()->GetString("combat_picked_up", &picked);
+    GameTexts()->GetString("format_money", &format);
     text.Format(format, money);
     mfc::CString line(picked);
-    line += game::Text(0x0078DA40);   // " "
+    line += " ";
     line += text;
-    line += game::Text(0x00784340);   // "\n"
+    line += "\n";   // "\n"
     text = line;
     PageText(0) += text;
     if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(text);

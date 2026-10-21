@@ -264,15 +264,15 @@ void CBattleScreen::OnGameOver(char won) {
     GameStopAmbience();
     void* box;
     if (!won) {
-        interface_->PlaySound(game::Text(0x00793528), 0);   // "buttons\gameover.wav"
+        interface_->PlaySound("buttons\\gameover.wav", 0);
         void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, game::Text(0x0079350C), // "game_over"
-                                                   game::Text(0x00793518), 0x20000, 3, 1)               // "game_over_msg"
+        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, "game_over",
+                                                   "game_over_msg", 0x20000, 3, 1)
                      : nullptr;
     } else {
         void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, game::Text(0x007942F0), // "end_of_game"
-                                                   game::Text(0x007942FC), 0xFFFF0000u, 3, 1)   // "end_of_game_msg"
+        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, "end_of_game",
+                                                   "end_of_game_msg", 0xFFFF0000u, 3, 1)
                      : nullptr;
     }
     interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);

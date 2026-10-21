@@ -24,18 +24,18 @@
 namespace {
 
 
-const char* const kValuePair = game::Text(0x00792F08);     // "%s %d/%d"
-const char* const kMoveKey = game::Text(0x00794610);       // "move_%d"
-const char* const kSpeedLine = game::Text(0x00794604);     // "%s %.1f %s"
-const char* const kValueUnit = game::Text(0x00792F48);     // "%s %d%s"
-const char* const kValue = game::Text(0x00792F14);         // "%s %d"
-const char* const kDamageKey = game::Text(0x00792F70);     // "dmg_%d"
-const char* const kDamageLine = game::Text(0x00792EF0);    // "%s %d-%d %s"
-const char* const kSpace = game::Text(0x0078DA40);         // " "
-const char* const kStronger = game::Text(0x007945F4);      // "consider_more%d"
-const char* const kWeaker = game::Text(0x007945E4);        // "consider_less%d"
-const char* const kTwoTexts = game::Text(0x00792F34);      // "%s %s"
-const char* const kCampExp = game::Text(0x00793858);       // "camp_current_exp"
+const char* const kValuePair = "%s %d/%d";
+const char* const kMoveKey = "move_%d";
+const char* const kSpeedLine = "%s %.1f %s";
+const char* const kValueUnit = "%s %d%s";
+const char* const kValue = "%s %d";
+const char* const kDamageKey = "dmg_%d";
+const char* const kDamageLine = "%s %d-%d %s";
+const char* const kSpace = " ";
+const char* const kStronger = "consider_more%d";
+const char* const kWeaker = "consider_less%d";
+const char* const kTwoTexts = "%s %s";
+const char* const kCampExp = "camp_current_exp";
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLineHeight = 15;

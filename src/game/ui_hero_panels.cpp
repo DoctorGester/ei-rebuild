@@ -165,12 +165,12 @@ void CHeroStatsPanel::DrawStats() {
             double value = static_cast<double>(values[i]);
             storedStats[i] = static_cast<float>(value);
             std::uint32_t colour = value > minimum ? kBright : kGrey;   // FCOMP; TEST AH,0x41
-            draw->Text(game::Text(0x00787BDC), &rect, 0, colour, 1, 1);  // "-"
+            draw->Text("-", &rect, 0, colour, 1, 1);
             Down(&rect);
         }
         Down(&rect);
         Down(&rect);
-        draw->Text(game::Text(0x00787BDC), &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
+        draw->Text("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(gamecrt::Ftol(D(GameFloat(0x00741F04)) - D(sumF)));
@@ -179,25 +179,25 @@ void CHeroStatsPanel::DrawStats() {
         for (int i = 0; i < 3; ++i) {
             bool below = !(D(storedStats[i]) >= maximum);   // FCOMP; TEST AH,1 (below or unordered)
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
-            draw->Text(game::Text(0x00787BD8), &rect, 0, colour, 1, 1);   // "+"
+            draw->Text("+", &rect, 0, colour, 1, 1);
             Down(&rect);
         }
         Down(&rect);
         Down(&rect);
-        draw->Text(game::Text(0x00787BD8), &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
+        draw->Text("+", &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
     } else if (page_ == 0) {
         // Equipment: armour by body part, the weapon, the encumbrance.
         rect = RECT{0x14, 0x41, 0xAF, 0x50};
-        texts->GetString(game::Text(0x00793DC0), &text);   // "infoitem_25"
+        texts->GetString("infoitem_25", &text);
         draw->Text(text, &rect, 0, kBright, 0, 1);
         Down(&rect);
-        DrawPart(&rect, game::Text(0x00793DB8), 0);   // skull
+        DrawPart(&rect, "skull", 0);   // skull
         Down(&rect);
-        DrawPart(&rect, game::Text(0x00793DB0), 2);   // arms
+        DrawPart(&rect, "arms", 2);   // arms
         Down(&rect);
-        DrawPart(&rect, game::Text(0x00793DA8), 1);   // torso
+        DrawPart(&rect, "torso", 1);   // torso
         Down(&rect);
-        DrawPart(&rect, game::Text(0x00793DA0), 4);   // legs
+        DrawPart(&rect, "legs", 4);   // legs
         Down(&rect);
         Down(&rect);
         if (Read<int>(hero(), 0x774) == -1) {
@@ -220,25 +220,25 @@ void CHeroStatsPanel::DrawStats() {
             void* inner = Read<void*>(unit, 0x240);
             using InfoFn = void(__thiscall*)(void*, WeaponInfo*);
             reinterpret_cast<InfoFn>((*static_cast<void***>(inner))[50])(inner, &info);
-            line.Format(game::Text(0x00792F80), static_cast<const char*>(texts_[0]));   // "     %s"
+            line.Format("     %s", static_cast<const char*>(texts_[0]));
             draw->Text(line, &rect, 0, kBright, 0, 1);
-            line.Format(game::Text(0x0078EEEC), info.value18);   // "%d"
+            line.Format("%d", info.value18);
             draw->Text(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
-            line.Format(game::Text(0x00792F80), static_cast<const char*>(texts_[1]));
+            line.Format("     %s", static_cast<const char*>(texts_[1]));
             draw->Text(line, &rect, 0, kBright, 0, 1);
-            line.Format(game::Text(0x0078EEEC), info.value1C);
+            line.Format("%d", info.value1C);
             draw->Text(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             if (info.damageKind < 7) {
-                line.Format(game::Text(0x00792EFC), info.damageKind);   // "damage_%d"
+                line.Format("damage_%d", info.damageKind);
                 texts->GetString(line, &text);
             }
-            line.Format(game::Text(0x00793D94), static_cast<const char*>(texts_[2]), static_cast<const char*>(text));   // "     %s %s"
+            line.Format("     %s %s", static_cast<const char*>(texts_[2]), static_cast<const char*>(text));
             draw->Text(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));
-            line.Format(game::Text(0x00793D8C), low, high);   // "%d-%d"
+            line.Format("%d-%d", low, high);
             draw->Text(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             Down(&rect);
@@ -370,10 +370,10 @@ void CHeroEquipPanel::Build(bool body) {
         const int* xs = reinterpret_cast<const int*>(0x00741EC4);
         const int* ys = reinterpret_cast<const int*>(0x00741EE0);
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
-        LoadTexture(game::Text(0x00793D00), 3, 0);   // camp1
-        LoadTexture(game::Text(0x00793CF8), 3, 0);   // camp2
-        LoadTexture(game::Text(0x00793CF0), 3, 0);   // camp3
-        LoadTexture(game::Text(0x00793CE8), 3, 0);   // camp4
+        LoadTexture("camp1", 3, 0);   // camp1
+        LoadTexture("camp2", 3, 0);   // camp2
+        LoadTexture("camp3", 3, 0);   // camp3
+        LoadTexture("camp4", 3, 0);   // camp4
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
             CUiMesh* picture = AddSprite(0);
@@ -431,10 +431,10 @@ void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
     buyKind_ = spells ? 0 : 4;
     sellKind_ = spells ? 1 : 5;
     flag_ = flag;
-    LoadTexture(game::Text(0x00793EB4), 3, 0);   // trade1
-    LoadTexture(game::Text(0x00793EAC), 3, 0);   // trade2
-    LoadTexture(game::Text(0x00793EA4), 3, 0);   // trade3
-    LoadTexture(game::Text(0x00793E9C), 3, 0);   // trade4
+    LoadTexture("trade1", 3, 0);   // trade1
+    LoadTexture("trade2", 3, 0);   // trade2
+    LoadTexture("trade3", 3, 0);   // trade3
+    LoadTexture("trade4", 3, 0);   // trade4
     BuildCellGrid(this);
 }
 EI_REPLACE_METHOD(0x006270A0, CTradeGrid::Build);
@@ -483,10 +483,10 @@ void CRepairGrid::Build(void* items) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 8;
     items_ = static_cast<UiItemList*>(items);
-    LoadTexture(game::Text(0x00793ED4), 3, 0);   // repair1
-    LoadTexture(game::Text(0x00793ECC), 3, 0);   // repair2
-    LoadTexture(game::Text(0x00793EC4), 3, 0);   // repair3
-    LoadTexture(game::Text(0x00793EBC), 3, 0);   // repair4
+    LoadTexture("repair1", 3, 0);   // repair1
+    LoadTexture("repair2", 3, 0);   // repair2
+    LoadTexture("repair3", 3, 0);   // repair3
+    LoadTexture("repair4", 3, 0);   // repair4
     BuildCellGrid(this);
 }
 EI_REPLACE_METHOD(0x006279E0, CRepairGrid::Build);
@@ -543,10 +543,10 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 6;
     slots_ = slots;
-    LoadTexture(game::Text(0x00793F0C), 3, 0);   // constrspell1
-    LoadTexture(game::Text(0x00793EFC), 3, 0);   // constrspell2
-    LoadTexture(game::Text(0x00793EEC), 3, 0);   // constrspell3
-    LoadTexture(game::Text(0x00793EDC), 3, 0);   // constrspell4
+    LoadTexture("constrspell1", 3, 0);   // constrspell1
+    LoadTexture("constrspell2", 3, 0);   // constrspell2
+    LoadTexture("constrspell3", 3, 0);   // constrspell3
+    LoadTexture("constrspell4", 3, 0);   // constrspell4
     AddRect(this, RECT{200, 250, 300, 350});   // the container
     AddRect(this, RECT{300, 250, 400, 350});   // the spell
     BuildMakerPage(this);
@@ -561,7 +561,7 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
     mfc::CStringArray* array = &static_cast<CSpellMakerPage*>(this)->texts_;
     mfc::CString text;
     for (int key : {0x23, 0x24}) {
-        text.Format(game::Text(0x00792ED8), key);   // "infoitem_%d"
+        text.Format("infoitem_%d", key);
         texts->GetString(text, &text);
         array->SetAtGrow(array->GetSize(), text);
     }
@@ -572,10 +572,10 @@ void CConstructorPage::BuildItemMaker(void* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 7;
     slots_ = slots;
-    LoadTexture(game::Text(0x00793F4C), 3, 0);   // constritem1
-    LoadTexture(game::Text(0x00793F40), 3, 0);   // constritem2
-    LoadTexture(game::Text(0x00793F34), 3, 0);   // constritem3
-    LoadTexture(game::Text(0x00793F28), 3, 0);   // constritem4
+    LoadTexture("constritem1", 3, 0);   // constritem1
+    LoadTexture("constritem2", 3, 0);   // constritem2
+    LoadTexture("constritem3", 3, 0);   // constritem3
+    LoadTexture("constritem4", 3, 0);   // constritem4
     AddRect(this, RECT{200, 250, 300, 350});   // the blueprint
     AddRect(this, RECT{300, 200, 400, 300});   // the parts
     AddRect(this, RECT{300, 300, 400, 400});

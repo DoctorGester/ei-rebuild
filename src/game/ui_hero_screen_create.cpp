@@ -162,9 +162,9 @@ bool ModelNameIsFemale(const mfc::CString& model) {
 
 void CMpHeroScreen::Create() {
     TheGameFlow()->UseResources(true);
-    window.LoadTexture(game::Text(0x0079365C), kTextureKind, nullptr);   // "campinfo"
+    window.LoadTexture("campinfo", kTextureKind, nullptr);
     CUiModel* model = window.AddModel();
-    model->Load(game::Text(0x0078A5C0), game::Text(0x007939F0), game::Text(0x007939FC));   // "unmoco2", "MainMenu00", "MainMenu00labels"
+    model->Load("unmoco2", "MainMenu00", "MainMenu00labels");   // "unmoco2", "MainMenu00", "MainMenu00labels"
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
@@ -172,8 +172,8 @@ void CMpHeroScreen::Create() {
         model->object_->localRotation_ = *turn.SetAxisAngle(axis, MenuTurn());
     }
     model->ShowAllParts(0);
-    model->ShowPart(game::Text(0x007939E8), 1);   // "but03"
-    model->ShowPart(game::Text(0x007939D0), 1);   // "button03_multiplayer"
+    model->ShowPart("but03", 1);
+    model->ShowPart("button03_multiplayer", 1);
 
     // The nine regions every mode keeps (00615D30 places the first four and gives the tips).
     auto region = [this](int left, int top, int right, int bottom) {
@@ -190,7 +190,7 @@ void CMpHeroScreen::Create() {
     region(180, 184, 310, 208);
 
     reinterpret_cast<CItemScreen*>(this)->CreateBase();
-    window.LoadTexture(game::Text(0x00793380), kTextureKind, nullptr);   // "saveload"
+    window.LoadTexture("saveload", kTextureKind, nullptr);
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         CUiMesh* added = window.AddSprite(nullptr);
@@ -212,10 +212,10 @@ void CMpHeroScreen::Create() {
         frame->visible_ = 0;
     }
     // 3-6: the quarters of the frame around the figure.
-    window.LoadTexture(game::Text(0x007939C8), kTextureKind, nullptr);   // "campm1"
-    window.LoadTexture(game::Text(0x007939C0), kTextureKind, nullptr);   // "campm2"
-    window.LoadTexture(game::Text(0x007939B8), kTextureKind, nullptr);   // "campm3"
-    window.LoadTexture(game::Text(0x007939B0), kTextureKind, nullptr);   // "campm4"
+    window.LoadTexture("campm1", kTextureKind, nullptr);
+    window.LoadTexture("campm2", kTextureKind, nullptr);
+    window.LoadTexture("campm3", kTextureKind, nullptr);
+    window.LoadTexture("campm4", kTextureKind, nullptr);
     sprite(7.0f, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture);
     sprite(7.0f, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 1);
     sprite(7.0f, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 2);
@@ -309,8 +309,8 @@ void CMpHeroScreen::Create() {
     mfc::CString female;
     mfc::CString figureModel;
     mfc::CString label;
-    texts->GetString(game::Text(0x007939A0), &male);     // "lmp_male_voice"
-    texts->GetString(game::Text(0x0079398C), &female);   // "lmp_female_voice"
+    texts->GetString("lmp_male_voice", &male);
+    texts->GetString("lmp_female_voice", &female);
     NameList& men = *reinterpret_cast<NameList*>(&defaults_);
     NameList& women = *reinterpret_cast<NameList*>(&names_);
     VoiceList& maleVoices = *reinterpret_cast<VoiceList*>(&voiceLists_[0]);
@@ -342,8 +342,8 @@ void CMpHeroScreen::Create() {
             return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(figureModel)),
                                    reinterpret_cast<const unsigned char*>(name)) == 0;
         };
-        bool isMale = isModel(game::Text(0x007908C8));                // "unhuma"
-        bool isFemale = !isMale && isModel(game::Text(0x00792EA4));   // "unhufe"
+        bool isMale = isModel("unhuma");
+        bool isFemale = !isMale && isModel("unhufe");
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) {
             // EI_Plugin's fixes (00614BB5, 00614D1B): the two name comparisons become one test of
             // the two characters at +4 of the model's name (the word 0x6566, "fe"); a model that
@@ -352,11 +352,11 @@ void CMpHeroScreen::Create() {
             isMale = !isFemale;
         }
         if (isMale) {
-            label.Format(game::Text(0x00792F14), static_cast<const char*>(male), static_cast<int>(maleVoices.size()) + 1);   // "%s %d"
+            label.Format("%s %d", static_cast<const char*>(male), static_cast<int>(maleVoices.size()) + 1);
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
         if (isFemale) {
-            label.Format(game::Text(0x00792F14), static_cast<const char*>(female), static_cast<int>(femaleVoices.size()) + 1);
+            label.Format("%s %d", static_cast<const char*>(female), static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }
@@ -429,10 +429,10 @@ void CMpHeroScreen::Create() {
     UiSurfaceGetDC(commands);
     SurfaceClearOriginal(commands);
     const char* const commandKeys[] = {
-        game::Text(0x0079397C),   // "lmp_pers_new"
-        game::Text(0x0079396C),   // "lmp_pers_rename"
-        game::Text(0x0079395C),   // "lmp_pers_delete"
-        game::Text(0x00793948),   // "lmp_pers_redress"
+        "lmp_pers_new",
+        "lmp_pers_rename",
+        "lmp_pers_delete",
+        "lmp_pers_redress",
     };
     int top = 16;
     for (const char* key : commandKeys) {
@@ -445,7 +445,7 @@ void CMpHeroScreen::Create() {
 
     // The saved heroes, from the "mp" folder of the game's data.
     MpHeroRoster* heroes = Heroes();
-    heroes->folder = GameDataPath() + game::Text(0x00793944);   // "mp\"
+    heroes->folder = GameDataPath() + "mp\\";
     ReloadHeroesAt(heroes);
     RefreshHeroScroll();
     DrawHeroList();

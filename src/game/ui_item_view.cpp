@@ -423,12 +423,12 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     mfc::CString sex;
     const char* figureModel = Get<const char*>(figure, 0xE8);
     const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (005ED889): the model's fifth character
-    if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, game::Text(0x007908C8)))   // "unhuma"
-        sex = game::Text(0x00792EAC);                                   // "m"
-    else if (fixes || SameText(figureModel, game::Text(0x00792EA4)))     // "unhufe"
-        sex = game::Text(0x0078BBD8);                                   // "f"
-    model->Format(game::Text(0x00792E94), figureModel, Get<int>(unit, 0x10) + 1);         // "infa%sme%dface"
-    texture->Format(game::Text(0x00792E88), static_cast<const char*>(sex), Get<int>(unit, 0x0C));   // "face%s%02d"
+    if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, "unhuma"))
+        sex = "m";
+    else if (fixes || SameText(figureModel, "unhufe"))
+        sex = "f";
+    model->Format("infa%sme%dface", figureModel, Get<int>(unit, 0x10) + 1);
+    texture->Format("face%s%02d", static_cast<const char*>(sex), Get<int>(unit, 0x0C));
 }
 
 void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
@@ -504,7 +504,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     std::uint8_t* image;
     {
         mfc::CString base(name);
-        mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
+        mfc::CString file = base + ".mmp";
         image = static_cast<unsigned char*>(manager->GetFileData(file));
     }
     int width, height;
@@ -527,7 +527,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
-    if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         VirtualCall(texture, 4);
@@ -567,7 +567,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     std::uint8_t* image;
     {
         mfc::CString base(name);
-        mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
+        mfc::CString file = base + ".mmp";
         image = static_cast<unsigned char*>(TextureManager()->GetFileData(file));
     }
     std::uint32_t* pixels = nullptr;
@@ -583,7 +583,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
-    if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         return 0;

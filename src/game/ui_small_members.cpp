@@ -101,7 +101,7 @@ EI_REPLACE_METHOD(0x006157C0, CUiItemStrip::FigureItemAt);
 bool CGlobalMap::MayTravel(int) { return true; }
 EI_REPLACE_METHOD(0x006316A0, CGlobalMap::MayTravel);
 
-const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? game::Text(0x0079416C) : game::Text(0x00794160); }
+const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? "global_map_nocamp" : "global_map"; }
 EI_REPLACE_METHOD(0x0062EE70, CGlobalMap::HelpTopic);
 
 // --- One-line setters and readers ------------------------------------------------------------------------

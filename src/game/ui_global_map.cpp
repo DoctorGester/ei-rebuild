@@ -266,10 +266,10 @@ void CGlobalMap::Create() {
         std::memcpy(&position_, &position, 12);
     }
     const mfc::CString& allodName = *reinterpret_cast<const mfc::CString*>(&allod->name);
-    LoadTexture(mfc::operator+(allodName, game::Text(0x0079415C)), 3, 0);   // <allod>Map
-    LoadTexture(mfc::operator+(allodName, game::Text(0x00794158)), 3, 0);   // <allod>Sys
-    LoadTexture(mfc::operator+(allodName, game::Text(0x00794150)), 3, 0);   // <allod>MapG
-    LoadTexture(game::Text(0x00793380), 3, 0);                             // "saveload"
+    LoadTexture(mfc::operator+(allodName, "Map"), 3, 0);   // <allod>Map
+    LoadTexture(mfc::operator+(allodName, "Sys"), 3, 0);   // <allod>Sys
+    LoadTexture(mfc::operator+(allodName, "MapG"), 3, 0);   // <allod>MapG
+    LoadTexture("saveload", 3, 0);
     CreateTexture(0x100, 0x100, 0x21);
     angle_ = 0.0f;
     {
@@ -314,7 +314,7 @@ void CGlobalMap::Create() {
         MapRecord* zone = ZoneAt(allod->zones[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
         GlobalMapZonesSetAtGrow(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
-        variable.Format(game::Text(0x00794148), zone->name);   // "z.%s"
+        variable.Format("z.%s", zone->name);
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         *reinterpret_cast<mfc::CString*>(&zones_.data[zoneCount_].name) = *reinterpret_cast<mfc::CString*>(&zone->name);
@@ -332,7 +332,7 @@ void CGlobalMap::Create() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable.Format(game::Text(0x00794140), zones_.data[i].name);   // "q.%s"
+        variable.Format("q.%s", zones_.data[i].name);
         GameLocalPlayerVariables(variable, vars.Table());
         const NamedFloatTable& table = *vars.Table();
         for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
@@ -379,7 +379,7 @@ void CGlobalMap::Create() {
         for (int e = 0; e < zone->exits.size; ++e) {
             MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
-            variable.Format(game::Text(0x00794148), way->name);   // "z.%s"
+            variable.Format("z.%s", way->name);
             if (way->kind != 2) continue;
             // FCOMP / TEST AH,0x40: equal to 2, or unordered.
             double state = D(LocalPlayerVariable(variable));
@@ -467,15 +467,15 @@ void CGlobalMap::Create() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(game::Text(0x007420A4))) * D(GameFloat(0x0073F090))));   // gtime * 60
+    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("gtime")) * D(GameFloat(0x0073F090))));   // gtime * 60
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
     minutes -= hour * 60;
     mfc::CString clock;
     mfc::CString dayText;
-    (*reinterpret_cast<CTextManager**>(0x007AF788))->GetString(game::Text(0x00794134), &dayText);   // "save_day"
-    clock.Format(game::Text(0x00794120), static_cast<const char*>(dayText), day + 1, hour, minutes);
+    (*reinterpret_cast<CTextManager**>(0x007AF788))->GetString("save_day", &dayText);
+    clock.Format("%s  %d,  %d:%02d", static_cast<const char*>(dayText), day + 1, hour, minutes);
     {
         void* memory = gamecrt::operator_new(sizeof(CUiSurface));
         CUiSurface* text = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 20, 20, 170, 70, 5, 1)
@@ -494,7 +494,7 @@ void CGlobalMap::Create() {
         CUiMesh* camp = AddSprite(0);
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         SetTexture(camp, builder.Texture(3));
-        noCamp_ = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(game::Text(0x00794114)))));   // "i.nocamp"
+        noCamp_ = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("i.nocamp"))));
         if (noCamp_ == 1) camp->visible_ = 0;
         CUiMesh* left = AddSprite(0);
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
@@ -510,18 +510,18 @@ void CGlobalMap::Create() {
     fog_[1] = 1.0f;
     fog_[2] = 0.0f;
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(allod->name),
-                        reinterpret_cast<const unsigned char*>(game::Text(0x00790244))) == 0) {   // "ingos"
+                        reinterpret_cast<const unsigned char*>("ingos")) == 0) {
         fog_[0] = Bits(0x3EBE0000);
         fog_[1] = Bits(0x3F020000);
         fog_[2] = Bits(0x3F200000);
     } else if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(allod->name),
-                               reinterpret_cast<const unsigned char*>(game::Text(0x00790238))) == 0) {   // "suslanger"
+                               reinterpret_cast<const unsigned char*>("suslanger")) == 0) {
         fog_[0] = Bits(0x3EC80000);
         fog_[1] = Bits(0x3E480000);
         fog_[2] = Bits(0x3DB00000);
     }
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(allod->name),
-                        reinterpret_cast<const unsigned char*>(game::Text(0x0079014C))) == 0)   // "gipat"
+                        reinterpret_cast<const unsigned char*>("gipat")) == 0)
         gipat_ = true;
 
     selectPending_ = 1;
@@ -547,9 +547,9 @@ void CGlobalMap::Create() {
     }
     using UpdateFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<UpdateFn>(vtable_[24])(this);   // slot 24 (+0x60)
-    windSound_ = interface_->PlaySound(game::Text(0x007940F8), 1);   // buttons\globalmap\wind.wav
+    windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
-        if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal(game::Text(0x007940F0), 1);   // "saveb"
+        if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal("saveb", 1);
         autosave_ = false;
     }
     interface_->OpenHelp(0);

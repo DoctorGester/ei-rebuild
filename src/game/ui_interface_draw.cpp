@@ -140,10 +140,10 @@ EI_REPLACE_METHOD(0x005F5220, CInterface3D::Draw);
 void CInterface3D::DrawOverlays() {
     mfc::CString text;
     void* panel = DebugInfoPanel();
-    text.Format(game::Text(0x0078EEEC), SurfaceBytesKept());   // "%d"
-    DebugPanelSet(panel, game::Text(0x00793064), text);         // "surface stored"
-    text.Format(game::Text(0x0078EEEC), SurfaceBytesAllocated());
-    DebugPanelSet(panel, game::Text(0x00793054), text);         // "surface alloc"
+    text.Format("%d", SurfaceBytesKept());
+    DebugPanelSet(panel, "surface stored", text);
+    text.Format("%d", SurfaceBytesAllocated());
+    DebugPanelSet(panel, "surface alloc", text);
     if (stackBegin_ != stackEnd_) {
         CallSlot(stackEnd_[-1], kRedrawSlot);
         CallSlot(stackEnd_[-1], kTipsSlot);
@@ -178,11 +178,11 @@ void CInterface3D::DrawOverlays() {
             mfc::CString rate;
             float perSecond =
                 static_cast<float>(fpsFrames_) * GameFloat(0x0073C34C) / static_cast<float>(static_cast<int>(elapsed));
-            rate.Format(game::Text(0x00792F78), static_cast<double>(perSecond));   // "%.1f"
+            rate.Format("%.1f", static_cast<double>(perSecond));
             UiSurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();
             RECT rect{0, 0, 60, 18};
-            SurfaceDrawText(fpsSurface_, nullptr, game::Text(0x0079304C), &rect, kFpsFont, kWhite, 0, 1);   // "FPS:"
+            SurfaceDrawText(fpsSurface_, nullptr, "FPS:", &rect, kFpsFont, kWhite, 0, 1);
             rect = RECT{0, 0, 60, 18};
             SurfaceDrawText(fpsSurface_, nullptr, rate, &rect, kFpsFont, kWhite, 2, 1);
             UiSurfaceReleaseDC(fpsSurface_);
