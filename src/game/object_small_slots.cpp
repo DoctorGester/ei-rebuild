@@ -47,7 +47,7 @@ int CMapObjectClientSpecific::CreateClientCompanion() {
     owner = nullptr;
     return 1;
 }
-EI_REPLACE_METHOD(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
+EI_REWRITTEN(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
 
 CUnitClientSpecific* CUnitClientSpecific::DeletingDestruct(std::uint32_t flags) {
     DestructClientBody();
@@ -61,14 +61,14 @@ int CMapObjectServer::CreateServer() {
     vitals.Reset();
     return 1;
 }
-EI_REPLACE_METHOD(0x005157C0, CMapObjectServer::CreateServer);
+EI_REWRITTEN(0x005157C0, CMapObjectServer::CreateServer);
 
 void CMapObjectServer::DestroyServer() {
     vitals.Reset();
     strings.SetSize(0, -1);
     owner = nullptr;
 }
-EI_REPLACE_METHOD(0x005157E0, CMapObjectServer::DestroyServer);
+EI_REWRITTEN(0x005157E0, CMapObjectServer::DestroyServer);
 
 int CMapObject::CompanionQuery(int first, int second, int) {
     return static_cast<CMapObjectCompanion*>(companion)->Query(first, second);

@@ -23,7 +23,6 @@
 
 namespace {
 // The vtables the constructors and destructors install.
-constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 void* const kAlarmRecordsVtable = ei::GamePointer<void>(0x0073F04C);
 void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
 void* const kCallsVtable = ei::GamePointer<void>(0x0073F070);
@@ -118,7 +117,7 @@ CUnitServer* CUnitServer::Construct() {
     idleAnimation.extra = -1;
     brain.Construct();
     std::memset(&voice, 0, sizeof(voice));   // 005AEA50
-    ei::SetVtable(this, kUnitServerVtable);
+    ei::SetVtable(this, Vtable());
     ResetController();
     return this;
 }

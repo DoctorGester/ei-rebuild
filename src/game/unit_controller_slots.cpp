@@ -5,6 +5,8 @@
 #include "unit.h"
 #include "unit_client_models.h"
 
+#include "combat.h"   // CUnitServer
+
 #include "effects.h"   // CParticleSource
 #include "engine_object_class.h"
 #include "texture.h"   // CTexture
@@ -62,7 +64,7 @@ EI_REWRITTEN(0x00533DE0, ControllerDestroy);
 
 // 00533B90 (slot 13 FiguresLoaded; the server's too): 1.
 int __fastcall ControllerFiguresLoaded(CUnitController*) { return 1; }
-EI_REPLACE(0x00533B90, ControllerFiguresLoaded);
+EI_REWRITTEN(0x00533B90, ControllerFiguresLoaded);
 
 // Plain RET, nothing: slots 15, 22, 23, 28, 38, 41, 43, 44, 45, 48, 49, 52 and 53 (the server keeps
 // 15, 41, 43, 48 and 52; the client 22, 23, 28, 38, 44, 45, 49 and 53), and the client's own 17
@@ -122,8 +124,8 @@ EI_REWRITTEN(0x00533BE0, CUnitController::ReturnZeroThree);
 
 // False in AL (RET 4): slots 34 (WeaponAdded) and 35 (RemoveWeaponModel).
 bool CUnitController::ReturnFalse(int) { return false; }
-EI_REPLACE_METHOD(0x00533C80, CUnitController::ReturnFalse);
-EI_REPLACE_METHOD(0x00533C90, CUnitController::ReturnFalse);
+EI_REWRITTEN(0x00533C80, CUnitController::ReturnFalse);
+EI_REWRITTEN(0x00533C90, CUnitController::ReturnFalse);
 
 // --- The client controller -------------------------------------------------------------------------------
 
@@ -162,11 +164,12 @@ void CUnitClientSpecific::DropFaceTexture() {
 EI_REPLACE_METHOD(0x00538EA0, CUnitClientSpecific::DropFaceTexture);
 
 // --- The compiled tables (C19) -------------------------------------------------------------------------
-// Compiled tags (engine_object_class.h) in place of game.exe's 0073EDBC (the abstract controller) and 0073ECD8
-// (CUnitClientSpecific). ControllerClass declares CUnitController's slots 13-53 (unit.h) with the base's bodies
-// (most are empty, or answer 0 / false; the pure ones `_purecall`); the client's tag overrides the slots its
-// game.exe table changes with the bodies that table reached (qualified: no dispatch). A slot whose original is a
-// plain RET leaves EAX as the caller had it (CUnit passes the EAX of slots 23, 44, 49 and 53 on), so those are void.
+// Compiled tags (engine_object_class.h) in place of game.exe's 0073EDBC (the abstract controller), 0073ECD8
+// (CUnitClientSpecific) and 0073EF38 (CUnitServer). ControllerClass declares CUnitController's slots 13-53 (unit.h)
+// with the base's bodies (most are empty, or answer 0 / false; the pure ones `_purecall`); each controller's tag
+// overrides the slots its game.exe table changes with the bodies that table reached (qualified: no dispatch). A
+// slot whose original is a plain RET leaves EAX as the caller had it (CUnit passes the EAX of slots 23, 44, 49 and
+// 53 on), so those are void; the server's 28 passes its body's result on the same way.
 
 namespace {
 
@@ -275,7 +278,46 @@ private:
     CUnitClientSpecific* Client() { return As<CUnitClientSpecific>(); }
 };
 
+class CUnitServerClass final : public ControllerClass<CUnitServerClass, CUnitServer> {
+public:
+    int Create() override { return Server()->CreateServer(); }    // 2: 00546450
+    void Destroy() override { Server()->DestroyServer(); }        // 3: 00546470
+    void ClearState() override { Server()->ResetSlot(); }         // 5: 00546080
+    int RunTick() override { return Server()->UpdateServer(); }   // 6: 00552300
+    void Load(CStream* stream) override { Server()->LoadServer(stream); }   // 9: 00555D10
+    void Save(CStream* stream) override { Server()->SaveServer(stream); }   // 10: 005561C0
+    const char* ClassName() override { return UnitServerClassName(Server()); }   // 11: 005460C0
+    int ClassId() override { return UnitServerClassId(Server()); }               // 12: 005460D0
+    AIPath* Path() override { return Server()->MotionSlot(); }    // 16: 00546090
+    void Unused17() override { Server()->EmptySlot17(); }         // 17: 005460B0
+    int RefreshVitals(int withHitPoints) override { return Server()->RefreshVitals(static_cast<char>(withHitPoints)); }   // 19: 005533B0
+    int TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override { return Server()->TakeHit(hit, attacker, source); }   // 20: 00553F40
+    int Heal(int amountBits) override { return Server()->Heal(std::bit_cast<float>(amountBits)); }   // 21: 005543B0
+    void RepackStats() override { Server()->RepackStats(); }               // 22: 00553500
+    void UpdateSizeClasses() override { Server()->UpdateSizeClasses(); }   // 23: 00552FB0
+    int Level() override { return Server()->Level(); }                     // 24: 00556760
+    int ShowWeapon(std::uint32_t slot) override { return Server()->TakeUpWeapon(static_cast<int>(slot)); }   // 25: 00553610
+    bool ArmourPutOn(std::uint32_t key) override { return Server()->AddArmourLayerOf(key); }   // 26: 00553560
+    bool ArmourTakenOff(std::uint32_t unused) override { return Server()->RebuildArmourLayers(static_cast<int>(unused)); }   // 27: 005535C0
+    void ClearOuterArmourLayers() override { Server()->ClearOuterArmourLayers(); }   // 28: 005535E0 (EAX: its result)
+    int RefreshEquipment() override { return Server()->RefreshEquipment(); }   // 29: 005535F0
+    int HasOtherArmour() override { return Server()->HasOtherArmour(); }       // 36: 005567A0
+    int HasMainArmour() override { return Server()->HasMainArmour(); }         // 37: 005567E0
+    void HostileMaskChanged() override { Server()->ForgetClaims(); }           // 38: 00552CD0
+    int TamingStage() override { return Server()->TameStage(); }               // 39: 005460A0
+    void ObjectDeleted(CEngineObject* object) override { Server()->OnObjectDeleted(object); }   // 42: 00552670
+    void Resettle() override { Server()->Resettle(); }                         // 44: 00553260
+    void UpdateMoveFactors() override { Server()->UpdateMoveFactors(); }       // 45: 005536B0
+    void EffectsChanged() override { Server()->UpdateSpellBlockFlag(); }       // 49: 00553220
+    void GetAttackParams(AttackParams* out) override { Server()->GetAttackParams(out); }   // 50: 00555A00
+    void MoveFactorsChanged() override { Server()->UpdateMoveFactorsSlot53(); }   // 53: 00552F30
+
+private:
+    CUnitServer* Server() { return As<CUnitServer>(); }
+};
+
 } // namespace
 
 void* CUnitController::Vtable() { return ControllerBaseClass::Vtable(); }
 void* CUnitClientSpecific::Vtable() { return CUnitClientSpecificClass::Vtable(); }
+void* CUnitServer::Vtable() { return CUnitServerClass::Vtable(); }

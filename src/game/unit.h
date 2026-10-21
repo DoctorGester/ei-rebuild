@@ -1174,13 +1174,14 @@ std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info);
 BOOL __fastcall HasElementalDamage(const DamageInfo* info);
 
 // The server-side state object of map objects (GetClassName "CMapObjectServer", class id 0x39,
-// vtable 0073DD6C). Only the hit points.
+// game.exe's vtable 0073DD6C). Only the hit points.
 class __declspec(novtable) CMapObjectServer : public CMapObjectCompanion {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DD6C);
+    // The compiled table (CMapObjectServerClass, map_object_companion_slots.cpp; game.exe's 0073DD6C).
+    static void* Vtable();
 
     // map_object_lifetime.cpp. 00515610 / 00515720: constructor (the engine object fields, two
-    // names, a string array, vtable 0073DD6C, vitals reset; returns this) and destructor body.
+    // names, a string array, Vtable(), vitals reset; returns this) and destructor body.
     CMapObjectServer* Construct();
     void DestructBody();
 
@@ -1211,7 +1212,7 @@ public:
     void DestroyServer();
     // map_object_companion_slots.cpp (A-U12). 00515700, virtual slot 0 (RET 4): DestructBody, then
     // operator delete with flags bit 0. Returns this.
-    CMapObjectServer* DeleteServer(unsigned flags);
+    CMapObjectServer* DeletingDestruct(unsigned flags);
 
     // +0x1C owner (CMapObjectCompanion)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
@@ -1265,14 +1266,15 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
 using EffectParticleArray = mfc::CArray<EffectParticle>;
 using EffectSoundArray = mfc::CArray<EffectSoundRecord>;
 
-// The client-side companion of a map object (GetClassName "CMapObjectClientSpecific", vtable
-// 0073DBEC); +0x1C is the object it belongs to (a unit for IsDead / IsOverkilled).
+// The client-side companion of a map object (GetClassName "CMapObjectClientSpecific", game.exe's
+// vtable 0073DBEC); +0x1C is the object it belongs to (a unit for IsDead / IsOverkilled).
 class __declspec(novtable) CMapObjectClientSpecific : public CMapObjectCompanion {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DBEC);
+    // The compiled table (CMapObjectClientSpecificClass, map_object_companion_slots.cpp; game.exe's 0073DBEC).
+    static void* Vtable();
 
     // map_object_lifetime.cpp. 00510450: constructor (the engine object fields, the particle and
-    // sound arrays, no light, vtable 0073DBEC; returns this). 00510560: destructor body (the
+    // sound arrays, no light, Vtable(); returns this). 00510560: destructor body (the
     // particles and the light removed, the arrays freed).
     CMapObjectClientSpecific* Construct();
     void DestructBody();
@@ -1283,7 +1285,7 @@ public:
     BOOL IsOverkilled() override;
     // map_object_companion_slots.cpp (A-U12). 00510540, virtual slot 0 (RET 4): DestructBody, then
     // operator delete with flags bit 0. Returns this.
-    CMapObjectClientSpecific* DeleteClientCompanion(unsigned flags);
+    CMapObjectClientSpecific* DeletingDestruct(unsigned flags);
     // 005117F0, virtual slot 16 (RET 8): a hit of `damage` with the hit-kind bits `kind` on a
     // living object flagged 0x400000 shows its number over it (the client world's 0056CE40).
     void ShowHit(int damage, int kind);
