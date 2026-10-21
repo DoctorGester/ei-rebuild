@@ -45,7 +45,7 @@ EI_REWRITTEN(0x00558700, ScalarDelete<&ObjectValues::Destruct<MemoryObjectArrayC
 EI_REWRITTEN(0x00511FF0, ScalarDelete<&EffectObjects::Destruct<EffectObjectArrayClass>>);
 EI_REWRITTEN(0x00558820, ScalarDelete<&gamelists::Holders::Destruct<ArmourSpellListClass>>);
 EI_REWRITTEN(0x006BD190, ScalarDelete<&gamelists::Waves::Destruct<WaveListClass>>);
-EI_REPLACE(0x0059B3F0, ScalarDelete<&gamelists::Refs::Destruct<RefListAClass>>);
+EI_REWRITTEN(0x0059B3F0, ScalarDelete<&gamelists::Refs::Destruct<RefListAClass>>);
 EI_REWRITTEN(0x0059B490, ScalarDelete<&gamelists::Refs::Destruct<RefListBClass>>);
 EI_REPLACE(0x004C1A20, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
 EI_REWRITTEN(0x004CB130, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
@@ -65,8 +65,8 @@ EI_REWRITTEN(0x004CB0F0, ScalarDelete<&Commands::Destruct<CommandArrayClass>>);
 
 // The script's variables, groups, tokens and defines.
 EI_REWRITTEN(0x004C1840, ScalarDelete<&ScriptRefArrayDestruct>);   // 004BC9A0
-EI_REPLACE(0x004C1860, ScalarDelete<&ScriptNamesDestruct>);   // 004BC810
-EI_REPLACE(0x004C18A0, ScalarDelete<&ScriptGroupArrayDestruct>);   // 004BCA20
+EI_REWRITTEN(0x004C1860, ScalarDelete<&ScriptNamesDestruct>);   // 004BC810
+EI_REWRITTEN(0x004C18A0, ScalarDelete<&ScriptGroupArrayDestruct>);   // 004BCA20
 EI_REWRITTEN(0x004CAFB0, ScalarDelete<&gamearrays::DestructGroupBody>);   // 004C2290
 EI_REWRITTEN(0x004CB010, ScalarDelete<&gamearrays::Groups::Destruct<gamearrays::GroupArrayClass>>);   // 004C3B20
 EI_REWRITTEN(0x004CB7B0, ScalarDelete<&gamelists::Tokens::Destruct<TokenListClass>>);   // 004CA260
@@ -82,7 +82,7 @@ EI_REWRITTEN(0x0059B4D0, ScalarDelete<&gamearrays::ObjectPtrs::Destruct<gamearra
 EI_REWRITTEN(0x005701F0, SerializeCArray<gamearrays::ObjectPtrs>);   // the client maps' object pointers
 EI_REWRITTEN(0x0059A170, SerializeCArray<gamearrays::ObjectPtrs>);   // the world's shared object pointers
 EI_REWRITTEN(0x004C2310, SerializeCArray<gamearrays::ObjectRefs>);   // a script group (ScriptGroup::Serialize)
-EI_REPLACE(0x004C3BE0, SerializeCArray<gamearrays::Groups>);       // the script's group variables
+EI_REWRITTEN(0x004C3BE0, SerializeCArray<gamearrays::Groups>);       // the script's group variables
 EI_REPLACE(0x004C5E60, SerializeCArray<gamearrays::PointLights>);  // the script's point lights
 EI_REWRITTEN(0x004C9E20, SerializeCArray<gamearrays::Objectives>);   // a quest's objectives
 EI_REWRITTEN(0x00460270, SerializeCArray<gamearrays::Exits>);        // a zone's exits
@@ -98,7 +98,7 @@ EI_REWRITTEN(0x00571420, SerializeCListThrough<EngineObjectsThrough>);    // Cli
 EI_REWRITTEN(0x004C9350, SerializeCListThrough<ObjectRefsThrough>);       // ObjectRefListClass
 EI_REWRITTEN(0x0052C740, SerializeCListThrough<VictimsThrough>);          // VictimListClass
 EI_REWRITTEN(0x005576C0, SerializeCListThrough<OwnedRefsThrough>);        // gamelists::OwnedRefListClass
-EI_REPLACE(0x00598FD0, SerializeCListThrough<RefsThrough>);             // RefListAClass
+EI_REWRITTEN(0x00598FD0, SerializeCListThrough<RefsThrough>);             // RefListAClass
 EI_REWRITTEN(0x00599DF0, SerializeCListThrough<RefsThrough>);             // RefListBClass
 EI_REWRITTEN(0x00558100, SerializeCListThrough<ArmourSpellsThrough>);     // ArmourSpellListClass
 EI_REWRITTEN(0x004C61C0, SerializeCListThrough<ParticleSourcesThrough>);  // ParticleSourceListClass

@@ -208,7 +208,7 @@ struct LocalDefinition {
         ScriptDefinition* d = Get();
         new (&d->name) mfc::CString;
         new (&d->params) mfc::CString;
-        d->ifThen.vtable = ei::GamePointer<void>(0x0073D430);   // 004D5A30
+        d->ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();   // 004D5A30
         d->ifThen.data = nullptr;
         d->ifThen.size = 0;
         d->ifThen.maxSize = 0;
@@ -244,7 +244,7 @@ SSCCmd* SSCCmd::Construct() {
         a.vtable = vtable;
     };
     init(floatArgs, mfc::impl::ArgFloatArrayClass::Vtable());
-    init(stringArgs, ei::GamePointer<void>(0x0073D2D4));
+    init(stringArgs, gamearrays::ScriptStringValuesClass::Vtable());
     init(objectArgs, mfc::impl::ArgObjectsClass::Vtable());
     init(groupArgs, mfc::impl::ArgGroupsClass::Vtable());
     init(localBindings, recordarrays::BindingArrayClass::Vtable());

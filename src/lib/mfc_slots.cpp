@@ -171,8 +171,8 @@ EI_REWRITTEN(0x00476D90, ScalarDelete<&ArrayHeader<IndexArrayClass>::Destruct>);
 EI_REWRITTEN(0x00476DB0, ScalarDelete<&ArrayHeader<NormalArrayClass>::Destruct>);   // 00476AB0
 EI_REWRITTEN(0x00499020, ScalarDelete<&PtrList::Destruct<ClientListClass>>);   // 00498CA0
 EI_REWRITTEN(0x004C1800, ScalarDelete<&ArrayHeader<ScriptAreaClass>::Destruct>);   // 004C1820
-EI_REPLACE(0x004C1880, ScalarDelete<&ArrayHeader<ScriptFloatsClass>::Destruct>);   // 004BC980
-EI_REPLACE(0x004C1A00, ScalarDelete<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>);   // 004BE410
+EI_REWRITTEN(0x004C1880, ScalarDelete<&ArrayHeader<ScriptFloatsClass>::Destruct>);   // 004BC980
+EI_REWRITTEN(0x004C1A00, ScalarDelete<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>);   // 004BE410
 EI_REWRITTEN(0x004CAF70, ScalarDelete<&ArrayHeader<ScriptAreaClass>::Destruct>);   // 004CAF90
 EI_REWRITTEN(0x004CAFF0, ScalarDelete<&ArrayHeader<ScriptFloatsClass>::Destruct>);   // 004C29C0
 EI_REWRITTEN(0x004CB030, ScalarDelete<&ArrayHeader<FloatArrayClass>::Destruct>);   // 004CB050
@@ -261,12 +261,12 @@ EI_REWRITTEN(0x004767A0, SerializeCArray<Plain4>);   // IndexArrayClass
 EI_REWRITTEN(0x00476AD0, SerializeCArray<Plain20>);   // NormalArrayClass
 EI_REWRITTEN(0x00498EA0, SerializeCArray<Plain8>);   // gamearrays::ParticleDepthArrayClass
 EI_REWRITTEN(0x004C1E70, SerializeCArray<Plain20>);   // ScriptAreaClass
-EI_REPLACE(0x004C29E0, SerializeCArray<Plain4>);   // ScriptFloatsClass
+EI_REWRITTEN(0x004C29E0, SerializeCArray<Plain4>);   // ScriptFloatsClass
 EI_REWRITTEN(0x004C4560, SerializeCArray<Plain4>);   // FloatArrayClass
 EI_REWRITTEN(0x004C4860, SerializeCArray<Plain4>);   // ArgObjectsBaseClass
 EI_REWRITTEN(0x004C4B50, SerializeCArray<Plain4>);   // ArgGroupsBaseClass
 EI_REWRITTEN(0x004C4E40, SerializeCArray<Plain12>);   // BindingsBaseClass
-EI_REPLACE(0x004C5B10, SerializeCArray<Plain8>);   // ScriptIfThenArrayClass
+EI_REWRITTEN(0x004C5B10, SerializeCArray<Plain8>);   // ScriptIfThenArrayClass
 EI_REWRITTEN(0x004C9B10, SerializeCArray<Plain16>);   // AiLookArrayClass
 EI_REWRITTEN(0x0050FFD0, SerializeCArray<Plain20>);   // EffectArrayClass
 EI_REWRITTEN(0x00532E70, SerializeCArray<Plain28>);   // MotionPointArrayClass
@@ -358,7 +358,7 @@ EI_REWRITTEN(0x005CDC00, SerializeCList<List30>);          // StaticListClass
 EI_REWRITTEN(0x005D9A40, SerializeCList<AttentionList>);   // AttentionListClass
 
 // CArray<CString> (vtables 0073D2D4 / 0073D2F8) and its SerializeElements.
-EI_REPLACE(0x004C2700, SerializeStringArray);
+EI_REWRITTEN(0x004C2700, SerializeStringArray);
 EI_REWRITTEN(0x007085AF, SerializeStrings);
 
 } // namespace mfc::impl

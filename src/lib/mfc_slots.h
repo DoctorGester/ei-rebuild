@@ -233,8 +233,12 @@ struct FloatArrayClass final
 struct ArgFloatArrayClass final
     : CompiledCollection<ArgFloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
 // The script's float variables
-struct ScriptFloatsClass final
+struct ScriptFloatsClass
     : CompiledCollection<ScriptFloatsClass, &ArrayHeader<ScriptFloatsClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The float values of the script's variables (ScriptVars, ScriptNamedValues<float>; base ScriptFloatsClass)
+struct ScriptFloatValuesClass final : ScriptFloatsClass {
+    static void* Vtable() { return CompiledVtable<ScriptFloatValuesClass>(); }
+};
 // A script area's parts
 struct ScriptAreaClass
     : CompiledCollection<ScriptAreaClass, &ArrayHeader<ScriptAreaClass>::Destruct, &SerializeCArray<Plain20>> {};
@@ -243,8 +247,12 @@ struct ScriptAreaPartsClass final : ScriptAreaClass {
     static void* Vtable() { return CompiledVtable<ScriptAreaPartsClass>(); }
 };
 // The script's if-then blocks
-struct ScriptIfThenArrayClass final
+struct ScriptIfThenArrayClass
     : CompiledCollection<ScriptIfThenArrayClass, &ArrayHeader<ScriptIfThenArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+// A definition's if-then pairs as the parser builds them (ScriptIfThens; base ScriptIfThenArrayClass)
+struct ScriptIfThenPairsClass final : ScriptIfThenArrayClass {
+    static void* Vtable() { return CompiledVtable<ScriptIfThenPairsClass>(); }
+};
 // The script's party slots
 struct PartySlotArrayClass final
     : CompiledCollection<PartySlotArrayClass, &ArrayHeader<PartySlotArrayClass>::Destruct, &SerializeCArray<Placements>> {};

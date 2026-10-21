@@ -123,6 +123,14 @@ struct SmoothNodeArrayClass final
 struct GroupArrayClass final
     : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &mfc::impl::SerializeCArray<Groups>> {};
 
+// The script variables' string and group arrays (script_arrays.cpp's constructors; the float values are
+// mfc::impl::ScriptFloatValuesClass): their destructors store the plain arrays' tables back (StringArrayClass,
+// GroupArrayClass). The strings' also serve every variable set's names.
+struct ScriptStringValuesClass final
+    : mfc::impl::CompiledCollection<ScriptStringValuesClass, &ScriptNamesDestruct, &mfc::impl::SerializeStringArray> {};
+struct ScriptGroupValuesClass final
+    : mfc::impl::CompiledCollection<ScriptGroupValuesClass, &ScriptGroupArrayDestruct, &mfc::impl::SerializeCArray<Groups>> {};
+
 } // namespace gamearrays
 
 // The tags lib/mfc_array.h only declares (their slots need the game's elements).

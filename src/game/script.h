@@ -36,14 +36,10 @@ enum ScriptType : int {
 // slot 1 reads, slot 2 writes).
 using ScriptStream = CStream;
 
-// The vtables of the script's CArray instantiations: the derived classes the constructors install,
-// and the base classes the inlined destructors write back.
+// The vtables of the CScript members' CArray instantiations (the constructor 004BDE40 installs them; A-E1). The
+// variables' tables are compiled (C19): mfc::impl::ScriptFloatValuesClass, gamearrays::ScriptStringValuesClass /
+// ScriptGroupValuesClass, mfc::impl::ScriptIfThenPairsClass.
 namespace scriptvtable {
-inline void* const kFloats = ei::GamePointer<void>(0x0073D2E0);       // ScriptVars float values
-inline void* const kStrings = ei::GamePointer<void>(0x0073D2D4);      // CString arrays (strings, names)
-inline void* const kGroups = ei::GamePointer<void>(0x0073D304);       // ScriptVars group values
-inline void* const kIfThen = ei::GamePointer<void>(0x0073D430);       // CArray<ScriptIfThen>
-// The CScript members' (the constructor 004BDE40 installs them; A-E1).
 inline void* const kPointLights = ei::GamePointer<void>(0x0073D394);  // CArray<ScriptPointLight>
 inline void* const kDefinitions = ei::GamePointer<void>(0x0073D358);  // CArray<ScriptDefinition>
 inline void* const kAreas = ei::GamePointer<void>(0x0073D334);        // CArray<ScriptArea>
@@ -836,7 +832,7 @@ static_assert(sizeof(ScriptIfThen) == 8);
 
 // CArray<ScriptIfThen>: a definition's pairs.
 struct ScriptIfThens : mfc::CArray<ScriptIfThen> {
-    // 004D5A30 (plain RET; Load's local definition). Empty, growBy 0, vtable 0073D430. Returns this.
+    // 004D5A30 (plain RET; Load's local definition). Empty, growBy 0, the if-then pairs' table (ScriptIfThenPairsClass). Returns this.
     ScriptIfThens* ConstructEmpty();
 };
 
@@ -1056,7 +1052,7 @@ void __fastcall ScriptVarsClear(ScriptVars* vars);
 // ---- Variable array constructors and destructors (script_arrays.cpp) -----------------------------
 // __thiscall, registered as free functions; callers keep going through the original addresses.
 // 004BC690 / 004BC740 / 004BC870 / 004BC950. One type's values and names, both empty with their
-// vtables (scriptvtable::kFloats / kStrings / kRefs / kGroups, names kStrings); return the set.
+// tables (the float, string and group values' compiled tags, the references' ScriptGroupClass; names the strings'); return the set.
 ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars);
 ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsConstruct(ScriptNamedValues<mfc::CString>* vars);
 ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars);
