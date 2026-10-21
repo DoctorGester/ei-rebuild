@@ -47,7 +47,7 @@ void CSpell::LoadSpell(CStream* stream) {
     flags_ = flags;
     stream->Read(&skillNeeded_, 4);
 }
-EI_REPLACE_METHOD(0x0068B860, CSpell::LoadSpell);
+EI_REWRITTEN(0x0068B860, CSpell::LoadSpell);
 
 void CSpell::SaveSpell(CStream* stream) {
     Effect().Save(stream);
@@ -63,4 +63,4 @@ void CSpell::SaveSpell(CStream* stream) {
     stream->Write(&flags_, 4);
     stream->Write(&skillNeeded_, 4);
 }
-EI_REPLACE_METHOD(0x0068B920, CSpell::SaveSpell);
+EI_REWRITTEN(0x0068B920, CSpell::SaveSpell);

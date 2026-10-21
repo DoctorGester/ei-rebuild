@@ -273,7 +273,14 @@ vtable,slots,class,file,note
 00743300,8,CMMIOResource,src/game/resource.h,
 00743320,1,CResourceStream,src/game/resource_stream.h,the sound system's file reader
 00743324,1,CResourceBase,src/game/resource.h,the archive readers' base
+007439C8,13,CSpellConstructorClass,src/game/spell_class.h,spell constructor
 00743A14,26,CSpellManager,src/game/spell.h,
+00743A94,5,CSpellClass,src/game/spell_class.h,spell
+00743AA8,8,CSpellClass,src/game/spell_class.h,the tail of 00743A94 (0068B2C0 / 0068BC50 call slot 5 through the table's memory)
+00743AC8,5,CSpellContainerClass,src/game/spell_class.h,spell container
+00743ADC,3,CSpellContainerClass,src/game/spell_class.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
+00743AE8,5,CSpellContainerClass,src/game/spell_class.h,the tail of 00743ADC (a byte match in 006E81C2)
+00743AFC,18,CLightClass,src/game/spell_class.h,light
 00743B50,25,CLightFactory,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
 00743C38,26,CMaterialManager,src/game/material.h,

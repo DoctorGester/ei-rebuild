@@ -79,8 +79,8 @@ EI_REPLACE(0x0067D7D0, EffectTornadoClassId);
 // 0068B280 / 0068B290: "CSpell", 0x4F.
 const char* __fastcall SpellClassName(CEngineObject*) { return "CSpell"; }
 int __fastcall SpellClassId(CEngineObject*) { return 0x4f; }
-EI_REPLACE(0x0068B280, SpellClassName);
-EI_REPLACE(0x0068B290, SpellClassId);
+EI_REWRITTEN(0x0068B280, SpellClassName);
+EI_REWRITTEN(0x0068B290, SpellClassId);
 
 
 // The items (item.h).

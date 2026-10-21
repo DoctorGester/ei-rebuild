@@ -49,7 +49,7 @@ BOOL CSpell::Clear() {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
-EI_REPLACE_METHOD(0x0068B320, CSpell::Clear);
+EI_REWRITTEN(0x0068B320, CSpell::Clear);
 
 BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     speed_ = prototype->speed;

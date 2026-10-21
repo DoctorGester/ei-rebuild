@@ -2,6 +2,7 @@
 // factory (slot 14), Create / Destroy (slots 2 / 3), the destructor, and the "sequences" it keeps
 // (spell.h, SpellSequence). See docs/notes/items_spells.md.
 #include "spell.h"
+#include "spell_class.h"
 
 #include "item_db.h"
 
@@ -166,14 +167,14 @@ CSpellContainer* CSpellContainer::Construct() {
     *codesEnd_ = '\0';
     Spell()->Construct();
     new (&name_) mfc::CString();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     Reset();   // inlined in the original
     return this;
 }
 EI_REWRITTEN(0x0068BA80, CSpellContainer::Construct);
 
 void CSpellContainer::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     // (Slot 5, 0068BE20, called directly here, is empty.)
     prototype_ = nullptr;
     FreeModifierNodes(modifiers_);
@@ -193,11 +194,11 @@ CSpellContainer* CSpellContainer::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0068BC30, CSpellContainer::DeletingDestruct);
+EI_REWRITTEN(0x0068BC30, CSpellContainer::DeletingDestruct);
 
 const char* __fastcall SpellContainerClassName(CSpellContainer*) {
     return kSpellContainerClassName;
 }
 int __fastcall SpellContainerClassId(CSpellContainer*) { return 0x1A; }
-EI_REPLACE(0x0068BC10, SpellContainerClassName);
-EI_REPLACE(0x0068BC20, SpellContainerClassId);
+EI_REWRITTEN(0x0068BC10, SpellContainerClassName);
+EI_REWRITTEN(0x0068BC20, SpellContainerClassId);

@@ -20,11 +20,11 @@ class CUnit;                // unit.h
 class CMapObject;           // map_object.h
 struct MapEffect;           // map_object.h
 
-// A spell instance (vtable 00743A94). prototypeId_ of CEngineObject is the packed id: spell
+// A spell instance (game.exe's vtable 00743A94; the compiled CSpellClass, spell_class.h). prototypeId_ of CEngineObject is the packed id: spell
 // prototype index << 16.
 class CSpell : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743A94);
+    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 00743A94 and its tail 00743AA8)
 
     // spell_lifetime.cpp. 0068B1F0: the base fields, the effect record (MapEffect::Construct),
     // +0x30..+0x4C 0, +0x50 1, no modifiers; returns this. 0068B2C0: the inlined ClearModifiers
@@ -271,7 +271,7 @@ struct SpellModifierNode {
     itemdb::SpellModifierRecord* modifier;
 };
 
-// A spell under construction (GetClassName "CSpellContainer", vtable 00743AC8, 0x90 bytes,
+// A spell under construction (GetClassName "CSpellContainer", game.exe's vtable 00743AC8, 0x90 bytes,
 // created by the spell manager as class 0x3003): a prototype, the modifiers added so far, and the
 // CSpell (at +0x30) that Build computes from them.
 class CSpellContainer : public CEngineObject {
@@ -311,14 +311,14 @@ public:
     CSpellContainer* Construct();
     void Destruct();
     CSpellContainer* DeletingDestruct(unsigned flags);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AC8);
+    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 00743AC8 and its tails 00743ADC / 00743AE8)
 
     const itemdb::SpellRecord* prototype_;   // +0x1C
     SpellModifierNode* modifiers_;  // +0x20 list sentinel
     char* codes_;                   // +0x24 STLport string: modifier index + 1 per modifier
     char* codesEnd_;                // +0x28
     char* codesCapacity_;           // +0x2C
-    std::uint8_t spell_[0x5C];      // +0x30 the CSpell (vtable 00743A94)
+    std::uint8_t spell_[0x5C];      // +0x30 the CSpell
     mfc::CString name_;             // +0x8C (always empty)
 };
 static_assert(offsetof(CSpellContainer, modifiers_) == 0x20);
@@ -411,10 +411,10 @@ static_assert(offsetof(CSpellManager, sequences_) == 0xBC);
 // 00688950 / 00688960 (slots 11 / 12): "CSpellManager", class id 0x33.
 static_assert(sizeof(CSpellManager) == 0xD4);
 
-// The spell constructor (GetClassName "CSpellConstructor", vtable 007439C8, 0x24 bytes).
+// The spell constructor (GetClassName "CSpellConstructor", game.exe's vtable 007439C8, 0x24 bytes).
 class CSpellConstructor : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x007439C8);
+    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 007439C8)
 
     // 00683FF0 (party_lifetime.cpp). Constructor body: CEngineObject's fields, no manager or
     // container, the vtable. Returns this.
@@ -459,7 +459,7 @@ static_assert(sizeof(CSpellConstructor) == 0x24);
 const char* __fastcall SpellConstructorClassName(CSpellConstructor*);
 int __fastcall SpellConstructorClassId(CSpellConstructor*);
 
-// A light (vtable 00743AFC, GetClassName "CLight", class id 10). type_ 0x31 is a point light.
+// A light (game.exe's vtable 00743AFC, GetClassName "CLight", class id 10). type_ 0x31 is a point light.
 // A transform object: localPosition_ is the light's position (a point light's, and where a
 // directional light is drawn from); worldPosition_ holds the position in the space of the mesh
 // being lit (the mesh drawer 005A7A70 writes it), localRotation_ / worldRotation_ start identity.
@@ -497,7 +497,7 @@ public:
     void AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const;
     void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                   float distance) const;
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AFC);
+    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 00743AFC)
 
     std::uint8_t unused_54[0x94 - 0x54];
     int kind_;                      // +0x94 1 point, 3 directional

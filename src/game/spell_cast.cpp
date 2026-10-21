@@ -5,6 +5,7 @@
 // spell), EndConstruct, CSpell::Clone into a new spell object, SetManager(null).
 #include "item_db.h"
 #include "spell.h"
+#include "spell_class.h"
 
 #include "item.h"
 
@@ -82,7 +83,7 @@ void CSpell::ClearModifiers() {
     ClearState();
     std::memset(modifiers_, 0, sizeof(modifiers_));
 }
-EI_REPLACE_METHOD(0x0068B350, CSpell::ClearModifiers);
+EI_REWRITTEN(0x0068B350, CSpell::ClearModifiers);
 
 void CSpell::CopyTo(CSpell* target) {
     target->Destroy();
@@ -112,7 +113,7 @@ BOOL CSpellContainer::Reset() {
     Spell()->Create();
     return 1;
 }
-EI_REPLACE_METHOD(0x0068BD80, CSpellContainer::Reset);
+EI_REWRITTEN(0x0068BD80, CSpellContainer::Reset);
 
 void CSpellContainer::Shutdown() {
     ClearState();
@@ -120,10 +121,10 @@ void CSpellContainer::Shutdown() {
     FreeModifierNodes(&modifiers_);
     Spell()->Destroy();
 }
-EI_REPLACE_METHOD(0x0068BDD0, CSpellContainer::Shutdown);
+EI_REWRITTEN(0x0068BDD0, CSpellContainer::Shutdown);
 
 const char* CSpellContainer::NameField() { return name_; }
-EI_REPLACE_METHOD(0x0068BC00, CSpellContainer::NameField);
+EI_REWRITTEN(0x0068BC00, CSpellContainer::NameField);
 
 BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
@@ -302,7 +303,7 @@ EI_REWRITTEN(0x00689310, CSpellManager::CreateSpell);
 // --- CSpellConstructor -------------------------------------------------------------------------
 
 void CSpellConstructor::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     CSpellContainer* container = container_;
     container_ = nullptr;
     if (container) container->Release();
@@ -318,13 +319,13 @@ CSpellConstructor* CSpellConstructor::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00684080, CSpellConstructor::DeletingDestruct);
+EI_REWRITTEN(0x00684080, CSpellConstructor::DeletingDestruct);
 
 constexpr const char* kSpellConstructorClassName = "CSpellConstructor";
 const char* __fastcall SpellConstructorClassName(CSpellConstructor*) { return kSpellConstructorClassName; }
 int __fastcall SpellConstructorClassId(CSpellConstructor*) { return 0x1B; }
-EI_REPLACE(0x00684060, SpellConstructorClassName);
-EI_REPLACE(0x00684070, SpellConstructorClassId);
+EI_REWRITTEN(0x00684060, SpellConstructorClassName);
+EI_REWRITTEN(0x00684070, SpellConstructorClassId);
 
 BOOL CSpellConstructor::Reset() {
     CSpellContainer* container = container_;
@@ -333,7 +334,7 @@ BOOL CSpellConstructor::Reset() {
     manager_ = nullptr;
     return 1;
 }
-EI_REPLACE_METHOD(0x00684120, CSpellConstructor::Reset);
+EI_REWRITTEN(0x00684120, CSpellConstructor::Reset);
 
 void CSpellConstructor::Detach() {
     CSpellContainer* container = container_;
@@ -342,7 +343,7 @@ void CSpellConstructor::Detach() {
     if (manager_) --manager_->refCount_;
     manager_ = nullptr;
 }
-EI_REPLACE_METHOD(0x00684150, CSpellConstructor::Detach);
+EI_REWRITTEN(0x00684150, CSpellConstructor::Detach);
 
 void CSpellConstructor::SetManager(CSpellManager* manager) {
     CSpellContainer* container = container_;

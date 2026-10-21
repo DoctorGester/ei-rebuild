@@ -9,6 +9,7 @@
 #include "item.h"
 #include "item_class.h"
 #include "spell.h"
+#include "spell_class.h"
 #include "unit.h"
 
 #include "lib/crt.h"
@@ -151,7 +152,7 @@ EI_REWRITTEN(0x006A5AB0, CItemConstructor::Construct);
 CSpellConstructor* CSpellConstructor::Construct() {
     ClearFields();
     container_ = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     // (The original then releases +0x20, which it has just cleared.)
     manager_ = nullptr;
     return this;
