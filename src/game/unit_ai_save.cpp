@@ -24,8 +24,6 @@ void WriteCopy(CStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
-
 // Each object's counted reference (its id) of a memory list.
 void SaveObjectList(mfc::CTypedPtrList<CEngineObject>& list, CStream* stream) {
     WriteCopy(stream, list.count);
@@ -63,7 +61,7 @@ void __fastcall SaveLooks(const AILookArray* looks, CStream* stream) {
 }
 EI_REPLACE(0x005D91B0, SaveLooks);
 
-void AIBrain::LoadMemory(CStream* stream) {
+void AIMemory::Load(CStream* stream) {
     noticedKind = -1;
     CountedListLoad(&nearby, stream, TheServerWorld());
     CountedListLoad(&visible, stream, TheServerWorld());
@@ -91,8 +89,9 @@ void AIBrain::LoadMemory(CStream* stream) {
     }
     stream->Read(&noticedKind, 4);
 }
+EI_REPLACE_METHOD(0x005CC1E0, AIMemory::Load);
 
-void AIBrain::SaveMemory(CStream* stream) {
+void AIMemory::Save(CStream* stream) {
     SaveObjectList(nearby, stream);
     SaveObjectList(visible, stream);
     SaveObjectList(seenCorpses, stream);
@@ -115,9 +114,4 @@ void AIBrain::SaveMemory(CStream* stream) {
     }
     WriteCopy(stream, noticedKind);
 }
-
-// The original's `this` is the memory at +0xD0.
-void __fastcall LoadMemoryHook(std::uint8_t* memory, void*, CStream* stream) { BrainOfMemory(memory)->LoadMemory(stream); }
-EI_REPLACE(0x005CC1E0, LoadMemoryHook);
-void __fastcall SaveMemoryHook(std::uint8_t* memory, void*, CStream* stream) { BrainOfMemory(memory)->SaveMemory(stream); }
-EI_REPLACE(0x005CC350, SaveMemoryHook);
+EI_REPLACE_METHOD(0x005CC350, AIMemory::Save);

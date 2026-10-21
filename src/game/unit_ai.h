@@ -639,9 +639,27 @@ struct AICallElements {
     static void Destruct(AICallRecord* calls, int count);
 };
 
-// CArray<AICallRecord> (brain + 0x178). SetSize 005CDD60 and Add 005CD880 are registered on the
-// template (unit_ai_brain.cpp).
-using AICallArray = mfc::CArray<AICallRecord, AICallElements>;
+struct AIMemory;
+
+// CArray<AICallRecord> (the perception memory's +0xA8, brain + 0x178; thiscall on the array).
+// SetSize 005CDD60 and Add 005CD880 are registered on the template (unit_ai_brain.cpp).
+struct AIHeardCalls : mfc::CArray<AICallRecord, AICallElements> {
+    // 005CC9D0 (RET 8; unit_ai_brain.cpp; each tick, from AIMemory::Update). Counts every call
+    // down; one that runs out is dropped after it is heard: with a hostility mask (+0x10) the
+    // unit's controller takes the mask (logged "hear delayed sound"), else, when the memory's
+    // noticed level is below 900, the call's point becomes the noticed point (900, kind -3; logged
+    // when the level rose by more than 100 or the point lies more than sqrt(10) away).
+    void Update(CUnit* unit, AIMemory* memory);
+    // 005CCD40 (RET 0xC; unit_ai_hearing.cpp; the memory's HearCall 005CBBA0 and AIViewer::Noise
+    // inline it). The calls without a mask whose kind is `kind` or above are dropped, then {point,
+    // kind, 0, text} is appended.
+    void Hear(const Vector3* point, int kind, const char* text);
+    // 005CCEA0 (RET 0xC; the memory's 005CBBC0). Appends {point not set, kind, mask, text}: when it
+    // runs out (Update) the unit's controller takes the hostility mask.
+    void AddClaim(std::uint32_t mask, int kind, const char* text);
+    // 005CCBF0 (plain RET). Drops the calls that carry a mask.
+    void RemoveClaims();
+};
 
 // A unit's alarm / assembly record: the map spec's behaviour record (0x4C bytes, map_spec.h; read
 // and written by 0045D610 / 0045D760). CArray at brain + 0x90: elements built by 00558E10 (zeroed,
@@ -653,22 +671,6 @@ struct AIAlarmRecordElements {
     static void Destruct(AIAlarmRecord* records, int count);
 };
 using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, AIAlarmRecordElements>;
-// 005CC9D0 (RET 8; unit_ai_brain.cpp; each tick, from UpdateMemory). Counts every call down;
-// one that runs out is dropped after it is heard: with a hostility mask (+0x10) the unit's
-// controller takes the mask (logged "hear delayed sound"), else, when the memory's noticed
-// level is below 900, the call's point becomes the noticed point (900, kind -3; logged when the
-// level rose by more than 100 or the point lies more than sqrt(10) away).
-void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory);
-// 005CCD40 (RET 0xC; unit_ai_hearing.cpp; the memory's HearCall 005CBBA0 and AIViewer::Noise
-// inline it). The calls without a mask whose kind is `kind` or above are dropped, then {point,
-// kind, 0, text} is appended.
-void __fastcall CallsHear(AICallArray* calls, void*, const Vector3* point, int kind, const char* text);
-// 005CCEA0 (RET 0xC; the memory's 005CBBC0). Appends {point not set, kind, mask, text}: when it
-// runs out (CallsUpdate) the unit's controller takes the hostility mask.
-void __fastcall CallsAddClaim(AICallArray* calls, void*, std::uint32_t mask, int kind, const char* text);
-// 005CCBF0 (plain RET). Drops the calls that carry a mask.
-void __fastcall CallsRemoveClaims(AICallArray* calls);
-
 // An object the memory reported (8 bytes; the object is a counted reference).
 struct AIReport {
     CEngineObject* object;
@@ -683,13 +685,14 @@ struct AIReportElements {
     static void Destruct(AIReport* reports, int count);
 };
 
-// CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp). SetSize 005CD670 and
-// RemoveAt 005CD800 are registered on the template (A-W12).
-using AIReportArray = mfc::CArray<AIReport, AIReportElements>;
-// 005CC620. Keeps the larger `what` of a listed object, else appends it (with a reference).
-void __fastcall ReportsAdd(AIReportArray* reports, void*, CEngineObject* object, int what);
-// 005CC560. Whether `object` is listed (only AL is set).
-bool __fastcall ReportsContains(AIReportArray* reports, void*, CEngineObject* object);
+// CArray<AIReport> (the perception memory's +0x94, brain + 0x164; thiscall on the array,
+// unit_ai_brain.cpp). SetSize 005CD670 and RemoveAt 005CD800 are registered on the template (A-W12).
+struct AIReports : mfc::CArray<AIReport, AIReportElements> {
+    // 005CC620 (RET 8). Keeps the larger `what` of a listed object, else appends it (with a reference).
+    void Report(CEngineObject* object, int what);
+    // 005CC560 (RET 4). Whether `object` is listed (only AL is set).
+    bool Contains(CEngineObject* object) const;
+};
 
 // One way the unit can attack or help (0x28 bytes): a weapon (part -1) or a spell.
 struct AIAttackOption {
@@ -746,6 +749,20 @@ struct AIAttention {
     // distance, the target lifted off the sector map meanwhile), or the unit's place without one.
     bool CanReach(AIBrain* brain, const int* partAndObject, int fromHere);
 
+    // 005CFE40 (RET 8; unit_ai_attention.cpp). Chooses the best target in sight (Choose from the
+    // unit's position) and, when it differs from the current attack, attacks it (action 3; the
+    // player's order check may lift the flags to -1) or casts spell `part` at it (action 4 when the
+    // spell cannot be cast now).
+    void LookAround(AIBrain* brain, int unused);
+    // 005CF220 (RET 8; unit_ai_attention.cpp). The brain's current attack as {part, object}: action 3
+    // {-1, target}, action 4 {spell, target}, the object only when it is a unit; otherwise only the
+    // object is cleared.
+    void CurrentAttack(AIBrain* brain, int* partAndObject);
+    // 005CF170 (RET 8; unit_ai_fear.cpp). Takes up {part, object} unless there is no object or it is
+    // the current attack: part -1 AttackTarget, else cast it (action 4 when the spell cannot be cast
+    // now; target and actionTime = the spell).
+    void ApplyAttack(AIBrain* brain, const int* partAndObject);
+
     // The option of `part`: the weapons first, then the spells; null when there is none.
     const AIAttackOption* FindOption(int part) const;
 
@@ -771,21 +788,21 @@ struct AIAttention {
 static_assert(sizeof(AIAttention) == 0x2C);
 
 // The AI's eye (the world server's +0x2838, 007B2798; only the leading part): the unit being
-// updated's position, eye and facing (unit_ai_sight.cpp; __thiscall on the viewer, the memory
-// passed as the brain's +0xD0).
+// updated's position, eye and facing (unit_ai_sight.cpp; __thiscall on the viewer, the brain's
+// perception memory passed).
 struct AIViewer {
-    // 005CAA00 (RET 8; UpdateMemory each brain tick). The viewer moves to the owner's unit, the
+    // 005CAA00 (RET 8; AIMemory::Update each brain tick). The viewer moves to the owner's unit, the
     // nearby units are listed again when due (Refresh), units in the visible list it no longer
     // sees are dropped ("lost from sight": an enemy notices 1000 / -2; a corpse is listed as one
     // first, an allied one noticing 800 / -3), then new ones are looked for (See).
-    void Update(CUnitServer* owner, AIBrain* brain);
+    void Update(CUnitServer* owner, AIMemory* memory);
     // 005CA1D0 (RET 8). Every 8..11 updates (random): the units of the sector cells within the
     // larger of the unit's two sight ranges become the nearby list (+0xF4, counted).
-    void Refresh(CUnit* self, AIBrain* brain);
+    void Refresh(CUnit* self, AIMemory* memory);
     // 005CA5A0 (RET 8). Nearby units not yet visible (corpses not yet listed) that the unit sees:
     // within sight range, inside the view cone and the line of sight; or with peripheral vision;
     // or sensed alive. Players' units see everything; others only enemies.
-    void See(CUnit* self, AIBrain* brain);
+    void See(CUnit* self, AIMemory* memory);
     // 005CA410 (RET 4). Raises the eye by the AI map's ground level of its cell and the unit's
     // height parts and sets the facing from the unit's orientation (once per update).
     void Prepare(CUnit* self);
@@ -793,7 +810,7 @@ struct AIViewer {
     // `loudness` made by `source`'s unit at `at` (null: the unit's position): every unit within 50
     // of the point (the sector map) that is hostile to the source's unit, whose noticed level is
     // below 900 and whose hearing (moveFactors[1] x valuesB0[3]) times the loudness reaches past
-    // the distance hears a call of `kind` at the source unit's position (CallsHear; the text
+    // the distance hears a call of `kind` at the source unit's position (AIHeardCalls::Hear; the text
     // "Unit %i heard unit %i from %fm distance" only with console filter bit 0).
     void Noise(CUnitServer* source, float loudness, int kind, const Vector3* at);
     // 005C9770 (RET 8; unit_ai_hearing.cpp, A-W14; the controller's update every few frames). The
@@ -904,6 +921,85 @@ double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
 // holding a reference; returns the node.
 AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void* edx, CEngineObject* object);
 
+// The brain's perception memory (brain + 0xD0, 0xC0 bytes): what the unit sees, has seen and heard
+// (unit_ai_memory.cpp, unit_ai_brain.cpp, unit_ai_hearing.cpp, unit_ai_save.cpp; the original's
+// functions 005CB0F0..005CC350 are __thiscall on it).
+struct AIMemory {
+    // 005CB0F0 (unit_ai_brain.cpp). Empties the four object lists, the noticed point, the report
+    // and call arrays.
+    void Reset();
+    // 00545CB0 (combat_lifetime.cpp; 00546230 calls it). Destroyed: calls, reports, then the four
+    // object lists (references released, blocks freed).
+    void Destruct();
+    // 005CB700 (RET 4; unit_ai_brain.cpp). Ages the reports (one tick off each; an entry below 0 is
+    // dropped), updates the heard calls (005CC9D0) and the AI events' view (005CAA00 on 007B2798),
+    // then adds the noticed kind to the noticed level. Both callees may set the noticed point, level
+    // and kind inline first (900 / -3, 800 / -3, 1000 / -2).
+    void Update(CUnitServer* owner);
+    // 005CB7F0 (RET 8; unit_ai_brain.cpp). 1 when `other` has the unit's side or player or is in
+    // the visible list, else 0.
+    int IsEnemy(CUnit* self, CEngineObject* other);
+    // 005CBBE0 (RET 0xC; unit_ai_brain.cpp). Takes over a noticed point of a higher `level`: 1 when
+    // the level rose by more than 100 or the point lies more than sqrt(10) away (with the point's
+    // own z, not a difference), else 0; 0 when the level is not higher.
+    int Notice(const Vector3* point, int level, int kind);
+    // 005CC020 (RET 4; unit_ai_brain.cpp). Drops `object` from the four lists and the reports
+    // (holding a reference meanwhile).
+    void Forget(CEngineObject* object);
+    // 005CBBA0 / 005CBBC0 (RET 0xC; unit_ai_hearing.cpp): the calls hear / add a claim.
+    void HearCall(const Vector3* point, int kind, const char* text);
+    void AddClaim(std::uint32_t mask, int kind, const char* text);
+    // 005CB260 (RET 8; unit_ai_memory.cpp). `out` emptied, then the visible units hostile to the
+    // unit (its IsHostileTo), alive and not reported, in visible-list order (no references taken).
+    void FindEnemies(CUnit* self, AIObjectList* out);
+    // 005CB480 (RET 0x10). The same with the visible unit's own IsHostileTo(self); one at or beyond
+    // `radius` of `point` (3D; all of them for a radius <= 0) only when it has an aggression mode
+    // (not a fixed one without an enemy) whose enemy is none, not a unit, or a unit of a side the
+    // unit's side is allied with, and its brain sees an enemy.
+    void FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius);
+    // 005CB670 (RET 4). The nearest (3D) visible unit hostile to the unit and alive, or null.
+    CUnit* NearestEnemy(CUnit* self);
+    // 005CBC80 (RET 8). Forces `object` into sight when it is not visible and attacks the unit or
+    // stands at or beyond one of the two sight ranges: a corpse joins the seen corpses (and the
+    // corpses when allied), a living unit the visible list's head (both counted); each logged.
+    void ForceSee(CUnit* self, CEngineObject* object);
+    // 005CBE90 (RET 8; the server's OnDamaged). Logs and adds `corpse` to the seen corpses (and to
+    // the corpses when its side is allied with the unit's), both counted.
+    void SeeCorpse(CUnit* self, CEngineObject* corpse);
+    // 005CB850 (RET 8; each server tick). The unit's exposure to the living hostile units nearby
+    // into `out` (5 floats, CUnit + 0x4C8): per kind the smallest distance / range ratio, at most 3
+    // (a zero range counts 3). [0] sight (scaled by the line of sight between the eyes, only within
+    // range), [4], [1], [2] three other ranges; [3] stays 3.
+    void MeasureExposure(CUnitServer* self, float* out);
+    // 005CC1E0 / 005CC350 (RET 4; unit_ai_save.cpp). From / to a save: the four object lists
+    // (appended to on load), the noticed point, level and countdown, the reports, the heard calls
+    // (point, kind, text, +0x10) and the noticed kind (-1 until read).
+    void Load(CStream* stream);
+    void Save(CStream* stream);
+
+    SpiralCache spareCells;         // +0x00 set empty by the brain's constructor; not read
+    SpiralCache sightCells;         // +0x08 the cells around the unit it looks for units in (005CA1D0)
+    float noticedX;                 // +0x10
+    float noticedY;                 // +0x14
+    int noticedLevel;               // +0x18
+    int noticedKind;                // +0x1C
+    int nearbyCountdown;            // +0x20 updates until the nearby units are listed again (005CA1D0)
+    AIObjectList nearby;            // +0x24 the units in the sight cells around (counted references)
+    AIObjectList visible;           // +0x40 units in sight
+    AIObjectList seenCorpses;       // +0x5C corpses seen (counted references)
+    AIObjectList corpses;           // +0x78 allied corpses seen (counted references)
+    AIReports reports;          // +0x94 objects reported to the alarm code
+    AIHeardCalls calls;              // +0xA8 calls heard (005CBBA0)
+    std::uint8_t seesEnemy;         // +0xBC
+    std::uint8_t unused_BD[3];
+};
+static_assert(offsetof(AIMemory, noticedX) == 0x10);
+static_assert(offsetof(AIMemory, nearby) == 0x24);
+static_assert(offsetof(AIMemory, reports) == 0x94);
+static_assert(offsetof(AIMemory, calls) == 0xA8);
+static_assert(offsetof(AIMemory, seesEnemy) == 0xBC);
+static_assert(sizeof(AIMemory) == 0xC0);
+
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
     // Actions (`action`).
@@ -969,14 +1065,8 @@ struct AIBrain {
     // destructor). Init, the memory destroyed (as 00545CB0), then the attention arrays, alarm
     // records, the mode in charge, the mode list, target / seen and the looks.
     void Destruct();
-    // 00545CB0 (thiscall on +0xD0; 00546230 calls it). The perception memory destroyed: calls,
-    // reports, then the four object lists (references released, blocks freed).
-    void DestructMemory();
     // The action point and its looks as one move order (00545B20 clears them).
     AIMoveOrder* MoveOrder() { return reinterpret_cast<AIMoveOrder*>(&actionPoint); }
-    // 005CB0F0 (thiscall on +0xD0). Empties the perception memory: its four object lists, the noticed
-    // point, the report arrays.
-    void ResetMemory();
     // 005D8310 / 005D8860 (RET 4; unit_ai_brain.cpp). The brain from / to a save: the action, its
     // point, looks and time, target and seen object, the scalars, the modes (count, the index of
     // the one in charge, then each mode's type and its own data), the perception memory, the alarm
@@ -985,11 +1075,6 @@ struct AIBrain {
     // to [Logic] CallForHelpRadiusDefault to CallForHelpRadius.
     void Load(CStream* stream);
     void Save(CStream* stream);
-    // 005CC1E0 / 005CC350 (thiscall on +0xD0, RET 4; unit_ai_save.cpp). The perception memory:
-    // the four object lists (appended to on load), the noticed point, level and countdown, the
-    // reports, the heard calls (point, kind, text, +0x10) and the noticed kind (-1 until read).
-    void LoadMemory(CStream* stream);
-    void SaveMemory(CStream* stream);
     // The standard mode sets of the script's Guard / Sentry commands: ClearModes, then the guard
     // (radius, wander -1: the default) or sentry mode, Suspection, Aggression, CorpseWatcher and
     // Fear(0); the target is released and the action dropped. 005D6230 / 005D64E0.
@@ -1042,7 +1127,6 @@ struct AIBrain {
     // itself when null) unless it is an ally, become alerted in alert mode 1, and remember a unit in
     // the perception memory.
     void SetSeen(CEngineObject* object);
-    void Remember(CUnit* self, CEngineObject* object);              // 005CBC80 on +0xD0
     // 005D7B50. Action 3 against `object` (run unless the player's order check says otherwise).
     void AttackTarget(CEngineObject* object);
     // 005D7C60. Action 3 against `object` with the given attack parameters; units of other sides
@@ -1069,65 +1153,8 @@ struct AIBrain {
     // for help (kind 0x1A) at `point`; the message text is formatted only while the console shows
     // filter bit 0.
     void CallAllies(const Vector3* point);
-    // 005CFE40 (thiscall on the attention +0xA4 with the brain; unit_ai_attention.cpp). Chooses the
-    // best target in sight (005D0030 from the unit's position) and, when it differs from the current
-    // attack, attacks it (action 3; the player's order check may lift the flags to -1) or casts
-    // spell `part` at it (action 4 when the spell cannot be cast now).
-    void LookAround(int unused);
-    // 005CF220 (thiscall on +0xA4 with the brain; unit_ai_attention.cpp). The current attack as
-    // {part, object}: action 3 {-1, target}, action 4 {spell, target}, the object only when it is a
-    // unit; otherwise only the object is cleared.
-    void CurrentAttack(int* partAndObject);
-    // 005CF170 (thiscall on +0xA4 with the brain, RET 8; unit_ai_fear.cpp). Takes up {part, object}
-    // unless there is no object or it is the current attack: part -1 AttackTarget, else cast it
-    // (action 4 when the spell cannot be cast now; target and actionTime = the spell).
-    void ApplyAttack(const int* partAndObject);
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
-    void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
-
-    // unit_ai_memory.cpp (thiscall on the memory +0xD0 in the original; the modes call them
-    // through their addresses).
-    // 005CB260 (RET 8). `out` emptied, then the visible units hostile to the unit (its
-    // IsHostileTo), alive and not reported, in visible-list order (no references taken).
-    void FindEnemies(CUnit* self, AIObjectList* out);
-    // 005CB480 (RET 0x10). The same with the visible unit's own IsHostileTo(self); one at or beyond
-    // `radius` of `point` (3D; all of them for a radius <= 0) only when it has an aggression mode
-    // (not a fixed one without an enemy) whose enemy is none, not a unit, or a unit of a side the
-    // unit's side is allied with, and its brain sees an enemy.
-    void FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius);
-    // 005CB670 (RET 4). The nearest (3D) visible unit hostile to the unit and alive, or null.
-    CUnit* NearestEnemy(CUnit* self);
-    // 005CBC80 (RET 8). Forces `object` into sight when it is not visible and attacks the unit or
-    // stands at or beyond one of the two sight ranges: a corpse joins +0x12C (and the corpses
-    // when allied), a living unit the visible list's head (both counted); each logged.
-    void ForceSee(CUnit* self, CEngineObject* object);
-    // 005CBE90 (RET 8; the server's OnDamaged). Logs and adds `corpse` to +0x12C (and to the
-    // corpses when its side is allied with the unit's), both counted.
-    void SeeCorpse(CUnit* self, CEngineObject* corpse);
-    // 005CB850 (RET 8; each server tick). The unit's exposure to the living hostile units nearby
-    // (+0xF4) into `out` (5 floats, CUnit + 0x4C8): per kind the smallest distance / range ratio,
-    // at most 3 (a zero range counts 3). [0] sight (scaled by the line of sight between the eyes,
-    // only within range), [4], [1], [2] three other ranges; [3] stays 3.
-    void MeasureExposure(CUnitServer* self, float* out);
-    bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
-    void Perceive(CUnitServer* owner);       // 005CB700 through its address (UpdateMemory)
-    // 005CB700 (thiscall on +0xD0; unit_ai_brain.cpp). Ages the reports (one tick off each; an
-    // entry below 0 is dropped), updates the heard calls (005CC9D0) and the AI events' view
-    // (005CAA00 on 007B2798), then adds the noticed kind to the noticed level. Both callees may
-    // set the noticed point, level and kind inline first (900 / -3, 800 / -3, 1000 / -2).
-    void UpdateMemory(CUnitServer* owner);
-    // 005CB7F0 (thiscall on +0xD0; unit_ai_brain.cpp). 1 when `other` has the unit's side or player or
-    // is in the +0x110 list, else 0.
-    int IsEnemy(CUnit* self, CEngineObject* other);
-    // 005CBBE0 (thiscall on +0xD0; unit_ai_brain.cpp). Takes over a noticed point of a higher
-    // `level`: 1 when the level rose by more than 100 or the point lies more than sqrt(10) away
-    // (with the point's own z, not a difference), else 0; 0 when the level is not higher.
-    int Notice(const Vector3* point, int level, int kind);
-    // 005CC020 (thiscall on +0xD0; unit_ai_brain.cpp). Drops `object` from the four memory lists
-    // and the reports (holding a reference meanwhile).
-    void Forget(CEngineObject* object);
-    void Report(CEngineObject* object, int what);                       // 005CC620 on +0x164
-    AIRef* PopCorpse(AIRef* out);                                       // 005D8D50 on +0x148
+    AIRef* PopCorpse(AIRef* out);                                       // 005D8D50 on the memory's corpses
 
     CUnitServer* owner;             // +0x000
     int action;                     // +0x004
@@ -1154,21 +1181,7 @@ struct AIBrain {
     AIMode* current;                // +0x08C
     AIAlarmRecordArray alarmRecords;    // +0x090
     AIAttention attention;          // +0x0A4
-    std::uint8_t memory[8];         // +0x0D0 perception memory (005CB700 ...); continues below
-    SpiralCache sightCells;         // +0x0D8 the cells around the unit it looks for units in (005CA1D0)
-    float noticedX;                 // +0x0E0
-    float noticedY;                 // +0x0E4
-    int noticedLevel;               // +0x0E8
-    int noticedKind;                // +0x0EC
-    int nearbyCountdown;            // +0x0F0 updates until the nearby units are listed again (005CA1D0)
-    mfc::CTypedPtrList<CEngineObject> nearby;// +0x0F4 the units in the sight cells around (counted references)
-    mfc::CTypedPtrList<CEngineObject> visible;  // +0x110 units in sight
-    mfc::CTypedPtrList<CEngineObject> seenCorpses;// +0x12C corpses seen (counted references)
-    mfc::CTypedPtrList<CEngineObject> corpses;  // +0x148 (elements are counted references)
-    AIReportArray reports;                      // +0x164 objects reported to the alarm code
-    AICallArray calls;                          // +0x178 calls heard (005CBBA0)
-    std::uint8_t seesEnemy;         // +0x18C
-    std::uint8_t unused_18D[3];
+    AIMemory memory;                // +0x0D0 perception memory
 };
 static_assert(offsetof(AIBrain, looks) == 0x14);
 static_assert(offsetof(AIBrain, actionTime) == 0x28);
@@ -1180,14 +1193,6 @@ static_assert(offsetof(AIBrain, modes) == 0x70);
 static_assert(offsetof(AIBrain, current) == 0x8C);
 static_assert(offsetof(AIBrain, alarmRecords) == 0x90);
 static_assert(offsetof(AIBrain, memory) == 0xD0);
-static_assert(offsetof(AIBrain, nearby) == 0xF4);
-static_assert(offsetof(AIBrain, seenCorpses) == 0x12C);
-static_assert(offsetof(AIBrain, calls) == 0x178);
-static_assert(offsetof(AIBrain, noticedX) == 0xE0);
-static_assert(offsetof(AIBrain, visible) == 0x110);
-static_assert(offsetof(AIBrain, corpses) == 0x148);
-static_assert(offsetof(AIBrain, reports) == 0x164);
-static_assert(offsetof(AIBrain, seesEnemy) == 0x18C);
 static_assert(sizeof(AIBrain) == 0x190);
 static_assert(offsetof(AIBrain, attention) == 0xA4);
 

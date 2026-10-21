@@ -641,7 +641,7 @@ inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOrigi
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
 // visible list).
 void InsertSeen(ScriptGroup* group, CEngineObject* controller) {
-    const auto& visible = static_cast<CUnitServer*>(controller)->Brain()->visible;
+    const auto& visible = static_cast<CUnitServer*>(controller)->Brain()->memory.visible;
     for (auto* node = visible.head; node;) {
         auto* current = node;
         node = current->next;

@@ -245,7 +245,7 @@ def read_id_list(r, name):
 
 
 def read_memory(r):
-    """AIBrain::SaveMemory (005CC350, unit_ai_save.cpp): the perception memory."""
+    """AIMemory::Save (005CC350, unit_ai_save.cpp): the perception memory."""
     with r.scope('memory'):
         read_id_list(r, 'nearby')
         read_id_list(r, 'visible')

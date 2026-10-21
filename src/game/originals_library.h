@@ -28,14 +28,6 @@ inline const char* __cdecl MbsInc(const char* p) {
 inline int __cdecl GameMbscmp(const char* a, const char* b) {
     return libcrt::Mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
-// MFC CStringArray constructor (006FE925, mfc::CStringArray::Construct). Returns `this`.
-inline void* __fastcall StringArrayConstruct(void* array) {
-    static_cast<mfc::CStringArray*>(array)->Construct();
-    return array;
-}
-// 006FE958 (destructor, plain RET) and 006FE9B8 (SetSize(count, growBy), RET 8; -1 keeps the grow step):
-// neither returns a result.
-inline void __fastcall StringArrayDestruct(void* array) { static_cast<mfc::CStringArray*>(array)->Destruct(); }
 // The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
 // `this` (plain RET), 004DA910 destroys it (plain RET).
 __declspec(naked) inline void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)

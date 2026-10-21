@@ -175,8 +175,8 @@ here is gone. What it covered, by file:
   `OrderPlan::TakeSteps` serves only a queued order of kind 10, whose one setter 005557E0 is dead (unreachable).
 - Save: SaveServer 005561C0 (slot 10) / LoadServer 00555D10 (9); `combat_save.cpp` SaveStepList 00558420, SaveArmourSpell 00545430,
   LoadStepList 005582A0, LoadArmourSpells 005585F0.
-- Lifetime (`combat_lifetime.cpp`, every spawn): CUnitServer::Construct 00545580, AIBrain::Construct 00545990, AIBrain::DestructMemory
-  00545CB0 (this = brain + 0xD0), AIBrain::Destruct 005457E0 (only from unwind funclets), AIPath::Destruct 00546100 (from
+- Lifetime (`combat_lifetime.cpp`, every spawn): CUnitServer::Construct 00545580, AIBrain::Construct 00545990, AIMemory::Destruct
+  00545CB0 (the brain's memory, + 0xD0), AIBrain::Destruct 005457E0 (only from unwind funclets), AIPath::Destruct 00546100 (from
   CPlayerServer::OnUseOrder); destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: CUnitServer class name /
   id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
   AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai_player_mode_slots.cpp`: priorities 10 /

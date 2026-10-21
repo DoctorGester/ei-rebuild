@@ -516,7 +516,7 @@ void CUnitServer::ContinueAction() {
     CEngineObject* target = action.target;
     bool seen = true;
     char* player = unit->player;
-    if (player && IsUnit(target) && !Brain()->IsEnemy(unit, target))   // 005CB7F0
+    if (player && IsUnit(target) && !Brain()->memory.IsEnemy(unit, target))
         seen = static_cast<CPlayerServer*>(PlayerMessages(player))->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);

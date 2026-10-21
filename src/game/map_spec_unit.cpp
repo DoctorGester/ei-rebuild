@@ -349,7 +349,7 @@ const void* UnitSpecBehaviours(const UnitSpec* spec) { return spec->behaviour; }
 // 0046C140: the destructor body.
 void __fastcall UnitSpecDestruct(UnitSpec* self) {
     ei::SetVtable(self, worlddata::kUnitSpecVtable);
-    for (int i = 4; i >= 0; --i) StringArrayDestruct(&self->lists[i]);
+    for (int i = 4; i >= 0; --i) self->lists[i].Destruct();
     self->prototype.~CString();
     VectorDestruct(self->behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
     self->object.ObjectSpecDestruct();
@@ -367,7 +367,7 @@ EI_REPLACE_METHOD(0x0046C120, UnitSpec::DeleteScalar);
 // 0046C2F0: the destructor of the block at +0x210 (the five string lists; reached only when an
 // exception unwinds the constructor).
 void __fastcall UnitStatsDestruct(std::uint8_t* self) {
-    for (int i = 4; i >= 0; --i) StringArrayDestruct(reinterpret_cast<mfc::CStringArray*>(self + 0xAC + i * 0x14));
+    for (int i = 4; i >= 0; --i) reinterpret_cast<mfc::CStringArray*>(self + 0xAC + i * 0x14)->Destruct();
 }
 EI_REPLACE(0x0046C2F0, UnitStatsDestruct);
 

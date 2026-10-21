@@ -91,7 +91,7 @@ void CMapObjectServer::LoadServer(CStream* stream) {
     stream->Read(&count, sizeof(count));
     for (int i = 0; i < count; ++i) {
         ReadText text(stream);
-        reinterpret_cast<mfc::CStringArray*>(&stringsVtable)->SetAtGrow(stringCount, *text.text);
+        strings.SetAtGrow(strings.size, *text.text);
     }
 }
 EI_REPLACE_METHOD(0x005159D0, CMapObjectServer::LoadServer);
@@ -100,8 +100,8 @@ void CMapObjectServer::SaveServer(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
     WriteText(stream, name78);
     WriteText(stream, name7C);
-    int count = stringCount;
+    int count = strings.size;
     stream->Write(&count, sizeof(count));
-    for (int i = 0; i < stringCount; ++i) WriteText(stream, strings[i]);
+    for (int i = 0; i < strings.size; ++i) WriteText(stream, strings[i]);
 }
 EI_REPLACE_METHOD(0x00515AC0, CMapObjectServer::SaveServer);

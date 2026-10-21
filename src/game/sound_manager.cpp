@@ -459,7 +459,7 @@ int CSoundManager::AddEmitter(const SoundNameArray* names, const float* position
     if (i == 16) return -1;
     SoundEmitter* e = &emitters[i];
     e->active = 1;
-    reinterpret_cast<mfc::CStringArray*>(&e->names)->Copy(*reinterpret_cast<const mfc::CStringArray*>(names));
+    e->names.Copy(*names);
     MoveEmitter(i, position, inner, outer, minInterval, maxInterval);
     e->lastPlayed = gameapi::GetTickCount();
     return i;
@@ -522,7 +522,7 @@ int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const 
     ++s->generation;
     s->id = s->generation << 8 | i;
     s->active = 1;
-    reinterpret_cast<mfc::CStringArray*>(&s->names)->Copy(*reinterpret_cast<const mfc::CStringArray*>(names));
+    s->names.Copy(*names);
     std::memcpy(&s->position, position, sizeof(s->position));
     s->nearDistance = nearDist;
     s->farDistance = farDist;

@@ -233,7 +233,7 @@ heap.
 | Lights zeroed (the sun's never-set position under water) | CLightFactory::NewObjectImpl's operator new 0068DA7C (bit 8) | same | SV7b6a |
 | Path cells' speed word 0x200, terrain bits 0 | CALLs of SearchPathTo, BuildCells, Smooth (harness_path_cells) | | SV7d2 |
 | Save padding, a sound's name tail, the stock's codes, archive keys numbered by first save | harness_save_leftovers | `EI_SAVE_LEFTOVERS=0` | SV7b2a |
-| A heard claim's point 0,0,0 | CallsAddClaim's three loads (005CCF04..) | | S20d |
+| A heard claim's point 0,0,0 | AIHeardCalls::AddClaim's three loads (005CCF04..) | | S20d |
 | Script groups ordered by object id | comparator 004B2D80, inline compares in Union / Difference / Intersection / Insert (harness_script_order) | | SV7b1 |
 | Object sets by id; lit sectors by (sy, sx) | 0047ADF0, 0047B4C0, 006C8E90 (harness_address_order) | | T2f |
 | Draw lists by texture / figure name, then depth | 005740D0 and 00574390 jump to ours (both: mixed orders ran off the array) | | SV7b6 |

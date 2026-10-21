@@ -94,7 +94,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     camp->inputVtable_ = ei::GamePointer<void*>(0x007409F8);
     camp->fromHeroScreen_ = true;   // opened from the hero screen
     camp->heroes_.Construct(0x007402AC);
-    StringArrayConstruct(&camp->pageTitles_);
+    camp->pageTitles_.Construct();
     camp->vtable_ = ei::GamePointer<void*>(0x0074091C);
     camp->inputVtable_ = ei::GamePointer<void*>(0x007408E8);
     return camp;
@@ -490,8 +490,8 @@ CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     screen->entries_.EndOfStorage() = nullptr;
     screen->selectedAddress_ = net::NetAddress{};
     new (&screen->hostPassword_) mfc::CString();
-    StringArrayConstruct(&screen->allodNames_);
-    StringArrayConstruct(&screen->texts_);
+    screen->allodNames_.Construct();
+    screen->texts_.Construct();
     screen->vtable_ = CMpConnectScreen::Vtable();
     screen->inputVtable_ = CMpConnectScreen::InputVtable();
     return screen;

@@ -86,7 +86,7 @@ CUnit* AsUnit(CEngineObject* object) { return static_cast<CUnit*>(object); }
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).
 void DestroyMessage(UnitSpec* message) {
     ei::SetVtable(message, worlddata::kUnitSpecVtable);
-    for (int i = 4; i >= 0; --i) StringArrayDestruct(&message->lists[i]);
+    for (int i = 4; i >= 0; --i) message->lists[i].Destruct();
     message->prototype.~CString();
     VectorDestruct(message->behaviour, sizeof(mapspec::Behaviour), 5,
                    reinterpret_cast<void*>(worlddata::kBehaviourDestructor));
@@ -107,10 +107,10 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
         if (std::strcmp(part, worlddata::HairPartText()) == 0) {
             if (hairStyle != -1) {
                 scratch.Format(worlddata::HairFormat(), hairStyle);
-                reinterpret_cast<mfc::CStringArray*>(parts)->SetAtGrow(parts->size, scratch);
+                parts->SetAtGrow(parts->size, scratch);
             }
         } else {
-            reinterpret_cast<mfc::CStringArray*>(parts)->SetAtGrow(parts->size, part);
+            parts->SetAtGrow(parts->size, part);
         }
     }
 }
@@ -224,7 +224,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         object.side = 0;
         object.parentIname = record->texts[3];
         object.skinTexture = record->texts[4];
-        reinterpret_cast<mfc::CStringArray*>(&object.parts)->SetSize(0, -1);
+        object.parts.SetSize(0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeObjectClass(prototypeName);
         object.parentId = type;   // +0x50: the object's type
@@ -407,7 +407,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     auto companionTexts = [spec](CMapObjectServer* companion) {
         companion->name78 = spec->parentIname;
         companion->name7C = spec->skinTexture;
-        reinterpret_cast<mfc::CStringArray*>(&companion->stringsVtable)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&spec->parts));
+        companion->strings.Copy(spec->parts);
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
@@ -601,7 +601,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         auto* sound = reinterpret_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
-            reinterpret_cast<mfc::CStringArray*>(&ambient->names_)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&sound->sounds));
+            ambient->names_.Copy(sound->sounds);
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->volume);
             ambient->radius_ = static_cast<float>(sound->radius);

@@ -121,7 +121,7 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 
 // The static candidate list of Aggression::Evaluate (007C54C8, guard bit 0 of 007C54E4): a CPtrList
 // built by 004C96A0.
-mfc::CList<void*>& Candidates() { return ei::GameData<mfc::CList<void*>>(0x007C54C8); }
+AIObjectList& Candidates() { return ei::GameData<AIObjectList>(0x007C54C8); }
 std::uint8_t& CandidatesGuard() { return ei::GameData<std::uint8_t>(0x007C54E4); }
 
 } // namespace
@@ -166,7 +166,7 @@ EI_REPLACE_METHOD(0x005D0B70, GuardMode::Set);
 
 void GuardMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
-    brain->LookAround(0);
+    brain->attention.LookAround(brain, 0);
     if (brain->action != AIBrain::kActionNone) return;
     // 35 + radius / 80 + radius, computed before the positions are copied.
     float nearX = kNearX + radius;
@@ -241,7 +241,7 @@ EI_REPLACE_METHOD(0x005D16B0, PatrolMode::Evaluate);
 
 void PatrolMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
-    brain->LookAround(0);
+    brain->attention.LookAround(brain, 0);
     if (points.size == 0 || brain->action != AIBrain::kActionNone) return;
     if (++current >= points.size) current = 0;
     PatrolPoint* next = points.data + current;
@@ -318,7 +318,7 @@ EI_REPLACE_METHOD(0x005D1B50, SentryMode::Set);
 
 void SentryMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
-    brain->LookAround(0);
+    brain->attention.LookAround(brain, 0);
     if (brain->action != AIBrain::kActionNone) return;
     AIMoveOrder order;
     ConstructOrder(&order);
@@ -379,19 +379,19 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         if (!allied) {
             Vector3 where;
             std::memcpy(&where, &static_cast<const CMapObject*>(brain->seen)->position, sizeof(Vector3));
-            brain->Notice(&where, 1000, -2);
+            brain->memory.Notice(&where, 1000, -2);
         }
     }
-    EI_NAN_AUDIT(brain->noticedX, point.x, brain->noticedY, point.y);
-    if (brain->noticedX == point.x && brain->noticedY == point.y) {
+    EI_NAN_AUDIT(brain->memory.noticedX, point.x, brain->memory.noticedY, point.y);
+    if (brain->memory.noticedX == point.x && brain->memory.noticedY == point.y) {
         int value = level;
-        if (!(value < brain->noticedLevel)) value = brain->noticedLevel;
+        if (!(value < brain->memory.noticedLevel)) value = brain->memory.noticedLevel;
         level = value;
         return value;
     }
-    level = brain->noticedLevel;
-    std::memcpy(&point.x, &brain->noticedX, sizeof(float));
-    std::memcpy(&point.y, &brain->noticedY, sizeof(float));
+    level = brain->memory.noticedLevel;
+    std::memcpy(&point.x, &brain->memory.noticedX, sizeof(float));
+    std::memcpy(&point.y, &brain->memory.noticedY, sizeof(float));
     point.z = 0.0f;
     return level;
 }
@@ -437,7 +437,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     std::memcpy(&brain->actionPoint, &order.point, sizeof(Vector3));
     brain->looks.Copy(order.looks);
     brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
-    level = brain->noticedLevel;
+    level = brain->memory.noticedLevel;
     DestroyLooks(&order);
 }
 EI_REPLACE_METHOD(0x005D1F80, SuspectionMode::Execute);
@@ -477,13 +477,13 @@ int AggressionMode::Evaluate(AIBrain* brain) {
                     std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen)->side & 31);
                     allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
                 }
-                if (!allied && seen != brain->owner->unit && !brain->IsReported(seen))
+                if (!allied && seen != brain->owner->unit && !brain->memory.reports.Contains(seen))
                     reinterpret_cast<AIRef*>(&enemy)->Assign(seen);
             }
         }
         if (!enemy) return kNoPriority;
         if (IsGone(enemy) == 0 && enemy->GetClassId() == kClassUnit) {
-            if (brain->IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
+            if (brain->memory.IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
             enemyPart = -1;
             chosen = enemy;
             return chosen ? 10000 : kNoPriority;
@@ -494,7 +494,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         }
         return kNoPriority;
     }
-    if (!brain->seesEnemy) return kNoPriority;
+    if (!brain->memory.seesEnemy) return kNoPriority;
     std::uint8_t& guard = CandidatesGuard();
     if (!(guard & 1)) {
         guard |= 1;
@@ -502,7 +502,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         GameAtExit(ei::static_init::Exit005D2570);
     }
     CUnit* self = brain->owner->unit;
-    brain->CollectEnemies(self, &Candidates());
+    brain->memory.FindEnemies(self, &Candidates());
     brain->ChooseTarget(&enemyPart, &Candidates(), &self->position, 0, 0);
     CEngineObject* best = chosen;
     if (best != enemy) {
@@ -520,12 +520,12 @@ void AggressionMode::Execute(AIBrain* brain) {
     if (!chosen) return;
     brain->CallAllies(&static_cast<CMapObject*>(chosen)->position);
     int attack[2] = {-1, 0};        // {part, object} the brain is attacking now
-    brain->CurrentAttack(attack);
+    brain->attention.CurrentAttack(brain, attack);
     if (reinterpret_cast<CEngineObject*>(attack[1]) == chosen && attack[0] == enemyPart) return;
     if (!chosen) return;
     attack[1] = 0;
     attack[0] = -1;
-    brain->CurrentAttack(attack);
+    brain->attention.CurrentAttack(brain, attack);
     CEngineObject* object = chosen;
     if (object == reinterpret_cast<CEngineObject*>(attack[1]) && enemyPart == attack[0]) return;
     int part = enemyPart;
@@ -569,8 +569,8 @@ EI_REPLACE_METHOD(0x005D26D0, AggressionMode::Enter);
 
 void AggressionMode::Leave(AIBrain* brain) {
     if (!enemy || IsGone(enemy) != 0) {
-        brain->noticedLevel = 0;
-        brain->noticedKind = 0;
+        brain->memory.noticedLevel = 0;
+        brain->memory.noticedKind = 0;
     }
     ReleaseRef(enemy);
     brain->owner->SetBusy(0);
@@ -593,10 +593,10 @@ EI_REPLACE_METHOD(0x005D27A0, AggressionMode::Save);
 // --- CorpseWatcher -------------------------------------------------------------------------------
 
 int CorpseWatcherMode::Evaluate(AIBrain* brain) {
-    if (brain->corpses.count != 0) {
+    if (brain->memory.corpses.count != 0) {
         AIRef corpse;
         AIRef* popped = brain->PopCorpse(&corpse);
-        brain->Notice(&static_cast<CMapObject*>(popped->object)->position, 800, -3);
+        brain->memory.Notice(&static_cast<CMapObject*>(popped->object)->position, 800, -3);
         if (corpse.object) corpse.object->Release();
     }
     return kNoPriority;
@@ -785,7 +785,7 @@ void PlayerMode::CommandAttack(AIBrain* brain, CEngineObject* object, int how, i
         target = object;
     }
     if (brain->owner->unit->player == nullptr && object->GetClassId() == kClassUnit &&
-        brain->IsEnemy(brain->owner->unit, object) == 0)
+        brain->memory.IsEnemy(brain->owner->unit, object) == 0)
         return;
     brain->action = AIBrain::kActionAttack;
     if (object != brain->target) {

@@ -181,7 +181,7 @@ EI_REPLACE(0x005F6470, ItemScreenDestroy);
 
 void __fastcall CampScreenDestroy(CItemScreen* self) {
     auto* camp = static_cast<CCampPages*>(self);
-    StringArrayDestruct(&camp->pageTitles_);
+    camp->pageTitles_.Destruct();
     // The heroes CArray (vtable 007402AC).
     camp->heroes_.vtable = ei::GamePointer<void>(0x007402AC);
     if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);

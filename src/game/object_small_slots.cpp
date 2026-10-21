@@ -65,7 +65,7 @@ EI_REPLACE_METHOD(0x005157C0, CMapObjectServer::CreateServer);
 
 void CMapObjectServer::DestroyServer() {
     vitals.Reset();
-    reinterpret_cast<mfc::CStringArray*>(&stringsVtable)->SetSize(0, -1);
+    strings.SetSize(0, -1);
     owner = nullptr;
 }
 EI_REPLACE_METHOD(0x005157E0, CMapObjectServer::DestroyServer);

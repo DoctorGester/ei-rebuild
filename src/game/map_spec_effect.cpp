@@ -288,10 +288,10 @@ SoundSpec* SoundSpec::SoundSpecConstruct() {
     effect.base.object = nullptr;
     effect.effect = nullptr;
     effect.visible = 1;
-    StringArrayConstruct(&sounds);
+    sounds.Construct();
     ei::SetVtable(this, kVtableAddress);
     effect.base.kind = 3;
-    reinterpret_cast<mfc::CStringArray*>(&sounds)->SetSize(0, -1);
+    sounds.SetSize(0, -1);
     volume = 10;
     radius = 15;
     unused_70 = 1;
@@ -307,7 +307,7 @@ EI_REPLACE_METHOD(0x0046DE70, SoundSpec::SoundSpecConstruct);
 // 0046DF70: the destructor body.
 void SoundSpec::SoundSpecDestruct() {
     ei::SetVtable(this, kVtableAddress);
-    StringArrayDestruct(&sounds);
+    sounds.Destruct();
     effect.base.SpecDestruct();
 }
 EI_REPLACE_METHOD(0x0046DF70, SoundSpec::SoundSpecDestruct);
@@ -358,7 +358,7 @@ void SoundSpec::SoundSpecOnChunk() {
     case 0xCC07: maxInterval = c.ReadInt(); break;
     case 0xCC08: ReadInto(c, effect.base.comment); break;
     case 0xCC0A:
-        reinterpret_cast<mfc::CStringArray*>(&sounds)->SetSize(0, -1);
+        sounds.SetSize(0, -1);
         c.ReadStringArray(&sounds);
         break;
     case 0xCC0B: radius = c.ReadInt(); break;

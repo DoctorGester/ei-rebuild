@@ -134,7 +134,7 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
     chunk.ReadHeader();
     chunk.ReadBytes(diplomacy->relations, sizeof(diplomacy->relations));
     chunk.ReadHeader();
-    reinterpret_cast<mfc::CStringArray*>(&diplomacy->names)->SetSize(0, -1);
+    diplomacy->names.SetSize(0, -1);
     chunk.ReadStringArray(&diplomacy->names);
     chunk.Destruct();
 }
@@ -223,7 +223,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
 
     if (!(keepIds & 0xFF)) TheMissionScript()->Load(scripts, 1);
     scripts->~CString();
-    StringArrayDestruct(&diplomacy->names);
+    diplomacy->names.Destruct();
     records.byId.Destroy();
     return true;
 }

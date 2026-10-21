@@ -123,8 +123,8 @@ struct LocalEntry {
         e.folder_ = empty;
         e.map_ = empty;
         e.zone_ = empty;
-        StringArrayConstruct(&e.stringArrays_[0]);
-        StringArrayConstruct(&e.stringArrays_[1]);
+        e.stringArrays_[0].Construct();
+        e.stringArrays_[1].Construct();
     }
     explicit LocalEntry(const SaveEntry& from) { e.CopyConstruct(&from); }
     ~LocalEntry() { e.Destruct(); }

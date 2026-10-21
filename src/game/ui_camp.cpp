@@ -864,7 +864,7 @@ void DestroyRows(TradeRows& rows) {
 
 void __fastcall TradePanelDestroy(CUiWindow* window) {
     auto* self = static_cast<CTradePanel*>(window);
-    StringArrayDestruct(&self->texts_);
+    self->texts_.Destruct();
     stlp::deallocate(self->records_.begin, static_cast<std::size_t>(self->records_.capacity - self->records_.begin) * 60);   // 00613630
     DestroyRows(self->science_);
     DestroyRows(self->schools_);
@@ -1273,7 +1273,7 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     inputVtable_ = ei::GamePointer<void*>(0x007409F8);
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
     heroes_.Construct(0x007402AC);
-    StringArrayConstruct(&pageTitles_);
+    pageTitles_.Construct();
     vtable_ = ei::GamePointer<void*>(0x0074091C);
     inputVtable_ = ei::GamePointer<void*>(0x007408E8);
     return this;

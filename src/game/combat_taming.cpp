@@ -101,8 +101,8 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
             ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
         }
         static_cast<AIBrain*>(&brain)->AddMode(mode);
-        ClearReferenceList<false>(Brain()->seenCorpses);
-        ClearReferenceList<true>(Brain()->corpses);
+        ClearReferenceList<false>(Brain()->memory.seenCorpses);
+        ClearReferenceList<true>(Brain()->memory.corpses);
         Stage(this) = 3;
         break;
     }

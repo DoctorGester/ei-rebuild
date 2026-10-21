@@ -169,9 +169,9 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         auto* server = static_cast<CMapObjectServer*>(object->companion);
         WriteText(&out_, server->name78);
         WriteText(&out_, server->name7C);
-        std::uint32_t count = static_cast<std::uint32_t>(server->stringCount);
+        std::uint32_t count = static_cast<std::uint32_t>(server->strings.size);
         out_.Write(&count, 2);
-        for (int s = 0; s < server->stringCount; ++s) WriteText(&out_, server->strings[s]);
+        for (int s = 0; s < server->strings.size; ++s) WriteText(&out_, server->strings[s]);
         std::uint32_t prototype = 0;
         if (isUnit) {
             WriteText(&out_, object->GetName());
@@ -292,7 +292,7 @@ int CPlayerServer::SendPartyState() {
         if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
             if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
-            for (auto* node = BrainOf(unit)->nearby.head; node != nullptr;) {
+            for (auto* node = BrainOf(unit)->memory.nearby.head; node != nullptr;) {
                 auto* other = static_cast<CUnit*>(node->data);
                 node = node->next;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
@@ -397,12 +397,12 @@ void CPlayerServer::UpdatePartyUnits() {
             auto* unit = static_cast<CUnit*>(node->value);
             party.Insert(unit);
             AIBrain* brain = BrainOf(unit);
-            party.InsertAll(&brain->visible);
-            known.InsertAll(&brain->seenCorpses);
+            party.InsertAll(&brain->memory.visible);
+            known.InsertAll(&brain->memory.seenCorpses);
         }
         partyUnits_.Union(party, known);
         for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node))
-            known.CopyToList(&BrainOf(static_cast<CUnit*>(node->value))->seenCorpses);
+            known.CopyToList(&BrainOf(static_cast<CUnit*>(node->value))->memory.seenCorpses);
     } else {
         partyUnits_.SetSize(party.size, -1);
         for (int i = 0; i < party.size; ++i) {

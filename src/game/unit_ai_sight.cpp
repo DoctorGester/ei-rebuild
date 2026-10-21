@@ -43,7 +43,6 @@ constexpr int kLostKind = -2;
 constexpr std::uint32_t kFlagSeeAll = 0x2000000;    // CUnit::flags_: sees every unit once
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
-AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
@@ -64,14 +63,14 @@ console::GameOStream& LogPair(CUnit* self, const char* text, CEngineObject* othe
 }
 
 // The noticed point taken over inline (the original's copy of Notice), through CopyPoint2's
-// address so its verify wrapper counts it (UpdateMemory's check relies on that).
-void NoticeAt(AIBrain* brain, CUnit* at, int level, int kind) {
+// address so its verify wrapper counts it (AIMemory::Update's check relies on that).
+void NoticeAt(AIMemory* memory, CUnit* at, int level, int kind) {
     float copy[2];
     const float* point = CopyPoint2(copy, &at->position.x);
-    brain->noticedX = point[0];
-    brain->noticedLevel = level;
-    brain->noticedY = point[1];
-    brain->noticedKind = kind;
+    memory->noticedX = point[0];
+    memory->noticedLevel = level;
+    memory->noticedY = point[1];
+    memory->noticedKind = kind;
 }
 
 } // namespace
@@ -87,10 +86,10 @@ void AIViewer::Prepare(CUnit* self) {
 
 EI_REPLACE_METHOD(0x005CA410, AIViewer::Prepare);
 
-void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
-    if (--brain->nearbyCountdown > 0) return;
+void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
+    if (--memory->nearbyCountdown > 0) return;
     self->flags_ |= kFlagNearbyListed;
-    brain->nearbyCountdown = (gamecrt::rand() & 3) + 8;
+    memory->nearbyCountdown = (gamecrt::rand() & 3) + 8;
     int blockX = cellX / 32;
     int blockY = cellY / 32;
     CUnitServer* control = ControllerOf(self);
@@ -99,12 +98,12 @@ void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
     float reach = sight >= hearing ? sight : hearing;
     int count = 0;
     const std::int16_t* offsets =
-        brain->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
-    for (auto* node = brain->nearby.head; node; node = node->next) {
+        memory->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
+    for (auto* node = memory->nearby.head; node; node = node->next) {
         if (node->data) node->data->Release();
         node->data = nullptr;
     }
-    brain->nearby.RemoveAll();
+    memory->nearby.RemoveAll();
     for (int i = 0; i < count; ++i) {
         AIObjectList* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
@@ -113,30 +112,29 @@ void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
             if (other == static_cast<CEngineObject*>(self)) continue;
             // At the head, holding a reference (the original's inlined AddHead): See walks the list
             // from the head, so the units of the last sector come first.
-            brain->nearby.AddHead(other);
+            memory->nearby.AddHead(other);
             if (other) ++other->refCount_;
         }
     }
 }
 
-void __fastcall RefreshHook(AIViewer* self, void*, CUnit* unit, std::uint8_t* memory) { self->Refresh(unit, BrainOfMemory(memory)); }
-EI_REPLACE(0x005CA1D0, RefreshHook);
+EI_REPLACE_METHOD(0x005CA1D0, AIViewer::Refresh);
 
-void AIViewer::See(CUnit* self, AIBrain* brain) {
+void AIViewer::See(CUnit* self, AIMemory* memory) {
     CUnitServer* ours = ControllerOf(self);
     bool seesAll = self->player != nullptr || (self->flags_ & kFlagSeeAll) != 0;
     self->flags_ &= ~kFlagSeeAll;
-    for (auto* node = brain->nearby.head; node;) {
+    for (auto* node = memory->nearby.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);
         node = node->next;
         bool dead = IsDead(other);
         bool hostile = self->IsHostileTo(other) || other->player != nullptr;
         if (dead) {
             if (!seesAll && hostile) continue;
-            if (brain->seenCorpses.Find(other)) continue;
+            if (memory->seenCorpses.Find(other)) continue;
         } else {
             if (!seesAll && !hostile) continue;
-            if (brain->visible.Find(other)) continue;
+            if (memory->visible.Find(other)) continue;
         }
         if (!ready) Prepare(self);
         Vector3 theirEye;
@@ -173,12 +171,12 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         }
         if (seen && dead) {
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            AddCountedTail(&brain->seenCorpses, nullptr, other);
-            if (Allied(self->side, other->side)) AddCountedTail(&brain->corpses, nullptr, other);
+            AddCountedTail(&memory->seenCorpses, nullptr, other);
+            if (Allied(self->side, other->side)) AddCountedTail(&memory->corpses, nullptr, other);
             continue;
         }
         if (alive) {
-            brain->visible.AddHead(other);
+            memory->visible.AddHead(other);
             ++other->refCount_;
             double dx = static_cast<double>(self->position.x) - other->position.x;
             double dy = static_cast<double>(self->position.y) - other->position.y;
@@ -190,10 +188,9 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
     }
 }
 
-void __fastcall SeeHook(AIViewer* self, void*, CUnit* unit, std::uint8_t* memory) { self->See(unit, BrainOfMemory(memory)); }
-EI_REPLACE(0x005CA5A0, SeeHook);
+EI_REPLACE_METHOD(0x005CA5A0, AIViewer::See);
 
-void AIViewer::Update(CUnitServer* owner, AIBrain* brain) {
+void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     CUnit* self = owner->unit;
     bool hasPlayer = self->player != nullptr;
     float reachFactor = hasPlayer ? kOne : kNonPlayerReach;
@@ -203,9 +200,8 @@ void AIViewer::Update(CUnitServer* owner, AIBrain* brain) {
     float scale = static_cast<float>(kOne / (static_cast<double>(kOne) * kHalf));
     cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf));
     cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf));
-    std::uint8_t* memory = brain->memory;
-    RefreshHook(this, nullptr, self, memory);
-    for (auto* node = brain->visible.head; node;) {
+    Refresh(self, memory);
+    for (auto* node = memory->visible.head; node;) {
         auto* current = node;
         node = node->next;
         auto* other = static_cast<CUnit*>(current->data);
@@ -216,13 +212,13 @@ void AIViewer::Update(CUnitServer* owner, AIBrain* brain) {
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
                 // The original's inlined AddTail (a second copy follows below).
-                brain->seenCorpses.AddTail(other);
+                memory->seenCorpses.AddTail(other);
                 ++other->refCount_;
-                if (brain->noticedLevel < kCorpseLevel) NoticeAt(brain, other, kCorpseLevel, kCorpseKind);
+                if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            AddCountedTail(&brain->seenCorpses, nullptr, other);
-            if (Allied(self->side, other->side)) AddCountedTail(&brain->corpses, nullptr, other);
+            AddCountedTail(&memory->seenCorpses, nullptr, other);
+            if (Allied(self->side, other->side)) AddCountedTail(&memory->corpses, nullptr, other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = ControllerOf(other);
@@ -236,18 +232,15 @@ void AIViewer::Update(CUnitServer* owner, AIBrain* brain) {
             if (theirBrain->AggressionEnemy() == static_cast<CEngineObject*>(self)) continue;
         }
         console::EndLine(LogPair(self, " lost from sight unit ", other));
-        if (self->IsHostileTo(other) && brain->noticedLevel < kLostLevel) NoticeAt(brain, other, kLostLevel, kLostKind);
+        if (self->IsHostileTo(other) && memory->noticedLevel < kLostLevel) NoticeAt(memory, other, kLostLevel, kLostKind);
         if (current->data) current->data->Release();
         current->data = nullptr;
-        brain->visible.RemoveAt(current);
+        memory->visible.RemoveAt(current);
     }
-    SeeHook(this, nullptr, self, memory);
+    See(self, memory);
 }
 
-void __fastcall UpdateHook(AIViewer* self, void*, CUnitServer* owner, std::uint8_t* memory) {
-    self->Update(owner, BrainOfMemory(memory));
-}
-EI_REPLACE(0x005CAA00, UpdateHook);
+EI_REPLACE_METHOD(0x005CAA00, AIViewer::Update);
 
 void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid) {
     Vector3 axis;

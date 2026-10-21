@@ -146,7 +146,7 @@ void AIBrain::Reset() {
     nearY = kNearPointCleared;
     decay = 1.0f;
     action = kActionNone;
-    ResetMemory();
+    memory.Reset();
     actionPoint = Vector3{0.0f, 0.0f, 0.0f};
     looks.SetSize(0, -1);
     if (target) {
@@ -167,7 +167,7 @@ void AIBrain::Init() {
     nearY = kNearPointCleared;
     decay = 1.0f;
     action = kActionNone;
-    ResetMemory();
+    memory.Reset();
     actionPoint = Vector3{0.0f, 0.0f, 0.0f};
     looks.SetSize(0, -1);
     if (target) reinterpret_cast<AIRef*>(&target)->Reset();
@@ -178,7 +178,7 @@ void AIBrain::Init() {
     alarmCountdown = 1;
     alarmSlot = 0;
     actionTime = kNoTime;
-    seesEnemy = 0;
+    memory.seesEnemy = 0;
     alarmRecords.SetSize(0, -1);
     callRadius = InitialCallRadius();
     position = Vector3{0.0f, 0.0f, 0.0f};
@@ -190,7 +190,7 @@ void AIBrain::Init() {
 }
 EI_REPLACE_METHOD(0x005D4F70, AIBrain::Init);
 
-void AIBrain::ResetMemory() {
+void AIMemory::Reset() {
     ReleaseAllObjects(nearby);
     ReleaseAllObjects(visible);
     ReleaseAllObjects(seenCorpses);
@@ -204,11 +204,7 @@ void AIBrain::ResetMemory() {
     noticedKind = 0;
 }
 
-// The original's `this` is the memory at +0xD0.
-void __fastcall ResetMemoryHook(std::uint8_t* memory) {
-    reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory))->ResetMemory();
-}
-EI_REPLACE(0x005CB0F0, ResetMemoryHook);
+EI_REPLACE_METHOD(0x005CB0F0, AIMemory::Reset);
 
 // --- Standard mode sets ---------------------------------------------------------------------------
 
@@ -320,7 +316,7 @@ void AIBrain::CallAllies(const Vector3* point) {
             message.Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
                            std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
-        CallsHear(&ally->calls, nullptr, point, 0x1A, message);   // 005CBBA0 on the ally's memory (+0xD0)
+        ally->memory.HearCall(point, 0x1A, message);
     }
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();
@@ -330,9 +326,6 @@ EI_REPLACE_METHOD(0x005D5990, AIBrain::CallAllies);
 // --- Perception memory ----------------------------------------------------------------------------
 
 namespace {
-// The memory's methods take the memory (brain + 0xD0) as `this`.
-AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
-
 // The inlined RemoveAt of a memory list: unlink, release the element, free the node.
 void RemoveObjectNode(mfc::CTypedPtrList<CEngineObject>& list, mfc::CTypedPtrList<CEngineObject>::Node* node) {
     if (node == list.head) list.head = node->next;
@@ -359,7 +352,7 @@ float* __fastcall CopyPoint2(float* out, const float* point) {
 }
 EI_REPLACE(0x005CA050, CopyPoint2);
 
-int AIBrain::Notice(const Vector3* point, int level, int kind) {
+int AIMemory::Notice(const Vector3* point, int level, int kind) {
     if (level <= noticedLevel) return 0;
     int changed = 1;
     if (static_cast<int>(static_cast<unsigned>(level) - static_cast<unsigned>(noticedLevel)) <= 100) {
@@ -376,12 +369,9 @@ int AIBrain::Notice(const Vector3* point, int level, int kind) {
     return changed;
 }
 
-int __fastcall NoticeHook(std::uint8_t* memory, void*, const Vector3* point, int level, int kind) {
-    return BrainOfMemory(memory)->Notice(point, level, kind);
-}
-EI_REPLACE(0x005CBBE0, NoticeHook);
+EI_REPLACE_METHOD(0x005CBBE0, AIMemory::Notice);
 
-void AIBrain::Forget(CEngineObject* object) {
+void AIMemory::Forget(CEngineObject* object) {
     AIRef held{nullptr};
     held.Assign(object);
     RemoveAllOf(nearby, held.object);
@@ -394,8 +384,7 @@ void AIBrain::Forget(CEngineObject* object) {
     held.Reset();
 }
 
-void __fastcall ForgetHook(std::uint8_t* memory, void*, CEngineObject* object) { BrainOfMemory(memory)->Forget(object); }
-EI_REPLACE(0x005CC020, ForgetHook);
+EI_REPLACE_METHOD(0x005CC020, AIMemory::Forget);
 
 
 void AICallRecord::Destruct() { reinterpret_cast<mfc::CString*>(&text)->~CString(); }
@@ -416,8 +405,8 @@ void AICallElements::Destruct(AICallRecord* calls, int count) {
 }
 
 // 005CDD60 (RET 8): SetSize. 005CD880 (RET 4): Add, returning the new index.
-EI_REPLACE_METHOD(0x005CDD60, AICallArray::SetSize);
-EI_REPLACE_METHOD(0x005CD880, AICallArray::Add);
+EI_REPLACE_METHOD(0x005CDD60, AIHeardCalls::SetSize);
+EI_REPLACE_METHOD(0x005CD880, AIHeardCalls::Add);
 EI_REPLACE_METHOD(0x00558D00, AICallRecord::Destruct);
 
 void __stdcall AIReportElements::Construct(AIReport* reports, int count) {
@@ -433,51 +422,50 @@ void AIReportElements::Destruct(AIReport* reports, int count) {
 }
 
 // 005CD670 (RET 8): SetSize. 005CD800 (RET 8): RemoveAt (A-W12).
-EI_REPLACE_METHOD(0x005CD670, AIReportArray::SetSize);
-EI_REPLACE_METHOD(0x005CD800, AIReportArray::RemoveAt);
+EI_REPLACE_METHOD(0x005CD670, AIReports::SetSize);
+EI_REPLACE_METHOD(0x005CD800, AIReports::RemoveAt);
 EI_REPLACE(0x00558D10, AIReportElements::Construct);
 
 std::uintptr_t CUnitServer::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
 EI_REPLACE_METHOD(0x00552CF0, CUnitServer::AddHostileMask);
 
-void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memoryArg) {
-    AIBrain* brain = BrainOfMemory(static_cast<std::uint8_t*>(memoryArg));
-    for (int i = 0; i < calls->size; ++i) {
-        AICallRecord& call = calls->data[i];
+void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
+    for (int i = 0; i < size; ++i) {
+        AICallRecord& call = data[i];
         if (--call.kind >= 0) continue;
         if (call.hostileMask != 0) {
             console::GameOStream* log = &(*AiLog() << "Unit ");
             log = reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(log)->PutInt(unit->id_));
             console::EndLine(*log << " hear delayed sound: " << call.text);
             static_cast<CUnitServer*>(unit->controller)->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
-        } else if (brain->noticedLevel < 900) {
+        } else if (memory->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the
             // point is more than sqrt(10) away (TEST AH,0x41: NaN is near).
             bool changed = true;
-            if (900 - brain->noticedLevel <= 100) {
-                float dx = call.point.x - brain->noticedX;
-                float dy = call.point.y - brain->noticedY;
+            if (900 - memory->noticedLevel <= 100) {
+                float dx = call.point.x - memory->noticedX;
+                float dy = call.point.y - memory->noticedY;
                 float dz = call.point.z - 0.0f;
                 changed = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 10.0f;
             }
             float copy[2];
             const float* point = CopyPoint2(copy, &call.point.x);
-            brain->noticedX = point[0];
-            brain->noticedLevel = 900;
-            brain->noticedY = point[1];
-            brain->noticedKind = -3;
+            memory->noticedX = point[0];
+            memory->noticedLevel = 900;
+            memory->noticedY = point[1];
+            memory->noticedKind = -3;
             if (changed) console::EndLine(*AiLog() << "Delayed sound: " << call.text);
         }
         call.Destruct();
-        int after = calls->size - i - 1;
-        if (after != 0) libcrt::Memmove(&calls->data[i], &calls->data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
-        --calls->size;
+        int after = size - i - 1;
+        if (after != 0) libcrt::Memmove(&data[i], &data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
+        --size;
         --i;
     }
 }
-EI_REPLACE(0x005CC9D0, CallsUpdate);
+EI_REPLACE_METHOD(0x005CC9D0, AIHeardCalls::Update);
 
-void AIBrain::UpdateMemory(CUnitServer* who) {
+void AIMemory::Update(CUnitServer* who) {
     for (int i = 0; i < reports.size; ++i) {
         AIReport* entry = &reports.data[i];
         if (--entry->what >= 0) continue;
@@ -489,38 +477,34 @@ void AIBrain::UpdateMemory(CUnitServer* who) {
         --reports.size;
         --i;
     }
-    CallsUpdate(&calls, nullptr, who->unit, memory);
+    calls.Update(who->unit, this);
     // The AI events are the world server's +0x2838 (007B2798).
     TheServerWorld()->AIEvents()->Update(who, this);   // 005CAA00
     noticedLevel += noticedKind;
 }
 
-void __fastcall UpdateMemoryHook(std::uint8_t* memory, void*, CUnitServer* who) { BrainOfMemory(memory)->UpdateMemory(who); }
-EI_REPLACE(0x005CB700, UpdateMemoryHook);
+EI_REPLACE_METHOD(0x005CB700, AIMemory::Update);
 
-int AIBrain::IsEnemy(CUnit* self, CEngineObject* other) {
+int AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
     auto* unit = static_cast<CUnit*>(other);
     if (self->side == unit->side || self->player == unit->player) return 1;
     return visible.Find(other) ? 1 : 0;
 }
 
-int __fastcall IsEnemyHook(std::uint8_t* memory, void*, CUnit* self, CEngineObject* other) {
-    return BrainOfMemory(memory)->IsEnemy(self, other);
-}
-EI_REPLACE(0x005CB7F0, IsEnemyHook);
+EI_REPLACE_METHOD(0x005CB7F0, AIMemory::IsEnemy);
 
-void __fastcall ReportsAdd(AIReportArray* reports, void*, CEngineObject* object, int what) {
+void AIReports::Report(CEngineObject* object, int what) {
     if (!object) return;
-    for (int i = 0; i < reports->size; ++i) {
-        if (reports->data[i].object == object) {
-            if (reports->data[i].what <= what) reports->data[i].what = what;
+    for (int i = 0; i < size; ++i) {
+        if (data[i].object == object) {
+            if (data[i].what <= what) data[i].what = what;
             return;
         }
     }
     ++object->refCount_;    // the temporary counted reference of the original
-    int index = reports->size;
-    reports->SetSize(index + 1, -1);
-    AIReport& entry = reports->data[index];
+    int index = size;
+    SetSize(index + 1, -1);
+    AIReport& entry = data[index];
     if (entry.object != object) {
         if (entry.object) entry.object->Release();
         entry.object = nullptr;
@@ -530,14 +514,14 @@ void __fastcall ReportsAdd(AIReportArray* reports, void*, CEngineObject* object,
     entry.what = what;
     object->Release();
 }
-EI_REPLACE(0x005CC620, ReportsAdd);
+EI_REPLACE_METHOD(0x005CC620, AIReports::Report);
 
-bool __fastcall ReportsContains(AIReportArray* reports, void*, CEngineObject* object) {
-    for (int i = 0; i < reports->size; ++i)
-        if (reports->data[i].object == object) return true;
+bool AIReports::Contains(CEngineObject* object) const {
+    for (int i = 0; i < size; ++i)
+        if (data[i].object == object) return true;
     return false;
 }
-EI_REPLACE(0x005CC560, ReportsContains);
+EI_REPLACE_METHOD(0x005CC560, AIReports::Contains);
 
 // --- Save games -----------------------------------------------------------------------------------
 
@@ -649,7 +633,7 @@ void AIBrain::Load(CStream* stream) {
         modes.tail = node;
         if (i == currentIndex) AssignCurrent(current, modes.tail->data);
     }
-    LoadMemory(stream);   // 005CC1E0
+    memory.Load(stream);
     stream->Read(&alerted, 1);
     stream->Read(&alarm, 1);
     stream->Read(&count, 4);
@@ -701,7 +685,7 @@ void AIBrain::Save(CStream* stream) {
         mode->Save(stream);
         node = next;
     }
-    SaveMemory(stream);   // 005CC350
+    memory.Save(stream);
     WriteCopy(stream, alerted);
     WriteCopy(stream, alarm);
     WriteCopy(stream, alarmRecords.size);

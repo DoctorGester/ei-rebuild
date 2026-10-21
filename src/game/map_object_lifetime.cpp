@@ -139,7 +139,7 @@ CObject3D* CObject3D::Construct() {
     std::memset(&parts, 0, sizeof(parts));
     std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
-    StringArrayConstruct(&partNameArrayVtable);
+    partNames.Construct();
     std::memset(&boundsFlags, 0, 0xE * 4);
     partBoxArrayVtable = ei::GamePointer<void>(kFrameArrayVtable);
     partBoxes = nullptr;
@@ -165,7 +165,7 @@ void CObject3D::DestructBody() {
     Destroy3D();
     partBoxArrayVtable = ei::GamePointer<void>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
-    StringArrayDestruct(&partNameArrayVtable);
+    partNames.Destruct();
     if (CLinkMesh* current = figure) {
         if (--current->refCount_ == 0 && current) current->DeleteThis(1);
     }
@@ -367,7 +367,7 @@ CMapObjectServer* CMapObjectServer::Construct() {
     owner = nullptr;
     ConstructString(&name78);
     ConstructString(&name7C);
-    StringArrayConstruct(&stringsVtable);
+    strings.Construct();
     SetVtable(this, CMapObjectServer::kVtableAddress);
     owner = nullptr;
     vitals.Reset();
@@ -378,9 +378,9 @@ EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
 void CMapObjectServer::DestructBody() {
     SetVtable(this, CMapObjectServer::kVtableAddress);
     vitals.Reset();
-    reinterpret_cast<mfc::CStringArray*>(&stringsVtable)->SetSize(0, -1);
+    strings.SetSize(0, -1);
     owner = nullptr;
-    StringArrayDestruct(&stringsVtable);
+    strings.Destruct();
     name7C.~CString();
     name78.~CString();
     SetVtable(this, CMapObjectCompanion::kVtableAddress);
@@ -452,7 +452,7 @@ void CUnitServer::DestructBody() {
     ResetController();
     AIBrain* b = Brain();
     static_cast<AIBrain*>(b)->Init();
-    b->DestructMemory();   // 00545CB0
+    b->memory.Destruct();
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.spells);
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
     mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));

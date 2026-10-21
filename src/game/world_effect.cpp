@@ -202,7 +202,7 @@ void CEffectSoundSeq::Reset() {
     volume_ = 0.0f;
     radius_ = 0.0f;
     name_ = EmptyCString();
-    reinterpret_cast<mfc::CStringArray*>(&names_)->SetSize(0, -1);
+    names_.SetSize(0, -1);
     noFade_ = 0;
 }
 
@@ -262,7 +262,7 @@ double CEffectSoundSeq::Radius() { return radius_; }
 void CEffectAmbientSound::Reset() {
     ClearBase(this);
     if (sound_ != -1) sound_ = TheSoundManager()->RemoveEmitter(sound_);
-    reinterpret_cast<mfc::CStringArray*>(&names_)->SetSize(0, -1);
+    names_.SetSize(0, -1);
     volume_ = 0.0f;
     radius_ = 0.0f;
     minInterval_ = 0;
@@ -285,7 +285,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     // The count is read into the low byte of the argument slot that held `field`.
     std::uint32_t countSlot = reinterpret_cast<std::uintptr_t>(field);
     field->ReadDelta(&countSlot, 1);
-    reinterpret_cast<mfc::CStringArray*>(&names_)->SetSize(static_cast<int>(countSlot & 0xFF), -1);
+    names_.SetSize(static_cast<int>(countSlot & 0xFF), -1);
     for (int i = 0; i < static_cast<int>(countSlot & 0xFF); ++i) {
         alignas(4) unsigned char raw[sizeof(mfc::CString)];
         auto* text = static_cast<mfc::CString*>(field->ReadString(raw));

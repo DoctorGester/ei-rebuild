@@ -75,7 +75,7 @@ void __fastcall StepAlarm(AIAlarm* state, void*, CUnitServer* owner) {
     }
     int side = server->unit->side;
     std::uint32_t allies = world->diplomacy_.allied_[side];
-    for (auto* node = server->Brain()->nearby.head; node; node = node->next) {
+    for (auto* node = server->Brain()->memory.nearby.head; node; node = node->next) {
         auto* member = static_cast<CUnit*>(node->data);
         if (!(allies & (1u << (member->side & 31)))) continue;
         int& alarm = static_cast<CUnitServer*>(member->controller)->voice.level;

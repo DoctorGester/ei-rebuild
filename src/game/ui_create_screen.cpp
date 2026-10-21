@@ -83,7 +83,7 @@ void CInterface3D::CreateScreen(int id) {
         if (!screen) break;
         static_cast<CUiContainer*>(screen)->Construct(this);
         auto* briefing = static_cast<CBriefingScreen*>(screen);
-        StringArrayConstruct(&briefing->topics_);
+        briefing->topics_.Construct();
         new (&briefing->topic_) mfc::CString();
         mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&briefing->party_);
         briefing->movers_ = EmptyList<BriefingMover>();
@@ -284,7 +284,7 @@ void CInterface3D::ShowMessage(int force) {
         win->message_ = true;
         new (&win->text_) mfc::CString(messageText_);
         ::new (&win->title_) mfc::CString;   // afxEmptyString
-        StringArrayConstruct(&win->lines_);
+        win->lines_.Construct();
         win->page_ = value;
         win->pulsing_.Construct();    // the allocator proxy (005FA340), then a sentinel
         win->pictures_.Construct();
@@ -332,7 +332,7 @@ void CInterface3D::OpenHelp(int flag) {
         win->message_ = false;
         new (&win->text_) mfc::CString(topic);
         ::new (&win->title_) mfc::CString;   // afxEmptyString
-        StringArrayConstruct(&win->lines_);
+        win->lines_.Construct();
         win->page_ = seen;
         win->pulsing_.Construct();    // 005F9A00
         win->pictures_.Construct();   // the allocator proxy (005FA340), then a sentinel

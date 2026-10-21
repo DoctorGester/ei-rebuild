@@ -205,7 +205,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         } else {
             // The units the caster's AI sees (its brain's visible list), else diplomacy says.
             UnitList::Node* friends =
-                reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(caster)->controller)->Brain()->visible.head;
+                reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(caster)->controller)->Brain()->memory.visible.head;
             while (friends && friends->data != best) friends = friends->next;
             if (friends) {
                 hit = true;

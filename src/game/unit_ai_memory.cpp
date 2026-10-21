@@ -26,7 +26,6 @@ namespace {
 constexpr float kZero = 0.0f;                   // 0073B858
 const float kFar = 1e30f;                       // 7149F2CA
 
-AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
@@ -51,45 +50,38 @@ AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void*, CEngine
 }
 EI_REPLACE(0x005CD500, AddCountedTail);
 
-void AIBrain::FindEnemies(CUnit* self, AIObjectList* out) {
+void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
     out->RemoveAll();
     for (auto* node = visible.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
-        if (!self->IsHostileTo(other) || IsDead(other) || ReportsContains(&reports, nullptr, other)) continue;
+        if (!self->IsHostileTo(other) || IsDead(other) || reports.Contains(other)) continue;
         out->AddTail(other);
     }
 }
 
-void __fastcall FindEnemiesHook(std::uint8_t* memory, void*, CUnit* self, AIObjectList* out) {
-    BrainOfMemory(memory)->FindEnemies(self, out);
-}
-EI_REPLACE(0x005CB260, FindEnemiesHook);
+EI_REPLACE_METHOD(0x005CB260, AIMemory::FindEnemies);
 
-void AIBrain::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius) {
+void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius) {
     out->RemoveAll();
     float radius2 = radius > kZero ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto* node = visible.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
-        if (!other->IsHostileTo(self) || IsDead(other) || ReportsContains(&reports, nullptr, other)) continue;
+        if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
             AIBrain* theirs = ControllerOf(other)->Brain();
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
             auto* enemy = static_cast<CUnit*>(theirs->AggressionEnemy());
             if (enemy && enemy->GetClassId() == kClassUnit && !Allied(self->side, enemy->side)) continue;
-            if (!theirs->seesEnemy) continue;
+            if (!theirs->memory.seesEnemy) continue;
         }
         out->AddTail(other);
     }
 }
 
-void __fastcall FindEnemiesNearHook(std::uint8_t* memory, void*, CUnit* self, AIObjectList* out, const Vector3* point,
-                                    float radius) {
-    BrainOfMemory(memory)->FindEnemiesNear(self, out, point, radius);
-}
-EI_REPLACE(0x005CB480, FindEnemiesNearHook);
+EI_REPLACE_METHOD(0x005CB480, AIMemory::FindEnemiesNear);
 
-CUnit* AIBrain::NearestEnemy(CUnit* self) {
+CUnit* AIMemory::NearestEnemy(CUnit* self) {
     CUnit* nearest = nullptr;
     float best = kFar;
     for (auto* node = visible.head; node; node = node->next) {
@@ -108,10 +100,9 @@ CUnit* AIBrain::NearestEnemy(CUnit* self) {
     return nearest;
 }
 
-CUnit* __fastcall NearestEnemyHook(std::uint8_t* memory, void*, CUnit* self) { return BrainOfMemory(memory)->NearestEnemy(self); }
-EI_REPLACE(0x005CB670, NearestEnemyHook);
+EI_REPLACE_METHOD(0x005CB670, AIMemory::NearestEnemy);
 
-void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
+void AIMemory::ForceSee(CUnit* self, CEngineObject* object) {
     if (visible.Find(object)) return;
     auto* other = static_cast<CUnit*>(object);
     CUnitServer* theirs = ControllerOf(other);
@@ -121,7 +112,7 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
     double dz = static_cast<double>(self->position.z) - other->position.z;
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     AIBrain* theirBrain = theirs->Brain();
-    bool attacksUs = (theirBrain->action == kActionAttack || theirBrain->action == kActionCast) &&
+    bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
                      theirBrain->target == static_cast<CEngineObject*>(self);
     if (!attacksUs) {
         double sight = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
@@ -142,18 +133,16 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
         console::EndLine(AiLog()->PutFloat(distance) << "m distance");
     }
 }
+EI_REPLACE_METHOD(0x005CBC80, AIMemory::ForceSee);
 
-void AIBrain::SeeCorpse(CUnit* self, CEngineObject* corpse) {
+void AIMemory::SeeCorpse(CUnit* self, CEngineObject* corpse) {
     console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
     console::EndLine(PutLong(os, corpse->id_));
     AddCountedTail(&seenCorpses, nullptr, corpse);
     if (Allied(self->side, static_cast<CUnit*>(corpse)->side)) AddCountedTail(&corpses, nullptr, corpse);
 }
 
-void __fastcall SeeCorpseHook(std::uint8_t* memory, void*, CUnit* self, CEngineObject* corpse) {
-    BrainOfMemory(memory)->SeeCorpse(self, corpse);
-}
-EI_REPLACE(0x005CBE90, SeeCorpseHook);
+EI_REPLACE_METHOD(0x005CBE90, AIMemory::SeeCorpse);
 
 namespace {
 constexpr float kMaxExposure = 3.0f;            // 0073FE90
@@ -170,7 +159,7 @@ float Exposure(float distance, double range) {
 void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; }
 } // namespace
 
-void AIBrain::MeasureExposure(CUnitServer* self, float* out) {
+void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
     CUnit* unit = self->unit;
     Vector3 eye;
@@ -199,12 +188,4 @@ void AIBrain::MeasureExposure(CUnitServer* self, float* out) {
     }
 }
 
-void __fastcall MeasureExposureHook(std::uint8_t* memory, void*, CUnitServer* self, float* out) {
-    BrainOfMemory(memory)->MeasureExposure(self, out);
-}
-EI_REPLACE(0x005CB850, MeasureExposureHook);
-
-void __fastcall ForceSeeHook(std::uint8_t* memory, void*, CUnit* self, CEngineObject* object) {
-    BrainOfMemory(memory)->ForceSee(self, object);
-}
-EI_REPLACE(0x005CBC80, ForceSeeHook);
+EI_REPLACE_METHOD(0x005CB850, AIMemory::MeasureExposure);

@@ -46,7 +46,7 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     CopyBytes(this, source, offsetof(ItemRecordHead, field4), offsetof(ItemRecordHead, list20));
     CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
     field15 = source->field15;
-    reinterpret_cast<mfc::CStringArray*>(&list20)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&source->list20));
+    list20.Copy(source->list20);
     return this;
 }
 EI_REPLACE_METHOD(0x006A8F20, ItemRecordHead::Assign);

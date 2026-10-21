@@ -196,16 +196,16 @@ int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPat
 }
 
 // Rebirth's ResOverride sends every call of 00674AC0 to addon.
-void CMappedResource::ListFiles(void* stringArray, const char* pattern) const {
+void CMappedResource::ListFiles(mfc::CStringArray* stringArray, const char* pattern) const {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        modfolders::ListFiles(this, static_cast<mfc::CStringArray*>(stringArray), pattern);
+        modfolders::ListFiles(this, stringArray, pattern);
         return;
     }
     ListFilesPlain(stringArray, pattern);
 }
 
-void CMappedResource::ListFilesPlain(void* stringArray, const char* pattern) const {
-    reinterpret_cast<mfc::CStringArray*>(stringArray)->SetSize(0, -1);
+void CMappedResource::ListFilesPlain(mfc::CStringArray* stringArray, const char* pattern) const {
+    stringArray->SetSize(0, -1);
     for (std::uint32_t i = 0; i < header_.count; ++i) {
         const ResEntry& entry = entries_[i];
         char name[0x400];
@@ -222,8 +222,7 @@ void CMappedResource::ListFilesPlain(void* stringArray, const char* pattern) con
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
         }
-        int count = static_cast<const int*>(stringArray)[2];
-        reinterpret_cast<mfc::CStringArray*>(stringArray)->SetAtGrow(count, name);
+        stringArray->SetAtGrow(stringArray->size, name);
     }
 }
 

@@ -111,7 +111,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         point = Vector3{0.0f, 0.0f, 0.0f};
         radius = kNoRadius;
     }
-    brain->FindEnemiesNear(unit, &candidates, &point, radius);
+    brain->memory.FindEnemiesNear(unit, &candidates, &point, radius);
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
     for (auto* node = candidates.head; node;) {
         auto* next = node->next;
@@ -156,7 +156,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
             party.RemoveAll();
         }
         int now[2] = {-1, 0};
-        brain->CurrentAttack(now);
+        brain->attention.CurrentAttack(brain, now);
         if (now[1] != best[1] || now[0] != best[0]) Attack(brain, chosen, true);
         if (target) {
             reinterpret_cast<AIRef*>(&target)->Reset();

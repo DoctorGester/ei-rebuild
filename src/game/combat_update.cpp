@@ -233,7 +233,7 @@ int CUnitServer::UpdateServer() {
         TickItemSpells();
         if (unit->player != nullptr) {   // 005301A0
             // A party unit: its perception memory, and now and then a bored remark.
-            Brain()->MeasureExposure(this, unit->levels4C8);   // 005CB850
+            Brain()->memory.MeasureExposure(this, unit->levels4C8);
             static_cast<CMapObject*>(unit)->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;

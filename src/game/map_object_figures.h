@@ -551,11 +551,8 @@ public:
     CLinkMesh* figure;
     Vector3 defaultScale;           // +0x0F4 from 007AF1D0 (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
-    void* partNameArrayVtable;      // +0x110 \ CStringArray of the part names
-    char** partNames;               // +0x114 the figure's part names (00517990), in the order of
-    int partNameCount;              // +0x118 the part boxes (CUnit::partBoxes, +0x160)
-    int partNameCapacity;           // +0x11C | (the CStringArray's)
-    int partNameGrowBy;             // +0x120 /
+    mfc::CStringArray partNames;    // +0x110 the figure's part names (00517990), in the order of the
+                                    // part boxes (CUnit::partBoxes, +0x160)
     std::uint32_t boundsFlags;      // +0x124 1 and 2: the bounds are valid
     Vector3 center;                 // +0x128
     float radius;                   // +0x134
@@ -580,7 +577,7 @@ static_assert(offsetof(CObject3D, defaultScale) == 0xF4);
 static_assert(offsetof(CObject3D, partBoxes) == 0x160);
 static_assert(offsetof(CObject3D, animations) == 0xA0);
 static_assert(offsetof(CObject3D, name) == 0xA4);
-static_assert(offsetof(CObject3D, partNames) == 0x114);
+static_assert(offsetof(CObject3D, partNames) == 0x110);
 static_assert(offsetof(CObject3D, scale) == 0xC4);
 static_assert(offsetof(CObject3D, parts) == 0xD0);
 static_assert(offsetof(CObject3D, pendingParts) == 0xE0);

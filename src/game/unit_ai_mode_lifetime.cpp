@@ -23,7 +23,7 @@ constexpr int kTypeFear = 7;
 
 void AIMode::LookAroundExecute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkIdle);
-    brain->LookAround(0);
+    brain->attention.LookAround(brain, 0);
 }
 EI_REPLACE_METHOD(0x005D0A90, AIMode::LookAroundExecute);
 

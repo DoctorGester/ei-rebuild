@@ -138,7 +138,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     spread = static_cast<float>(static_cast<double>(grown) * kThird);
     if (CEngineObject* seen = brain->seen) {
         const Vector3* at = PositionOf(seen);
-        brain->Notice(at, kNoticeLevel, kNoticeKind);
+        brain->memory.Notice(at, kNoticeLevel, kNoticeKind);
         const Vector3* me = PositionOf(brain->owner->unit);
         float x = static_cast<float>(static_cast<double>(me->x) - at->x);
         float y = static_cast<float>(static_cast<double>(me->y) - at->y);
@@ -149,7 +149,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
 
     // A unit that fights from a distance keeps away from its nearest enemy.
-    CUnit* enemy = brain->NearestEnemy(self);
+    CUnit* enemy = brain->memory.NearestEnemy(self);
     if (enemy && static_cast<std::uint8_t>(reinterpret_cast<CUnitServer*>(owner)->AttacksFromRange()) != 0 &&
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
@@ -170,7 +170,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         }
     }
 
-    if (brain->seesEnemy) return kSeesEnemy;
+    if (brain->memory.seesEnemy) return kSeesEnemy;
     const Vector3* here = PositionOf(self);
     EI_NAN_AUDIT(PrototypeSize(self));
     if (Map()->HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < kHalf)) {
@@ -183,7 +183,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         // The nearest player unit in sight (2D).
         double best = kFar;
         Vector3 nearest{};      // the original leaves it unset when there is none (then 1e30 is never inside)
-        for (auto* node = brain->visible.head; node; node = node->next) {
+        for (auto* node = brain->memory.visible.head; node; node = node->next) {
             auto* other = static_cast<CUnit*>(node->data);
             if (!other->player) continue;
             const Vector3* me = PositionOf(brain->owner->unit);
@@ -195,17 +195,17 @@ int FearMode::Evaluate(AIBrain* brain) {
                 best = static_cast<float>(d2);
             }
         }
-        if (best < static_cast<double>(distance) * distance) brain->Notice(&nearest, kNoticeLevel, kNoticeKind);
+        if (best < static_cast<double>(distance) * distance) brain->memory.Notice(&nearest, kNoticeLevel, kNoticeKind);
     }
     shelter.x = std::bit_cast<float>(kUnsetBits);
 
-    if (brain->noticedLevel > kCalmLevel) {
-        if (brain->current == this) return brain->noticedLevel / 6;
+    if (brain->memory.noticedLevel > kCalmLevel) {
+        if (brain->current == this) return brain->memory.noticedLevel / 6;
         const Vector3* me = PositionOf(brain->owner->unit);
-        double nx = static_cast<double>(me->x) - brain->noticedX;
-        double ny = static_cast<double>(me->y) - brain->noticedY;
+        double nx = static_cast<double>(me->x) - brain->memory.noticedX;
+        double ny = static_cast<double>(me->y) - brain->memory.noticedY;
         double z = me->z;   // not a difference: the memory keeps no z
-        if (static_cast<double>(distance) * distance > z * z + ny * ny + nx * nx) return brain->noticedLevel / 6;
+        if (static_cast<double>(distance) * distance > z * z + ny * ny + nx * nx) return brain->memory.noticedLevel / 6;
     }
     // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
     // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
@@ -223,9 +223,9 @@ void FearMode::Execute(AIBrain* brain) {
     const Vector3* here = PositionOf(owner->unit);
 
     // What to run from: the nearest enemy, a shelter to stay in, or the noticed point.
-    Vector3 from{brain->noticedX, brain->noticedY, 0.0f};
-    if (brain->seesEnemy) {
-        if (CUnit* enemy = brain->NearestEnemy(brain->owner->unit)) {
+    Vector3 from{brain->memory.noticedX, brain->memory.noticedY, 0.0f};
+    if (brain->memory.seesEnemy) {
+        if (CUnit* enemy = brain->memory.NearestEnemy(brain->owner->unit)) {
             from = *PositionOf(enemy);
             brain->CallAllies(PositionOf(enemy));
         }
@@ -233,9 +233,9 @@ void FearMode::Execute(AIBrain* brain) {
         from = *here;
     } else if (!IsUnset(shelter) && Map()->HasKind3OccluderAt(&shelter)) {
         from = shelter;
-    } else if (!flag || brain->noticedLevel <= kKeepLevel) {
-        brain->noticedLevel = 0;
-        brain->noticedKind = 0;
+    } else if (!flag || brain->memory.noticedLevel <= kKeepLevel) {
+        brain->memory.noticedLevel = 0;
+        brain->memory.noticedKind = 0;
     }
 
     double near2 = DistanceSquaredZYX(*here, from);
@@ -291,7 +291,7 @@ void FearMode::Execute(AIBrain* brain) {
         int best[2] = {-1, 0};      // {part, object}
         Vector3 at = *PositionOf(brain->owner->unit);
         brain->ChooseTarget(best, &candidates, &at, 1, 1);
-        if (best[1]) brain->ApplyAttack(best);
+        if (best[1]) brain->attention.ApplyAttack(brain, best);
         candidates.RemoveAll();
 
         if (brain->action == AIBrain::kActionNone) {
@@ -321,30 +321,25 @@ void FearMode::Execute(AIBrain* brain) {
 
 EI_REPLACE_METHOD(0x005D30A0, FearMode::Execute);
 
-void AIBrain::ApplyAttack(const int* partAndObject) {
+void AIAttention::ApplyAttack(AIBrain* brain, const int* partAndObject) {
     auto* object = reinterpret_cast<CEngineObject*>(partAndObject[1]);
     if (!object) return;
     int now[2] = {-1, 0};
-    CurrentAttack(now);
+    CurrentAttack(brain, now);
     if (object == reinterpret_cast<CEngineObject*>(now[1]) && partAndObject[0] == now[0]) return;
     int part = partAndObject[0];
     if (part == -1) {
-        AttackTarget(object);
+        brain->AttackTarget(object);
         return;
     }
-    if (!owner->IsScrollSource(part)) action = kActionCast;
-    if (object != target) {
-        if (target) target->Release();
-        target = nullptr;
+    if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
+    if (object != brain->target) {
+        if (brain->target) brain->target->Release();
+        brain->target = nullptr;
         ++object->refCount_;
-        target = object;
+        brain->target = object;
     }
-    actionTime = part;
-    owner->OrderCast(part, object, 0);
+    brain->actionTime = part;
+    brain->owner->OrderCast(part, object, 0);
 }
-
-void __fastcall ApplyAttackHook(AIAttention* attention, void*, AIBrain* brain, const int* partAndObject) {
-    (void)attention;    // always the brain's +0xA4
-    brain->ApplyAttack(partAndObject);
-}
-EI_REPLACE(0x005CF170, ApplyAttackHook);
+EI_REPLACE_METHOD(0x005CF170, AIAttention::ApplyAttack);
