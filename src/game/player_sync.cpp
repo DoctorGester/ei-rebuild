@@ -169,9 +169,9 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         auto* server = static_cast<CMapObjectServer*>(object->companion);
         WriteText(&out_, server->name78);
         WriteText(&out_, server->name7C);
-        std::uint32_t count = static_cast<std::uint32_t>(server->stringCount);
+        std::uint32_t count = static_cast<std::uint32_t>(server->strings.size);
         out_.Write(&count, 2);
-        for (int s = 0; s < server->stringCount; ++s) WriteText(&out_, server->strings[s]);
+        for (int s = 0; s < server->strings.size; ++s) WriteText(&out_, server->strings[s]);
         std::uint32_t prototype = 0;
         if (isUnit) {
             WriteText(&out_, object->GetName());

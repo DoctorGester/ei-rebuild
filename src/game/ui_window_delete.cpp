@@ -86,8 +86,8 @@ EI_REPLACE_METHOD(0x005EA850, UiInputSide::InputSideBaseDelete);
 void CItemInfoPanel::DestroyBody() {
     vtable_ = ItemInfoPanelVtable();
     inputVtable_ = ItemInfoPanelInputVtable();
-    StringArrayDestruct(&skillTexts_);
-    StringArrayDestruct(&itemTexts_);
+    skillTexts_.Destruct();
+    itemTexts_.Destruct();
     PartyRecordsDestructOriginal(itemList_);
     DestroyBase();
 }
@@ -110,13 +110,13 @@ void CUiItemStrip::DestroyForwarding() {
 EI_REPLACE_METHOD(0x0060E2B0, CUiItemStrip::DestroyForwarding);
 
 void CSpellMakerPage::DestroyBody() {
-    StringArrayDestruct(&texts_);
+    texts_.Destruct();
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0060E600, CSpellMakerPage::DestroyBody);
 
 void CHeroStatsPanel::DestroyBody() {
-    StringArrayDestruct(&texts_);
+    texts_.Destruct();
     CStringDestroy(&title_);
     DestroyBase();
 }
@@ -224,9 +224,9 @@ void CHelpWindow::DestroyBody() {
 EI_REPLACE_METHOD(0x005F8970, CHelpWindow::DestroyBody);
 
 void CObjectivesWindow::DestroyBody() {
-    StringArrayDestruct(&objectiveTexts_);
+    objectiveTexts_.Destruct();
     FreeVectorStorage(questPlaces_.begin(), questPlaces_.EndOfStorage());
-    StringArrayDestruct(&quests_);
+    quests_.Destruct();
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
     CStringDestroy(&shownZone_);

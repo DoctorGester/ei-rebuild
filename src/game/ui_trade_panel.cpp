@@ -410,14 +410,12 @@ void CTradePanel::Build() {
     void* table = GameClientTexts();
     {
         mfc::CString text;
-        void* titles = &texts_;
-        int* size = &texts_.size;
         TextsGetString(table, nullptr, "skills", &text);
-        reinterpret_cast<mfc::CStringArray*>(titles)->SetAtGrow(*size, text);
+        texts_.SetAtGrow(texts_.size, text);
         TextsGetString(table, nullptr, "perks", &text);
-        reinterpret_cast<mfc::CStringArray*>(titles)->SetAtGrow(*size, text);
+        texts_.SetAtGrow(texts_.size, text);
         TextsGetString(table, nullptr, "perks_av", &text);
-        reinterpret_cast<mfc::CStringArray*>(titles)->SetAtGrow(*size, text);
+        texts_.SetAtGrow(texts_.size, text);
 
         // One statistics record per party member (inlined in the original; 00625430's body).
         ResetRecords();

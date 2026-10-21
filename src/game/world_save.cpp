@@ -541,11 +541,11 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 for (int i = 0; i < count; ++i) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
                     mfc::CString* name = stream->ReadString(storage);
-                    reinterpret_cast<mfc::CStringArray*>(&mobFiles_)->SetAtGrow(mobFiles_.size, *name);
+                    mobFiles_.SetAtGrow(mobFiles_.size, *name);
                     name->~CString();
                 }
             } else {
-                reinterpret_cast<mfc::CStringArray*>(&mobFiles_)->SetSize(0, -1);
+                mobFiles_.SetSize(0, -1);
             }
 
             if (stream->version_ >= kVersionSharedObjects) {
@@ -888,7 +888,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     LocalMemoryStream graph;
     if (!ReadAIGraph(map, mob, &graph.stream))
         return game::FatalError(kCantLoadGraph);
-    reinterpret_cast<mfc::CStringArray*>(&mobFiles_)->SetSize(0, -1);
+    mobFiles_.SetSize(0, -1);
     AIMap()->BeginRefresh();
     loaded_ = 0;
     std::memset(alarms_, 0, sizeof(alarms_));

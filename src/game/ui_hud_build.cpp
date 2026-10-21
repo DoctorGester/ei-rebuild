@@ -107,8 +107,7 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) {
     CUiWindow::Construct(ui);
     owner_ = owner;
-    auto* labels = reinterpret_cast<mfc::CStringArray*>(&labelsVtable_);
-    labels->Construct();
+    labels_.Construct();
     vtable_ = Vtable(0x0074279C);
     inputVtable_ = Vtable(0x00742768);
     // WideScreen: the rectangle and the first region from 80 - shift (0063BAFC, 0063BB2B); the
@@ -122,7 +121,7 @@ CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) 
     for (int i = 0; i < 4; ++i) regions_.data[i]->SetTip(0, 1, 0);
     unit_ = nullptr;
     const int ids[] = {15, 20, 10, 5};
-    AddLabels(labels, ids);
+    AddLabels(&labels_, ids);
     return this;
 }
 EI_REPLACE_METHOD(0x0063BAB0, CHudWeaponBar::Construct);
@@ -199,8 +198,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     owner_ = owner;
     auto* entries = reinterpret_cast<mfc::CArray<Entry>*>(&entriesVtable_);
     entries->Construct(kQuickEntriesVtable);
-    auto* labels = reinterpret_cast<mfc::CStringArray*>(&labelsVtable_);
-    labels->Construct();
+    labels_.Construct();
     vtable_ = Vtable(0x0074283C);
     inputVtable_ = Vtable(0x00742808);
     const int shift = widescreen::EdgeShift();
@@ -218,7 +216,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     entries->SetSize(0, -1);
     unit_ = nullptr;
     const int ids[] = {7, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
-    AddLabels(labels, ids);
+    AddLabels(&labels_, ids);
     widescreen::LeavePanel();
     return this;
 }
@@ -248,8 +246,7 @@ EI_REPLACE_METHOD(0x0063CAE0, CHudQuickItems::AddItem);
 CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* owner) {
     CUiWindow::Construct(ui);
     owner_ = owner;
-    auto* labels = reinterpret_cast<mfc::CStringArray*>(&labelsVtable_);
-    labels->Construct();
+    labels_.Construct();
     vtable_ = Vtable(0x007428E4);
     inputVtable_ = Vtable(0x007428B0);
     const int shift = widescreen::EdgeShift();
@@ -260,7 +257,7 @@ CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* own
     selected_ = -1;
     unit_ = nullptr;
     const int ids[] = {7, 18, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
-    AddLabels(labels, ids);
+    AddLabels(&labels_, ids);
     return this;
 }
 EI_REPLACE_METHOD(0x0063E2A0, CHudSpellColumn::Construct);
@@ -301,8 +298,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     CUiWindow::Construct(ui);
     owner_ = owner;
     actions_.Construct(kDwordArrayVtable);
-    auto* labels = reinterpret_cast<mfc::CStringArray*>(&labelsVtable_);
-    labels->Construct();
+    labels_.Construct();
     vtable_ = Vtable(0x00742980);
     inputVtable_ = Vtable(0x0074294C);
     // WideScreen (addon's 10023416 at 0063F378, 0063F38E): the panel offset from here on, the
@@ -319,7 +315,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     unit_ = nullptr;
     mfc::CString text;
     TheTextManager()->GetString("infoitem_16", &text);
-    labels->SetAtGrow(labels->size, text);
+    labels_.SetAtGrow(labels_.size, text);
     widescreen::LeavePanel();        // addon's 10023430
     return this;
 }

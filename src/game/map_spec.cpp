@@ -131,7 +131,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&primaryTexture) mfc::CString();
     new (&parentIname) mfc::CString();
     new (&skinTexture) mfc::CString();
-    StringArrayConstruct(&parts);
+    parts.Construct();
     ei::SetVtable(this, kVtableAddress);
     mfc::CString none("none");
     base.kind = 1;
@@ -148,7 +148,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     side = 0;
     parentIname = none;
     skinTexture = none;
-    reinterpret_cast<mfc::CStringArray*>(&parts)->SetSize(0, -1);
+    parts.SetSize(0, -1);
     return this;
 }
 EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
@@ -156,7 +156,7 @@ EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
 // 0046AEB0: the destructor body.
 void ObjectSpec::ObjectSpecDestruct() {
     ei::SetVtable(this, kVtableAddress);
-    StringArrayDestruct(&parts);
+    parts.Destruct();
     skinTexture.~CString();
     parentIname.~CString();
     primaryTexture.~CString();
@@ -202,8 +202,8 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     side = from->side;
     parentIname = from->parentIname;
     skinTexture = from->skinTexture;
-    reinterpret_cast<mfc::CStringArray*>(&parts)->SetSize(0, -1);
-    reinterpret_cast<mfc::CStringArray*>(&parts)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&from->parts));
+    parts.SetSize(0, -1);
+    parts.Copy(from->parts);
 }
 EI_REPLACE_METHOD(0x0046A710, ObjectSpec::ObjectSpecAssign);
 
@@ -594,13 +594,13 @@ namespace {
 // pair 1 but a player with itself (0), and the player names "Player-<i>". Returns this.
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     mfc::CStringArray* names = &self->names;
-    StringArrayConstruct(names);
+    names->Construct();
     for (auto& row : self->relations) {
         for (std::int32_t& relation : row) relation = 1;
     }
     for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
-        reinterpret_cast<mfc::CStringArray*>(names)->SetAtGrow(names->size, game::EmptyText());
+        names->SetAtGrow(names->size, game::EmptyText());
         names->data[i].Format("Player-%i", i);
     }
     return self;

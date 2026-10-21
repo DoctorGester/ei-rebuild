@@ -41,12 +41,12 @@ constexpr Entry kMaterials[] = {{"le", 0x11}, {"wo", 0x12}, {"me", 0x13},
 int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     mfc::CString rest(name);
     mfc::CStringArray parts;
-    StringArrayConstruct(&parts);
+    parts.Construct();
     rest += '.';
     for (int dot = rest.Find('.'); dot != -1; dot = rest.Find('.')) {
         {
             mfc::CString part = rest.Left(dot);
-            reinterpret_cast<mfc::CStringArray*>(&parts)->SetAtGrow(parts.size, part);
+            parts.SetAtGrow(parts.size, part);
         }
         mfc::CString tail = rest.Right(rest.GetLength() - dot - 1);
         rest = tail;
@@ -82,7 +82,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             *material = 0x15;
         }
     }
-    StringArrayDestruct(&parts);
+    parts.Destruct();
     return 1;
 }
 EI_REPLACE(0x0044A2A0, ParseMaterial);

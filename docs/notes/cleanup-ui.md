@@ -44,7 +44,7 @@ Raw access the counter does not see (a byte pointer kept in a local, `Get` / `Se
   `ui_item_view.cpp`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`, `ui_camp.cpp`, `ui_camp_deals.cpp`, `ui_battle_setup.cpp` (player +0x30),
   `ui_trade_panel.cpp` (stats +0x700): byte locals. Item fields are read with `Read<>(item, offset)` in ui_camp.cpp, ui_hero_panels.cpp and
   ui_item_info.cpp until the item classes are declared.
-- Declarations: `CCampScreen` (ui_screens.h) repeats `CCampPages`; `CHudQuickItems::entries_` / `labels_` are raw arrays; each file keeps its
+- Declarations: `CCampScreen` (ui_screens.h) repeats `CCampPages`; `CHudQuickItems::entries_` is a raw array (the HUD panels' `labels_` are `mfc::CStringArray`s); each file keeps its
   own `SetRenderState` helper; `WindowFromInput` / `FromInput` are repeated per file; `AllodView` repeats `AllodRecord`;
   `CCreditsScreen::archive_` is bytes (a CMappedResource). `MapRecord::kind`: object_tables.h
   says 1 edge / 2 brief, the global map treats 2 as a way between zones; check. `SpellRecord::unknown_1C` (power, radius, level, duration) and

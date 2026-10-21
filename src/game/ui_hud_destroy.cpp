@@ -16,13 +16,13 @@ void* DwordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }     // CD
 } // namespace
 
 void CHudWeaponBar::DestroyBody() {
-    StringArrayDestruct(&labelsVtable_);
+    labels_.Destruct();
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0063BC70, CHudWeaponBar::DestroyBody);
 
 void CHudQuickItems::DestroyBody() {
-    StringArrayDestruct(&labelsVtable_);
+    labels_.Destruct();
     entriesVtable_ = QuickEntriesVtable();
     if (entries_) gamecrt::operator_delete(entries_);
     DestroyBase();
@@ -30,13 +30,13 @@ void CHudQuickItems::DestroyBody() {
 EI_REPLACE_METHOD(0x0063CA70, CHudQuickItems::DestroyBody);
 
 void CHudSpellColumn::DestroyBody() {
-    StringArrayDestruct(&labelsVtable_);
+    labels_.Destruct();
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0063E460, CHudSpellColumn::DestroyBody);
 
 void CHudActionColumn::DestroyBody() {
-    StringArrayDestruct(&labelsVtable_);
+    labels_.Destruct();
     actions_.vtable = DwordArrayVtable();
     if (actions_.data) gamecrt::operator_delete(actions_.data);
     DestroyBase();
@@ -51,8 +51,8 @@ void CHudMap::DestroyBody() {
 EI_REPLACE_METHOD(0x00635CA0, CHudMap::DestroyBody);
 
 void CHudUnitPanel::DestroyBody() {
-    StringArrayDestruct(&partLabels_);
-    StringArrayDestruct(&texts_);
+    partLabels_.Destruct();
+    texts_.Destruct();
     reinterpret_cast<mfc::CString*>(&strings_[1])->~CString();
     reinterpret_cast<mfc::CString*>(&strings_[0])->~CString();
     DestroyBase();

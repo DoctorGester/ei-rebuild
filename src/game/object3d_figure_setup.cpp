@@ -105,7 +105,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         animation->UpdatePose();
         int count = animation->bones.count;
         SetBoxCount(this, count);
-        reinterpret_cast<mfc::CStringArray*>(&partNameArrayVtable)->SetSize(animation->bones.count, -1);
+        partNames.SetSize(animation->bones.count, -1);
 
         void* figureModel;
         {
@@ -124,7 +124,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             box = &partBoxes[index];
             box->pivot = {bone->position.x, bone->position.y, bone->position.z};
             box->flags |= kBoxLoaded;
-            reinterpret_cast<mfc::CString*>(partNames)[index] = bone->GetName();
+            partNames[index] = bone->GetName();
 
             box = &partBoxes[index];
             high.x = Higher(high.x, static_cast<float>(box->pivot.x + box->boxMax.x + box->offset.x));

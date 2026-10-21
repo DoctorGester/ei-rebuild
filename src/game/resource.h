@@ -16,6 +16,10 @@
 
 #include "lib/stlp.h"
 
+namespace mfc {
+struct CStringArray;
+}
+
 // BOOL: these functions return 0/1 in the whole of EAX, and callers test all 32 bits.
 using BOOL = int;
 
@@ -100,9 +104,9 @@ public:
     // 00674AC0 (resource_stream.cpp). Fills an MFC CStringArray with the names of the entries that
     // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
     // with every name when `pattern` is null.
-    void ListFiles(void* stringArray, const char* pattern) const;
+    void ListFiles(mfc::CStringArray* stringArray, const char* pattern) const;
     // ListFiles without Rebirth's ResOverride (see GetFilePlain).
-    void ListFilesPlain(void* stringArray, const char* pattern) const;
+    void ListFilesPlain(mfc::CStringArray* stringArray, const char* pattern) const;
 
     ResHeader header_;           // +0x04
     ResEntry* entries_;          // +0x14

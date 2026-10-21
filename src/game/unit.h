@@ -1174,14 +1174,10 @@ public:
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
     mfc::CString name78;    // +0x78
     mfc::CString name7C;    // +0x7C
-    void* stringsVtable;    // +0x80 (MFC CStringArray: vtable, data, size, capacity, grow-by)
-    mfc::CString* strings;  // +0x84
-    int stringCount;        // +0x88
-    int stringCapacity;     // +0x8C
-    int stringGrowBy;       // +0x90
+    mfc::CStringArray strings;  // +0x80
 };
 static_assert(offsetof(CMapObjectServer, name78) == 0x78);
-static_assert(offsetof(CMapObjectServer, stringCount) == 0x88);
+static_assert(offsetof(CMapObjectServer, strings) == 0x80);
 static_assert(sizeof(CMapObjectServer) == 0x94);
 static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);
 

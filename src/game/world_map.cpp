@@ -147,7 +147,7 @@ void CWorldServer::ResetZone() {
     SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next) static_cast<SharedObject*>(&node->data)->DeletingDestruct(0);
     shared.RemoveAll();
-    reinterpret_cast<mfc::CStringArray*>(&mobFiles_)->SetSize(0, -1);
+    mobFiles_.SetSize(0, -1);
     countdowns_.RemoveAll();
     gamearrays::ExitsSetSize(&exitsVtable_, 0);
     ScriptReset(MainScript());
@@ -211,7 +211,7 @@ void CWorldServer::TeardownZone() {
     for (auto* node = shared.head; node; node = node->next)
         mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(node->data.objects));
     shared.RemoveAll();
-    reinterpret_cast<mfc::CStringArray*>(&mobFiles_)->SetSize(0, -1);
+    mobFiles_.SetSize(0, -1);
     aiMap_[2] = 0;   // CAIMap +0x172: refreshes off
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
