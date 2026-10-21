@@ -406,6 +406,24 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
    address inside them (src/, tests/), no pointer cell points into them and no code cell is left in them. A vtable two
    classes shared (0073F778, the copy constructor's) goes when both do.
 6. `python tools/gen_image_cells.py`, the checks, both builds, `work.py test <ID> --golden --jobs 4`.
+- **Engine objects** (batch 2: CMusicSystem, CMaterial): CEngineObject's default slots are defined
+  (engine_object.cpp: the destructor clears the owner, CopyFrom is CopyFromImpl, 5 / 9 / 10 empty, 6 returns 0), so a
+  derived class with a C++ constructor gets the compiler's vtable; the constructor calls ClearFields. Slot 0 is the
+  virtual destructor: the compiler's scalar deleting destructor runs the destructor and the class's
+  `operator delete` (declare one that calls gamecrt::operator_delete: the global one is not the game's heap). The
+  destructor body leaves out the members' destructors (C++ runs them after it). The registrations: Construct is
+  `new (this) X()`, the destructor bodies call `this->X::~X()` (qualified: no dispatch), slots 11 / 12 overrides
+  with shims calling them qualified. windows.h's GetClassName macro renames slot 11 in a file that includes it in
+  between: engine_object.h, the class's header and its .cpp `#undef GetClassName`.
+- **Batch 2's families**: the chunks (Chunk, RootChunk; 0073BE94 / 0073BE9C and the .mob root's 0073FAD4), the
+  buffered streams (BufferedStream, BufferedFile over GameBuffer's slots; 0073F8C8 / 0073F8A4), CMusicSystem
+  (00744098) and CMaterial (00743BB4). Left for later batches, with what each needs: CSoundManager (007440F0; its
+  members include a CMappedResource, a polymorphic class whose own virtuals and destructor would have to be defined,
+  and a dozen other member types to check for default constructors), CTexture (00743D24; its name_ is a CString C15
+  retypes), CSkyObject (0073D5B8; abstract in C++ and sharing 0073C224 with CFigureMesh), the map objects (torch
+  0073E834 with its tail 0073E850, lever 0073E740, trap 0073E548, magic trap 0073E63C: CMapObject's 61 slots need
+  definitions first), the torch spec (0073E954 with its tail 0073E98C), the texture and material managers
+  (CResourceManager's 26 slots), CArray<MusicTheme> (007440CC, with the container instantiations).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
