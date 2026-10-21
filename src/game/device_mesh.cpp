@@ -116,16 +116,9 @@ void FillCorners(const MeshArgs& a) {
     }
 }
 
-// Hands the vertices to the device's vertex-buffer batch (never available: 004E7820 returns null)
-// or draws them.
+// Draws the vertices (004E7820, the device's vertex-buffer batch, never gave a buffer: nothing is batched).
 void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* indices, int indexCount) {
     int count = Vertices().size;
-    if (void* buffer = device->LockVertexBuffer(count)) {
-        std::memcpy(buffer, Vertices().data, static_cast<std::size_t>(count) * sizeof(TLVertex));
-        device->AppendBatchIndices(indices, indexCount);
-        device->batch_.vertexCount += count;
-        return;
-    }
     if (textures) {
         device->DrawTwoTextures(static_cast<CDXSurface*>(textures->first), static_cast<CDXSurface*>(textures->second), 4, 0x1C4, Vertices().data, count, indices,
                        indexCount, 0);

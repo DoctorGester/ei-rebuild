@@ -137,28 +137,6 @@ void __fastcall AlignedArrayDestroy(lib::AlignedArray<std::uint8_t>* array) { ar
 EI_REPLACE(0x004D9EB0, AlignedArrayDestroy);
 EI_REPLACE(0x006643F0, AlignedArrayDestroy);   // S13: the same bytes (world_game.cpp's records array)
 
-// ---- The device's vertex-buffer batch ---------------------------------------------------------------
-
-// 004E7820 (RET 4): no vertex buffer for the batch, whatever the vertex count: the mesh draws
-// (004E9010, 004E9A50, 004EA4A0) take the null and draw their own vertices.
-void* CTextureDevice::LockVertexBuffer(int) { return nullptr; }
-EI_REPLACE_METHOD(0x004E7820, CTextureDevice::LockVertexBuffer);
-
-// 004E7E00 (RET 8). Original details kept: with a base vertex the loop runs to the end pointer
-// inclusive (one index more than `count` is read and written); the indices are written past the
-// array's size before it grows, so a reallocation would drop them.
-void CTextureDevice::AppendBatchIndices(const std::uint16_t* indices, int count) {
-    std::uint16_t* out = batch_.indices.data + batch_.indices.size;
-    if (batch_.vertexCount != 0) {
-        for (const std::uint16_t* in = indices; in <= indices + count; ++in)
-            *out++ = static_cast<std::uint16_t>(*in + static_cast<std::uint16_t>(batch_.vertexCount));
-    } else {
-        std::memcpy(out, indices, static_cast<std::size_t>(count) * sizeof(std::uint16_t));
-    }
-    batch_.indices.SetSize(batch_.indices.size + count);
-}
-EI_REPLACE_METHOD(0x004E7E00, CTextureDevice::AppendBatchIndices);
-
 // ---- Deleting destructors ---------------------------------------------------------------------------
 
 // 004EF790 (RET 4): CDXSurface's (vtable 0073D774, slot 0): the destructor body 004EFD20, then the

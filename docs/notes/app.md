@@ -23,8 +23,8 @@ every scenario.
 ## Frame capture (harness)
 
 The harness's frame capture redirects the `CALL 005E65F0` at 004580D7 inside the original 00458010
-(`tests/verify/harness_capture.cpp`). The rewritten `FrameStep` reads that call site's current target
-from the rel32 each frame (005E65F0 when the byte is not a CALL) and calls it in the same place: after
+(`tests/verify/harness_capture.cpp`). The rewritten `FrameStep` (the image) calls the harness's hook point
+(`g_harnessHooks.cursorLock`, else 005E65F0) in the same place: after
 the game's draw (EndScene) and the interface draw, before the cursor blit (005E54A0), the flip
 (004EF610) and the lock's release (005E6610). The original body behind the hook's entry jump stays
 untouched so the harness can still find the call. The camera-freeze skip (`CALL 0040FB30` at 00457595)

@@ -533,6 +533,13 @@ model = "sonnet"
 depends = ["R9b2"]
 note = "R9b2 (2026-10-21) leftovers: the dead game.exe code-byte reads (app_frame.cpp 004580D7, script_parse 004CF69B; game.exe runs only the original since S21), the vertex-buffer batch code in device_binds.cpp / device_object.cpp (no batch ever gets a vertex buffer; DrawIndexedPrimitiveVB at device_binds.cpp:32 would now end the run), and device.h's interface-forwarding branch if only the harness uses it (keep what game.exe runs need). Checks: goldens both installs, the original suite, build checks at 0."
 
+[[ticket]]
+id = "R9b4"
+title = "FlushBatch calls out"
+group = "renderer"
+depends = ["R9b3"]
+note = "R9b3 (2026-10-21) left FlushBatch / FlushBatch2 (004E7840 / 004E7A40) as empty ports and UiRenderer::FlushBatchA/B: remove them with their ~35 call sites in renderer_*, device_draw, ui_hud, ui_alpha_draws, ui_container_draws, ui_hero_preview and world_client_draw once C11's shim batches have merged (the Flush helpers in the ui_ and world_client_draw files go with them), then dead_code.csv rows for both addresses."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

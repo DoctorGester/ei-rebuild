@@ -33,24 +33,13 @@ namespace {
 bool Running() { return ei::GameData<std::uint8_t>(0x0079BC5C) != 0 && ei::GameData<std::uint8_t>(0x00784750) != 0; }
 
 __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
-// The software cursor's lock (005E65F0) is called through the target of the original CALL at
-// 004580D7 (the original body stays in place behind the hook's jump): the harness's frame capture
-// redirects that call (tests/verify/harness_capture.cpp) to read the finished frame before the
-// cursor is blitted and the frame flipped, and keeps working with this rewrite. Without the
-// harness, and in the standalone image (no original code there: CodeAddress), the target is 005E65F0's code. A
-// harness hook for the call (ei/main_loop.h) comes first wherever one is set; in the image it is the
-// harness's only way in.
+// The software cursor's lock (005E65F0), unless the harness hooks the call (ei/main_loop.h): its frame
+// capture reads the finished frame before the cursor is blitted and the frame flipped
+// (tests/verify/harness_capture.cpp; in game.exe's own runs it patches the original CALL at 004580D7).
 using CursorLock = ei::mainloop::HarnessHooks::CursorLock;
 CursorLock CursorLockAtCallSite() {
     if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) return hook;
-    constexpr std::uintptr_t kCall = std::uintptr_t(0x004580D7);   // the original CALL of the cursor lock
-    const auto direct = ei::Code<CursorLock>(0x005E65F0);
-    if (ei::Standalone()) return direct;
-    const auto* code = reinterpret_cast<const unsigned char*>(kCall);
-    std::int32_t rel;
-    std::memcpy(&rel, code + 1, 4);
-    if (code[0] != 0xE8) return direct;
-    return reinterpret_cast<CursorLock>(kCall + 5 + rel);
+    return ei::Code<CursorLock>(0x005E65F0);
 }
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
