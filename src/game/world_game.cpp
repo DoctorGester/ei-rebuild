@@ -1,6 +1,7 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "camera.h"
+#include "options.h"
 #include "random.h"
 #include "item_db.h"
 #include "item_db_text.h"
@@ -83,9 +84,9 @@ constexpr unsigned kMagicMission = 0x102;
 int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
 int Campaign() { return ei::GameData<const int>(0x007C2CC4); }        // 4: the party is player 0's
 int SaveVersion() { return ei::GameData<const int>(0x00790260); }
-std::uint8_t& ToMainMenu() { return ei::GameData<std::uint8_t>(0x007C7D94); }
-// 007C7DD8: the network sessions are open (BeginMultiplayerGame sets it, a missing zone clears it).
-std::uint8_t& SessionsOpen() { return ei::GameData<std::uint8_t>(0x007C7DD8); }
+bool& ToMainMenu() { return TheInterface()->closeAll_; }
+// The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
+bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
 void* const kScripts = ei::GamePointer<void>(0x007AFDF8);
 libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
@@ -142,8 +143,8 @@ struct LocalFileStream {
 // The record builder's party (a CParty, party.h), built and torn down by the originals (its
 // bytes, so the compiler neither constructs nor destroys it).
 struct LocalRecords {
-    alignas(4) std::uint8_t bytes[sizeof(CParty)];
-    CParty* Party() { return reinterpret_cast<CParty*>(bytes); }
+    PartyStorage storage;
+    CParty* Party() { return storage.Party(); }
     LocalRecords() { Party()->Construct(); }
     ~LocalRecords() { PartyRecordsDestructOriginal(Party()); }
     LocalRecords(const LocalRecords&) = delete;
@@ -457,7 +458,7 @@ constexpr int kHostPort = 8000;
 constexpr int kServerMessageZone = 8;
 
 int& CampaignMode() { return ei::GameData<int>(0x007C2CC4); }
-int& SpectatorFlag() { return ei::GameData<int>(0x0079BE6C); }
+int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
 
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
@@ -667,7 +668,7 @@ int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->ob
 } // namespace
 
 void GameFlow::UpdateMultiplayerVariable() {
-    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     NamedFloatTable* variables = &player->Party()->variables_;
     if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
@@ -696,7 +697,7 @@ namespace {
 // begins a redeploy of a party.
 
 // The party outside a game (007C82B0, the party records as CPlayer::Party has them).
-CParty* GlobalParty() { return reinterpret_cast<CParty*>(TheSavedParties().outsideGame_); }
+CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 // A CParty through an untyped pointer; Assign / CopyConstruct (00661300 / 006613C0) read the
 // source non-const.
 CParty* AsParty(const void* party) { return static_cast<CParty*>(const_cast<void*>(party)); }
@@ -745,7 +746,7 @@ constexpr int kRequestDone = 3;   // the client's game state request: answered
 
 void GameFlow::ReturnLocalParty() {
     if (!Active(net::GameClient())) return;
-    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     CParty* party = player->Party();
     GlobalParty()->Assign(party);
     ThePartyManager()->BeginRedeploy(party);
@@ -798,9 +799,9 @@ __declspec(naked) int __fastcall SaveGameAt(GameFlow*, void*, const char*) EI_OR
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGameAt(this, nullptr, slot); }
 
 int __stdcall RequestZone(const char* zone, int entrance) {
-    ei::GameData<char>(0x007C7D94) = 1;
+    TheInterface()->closeAll_ = true;
     // 0066B1B0: the local view asks to go to a zone (name, entrance).
-    return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(zone, entrance);
+    return TheClientWorld()->LocalView()->RequestZone(zone, entrance);
 }
 
 void GameFlow::DropSessions() {
@@ -1001,7 +1002,7 @@ void GameFlow::SwitchMultiplayerZone() {
             mfc::CString zone(mfc::CString::kUnset);
             MultiplayerZoneInto(&zone);
             ToMainMenu() = 1;
-            reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(zone, 0);   // 0066B1B0
+            TheClientWorld()->LocalView()->RequestZone(zone, 0);   // 0066B1B0
         }
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
@@ -1327,7 +1328,7 @@ constexpr int kResultMainMenu = 4;
 
 
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
-inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(client)->LocalView()); }
+inline CPlayerClient* ClientWorldLocalView(void* client) { return static_cast<CWorldClient*>(client)->LocalView(); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
 __declspec(naked) int __stdcall EnterZoneAt(CParty*) EI_ORIGINAL(0x0057A060)
 
@@ -1413,7 +1414,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheServerWorld()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
     TheClientWorld()->SetPlayer(reinterpret_cast<std::uint8_t*>(TheServerWorld()->shared5C_.ptr));
-    ClientWorldLocalView(TheClientWorld())->sendParty = 0;
+    ClientWorldLocalView(TheClientWorld())->sendParty_ = 0;
 }
 
 // ---- New game (0057BD10) ------------------------------------------------------------------------
@@ -1461,12 +1462,12 @@ int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOrigina
 mfc::CString& LastResources() { return ei::GameData<mfc::CString>(0x007AFDEC); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
-int& SavedSpectator() { return ei::GameData<int>(0x0079BEC4); }
-int& Spectator0() { return ei::GameData<int>(0x0079BEC0); }
+int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
+int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
-const char* ResourcesPath() { return ei::GameData<const char* const>(0x0079BC94); }
+const char* ResourcesPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
@@ -1536,7 +1537,7 @@ void GameFlow::ProcessRequest() {
         break;
     case kStateLoad:
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
-        ClientWorldLocalView(clientWorld)->sendParty = 0;
+        ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         TheServerWorld()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
         ServerUpdateAt(TheServerWorld());
@@ -1546,10 +1547,10 @@ void GameFlow::ProcessRequest() {
         if (requestArg_) {
             const char* autoplay = kAutoplay;
             if (autoplay) {
-                reinterpret_cast<CPlayerClient*>(ClientWorldLocalView(clientWorld))->StartRecording(autoplay);
+                ClientWorldLocalView(clientWorld)->StartRecording(autoplay);
                 AutoplayOn() = 1;
             } else {
-                reinterpret_cast<CPlayerClient*>(ClientWorldLocalView(clientWorld))->StopRecording();
+                ClientWorldLocalView(clientWorld)->StopRecording();
                 AutoplayOn() = 0;
             }
         }
@@ -1564,7 +1565,7 @@ void GameFlow::ProcessRequest() {
         break;
     case kStatePartyZone: {
         const char* zone = requestTarget_;
-        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         TheServerWorld()->TeardownZone();
         if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
@@ -1575,15 +1576,15 @@ void GameFlow::ProcessRequest() {
                 StartZoneAt(this, nullptr, kMainMenu, 2);
             }
         }
-        ClientWorldLocalView(clientWorld)->sendParty = 1;
+        ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }
     case kStateNetworkZone: {
         StartNetworkZoneAt(requestTarget_);
-        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
-        ClientWorldLocalView(clientWorld)->sendParty = 1;
+        ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }
     default:
@@ -1742,6 +1743,23 @@ void GameFlow::Destruct() {
 }
 EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
 
+// The flow, zero at the start: built by the static initialiser 00578440 in the list's order and destroyed by the exit
+// function it registers (005784C0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// "The static initialisers' objects").
+constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
+GameFlow* TheGameFlow() { return &*g_gameFlow; }
+
+namespace {
+void __cdecl ConstructGameFlow() {   // 00578440
+    g_gameFlow->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
+}
+void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }   // 005784C0
+} // namespace
+
+EI_REPLACE(0x00578440, ConstructGameFlow);
+EI_REPLACE(0x005784C0, DestroyGameFlow);
+
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
     folder.Format(kCurrentFolder, DataFolderText());
@@ -1846,7 +1864,7 @@ void GameFlow::UpdateFromServer() {
         stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(&g_questFiles);   // 00581860
     }
     auto* clientWorld = TheClientWorld();
-    CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+    CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
     LocalVariables unusedEmpty;
     unusedEmpty.table.ConstructDefault();
     NamedFloatTable* variables = &player->Party()->variables_;
@@ -1907,7 +1925,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The server's variables, by stamp.
-    if (ClientWorldLocalView(clientWorld)->player->sessionKind100_ == 1) {
+    if (ClientWorldLocalView(clientWorld)->player_->sessionKind100_ == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
         NodeVector changed;

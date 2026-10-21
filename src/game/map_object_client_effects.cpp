@@ -135,8 +135,8 @@ float RingSize(int type, int power) {
     return value;
 }
 
-void AddReference(CParticleSource* source) { ++reinterpret_cast<CEngineObject*>(source)->refCount_; }
-void ReleaseSource(CParticleSource* source) { reinterpret_cast<CEngineObject*>(source)->Release(); }
+void AddReference(CParticleSource* source) { ++source->refCount_; }
+void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The feeble mind sequence's chooser (005117C0): the first name once, then the second.
 int __fastcall FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
@@ -303,7 +303,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
             source->Attach(CompanionOwner(this));
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
             if (first)
-                for (int tick = 0; tick < kWarmUpTicks; ++tick) reinterpret_cast<CEngineObject*>(source)->RunTick();
+                for (int tick = 0; tick < kWarmUpTicks; ++tick) source->RunTick();
             break;
         }
         }

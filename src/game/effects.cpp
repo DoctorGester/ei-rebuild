@@ -47,7 +47,7 @@ constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 0073CC
 
 // Reads a float back from memory, as the original does after storing it (the compiler would
 // otherwise reuse the unrounded register value).
-float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
+float ReadFloat(const float& f) { return *static_cast<const volatile float*>(&f); }
 
 // A zero-extended dword loaded with FILD qword (exact).
 double Unsigned(std::uint32_t value) {
@@ -206,11 +206,11 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     std::uint32_t r = IsaacRandom::Global().Next();
     p->velocity.z = 0.0f;
     p->velocity.y = static_cast<float>(Unsigned(r) * (hi - lo) * kRandomScale + lo);
-    p->velocity.x = Load(p->velocity.x) * kHalf;
-    p->velocity.y = Load(p->velocity.y) * kHalf;
-    p->velocity.z = Load(p->velocity.z) * kHalf;
-    p->pos.x = origin.x + Load(p->velocity.x);
-    p->pos.y = origin.y + Load(p->velocity.y);
+    p->velocity.x = ReadFloat(p->velocity.x) * kHalf;
+    p->velocity.y = ReadFloat(p->velocity.y) * kHalf;
+    p->velocity.z = ReadFloat(p->velocity.z) * kHalf;
+    p->pos.x = origin.x + ReadFloat(p->velocity.x);
+    p->pos.y = origin.y + ReadFloat(p->velocity.y);
     float h = height;
     r = IsaacRandom::Global().Next();
     p->drift.x = 0.0f;

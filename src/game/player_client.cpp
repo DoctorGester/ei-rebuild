@@ -2,6 +2,7 @@
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
 #include "ai_map.h"
+#include "options.h"
 #include "map_object_shadow.h"
 #include "object_tables.h"
 #include "player_client.h"
@@ -354,7 +355,7 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
 // 0079BE70: path markers are shown (written by 006524A0).
-bool MarkersShown() { return ei::GameData<const int>(0x0079BE70) != 0; }
+bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 
@@ -434,7 +435,7 @@ int CPlayerClient::OnPathMarker() {
     alignas(4) unsigned char fieldBytes[sizeof(DeltaField)];
     auto* field = reinterpret_cast<DeltaField*>(fieldBytes);
     field->Construct();
-    CEngineObject* pathSource = nullptr;
+    CParticleSource* pathSource = nullptr;
     int kind;
     in_.Read(&kind, 4);
     int flag;
@@ -461,7 +462,7 @@ int CPlayerClient::OnPathMarker() {
             static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
             auto* source = static_cast<CParticleSource*>(
                 ParticleManagerObject()->CreateSource(kPathParticles));
-            pathSource = reinterpret_cast<CEngineObject*>(source);
+            pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
             if (kind == 0) source->alpha = 1.0f;
@@ -477,7 +478,7 @@ int CPlayerClient::OnPathMarker() {
         marker->position = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
-        if (unit != nullptr) static_cast<CUnitClientSpecific*>(unit->controller)->SetMarkers(reinterpret_cast<CParticleSource*>(pathSource), reinterpret_cast<CParticleSource*>(marker));
+        if (unit != nullptr) static_cast<CUnitClientSpecific*>(unit->controller)->SetMarkers(pathSource, marker);
     }
     field->Destruct();
     return 1;
@@ -761,14 +762,11 @@ constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x00743180);
 constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
 constexpr const char* kClientClassName = "CPlayerClient";
 constexpr int kClientClassId = 0x3C;
-
-// The engine object part (CPlayerClient does not derive from CEngineObject in C++).
-CEngineObject* EngineObject(CPlayerClient* client) { return reinterpret_cast<CEngineObject*>(client); }
 } // namespace
 
 CPlayerClient* CPlayerClient::Construct() {
-    EngineObject(this)->ClearFields();
-    vtable_ = ei::GamePointer<void>(kConnectionVtable);
+    ClearFields();
+    ei::SetVtable(this, kConnectionVtable);
     player_ = nullptr;
     handlers_.Construct();
     in_.ConstructQueueStream();
@@ -777,13 +775,13 @@ CPlayerClient* CPlayerClient::Construct() {
     decompressor_.Construct();
     partyUnitIds_.Construct();
     otherUnitIds_.Construct();
-    vtable_ = ei::GamePointer<void>(kClientVtable);
+    ei::SetVtable(this, kClientVtable);
     Clear();
     return this;
 }
 
 void CPlayerClient::DestructBody() {
-    vtable_ = ei::GamePointer<void>(kClientVtable);
+    ei::SetVtable(this, kClientVtable);
     Clear();
     otherUnitIds_.FreeData();
     partyUnitIds_.FreeData();
@@ -792,9 +790,9 @@ void CPlayerClient::DestructBody() {
     out_.Destruct();
     in_.Destruct();
     handlers_.FreeData();
-    vtable_ = ei::GamePointer<void>(kConnectionVtable);
+    ei::SetVtable(this, kConnectionVtable);
     player_ = nullptr;
-    EngineObject(this)->DestructBase();
+    DestructBase();
 }
 
 CPlayerClient* CPlayerClient::DeletingDestruct(unsigned flags) {

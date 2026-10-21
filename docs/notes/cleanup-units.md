@@ -60,7 +60,7 @@ fake_unit, class_templates (and class_template_stock), hoover_loot, zone_records
   (+0x40), `RequiredSkill()`, `RequiredSkillValue()`, `RequiredStat(stat)` (CanLearn).
 - Class masks named in item_db.h: `SpellRecord::classMask`, `SpellModifierRecord::classMask`,
   `ItemRecordHead::classMask`, `MaterialRecordHead::classMask`.
-- `ClassTemplate::ItemsParty()` / `SpellsParty()` (CParty is abstract, so the parties stay byte storage).
+- `ClassTemplate::ItemsParty()` / `SpellsParty()` (CParty is abstract, so the parties are `PartyStorage`, party_storage.h).
 - `mfc::CObjectVirtuals` (GetRuntimeClass, the deleting destructor, Serialize) for MFC objects called through their
   vtable; `scene::FakeUnitScene` views the fake unit's scene arrays.
 - `DiplomacyConstruct` takes `ZoneDiplomacy*`.

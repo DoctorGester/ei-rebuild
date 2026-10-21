@@ -11,6 +11,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "party.h"
+#include "player_client.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -25,7 +26,7 @@
 namespace {
 
 // The local player record through the client's local view (no null checks, as the original).
-CPlayer* LocalPlayer() { return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player; }
+CPlayer* LocalPlayer() { return TheClientWorld()->LocalView()->player_; }
 
 // 00460AF0: a player's named float variable (its party's variables_).
 float Variable(CPlayer* player, const char* name) { return player->Party()->variables_.Get(name); }

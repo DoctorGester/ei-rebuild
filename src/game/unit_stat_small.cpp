@@ -3,6 +3,7 @@
 // stat ratios are in unit_stats.cpp and the school's price in unit_skill_price.cpp (ei_vectors
 // links those). Plain C++ float maths (rule 7).
 #include "combat.h"
+#include "options.h"
 #include "net_delta.h"
 #include "unit.h"
 #include "unit_create.h"
@@ -14,9 +15,7 @@
 
 namespace {
 // The game's settings (globals read at the time of the call).
-constexpr std::uintptr_t kDifficulty = std::uintptr_t(0x0079BEC0);
-
-int Difficulty() { return ei::GameData<const int>(kDifficulty); }
+int Difficulty() { return options::TheOptions()->difficulty_; }
 
 // Element `index` of the records between `begin` and `end`, or null past the end (the count is a
 // signed division, the comparison unsigned, as the original's).

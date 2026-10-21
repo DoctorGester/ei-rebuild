@@ -2,6 +2,7 @@
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "object_tables.h"
+#include "player_client.h"
 #include "ui.h"
 #include "party.h"
 #include "world.h"
@@ -88,7 +89,7 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
 }
 
 void GameFlow::MarkBriefing(const char* briefing) {
-    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     // "<zone>_N": the zone's quests are loaded first.
     std::size_t length = std::strlen(briefing);
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
@@ -132,7 +133,7 @@ EI_REPLACE(0x005809C0, DestroyQuestFiles);
 EI_REPLACE(0x00581090, DestroyQuestFolders);
 
 void GameFlow::ForgetBriefing(const char* briefing) {
-    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
     BriefingVariableInto(&variable, briefing);
     player->Party()->variables_.Remove(variable);

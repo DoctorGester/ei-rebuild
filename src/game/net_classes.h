@@ -25,6 +25,7 @@
 
 #include "core_refcount.h"
 #include "net_coder.h"
+#include "party_storage.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "lib/stlp.h"
@@ -695,15 +696,9 @@ static_assert(offsetof(ClientBase, alwaysAsk_) == 0x25C0);
 static_assert(offsetof(ClientBase, nextQuery_) == 0x25D0);
 static_assert(sizeof(ClientBase) == 0x25D8);
 
-// An embedded CParty (party.h; constructor 00661050, destructor 006611D0): its bytes, as CPlayer
-// keeps its party (the class is abstract in C++). The client keeps two (slot 2, Create, makes their
+// An embedded CParty (party_storage.h). The client keeps two (slot 2, Create, makes their
 // managers), a trade record three.
-struct PartyStorage {
-    alignas(4) std::uint8_t bytes[0x70];   // sizeof(CParty), checked in net_client.cpp
-
-    CParty* Party() { return reinterpret_cast<CParty*>(bytes); }
-};
-static_assert(sizeof(PartyStorage) == 0x70);
+using ::PartyStorage;
 
 // A finished trade of the client's (ClientSession::tradeRecords_, 0x160-byte nodes; its list's
 // element policy is record_lists.h's TradeElement): the revisions of the trade and copies of the

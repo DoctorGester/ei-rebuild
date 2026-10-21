@@ -40,7 +40,7 @@ CLightFactory* Lights() { return ei::GameData<CLightFactory* const>(0x007AF748);
 CParticleManager* Particles() { return ParticleManagerObject(); }
 
 // The sources are engine objects (vtable 0073CFD0): slot 4 releases a reference.
-void ReleaseSource(CParticleSource* source) { reinterpret_cast<CEngineObject*>(source)->Release(); }
+void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The torch's position plus `offset`, each sum stored as a float.
 Vector3 AtTorch(const CMapObject* torch, const float* offset) {

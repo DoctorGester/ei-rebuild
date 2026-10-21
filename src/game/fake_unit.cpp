@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "figure_mesh.h"
+#include "link_figure.h"   // FigureMeshDrawer
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "record_arrays.h"
@@ -108,7 +109,7 @@ int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
     for (int i = 0; i < figureRecords.size; ++i) {
         CBaseManager* manager = static_cast<CWorld*>(ManagerContextOf(this))->SpecificManager();
         CEngineObject* object = manager->CreateObject(0x45, -1);
-        static_cast<CFigureMesh*>(&figureRecords.data[i])->SetDrawer(reinterpret_cast<FigureMeshDrawer*>(object));
+        static_cast<CFigureMesh*>(&figureRecords.data[i])->SetDrawer(static_cast<FigureMeshDrawer*>(object));
     }
     return 1;
 }

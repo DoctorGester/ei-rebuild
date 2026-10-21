@@ -357,10 +357,10 @@ struct LocalStream {
 };
 // A party on the stack (constructor 00661050, destructor body 006611D0).
 struct LocalParty {
-    alignas(4) unsigned char bytes[sizeof(CParty)];
+    PartyStorage storage;
     LocalParty() { Get()->Construct(); }
     ~LocalParty() { Get()->DestructBody(); }
-    CParty* Get() { return reinterpret_cast<CParty*>(bytes); }
+    CParty* Get() { return storage.Party(); }
 };
 
 } // namespace
@@ -407,7 +407,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (campaign == 1 || campaign == 3) {
         CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unitId));
         if (leader == nullptr || ObjectSlots(leader)->IsDead() != 0) {
-            reinterpret_cast<CPlayerConnection*>(this)->LeaderDied();
+            LeaderDied();   // slot 20 (OnLeaderDied)
             if (!IsMultiplayerClient()) return;
         }
     }
@@ -434,7 +434,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
 EI_REWRITTEN(0x0066F310, CPlayerServer::LeaveToZone);
 
 // 0066D020 (slot 16; A-H15).
-void CPlayerServer::Leave() {
+void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
         if (flag70_) {
             TheServerWorld()->CollectParty(Owner(), nullptr);
@@ -449,7 +449,7 @@ void CPlayerServer::Leave() {
     }
     Flush();
 }
-EI_REPLACE_METHOD(0x0066D020, CPlayerServer::Leave);
+EI_REPLACE_METHOD(0x0066D020, CPlayerServer::LeaveAndFlush);
 
 int CPlayerServer::OnRefreshParty() {
     Owner()->ForgetKnownObjects();

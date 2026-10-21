@@ -28,8 +28,6 @@ namespace {
 
 // 006E848B _mbscmp.
 int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
-// 00661050 constructor of the embedded party (returns this).
-void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Construct(); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).
@@ -49,10 +47,10 @@ PartyRecord* NewRecord() {
     *reinterpret_cast<std::uint32_t*>(&record->refCount) = 0;
     if (!record) return nullptr;
     record->vtable = ei::GamePointer<void>(0x0073BB68);
-    PartyConstruct(record->party);
+    record->Party()->Construct();
     ::new (&record->name) mfc::CString;   // afxEmptyString
     record->vtable = ei::GamePointer<void>(0x0073C360);
-    reinterpret_cast<CParty*>(record->party)->Create();   // slot 2
+    record->Party()->Create();   // slot 2
     return record;
 }
 

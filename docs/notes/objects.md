@@ -111,8 +111,10 @@ Layout: CPlayer (the world player, `player_messages.h`, 0x134 bytes) +0x1C link,
 timed objects the client knows (each counted once; +0x3C / +0x6C the highest id), +0x40 the player's units (hash_map; max id
 +0x54), +0x70..+0xE0 an embedded CParty (slot 18 its item manager), +0xE0 the given items (CPtrList of counted items), +0x100
 `sessionKind100_`, +0x10C log flag (Flush prints both sizes to cout), +0x114 the recharge id list (vtable 00743138).
-`CPlayerConnection` names the connection's slots 13..23 (CPlayerServer 00743280 / CPlayerClient 00743180, not 00743188: Pump is
-slot 6, ReceiveMessages slot 23). CPlayerServer +0x44 an int (-1 after Create), +0x74 the unit placements
+`CPlayerConnection` (its own vtable 007431E0) names the connection's slots 13..23 and is the C++ base of CPlayerServer (00743280) and
+CPlayerClient (00743180, not 00743188: Pump is slot 6, ReceiveMessages slot 23); their slot bodies have their own names
+(`ClearServerState`, `ReleaseSentObjects`, `LeaveAndFlush`; rewrite guide rule 4). `CPlayer::Server()` and `CWorldClient::LocalView()`
+are the static_casts of `connection_`. CPlayerServer +0x44 an int (-1 after Create), +0x74 the unit placements
 (`mfc::CArray<UnitPlacement>`, SetSize 0059C3D0 = `PlacementsSetSizeOriginal` in originals_gameplay.h), +0x88 / +0x28B0 send /
 receive coders, +0x50D8 / +0x50E8 sent object arrays, +0x50F8 / +0x510C script groups, +0x5120 refresh flag, +0x5124 timer.
 CPlayerClient +0x1C player, +0x20 state, +0x24 / +0x28 handler table (00667230), +0x34 received stream, +0x5C requests, +0x85

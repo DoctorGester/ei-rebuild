@@ -199,6 +199,7 @@ add_executable(ei_vectors
     src/game/script_reset.cpp
     src/game/script_runtime_helpers.cpp
     src/game/unit_db_globals.cpp
+    src/game/options_global.cpp
     src/game/script_vars.cpp
     src/game/script_vars_append.cpp
     src/game/unit_hit_location.cpp

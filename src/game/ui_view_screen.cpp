@@ -138,14 +138,14 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
             auto* member = GameFindClientUnit(picked_.data[i]);
             if (!member) continue;
             OneUnit order(member);
-            reinterpret_cast<CPlayerClient*>(world->LocalView())->SendWalk(&order.units, &ground, 0);
+            world->LocalView()->SendWalk(&order.units, &ground, 0);
         }
     } else if (unit) {
         for (int i = 0; i < picked_.size; ++i) {
             auto* member = GameFindClientUnit(picked_.data[i]);
             if (!member) continue;
             OneUnit order(member);
-            reinterpret_cast<CPlayerClient*>(world->LocalView())->SendAttack(&order.units, unit, kAttackHow, 0);
+            world->LocalView()->SendAttack(&order.units, unit, kAttackHow, 0);
         }
     }
 }

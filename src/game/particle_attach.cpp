@@ -24,7 +24,6 @@ constexpr std::uint32_t kBoundsSphere = 1;      // CObject3D::boundsFlags: radiu
 const char* const kPartNames[13] = {nullptr, "hd", "hd", "lh2", "rh2", "ll2", "rl2", "bd",
                                     "body00", "body01", "body02", "body03", "body04"};
 
-CEngineObject* AsEngineObject(CParticleSource* source) { return reinterpret_cast<CEngineObject*>(source); }
 
 void SetPosition(Vector3* out, const float* p) {
     out->x = p[0];
@@ -136,7 +135,7 @@ void CParticleSource::Attach(void* objectArg) {
             position.z = z;
         }
         // Drops the source and calls Attach(null) again (nothing to do then but the origin).
-        old->RemoveEffectSource(AsEngineObject(this));
+        old->RemoveEffectSource(this);
     }
     attachedTo = object;
     if (!object) {
@@ -145,7 +144,7 @@ void CParticleSource::Attach(void* objectArg) {
     }
     object->ComputeBounds();
     // Adds the source and calls Attach(object) again (already attached: nothing).
-    static_cast<CObject3D*>(attachedTo)->AddEffectSource(AsEngineObject(this));
+    static_cast<CObject3D*>(attachedTo)->AddEffectSource(this);
     Vector3 point;
     AttachmentPoint(&point, attachedTo);
     origin = point;

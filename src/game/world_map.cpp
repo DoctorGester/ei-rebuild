@@ -198,7 +198,7 @@ void CWorldServer::TeardownZone() {
     for (CPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
         PlayerDisconnectOriginal((void*)player);
-        static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
+        static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(player);
         if (it.manager) --it.manager->refCount_;
         it.manager = nullptr;
     }
@@ -284,7 +284,7 @@ void CWorldServer::SendFreshObjects() {
     }
     state->SendObjectsAdded(&objects);
     state->WriteTo(header);
-    static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(temporary));
+    static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(temporary);
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
     fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
     fresh.RemoveAll();

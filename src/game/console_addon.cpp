@@ -8,6 +8,7 @@
 //   (0057ABE1, 0057BD30, 0057C9A3; the host functions are not rewritten yet).
 // The texts are addon's. Its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
+#include "options.h"
 #include "script.h"
 
 #include "../lib/crt.h"
@@ -42,7 +43,7 @@ namespace {
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
 
 // The saved / console script (the world's command script).
-int* const kSpectator = ei::GamePointer<int>(0x0079BE6C);
+int* const kSpectator = &options::TheOptions()->drawVisibleOnly_;
 
 // addon's state.
 CommandHandler g_gameHelp = nullptr;   // the game's "help", saved at each registration

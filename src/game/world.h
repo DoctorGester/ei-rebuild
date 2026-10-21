@@ -7,6 +7,7 @@
 // else is provisional. Only the members used by the rewritten functions are declared.
 
 #include <cstddef>
+#include "options.h"
 #include <cstdint>
 
 #include "base_manager.h"
@@ -36,6 +37,7 @@ class CItem;       // item.h
 class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
+class CPlayerClient;   // player_client.h
 class CScript;   // script.h
 struct AIEventTable;   // unit_ai.h
 namespace netlink {
@@ -86,21 +88,6 @@ struct ObjectIdMap {
     void Construct();
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
-
-
-
-// What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
-struct LocalViewData {
-    std::uint8_t engineObject[0x1C];     // the CPlayerClient's engine object fields
-    CPlayer* player;                 // +0x1C
-    std::uint8_t clientState[0x84 - 0x20]; // the CPlayerClient's state, handlers and streams
-    // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
-    // player whatever its id (UnitReadNetState), and the game-state message only presses Enter.
-    std::uint8_t localSession;
-    std::uint8_t sendParty;              // +0x85 CPlayerClient::sendParty_: the flow sets it once the local player took the requested party (the login then sends the party first), clears it for a new zone
-};
-static_assert(offsetof(LocalViewData, localSession) == 0x84);
-static_assert(offsetof(LocalViewData, sendParty) == 0x85);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
 // it; its MFC list head is at +0x38 and each node's data (+8) is a CPlayer.
@@ -1297,8 +1284,8 @@ public:
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see
     // (relation masks +0x244/+0x248 of the candidate); null when none or `unit` is null.
     CUnit* NearestVisibleUnit(CUnit* unit);
-    // 005699F0. The local view (session +0x20; its +0x1C is the local CPlayer), or null.
-    std::uint8_t* LocalView();
+    // 005699F0. The local view (the session's connection; its player_ is the local CPlayer), or null.
+    CPlayerClient* LocalView();
     // 00566EC0. Whether the local view is in mode 2 (+0x20).
     bool IsLocalViewMode2();
     // world_small_calls.cpp (A-W14).
@@ -1913,9 +1900,8 @@ struct GameFlow {
     // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
     void UpdateFromServer();
 
-    // The party of a request (party.h; RequestPartyZone5 / 6 copy one in; the constructor and
-    // destructor run on these bytes).
-    class CParty* RequestParty() { return reinterpret_cast<class CParty*>(requestParty_); }
+    // The party of a request (party_storage.h; RequestPartyZone5 / 6 copy one in).
+    class CParty* RequestParty() { return requestParty_.Party(); }
 
     // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
     // function call them). The constructor body: empty names, the party constructed (00661050), no
@@ -1929,7 +1915,7 @@ struct GameFlow {
 
     int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
     mfc::CString requestTarget_;          // +0x04 the request's zone or save name
-    std::uint8_t requestParty_[0x70];     // +0x08 a CParty: RequestParty()
+    PartyStorage requestParty_;           // +0x08 a CParty: RequestParty()
     int requestArg_;                      // +0x78 the entrance (4) or the load flag (2)
     mfc::CString zone7C_;                 // +0x7C the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // +0x80 set by SwitchMultiplayerZone, cleared by the game's start
@@ -1937,6 +1923,11 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78 && offsetof(GameFlow, zone7C_) == 0x7C);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
+static_assert(sizeof(GameFlow) == 0x84);
+
+// The game flow (the object at 007AFE20; world_game.cpp): built by the static initialiser 00578440 in the list's order,
+// destroyed by the exit function it registers (005784C0).
+extern lib::StaticObject<GameFlow> g_gameFlow;
 
 struct MpHeroRecord;   // ui_screens.h: a party (0x70 bytes) and its file name
 
@@ -2039,12 +2030,12 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 void __stdcall SelectLoadingMovie(const char* zone);
 
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
-inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
+inline int TimeSpeedSetting() { return options::TheOptions()->defaultTimeScale_; }
 // The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
 // the far clip (the transform pipeline's depth range, 00500B70 / 00566360).
-inline float FogStartDay() { return ei::GameData<const float>(0x0079BED4); }
-inline float FogStartNight() { return ei::GameData<const float>(0x0079BED0); }
-inline float FarClipDistance() { return ei::GameData<const float>(0x0079BE54); }
+inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_; }
+inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
+inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
 // world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the

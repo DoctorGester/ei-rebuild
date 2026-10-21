@@ -2,6 +2,7 @@
 // player is a client of the server). SyncPlayer runs once per world update for every player
 // (0058DFF0); SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
 #include "world.h"
+#include "options.h"
 
 #include "combat.h"
 #include "core_maths.h"
@@ -41,7 +42,7 @@ float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around 
 float HearingScale() { return 2.0f /*0073F910*/; }     // unit perception scale
 float HearingMargin() { return 5.0f /*0073BF34*/; }    // added to it
 // Non-zero in a multiplayer game seen from a spectator (no camera-range test for map objects).
-int SpectatorView() { return ei::GameData<const int>(0x0079BE6C); }
+int SpectatorView() { return options::TheOptions()->drawVisibleOnly_; }
 
 constexpr int kTypeNoSync = 0x3B;            // CEngineObject::type_ of objects never sent
 constexpr std::uint32_t kFlagHidden = 0x10000;   // flags_: invisible (HideObject)

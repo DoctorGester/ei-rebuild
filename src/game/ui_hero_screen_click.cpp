@@ -586,7 +586,7 @@ EI_REWRITTEN(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
     file.~CString();
-    PartyRecordsDestructOriginal(party);   // 006611D0 by address: its wrapper runs
+    PartyRecordsDestructOriginal(Party());   // 006611D0 by address: its wrapper runs
 }
 EI_REWRITTEN(0x00619560, MpHeroRecord::Destruct);
 

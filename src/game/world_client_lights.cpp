@@ -230,7 +230,7 @@ void CWorldClient::UpdateExitMarkers() {
     if (exitCount_ != countedA0_.GetSize()) return;
     NamedFloatTable* variables = &session_->Party()->variables_;
     for (int i = 0; i < exitCount_; ++i) {
-        auto* marker = reinterpret_cast<CParticleSource*>(countedA0_[i]);
+        auto* marker = static_cast<CParticleSource*>(countedA0_[i]);
         if (!marker) continue;
         mfc::CString name("z.");
         name += exits_[i].target;

@@ -452,7 +452,7 @@ public:
     void Follow(int objectId);
     int Unpack(int update, DeltaField* field);    // 0067D640 (slot 21): 1
 
-    CParticleSource* Source() { return reinterpret_cast<CParticleSource*>(source_); }
+    CParticleSource* Source() { return static_cast<CParticleSource*>(source_); }
 
     CEngineObject* bird_;      // +0x14C the figure object (a CObject3D, counted), null: none
     CEngineObject* source_;    // +0x150 its CParticleSource (counted), null: none
@@ -490,7 +490,7 @@ public:
     void LoadState(CStream* stream);                 // 0067E020 (slot 9)
     void SaveState(CStream* stream);                 // 0067E070 (slot 10)
 
-    CParticleSource* Source() { return reinterpret_cast<CParticleSource*>(source_); }
+    CParticleSource* Source() { return static_cast<CParticleSource*>(source_); }
 
     CEngineObject* source_;    // +0x14C client: the CParticleSource (counted), null: none
     int sound_;                // +0x150 client: the looping sound's handle, -1: none

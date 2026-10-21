@@ -10,6 +10,7 @@
 #include "engine_object.h"
 #include "maths.h"
 #include "net_delta.h"
+#include "party_storage.h"
 #include "script.h"
 
 #include "lib/containers.h"
@@ -51,7 +52,39 @@ struct UnitPlacement {
 };
 static_assert(sizeof(UnitPlacement) == 0x28);
 
-class CPlayerServer {
+// A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
+// or CPlayerClient (00743180), both derived from it (its own vtable 007431E0). It names the slots
+// after CEngineObject's that the player calls; the subclasses' slot bodies are registered by address
+// (non-virtual members under other names, rewrite guide rule 4), and their objects carry the game's
+// vtables (Construct), so no compiler vtable is made.
+class CPlayerConnection : public CEngineObject {
+public:
+    CPlayerConnection* DeleteScalar(unsigned flags);
+    virtual void ForgetSentObjects();       // 13: server 0066CE50 (sent objects, party units); client empty
+    virtual void UnitChanged(CUnit* unit);  // 14: client 00667BA0 (the unit's controller); server empty
+    virtual void ResetState();              // 15: server 0066CF20, client 00667600
+    virtual void Leave();                   // 16: server 0066D020 (state 3, flushed); client empty
+    // 17: server 0066E7D0 (CPlayerServer::SendItemsGiven); client empty.
+    virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
+    virtual void ItemsTaken();              // 18: server 0066EA10 (message 0x17); client empty
+    virtual void ItemTaken(CEngineObject* item);   // 19: server 0066EA30 (message 0x0A); client empty
+    // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::UpdateServer calls it when
+    // the dying unit is the player's leader); client empty.
+    virtual void LeaderDied();
+    virtual void TickDone();                // 21: server 0066D090 (empties +0x50F8); client empty
+    virtual void ItemUsed(CEngineObject* item);    // 22: server 0066EB40 (message 0x14); client empty
+    virtual int Receive();                  // 23: server 0066D270, client 00667A30
+
+    CPlayer* Owner() const { return player_; }
+
+    CPlayer* player_;   // +0x1C the owner (set by CPlayer::SetConnection)
+    int state_;         // +0x20 both classes' state (1: joined / logged in; see each class)
+};
+static_assert(offsetof(CPlayerConnection, player_) == 0x1C);
+static_assert(offsetof(CPlayerConnection, state_) == 0x20);
+static_assert(sizeof(CPlayerConnection) == 0x24);
+
+class CPlayerServer : public CPlayerConnection {
 public:
     // Variables and state.
     void SetVariable(const char* name, std::uint32_t value);        // 0066EE10: message 0x81
@@ -229,9 +262,9 @@ public:
     // A-H15: the lifetime and the connection slots (player_messages.cpp unless noted).
     // 0066C540. Constructor body (0x5128 bytes, made by the server's specific manager): the
     // engine object's fields, an empty handler table, the outgoing stream (a queue stream), the
-    // placements, both coders, the sent arrays and groups, then ClearState. Returns this.
+    // placements, both coders, the sent arrays and groups, then ClearServerState. Returns this.
     CPlayerServer* Construct();
-    // 0066C770. Destructor body: ClearState (an ISAAC draw, as the original), the groups
+    // 0066C770. Destructor body: ClearServerState (an ISAAC draw, as the original), the groups
     // destroyed, the sent arrays' blocks freed, both coders' output ended, the placements' and
     // the stream's storage freed, the handler table's block freed, then CEngineObject's.
     void DestructBody();
@@ -240,28 +273,23 @@ public:
     // 0066CC50 (slot 3) and 0066CF20 (slot 15), and CreateServer's first part: the outgoing
     // messages emptied, both sent arrays released and freed, state 0, the last position 0 and
     // +0x44 -1, both groups emptied, +0x24 -1, no refresh pending, flag70_ 0, the placements
-    // emptied, both coders reset, the next party refresh in 900..1800 updates (ISAAC).
-    void ClearState();
-    // 0066CE50 (slot 13). Both sent arrays released and freed, both groups emptied.
-    void ForgetSentObjects();
+    // emptied, both coders reset, the next party refresh in 900..1800 updates (ISAAC). (Not
+    // CEngineObject::ClearState, slot 5.)
+    void ClearServerState();
+    // 0066CE50 (slot 13, ForgetSentObjects). Both sent arrays released and freed, both groups emptied.
+    void ReleaseSentObjects();
     // 0066D090 (slot 21). group50F8_ emptied.
     void ClearGroup50F8();
     // 0066D020 (slot 16; player_server_handlers.cpp). A joined player (state 1) collects its
     // party when deployed (flag70_, then cleared) and, in a multiplayer game, sends it
     // (SendParty); then state 3 with message 0x01 unless already 3, and Flush.
-    void Leave();
+    void LeaveAndFlush();
     // 0066D490 (RET 0x18). Message 0x0E about a path of `unit` (nothing for null): kind, flag,
     // the point's two dwords, the unit's id and `limitBits`; except for kind 3 the path
     // (005C7DB0) written through a delta field on the stack, its channel 0 output appended.
     void SendPathMessage(CEngineObject* unit, void* path, const float* point, int kind, int flag,
                          std::uint32_t limitBits);
 
-    CPlayer* Owner() const { return player_; }
-
-    void* vtable_;
-    std::uint8_t engineObject_[0x1C - 0x04];
-    CPlayer* player_;               // +0x1C the world player
-    int state_;                     // +0x20
     // +0x24 -1, or the unit a Possession spell took (its id): the next party refresh (0066E130) then
     // sends group50F8_ (the target and what it sees) and sets it back to -1. Sent with message 0x60.
     std::uint32_t possessedId_;
@@ -294,7 +322,7 @@ public:
 static_assert(offsetof(CPlayerServer, sentObjects_) == 0x50D8);
 static_assert(offsetof(CPlayerServer, partyUnits_) == 0x510C);
 static_assert(offsetof(CPlayerServer, refreshTimer_) == 0x5124);
-static_assert(offsetof(CPlayerServer, player_) == 0x1C);
+static_assert(sizeof(CPlayerServer) == 0x5128);
 static_assert(offsetof(CPlayerServer, compressor_) == 0x88);
 static_assert(offsetof(CPlayerServer, decompressor_) == 0x28B0);
 static_assert(offsetof(CPlayerServer, lastPosition_) == 0x38);
@@ -325,33 +353,6 @@ double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 // `offsets` (CArray<Vector3>, vtable 0073C120) is sized to the units; nothing without units.
 void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
 
-// A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
-// or CPlayerClient (00743180). Neither class derives from this declaration (their slot bodies are
-// registered by address); it names the slots after CEngineObject's that the player calls.
-class CPlayerConnection : public CEngineObject {
-public:
-    CPlayerConnection* DeleteScalar(unsigned flags);
-    virtual void ForgetSentObjects();       // 13: server 0066CE50 (sent objects, party units); client empty
-    virtual void UnitChanged(CUnit* unit);  // 14: client 00667BA0 (the unit's controller); server empty
-    virtual void ResetState();              // 15: server 0066CF20, client 00667600
-    virtual void Leave();                   // 16: server 0066D020 (state 3, flushed); client empty
-    // 17: server 0066E7D0 (CPlayerServer::SendItemsGiven); client empty.
-    virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
-    virtual void ItemsTaken();              // 18: server 0066EA10 (message 0x17); client empty
-    virtual void ItemTaken(CEngineObject* item);   // 19: server 0066EA30 (message 0x0A); client empty
-    // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::UpdateServer calls it when
-    // the dying unit is the player's leader); client empty.
-    virtual void LeaderDied();
-    virtual void TickDone();                // 21: server 0066D090 (empties +0x50F8); client empty
-    virtual void ItemUsed(CEngineObject* item);    // 22: server 0066EB40 (message 0x14); client empty
-    virtual int Receive();                  // 23: server 0066D270, client 00667A30
-
-    CPlayer* player_;   // +0x1C the owner (set by CPlayer::SetConnection)
-    int state_;         // +0x20 both classes' state_ (1: logged in / joined)
-};
-static_assert(offsetof(CPlayerConnection, player_) == 0x1C);
-static_assert(offsetof(CPlayerConnection, state_) == 0x20);
-static_assert(offsetof(CPlayerServer, state_) == 0x20);
 
 // A world player (vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
 // player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists.
@@ -431,13 +432,11 @@ public:
     // slot 21 of the connection.
     void Tick();
 
-    // The embedded party (party.h; the class is abstract in C++, so the member is its bytes).
-    CParty* Party() { return reinterpret_cast<CParty*>(&party_); }
+    // The embedded party (party_storage.h).
+    CParty* Party() { return party_.Party(); }
     // The connection as the server's view of it (a CPlayerServer on the server world, null for
-    // none); CPlayerServer is declared apart from CPlayerConnection, hence the one cast here.
-    CPlayerServer* Server() const { return reinterpret_cast<CPlayerServer*>(connection_); }
-    // The connection as the client's local view (player_client.h; the client world's session).
-    CPlayerClient* Client() const { return reinterpret_cast<CPlayerClient*>(connection_); }
+    // none).
+    CPlayerServer* Server() const { return static_cast<CPlayerServer*>(connection_); }
 
     netlink::NetLink* link_;                    // +0x1C the connection to the player's client, null: none
     CPlayerConnection* connection_;             // +0x20 CPlayerServer / CPlayerClient (counted)
@@ -448,7 +447,7 @@ public:
     int maxUnitId_;                             // +0x54 highest id put in units_
     ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C
-    alignas(4) std::uint8_t party_[0x70];       // +0x70 an embedded CParty; slot 18 its item manager
+    PartyStorage party_;                        // +0x70 an embedded CParty; slot 18 its item manager
     mfc::CTypedPtrList<CItem> items_;           // +0xE0 items given to the player (counted; CPtrList)
     std::uint32_t partyId_;                     // +0xFC the key of the party in the party manager (PartyNextId); sent with the client's login (00667680)
     int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units (00667EC0)

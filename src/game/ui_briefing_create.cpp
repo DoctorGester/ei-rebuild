@@ -1,7 +1,9 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "core_streams.h"
+#include "options.h"
 #include "game_strings.h"
+#include "player_client.h"
 #include "world_glue.h"
 #include "combat.h"
 #include "player_messages.h"
@@ -42,7 +44,7 @@
 
 namespace {
 
-float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
+float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
 void** ScreenInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
@@ -95,7 +97,7 @@ MapRecord* FindLocalMap() {
 }
 
 CPlayer* LocalViewPlayer() {
-    return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    return TheClientWorld()->LocalView()->player_;
 }
 
 CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }

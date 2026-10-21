@@ -460,7 +460,7 @@ void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
 }
 
 int CWorldClient::SendFlag10(int value) {
-    return Session()->Client()->SendFlag10(static_cast<std::uint8_t>(value));
+    return LocalView()->SendFlag10(static_cast<std::uint8_t>(value));
 }
 
 void CWorldClient::DropShadows() {
@@ -1688,7 +1688,7 @@ int CWorldClient::LoadZone(CStream* block) {
     }
 
     // The local server's pending messages follow this block in the view's stream.
-    (Session() ? Session()->Client() : nullptr)->AppendReceived(static_cast<CMemoryStream*>(GameObject7C2D60()));
+    LocalView()->AppendReceived(static_cast<CMemoryStream*>(GameObject7C2D60()));
     ticksRun_ = 0;
     BuildUnitSkinsAt(this, nullptr, &looks.figured, &looks.dressed);
     // A wind option other than 0 sets the waves.
@@ -1696,7 +1696,7 @@ int CWorldClient::LoadZone(CStream* block) {
     EI_NAN_AUDIT(wind);
     if (wind != 0.0f) camera::TheTerrain()->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
-    (Session() ? Session()->Client() : nullptr)->SendResume();
+    LocalView()->SendResume();
     CloseLoadingMovie();
     return 1;
 }

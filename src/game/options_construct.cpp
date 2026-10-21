@@ -10,6 +10,7 @@
 // stays empty.
 #include "options.h"
 #include "game_strings.h"
+#include "originals_library.h"
 
 #include "ei/hook.h"
 
@@ -156,5 +157,17 @@ GameOptions::GameOptions() {
 // 00458870 (thiscall; returns the object).
 GameOptions* __fastcall OptionsConstruct(GameOptions* self) { return new (self) GameOptions; }
 EI_REPLACE(0x00458870, OptionsConstruct);
+
+// The static initialiser 00458700 and the exit function 00458720 it registers, ported on the name (g_options,
+// options_global.cpp) and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+namespace {
+void __cdecl ConstructGameOptions() {   // 00458700
+    g_options.Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x00458720));
+}
+void __cdecl DestroyGameOptions() { g_options.Destroy(); }   // 00458720
+} // namespace
+EI_REPLACE(0x00458700, ConstructGameOptions);
+EI_REPLACE(0x00458720, DestroyGameOptions);
 
 } // namespace options

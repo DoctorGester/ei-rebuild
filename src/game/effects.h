@@ -148,7 +148,10 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
 void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
                                ParticleDepth value, int compare, void* distanceTag);    // 00499C20
 
-class CParticleSource {
+// A particle source: an engine object (its real base is the transform object, CTransformObject,
+// whose vtable the factory stores on the way: +0x1C the local position, +0x34 the rotation; the
+// particle code names them position / orientation, so the class derives from CEngineObject).
+class CParticleSource : public CEngineObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073CFD0);
     // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
@@ -318,21 +321,13 @@ public:
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else
     // its position raised by the bounds' upper z extent. Returns `out` (`this` is not used).
     Vector3* PartPoint(Vector3* out, CObject3D* object, const char* prefix);   // 00484B40
-    // The source as the engine object it is (its first 0x1C bytes; slots 0-12 are CEngineObject's).
-    CEngineObject* AsObject() { return reinterpret_cast<CEngineObject*>(this); }
-
     // Every particle back to the pool, emission off (flags 0 and 2), detached.
     void StopAndClear();                            // 00485380
     // The loop Clear and StopAndClear share: every particle unlinked and returned to the pool.
     void ReleaseAllParticles();
 
-    void* vtable_;                  // +0x000
-    int refCount_;                  // +0x004
-    std::uint32_t flags_;           // +0x008 bit 0 emitting, bit 1 attached-only, bit 2 keep alive
-    int id_;                        // +0x00C
-    int type_;                      // +0x010 0x2000.. (see the name table at 0078B120)
-    void* owner_;                   // +0x014
-    std::uint32_t unused_018;
+    // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000..
+    // (see the name table at 0078B120); owner_ the particle manager.
     Vector3 position;               // +0x01C local position
     std::uint8_t unused_028[0x34 - 0x28];
     Quaternion orientation;         // +0x034 the identity after Reset (the transform's local rotation)
@@ -391,6 +386,7 @@ public:
     ElementCallback elementFn;      // +0x1E8
     void* texture;                  // +0x1EC texture holder (bound by 00497CE0)
 };
+static_assert(offsetof(CParticleSource, position) == 0x1C);
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
 static_assert(offsetof(CParticleSource, orientation) == 0x34);
 static_assert(offsetof(CParticleSource, emitChance) == 0xCC);

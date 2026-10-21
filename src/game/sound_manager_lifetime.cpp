@@ -2,6 +2,7 @@
 // stream's file reading (A-H14); the constructor / destructor bodies (006B6040 / 006B65D0, A-H15);
 // the Miles setup Open / Close / Reset (006B6A30 / 006B6D80 / 006B73E0, A-H18).
 #include "sound.h"
+#include "options.h"
 #include "game_strings.h"
 #include "mod_folders.h"
 #include "originals_engine.h"
@@ -317,7 +318,7 @@ constexpr int kMixerChannels = 0x12;
 constexpr unsigned kPrefUseWaveOut = 0xF;
 
 // The sound option (0 off: startup does not open sound; 2 the wave mapper).
-int SoundOption() { return ei::GameData<const int>(0x0079BCC0); }
+int SoundOption() { return options::TheOptions()->audio_; }
 
 // The voice constructor / destructor the CRT's eh vector iterators run (compiler-generated, the
 // name string's; config/library.csv), the DirectSoundEnumerateA callback appending each device's

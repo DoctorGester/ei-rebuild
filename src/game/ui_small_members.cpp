@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 #include "game_data.h"
 
@@ -148,6 +149,23 @@ CInterface3D* CInterface3D::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x005F46A0, CInterface3D::Construct);
+
+// The interface manager, zero at the start: built by the static initialiser 005F4680 in the list's order and destroyed by
+// the exit function it registers (005F4780); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CInterface3D> g_interface = /*007C7D50*/ {};
+CInterface3D* TheInterface() { return &*g_interface; }
+
+namespace {
+void __cdecl ConstructInterface() {   // 005F4680
+    g_interface->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
+}
+void __cdecl DestroyInterface() { g_interface->DestroyBody(); }   // 005F4780
+} // namespace
+
+EI_REPLACE(0x005F4680, ConstructInterface);
+EI_REPLACE(0x005F4780, DestroyInterface);
 
 void CUiMesh::DestroySprite() {
     material_ = nullptr;

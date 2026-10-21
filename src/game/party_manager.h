@@ -34,8 +34,8 @@ static_assert(sizeof(PartyManagerEntry) == 0x14);
 // A map node's party: the CParty object itself (constructed by the map's own members, 004AB980;
 // held as storage here because the class is abstract in its C++ declaration).
 struct PartyInPlace {
-    alignas(4) std::uint8_t storage[0x70];
-    CParty* Get() { return reinterpret_cast<CParty*>(storage); }
+    PartyStorage storage;
+    CParty* Get() { return storage.Party(); }
 };
 
 // The parties by key (STLport hash_map<int, CParty>; 0x78-byte nodes).

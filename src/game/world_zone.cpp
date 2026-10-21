@@ -67,9 +67,9 @@ static char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_c
 // destructor 006611D0) given one member by 006628D0 (RET 0xC); CreateUnits takes a pointer to the
 // member's 0x784-byte record.
 struct UnitRecordBuilder {
-    alignas(4) std::uint8_t storage[sizeof(CParty)];
+    PartyStorage storage;
 
-    CParty* Party() { return reinterpret_cast<CParty*>(storage); }
+    CParty* Party() { return storage.Party(); }
     void Construct() { Party()->Construct(); }
     void Fill(const char* text, const char* prototype, const char* name) {
         Party()->AddMember(text, prototype, name);

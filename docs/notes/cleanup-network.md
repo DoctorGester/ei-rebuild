@@ -36,7 +36,7 @@ qualified member).
 
 ## C2n: the remaining network files and the players
 
-- `ClientSession::parties_` are `PartyStorage` (a CParty's 0x70 bytes with `Party()`, as `CPlayer::party_`; the class is abstract in C++);
+- `ClientSession::parties_` are `PartyStorage` (party_storage.h: a CParty's 0x70 bytes with `Party()`, the one cast; every embedded party uses it);
   `TradeRecordNode` (three parties) is in `net_classes.h` and `tradeRecords_` is typed. The party publish / apply (`net_client_party.cpp`)
   read our party's items (`items_`, `CItem::spell_`, `type_`, `unknown_18` the packed id, `Save` / `Load` slots 10 / 9) and the partner
   party's `SpellManager()` / `ItemManager()` (slots 22 / 18) and `CreateObject` (slot 23); `PartyMessage::partyValue_` is `money_`
@@ -73,7 +73,7 @@ qualified member).
   its lists through a links-only `Node`; `net_client_handlers.cpp`'s `Append` / `RemoveValue` take `void*` lists.
 - `Connection::Construct` stores float members as integer bits (`Put32` on `sendInterval_` and the halves of `clock_`): kept (no FPU load).
 - `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a CParty's record array (`records + i * 0x784
-  + 0x1C`); the `CPlayerServer` engine-object bytes (`vtable_`, `engineObject_`) are not a `CEngineObject` base. `net_server_awards.cpp` /
+  + 0x1C`). `net_server_awards.cpp` /
   `net_server_map.cpp` read map registry entries as bytes (+0xC, +0x10, +0x14). `world_game.cpp`'s `AnnounceHost` builds a `HostMessage`
   by hand. Forwarders to the STLport list / vector / string instantiations the handlers call, the MFC `CFile` slots, GameBuffer's own
   slot bodies (free functions) and the growing buffer's forwarders (004DA7F0 ...) are declared per file. `StringRep` vs `stlp::string`;
@@ -91,7 +91,7 @@ functions are the game's `stlp::vector<Query>` instantiation, forwarded with it 
 - `CEngineObject` +0x18 is `prototypeId_`: the database prototype (items: index << 16 | material; spells: index << 16; units: the plain
   index).
 - `CPlayer` is the one player class (world.h's `WorldPlayer` and `WorldSession` views folded in, C15): +0xFC `partyId_`, +0x104 `lastScreen_`, +0x108 `godMode_`, +0x110 `lastTick_`; `CPlayerClient`
-  +0x84 is `localSession_` (`LocalViewData`). The login's +0x84 is the party id.
+  +0x84 is `localSession_`. The login's +0x84 is the party id.
 - `CPlayerServer` +0x24 `possessedId_`: -1, or the Possession spell's target; the next party refresh sends group50F8_ and resets it.
   world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a pending possession passes).
 - `ServerSession` +0x25FC `masterKey_` (StartServer's last argument, the client queries' `extra`) and +0x2578 `masterToken_` (the master

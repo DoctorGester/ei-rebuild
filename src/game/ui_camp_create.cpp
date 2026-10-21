@@ -188,8 +188,8 @@ void CCampPages::BuildPages() {
         spellConstructor_ = constructor_->flag0D != 0;
         itemConstructor_ = constructor_->flag0C != 0;
         for (int i = 0; i < kPriceWeights; ++i) priceWeights_[i] = constructor_->weights[i];
-        spellParts_[0] = reinterpret_cast<CParty*>(constructor_->spells);
-        itemParts_[0] = reinterpret_cast<CParty*>(constructor_->items);
+        spellParts_[0] = constructor_->SpellsParty();
+        itemParts_[0] = constructor_->ItemsParty();
     }
     noConstructor_ = PlayerSwitch("i.noconstr");
     if (PlayerSwitch("i.offspellconstr")) spellConstructor_ = false;

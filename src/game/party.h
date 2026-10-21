@@ -10,6 +10,7 @@
 #include "engine_object.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
+#include "party_storage.h"
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -208,3 +209,4 @@ static_assert(offsetof(CParty, items_) == 0x40);
 static_assert(offsetof(CParty, variables_) == 0x54);
 static_assert(offsetof(CParty, zone_) == 0x68);
 static_assert(sizeof(CParty) == 0x70);
+static_assert(sizeof(CParty) == sizeof(PartyStorage));

@@ -47,7 +47,7 @@ using OrderUnits = mfc::CArray<CUnit*>;
 
 // The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
 // the selection, 00566030 (RET 4) controls a unit.
-inline CPlayerClient* LocalView(void* client) { return reinterpret_cast<CPlayerClient*>(static_cast<CWorldClient*>(client)->LocalView()); }
+inline CPlayerClient* LocalView(void* client) { return static_cast<CWorldClient*>(client)->LocalView(); }
 // The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
 // CPlayerClient::SendAttack), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.

@@ -79,7 +79,7 @@ void CWorldServer::Teardown() {
     if (PlayerList()) {
         for (CPlayer* player = it->First(PlayerList()); player; player = it->Next()) {
             PlayerDisconnectOriginal(player);
-            static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
+            static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(player);
         }
     }
     if (it) {

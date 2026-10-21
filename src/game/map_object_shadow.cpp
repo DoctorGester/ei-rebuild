@@ -1,6 +1,7 @@
 // The shadow of a 3D object on the client. See map_object_shadow.h and docs/notes/map_objects.md
 // ("Shadows").
 #include "figure_mesh.h"
+#include "options.h"
 #include "map_object_shadow.h"
 
 #include "link_figure.h"        // CLinkMesh
@@ -46,11 +47,11 @@
 namespace {
 // --- Globals ----------------------------------------------------------------------------------
 
-int ShadowMode() { return ei::GameData<const int>(0x0079BD0C); }   // 0 off, 2 blurred
+int ShadowMode() { return options::TheOptions()->shadowQuality_; }   // 0 off, 2 blurred
 int ShadowSwitch(int classId) {
-    if (classId == 0x50) return ei::GameData<const int>(0x0079BD14);   // units
-    if (classId == 0x52) return ei::GameData<const int>(0x0079BD1C);
-    return ei::GameData<const int>(0x0079BD18);
+    if (classId == 0x50) return options::TheOptions()->unitShadow_;   // units
+    if (classId == 0x52) return options::TheOptions()->floraShadow_;
+    return options::TheOptions()->buildingShadow_;
 }
 const Vector3* DefaultLight() { return ei::GamePointer<const Vector3>(0x007AF230); }
 // The work buffers: the parts' points projected into the light's view, their texture pixels, and

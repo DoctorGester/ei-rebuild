@@ -46,6 +46,7 @@ void __cdecl StoreStartFolder();
 #include <cstdint>
 
 class CEngineObject;
+class CPlayerClient;   // player_client.h
 class CUnit;   // unit.h
 struct ClientTexts;
 
@@ -113,7 +114,7 @@ void GameRejoin();
 // 00578B70 (RET 8). The local player's variables whose names start with `prefix`, into `out`.
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
 // 00578BC0. CWorldClient::LocalView.
-std::uint8_t* GameLocalView();
+CPlayerClient* GameLocalView();
 // 00578D30 (RET 4). CWorldClient::SendFlag10 (its result).
 int __stdcall GameSendFlag10(int value);
 // 00578D50. The client world's pause flag.
