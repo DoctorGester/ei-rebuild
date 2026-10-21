@@ -92,9 +92,8 @@ namespace {
 __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
     EI_ORIGINAL(0x00560E10)
 // CStringArray element by value (004698A0: a CString constructed into `out`).
-char** StringArrayGetAt(const void* names, char** out, int index) {
-    recordarrays::StringGetAt(static_cast<const mfc::CArray<mfc::CString>*>(names), nullptr,
-                              reinterpret_cast<mfc::CString*>(out), index);
+char** StringArrayGetAt(const recordarrays::PartNames* names, char** out, int index) {
+    names->CopyAt(reinterpret_cast<mfc::CString*>(out), index);
     return out;
 }
 
@@ -108,7 +107,7 @@ const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not
 
 // A CStringArray (MFC: vtable, CString data, size, capacity, grow-by), as the server companion and the
 // 3D object lay theirs out by hand (unit.h, map_object_figures.h).
-using NameArray = mfc::CArray<mfc::CString>;
+using NameArray = recordarrays::PartNames;
 
 void ResetCellSet(FootprintCellSet* set) {
     set->SetSize(0, -1);

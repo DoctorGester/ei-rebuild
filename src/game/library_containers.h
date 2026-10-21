@@ -121,7 +121,6 @@ void __fastcall SetRootVtable(void* self);
 // 005E0550 (library.csv: a pointer iterator's operator-(n)): CTime::operator-(CTimeSpan), the time
 // less a span of seconds into `out` (thiscall, RET 8; called from 005E0400 after a CTime
 // constructor); returns out.
-mfc::impl::CTime* __fastcall TimeMinusSpan(const mfc::impl::CTime* self, void*, mfc::impl::CTime* out, long span);
 
 // ---- Vector members destroyed inside an owner (S12e) ------------------------------------------------
 
@@ -147,8 +146,8 @@ using HeroRecords = stlp::vector<MpHeroRecord>;
 // _M_insert_overflow(pos, x, n) (00619920; RET 0xC): a block of size + max(size, n) records (the
 // node allocator's pool for one record), [start, pos), n copies of x, [pos, finish); the old
 // records destroyed in order, the old block freed.
-void __fastcall InsertHeroRecordsOverflow(HeroRecords* self, void*, MpHeroRecord* pos, const MpHeroRecord* x,
-                                          std::size_t n);
+// (Registered as HeroRecordAbi::InsertOverflow.)
+using HeroRecordAbi = stlp::VectorAbi<MpHeroRecord, HeroRecordElement>;
 
 // ---- S12g: the last library code our rewrites called ----------------------------------------------
 
@@ -163,8 +162,8 @@ using Speakers = stlp::vector<BriefingSpeaker>;
 // _Construct(p, value) (0060AB00; ECX p, EDX value, plain RET): nothing for a null p.
 void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
 // _M_insert_overflow(pos, x, n) (0060A660; RET 0xC).
-void __fastcall InsertSpeakersOverflow(Speakers* self, void*, BriefingSpeaker* pos, const BriefingSpeaker* x,
-                                       std::size_t n);
+// (Registered as SpeakerAbi::InsertOverflow.)
+using SpeakerAbi = stlp::VectorAbi<BriefingSpeaker, SpeakerElement>;
 
 // The client's trade record's destructor (00424DB0): the three parties' CParty destructor
 // (006611D0), the traded party first.

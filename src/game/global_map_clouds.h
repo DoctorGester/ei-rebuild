@@ -26,6 +26,7 @@ public:
     void GenerateImpl(std::uint8_t* out, int step);   // body of the slot above (registered by member pointer)
     // 2: 00499E30 (base) / 0062EDA0 (the map's class).
     virtual CCloudNoise* DeletingDestruct(unsigned flags);
+    CCloudNoise* DeletingDestructImpl(unsigned flags);   // body of the slot above (registered by member pointer)
 
     // 00499DC0 (RET 4). The base constructor: its vtable, the buffers for `size`. Returns this.
     CCloudNoise* Construct(int size);
@@ -56,5 +57,3 @@ static_assert(offsetof(CCloudNoise, frames_) == 0x1C);
 static_assert(offsetof(CCloudNoise, size_) == 0x30);
 static_assert(sizeof(CCloudNoise) == 0x34);
 
-// 00499E30 (base slot 2, RET 4): DestructBody, freed when bit 0 of `flags` is set. Returns `self`.
-CCloudNoise* __fastcall CloudNoiseBaseDeletingDestruct(CCloudNoise* self, void*, unsigned flags);

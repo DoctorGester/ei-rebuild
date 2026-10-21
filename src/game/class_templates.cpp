@@ -35,10 +35,6 @@ namespace {
 // vector<counted pointer> members (stlp::CountedRefVector's): 004A9A00 erase(first, last), 004AB520
 // _M_insert_overflow(pos, x, n), and the counted pointer's copy constructor (two identical
 // instantiations, 004A5D50 and 004ABE30, both RefPtr::CopyCounted).
-using CopyConstructFn = void(__fastcall*)(ClassTemplate**, void*, ClassTemplate* const*);
-void __fastcall CopyConstruct(ClassTemplate** a0, void*, ClassTemplate* const* a2) {
-    reinterpret_cast<RefPtr*>(a0)->CopyCounted(reinterpret_cast<const RefPtr*>(a2));
-}
 
 // The item database (template +0x3C slot 18) lists the names of each kind into a CStringArray:
 // 006AD2F0 weapons, 006AD380 armors, 006AD410 quick items, 006AD260 the fourth kind (its records
@@ -151,7 +147,7 @@ constexpr std::uint32_t kZeroWeights[9] = {};
 // One template: allocated (reference count word cleared first), constructed, its class, two flags
 // and weights set, filled, then appended to the vector through a temporary counted pointer.
 void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
-                 const std::uint32_t (&weights)[9], CopyConstructFn copyConstruct) {
+                 const std::uint32_t (&weights)[9]) {
     auto* memory = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
     memory->refCount = 0;
     memory->refsHigh = 0;
@@ -168,7 +164,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     if (v->Finish() == v->EndOfStorage()) {
         stlp::AsRefPtrs(*v).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(v->Finish()), stlp::AsRefPtr(temp), 1);
     } else {
-        if (v->Finish()) copyConstruct(v->Finish(), nullptr, &temp);
+        if (v->Finish()) reinterpret_cast<RefPtr*>(v->Finish())->CopyCounted(reinterpret_cast<const RefPtr*>(&temp));
         ++v->Finish();
     }
     if (temp && --temp->refCount == 0 && temp) delete reinterpret_cast<CRefCounted*>(temp);   // slot 0 with 1
@@ -176,32 +172,33 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
 
 } // namespace
 
-void __fastcall ClassTemplatesBuild(ClassTemplateVector* v, void*, unsigned fourClasses) {
+void TemplateTable::Build(unsigned fourClasses) {
+    TemplateTable* v = this;
     stlp::CountedRefVector::Clear(&stlp::AsRefPtrs(*v));
     if (static_cast<std::uint8_t>(fourClasses)) {
-        AddTemplate(v, 1, 1, 1, kDefaultWeights, CopyConstruct);
-        AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstruct);
-        AddTemplate(v, 4, 1, 1, kDefaultWeights, CopyConstruct);
-        AddTemplate(v, 5, 1, 1, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 1, 1, 1, kDefaultWeights);
+        AddTemplate(v, 3, 1, 1, kDefaultWeights);
+        AddTemplate(v, 4, 1, 1, kDefaultWeights);
+        AddTemplate(v, 5, 1, 1, kDefaultWeights);
     } else {
-        AddTemplate(v, 1, 1, 0, kDefaultWeights, CopyConstruct);
-        AddTemplate(v, 2, 0, 1, kDefaultWeights, CopyConstruct);
-        AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstruct);
-        AddTemplate(v, 4, 1, 1, kDefaultWeights, CopyConstruct);
-        AddTemplate(v, 5, 1, 1, kZeroWeights, CopyConstruct);
+        AddTemplate(v, 1, 1, 0, kDefaultWeights);
+        AddTemplate(v, 2, 0, 1, kDefaultWeights);
+        AddTemplate(v, 3, 1, 1, kDefaultWeights);
+        AddTemplate(v, 4, 1, 1, kDefaultWeights);
+        AddTemplate(v, 5, 1, 1, kZeroWeights);
     }
 }
-EI_REPLACE(0x004A7630, ClassTemplatesBuild);
+EI_REPLACE_METHOD(0x004A7630, TemplateTable::Build);
 
 // ---- Small members ----------------------------------------------------------------------------------
 
-ClassTemplate* __fastcall ClassTemplatesFind(const ClassTemplateVector* v, void*, int type) {
-    unsigned count = static_cast<unsigned>(v->size());
+ClassTemplate* TemplateTable::Find(int type) const {
+    unsigned count = static_cast<unsigned>(size());
     for (unsigned i = 0; i < count; ++i)
-        if ((*v)[i]->type == type) return (*v)[i];
+        if ((*this)[i]->type == type) return (*this)[i];
     return nullptr;
 }
-EI_REPLACE(0x004A74F0, ClassTemplatesFind);
+EI_REPLACE_METHOD(0x004A74F0, TemplateTable::Find);
 
 unsigned __fastcall ClassTemplatesQuestCompleted(void* manager) {
     ClassTemplateVector* v = &static_cast<PartyManager*>(manager)->templates;

@@ -169,25 +169,21 @@ void* NodeValue(MapNode* node) { return reinterpret_cast<char*>(node) + 8; }
 
 void __fastcall PartyManagerNewGame(void* manager) {
     PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
-    ClassTemplatesBuild(reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38)), nullptr, 0);
+    reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38))->Build(0);
 }
 EI_REPLACE(0x004A88A0, PartyManagerNewGame);
 
 void __fastcall PartyManagerNewGameFour(void* manager) {
     PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
-    ClassTemplatesBuild(reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38)), nullptr, 1);
+    reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38))->Build(1);
 }
 EI_REPLACE(0x004A88C0, PartyManagerNewGameFour);
 
-void __fastcall PartyManagerBeginRedeploy(void* manager, void*, void* players) {
-    reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24))->BeginRedeploy(static_cast<CParty*>(players));
-}
-EI_REPLACE(0x004A8890, PartyManagerBeginRedeploy);
+void PartyManager::BeginRedeploy(void* players) { records.BeginRedeploy(static_cast<CParty*>(players)); }
+EI_REPLACE_METHOD(0x004A8890, PartyManager::BeginRedeploy);
 
-void __fastcall PartyManagerEndRedeploy(void* manager, void*, void* players) {
-    reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24))->EndRedeploy(static_cast<CParty*>(players));
-}
-EI_REPLACE(0x004A8880, PartyManagerEndRedeploy);
+void PartyManager::EndRedeploy(void* players) { records.EndRedeploy(static_cast<CParty*>(players)); }
+EI_REPLACE_METHOD(0x004A8880, PartyManager::EndRedeploy);
 
 int __stdcall PartyNextId(int* out) {
     int& counter = ei::GameData<int>(0x0078B0E8);
@@ -196,7 +192,8 @@ int __stdcall PartyNextId(int* out) {
 }
 EI_REPLACE(0x004A8910, PartyNextId);
 
-bool __fastcall PartyMapLoad(const void* map, void*, int, int, const int* key, void* target) {
+bool PartyManager::LoadParty(int, int, const int* key, void* target) const {
+    const void* map = this;
     if (*key == 0) {
         PartyResetOriginal((void*)target, nullptr, 1, 0);
         return true;
@@ -206,14 +203,15 @@ bool __fastcall PartyMapLoad(const void* map, void*, int, int, const int* key, v
     static_cast<CParty*>(target)->Assign(static_cast<CParty*>(NodeValue(node)));
     return true;
 }
-EI_REPLACE(0x004A8790, PartyMapLoad);
+EI_REPLACE_METHOD(0x004A8790, PartyManager::LoadParty);
 
-bool __fastcall PartyMapStore(void* map, void*, const int* key, const void* source) {
+bool PartyManager::StoreParty(const int* key, const void* source) {
+    void* map = this;
     MapNode* node = FindNode(map, *key);
     void* value = node ? NodeValue(node)
-                       : static_cast<void*>(gamehash::PartyAt(static_cast<gamehash::PartyTable*>(map), nullptr,
+                       : static_cast<void*>(static_cast<gamehash::PartyTable*>(map)->At(
                                                               reinterpret_cast<const std::uint32_t*>(key)));   // 004A91B0
     static_cast<CParty*>(value)->Assign(static_cast<CParty*>(const_cast<void*>(source)));
     return true;
 }
-EI_REPLACE(0x004A8800, PartyMapStore);
+EI_REPLACE_METHOD(0x004A8800, PartyManager::StoreParty);

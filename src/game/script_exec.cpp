@@ -326,8 +326,8 @@ void RedeployParty(const SSCCmd* cmd) {
     mfc::impl::ConstructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
     TheWorld()->CollectParty(player, &slots);
     void* party = player->Party();
-    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, party);
-    PartyManagerEndRedeploy(ThePartyManager(), nullptr, party);
+    ThePartyManager()->BeginRedeploy(party);
+    ThePartyManager()->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const PartyMemberArray& members = player->Party()->members_;
     if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unitId);

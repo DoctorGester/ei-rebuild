@@ -40,7 +40,7 @@ static inline CWorldServer* ManagerContextAt(void* object) { return static_cast<
 
 } // namespace
 
-void __fastcall StepAlarm(AIAlarm* state, void*, CUnitServer* owner) {
+static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     CUnitServer* server = owner;
     CWorldServer* world = ManagerContextAt(owner);
     if (state->pending != 0) {
@@ -83,7 +83,8 @@ void __fastcall StepAlarm(AIAlarm* state, void*, CUnitServer* owner) {
     }
 }
 
-EI_REPLACE(0x005AEA80, StepAlarm);
+void AIAlarm::Step(CUnitServer* owner) { StepAlarmOf(this, owner); }
+EI_REPLACE_METHOD(0x005AEA80, AIAlarm::Step);
 
 // ---- The state's small members (A-W14) ----------------------------------------------------------
 

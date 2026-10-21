@@ -49,23 +49,23 @@ void CUiContainer::DrawChildrenImpl(int pass) {
 EI_REPLACE_METHOD(0x00600F70, CUiContainer::DrawChildrenImpl);
 
 // 0062EFC0. Returns 1.
-int __fastcall WindowDrawBlended(CUiWindow* self, void*, int pass) {
-    SetState(self, kAlphaBlend, 1);
-    SetState(self, kAlphaTest, 0);
-    SetState(self, kSourceBlend, 5);
-    SetState(self, kDestBlend, 6);
-    SetState(self, kAlphaRef, 1);
-    static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
+int CUiContainer::DrawBlendedImpl(int pass) {
+    SetState(this, kAlphaBlend, 1);
+    SetState(this, kAlphaTest, 0);
+    SetState(this, kSourceBlend, 5);
+    SetState(this, kDestBlend, 6);
+    SetState(this, kAlphaRef, 1);
+    DrawContainerImpl(pass);
     return 1;
 }
-EI_REPLACE(0x0062EFC0, WindowDrawBlended);
+EI_REPLACE_METHOD(0x0062EFC0, CUiContainer::DrawBlendedImpl);
 
 // 0065A6D0. Returns 1.
-int __fastcall WindowDrawAlphaRef(CUiWindow* self, void*, int pass) {
-    std::uint32_t savedRef = GetState(self, kAlphaRef);
-    SetState(self, kAlphaRef, 1);
-    static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
-    SetState(self, kAlphaRef, savedRef);
+int CUiContainer::DrawAlphaRefImpl(int pass) {
+    std::uint32_t savedRef = GetState(this, kAlphaRef);
+    SetState(this, kAlphaRef, 1);
+    DrawContainerImpl(pass);
+    SetState(this, kAlphaRef, savedRef);
     return 1;
 }
-EI_REPLACE(0x0065A6D0, WindowDrawAlphaRef);
+EI_REPLACE_METHOD(0x0065A6D0, CUiContainer::DrawAlphaRefImpl);

@@ -155,12 +155,12 @@ void __fastcall Object3DServerDestruct(CObject3DSpecific* self) {
 EI_REPLACE(0x0051F300, Object3DServerDestruct);
 
 // 0051F2E0 (slot 0, RET 4).
-CObject3DSpecific* __fastcall Object3DServerDelete(CObject3DSpecific* self, void*, unsigned flags) {
-    Object3DServerDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CObject3DSpecific* CObject3DSpecific::DeleteServerHalf(unsigned flags) {
+    Object3DServerDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0051F2E0, Object3DServerDelete);
+EI_REPLACE_METHOD(0x0051F2E0, CObject3DSpecific::DeleteServerHalf);
 
 // 0051F320 (slot 2): 1. 0051F330 (slot 3): no object.
 int __fastcall Object3DServerCreate(CObject3DSpecific*) { return 1; }
@@ -191,12 +191,12 @@ void __fastcall WoundsMaterialDestruct(WoundsMaterial* self) {
 EI_REPLACE(0x0051C730, WoundsMaterialDestruct);
 
 // 0051C710 (slot 0, RET 4).
-WoundsMaterial* __fastcall WoundsMaterialDelete(WoundsMaterial* self, void*, unsigned flags) {
-    WoundsMaterialDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+WoundsMaterial* WoundsMaterial::DeleteScalar(unsigned flags) {
+    WoundsMaterialDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0051C710, WoundsMaterialDelete);
+EI_REPLACE_METHOD(0x0051C710, WoundsMaterial::DeleteScalar);
 
 // 0051C800. A named texture's destructor: the texture released, the name freed.
 void __fastcall NamedTextureDestruct(NamedTexture* self) {

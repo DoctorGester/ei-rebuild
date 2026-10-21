@@ -62,6 +62,17 @@ struct PartyManager {
     // left as it is. It runs from the static initialiser 004A56D0 on the manager at 007AA5A0,
     // before the hooks are installed, so the hook on it never fires. Returns this.
     PartyManager* Construct();
+    // 004A8890 / 004A8880 (party_records.cpp, RET 4): the records' BeginRedeploy (004A6050) / EndRedeploy
+    // (004A6360), the script's redeploy.
+    void BeginRedeploy(void* players);
+    void EndRedeploy(void* players);
+    // 004A8790 (RET 0x10, four stack arguments, the first two unused): key 0 resets `target` (00661700(1,
+    // 0)); else the party stored under the key is copied into it (00661300). False when the key is not
+    // stored. Sets AL only.
+    bool LoadParty(int unused1, int unused2, const int* key, void* target) const;
+    // 004A8800 (RET 8). Copies `source` into the party stored under the key (operator[] 004A91B0 creates
+    // it when missing). True.
+    bool StoreParty(const int* key, const void* source);
 };
 static_assert(offsetof(PartyManager, entries) == 0x14);
 static_assert(offsetof(PartyManager, field3) == 0x20);

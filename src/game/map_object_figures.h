@@ -94,6 +94,9 @@ class CObject3DSpecific;
 CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self);
 class CObject3DSpecific : public CEngineObject {
 public:
+    // 0051F2E0 (slot 0 of the server half, RET 4; object3d_halves.cpp). The destructor, then freed when
+    // bit 0 of `flags` is set. Returns this.
+    CObject3DSpecific* DeleteServerHalf(unsigned flags);
     void IgnoreArgument(int);
     int ReturnZero(void*);
     int DrawNothing(void* /*context*/, int* /*dirty*/);

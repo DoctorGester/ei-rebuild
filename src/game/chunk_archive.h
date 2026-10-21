@@ -139,6 +139,13 @@ public:
     // 004AD2C0 (RET 8). Field(id, value, 4).
     void IntField(int id, int* value);
 
+    // The ack records' helpers (acks_db.cpp). 006E4F40 (RET 8): an acks::SpeechRecord as chunk `id`.
+    void SerializeSpeech(int id, void* speech);
+    // 006E42F0 / 006E4410 (RET 0xC; the third argument, the archive again, is unused): an
+    // acks::SpeechList / a vector of acks::EnvironmentSpeech as chunk `id`.
+    void SerializeSpeechList(int id, void* list, void* unused);
+    void SerializeEnvironmentSpeeches(int id, void* list, void* unused);
+
     // The item database's vectors (item_db_load.cpp, A-H18; RET 0xC, the third
     // argument unused): 006A7C20 quick items (0x8C bytes), 006A7D20 loot (0x7C), 006A7E10 quest
     // items (0x78), one chunk 1 per record.

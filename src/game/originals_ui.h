@@ -134,42 +134,15 @@ __declspec(naked) inline void __fastcall WorldCompleteBriefingOriginal(void* /*w
 
 // A-I15. The client world (007AF5B8, thiscall, RET 4): 00565D00 the unit drawn at a screen point (the point's x, y; EAX
 // the object or null); 00566100 selects `unit` (null: clears the selection; no result).
-// The interface's shutdown (005F4F90) calls: 00444BD0 (thiscall) the debug information panel
-// (0079B930, string_map.cpp) frees its surface and font; 00462DF0 writes config\keyboard.ini
-// (key_bindings.cpp).
-namespace strmap {
-void __fastcall PanelRelease(void* /*panel*/);
-}
-// 00444C10 (thiscall, RET 4): the debug information panel's rectangle (string_map.cpp).
-namespace strmap {
-void __fastcall PanelSetRect(void* /*panel*/, void*, const tagRECT* /*rect*/);
-}
-// 004447E0 (the panel's slot 0, thiscall, RET 8; string_map.cpp's StringTableSet): panel[key] = value.
-namespace strmap {
-void __fastcall StringTableSet(void* /*panel*/, void*, const char* /*key*/,
-                               const char* /*value*/);
-}
-// 00444CD0 (thiscall on the panel, plain RET; string_map.cpp's PanelTick): the panel redrawn every 500 ms and
-// blitted.
-namespace strmap {
-void __fastcall PanelTick(void* /*panel*/);
-}
-// 004449A0 (the panel's slot 1, thiscall, RET 4; string_map.cpp's StringTableRemove): the line `key` removed.
-namespace strmap {
-void __fastcall StringTableRemove(void* /*panel*/, void*, const char* /*key*/);
-}
+// The interface's shutdown (005F4F90) calls: 00462DF0 writes config\keyboard.ini (key_bindings.cpp).
 namespace keybind {
 void __cdecl SaveKeyBindings();
 }
-// The interface's Create (005F4990) calls: 00462C10 reads config\keyboard.ini (key_bindings.cpp); 00444A70
-// (thiscall, RET 4; string_map.cpp's PanelInit) binds the debug information panel to the interface; 005F9810
+// The interface's Create (005F4990) calls: 00462C10 reads config\keyboard.ini (key_bindings.cpp); 005F9810
 // (thiscall on the help topics' map, RET 0xC; library) inserts a {CString, int} pair before `hint` and gives the
 // new node in `out`, which it returns.
 namespace keybind {
 void __cdecl LoadKeyBindings();
-}
-namespace strmap {
-void __fastcall PanelInit(void* /*panel*/, void*, CInterface3D* /*ui*/);
 }
 // 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
 // the chat is closed), the caret clamped to it.

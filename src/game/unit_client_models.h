@@ -113,6 +113,8 @@ struct AttackParams;   // combat.h
 
 class CUnitClientSpecific : public CEngineObject {
 public:
+    // 00535850 (unit_client_path.cpp; RET 8). Places the unit on its path at `time`, turning by `rate`.
+    void PlaceOnPath(float time, float rate);
     // 00538960 (unit_client_attack.cpp). Virtual slot 50 (thiscall, RET 4; registered as a free
     // function, rewrite-guide rule 4): the attack figures the interface shows for a party unit. A
     // text-key unit with a weapon in hand (weaponIds[activeWeapon]) takes damage, type, damage type
@@ -422,9 +424,6 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 // "hr.<hair>.armor<number>" unless the prototype has no hair, +0x10 = -1), the parts of the
 // weapons `weaponIds` (006A1780, also into `names`), and every plain part of the three rows
 // (into `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
-// 00535850 (unit_client_path.cpp; fastcall: ECX the controller; RET 8). Places the unit on its path
-// at `time`, turning by `rate`.
-void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, float rate);
 
 void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,

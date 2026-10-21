@@ -112,7 +112,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
         // The copy's destructor (vtable 0073D11C): each reference destroyed, the array freed.
         copy.vtable = ei::GamePointer<void>(0x0073D11C);
         if (copy.data) {
-            for (int k = 0; k < copy.size; ++k) ScriptRefDestroy(&copy.data[k].object, nullptr, 0);
+            for (int k = 0; k < copy.size; ++k) copy.data[k].DestroyElement(0);
             gamecrt::operator_delete(copy.data);
         }
     }

@@ -28,7 +28,12 @@ struct PartyElement {
     static void Destroy(PartyInPlace* p) { p->Get()->DestructBody(); }
 };
 using PartyTraits = stlp::DwordObjectTraits<PartyInPlace, PartyElement>;
-using PartyTable = stlp::hashtable<PartyTraits>;
+// 004A91B0 (RET 4). hash_map<int, CParty>::operator[]: a party constructed on the stack, a pair of
+// the key and a copy of it, find_or_insert of the pair (a new node copies it again), then the pair's
+// party and the stack party destroyed. The node's party.
+struct PartyTable : stlp::hashtable<PartyTraits> {
+    PartyInPlace* At(const std::uint32_t* key);
+};
 using PartyAbi = stlp::HashtableAbi<PartyTraits>;
 
 // A zone's unit looks (UnitSet, world.h): the figured records by key in a map per prototype (0x44-byte
@@ -69,17 +74,12 @@ struct ShapeTraits {
     static void Construct(Value* to, const Value& from) { ConstructShapePair(to, nullptr, &from.key, &from.value); }
     static void Destroy(Value* p) { DestroyShapePair(p); }
 };
-using ShapeTable = stlp::hashtable<ShapeTraits>;
-using ShapeAbi = stlp::HashtableAbi<ShapeTraits>;
-
-// 004A91B0 (RET 4). hash_map<int, CParty>::operator[]: a party constructed on the stack, a pair of
-// the key and a copy of it, find_or_insert of the pair (a new node copies it again), then the pair's
-// party and the stack party destroyed. The node's party.
-PartyInPlace* __fastcall PartyAt(PartyTable* self, void*, const std::uint32_t* key);
-
 // 005BE090 (RET 4). The shape cache's operator[]: a pair of a copy of the handle and a null
 // RefPtr, find_or_insert of it, the pair destroyed. The node's RefPtr.
-RefPtr* __fastcall ShapeSlot(ShapeTable* self, void*, const ShapeCacheHandle* handle);
+struct ShapeTable : stlp::hashtable<ShapeTraits> {
+    RefPtr* At(const ShapeCacheHandle* handle);
+};
+using ShapeAbi = stlp::HashtableAbi<ShapeTraits>;
 
 // 005BCCB0 (returns this): a handle that has resolved nothing: no reference, no cache, key -1 (the
 // height is left as it is).

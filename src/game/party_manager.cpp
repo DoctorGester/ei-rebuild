@@ -74,7 +74,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
-            auto* party = reinterpret_cast<CParty*>(gamehash::PartyAt(reinterpret_cast<gamehash::PartyTable*>(parties), nullptr,
+            auto* party = reinterpret_cast<CParty*>(reinterpret_cast<gamehash::PartyTable*>(parties)->At(
                                                                       reinterpret_cast<const std::uint32_t*>(&key)));   // 004A91B0
             if (EnterChunk(2)) {
                 party->ArchiveParty(this);

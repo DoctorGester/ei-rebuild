@@ -249,6 +249,9 @@ static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof
 struct __declspec(novtable) WoundsMaterial : CDeviceMaterial {
     static constexpr std::uintptr_t kRootVtableAddress = std::uintptr_t(0x0073C368);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DF68);
+    // 0051C710 (slot 0, RET 4; object3d_halves.cpp). The destructor body, then freed when bit 0 of
+    // `flags` is set. Returns this.
+    WoundsMaterial* DeleteScalar(unsigned flags);
 };
 static_assert(sizeof(WoundsMaterial) == 0x24);
 
