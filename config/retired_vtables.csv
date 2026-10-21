@@ -16,6 +16,8 @@ vtable,slots,class,file,note
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
+0073D790,15,CLinkMesh,src/game/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)
+0073D7CC,15,CLinkMeshBase,src/game/link_figure.h,CLinkMesh's base (stored by its constructor and destructors 004F2C00 / 004F2D40 / 004F2E40)
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
 0073D9D8,13,AnimationTrack,src/game/map_object_animation.h,class 0x300B (the figure factory)

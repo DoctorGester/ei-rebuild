@@ -185,7 +185,7 @@ bool CLinkMesh::FlatColoursImpl(const stlp::string* name, std::uint32_t colour, 
     render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps (R16d)
     return true;
 }
-EI_REPLACE_METHOD(0x004F3AD0, CLinkMesh::FlatColoursImpl);
+EI_REWRITTEN(0x004F3AD0, CLinkMesh::FlatColoursImpl);
 
 // 004F3870 (slot 8, RET 0x18, AL). The arrays sized as above; the transform object lights the
 // part into `colours` (LightMesh, with the material's light vector); every specular is the alpha
@@ -218,7 +218,7 @@ bool CLinkMesh::LightPartImpl(const stlp::string* name, const FigureLights* ligh
     render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps (R16d)
     return true;
 }
-EI_REPLACE_METHOD(0x004F3870, CLinkMesh::LightPartImpl);
+EI_REWRITTEN(0x004F3870, CLinkMesh::LightPartImpl);
 
 // ---- 9-12: the draws -------------------------------------------------------------------------------
 
@@ -227,14 +227,14 @@ int CLinkMesh::DrawPartMovedImpl(const stlp::string* name, int flags, ColourArra
                              lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
 }
-EI_REPLACE_METHOD(0x004F3C60, CLinkMesh::DrawPartMovedImpl);
+EI_REWRITTEN(0x004F3C60, CLinkMesh::DrawPartMovedImpl);
 
 // 004F3FA0 (slot 10, RET 0x18).
 int CLinkMesh::DrawPartImpl(const stlp::string* name, int flags, ColourArray* colours, ColourArray* speculars,
                         std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
 }
-EI_REPLACE_METHOD(0x004F3FA0, CLinkMesh::DrawPartImpl);
+EI_REWRITTEN(0x004F3FA0, CLinkMesh::DrawPartImpl);
 
 // 004F42D0 (slot 11, RET 0x24).
 int CLinkMesh::DrawPartMovedTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
@@ -242,14 +242,14 @@ int CLinkMesh::DrawPartMovedTexturedImpl(const stlp::string* name, int flags, CD
                                      lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, offsets, u, v);
 }
-EI_REPLACE_METHOD(0x004F42D0, CLinkMesh::DrawPartMovedTexturedImpl);
+EI_REWRITTEN(0x004F42D0, CLinkMesh::DrawPartMovedTexturedImpl);
 
 // 004F4150 (slot 12, RET 0x20).
 int CLinkMesh::DrawPartTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                 ColourArray* colours, ColourArray* speculars, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, nullptr, u, v);
 }
-EI_REPLACE_METHOD(0x004F4150, CLinkMesh::DrawPartTexturedImpl);
+EI_REWRITTEN(0x004F4150, CLinkMesh::DrawPartTexturedImpl);
 
 // ---- 13 / 14: the shadow ---------------------------------------------------------------------------
 
@@ -265,7 +265,7 @@ int CLinkMesh::ProjectPartImpl(const stlp::string* name, lib::AlignedArray<Vecto
     pipeline_->ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
     return r.vertices.count << 2;
 }
-EI_REPLACE_METHOD(0x004F4680, CLinkMesh::ProjectPartImpl);
+EI_REWRITTEN(0x004F4680, CLinkMesh::ProjectPartImpl);
 
 // 004F4850 (slot 14, RET 0xC). The part's texture coordinates times 255 (as floats, rounded to the
 // nearest integer), then every triangle's corners - the projected point of the corner's position
@@ -298,5 +298,5 @@ int CLinkMesh::RasterisePartImpl(const stlp::string* name, const PixelPair* pixe
     }
     return r.vertices.count << 2;
 }
-EI_REPLACE_METHOD(0x004F4850, CLinkMesh::RasterisePartImpl);
+EI_REWRITTEN(0x004F4850, CLinkMesh::RasterisePartImpl);
 EI_REPLACE(0x004F2B20, FreeMovedPackets);   // the exit function of 004F2AF0

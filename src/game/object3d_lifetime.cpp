@@ -22,7 +22,7 @@ const float* DefaultFigureScale() { return ei::GamePointer<const float>(0x007AF1
 inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }
 inline int& CountOf(WoundsMaterial* material) { return material->refCount; }
 inline int& CountOf(CRenderPreset* preset) { return preset->refs_; }
-inline void DeleteCounted(CLinkMesh* figure) { figure->DeleteThis(1); }
+inline void DeleteCounted(CLinkMesh* figure) { delete figure; }
 inline void DeleteCounted(WoundsMaterial* material) { material->DeletingDestructor(1); }
 inline void DeleteCounted(CRenderPreset* preset) { preset->DeleteThis(1); }
 
