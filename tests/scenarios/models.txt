@@ -48,14 +48,19 @@ wait 3000
 check IsAlive(GetLeader())
 # R16d: the image's frame with its figure meshes kept on the GPU must match the frame with every mesh
 # built and uploaded again (scene_meshfresh), and no kept mesh checked against a fresh build may have
-# been stale. (The original code captures the same frame twice.)
+# been stale. (The original code captures the same frame twice.) R16k: the same with the device's
+# mesh draws doing all the old per-corner work (scene_cornersfull, as before R16k).
 freeze
 capture scene
 meshcache off
 capture scene_meshfresh
 meshcache on
+meshcorners full
+capture scene_cornersfull
+meshcorners read
 unfreeze
 samecapture scene scene_meshfresh 8 0.001
+samecapture scene scene_cornersfull
 meshcache check
 report
 quit

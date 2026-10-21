@@ -8,6 +8,8 @@
 # checked against a fresh build may have been stale. R16d: the same for its figure meshes kept on the
 # GPU (world_meshfresh: every mesh built into the frame's stream). R16b: the same for the textures in
 # the renderer's memory updated in place (world_remade: made again as new images, as before R16b).
+# R16k: the same with the device's mesh draws doing all the old per-corner work (world_cornersfull: TL
+# vertices, fog, clipped vertices to the screen, as before R16k; nothing in the image reads them).
 render new
 reject Script error
 waitmenu
@@ -31,11 +33,15 @@ meshcache on
 memorytextures remake
 capture world_remade
 memorytextures inplace
+meshcorners full
+capture world_cornersfull
+meshcorners read
 unfreeze
 samecapture world world_again
 samecapture world world_fresh
 samecapture world world_meshfresh 8 0.001
 samecapture world world_remade 8 0.005
+samecapture world world_cornersfull
 terraincache check
 meshcache check
 report
