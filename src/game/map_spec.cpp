@@ -287,9 +287,11 @@ void ObjectSpec::ObjectSpecRemove() {
 }
 EI_REPLACE_METHOD(0x0046AF70, ObjectSpec::ObjectSpecRemove);
 
+CMapObject* ObjectSpec::MapObject() const { return static_cast<CMapObject*>(base.object); }
+
 // 0046AFA0 (slot 8).
 void ObjectSpec::ObjectSpecRefresh() {
-    if (base.object) static_cast<CMapObject*>(base.object)->MarkChanged(2);
+    if (base.object) MapObject()->MarkChanged(2);
 }
 EI_REPLACE_METHOD(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 
@@ -301,8 +303,8 @@ void ObjectSpec::ObjectSpecApply() {
         return;
     }
     static_cast<CAIMap*>(Selection())->BeginRefresh();
-    SectorMapRemove(AsSectorMap(TheSectorMap()), nullptr, AsEngineObject(base.object));
-    auto* object = static_cast<CMapObject*>(base.object);
+    SectorMapRemove(AsSectorMap(TheSectorMap()), nullptr, base.object);
+    CMapObject* object = MapObject();
     std::memcpy(&object->localPosition_, &base.position, 12);
     std::memcpy(&object->localRotation_, &base.rotation, 16);
     ObjectSetFigureScaleOriginal(base.object, nullptr, &scale.x);
@@ -311,9 +313,9 @@ void ObjectSpec::ObjectSpecApply() {
     std::uint32_t& flags = object->flags_;
     if (!visible) flags |= 8;
     else flags &= ~8u;
-    static_cast<CMapObject*>(base.object)->MarkChanged(2);
-    static_cast<CMapObject*>(base.object)->MarkChanged(1);
-    SectorMapAdd(AsSectorMap(TheSectorMap()), nullptr, AsEngineObject(base.object));
+    MapObject()->MarkChanged(2);
+    MapObject()->MarkChanged(1);
+    SectorMapAdd(AsSectorMap(TheSectorMap()), nullptr, base.object);
     static_cast<CAIMap*>(Selection())->EndRefresh();
 }
 EI_REPLACE_METHOD(0x0046AFB0, ObjectSpec::ObjectSpecApply);

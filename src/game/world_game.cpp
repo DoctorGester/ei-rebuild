@@ -72,12 +72,6 @@ namespace {
 
 using namespace flowdata;
 
-// net::NewRefObject (counted net object memory) for a T.
-template <typename T>
-T* NewRefObjectAs() {
-    return static_cast<T*>(net::NewRefObject(sizeof(T)));
-}
-
 
 // ---- Data -------------------------------------------------------------------------------------
 
@@ -484,7 +478,7 @@ void AnnounceHost(const char* zone) {
     stlp::string text;
     mfc::CString formatted(address.ToString(&text)->data());   // 00435010
     // (the count cleared before the null test)
-    auto* memory = NewRefObjectAs<net::HostMessage>();
+    auto* memory = net::NewRefObjectAs<net::HostMessage>();
     net::HostMessage* record = nullptr;
     if (memory) {
         net::MessageConstructBase(memory);   // 004186E0
@@ -703,9 +697,6 @@ namespace {
 
 // The party outside a game (007C82B0, the party records as CPlayer::Party has them).
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
-// A CParty through an untyped pointer; Assign / CopyConstruct (00661300 / 006613C0) read the
-// source non-const.
-CParty* AsParty(const void* party) { return static_cast<CParty*>(const_cast<void*>(party)); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
 } // namespace
@@ -787,7 +778,7 @@ void GameFlow::RecreateClientSession() {
     net::ClientSession* old = global;
     global = nullptr;
     ReleaseSession(old);
-    auto* memory = NewRefObjectAs<net::ClientSession>();
+    auto* memory = net::NewRefObjectAs<net::ClientSession>();
     net::ClientSession* session = memory ? memory->Construct() : nullptr;
     net::ClientSession* previous = global;
     global = session;
@@ -855,16 +846,16 @@ void GameFlow::RequestZoneChange(const char* zone, int entrance) {
     requestArg_ = entrance;
 }
 
-void GameFlow::RequestPartyZone5(const char* zone, const void* party) {
+void GameFlow::RequestPartyZone5(const char* zone, CParty* party) {
     state_ = 5;
     requestTarget_ = zone;
-    RequestParty()->Assign(AsParty(party));
+    RequestParty()->Assign(party);
 }
 
-void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
+void GameFlow::RequestPartyZone6(const char* zone, CParty* party) {
     state_ = 6;
     requestTarget_ = zone;
-    RequestParty()->Assign(AsParty(party));
+    RequestParty()->Assign(party);
 }
 
 void GameFlow::DisconnectClient() { TheClientWorld()->DisconnectLocalPlayer(); }
@@ -1084,12 +1075,12 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     FlowBeforeServer(this, nullptr);
     net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
     {
-        auto* memory = NewRefObjectAs<net::ServerSession>();
+        auto* memory = net::NewRefObjectAs<net::ServerSession>();
         net::ServerSession* server = memory ? memory->Construct(gameType) : nullptr;
         RefPtrAssign(&net::GameServer(), nullptr, server);
     }
     {
-        auto* memory = NewRefObjectAs<net::ClientSession>();
+        auto* memory = net::NewRefObjectAs<net::ClientSession>();
         net::ClientSession* client = memory ? memory->Construct() : nullptr;
         RefPtrAssign(&net::GameClient(), nullptr, client);
     }
@@ -1119,7 +1110,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 void GameFlow::StartClient() {
     net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
     RefPtrAssign(&net::GameServer(), nullptr, nullptr);
-    auto* memory = NewRefObjectAs<net::ClientSession>();
+    auto* memory = net::NewRefObjectAs<net::ClientSession>();
     net::ClientSession* client = memory ? memory->Construct() : nullptr;
     RefPtrAssign(&net::GameClient(), nullptr, client);
     FlowAfterServer(this, nullptr);

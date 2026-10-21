@@ -2,6 +2,7 @@
 // library addresses (ticket S6; the plain ones are in lib/mfc_array.cpp).
 #include "game/game_arrays.h"
 #include "game/record_arrays.h"
+#include "game/item.h"
 #include "game/world.h"
 
 #include "ei/hook.h"
@@ -106,8 +107,9 @@ void ScriptGroups::CopyFrom(const ScriptGroups& source) {
 }
 EI_REWRITTEN(0x004C1BE0, ScriptGroups::CopyFrom);
 
-CEngineObject** EngineObjectPtrs::CopyAt(CEngineObject** out, int index) const {
-    CEngineObject* object = data[index];
+template <class T>
+T** CountedPtrs<T>::CopyAt(T** out, int index) const {
+    T* object = this->data[index];
     *out = object;
     if (object) ++object->refCount_;
     return out;
@@ -115,19 +117,22 @@ CEngineObject** EngineObjectPtrs::CopyAt(CEngineObject** out, int index) const {
 EI_REWRITTEN(0x0059E300, EngineObjectPtrs::CopyAt);
 EI_REWRITTEN(0x0059CA40, EngineObjectPtrs::CopyAt);
 
-void EngineObjectPtrs::CopyFrom(const EngineObjectPtrs& source) {
+template <class T>
+void CountedPtrs<T>::CopyFrom(const CountedPtrs& source) {
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(*this).SetSize(source.size, -1);
     for (int i = 0; i < source.size; ++i) {
-        CEngineObject* copy;
+        T* copy;
         source.CopyAt(&copy, i);
-        CEngineObject* old = data[i];
-        data[i] = copy;
+        T* old = this->data[i];
+        this->data[i] = copy;
         if (copy) ++copy->refCount_;
         if (old) old->Release();
         if (copy) copy->Release();
     }
 }
 EI_REWRITTEN(0x0059B8F0, EngineObjectPtrs::CopyFrom);
+template struct CountedPtrs<CEngineObject>;
+template struct CountedPtrs<CItem>;   // SharedObject::objects
 
 // The lib templates over tags the game's headers define (C19): the registrations that need the complete tag.
 namespace mfc::impl {

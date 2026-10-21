@@ -34,6 +34,8 @@ using BOOL = int;
 
 struct ScriptGroup;
 class CItem;       // item.h
+class CParty;      // party.h
+class CParticleSource;   // effects.h
 class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
@@ -378,25 +380,29 @@ using ProjectileList = mfc::CTypedPtrList<Projectile>;
 // mission.sav) is the engine's CStream (core_streams.h); version_ is the save format version.
 using WorldStream = CStream;
 
-// CArray<CEngineObject*> of counted references (game_arrays.cpp).
-struct EngineObjectPtrs : mfc::CArray<CEngineObject*> {
+// CArray<T*> of counted references to engine objects of class T (game_arrays.cpp; instantiated
+// for CEngineObject and CItem, the CEngineObject members registered).
+template <class T>
+struct CountedPtrs : mfc::CArray<T*> {
     // 0059B8F0 (RET 4). SetSize to the source's size, then each pointer replaced by the source's (a
     // counted temporary from CopyAt; the new one referenced before the old one is released).
-    void CopyFrom(const EngineObjectPtrs& source);
+    void CopyFrom(const CountedPtrs& source);
     // 0059E300 / 0059CA40 (RET 8). By-value GetAt: element `index` into `out` with one more
     // reference. Returns out.
-    CEngineObject** CopyAt(CEngineObject** out, int index) const;
+    T** CopyAt(T** out, int index) const;
 };
+using EngineObjectPtrs = CountedPtrs<CEngineObject>;
 
 // An element of the world server's shared-object list (CWorldServer + 0x12E60, 0x20 bytes;
 // world_save.cpp): object id, player, a third dword and an MFC CArray of counted object pointers
 // (vtable 0073FAC8, base gamearrays::ObjectPtrArrayBaseClass; constructor 005985C0, destructor 0059A100 releases the objects
-// through slot 4 and frees the data).
+// through slot 4 and frees the data). The objects are items (the loot a unit left: AddSharedObject,
+// Load through the item manager).
 struct SharedObject {
     int objectId;
     int player;
     std::uint32_t money;                    // +0x08 gold the loot adds to the finder's party
-    EngineObjectPtrs objects;    // +0x0C
+    CountedPtrs<CItem> objects;    // +0x0C
 
     // 0059B510 (RET 4; S13, world_save.cpp; the compiler's copy constructor): the three dwords, then
     // the array by its Copy (0059B8F0, the objects counted). Returns this.
@@ -717,7 +723,7 @@ public:
     // 0058FD90 (RET 0xC). Before a zone change: every record of `records` (CArray of record
     // pointers) notes its unit's leader, gets a placement (if `placements`), is rebuilt from its
     // unit through `partyRecords`, and the unit is removed (a dead one just loses its owner).
-    void StoreParty(void* records, void* partyRecords, void* placements);
+    void StoreParty(void* records, CParty* partyRecords, void* placements);
     // 00590A40 (RET 8). The player's party leaves the zone: gtime, its items, then (single player
     // and kind 3, with +0x15C) its records without a unit are dropped and the rest stored
     // (StoreParty).
@@ -1608,8 +1614,9 @@ public:
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
     std::uint8_t exitArrayTail[0xA0 - 0x98]; // the exit array's capacity and grow-by (read through the CArray)
-    // +0x0A0 counted objects (MFC CArray; its own SetSize 00570000 releases the dropped ones).
-    EngineObjectPtrs countedA0_;
+    // +0x0A0 the exits' particle markers, one per exit or null (MFC CArray of counted pointers; its
+    // own SetSize 00570000 releases the dropped ones; CreateExitMarkers / UpdateExitMarkers).
+    CountedPtrs<CParticleSource> countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
     SectorList objects_;                  // +0x0B8 every filed object (one reference each)
     // +0x0BC the objects answering slot 29 (IsSynchronised), with their nodes by id in +0x0D8 and
@@ -1878,8 +1885,8 @@ struct GameFlow {
     void RequestState3();                                            // 005816C0
     void RequestLoad(const char* name, char flag);                   // 005816D0 (RET 8): 2, +0x78 = flag != 0
     void RequestZoneChange(const char* zone, int entrance);          // 00581700 (RET 8): 4, +0x78 = entrance
-    void RequestPartyZone5(const char* zone, const void* party);     // 00581730 (RET 8)
-    void RequestPartyZone6(const char* zone, const void* party);     // 00581760 (RET 8)
+    void RequestPartyZone5(const char* zone, CParty* party);     // 00581730 (RET 8)
+    void RequestPartyZone6(const char* zone, CParty* party);     // 00581760 (RET 8)
     // 00581620 (world_game.cpp; the console's disconnect, S16c; `this` is not used). The client world's
     // local player disconnects (CWorldClient::DisconnectLocalPlayer).
     void DisconnectClient();

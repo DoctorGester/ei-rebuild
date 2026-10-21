@@ -108,7 +108,7 @@ EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
 // 0046D3F0 / 0046E490 (slot 11): shows or hides the world object (flag 0x40 hides).
 void EffectSpec::EffectSpecSetVisible(std::uint8_t newVisible) {
     visible = newVisible;
-    std::uint32_t& flags = static_cast<CEngineObject*>(base.object)->flags_;
+    std::uint32_t& flags = base.object->flags_;
     if (newVisible != 0) flags &= ~0x40u;
     else flags |= 0x40;
 }

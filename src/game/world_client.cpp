@@ -204,8 +204,9 @@ const char* QuestPrefixText() { return "q."; }
 
 // 0056F1A0 (library: counted pointer assignment, ECX the slot): references `object`, then
 // releases the slot's old one.
-void AssignCounted(CEngineObject** slot, CEngineObject* object) {
-    CEngineObject* old = *slot;
+template <class T>
+void AssignCounted(T** slot, T* object) {
+    T* old = *slot;
     *slot = object;
     if (object) ++object->refCount_;
     if (old) old->Release();
@@ -228,15 +229,14 @@ void CWorldClient::CreateExitMarkers() {
             continue;
         }
         auto* source = ParticleManagerObject()->CreateSource(kExitParticles);
-        CEngineObject* marker = source;
-        AssignCounted(&countedA0_[i], marker);
+        AssignCounted(&countedA0_[i], source);
         const ZoneExit& exit = exits_[i];
         source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
         source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
         source->turnCos = static_cast<float>(x87::fcos(static_cast<double>(exit.angle)));
         source->turnSin = static_cast<float>(x87::fsin(static_cast<double>(exit.angle)));
-        for (int tick = 0; tick < kExitWarmUpTicks; ++tick) marker->RunTick();
+        for (int tick = 0; tick < kExitWarmUpTicks; ++tick) source->RunTick();
     }
     UpdateExitMarkers();
 }

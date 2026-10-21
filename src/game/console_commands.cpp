@@ -326,7 +326,7 @@ EI_REWRITTEN(0x005DF0F0, Give);
 namespace {
 // join / server (S16b): a party with one member ("F", "Human Hero", `extra`) on the stack, handed
 // to the game flow's request 5 / 6 (00581730 / 00581760: a copy of it) with the map name.
-template <void (GameFlow::*Request)(const char*, const void*)>
+template <void (GameFlow::*Request)(const char*, CParty*)>
 void RequestWithParty(CStringArray* args, const char* extra) {
     PartyStorage storage;
     CParty* party = storage.Party();

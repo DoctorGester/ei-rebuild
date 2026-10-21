@@ -91,7 +91,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
             return false;
         }
         for (int i = 0; i < node->data.objects.size; ++i) {
-            auto* item = static_cast<CItem*>(node->data.objects.data[i]);
+            CItem* item = node->data.objects.data[i];
             GivenItems::Node* entry = items.NewNode(items.tail, nullptr);
             entry->data = item;
             if (items.tail) items.tail->next = entry;

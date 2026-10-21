@@ -913,10 +913,10 @@ class CConstructorPage : public CUiItemPanel {
 public:
     // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
     // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
-    void BuildSpellMaker(void* slots);
+    void BuildSpellMaker(CParty* slots);
     // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
     // (constritem1..4) and a highlight frame.
-    void BuildItemMaker(void* slots);
+    void BuildItemMaker(CParty* slots);
     // 006284A0 (slot 20 of the spell maker, RET 4; ui_panel_draws.cpp). The slots' items (a spell
     // container at (250, 300), the spell at (350, 300), the modifiers down the 2 x 4 grid from
     // (450, 150)); the cost lines on the surface: "<text 0> <best skill> (<needed>)" and "<text 1>
@@ -941,7 +941,7 @@ public:
     // region - 3 (0xF).
     CItem* ItemMakerItemAt(int x, int y, int* topic);
 
-    void* slots_;                    // +0x150 (mode_ 6 spell maker, 7 item maker; owner_ the camp) an item list (0x70 bytes, 00661050)
+    CParty* slots_;                  // +0x150 (mode_ 6 spell maker, 7 item maker; owner_ the camp) an item list (0x70 bytes, 00661050)
     float pulse_;                    // +0x154 the highlight's time (0 when built)
 };
 static_assert(offsetof(CConstructorPage, slots_) == 0x150);

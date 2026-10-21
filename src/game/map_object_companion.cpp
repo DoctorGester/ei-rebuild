@@ -43,7 +43,7 @@ CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion)
 // The sound system (global 007AF784); thiscall.
 
 // The light's position (a point light of the light factory, class 0x31).
-float* PositionOf(CEngineObject* light) { return &static_cast<CLight*>(light)->position_.x; }
+float* PositionOf(CLight* light) { return &light->position_.x; }
 
 bool IsScaleEffect(int type) {
     return type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
@@ -137,7 +137,7 @@ int CMapObjectClientSpecific::Update() {
     }
 
     // The light follows the object, kLightHeight above it, aimed down at it.
-    CEngineObject* lamp = light;
+    CLight* lamp = light;
     if (lamp && !(lamp->flags_ & kFlagHidden)) {
         Vector3 lightPosition;
         std::memcpy(&lightPosition, PositionOf(lamp), sizeof(lightPosition));
@@ -153,7 +153,7 @@ int CMapObjectClientSpecific::Update() {
             direction.x = followed->localPosition_.x - lightPosition.x;
             direction.y = followed->localPosition_.y - lightPosition.y;
             direction.z = followed->localPosition_.z - lightZ;
-            LightManager()->MoveLight(static_cast<CLight*>(lamp), &direction);   // 006CA830
+            LightManager()->MoveLight(lamp, &direction);   // 006CA830
             followed = OwnerOf(this);
             float* position = PositionOf(light);
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));

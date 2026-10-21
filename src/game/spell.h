@@ -571,6 +571,8 @@ public:
     CEngineObject* CreateObjectImpl(int type, int id);   // body of the slot above (registered by member pointer)
     // The light registered under `id` (every object the factory makes is a CLight), or null.
     CLight* LightWithId(unsigned id) const { return static_cast<CLight*>(FindObject(id)); }
+    // A new light of `type` (CreateObject, slot 23): every object the factory makes is a CLight.
+    CLight* CreateLight(int type, int id = -1) { return static_cast<CLight*>(CreateObject(type, id)); }
 
     std::uint32_t unused_B0[4];    // +0xB0
     CEngineObject* held_;           // +0xC0 released by the destructor

@@ -45,7 +45,7 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     {
         stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix2Text());
-        auto* memory = static_cast<ZoneMessage*>(NewRefObject(sizeof(ZoneMessage)));
+        auto* memory = NewRefObjectAs<ZoneMessage>();
         ZoneMessage* message = memory ? memory->Construct() : nullptr;
         message->text_.AssignFrom(messageName);
         RefPtr ref;

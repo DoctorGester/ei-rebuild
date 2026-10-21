@@ -22,6 +22,7 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CItem;   // item.h
+class CLight;  // spell.h
 class CParty;   // party.h
 class CPlayer;   // player_messages.h
 struct UnitStats;
@@ -1343,7 +1344,7 @@ public:
     std::uint32_t lightStateB;          // +0x24 the same
     EffectParticleArray particles;  // +0x28 the effect particles (SetSize 005121B0)
     EffectSoundArray sounds;        // +0x3C the looping effect sounds (SetSize 00512330)
-    CEngineObject* light;           // +0x50 counted
+    CLight* light;                  // +0x50 counted
     int endSound;           // +0x54 the end sound's handle (-1 none)
 };
 static_assert(offsetof(CMapObjectClientSpecific, endSound) == 0x54);
