@@ -45,7 +45,7 @@ bool ServerSession::IsHostConnection(void* connection) {
     for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
         auto* binding = static_cast<BindingMessage*>(node->data.ptr);
         if (binding->ConnectionRef().ptr != connection) continue;
-        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+        auto* player = binding->Player();
         if (player && !(player->flags7_ & CRefObject::kDetached) && player->host_) return true;
     }
     return false;

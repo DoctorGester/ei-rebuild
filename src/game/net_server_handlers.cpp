@@ -111,7 +111,7 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
         if (binding->ConnectionRef().ptr != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7_ & CRefCounted::kDetached) return;
-        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+        auto* player = binding->Player();
         mfc::CString line;
         line.Format("^%i%s^7: %s", player->number_, player->name_.data(), message->text_.data());
         server->Announce(line, nullptr);

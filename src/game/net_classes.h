@@ -45,6 +45,8 @@ namespace net {
 
 class Connection;   // net_connection.h
 class Message;
+class LoginMessage;   // net_messages.h
+class PartyMessage;   // net_messages.h
 
 // The memory of a message (or another reference-counted object) as the game's code allocates it
 // inline: operator new, then the reference count dword cleared before the null check.
@@ -766,10 +768,10 @@ public:
     CRefObject* map_;                   // +0x25F4 the map message (0073BD00), counted
     stlp::CountedRefList zones_;        // +0x25F8 map messages the host may pick (0073BCD0)
     stlp::CountedRefList variables_;    // +0x25FC script variables (0073BCE8)
-    RefPtr player_;                     // +0x2600 the local player's record (0073BBF8)
+    RefPtrTo<LoginMessage> player_;     // +0x2600 the local player's login record (0073BBF8)
     SharedTimedList timers_;            // +0x2604 {seconds left, object}: objects kept for a while
     stlp::CountedRefList awards_;       // +0x2608 awards received, applied by ApplyAwards (0073BD48)
-    RefPtr party_;                      // +0x260C our trade offer (party description 0073BD78)
+    RefPtrTo<PartyMessage> party_;      // +0x260C our trade offer (party description 0073BD78)
     stlp::CountedRefList offers_;       // +0x2610 the other players' trade offers (0073BD78)
     stlp::list<TradeRecord> tradeRecords_;   // +0x2614 the trades done
     CRefObject* trade_;                 // +0x2618 the current trade (0073BD60), counted

@@ -162,7 +162,7 @@ void ClientSession::RecordTrade(const void* party) {
     auto* remote = static_cast<PartyMessage*>(ClientFindParty(this));
     if (!remote) return;
     if (!party_.ptr) return;
-    auto* ours = static_cast<PartyMessage*>(party_.ptr);
+    auto* ours = party_.Get();
     ours->accepted_ = 1;
     ours->acceptedRevision_ = remote->revision_;
     ++ours->version_;
@@ -212,8 +212,8 @@ void ClientSession::StartParty(CRefObject* partner) {
         }
         holder->Share(party);
     }
-    AssignRef(&static_cast<PartyMessage*>(party_.ptr)->player_, static_cast<BindingMessage*>(binding_)->PlayerRef().ptr);
-    AssignRef(&static_cast<PartyMessage*>(party_.ptr)->partner_, partner);
+    AssignRef(&party_.Get()->player_, static_cast<BindingMessage*>(binding_)->PlayerRef().ptr);
+    AssignRef(&party_.Get()->partner_, partner);
 }
 EI_REWRITTEN(0x0041E270, ClientSession::StartParty);
 
@@ -310,7 +310,7 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0
 // server is written. The constructor registers the handler by its address.
 void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     AppendRaw(self->chunks_, message);
-    auto* file = static_cast<FileMessage*>(message->file_.ptr);
+    auto* file = message->file_.Get();
     const char* none = game::EmptyText();
     const std::size_t noneLength = std::strlen(none);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::MQClient)) return;

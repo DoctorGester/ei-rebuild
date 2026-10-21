@@ -518,7 +518,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
         if (ServerActive(server)) {
             // Our binding's player record: only the host gets the window.
             auto* binding = static_cast<net::BindingMessage*>(server->binding_);
-            if (static_cast<net::PlayerMessage*>(binding->PlayerRef().ptr)->host_)
+            if (binding->Player()->host_)
                 InterfaceActiveWindowOriginal(TheInterface())->VirtualPlayerList(windowMode);
             return;
         }

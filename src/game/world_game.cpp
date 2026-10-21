@@ -660,7 +660,7 @@ namespace {
 
 // The local client's player record (ClientSession::player_, a LoginMessage): its state_ is the
 // game state request to the server (a change goes out with a new version_).
-net::LoginMessage* LocalLogin() { return static_cast<net::LoginMessage*>(net::GameClient()->player_.ptr); }
+net::LoginMessage* LocalLogin() { return net::GameClient()->player_.Get(); }
 // The server world's player list (a CPlayerManager): the number of players registered.
 int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.Size()); }
 
