@@ -154,6 +154,10 @@ public:
     // Body of the slot at 0042D700 (registered by member pointer).
     CEngineObject* NewObjectImpl(int type);
 };
+namespace misc400 {
+// 0042D6F0 (misc_400.cpp): the destructor body (this class's vtable, then the base manager's body).
+void __fastcall ManagerDestruct(CBaseManager* self);
+} // namespace misc400
 
 // A constructor member of T (thiscall, no arguments, returns this) as the plain `void* (__fastcall*)(void*)`
 // the object factories take (misc_400.cpp, world_create.cpp, world_client_maps.cpp).

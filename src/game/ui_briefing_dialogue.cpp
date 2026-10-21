@@ -1,6 +1,7 @@
 // The briefing / base screen's dialogue (CBriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
+#include "game_strings.h"
 #include "world_glue.h"
 #include "combat.h"
 #include "ui.h"
@@ -36,7 +37,6 @@ namespace {
 
 const char* BriefingSection() { return "briefing "; }
 const char* HumanPrototype() { return "unhuma"; }
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }          // ""
 void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
@@ -92,7 +92,7 @@ void CBriefingScreen::StartPhrases() {
     lookAt_.z = static_cast<float>(axisZ + savedCamera_.z);
 
     dialogueText_.Empty();
-    static_cast<CUiScrollText*>(text_)->SetText(EmptyText());
+    static_cast<CUiScrollText*>(text_)->SetText(game::EmptyText());
     state_ = kStatePhrases;
     firstPhrase_ = true;
     NextPhrase(0);

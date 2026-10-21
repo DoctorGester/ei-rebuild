@@ -2,6 +2,7 @@
 // (00615850), and the trade panel's experience figures it shows (00625530 / 00625560).
 // See docs/notes/ui.md, section 5.
 #include "ui.h"
+#include "game_strings.h"
 #include "world_glue.h"
 #include "ui_screens.h"
 #include "ui_camp.h"
@@ -326,7 +327,6 @@ EI_REPLACE(0x00616560, HeroScreenDrawVoices);
 namespace {
 const char* const kHeroName = "Hero";
 const char* const kHumanHero = "Human Hero";
-const char* const kEmptyText = reinterpret_cast<const char*>(0x0079B298);        // ""
 constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview plays
 } // namespace
 
@@ -336,7 +336,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     if (player->members_.size == 0) {
         player->Clear(1, 0);
-        player->AddMember(kHeroName, kHumanHero, kEmptyText);
+        player->AddMember(kHeroName, kHumanHero, game::EmptyText());
     }
     PartyUnitRecord* first = player->members_.data;
     int size = records.size;

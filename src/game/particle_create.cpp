@@ -7,7 +7,8 @@
 // the texture. Last it loads the texture (kind 6, by name) and builds one UV rectangle per texture
 // frame (the frames are a grid of `frameColumns` columns).
 //
-// The callbacks are stored as the original's addresses (several are rewritten and hooked there).
+// The callbacks are member pointers to our rewrites (CParticleSource's EmitCallback, UpdateCallback,
+// ElementCallback: plain code addresses, as in the original).
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
@@ -15,6 +16,8 @@
 #include "texture.h"
 
 #include "random.h"
+#include "spell.h"
+#include "world_data.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -55,7 +58,7 @@ double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volat
 #define EI_SCALE_0_4 GameDouble(0x0073CCB0)     // ~0.4 * 2^-32
 #define EI_RING_STEP GameDouble(0x0073CC98)     // 0.62832 (2 pi / 10)
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
 
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
@@ -64,10 +67,8 @@ double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr
 // of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.
 
 
-// The scene light colour the Tornado takes its particle colour from (007AF07C, +0x98 r, g, b).
-const float* SceneLightColor() {
-    return reinterpret_cast<const float*>(*reinterpret_cast<char* const*>(0x007AF07C) + 0x98);
-}
+// The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
+const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
 
 // The original's 16-byte constant at 007A9C30 (an identity rotation), copied to +0x34 by Reset.
 const void* IdentityRotation() { return reinterpret_cast<const void*>(0x007A9C30); }
@@ -123,15 +124,15 @@ void SetSpread(CParticleSource* s, float x0, float y0, float z0, float x1, float
     s->spreadMax = {x1, y1, z1};
 }
 
-void SetCallbacks(CParticleSource* s, std::uintptr_t emit, std::uintptr_t update, std::uintptr_t element) {
-    s->emitFn = reinterpret_cast<void*>(emit);
-    s->updateFn = reinterpret_cast<void*>(update);
-    if (element) s->elementFn = reinterpret_cast<void*>(element);
-}
+using Source = CParticleSource;
 
-// 00485530: an element callback that does nothing (RET 4; no Ghidra function, so not in
-// short_functions.cpp: registered below, S16a).
-constexpr std::uintptr_t kNoElementTick = 0x00485530;
+// A null element callback keeps the one Reset left (null).
+void SetCallbacks(CParticleSource* s, Source::EmitCallback emit, Source::UpdateCallback update,
+                  Source::ElementCallback element) {
+    s->emitFn = emit;
+    s->updateFn = update;
+    if (element) s->elementFn = element;
+}
 
 // --- Types with their own set-up code ------------------------------------------------------------
 
@@ -146,13 +147,13 @@ void SetupSmoke(CParticleSource* s) {
     s->size = 0.8f;
     s->height = 0.3f;
     s->growth = 0.85f;
-    SetCallbacks(s, 0x0048E9E0, 0x0048EC20, 0);
+    SetCallbacks(s, &Source::EmitSmoke, &Source::UpdateSmoke, nullptr);
     if (s->type_ == 0x2010) {
         s->emitCount = 20;
         s->maxParticles = 1500;
         SetElementCount(s, 1);
-        s->emitFn = reinterpret_cast<void*>(0x0048ED60);
-        s->elementFn = reinterpret_cast<void*>(0x0048EE20);
+        s->emitFn = &Source::EmitTendril;
+        s->elementFn = &Source::TickTendril;
     }
 }
 
@@ -168,7 +169,7 @@ void SetupExplosion(CParticleSource* s) {
     s->size = 0.6f;
     s->height = 1.0f;
     s->growth = 0.8f;
-    SetCallbacks(s, 0x0048C090, 0x0048C590, 0x0048C760);
+    SetCallbacks(s, &Source::EmitBlast, &Source::UpdateBlast, &Source::TickBlast);
     SetElementCount(s, 15);
     for (int i = 0; i < s->elementCount; ++i) {
         std::memset(&s->elements[i].pos, 0, sizeof(Vector3));
@@ -217,7 +218,7 @@ void SetupFireworks(CParticleSource* s) {
         SetElementDword(s, i, 0x34, 0);
         SetElementDword(s, i, 0x30, 0);
     }
-    SetCallbacks(s, 0x0048A8F0, 0x0048ADA0, 0x0048AEC0);
+    SetCallbacks(s, &Source::EmitGeyser, &Source::UpdateGeyser, &Source::TickGeyser);
     SetBits(&s->additiveBlend, 1);
 }
 
@@ -251,7 +252,7 @@ void SetupTornado(CParticleSource* s) {
     std::memcpy(&s->elements[0].value[6], reinterpret_cast<const void*>(0x0073CB18), sizeof(float));  // 12.0
     SetElementFloat(s, 0, 0x28, 0.5f);
     SetBits(&s->elements[0].value[8], 0x3F7D70A4);     // 0.99
-    SetCallbacks(s, 0x00489F70, 0x0048A310, 0x0048A560);
+    SetCallbacks(s, &Source::EmitTornado, &Source::UpdateTornado, &Source::TickTornado);
 }
 
 void SetupCurseHolder(CParticleSource* s) {
@@ -266,7 +267,7 @@ void SetupCurseHolder(CParticleSource* s) {
     s->elements[0].value[6] = static_cast<float>(D(EI_TWELVE) * D(EI_POINT_FOUR));
     SetElementDword(s, 0, 0x28, 0);
     SetBits(&s->elements[0].value[8], 0x3F7F3B64);     // 0.997
-    SetCallbacks(s, 0x00489F70, 0x0048A310, 0x0048A560);
+    SetCallbacks(s, &Source::EmitTornado, &Source::UpdateTornado, &Source::TickTornado);
 }
 
 // Nuke (0x200C): one element (the mushroom's state).
@@ -276,7 +277,7 @@ void SetupNuke(CParticleSource* s) {
     s->lifetime = -1;
     s->frameDelay = 1;
     s->height = 1.0f;
-    SetCallbacks(s, 0x00488F90, 0x00489190, 0x004892E0);
+    SetCallbacks(s, &Source::EmitNuke, &Source::UpdateDebris, &Source::TickNuke);
     SetElementCount(s, 1);
     SetElementDword(s, 0, 0x34, 0);
 }
@@ -290,7 +291,7 @@ void SetupWeather(CParticleSource* s) {
     s->maxParticles = 300;
     s->lifetime = 6;
     s->frameDelay = 15;
-    SetCallbacks(s, 0x0048EEA0, 0x0048F300, 0x0048F380);
+    SetCallbacks(s, &Source::EmitShower, &Source::UpdateShower, &Source::TickShower);
     SetElementCount(s, 1);
     SetElementDword(s, 0, 0x30, static_cast<std::uint32_t>(-100));
     switch (s->type_) {
@@ -310,7 +311,7 @@ void SetupFalling(CParticleSource* s) {
     s->maxParticles = 300;
     s->lifetime = 6;
     s->frameDelay = 15;
-    SetCallbacks(s, 0x0048F3B0, 0x0048F670, 0x0048F6F0);
+    SetCallbacks(s, &Source::EmitFalling, &Source::UpdateFalling, &Source::TickFalling);
     SetElementCount(s, static_cast<int>(GlobalRandom().Next() % 5 + 4));
     for (int i = 0; i < s->elementCount; ++i) SetElementDword(s, i, 0x30, 0);
 }
@@ -321,7 +322,7 @@ void SetupClayRing(CParticleSource* s) {
     s->emitCount = 80;
     s->lifetime = 15;
     s->frameDelay = 2;
-    SetCallbacks(s, 0x0048F7F0, 0x0048FAB0, 0x0048FBE0);
+    SetCallbacks(s, &Source::EmitClayRing, &Source::UpdateClayRing, &Source::TickClayRing);
     SetElementCount(s, 10);
     for (int i = 0; i < s->elementCount; ++i) {
         double angle = static_cast<double>(i) * EI_RING_STEP;
@@ -341,7 +342,7 @@ void SetupTeleport(CParticleSource* s) {
     s->maxParticles = 320;
     s->lifetime = 14;
     s->frameDelay = 1;
-    SetCallbacks(s, 0x0048FDB0, 0x00490060, 0x00490110);
+    SetCallbacks(s, &Source::EmitTeleport, &Source::UpdateTeleport, &Source::TickTeleport);
     SetElementCount(s, 1);
     SetElementDword(s, 0, 0x34, 0);
 }
@@ -358,10 +359,10 @@ void SetupGroundPlane(CParticleSource* s) {
         s->emitCount = 256;
         SetElementDword(s, 0, 0x30, 0xFF4040);
     }
-    s->emitFn = reinterpret_cast<void*>(0x00493300);
+    s->emitFn = &Source::EmitGroundDust;
     s->maxParticles = s->emitCount;
-    s->updateFn = reinterpret_cast<void*>(0x004933F0);
-    s->elementFn = reinterpret_cast<void*>(0x004934F0);
+    s->updateFn = &Source::UpdateGroundDust;
+    s->elementFn = &Source::TickGroundPlane;
 }
 
 // Bag (0x203C): eighty elements.
@@ -369,7 +370,7 @@ void SetupBag(CParticleSource* s) {
     s->emitCount = 100;
     s->flags_ |= 3;
     s->maxParticles = 800;
-    SetCallbacks(s, 0x00493560, 0x00493770, 0x004938C0);
+    SetCallbacks(s, &Source::EmitBag, &Source::UpdateBag, &Source::TickBag);
     SetElementCount(s, 80);
     for (int i = 0; i < 80; ++i) SetElementDword(s, i, 0x34, 0);
 }
@@ -380,7 +381,7 @@ void SetupPortal(CParticleSource* s) {
     s->maxParticles = 800;
     s->lifetime = 10;
     s->frameDelay = 3;
-    SetCallbacks(s, 0x00494470, 0x00494770, 0x00494930);
+    SetCallbacks(s, &Source::EmitPortal, &Source::UpdatePortal, &Source::TickPortal);
     SetElementCount(s, 1);
     SetBits(&s->additiveBlend, 1);
 }
@@ -391,7 +392,7 @@ void SetupCastingCircle(CParticleSource* s) {
     s->emitCount = 30;
     s->frameDelay = 1;
     s->maxParticles = 600;
-    SetCallbacks(s, 0x00493DE0, 0x00494170, 0x00494340);
+    SetCallbacks(s, &Source::EmitCylinder, &Source::UpdateCylinder, &Source::TickCylinder);
     SetElementCount(s, 2);
     for (int i = 0; i < s->elementCount; ++i) SetElementDword(s, i, 0x34, 100);
 }
@@ -409,7 +410,7 @@ void SetupFeetCloud(CParticleSource* s) {
         std::memset(&s->elements[i].pos, 0, sizeof(Vector3));
         SetElementDword(s, i, 0x18, 0);
     }
-    SetCallbacks(s, 0x00495A30, 0x00495C80, 0x00495E00);
+    SetCallbacks(s, &Source::EmitFeetCloud, &Source::UpdateFeetCloud, &Source::TickFeetCloud);
     if (s->type_ == 0x204A) s->lifetime = 0xFF;
     else if (s->type_ == 0x204B) s->lifetime = 0xFF0000;
 }
@@ -420,7 +421,7 @@ void SetupStartTrans(CParticleSource* s) {
     s->flags_ |= 0x12;
     s->emitCount = 1;
     s->maxParticles = 300;
-    SetCallbacks(s, 0x004965E0, 0x00496840, 0x00496990);
+    SetCallbacks(s, &Source::EmitStartTrans, &Source::UpdateStartTrans, &Source::TickStartTrans);
     SetElementCount(s, 1);
     SetElementDword(s, 0, 0x34, 30);
     SetElementDword(s, 0, 0x18, 0);
@@ -441,7 +442,7 @@ const char* SetupType(CParticleSource* s) {
         s->frameDelay = 1;
         s->size = 0.8f;
         s->growth = 0.94f;
-        SetCallbacks(s, 0x0048C800, 0x0048CAD0, 0);
+        SetCallbacks(s, &Source::EmitFireBall, &Source::UpdateFireBall, nullptr);
         return "FireSmoke";
     case 0x2001: case 0x2003: case 0x2004: case 0x2010:
         SetupSmoke(s);
@@ -459,7 +460,7 @@ const char* SetupType(CParticleSource* s) {
         s->size = 2.5f;
         s->height = static_cast<float>(D(s->spreadMax.y) * D(EI_SIXTY_FOURTH));
         s->growth = 0.99f;
-        SetCallbacks(s, 0x0048BD50, 0x0048C010, 0);
+        SetCallbacks(s, &Source::EmitVulkan, &Source::UpdateVulkan, nullptr);
         return "Vulkan";
     case 0x2006:        // Healing
         s->flags_ |= 2;
@@ -468,7 +469,7 @@ const char* SetupType(CParticleSource* s) {
         s->lifetime = 8;
         s->frameDelay = 1;
         s->size = 0.5f;
-        SetCallbacks(s, 0x0048B630, 0x0048BBE0, 0x0048BCE0);
+        SetCallbacks(s, &Source::EmitHealing, &Source::UpdateHealing, &Source::TickHealing);
         return "Healing";
     case 0x2007: case 0x2008:   // PoisonFog
         s->emitChance = 50;
@@ -477,7 +478,7 @@ const char* SetupType(CParticleSource* s) {
         s->lifetime = 0xCA4;
         s->frameCount = 15;
         s->frameDelay = 1;
-        SetCallbacks(s, 0x0048B080, 0x0048B570, 0);
+        SetCallbacks(s, &Source::EmitPoisonFog, &Source::UpdateCloud, nullptr);
         return "PoisonCloud";
     case 0x2009:
         SetupFireworks(s);
@@ -490,7 +491,7 @@ const char* SetupType(CParticleSource* s) {
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = -1;
         s->frameDelay = 1;
-        SetCallbacks(s, 0x00489320, 0x00489A50, 0x00489B40);
+        SetCallbacks(s, &Source::EmitCastRing, &Source::UpdateCastRing, &Source::TickCastRing);
         return "FireSmoke";
     case 0x200C:
         SetupNuke(s);
@@ -500,7 +501,7 @@ const char* SetupType(CParticleSource* s) {
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = -1;
         s->frameDelay = 1;
-        SetCallbacks(s, 0x00489BE0, 0x00489EF0, 0x00489F30);
+        SetCallbacks(s, &Source::EmitBanshee, &Source::UpdateBanshee, &Source::TickBanshee);
         SetElementCount(s, 0);
         return "Banshee";
     case 0x200E: case 0x2052:   // Mushroom, Transform
@@ -509,7 +510,7 @@ const char* SetupType(CParticleSource* s) {
         s->lifetime = -1;
         s->frameDelay = 1;
         s->height = 1.0f;
-        SetCallbacks(s, 0x004889D0, 0x00488DB0, 0x00488F00);
+        SetCallbacks(s, &Source::EmitMushroom, &Source::UpdateMushroom, &Source::TickMushroom);
         return type == 0x2002 ? "Explosion" : "ChangeHero";   // the test never holds here
     case 0x200F: case 0x2031: case 0x2032: case 0x2033:
         SetupWeather(s);
@@ -524,7 +525,7 @@ const char* SetupType(CParticleSource* s) {
         s->size = 0.3f;
         s->growth = 1.03f;
         SetBits(&s->emitState, 0);
-        SetCallbacks(s, 0x0048CBA0, 0x0048CED0, 0);
+        SetCallbacks(s, &Source::EmitArrowSmoke, &Source::UpdateArrowSmoke, nullptr);
         return type == 0x204E ? "RikArrowSmoke" : "FireArrowSmoke";
     case 0x2012:
         s->lifetime = 15;
@@ -534,7 +535,7 @@ const char* SetupType(CParticleSource* s) {
         s->emitSpacing = 0.06f;
         s->frameDelay = 1;
         s->size = 0.3f;
-        SetCallbacks(s, 0x0048D050, 0x0048D330, 0);
+        SetCallbacks(s, &Source::EmitAcidRay, &Source::UpdateAcidRay, nullptr);
         return "AcidRay";
     case 0x2013:        // Stench
         s->flags_ |= 2;
@@ -545,7 +546,7 @@ const char* SetupType(CParticleSource* s) {
         s->frameCount = 15;
         s->frameDelay = 3;
         s->size = 1.0f;
-        SetCallbacks(s, 0x0048D420, 0x0048D7F0, kNoElementTick);
+        SetCallbacks(s, &Source::EmitStench, &Source::UpdateStench, &Source::TickNone);
         return "Stench";
     case 0x2014:        // Link
         SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
@@ -556,7 +557,7 @@ const char* SetupType(CParticleSource* s) {
         s->frameCount = 15;
         s->frameDelay = 3;
         s->size = 1.0f;
-        SetCallbacks(s, 0x0048D8D0, 0x0048DE30, 0x0048E040);
+        SetCallbacks(s, &Source::EmitLink, &Source::UpdateLink, &Source::TickLink);
         return "Link";
     case 0x2015: case 0x2016: case 0x2017: case 0x201A:   // protection spheres, AntiMagic
         s->flags_ |= 2;
@@ -568,7 +569,7 @@ const char* SetupType(CParticleSource* s) {
         SetSpread(s, -0.2f, -0.2f, -1.0f, 0.2f, 0.2f, 0.0f);
         s->frameDelay = 1;
         s->size = 1.0f;
-        SetCallbacks(s, 0x0048E070, 0x0048E7C0, kNoElementTick);
+        SetCallbacks(s, &Source::EmitOrbit, &Source::UpdateOrbit, &Source::TickNone);
         if (type == 0x2017) return "ProtectionF";
         if (type == 0x2016) return "ProtectionE";
         if (type == 0x201A) return "AntiMagic";
@@ -585,12 +586,12 @@ const char* SetupType(CParticleSource* s) {
         s->flags_ |= 3;
         s->lifetime = 14;
         s->frameDelay = 2;
-        SetCallbacks(s, 0x00490130, 0x00490990, 0x00490B00);
+        SetCallbacks(s, &Source::EmitModifier, &Source::UpdateModifier, &Source::TickModifier);
         return "Stun";
     case 0x2027: case 0x2028: case 0x2029: case 0x202A:
         s->flags_ |= 0x13;
         s->attachPoint = 0;
-        SetCallbacks(s, 0x004918E0, 0x00492030, 0x004921D0);
+        SetCallbacks(s, &Source::EmitCasting, &Source::UpdateCasting, &Source::TickCasting);
         s->lifetime = 5;
         s->emitCount = 20;
         if (type == 0x2027) {
@@ -616,7 +617,7 @@ const char* SetupType(CParticleSource* s) {
         s->emitCount = 10;
         s->frameDelay = 1;
         s->maxParticles = 600;
-        SetCallbacks(s, 0x00490C10, 0x00491230, 0x00491390);
+        SetCallbacks(s, &Source::EmitCastSwirl, &Source::UpdateCastSwirl, &Source::TickCastSwirl);
         if (type == 0x202B) {
             s->lifetime = 2;
             return "Casting2";
@@ -636,7 +637,7 @@ const char* SetupType(CParticleSource* s) {
         s->flags_ |= 3;
         s->lifetime = 14;
         s->frameDelay = 1;
-        SetCallbacks(s, 0x00491420, 0x00491830, 0x004918D0);
+        SetCallbacks(s, &Source::EmitColumn, &Source::UpdateColumn, &Source::TickColumn);
         return "Teleport";
     case 0x2030:        // LightningBlast
         s->lifetime = 15;
@@ -647,7 +648,7 @@ const char* SetupType(CParticleSource* s) {
         s->maxParticles = 600;
         s->frameDelay = 1;
         s->size = 1.0f;
-        SetCallbacks(s, 0x004923B0, 0x00492B80, 0x00492CC0);
+        SetCallbacks(s, &Source::EmitLightning, &Source::UpdateLightning, &Source::TickLightning);
         SetBits(&s->additiveBlend, 1);
         return "TendriLight";
     case 0x2034: case 0x2035: case 0x2036: case 0x2037:
@@ -659,15 +660,15 @@ const char* SetupType(CParticleSource* s) {
         s->alpha = 5.0f;
         s->typeParam = 5.0f;
         s->flags_ |= 0x21;
-        SetCallbacks(s, 0x00492D30, 0x00492F40, 0x00492FB0);
+        SetCallbacks(s, &Source::EmitZoneExit, &Source::UpdateZoneExit, &Source::TickNone);
         return "ZoneExit";
     case 0x2039:
-        s->emitFn = reinterpret_cast<void*>(0x00492FC0);
+        s->emitFn = &Source::EmitGlow;
         s->flags_ |= 9;
         s->emitCount = 2500;
         s->maxParticles = 2500;
-        s->updateFn = reinterpret_cast<void*>(0x00493280);
-        s->elementFn = reinterpret_cast<void*>(0x004932F0);
+        s->updateFn = &Source::UpdateGlow;
+        s->elementFn = &Source::TickGlow;
         return "ShapeChange";
     case 0x203A: case 0x203B:
         SetupGroundPlane(s);
@@ -678,7 +679,7 @@ const char* SetupType(CParticleSource* s) {
     case 0x203D:
         s->emitCount = 1;
         s->maxParticles = 1;
-        SetCallbacks(s, 0x00493D10, 0x00493D50, 0x00493DD0);
+        SetCallbacks(s, &Source::EmitPortalStar, &Source::UpdatePortalStar, &Source::TickNone);
         return "Casting6";
     case 0x203E:
         SetupPortal(s);
@@ -690,7 +691,7 @@ const char* SetupType(CParticleSource* s) {
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 1;
-        SetCallbacks(s, 0x00494950, 0x004949B0, 0x00494A00);
+        SetCallbacks(s, &Source::EmitFireStar, &Source::UpdateFireStar, &Source::TickNone);
         s->lifetime = 15;
         return type == 0x2041 ? "FireArrowSmoke" : "AcidRay";
     case 0x2043:        // Sparks
@@ -699,14 +700,14 @@ const char* SetupType(CParticleSource* s) {
         s->attachPoint = 7;
         s->emitCount = 10;
         s->maxParticles = 300;
-        SetCallbacks(s, 0x00494A10, 0x00494CD0, 0x00494DF0);
+        SetCallbacks(s, &Source::EmitSparks, &Source::UpdateSparks, &Source::TickNone);
         return "Casting6";
     case 0x2044: case 0x2045: case 0x2046: case 0x204C:
         s->flags_ |= 0x13;
         SetBits(&s->additiveBlend, 1);
         s->attachPoint = 2;
         s->emitCount = 3;
-        SetCallbacks(s, 0x00494E00, 0x00494F30, 0x004950A0);
+        SetCallbacks(s, &Source::EmitVisionStar, &Source::UpdateVisionStar, &Source::TickNone);
         if (type == 0x2044) s->lifetime = 0;
         else if (type == 0x2045) s->lifetime = 1;
         else if (type == 0x2046) s->lifetime = 2;
@@ -717,7 +718,7 @@ const char* SetupType(CParticleSource* s) {
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 2;
-        SetCallbacks(s, 0x004950B0, 0x00495120, 0x00495310);
+        SetCallbacks(s, &Source::EmitRegeneration, &Source::UpdateRegeneration, &Source::TickNone);
         return "Stun";
     case 0x2048:
         SetBits(&s->additiveBlend, 1);
@@ -725,7 +726,7 @@ const char* SetupType(CParticleSource* s) {
         s->attachPoint = 7;
         s->emitCount = 4;
         s->maxParticles = 300;
-        SetCallbacks(s, 0x00495320, 0x004955D0, 0x004957D0);
+        SetCallbacks(s, &Source::EmitSilence, &Source::UpdateSilence, &Source::TickNone);
         return "Stun";
     case 0x2049:        // FeebleMind
         SetBits(&s->additiveBlend, 1);
@@ -733,7 +734,7 @@ const char* SetupType(CParticleSource* s) {
         s->attachPoint = 1;
         s->emitCount = 5;
         s->maxParticles = 300;
-        SetCallbacks(s, 0x004957E0, 0x00495950, 0x00495A20);
+        SetCallbacks(s, &Source::EmitFeebleMind, &Source::UpdateFeebleMind, &Source::TickNone);
         return "Link";
     case 0x204A: case 0x204B:
         SetupFeetCloud(s);
@@ -744,7 +745,7 @@ const char* SetupType(CParticleSource* s) {
         s->attachPoint = 0;
         s->emitCount = 1;
         s->maxParticles = 300;
-        SetCallbacks(s, 0x00495FB0, 0x004961B0, 0x00496260);
+        SetCallbacks(s, &Source::EmitStun, &Source::UpdateStun, &Source::TickNone);
         return "Stun";
     case 0x204F:
         SetBits(&s->additiveBlend, 1);
@@ -752,7 +753,7 @@ const char* SetupType(CParticleSource* s) {
         s->attachPoint = 7;
         s->emitCount = 8;
         s->maxParticles = 300;
-        SetCallbacks(s, 0x00496270, 0x004964B0, 0x004965D0);
+        SetCallbacks(s, &Source::EmitCurseStars, &Source::UpdateCurseStars, &Source::TickNone);
         return "Healing";
     case 0x2050:
         SetupCurseHolder(s);
@@ -968,14 +969,19 @@ int __fastcall ParticleSourceClassId(CParticleSource*) { return 12; }
 EI_REPLACE(0x004982D0, ParticleSourceClassName);
 EI_REPLACE(0x004982E0, ParticleSourceClassId);
 
+// 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
+// 004965D0: the element callbacks that do nothing (RET 4 each, no Ghidra functions), one per type that
+// stores one (Stench and the spheres, ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration,
+// Silence, FeebleMind, Stun, CurseStars).
+void CParticleSource::TickNone(ParticleElement*) {}
+
 namespace ei::short_functions {
 void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
 } // namespace ei::short_functions
 using ei::short_functions::Ret4;
-// The element callback that does nothing (kNoElementTick; S16a: the standalone image has no code there).
+// The original's no-op element callbacks: Create stores TickNone instead, so nothing in the image calls
+// these any more; registered as before (S16a, S16c) so the image keeps code at the addresses.
 EI_REPLACE_SHORT(0x00485530, Ret4);
-// The same no-op element callbacks of the types set up from 00492D30 to 00496270 (RET 4 each, no Ghidra
-// functions; S16c: reached by none of the suite's standalone runs, found by the address scan).
 EI_REPLACE_SHORT(0x00492FB0, Ret4);
 EI_REPLACE_SHORT(0x00493DD0, Ret4);
 EI_REPLACE_SHORT(0x00494A00, Ret4);

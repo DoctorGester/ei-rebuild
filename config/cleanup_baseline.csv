@@ -12,7 +12,6 @@ src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/console.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0,0
 src/game/fake_unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/figure_mesh_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
@@ -21,7 +20,6 @@ src/game/map_object_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/net_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,1
-src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0,0
 src/game/net_session_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,8
@@ -36,7 +34,6 @@ src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
 src/game/particle_callbacks.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
-src/game/particle_create.cpp,0,0,0,0,85,0,0,0,0,0,0,0,0,0
 src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/random.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/renderer_init.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,1
@@ -82,7 +79,7 @@ src/game/unit_ai.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/unit_ai_modes.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/unit_ai_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_attack.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/unit_create_stats.cpp,0,0,0,0,13,0,0,0,0,0,0,0,0,2
+src/game/unit_create_stats.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_hits.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,0
 src/game/unit_motion_tick.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,0
 src/game/world_client_draw.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2

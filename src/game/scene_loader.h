@@ -457,3 +457,9 @@ inline const char* BmpExtText() { return ".bmp"; }
 } // namespace scenedata
 
 } // namespace scene
+
+// 004466D0 (fake_unit.cpp): the fake unit's constructor (the unit, the skin, four empty arrays).
+// Returns `self`.
+namespace fakeunit {
+void* __fastcall FakeUnitConstruct(scene::FakeUnitScene* self);
+} // namespace fakeunit

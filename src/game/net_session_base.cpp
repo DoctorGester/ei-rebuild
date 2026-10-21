@@ -1,6 +1,7 @@
 // The network session base class (vtable 0073BF5C): construction, the message type registry and
 // the handler tables. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "net_messages.h"
 
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -120,13 +121,15 @@ void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, void* 
 
 void SessionBase::RegisterMessageTypes() {
     // The factories of message types 1..17 (each returns a new message with no references).
-    static constexpr std::uintptr_t kFactories[17] = {
-        0x00414420, 0x00414960, 0x00414DB0, 0x00415320, 0x004170A0, 0x004171A0, 0x00417250, 0x00415570,
-        0x00415D50, 0x00415980, 0x00416160, 0x004166F0, 0x004179E0, 0x00416940, 0x00417650, 0x00417300,
-        0x00416DF0};
+    static constexpr MessageFactory kFactories[17] = {
+        PlayerMessage::Create, LineMessage::Create, HostMessage::Create, BindingMessage::Create,
+        LoginMessage::Create, SayMessage::Create, CommandMessage::Create, ZoneMessage::Create,
+        MapMessage::Create, VariableMessage::Create, FileMessage::Create, FileChunkMessage::Create,
+        FileRequestMessage::Create, AwardMessage::Create, PartyMessage::Create, PartyMemberMessage::Create,
+        TradeMessage::Create};
     for (std::uint32_t type = 1; type <= 17; ++type) {
         reliable_[type] = 0;
-        types_.Register(type, reinterpret_cast<MessageFactory>(kFactories[type - 1]));
+        types_.Register(type, kFactories[type - 1]);
     }
 }
 EI_REPLACE_METHOD(0x004142F0, SessionBase::RegisterMessageTypes);

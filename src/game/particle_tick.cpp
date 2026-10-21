@@ -45,11 +45,6 @@ bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, sizeof(f)); }
 
-// Callbacks stored by the source's Create (__thiscall; fastcall with an unused EDX is the same).
-using EmitFn = int(__fastcall*)(CParticleSource*, void*, Particle*, int);
-using UpdateFn = int(__fastcall*)(CParticleSource*, void*, Particle*);
-using ElementFn = void(__fastcall*)(CParticleSource*, void*, ParticleElement*);
-
 // sqrt((x*x + y*y) + z*z), all on the FPU.
 double LengthDouble(const Vector3& v) { return x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(v)); }
 
@@ -189,7 +184,7 @@ struct TickSteps {
 
     void RunElements() {
         for (int i = 0; i < s->elementCount; ++i)
-            reinterpret_cast<ElementFn>(s->elementFn)(s, nullptr, s->elements + i);
+            (s->*s->elementFn)(s->elements + i);
     }
 
     // Updates every particle. A particle the previous tick rejected is unlinked and returned to
@@ -205,7 +200,7 @@ struct TickSteps {
                 pool->ReleaseParticle(p);
             }
             SavePrevious(p);
-            if (!reinterpret_cast<UpdateFn>(s->updateFn)(s, nullptr, p)) {
+            if (!(s->*s->updateFn)(p)) {
                 p->dead = 1;
                 RestorePrevious(p);
             }
@@ -219,7 +214,7 @@ struct TickSteps {
         CParticleManager* pool = static_cast<CParticleManager*>(s->owner_);
         Particle* p = pool->AcquireParticle();
         if (!p) return;
-        if (reinterpret_cast<EmitFn>(s->emitFn)(s, nullptr, p, index)) s->AddParticle(p);
+        if ((s->*s->emitFn)(p, index)) s->AddParticle(p);
         else pool->ReleaseParticle(p);
     }
 

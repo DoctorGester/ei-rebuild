@@ -3,9 +3,17 @@
 // databases, save").
 #include "unit_create.h"
 
+#include "base_manager.h"
 #include "item.h"
+#include "lever.h"
+#include "magic_trap.h"
 #include "map_object.h"
+#include "map_object_figures.h"
+#include "map_object_kinds.h"
 #include "object_tables.h"
+#include "scene_loader.h"
+#include "torch.h"
+#include "trap_object.h"
 #include "unit.h"
 #include "unit_db.h"
 
@@ -635,27 +643,33 @@ EI_REPLACE_METHOD(0x00513B60, UnitStatsBuilder::ApplyPrototype);
 // --- The factory ------------------------------------------------------------------------------
 
 namespace {
-// The constructors (thiscall on the new block; each returns it).
-using Constructor = CEngineObject*(__fastcall*)(void*);
+// The constructors on the new block (each returns it): T::Construct (ConstructOn, base_manager.h),
+// and the fake unit's.
+using Constructor = void*(__fastcall*)(void* block);
+template <class T>
+constexpr Constructor ConstructAt = ConstructOn<T, &T::Construct>;
+void* __fastcall ConstructFakeUnit(void* block) {
+    return fakeunit::FakeUnitConstruct(static_cast<scene::FakeUnitScene*>(block));
+}
 struct FactoryEntry {
     int classId;
     std::size_t size;
-    std::uintptr_t constructor;
+    Constructor constructor;
 };
 constexpr FactoryEntry kFactory[] = {
-    {0x32, 0x4DC, 0x0052E110},   // units (CUnit)
-    {0x33, 0x4DC, 0x0052E110},
-    {0x34, 0x4DC, 0x0052E110},
-    {0x35, 0x238, 0x005296E0},
-    {0x36, 0x238, 0x005297C0},
-    {0x37, 0x238, 0x005298A0},
-    {0x38, 0x238, 0x00529980},
-    {0x39, 0x580, 0x004466D0},
-    {0x3A, 0x23C, 0x0052BEE0},
-    {0x3B, 0x290, 0x00529DD0},
-    {0x3C, 0x264, 0x0052B1F0},
-    {0x300D, 0x78, 0x0050C5F0},
-    {0x3010, 0x23C, 0x00529A80},
+    {0x32, 0x4DC, ConstructAt<CUnit>},                    // 0052E110
+    {0x33, 0x4DC, ConstructAt<CUnit>},
+    {0x34, 0x4DC, ConstructAt<CUnit>},
+    {0x35, 0x238, ConstructAt<CTree>},                    // 005296E0
+    {0x36, 0x238, ConstructAt<CBuilding>},                // 005297C0
+    {0x37, 0x238, ConstructAt<CStone>},                   // 005298A0
+    {0x38, 0x238, ConstructAt<CStuffObject>},             // 00529980
+    {0x39, 0x580, ConstructFakeUnit},                     // 004466D0
+    {0x3A, 0x23C, ConstructAt<CTorchObject>},             // 0052BEE0
+    {0x3B, 0x290, ConstructAt<MagicTrap>},                // 00529DD0
+    {0x3C, 0x264, ConstructAt<Lever>},                    // 0052B1F0
+    {0x300D, 0x78, ConstructAt<CFigureAnimationState>},   // 0050C5F0
+    {0x3010, 0x23C, ConstructAt<CTrapObject>},            // 00529A80
 };
 } // namespace
 
@@ -666,7 +680,7 @@ CEngineObject* CMapObjectManager::CreateObject(int classId) {
         if (entry.classId != classId) continue;
         void* block = gamecrt::operator_new_zeroed(entry.size);
         if (!block) return nullptr;
-        return reinterpret_cast<Constructor>(entry.constructor)(block);
+        return static_cast<CEngineObject*>(entry.constructor(block));
     }
     return nullptr;
 }
