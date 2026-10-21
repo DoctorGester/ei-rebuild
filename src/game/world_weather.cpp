@@ -146,7 +146,7 @@ void CWorldServer::UpdateWeather() {
     std::memcpy(&weatherFactor_, &factor, 4);
 
     for (auto* node = objects_.map.First(); node; node = objects_.map.After(node))
-        ObjectSlots(node->value)->UpdateMoveFactors();   // slot 57: the weather changed
+        node->value->UpdateMoveFactors();   // slot 57: the weather changed
     if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
 }
 

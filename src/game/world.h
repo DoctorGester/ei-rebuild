@@ -91,6 +91,25 @@ struct ObjectIdMap {
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
+// The server world's maps of map objects (objects_, sentObjects_, mapObjects_, otherMapObjects_,
+// namedObjects_, updateMap_): ObjectIdMap's shape with CMapObject* values. Set is the same code as
+// ObjectIdMap::Set (the original's instantiations are byte-identical); the release walk (0047B670)
+// is reached by address (ObjectMapClearOriginal).
+struct MapObjectIdMap {
+    stlp::hash_map<unsigned, CMapObject*, stlp::IntHash> map;   // +0x00
+    int maxId;                                                   // +0x14
+
+    void Set(const unsigned& key, CMapObject* const& value) {
+        if (static_cast<int>(key) > maxId) maxId = static_cast<int>(key);
+        map[key] = value;
+    }
+    void Construct() {
+        map.InitBuckets(100);
+        maxId = 0;
+    }
+};
+static_assert(sizeof(MapObjectIdMap) == 0x18);
+
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
 // it; its MFC list head is at +0x38 and each node's data (+8) is a CPlayer.
 struct PlayerIterator : ObjectListIterator {
@@ -445,7 +464,7 @@ public:
     // 0058E5D0. Flags object `id` deleted, releases it and removes it from timedObjects_.
     void RemoveTimedObject(unsigned id);
     // 0058D5D0. Puts a unit in the update map (+0x104) and sets its update slot.
-    void AddToUpdateMap(CEngineObject* unit);
+    void AddToUpdateMap(CMapObject* unit);
     // The updates an object stays in the update map before it may sleep (updateCountdown): 0x80
     // plus 0..15, which the game takes from bits 5..8 of the object's address (0058D5D0, 0058D3D0,
     // 0058D670, 005927C0, 00593FC0, 00596900), so it follows the heap's layout. Harness runs on the
@@ -770,7 +789,7 @@ public:
     int exitGrowBy_;                      // +0x0FC
     std::uint8_t loaded_;                 // +0x100 0 while LoadSave runs
     std::uint8_t unused_101[0x104 - 0x101];
-    ObjectIdMap updateMap_;               // +0x104
+    MapObjectIdMap updateMap_;            // +0x104
     // +0x11C set: SendZone also sends the player its start (at its first unit). Cleared by the
     // reset; nothing in the game sets it.
     std::uint8_t sendsStartPosition_;
@@ -822,12 +841,12 @@ public:
     int sessionKind_;
     mfc::CString mobName_;                // +0x12D68 the zone's .mob file
     mfc::CString mapName_;                // +0x12D6C the zone's map
-    ObjectIdMap objects_;                 // +0x12D70 every world object by id
+    MapObjectIdMap objects_;              // +0x12D70 every world object by id
     // +0x12D88 the map objects SendFreshObjects sent (not part of the map itself, slot 29).
-    ObjectIdMap sentObjects_;
-    ObjectIdMap mapObjects_;              // +0x12DA0 objects saved with the zone (SaveMapObjects)
-    ObjectIdMap otherMapObjects_;         // +0x12DB8 the map objects that are not units
-    ObjectIdMap namedObjects_;            // +0x12DD0 objects with a second name (+0x1A8)
+    MapObjectIdMap sentObjects_;
+    MapObjectIdMap mapObjects_;           // +0x12DA0 objects saved with the zone (SaveMapObjects)
+    MapObjectIdMap otherMapObjects_;      // +0x12DB8 the map objects that are not units
+    MapObjectIdMap namedObjects_;         // +0x12DD0 objects with a second name (+0x1A8)
     ObjectIdMap timedObjects_;            // +0x12DE8
     // +0x12E00 the zone header SendFreshObjects sends to a temporary player (constructed by
     // 0041DD70 in the constructor 00589ED0).

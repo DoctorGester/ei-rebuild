@@ -111,9 +111,9 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
     // The quest ids this zone's objects ask for (slot 38, slot 40), each once.
     IdArray wanted{IdArrayVtable(), nullptr, 0, 0, 0};
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
-        CEngineObject* object = node->value;
-        if (!ObjectSlots(object)->IsUsable()) continue;
-        int id = ObjectSlots(object)->KeyId();
+        CMapObject* object = node->value;
+        if (!object->IsUsable()) continue;
+        int id = object->KeyId();
         if (!Contains(wanted, id)) wanted.SetAtGrow(wanted.size, id);
     }
 

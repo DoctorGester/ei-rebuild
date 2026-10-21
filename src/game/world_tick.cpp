@@ -180,7 +180,7 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
         if (!units) continue;
         for (auto* unitNode = units->head; unitNode;) {
-            CEngineObject* unit = unitNode->data;
+            CUnit* unit = unitNode->data;
             unitNode = unitNode->next;
             AddToUpdateMap(unit);
         }
@@ -201,7 +201,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
     auto& objects = objects_.map;
     auto* node = objects.First();
     if (!node) return;
-    for (CEngineObject* object = node->value; object; object = node->value) {
+    for (CMapObject* object = node->value; object; object = node->value) {
         if (CUnit* unit = UnitOrNull(object)) {
             if (!unit->player) {
                 AIBrain* brain = unit->ServerController()->Brain();
@@ -309,7 +309,7 @@ void CWorldServer::TickSleepingEffects() {
     // update would count its effects down) gets one tick taken off each effect; when one runs
     // out, the object goes back into the update map, whose update removes it.
     mapObjects_.map.ForEach([this](auto* node) {
-        auto* object = static_cast<CMapObject*>(node->value);
+        CMapObject* object = node->value;
         if ((object->flags_ & 1) || object->refCount_ == 0 || object->effectCount == 0) return;
         if (object->updateCountdown > 0 || !object->companion) return;
         bool expired = false;

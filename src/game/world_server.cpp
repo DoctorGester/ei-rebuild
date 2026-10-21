@@ -63,7 +63,8 @@ CUnit* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
 
 // find + erase(iterator), as the original inlines it for each map.
-void EraseId(ObjectIdMap& map, unsigned id) {
+template <typename Map>
+void EraseId(Map& map, unsigned id) {
     if (auto* node = map.map.Find(id)) map.map.Erase(node);
 }
 
@@ -81,7 +82,7 @@ void ObjectIdMap::Set(const unsigned& key, CEngineObject* const& value) {
 
 CMapObject* CWorldServer::FindObject(unsigned id) {
     auto* node = objects_.map.Find(id);
-    return node ? ObjectSlots(node->value) : nullptr;   // objects_ holds map objects (CreateObject)
+    return node ? node->value : nullptr;
 }
 
 CPlayer* CWorldServer::GetPlayer(int id) {
@@ -199,9 +200,9 @@ int CWorldServer::UpdateCountdownFor(const CEngineObject* object) {
 
 void CWorldServer::SpreadUpdateCountdownsById() { g_countdownsById = true; }
 
-void CWorldServer::AddToUpdateMap(CEngineObject* unit) {
+void CWorldServer::AddToUpdateMap(CMapObject* unit) {
     // The unit's update slot.
-    ObjectSlots(unit)->updateCountdown = UpdateCountdownFor(unit);
+    unit->updateCountdown = UpdateCountdownFor(unit);
     unsigned id = static_cast<unsigned>(unit->id_);
     updateMap_.Set(id, unit);
 }
@@ -210,11 +211,11 @@ void CWorldServer::AddToUpdateMap(CEngineObject* unit) {
 
 void CWorldServer::RemoveObject(unsigned id) {
     auto* found = objects_.map.Find(id);
-    CEngineObject* const* slot = found ? &found->value : nullptr;
+    CMapObject* const* slot = found ? &found->value : nullptr;
     // Rebirth's FixRemoveMapObject (context hook at 00593615): an unknown id is logged and ignored.
     // The original reads through the null pointer (and crashes).
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
-    CEngineObject* object = *static_cast<CEngineObject* const volatile*>(slot);
+    CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
     if (object->GetClassId() != kClassNoSector) SectorMapRemove(AsSectorMap(sectorMap_), nullptr, *slot);
 
@@ -238,7 +239,7 @@ void CWorldServer::RemoveObject(unsigned id) {
 
     // Every world object forgets it (the walk stops at an entry without an object).
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
-        ObjectSlots(node->value)->ForgetObject(object);
+        node->value->ForgetObject(object);
     // The missiles it shot are dropped; those aimed at it lose their target.
     for (auto* node = projectiles_.head; node;) {
         auto* current = node;

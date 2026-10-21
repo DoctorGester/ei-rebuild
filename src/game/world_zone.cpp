@@ -216,18 +216,17 @@ void CWorldServer::ClearMapObjects() {
 
 void CWorldServer::SaveMapObjects(CStream* out) {
     for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
-        CEngineObject* object = node->value;
+        CMapObject* object = node->value;
         if (!object) break;
-        auto* mapObject = static_cast<CMapObject*>(object);
         int id = object->id_;
         out->Write(&id, 4u);
         CUnit* unit = UnitOrNull(object);
-        const char* prototype = unit ? static_cast<const char*>(unit->GetPrototype()->name) : static_cast<const char*>(mapObject->name);
+        const char* prototype = unit ? static_cast<const char*>(unit->GetPrototype()->name) : static_cast<const char*>(object->name);
         out->Write(prototype, static_cast<unsigned>(std::strlen(prototype) + 1));
         object->Save(out);
         // The parts changed and those already sent (the network state's mask).
-        std::uint32_t flags = static_cast<std::uint32_t>(mapObject->changedParts) |
-                              static_cast<std::uint32_t>(mapObject->NetState()->sentMask_);
+        std::uint32_t flags = static_cast<std::uint32_t>(object->changedParts) |
+                              static_cast<std::uint32_t>(object->NetState()->sentMask_);
         out->Write(&flags, 4u);
     }
     int end = -1;
