@@ -1013,7 +1013,7 @@ title = "Remaining early verify-against-plain trace differences"
 group = "verification"
 model = "opus"
 depends = ["SV1j"]
-note = "T2f saw an EI_PLAIN=1 verify-build run crash at frame 0 (C0000005) on main as of T2f's merge; not investigated."
+note = "Obsolete: EI_PLAIN and the verify wrappers it turned off were removed in S21d (75c1bf38, 2026-10-16); the image never had wrappers, so a verify-build run is the plain run and there is no verify-against-plain trace left to compare. T2f's frame-0 crash was a hooked game.exe run (gone with S21). Checked 2026-10-21: boot with EI_PLAIN=1 on the verify build passes (the variable is ignored)."
 
 [[ticket]]
 id = "SV2b"

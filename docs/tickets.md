@@ -124,7 +124,7 @@ Every unknown_XXX member becomes a real name or unused_XXX (same type and offset
 
 The SV loop comes before any standalone ticket (user 2026-10-14).
 
-- **SV1k** Remaining early verify-against-plain trace differences (ready; opus). T2f saw an EI_PLAIN=1 verify-build run crash at frame 0 (C0000005) on main as of T2f's merge; not investigated. After: SV1j.
+- **SV1k** Remaining early verify-against-plain trace differences (review since 2026-10-21; opus). Obsolete: EI_PLAIN and the verify wrappers it turned off were removed in S21d (75c1bf38, 2026-10-16); the image never had wrappers, so a verify-build run is the plain run and there is no verify-against-plain trace left to compare. T2f's frame-0 crash was a hooked game.exe run (gone with S21). Checked 2026-10-21: boot with EI_PLAIN=1 on the verify build passes (the variable is ignored). After: SV1j.
 - **SV2c** unit_create parted from its golden once in crt.rand (watch). Moved to watch 2026-10-15: one parting under load in SV2a's era; not seen in today's main suites. After: SV2a.
 - **SV6c** Startup crash inside AIL_waveOutOpen (EIP 00007EBC), seen once (watch). SV6b's full suite, zone_gz15h_tornado-vanilla first attempt: C0000005 at 00007EBC on the main thread inside AIL_waveOutOpen (harness MutedWaveOutOpen <- CSoundManager::Open via SoundOpenVerify), before the menu; retry passed. Watch main suites for a repeat (exception at a low address with MutedWaveOutOpen in the stack) before chasing it.
 - **SV7b5** Net replication ordered by pointer (later). T2f (merged) already orders DiffObjectSets/SyncPlayer object sends (0047ADF0, 0047B4C0) by object id on both sides; the Connection maps here are the remaining part. After: SV7a.
