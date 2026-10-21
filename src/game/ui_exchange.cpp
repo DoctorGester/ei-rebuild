@@ -272,9 +272,9 @@ BOOL CExchangeScreen::Draw(int pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem_ = nullptr;
     int topic = 0;
-    hoveredItem_ = reinterpret_cast<CItem*>(strip_->window.VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic));
+    hoveredItem_ = strip_->window.VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic);
     if (!hoveredItem_ && !topic)
-        hoveredItem_ = reinterpret_cast<CItem*>(grid_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic));
+        hoveredItem_ = grid_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic);
     if (hoveredItem_) {
         if (descPanel_) descPanel_->Describe(hoveredItem_);
     } else if (topic) {

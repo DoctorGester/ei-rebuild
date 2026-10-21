@@ -514,7 +514,7 @@ public:
     // it on the current page: weapons and armour on the equipment page, spells the party can cast,
     // the parts and spells each constructor accepts (skill and mana of the best hero, at most
     // eight modifiers, matching blueprints). Returns AL.
-    bool CanEquip(std::uint8_t* item, int mode);
+    bool CanEquip(CItem* item, int mode);
     // 00611930 (every frame from the camp's draw, and on the hero arrows). Works out the page's
     // action (repair all, level up, trade, construct, take apart, repair), its cost against the
     // money (or experience on the trade page) and draws them on surface 0; shades the two action
@@ -530,7 +530,7 @@ public:
     // armour also lose the repair cost of their wear (1 - durability / maximum). A repair costs at
     // least 1, or 0 for an unworn item. Rebirth's FixRepairPrice clamps the wear to [0, 1] and adds
     // the repair cost instead of subtracting it when an item is taken apart (kind 7).
-    int Price(std::uint8_t* item, int kind);
+    int Price(CItem* item, int kind);
     // 0060F050 (slot 20). Finds what is under the mouse (a page button's help, an item of a
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.
@@ -545,18 +545,18 @@ public:
     // result it returns; 0 for other kinds): a weapon also moves the hero's chosen-weapon index
     // (+0x774) back and redraws (slot 46); armour also comes off the hero's unit and the stats'
     // outer layers are rebuilt. The stats panel is redrawn.
-    int TakeOff(std::uint8_t* item);
+    CItem* TakeOff(CItem* item);
     // 0060FCA0 (RET 4). Puts `item` on the current hero: a weapon (at most 4; the first becomes
     // the chosen one; slot 46 redraws), armour (each piece of the same body part taken off first
     // through TakeOff, then worn by the hero's unit and the stats' outer layers rebuilt), a 0x3006
     // item (at most 4) or a 0x3008 item (at most 8); then the player's items lose it (00661F30)
     // and the stats panel is redrawn. Other kinds and full slots do nothing.
-    void PutOn(std::uint8_t* item);
+    void PutOn(CItem* item);
     // 00610920 (RET 4; MoveItem's mode 1, a click on an item strip). Pages 0 / 1 put the item on
     // the hero (PutOn); the other pages move it from the player's items into the page's slots
     // (spellParts_[2], spellResults_, itemParts_[2], itemResults_ (with Shift and a kind-one item
     // the whole stack while slot 43 accepts it with mode 1), itemExtra_). Sound put_on.
-    void PutOnFromStrip(std::uint8_t* item);
+    void PutOnFromStrip(CItem* item);
     // 00610AD0 (virtual slot 42, RET 8; what an item strip or a panel calls with its action mode).
     // Refused by CanEquip (slot 43): the cancel sound. 0 takes the item off the hero into the item
     // strip, 1 PutOnFromStrip, 2 / 3 into the spell / item constructor's slots (put_on), 4 / 5 out
@@ -564,7 +564,7 @@ public:
     // kind-one item alone, with Shift all kind-one items and then the first container; anything
     // else empties them), 8 out of itemExtra_; made items (record +0x10) go back to the
     // constructor's parts and strip, the others to the player and the item strip (put_off).
-    void MoveItem(std::uint8_t* item, int mode);
+    void MoveItem(CItem* item, int mode);
     // 0060F9E0 (slot 46). Re-arms the current hero's unit: its figure's weapon reset (-1), the
     // four weapon slots cleared (005310D0), the record's weapons given (00531070), 00531110, the
     // chosen weapon shown (figure slot 25 with +0x774, slot 30); then slot 47.
@@ -652,8 +652,8 @@ public:
     // The camp's virtual slots the pages call (the main vtable 0074091C): 43 CanEquip (AL), 45 the
     // party's best skill and mana in a school (00610020), 46 / 47 RefreshWeapons / RefreshStats, 51
     // the shown hero's record (HeroRecord), 54 Price (Rebirth-patched 0060FAB0).
-    bool VirtualCanEquip(std::uint8_t* item, int mode) {
-        using Fn = bool(__thiscall*)(CCampPages*, std::uint8_t*, int);
+    bool VirtualCanEquip(CItem* item, int mode) {
+        using Fn = bool(__thiscall*)(CCampPages*, CItem*, int);
         return ei::VirtualSlot<Fn>(vtable_, 43)(this, item, mode);
     }
     void VirtualBestPartySkill(int school, int* skill, int* mana) {
@@ -663,8 +663,8 @@ public:
     void VirtualRefreshWeapons() { CallVirtual(46); }
     void VirtualRefreshStats() { CallVirtual(47); }
     PartyUnitRecord* VirtualHeroRecord() { return ShownHero(this); }
-    int VirtualPrice(void* item, int kind) {
-        using Fn = int(__thiscall*)(CCampPages*, void*, int);
+    int VirtualPrice(CItem* item, int kind) {
+        using Fn = int(__thiscall*)(CCampPages*, CItem*, int);
         return ei::VirtualSlot<Fn>(vtable_, 54)(this, item, kind);
     }
 
@@ -702,8 +702,8 @@ public:
     bool actionShown_;               // +0x211
     bool deconstructing_;            // +0x212 the constructor takes an item apart
     std::uint8_t unused_213;
-    std::uint8_t* itemMade_;         // +0x214 the item the item constructor would make, or null
-    std::uint8_t* spellMade_;        // +0x218 the spell the spell constructor would make, or null
+    CItem* itemMade_;                // +0x214 the item the item constructor would make, or null
+    CItem* spellMade_;               // +0x218 the spell the spell constructor would make, or null
     std::uint32_t priceWeights_[9];  // +0x21C the constructor's price multipliers (floats; ClassTemplate::weights)
     mfc::CStringArray pageTitles_;   // +0x240 the seven pages' titles and "quit"
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden

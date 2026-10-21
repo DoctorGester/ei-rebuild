@@ -418,11 +418,11 @@ int HeroManaUnits(UnitStats* stats) {
     return static_cast<int>(gamecrt::Ftol(maximum / StatsPeriod(stats)));
 }
 
-bool HeroCanUseSpell(UnitStats* stats, char* spell) {
+bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
     bool ok = true;
-    int required = *reinterpret_cast<int*>(spell + 0x50);
-    if (HeroSchoolSkill(stats, reinterpret_cast<CSpell*>(spell)->GetPrototype()->school) < required) ok = false;
-    float cost = *reinterpret_cast<float*>(spell + 0x40);
+    int required = static_cast<int>(spell->skillNeeded_);
+    if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
+    float cost = std::bit_cast<float>(spell->manaCost_);
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(gamecrt::Ftol(cost))) ok = false;
     return ok;
@@ -562,9 +562,9 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
 }
 EI_REPLACE_METHOD(0x00618980, CMpHeroScreen::OnItemChosen);
 
-bool CMpHeroScreen::CanEquip(char* item, int) {
-    if (ItemType(item) != kTypeSpellContainer) return true;
-    char* spell = *reinterpret_cast<char**>(item + 0x44);
+bool CMpHeroScreen::CanEquip(CItem* item, int) {
+    if (item->type_ != kTypeSpellContainer) return true;
+    CSpell* spell = item->spell_;
     if (!spell) return true;
     return HeroCanUseSpell(&Hero()->stats, spell);
 

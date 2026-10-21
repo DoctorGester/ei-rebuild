@@ -307,7 +307,7 @@ static_assert(offsetof(CCampScreen, partStrip_) == 0x1F0);
 int HeroSchoolSkill(UnitStats* stats, int school);
 int HeroManaUnits(UnitStats* stats);
 // Whether a hero with `stats` can use the spell `spell` (+0x50 required skill, +0x40 mana cost).
-bool HeroCanUseSpell(UnitStats* stats, char* spell);
+bool HeroCanUseSpell(UnitStats* stats, CSpell* spell);
 
 // --- Multiplayer hero screen ----------------------------------------------------------------
 
@@ -341,7 +341,7 @@ public:
     PartyUnitRecord* GetHero();
     // 006188E0. Virtual slot 43: whether the hero can take `item`; spell containers need the
     // spell's skill and mana (the camp's own version is 006100E0, not rewritten).
-    bool CanEquip(char* item, int mode);
+    bool CanEquip(CItem* item, int mode);
 
     void OnLButtonUp(int flags, int x, int y);   // 006177D0
     // 00617050 (input slot 2; ui_hero_screen_click.cpp). Nothing while a hero is being renamed;
@@ -507,7 +507,7 @@ public:
 
     CUiContainer window;
     CItemInfoPanel* descPanel_; // +0x164 the description panel
-    std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
+    CItem* hoveredItem_;        // +0x168 the item under the mouse (set by Draw)
     CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
     ItemObjectCache models_;    // +0x170 the item screens' model cache (00633F50 constructs it)
     ItemObjectCache textures_;  // +0x180 and the texture cache (00633FF0)

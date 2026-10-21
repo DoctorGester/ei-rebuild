@@ -705,7 +705,7 @@ void CMpHeroScreen::AddNewHero() {
     hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
     if (static_cast<int>(hero->spellCount) > 0) {
         auto* container = hero->spells[0];
-        auto* spell = reinterpret_cast<char*>(container->spell_);
+        CSpell* spell = container->spell_;
         if (spell && !HeroCanUseSpell(&hero->stats, spell)) {
             LocalPlayerData()->AddItem(container, 0, 1);
             hero->RemoveSpell(container);
