@@ -92,7 +92,6 @@ void __cdecl LoadKeyBindings() {
     }
     file.Close();
 }
-EI_REPLACE(0x00462C10, LoadKeyBindings);
 
 // 00462DF0: one line per scan code with an action, when both the key and the action are known
 // (format 00787C18: key name, action name).
@@ -122,6 +121,5 @@ void __cdecl SaveKeyBindings() {
     }
     file.Close();
 }
-EI_REPLACE(0x00462DF0, SaveKeyBindings);
 
 } // namespace keybind

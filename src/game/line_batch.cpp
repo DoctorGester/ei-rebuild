@@ -25,7 +25,6 @@ int LineBatch::AddPoint(const float* point) {
     for (int index = count; index < packets.size * 4; ++index) put(index);
     return count;
 }
-EI_REPLACE_METHOD(0x0049B140, LineBatch::AddPoint);
 
 int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     lib::AlignedArray<ProjectedPoint>& projected = LineProjected();
@@ -36,4 +35,3 @@ int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     if (visibility == 0) DeviceDrawLineStrip(device, reinterpret_cast<const ProjectedPoints*>(&projected), colour);
     return 1;
 }
-EI_REPLACE_METHOD(0x0049B780, LineBatch::Draw);

@@ -83,7 +83,6 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
 }
 
 void AIAlarm::Step(CUnitServer* owner) { StepAlarmOf(this, owner); }
-EI_REPLACE_METHOD(0x005AEA80, AIAlarm::Step);
 
 // ---- The state's small members (A-W14) ----------------------------------------------------------
 
@@ -93,16 +92,13 @@ void AIAlarm::Reset() {
     active = 0;
     timer = 0;
 }
-EI_REPLACE_METHOD(0x005AEA40, AIAlarm::Reset);
 
 AIAlarm* AIAlarm::Construct() {
     Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x005AEA50, AIAlarm::Construct);
 
 void AIAlarm::Raise(int newLevel) { pending = newLevel > pending ? newLevel : pending; }
-EI_REPLACE_METHOD(0x005AEA60, AIAlarm::Raise);
 
 void AIAlarm::Load(CStream* stream) {
     stream->Read(&level, 4);
@@ -110,7 +106,6 @@ void AIAlarm::Load(CStream* stream) {
     stream->Read(&active, 4);
     stream->Read(&timer, 4);
 }
-EI_REPLACE_METHOD(0x005AEC40, AIAlarm::Load);
 
 void AIAlarm::Save(CStream* stream) {
     stream->Write(&level, 4);
@@ -119,4 +114,3 @@ void AIAlarm::Save(CStream* stream) {
     int steps = timer;   // the original writes a copy of the last one
     stream->Write(&steps, 4);
 }
-EI_REPLACE_METHOD(0x005AEC80, AIAlarm::Save);

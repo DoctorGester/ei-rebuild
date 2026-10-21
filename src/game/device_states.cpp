@@ -55,4 +55,3 @@ int CTextureDevice::SetMaterial(CDeviceMaterial* material) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004EB170, CTextureDevice::SetMaterial);

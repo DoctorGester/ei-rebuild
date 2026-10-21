@@ -50,7 +50,6 @@ void ChunkArchive::Ref::Reset() {
     offset = 0;
     size = 0;
 }
-EI_REPLACE_METHOD(0x00409E80, ChunkArchive::Ref::Reset);
 
 void ChunkArchive::PopChunk() {
     Stack::Erase<RefElement>(stack_.End()->prev);
@@ -76,7 +75,6 @@ bool ChunkArchive::NextChild(const Ref* parent, std::int32_t* cursor, Ref* out) 
     *cursor += static_cast<std::int32_t>(length);
     return true;
 }
-EI_REPLACE_METHOD(0x00409070, ChunkArchive::NextChild);
 
 bool ChunkArchive::AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size) {
     dataStream_.Resize(static_cast<std::uint32_t>(chunk->offset) + size + static_cast<std::uint32_t>(chunk->size) + 5);
@@ -111,7 +109,6 @@ bool ChunkArchive::FindChild(const Ref* parent, int id, Ref* out, int occurrence
     }
     return false;
 }
-EI_REPLACE_METHOD(0x004091C0, ChunkArchive::FindChild);
 
 int ChunkArchive::CountChildrenOf(const Ref* parent, int id) {
     Ref child{0xFF, {}, 0, 0, 1};
@@ -121,16 +118,13 @@ int ChunkArchive::CountChildrenOf(const Ref* parent, int id) {
         if (child.id == static_cast<std::uint8_t>(id)) ++count;
     return count;
 }
-EI_REPLACE_METHOD(0x00409230, ChunkArchive::CountChildrenOf);
 
 int ChunkArchive::CountChunks(int id) { return CountChildrenOf(Current(), id); }
-EI_REPLACE_METHOD(0x00409A60, ChunkArchive::CountChunks);
 
 void ChunkArchive::ResizeToCurrent() {
     Ref* current = Current();
     dataStream_.Resize(static_cast<std::uint32_t>(current->size + current->offset));
 }
-EI_REPLACE_METHOD(0x00409A40, ChunkArchive::ResizeToCurrent);
 
 // ---- Chunks and fields ---------------------------------------------------------------------------
 
@@ -143,7 +137,6 @@ void ChunkArchive::Field(int id, void* data, unsigned size) {
     if (FindField(this, id, &child)) std::memcpy(data, Data() + child.offset, size);
     else std::memset(data, 0, size);   // a missing field reads as zero
 }
-EI_REPLACE_METHOD(0x004092B0, ChunkArchive::Field);
 
 bool ChunkArchive::EnterChunk(int id) {
     Ref* parent = Current();
@@ -155,7 +148,6 @@ bool ChunkArchive::EnterChunk(int id) {
     fresh->offset = parent->size + parent->offset + 5;
     return true;
 }
-EI_REPLACE_METHOD(0x004098D0, ChunkArchive::EnterChunk);
 
 void ChunkArchive::LeaveChunk() {
     if (loading_) {
@@ -171,7 +163,6 @@ void ChunkArchive::LeaveChunk() {
     Ref* parent = Current();
     dataStream_.Resize(static_cast<std::uint32_t>(parent->size + parent->offset));
 }
-EI_REPLACE_METHOD(0x00409980, ChunkArchive::LeaveChunk);
 
 void ChunkArchive::CStringField(int id, mfc::CString* s) {
     if (!loading_) {
@@ -183,7 +174,6 @@ void ChunkArchive::CStringField(int id, mfc::CString* s) {
     if (FindField(this, id, &child)) *s = reinterpret_cast<const char*>(Data() + child.offset);
     else *s = game::EmptyText();
 }
-EI_REPLACE_METHOD(0x004093A0, ChunkArchive::CStringField);
 
 // An STLport string field, written with its terminator; read through an inlined assign (the empty
 // string when missing).
@@ -198,7 +188,6 @@ void ChunkArchive::StringField(int id, stlp::string* s) {
     if (FindField(this, id, &child)) s->Assign(reinterpret_cast<const char*>(Data() + child.offset));
     else s->Assign(game::EmptyText());
 }
-EI_REPLACE_METHOD(0x00409470, ChunkArchive::StringField);
 
 // A memory stream as chunk `id` (EnterChunk, inlined) holding its size (field 1) and its bytes
 // (field 2, inlined Field); loading clears the stream and sizes it first. The stream is rewound;
@@ -216,7 +205,6 @@ void ChunkArchive::StreamField(int id, CMemoryStream* s) {
     s->Seek(0);
     LeaveChunk();
 }
-EI_REPLACE_METHOD(0x00409640, ChunkArchive::StreamField);
 
 // The number a save gives an object: its place in the saved list (1, 2, ...), kept as the map's
 // value. The original wrote the object's address as its key (the loader maps any key to the object
@@ -246,7 +234,6 @@ void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
     Ref child;
     FindField(this, id, &child);   // the original searches and drops the result
 }
-EI_REPLACE_METHOD(0x0040A440, ChunkArchive::SaveObjectRef);
 
 // An object reference field: the key read (0 when missing; writing stores 0) is looked up in the
 // map (inlined find); returns the object, or null.
@@ -262,7 +249,6 @@ CRefObject* ChunkArchive::ObjectRef(int id) {
     ObjectMap::Node* node = objects_.Find(key);
     return node ? node->value : nullptr;
 }
-EI_REPLACE_METHOD(0x0040A5A0, ChunkArchive::ObjectRef);
 
 // ---- An archive on the stack ----------------------------------------------------------------------
 
@@ -279,7 +265,6 @@ ChunkArchive* ChunkArchive::Construct() {
     ConstructLocal();
     return this;
 }
-EI_REPLACE_METHOD(0x0053A7B0, ChunkArchive::Construct);
 
 void ChunkArchive::DestructLocal() {
     saved_.Release();
@@ -290,7 +275,6 @@ void ChunkArchive::DestructLocal() {
 }
 
 void ChunkArchive::Destruct() { DestructLocal(); }
-EI_REPLACE_METHOD(0x004645A0, ChunkArchive::Destruct);
 
 // ---- Whole archives over a CStream ---------------------------------------------------------------
 
@@ -305,7 +289,6 @@ bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
     to->SetSize(length);
     return in->Read(to->data_, length) == length;
 }
-EI_REPLACE(0x00409EA0, ReadStreamChunk);
 
 // The original inlines ReadStreamChunk here; Open inlines all of this for the index and the
 // records.
@@ -321,7 +304,6 @@ bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occu
     to->Clear();
     return false;
 }
-EI_REPLACE(0x00409F30, FindStreamChunk);
 
 bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     char tag = static_cast<char>(id);
@@ -392,7 +374,6 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
     FindStreamChunk(stream, 1, data, 1);
     Current()->size = static_cast<std::int32_t>(data->Size());
 }
-EI_REPLACE_METHOD(0x00409AE0, ChunkArchive::Open);
 
 void ChunkArchive::Close(CStream* stream) {
     CMemoryStream* index = &indexStream_;
@@ -454,4 +435,3 @@ void ChunkArchive::Close(CStream* stream) {
     saved_.Clear();
     stack_.Clear<RefElement>();
 }
-EI_REPLACE_METHOD(0x0040A000, ChunkArchive::Close);

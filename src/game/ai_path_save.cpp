@@ -14,10 +14,6 @@
 #include <cstdint>
 #include "originals_library.h"
 
-namespace {
-
-} // namespace
-
 void AIPath::LoadPath(CStream* stream) {
     int count;
     stream->Read(&count, 4);
@@ -106,7 +102,3 @@ void AIPath::SaveOrder(CStream* stream) {
     }
 }
 
-EI_REPLACE_METHOD(0x005B2430, AIPath::LoadPath);
-EI_REPLACE_METHOD(0x005B2570, AIPath::SavePath);
-EI_REPLACE_METHOD(0x005C8230, AIPath::LoadOrder);
-EI_REPLACE_METHOD(0x005C8370, AIPath::SaveOrder);

@@ -195,6 +195,4 @@ void CCamera::ClampAboveObjects() {
         camera::NodeFreeList() = list.head;
     }
 }
-EI_REPLACE_METHOD(0x004110D0, CCamera::LookDirection);
-EI_REPLACE_METHOD(0x0040D710, CCamera::AlignToTarget);
-EI_REPLACE_METHOD(0x0040E4C0, CCamera::ClampAboveObjects);
+EI_REPLACE_METHOD(0x004110D0, CCamera::LookDirection);   // check_fp_fold's link to its original

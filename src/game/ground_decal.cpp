@@ -63,7 +63,6 @@ void EmptyKeepingBuffer(lib::AlignedArray<T>* a) {
 } // namespace
 
 double Vector3::LengthSquared() const { return LengthSquaredUnrounded<Sum3::XYZ>(*this); }
-EI_REPLACE_METHOD(0x004D8470, Vector3::LengthSquared);
 
 namespace decal {
 
@@ -296,17 +295,3 @@ void DecalBuilder::Finish() {
     indices_ = nullptr;
 }
 
-EI_REPLACE(0x004D7140, decal::Interpolate);
-EI_REPLACE(0x004D6E90, decal::ClipTriangle);
-EI_REPLACE_METHOD(0x004D7F50, DecalBuilder::Construct);
-EI_REPLACE_METHOD(0x004D8000, DecalBuilder::Begin);
-EI_REPLACE_METHOD(0x004D7F60, DecalBuilder::Touches);
-EI_REPLACE_METHOD(0x004D8780, DecalBuilder::Reserve);
-EI_REPLACE_METHOD(0x004D6C50, DecalBuilder::AddVertex);
-EI_REPLACE_METHOD(0x004D6CF0, DecalBuilder::Emit);
-EI_REPLACE_METHOD(0x004D71D0, DecalBuilder::ClipFromUMax);
-EI_REPLACE_METHOD(0x004D74B0, DecalBuilder::ClipFromV);
-EI_REPLACE_METHOD(0x004D7BD0, DecalBuilder::ClipPlane);
-EI_REPLACE_METHOD(0x004D85F0, DecalBuilder::AddTriangle);
-EI_REPLACE_METHOD(0x004D8490, DecalBuilder::AddTerrainTriangle);
-EI_REPLACE_METHOD(0x004D89A0, DecalBuilder::Finish);

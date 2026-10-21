@@ -45,14 +45,3 @@ void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
     lines.packets.FreeData();
 }
 
-EI_REPLACE_METHOD(0x005A7290, FigureMeshDrawer::DrawBounds);
-
-// 005A75D0 (A-W14): the line batch's destructor: spare00 -1, the points' block freed, the array
-// empty. Only the unwind funclet 00726C10 of the original DrawPartBounds calls it (the rewritten
-// one frees its batch itself).
-void __fastcall LineBatchDestruct(void* batch) {
-    auto* self = static_cast<LineBatch*>(batch);
-    self->spare00 = -1;
-    self->packets.RemoveAll();
-}
-EI_REPLACE(0x005A75D0, LineBatchDestruct);

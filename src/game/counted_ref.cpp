@@ -17,8 +17,6 @@ void AIRef::Reset() {
     object = nullptr;
 }
 EI_REPLACE_METHOD(0x0052B030, AIRef::Reset);
-EI_REPLACE_METHOD(0x0052B050, AIRef::Reset);
-EI_REPLACE_METHOD(0x00558CE0, AIRef::Reset);   // byte-identical copy (A-U11)
 
 void AIRef::Assign(CEngineObject* newObject) {
     if (newObject == object) return;
@@ -27,7 +25,6 @@ void AIRef::Assign(CEngineObject* newObject) {
     if (newObject) ++newObject->refCount_;
     object = newObject;
 }
-EI_REPLACE_METHOD(0x0052A8F0, AIRef::Assign);
 
 // The id read; -1 drops the object, any other is looked up in the world's map object manager.
 void AIRef::Load(CStream* stream, void* world) {
@@ -40,13 +37,11 @@ void AIRef::Load(CStream* stream, void* world) {
     auto* manager = static_cast<CWorld*>(world)->MapObjectManager();
     Assign(manager->FindObject(static_cast<unsigned>(id)));
 }
-EI_REPLACE_METHOD(0x0050E220, AIRef::Load);
 
 void AIRef::Save(CStream* stream) {
     int id = object ? object->id_ : kNoObject;
     stream->Write(&id, 4);
 }
-EI_REPLACE_METHOD(0x0050E290, AIRef::Save);
 
 // 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4; A-U12): a count read, then that many
 // counted references added at the tail of the list, each loaded in `context` (the trap's units,
@@ -59,4 +54,3 @@ void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream
         reinterpret_cast<AIRef*>(&node->data)->Load(stream, context);
     }
 }
-EI_REPLACE(0x0052AF20, CountedListLoad);

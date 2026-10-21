@@ -11,9 +11,6 @@
 #include "ei/x87.h"
 #include "world_data.h"
 
-namespace {
-} // namespace
-
 double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     float dx = static_cast<float>(to->x - from->x);
     float dy = static_cast<float>(to->y - from->y);
@@ -56,4 +53,3 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     return static_cast<double>(largest) / heightScale;
 }
 
-EI_REPLACE_METHOD(0x005BC750, CAIMap::LargestStepAlong);

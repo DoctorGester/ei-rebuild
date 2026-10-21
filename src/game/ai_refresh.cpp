@@ -319,7 +319,3 @@ void CAIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0
             if (marks.rows[y + dy][x + dx] == 0) cells[y][x].passable &= keep;
 }
 
-EI_REPLACE_METHOD(0x005B8FA0, CAIMap::RefreshArea);
-EI_REPLACE_METHOD(0x005B89F0, CAIMap::ClearUnmarkedArea);
-EI_REPLACE_METHOD(0x005B8BA0, CAIMap::CellMark);
-EI_REPLACE_METHOD(0x005B8710, CAIMap::LimitSteepCells);

@@ -26,6 +26,11 @@ holds the address itself. The readers, each a set of addresses:
     save_trace.py, ui_census_report.py, progress.py, gen_static_init.py (registered callees are called, not
     inlined: covered by "static init"), gen_short_functions.py (a short game function registered by a rewrite:
     listed as "short generator", kept: the generator would write an EI_REPLACE_SHORT for it).
+  exit generator   an exit function game.exe registers with atexit that a rewrite registers (atexit_400.cpp, ...):
+                   gen_static_init.py writes the ones no rewrite registers into static_exit.cpp, so it is kept
+  check_fp_fold    a registration whose comment names check_fp_fold: without it check_fp_fold compares the function
+                   with its callers' originals and reports their missing constants as folds (C20c found 11); the
+                   comment keeps the link to its own original
 
 A registration none of these read is "unread": nothing reaches its address; our code calls the function by name,
 or nothing does (then the function is dead in the image).
@@ -61,7 +66,7 @@ STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
 NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_code_cells.inc', 'src/standalone/image_cells.inc',
                'src/standalone/image_imports.inc', 'tests/verify/addon_sites.inc')
 ORDER = ['cell', 'static init', 'forwarder', 'code literal', 'named data', 'harness', 'vectors', 'scenario',
-         'golden', 'short generator']
+         'golden', 'short generator', 'exit generator', 'check_fp_fold']
 # The code cells' groups (image_code_cells.inc's comment lines) by a short name.
 CELL_GROUPS = [('vtable', ('vtable',)), ('throwinfo', ('ThrowInfo',)), ('mfc', ('MFC',)),
                ('static init list', ('initialiser list',)), ('crt', ('CRT',))]
@@ -103,8 +108,13 @@ def registrations():
                 continue
             found += 1
             name = re.sub(r'\s+', ' ', m.group(3)).lstrip('&').strip()
-            out.append(Registration(rel(path), raw.count('\n', 0, m.start()) + 1, m.group(1), int(m.group(2), 16), name,
-                                    m.start(), m.end()))
+            r = Registration(rel(path), raw.count('\n', 0, m.start()) + 1, m.group(1), int(m.group(2), 16), name,
+                             m.start(), m.end())
+            # The registration's own comment (blanked in `code`) naming check_fp_fold: the check's only link from the
+            # function to the original whose constants it compares (C20c).
+            if 'check_fp_fold' in raw[m.start():m.end()]:
+                r.readers.add('check_fp_fold')
+            out.append(r)
         total = sum(1 for m in ANY_REGISTRATION.finditer(code)
                     if '#define' not in code[code.rfind('\n', 0, m.start()) + 1:m.start()])
         if total != found:
@@ -201,10 +211,23 @@ def short_generator_readers(regs):
     return out
 
 
+def exit_generator_readers():
+    """The exit functions game.exe registers with atexit (the initialisers' and the function-local statics'):
+    gen_static_init.py writes one into static_exit.cpp for each that no rewrite registers."""
+    import capstone
+    import exe_path
+    import gen_static_init as g
+    img = g.Image(exe_path.resolve(None))
+    decoded, _ = g.decode_all(img)
+    found = {fn for _, _, _, targets, _ in decoded for kind, fn in targets if kind == 'exit'}
+    found |= set(g.runtime_atexits(img, capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)))
+    return {a: {'exit generator'} for a in found}
+
+
 def measure():
     regs = registrations()
     readers = [code_cells(), literal_readers(regs), named_data_readers(regs), text_readers(),
-               short_generator_readers(regs)]
+               short_generator_readers(regs), exit_generator_readers()]
     for r in regs:
         for table in readers:
             r.readers |= table.get(r.address, set())
@@ -286,6 +309,16 @@ def orphan_comments(lines, dead):
                 found.update(range(i, j + 1))
                 changed = True
             i = j + 1
+    # A section rule (// --- ...) whose section held dropped lines and holds nothing else now.
+    rules = [i for i, l in enumerate(lines) if re.match(r'\s*// ?(-{3,}|={3,})', l)]
+    for k, h in enumerate(rules):
+        end = rules[k + 1] if k + 1 < len(rules) else len(lines)
+        body = range(h + 1, end)
+        stop = next((i for i in body if lines[i].strip().startswith(('}', 'namespace', '#'))), end)
+        body = range(h + 1, stop)
+        if any(i in dead for i in body) and all(i in dead or i in found or not lines[i].strip() or
+                                                  lines[i].strip().startswith('//') for i in body):
+            found.update(i for i in [h, *body] if i not in dead)
     return found
 
 

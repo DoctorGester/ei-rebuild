@@ -83,7 +83,6 @@ void CTextureDevice::RestoreDisplayMode() {
     lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
 }
-EI_REPLACE_METHOD(0x004EEC60, CTextureDevice::RestoreDisplayMode);
 
 void CTextureDevice::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     // "CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n"
@@ -95,7 +94,6 @@ void CTextureDevice::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     if (screen) screen_ = *screen;
     else gameapi::SetRectEmpty(&screen_);
 }
-EI_REPLACE_METHOD(0x004EECF0, CTextureDevice::SetCooperativeLevel);
 
 void CTextureDevice::DestructDirectDraw() {
     ei::SetVtable(this, 0x0073D770);
@@ -113,7 +111,6 @@ void CTextureDevice::DestructDirectDraw() {
     modes_.Destroy();
     ei::SetVtable(this, 0x0073D768);
 }
-EI_REPLACE_METHOD(0x004EE330, CTextureDevice::DestructDirectDraw);
 
 // The parts are called through their addresses (originals_render.h), as the original calls them.
 // Not kept: the original copies the processor's twelve bytes as a string into a local nothing reads.
@@ -177,4 +174,3 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     overlayStretch_ = false;
     return this;
 }
-EI_REPLACE_METHOD(0x004EDD70, CTextureDevice::ConstructDirectDraw);

@@ -90,16 +90,4 @@ void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry) {
 
 } // namespace hash400
 
-EI_REPLACE_METHOD(0x00404E80, hash400::Table::ObjectsSetAt);
-EI_REPLACE_METHOD(0x00404F20, hash400::Table::ObjectsRemoveKey);
-EI_REPLACE_METHOD(0x00404F80, hash400::Table::ObjectsLookup);
-EI_REPLACE_METHOD(0x00405350, hash400::Table::PositionsRemoveKey);
-EI_REPLACE_METHOD(0x00406950, hash400::Table::ObjectsFind);
-// Byte-identical copies in the world range (A-W12).
-EI_REPLACE_METHOD(0x00599A80, hash400::Table::ObjectsRemoveKey);
-EI_REPLACE_METHOD(0x00599AE0, hash400::Table::ObjectsFind);
-EI_REPLACE_METHOD(0x00406A10, hash400::Table::PositionAt);
-EI_REPLACE_METHOD(0x00406AA0, hash400::Table::SpareCountAt);
 EI_REPLACE(0x00408EA0, hash400::ClassRegistryConstruct);
-EI_REPLACE(0x00408D60, hash400::ClassRegistryDestruct);
-EI_REPLACE(0x004368F0, hash400::TypeRegistryDestruct);

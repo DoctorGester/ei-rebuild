@@ -72,7 +72,6 @@ int CDib::Read(mfc::CFile* source) {
     MakePalette();
     return 1;
 }
-EI_REPLACE_METHOD(0x006D5910, CDib::Read);
 
 int CDib::Write(mfc::CFile* target) {
     auto* output = reinterpret_cast<mfc::CFileVirtuals*>(target);
@@ -94,4 +93,3 @@ int CDib::Write(mfc::CFile* target) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x006D5AC0, CDib::Write);

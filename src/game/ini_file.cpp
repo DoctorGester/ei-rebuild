@@ -134,7 +134,6 @@ CIniFile* CIniFile::ConstructWithPath(const char* path) {
     path_ = path;
     return this;
 }
-EI_REPLACE_METHOD(0x00695B90, CIniFile::ConstructWithPath);
 
 BOOL CIniFile::SetPath(const char* path) {
     path_ = path;
@@ -170,22 +169,18 @@ BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x00695D10, CIniFile::GetKeyNames);
 
 unsigned CIniFile::GetInt(const char* section, const char* key, int defaultValue) {
     return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_);
 }
-EI_REPLACE_METHOD(0x00695F00, CIniFile::GetInt);
 
 unsigned CIniFile::GetInt2(const char* section, const char* key, int defaultValue) {
     return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_);
 }
-EI_REPLACE_METHOD(0x00695F20, CIniFile::GetInt2);
 
 double CIniFile::GetFloat(const char* section, const char* key, float defaultValue) {
     return GetDouble(section, key, defaultValue);
 }
-EI_REPLACE_METHOD(0x00695F60, CIniFile::GetFloat);
 
 double CIniFile::GetDouble(const char* section, const char* key, double defaultValue) {
     mfc::CString text;
@@ -194,7 +189,6 @@ double CIniFile::GetDouble(const char* section, const char* key, double defaultV
     volatile double result = GameAtof(value);   // stored as a double, as the original does
     return result;
 }
-EI_REPLACE_METHOD(0x00695F80, CIniFile::GetDouble);
 
 mfc::CString CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
@@ -202,7 +196,6 @@ mfc::CString CIniFile::GetString(const char* section, const char* key, const cha
     gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_);
     return mfc::CString(buffer);
 }
-EI_REPLACE_METHOD(0x00696030, CIniFile::GetString);
 
 BOOL CIniFile::GetList(const char* section, const char* key, console::CStringArray* out, char separator) {
     mfc::CString value = ReadString(this, section, key, game::EmptyText());
@@ -219,22 +212,18 @@ BOOL CIniFile::GetList(const char* section, const char* key, console::CStringArr
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00696090, CIniFile::GetList);
 
 BOOL CIniFile::GetIntArrayCopy(const char* section, const char* key, DwordArray* out) {
     return ReadAlignedVia<std::uint32_t>(this, section, key, out);
 }
-EI_REPLACE_METHOD(0x006961D0, CIniFile::GetIntArrayCopy);
 
 BOOL CIniFile::GetByteArray(const char* section, const char* key, lib::AlignedArray<std::uint8_t>* out) {
     return ReadAlignedVia(this, section, key, out);
 }
-EI_REPLACE_METHOD(0x006963F0, CIniFile::GetByteArray);
 
 BOOL CIniFile::GetShortArray(const char* section, const char* key, lib::AlignedArray<std::uint16_t>* out) {
     return ReadAlignedVia(this, section, key, out);
 }
-EI_REPLACE_METHOD(0x00696610, CIniFile::GetShortArray);
 
 BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out) {
     console::CStringArray codes;
@@ -244,22 +233,18 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
     return 1;
 }
-EI_REPLACE_METHOD(0x00696830, CIniFile::GetIntArray);
 
 BOOL CIniFile::GetMfcByteArray(const char* section, const char* key, mfc::CArray<std::uint8_t>* out) {
     return ReadMfcVia(this, section, key, out, &SetSizeBytes);
 }
-EI_REPLACE_METHOD(0x006969F0, CIniFile::GetMfcByteArray);
 
 BOOL CIniFile::GetMfcWordArray(const char* section, const char* key, mfc::CArray<std::uint16_t>* out) {
     return ReadMfcVia(this, section, key, out, &SetSizeWords);
 }
-EI_REPLACE_METHOD(0x00696B20, CIniFile::GetMfcWordArray);
 
 BOOL CIniFile::GetMfcUIntArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
     return ReadMfcVia(this, section, key, out, &SetSizeUInts);
 }
-EI_REPLACE_METHOD(0x00696C50, CIniFile::GetMfcUIntArray);
 
 BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
     console::CStringArray codes;
@@ -269,47 +254,40 @@ BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArra
         out->data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
     return 1;
 }
-EI_REPLACE_METHOD(0x00696D80, CIniFile::GetMfcDWordArray);
 
 // --- Writers ---------------------------------------------------------------------------------------
 
 BOOL CIniFile::WriteString(const char* section, const char* key, mfc::CString value) {
     return gameapi::WritePrivateProfileStringA(section, key, value, path_);
 }
-EI_REPLACE_METHOD(0x00696E60, CIniFile::WriteString);
 
 BOOL CIniFile::WriteIntForward(const char* section, const char* key, int value) {
     return WriteInt(section, key, value);
 }
-EI_REPLACE_METHOD(0x00696F30, CIniFile::WriteIntForward);
 
 BOOL CIniFile::WriteInt(const char* section, const char* key, int value) {
     mfc::CString text;
     text.Format(kIntFormat, value);
     return WriteCopy(this, section, key, text);
 }
-EI_REPLACE_METHOD(0x00696F50, CIniFile::WriteInt);
 
 BOOL CIniFile::WriteUInt(const char* section, const char* key, unsigned value) {
     mfc::CString text;
     text.Format(kUIntFormat, value);
     return WriteCopy(this, section, key, text);
 }
-EI_REPLACE_METHOD(0x00696FE0, CIniFile::WriteUInt);
 
 BOOL CIniFile::WriteFloat(const char* section, const char* key, float value) {
     mfc::CString text;
     text.Format(kFloatFormat, static_cast<double>(value));
     return WriteCopy(this, section, key, text);
 }
-EI_REPLACE_METHOD(0x00697070, CIniFile::WriteFloat);
 
 BOOL CIniFile::WriteDouble(const char* section, const char* key, double value) {
     mfc::CString text;
     text.Format(kLongFloatFormat, value);
     return WriteCopy(this, section, key, text);
 }
-EI_REPLACE_METHOD(0x00697100, CIniFile::WriteDouble);
 
 BOOL CIniFile::WriteList(const char* section, const char* key, const console::CStringArray* items, char separator) {
     mfc::CString text;
@@ -321,4 +299,3 @@ BOOL CIniFile::WriteList(const char* section, const char* key, const console::CS
     }
     return WriteCopy(this, section, key, text);
 }
-EI_REPLACE_METHOD(0x00697190, CIniFile::WriteList);

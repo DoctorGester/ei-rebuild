@@ -91,14 +91,12 @@ int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0065EAD0, CDirectInputMouse::Setup);
 
 void CDirectInputMouse::Shutdown() {
     if (device_) device_->Unacquire();
     Drop(device_);
     Drop(input_);
 }
-EI_REPLACE_METHOD(0x0065EC30, CDirectInputMouse::Shutdown);
 
 int CDirectInputMouse::SetActive(char active) {
     if (!device_) return 0;
@@ -110,11 +108,9 @@ int CDirectInputMouse::SetActive(char active) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0065EC70, CDirectInputMouse::SetActive);
 
 const LONG* CDirectInputMouse::Poll(int /*unused*/) {
     static_assert(sizeof(state_) == sizeof(DIMOUSESTATE));
     if (device_->GetDeviceState(sizeof(state_), state_) < 0) std::memset(state_, 0, sizeof(state_));
     return state_;
 }
-EI_REPLACE_METHOD(0x0065ECB0, CDirectInputMouse::Poll);

@@ -20,13 +20,11 @@ int CTextureDevice::BindSurface(int stage, CDXSurface* holder) {
     ++textureChanges_;
     return 1;
 }
-EI_REPLACE_METHOD(0x004EB300, CTextureDevice::BindSurface);
 
 // The original repeats BindSurface's body for a texture and for none.
 int CTextureDevice::BindTexture(int stage, CTexture* texture) {
     return BindSurface(stage, texture ? texture->surface_ : nullptr);
 }
-EI_REPLACE_METHOD(0x004EBAF0, CTextureDevice::BindTexture);
 
 int CTextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
     if (!named->texture && named->name.size() != 0) {
@@ -38,4 +36,3 @@ int CTextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
     }
     return BindSurface(stage, named->texture ? named->texture->surface_ : nullptr);
 }
-EI_REPLACE_METHOD(0x004EB1D0, CTextureDevice::BindNamedTexture);

@@ -25,4 +25,3 @@ void __fastcall InitCostTables(CAIMap* map) {
     }
 }
 
-EI_REPLACE(0x005B6070, InitCostTables);

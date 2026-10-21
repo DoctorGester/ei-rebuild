@@ -117,7 +117,6 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, f
     }
     *average = static_cast<float>(D(*average) / static_cast<double>(count));
 }
-EI_REPLACE(0x0040D9B0, SampleTerrain);
 
 Vector3* CubicCurve3::Evaluate(Vector3* out, float t) const {
     double z = ((D(t) * c[11] + c[10]) * t + c[9]) * t + c[8];
@@ -128,7 +127,6 @@ Vector3* CubicCurve3::Evaluate(Vector3* out, float t) const {
     out->z = static_cast<float>(z);
     return out;
 }
-EI_REPLACE_METHOD(0x0040E460, CubicCurve3::Evaluate);
 
 int CCamera::PlaybackStart() {
     if (keyCount_ == 0) return 0;
@@ -136,7 +134,6 @@ int CCamera::PlaybackStart() {
     std::memcpy(&localRotation_, &keys_[0].rotation, sizeof(Quaternion));
     return 1;
 }
-EI_REPLACE_METHOD(0x0040F1B0, CCamera::PlaybackStart);
 
 int CCamera::PlaybackStep(float time) {
     if (!(flags_ & kPlaying) || keyCount_ == 0) return 0;
@@ -175,7 +172,6 @@ int CCamera::PlaybackStep(float time) {
     localRotation_.Slerp(u, a.rotation, b.rotation);
     return 1;
 }
-EI_REPLACE_METHOD(0x0040EFB0, CCamera::PlaybackStep);
 
 void CCamera::Pan(const Vector3* direction) {
     Vector3 right;
@@ -195,7 +191,6 @@ void CCamera::Pan(const Vector3* direction) {
     offsetA4_.y = static_cast<float>(upY + rightY);
     offsetA4_.z = 0.0f;
 }
-EI_REPLACE_METHOD(0x0040F230, CCamera::Pan);
 
 void CCamera::StopMotion() {
     Vector3 right, up;
@@ -221,7 +216,6 @@ void CCamera::StopMotion() {
     if (std::fabs(turnRate_) < std::fabs(turnTarget_)) CopyFloat(&turnRate_, &turnTarget_);
     zoomTarget_ = 0;
 }
-EI_REPLACE_METHOD(0x0040F430, CCamera::StopMotion);
 
 void CCamera::SetFocus(const Vector3* p) {
     std::memcpy(&focus_, p, sizeof(Vector3));
@@ -230,7 +224,6 @@ void CCamera::SetFocus(const Vector3* p) {
                   &low, &high);
     focus_.z = static_cast<float>(D(average) + focusHeight_);
 }
-EI_REPLACE_METHOD(0x0040F5C0, CCamera::SetFocus);
 
 void CCamera::ApplyView() {
     std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
@@ -275,7 +268,6 @@ void CCamera::ApplyView() {
     localRotation_.w = w;
     localRotation_.x = x;
 }
-EI_REPLACE_METHOD(0x0040F8B0, CCamera::ApplyView);
 
 void CCamera::Update(float dt) {
     Vector3 listener;
@@ -466,7 +458,6 @@ void CCamera::ZoomBy(float steps) {
     }
     if (d > limits.max) CopyFloat(&distance_, &limits.max);
 }
-EI_REPLACE_METHOD(0x004107A0, CCamera::ZoomBy);
 
 bool CCamera::SaveView(unsigned slot) {
     if (slot >= 8) return false;
@@ -477,7 +468,6 @@ bool CCamera::SaveView(unsigned slot) {
     ViewsToSettings(settings_);
     return true;
 }
-EI_REPLACE_METHOD(0x00410860, CCamera::SaveView);
 
 bool CCamera::RestoreView(unsigned slot) {
     if (slot >= 8) return false;
@@ -486,14 +476,12 @@ bool CCamera::RestoreView(unsigned slot) {
     ResetMotion(this);
     return true;
 }
-EI_REPLACE_METHOD(0x004108D0, CCamera::RestoreView);
 
 void CCamera::SetDistancePitch(const CameraView* view) {
     CopyFloat(&distance_, &view->distance);
     CopyFloat(&pitch_, &view->pitch);
     ResetMotion(this);
 }
-EI_REPLACE_METHOD(0x00411470, CCamera::SetDistancePitch);
 
 void CCamera::ViewsToSettings(CameraSettings* settings) {
     for (int i = 0; i < 4; ++i) {
@@ -521,7 +509,6 @@ void CCamera::ViewsToSettings(CameraSettings* settings) {
         }
     }
 }
-EI_REPLACE_METHOD(0x00410D70, CCamera::ViewsToSettings);
 
 void CCamera::ViewsFromSettings(const CameraSettings* settings) {
     for (int i = 0; i < 4; ++i) {
@@ -533,14 +520,12 @@ void CCamera::ViewsFromSettings(const CameraSettings* settings) {
         v.rotation.FromAxisAngle(axis, r.angle);
     }
 }
-EI_REPLACE_METHOD(0x00410D10, CCamera::ViewsFromSettings);
 
 void CCamera::SetHeading(float angle) {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     viewRotation_.FromAxisAngle(up, angle);
     ApplyView();
 }
-EI_REPLACE_METHOD(0x004109E0, CCamera::SetHeading);
 
 void CCamera::SetFree(bool on) {
     if (on)
@@ -548,7 +533,6 @@ void CCamera::SetFree(bool on) {
     else
         flags_ &= ~kFree;
 }
-EI_REPLACE_METHOD(0x00410E50, CCamera::SetFree);
 
 void CCamera::LookFrom(const Vector3* from, const Vector3* to, int) {
     flags_ |= kFree;
@@ -558,14 +542,12 @@ void CCamera::LookFrom(const Vector3* from, const Vector3* to, int) {
     float dz = static_cast<float>(D(to->z) - from->z);
     LookDirection(dx, dy, dz);
 }
-EI_REPLACE_METHOD(0x00411060, CCamera::LookFrom);
 
 void CCamera::SetBounds(const Vector3* center, float radius) {
     std::memcpy(&boundsCenter_, center, sizeof(Vector3));
     CopyFloat(&boundsRadius_, &radius);
     flags_ |= kBounded;
 }
-EI_REPLACE_METHOD(0x00411360, CCamera::SetBounds);
 
 void CCamera::Shake(const Vector3* source, float duration, float amplitude, float decay) {
     const Vector3& at = (flags_ & kPlaced) ? localPosition_ : focus_;
@@ -582,4 +564,3 @@ void CCamera::Shake(const Vector3* source, float duration, float amplitude, floa
     CopyFloat(&entry.decay, &decay);
     ShakeList::Insert(shakes_.End(), entry);
 }
-EI_REPLACE_METHOD(0x004113A0, CCamera::Shake);

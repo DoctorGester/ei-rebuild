@@ -71,6 +71,6 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     const Vector3& at = points[vertex[1]];
     distance = static_cast<float>(DotZYX(at, normal));
 }
-EI_REPLACE_METHOD(0x0049AEC0, MeshFace::ComputeNormal);
+EI_REPLACE_METHOD(0x0049AEC0, MeshFace::ComputeNormal);   // check_fp_fold's link to its original
 
 } // namespace scene

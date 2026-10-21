@@ -267,10 +267,7 @@ void CTransformObject::SetHeading(const float* dir) {
     std::memcpy(&localRotation_, r, sizeof(Quaternion));
 }
 
-EI_REPLACE_METHOD(0x00401570, CTransformObject::WorldMatrix);
-EI_REPLACE_METHOD(0x00401680, CTransformObject::TiltTowards);
-EI_REPLACE_METHOD(0x00401940, CTransformObject::TurnTowards);
-EI_REPLACE_METHOD(0x00401B50, CTransformObject::RollTowards);
-EI_REPLACE_METHOD(0x00401E50, CTransformObject::Rotate);
-EI_REPLACE_METHOD(0x00401F00, CTransformObject::TurnUpTowards);
-EI_REPLACE_METHOD(0x00402220, CTransformObject::SetHeading);
+EI_REPLACE_METHOD(0x00401680, CTransformObject::TiltTowards);   // check_fp_fold's link to its original
+EI_REPLACE_METHOD(0x00401940, CTransformObject::TurnTowards);   // check_fp_fold's link to its original
+EI_REPLACE_METHOD(0x00401B50, CTransformObject::RollTowards);   // check_fp_fold's link to its original
+EI_REPLACE_METHOD(0x00401F00, CTransformObject::TurnUpTowards);   // check_fp_fold's link to its original
