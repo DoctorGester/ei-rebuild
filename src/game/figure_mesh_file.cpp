@@ -54,7 +54,7 @@ void CFigureMesh::SaveToFile(mfc::CFileVirtuals* file) {
     Write(file, &meshType_, 4);
 }
 
-void CFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
+void CPlainFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
     BuffersChanged();
     int length = ReadCount(file);
     Read(file, name_.GetBufferSetLength(length), length);
@@ -192,4 +192,4 @@ void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
 EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigureImpl);
 EI_REPLACE_METHOD(0x0059F510, CFigureMesh::SetPose);
 EI_REPLACE_METHOD(0x0059F710, CFigureMesh::SaveToFile);
-EI_REWRITTEN(0x0059F8F0, CFigureMesh::LoadFromFile);
+EI_REWRITTEN(0x0059F8F0, CPlainFigureMesh::LoadFromFile);

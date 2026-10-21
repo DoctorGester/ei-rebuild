@@ -7,9 +7,12 @@
 #include "maths.h"
 
 #include "lib/containers.h"
+#include "lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 struct FigureAnimation;   // map_object_figures.h
 struct FigureBone;        // map_object_figures.h
@@ -17,7 +20,8 @@ struct FigureBone;        // map_object_figures.h
 // A part's track (only the fields used here): key frames of positions, rotations and morphed
 // vertex sets, one per time unit, and the values at the current time. Class id 0x300B (constructor
 // 0050A5D0), made by a bone's manager on first use and kept counted at FigureBone +0x50 (the
-// bone's animator; +0x4C the one placing it).
+// bone's animator; +0x4C the one placing it). A real virtual class (C19): the compiler makes its
+// vtable (game.exe's 0073D9D8 is retired).
 struct AnimationTrack : CEngineObject {
     // 0050ACD0. The values at `time`: between key frame floor(time) (rounded from the CRT's
     // modf) and the next by the fraction - positions and morph vertices linearly, rotations by
@@ -25,15 +29,26 @@ struct AnimationTrack : CEngineObject {
     // (007AF110 / 007AF100). Remembers `time` (+0x48).
     void Evaluate(float time);
 
-    // animation_track_lifetime.cpp (A-U10; vtable 0073D9D8, 0x78 bytes).
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D9D8);
-    // 0050A5D0. The constructor: engine object fields, empty arrays, the vtable, then DestroyTrack's
-    // reset. Returns this.
+    // animation_track_lifetime.cpp (A-U10; 0x78 bytes).
+    // 0050A5D0. Engine object fields, empty arrays, then DestroyTrack's reset.
+    AnimationTrack();
+    // 0050A720's work: the reset with both arrays emptied through their SetSize(0) (0050DFF0 /
+    // 0044F1D0), their blocks freed, then the engine object's.
+    ~AnimationTrack() override;
+    // The deleting destructor (slot 0, 0050A700) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
+    int Create() override;                 // 2: 0050A810 CreateTrack
+    void Destroy() override;               // 3: 0050A8C0 DestroyTrack
+    const char* GetClassName() override;   // 11: 0050A6E0 "CAnimationTrack" (small_slots_500.cpp)
+    int GetClassId() override;             // 12: 0050A6F0 (0x22)
+
+    // The registrations (C20 retires them): 0050A5D0 the constructor in place (returns this),
+    // 0050A720 the destructor, 0050A700 (slot 0) the destructor, then operator delete when bit 0 of
+    // `flags` is set (returns this).
     AnimationTrack* Construct();
-    // 0050A720. The destructor body: the reset with both arrays emptied through their SetSize(0)
-    // (0050DFF0 / 0044F1D0), their blocks freed, the engine object's.
     void DestructBody();
-    // 0050A700 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
     AnimationTrack* DeleteTrack(unsigned flags);
     // 0050A810 (slot 2). DestroyTrack's reset; returns 1.
     int CreateTrack();

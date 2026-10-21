@@ -99,7 +99,7 @@ void AddToCache(Cache* cache, const stlp::string* name, CLinkMesh* mesh) {
 
 // A reference dropped: the mesh deletes itself at zero.
 void ReleaseMesh(CLinkMesh* mesh) {
-    if (mesh && --mesh->refCount_ == 0) mesh->DeleteThis(1);
+    if (mesh && --mesh->refCount_ == 0) delete mesh;
 }
 
 // The cache's nodes below and including `node`, right subtrees first (_M_erase): each value's

@@ -358,7 +358,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
             figure = made;
             if (made) ++made->refCount_;
             // 00457720: the old figure loses a reference and is deleted at the last one.
-            if (old && --old->refCount_ == 0) old->DeleteThis(1);
+            if (old && --old->refCount_ == 0) delete old;
         }
         FreePieceNames(pieces);
     }
