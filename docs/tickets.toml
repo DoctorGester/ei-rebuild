@@ -3591,6 +3591,13 @@ model = "opus"
 depends = ["U1", "U2", "U3", "U4"]
 note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup. Done (EI_UTF8 only; off build unchanged). Case: UTF-8 case table (src/lib/text_case) behind the CRT's stricmp/strnicmp/memicmp/tolower/toupper/_mbslwr and classes, CharUpperA/CharLowerA routed, english locale no longer set under EI_UTF8; ~100 compares, 19 MakeLower and 6 per-byte folds left as callers of the fixed CRT; the name filter (0047ADA0) checks code points. Buffers: GetStringBuffer, server list ellipsis, edit box copy, connect name and DT_MODIFYSTRING (overflow in U3's route) cut or sized by character; chat line held within 200 bytes (220-byte update budget). Indexing: StrLen/StrMid by character, rest identifiers. Padding: no %-20s site exists. Wrap: chat AddLine steps whole characters, long words break between characters; DrawWrappedText left. Checks: utf8text, chatwrap in utf8_typing; frames 54/54; image suite 121 same, original 114 same. Notes: docs/notes/standalone.md U5 section."
 
+[[ticket]]
+id = "U6"
+title = "UTF-8 leftovers: DrawWrappedText breaks long words, Cyrillic install folder (profile calls)"
+group = "standalone"
+model = "sonnet"
+note = "From U5 (2026-10-21): with EI_UTF8 on, DrawWrappedText still does not break inside a long word (as the original); the profile calls (CIniFile, GetPrivateProfile*, WritePrivateProfileString) stay ANSI, so a Cyrillic install folder is unchecked and the ini files' code page undecided. The case table covers 1251/1252 letters only."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
