@@ -105,8 +105,8 @@ void CTrapObject::SaveTrapObject(CStream* stream) {
 }
 EI_REPLACE_METHOD(0x00529DA0, CTrapObject::SaveTrapObject);
 
-void CTrapObject::Load(void* stream) { LoadTrapObject(static_cast<CStream*>(stream)); }
-void CTrapObject::Save(void* stream) { SaveTrapObject(static_cast<CStream*>(stream)); }
+void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }
+void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
 bool CTrapObject::ApplyScience(int first, int second) {
     return Disarm(reinterpret_cast<const LockKey*>(static_cast<std::intptr_t>(first)), second);
 }

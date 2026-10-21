@@ -58,8 +58,8 @@ public:
     int Create() override { return CreateTrap(); }         // 2: 0052A100
     void Destroy() override { DestroyTrap(); }             // 3: 0052A200
     int RunTick() override { return UpdateTrap(); }        // 6: 0052AC20
-    void Load(void* stream) override;                      // 9: 0052ADC0 LoadTrap
-    void Save(void* stream) override;                      // 10: 0052B070 SaveTrap
+    void Load(CStream* stream) override;                      // 9: 0052ADC0 LoadTrap
+    void Save(CStream* stream) override;                      // 10: 0052B070 SaveTrap
     const char* GetClassName() override;                   // 11: 00529F50 "CMagicTrapObject" (trap_object.cpp)
     int GetClassId() override;                             // 12: 00529F60 (0x61)
     bool IsSynchronised() override { return true; }        // 29: 00529AE0 (the trap's)

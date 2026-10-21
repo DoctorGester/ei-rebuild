@@ -107,8 +107,8 @@ public:
     void Destroy() override { DestroyMapObject(); }        // 3: 0050E840
     void ClearState() override {}                          // 5: 0050E760 (empty)
     int RunTick() override { return Update(); }            // 6: 0050F1C0
-    void Load(void* stream) override;                      // 9: 0050F7A0 LoadMapObject
-    void Save(void* stream) override;                      // 10: 0050F900 SaveMapObject
+    void Load(CStream* stream) override;                      // 9: 0050F7A0 LoadMapObject
+    void Save(CStream* stream) override;                      // 10: 0050F900 SaveMapObject
     // 19: units 0052E870 AttachCompanion. 0050E890 (map_object.cpp): an object of type 0x47
     // becomes the companion (as AttachCompanion, but a null or other object goes to the 3D object's
     // slot 19, 00516D50, which takes type 0x46 objects at +0x94). Returns the companion's new

@@ -299,8 +299,8 @@ public:
     void ClearState() override;              // 5: 0052E740 ReleaseUnit
     int RunTick() override;                  // 6: 0052F7D0 Tick
     const char* GetName() override;          // 7: 00446820 the script name
-    void Load(void* stream) override;        // 9: 00531A80 LoadUnit
-    void Save(void* stream) override;        // 10: 005321C0 SaveUnit
+    void Load(CStream* stream) override;        // 9: 00531A80 LoadUnit
+    void Save(CStream* stream) override;        // 10: 005321C0 SaveUnit
     const char* GetClassName() override;     // 11: 0052E280 "CUnit"
     int GetClassId() override;               // 12: 0052E290 (0x50)
     bool IsSynchronised() override;          // 29: 004467E0 (true)

@@ -8,6 +8,7 @@
 #undef GetClassName
 
 class CBaseManager;
+class CStream;   // core_streams.h
 class CWorld;
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
@@ -32,8 +33,8 @@ public:
     virtual int RunTick();                             // 6: 00402CD0 (0); world objects' per-tick update
     virtual const char* GetName();                     // 7: 00402CE0 "noname"
     virtual const char* GetDescription();              // 8: 00402CF0 "nodesc"
-    virtual void Load(void* stream);                   // 9: 00402D00 (empty); a CStream (core_streams.h)
-    virtual void Save(void* stream);                   // 10: 00402D10 (empty)
+    virtual void Load(CStream* stream);                 // 9: 00402D00 (empty)
+    virtual void Save(CStream* stream);                 // 10: 00402D10 (empty)
     virtual const char* GetClassName() = 0;            // 11: e.g. "CTexture"
     virtual int GetClassId() = 0;                      // 12: e.g. 6 for CTexture
 

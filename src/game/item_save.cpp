@@ -22,8 +22,7 @@ std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(re
 
 } // namespace
 
-void CItem::LoadImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItem::LoadImpl(CStream* stream) {
     stream->Read(&prototypeId_, kDword);
     stream->Read(&condition_, kDword);
     stream->Read(&conditionMax_, kDword);
@@ -45,8 +44,7 @@ void CItem::LoadImpl(void* data) {
     stream->Read(&magicLevel_, kDword);
 }
 
-void CItem::SaveImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItem::SaveImpl(CStream* stream) {
     stream->Write(&prototypeId_, kDword);
     stream->Write(&condition_, kDword);
     stream->Write(&conditionMax_, kDword);
@@ -62,8 +60,7 @@ void CItem::SaveImpl(void* data) {
     stream->Write(&magicLevel_, kDword);
 }
 
-void CItemWeapon::LoadImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemWeapon::LoadImpl(CStream* stream) {
     CItem::LoadImpl(stream);
     stream->Read(&actionValue_, kDword);
     stream->Read(&damage_, kDword);
@@ -71,8 +68,7 @@ void CItemWeapon::LoadImpl(void* data) {
     stream->Read(&reach_, kDword);
 }
 
-void CItemWeapon::SaveImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemWeapon::SaveImpl(CStream* stream) {
     CItem::SaveImpl(stream);
     stream->Write(&actionValue_, kDword);
     stream->Write(&damage_, kDword);
@@ -80,46 +76,39 @@ void CItemWeapon::SaveImpl(void* data) {
     stream->Write(&reach_, kDword);
 }
 
-void CItemArmor::LoadImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemArmor::LoadImpl(CStream* stream) {
     CItem::LoadImpl(stream);
     stream->Read(absorb_[0], sizeof(absorb_[0]));
     stream->Read(absorb_[1], sizeof(absorb_[1]));
 }
 
-void CItemArmor::SaveImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemArmor::SaveImpl(CStream* stream) {
     CItem::SaveImpl(stream);
     stream->Write(absorb_[0], sizeof(absorb_[0]));
     stream->Write(absorb_[1], sizeof(absorb_[1]));
 }
 
-void CItemQuick::LoadImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemQuick::LoadImpl(CStream* stream) {
     CItem::LoadImpl(stream);
     stream->Read(&actionValue_, kDword);
 }
 
-void CItemQuick::SaveImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemQuick::SaveImpl(CStream* stream) {
     CItem::SaveImpl(stream);
     stream->Write(&actionValue_, kDword);
 }
 
-void CItemQuest::LoadImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemQuest::LoadImpl(CStream* stream) {
     CItem::LoadImpl(stream);
     stream->Read(&questItemId_, kDword);
 }
 
-void CItemQuest::SaveImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemQuest::SaveImpl(CStream* stream) {
     CItem::SaveImpl(stream);
     stream->Write(&questItemId_, kDword);
 }
 
-void CItemLoot::LoadImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemLoot::LoadImpl(CStream* stream) {
     CItem::LoadImpl(stream);
     std::uint32_t value = StreamSlot(stream);
     stream->Read(&value, kDword);
@@ -129,8 +118,7 @@ void CItemLoot::LoadImpl(void* data) {
     stream->Read(&index_, kDword);
 }
 
-void CItemLoot::SaveImpl(void* data) {
-    auto* stream = static_cast<CStream*>(data);
+void CItemLoot::SaveImpl(CStream* stream) {
     CItem::SaveImpl(stream);
     stream->Write(&kind_, kDword);
     stream->Write(&recordType_, kDword);

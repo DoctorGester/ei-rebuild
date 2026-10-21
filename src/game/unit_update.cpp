@@ -162,8 +162,8 @@ void CUnit::Destroy() { DestroyUnit(); }
 void CUnit::ClearState() { ReleaseUnit(); }
 int CUnit::RunTick() { return Tick(); }
 const char* CUnit::GetName() { return scriptName; }
-void CUnit::Load(void* stream) { LoadUnit(static_cast<CStream*>(stream)); }
-void CUnit::Save(void* stream) { SaveUnit(static_cast<CStream*>(stream)); }
+void CUnit::Load(CStream* stream) { LoadUnit(stream); }
+void CUnit::Save(CStream* stream) { SaveUnit(stream); }
 const char* CUnit::GetClassName() { return kUnitClassName; }
 int CUnit::GetClassId() { return kUnitClassId; }
 bool CUnit::AcceptsAnimation(const void* entry) { return AcceptsAnimationImpl(entry); }

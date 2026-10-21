@@ -140,8 +140,8 @@ EI_REPLACE_METHOD(0x00516360, CMapObject::LoadTransformSlot);
 // --- The virtual slots (vtable 0073DAA0) for the compiler's tables (C19) -------------------------------
 // The bodies above and in map_object*.cpp / object_small_slots.cpp, called without dispatch.
 
-void CMapObject::Load(void* stream) { LoadMapObject(static_cast<CStream*>(stream)); }
-void CMapObject::Save(void* stream) { SaveMapObject(static_cast<CStream*>(stream)); }
+void CMapObject::Load(CStream* stream) { LoadMapObject(stream); }
+void CMapObject::Save(CStream* stream) { SaveMapObject(stream); }
 std::uintptr_t CMapObject::AttachObject(CEngineObject* object) { return AttachObjectImpl(object); }
 bool CMapObject::InvisibleSlot() { return IsInvisible() != 0; }
 std::uintptr_t CMapObject::EffectsChanged() { return 0; }

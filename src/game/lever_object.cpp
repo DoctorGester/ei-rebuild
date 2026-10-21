@@ -131,8 +131,8 @@ void Lever::SaveLever(CStream* stream) {
 }
 EI_REPLACE_METHOD(0x0052BE40, Lever::SaveLever);
 
-void Lever::Load(void* stream) { LoadLever(static_cast<CStream*>(stream)); }
-void Lever::Save(void* stream) { SaveLever(static_cast<CStream*>(stream)); }
+void Lever::Load(CStream* stream) { LoadLever(stream); }
+void Lever::Save(CStream* stream) { SaveLever(stream); }
 bool Lever::ApplyScience(int first, int second) {
     return ApplyKey(reinterpret_cast<const LockKey*>(static_cast<std::intptr_t>(first)), second);
 }

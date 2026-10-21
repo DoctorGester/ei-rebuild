@@ -114,8 +114,8 @@ public:
     void Start(int update);                       // 006763A0 (slot 23)
     int Unpack(int update, DeltaField* field);    // 00676430 (slot 21)
     void Pack(DeltaField* field);                 // 00676550 (slot 22)
-    void LoadState(void* stream);                 // 006765F0 (slot 9)
-    void SaveState(void* stream);                 // 006766D0 (slot 10)
+    void LoadState(CStream* stream);                 // 006765F0 (slot 9)
+    void SaveState(CStream* stream);                 // 006766D0 (slot 10)
     double Radius();                              // 00676050 (slot 19): radius_
 
     char name_[0x100];         // +0x14C sound file
@@ -144,8 +144,8 @@ public:
     void Start(int update);                       // 00676C00 (slot 23; world_effect_sequence.cpp)
     int Unpack(int update, DeltaField* field);    // 00676FD0 (slot 21)
     void Pack(DeltaField* field);                 // 00677180 (slot 22)
-    void LoadState(void* stream);                 // 006772D0 (slot 9)
-    void SaveState(void* stream);                 // 00677430 (slot 10)
+    void LoadState(CStream* stream);                 // 006772D0 (slot 9)
+    void SaveState(CStream* stream);                 // 00677430 (slot 10)
     double Radius();                              // 00676930 (slot 19): radius_
 
     mfc::CString name_;        // +0x14C the first sound
@@ -171,8 +171,8 @@ public:
     void Start(int update);                       // 00677950 (slot 23)
     int Unpack(int update, DeltaField* field);    // 006779D0 (slot 21)
     void Pack(DeltaField* field);                 // 00677B20 (slot 22)
-    void LoadState(void* stream);                 // 00677BF0 (slot 9)
-    void SaveState(void* stream);                 // 00677C60 (slot 10)
+    void LoadState(CStream* stream);                 // 00677BF0 (slot 9)
+    void SaveState(CStream* stream);                 // 00677C60 (slot 10)
     double Radius();                              // 00677690 (slot 19): radius_
 
     mfc::CStringArray names_;  // +0x14C
@@ -198,8 +198,8 @@ public:
     void Start(int update);                       // 006782D0 (slot 23)
     int Unpack(int update, DeltaField* field);    // 00678520 (slot 21)
     void Pack(DeltaField* field);                 // 00678610 (slot 22)
-    void LoadState(void* stream);                 // 00678690 (slot 9)
-    void SaveState(void* stream);                 // 00678740 (slot 10)
+    void LoadState(CStream* stream);                 // 00678690 (slot 9)
+    void SaveState(CStream* stream);                 // 00678740 (slot 10)
     double Radius();                              // 00677F70 (slot 19): DefaultRadius + range_
 
     Vector3 color_;            // +0x14C
@@ -231,8 +231,8 @@ public:
     void SetColors(float a, float b);             // 006792E0
     void SetTarget(const Vector3* target);        // 00679310
     void Attach();                                // 00679350: attaches the source to attachedTo_
-    void LoadState(void* stream);                 // 006793E0 (slot 9)
-    void SaveState(void* stream);                 // 006794E0 (slot 10)
+    void LoadState(CStream* stream);                 // 006793E0 (slot 9)
+    void SaveState(CStream* stream);                 // 006794E0 (slot 10)
     int Tick();                                   // 006795C0 (slot 6)
 
     Vector3 worldPosition_;    // +0x14C Position's result when attached
@@ -261,8 +261,8 @@ public:
     void SetDirection(const Vector3* direction);  // 00679C30
     int Unpack(int update, DeltaField* field);    // 00679C70 (slot 21)
     void Pack(DeltaField* field);                 // 00679DB0 (slot 22)
-    void LoadState(void* stream);                 // 00679EA0 (slot 9)
-    void SaveState(void* stream);                 // 00679ED0 (slot 10)
+    void LoadState(CStream* stream);                 // 00679EA0 (slot 9)
+    void SaveState(CStream* stream);                 // 00679ED0 (slot 10)
 
     Vector3 direction_;        // +0x180 copied to the source's +0x130
 };
@@ -283,8 +283,8 @@ public:
     int Unpack(int update, DeltaField* field);    // 0067A490 (slot 21)
     void Pack(DeltaField* field);                 // 0067A600 (slot 22)
     void SetEnds(const Vector3* from, const Vector3* to, float width);   // 0067A6B0
-    void LoadState(void* stream);                 // 0067A770 (slot 9)
-    void SaveState(void* stream);                 // 0067A7F0 (slot 10)
+    void LoadState(CStream* stream);                 // 0067A770 (slot 9)
+    void SaveState(CStream* stream);                 // 0067A7F0 (slot 10)
     void SetObjects(int fromObject, int toObject);    // 0067A890
     void SetFlag(std::uint8_t flag);              // 0067A8C0
     int Tick();                                   // 0067A8F0 (slot 6)
@@ -339,8 +339,8 @@ public:
     void Start(int update);                       // 0067B4E0 (slot 23)
     int Unpack(int update, DeltaField* field);    // 0067B690 (slot 21)
     void Pack(DeltaField* field);                 // 0067B800 (slot 22)
-    void LoadState(void* stream);                 // 0067B8E0 (slot 9)
-    void SaveState(void* stream);                 // 0067B9A0 (slot 10)
+    void LoadState(CStream* stream);                 // 0067B8E0 (slot 9)
+    void SaveState(CStream* stream);                 // 0067B9A0 (slot 10)
 
     // The embedded effects (the classes are abstract in C++, so the members are their bytes).
     CEffectParticle& Particle() { return *reinterpret_cast<CEffectParticle*>(particle_); }
@@ -383,8 +383,8 @@ public:
     void Start(int update);                       // 0067BF20 (slot 23): 0 makes the figure
     int Unpack(int update, DeltaField* field);    // 0067C080 (slot 21)
     void Pack(DeltaField* field);                 // 0067C170 (slot 22)
-    void LoadState(void* stream);                 // 0067C200 (slot 9)
-    void SaveState(void* stream);                 // 0067C290 (slot 10)
+    void LoadState(CStream* stream);                 // 0067C200 (slot 9)
+    void SaveState(CStream* stream);                 // 0067C290 (slot 10)
 
     CEngineObject* figure_;    // +0x158 client only: the figure object (a CObject3D, counted), null: none
     int casterId_;             // +0x15C the shooter, -1: none
@@ -411,8 +411,8 @@ public:
     int Unpack(int update, DeltaField* field);    // 0067C6B0 (slot 21)
     void Pack(DeltaField* field);                 // 0067C7A0 (slot 22)
     int Tick();                                   // 0067C840 (slot 6)
-    void LoadState(void* stream);                 // 0067C8E0 (slot 9)
-    void SaveState(void* stream);                 // 0067C910 (slot 10)
+    void LoadState(CStream* stream);                 // 0067C8E0 (slot 9)
+    void SaveState(CStream* stream);                 // 0067C910 (slot 10)
 
     // The fog object is a CVisibilityFog (effects.h), reference counted as an engine object.
     CVisibilityFog* Fog() { return reinterpret_cast<CVisibilityFog*>(fog_); }
@@ -487,8 +487,8 @@ public:
     int Unpack(int update, DeltaField* field);    // 0067DDD0 (slot 21)
     void Pack(DeltaField* field);                 // 0067DEB0 (slot 22)
     void Start(int update);                       // 0067DF10 (slot 23)
-    void LoadState(void* stream);                 // 0067E020 (slot 9)
-    void SaveState(void* stream);                 // 0067E070 (slot 10)
+    void LoadState(CStream* stream);                 // 0067E020 (slot 9)
+    void SaveState(CStream* stream);                 // 0067E070 (slot 10)
 
     CParticleSource* Source() { return reinterpret_cast<CParticleSource*>(source_); }
 

@@ -599,7 +599,7 @@ public:
     void ClearMapObjects();
     // 00596730 (RET 4). Writes every map object to a save stream: id, prototype name, the
     // object's own Save (slot 10) and its two flag words; -1 ends the list.
-    void SaveMapObjects(void* stream);
+    void SaveMapObjects(CStream* stream);
 
     // world_save.cpp
     // 00596E70 (RET 8). Restores the world from a mission save: zone names, settings, alarms and

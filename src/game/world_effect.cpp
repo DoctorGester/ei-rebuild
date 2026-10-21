@@ -168,7 +168,7 @@ void CEffectSound::Pack(DeltaField* field) {
     field->WriteDelta(&noFade_, 1);
 }
 
-void CEffectSound::LoadState(void* stream) {
+void CEffectSound::LoadState(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, name_, 0x100);
     Read(stream, &volume_, 4);
@@ -181,7 +181,7 @@ void CEffectSound::LoadState(void* stream) {
     Read(stream, &noFade_, 1);
 }
 
-void CEffectSound::SaveState(void* stream) {
+void CEffectSound::SaveState(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, name_, 0x100);
     WriteCopy(stream, &volume_);
@@ -228,11 +228,11 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
     field->WriteDelta(&noFade_, 1);
 }
 
-void CEffectSoundSeq::LoadState(void* stream) {
+void CEffectSoundSeq::LoadState(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &velocity_, 12);
-    static_cast<CStream*>(stream)->ReadInto(&name_);
-    ReadSavedStrings(&names_, static_cast<CStream*>(stream));
+    stream->ReadInto(&name_);
+    ReadSavedStrings(&names_, stream);
     Read(stream, &volume_, 4);
     Read(stream, &radius_, 4);
     moving_ = IsMoving(velocity_);
@@ -240,7 +240,7 @@ void CEffectSoundSeq::LoadState(void* stream) {
     Read(stream, &noFade_, 1);
 }
 
-void CEffectSoundSeq::SaveState(void* stream) {
+void CEffectSoundSeq::SaveState(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &velocity_, 12);
     Write(stream, name_, static_cast<std::uint32_t>(std::strlen(name_) + 1));
@@ -316,16 +316,16 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
 }
 
-void CEffectAmbientSound::LoadState(void* stream) {
+void CEffectAmbientSound::LoadState(CStream* stream) {
     Read(stream, &localPosition_, 12);
-    ReadSavedStrings(&names_, static_cast<CStream*>(stream));
+    ReadSavedStrings(&names_, stream);
     Read(stream, &volume_, 4);
     Read(stream, &radius_, 4);
     Read(stream, &minInterval_, 4);
     Read(stream, &maxInterval_, 4);
 }
 
-void CEffectAmbientSound::SaveState(void* stream) {
+void CEffectAmbientSound::SaveState(CStream* stream) {
     Write(stream, &localPosition_, 12);
     int count = names_.size;
     Write(stream, &count, 4);
