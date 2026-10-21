@@ -277,6 +277,7 @@ SmoothTable* SmoothTable::Construct() {
     chained.Construct(kStepArrayVtable);
     return this;
 }
+EI_REPLACE_METHOD(0x005C4210, SmoothTable::Construct);
 
 void SmoothTable::Destruct() {
     chained.vtable = ei::GamePointer<void>(kStepArrayVtable);

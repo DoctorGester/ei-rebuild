@@ -58,7 +58,7 @@ REGISTRATION = re.compile(
     r'\s*,\s*([^;]*?)\)\s*;[ \t]*(//[^\n]*)?$', re.M)
 ANY_REGISTRATION = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH|_SHORT|_STANDALONE)?|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(')
 ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
-LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
+LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX](?:00)?([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
 WORD = re.compile(r'(?<![0-9A-Za-z_])00([4-7][0-9A-Fa-f]{5})(?![0-9A-Za-z_])')
 CODE_CELLS = os.path.join(ROOT, 'src', 'standalone', 'image_code_cells.inc')
 STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
