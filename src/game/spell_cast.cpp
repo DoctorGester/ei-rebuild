@@ -42,7 +42,7 @@ itemdb::CodeIndexedTable& SpellTableHolder() { return itemdb::TheSpellDatabase()
 itemdb::CodeIndexedTable& ModifierTableHolder() { return itemdb::TheSpellDatabase().modifiers; }
 
 // 0068C680: STLport string reserve(n) on the container's code string (stlp::StringAbi's).
-void CodesReserve(char** codes, unsigned n) { stlp::StringAbi::Reserve(reinterpret_cast<stlp::string*>(codes), nullptr, n); }
+void CodesReserve(char** codes, unsigned n) { static_cast<stlp::StringAbi*>(reinterpret_cast<stlp::string*>(codes))->Reserve(n); }
 
 // _ftol (006E853C) of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
 // FMUL dword, CALL _ftol).

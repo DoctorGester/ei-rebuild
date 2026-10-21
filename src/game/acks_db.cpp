@@ -194,15 +194,14 @@ void SpeechFields(ChunkArchive* ar, SpeechRecord* speech) {
 
 // Chunk `id` of a list, if present: loading empties the list (its elements destroyed in order) and
 // sizes it to the number of element chunks (id 1); then element i is chunk 1's (i + 1)-th occurrence.
-template <typename T, typename Fields>
-void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list,
-               void(__fastcall* resize)(stlp::vector<T>*, void*, unsigned), Fields fields) {
+template <typename T, typename Abi, typename Fields>
+void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list, void (Abi::*resize)(std::size_t), Fields fields) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
         list->clear();
         count = ar->CountChunks(1);
-        resize(list, nullptr, static_cast<unsigned>(count));
+        (static_cast<Abi*>(list)->*resize)(static_cast<std::size_t>(count));
     } else {
         count = static_cast<int>(list->size());
     }
@@ -234,12 +233,12 @@ void ChunkArchive::SerializeSpeech(int id, void* speech) {
 }
 void ChunkArchive::SerializeSpeechList(int id, void* list, void*) {
     ChunkArchive* ar = this;
-    ListField(ar, id, static_cast<SpeechList*>(list), recordvec::SpeechVector::ResizeDefault,
+    ListField(ar, id, static_cast<SpeechList*>(list), &recordvec::SpeechVector::ResizeDefault,
               [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
 }
 void ChunkArchive::SerializeEnvironmentSpeeches(int id, void* list, void*) {
     ChunkArchive* ar = this;
-    ListField(ar, id, static_cast<stlp::vector<EnvironmentSpeech>*>(list), recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
+    ListField(ar, id, static_cast<stlp::vector<EnvironmentSpeech>*>(list), &recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
         SpeechFields(ar, &speech->speech);
         ar->Field(10, &speech->environment, 4);
     });

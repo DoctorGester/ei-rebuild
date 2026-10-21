@@ -2043,8 +2043,8 @@ void SavedParties::Reload() {
                     }
                     ++finish;
                 } else {
-                    libcontainers::HeroRecordAbi::InsertOverflow(   // 00619920
-                        reinterpret_cast<libcontainers::HeroRecords*>(&entries_), nullptr, finish, entry, 1);
+                    static_cast<libcontainers::HeroRecordAbi*>(reinterpret_cast<libcontainers::HeroRecords*>(&entries_))
+                        ->InsertOverflow(finish, *entry, 1);   // 00619920
                 }
             }
         }
@@ -2066,7 +2066,7 @@ const char* const* NameList(std::uintptr_t address) { return ei::GamePointer<con
 
 // 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
 void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {
-    recordvec::ZoneTableVector::InsertOverflow(table, nullptr, pos, value, count);
+    static_cast<recordvec::ZoneTableVector*>(table)->InsertOverflow(pos, *value, count);
 }
 
 // The allod of a map name: the first list that has it.

@@ -88,7 +88,9 @@ std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::
 // 0056E8A0 / 00572B00).
 using HeldOps = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
 struct GridOpsA {
-    static constexpr auto Erase = HeldOps::Erase;
+    static void Erase(SectorList* list, SectorListNode** out, SectorListNode* node) {
+        static_cast<HeldOps*>(static_cast<stlp::list<CEngineObject*>*>(list))->Erase(out, node);
+    }
 };
 using GridOpsB = GridOpsA;
 
@@ -121,7 +123,7 @@ void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) 
             SectorListNode* next = node->next;
             if (node->data == object) {
                 SectorListNode* ignored;
-                Ops::Erase(list, nullptr, &ignored, node);
+                Ops::Erase(list, &ignored, node);
             }
             node = next;
         }
@@ -252,14 +254,18 @@ namespace {
 using PlainList = SectorList;
 using PlainAbi = stlp::ListAbi<CEngineObject*>;
 struct PlainOps {
-    static constexpr auto Erase = PlainAbi::Erase;
+    static void Erase(SectorList* list, SectorListNode** out, SectorListNode* node) {
+        static_cast<PlainAbi*>(static_cast<stlp::list<CEngineObject*>*>(list))->Erase(out, node);
+    }
 };
 
 // The sector grid's cell list (held objects): remove(counted value) [00570400], push_back
 // [0056DED0], clear [005703C0]; the second grid's clear [00573660].
 struct CellOps {
     static constexpr auto Remove = stlp::ListRemoveHeld;
-    static constexpr auto PushBack = HeldOps::PushBack;
+    static void PushBack(SectorList* list, CEngineObject** value) {
+        static_cast<HeldOps*>(static_cast<stlp::list<CEngineObject*>*>(list))->PushBack(*value);
+    }
     static constexpr auto Clear = HeldOps::Clear;
     static constexpr auto Clear2 = HeldOps::Clear;
 };
@@ -350,7 +356,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     if (SectorList* cell = CellFor(grid, object)) {
         CEngineObject* value = object;
         HoldRef(value);
-        CellOps::PushBack(cell, nullptr, &value);
+        CellOps::PushBack(cell, &value);
         DropRef(value);
     }
     if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF)) {
@@ -510,7 +516,7 @@ void CWorldClient::RemoveObject(int id) {
             SectorListNode* next = hero->next;
             if (hero->data == value) {
                 SectorListNode* ignored;
-                GridOpsA::Erase(&heroes, nullptr, &ignored, hero);
+                GridOpsA::Erase(&heroes, &ignored, hero);
             }
             hero = next;
         }
@@ -524,7 +530,7 @@ void CWorldClient::RemoveObject(int id) {
         DropRef(value);
     }
     SectorListNode* ignored;
-    PlainOps::Erase(&objects, nullptr, &ignored, node);
+    PlainOps::Erase(&objects, &ignored, node);
     object->Release();
 }
 
@@ -581,7 +587,7 @@ void CWorldClient::ClearMaps() {
         SectorListNode* next = node->next;
         if (functor.Test(node->data)) {
             SectorListNode* ignored;
-            PlainOps::Erase(&objects, nullptr, &ignored, node);
+            PlainOps::Erase(&objects, &ignored, node);
         }
         node = next;
     }

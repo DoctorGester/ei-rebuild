@@ -196,7 +196,7 @@ void CHudPortraits::Rebuild(int wide) {
     mfc::CString picture;
     mfc::CString model;
     mfc::CString tip;
-    recordvec::HudPortraitSlotVector::EraseRange(Slots(&slots_), nullptr, slots_, slotsEnd_);
+    static_cast<recordvec::HudPortraitSlotVector*>(Slots(&slots_))->EraseRange(slots_, slotsEnd_);
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];

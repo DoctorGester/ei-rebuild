@@ -329,7 +329,7 @@ void CSaveLoadWindow::FillEntries() {
     mfc::CString pattern;
     pattern.Format(game::savewords::SavePattern(), DataFolderText());
     mfc::CFileFind find;
-    recordvec::SaveEntryVector::EraseRange(Entries(EntryVector(this)), nullptr, entriesBegin_, entriesEnd_);
+    static_cast<recordvec::SaveEntryVector*>(Entries(EntryVector(this)))->EraseRange(entriesBegin_, entriesEnd_);
     int highest = 0;     // the highest number after "save" in the folder names
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
     BOOL more = find.FindFile(pattern, 0);
@@ -342,7 +342,7 @@ void CSaveLoadWindow::FillEntries() {
             EntryConstruct(entriesEnd_, &fresh.e);
             ++entriesEnd_;
         } else {
-            recordvec::SaveEntryVector::InsertOverflow(Entries(EntryVector(this)), nullptr, entriesEnd_, &fresh.e, 1);
+            static_cast<recordvec::SaveEntryVector*>(Entries(EntryVector(this)))->InsertOverflow(entriesEnd_, fresh.e, 1);
         }
         SaveEntry* entry = entriesEnd_ - 1;
         entry->folder_ = FileName(find);
@@ -401,7 +401,7 @@ void CSaveLoadWindow::FillEntries() {
         LocalEntry fresh;
         SaveEntry* at = entriesBegin_;
         if (entriesEnd_ == entriesCapacity_) {
-            recordvec::SaveEntryVector::InsertOverflow(Entries(EntryVector(this)), nullptr, at, &fresh.e, 1);
+            static_cast<recordvec::SaveEntryVector*>(Entries(EntryVector(this)))->InsertOverflow(at, fresh.e, 1);
         } else if (at == entriesEnd_) {
             if (entriesEnd_) entriesEnd_->CopyConstruct(&fresh.e);
             ++entriesEnd_;

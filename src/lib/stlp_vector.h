@@ -359,54 +359,54 @@ struct AllocProxy {
 // The game's instantiations are __thiscall members, declared here as __fastcall functions with the
 // unused EDX second.
 template <typename T, typename E = PlainElement<T>>
-struct VectorAbi {
+struct VectorAbi : vector<T> {
     using Vector = vector<T>;
     using Element = E;
 
     // ~_Vector_base() (e.g. 00405BF0).
     static void __fastcall DestroyBase(Vector* self) { self->FreeStorage(); }
     // The scalar deleting destructor of a _Vector_base (e.g. 0053D970; RET 4): returns this.
-    static Vector* __fastcall DeleteBase(Vector* self, void*, unsigned flags) {
-        self->FreeStorage();
-        if (flags & 1) gamecrt::operator_delete(self);
-        return self;
+    Vector* DeleteBase(unsigned flags) {
+        this->FreeStorage();
+        if (flags & 1) gamecrt::operator_delete(this);
+        return this;
     }
     // _Vector_base(n, allocator) (e.g. 00421F60; RET 8).
-    static void __fastcall ConstructWithCapacity(Vector* self, void*, std::size_t n, const void*) {
-        self->ConstructWithCapacity(n);
+    void ConstructWithCapacity(std::size_t n, const void*) {
+        Vector::ConstructWithCapacity(n);
     }
     // _M_allocate_and_copy(n, first, last) (e.g. 0069DB00; RET 0xC): the new block.
-    static T* __fastcall AllocateAndCopy(Vector*, void*, std::size_t n, const T* first, const T* last) {
+    T* AllocateAndCopy(std::size_t n, const T* first, const T* last) {
         return Vector::template AllocateAndCopy<E>(n, first, last);
     }
     // _M_insert_overflow(pos, x, n) (e.g. 0043B6C0; RET 0xC).
-    static void __fastcall InsertOverflow(Vector* self, void*, T* pos, const T* x, std::size_t n) {
-        self->template InsertOverflow<E>(pos, *x, n);
+    void InsertOverflow(T* pos, const T& x, std::size_t n) {
+        Vector::template InsertOverflow<E>(pos, x, n);
     }
     // _M_fill_insert(pos, n, x) / insert(pos, n, x) (e.g. 0040B150; RET 0xC).
-    static void __fastcall FillInsert(Vector* self, void*, T* pos, std::size_t n, const T* x) {
-        self->template FillInsert<E>(pos, n, *x);
+    void FillInsert(T* pos, std::size_t n, const T& x) {
+        Vector::template FillInsert<E>(pos, n, x);
     }
     // _M_range_insert(pos, first, last, tag) and insert(pos, first, last) (e.g. 0069ECD0,
     // 0069E3F0; RET 0x10: the last argument is not read).
-    static void __fastcall RangeInsert(Vector* self, void*, T* pos, const T* first, const T* last, const void*) {
-        self->template RangeInsert<E>(pos, first, last);
+    void RangeInsert(T* pos, const T* first, const T* last, const void*) {
+        Vector::template RangeInsert<E>(pos, first, last);
     }
     // erase(first, last) (e.g. 0056F5E0; RET 8): returns first.
-    static T* __fastcall EraseRange(Vector* self, void*, T* first, T* last) {
-        return self->template EraseRange<E>(first, last);
+    T* EraseRange(T* first, T* last) {
+        return Vector::template EraseRange<E>(first, last);
     }
     // clear() (e.g. 0056E870).
     static void __fastcall Clear(Vector* self) { self->template EraseRange<E>(self->begin(), self->end()); }
     // resize(n, x) (e.g. 004AE3A0; RET 8).
-    static void __fastcall Resize(Vector* self, void*, std::size_t n, const T* x) { self->template Resize<E>(n, *x); }
+    void Resize(std::size_t n, const T& x) { Vector::template Resize<E>(n, x); }
     // resize(n) (e.g. 0051F5B0; RET 4): resize(n, T()) with a temporary the policy makes first and
     // destroys last.
-    static void __fastcall ResizeDefault(Vector* self, void*, std::size_t n) {
+    void ResizeDefault(std::size_t n) {
         alignas(T) unsigned char storage[sizeof(T)];
         T* x = reinterpret_cast<T*>(storage);
         E::Default(x);
-        self->template Resize<E>(n, *x);
+        Vector::template Resize<E>(n, *x);
         E::Destroy(x);
     }
     // ~vector() (e.g. 0053F020): the elements destroyed in order, then the storage freed.
@@ -415,19 +415,19 @@ struct VectorAbi {
         self->FreeStorage();
     }
     // reserve(n) (e.g. 0040AF00; RET 4).
-    static void __fastcall Reserve(Vector* self, void*, std::size_t n) { self->template Reserve<E>(n); }
+    void Reserve(std::size_t n) { Vector::template Reserve<E>(n); }
     // push_back(x) (e.g. 0069BD30; RET 4).
-    static void __fastcall PushBack(Vector* self, void*, const T* x) { self->template PushBack<E>(*x); }
+    void PushBack(const T& x) { Vector::template PushBack<E>(x); }
     // push_back(T()) out of line (e.g. 0064AB20; plain RET).
     static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
     // operator=(x) (e.g. 0064AF30; RET 4): returns this.
-    static Vector* __fastcall Assign(Vector* self, void*, const Vector* x) {
-        self->template AssignVector<E>(*x);
-        return self;
+    Vector* Assign(const Vector& x) {
+        Vector::template AssignVector<E>(x);
+        return this;
     }
     // _STLP_alloc_proxy::deallocate(p, n) (e.g. 00404D10; RET 8): the proxy is not read. Also the
     // list nodes' and hash buckets' allocators.
-    static void __fastcall Deallocate(const AllocProxy*, void*, T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
+    void Deallocate(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // The same compiled as a function of p and n (e.g. 00426860: ECX p, EDX n, plain RET).
     static void __fastcall DeallocateFast(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // uninitialized_copy(first, last, result) (e.g. 006325E0: ECX first, EDX last, RET 8; the tag

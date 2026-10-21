@@ -186,14 +186,14 @@ static_assert(sizeof(OpaqueList<16>::Node) == 16);
 // unused EDX second. An iterator (one node pointer) comes back through a hidden pointer the caller
 // passes first; the function returns that pointer in EAX.
 template <typename T, typename E = Element<T>>
-struct ListAbi {
+struct ListAbi : list<T> {
     using List = list<T>;
     using Node = typename List::Node;
 
     // list(const allocator_type&) (e.g. 00404A70; RET 4): returns this.
-    static List* __fastcall Construct(List* self, void*, const void* /*allocator*/) {
-        self->Construct();
-        return self;
+    List* Construct(const void* /*allocator*/) {
+        List::Construct();
+        return this;
     }
     // list() (00562A80): the same without the allocator argument.
     static List* __fastcall ConstructDefault(List* self) {
@@ -206,30 +206,30 @@ struct ListAbi {
     static void __fastcall Clear(List* self) { self->template Clear<E>(); }
     // _M_create_node(x) (e.g. 00482C30; RET 4): the list is not read; the node's links are left as
     // the pool had them.
-    static Node* __fastcall CreateNode(List*, void*, const T* x) { return List::template CreateNode<E>(*x); }
+    Node* CreateNode(const T& x) { return List::template CreateNode<E>(x); }
     // insert(pos, x) (e.g. 00404A40; RET 0xC). The list is not read (0062C090 is called with any
     // ECX).
-    static Node** __fastcall Insert(List*, void*, Node** out, Node* pos, const T* x) {
-        *out = List::template Insert<E>(pos, *x);
+    Node** Insert(Node** out, Node* pos, const T& x) {
+        *out = List::template Insert<E>(pos, x);
         return out;
     }
     // insert(pos) (e.g. 0040A8D0; RET 8): insert(pos, T()).
-    static Node** __fastcall InsertDefault(List*, void*, Node** out, Node* pos) {
+    Node** InsertDefault(Node** out, Node* pos) {
         *out = List::template InsertDefault<E>(pos);
         return out;
     }
     // insert(pos, first, last) (e.g. 004795B0; RET 0xC).
-    static void __fastcall InsertRange(List*, void*, Node* pos, const Node* first, const Node* last) {
+    void InsertRange(Node* pos, const Node* first, const Node* last) {
         List::template InsertRange<E>(pos, first, last);
     }
     // push_back(x) (e.g. 004207C0; RET 4): insert(end(), x).
-    static void __fastcall PushBack(List* self, void*, const T* x) { List::template Insert<E>(self->head, *x); }
+    void PushBack(const T& x) { List::template Insert<E>(this->head, x); }
     // push_back() (0040A6B0): insert(end()).
     static void __fastcall PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
     // pop_back() (0040A6D0): erase(--end()).
     static void __fastcall PopBack(List* self) { List::template Erase<E>(self->head->prev); }
     // erase(pos) (e.g. 00420290; RET 8): the list itself is not read.
-    static Node** __fastcall Erase(List*, void*, Node** out, Node* pos) {
+    Node** Erase(Node** out, Node* pos) {
         *out = List::template Erase<E>(pos);
         return out;
     }
