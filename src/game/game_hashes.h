@@ -18,22 +18,7 @@
 
 namespace gamehash {
 
-// hash_map<int, CParty> (the party manager's parties, PartyMap): 0x78-byte nodes. A node's party
-// is copied by CParty's copy constructor (006613C0; it reads its source non-const) and destroyed
-// by its destructor body (006611D0).
-struct PartyElement {
-    static void Construct(PartyInPlace* to, const PartyInPlace& from) {
-        to->Get()->CopyConstruct(const_cast<PartyInPlace&>(from).Get());
-    }
-    static void Destroy(PartyInPlace* p) { p->Get()->DestructBody(); }
-};
-using PartyTraits = stlp::DwordObjectTraits<PartyInPlace, PartyElement>;
-// 004A91B0 (RET 4). hash_map<int, CParty>::operator[]: a party constructed on the stack, a pair of
-// the key and a copy of it, find_or_insert of the pair (a new node copies it again), then the pair's
-// party and the stack party destroyed. The node's party.
-struct PartyTable : stlp::hashtable<PartyTraits> {
-    PartyInPlace* At(const std::uint32_t* key);
-};
+// hash_map<int, CParty> (the party manager's parties): PartyTable, party_manager.h.
 using PartyAbi = stlp::HashtableAbi<PartyTraits>;
 
 // A zone's unit looks (UnitSet, world.h): the figured records by key in a map per prototype (0x44-byte

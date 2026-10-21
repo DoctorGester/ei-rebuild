@@ -65,7 +65,7 @@ EI_REWRITTEN(0x004AD2C0, ChunkArchive::IntField);
 void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     if (!EnterChunk(id)) return;
     if (loading_) {
-        gamehash::PartyAbi::Clear(reinterpret_cast<gamehash::PartyTable*>(parties));
+        gamehash::PartyAbi::Clear(parties);
         int count = CountChunks(1);
         for (int i = 1; i <= count; ++i) {
             int key = 0;
@@ -74,22 +74,21 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
-            CParty* party = reinterpret_cast<gamehash::PartyTable*>(parties)->At(
-                                    reinterpret_cast<const std::uint32_t*>(&key))->Get();   // 004A91B0
+            CParty* party = parties->At(&key)->Get();   // 004A91B0
             if (EnterChunk(2)) {
                 party->ArchiveParty(this);
                 LeaveChunk();
             }
         }
     } else {
-        for (PartyMap::Node* node = parties->First(); node; node = parties->After(node)) {
-            int key = node->key;
+        for (PartyMap::Node* node = parties->First(); node; node = parties->Next(node)) {
+            int key = static_cast<int>(node->value.key);
             if (EnterChunk(1)) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
             if (EnterChunk(2)) {
-                node->value.Get()->ArchiveParty(this);
+                node->value.mapped.Get()->ArchiveParty(this);
                 LeaveChunk();
             }
         }

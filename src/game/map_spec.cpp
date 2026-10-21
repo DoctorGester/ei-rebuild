@@ -566,22 +566,25 @@ EI_REPLACE_METHOD(0x0046BF20, LeverSpec::LeverSpecOnChunk);
 
 // ---- 0046A4B0: rotating a vector -----------------------------------------------------------------
 
+} // namespace mapspec
+
 // `out` = `v` rotated by the quaternion: (w^2 - |q|^2) v + 2w (q x v) + 2 (q . v) q.
-Vector3* __fastcall QuaternionRotate(const Quaternion* q, void*, Vector3* out, const Vector3* v) {
-    float x = q->x, y = q->y, z = q->z;
+Vector3* Quaternion::Rotate(Vector3* out, const Vector3* v) const {
     float dot = DotUnrounded<Sum3::ZXY>(x * 2.0f, y * 2.0f, z * 2.0f, v->x, v->y, v->z);   // 2(q . v): doubling is exact
     float ax = dot * x, ay = dot * y, az = dot * z;
-    float w2 = q->w + q->w;
+    float w2 = w + w;
     float bx = (y * v->z - z * v->y) * w2;
     float by = (z * v->x - x * v->z) * w2;
     float bz = (x * v->y - y * v->x) * w2;
-    float m = q->w * q->w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
+    float m = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
     out->x = (m * v->x + bx) + ax;
     out->y = (m * v->y + by) + ay;
     out->z = (m * v->z + bz) + az;
     return out;
 }
-EI_REWRITTEN(0x0046A4B0, QuaternionRotate);
+EI_REWRITTEN(0x0046A4B0, Quaternion::Rotate);
+
+namespace mapspec {
 
 // ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
 

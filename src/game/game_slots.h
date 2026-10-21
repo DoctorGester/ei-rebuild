@@ -73,7 +73,7 @@ using BuiltZoneRecords =
 // Engine object pointers (00427690, 00571420): the temporary null; the holder's assignment (the new
 // object gains a reference, the old one released); a release through slot 4.
 inline void InitObjectPtr(CEngineObject** p) { *p = nullptr; }
-inline void AssignObjectPtr(CEngineObject** to, CEngineObject* const* from) { ObjectHolderAssign(to, nullptr, *from); }
+inline void AssignObjectPtr(CEngineObject** to, CEngineObject* const* from) { HeldEngineObject::Of(to)->Assign(*from); }
 // Script object references (004C9350): the old one released and cleared, then the copy constructor.
 inline void InitObjectRef(ScriptObjectRef* p) { p->object = nullptr; }
 inline void AssignObjectRef(ScriptObjectRef* to, const ScriptObjectRef* from) {
@@ -110,7 +110,7 @@ inline void InitArmourSpell(ArmourSpellRecord* p) {
     p->value = 0;
 }
 inline void AssignArmourSpell(ArmourSpellRecord* to, const ArmourSpellRecord* from) {
-    ObjectHolderAssign(&to->object, nullptr, from->object);
+    HeldEngineObject::Of(&to->object)->Assign(from->object);
     to->value = from->value;
     to->flag = from->flag;
 }
