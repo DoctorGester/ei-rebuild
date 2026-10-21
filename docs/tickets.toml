@@ -2732,6 +2732,15 @@ group = "cleanup"
 model = "opus"
 note = "Since 67625c45 (C18l c: the ISAAC generator named, IsaacRandom::Global() returns g_random, game.exe's 007A9D40) the harness digest (tests/verify/harness_digest.cpp ReadRandom) reads our g_random also in game.exe, where the original game's code uses 007A9D40: the original suite (--no-hooks --golden) gives 1 the same, 113 differ, every one on isaac.* only (seeded 0, count 0 in the run; seen in C20d's run 2026-10-21). In game.exe the digest has to read the exe's object (or Global() has to be the exe's there). Check other mutable named data the harness reads in game.exe for the same problem; then the original suite 114 the same.  Fixed on main in 4cbf5d5c: ei::OriginalGameData reads game.exe's copy in --no-hooks runs for the digest's random, the zone step calls game.exe's own LeaveToZone (0066F310), modfile reads its own text folder (007AF45C); original suite 114 the same."
 
+[[ticket]]
+id = "C18n"
+title = "named_data.py: refuse names inside known global objects"
+group = "cleanup"
+size = 0.5
+model = "sonnet"
+files = ["tools/named_data.py"]
+note = "From C18i (2026-10-21): 007C2CC4 was named as a separate global but is CWorldServer::sessionKind_ inside TheServerWorld (007AFF60 + 0x12D64); UpdateWeather kept reading the old location and every image run stopped before the main menu. named_data.py should refuse a named range that falls inside a known global object (TheServerWorld at 007AFF60 sized by sizeof(CWorldServer), and the other big singletons), listing the owner and field offset instead."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
