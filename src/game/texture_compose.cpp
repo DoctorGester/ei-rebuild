@@ -18,12 +18,12 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
-const mfc::CString& GameFolder() { return ei::GameData<const mfc::CString>(0x007AF460); }
 const char* const kTextures = "textures\\";
 const char* const kMmp = ".mmp";
 const char* const kCantWrite = "Can't open file \"%s\" to write result texture.\n";    // "Can't open file \"%s\" to write result texture.\n"
@@ -58,7 +58,7 @@ struct ReadBuffer {
     }
 };
 
-mfc::CString CachePath(const mfc::CString& name) { return GameFolder() + kTextures + name + kMmp; }
+mfc::CString CachePath(const mfc::CString& name) { return TheDataFolder() + kTextures + name + kMmp; }
 
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.

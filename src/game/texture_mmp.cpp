@@ -21,6 +21,7 @@
 
 #include "../hook/log.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -28,7 +29,6 @@
 
 namespace {
 
-const char* DataPath() { return ei::GameData<const char* const>(0x007AF460); }
 
 // Nonzero when mipmaps are used (otherwise every texture gets a single level).
 int MipmapsEnabled() { return ei::GameData<const int>(0x0079BCE0); }
@@ -144,7 +144,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     std::memset(&header, 0, sizeof(header));
     mfc::CString path;
     mfc::CFile file;
-    path.Format("%stextures\\%s.mmp", DataPath(), name);
+    path.Format("%stextures\\%s.mmp", DataFolderText(), name);
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);

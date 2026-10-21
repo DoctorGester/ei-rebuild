@@ -31,7 +31,7 @@
 #include "lib/nan_audit.h"
 
 const mfc::CString* GameDataPathString() {
-    return static_cast<const mfc::CString*>(worlddata::DataFolderString());
+    return &TheDataFolder();
 }
 EI_REPLACE(0x00578DB0, GameDataPathString);
 

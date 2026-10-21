@@ -81,13 +81,11 @@ constexpr unsigned kMagicMission = 0x102;
 
 int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
 int Campaign() { return ei::GameData<const int>(0x007C2CC4); }        // 4: the party is player 0's
-const char* GameFolder() { return ei::GameData<char* const>(0x007AF460); }
 int SaveVersion() { return ei::GameData<const int>(0x00790260); }
 std::uint8_t& ToMainMenu() { return ei::GameData<std::uint8_t>(0x007C7D94); }
 // 007C7DD8: the network sessions are open (BeginMultiplayerGame sets it, a missing zone clears it).
 std::uint8_t& SessionsOpen() { return ei::GameData<std::uint8_t>(0x007C7DD8); }
 
-void* const kParty = ei::GamePointer<void>(0x007AA5A0);
 void* const kScripts = ei::GamePointer<void>(0x007AFDF8);
 libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
 
@@ -206,20 +204,20 @@ int GameFlow::SaveGame(const char* slot) {
     if (GameMode() != 1) return 0;
 
     TheCursor()->SetShape(3);
-    slotFolder.Format(kSlotFolder, GameFolder(), slot);
-    currentFolder.Format(kCurrentFolder, GameFolder());
+    slotFolder.Format(kSlotFolder, DataFolderText(), slot);
+    currentFolder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
         if (WorldPlayer* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)))
-            PartyManagerBeginRedeploy(kParty, nullptr, player->Party());
+            PartyManagerBeginRedeploy(ThePartyManager(), nullptr, player->Party());
     }
     LocalRecords records;
-    PartyManagerEndRedeploy(kParty, nullptr, &records.party);
+    PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
     mfc::CString currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.party.zone));
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.party.variables);
-    PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
+    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
 
     bool opened;
     {
@@ -252,7 +250,7 @@ int GameFlow::SaveGame(const char* slot) {
             ei::SetVtable(s, kStreamVtable);
         }
     } scenarioOwner{&scenario};
-    PartySave(kParty, nullptr, &scenario);
+    PartySave(ThePartyManager(), nullptr, &scenario);
     static_cast<CInterface3D*>(TheInterface())->SaveState(&scenario);
     ScriptsReset(kScripts);
     static_cast<CInterface3D*>(TheInterface())->SaveWindowState();
@@ -320,7 +318,7 @@ void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { a0->Se
 int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString& zone, mfc::CString& folder,
                 const char* mapOverride, LocalFileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables;
-    folder.Format(kCurrentFolder, GameFolder());
+    folder.Format(kCurrentFolder, DataFolderText());
     mfc::CString fileName = zone + kSaveExtension;
     bool opened;
     {
@@ -521,7 +519,7 @@ int __stdcall StartNetworkZone(const char* zone) {
 
     mfc::CString folder;   // [0x14]
     LocalFileStream file;  // [0x20]
-    folder.Format(kCurrentFolder, GameFolder());
+    folder.Format(kCurrentFolder, DataFolderText());
     bool opened;
     {
         mfc::CString path = folder + zone;
@@ -627,7 +625,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
 
     if (Campaign() == 1) TheCamera()->SaveView(7);
     else if (Campaign() == 3) TheCamera()->SaveView(6);
-    path.Format(kCurrentFolder, GameFolder());
+    path.Format(kCurrentFolder, DataFolderText());
     {
         mfc::CString fileName = zone + kSaveExtension;
         path += fileName;
@@ -708,7 +706,6 @@ namespace {
 // The party manager (007AA5A0): 004A88C0 resets it (PartyManagerNewGameFour), 004A8890 (originals_world.h)
 // begins a redeploy of a party.
 
-void* GlobalPartyManager() { return ei::GamePointer<void>(0x007AA5A0); }
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
 PartyRecords* GlobalParty() { return ei::GamePointer<PartyRecords>(0x007C82B0); }
 // A CParty seen as its records (PartyRecords) or through an untyped pointer; Assign / CopyConstruct
@@ -725,7 +722,7 @@ mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
 }
 
 void GameFlow::BeginMultiplayerGame() {
-    PartyManagerNewGameFour(GlobalPartyManager());
+    PartyManagerNewGameFour(ThePartyManager());
     if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
@@ -734,7 +731,7 @@ void GameFlow::BeginMultiplayerGame() {
         zone->~CString();
     }
     VariableSet(&GlobalParty()->variables, kMultiplayerVariable, 1.0f);
-    PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, GlobalParty());
+    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, GlobalParty());
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
@@ -766,7 +763,7 @@ void GameFlow::ReturnLocalParty() {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     CParty* party = player->Party();
     AsParty(GlobalParty())->Assign(party);
-    PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, party);
+    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, party);
     // 00662AC0: the global party record (007C82B0) written into the heroes' folder (007C82A0).
     reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(ei::GameData<const char* const>(0x007C82A0));
     FlowUpdateFromServerOriginal(this);
@@ -1435,9 +1432,9 @@ void GameFlow::StartZone(const char* zone, int mode) {
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
         LocalRecords records;
-        PartyManagerEndRedeploy(kParty, nullptr, &records.party);
+        PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
         EnterZoneAt(&records.party);
-        PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
+        PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
         WorldSetTimeF(TheServerWorld(), nullptr,
                       HoursOfDay(VariableGet(&records.party.variables, kGTime)));
         if (zoneRecord) {
@@ -1469,12 +1466,12 @@ void GameFlow::StartNewGame() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     ExecuteAt(kExecAutoexec);
     ToMainMenu() = 1;
-    PartyNewGameAt(kParty);
+    PartyNewGameAt(ThePartyManager());
     mfc::CString folder;
-    folder.Format(kCurrentFolder, GameFolder());
+    folder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     LocalRecords records;
-    PartyManagerEndRedeploy(kParty, nullptr, &records.party);
+    PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
     StartZoneAt(this, nullptr, records.party.zone, 0);
 }
 
@@ -1553,9 +1550,9 @@ void GameFlow::ProcessRequest() {
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (GameMode() == 1 && (Campaign() == 1 || Campaign() == 3) && state == kStateZone) {
         LocalRecords records;
-        PartyManagerEndRedeploy(kParty, nullptr, &records.party);
+        PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
         LeaveZoneAt(&records.party);
-        PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
+        PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
     }
     if (GameMode() == 2 && Campaign() == 1 && state == kStateZone) {
         LocalRecords records;
@@ -1657,8 +1654,8 @@ int GameFlow::LoadGame(const char* slot) {
     mfc::CString zone;          // [0x14]
     mfc::CString slotFolder;    // [0x10]
     mfc::CString currentFolder; // [0x18]
-    slotFolder.Format(kSlotFolder, GameFolder(), slot);
-    currentFolder.Format(kCurrentFolder, GameFolder());
+    slotFolder.Format(kSlotFolder, DataFolderText(), slot);
+    currentFolder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(currentFolder);
     bool opened;
     {
@@ -1692,7 +1689,7 @@ int GameFlow::LoadGame(const char* slot) {
         StartZoneAt(this, nullptr, kMainMenu, 2);
         return 0;
     }
-    PartyLoad(kParty, nullptr, &scenario);
+    PartyLoad(ThePartyManager(), nullptr, &scenario);
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(kScripts);
@@ -1707,7 +1704,7 @@ int GameFlow::LoadGame(const char* slot) {
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
     LocalRecords records;
-    PartyManagerEndRedeploy(kParty, nullptr, &records.party);
+    PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
     mfc::CString currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.party.zone));
     NamedFloatTable* variables = &records.party.variables;
@@ -1741,7 +1738,7 @@ int GameFlow::LoadGame(const char* slot) {
         mfc::CString variable = prefix + record->name;
         VariableSet(variables, variable, 0.0f);
     }
-    PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
+    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
     MapRecord* zoneRecord = FindZone(records.party.zone);
@@ -1782,7 +1779,7 @@ EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
 
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
-    folder.Format(kCurrentFolder, GameFolder());
+    folder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     AsCString(zone7C_) = zone;
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZoneAt(zone);
@@ -1792,7 +1789,7 @@ EI_REPLACE_METHOD(0x0057ED60, GameFlow::SetNetworkZone);
 int CurrentSaveSize() {
     mfc::CFileFind find;
     mfc::CString pattern;
-    pattern.Format(kCurrentFiles, GameFolder());
+    pattern.Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
     if (find.FindFile(pattern, 0)) {
         int more;

@@ -80,7 +80,7 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
             origin.z = along * from->z + rest * to->z;
             branches_[i].Init(&origin, to);
             FreshKeys(branches_[i], time, amplitude);
-            double random = x87::FromUnsigned((&IsaacRandom::Global())->Next());
+            double random = x87::FromUnsigned(IsaacRandom::Global().Next());
             branches_[i].width = static_cast<float>((random * 1.8626451774202136e-10 /*0073C540*/ + 0.7f /*0073C538*/) * strength *
                                                     0.5f /*0073B86C*/);
         }
@@ -91,15 +91,15 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
             float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f /*0073C52C*/);
             float low = -reach;
             const double scale = 2.3283064370807974e-10 /*0073C468*/;
-            float offsetY = static_cast<float>((reach - low) * x87::FromUnsigned((&IsaacRandom::Global())->Next()) * scale + low);
-            float offsetX = static_cast<float>((reach - low) * x87::FromUnsigned((&IsaacRandom::Global())->Next()) * scale + low);
-            float offsetZ = static_cast<float>((reach - low) * x87::FromUnsigned((&IsaacRandom::Global())->Next()) * scale + low);
+            float offsetY = static_cast<float>((reach - low) * x87::FromUnsigned(IsaacRandom::Global().Next()) * scale + low);
+            float offsetX = static_cast<float>((reach - low) * x87::FromUnsigned(IsaacRandom::Global().Next()) * scale + low);
+            float offsetZ = static_cast<float>((reach - low) * x87::FromUnsigned(IsaacRandom::Global().Next()) * scale + low);
             float amplitude = KeyAmplitude(power_);
             Vector3 shiftedTo{offsetX + to->x, offsetY + to->y, offsetZ + to->z};
             Vector3 shiftedFrom{offsetX + from->x, offsetY + from->y, offsetZ + from->z};
             branches_[i].Init(&shiftedFrom, &shiftedTo);
             FreshKeys(branches_[i], time, amplitude);
-            double random = x87::FromUnsigned((&IsaacRandom::Global())->Next());
+            double random = x87::FromUnsigned(IsaacRandom::Global().Next());
             branches_[i].width = static_cast<float>(random * 1.8626451774202136e-10 /*0073C540*/ * 3.5f /*0073C534*/ +
                                                     2.45f /*0073C530*/);   // 2.45 .. 3.25
         }

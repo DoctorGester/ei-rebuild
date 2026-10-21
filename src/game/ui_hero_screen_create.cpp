@@ -447,7 +447,7 @@ void CMpHeroScreen::Create() {
 
     // The saved heroes, from the "mp" folder of the game's data.
     MpHeroRoster* heroes = Heroes();
-    heroes->folder = GameDataPath() + "mp\\";
+    heroes->folder = TheDataFolder() + "mp\\";
     ReloadHeroesAt(heroes);
     RefreshHeroScroll();
     DrawHeroList();

@@ -736,7 +736,6 @@ namespace {
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
 void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { AIRef::Of(a0)->Assign(a2); }
 bool __fastcall QueueHolds(AnimationSteps* a0, void*, const AnimationSteps* a2) { return static_cast<AnimationSteps*>(a0)->SameAs(a2); }
-IsaacRandom& Random() { return IsaacRandom::Global(); }   // 007A9D40
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
 void RecordFromMode(MoveModeState* record, int mode) {
@@ -792,7 +791,7 @@ void CUnitServer::ResyncWithUnit() {
     if (!QueueHolds(&Queue(this), nullptr, &IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).count == 0 && QueueTime(this) == -1)
-            IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(Random().Next() % 0x33);
+            IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
         Queue(this).Assign(IdleSteps(this));   // 005483C0 (twice, as the original)
         Queue(this).Assign(IdleSteps(this));
         StartQueueIfUnset(this);

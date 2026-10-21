@@ -1058,8 +1058,6 @@ inline bool& InterfaceHasScreen() { return ei::GameData<bool>(0x00784750); }
 inline int& ShowHitNumbersOption() { return ei::GameData<int>(0x0079BE74); }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
 inline void* DebugInfoPanel() { return ei::GamePointer<void>(0x0079B930); }
-// The game's data path (CString 007AF460; 00578DB0 returns its address).
-inline const mfc::CString& GameDataPath() { return ei::GameData<const mfc::CString>(0x007AF460); }
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 // The model manager (007AF5F4) the windows take their sprites and item models from.

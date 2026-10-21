@@ -33,7 +33,6 @@
 namespace {
 
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
-std::uint32_t EmptyString() { return ei::GameData<const std::uint32_t>(0x00796E48); }   // afxEmptyString
 
 // An empty STLport list whose nodes are `Node` (next, prev, then the element): its sentinel from the
 // node pool, linked to itself (the list constructors 005F90E0 / 005F9300).
@@ -284,7 +283,7 @@ void CInterface3D::ShowMessage(int force) {
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = true;
         CStringConstructTextOriginal(&win->text_, nullptr, messageText_);
-        SetDword(&win->title_, 0, EmptyString());
+        ::new (&win->title_) mfc::CString;   // afxEmptyString
         StringArrayConstruct(&win->lines_);
         win->page_ = value;
         win->pulsing_.Construct();    // the allocator proxy (005FA340), then a sentinel
@@ -332,7 +331,7 @@ void CInterface3D::OpenHelp(int flag) {
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = false;
         CStringConstructTextOriginal(&win->text_, nullptr, topic);
-        SetDword(&win->title_, 0, EmptyString());
+        ::new (&win->title_) mfc::CString;   // afxEmptyString
         StringArrayConstruct(&win->lines_);
         win->page_ = seen;
         win->pulsing_.Construct();    // 005F9A00

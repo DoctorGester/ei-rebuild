@@ -21,6 +21,7 @@
 #include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_string.h"
 
 #include <cstring>
 
@@ -89,7 +90,7 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     Base()->Construct(buffer_, sizeof(buffer_));   // 006FCAD2
     filter_ = filter;
-    line_ = ei::GameData<char*>(0x00796E48);   // CString(): the shared empty string
+    line_ = mfc::impl::PchNil();   // CString(): the shared empty string
     ei::SetVtable(this, kVtableAddress);
     return this;
 }

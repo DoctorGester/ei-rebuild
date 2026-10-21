@@ -55,7 +55,7 @@ void SizePoints() { GlowPoints().SetSize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
-    return static_cast<float>(static_cast<int>((&IsaacRandom::Global())->Next() & 3)) * 0.25f /*0073C3B0*/;
+    return static_cast<float>(static_cast<int>(IsaacRandom::Global().Next() & 3)) * 0.25f /*0073C3B0*/;
 }
 
 } // namespace

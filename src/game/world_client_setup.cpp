@@ -29,7 +29,6 @@ namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 0073C36C: 1 / 255
 
 // The game's data folder (a CString global) and the strings the original passes by address.
-const mfc::CString& DataPath() { return ei::GameData<const mfc::CString>(0x007AF460); }
 const char* ConfigFolder() { return "config\\"; }
 const char* SunlightSection() { return "sunlight"; }
 const char* AmbientSection() { return "ambient"; }
@@ -93,7 +92,7 @@ int CWorldClient::LoadLights(const char* file) {
     CIniFile ini;
     ini.Construct();
     {
-        mfc::CString folder = DataPath() + ConfigFolder();
+        mfc::CString folder = TheDataFolder() + ConfigFolder();
         mfc::CString path = folder + file;
         ini.SetPath(path);
     }

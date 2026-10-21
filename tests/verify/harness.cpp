@@ -896,7 +896,7 @@ bool UnderRoot(const char* full, const char* root, const char** relative) {
 // The overlay path of `path`, or null when `path` is not under the game's root.
 const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
     if (!path || !*path) return nullptr;
-    const char* folder = ei::GameData<const char* const>(0x007AF460);   // CString data, may be empty
+    const char* folder = DataFolderText();   // CString data, may be empty
     if (folder && *folder && !g_rootDirs[1][0]) {
         if (!GetFullPathNameA(folder, MAX_PATH, g_rootDirs[1], nullptr)) g_rootDirs[1][0] = '\0';
     }

@@ -9,12 +9,12 @@
 #include "world_data.h"
 
 #include "ei/hook.h"
+#include "game_singletons.h"
 
 #include <new>
 
 namespace {
 
-const mfc::CString& DataFolder() { return *static_cast<const mfc::CString*>(worlddata::DataPathString()); }
 const char* MapsFolderName() { return "maps\\"; }
 
 // Rebirth's Maps (modfolders::SelectMaps): addon names the file before each maps-folder use.
@@ -33,7 +33,7 @@ struct LocalFileStream {
 
 mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
     // Rebirth's Maps (0055E9A9): the folder the last site selected.
-    mfc::CString folder(ModMaps() ? modfolders::MapsRoot(DataFolder()) : DataFolder());
+    mfc::CString folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
     return new (out) mfc::CString(folder + MapsFolderName());
 }
 EI_REPLACE(0x0055E990, MapsFolder);

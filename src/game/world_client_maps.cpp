@@ -63,6 +63,7 @@
 #include "game_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_string.h"
 
 #include <windows.h>
 
@@ -1225,7 +1226,7 @@ EI_REPLACE_METHOD(0x005724F0, SectorGrid::Resize);
 int CWorldClient::Setup() {
     WorldCreateManagers(this);
     void* path;
-    CStringConcat(&path, worlddata::DataPathString(), worlddata::TexturesFolderText());
+    CStringConcat(&path, &TheDataFolder(), worlddata::TexturesFolderText());
     CStringAssignOriginal(&texturePath_, nullptr, &path);
     CStringDestroy(&path);
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
@@ -1259,8 +1260,8 @@ int CWorldClient::Setup() {
         terrain->pageTextures.capacity = 0;
         terrain->pageTextures.size = 0;
         terrain->pageMaterials.Construct();
-        terrain->textF8 = camera::EmptyStringData();
-        terrain->textFC = camera::EmptyStringData();
+        terrain->textF8 = mfc::impl::PchNil();
+        terrain->textFC = mfc::impl::PchNil();
         terrain->materials.Construct();
         terrain->textureClass.Construct();
         terrain->textureFrames.Construct();
@@ -1271,7 +1272,7 @@ int CWorldClient::Setup() {
         terrain->wavePhases.Construct();
         terrain->visibleColumnFirst.Construct();
         terrain->visibleColumnLast.Construct();
-        terrain->textAE0 = camera::EmptyStringData();
+        terrain->textAE0 = mfc::impl::PchNil();
         mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
         static_cast<Terrain*>(terrain)->Reset();
@@ -1370,7 +1371,7 @@ int CWorldClient::Setup() {
         flags_ |= 0x200;
     else
         flags_ &= ~0x200u;
-    CStringConcat(&path, worlddata::DataPathString(), worlddata::CursorFileText());
+    CStringConcat(&path, &TheDataFolder(), worlddata::CursorFileText());
     cursor_ = LoadCursorFromFileA(static_cast<const char*>(path));
     CStringDestroy(&path);
 
