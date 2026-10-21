@@ -64,7 +64,7 @@ CRefObject* CRefObject::ValueDeletingDestruct(unsigned flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x00412700, CRefObject::ValueDeletingDestruct);
-EI_REPLACE_METHOD(0x00562750, CRefObject::ValueDeletingDestruct);   // byte-identical copies (A-W12)
+EI_REWRITTEN(0x00562750, CRefObject::ValueDeletingDestruct);   // byte-identical copies (A-W12)
 EI_REWRITTEN(0x0058FBC0, CRefObject::ValueDeletingDestruct);
 
 // --- CStream -----------------------------------------------------------------------------------

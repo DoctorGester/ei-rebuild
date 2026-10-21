@@ -106,9 +106,6 @@ inline float DefaultWindForceOption() { return static_cast<const volatile float&
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
-// Vtables Setup stores while it inlines the constructors.
-constexpr std::uintptr_t kClientHandleVtable = std::uintptr_t(0x0073F628);
-
 // ---- WorldCreateManagers (0055EE40) -----------------------------------------------------------
 
 // The game's folders (CStrings: TheDataFolder, TheTextFolder, TheDiscFolder the base folder; game_singletons.h)
@@ -119,8 +116,6 @@ inline void* BaseFolderString() { return &TheDiscFolder(); }
 inline const char* ConfiguredDataPath() { return static_cast<const char*>(options::TheOptions()->workPath_); }
 inline const char* ConfiguredTextPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
 inline const char* ConfiguredBasePath() { return static_cast<const char*>(options::TheOptions()->cdRomPath_); }
-// The counted helper's vtable (+0x5C), which WorldCreateManagers stores.
-constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 
 // ---- The client's Segment (005641F0) ------------------------------------------------------------
 

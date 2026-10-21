@@ -203,16 +203,20 @@ vtable,slots,class,file,note
 0073F07C,3,PointArrayClass,src/lib/mfc_slots.h,CArray (a unit's point lists)
 0073F12C,3,LootListClass,src/lib/mfc_slots.h,CList (the loot lists)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
+0073F240,7,CWorldHandleClass,src/game/world_sessions.cpp,the server world's counted helper (a player source)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
+0073F38C,7,CPlayerSourceClass,src/game/world_sessions.cpp,the player sources' base
 0073F3A8,7,DriverSessionClass,src/game/net_link.h,the network session (DriverSession)
+0073F4FC,13,BridgeManagerClass,src/game/world_construct.cpp,the client world's platform set (CBridgeManager)
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
 0073F548,3,PlatformListClass,src/lib/mfc_slots.h,CList (the client maps' platform lists)
 0073F554,25,ClientArrayManager,src/game/world.h,
 0073F5B8,25,CLightningManager,src/game/lightning.h,
 0073F61C,3,ClientObjectList2Class,src/game/game_slots.h,CList (engine objects in the client maps)
+0073F628,7,CClientHandleClass,src/game/world_sessions.cpp,the client world's player source
 0073F644,25,CParticleManager,src/game/effects.h,
 0073F6A8,16,TerrainClass,src/game/world_client_class.h,the client's terrain
 0073F6E8,2,TerrainClass,src/game/world_client_class.h,the tail of 0073F6A8 (a byte match in 006E81C2)

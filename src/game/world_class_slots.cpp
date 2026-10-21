@@ -57,8 +57,8 @@ EI_REPLACE(0x0058A420, WorldServerClassId);
 
 const char* __fastcall BridgeManagerClassName(PlatformSet*) { return kBridgeManagerName; }
 int __fastcall BridgeManagerClassId(PlatformSet*) { return kBridgeManagerId; }
-EI_REPLACE(0x00561870, BridgeManagerClassName);
-EI_REPLACE(0x00561880, BridgeManagerClassId);
+EI_REWRITTEN(0x00561870, BridgeManagerClassName);
+EI_REWRITTEN(0x00561880, BridgeManagerClassId);
 
 const char* CParticleManager::GetClassName() { return kParticleManagerName; }
 int CParticleManager::GetClassId() { return kParticleManagerId; }

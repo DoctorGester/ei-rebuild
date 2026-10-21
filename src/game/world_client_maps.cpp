@@ -1287,7 +1287,7 @@ int CWorldClient::Setup() {
     CRefObject* created = nullptr;
     if (handle) {
         RefValueConstructBase(handle);
-        ei::SetVtable(handle, worlddata::kClientHandleVtable);
+        ei::SetVtable(handle, CClientHandle::Vtable());
         created = handle;
     }
     if (created != handle_.ptr) {
@@ -1457,7 +1457,7 @@ int PlatformSet::Clear() {
     list.RemoveAll();
     return 1;
 }
-EI_REPLACE_METHOD(0x00561800, PlatformSet::Clear);
+EI_REWRITTEN(0x00561800, PlatformSet::Clear);
 
 void PlatformSet::DestructBody() {
     list.vtable = mfc::impl::PlatformListClass::Vtable();
@@ -1471,7 +1471,7 @@ PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00561AE0, PlatformSet::DeletingDestruct);
+EI_REWRITTEN(0x00561AE0, PlatformSet::DeletingDestruct);
 
 // 0055E8A0 (ECX the list, EDX the stream; the items a player is given, CPlayerServer::SendItemsGiven).
 // What LoadManagerObjects reads back: per object a 1, its id, type and +0x18, then its own Save;

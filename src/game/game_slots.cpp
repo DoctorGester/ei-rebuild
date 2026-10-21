@@ -12,7 +12,7 @@ namespace gameslots {
 using mfc::impl::ScalarDeleting;
 
 void __fastcall BridgeManagerDestroy(PlatformSet* set) { set->list.RemoveAll(); }
-EI_REPLACE(0x00561840, BridgeManagerDestroy);
+EI_REWRITTEN(0x00561840, BridgeManagerDestroy);
 
 EI_REWRITTEN(0x004BE250, gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>);
 EI_REWRITTEN(0x004BE2E0, Definitions::Destruct<recordarrays::DefinitionArrayClass>);

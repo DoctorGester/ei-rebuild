@@ -1116,7 +1116,8 @@ struct OpaqueRecord {
 // tick). The server's hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
 class CWorldHandle : public CPlayerSource {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F240);
+    // The compiled table (world_sessions.cpp; game.exe's 0073F240).
+    static void* Vtable();
 
     // 0: 0055F260 (DeletingDestruct)
     int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
@@ -1137,7 +1138,8 @@ static_assert(offsetof(CWorldHandle, pendingLink_) == 0x08);
 // it): it has no state of its own. world_sessions.cpp.
 class CClientHandle : public CPlayerSource {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F628);
+    // The compiled table (world_sessions.cpp; game.exe's 0073F628).
+    static void* Vtable();
 
     // 0: 00562750 (the counted value's deleting destructor); 4: 005626F0 (AL 0).
     int OnShutdown() override;          // 2: 005626D0 (built again in place: the root vtable, then its own)

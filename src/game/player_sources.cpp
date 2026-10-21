@@ -59,5 +59,5 @@ void DriverSession::TakeNewImpl(void* joined) {
 
 } // namespace netlink
 
-EI_REPLACE_METHOD(0x00478880, CWorldHandle::TakeNewImpl);
+EI_REWRITTEN(0x00478880, CWorldHandle::TakeNewImpl);
 EI_REWRITTEN(0x0047A230, netlink::DriverSession::TakeNewImpl);

@@ -96,7 +96,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     std::memcpy(&helper->refs_, &noReferences, sizeof(noReferences));
     if (helper) {
         helper->pendingLink_ = nullptr;
-        ei::SetVtable(helper, CWorldHandle::kVtableAddress);
+        ei::SetVtable(helper, CWorldHandle::Vtable());
     }
     world->shared5C_.ShareAssign(helper);
     IsaacRandom::Global().Init();
