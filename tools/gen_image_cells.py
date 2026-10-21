@@ -18,9 +18,11 @@ usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT]
 """
 import argparse, os, struct, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'standalone', 'image_cells.inc')
-EXE = r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe'
 BASE = 0x00400000
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
@@ -180,10 +182,10 @@ def write_bytes(img, path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--check', action='store_true')
-    ap.add_argument('--exe', default=EXE)
+    ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--bytes', metavar='OUT')
     a = ap.parse_args()
-    img = image(a.exe)
+    img = image(exe_path.resolve(a.exe))
     if a.bytes:
         n = write_bytes(img, a.bytes)
         print(f'gen_image_cells: {n} dwords of .data written to {a.bytes}')

@@ -16,8 +16,10 @@ usage: python tools/gen_iat.py [--check]
 """
 import argparse, os, struct, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE = os.environ.get('EI_EXE', r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe')
 GAMEAPI = os.path.join(ROOT, 'src', 'lib', 'gameapi.h')
 IMAGE_IMPORTS = os.path.join(ROOT, 'src', 'standalone', 'image_imports.inc')
 DLLS = {'KERNEL32.dll', 'USER32.dll', 'GDI32.dll', 'ADVAPI32.dll', 'WINMM.dll', 'SHELL32.dll', 'ole32.dll'}
@@ -92,7 +94,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--check', action='store_true')
     args = ap.parse_args()
-    table = imports(EXE)
+    table = imports(exe_path.resolve())
     gameapi, functions = gameapi_text(table)
     outputs = [(GAMEAPI, gameapi), (IMAGE_IMPORTS, image_imports_text(table))]
     if args.check:

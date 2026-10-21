@@ -5,14 +5,16 @@ an immediate in code (e.g. `mov dword ptr [ecx], vtable`). Writes config/vtables
 """
 import bisect, csv, os, struct, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE = os.environ.get('EI_EXE', r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe')
 BASE = 0x400000
 TEXT = (0x401000, 0x73A670)
 RDATA = (0x73B000, 0x7828B2)
 
 def main():
-    d = open(EXE, 'rb').read()
+    d = open(exe_path.resolve(), 'rb').read()
     u32 = lambda va: struct.unpack_from('<I', d, va - BASE)[0]
     in_text = lambda v: TEXT[0] <= v < TEXT[1]
 

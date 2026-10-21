@@ -18,8 +18,11 @@ if len(sys.argv) > 1:
     sys.exit(0)
 from capstone import x86
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
+
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE = os.environ.get('EI_EXE', r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe')
+EXE = exe_path.resolve()
 EXTRA_BINS = [r'F:\games\Evil Islands (Rebirth)\starter\addon.dll',
               r'F:\games\Evil Islands (Rebirth)\EI_Plugin.asi',
               r'F:\games\Evil Islands (Rebirth)\mp3dec.asi']

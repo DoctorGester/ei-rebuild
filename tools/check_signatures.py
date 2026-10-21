@@ -18,8 +18,10 @@ import bisect, glob, os, re, subprocess, sys
 
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE = r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe'
 MAP = os.path.join(ROOT, 'build', 'verify', 'ei_hook.map')
 
 
@@ -216,7 +218,7 @@ def candidates_for(by_name, name, kind, rel, key):
 
 
 def main():
-    data = open(EXE, 'rb').read()
+    data = open(exe_path.resolve(), 'rb').read()
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     sizes = load_sizes()
     by_name = declarations()

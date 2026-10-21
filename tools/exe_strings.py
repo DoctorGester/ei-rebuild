@@ -15,15 +15,17 @@ usage: python tools/exe_strings.py <source file> [--apply] [--lines 10-20,31]
   --before RE   only addresses that RE matches right before (e.g. "LogLine\\(")
   --lines       only these lines
   --skip A,B    leave these addresses alone (e.g. the empty string 0079B298, whose pointer is compared)
-  --exe PATH    the exes to read (default run\\vanilla and run\\rebirth's game.exe; repeatable)
+  --exe PATH    the exes to read (repeatable; default run\\vanilla and run\\rebirth's game.exe, tools/exe_path.py)
 """
 import os
 import re
 import struct
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_EXES = [os.path.join(ROOT, 'run', 'vanilla', 'game.exe'), os.path.join(ROOT, 'run', 'rebirth', 'game.exe')]
 # .rdata and .data of game.exe 1.06 (0x0073B000-0x007CC298; the strings are in both).
 ADDRESS = r'0x(00(?:73[B-Fb-f][0-9A-Fa-f]{3}|7[4-9A-Ca-c][0-9A-Fa-f]{4}))\b'
 
@@ -82,7 +84,7 @@ def main(argv):
         print(__doc__)
         return 2
     path = argv[0]
-    exes = [argv[i + 1] for i, a in enumerate(argv) if a == '--exe'] or DEFAULT_EXES
+    exes = exe_path.find_exes([argv[i + 1] for i, a in enumerate(argv) if a == '--exe'])
     images = [load(p) for p in exes]
     wrap, before = option(argv, '--wrap'), option(argv, '--before')
     skip = {int(a, 16) for a in option(argv, '--skip', '').split(',') if a}

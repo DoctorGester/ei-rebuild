@@ -20,18 +20,19 @@ qword as a double, `1.5 /*0073B86C f*/` the float widened to a double (a helper 
 an integer the dword. `--asserts FILE` writes a translation unit of static_asserts on the same
 literals for the real compiler (cl /std:c++20 /c), because the check itself parses with Python.
 
-usage: python tools/rdata_literals.py --list | --apply [--files F...] | --check [--asserts FILE]
+usage: python tools/rdata_literals.py --list | --apply [--files F...] | --check [--asserts FILE] [--exe game.exe ...]
 """
 import argparse, decimal as decimal_module, os, re, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import data_seam as ds
-from exe_strings import load, DEFAULT_EXES
+from exe_strings import load
+import exe_path
 
 ROOT = ds.ROOT
 RDATA = (0x0073B820, 0x00783000)
 IAT = (0x0073B000, 0x0073B820)
-EXE = DEFAULT_EXES[0]
+EXES = []   # --exe (repeatable); none: every install's game.exe (tools/exe_path.py)
 
 TYPES = {'float': ('f', 4), 'double': ('d', 8), 'int': ('i', 4), 'std::uint32_t': ('I', 4), 'std::size_t': ('I', 4),
          'unsigned': ('I', 4), 'std::int32_t': ('i', 4), 'std::int8_t': None}
@@ -50,7 +51,7 @@ def addon_sites():
 
 class Exe:
     def __init__(self):
-        images = [load(p) for p in DEFAULT_EXES if os.path.exists(p)]
+        images = [load(p) for p in exe_path.find_exes(EXES)]
         self.data, self.sections = images[0]
         self.same = True
         for other, secs in images[1:]:
@@ -430,7 +431,13 @@ def main():
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--asserts')
     ap.add_argument('--files', nargs='+')
+    ap.add_argument('--exe', action='append', default=[])
     a = ap.parse_args()
+    EXES[:] = a.exe
+    try:
+        exe_path.find_exes(EXES)
+    except exe_path.ExeNotFound as e:
+        sys.exit(f'rdata_literals: {e}')
     if a.apply:
         return run_apply(set(a.files or []))
     if a.check or a.asserts:

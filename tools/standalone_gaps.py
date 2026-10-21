@@ -27,6 +27,7 @@ from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
 import dashboard_data as dd  # noqa: E402
 
 REGISTERED = re.compile(r'\b(?:EI_REPLACE\w*|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
@@ -97,7 +98,7 @@ def read_unreachable(path, vtables):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--exe', default=os.path.join(ROOT, 'run', 'vanilla', 'game.exe'))
+    ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--listed', action='store_true')
     ap.add_argument('--check', action='store_true')
     ap.add_argument('kinds', nargs='*', default=['forwarders', 'literals', 'data'])
@@ -163,7 +164,7 @@ def main():
         # (A forwarder's own address is listed above; the code-byte reads of S14 have no function.)
         show('code literals', {a: v for a, v in literals.items() if a not in forwarders})
     if 'data' in args.kinds:
-        refs = data_references(args.exe, functions)
+        refs = data_references(exe_path.resolve(args.exe), functions)
         show('data references', {a: [f'{x:08X}' for x in v] for a, v in refs.items()}, refs)
     stale = [line for line in lines if not line['covers']]
     if set(args.kinds) >= {'forwarders', 'literals', 'data'}:

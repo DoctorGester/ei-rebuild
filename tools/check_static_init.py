@@ -95,9 +95,9 @@ def blocks(text):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--exe', default=gen.EXE)
+    ap.add_argument('--exe')   # default: tools/exe_path.py
     args = ap.parse_args()
-    img = gen.Image(args.exe)
+    img = gen.Image(gen.exe_path.resolve(args.exe))
     problems = []
     decoded, bad = gen.decode_all(img)
     problems += [f'not decoded: {b}' for b in bad]

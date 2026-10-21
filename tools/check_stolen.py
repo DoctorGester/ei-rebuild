@@ -12,13 +12,15 @@ import glob, os, re, sys
 
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exe_path  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE = r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe'
 RELATIVE = re.compile(r'^(call|j\w+|loop\w*)$')
 
 
 def main():
-    data = open(EXE, 'rb').read()
+    data = open(exe_path.resolve(), 'rb').read()
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     sizes = {int(m.group(1), 16): int(m.group(2)) for m in re.finditer(
         r'\{0x([0-9A-F]+), (\d+)\}', open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')).read())}
