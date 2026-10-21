@@ -1,5 +1,5 @@
 // The work board page: polls /api/status and draws the tickets view and the test-runs view.
-const POLL_MS = 3000;
+const POLL_MS = 1000;   // a running game's count stops within about a second of its end (the scheduler notices in 0.5 s)
 const ACTIVE_STATES = ['running', 'review'];
 const state = { view: 'tickets', q: '' };
 try { const v = location.hash.slice(1); if (v === 'runs' || v === 'tickets') state.view = v; } catch (e) {}
@@ -331,4 +331,10 @@ function tickAll() {
     el.classList.toggle('over', secs > exp);
   }
 }
-poll(); setInterval(poll, POLL_MS); setInterval(tickAll, 1000);
+// One request at a time, the next POLL_MS after the last answer; none while the tab is hidden.
+async function pollLoop() {
+  if (!document.hidden) await poll();
+  setTimeout(pollLoop, POLL_MS);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+pollLoop(); setInterval(tickAll, 1000);
