@@ -130,16 +130,16 @@ constexpr int kBlockedWait = 2;
 
 // The counted "waiting for" link (followsLeader +0x1D8, followedLeader +0x1DC: the fields the
 // chase uses for the leader it follows).
-void SetWaitingFor(CUnitServer* c, CEngineObject* blocker) {
+void SetWaitingFor(CUnitServer* c, CUnit* blocker) {
     c->followsLeader = 1;
-    CEngineObject* old = c->followedLeader;
+    CUnit* old = c->followedLeader;
     c->followedLeader = blocker;
     ++blocker->refCount_;
     if (old) old->Release();
 }
 void ClearWaitingFor(CUnitServer* controller) {
     controller->followsLeader = 0;
-    CEngineObject* old = controller->followedLeader;
+    CUnit* old = controller->followedLeader;
     controller->followedLeader = nullptr;
     if (old) old->Release();
 }
@@ -253,7 +253,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
         // circle back to this unit, which breaks the circle and replans.
         CUnitServer* link = other;
         while (link->followsLeader) {
-            auto* waitsFor = static_cast<CUnit*>(link->followedLeader);
+            CUnit* waitsFor = link->followedLeader;
             if (!waitsFor) break;
             if (waitsFor == self) {
                 ClearWaitingFor(other);

@@ -334,7 +334,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
         if ((interface_->ctrlDown_ || interface_->altDown_) && hud->party_.size > member)
-            static_cast<CCamera*>(camera)->SetTarget(hud->party_[member]);
+            camera->SetTarget(hud->party_[member]);
         return;
     }
     case kActionSelectAll:

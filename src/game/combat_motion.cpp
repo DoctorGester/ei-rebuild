@@ -857,7 +857,7 @@ void CUnitServer::ResetController() {
     orderStopped = 0;
     deathReported = 0;
     followsLeader = 0;
-    CEngineObject* waited = followedLeader;
+    CUnit* waited = followedLeader;
     followedLeader = nullptr;
     if (waited) waited->Release();
     searchingTarget = 0;

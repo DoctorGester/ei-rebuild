@@ -638,7 +638,7 @@ int CPlayerClient::OnNewObject() {
             break;
         }
     }
-    if (static_cast<CObject3D*>(figure)->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
+    if (figure->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());

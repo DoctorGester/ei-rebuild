@@ -293,7 +293,7 @@ AIMode* AIBrain::FindPlayerMode() {
 }
 EI_REPLACE_METHOD(0x005D5E60, AIBrain::FindPlayerMode);
 
-CEngineObject* AIBrain::PlayerModeLeader() {
+CUnit* AIBrain::PlayerModeLeader() {
     for (auto* node = modes.head; node;) {
         AIMode* mode = node->data;
         node = node->next;
