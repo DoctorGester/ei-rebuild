@@ -22,6 +22,7 @@
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -253,11 +254,12 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         // Greyed: half bright, lying still, scaled to fit the cell by the model's larger extent.
         SetShade(model, 0x3F000000);
         SetOrientation(model, LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f));
-        // The larger of +0x1A8 and +0x1AC: FCOMP of +0x1A8 with +0x1AC; C0 (below or unordered)
-        // picks +0x1AC (a branch-free select of the dwords).
+        // The larger of +0x1A8 and +0x1AC: FCOMP of +0x1A8 with +0x1AC; C0 (below) picks +0x1AC (a
+        // branch-free select of the dwords).
         float a = Get<float>(model, 0x1AC);
         float b = Get<float>(model, 0x1A8);
-        std::uint32_t bits = (b < a || x87::IsNaN(a) || x87::IsNaN(b)) ? Get<std::uint32_t>(model, 0x1AC)
+        EI_NAN_AUDIT(a, b);
+        std::uint32_t bits = b < a ? Get<std::uint32_t>(model, 0x1AC)
                                                                         : Get<std::uint32_t>(model, 0x1A8);
         float extent;
         std::memcpy(&extent, &bits, sizeof(extent));

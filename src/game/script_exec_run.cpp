@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 #include "lib/mfc_array.h"
 #include "game_arrays.h"
 #include "lib/mfc.h"
@@ -38,8 +39,11 @@ const char* const kWrongGroupCount = "Wrong number of script %s group parameters
 // Class id of the sound object an FX source places (CBaseManager::CreateObject).
 constexpr int kClassSound = 0x48;   // CEffectSound
 
-// FCOMP against 0.0 (0073B858): C3, equal or unordered.
-bool ZeroOrNaN(float value) { return (x87::CompareStatus(value, 0.0) & x87::kC3) != 0; }
+// FCOMP against 0.0 (0073B858).
+bool IsZero(float value) {
+    EI_NAN_AUDIT(value);
+    return value == 0.0f;
+}
 
 // ---- Original code ------------------------------------------------------------------------------
 
@@ -235,7 +239,7 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
         float result;
         CalcFloatOrig(&conditions->commands.data[i], nullptr, script, &instance->vars, &result);
         ScriptFreeTemporaries(script);
-        if (ZeroOrNaN(result)) return;
+        if (IsZero(result)) return;
     }
     script->RunCommands(commands, instance);
 }

@@ -38,6 +38,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
@@ -66,12 +67,11 @@ namespace {
 // The game's _ftol (006E853C): truncating conversion, low 32 bits of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-// FCOMP against the constant 0.0 at 0073B858; true when C3 is set (equal or unordered), the test
-// every command uses for "flag argument is zero".
-bool ZeroOrNaN(float value) { return (x87::CompareStatus(value, 0.0) & x87::kC3) != 0; }
-
-// FCOM a, b: the status bits C0 (0x01, less or unordered) and C3 (0x40, equal or unordered).
-int FcomStatus(float a, float b) { return x87::CompareStatus(a, b); }
+// FCOMP against the constant 0.0 at 0073B858, the test every command uses for "flag argument is zero".
+bool IsZero(float value) {
+    EI_NAN_AUDIT(value);
+    return value == 0.0f;
+}
 
 int Round(float value) { return x87::fistp(value); }
 
@@ -274,7 +274,8 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     map->MoveInSectors(object, &point);
     if (object->GetClassId() == kClassUnit) {
         Controller(UnitState(object))->ResyncWithUnit();
-        if (!(FcomStatus(oldZ, Position(object)->z) & 0x40)) static_cast<CMapObject*>(object)->MarkChanged(2);
+        EI_NAN_AUDIT(oldZ, Position(object)->z);
+        if (oldZ != Position(object)->z) static_cast<CMapObject*>(object)->MarkChanged(2);
         return;
     }
     // Other objects: the units around the new place are taken off the sector map, moved off cells
@@ -464,7 +465,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (ticks < Round(f[0])) cont = 0;
             break;
         case 0xDE:     // SleepUntil(condition)
-            if (ZeroOrNaN(f[0])) cont = 0;
+            if (IsZero(f[0])) cont = 0;
             break;
         case 0xB9: {   // SleepUntilIdle(unit): while the brain has an action (+0x984)
             CEngineObject* unit = Arg(cmd, 0);
@@ -506,7 +507,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             for (int i = cmd->groupArgs.data[0]->size - 1; i >= 0; --i) {
                 SetLoopCounter(cmd, i);
                 if (condition) CalcParametersOrig(cmd, nullptr, script, &vars, condition);
-                if (!ZeroOrNaN(cmd->floatArgs.data[0])) RunBody(this, script, cmd->calledScript);
+                if (!IsZero(cmd->floatArgs.data[0])) RunBody(this, script, cmd->calledScript);
             }
             --ForDepth(script);
             break;
@@ -620,11 +621,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (player) player->godMode = static_cast<std::uint8_t>(Ftol(f[1]));
             break;
         }
-        case 0x37: {   // SetDiplomacy(a, b, value): > 0 allied (0), 0 or NaN neutral (1), < 0 enemies (2)
-            int status = FcomStatus(f[2], 0.0f);
+        case 0x37: {   // SetDiplomacy(a, b, value): > 0 allied (0), < 0 enemies (2), else (0 or NaN) neutral (1)
             int relation;
-            if (!(status & 0x41)) relation = 0;
-            else relation = (status & 0x40) ? 1 : 2;
+            if (f[2] > 0.0f) relation = 0;
+            else relation = f[2] < 0.0f ? 2 : 1;
             TheDiplomacy()->SetRelation(Ftol(f[0]), Ftol(f[1]), relation, 1);
             break;
         }
@@ -702,14 +702,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xC2: {   // HideObject(object, hide): flags_ bit 0x10000
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
-            if (ZeroOrNaN(f[0])) object->flags_ &= ~0x10000u;
+            if (IsZero(f[0])) object->flags_ &= ~0x10000u;
             else object->flags_ |= 0x10000u;
             break;
         }
         case 0x95: {   // ActivateTrap(object, on): flags_ bit 0x80000
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
-            if (ZeroOrNaN(f[0])) object->flags_ &= ~0x80000u;
+            if (IsZero(f[0])) object->flags_ &= ~0x80000u;
             else object->flags_ |= 0x80000u;
             break;
         }
@@ -734,7 +734,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xCC: {   // EnableLever(lever, on)
             CEngineObject* lever = Arg(cmd, 0);
             if (!lever || lever->GetClassId() != kClassLever) break;
-            static_cast<Lever*>(lever)->Enable(!ZeroOrNaN(f[0]));
+            static_cast<Lever*>(lever)->Enable(!IsZero(f[0]));
             break;
         }
         case 0xAC: {   // SetScience(lever, a, b, four flags)
@@ -744,10 +744,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             lock.id = static_cast<std::uint32_t>(Ftol(f[0]));
             lock.level = static_cast<std::uint32_t>(Ftol(f[1]));
             lock.mask = 0;
-            if (!ZeroOrNaN(f[2])) lock.mask = 1;
-            if (!ZeroOrNaN(f[3])) lock.mask |= 2;
-            if (!ZeroOrNaN(f[4])) lock.mask |= 4;
-            if (!ZeroOrNaN(f[5])) lock.mask |= 8;
+            if (!IsZero(f[2])) lock.mask = 1;
+            if (!IsZero(f[3])) lock.mask |= 2;
+            if (!IsZero(f[4])) lock.mask |= 4;
+            if (!IsZero(f[5])) lock.mask |= 8;
             static_cast<Lever*>(lever)->SetLock(&lock);
             break;
         }
@@ -756,7 +756,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x32: {   // BlockUnit(unit, on): flags_ bit 0x800000
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != kClassUnit) break;
-            if (ZeroOrNaN(f[0])) unit->flags_ &= ~0x800000u;
+            if (IsZero(f[0])) unit->flags_ &= ~0x800000u;
             else unit->flags_ |= 0x800000u;
             break;
         }
@@ -1069,7 +1069,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xC7: {   // UMFear(unit, on)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            int on = ZeroOrNaN(f[0]) ? 0 : 1;
+            int on = IsZero(f[0]) ? 0 : 1;
             auto* mode = NewMode<FearMode>(0x2C);
             BrainOf(state)->AddMode(mode ? ConstructFear(mode, on) : nullptr);
             break;

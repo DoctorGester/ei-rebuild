@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 
@@ -26,9 +27,15 @@ constexpr float kNoWander = -1.0f;          // pushed as 0xBF800000
 enum BehaviourType { kGuard = 1, kPatrol = 2, kSentry = 3, kParty = 4, kGuardAlarm = 5 };
 enum Reaction { kFight = 0, kRevenge = 1, kWatch = 2, kWatchFearful = 3 };
 
-// FCOMP; TEST AH,0x40: equal or unordered.
-bool SameOrUnordered(float a, float b) { return x87::IsNaN(a) || x87::IsNaN(b) || a == b; }
-bool ZeroOrNaN(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
+// FCOMP; TEST AH,0x40: equal.
+bool Same(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a == b;
+}
+bool IsZero(double v) {
+    EI_NAN_AUDIT(v);
+    return v == 0.0;
+}
 
 // A new counted object (00413250: operator new with the CRefObject count cleared).
 template <typename Mode>
@@ -85,7 +92,7 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
             float angle = 0.0f;
             double dx = static_cast<double>(waypoint.position.x) - from.x;
             double dy = static_cast<double>(waypoint.position.y) - from.y;
-            if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = static_cast<float>(x87::fpatan(dy, dx));
+            if (!IsZero(dx) || !IsZero(dy)) angle = static_cast<float>(x87::fpatan(dy, dx));
             AILook look;
             look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.lookWait), waypoint.time,
                                        waypoint.stopFirst & 1);
@@ -119,7 +126,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     float radius = std::bit_cast<float>(record->callRadius);
     callRadius = radius;
     LogicSettings& logic = GameLogicSettings();
-    if (SameOrUnordered(radius, logic.callForHelpRadiusDefault))
+    if (Same(radius, logic.callForHelpRadiusDefault))
         std::memcpy(&callRadius, &logic.callForHelpRadius, sizeof(float));
     alertMode = static_cast<int>(record->alertMode);
 

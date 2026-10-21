@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "originals_ui.h"
 #include "originals_world.h"
@@ -202,7 +203,8 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     mfc::CString variable(ZoneVariablePrefix());
     variable += zone;
     float visited = PlayerZeroVariable(variable);
-    if (!x87::IsNaN(visited) && visited != 1.0f) GameCursor()->SetShape(kCursorExit);
+    EI_NAN_AUDIT(visited);
+    if (visited != 1.0f) GameCursor()->SetShape(kCursorExit);
 }
 
 // --- 00603360: input slot 7 ---------------------------------------------------------------------

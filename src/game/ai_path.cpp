@@ -38,12 +38,6 @@ bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
     return ((map->cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
 }
 
-bool IsNaN(float f) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
-    return (bits & 0x7FFFFFFF) > 0x7F800000;
-}
-
 float Abs(float f) {
     std::uint32_t bits;
     std::memcpy(&bits, &f, sizeof(bits));
@@ -112,7 +106,9 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     // The step rotated by -45 and +45 degrees, scaled so that no component exceeds 1.
     float p = sx * kDiagonal - sy * kDiagonal;
     float q = (sy + sx) * kDiagonal;
-    float scale = 1.0f / (Abs(q) < Abs(p) || IsNaN(p) || IsNaN(q) ? Abs(p) : Abs(q));   // FCOMPP: C0 if less or NaN
+    // FCOMPP: C0 if less. No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit
+    // stands on the target cell, which the suite does), and then both choices are NaN.
+    float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));
     if (!(scale >= 1.0f)) {
         p = scale * p;
         q = scale * q;

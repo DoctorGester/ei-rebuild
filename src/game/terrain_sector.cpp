@@ -213,10 +213,10 @@ const std::uint8_t* BuildRecords(SectorData& s) {
         if (layer == 1) tiles += 0x2208;
         for (int vi = 0; vi < kVertices; ++vi, ++rec, ++vin, src += 8) {
             // Branch-free selects on the FCOMP status (C0): the minimum keeps its value when it is
-            // below z or unordered, the maximum when z is below it or unordered.
+            // below z, the maximum when z is below it (and both when z is NaN).
             float z = vin->z;
-            if (!(s.minZ < z) && !x87::IsNaN(s.minZ) && !x87::IsNaN(z)) s.minZ = z;
-            if (!(z < s.maxZ) && !x87::IsNaN(z) && !x87::IsNaN(s.maxZ)) s.maxZ = z;
+            if (z <= s.minZ) s.minZ = z;
+            if (z >= s.maxZ) s.maxZ = z;
 
             rec->materialByte = 0xFF;
             rec->materialColour = {0.0f, 0.0f, 0.0f};

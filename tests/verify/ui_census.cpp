@@ -202,6 +202,12 @@ std::uint64_t SafeHash(const void* bits, std::size_t bytes) {
     }
 }
 
+// A vtable of game.exe's data (past the import table: .rdata, .data, .rsrc; in the image, our copy of them).
+bool InGameVtables(std::uintptr_t vtable) {
+    vtable = ei::OriginalAddress(vtable);
+    return vtable >= ei::kImportsEnd && vtable < 0x007D7000;
+}
+
 // The members of a CUiSurface the census reads; false when it cannot be read or is no surface.
 struct SurfaceView {
     HDC dc = nullptr;
@@ -214,8 +220,7 @@ bool ReadSurface(const CUiSurface* surface, SurfaceView* view) {
     alignas(4) unsigned char raw[sizeof(CUiSurface)];
     if (!SafeRead(surface, raw, sizeof(raw))) return false;
     const auto* copy = reinterpret_cast<const CUiSurface*>(raw);
-    auto vtable = reinterpret_cast<std::uintptr_t>(copy->vtable_);
-    if (vtable < ei::kImportsEnd || vtable >= 0x007D7000) return false;   // past the import table, in the image
+    if (!InGameVtables(reinterpret_cast<std::uintptr_t>(copy->vtable_))) return false;
     view->dc = copy->dc_;
     view->holder = copy->holder_;
     view->width = copy->width_;
@@ -237,7 +242,6 @@ std::string Size(int width, int height) {
     return text;
 }
 
-bool InGameVtables(std::uintptr_t vtable) { return vtable >= ei::kImportsEnd && vtable < 0x007D7000; }   // .rdata, .data, .rsrc
 
 // The game vtable of an object that may wear a verify check's stand-in copy of it for the length of
 // a call: verify_ui_window_slots.cpp's StandInTable (the real vtable in the entry before the table;
@@ -272,7 +276,7 @@ std::string WindowLabel(const CUiWindow* window, const CUiSurface* surface) {
         CUiSurface* entry = nullptr;
         if (SafeRead(data + i, &entry, sizeof(entry)) && entry == surface) index = i;
     }
-    return "W" + Hex(vtable) + "#" + std::to_string(index);
+    return "W" + Hex(ei::OriginalAddress(vtable)) + "#" + std::to_string(index);
 }
 
 // Every surface the census can name: a window's (with the window) or one of the interface's own

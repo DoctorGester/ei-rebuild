@@ -22,6 +22,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
@@ -185,8 +186,9 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         y = facing.y;
     }
     double length = std::sqrt(LengthSquared2DUnrounded(y, x));
-    // FCOM with zero, TEST AH,0x40: a NaN length is left alone too.
-    if (!(length == 0.0) && !x87::IsNaN(static_cast<float>(length))) {
+    // FCOM with zero, TEST AH,0x40.
+    EI_NAN_AUDIT(length);
+    if (length != 0.0) {
         double inverse = 1.0 / length;
         x *= inverse;
         y *= inverse;

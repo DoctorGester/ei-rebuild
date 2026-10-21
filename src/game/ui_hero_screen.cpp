@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
@@ -165,9 +166,10 @@ void CMpHeroScreen::Update() {
     mfc::CString name(static_cast<CUiEditField*>(nameEdit_)->text_);
     const UnitStats* stats = StatsOf(Hero());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
-    // FCOMP; TEST AH,0x40: equal, or unordered.
+    // FCOMP; TEST AH,0x40: equal.
     float target = NewHeroPoints();
-    bool equal = x87::IsNaN(static_cast<float>(points)) || x87::IsNaN(target) || points == target;
+    EI_NAN_AUDIT(points, target);
+    bool equal = points == target;
     bool ready = equal && name.GetLength() != 0;
     float shade = ready ? 1.0f : 0.5f;
     auto* button = reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[kCreateButton]);

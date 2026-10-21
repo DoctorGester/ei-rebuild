@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
@@ -100,7 +101,8 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
         const float y = Row(normals_, i, 1);
         const float z = Row(normals_, i, 2);
         const float distance = distances_.data[i];
-        if (distance == 0.0f || x87::IsNaN(distance)) {
+        EI_NAN_AUDIT(distance);
+        if (distance == 0.0f) {
             specular_.data[i] = 0;
             diffuse_.data[i] = (r << 8 | g) << 8 | b;
             continue;

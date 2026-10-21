@@ -14,6 +14,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/mfc.h"
 #include "originals_render.h"
 
@@ -49,9 +50,12 @@ using worlddata::LastLitHour;
 // Terrain::SetSun (006C8ED0) takes the ambient colour as a Vector4.
 const Vector4* Ambient(const LightColour* colour) { return reinterpret_cast<const Vector4*>(colour); }
 
-// The FCOMP / TEST AH,0x40 test: equal, or unordered.
-bool ZeroOrNaN(float value) { return value == 0.0f || x87::IsNaN(value); }
-bool IsBlack(const LightColour& c) { return ZeroOrNaN(c.r) && ZeroOrNaN(c.g) && ZeroOrNaN(c.b); }
+// The FCOMP / TEST AH,0x40 test: equal.
+bool IsZero(float value) {
+    EI_NAN_AUDIT(value);
+    return value == 0.0f;
+}
+bool IsBlack(const LightColour& c) { return IsZero(c.r) && IsZero(c.g) && IsZero(c.b); }
 
 // (b - a) * t + a, stored as a float.
 float Lerp(float a, float b, float t) {
@@ -227,7 +231,8 @@ void CWorldClient::UpdateExitMarkers() {
         mfc::CString name("z.");
         name += exits_[i].target;
         const float visited = variables->Get(name);
-        marker->extent = {visited == 1.0f || x87::IsNaN(visited) ? 1.0f : 0.0f, 0.0f, 0.0f};
+        EI_NAN_AUDIT(visited);
+        marker->extent = {visited == 1.0f ? 1.0f : 0.0f, 0.0f, 0.0f};
     }
 }
 EI_REPLACE_METHOD(0x00567680, CWorldClient::UpdateExitMarkers);

@@ -162,7 +162,7 @@ void CHudPortraits::Update() {
         double mana = 0.0;
         if (maxMana != 0) {
             float current = static_cast<float>(unit->packedVitals.mana);   // exact (16 bits)
-            float positive = 0.0f < current || x87::IsNaN(current) ? current : 0.0f;
+            float positive = 0.0f < current ? current : 0.0f;
             mana = D(positive) / static_cast<double>(static_cast<int>(maxMana));
         }
         SetBar(object(3), mana, kManaV0, kManaV1);

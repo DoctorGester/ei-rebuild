@@ -26,6 +26,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_world.h"
@@ -280,8 +281,9 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
         auto* object = static_cast<CMapObject*>(node->data);
         if (GameMbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
-    // FCOMP + TEST AH,0x40: equal or unordered.
-    if ((value == 2.0f || x87::IsNaN(value)) && name.Find(dot) < 0) SummonBird();
+    // FCOMP + TEST AH,0x40.
+    EI_NAN_AUDIT(value);
+    if (value == 2.0f && name.Find(dot) < 0) SummonBird();
 }
 
 mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {

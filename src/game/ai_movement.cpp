@@ -8,6 +8,7 @@
 #include "game_hashes.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -233,7 +234,8 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             float dy = static_cast<float>(static_cast<double>(cell.y) - eye->y);
             float dz = static_cast<float>(-static_cast<double>(eye->z));
             float distance = static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2DUnrounded(dy, dx))));
-            if (radius < distance || x87::IsNaN(radius) || x87::IsNaN(distance)) continue;
+            EI_NAN_AUDIT(radius, distance);
+            if (radius < distance) continue;
             if (!anyDirection) {
                 double dot = DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, look->x, look->y, look->z);
                 if (static_cast<double>(distance) * cosLimit > dot) continue;

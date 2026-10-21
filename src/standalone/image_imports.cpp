@@ -1,15 +1,15 @@
 // game.exe's imports in ei_hook.dll's storage (S18f; docs/notes/standalone.md, "Own data"). The image's import
 // slots are a table of ours: every slot of game.exe's import address table (image_imports.inc, written by
 // tools/gen_iat.py from game.exe's import directory: slot, DLL, function or ordinal) is resolved here into the
-// storage at the data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .data), so everything that
+// storage at the data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so everything that
 // calls through a slot by its address (gameapi.h, the static initialisers' Import, Bink's slots, the harness's
 // slot routes) reaches our table. The image's resource, module, command-line and DirectInput imports get their
 // wrappers in place of the export (ImageRoute, hook/standalone.cpp).
 //
-// game.exe's own table (in .rdata, which stays at its address until S18h) is left readable, but each slot
-// leads to a trap of its own: the image runs none of game.exe's code, so a call through an old slot is a use
-// that missed the seam, reported with the slot's import and its caller (OnTrap). A slot of ours whose import
-// did not resolve leads to a trap too until the run ends (the launch-free check fails on it).
+// game.exe's own table is guarded with the rest of the old .rdata (S18h, image_data.cpp): the image runs none of
+// game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's import
+// and its code address (OnOldData, DescribeImportSlot). A slot of ours whose import did not resolve leads to a
+// trap until the run ends (OnTrap; the launch-free check fails on it).
 //
 // Runs from image_data.cpp's mover, before every other static constructor of ei_hook.dll: the harness takes
 // import slots in its own. In game.exe (the original's runs) nothing happens: the loader filled its table.
@@ -45,7 +45,7 @@ constexpr Import kImports[] = {
 };
 
 constexpr std::size_t kSlots = (kImportsEnd - kImportsBegin) / 4;
-// One INT3 per slot for our table's unresolved slots, then one per slot of game.exe's own table.
+// One INT3 per slot for our table's unresolved slots.
 unsigned char* g_traps;
 int g_missing = -1;   // imports that did not resolve (-1: not the image)
 
@@ -61,26 +61,18 @@ void Describe(const Import* i, char* out, std::size_t size) {
     else std::snprintf(out, size, "%s!#%u", i->dll, i->ordinal);
 }
 
-// A call that reached a trap: through game.exe's own import slot, or through a slot of ours that did not resolve.
+// A call that reached a trap: through a slot of ours that did not resolve.
 LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;
     const auto at = reinterpret_cast<std::uintptr_t>(r->ExceptionAddress);
     const auto traps = reinterpret_cast<std::uintptr_t>(g_traps);
-    if (r->ExceptionCode != EXCEPTION_BREAKPOINT || !g_traps || at - traps >= 2 * kSlots) return EXCEPTION_CONTINUE_SEARCH;
-    const std::size_t index = at - traps;
-    const bool old = index >= kSlots;
-    const std::uintptr_t slot = kImportsBegin + 4 * (index % kSlots);
+    if (r->ExceptionCode != EXCEPTION_BREAKPOINT || !g_traps || at - traps >= kSlots) return EXCEPTION_CONTINUE_SEARCH;
+    const std::uintptr_t slot = kImportsBegin + 4 * (at - traps);
     char import[160], caller[160], what[480];
     Describe(ImportAt(slot), import, sizeof(import));
     DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
-    if (old)
-        std::snprintf(what, sizeof(what),
-                      "a call through game.exe's own import slot %08X (%s) by %s: the image's slots are ei_hook.dll's "
-                      "table, a use that missed the data seam (GameAddress, game_data.h)",
-                      static_cast<unsigned>(slot), import, caller);
-    else
-        std::snprintf(what, sizeof(what), "a call of game.exe's import %s (slot %08X), which did not resolve, by %s",
-                      import, static_cast<unsigned>(slot), caller);
+    std::snprintf(what, sizeof(what), "a call of game.exe's import %s (slot %08X), which did not resolve, by %s",
+                  import, static_cast<unsigned>(slot), caller);
     std::fprintf(stderr, "ei_hook: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
@@ -123,11 +115,11 @@ void Fail(const char* what) {
 
 void ResolveImageImports() {
     if (GetModuleHandleA(nullptr) == reinterpret_cast<HMODULE>(kImageBase)) return;   // game.exe
-    g_traps = static_cast<unsigned char*>(VirtualAlloc(nullptr, 2 * kSlots, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+    g_traps = static_cast<unsigned char*>(VirtualAlloc(nullptr, kSlots, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     if (g_traps) {
-        std::memset(g_traps, 0xCC, 2 * kSlots);
+        std::memset(g_traps, 0xCC, kSlots);
         DWORD was;
-        VirtualProtect(g_traps, 2 * kSlots, PAGE_EXECUTE_READ, &was);
+        VirtualProtect(g_traps, kSlots, PAGE_EXECUTE_READ, &was);
         AddVectoredExceptionHandler(1, OnTrap);
     }
     const std::string exe = ExePath();
@@ -142,8 +134,6 @@ void ResolveImageImports() {
         const std::size_t index = (i.slot - kImportsBegin) / 4;
         auto& ours = GameData<const void*>(i.slot);
         ours = g_traps ? g_traps + index : nullptr;
-        // game.exe's own slot (its address as the file has it): a trap of its own from now on.
-        *reinterpret_cast<const void**>(i.slot) = g_traps ? g_traps + kSlots + index : nullptr;
         if (!moduleName || _stricmp(moduleName, i.dll) != 0) {
             moduleName = i.dll;
             module = LoadImport(i.dll, exeFolder);
@@ -170,11 +160,13 @@ void ResolveImageImports() {
         routed += route != nullptr;
     }
     Log("standalone: game.exe's %d import slots in ei_hook.dll's table at %08X: %d resolved (%d routed), %d missing; "
-        "game.exe's own slots lead to traps",
+        "game.exe's own table guarded",
         static_cast<int>(sizeof(kImports) / sizeof(kImports[0])), static_cast<unsigned>(GameAddress(kImportsBegin)),
         resolved, routed, g_missing);
 }
 
 int ImageImportsMissing() { return g_missing; }
+
+void DescribeImportSlot(std::uintptr_t slot, char* out, std::size_t size) { Describe(ImportAt(slot), out, size); }
 
 } // namespace ei

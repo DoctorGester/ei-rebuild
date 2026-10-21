@@ -21,6 +21,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
@@ -61,8 +62,11 @@ constexpr float kPerchHeight = 30.0f;
 constexpr float kPerchHeightStep = 3.0f;
 constexpr double kRandomAngle = 1.4621764913365538e-09;   // 0073CF18, 2 pi / 2^32
 
-// FCOMP; TEST AH,40h: equal, or unordered.
-bool SameOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
+// FCOMP; TEST AH,40h: equal.
+bool Same(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a == b;
+}
 
 CAIMap* AIMap() { return WorldServer()->AIMap(); }
 
@@ -157,8 +161,8 @@ void CEffectMoshka::Update(float now) {
 
     Vector3 target{};   // the original leaves it unset for other states (Follow sets 0, so none occur)
     if (state_ == kFlyingOff) {
-        if (timeUp || (SameOrNaN(localPosition_.x, birdAt.x) && SameOrNaN(localPosition_.y, birdAt.y) &&
-                       SameOrNaN(localPosition_.z, birdAt.z))) {
+        if (timeUp || (Same(localPosition_.x, birdAt.x) && Same(localPosition_.y, birdAt.y) &&
+                       Same(localPosition_.z, birdAt.z))) {
             Reset();   // through slot 18
             return;
         }
@@ -219,7 +223,7 @@ void CEffectMoshka::Update(float now) {
     float z = !(target.z >= floor) ? floor : target.z;
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
-    if (!SameOrNaN(distance, 0.0f)) {
+    if (!Same(distance, 0.0f)) {
         float gx = birdAt.x - followed.x;
         float gy = birdAt.y - followed.y;
         float gz = birdAt.z - followed.z;

@@ -23,6 +23,7 @@
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -709,11 +710,10 @@ void NodPortrait(CBattleScreen* screen, int index) {
     slots[index].wobbleTime_ = delay;
     screen->portraits_->slots_[index].wobbleKind_ = 1;
 }
-// fcomp with 0.0 and C3: true for zero (either sign) and for NaN.
-bool ZeroOrNaN(float value) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
-    return (bits & 0x7FFFFFFFu) == 0 || x87::IsNaN(value);
+// fcomp with 0.0 and C3: true for zero (either sign).
+bool IsZero(float value) {
+    EI_NAN_AUDIT(value);
+    return value == 0.0f;
 }
 
 } // namespace
@@ -865,7 +865,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 2:   // a spell on a point
     case 4: {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
-        if (ZeroOrNaN(at.x) && ZeroOrNaN(at.y)) return;
+        if (IsZero(at.x) && IsZero(at.y)) return;
         if (!first) return;
         ScreenCastAt(this, nullptr, at, living, pendingAction_ == 4 ? 1 : 0);
         return;
@@ -1048,8 +1048,9 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name);
             const float one = GameOne();
-            // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
-            if (!x87::IsNaN(static_cast<float>(value)) && value != one) {
+            // FCOMP; TEST AH,0x40; JNZ: equal skips.
+            EI_NAN_AUDIT(value);
+            if (value != one) {
                 exitPending_ = 1;
                 pendingExit_ = exit;
             }
