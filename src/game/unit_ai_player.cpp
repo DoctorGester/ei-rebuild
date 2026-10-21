@@ -30,8 +30,6 @@ constexpr float kMovingSlack = 2.0f;                            // 0x40000000
 constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
 constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
-CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
-AIBrain* BrainOf(const CUnit* unit) { return ControllerOf(unit)->Brain(); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 CPlayer* PlayerOf(const CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
@@ -51,7 +49,7 @@ bool DirectlyControlled(const CUnit* unit) {
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
 CUnit* LeaderOf(const CUnit* unit) {
-    AIBrain* brain = BrainOf(unit);
+    AIBrain* brain = unit->ServerController()->Brain();
     CEngineObject* leader = nullptr;
     if (auto* mode = static_cast<PlayerMode*>(brain->FindMode(kModePlayer))) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
@@ -116,7 +114,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     for (auto* node = candidates.head; node;) {
         auto* next = node->next;
         auto* other = node->data;
-        CUnitServer* control = ControllerOf(other);
+        CUnitServer* control = other->ServerController();
         float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
         float hearing = control->stats.valuesB0[2].current;
         EI_NAN_AUDIT(sight, hearing);
@@ -143,7 +141,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 auto* other = node->data;
                 node = node->next;
                 if (other == unit) continue;
-                AIBrain* theirs = BrainOf(other);
+                AIBrain* theirs = other->ServerController()->Brain();
                 auto* mode = static_cast<PlayerMode*>(theirs->FindMode(kModePlayer));
                 if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
                 mode->state = kStateFollow;
@@ -178,7 +176,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
         auto* other = node->data;
         node = node->next;
         if (other == unit || other->player != unit->player) continue;
-        AIBrain* theirs = BrainOf(other);
+        AIBrain* theirs = other->ServerController()->Brain();
         auto* foe = static_cast<CUnit*>(theirs->target);
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
             foe->GetClassId() != kClassUnit)
@@ -229,7 +227,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         CUnit* member = node->value;
         PlayerMode* mode = nullptr;
-        for (auto* entry = BrainOf(member)->modes.head; entry; entry = entry->next) {
+        for (auto* entry = member->ServerController()->Brain()->modes.head; entry; entry = entry->next) {
             if (entry->data->GetType() == kModePlayer) {
                 mode = static_cast<PlayerMode*>(entry->data);
                 break;

@@ -50,7 +50,7 @@ const char* Text(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
 CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]->object; }
 
 CUnit* AsCUnit(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
-CUnitServer* ServerOf(CEngineObject* unit) { return static_cast<CUnitServer*>(AsCUnit(unit)->controller); }
+CUnitServer* ServerOf(CEngineObject* unit) { return AsCUnit(unit)->ServerController(); }
 const UnitPrototypeRecord* PrototypeOf(CEngineObject* unit) {
     return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype());
 }

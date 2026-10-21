@@ -342,8 +342,8 @@ MagicTrap::~MagicTrap() {
 void MagicTrap::DestructBody() { this->MagicTrap::~MagicTrap(); }
 EI_REWRITTEN(0x00529F90, MagicTrap::DestructBody);
 
-void MagicTrap::Load(void* stream) { LoadTrap(static_cast<CStream*>(stream)); }
-void MagicTrap::Save(void* stream) { SaveTrap(static_cast<CStream*>(stream)); }
+void MagicTrap::Load(CStream* stream) { LoadTrap(stream); }
+void MagicTrap::Save(CStream* stream) { SaveTrap(stream); }
 int MagicTrap::ForgetObject(CEngineObject* object) { return ForgetObjectImpl(object); }
 
 void MagicTrap::SaveTrap(CStream* stream) {

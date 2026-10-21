@@ -62,9 +62,6 @@ const char* TextUnknownType() { return "Serv wrong packet ID prevID=%x curID=%x"
 
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessedId_
 
-// The brain embedded in a unit's controller (CUnitServer + 0x980).
-AIBrain* BrainOf(CUnit* unit) { return &static_cast<CUnitServer*>(unit->controller)->brain; }
-
 // 2.0 (0073CDB8): a unit level at most this asks the client to refresh the party.
 float LowLevel() { return 2.0f /*0073CDB8*/; }
 
@@ -107,15 +104,16 @@ constexpr std::uint8_t kMessageItemStates = 0x05;
 constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
 constexpr int kItemListBlockSize = 10;
-using GivenList = mfc::CTypedPtrList<CEngineObject>;
+using GivenList = mfc::CTypedPtrList<CItem>;
+using GatheredList = mfc::CTypedPtrList<CEngineObject>;
 void* ItemListVtable() { return ei::GamePointer<void>(0x0073B8D4); }   // the CPtrList built on the stack
 
 } // namespace
 
 void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     if (state_ != kStateJoined) return;
-    GivenList spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
-    GivenList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
+    GatheredList spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
+    GatheredList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
         GatherItem(&gathered, reinterpret_cast<mfc::CTypedPtrList<void>*>(&spells), node->data);   // 0069FB60
     alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
@@ -292,11 +290,11 @@ int CPlayerServer::SendPartyState() {
         if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
             if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
-            for (auto* node = BrainOf(unit)->memory.nearby.head; node != nullptr;) {
+            for (auto* node = unit->ServerController()->Brain()->memory.nearby.head; node != nullptr;) {
                 auto* other = node->data;
                 node = node->next;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
-                if (BrainOf(other)->AggressionEnemy() == unit) refreshPending_ = 2;
+                if (other->ServerController()->Brain()->AggressionEnemy() == unit) refreshPending_ = 2;
             }
         }
         WriteDword(&out_, static_cast<std::uint32_t>(unit->id_));
@@ -395,13 +393,13 @@ void CPlayerServer::UpdatePartyUnits() {
         for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
             CUnit* unit = node->value;
             party.Insert(unit);
-            AIBrain* brain = BrainOf(unit);
+            AIBrain* brain = unit->ServerController()->Brain();
             party.InsertAll(&brain->memory.visible);
             known.InsertAll(&brain->memory.seenCorpses);
         }
         partyUnits_.Union(party, known);
         for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node))
-            known.CopyToList(&BrainOf(node->value)->memory.seenCorpses);
+            known.CopyToList(&node->value->ServerController()->Brain()->memory.seenCorpses);
     } else {
         partyUnits_.SetSize(party.size, -1);
         for (int i = 0; i < party.size; ++i) {

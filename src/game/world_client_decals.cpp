@@ -143,7 +143,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
                 // The parts are scene nodes laid out as CObject3D's first members (position,
                 // orientation, matrix); CFigureMesh's declaration contradicts it (models.md, C9).
                 for (int i = 0; i < object->parts.size; ++i) {
-                    auto* part = static_cast<CObject3D*>(object->parts[i]);
+                    auto* part = reinterpret_cast<CObject3D*>(object->parts[i]);
                     BuildNodeMatrix(part);
                     PushDecalMatrix(pipeline, part->worldMatrix.m);
                     AddPartTriangles(pipeline, figure, part, data);

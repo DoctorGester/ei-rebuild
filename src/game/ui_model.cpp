@@ -97,7 +97,7 @@ EI_REWRITTEN(0x005FC4C0, CUiModel::ShowPart);
 // 005FC4F0 (RET 4). Every part (+0xD0) shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < Figure()->parts.size; ++i)
-        if (auto* part = static_cast<CFigureMesh*>(Figure()->parts.data[i])) ShowFigurePart(part, show);
+        if (auto* part = Figure()->parts.data[i]) ShowFigurePart(part, show);
 }
 EI_REWRITTEN(0x005FC4F0, CUiModel::ShowAllParts);
 

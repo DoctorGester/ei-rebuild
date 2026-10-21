@@ -218,7 +218,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         heard.free = nullptr;
         heard.blocks = nullptr;
         heard.blockSize = 10;
-        auto* controller = static_cast<CUnitServer*>(unit->controller);
+        auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // the original's branch-free select

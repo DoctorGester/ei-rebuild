@@ -20,6 +20,7 @@
 #include <cstdint>
 
 class CPlayer;
+class CItem;    // item.h
 class CParty;   // party.h
 class CUnit;    // unit.h
 namespace netlink {
@@ -108,7 +109,7 @@ public:
     // 0066E7D0 (RET 8; A-H10). For a joined player (state 1): message 0x05, a stream with the
     // given items' spells and then the items (0069FB60 gathers them, 0055E8A0 writes each list),
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
-    void SendItemsGiven(const mfc::CTypedPtrList<CEngineObject>* items, int flag);
+    void SendItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
     // 0066E430. Message 0x60: the world's +0x6C flag, +0x24, the party units (partyUnits_) by id and
     // whether the client should refresh the party (refreshPending_: 1 when a unit of the player has
     // a level at most 2, 2 when a party unit fights or is the enemy of a hostile neighbour), then the
@@ -334,7 +335,7 @@ public:
     virtual void ResetState();              // 15: server 0066CF20, client 00667600
     virtual void Leave();                   // 16: server 0066D020 (state 3, flushed); client empty
     // 17: server 0066E7D0 (CPlayerServer::SendItemsGiven); client empty.
-    virtual void ItemsGiven(const mfc::CTypedPtrList<CEngineObject>* items, int flag);
+    virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
     virtual void ItemsTaken();              // 18: server 0066EA10 (message 0x17); client empty
     virtual void ItemTaken(CEngineObject* item);   // 19: server 0066EA30 (message 0x0A); client empty
     // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::UpdateServer calls it when
@@ -398,7 +399,7 @@ public:
     BOOL IsLeader(const CEngineObject* unit);
     // 00665470 (RET 8). The connection's slot 17 with both arguments, then every item of `items`
     // counted and appended to the given items.
-    void GiveItems(const mfc::CTypedPtrList<CEngineObject>* items, int flag);
+    void GiveItems(const mfc::CTypedPtrList<CItem>* items, int flag);
     // 00665550. The connection's slot 18, then every given item taken off the head and released.
     void TakeAllItems();
     // 00665640 (RET 4). 1 when a given loot item (0x3009) has `kind` (CItemLoot::kind_), or an item
@@ -442,7 +443,7 @@ public:
     ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C
     alignas(4) std::uint8_t party_[0x70];       // +0x70 an embedded CParty; slot 18 its item manager
-    mfc::CTypedPtrList<CEngineObject> items_;   // +0xE0 items given to the player (counted; CPtrList)
+    mfc::CTypedPtrList<CItem> items_;           // +0xE0 items given to the player (counted; CPtrList)
     std::uint32_t partyId_;                     // +0xFC the key of the party in the party manager (PartyNextId); sent with the client's login (00667680)
     int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units (00667EC0)
     std::uint32_t lastScreen_;                  // +0x104 the session kind before the last game-state message (5: the camp)

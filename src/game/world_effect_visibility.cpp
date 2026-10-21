@@ -123,14 +123,12 @@ int CEffectShowVisibility::Tick() {
     return 1;
 }
 
-void CEffectShowVisibility::LoadState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectShowVisibility::LoadState(CStream* s) {
     s->Read(&observerId_, 4);
     s->Read(&seerId_, 4);
 }
 
-void CEffectShowVisibility::SaveState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectShowVisibility::SaveState(CStream* s) {
     int copy = observerId_;
     s->Write(&copy, 4);
     copy = seerId_;

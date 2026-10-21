@@ -30,8 +30,7 @@ namespace net {
 
 namespace {
 
-using ObjectList = mfc::CTypedPtrList<CEngineObject>;
-
+using GivenItems = mfc::CTypedPtrList<CItem>;
 
 // The world (0x7AFF60) and its players (outside this range).
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
@@ -45,7 +44,7 @@ CPlayer* LocalPlayer() { return reinterpret_cast<CPlayer*>(static_cast<CWorldSer
 std::int32_t GameMode() { return ei::GameData<const std::int32_t>(0x007C2CC4); }
 std::uint32_t Unknown7B00BC() { return ei::GameData<const std::uint32_t>(0x007B00BC); }
 
-void InitList(ObjectList& list, void* vtable) {
+void InitList(GivenItems& list, void* vtable) {
     list.vtable = vtable;
     list.head = nullptr;
     list.tail = nullptr;
@@ -77,7 +76,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 1: {
-            ObjectList none;
+            GivenItems none;
             InitList(none, mfc::impl::ItemListClass::Vtable());
             player->Party()->Money() += static_cast<int>(gamecrt::Ftol(award->value_));
             reinterpret_cast<CPlayer*>(player)->GiveItems(&none, 0);
@@ -86,11 +85,11 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 2: {
-            ObjectList items;
+            GivenItems items;
             InitList(items, gameslots::ItemObjectListClass::Vtable());
-            CEngineObject* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
-            ObjectList::Node* added = items.NewNode(items.tail, nullptr);
-            ObjectHolderAssign(&added->data, nullptr, item);
+            CItem* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
+            GivenItems::Node* added = items.NewNode(items.tail, nullptr);
+            ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&added->data), nullptr, item);
             if (items.tail) items.tail->next = added;
             else items.head = added;
             items.tail = added;
@@ -102,10 +101,10 @@ void ClientSession::ApplyAwards() {
         case 3: {
             auto* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
             if (item) ++item->refCount_;
-            for (ObjectList::Node* position = player->items_.head; position;) {
-                ObjectList::Node* current = position;
+            for (GivenItems::Node* position = player->items_.head; position;) {
+                GivenItems::Node* current = position;
                 position = position->next;
-                auto* owned = static_cast<CItem*>(current->data);
+                CItem* owned = current->data;
                 if (!owned->IsSameAs(item)) {
                     std::int32_t id = owned->id_;
                     if (id >= 0) player->TakeItem(id);
@@ -117,8 +116,8 @@ void ClientSession::ApplyAwards() {
         }
         case 4:
             PartyResetItems(player->Party());
-            for (ObjectList::Node* position = player->items_.head; position;) {
-                ObjectList::Node* current = position;
+            for (GivenItems::Node* position = player->items_.head; position;) {
+                GivenItems::Node* current = position;
                 position = position->next;
                 CEngineObject* owned = current->data;
                 if (owned->GetClassId() == kClassQuestItem) player->TakeItem(owned->id_);

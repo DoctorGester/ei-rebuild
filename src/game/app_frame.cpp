@@ -62,6 +62,8 @@ void ClearScreen() {
     gameapi::LeaveCriticalSection(TheDeviceLock());
 }
 
+std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
+
 } // namespace
 
 // 00458010 (CL draw, DL cursor). Nothing while the application is inactive (a 50 ms sleep when
@@ -83,7 +85,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     TheCursor()->ReleaseLock();
     if (!ei::GameData<std::uint8_t>(0x0079BC54)) return;
     char path[256];
-    gamecrt::sprintf(path, "%sshot%.4d.bmp", static_cast<const char*>(MovieFolder()), ei::GameData<std::uint32_t>(0x0079BC58));
+    gamecrt::sprintf(path, "%sshot%.4d.bmp", static_cast<const char*>(MovieFolder()), g_movieFrame);
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
@@ -108,7 +110,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (bitmap) bitmap->Write(&file);
     if (bitmap) reinterpret_cast<mfc::CObjectVirtuals*>(bitmap)->DeletingDestructor(1);   // slot 1 Delete(1)
     file.Close();
-    ++ei::GameData<std::uint32_t>(0x0079BC58);
+    ++g_movieFrame;
 }
 EI_REPLACE(0x00458010, FrameStep);
 

@@ -44,7 +44,6 @@ const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // 0073FF2C: -1e30
 const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the starting best: -1e20
 
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
-CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // The prototype's +0x24 (compared with 0.5: units below it count as small).
@@ -55,7 +54,7 @@ float PrototypeSize(CUnit* unit) {
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
 std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
-    return ExcessDamageOriginal(option->damage, nullptr, reinterpret_cast<const std::uint16_t*>(ControllerOf(target)->protection));
+    return ExcessDamageOriginal(option->damage, nullptr, reinterpret_cast<const std::uint16_t*>(target->ServerController()->protection));
 }
 
 // Cases 2 and 3: the damage summed over the group members within the option's radius of the
@@ -209,7 +208,7 @@ EI_REWRITTEN(0x005CF7F0, AIAttention::IsUsable);
 double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : kZero;
-    CUnitServer* control = ControllerOf(candidate);
+    CUnitServer* control = candidate->ServerController();
     int others = group->count - 1;
     int cap = option->maxCount;
     std::uint32_t damage = 0;   // only the low 16 bits count

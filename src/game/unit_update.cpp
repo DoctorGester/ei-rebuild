@@ -91,7 +91,7 @@ EI_REPLACE_METHOD(0x0052EB30, CUnit::ScaleEffectChangedImpl);
 std::uintptr_t CUnit::SetStatsImpl(const UnitStats* stats) {
     int classId = controller->GetClassId();
     if (classId != kClassUnitServer) return static_cast<std::uintptr_t>(classId);
-    return static_cast<CUnitServer*>(controller)->SetStats(stats);
+    return ServerController()->SetStats(stats);
 }
 EI_REPLACE_METHOD(0x00530A20, CUnit::SetStatsImpl);
 
@@ -162,8 +162,8 @@ void CUnit::Destroy() { DestroyUnit(); }
 void CUnit::ClearState() { ReleaseUnit(); }
 int CUnit::RunTick() { return Tick(); }
 const char* CUnit::GetName() { return scriptName; }
-void CUnit::Load(void* stream) { LoadUnit(static_cast<CStream*>(stream)); }
-void CUnit::Save(void* stream) { SaveUnit(static_cast<CStream*>(stream)); }
+void CUnit::Load(CStream* stream) { LoadUnit(stream); }
+void CUnit::Save(CStream* stream) { SaveUnit(stream); }
 const char* CUnit::GetClassName() { return kUnitClassName; }
 int CUnit::GetClassId() { return kUnitClassId; }
 bool CUnit::AcceptsAnimation(const void* entry) { return AcceptsAnimationImpl(entry); }

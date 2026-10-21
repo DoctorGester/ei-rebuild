@@ -100,13 +100,13 @@ inline bool SnapshotReadToEnd() {
     return position == s->Size();
 }
 
-// --- Save streams (the effects' Load / Save slots take the CStream as void*) ----------------------
+// --- Save streams (the effects' Load / Save slots) -------------------------------------------------
 
-inline void Read(void* stream, void* data, std::uint32_t size) { static_cast<CStream*>(stream)->Read(data, size); }
-inline void Write(void* stream, const void* data, std::uint32_t size) { static_cast<CStream*>(stream)->Write(data, size); }
-inline int Version(const void* stream) { return static_cast<int>(static_cast<const CStream*>(stream)->version_); }
+inline void Read(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
+inline void Write(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
+inline int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
 // A dword written through a stack copy, as the original writes most scalars.
-inline void WriteCopy(void* stream, const void* field) {
+inline void WriteCopy(CStream* stream, const void* field) {
     std::uint32_t copy;
     std::memcpy(&copy, field, 4);
     Write(stream, &copy, 4);

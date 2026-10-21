@@ -166,13 +166,13 @@ using NameList = BriefingRecord::NameList;
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
-CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
+CItem* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::CTypedPtrList<void> lists[2];
     mfc::CTypedPtrList<void>* first = fromSecond ? &lists[0] : &lists[1];
     mfc::CTypedPtrList<void>* second = fromSecond ? &lists[1] : &lists[0];
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(first, nullptr, 10);
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(second, nullptr, 10);
-    CEngineObject* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
+    CItem* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*second);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*first);
     return item;
@@ -187,7 +187,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     }
     PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
 
-    mfc::CTypedPtrList<CEngineObject> items;
+    mfc::CTypedPtrList<CItem> items;
     items.vtable = ei::GamePointer<void>(worlddata::kItemListVtable);
     items.head = nullptr;
     items.tail = nullptr;
@@ -196,7 +196,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     items.blocks = nullptr;
     items.blockSize = 10;
     for (const mfc::CString* name = record->giveItems.begin(); name != record->giveItems.end(); ++name) {
-        CEngineObject* item = CreateNamedItem(*name, true);
+        CItem* item = CreateNamedItem(*name, true);
         if (!item) continue;
         auto* node = items.NewNode(items.tail, nullptr);
         node->data = item;
@@ -207,7 +207,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     if (items.count) reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
 
     for (const mfc::CString* name = record->removeItems.begin(); name != record->removeItems.end(); ++name) {
-        CEngineObject* item = CreateNamedItem(*name, false);
+        CItem* item = CreateNamedItem(*name, false);
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
@@ -351,9 +351,6 @@ using IdArray = mfc::CArray<int>;
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
 
-// The unit's controller (CUnit + 0x240), a CUnitServer on the server.
-CUnitServer* ControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(unit->controller); }
-
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its
 // controller's statistics (+0x8E0, +0x1E4).
 double Weight(CUnitServer* controller) {
@@ -375,7 +372,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CUnit* unit = soloUnit(p);
         if (!unit) continue;
-        CUnitServer* controller = ControllerOf(unit);
+        CUnitServer* controller = unit->ServerController();
         if (!controller) continue;
         ShareNode* node = list.NewNode(list.tail, nullptr);
         node->data.controller = controller;
@@ -397,13 +394,13 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         float share = static_cast<float>(Weight(node->data.controller) * amount / divisor);
         float stored = share;
         node->data.share = stored;
-        static_cast<CUnitServer*>(node->data.controller)->AddExperience(stored);
+        node->data.controller->AddExperience(stored);
         node = next;
     }
     ShareNode* cursor = list.head;
     for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CUnit* unit = soloUnit(p);
-        if (!unit || !ControllerOf(unit)) continue;
+        if (!unit || !unit->ServerController()) continue;
         ShareNode* node = cursor;
         cursor = node->next;
         reinterpret_cast<UnitStats*>(MercRecord(p, 0).stats)->AddScaledExperience(node->data.share);
@@ -440,7 +437,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
         share = stored;
         for (int i = 0; i < heroes.size; ++i) {
             CUnit* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
-            ControllerOf(unit)->AddExperience(share);
+            unit->ServerController()->AddExperience(share);
             for (int j = 0; j < player->mercCount; ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
                 if (static_cast<int>(record.unitId) == heroes.data[i]) reinterpret_cast<UnitStats*>(record.stats)->AddScaledExperience(share);
@@ -508,7 +505,7 @@ void ClearRecordItems(PartyUnitRecord* record) {
 }
 
 void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
-    CUnitServer* controller = ControllerOf(unit);
+    CUnitServer* controller = unit->ServerController();
     ClearRecordItems(record);
 
     for (int slot = 0; slot < kQuickSlots; ++slot) {
@@ -558,7 +555,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
     CParty* party = PartyOf(player);
     for (auto* node = player->items.head; node;) {
         auto* next = node->next;
-        party->AddItem(reinterpret_cast<CItem*>(node->data), 1, 1);
+        party->AddItem(node->data, 1, 1);
         node = next;
     }
     RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
@@ -587,7 +584,7 @@ inline void __fastcall UnitSetController(CUnit* a0, void*, void* a2) { a0->SetPl
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
 void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CUnit* unit) {
-    CUnitServer* controller = ControllerOf(unit);
+    CUnitServer* controller = unit->ServerController();
     ClearRecordItems(record);
     for (int slot = 0; slot < kQuickSlots; ++slot)
         if (CItem* item = unit->GetWeapon(slot)) AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
@@ -628,7 +625,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
         for (int i = 0; i < list->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
             CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
-            CEngineObject* leader = ControllerOf(unit)->brain.LeaderOrFollowed();
+            CEngineObject* leader = unit->ServerController()->brain.LeaderOrFollowed();
             record->leaderId = leader ? leader->id_ : -1;
         }
     }
@@ -687,9 +684,9 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
 void CWorldServer::StorePlayerItems(WorldPlayer* player, CParty* party) {
     if (!player) return;
     for (auto* node = player->items.head; node;) {
-        CEngineObject* item = node->data;
+        CItem* item = node->data;
         node = node->next;
-        party->AddItem(static_cast<CItem*>(item), 1, 1);
+        party->AddItem(item, 1, 1);
         item->Release();
     }
     player->items.RemoveAll();

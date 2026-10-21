@@ -114,7 +114,7 @@ int AIAttention::SpellKind(const CSpell* spell) {
 }
 
 void AIAttention::Build(CUnit* unit) {
-    auto* server = static_cast<CUnitServer*>(unit->controller);
+    auto* server = unit->ServerController();
     weapons.RemoveAll();
     spells.RemoveAll();
     if (!(IsTextKey(unit->id_) & 0xFF)) {

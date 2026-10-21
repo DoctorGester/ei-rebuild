@@ -69,8 +69,8 @@ void CTorchObject::SaveTorch(CStream* stream) {
 }
 EI_REPLACE_METHOD(0x0052C2A0, CTorchObject::SaveTorch);
 
-void CTorchObject::Load(void* stream) { LoadTorch(static_cast<CStream*>(stream)); }
-void CTorchObject::Save(void* stream) { SaveTorch(static_cast<CStream*>(stream)); }
+void CTorchObject::Load(CStream* stream) { LoadTorch(stream); }
+void CTorchObject::Save(CStream* stream) { SaveTorch(stream); }
 
 std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
     if (object->type_ != kTypeTorchSpec) return CMapObject::AttachObjectImpl(object);

@@ -174,6 +174,7 @@ struct SpeechRecord; // unit_client_models.h
 class CObject3D;     // map_object_figures.h
 class CMapObject;    // map_object.h
 class CUnit;
+class CUnitServer;   // combat.h
 
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
@@ -298,8 +299,8 @@ public:
     void ClearState() override;              // 5: 0052E740 ReleaseUnit
     int RunTick() override;                  // 6: 0052F7D0 Tick
     const char* GetName() override;          // 7: 00446820 the script name
-    void Load(void* stream) override;        // 9: 00531A80 LoadUnit
-    void Save(void* stream) override;        // 10: 005321C0 SaveUnit
+    void Load(CStream* stream) override;        // 9: 00531A80 LoadUnit
+    void Save(CStream* stream) override;        // 10: 005321C0 SaveUnit
     const char* GetClassName() override;     // 11: 0052E280 "CUnit"
     int GetClassId() override;               // 12: 0052E290 (0x50)
     bool IsSynchronised() override;          // 29: 004467E0 (true)
@@ -626,6 +627,8 @@ public:
     void DestroyUnit();
 
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
+    // The controller as the server unit (combat.h; class 0x3E). Defined in combat.h.
+    CUnitServer* ServerController() const;
     // The parameter block at +0x330 (the fields below repeat parts of it).
     UnitParams* Params() { return reinterpret_cast<UnitParams*>(paramsHead); }
     // The unit as the map object it is (map_object.h).
@@ -1126,7 +1129,7 @@ static_assert(offsetof(UnitStats, flags) == 0x6F8);
 void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
 // unit_item_lists.cpp. 0069FB60 (RET 4): `item` joins `items` and its spell (CItem +0x44) `spells`.
 void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells,
-                           CEngineObject* item);
+                           CItem* item);
 // 00525720 (__stdcall; ECX is not read). Text-key units: the armour pieces covering hit location
 // `location` at layer `layer` (1 or 2) wear by `amount`.
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);

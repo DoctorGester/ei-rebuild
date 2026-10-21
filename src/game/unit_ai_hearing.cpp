@@ -48,7 +48,6 @@ void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32
     added.text = text;
 }
 
-CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 } // namespace
 
@@ -94,7 +93,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         auto* other = node->data;
         node = node->next;
         if (!other->IsHostileTo(unit)) continue;
-        CUnitServer* control = ControllerOf(other);
+        CUnitServer* control = other->ServerController();
         AIBrain* brain = control->Brain();
         if (brain->memory.noticedLevel >= kAlertedLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.valuesB0[3].current;

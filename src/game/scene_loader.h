@@ -324,7 +324,7 @@ struct SceneSkin {
     void Rewind();
     // 00508BF0 (RET 4, EAX 1; skin_rewind.cpp, A-U11). The root (when there is one) binds the parts
     // (CAnimationNode::AttachMeshes).
-    int BindMeshes(const lib::AlignedArray<void*>* parts);
+    int BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
     // scene_skin_lifetime.cpp (A-U12).
     // 00508700. The constructor: empty arrays and names, no root, the clock -1.
     SceneSkin();
