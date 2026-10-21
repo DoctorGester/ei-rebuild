@@ -414,6 +414,8 @@ static void ReportSilentEnd(const Game& game, bool standalone) {
     }
 }
 
+static void AddFailures(const std::wstring& reportPath, const std::vector<std::string>& failures);
+
 // The peer's result in the scenario's report: a peer that did not pass (or whose windows or network checks saw
 // something) adds "FAILED: peer: ..." lines and makes the result FAIL.
 static void MergePeerReport(const std::wstring& reportPath, const std::wstring& peerPath) {
@@ -433,6 +435,11 @@ static void MergePeerReport(const std::wstring& reportPath, const std::wstring& 
         if (!passed && failures.empty()) failures.push_back("FAILED: peer: did not pass (peer\\harness_report.txt)\n");
     }
     std::wprintf(L"ei_launch: peer: %hs\n", failures.empty() ? "passed" : "did not pass");
+    AddFailures(reportPath, failures);
+}
+
+// "FAILED:" lines in the report, and the result FAIL.
+static void AddFailures(const std::wstring& reportPath, const std::vector<std::string>& failures) {
     if (failures.empty()) return;
     std::vector<std::string> lines;
     ReadReport(reportPath, lines);
@@ -452,6 +459,108 @@ static void MergePeerReport(const std::wstring& reportPath, const std::wstring& 
         merged.push_back("RESULT: FAIL\n");
     }
     WriteReport(reportPath, merged);
+}
+
+// ---- The image's settings file after the run (ST1a) ----
+//
+// A scenario line "# settings-file: <expected>" (a path from the scenario's folder) says the run leaves an
+// ei_settings.ini in its output folder that must equal the expected file (line by line, line breaks apart): the
+// settings the game saved on exit in a "settingsfile writable|import" run (tests/verify/harness_settings.h). On the
+// Rebirth install the expected file is <name>.rebirth<ext> (none: not checked). The game's exit save is done when
+// the harness has written its report, so the check is ei_launch's, after the game ended: differences are added to
+// the report as FAILED lines.
+
+static bool ReadWholeFile(const std::wstring& path, std::string& text) {
+    FILE* f = nullptr;
+    if (_wfopen_s(&f, path.c_str(), L"rb") != 0 || !f) return false;
+    char chunk[4096];
+    for (size_t n; (n = std::fread(chunk, 1, sizeof(chunk), f)) > 0;) text.append(chunk, n);
+    std::fclose(f);
+    return true;
+}
+
+static std::vector<std::string> SplitLines(const std::string& text) {
+    std::vector<std::string> lines;
+    for (size_t at = 0; at < text.size();) {
+        size_t end = text.find('\n', at);
+        if (end == std::string::npos) end = text.size();
+        size_t stop = end;
+        if (stop > at && text[stop - 1] == '\r') --stop;
+        lines.push_back(text.substr(at, stop - at));
+        at = end + 1;
+    }
+    return lines;
+}
+
+static std::string Narrow(const std::wstring& text) {
+    std::string out;
+    for (wchar_t c : text) out += c < 0x80 ? static_cast<char>(c) : '?';
+    return out;
+}
+
+static std::string Shown(const std::string& line) {
+    return line.size() > 150 ? line.substr(0, 150) + "..." : line;
+}
+
+// The expected file the scenario names ("" when it names none, or none for this install).
+static std::wstring ExpectedSettingsFile(const std::wstring& scenario, bool rebirth) {
+    std::string text;
+    if (!ReadWholeFile(scenario, text)) return std::wstring();
+    constexpr char kPrefix[] = "# settings-file:";
+    for (const std::string& line : SplitLines(text)) {
+        if (line.compare(0, sizeof(kPrefix) - 1, kPrefix) != 0) continue;
+        size_t first = line.find_first_not_of(" \t", sizeof(kPrefix) - 1);
+        if (first == std::string::npos) return std::wstring();
+        std::wstring name(line.begin() + first, line.end());
+        for (wchar_t& c : name) if (c == L'/') c = L'\\';
+        if (rebirth) {
+            const size_t dot = name.find_last_of(L'.');
+            name = dot == std::wstring::npos ? name + L".rebirth" : name.substr(0, dot) + L".rebirth" + name.substr(dot);
+        }
+        const std::wstring path = Dir(scenario) + L"\\" + name;
+        return GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES && rebirth ? std::wstring() : path;
+    }
+    return std::wstring();
+}
+
+static void CheckSettingsFile(const std::wstring& reportPath, const std::wstring& scenario, const std::wstring& outDir,
+                              bool rebirth) {
+    const std::wstring expectedPath = ExpectedSettingsFile(scenario, rebirth);
+    if (expectedPath.empty()) return;
+    std::vector<std::string> report;
+    ReadReport(reportPath, report);
+    bool passed = false;
+    for (const std::string& l : report) passed = passed || l.compare(0, 12, "RESULT: PASS") == 0;
+    if (!passed) return;   // another failure comes first
+    std::vector<std::string> failures;
+    const std::wstring actualPath = outDir + L"\\ei_settings.ini";
+    std::string actual, expected;
+    if (GetFileAttributesW((actualPath + L".tmp").c_str()) != INVALID_FILE_ATTRIBUTES)
+        failures.push_back("FAILED: settings file: ei_settings.ini.tmp was left behind (the save did not finish its move)\n");
+    if (!ReadWholeFile(actualPath, actual)) {
+        failures.push_back("FAILED: settings file: the run left no ei_settings.ini\n");
+    } else if (!ReadWholeFile(expectedPath, expected)) {
+        failures.push_back("FAILED: settings file: cannot read the expected file (" + Narrow(expectedPath) + ")\n");
+    } else {
+        const std::vector<std::string> a = SplitLines(actual), e = SplitLines(expected);
+        size_t shown = 0, differing = 0;
+        for (size_t i = 0; i < a.size() || i < e.size(); ++i) {
+            const bool same = i < a.size() && i < e.size() && a[i] == e[i];
+            if (same) continue;
+            ++differing;
+            if (shown++ >= 6) continue;
+            char number[32];
+            std::snprintf(number, sizeof(number), "line %zu", i + 1);
+            failures.push_back(std::string("FAILED: settings file ") + number + ": expected " +
+                               (i < e.size() ? "\"" + Shown(e[i]) + "\"" : std::string("(none)")) + ", got " +
+                               (i < a.size() ? "\"" + Shown(a[i]) + "\"" : std::string("(none)")) + "\n");
+        }
+        if (differing > shown)
+            failures.push_back("FAILED: settings file: " + std::to_string(differing) + " lines differ from the expected file (" +
+                               Narrow(expectedPath) + ")\n");
+    }
+    std::wprintf(L"ei_launch: settings file: %hs\n", failures.empty() ? "as expected" : "differs");
+    AddFailures(reportPath, failures);
 }
 
 // The machine's two installs: the default game folder is Rebirth's (run_all passes --game for the vanilla one).
@@ -753,6 +862,8 @@ int wmain(int argc, wchar_t** argv) {
         return 2;
     }
     if (games.size() > 1) MergePeerReport(reportPath, games[1].outDir + L"\\harness_report.txt");
+    if (standalone && !timedOut && !unkillable)
+        CheckSettingsFile(reportPath, harness, outDir, _wcsicmp(gameDir.c_str(), kRebirthInstall) == 0);
     bool pass = false;
     std::vector<std::string> lines;
     ReadReport(reportPath, lines);

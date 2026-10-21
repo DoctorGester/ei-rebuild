@@ -532,6 +532,29 @@ void PinnedMissing(const char* path, const char* name) {
     Problem("registry value not in the snapshot: " + key + "\\" + (*name ? name : "@"));
 }
 
+// How the run's settings file is used (the scenario's "settingsfile" line).
+enum class Mode { ReadOnly, Writable, Import };
+Mode g_mode = Mode::ReadOnly;
+
+// Values of every kind in a key of the game's tree (so the game keeps them as it keeps what it does not know), for
+// the save and the import to carry as they are; with `outside`, also a key outside both trees that an import must
+// leave out.
+void AddProbeKey(settings_file::Document& document, bool outside) {
+    const char* key = "Software\\Nival Interactive\\EvilIslands\\ProbeSettings";
+    auto dword = [](std::uint32_t value) { return std::string(reinterpret_cast<const char*>(&value), 4); };
+    document.Set(key, "dword", REG_DWORD, dword(0xFEDCBA98u));
+    document.Set(key, "string", REG_SZ, std::string("C:\\Probe Dir\\\"quoted\"\\end\\") + std::string(1, '\0'));
+    document.Set(key, "minus zero", REG_BINARY, dword(0x80000000u));
+    document.Set(key, "denormal", REG_BINARY, dword(0x00000001u));
+    document.Set(key, "nan", REG_BINARY, dword(0x7FC00001u));
+    document.Set(key, "bytes", REG_BINARY, std::string("\x00\x01\xFE\xFF\x7F", 5));
+    document.Set(key, "multi", REG_MULTI_SZ, std::string("one\0two\0\0", 9));
+    document.Set(key, "expand", REG_EXPAND_SZ, std::string("%TEMP%\\x\0", 9));
+    document.Set(key, "control", REG_SZ, std::string("tab\there\0", 9));
+    document.Set(key, "", REG_SZ, std::string("default\0", 8));
+    if (outside) document.Set("Software\\Probe Outside", "value", REG_DWORD, dword(1));
+}
+
 // The run's settings file: the snapshot's HKEY_CURRENT_USER keys, each value the scenario's starter lines
 // answer (any key) in place of the snapshot's, written to the run's folder and pinned (read only).
 void PinSettingsFile() {
@@ -551,8 +574,23 @@ void PinSettingsFile() {
             }
         }
     }
+    if (g_mode != Mode::ReadOnly) AddProbeKey(document, g_mode == Mode::Import);
     char file[MAX_PATH];
     ei::OutputPath(settings_file::kFileName, file);
+    char temporary[MAX_PATH];
+    std::snprintf(temporary, sizeof(temporary), "%s.tmp", file);
+    DeleteFileA(temporary);
+    if (g_mode == Mode::Import) {
+        // No file: the first use imports the snapshot (as the stand-in for the registry) and writes it.
+        static settings_file::Document registry;
+        static settings_file::DocumentSource source(registry);
+        registry = document;
+        DeleteFileA(file);
+        settings_file::SetImportSource(&source);
+        settings_file::Pin(file, &PinnedMissing, false);
+        Log("harness: settings imported from the registry snapshot into %s on first use (the user's registry is not read)", file);
+        return;
+    }
     const std::string text = document.Text();
     FILE* f = nullptr;
     if (fopen_s(&f, file, "wb") != 0 || !f || std::fwrite(text.data(), 1, text.size(), f) != text.size()) {
@@ -561,11 +599,20 @@ void PinSettingsFile() {
         return;
     }
     std::fclose(f);
-    settings_file::Pin(file, &PinnedMissing);
-    Log("harness: settings pinned in %s (the registry snapshot and the starter lines; read only)", file);
+    settings_file::Pin(file, &PinnedMissing, g_mode == Mode::ReadOnly);
+    Log("harness: settings pinned in %s (the registry snapshot and the starter lines; %s)", file,
+        g_mode == Mode::ReadOnly ? "read only" : "writable: the exit save rewrites it");
 }
 
 } // namespace
+
+bool ParseStep(const std::string& verb, const std::string& argument) {
+    if (verb != "settingsfile") return false;
+    if (argument == "writable") g_mode = Mode::Writable;
+    else if (argument == "import") g_mode = Mode::Import;
+    else Problem("settingsfile needs writable or import");
+    return true;
+}
 
 void Install() {
     char folder[MAX_PATH];
