@@ -651,7 +651,7 @@ unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
     unsigned current = 0;
     __control87_2(0, 0, &current, nullptr);
     const unsigned word = (current & ~mask) | (value & mask);
-    __control87_2(word, kAll, &current, nullptr);
+    if (word != current) __control87_2(word, kAll, &current, nullptr);   // the same word otherwise (SV10i)
     return word;
 }
 EI_REPLACE(0x006EBBB4, libcrt::Controlfp);
