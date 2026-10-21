@@ -1,6 +1,7 @@
 // The in-game chat overlay: its constructor, per-frame slots (vtable 007400DC: 24 update, 22
 // redraw), the chat line's opening and its keys. Its destructor is in ui_window_delete.cpp.
 // docs/notes/ui.md, section 3.
+#include "asset_text.h"
 #include "console.h"
 #include "net_classes.h"
 #include "net_messages.h"
@@ -278,11 +279,13 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     if (!chatOpen_) return;
     inputHandled_ = true;
     switch (key) {
-    case VK_BACK:
+    case VK_BACK: {   // by character (U4), as Delete and the caret's steps
         if (caret_ <= 0) break;
-        typed_ = typed_.Left(caret_ - 1) + typed_.Mid(caret_);
-        --caret_;
+        const int previous = text::PreviousCharacter(typed_, caret_);
+        typed_ = typed_.Left(previous) + typed_.Mid(caret_);
+        caret_ = previous;
         break;
+    }
     case VK_RETURN:
         if (typed_.GetLength() != 0 && (IsMultiplayerClient() & 0xFF)) SendSay(typed_);
         chatOpen_ = false;
@@ -297,14 +300,14 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
         caret_ = 0;
         break;
     case VK_LEFT:
-        --caret_;
+        caret_ = text::PreviousCharacter(typed_, caret_);
         break;
     case VK_RIGHT:
-        ++caret_;
+        caret_ = text::NextCharacter(typed_, caret_);
         break;
     case VK_DELETE:
         if (caret_ >= typed_.GetLength()) break;
-        typed_ = typed_.Left(caret_) + typed_.Mid(caret_ + 1);
+        typed_ = typed_.Left(caret_) + typed_.Mid(text::NextCharacter(typed_, caret_));
         break;
     default:
         return;
@@ -315,10 +318,11 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
 void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
-    mfc::CString line = mfc::operator+(typed_.Left(caret_), static_cast<char>(key)) + typed_.Mid(caret_);
-    if (!interface_->ctrlDown_ && typed_.GetLength() < kMaxTyped && TextWidth(interface_, line, kTypedFont) < kMaxTypedWidth) {
+    mfc::CString line = text::Typed(typed_.Left(caret_), key) + typed_.Mid(caret_);
+    if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped &&
+        TextWidth(interface_, line, kTypedFont) < kMaxTypedWidth) {
         typed_ = line;
-        ++caret_;
+        caret_ += text::TypedLength(key);
     }
     ChatOverlayDrawTypedOriginal(this);
 }

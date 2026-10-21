@@ -111,6 +111,10 @@
 //                             class template
 //   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
 //                             does, so that its typed line and caret are drawn; or close it
+//   typeunicode <text>        the UTF-8 build's (EI_UTF8; skipped otherwise): <text> typed as a Unicode window
+//                             gets it, each UTF-16 unit a WM_CHAR posted with PostMessageW (harness_utf8.h)
+//   consoleline <n> <text>    the UTF-8 build's (skipped otherwise): require the console's input line to hold
+//                             <text> in UTF-8 with the caret at the start of its character <n> (from 0)
 //   netcut                    in a pair's game: its network cable pulled from now on (harness_pair.h): nothing
 //                             it sends arrives, what the other game sends it is lost; both sessions time out
 //   hidefile <path>           an install file (relative to the game folder: maps\z6q1.mq) reads as missing in
@@ -2257,7 +2261,8 @@ bool IsInputStep(const std::string& verb) {
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "dblclickregion" || verb == "moveregion" ||
            verb == "clickunit" ||
-           verb == "clickground" || verb == "lookat" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
+           verb == "clickground" || verb == "lookat" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize" ||
+           verb == "typeunicode";
 }
 
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
@@ -3128,6 +3133,12 @@ void RunSteps() {
             } else {
                 ui->root_->SetOpen(false);
             }
+        } else if (s.verb == "typeunicode") {
+            if (std::string failure = utf8typing::Type(GameWindow(), s.argument); !failure.empty())
+                g_failures.push_back(failure);
+        } else if (s.verb == "consoleline") {
+            if (std::string failure = utf8typing::CheckConsoleLine(s.argument); !failure.empty())
+                g_failures.push_back(failure);
         } else if (s.verb == "peersignal") {
             if (!pair::Active()) g_failures.push_back("peersignal: not a pair's game (a \"peer\" line starts the other)");
             pair::Signal(s.argument);

@@ -115,9 +115,10 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             name.Empty();
             cursor_ = 0;
         }
-        if (cursor_ > 0) {
-            name = name.Left(cursor_ - 1) + console::Ops(name).Mid(cursor_);
-            --cursor_;
+        if (cursor_ > 0) {   // by character (U4), as Delete and the cursor's steps
+            const int previous = text::PreviousCharacter(name, cursor_);
+            name = name.Left(previous) + console::Ops(name).Mid(cursor_);
+            cursor_ = previous;
         }
         break;
     case kKeyDelete:
@@ -126,7 +127,8 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             name.Empty();
             cursor_ = 0;
         }
-        if (cursor_ < name.GetLength()) name = name.Left(cursor_) + console::Ops(name).Mid(cursor_ + 1);
+        if (cursor_ < name.GetLength())
+            name = name.Left(cursor_) + console::Ops(name).Mid(text::NextCharacter(name, cursor_));
         break;
     case kKeyEnd:
     case kKeyHome:
@@ -135,7 +137,6 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         if (editable) {
             nameTyped_ = true;
             name = entriesBegin_[selected_].title_;
-            text::ToAssetText(&name);   // EI_UTF8: the name is edited in 8 bits until U4
             cursor_ = name.GetLength();
         }
         if (key == kKeyEnd)
@@ -143,9 +144,9 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         else if (key == kKeyHome)
             cursor_ = 0;
         else if (key == kKeyLeft)
-            --cursor_;
+            cursor_ = text::PreviousCharacter(name, cursor_);
         else
-            ++cursor_;
+            cursor_ = text::NextCharacter(name, cursor_);
         break;
     default:
         return;
@@ -188,16 +189,16 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
             cursor_ = 0;
         }
         mfc::CString& name = name_;
-        if (!interface_->ctrlDown_ && name.GetLength() < kMaxNameLength) {
+        if (!interface_->ctrlDown_ && text::CharacterCount(name) < kMaxNameLength) {
             mfc::CString tail = console::Ops(name).Mid(cursor_);
             mfc::CString typed;
             {
                 mfc::CString head = name.Left(cursor_);
-                typed = mfc::operator+(head, static_cast<char>(key)) + tail;
+                typed = text::Typed(head, key) + tail;   // U4: with EI_UTF8 the character's UTF-8 bytes
             }
             if (TextWidth(interface_, typed, 1) < kMaxNameWidth) {
                 name = typed;
-                ++cursor_;
+                cursor_ += text::TypedLength(key);
             }
         }
         RefreshList();
