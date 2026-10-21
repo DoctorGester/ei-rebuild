@@ -216,6 +216,13 @@
 //   music <volume>            answer the game's AudioStreaming setting (the streamed music's volume) for
 //                             this run; 0: no streamed music, so the music system's random draws do not
 //                             follow the real-time stream thread (harness_starter.h)
+//   settingsfile writable|import
+//                             the image's settings file (ei_settings.ini in the run folder) is not read only:
+//                             "writable" starts from the snapshot's file with a probe key of odd values and lets
+//                             the game's exit save rewrite it (.tmp, then moved); "import" starts without a file
+//                             and imports the snapshot as a stand-in for the registry, as the product's first
+//                             start does. tools/settings_file_check.py compares the file after the run with the
+//                             scenario's "# settings-file:" line (harness_settings.h, ST1a)
 //   waitpresent <seconds> [gamma]
 //                             wait until the switch-over has presented a frame on the game window
 //                             (its own swap chain); with "gamma" also until the verify build has
@@ -4281,6 +4288,7 @@ bool LoadScenario(const char* path) {
             continue;
         }
         if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
+            settings::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
             ei::verify::startup::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
             g_steps.pop_back();
             continue;
