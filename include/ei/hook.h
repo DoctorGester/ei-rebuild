@@ -69,6 +69,24 @@ template <typename F>
 F Code(std::uintptr_t address) {
     return reinterpret_cast<F>(CodeAddress(address));
 }
+// An EI_ORIGINAL forwarder's binding (S18i1): `code` is CodeAddress(address) once that is fixed (the registration in
+// the image, the address itself in game.exe), and the forwarder jumps there directly; null before that and for the
+// harness's redirections and the stubs, which ask CodeAddress at each call (BindCode, through ei_code_bind).
+struct CodeLink {
+    const void* volatile code;   // first: the forwarder compares and jumps through [link]
+    std::uintptr_t address;
+    CodeLink* next;              // the bound links (RedirectCode unbinds them)
+};
+// CodeAddress(link->address), and binds the link when that is fixed.
+std::uintptr_t BindCode(CodeLink* link);
+// The harness: how often CodeAddress was asked (all; by unbound forwarders), and whether forwarders bind (on by
+// default; off unbinds them all and every call asks CodeAddress, as before S18i1: an A/B measurement).
+struct CodeLookupCounts {
+    std::uint64_t all;
+    std::uint64_t forwarders;
+};
+CodeLookupCounts CodeLookups();
+void SetCodeBinding(bool on);
 // Whether CodeAddress has code for `address` other than the stub (always in game.exe).
 bool HasCode(std::uintptr_t address);
 // The image: the harness's replacement for game.exe's function at `address` (what a JMP written there is in
@@ -169,7 +187,9 @@ struct RegRecord {
 
 // Define a function body that forwards to original code not rewritten yet. Works for any calling
 // convention (including __thiscall methods) because it is a bare jump with the stack untouched: to
-// CodeAddress(addr) (ei_code_dispatch, src/standalone/image_code.cpp), the address itself in game.exe.
+// CodeAddress(addr), the address itself in game.exe. Once that is fixed the forwarder jumps there through its
+// CodeLink; until then (and for a redirection or a stub) it pushes the link and jumps to ei_code_bind
+// (src/standalone/image_code.cpp), which asks CodeAddress with the caller's registers kept.
 // ei_vectors.exe has no game.exe: there the jump goes to the replacement registered for `addr`, as in
 // the standalone image, or to a replay stand-in (tests/vectors/hook_stub.cpp; an address with neither
 // raises an exception a guarded check reports, or ends the run).
@@ -178,9 +198,14 @@ extern "C" void ei_replay_dispatch();
 #define EI_ORIGINAL(addr) \
     { __asm { push addr } __asm { jmp ei_replay_dispatch } }
 #else
-extern "C" void ei_code_dispatch();
+extern "C" void ei_code_bind();
 #define EI_ORIGINAL(addr) \
-    { __asm { push addr } __asm { jmp ei_code_dispatch } }
+    { \
+        static ::ei::CodeLink ei_link = {nullptr, addr, nullptr}; \
+        __asm { cmp dword ptr [ei_link], 0 } __asm { je ei_unbound } __asm { jmp dword ptr [ei_link] } \
+    ei_unbound: \
+        __asm { push offset ei_link } __asm { jmp ei_code_bind } \
+    }
 #endif
 
 // Verify build only (tests/vectors/record_*.cpp): in game.exe with EI_VECTORS=1 (the original game, the

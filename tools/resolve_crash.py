@@ -116,7 +116,8 @@ class Image:
         nsec, = struct.unpack_from('<H', d, pe + 6)
         optsz, = struct.unpack_from('<H', d, pe + 20)
         o = pe + 24
-        self.base = base if base is not None else struct.unpack_from('<I', d, o + 28)[0]
+        self.preferred = struct.unpack_from('<I', d, o + 28)[0]   # the base its absolute addresses assume
+        self.base = base if base is not None else self.preferred
         self.secs = []
         so = o + optsz
         for _ in range(nsec):
@@ -202,16 +203,22 @@ class Stack:
 
     def thunk(self, kind, t):
         """(module, address) where code at t really goes: through jump thunks (incremental linking) and
-        the forwarders to the original game function (push address; jmp ei_code_dispatch, S18i)."""
+        the forwarders to the original game function (cmp [link], 0; je; jmp [link], S18i1: the address in
+        their CodeLink, the dword after the link's code pointer)."""
         for _ in range(3):
             img = self.images.get(kind)
-            head = img.read(t - img.base, 10) if img else None
+            head = img.read(t - img.base, 15) if img else None
             if not head:
                 break
             if head[0] == 0xE9:
                 t += 5 + struct.unpack_from('<i', head, 1)[0]
-            elif len(head) == 10 and head[0] == 0x68 and head[5] == 0xE9 and 'game' in self.images:
-                kind, t = 'game', struct.unpack_from('<I', head, 1)[0]
+            elif (len(head) == 15 and head[:2] == b'\x83\x3d' and head[6:8] == b'\x00\x74' and
+                  head[9:11] == b'\xff\x25' and head[2:6] == head[11:15] and 'game' in self.images):
+                link = struct.unpack_from('<I', head, 2)[0] - img.preferred + img.base
+                address = img.read(link + 4 - img.base, 4)
+                if not address:
+                    break
+                kind, t = 'game', struct.unpack_from('<I', address)[0]
             else:
                 break
         return kind, t

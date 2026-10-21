@@ -179,7 +179,10 @@ each step green on the goldens and removing a measured tie:
   runs for game.exe's function at an address: in game.exe the address; in the image the harness's replacement
   (`RedirectCode`: FixedIsaacSeed, the clock's rand), else the registration (InstallHooks hands its table over),
   else a stub (16 bytes, CALL NoCodeEntry plus the address) that reports `no code at`. Who asks: the forwarders
-  (`EI_ORIGINAL` pushes the address and jumps to `ei_code_dispatch`, which keeps EAX / ECX / EDX), the static
+  (S18i1: `EI_ORIGINAL` keeps a `CodeLink` per forwarder, {code, address}; bound, it jumps through it directly;
+  unbound, it pushes the link and jumps to `ei_code_bind`, which keeps EAX / ECX / EDX and asks `BindCode`: a link
+  binds once its code is fixed, the registration or the address itself in game.exe, never a redirection or a stub;
+  `RedirectCode` unbinds them all; the harness step `codebinding off` too, for an A/B), the static
   initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
   the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
