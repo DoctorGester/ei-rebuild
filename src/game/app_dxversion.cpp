@@ -41,7 +41,7 @@ const void* Id(std::uintptr_t a) { return reinterpret_cast<const void*>(a); }
 using DirectDrawCreate = long(__stdcall*)(void*, void**, void*);
 using DirectDrawCreateEx = long(__stdcall*)(void*, void**, const void*, void*);
 
-const char* DirectDrawLibraryName() { return "DDRAW.DLL"; }   // "DDRAW.DLL"
+const char* DirectDrawLibraryName() { return "DDRAW.DLL"; }
 
 // The folder part of a module's file name (up to and including the last backslash), or "".
 void ModuleFolder(HMODULE module, char (&folder)[MAX_PATH]) {
@@ -80,7 +80,7 @@ std::uint32_t __cdecl GetDxVersion() {
     void* surface4 = nullptr;
     HMODULE ddrawLibrary = gameapi::LoadLibraryA(DirectDrawLibraryName());
     if (!ddrawLibrary) return 0;
-    FARPROC create = gameapi::GetProcAddress(ddrawLibrary, "DirectDrawCreate");   // "DirectDrawCreate"
+    FARPROC create = gameapi::GetProcAddress(ddrawLibrary, "DirectDrawCreate");
     if (!create) {
         gameapi::FreeLibrary(ddrawLibrary);
         gameapi::OutputDebugStringA("Couldn't LoadLibrary DDraw\r\n");
@@ -99,13 +99,13 @@ std::uint32_t __cdecl GetDxVersion() {
     }
     Com(ddraw2, kRelease);
 
-    HMODULE inputLibrary = gameapi::LoadLibraryA("DINPUT.DLL");   // "DINPUT.DLL"
+    HMODULE inputLibrary = gameapi::LoadLibraryA("DINPUT.DLL");
     if (!inputLibrary) {
         gameapi::OutputDebugStringA("Couldn't LoadLibrary DInput\r\n");
         Com(ddraw, kRelease);
         return 0x200;
     }
-    if (!gameapi::GetProcAddress(inputLibrary, "DirectInputCreateA")) {   // "DirectInputCreateA"
+    if (!gameapi::GetProcAddress(inputLibrary, "DirectInputCreateA")) {
         gameapi::FreeLibrary(inputLibrary);
         gameapi::FreeLibrary(ddrawLibrary);
         Com(ddraw, kRelease);
@@ -154,7 +154,7 @@ std::uint32_t __cdecl GetDxVersion() {
     Com(music, kRelease);
     gameapi::CoUninitialize();
 
-    FARPROC createEx = gameapi::GetProcAddress(ddrawLibrary, "DirectDrawCreateEx");   // "DirectDrawCreateEx"
+    FARPROC createEx = gameapi::GetProcAddress(ddrawLibrary, "DirectDrawCreateEx");
     if (!createEx) {
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x601;
@@ -165,7 +165,7 @@ std::uint32_t __cdecl GetDxVersion() {
         return 0x601;
     }
     Com(ddraw7, kRelease);
-    HMODULE d3d8 = gameapi::LoadLibraryA("D3D8.DLL");   // "D3D8.DLL"
+    HMODULE d3d8 = gameapi::LoadLibraryA("D3D8.DLL");
     if (!d3d8) {
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x700;
