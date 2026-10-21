@@ -108,20 +108,30 @@ rest convertible:
 - One `PartyRecords` (unit.h; player_messages.cpp has `Find`), `CCamera::Update` called directly (`CameraUpdateOf` is the image's
   fallback for the frame's call target), the shape cache through `gamehash::InitShapeHandle` / `ShapesOf` and `CAIMap::CellMark`.
 
-Still forwarders after C13b3x, and why:
+C13d took the count from 294 to 284 (the CRT / MFC names below and the exit function):
+
+- A `gamecrt::` name with a port is a one-line call of the port (`strncpy` / `strncmp` / `strnicmp` / `tolower` / `isdigit` /
+  `isspace` / `write`, like `mbscmp` / `srand`); ei_vectors defines the `libcrt::` names it links instead (replay_crt.cpp:
+  `Tolower` / `Isdigit` / `Isspace` from the recorded ctype, `Strncpy` / `Strncmp` / `Strnicmp`). `mfc::PlexCreate` /
+  `PlexFreeDataChain` call mfc_list.cpp's `impl::CreatePlex` / `FreePlexChain` (ei_vectors links mfc_list.cpp).
+- A recorder that needs the original's answer has its own forwarder: record_crt.cpp's `GameIsdigit` / `GameIsspace` /
+  `GameTolower` (the "@GameCrtCtype" record is the game CRT's classes).
+- A function-local static's exit function is registered as the generated `ei::static_init::ExitXXXXXXXX`
+  (src/game/at_exit_functions.h), not through a forwarder to its address (`Terrain::SetSun`'s sorted sectors, 006C9270).
+
+Still forwarders after C13d, and why:
 
 - `CrtThreadDataOriginal` (006F00D1): in a vanilla game.exe run the harness reads rand's seed through `libcrt::RandState()`, whose
   non-image path is the game CRT's thread data.
 - `CWndDestroyWindow` (007051A1): unreachable in the image; porting it needs afxMapHWND (007048B7) and `CWnd::Detach` (007049A7).
-- `FreeSortedSectors` (006C9270): its only body is the generated static-exit function `Exit006C9270`; no C++ body to call.
 - `ManagerFindObject` (00403F40): its one caller is world_client_draw.cpp, left for the renderer work (R16).
 - `DrawMesh` / `DrawMesh2` (originals_render.h): `CTextureDevice::DrawMeshBlocks` / `2` take other argument lists; after R16.
 - tests/verify (`HarnessLoadUnitFaces`, `HarnessMappedResourceConstruct`, blink / pick / class templates): a vanilla run must call
   the game's own code.
-- crt.cpp's `gamecrt::` names that replay_crt.cpp defines again (operator new / delete, malloc, free, strncpy, strncmp, strnicmp),
-  `tolower` / `isdigit` / `isspace` (called by record_crt.cpp), `write` (target overloaded), mfc.cpp's `PlexCreate` /
-  `PlexFreeDataChain` (replay_mfc.cpp), `SectorMapAdd` / `GameAtExit` (replay stand-ins), `SeedAt` / `rand` (the harness replaces
-  them).
+- crt.cpp's `operator_new` / `operator_delete` / `malloc` / `free` (replay_crt.cpp has its own heap): the harness runs inside
+  game.exe for the goldens (`--no-hooks`) and frees blocks the game allocated, so its allocations must stay the game CRT's own
+  code (the ports' `HeapAlloc` on the game's heap would be the same only while the game's CRT uses the system heap, which no run
+  checks). `SectorMapAdd` / `GameAtExit` (replay stand-ins), `SeedAt` / `rand` (the harness replaces them).
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 

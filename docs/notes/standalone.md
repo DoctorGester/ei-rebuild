@@ -10,7 +10,7 @@ left. How changes are checked: docs/notes/standalone-verification.md. Per-ticket
 | Tie | Count |
 |---|---|
 | Unported game functions | 0 (S2 did the last 200, all under 5 bytes; 00656D69 is not a function) |
-| Forwarders (`EI_ORIGINAL`) | 2,007 addresses (3,817 before C13, 2,820 before C13a / C13c, 2,344 before C13a1), nearly all to rewritten code (C13a2, C13d), 25 library; forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
+| Forwarders (`EI_ORIGINAL`) | 284 sites under src/ after C13d (3,817 addresses before C13, 294 sites before C13d): Rebirth-patched callees, the skip list's type-recovery rows, vector recorders and harness / replay entries (docs/notes/cleanup-tooling.md); forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
 | Static initialisers | 748 in the .data list 00783004-00783BB0, all generated (S3); 190 exit functions generated (S3a, S16a) |

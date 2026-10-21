@@ -47,7 +47,6 @@ src/game/script_parse.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_parse_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/sound_manager.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,0
 src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/terrain_animation.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/text_sources.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_battle_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_setup.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,7
@@ -102,8 +101,7 @@ src/game/world_unit_set.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
-src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
+src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/lib/mfc_string.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/render/render_game.h,0,0,0,0,4,0,0,0,0,0,0,0,0,0
 src/render/render_state.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,0

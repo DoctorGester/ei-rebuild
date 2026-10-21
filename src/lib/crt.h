@@ -89,10 +89,11 @@ static_assert(sizeof(FindData) == 0x118);
 using NewHandler = int(__cdecl*)(std::size_t);
 
 #ifdef EI_VECTORS_REPLAY
-// ei_vectors.exe (tests/vectors/replay_crt.cpp) defines operator_new, operator_delete, malloc, free,
-// tolower, isdigit, isspace, strncpy, strncmp, strnicmp and CaseFoldTable itself: the allocations on
-// its own heap, the character functions from the game CRT's answers as recorded (tests/vectors/
-// crt_vectors.h). Every other function here must not be called there.
+// ei_vectors.exe (tests/vectors/replay_crt.cpp) defines operator_new, operator_delete, malloc, free
+// and CaseFoldTable itself (the allocations on its own heap) and libcrt::Tolower, Isdigit, Isspace,
+// Strncpy, Strncmp and Strnicmp, which tolower, isdigit, isspace, strncpy, strncmp and strnicmp call
+// (the character functions from the game CRT's answers as recorded, tests/vectors/crt_vectors.h).
+// Every other function here must not be called there.
 struct ReplayCtype {
     int digit[256];   // isdigit(c) for c = 0..255
     int space[256];   // isspace(c)

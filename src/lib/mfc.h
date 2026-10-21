@@ -198,8 +198,14 @@ struct CPlex {
     CPlex* next;
     // followed by the block's elements
 };
-CPlex* __stdcall PlexCreate(CPlex*& head, unsigned count, unsigned elementSize);   // 006FE8EF
-void __fastcall PlexFreeDataChain(CPlex* head);                                    // 006FE90F
+namespace impl {
+CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);   // 006FE8EF (mfc_list.cpp)
+int __fastcall FreePlexChain(CPlex* head);                                         // 006FE90F
+} // namespace impl
+inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
+    return impl::CreatePlex(head, count, elementSize);
+}
+inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 
 // The game's CPtrList vtable (lists the code builds on the stack use blocks of 10).
 inline void* PtrListVtable() { return reinterpret_cast<void*>(0x0073D454); }
