@@ -113,7 +113,7 @@ void CCamera::GroundPoint(Vector3* out) const {
     }
     std::memcpy(out, &pos, sizeof(Vector3));
 }
-EI_REPLACE_METHOD(0x0040E810, CCamera::GroundPoint);
+EI_REWRITTEN(0x0040E810, CCamera::GroundPoint);
 
 void CCamera::SetTurnRate(float rate) {
     std::memcpy(&turnTarget_, &rate, sizeof(float));

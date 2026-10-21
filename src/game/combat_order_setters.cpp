@@ -80,7 +80,7 @@ bool CUnitServer::FitsMoveMode(int mode) {
     map->SectorMap()->Add(unit);
     return fits;
 }
-EI_REPLACE_METHOD(0x0054A5A0, CUnitServer::FitsMoveMode);
+EI_REWRITTEN(0x0054A5A0, CUnitServer::FitsMoveMode);
 
 void CUnitServer::SetMoveStyle(int style) {
     boredTicks = 0;
@@ -157,7 +157,7 @@ void CUnitServer::PlayAnimation(const char* name) {
     action2.modifier = 0;
     action2.kind = (entry->key & kEmoteKeyBit) ? kOrderEmote : kOrderAnimation;
 }
-EI_REPLACE_METHOD(0x00555700, CUnitServer::PlayAnimation);
+EI_REWRITTEN(0x00555700, CUnitServer::PlayAnimation);
 
 void CUnitServer::StopAction() {
     state = kStateStopped;
@@ -175,7 +175,7 @@ void CUnitServer::StopAction() {
     // Idle (00555180), inlined: the current order is never of kind 0 here, the queued one is 9.
     if (action.kind != 0 && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) DropQueuedOrder();
 }
-EI_REPLACE_METHOD(0x00555840, CUnitServer::StopAction);
+EI_REWRITTEN(0x00555840, CUnitServer::StopAction);
 
 BOOL CUnitServer::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)

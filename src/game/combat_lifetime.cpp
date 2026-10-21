@@ -128,7 +128,7 @@ CUnitServer* CUnitServer::Construct() {
     ResetController();
     return this;
 }
-EI_REPLACE_METHOD(0x00545580, CUnitServer::Construct);
+EI_REWRITTEN(0x00545580, CUnitServer::Construct);
 
 // --- AIPath -------------------------------------------------------------------------------------
 

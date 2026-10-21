@@ -26,7 +26,7 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->Field(12, &armourFlags, 4);
     ar->Field(13, &classMask, 4);
 }
-EI_REPLACE_METHOD(0x0069F620, MaterialRecordHead::Serialize);
+EI_REWRITTEN(0x0069F620, MaterialRecordHead::Serialize);
 
 void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->CStringField(0, &text04);
@@ -46,7 +46,7 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->Field(14, &classMask, 4);
     ar->Field(15, &field15, 1);
 }
-EI_REPLACE_METHOD(0x0069F700, ItemRecordHead::SerializeHead);
+EI_REWRITTEN(0x0069F700, ItemRecordHead::SerializeHead);
 
 void WeaponRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
@@ -84,7 +84,7 @@ void QuickItemRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x1A, attributeBonus, 3);
     ar->Field(0x1B, field1B, 8);
 }
-EI_REPLACE_METHOD(0x0069F940, QuickItemRecord::Serialize);
+EI_REWRITTEN(0x0069F940, QuickItemRecord::Serialize);
 
 void QuestItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
@@ -93,7 +93,7 @@ void QuestItemRecord::Serialize(ChunkArchive* ar) {
     // 0052E010; the result is the same.
     InlineStrings(ar, 0x16, reinterpret_cast<CStringVector*>(&zonesBegin));
 }
-EI_REPLACE_METHOD(0x0069F9C0, QuestItemRecord::Serialize);
+EI_REWRITTEN(0x0069F9C0, QuestItemRecord::Serialize);
 
 void LootItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);

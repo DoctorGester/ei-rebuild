@@ -273,15 +273,15 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
 } // namespace
 
 void CUnitServer::PlayAnimationOrder(AnimationSteps steps) { PlayByValue(this, steps, kStateAnimation); }
-EI_REPLACE_METHOD(0x00548DE0, CUnitServer::PlayAnimationOrder);
+EI_REWRITTEN(0x00548DE0, CUnitServer::PlayAnimationOrder);
 
 void CUnitServer::PlayEmoteOrder(AnimationSteps steps) { PlayByValue(this, steps, kStateEmote); }
-EI_REPLACE_METHOD(0x00548FA0, CUnitServer::PlayEmoteOrder);
+EI_REWRITTEN(0x00548FA0, CUnitServer::PlayEmoteOrder);
 
 // --- Idle and movement animations --------------------------------------------------------------
 
 void CUnitServer::BuildIdle(AnimationSteps* steps) { FillIdle(this, steps); }
-EI_REPLACE_METHOD(0x00550D90, CUnitServer::BuildIdle);
+EI_REWRITTEN(0x00550D90, CUnitServer::BuildIdle);
 
 AnimationSteps* CUnitServer::IdleAnimation() {
     std::uint32_t key = IdleKeyNow(this);
@@ -293,7 +293,7 @@ AnimationSteps* CUnitServer::IdleAnimation() {
     }
     return &IdleSteps(this);
 }
-EI_REPLACE_METHOD(0x00550F30, CUnitServer::IdleAnimation);
+EI_REWRITTEN(0x00550F30, CUnitServer::IdleAnimation);
 
 void CUnitServer::PlayIdle() {
     if (state >= 0 && (state <= 1 || state == kStateTurning)) return;
@@ -313,7 +313,7 @@ void CUnitServer::PlayIdle() {
     PopFinishedSteps();
     ShowHead(this);
 }
-EI_REPLACE_METHOD(0x005474B0, CUnitServer::PlayIdle);
+EI_REWRITTEN(0x005474B0, CUnitServer::PlayIdle);
 
 void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     steps->SetSize(0, -1);
@@ -367,7 +367,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     }
     for (int i = 0; i < steps->count; ++i) steps->steps[i].kind = 2;
 }
-EI_REPLACE_METHOD(0x005511A0, CUnitServer::BuildMoveSteps);
+EI_REWRITTEN(0x005511A0, CUnitServer::BuildMoveSteps);
 
 AnimationSteps* CUnitServer::NextAnimation() {
     CUnit* self = unit;
@@ -417,7 +417,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
     if (loop.steps) gamecrt::operator_delete(loop.steps);
     return &steps;
 }
-EI_REPLACE_METHOD(0x00551400, CUnitServer::NextAnimation);
+EI_REWRITTEN(0x00551400, CUnitServer::NextAnimation);
 
 // --- Starting the planned action ---------------------------------------------------------------
 
@@ -453,7 +453,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     SectorMapAdd(sectors, nullptr, unit);
     static_cast<CMapObject*>(unit)->MarkChanged(7);
 }
-EI_REPLACE_METHOD(0x005494D0, CUnitServer::StartAction);
+EI_REWRITTEN(0x005494D0, CUnitServer::StartAction);
 
 // --- Movement modes -----------------------------------------------------------------------------
 
@@ -507,7 +507,7 @@ void CUnitServer::UpdateSneak() {
     unit->UpdateSizeClass();
     motionChanged = 1;
 }
-EI_REPLACE_METHOD(0x00548520, CUnitServer::UpdateSneak);
+EI_REWRITTEN(0x00548520, CUnitServer::UpdateSneak);
 
 bool CUnitServer::ChangeMoveMode() {
     if (moveMode.mode == moveMode2.mode && moveMode.flag4 == moveMode2.flag4) return false;
@@ -570,7 +570,7 @@ bool CUnitServer::ChangeMoveMode() {
     if (action2.kind == kOrderNone) action2.Assign(&action);
     return true;
 }
-EI_REPLACE_METHOD(0x0054A150, CUnitServer::ChangeMoveMode);
+EI_REWRITTEN(0x0054A150, CUnitServer::ChangeMoveMode);
 
 // --- Paths --------------------------------------------------------------------------------------
 
@@ -629,7 +629,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
     }
     return true;
 }
-EI_REPLACE_METHOD(0x00548700, CUnitServer::PathTo);
+EI_REWRITTEN(0x00548700, CUnitServer::PathTo);
 
 void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     auto* list = static_cast<UnitList*>(listIn);
@@ -687,7 +687,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         SectorMapRemove(ServerSectors(), nullptr, member);
     }
 }
-EI_REPLACE_METHOD(0x005468D0, CUnitServer::LiftNearby);
+EI_REWRITTEN(0x005468D0, CUnitServer::LiftNearby);
 
 void CUnitServer::ReportPath(void* pathIn, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
@@ -723,7 +723,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
     }
     PlayerMessage(PlayerOf(self)->connection_, nullptr, self, message);
 }
-EI_REPLACE_METHOD(0x0054EB30, CUnitServer::ReportPath);
+EI_REWRITTEN(0x0054EB30, CUnitServer::ReportPath);
 
 // --- Resync with the unit ---------------------------------------------------------------------
 
@@ -795,7 +795,7 @@ void CUnitServer::ResyncWithUnit() {
     StandStill();
     SetState(kStateTurning);
 }
-EI_REPLACE_METHOD(0x00554450, CUnitServer::ResyncWithUnit);
+EI_REWRITTEN(0x00554450, CUnitServer::ResyncWithUnit);
 
 // --- Reset ---------------------------------------------------------------------------------------
 
@@ -889,4 +889,4 @@ void CUnitServer::ResetController() {
     armourSpells.RemoveAll();
     actionDone = nullptr;
 }
-EI_REPLACE_METHOD(0x00546480, CUnitServer::ResetController);
+EI_REWRITTEN(0x00546480, CUnitServer::ResetController);

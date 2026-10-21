@@ -327,7 +327,7 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         DiplomacyOf(world)->OnAttack(murderer, other, 10);
     } while (node);
 }
-EI_REPLACE_METHOD(0x005538D0, CUnitServer::WitnessMurder);
+EI_REWRITTEN(0x005538D0, CUnitServer::WitnessMurder);
 
 void CUnitServer::PropagateHostility() {
     if (!(unit->flags_ & 0x80000)) return;
@@ -420,7 +420,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     animation.vtable = kAnimationStepsBaseVtable;
     if (animation.steps) gamecrt::operator_delete(animation.steps);
 }
-EI_REPLACE_METHOD(0x00553AC0, CUnitServer::OnDamaged);
+EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
 
 void CUnitServer::UseSkill(CEngineObject* target) {
     void* world = ManagerContext();
@@ -524,7 +524,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     CUnit* self = unit;
     PlayerMessage(reinterpret_cast<WorldPlayer*>(self->player)->server, nullptr, self, message);
 }
-EI_REPLACE_METHOD(0x0054F000, CUnitServer::UseSkill);
+EI_REWRITTEN(0x0054F000, CUnitServer::UseSkill);
 
 void CUnitServer::Idle() {
     if (action.kind == 0) return;
@@ -548,4 +548,4 @@ void CUnitServer::SetDead(int dead) {
     }
     unit->MarkChanged(7);
 }
-EI_REPLACE_METHOD(0x00546720, CUnitServer::SetDead);
+EI_REWRITTEN(0x00546720, CUnitServer::SetDead);

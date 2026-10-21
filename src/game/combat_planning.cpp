@@ -209,7 +209,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     if (spots.data) gamecrt::operator_delete(spots.data);
     return result;
 }
-EI_REPLACE_METHOD(0x0054DF50, CUnitServer::FindUseSpot);
+EI_REWRITTEN(0x0054DF50, CUnitServer::FindUseSpot);
 
 // --- The time along a path until an action is possible -----------------------------------------
 
@@ -270,7 +270,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     }
     return t;
 }
-EI_REPLACE_METHOD(0x0054E250, CUnitServer::TimeUntilAction);
+EI_REWRITTEN(0x0054E250, CUnitServer::TimeUntilAction);
 
 // --- Planning an order's way ---------------------------------------------------------------------
 
@@ -359,7 +359,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     Shout(order->kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
     return ok;
 }
-EI_REPLACE_METHOD(0x0054E600, CUnitServer::PlanOrderRoute);
+EI_REWRITTEN(0x0054E600, CUnitServer::PlanOrderRoute);
 
 // --- A party unit's move -----------------------------------------------------------------------
 
@@ -407,4 +407,4 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
     PlexFreeDataChain(lifted.blocks);
     lifted.blocks = nullptr;
 }
-EI_REPLACE_METHOD(0x00554830, CUnitServer::PlanMove);
+EI_REWRITTEN(0x00554830, CUnitServer::PlanMove);

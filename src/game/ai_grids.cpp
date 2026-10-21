@@ -182,7 +182,7 @@ void CUnitLayer::Destruct() {
     mfc::PlexFreeDataChain(nodes.blocks);
     nodes.blocks = nullptr;
 }
-EI_REPLACE_METHOD(0x0058A8A0, CUnitLayer::Destruct);
+EI_REWRITTEN(0x0058A8A0, CUnitLayer::Destruct);
 EI_REPLACE_METHOD(0x0058A900, CUnitLayer::Destruct);   // the other layer class's byte-identical copy
 
 void AIDirtyRect::Reset() {

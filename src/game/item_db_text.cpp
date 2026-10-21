@@ -238,7 +238,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     if (kindKey) GetString(kindKey, kind);
     return 1;
 }
-EI_REPLACE_METHOD(0x004E0150, CTextManager::GetItemTexts);
+EI_REWRITTEN(0x004E0150, CTextManager::GetItemTexts);
 
 BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
     mfc::CString name;
@@ -254,7 +254,7 @@ BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004E13E0, CTextManager::FormatItemName);
+EI_REWRITTEN(0x004E13E0, CTextManager::FormatItemName);
 
 void TextSources::Begin(Node** out) { *out = head->next; }
 EI_REPLACE_METHOD(0x004E1530, TextSources::Begin);
@@ -279,12 +279,12 @@ TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     *out = next;
     return out;
 }
-EI_REPLACE_METHOD(0x004E1550, TextSources::Erase);
+EI_REWRITTEN(0x004E1550, TextSources::Erase);
 
 TextSources::Node* TextSources::CreateNode(const TextSource* value) {
     return stlp::list<TextSource>::CreateNode(*value);
 }
-EI_REPLACE_METHOD(0x004E15C0, TextSources::CreateNode);
+EI_REWRITTEN(0x004E15C0, TextSources::CreateNode);
 
 TextSources::Node** TextSources::Insert(Node** out, Node* pos, const TextSource* value) {
     Node* node = CreateNode(value);
@@ -295,7 +295,7 @@ TextSources::Node** TextSources::Insert(Node** out, Node* pos, const TextSource*
     *out = node;
     return out;
 }
-EI_REPLACE_METHOD(0x004E1590, TextSources::Insert);
+EI_REWRITTEN(0x004E1590, TextSources::Insert);
 
 CTextManager::SourceNode** TextSourceIterator::CopyTo(CTextManager::SourceNode** out) {
     *out = node;

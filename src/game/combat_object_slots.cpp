@@ -45,7 +45,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     }
     BrainOf(this)->memory.AddClaim(mask, kCallClaim, text);
 }
-EI_REPLACE_METHOD(0x00552D00, CUnitServer::ClaimHostility);
+EI_REWRITTEN(0x00552D00, CUnitServer::ClaimHostility);
 
 BOOL CUnitServer::TakeUpWeapon(int slot) {
     auto* weapon = unit->GetWeapon(static_cast<std::uint32_t>(slot));

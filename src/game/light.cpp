@@ -53,7 +53,7 @@ CLight* CLight::Construct() {
     inverseRangeSquared_ = static_cast<float>(1.0 / static_cast<float>(squared));
     return this;
 }
-EI_REPLACE_METHOD(0x0068CED0, CLight::Construct);
+EI_REWRITTEN(0x0068CED0, CLight::Construct);
 
 void CLight::Destruct() {
     ei::SetVtable(this, CTransformObject::kVtableAddress);
@@ -160,7 +160,7 @@ CLightFactory::CLightFactory() {
 }
 
 CLightFactory* CLightFactory::Construct() { return new (this) CLightFactory(); }
-EI_REPLACE_METHOD(0x0068D850, CLightFactory::Construct);
+EI_REWRITTEN(0x0068D850, CLightFactory::Construct);
 
 CLightFactory::~CLightFactory() {
     litIds_.ClearWith([](int*) {});
@@ -170,14 +170,14 @@ CLightFactory::~CLightFactory() {
 }
 
 void CLightFactory::Destruct() { this->CLightFactory::~CLightFactory(); }
-EI_REPLACE_METHOD(0x0068D990, CLightFactory::Destruct);
+EI_REWRITTEN(0x0068D990, CLightFactory::Destruct);
 
 CLightFactory* CLightFactory::DeletingDestruct(unsigned flags) {
     this->CLightFactory::~CLightFactory();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0068D970, CLightFactory::DeletingDestruct);
+EI_REWRITTEN(0x0068D970, CLightFactory::DeletingDestruct);
 
 CEngineObject* CLightFactory::NewObjectImpl(int type) {
     if (type != kLightDefault && type != kLightPoint) {
@@ -202,7 +202,7 @@ CEngineObject* CLightFactory::CreateObjectImpl(int type, int id) {
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0068DA40, CLightFactory::NewObjectImpl);
+EI_REWRITTEN(0x0068DA40, CLightFactory::NewObjectImpl);
 EI_REPLACE_METHOD(0x0068DAD0, CLightFactory::CreateObjectImpl);
 
 CEngineObject* CLightFactory::NewObject(int type) { return NewObjectImpl(type); }

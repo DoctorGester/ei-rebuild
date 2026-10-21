@@ -57,7 +57,7 @@ void CUnitLayer::Add(CUnit* unit, const CUnitShape* shape, int x, int y) {
     node->next = freeNodes;
     freeNodes = node;
 }
-EI_REPLACE_METHOD(0x005B36B0, CUnitLayer::Add);
+EI_REWRITTEN(0x005B36B0, CUnitLayer::Add);
 
 void CUnitLayer::Remove(CUnit* unit, int x, int y) {
     int firstY = y >> 2, firstX = x >> 2;

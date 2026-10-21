@@ -148,7 +148,7 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
     out->eyeHeight = static_cast<float>(unit->BaseSpeed());
     return true;
 }
-EI_REPLACE_METHOD(0x0054BCB0, CUnitServer::FindSightTarget);
+EI_REWRITTEN(0x0054BCB0, CUnitServer::FindSightTarget);
 
 // --- Can the order be carried out from here ----------------------------------------------------
 
@@ -255,7 +255,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     double visibility = map->LineOfSight(&eye, &sight.point);
     return visibility >= kPointOne;
 }
-EI_REPLACE_METHOD(0x0054C2F0, CUnitServer::CanActFrom);
+EI_REWRITTEN(0x0054C2F0, CUnitServer::CanActFrom);
 
 // --- The planner -----------------------------------------------------------------------------
 
@@ -471,7 +471,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     DestroySteps(&steps);
     return false;
 }
-EI_REPLACE_METHOD(0x0054CA40, CUnitServer::PlanAction);
+EI_REWRITTEN(0x0054CA40, CUnitServer::PlanAction);
 
 bool CUnitServer::CanPlanAction(const UnitAction* order) {
     OrderPlan plan;
@@ -484,4 +484,4 @@ bool CUnitServer::CanPlanAction(const UnitAction* order) {
     DestroySteps(&plan.animation);
     return result;
 }
-EI_REPLACE_METHOD(0x0054C6B0, CUnitServer::CanPlanAction);
+EI_REWRITTEN(0x0054C6B0, CUnitServer::CanPlanAction);

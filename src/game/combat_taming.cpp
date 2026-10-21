@@ -127,7 +127,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00551AE0, CUnitServer::TryTame);
+EI_REWRITTEN(0x00551AE0, CUnitServer::TryTame);
 
 void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;

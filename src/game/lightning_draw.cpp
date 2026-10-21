@@ -117,7 +117,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     }
     static_cast<CSceneRenderer*>(device)->DrawSprites(0, &GlowPoints(), &Sprites());
 }
-EI_REPLACE_METHOD(0x00467590, CLightning::DrawGlow);
+EI_REWRITTEN(0x00467590, CLightning::DrawGlow);
 
 // 00467AD0. 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
 int CLightning::DrawImpl(void* device) {
@@ -163,4 +163,4 @@ int CLightning::DrawImpl(void* device) {
     if (power_ == zero) DrawGlow(device, &start, phase, size);
     return 1;
 }
-EI_REPLACE_METHOD(0x00467AD0, CLightning::DrawImpl);
+EI_REWRITTEN(0x00467AD0, CLightning::DrawImpl);
