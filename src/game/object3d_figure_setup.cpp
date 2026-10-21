@@ -172,7 +172,7 @@ void CObject3D::UpdatePartBounds() {
     float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
     for (int i = 0; i < parts.size; ++i) {
         // A part is a figure mesh (figure_mesh.h) on a CTransformObject.
-        parts.data[i]->UpdateWorld(orientation, position);
+        parts.data[i]->UpdateWorld(localRotation_, localPosition_);
         parts.data[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
     // The x sum stays on the FPU stack; the y and z sums are stored first.
@@ -188,9 +188,9 @@ void CObject3D::UpdatePartBounds() {
     boundsFlags |= kBoundsBox;
     boundsFlags |= kBoundsSphere;
     radius = LengthZYX(below);
-    center.x = centreX - position.x;
-    center.y = centreY - position.y;
-    center.z = centreZ - position.z;
+    center.x = centreX - localPosition_.x;
+    center.y = centreY - localPosition_.y;
+    center.z = centreZ - localPosition_.z;
 }
 EI_REWRITTEN(0x00518100, CObject3D::UpdatePartBounds);
 

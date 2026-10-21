@@ -63,7 +63,7 @@ void Lever::SetState(int wanted, float duration) {
     mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     CSectorMap* sectors = world->Sectors();
     float reach = radius + 0.5f;
-    sectors->FindUnitsInRadius(&position, &around, reach);
+    sectors->FindUnitsInRadius(&localPosition_, &around, reach);
     for (auto* node = around.head; node;) {
         auto* next = node->next;
         SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));
@@ -99,7 +99,7 @@ void Lever::SetState(int wanted, float duration) {
         auto* next = node->next;
         CUnit* unit = node->data;
         if (!map->CanLeaveCell(unit)) {
-            Vector3* at = &unit->position;
+            Vector3* at = &unit->localPosition_;
             Vector3 free = {at->x, at->y, at->z};
             map->FindFreeCellNear(unit, at, &free);
             std::memcpy(at, &free, sizeof(free));
@@ -132,11 +132,11 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     out->size = 0;
     const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(LeverTableByName(), nullptr, name));
     if (!record || record->spotCount == 0) return;
-    const Quaternion& facing = orientation;
+    const Quaternion& facing = localRotation_;
     // The count is read again each time; a count above 2 reads on into the record (sic).
     for (std::uint32_t i = 0; i < record->spotCount; ++i) {
         const float* spot = &record->spots[0][0] + 2 * i;
-        Vector3 at{position.x, position.y, position.z};
+        Vector3 at{localPosition_.x, localPosition_.y, localPosition_.z};
         float along = spot[0];
         float across = spot[1];
         float length = static_cast<float>(std::sqrt(across * across + along * along));

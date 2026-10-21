@@ -303,8 +303,8 @@ void ObjectSpec::ObjectSpecApply() {
     static_cast<CAIMap*>(Selection())->BeginRefresh();
     SectorMapRemove(AsSectorMap(TheSectorMap()), nullptr, AsEngineObject(base.object));
     auto* object = static_cast<CMapObject*>(base.object);
-    std::memcpy(&object->position, &base.position, 12);
-    std::memcpy(&object->orientation, &base.rotation, 16);
+    std::memcpy(&object->localPosition_, &base.position, 12);
+    std::memcpy(&object->localRotation_, &base.rotation, 16);
     ObjectSetFigureScaleOriginal(base.object, nullptr, &scale.x);
     std::memcpy(&object->baseScale, &scale, 12);
     object->ApplyBaseScale();

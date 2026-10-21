@@ -36,7 +36,7 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
     candidates.vtable = mfc::impl::PtrListClass::Vtable();
     candidates.blockSize = 10;
     AITargetChoice best{-1, nullptr};
-    Vector3 from = *&brain->owner->unit->position;
+    Vector3 from = *&brain->owner->unit->localPosition_;
     brain->ChooseTarget(&best, &candidates, &from, 1, unused);
     CUnit* chosen = best.object;
     if (chosen) {

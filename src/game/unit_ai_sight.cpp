@@ -65,7 +65,7 @@ console::GameOStream& LogPair(CUnit* self, const char* text, CEngineObject* othe
 // address so its verify wrapper counts it (AIMemory::Update's check relies on that).
 void NoticeAt(AIMemory* memory, CUnit* at, int level, int kind) {
     float copy[2];
-    const float* point = CopyPoint2(copy, &at->position.x);
+    const float* point = CopyPoint2(copy, &at->localPosition_.x);
     memory->noticedX = point[0];
     memory->noticedLevel = level;
     memory->noticedY = point[1];
@@ -78,7 +78,7 @@ void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->width && cellY < map->height)
         eye.z = static_cast<float>(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
     eye.z = static_cast<float>(static_cast<double>(self->above.z) * kEyeHeightFactor + self->eyeHeight + self->center.z + eye.z);
-    Vector3 axis = RotatedAxisY(self->orientation);
+    Vector3 axis = RotatedAxisY(self->localRotation_);
     ready = 1;
     facing = -axis;
 }
@@ -177,9 +177,9 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         if (alive) {
             memory->visible.AddHead(other);
             ++other->refCount_;
-            double dx = static_cast<double>(self->position.x) - other->position.x;
-            double dy = static_cast<double>(self->position.y) - other->position.y;
-            double dz = static_cast<double>(self->position.z) - other->position.z;
+            double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
+            double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
+            double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
             console::GameOStream& os = LogPair(self, " sees unit ", other) << " from ";
             (void)os;
             console::EndLine(AiLog()->PutFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) << "m distance");
@@ -195,7 +195,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     float reachFactor = hasPlayer ? kOne : kNonPlayerReach;
     if (!self) return;
     ready = 0;
-    eye = *&self->position;
+    eye = *&self->localPosition_;
     float scale = static_cast<float>(kOne / (static_cast<double>(kOne) * kHalf));
     cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf));
     cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf));
@@ -204,9 +204,9 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         auto* current = node;
         node = node->next;
         auto* other = current->data;
-        Vector3 d{static_cast<float>(static_cast<double>(other->position.x) - self->position.x),
-                  static_cast<float>(static_cast<double>(other->position.y) - self->position.y),
-                  static_cast<float>(static_cast<double>(other->position.z) - self->position.z)};
+        Vector3 d{static_cast<float>(static_cast<double>(other->localPosition_.x) - self->localPosition_.x),
+                  static_cast<float>(static_cast<double>(other->localPosition_.y) - self->localPosition_.y),
+                  static_cast<float>(static_cast<double>(other->localPosition_.z) - self->localPosition_.z)};
         float distance = LengthZYX(d);
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
@@ -243,7 +243,7 @@ EI_REWRITTEN(0x005CAA00, AIViewer::Update);
 
 void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid) {
     Vector3 axis;
-    seer->orientation.AxisY(&axis);
+    seer->localRotation_.AxisY(&axis);
     Vector3 look{-axis.x, -axis.y, -axis.z};
     Vector3 eye;
     seer->EyePoint(&eye);

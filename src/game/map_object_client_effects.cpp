@@ -384,7 +384,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         added.handle = -1;
         added.timer = 0;
         added.present = 1;
-        PlayEffectSound(!first, &added, &CompanionOwner(this)->position.x, added.kind, "\\start.wav");
+        PlayEffectSound(!first, &added, &CompanionOwner(this)->localPosition_.x, added.kind, "\\start.wav");
         int index = sounds.size;
         mfc::impl::ArrayAs<mfc::impl::SoundRecords>(sounds).SetSize(index + 1, -1);
         std::memcpy(&sounds.data[index], &added, sizeof(added));
@@ -395,7 +395,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         if (record->present) continue;
         CMapObject* target = CompanionOwner(this);
         bool alive = !ObjectSlots(target)->IsDead();
-        PlayEffectSound(alive, record, &target->position.x, record->kind, "\\end.wav");
+        PlayEffectSound(alive, record, &target->localPosition_.x, record->kind, "\\end.wav");
         int tail = sounds.size - i - 1;
         if (tail != 0) std::memmove(&sounds.data[i], &sounds.data[i + 1], tail * sizeof(EffectSoundRecord));
         --sounds.size;
@@ -445,9 +445,9 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     static_cast<CLight*>(light)->SetPoint(&rgb, &rgb);
     CMapObject* mapObject = CompanionOwner(this);
     auto* point = static_cast<CLight*>(light);
-    point->position_.x = mapObject->position.x;
-    point->position_.y = mapObject->position.y;
-    point->position_.z = kLightHeight + mapObject->position.z;
+    point->position_.x = mapObject->localPosition_.x;
+    point->position_.y = mapObject->localPosition_.y;
+    point->position_.z = kLightHeight + mapObject->localPosition_.z;
     point->range_ = radius;
     double squared = static_cast<double>(radius) * radius;
     point->rangeSquared_ = static_cast<float>(squared);

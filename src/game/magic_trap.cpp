@@ -69,8 +69,8 @@ constexpr int kPtrListBlockSize = 10;
 bool StaysInside(MagicTrap* trap, CEngineObject* unit) {
     int count = trap->area.size;
     const TrapCircle* circle = trap->area.data;
-    float x = ObjectSlots(unit)->position.x;
-    float y = ObjectSlots(unit)->position.y;
+    float x = ObjectSlots(unit)->localPosition_.x;
+    float y = ObjectSlots(unit)->localPosition_.y;
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
@@ -162,7 +162,7 @@ constexpr float kFar = 1e30f;                        // 0073E73C, a squared dist
 void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
     using UnitList = mfc::CTypedPtrList<CUnit>;
     if (units->count == 0 || !spell) return;
-    const Vector3& origin = position;
+    const Vector3& origin = localPosition_;
     Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = ObjectWorld(this);
     // The world's slot 28: the height at (x, y), in ST0.
@@ -179,9 +179,9 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             CUnit* closest = nullptr;
             for (UnitList::Node* node = units->head; node; node = node->next) {
                 CUnit* unit = node->data;
-                float dx = ObjectSlots(unit)->position.x - origin.x;
-                float dy = ObjectSlots(unit)->position.y - origin.y;
-                float dz = ObjectSlots(unit)->position.z - origin.z;
+                float dx = ObjectSlots(unit)->localPosition_.x - origin.x;
+                float dy = ObjectSlots(unit)->localPosition_.y - origin.y;
+                float dz = ObjectSlots(unit)->localPosition_.z - origin.z;
                 EI_NAN_AUDIT(dx, dy, dz);
                 if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
             }
@@ -193,7 +193,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             UnitList::Node* next = node->next;
             CUnit* unit = node->data;
             TheServerWorld()->CastSpell(spell, nullptr, &from, unit,
-                                   &ObjectSlots(unit)->position, 0);
+                                   &ObjectSlots(unit)->localPosition_, 0);
             node = next;
         }
     }
@@ -233,7 +233,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     spell = made;
     if (made) ++made->refCount_;
     if (old) old->Release();
-    std::memcpy(&position.x, &record->position, sizeof(record->position));   // copied as dwords
+    std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // copied as dwords
 
     // The loop bounds are read again on every pass, as in the original.
     area.SetSize(record->area.size, -1);

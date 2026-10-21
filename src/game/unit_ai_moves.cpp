@@ -71,7 +71,7 @@ float FollowNear() { return GameLogicSettings().followMinDist; }
 float FollowFar() { return GameLogicSettings().followMaxDist; }
 
 CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
-Vector3* PositionOf(CUnit* unit) { return &unit->position; }
+Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
@@ -174,9 +174,9 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     bool result = true;
     {
         ScopedPath local;
-        double ux = self->position.x - out->x;
-        double uy = self->position.y - out->y;
-        double uz = self->position.z - out->z;
+        double ux = self->localPosition_.x - out->x;
+        double uy = self->localPosition_.y - out->y;
+        double uz = self->localPosition_.z - out->z;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz)));
         float range = static_cast<float>(distance * kRangePerDistance + kRangeBase);
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
@@ -206,8 +206,8 @@ void AIBrain::UpdateFollow() {
     CUnit* self = owner->unit;
     float nearSq = static_cast<float>(FollowNear() * FollowNear());
     auto* leader = static_cast<CUnit*>(target.object);
-    Vector3 toLeader{static_cast<float>(leader->position.x - self->position.x), static_cast<float>(leader->position.y - self->position.y),
-                     static_cast<float>(leader->position.z - self->position.z)};
+    Vector3 toLeader{static_cast<float>(leader->localPosition_.x - self->localPosition_.x), static_cast<float>(leader->localPosition_.y - self->localPosition_.y),
+                     static_cast<float>(leader->localPosition_.z - self->localPosition_.z)};
     int now = CurrentWorldTick();
     float distance = static_cast<float>(
         std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
@@ -223,8 +223,8 @@ void AIBrain::UpdateFollow() {
         }
         Vector3 goal;
         if (!owner->GetMovePoint(&goal.x)) goal = *PositionOf(self);
-        double gx = goal.x - leader->position.x;
-        double gy = goal.y - leader->position.y;
+        double gx = goal.x - leader->localPosition_.x;
+        double gy = goal.y - leader->localPosition_.y;
         if (LengthSquared2DUnrounded(gx, gy) > farSq) {
             owner->OrderMove(&PositionOf(leader)->x, 0, 0, walkTime);
             followTimer = 0;
@@ -237,8 +237,8 @@ void AIBrain::UpdateFollow() {
     owner->GetMovePoint(&goal.x);
     Vector3 soon;
     ObjectSlots(leader)->PositionAt(&soon, now + kLeaderAhead);
-    double sx = self->position.x - soon.x;
-    double sy = self->position.y - soon.y;
+    double sx = self->localPosition_.x - soon.x;
+    double sy = self->localPosition_.y - soon.y;
     double soonSq = LengthSquared2DUnrounded(sx, sy);
     if (soonSq >= static_cast<double>(distance) * distance || soonSq >= nearSq) {
         // Not coming closer: walk to that point unless already going near it.
@@ -257,8 +257,8 @@ void AIBrain::UpdateFollow() {
     for (int ahead = kLeaderFirstStep;; ) {
         Vector3 later;
         ObjectSlots(leader)->PositionAt(&later, now + ahead);
-        double lx = self->position.x - later.x;
-        double ly = self->position.y - later.y;
+        double lx = self->localPosition_.x - later.x;
+        double ly = self->localPosition_.y - later.y;
         double laterSq = LengthSquared2DUnrounded(lx, ly);
         if (laterSq > best) return;
         EI_NAN_AUDIT(laterSq);
@@ -269,8 +269,8 @@ void AIBrain::UpdateFollow() {
 
     Vector3 passing;
     ObjectSlots(leader)->PositionAt(&passing, now + kLeaderSide);
-    double along = passing.y - leader->position.y;
-    float across = static_cast<float>(passing.x - leader->position.x);
+    double along = passing.y - leader->localPosition_.y;
+    float across = static_cast<float>(passing.x - leader->localPosition_.x);
     Vector3 side{static_cast<float>(-along), across, 0.0f};
     double lengthSq = static_cast<double>(side.y) * side.y + along * along;
     EI_NAN_AUDIT(lengthSq);
@@ -279,9 +279,9 @@ void AIBrain::UpdateFollow() {
     side.x = static_cast<float>(scale * -along);
     side.y = static_cast<float>(scale * side.y);
     side.z = static_cast<float>(side.z * scale);
-    double ux = self->position.x - leader->position.x;
-    double uy = self->position.y - leader->position.y;
-    double uz = self->position.z - leader->position.z;
+    double ux = self->localPosition_.x - leader->localPosition_.x;
+    double uy = self->localPosition_.y - leader->localPosition_.y;
+    double uz = self->localPosition_.z - leader->localPosition_.z;
     EI_NAN_AUDIT(side.x, side.y, side.z, ux, uy, uz);
     if (DotUnrounded<Sum3::ZYX, double>(side.x, side.y, side.z, ux, uy, uz) < 0.0) {
         side.x = -side.x;

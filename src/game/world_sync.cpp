@@ -151,7 +151,7 @@ void SetSize(StaticPtrArray& a, int n) {
     }
 }
 
-const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->position.x; }
+const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_.x; }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The
 // squared distance and the squared range stay on the FPU (dy^2 + dx^2, as the original adds).
@@ -225,7 +225,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // the original's branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
-        world->Sectors()->FindUnitsInRadius(&ObjectSlots(unit)->position, &heard, radius);
+        world->Sectors()->FindUnitsInRadius(&ObjectSlots(unit)->localPosition_, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::impl::PtrListClass::Vtable();
         heard.RemoveAll();

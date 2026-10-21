@@ -75,7 +75,7 @@ EI_REWRITTEN(0x004B9F60, CEngineObject::ClearFlagBits);
 
 // 004B9F90 (RET 4): the map object's position.
 void CMapObject::SetScriptPosition(const Vector3* point) {
-    position = *point;
+    localPosition_ = *point;
 }
 EI_REPLACE_METHOD(0x004B9F90, CMapObject::SetScriptPosition);
 

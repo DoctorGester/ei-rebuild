@@ -379,7 +379,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     auto* unit = static_cast<CUnit*>(b.object);
     SectorMapMove(TheSectorMap(), nullptr, unit, &b.position);
     ei::GamePointer<CAIMap>(0x007B00D0)->TurnObject(unit, &b.rotation);
-    std::memcpy(&unit->orientation, &b.rotation, 16);
+    std::memcpy(&unit->localRotation_, &b.rotation, 16);
     ObjectSetFigureScaleOriginal(b.object, nullptr, &self->object.scale.x);
     std::memcpy(&unit->baseScale, &self->object.scale, 12);
     unit->ApplyBaseScale();

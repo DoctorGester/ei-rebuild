@@ -35,10 +35,10 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
 
 - Remaining VCalls: `map_object_figures.cpp` (the figure cache's slot 6, because slot 5 is unknown); `map_object_shadow.cpp` (the 2DintMMX
   device's slots 11 and 12, +0x2C / +0x30).
-- `CObject3D : CTransformObject` is not declared yet; `Transform()` reinterprets the object (`position` is `localPosition_`, `viewPosition`
-  is `worldPosition_`, `orientation` is `localRotation_`, `worldOrientation` is `worldRotation_`; CMapObject declares slots 13-17 as
-  placeholders while CTransformObject has the real signatures). CUnit (`unit.h`) repeats the 0x000-0x238 layout instead of deriving from
-  CMapObject.
+- `CObject3D : CTransformObject` (C15 batch 9): the transform fields are `localPosition_` (+0x1C), `worldPosition_` (+0x28, the
+  position in view space after CWorldClient::CollectVisible), `localRotation_` (+0x34) and `worldRotation_` (+0x44); CObject3D overrides
+  only slot 14 (CombineRotation, 00516370). CParticleSource derives from CTransformObject too. CMapObject's `SaveTransformSlot` /
+  `LoadTransformSlot` (00516350 / 00516360) stay non-virtual bodies.
 - The effect array (+0x194) is still five raw fields (`effectsVtable` ... `effectGrowBy`) instead of an `mfc::CArray`, with about 58 uses outside
   the family. `CMapObject::updateCountdown` (+0x174, 5 after Create): world updates until the effects are next looked at. `MaterialStage::
   unknown_00` is unnamed (cleanup-figures.md). `CompanionOwner()` is still used by `map_object_client_effects.cpp`, whose locals cache the owner.

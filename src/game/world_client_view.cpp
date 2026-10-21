@@ -151,10 +151,10 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
                 // Object -> world matrix: the rotation with the position as the last column.
                 CObject3D* o3d = Object3D(object);
                 float* matrix = o3d->worldMatrix.m;
-                QuaternionToMatrixOriginal(&o3d->orientation, nullptr, matrix);
-                std::memcpy(&matrix[3], &o3d->position.x, 4);
-                std::memcpy(&matrix[7], &o3d->position.y, 4);
-                std::memcpy(&matrix[11], &o3d->position.z, 4);
+                QuaternionToMatrixOriginal(&o3d->localRotation_, nullptr, matrix);
+                std::memcpy(&matrix[3], &o3d->localPosition_.x, 4);
+                std::memcpy(&matrix[7], &o3d->localPosition_.y, 4);
+                std::memcpy(&matrix[11], &o3d->localPosition_.z, 4);
                 const std::uint32_t zero = 0;
                 const std::uint32_t one = 0x3F800000;   // 1.0f
                 std::memcpy(&matrix[14], &zero, 4);
@@ -170,7 +170,7 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
                 if (where != 2) {
                     object->flags_ |= kFlagVisible;
                     // View-space position: x summed ZYX, y and z XYZ, each rounded.
-                    o3d->viewPosition = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->position);
+                    o3d->worldPosition_ = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition_);
                     switch (object->GetClassId()) {
                     case 0x50:
                         PushBack(frame.visibleUnits, entry);

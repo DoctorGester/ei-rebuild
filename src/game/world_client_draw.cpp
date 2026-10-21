@@ -595,14 +595,14 @@ int CWorldClient::DrawPass() {
             if (object) {
                 if (ObjectSlots(object)->IsDead() == 0) {
                     Vector3 point;
-                    std::memcpy(&point, &object->position, sizeof(point));
+                    std::memcpy(&point, &object->localPosition_, sizeof(point));
                     if (void* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
                         const float* at = object->PartWorldPosition(&scratch.x, static_cast<const CFigureMesh*>(part));
                         std::memcpy(&point, at, sizeof(point));
-                        point.z = Reload(object->position.z);
+                        point.z = Reload(object->localPosition_.z);
                     }
-                    const Quaternion* orientation = &object->orientation;
+                    const Quaternion* orientation = &object->localRotation_;
                     Vector3 axisY, axisX;
                     QuaternionAxisY(orientation, nullptr, &axisY);
                     QuaternionAxisX(orientation, nullptr, &axisX);

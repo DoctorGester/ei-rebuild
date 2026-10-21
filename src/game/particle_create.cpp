@@ -328,8 +328,8 @@ void SetupClayRing(CParticleSource* s) {
         direction[0] = static_cast<float>(x87::fsin(angle));
         direction[1] = static_cast<float>(x87::fcos(angle));
         SetBits(&direction[2], 0);
-        std::memcpy(&s->elements[i].pos, &s->position, sizeof(Vector3));
-        std::memcpy(&s->elements[i].value[0], &s->position, sizeof(Vector3));
+        std::memcpy(&s->elements[i].pos, &s->localPosition_, sizeof(Vector3));
+        std::memcpy(&s->elements[i].value[0], &s->localPosition_, sizeof(Vector3));
         SetElementDword(s, i, 0x34, 14);
     }
 }
@@ -795,8 +795,8 @@ void BuildFrames(CParticleSource* s) {
 // 004847E0. Back to the defaults: no position, attachment, callbacks or elements; the texture
 // released; unit sizes, a 1000 emission spacing, 10000 frame delay, a one-frame grid.
 void CParticleSource::Reset() {
-    std::memset(&position, 0, sizeof(Vector3));
-    orientation = kIdentityRotation;
+    std::memset(&localPosition_, 0, sizeof(Vector3));
+    localRotation_ = kIdentityRotation;
     attachedTo = nullptr;
     emitChance = 0;
     emitCount = 0;
@@ -901,17 +901,16 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     // tries (each a GlobalRandom draw) from whatever the heap held. The harness zeroes the original's alike.
     void* memory = gamecrt::operator_new_zeroed(sizeof(CParticleSource));
     if (!memory) return nullptr;
-    auto* bytes = static_cast<std::uint8_t*>(memory);
     auto* s = static_cast<CParticleSource*>(memory);
     EngineObjectConstruct(s);
-    reinterpret_cast<Quaternion*>(bytes + 0x34)->SetIdentity();
-    reinterpret_cast<Quaternion*>(bytes + 0x44)->SetIdentity();
+    s->localRotation_.SetIdentity();
+    s->worldRotation_.SetIdentity();
     ei::SetVtable(s, CTransformObject::kVtableAddress);
     s->elements = nullptr;
     s->elementGrowBy = 0;
     s->elementCapacity = 0;
     s->elementCount = 0;
-    std::memset(bytes + offsetof(CParticleSource, boundsFlags), 0, 0x38);
+    std::memset(&s->boundsFlags, 0, 0x38);
     ei::SetVtable(&s->particles, mfc::impl::ClientListClass::Vtable());
     s->particles.count = 0;
     s->particles.free = nullptr;

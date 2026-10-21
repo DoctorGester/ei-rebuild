@@ -78,12 +78,12 @@ void Unlink(UnitList& list, UnitList::Node* node) {
 
 void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
                                  const Vector3* to, int extra) {
-    const Vector3* aim = target ? &target->position : to;
+    const Vector3* aim = target ? &target->localPosition_ : to;
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
     if (spell->targetFlags_ & kSpellAreaFlag) target = nullptr;
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f /*0073C54C*/);
-    if (caster) std::memcpy(&from, &caster->position, sizeof(from));
+    if (caster) std::memcpy(&from, &caster->localPosition_, sizeof(from));
 
     void* memory = gamecrt::operator_new(0xA8);
     static_cast<Projectile*>(memory)->references = 0;   // written before the null test
@@ -144,7 +144,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
         CreateMissile(spell, caster, *from, target, to, extra);
     }
     Vector3 center;
-    std::memcpy(&center, caster ? &caster->position : from, sizeof(center));
+    std::memcpy(&center, caster ? &caster->localPosition_ : from, sizeof(center));
     float radius = std::bit_cast<float>(spell->range_);
     Sectors()->FindUnitsInRadius(&center, &units, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
@@ -177,9 +177,9 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
                 bestNode = node;
                 break;
             } else {
-                double dz = static_cast<double>(to->z) - unit->position.z;
-                double dy = static_cast<double>(to->y) - unit->position.y;
-                double dx = static_cast<double>(to->x) - unit->position.x;
+                double dz = static_cast<double>(to->z) - unit->localPosition_.z;
+                double dy = static_cast<double>(to->y) - unit->localPosition_.y;
+                double dx = static_cast<double>(to->x) - unit->localPosition_.x;
                 double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
                 std::memcpy(&bestDistance, &bestBits, 4);
@@ -216,7 +216,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
             }
         }
         if (!hit) continue;
-        Vector3* at = &best->position;
+        Vector3* at = &best->localPosition_;
         if (!SpellHasLineOfSight(this, spell, caster, from, best, at))
             continue;
         if (!spell->CanAffect(caster, best)) continue;

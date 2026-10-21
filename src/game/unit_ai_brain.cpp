@@ -40,7 +40,7 @@ std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
 
 namespace {
 
-const Vector3* PositionOf(CUnit* unit) { return &unit->position; }
+const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // A new mode with the counted-object header cleared (the original writes +4 before testing the
 // allocation) and its vtable installed.
@@ -307,9 +307,9 @@ void AIBrain::CallAllies(const Vector3* point) {
         mfc::CString message;
         AIBrain* ally = other->ServerController()->Brain();
         if (console::FilterMask() & 1) {
-            double dz = self->position.z - other->position.z;
-            double dy = self->position.y - other->position.y;
-            double dx = self->position.x - other->position.x;
+            double dz = self->localPosition_.z - other->localPosition_.z;
+            double dy = self->localPosition_.y - other->localPosition_.y;
+            double dx = self->localPosition_.x - other->localPosition_.x;
             message.Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
                            std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }

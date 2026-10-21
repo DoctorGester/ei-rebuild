@@ -25,7 +25,7 @@ bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* c
         to = *at;
         to.z = static_cast<float>(world->SurfaceHeightAt(to.x, to.y) + kAboveSurface);
     } else {
-        to = {target->position.x, target->position.y, target->position.z};
+        to = {target->localPosition_.x, target->localPosition_.y, target->localPosition_.z};
         float ground = static_cast<float>(target->GroundHeight(to.x, to.y));
         to.z = static_cast<float>(target->ModeSpeed() + ground);
     }

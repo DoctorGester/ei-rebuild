@@ -190,7 +190,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
         const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(reinterpret_cast<stlp::RecordsByName*>(&TheLeverTable()), nullptr, name));
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
-            TheSoundManager()->Play3D(record->sound, 0, &position.x, kSoundNear, kSoundFar, 0, 0);
+            TheSoundManager()->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);
     }
     return complete;
 }

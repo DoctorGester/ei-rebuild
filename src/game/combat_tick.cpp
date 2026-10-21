@@ -214,7 +214,7 @@ bool CanStillDo(CUnitServer* self, UnitAction* order) {
         CUnit* other = UnitOrNull(order->target);
         if (other && !IsDead(other)) {
             if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
-                double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
+                double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
                 if (height >= kHeightLimit) return false;
             }
         }
@@ -317,9 +317,9 @@ bool CUnitServer::StartMove() {
     }
     // Already there: the order is done and the next one starts.
     Vector3 offset;
-    offset.x = unit->position.x - action.point.x;
-    offset.y = unit->position.y - action.point.y;
-    offset.z = unit->position.z - action.point.z;
+    offset.x = unit->localPosition_.x - action.point.x;
+    offset.y = unit->localPosition_.y - action.point.y;
+    offset.z = unit->localPosition_.z - action.point.z;
     double lengthSq = LengthSquaredZYX(offset);
     EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
@@ -332,7 +332,7 @@ bool CUnitServer::StartMove() {
     // Plan the way with the units near the goal lifted off the sector map.
     LiftNearby(&lifted, &action.point.x, action.source != 0);
     CAIMap* map = ServerWorld()->AIMap();
-    unit->altPassCosts = map->CellFlag80At(&unit->position);
+    unit->altPassCosts = map->CellFlag80At(&unit->localPosition_);
     bool found = PathTo(&action.point.x, action.point.z);
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
@@ -344,8 +344,8 @@ bool CUnitServer::StartMove() {
         action.param = 0;
         bool close = false;
         if (!found) {
-            double dy = static_cast<double>(action.point.y) - unit->position.y;
-            double dx = static_cast<double>(action.point.x) - unit->position.x;
+            double dy = static_cast<double>(action.point.y) - unit->localPosition_.y;
+            double dx = static_cast<double>(action.point.x) - unit->localPosition_.x;
             EI_NAN_AUDIT(dx, dy);
             close = LengthSquared2DUnrounded(dx, dy) < kLong;
         }
@@ -596,7 +596,7 @@ bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
     if (!other || IsDead(other)) return false;
     if (other->sizeClass != 0) return false;
     if (order->kind == kOrderAttack && self->HasRangedWeapon()) return false;
-    double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
+    double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
     return height >= kHeightLimit;
 }
 } // namespace
@@ -611,10 +611,10 @@ bool CUnitServer::CanReachAndPlanFrom(const UnitAction* order, const Vector3* po
     if (OutOfReachUp(this, order)) return false;
     // The position is swapped bitwise, as the original does.
     Vector3 saved;
-    std::memcpy(&saved, &unit->position, sizeof(saved));
-    std::memcpy(&unit->position, point, sizeof(saved));
+    std::memcpy(&saved, &unit->localPosition_, sizeof(saved));
+    std::memcpy(&unit->localPosition_, point, sizeof(saved));
     bool result = CanPlanAction(order);
-    std::memcpy(&unit->position, &saved, sizeof(saved));
+    std::memcpy(&unit->localPosition_, &saved, sizeof(saved));
     return result;
 }
 EI_REWRITTEN(0x0054C960, CUnitServer::CanReachAndPlanFrom);
@@ -741,10 +741,10 @@ void CUnitServer::ApproachTarget() {
             if (LengthSquared2DUnrounded(dy, dx) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
                 Vector3 saved;
-                std::memcpy(&saved, &unit->position.x, sizeof(saved));
-                std::memcpy(&unit->position.x, &heading, sizeof(saved));
+                std::memcpy(&saved, &unit->localPosition_.x, sizeof(saved));
+                std::memcpy(&unit->localPosition_.x, &heading, sizeof(saved));
                 bool ok = CanPlanAction(&action);
-                std::memcpy(&unit->position.x, &saved, sizeof(saved));
+                std::memcpy(&unit->localPosition_.x, &saved, sizeof(saved));
                 if (ok) return;
             }
         }
@@ -759,7 +759,7 @@ void CUnitServer::ApproachTarget() {
     Vector3 aim;
     Slots(target)->AimPoint(&aim);
     if (!IsMoving(target)) {
-        if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->position) &&
+        if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->localPosition_) &&
             CanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
             if (state != kStateTurning) StandIdle(this);
@@ -773,9 +773,9 @@ void CUnitServer::ApproachTarget() {
             Vector3 scratch;
             const float* p = &Slots(target)->PositionAt(&scratch, lead + now)->x;
             Vector3 offset;
-            offset.x = p[0] - unit->position.x;
-            offset.y = p[1] - unit->position.y;
-            offset.z = p[2] - unit->position.z;
+            offset.x = p[0] - unit->localPosition_.x;
+            offset.y = p[1] - unit->localPosition_.y;
+            offset.z = p[2] - unit->localPosition_.z;
             double closing = Slots(unit)->MoveSpeed() * (static_cast<double>(kOne) * kHalf);
             if (closing > kZero) {
                 double distance = LengthXYZ(offset);
@@ -808,18 +808,18 @@ void CUnitServer::ApproachTarget() {
     Vector3 scratch;
     const float* where = &Slots(chased)->AimPoint(&scratch)->x;
     Vector3 offset;
-    offset.x = where[0] - unit->position.x;
-    offset.y = where[1] - unit->position.y;
-    offset.z = where[2] - unit->position.z;
+    offset.x = where[0] - unit->localPosition_.x;
+    offset.y = where[1] - unit->localPosition_.y;
+    offset.z = where[2] - unit->localPosition_.z;
     float distance = LengthZXY(offset);
     float mySpeed = static_cast<float>(Slots(unit)->MoveSpeed());
     double closing;
     if (IsMoving(chased)) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<CUnit*>(chased);
-        float vx = other->position.x - unit->position.x;
-        float vy = other->position.y - unit->position.y;
-        double dz = static_cast<double>(other->position.z) - unit->position.z;
+        float vx = other->localPosition_.x - unit->localPosition_.x;
+        float vy = other->localPosition_.y - unit->localPosition_.y;
+        double dz = static_cast<double>(other->localPosition_.z) - unit->localPosition_.z;
         float vz = static_cast<float>(dz);
         double length = dz * vz;
         length = length + static_cast<double>(vy) * vy;
@@ -831,7 +831,7 @@ void CUnitServer::ApproachTarget() {
             vz = static_cast<float>(vz / length);
         }
         Vector3 axis;
-        other->orientation.AxisY(&axis);
+        other->localRotation_.AxisY(&axis);
         float along = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, vx, vy, vz));
         closing = Slots(other)->MoveSpeed() * along + mySpeed;
     } else {
@@ -861,15 +861,15 @@ void CUnitServer::ApproachTarget() {
     CAIMap* aiMap = TheServerWorld()->AIMap();
     bool savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->position, goal));
-    if (DistanceSquaredXYUnrounded<double>(unit->position, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
+    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
+    if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
     SectorMapRemove(TheServerWorld()->Sectors(), nullptr, chased);
     float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
-    float unitY = static_cast<float>(static_cast<double>(unit->position.y) * kLong);
+    float unitY = static_cast<float>(static_cast<double>(unit->localPosition_.y) * kLong);
     Vector3 point;
-    point.x = static_cast<float>(static_cast<double>(unit->position.x) * kLong + nearX);
+    point.x = static_cast<float>(static_cast<double>(unit->localPosition_.x) * kLong + nearX);
     point.y = static_cast<float>(static_cast<double>(unitY) + farOffset);
     point.z = goal.z;
     if (!PathTo(&point.x, static_cast<float>(patience)))
@@ -888,12 +888,12 @@ void CUnitServer::ApproachTarget() {
         path->Clear();
         int time = WorldTick(this);
         Vector3 axis;
-        unit->orientation.AxisY(&axis);
+        unit->localRotation_.AxisY(&axis);
         Vector3 back;
         back.x = -axis.x;
         back.y = -axis.y;
         back.z = -axis.z;
-        if (path->Start(&unit->position, &back, time)) unit->RefreshMotion();
+        if (path->Start(&unit->localPosition_, &back, time)) unit->RefreshMotion();
         SetStanding(0);
         state = kStateChasing;
         unit->UpdateSizeClass();

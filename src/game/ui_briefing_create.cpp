@@ -130,16 +130,16 @@ void PlaceMover(BriefingMover* node) {
     Vector3 target{node->target.x, node->target.y, node->target.z};
     SectorMapMove(TheSectorMap(), nullptr, unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
-    reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
-    reinterpret_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
+    unit->SetHeading(&facing.x);
+    static_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
     controller->ResyncWithUnit();
 }
 
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
     const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
-    float dy = node->target.y - person->position.y;
-    float dx = node->target.x - person->position.x;
+    float dy = node->target.y - person->localPosition_.y;
+    float dx = node->target.x - person->localPosition_.x;
     if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
     CUnit* unit = ServerUnit(node->person->id_);
@@ -152,7 +152,7 @@ void StepWalking(BriefingMover* node) {
 void StepTurning(BriefingMover* node) {
     const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
     Vector3 axis;
-    person->orientation.AxisY(&axis);
+    person->localRotation_.AxisY(&axis);
     float facingX = static_cast<float>(-axis.x);
     float facingY = -axis.y;
     Vector3 direction = NormalisedUnlessZero(node->direction);

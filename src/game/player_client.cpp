@@ -475,7 +475,7 @@ int CPlayerClient::OnPathMarker() {
     }
     if (MarkersShown()) {
         auto* marker = ParticleManagerObject()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
-        marker->position = at;
+        marker->localPosition_ = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);

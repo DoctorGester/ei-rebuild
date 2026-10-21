@@ -146,10 +146,10 @@ void FaceAndStop(CUnitServer* self) {
     Motion(self)->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
-    QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
+    QuaternionAxisY(&self->unit->localRotation_, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (Motion(self)->Start(&self->unit->position, direction, now)) self->unit->RefreshMotion();
+    if (Motion(self)->Start(&self->unit->localPosition_, direction, now)) self->unit->RefreshMotion();
     self->SetStanding(0);
     self->SetState(kStateChasing);
 }
@@ -255,9 +255,9 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     Motion(self)->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
-    QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
+    QuaternionAxisY(&self->unit->localRotation_, nullptr, &axis);
     Vector3 back = -axis;
-    if (Motion(self)->Start(&self->unit->position, &back, now)) self->unit->RefreshMotion();
+    if (Motion(self)->Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
@@ -648,9 +648,9 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     if (!player || player->sessionKind100_ != 1) return;
     // Away from the point: the units near it that are not in the player's group (+0x510C of its
     // messages object) are lifted off the sector map and stay in the list.
-    float dx = point[0] - unit->position.x;
-    float dy = point[1] - unit->position.y;
-    float dz = point[2] - unit->position.z;
+    float dx = point[0] - unit->localPosition_.x;
+    float dy = point[1] - unit->localPosition_.y;
+    float dz = point[2] - unit->localPosition_.z;
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
         CSectorMap* sectors = world->Sectors();
         sectors->FindUnitsInRadius(reinterpret_cast<const Vector3*>(point), list, 4.0f);
@@ -707,8 +707,8 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         message = kMessageCannotDo;
     } else {
         path->ToMotionOrder(reinterpret_cast<AIPath*>(&end));
-        float dy = self->position.y - goal[1];
-        float dx = self->position.x - goal[0];
+        float dy = self->localPosition_.y - goal[1];
+        float dx = self->localPosition_.x - goal[0];
         float reached = LengthSquared2DUnrounded(dx, dy);
         float half = HalfCell();
         float ey = half * path->targetY - goal[1];
@@ -766,10 +766,10 @@ void CUnitServer::ResyncWithUnit() {
     Motion(this)->Clear();
     int now = TickOf(ObjectWorld(this));
     Vector3 axis;
-    QuaternionAxisY(&unit->orientation, nullptr, &axis);
+    QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (Motion(this)->Start(&unit->position, direction, now)) unit->RefreshMotion();
+    if (Motion(this)->Start(&unit->localPosition_, direction, now)) unit->RefreshMotion();
     SetStanding(0);
     SetState(kStateChasing);
     unit->UpdateSizeClass();

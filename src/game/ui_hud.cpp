@@ -662,7 +662,7 @@ constexpr int kOrderEventFollow = 7;                // the speech event of a fol
 // A unit's position (CUnit position), copied as the original copies it (three dwords).
 Vector3 PositionOf(const CUnit* unit) {
     Vector3 v;
-    std::memcpy(&v, &unit->position.x, sizeof(v));
+    std::memcpy(&v, &unit->localPosition_.x, sizeof(v));
     return v;
 }
 

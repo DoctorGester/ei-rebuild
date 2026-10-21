@@ -104,7 +104,7 @@ void DropRef(CEngineObject* object) {
 
 template <typename Ops>
 void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) {
-    float* stored = &ObjectSlots(object)->position.x;   // x, y, z
+    float* stored = &ObjectSlots(object)->localPosition_.x;   // x, y, z
     std::uint32_t oldX = CellOf(stored[0]);
     std::uint32_t oldY = CellOf(stored[1]);
     std::uint32_t newX = CellOf(position[0]);
@@ -296,8 +296,8 @@ constexpr int kTypeHero = 0x32;
 
 // The object's grid cell list, or null outside the grid.
 SectorList* CellFor(SectorGrid& grid, CEngineObject* object) {
-    std::uint32_t x = CellOf(ObjectSlots(object)->position.x);
-    std::uint32_t y = CellOf(ObjectSlots(object)->position.y);
+    std::uint32_t x = CellOf(ObjectSlots(object)->localPosition_.x);
+    std::uint32_t y = CellOf(ObjectSlots(object)->localPosition_.y);
     if (x >= grid.width_ || y >= grid.height_) return nullptr;
     return &grid.rows_[y][x];
 }
@@ -334,7 +334,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         for (int i = 0; i < figure->parts.size; ++i) {
             if ((figure->PartBox(i)->flags >> 10) & 1) {
                 int id = object->id_;
-                platforms_.AddBox(id, figure->PartBox(i), &mapObject->position, &mapObject->orientation);
+                platforms_.AddBox(id, figure->PartBox(i), &mapObject->localPosition_, &mapObject->localRotation_);
             }
         }
     }
@@ -386,7 +386,7 @@ void CWorldClient::RefreshPlatforms(CEngineObject* object) {
     CObject3D* figure = mapObject->Object3D();
     for (int i = 0; i < figure->parts.size; ++i) {
         if (!((figure->PartBox(i)->flags >> 10) & 1)) continue;
-        platforms_.AddBox(object->id_, figure->PartBox(i), &mapObject->position, &mapObject->orientation);
+        platforms_.AddBox(object->id_, figure->PartBox(i), &mapObject->localPosition_, &mapObject->localRotation_);
     }
 }
 
@@ -807,8 +807,8 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = ObjectSlots(node->data);
             float pz = point[2];
-            float ox = object->position.x + object->center.x;
-            float oy = object->position.y + object->center.y;
+            float ox = object->localPosition_.x + object->center.x;
+            float oy = object->localPosition_.y + object->center.y;
             double reach = libcrt::Hypot(object->above.x, object->above.y) + radius;
             float dx = ox - point[0];
             float dy = oy - point[1];
@@ -1240,7 +1240,7 @@ int CWorldClient::Setup() {
     // The terrain, its constructor inlined up to the class's own body (006C5620).
     auto* terrain = reinterpret_cast<Terrain*>(New(sizeof(Terrain)));
     if (terrain) {
-        reinterpret_cast<CTransformObject*>(terrain)->ConstructBase();   // 00453400
+        terrain->ConstructBase();   // 00453400
         terrain->pageTextures.data = nullptr;
         terrain->pageTextures.growBy = 0;
         terrain->pageTextures.capacity = 0;

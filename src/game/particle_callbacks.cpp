@@ -1326,9 +1326,9 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             if (yu * D(y) + D(x) * D(x) >= D(radiusSquared)) continue;
             Particle* q = static_cast<CParticleManager*>(owner_)->AcquireParticle();
             if (!q) continue;
-            double px = D(x) + D(position.x);
+            double px = D(x) + D(localPosition_.x);
             x = static_cast<float>(px);
-            y = static_cast<float>(D(y) + D(position.y));
+            y = static_cast<float>(D(y) + D(localPosition_.y));
             q->pos.x = static_cast<float>(px);
             q->pos.y = y;
             q->size = static_cast<float>(Unsigned(Next()) * EI_FOG_SIZE_SCALE + D(EI_FOG_SIZE_BASE) - D(EI_FOG_QUARTER));
@@ -3399,7 +3399,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     std::memcpy(&target, &origin, sizeof(Vector3));
     if (attachedTo) {
         const auto* carrier = static_cast<const CObject3D*>(attachedTo);
-        const Quaternion& turn = carrier->orientation;
+        const Quaternion& turn = carrier->localRotation_;
         double w = D(turn.w), x = D(turn.x), y = D(turn.y), z = D(turn.z);
         double xx = x * x;
         double axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
@@ -3659,7 +3659,7 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
             FigurePartPosition(unit, &at, part);
             e->pos = at;
         } else {
-            const float* place = &static_cast<const CObject3D*>(unit)->position.x;
+            const float* place = &static_cast<const CObject3D*>(unit)->localPosition_.x;
             float raise = static_cast<const CObject3D*>(unit)->above.z;
             std::memcpy(&e->pos, place, 2 * sizeof(float));
             e->pos.z = static_cast<float>(D(place[2]) + D(raise));

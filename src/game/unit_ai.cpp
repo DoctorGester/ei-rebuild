@@ -136,7 +136,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            TheServerWorld()->InvokeAlarm(alarm, &owner->unit->position.x, 0);
+            TheServerWorld()->InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
             owner->voice.Raise(kVoiceAlarm);
         }
     }
@@ -387,8 +387,8 @@ void AIBrain::UpdateMove() {
     if (o->action.kind == 1 || o->action2.kind == 1 || o->action.kind == 2 || o->action2.kind == 2) return;
     if (o->orderStopped) {
         CUnit* unit = o->unit;
-        double dy = actionPoint.y - unit->position.y;     // kept on the FPU stack
-        double dx = actionPoint.x - unit->position.x;
+        double dy = actionPoint.y - unit->localPosition_.y;     // kept on the FPU stack
+        double dx = actionPoint.x - unit->localPosition_.x;
         // TEST AH,0x41; JNZ: continue below when <= or unordered.
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
             if (target) target.Reset();
@@ -447,7 +447,7 @@ void AIBrain::UpdateAttack() {
         giveUp = true;
     }
     if (giveUp) {
-        if (IsGone(target) == 0) memory.Notice(&target->position, 1000, -2);
+        if (IsGone(target) == 0) memory.Notice(&target->localPosition_, 1000, -2);
         action = kActionNone;
         return;
     }
@@ -556,9 +556,9 @@ void AIBrain::SetSeen(CMapObject* object) {
             std::uint32_t bit = 1u << (seenUnit->side & 31);
             allied = (Diplomacy()[owner->unit->side] & bit) != 0;
         }
-        if (!allied) CallAllies(&object->position);
+        if (!allied) CallAllies(&object->localPosition_);
     } else {
-        CallAllies(&owner->unit->position);
+        CallAllies(&owner->unit->localPosition_);
     }
     if (!alerted && alertMode == 1) alerted = 1;
     if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);

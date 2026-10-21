@@ -131,10 +131,10 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 }
 EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
-void CMapObject::SaveTransformSlot(void* file) { Transform()->CTransformObject::SaveTransformImpl(file); }
+void CMapObject::SaveTransformSlot(void* file) { SaveTransformImpl(file); }
 EI_REPLACE_METHOD(0x00516350, CMapObject::SaveTransformSlot);
 
-void CMapObject::LoadTransformSlot(void* file) { Transform()->CTransformObject::LoadTransformImpl(file); }
+void CMapObject::LoadTransformSlot(void* file) { LoadTransformImpl(file); }
 EI_REPLACE_METHOD(0x00516360, CMapObject::LoadTransformSlot);
 
 // --- The virtual slots (vtable 0073DAA0) for the compiler's tables (C19) -------------------------------

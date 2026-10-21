@@ -919,7 +919,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     u->skin.BindMeshes(&u->Object3D()->parts);
     u->skin.Rewind();
     const std::uint32_t offset[3] = {0, 0, 0x44FA0000};   // (0, 0, 500)
-    std::memcpy(&u->Object3D()->position, offset, sizeof(offset));
+    std::memcpy(&u->Object3D()->localPosition_, offset, sizeof(offset));
     return 1;
 }
 EI_REWRITTEN(0x00446C10, LoadFakeUnitScene);

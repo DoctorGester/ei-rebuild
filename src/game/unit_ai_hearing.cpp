@@ -87,7 +87,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
     units.vtable = mfc::impl::PtrListClass::Vtable();
     units.blockSize = 10;
     CUnit* unit = source->unit;
-    const Vector3* point = at ? at : &unit->position;
+    const Vector3* point = at ? at : &unit->localPosition_;
     map->SectorMap()->FindUnitsInRadius(point, &units, kNoiseRadius);
     for (auto* node = units.head; node;) {
         auto* other = node->data;
@@ -97,15 +97,15 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         AIBrain* brain = control->Brain();
         if (brain->memory.noticedLevel >= kAlertedLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.valuesB0[3].current;
-        const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->position);
+        const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->localPosition_);
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
         mfc::CString text;
         if (console::FilterMask() & 1) {
-            const double between = vecmath::Distance<Sum3::XYZ>(other->position, unit->position);
+            const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition_, unit->localPosition_);
             text.Format(kHeardFormat, other->id_, unit->id_, between);
         }
-        brain->memory.calls.Hear(&unit->position, kind, text);
+        brain->memory.calls.Hear(&unit->localPosition_, kind, text);
     }
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();

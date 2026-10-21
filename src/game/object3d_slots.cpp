@@ -16,13 +16,13 @@ namespace {
 constexpr int kSpecificType = 0x46;   // the side halves' type_
 } // namespace
 
-void CObject3D::CombineRotation3D(const Quaternion* parent) { Transform()->CombineRotationImpl(*parent); }
+void CObject3D::CombineRotation3D(const Quaternion* parent) { CombineRotationImpl(*parent); }
 EI_REPLACE_METHOD(0x00516370, CObject3D::CombineRotation3D);
 
 void CObject3D::CopyFigureImpl(const CObject3D* other) {
     parts.SetSize(other->parts.size, -1);
     std::memcpy(parts.data, other->parts.data, static_cast<std::size_t>(other->parts.size & 0x3FFFFFFF) * sizeof(void*));
-    Transform()->CopyTransformImpl(*other->Transform());
+    CopyTransformImpl(*other);
 }
 EI_REPLACE_METHOD(0x005161E0, CObject3D::CopyFigureImpl);
 
@@ -67,15 +67,7 @@ EI_REPLACE_METHOD(0x00516490, CObject3D::DrawFigureShadowImpl);
 
 // --- The virtual slots (vtable 0073DDD4) for the compiler's tables (C19) -------------------------------
 
-CTransformObject* CObject3D::CopyTransform(const CTransformObject& other) {
-    return Transform()->CTransformObject::CopyTransformImpl(other);
-}
 void CObject3D::CombineRotation(const Quaternion& parent) { CombineRotation3D(&parent); }
-void CObject3D::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
-    Transform()->CTransformObject::UpdateWorldImpl(parentRotation, parentPosition);
-}
-void CObject3D::SaveTransform(void* file) { Transform()->CTransformObject::SaveTransformImpl(file); }
-void CObject3D::LoadTransform(void* file) { Transform()->CTransformObject::LoadTransformImpl(file); }
 bool CObject3D::AcceptsAnimation(const void*) { return true; }
 std::uintptr_t CObject3D::AttachObject(CEngineObject* object) {
     AttachSpecific(object);

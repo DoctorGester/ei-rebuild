@@ -111,7 +111,7 @@ int CMapObjectClientSpecific::Update() {
             if (handle != -1 &&
                 (static_cast<CSoundManager*>(soundSystem)->FindPlaying(handle) || static_cast<CSoundManager*>(soundSystem)->FindDeferred(handle)))
                 continue;
-            endSound = TheSoundManager()->Play3D(kEndSoundName, 0, &OwnerOf(this)->position.x,
+            endSound = TheSoundManager()->Play3D(kEndSoundName, 0, &OwnerOf(this)->localPosition_.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -130,9 +130,9 @@ int CMapObjectClientSpecific::Update() {
                 name.Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            TheSoundManager()->Play3D(name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
+            TheSoundManager()->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
-            TheSoundManager()->MoveSequence(sound->handle, &OwnerOf(this)->position.x);
+            TheSoundManager()->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
         }
     }
 
@@ -143,21 +143,21 @@ int CMapObjectClientSpecific::Update() {
         std::memcpy(&lightPosition, PositionOf(lamp), sizeof(lightPosition));
         float lightZ = lightPosition.z - kLightHeight;   // FSTP to the copy
         CMapObject* followed = OwnerOf(this);
-        double dx = static_cast<double>(lightPosition.x) - followed->position.x;
-        double dy = static_cast<double>(lightPosition.y) - followed->position.y;
-        double dz = static_cast<double>(lightZ) - followed->position.z;
+        double dx = static_cast<double>(lightPosition.x) - followed->localPosition_.x;
+        double dy = static_cast<double>(lightPosition.y) - followed->localPosition_.y;
+        double dz = static_cast<double>(lightZ) - followed->localPosition_.z;
         double distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
         EI_NAN_AUDIT(distance2);
         if (distance2 != 0.0) {
             Vector3 direction;
-            direction.x = followed->position.x - lightPosition.x;
-            direction.y = followed->position.y - lightPosition.y;
-            direction.z = followed->position.z - lightZ;
+            direction.x = followed->localPosition_.x - lightPosition.x;
+            direction.y = followed->localPosition_.y - lightPosition.y;
+            direction.z = followed->localPosition_.z - lightZ;
             LightManager()->MoveLight(static_cast<CLight*>(lamp), &direction);   // 006CA830
             followed = OwnerOf(this);
             float* position = PositionOf(light);
-            std::memcpy(position, &followed->position.x, 2 * sizeof(float));
-            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->position.z);
+            std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));
+            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition_.z);
         }
     }
     return 1;

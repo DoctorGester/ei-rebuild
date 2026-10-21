@@ -155,7 +155,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound.Format(format, static_cast<const char*>(material));
     if (sound.GetLength() != 0) {
         auto* world = ClientWorld();
-        world->sounds_->Play3D(sound, kSoundPriority, &unit->position.x, kSoundNear, kSoundFar, 0, 0);
+        world->sounds_->Play3D(sound, kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0, 0);
     }
 
     if (location < 0 || location > 5) return;
@@ -165,7 +165,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
         auto* source = ParticleManagerObject()->CreateSource(kBloodParticles[blood - 1]);
-        source->position = {0.0f, 0.0f, kBloodHeight};
+        source->localPosition_ = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->bounds_.radius * kBloodScale);
         source->typeParam = kBloodRate;
         float alpha = amount;
@@ -195,7 +195,7 @@ EI_REPLACE_METHOD(0x00537500, CUnitClientSpecific::HitEffect);
 
 void CUnitClientSpecific::SparkEffect(int) {
     auto* source = ParticleManagerObject()->CreateSource(kSparks);
-    source->position = {0.0f, 0.0f, 0.0f};
+    source->localPosition_ = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->radius);
     source->alpha = kSparkAlpha;
     source->Attach(unit);
@@ -219,9 +219,9 @@ void CUnitClientSpecific::DeathEffect() {
     } else {
         float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
         size = stored;
-        at.x = unit->position.x;
-        at.y = unit->position.y;
-        at.z = unit->position.z;
+        at.x = unit->localPosition_.x;
+        at.y = unit->localPosition_.y;
+        at.z = unit->localPosition_.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
     TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
