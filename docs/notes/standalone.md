@@ -603,6 +603,20 @@ kinds given.
         GameAtExit keeps passing the exit function's address (or the port itself). Not named, because unported code
         reaches them: camera 0079B1E0 / 0079B1F8 / 0079B210 (00402310), terrain 007C8890 / 007C88A8 / 007C88B8
         (006BFF40) and 007C8950 (006C8990); their `free` exit functions stay generated until those functions are ported.
+      - C18k3 (1,190 -> 1,180 game data addresses after the draw lists) named the frame's eleven draw lists
+        (world_client_view.cpp, 007AF508-007AF5A8: plain `stlp::vector<CEngineObject*>` 0x10 apart, the word after
+        each no one's; the last one ends where the deferred unit list 007AF5B4 starts, so there is no 16-byte
+        struct; their stores stay generated, the exit functions 0056A510-0056A830 are ported; world.h's
+        FrameObjects picks one from a table of the names; 0056A840, which clears them all, has no caller) and the
+        CArrays whose tables C19 compiled: the sector spiral's lengths, radius tree and offsets (sector_spiral.cpp,
+        007C2FC0 / 007C2FD8 / 007C2FF8; a file of its own so the path vectors' replay links them) and the path
+        smoother's node pool and 81 transition tables (ai_path_smooth.cpp, 007C3038 / 007C3058; the tables are
+        `lib::StaticObject<SmoothTable[81]>`, built in order like the `eh vector constructor iterator` and destroyed
+        last first like its destructor iterator). Their initialisers (005BF810, 005BF840, 005BF8B0, 005C41C0,
+        005C4460) have rows in extra_function_sizes.csv / function_sizes.inc. The path vectors keep their format:
+        the record reads game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
+        template argument: the literal check's pattern takes no nested `<>`), the replay fills ours by the
+        record's order.
       - Not this rule (C19): an object that carries game.exe's vtable: the particle draw order 007A9C50, the CArrays
         007A9CC8 / 007AA608, the save stream (CMemoryStream 007AFDF8), the console's log ostream 007C5810 (built by
         006FC42F with the iostream virtual base table 00748284; combat's 007AF3E8, the AI's 007C53C4 and the
