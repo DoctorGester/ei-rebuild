@@ -1,6 +1,7 @@
 #include "crt.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "game/originals_library.h"
 #include "gameapi.h"
 #include "game/game_data.h"
@@ -647,12 +648,66 @@ double __cdecl Modf(double value, double* whole) {
 EI_REPLACE(0x006EAD0B, libcrt::Modf);
 
 // _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
+// The original (006EBBB4) is FNSTCW, 006EBC2A (hardware to abstract), the merge, 006EBCBC (abstract to hardware),
+// FLDCW; ported as that, FLDCW only when the hardware word would change (SV10k: the UCRT's __control87_2 under
+// terrain lighting's two calls per lit sector). The abstract form is the CRT's: _EM_* in bits 0-4 (in the reverse
+// order of the hardware's) and 19, _RC_* in 8-9, _PC_* in 16-17 (64 bits is 0), _IC_* in 18.
+namespace {
+// 006EBC2A: the hardware word (the low 16 bits) as the CRT's abstract word.
+unsigned AbstractControl(unsigned hardware) {
+    unsigned word = 0;
+    if (hardware & 0x01) word |= 0x10;       // invalid
+    if (hardware & 0x04) word |= 0x08;       // zero divide
+    if (hardware & 0x08) word |= 0x04;       // overflow
+    if (hardware & 0x10) word |= 0x02;       // underflow
+    if (hardware & 0x20) word |= 0x01;       // inexact
+    if (hardware & 0x02) word |= 0x80000;    // denormal
+    switch (hardware & x87::kRoundingBits) {
+        case x87::kRoundDown: word |= 0x100; break;
+        case x87::kRoundUp: word |= 0x200; break;
+        case x87::kRoundChop: word |= 0x300; break;
+        default: break;
+    }
+    switch (hardware & x87::kPrecisionBits) {
+        case x87::kPrecision24: word |= 0x20000; break;
+        case x87::kPrecision53: word |= 0x10000; break;
+        default: break;                      // 64 bits (and the reserved 01) are 0
+    }
+    if (hardware & 0x1000) word |= 0x40000;  // infinity control
+    return word;
+}
+
+// 006EBCBC: the abstract word as the hardware word.
+unsigned HardwareControl(unsigned word) {
+    unsigned hardware = 0;
+    if (word & 0x10) hardware |= 0x01;
+    if (word & 0x08) hardware |= 0x04;
+    if (word & 0x04) hardware |= 0x08;
+    if (word & 0x02) hardware |= 0x10;
+    if (word & 0x01) hardware |= 0x20;
+    if (word & 0x80000) hardware |= 0x02;
+    switch (word & 0x300) {
+        case 0x100: hardware |= x87::kRoundDown; break;
+        case 0x200: hardware |= x87::kRoundUp; break;
+        case 0x300: hardware |= x87::kRoundChop; break;
+        default: break;
+    }
+    switch (word & 0x30000) {
+        case 0: hardware |= x87::kPrecision64; break;
+        case 0x10000: hardware |= x87::kPrecision53; break;
+        default: break;                      // 24 bits
+    }
+    if (word & 0x40000) hardware |= 0x1000;
+    return hardware;
+}
+} // namespace
+
 unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
-    constexpr unsigned kAll = _MCW_EM | _MCW_RC | _MCW_PC | _MCW_IC;
-    unsigned current = 0;
-    __control87_2(0, 0, &current, nullptr);
-    const unsigned word = (current & ~mask) | (value & mask);
-    if (word != current) __control87_2(word, kAll, &current, nullptr);   // the same word otherwise (SV10i)
+    constexpr unsigned kKept = 0x1F3F;       // the bits the FPU keeps of what FLDCW loads (bit 6 reads 1; 7, 13-15 read 0)
+    const unsigned current = x87::ControlWord();
+    const unsigned word = (AbstractControl(current) & ~mask) | (value & mask);
+    const unsigned wanted = HardwareControl(word);
+    if ((wanted ^ current) & kKept) x87::SetControlWord(wanted);
     return word;
 }
 EI_REPLACE(0x006EBBB4, libcrt::Controlfp);
