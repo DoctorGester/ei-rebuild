@@ -6,6 +6,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_slots.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -34,7 +35,7 @@ EI_REWRITTEN(0x005CF220, AIAttention::CurrentAttack);
 
 void AIAttention::LookAround(AIBrain* brain, int unused) {
     mfc::CTypedPtrList<CUnit> candidates{};
-    candidates.vtable = mfc::PtrListVtable();
+    candidates.vtable = mfc::impl::PtrListClass::Vtable();
     candidates.blockSize = 10;
     int best[2] = {-1, 0};          // {part, object}
     Vector3 from = *&brain->owner->unit->position;

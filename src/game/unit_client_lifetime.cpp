@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "game_data.h"
 #include "ei/vcall.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 constexpr int kNone = -1;
@@ -84,7 +85,7 @@ void CUnitClientSpecific::DestructClientBody() {
     speech->next = speech;
     speech->prev = speech;
     stlp::deallocate(speech, sizeof(ClientSpeechNode));
-    list58.vtable = ei::GamePointer<void>(kList58VtableAddress);
+    list58.vtable = mfc::impl::CellListClass::Vtable();
     list58.RemoveAll();
     ei::SetVtable(this, kBaseVtableAddress);
     unit = nullptr;
@@ -96,7 +97,7 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     ClearFields();
     ei::SetVtable(this, kBaseVtableAddress);
     unit = nullptr;
-    list58.vtable = ei::GamePointer<void>(kList58VtableAddress);
+    list58.vtable = mfc::impl::CellListClass::Vtable();
     list58.count = 0;
     list58.free = nullptr;
     list58.tail = nullptr;

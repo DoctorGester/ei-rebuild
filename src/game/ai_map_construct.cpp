@@ -16,6 +16,7 @@
 #include "originals_ai.h"
 #include "unit_ai.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 namespace {
@@ -30,8 +31,6 @@ void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, std::uintptr_t a3) {
     libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3));
 }
 
-constexpr std::uint32_t kArrayVtable = std::uint32_t(0x0073C3D0);      // climbLarge, climbSmall
-constexpr std::uint32_t kAreaListVtable = std::uint32_t(0x0073F9E0);   // areaLists
 
 void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, std::uintptr_t vtable) {
     layer->Construct();
@@ -47,8 +46,8 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->dirtyMaxX = 0;
     self->dirtyMinY = 10000;
     self->dirtyMaxY = 0;
-    self->climbLarge.Construct(kArrayVtable);
-    self->climbSmall.Construct(kArrayVtable);
+    self->climbLarge.Construct(mfc::impl::IntArrayClass::Vtable());
+    self->climbSmall.Construct(mfc::impl::IntArrayClass::Vtable());
     self->materials.Construct();
     self->bridgeHeights.Construct(100);   // 005BCCD0
     mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(self->sectorMap.sectors);
@@ -65,7 +64,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->waterWidth = 1;
     self->waterHeight = 1;
     AllocateGrid(self->WaterGrid());
-    for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(kAreaListVtable);
+    for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(mfc::impl::AreaListClass::Vtable());
     ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::kSmallVtableAddress);
     ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::kLargeVtableAddress);
     ConstructRegionMap(&self->regionMap);   // 005AF3D0

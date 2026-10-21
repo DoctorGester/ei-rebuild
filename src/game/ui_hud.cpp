@@ -27,6 +27,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/mfc_slots.h"
 #include "unit.h"
 #include "world.h"
 #include "originals_library.h"
@@ -1004,7 +1005,7 @@ UI_INPUT_HANDLER(0x0063DB20, CHudQuickItems, OnMouseUp);
 
 namespace {
 
-// The CArray<CUnit*> the order takes (vtable kUnitPtrArrayVtable; SetSize 005EBDB0).
+// The CArray<CUnit*> the order takes (vtable UnitPtrArrayClass; SetSize 005EBDB0).
 using OrderUnits = mfc::CArray<CUnit*>;
 // The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
 // (CPlayerClient::SendWalk), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
@@ -1044,7 +1045,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
-    OrderUnits units{ei::GamePointer<void>(kUnitPtrArrayVtable), nullptr, 0, 0, 0};
+    OrderUnits units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < party_.size; ++i) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -1060,7 +1061,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         else
             view->SendWalk(&units, &point, ctrl & 0xFF);
     }
-    units.vtable = ei::GamePointer<void>(kUnitPtrArrayVtable);
+    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     units.FreeData();
 }
 EI_REWRITTEN(0x00636F10, CBattleScreen::OrderAt);

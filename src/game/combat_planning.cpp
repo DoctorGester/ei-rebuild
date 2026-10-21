@@ -365,7 +365,7 @@ EI_REWRITTEN(0x0054E600, CUnitServer::PlanOrderRoute);
 void CUnitServer::PlanMove(const float* point, int moving, int run, float range) {
     void* world = ManagerContextOf(this);
     LocalPath path;
-    UnitPtrList lifted{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    UnitPtrList lifted{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     LiftNearby(&lifted, point, static_cast<char>(moving));
     int mode = unit->moveMode;
     CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();

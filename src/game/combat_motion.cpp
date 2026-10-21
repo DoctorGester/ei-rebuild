@@ -38,6 +38,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 #include "logic_settings.h"
 
 #include <bit>
@@ -267,7 +268,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
         static_cast<CMapObject*>(self->unit)->MarkChanged(7);
     }
     // The list was taken by value: it is destroyed here.
-    steps.vtable = kAnimationStepsBaseVtable;
+    steps.vtable = mfc::impl::AnimationStepsClass::Vtable();
     if (steps.steps) gamecrt::operator_delete(steps.steps);
 }
 } // namespace
@@ -392,7 +393,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
     // A hero: the start of the movement once, then the loop appended step by step.
     AnimationSteps loop;
     std::memset(&loop, 0, sizeof(loop));
-    loop.vtable = kAnimationStepsVtable;
+    loop.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     BuildMoveSteps(&loop, 0);
     AnimationSteps& steps = MoveSteps(this);
     BuildMoveSteps(&steps, 1);
@@ -413,7 +414,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             steps.SetAtGrow(steps.count, step);
         }
     }
-    loop.vtable = kAnimationStepsBaseVtable;
+    loop.vtable = mfc::impl::AnimationStepsClass::Vtable();
     if (loop.steps) gamecrt::operator_delete(loop.steps);
     return &steps;
 }
@@ -550,20 +551,20 @@ bool CUnitServer::ChangeMoveMode() {
     if (action.kind != kOrderAttack) {
         AnimationSteps transition;
         std::memset(&transition, 0, sizeof(transition));
-        transition.vtable = kAnimationStepsVtable;
+        transition.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         if (BuildTransition(&transition, &saved, &moveMode)) {
             FaceAndStop(this);
             // The transition is played as an animation order (a by-value copy, built as the
             // original does: SetSize, then the steps one by one).
             AnimationSteps copy;
             copy.ConstructBase();
-            copy.vtable = kAnimationStepsVtable;
+            copy.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
             copy.SetSize(transition.count, -1);
             for (int i = 0; i < transition.count; ++i) copy.steps[i] = transition.steps[i];
             copy.extra = transition.extra;
             PlayAnimationOrder(copy);
         }
-        transition.vtable = kAnimationStepsBaseVtable;
+        transition.vtable = mfc::impl::AnimationStepsClass::Vtable();
         if (transition.steps) gamecrt::operator_delete(transition.steps);
     }
     unit->UpdateSizeClass();
@@ -611,7 +612,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
         moving.extra = next->extra;
         AnimationSteps current;
         current.ConstructBase();
-        current.vtable = kAnimationStepsVtable;
+        current.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         current.CopySteps(Queue(this));
         current.extra = QueueTime(this);
         if (current.count != 1 || moving.count != 1 || current.steps[0].variant != moving.steps[0].variant) {
@@ -622,9 +623,9 @@ bool CUnitServer::PathTo(const float* point, float range) {
             PopFinishedSteps();
             ShowCurrentStep();
         }
-        current.vtable = kAnimationStepsBaseVtable;
+        current.vtable = mfc::impl::AnimationStepsClass::Vtable();
         if (current.steps) gamecrt::operator_delete(current.steps);
-        moving.vtable = kAnimationStepsBaseVtable;
+        moving.vtable = mfc::impl::AnimationStepsClass::Vtable();
         if (moving.steps) gamecrt::operator_delete(moving.steps);
     }
     return true;

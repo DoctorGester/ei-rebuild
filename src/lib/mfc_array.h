@@ -174,68 +174,40 @@ void DestructArrayOf(CArray<T, E>& a) {
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 //
-// One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable.
+// One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable. The forward-declared
+// ones are compiler-made vtables (C19: classes of mfc_slots.h and the game headers deriving from CompiledCollection);
+// the element policies and aliases below only name them.
 
-struct IntArrayClass {   // CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C3D0); }
-};
-struct UnitPtrArrayClass {   // the interface's unit pointer arrays
-    static void* Vtable() { return ei::GamePointer<void>(0x007402AC); }
-};
+struct IntArrayClass;   // CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
+struct UnitPtrArrayClass;   // the interface's unit pointer arrays
 struct FloatArrayClass {   // CArray<float>
     static void* Vtable() { return ei::GamePointer<void>(0x0073D3E8); }
 };
-struct ArgFloatArrayClass {   // the script commands' float arguments (a CArray<float> subclass)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D490); }
-};
+struct ArgFloatArrayClass;   // the script commands' float arguments (a CArray<float> subclass)
 struct ObjectRefArrayClass {   // CArray<ScriptObjectRef> (a script group's base)
     static void* Vtable() { return ei::GamePointer<void>(0x0073D11C); }
 };
 struct ScriptGroupClass {   // a script group (game/script.h ScriptGroup)
     static void* Vtable() { return ei::GamePointer<void>(0x0073D110); }
 };
-struct ScriptFloatsClass {   // the script's float variables
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D2EC); }
-};
-struct ScriptAreaClass {   // a script area's parts
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D31C); }
-};
-struct ScriptIfThenArrayClass {   // the script's if-then blocks
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3AC); }
-};
-struct PartySlotArrayClass {   // the script's party slots
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D2C8); }
-};
-struct AiLookArrayClass {   // the AI's look records
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D460); }
-};
-struct SpriteArrayClass {   // the weather and lightning sprites
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C584); }
-};
-struct BoneLinkArrayClass {   // a figure's bone links
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C12C); }
-};
-struct WaypointArrayClass {   // a patrol's waypoints
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C3A0); }
-};
+struct ScriptFloatsClass;   // the script's float variables
+struct ScriptAreaClass;   // a script area's parts
+struct ScriptIfThenArrayClass;   // the script's if-then blocks
+struct PartySlotArrayClass;   // the script's party slots
+struct AiLookArrayClass;   // the AI's look records
+struct SpriteArrayClass;   // the weather and lightning sprites
+struct BoneLinkArrayClass;   // a figure's bone links
+struct WaypointArrayClass;   // a patrol's waypoints
 struct ExitArrayClass {   // a zone's exits
     static void* Vtable() { return ei::GamePointer<void>(0x0073C3F4); }
 };
 struct MapRecordItemsClass {   // the array inside a map record
     static void* Vtable() { return ei::GamePointer<void>(0x0073C400); }
 };
-struct PointArrayClass {   // a unit's point lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F07C); }
-};
-struct AttackOptionArrayClass {   // a unit's attack options
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F040); }
-};
-struct AnimationStepsClass {   // a unit's animation steps
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EF2C); }
-};
-struct AnimationStepsCopyClass {   // the animation steps a motion copies
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F01C); }
-};
+struct PointArrayClass;   // a unit's point lists
+struct AttackOptionArrayClass;   // a unit's attack options
+struct AnimationStepsClass;   // a unit's animation steps
+struct AnimationStepsCopyClass;   // the animation steps a motion copies
 struct ClientMapArrayClass {   // the client map arrays (world_client_maps)
     static void* Vtable() { return ei::GamePointer<void>(0x0073F730); }
 };
@@ -245,24 +217,12 @@ struct ObjectPtrArrayClass {   // a save's shared object pointers
 struct SectorArrayClass {   // the AI map's sectors
     static void* Vtable() { return ei::GamePointer<void>(0x0073F9EC); }
 };
-struct CellRowArrayClass {   // the AI map's cell rows
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FA04); }
-};
-struct AreaListClass {   // the AI map's area lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F9E0); }
-};
-struct ScriptAreaPartsClass {   // the array a script area element holds (base ScriptAreaClass)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D328); }
-};
-struct StringArrayClass {   // CArray<CString> (the script's string variables)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D2F8); }
-};
-struct ArrayBaseClass {   // the base vtable the element arrays' destructors restore (patrols, motion records)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C388); }
-};
-struct AiLookRecordArrayClass {   // the array inside the AI's 32-byte look records (base AiLookArrayClass)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D4B4); }
-};
+struct CellRowArrayClass;   // the AI map's cell rows
+struct AreaListClass { static void* Vtable() { return ei::GamePointer<void>(0x0073F9E0); } };   // the AI map's area lists (stays raw: game.exe's CSectorMap table 0073F9DC overlaps its slots)
+struct ScriptAreaPartsClass;   // the array a script area element holds (base ScriptAreaClass)
+struct StringArrayClass;   // CArray<CString> (the script's string variables)
+struct ArrayBaseClass;   // the base vtable the element arrays' destructors restore (patrols, motion records)
+struct AiLookRecordArrayClass;   // the array inside the AI's 32-byte look records (base AiLookArrayClass)
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -461,12 +421,8 @@ struct AnimationStepListAbi {
         self->extra = source->extra;
         return self;
     }
-    // 00556870: the same without extra (the steps' array alone).
-    static Array* __fastcall CopyConstructSteps(Array* self, void*, const Array* source) {
-        self->Construct(reinterpret_cast<std::uintptr_t>(AnimationStepsCopyClass::Vtable()));
-        self->Copy(*source);
-        return self;
-    }
+    // 00556870: the same without extra (the steps' array alone). Defined in mfc_slots.h, after AnimationStepsCopyClass.
+    static Array* __fastcall CopyConstructSteps(Array* self, void*, const Array* source);
     // 005483C0: operator= (RET 4): Copy, then extra. Returns this.
     static AnimationStepList* __fastcall Assign(AnimationStepList* self, void*, const AnimationStepList* source) {
         self->Copy(*source);

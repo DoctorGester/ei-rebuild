@@ -18,13 +18,13 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <cstddef>
 #include <cstdint>
 
 namespace {
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
-void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise
 constexpr int kAlertedLevel = 900;      // a unit noticing something at this level or above hears nothing
 const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";   // 007919FC
@@ -84,7 +84,7 @@ EI_REWRITTEN(0x005CBBC0, AIMemory::AddClaim);
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
     mfc::CTypedPtrList<CUnit> units{};
-    units.vtable = kPtrListVtable;
+    units.vtable = mfc::impl::PtrListClass::Vtable();
     units.blockSize = 10;
     CUnit* unit = source->unit;
     const Vector3* point = at ? at : &unit->position;

@@ -51,7 +51,7 @@ using VictimNode = VictimList::Node;
 // MFC CPtrList (vtable 0073D454, blocks of 10) as the original keeps it on the stack.
 using PtrList = mfc::CTypedPtrList<CUnit>;
 using PtrNode = PtrList::Node;
-PtrList NewPtrList() { return PtrList{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
+PtrList NewPtrList() { return PtrList{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
 
 // The trap's map object context [00455940, rewritten in object.cpp]; the living units of the sides
 // `sides` in the circles of `area` (+0x240), appended to `out` after emptying it [0052A920, fastcall
@@ -136,7 +136,7 @@ void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32
     using UnitList = mfc::CTypedPtrList<CUnit>;
     out->RemoveAll();
     CSectorMap* sectors = static_cast<CWorldServer*>(context)->Sectors();
-    UnitList found{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kPtrListBlockSize};
+    UnitList found{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, kPtrListBlockSize};
     for (int i = 0; i < area->size; ++i) {
         const TrapCircle& circle = area->data[i];
         Vector3 point = {circle.x, circle.y, 0.0f};

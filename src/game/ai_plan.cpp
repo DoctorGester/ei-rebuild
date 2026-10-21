@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 

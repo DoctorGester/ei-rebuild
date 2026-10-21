@@ -25,6 +25,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 #include "logic_settings.h"
 
 #pragma warning(disable : 4740) // naked forwarders

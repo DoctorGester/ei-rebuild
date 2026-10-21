@@ -208,11 +208,6 @@ inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
 }
 inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 
-// The game's CPtrList vtable (lists the code builds on the stack use blocks of 10).
-inline void* PtrListVtable() { return ei::GamePointer<void>(0x0073D454); }
-// The game's CDWordArray / CArray<int> vtable (lists of ids built on the stack).
-inline void* DWordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }
-
 // ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
 //
 // The game's CArray / CList / CTypedPtrList instantiations share one layout each and differ only in

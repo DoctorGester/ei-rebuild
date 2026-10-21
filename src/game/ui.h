@@ -1104,9 +1104,6 @@ class CBattleScreen;   // below CUiContainer
 
 // An MFC CDWordArray (SetSize 0059C660; `growBy` -1 keeps the step).
 using UiDwordArray = mfc::CArray<std::uint32_t>;
-// The vtable of the game's CArray<CUnit*> (007402AC; SetSize 005EBDB0):
-// the battle screen's party, the order unit lists built on the stack.
-constexpr std::uintptr_t kUnitPtrArrayVtable = std::uintptr_t(0x007402AC);
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 // The IDirect3DDevice7 as the interface code calls it: each method is the interface's of the same
@@ -2283,7 +2280,7 @@ public:
     };
 
     int spare_;                      // +0x164 0 from Create; nothing in the screen's slots reads it
-    // +0x168 the player's units shown as portraits (CArray<CUnit*>, kUnitPtrArrayVtable; SetSize
+    // +0x168 the player's units shown as portraits (CArray<CUnit*>, UnitPtrArrayClass; SetSize
     // 005EBDB0).
     mfc::CArray<CUnit*> party_;
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item

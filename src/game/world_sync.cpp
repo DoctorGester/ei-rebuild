@@ -15,6 +15,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -212,7 +213,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         CUnit* unit = node->value;
         mfc::CTypedPtrList<CUnit> heard;
-        heard.vtable = mfc::PtrListVtable();
+        heard.vtable = mfc::impl::PtrListClass::Vtable();
         heard.head = nullptr;
         heard.tail = nullptr;
         heard.count = 0;
@@ -226,7 +227,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
         world->Sectors()->FindUnitsInRadius(&MapObject(unit)->position, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
-        heard.vtable = mfc::PtrListVtable();
+        heard.vtable = mfc::impl::PtrListClass::Vtable();
         heard.RemoveAll();
     }
     return out;

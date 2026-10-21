@@ -32,7 +32,7 @@ void FreePlain(mfc::CArray<T>* a, void* baseVtable) {
 }
 
 void FreeStrings(mfc::CArray<mfc::CString>* a) {
-    a->vtable = scriptvtable::kStringsBase;
+    a->vtable = mfc::impl::StringArrayClass::Vtable();
     if (a->data) {
         mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a->data), a->size);
         gamecrt::operator_delete(a->data);
@@ -78,7 +78,7 @@ ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValu
 // 004BC6C0
 void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars) {
     FreeStrings(&vars->names);
-    FreePlain(&vars->values, scriptvtable::kFloatsBase);
+    FreePlain(&vars->values, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
 // 004BC770
@@ -132,7 +132,7 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     FreeStrings(&vars.stringNames);
     FreeStrings(&vars.strings);
     FreeStrings(&vars.floatNames);   // 004C26A0, the same body
-    FreePlain(&vars.floats, scriptvtable::kFloatsBase);
+    FreePlain(&vars.floats, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
 // 004C81B0: the names, then each group's references through the element destructor (004CE1E0) and

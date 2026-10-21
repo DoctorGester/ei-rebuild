@@ -30,6 +30,7 @@
 #include "originals_world.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstring>
@@ -294,12 +295,12 @@ void TakeOver(CUnitServer* self) {
 
 void InitPtrList(UnitPtrList* list) {
     std::memset(list, 0, sizeof(*list));
-    list->vtable = mfc::PtrListVtable();
+    list->vtable = mfc::impl::PtrListClass::Vtable();
     list->blockSize = 10;
 }
 
 void DestroyPtrList(UnitPtrList* list) {
-    list->vtable = mfc::PtrListVtable();
+    list->vtable = mfc::impl::PtrListClass::Vtable();
     list->RemoveAll();
 }
 } // namespace
@@ -410,7 +411,7 @@ bool CUnitServer::StartQueuedOrder() {
         LeaveMoveMode(this);
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = kAnimationStepsVtable;
+        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         steps.SetSize(0, -1);
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
@@ -427,7 +428,7 @@ bool CUnitServer::StartQueuedOrder() {
         TakeQueuedOrder();
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = kAnimationStepsVtable;
+        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         steps.SetSize(0, -1);
         steps.extra = -1;
         static_cast<AnimationSteps*>((void*)&steps)->AddEmote(static_cast<std::uint8_t>(action.param));
@@ -442,7 +443,7 @@ bool CUnitServer::StartQueuedOrder() {
         TakeQueuedOrder();
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = kAnimationStepsVtable;
+        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         int duration;
         BuildOrderSteps(&steps, &duration, kOrderSkill, 0);
         int now = WorldTick(this);
@@ -869,12 +870,12 @@ void CUnitServer::ApproachTarget() {
     if (DistanceSquaredXYUnrounded<double>(unit->position, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
     SectorMapRemove(TheServerWorld()->Sectors(), nullptr, chased);
-    float far = static_cast<float>(static_cast<double>(goal.y) * kShort);
+    float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
     float unitY = static_cast<float>(static_cast<double>(unit->position.y) * kLong);
     Vector3 point;
     point.x = static_cast<float>(static_cast<double>(unit->position.x) * kLong + nearX);
-    point.y = static_cast<float>(static_cast<double>(unitY) + far);
+    point.y = static_cast<float>(static_cast<double>(unitY) + farOffset);
     point.z = goal.z;
     if (!PathTo(&point.x, static_cast<float>(patience)))
         stoodBlocked = 1;

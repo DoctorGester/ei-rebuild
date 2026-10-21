@@ -11,6 +11,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 #include "originals_ai.h"
@@ -41,7 +42,7 @@ constexpr int kExpensive = 12000;           // cost above which a step is flagge
 
 CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
     mfc::CTypedPtrList<CUnit> nearby{};
-    nearby.vtable = ei::GamePointer<void>(0x0073D454);
+    nearby.vtable = mfc::impl::PtrListClass::Vtable();
     nearby.blockSize = 10;
     float unitHeight = unit->standingHeight;
     sectorMap.FindUnitsInRadius(position, &nearby, 10.0f);
@@ -88,7 +89,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
             break;
         }
     }
-    nearby.vtable = ei::GamePointer<void>(0x0073D454);
+    nearby.vtable = mfc::impl::PtrListClass::Vtable();
     nearby.RemoveAll();
     return blocker;
 }

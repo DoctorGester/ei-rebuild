@@ -11,6 +11,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 
 #include <type_traits>
 

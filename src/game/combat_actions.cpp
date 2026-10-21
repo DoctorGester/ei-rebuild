@@ -22,6 +22,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -88,8 +89,6 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
     }
     return nullptr;
 }
-
-void* const kPtrListVtable = ei::GamePointer<void>(0x0073BE80);   // CPtrList
 
 } // namespace
 
@@ -401,7 +400,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
 
     AnimationSteps animation;
     animation.ConstructBase();
-    animation.vtable = kAnimationStepsVtable;
+    animation.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     std::uint32_t direction = HitDirection(attacker, hitKind);
     BuildDeathAnimation(&animation, direction, 1, 0);
     animationHeld = 0;
@@ -416,7 +415,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             member->ServerController()->brain.memory.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
-    animation.vtable = kAnimationStepsBaseVtable;
+    animation.vtable = mfc::impl::AnimationStepsClass::Vtable();
     if (animation.steps) gamecrt::operator_delete(animation.steps);
 }
 EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
@@ -489,7 +488,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
             if (CPlayer* player = unit->player) {
                 mfc::CTypedPtrList<CItem> list;
                 list.blocks = nullptr;
-                list.vtable = kPtrListVtable;
+                list.vtable = mfc::impl::ItemListClass::Vtable();
                 list.count = 0;
                 list.tail = nullptr;
                 list.head = nullptr;
@@ -497,7 +496,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
                 list.blockSize = 10;
                 list.AddHead(item);
                 player->GiveItems(&list, 0);
-                list.vtable = kPtrListVtable;
+                list.vtable = mfc::impl::ItemListClass::Vtable();
                 list.RemoveAll();
             }
             item->Release();

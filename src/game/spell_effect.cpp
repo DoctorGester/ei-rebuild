@@ -16,11 +16,11 @@
 #include "originals_ai.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 constexpr float kTargetThreshold = 0.5f;    // 0073B86C
 constexpr float kWallHalfWidth = 1.0f;      // 0073B84C
-void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 constexpr int kPtrListBlockSize = 10;
 
 using UnitList = mfc::CTypedPtrList<CUnit>;
@@ -30,7 +30,7 @@ using UnitList = mfc::CTypedPtrList<CUnit>;
 CSectorMap* SectorMapOf(const CSpellEffect* effect) { return effect->world->Sectors(); }
 
 void InitList(UnitList& list) {
-    list.vtable = kPtrListVtable;
+    list.vtable = mfc::impl::PtrListClass::Vtable();
     list.count = 0;
     list.tail = nullptr;
     list.head = nullptr;
@@ -40,7 +40,7 @@ void InitList(UnitList& list) {
 }
 
 void DestroyList(UnitList& list) {
-    list.vtable = kPtrListVtable;
+    list.vtable = mfc::impl::PtrListClass::Vtable();
     list.RemoveAll();
 }
 

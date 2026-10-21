@@ -1458,7 +1458,7 @@ int PlatformSet::Clear() {
 EI_REPLACE_METHOD(0x00561800, PlatformSet::Clear);
 
 void PlatformSet::DestructBody() {
-    list.vtable = ei::GamePointer<void>(worlddata::kPlatformListVtable);
+    list.vtable = mfc::impl::PlatformListClass::Vtable();
     list.RemoveAll();
     Engine()->DestructBase();
 }
@@ -1527,7 +1527,7 @@ ClientArrayManager::ClientArrayManager() {
 
 ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
-    list.vtable = ei::GamePointer<void>(worlddata::kClientArrayListVtable);
+    list.vtable = mfc::impl::ClientList3Class::Vtable();
     list.RemoveAll();
     if (current) current->Release();
 }

@@ -299,9 +299,9 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     SetAttributesAndSkills(stats, prototype, npc);
     CopyDword(stats->modelField8, model->field8);
     stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
-    auto small = static_cast<std::int16_t>(model->sizeClassSmall);
-    stats->sizeClass20 = small;
-    stats->sizeClass60 = small;
+    auto smallClass = static_cast<std::int16_t>(model->sizeClassSmall);
+    stats->sizeClass20 = smallClass;
+    stats->sizeClass60 = smallClass;
 
     // Protection: the model's values scaled by the prototype.
     for (int i = 0; i < 7; ++i) {
@@ -359,9 +359,9 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     SetAttributesAndSkills(stats, prototype, npc);
     CopyDword(stats->modelField8, model->field8);
     stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
-    auto small = static_cast<std::int16_t>(model->sizeClassSmall);
-    stats->sizeClass20 = small;
-    stats->sizeClass60 = small;
+    auto smallClass = static_cast<std::int16_t>(model->sizeClassSmall);
+    stats->sizeClass20 = smallClass;
+    stats->sizeClass60 = smallClass;
     SetSlots(stats, model);
     SetCombat(stats, prototype, model);
     LearnNpcSkills(stats, npc);

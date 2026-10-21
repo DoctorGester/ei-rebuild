@@ -11,9 +11,6 @@
 
 // AnimationStep, AnimationSteps and OrderPlan are declared in combat.h (CUnitServer holds a plan).
 
-inline void* const kAnimationStepsVtable = ei::GamePointer<void>(0x0073F01C);
-inline void* const kAnimationStepsBaseVtable = ei::GamePointer<void>(0x0073EF2C);
-
 // Where an order must be seen from (0x18 bytes; 0054BCB0 fills it).
 struct SightTarget {
     Vector3 point;              // +0x00 the point to see (a target unit's is filled in later)

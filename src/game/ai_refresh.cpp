@@ -9,6 +9,7 @@
 #include "world_data.h"
 
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -100,7 +101,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     // The region blocks (8x8 cells) around the outer rectangle.
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
-    ObjectList objects{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ObjectList objects{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     double halfW = static_cast<double>(ox1 - ox0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     double halfH = static_cast<double>(oy1 - oy0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     float scale = static_cast<float>(static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
@@ -123,7 +124,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         SectorMapAdd(sectors, nullptr, AsEngineObject(node->data));
         node = next;
     }
-    objects.vtable = mfc::PtrListVtable();
+    objects.vtable = mfc::impl::PtrListClass::Vtable();
     objects.count = 0;
     objects.free = nullptr;
     objects.tail = nullptr;

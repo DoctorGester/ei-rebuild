@@ -16,6 +16,7 @@
 #include "game_singletons.h"
 
 #include "../lib/crt.h"
+#include "../lib/mfc_slots.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
 
@@ -127,7 +128,7 @@ int CEffectTornado::Tick() {
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) Source()->Stop();
     CWorld* world = WorldOf(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
-        mfc::CTypedPtrList<CUnit> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        mfc::CTypedPtrList<CUnit> units{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         static_cast<CWorldServer*>(WorldOf(this))->Sectors()->FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
         DamageInfo hit = TornadoHit();
         for (auto* node = units.head; node != nullptr;) {

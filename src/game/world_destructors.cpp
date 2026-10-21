@@ -31,9 +31,7 @@ void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 namespace {
 
 // The members' vtables the destructors store back before emptying them.
-constexpr std::uintptr_t kParticleListVtable = std::uintptr_t(0x0073D018);   // CTypedPtrList<CPtrList, Particle*>
 constexpr std::uintptr_t kWaterLevelsVtable = std::uintptr_t(0x0073F730);    // CArray<CArray<float>>
-constexpr std::uintptr_t kSectorCacheVtable = std::uintptr_t(0x0073F724);    // CList<SectorData*>
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
 
@@ -163,7 +161,7 @@ CParticleManager::CParticleManager() {
 CParticleManager::~CParticleManager() {
     CParticleManager::Destroy();
     held_.Destroy();
-    freeParticles.vtable = ei::GamePointer<void>(kParticleListVtable);
+    freeParticles.vtable = mfc::impl::ClientListClass::Vtable();
     freeParticles.RemoveAll();
 }
 
@@ -186,7 +184,7 @@ void Terrain::Destruct() {
     visibleColumnFirst.FreeData();
     wavePhases.FreeData();
     lights.Destroy();
-    sectorCache.vtable = ei::GamePointer<void>(kSectorCacheVtable);
+    sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
     sectorCache.RemoveAll();
     vertexTiles.FreeData();
     archive.Destroy();
@@ -213,7 +211,7 @@ void Sector::Destruct() {
     Clear();
     occluders.vtable = ei::GamePointer<void>(kSectorOccluderArrayVtable);
     occluders.FreeData();
-    units.vtable = mfc::PtrListVtable();
+    units.vtable = mfc::impl::PtrListClass::Vtable();
     units.RemoveAll();
     objects.vtable = mfc::impl::ClientObjectListClass::Vtable();
     objects.RemoveAll();

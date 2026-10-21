@@ -45,11 +45,9 @@ using ei::SetVtable;
 
 // Vtables.
 // The unit motion's step speeds while constructed / destroyed (its points and waypoints: mfc_slots.h).
-constexpr std::uintptr_t kMotionSpeedsVtable = std::uintptr_t(0x0073D490);
 constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
-constexpr std::uintptr_t kServerArrayVtable = std::uintptr_t(0x0073EF2C);
 
 constexpr std::uint32_t kStreamLimit = 2000000000;   // a memory stream's size limit
 constexpr std::uint32_t kOne = 0x3F800000;
@@ -109,7 +107,7 @@ void DestroyArray(Array& array, void* vtable) {
     SetVtable(&array, vtable);
     if (array.data) gamecrt::operator_delete(array.data);
 }
-void DestroyArray(AnimationSteps& array, std::uintptr_t vtable) {
+void DestroyArray(AnimationSteps& array, void* vtable) {
     SetVtable(&array, vtable);
     if (array.steps) gamecrt::operator_delete(array.steps);
 }
@@ -292,7 +290,7 @@ CUnit::CUnit() {
     m->waypoints.size = 0;
     m->waypoints.vtable = mfc::impl::MotionWaypointArrayClass::Vtable();
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(m->stepSpeeds);
-    SetVtable(&m->stepSpeeds, kMotionSpeedsVtable);
+    SetVtable(&m->stepSpeeds, mfc::impl::ArgFloatArrayClass::Vtable());
     // (0052E230, the segment part's constructor at +0x50, only returns it.)
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
@@ -494,13 +492,13 @@ void CUnitServer::DestructBody() {
     if (CEngineObject* target = action.target) target->Release();
     action.target = nullptr;
     if (CEngineObject* effect = effectObject) effect->Release();
-    DestroyArray(savedQueue, kServerArrayVtable);
-    DestroyArray(currentPlan.animation, kServerArrayVtable);
-    motion.excludedBlocks.vtable = ei::GamePointer<void>(AIPath::kExcludedBlocksVtable);
+    DestroyArray(savedQueue, mfc::impl::AnimationStepsClass::Vtable());
+    DestroyArray(currentPlan.animation, mfc::impl::AnimationStepsClass::Vtable());
+    motion.excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
     if (motion.excludedBlocks.data) gamecrt::operator_delete(motion.excludedBlocks.data);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
-    DestroyArray(queue, kServerArrayVtable);
+    DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
     SetVtable(this, kControllerVtable);
     unit = nullptr;
     static_cast<CEngineObject*>(this)->DestructBase();

@@ -13,7 +13,7 @@
 namespace {
 // The vtables the inlined MFC array destructors write before freeing the storage.
 void* QuickEntriesVtable() { return mfc::impl::QuickEntryArrayClass::Vtable(); }   // CArray<Entry>
-void* DwordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }     // CDWordArray
+void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }     // CDWordArray
 } // namespace
 
 void CHudWeaponBar::DestroyBody() {

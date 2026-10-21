@@ -31,7 +31,6 @@ namespace {
 constexpr std::uintptr_t kZoneExitArrayVtable = std::uintptr_t(0x0073C400);     // CArray<ZoneExit> (both worlds)
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
-constexpr std::uintptr_t kPlatformListVtable = std::uintptr_t(0x0073F548);
 constexpr std::uintptr_t kPlatformSetVtable = std::uintptr_t(0x0073F4FC);       // CBridgeManager
 constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);         // CByteArray
 constexpr std::uintptr_t kWordArrayVtable = std::uintptr_t(0x00745F78);         // CWordArray
@@ -133,7 +132,7 @@ CWorldClient* CWorldClient::Construct() {
     handle_.ptr = nullptr;
 
     ConstructEngineObject(platforms_.Engine(), kPlatformSetVtable);
-    ConstructList(platforms_.list, kPlatformListVtable);
+    ConstructList(platforms_.list, mfc::impl::PlatformListClass::Vtable());
     new (&texturePath_) mfc::CString();
 
     CRainSnow* rain = RainSnow();

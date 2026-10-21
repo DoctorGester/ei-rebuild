@@ -22,6 +22,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "world_glue.h"
@@ -114,7 +115,7 @@ void CBattleScreen::ToggleMember(int index) {
     if (IsMultiplayerClient()) return;
     if (index >= party->size) return;
 
-    UiDwordArray chosen{ei::GamePointer<void>(0x0073C3D0), nullptr, 0, 0, 0};
+    UiDwordArray chosen{mfc::impl::IntArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         chosen.SetAtGrow(chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
@@ -174,7 +175,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
-    OrderUnits units{ei::GamePointer<void>(0x007402AC), nullptr, 0, 0, 0};
+    OrderUnits units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -189,14 +190,14 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
     if (units.size != 0) LocalView(TheClientWorld())->SendAttack(&units, target, kind, ctrl & 0xFF);
-    units.vtable = ei::GamePointer<void>(0x007402AC);
+    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
 }
 EI_REPLACE_METHOD(0x00637190, CBattleScreen::AttackUnit);
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
-    OrderUnits units{ei::GamePointer<void>(0x007402AC), nullptr, 0, 0, 0};
+    OrderUnits units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         auto* member = party->data[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -208,7 +209,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
         static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
     }
     if (units.size != 0) LocalView(TheClientWorld())->SendUseDead(&units, target, ctrl & 0xFF);
-    units.vtable = ei::GamePointer<void>(0x007402AC);
+    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
 }
 EI_REWRITTEN(0x006373A0, CBattleScreen::OrderDeadUnit);

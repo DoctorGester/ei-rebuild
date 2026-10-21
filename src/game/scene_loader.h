@@ -20,6 +20,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "../lib/vecmath.h"
+#include "../lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -480,7 +481,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 // The data the loader reads by address: the vtables of the arrays it constructs inline and its
 // messages.
 namespace scenedata {
-inline void* DwordMapVtable() { return ei::GamePointer<void>(0x0073C818); }
+inline void* DwordMapVtable() { return mfc::impl::DwordMapClass::Vtable(); }
 
 inline const char* CantOpenText() { return "Can't open file %s.\n"; }
 // "Scene \"%s\" have more then one top-level object!..."

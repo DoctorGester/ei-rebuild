@@ -4,6 +4,7 @@
 // were found by comparing the instructions of every instantiation our code forwards to (addresses
 // masked); each node size is the one its NewNode passes to CPlex::Create.
 #include "mfc_list.h"
+#include "mfc_slots.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"

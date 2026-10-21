@@ -9,6 +9,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/mfc_slots.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -128,7 +129,7 @@ struct PathCell {
 static_assert(sizeof(PathCell) == 8);
 
 // The vtable of CList<PathCell> (PathCellList).
-inline void* PathCellListVtable() { return ei::GamePointer<void>(0x0073EDB0); }
+inline void* PathCellListVtable() { return mfc::impl::CellListClass::Vtable(); }
 
 // ConstructElements of CList<PathCell>: the instantiation's own (00539980, ai_path_cells.cpp).
 struct PathCellElements {
@@ -176,7 +177,7 @@ struct BlockCostElements {
 };
 // The CList of reached blocks (0x1C bytes, nodes 0x14; vtable 0073FCFC).
 using BlockCostList = mfc::CList<BlockCost, BlockCostElements>;
-inline void* BlockCostListVtable() { return ei::GamePointer<void>(0x0073FCFC); }
+inline void* BlockCostListVtable() { return mfc::impl::BlockCostListClass::Vtable(); }
 static_assert(sizeof(BlockCostList::Node) == 0x14);
 
 struct CRegionMap;
@@ -263,7 +264,7 @@ struct AIPath {
     void LoadOrder(CStream* stream);
     void SaveOrder(CStream* stream);
     // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both
-    // cell lists empty (blocks of 0x80), no excluded blocks (vtable kExcludedBlocksVtable), then
+    // cell lists empty (blocks of 0x80), no excluded blocks (vtable PointArrayClass), then
     // Clear. Returns this.
     // The destructor body is 00546100 (Destruct).
     AIPath* Construct();
@@ -277,8 +278,6 @@ struct AIPath {
     // 00670730 (RET 4). The search's target cell (targetX, targetY) in world units: each times
     // 0074326C * 0073B86C, z 0. Returns `out`.
     Vector3* TargetPoint(Vector3* out) const;
-
-    static constexpr std::uintptr_t kExcludedBlocksVtable = std::uintptr_t(0x0073F07C);
 
     MotionOrder motionOrder;    // +0x00 (ai_motion.cpp)
     PathCellList steps;         // +0x20 the next cells to walk (at most 32)
@@ -598,7 +597,6 @@ constexpr std::uintptr_t kCellGridConstructor = std::uintptr_t(0x005AF590);
 constexpr std::uintptr_t kCellGridDestructor = std::uintptr_t(0x00598460);
 constexpr std::uintptr_t kRegionGridConstructor = std::uintptr_t(0x005AF5A0);
 constexpr std::uintptr_t kRegionGridDestructor = std::uintptr_t(0x00598480);
-constexpr std::uintptr_t kCellRowArrayVtable = std::uintptr_t(0x0073FA04);
 
 // The path smoother's trellis (005C46C0): per path cell nine states, one per direction the unit
 // leaves the cell in (index direction - 1; index 8 unused), each the cheapest cost so far and its
@@ -744,7 +742,6 @@ public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD7C);
     static constexpr std::uintptr_t kSmallVtableAddress = std::uintptr_t(0x0073FD74);
     static constexpr std::uintptr_t kLargeVtableAddress = std::uintptr_t(0x0073FD6C);
-    static constexpr std::uintptr_t kNodeListVtable = std::uintptr_t(0x0073F9F8);
 
     virtual void Set(const UnitLayerNode* block);     // 0: small 005B39D0, large 005B3B20
     virtual void Merge(const UnitLayerNode* block);   // 1: small 005B3A70, large 005B3B90
@@ -762,7 +759,7 @@ public:
     // only; ai_grids.cpp). The node list emptied and its blocks freed.
     void Destruct();
 
-    // +0x04 the storage of every node ever allocated (vtable kNodeListVtable, NewNode 005BE7B0).
+    // +0x04 the storage of every node ever allocated (vtable NodeListClass, NewNode 005BE7B0).
     mfc::CList<UnitLayerNode> nodes;
     UnitLayerNode* buckets[1024];   // +0x20 by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes;       // +0x1020 unused nodes

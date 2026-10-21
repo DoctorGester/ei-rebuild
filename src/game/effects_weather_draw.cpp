@@ -11,6 +11,7 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_library.h"
 #include "game_data.h"
 
@@ -54,7 +55,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
 
     if (!(WorkArrayGuards() & kSpritesConstructed)) {
         WorkArrayGuards() |= kSpritesConstructed;
-        Sprites().Construct(0x0073C584);
+        Sprites().Construct(mfc::impl::SpriteArrayClass::Vtable());
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004E2280));
     }
     if (!(WorkArrayGuards() & kPointsConstructed)) {

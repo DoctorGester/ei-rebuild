@@ -10,6 +10,18 @@
 
 namespace mfc::impl {
 
+// 004C2700 CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings (SerializeStrings'
+// loop, 007085AF; here so the vectors build, which links no registration file, has it for StringArrayClass).
+void __fastcall SerializeStringArray(Strings::Array* self, void*, CArchive* ar) {
+    if (!ar->IsLoading()) {
+        ar->WriteCount(static_cast<unsigned long>(self->size));
+        for (int i = 0; i < self->size; ++i) StoreText(*ar, self->data[i]);
+    } else {
+        self->SetSize(static_cast<int>(ar->ReadCount()), -1);
+        for (int i = 0; i < self->size; ++i) LoadText(*ar, self->data[i]);
+    }
+}
+
 // ---- Constructors and destructors of arrays whose elements need nothing ---------------------------
 
 // The constructor: the vtable, the rest zero (22 instantiations).

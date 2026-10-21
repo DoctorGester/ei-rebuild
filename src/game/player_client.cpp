@@ -36,6 +36,7 @@
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "lib/crt.h"
+#include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -102,7 +103,7 @@ struct MemoryStream {
 // (00567A60, 00567950); all RET 4 with the block.
 __declspec(naked) int __fastcall ClientLoadZone(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567AB0)
 // 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
-void* EmptyListVtable() { return ei::GamePointer<void>(0x0073BE80); }   // the CPtrList passed to it
+void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
 
 // The quest log refreshed with an empty CPtrList built and destroyed on the stack.

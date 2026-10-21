@@ -243,7 +243,7 @@ SSCCmd* SSCCmd::Construct() {
         a.size = 0;
         a.vtable = vtable;
     };
-    init(floatArgs, ei::GamePointer<void>(0x0073D490));
+    init(floatArgs, mfc::impl::ArgFloatArrayClass::Vtable());
     init(stringArgs, ei::GamePointer<void>(0x0073D2D4));
     init(objectArgs, mfc::impl::ArgObjectsClass::Vtable());
     init(groupArgs, mfc::impl::ArgGroupsClass::Vtable());

@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 
 #include <cstdint>
 #include <cstring>

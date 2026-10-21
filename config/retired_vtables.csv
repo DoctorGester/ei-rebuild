@@ -1,6 +1,8 @@
 vtable,slots,class,file,note
+0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)
+0073BE80,3,ItemListClass,src/lib/mfc_slots.h,CList (the item and object pointer lists (CTypedPtrList))
 0073BE94,2,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
@@ -13,6 +15,7 @@ vtable,slots,class,file,note
 0073C108,3,FakeUnitPartArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x220-byte figure parts)
 0073C114,3,AlignedAt4ArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's 20-byte records with an aligned block at +4)
 0073C120,3,Vector3ArrayClass,src/lib/mfc_slots.h,CArray (12-byte points: animation node normals; use spots; terrain sector data)
+0073C12C,3,BoneLinkArrayClass,src/lib/mfc_slots.h,CArray (a figure's bone links)
 0073C138,3,NodeItemsCClass,src/lib/mfc_slots.h,CArray (the scene loader's node records' children)
 0073C144,3,TextureNameArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's {id; CString})
 0073C150,3,TextureLinkArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's {id; value} links)
@@ -28,15 +31,20 @@ vtable,slots,class,file,note
 0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
 0073C37C,3,BehaviourPatrolsArrayClass,src/lib/mfc_slots.h,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass)
+0073C388,3,ArrayBaseClass,src/lib/mfc_slots.h,CArray (the base vtable the element arrays' destructors restore (patrols; motion records))
 0073C394,3,PatrolArrayClass,src/lib/mfc_slots.h,CArray (patrols; 32 bytes with a waypoint array at +0xC)
+0073C3A0,3,WaypointArrayClass,src/lib/mfc_slots.h,CArray (a patrol's waypoints; derived from ArrayBaseClass)
+0073C3D0,3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
 0073C3DC,3,AllodArrayClass,src/lib/mfc_slots.h,CArray (the map database's allods)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
+0073C584,3,SpriteArrayClass,src/lib/mfc_slots.h,CArray (the weather and lightning sprites)
 0073C680,3,TrapTargetsArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's targets; derived from 0073C6A4)
 0073C68C,3,TrapAreasArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's areas; derived from 0073C698)
 0073C698,3,TrapCircleArrayClass,src/lib/mfc_slots.h,CArray (a trap's circles)
 0073C6A4,3,TrapPointArrayClass,src/lib/mfc_slots.h,CArray (a trap's points)
 0073C800,3,IndexArrayClass,src/lib/mfc_slots.h,CArray (a model file's index lists)
 0073C80C,3,SceneObjectArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's 0x1C-byte CObject elements)
+0073C818,3,DwordMapClass,src/lib/mfc_slots.h,CMap (the scene loader's CMap<DWORD; DWORD> (and the maps a node record holds))
 0073C824,3,MorphHeadArrayClass,src/lib/mfc_slots.h,CArray (an animation file's morph headers)
 0073C830,3,PosKeyArrayClass,src/lib/mfc_slots.h,CArray (an animation file's position keys)
 0073C83C,3,RotKeyArrayClass,src/lib/mfc_slots.h,CArray (an animation file's rotation keys)
@@ -48,7 +56,13 @@ vtable,slots,class,file,note
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
+0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
+0073D2C8,3,PartySlotArrayClass,src/lib/mfc_slots.h,CArray (the script's party slots)
+0073D2EC,3,ScriptFloatsClass,src/lib/mfc_slots.h,CArray (the script's float variables)
+0073D2F8,3,StringArrayClass,src/lib/mfc_slots.h,CArray (CArray<CString> (the script's string variables))
 0073D310,3,GroupArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptGroup>)
+0073D31C,3,ScriptAreaClass,src/lib/mfc_slots.h,CArray (a script area's parts)
+0073D328,3,ScriptAreaPartsClass,src/lib/mfc_slots.h,CArray (the array a script area element holds (base ScriptAreaClass); derived from ScriptAreaClass)
 0073D340,3,RunListClass,src/game/game_slots.h,CList (the script's runs)
 0073D34C,3,DefinitionListClass,src/game/game_slots.h,CList (the script's instances)
 0073D364,3,DeclListClass,src/game/game_slots.h,CList (the script's command blocks)
@@ -56,6 +70,7 @@ vtable,slots,class,file,note
 0073D37C,3,FxSourceListClass,src/game/game_slots.h,CList (the script's FX sources)
 0073D388,3,ParticleSourceListClass,src/game/game_slots.h,CList (the script's particle sources)
 0073D3A0,3,PointLightArrayClass,src/game/game_arrays.h,CArray (the script's point lights)
+0073D3AC,3,ScriptIfThenArrayClass,src/lib/mfc_slots.h,CArray (the script's if-then blocks)
 0073D3B8,3,DefinitionArrayClass,src/game/record_arrays.h,CArray (the script's definitions)
 0073D3C4,3,ScriptAreaArrayClass,src/lib/mfc_slots.h,CArray (the script's areas)
 0073D3D0,3,CommandArrayClass,src/game/game_slots.h,CArray (a command block)
@@ -66,10 +81,14 @@ vtable,slots,class,file,note
 0073D424,3,TokenListClass,src/game/game_slots.h,CList (the script parser's tokens)
 0073D43C,3,GroupListClass,src/game/game_slots.h,CList (CScript's temporary groups)
 0073D448,3,ObjectRefListClass,src/game/game_slots.h,CList (CScript's temporary objects)
+0073D454,3,PtrListClass,src/lib/mfc_slots.h,CList (CPtrList (the lists the code builds on the stack; blocks of 10))
+0073D460,3,AiLookArrayClass,src/lib/mfc_slots.h,CArray (the AI's look records)
 0073D478,3,ArgGroupsClass,src/lib/mfc_slots.h,CArray (a script command's group arguments; derived from 0073D400)
 0073D484,3,ArgObjectsClass,src/lib/mfc_slots.h,CArray (a script command's object arguments; derived from 0073D3F4)
+0073D490,3,ArgFloatArrayClass,src/lib/mfc_slots.h,CArray (the script commands' float arguments (a CArray<float> subclass))
 0073D49C,3,BindingArrayClass,src/game/record_arrays.h,CArray (a command's binding arrays; derived from 0073D40C)
 0073D4A8,3,SubCallArrayClass,src/game/record_arrays.h,CArray (a command's nested calls; derived from 0073D418)
+0073D4B4,3,AiLookRecordArrayClass,src/lib/mfc_slots.h,CArray (the array inside the AI's 32-byte look records (base AiLookArrayClass); derived from AiLookArrayClass)
 0073D4C0,3,DefineListClass,src/game/game_slots.h,CList (the script's #define list)
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
@@ -112,22 +131,31 @@ vtable,slots,class,file,note
 0073EBA8,3,MotionPointArrayClass,src/lib/mfc_slots.h,CArray (a unit motion's points)
 0073EBB4,3,MotionWaypointBaseClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints)
 0073EBD4,3,IdArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> of quest item ids (world_party))
+0073EDB0,3,CellListClass,src/lib/mfc_slots.h,CList (the units' path cell lists)
 0073EEA0,3,SkinLayerArrayClass,src/lib/mfc_slots.h,CArray (a unit's skin layers (ComposeSkin))
+0073EF2C,3,AnimationStepsClass,src/lib/mfc_slots.h,CArray (a unit's animation steps)
 0073F010,3,ArmourSpellListClass,src/game/game_slots.h,CList (the armour spells)
+0073F01C,3,AnimationStepsCopyClass,src/lib/mfc_slots.h,CArray (the animation steps a motion copies; derived from AnimationStepsClass)
 0073F028,3,OwnedRefListClass,src/game/game_slots.h,CList (a map object controller's counted pointers)
 0073F034,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour> (the server unit's brain)
+0073F040,3,AttackOptionArrayClass,src/lib/mfc_slots.h,CArray (a unit's attack options)
 0073F058,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's object records)
 0073F064,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit's 0x18-byte memory records)
+0073F07C,3,PointArrayClass,src/lib/mfc_slots.h,CArray (a unit's point lists)
+0073F12C,3,LootListClass,src/lib/mfc_slots.h,CList (the loot lists)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
+0073F548,3,PlatformListClass,src/lib/mfc_slots.h,CList (the client maps' platform lists)
 0073F554,25,ClientArrayManager,src/game/world.h,
 0073F5B8,25,CLightningManager,src/game/lightning.h,
 0073F61C,3,ClientObjectList2Class,src/game/game_slots.h,CList (engine objects in the client maps)
 0073F644,25,CParticleManager,src/game/effects.h,
+0073F724,3,ClientList2Class,src/lib/mfc_slots.h,CList (00570EA0's list)
+0073F73C,3,ClientList3Class,src/lib/mfc_slots.h,CList (005715D0's list)
 0073F754,3,BloodPrint,src/game/ground_print.h,
 0073F760,3,Footprint,src/game/ground_print.h,
 0073F76C,3,GroundPrint,src/game/ground_print.h,
@@ -137,6 +165,8 @@ vtable,slots,class,file,note
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073F9D0,3,RefListBClass,src/game/game_slots.h,CList (the world server's counted pointers)
+0073F9F8,3,NodeListClass,src/lib/mfc_slots.h,CList (the AI map's node lists)
+0073FA04,3,CellRowArrayClass,src/lib/mfc_slots.h,CArray (the AI map's cell rows)
 0073FA10,3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)
@@ -147,13 +177,18 @@ vtable,slots,class,file,note
 0073FB88,26,CFigureManager,src/game/figure_manager.h,
 0073FBF0,22,CSharedFigureMesh,src/game/figure_mesh.h,class 0x41
 0073FC48,24,CUiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
+0073FCF0,3,AiMapListClass,src/lib/mfc_slots.h,CList (the AI map's lists)
+0073FCFC,3,BlockCostListClass,src/lib/mfc_slots.h,CList (the AI's block cost lists)
+0073FD9C,3,WaypointListClass,src/lib/mfc_slots.h,CList (the AI plan's waypoint lists)
 0073FDE0,3,SpiralCellArrayClass,src/lib/mfc_slots.h,CArray (the sector spiral's cells)
 0073FE10,3,SmoothCopyArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' copies)
 0073FE1C,3,SmoothStepArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' steps)
 0073FE28,3,SmoothEdgeArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' edges)
+0073FEB4,3,StaticListClass,src/lib/mfc_slots.h,CList (the list a static initialiser builds (005CDAD0))
 0073FF34,3,AttentionListClass,src/lib/mfc_slots.h,CList (AIAttention::Choose's list)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
+007402AC,3,UnitPtrArrayClass,src/lib/mfc_slots.h,CArray (the interface's unit pointer arrays)
 00740BE4,3,GlobalMapPathArrayClass,src/lib/mfc_slots.h,CArray (the global map's quests)
 00740BF0,3,GlobalMapPointArrayClass,src/lib/mfc_slots.h,CArray (the global map's links)
 00740BFC,3,GlobalMapZoneArrayClass,src/lib/mfc_slots.h,CArray (the global map's zones)

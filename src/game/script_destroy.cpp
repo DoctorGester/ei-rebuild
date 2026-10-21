@@ -56,7 +56,7 @@ void FreePlain(mfc::CArray<T>* a, void* vtable) {
 }
 
 void FreeStrings(mfc::CArray<mfc::CString>* a) {
-    SetBaseVtable(a, scriptvtable::kStringsBase);
+    SetBaseVtable(a, mfc::impl::StringArrayClass::Vtable());
     if (a->data) {
         DestructStrings(a->data, a->size);
         gamecrt::operator_delete(a->data);
@@ -82,7 +82,7 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->stringNames);
     FreeStrings(&vars->strings);
     FreeStrings(&vars->floatNames);
-    FreePlain(&vars->floats, scriptvtable::kFloatsBase);
+    FreePlain(&vars->floats, mfc::impl::ScriptFloatsClass::Vtable());
 }
 EI_REWRITTEN(0x004BE090, ScriptVarsDestruct);
 

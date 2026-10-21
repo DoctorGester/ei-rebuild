@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp_hash.h"
+#include "lib/mfc_slots.h"
 
 #include <cmath>
 #include <cstdint>
@@ -59,7 +60,7 @@ void Lever::SetState(int wanted, float duration) {
     // Only on the server (the world's slot 26).
     auto* world = static_cast<CWorldServer*>(ObjectWorld(this));
     if (!world->IsServer()) return;
-    mfc::CTypedPtrList<CUnit> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
+    mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     CSectorMap* sectors = world->Sectors();
     float reach = radius + 0.5f;
     sectors->FindUnitsInRadius(&position, &around, reach);

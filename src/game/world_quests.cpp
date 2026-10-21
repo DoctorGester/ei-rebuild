@@ -189,7 +189,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* r
     PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
 
     mfc::CTypedPtrList<CItem> items;
-    items.vtable = ei::GamePointer<void>(worlddata::kItemListVtable);
+    items.vtable = mfc::impl::ItemListClass::Vtable();
     items.head = nullptr;
     items.tail = nullptr;
     items.count = 0;
@@ -227,7 +227,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* r
         state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
 
     // The list's inlined destructor (its nodes are dropped, the items stay with the player).
-    items.vtable = ei::GamePointer<void>(worlddata::kItemListVtable);
+    items.vtable = mfc::impl::ItemListClass::Vtable();
     items.RemoveAll();
 }
 
@@ -422,7 +422,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
 
 // With a player: its living heroes share `amount` equally.
 void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
-    IdArray heroes{mfc::DWordArrayVtable(), nullptr, 0, 0, 0};
+    IdArray heroes{mfc::impl::IntArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         CEngineObject* unit = node->value;
         if (ObjectSlots(unit)->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
@@ -446,7 +446,7 @@ void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
         }
         player->Server()->SendValue15(std::bit_cast<std::uint32_t>(share));
     }
-    heroes.vtable = mfc::DWordArrayVtable();
+    heroes.vtable = mfc::impl::IntArrayClass::Vtable();
     if (heroes.data) gamecrt::operator_delete(heroes.data);
 }
 

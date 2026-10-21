@@ -283,7 +283,7 @@ namespace {
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
     IdArray stranded;
-    stranded.vtable = mfc::DWordArrayVtable();
+    stranded.vtable = mfc::impl::IntArrayClass::Vtable();
     stranded.data = nullptr;
     stranded.growBy = 0;
     stranded.maxSize = 0;
@@ -314,7 +314,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             WorldRemoveObject(world, nullptr, stranded.data[i]);
         }
     }
-    stranded.vtable = mfc::DWordArrayVtable();
+    stranded.vtable = mfc::impl::IntArrayClass::Vtable();
     if (stranded.data) gamecrt::operator_delete(stranded.data);
 }
 

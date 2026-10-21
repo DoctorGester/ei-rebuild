@@ -106,7 +106,7 @@ constexpr int kStateJoined = 1;
 constexpr int kItemListBlockSize = 10;
 using GivenList = mfc::CTypedPtrList<CItem>;
 using GatheredList = mfc::CTypedPtrList<CEngineObject>;
-void* ItemListVtable() { return ei::GamePointer<void>(0x0073B8D4); }   // the CPtrList built on the stack
+void* ItemListVtable() { return mfc::impl::TempListClass::Vtable(); }   // the CPtrList built on the stack
 
 } // namespace
 

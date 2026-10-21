@@ -18,6 +18,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"

@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
 #include "originals_world.h"
@@ -282,7 +283,7 @@ EI_REWRITTEN(0x0064A320, CHudTopPanel::ShowPage);
 void CHudTopPanel::ShowItems() {
     CTextManager* texts = TheTextManager();
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
-    mfc::CTypedPtrList<CItem> merged{ei::GamePointer<void>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    mfc::CTypedPtrList<CItem> merged{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     CPlayer* player = TheClientWorld()->LocalView()->player_;
     mfc::CString line;
     mfc::CString format;

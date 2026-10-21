@@ -85,7 +85,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         ScriptNamesDestruct(&vars.stringNames);
         ScriptNamesDestruct(&vars.strings);
         ScriptNamesDestruct(&vars.floatNames);
-        vars.floats.vtable = scriptvtable::kFloatsBase;
+        vars.floats.vtable = mfc::impl::ScriptFloatsClass::Vtable();
         if (vars.floats.data) gamecrt::operator_delete(vars.floats.data);
     }
 }

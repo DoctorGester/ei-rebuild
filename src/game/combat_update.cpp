@@ -163,7 +163,7 @@ struct LocalSteps {
     AnimationSteps steps;
     LocalSteps() {
         steps.ConstructBase();
-        steps.vtable = kAnimationStepsVtable;
+        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     }
     ~LocalSteps() { steps.DestructSteps(); }
     LocalSteps(const LocalSteps&) = delete;
@@ -701,8 +701,8 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
-    ItemList items{ei::GamePointer<void>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    ItemList others{ei::GamePointer<void>(0x0073F12C), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ItemList items{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ItemList others{mfc::impl::LootListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     unit->CollectItems(&items, reinterpret_cast<mfc::CTypedPtrList<void>*>(&others));
     // Weapons other than the one in use do not count.
     for (ItemList::Node* node = items.head; node;) {
@@ -759,9 +759,9 @@ void CUnitServer::RefreshItemSpells() {
         else current->next->prev = current->prev;
         mfc::impl::FreeNodeAs<gamelists::Holders>(list, current);   // 00558B80
     }
-    others.vtable = ei::GamePointer<void>(0x0073F12C);
+    others.vtable = mfc::impl::LootListClass::Vtable();
     others.RemoveAll();
-    items.vtable = ei::GamePointer<void>(0x0073BE80);
+    items.vtable = mfc::impl::ItemListClass::Vtable();
     items.RemoveAll();
 }
 EI_REWRITTEN(0x005528F0, CUnitServer::RefreshItemSpells);
