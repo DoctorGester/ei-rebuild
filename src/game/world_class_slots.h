@@ -10,6 +10,7 @@
 class CBaseManager;
 class CEngineObject;
 class CFigureManager;
+class CLightningManager;
 struct CItemManager;
 class CParticleManager;
 class CTextureManager;
@@ -18,7 +19,6 @@ class CWorldClient;
 class CWorldServer;
 class Terrain;
 struct ClientArrayManager;
-struct ClientListManager;
 struct ClientTexts;
 struct PlatformSet;
 
@@ -35,8 +35,8 @@ const char* __fastcall TextManagerClassName(ClientTexts*);           // 00562970
 int __fastcall TextManagerClassId(ClientTexts*);                     // 00562980: 0x2A
 const char* __fastcall TerrainClassName(Terrain*);                   // 00562B40 (0073F6A8) "CTerrain"
 int __fastcall TerrainClassId(Terrain*);                             // 00562B50: 0xB
-const char* __fastcall LightningManagerClassName(ClientListManager*);   // 00562D80 (0073F5B8) "CLightningManager"
-int __fastcall LightningManagerClassId(ClientListManager*);          // 00562D90: 0x35
+const char* __fastcall LightningManagerClassName(CLightningManager*);   // 00562D80 "CLightningManager"
+int __fastcall LightningManagerClassId(CLightningManager*);          // 00562D90: 0x35
 const char* __fastcall VisFogManagerClassName(ClientArrayManager*);  // 00562DB0 (0073F554) "CVisFogManager"
 int __fastcall VisFogManagerClassId(ClientArrayManager*);            // 00562DC0: 0x60
 const char* __fastcall FigureManagerClassName(CFigureManager*);      // 005AA180 (0073FB88) "CFigureManager"

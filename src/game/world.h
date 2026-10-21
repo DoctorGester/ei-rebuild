@@ -1265,18 +1265,7 @@ struct ClientTexts : CEngineObject {
 };
 static_assert(sizeof(ClientTexts) == 0x2C);
 
-// The client's managers Setup builds with their constructors partly inlined (base 00402B20).
-// +0x1A0 (0xCC bytes, vtable 0073F5B8): a CList at +0xB0 (vtable 0073F61C, block size 10).
-struct ClientListManager : CBaseManager {
-    // 00562EC0. The destructor's body: every listed object released, the list emptied, then the
-    // manager's own body.
-    void DestructBody();
-    // 00562EA0 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
-    ClientListManager* DeletingDestruct(unsigned flags);
-
-    mfc::CList<CEngineObject*> list;      // +0xB0 counted
-};
-static_assert(sizeof(ClientListManager) == 0xCC);
+class CLightningManager;   // lightning.h
 class CSceneRenderer;   // model.h
 // +0x1A4 (0xD0 bytes, vtable 0073F554): a counted object and a CList (constructor 005715D0, 10).
 struct ClientArrayManager : CBaseManager {
@@ -1703,7 +1692,7 @@ public:
     CEngineObject* manager194_;           // +0x194 (slot 37 returns it; not identified)
     CEngineObject* manager198_;           // +0x198 (slot 38 returns it; not identified)
     CParticleManager* particleManager_;        // +0x19C counted
-    ClientListManager* listManager_;      // +0x1A0 owned
+    CLightningManager* listManager_;      // +0x1A0 owned (lightning.h)
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
     struct CMusicSystem* music_;          // +0x1A8 owned (sound.h; constructor 006B4350)
     struct CSky* skyDome_;                // +0x1AC the sky (owned; destructor body 005636A0; sky_object.h)

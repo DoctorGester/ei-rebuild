@@ -932,6 +932,10 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
 }
 EI_REPLACE(0x004981B0, NewParticleSource);
 
+CEngineObject* CParticleManager::NewObject(int type) {
+    return reinterpret_cast<CEngineObject*>(NewParticleSource(this, nullptr, type));
+}
+
 // 00498310. The destructor body: Clear (particles back to the pool, detached, Reset), release the
 // texture and free the frame rectangles if any are left, empty the particle list and free its
 // blocks, free the element array, then the engine object's base destructor.

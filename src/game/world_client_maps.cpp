@@ -9,6 +9,7 @@
 #include "ground_print.h"
 #include "hash_tables_400.h"
 #include "item.h"
+#include "lightning.h"
 #include "map_object_shadow.h"
 #include "world.h"
 #include "world_data.h"
@@ -65,6 +66,7 @@
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
 
+#include <new>
 #include <windows.h>
 
 #include <cmath>
@@ -1267,15 +1269,8 @@ int CWorldClient::Setup() {
     manager190_ = MakeCounted<CBaseManager>(0xD8, ConstructOn<CLightFactory, &CLightFactory::Construct>);
     manager190_->Init(this);
 
-    auto* manager = reinterpret_cast<CParticleManager*>(New(sizeof(CParticleManager)));
-    if (manager) {
-        static_cast<CBaseManager*>(manager)->ConstructBase();
-        mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&manager->freeParticles, 10);
-        manager->held_.Construct(100);   // 005725E0
-        manager->maxHeldId_ = 0;
-        ei::SetVtable(manager, worlddata::kParticleManagerVtable);
-        ParticleManagerClearQuietStart(manager);   // 004981A0
-    }
+    std::uint8_t* particleMemory = New(sizeof(CParticleManager));
+    CParticleManager* manager = particleMemory ? new (particleMemory) CParticleManager() : nullptr;
     particleManager_ = manager;
     ++manager->refCount_;
     manager->Init(this);
@@ -1316,19 +1311,9 @@ int CWorldClient::Setup() {
         LoadTexts(texts_, nullptr, path);
     }
 
-    // The list manager: the base, then its CList's fields (in the original's order).
-    auto* lists = reinterpret_cast<ClientListManager*>(New(sizeof(ClientListManager)));
-    if (lists) {
-        static_cast<CBaseManager*>(lists)->ConstructBase();
-        lists->list.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
-        lists->list.count = 0;
-        lists->list.free = nullptr;
-        lists->list.tail = nullptr;
-        lists->list.head = nullptr;
-        lists->list.blocks = nullptr;
-        lists->list.blockSize = 10;
-        ei::SetVtable(lists, worlddata::kClientListManagerVtable);
-    }
+    // The lightning manager.
+    std::uint8_t* lightningMemory = New(sizeof(CLightningManager));
+    CLightningManager* lists = lightningMemory ? new (lightningMemory) CLightningManager() : nullptr;
     listManager_ = lists;
     lists->Init(this);
     auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
@@ -1512,21 +1497,32 @@ void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* str
 }
 EI_REPLACE(0x0055E8A0, SaveListedObjects);
 
-void ClientListManager::DestructBody() {
-    list.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
-    for (auto* node = list.head; node; node = node->next)
-        if (node->data) node->data->Release();
-    list.RemoveAll();
-    CBaseManager::DestructBody();
+CLightningManager::CLightningManager() {
+    newBolts_.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
+    newBolts_.count = 0;
+    newBolts_.free = nullptr;
+    newBolts_.tail = nullptr;
+    newBolts_.head = nullptr;
+    newBolts_.blocks = nullptr;
+    newBolts_.blockSize = 10;
 }
-EI_REPLACE_METHOD(0x00562EC0, ClientListManager::DestructBody);
 
-ClientListManager* ClientListManager::DeletingDestruct(unsigned flags) {
-    DestructBody();
+CLightningManager::~CLightningManager() {
+    newBolts_.vtable = ei::GamePointer<void>(worlddata::kClientListVtable);
+    for (auto* node = newBolts_.head; node; node = node->next)
+        if (node->data) node->data->Release();
+    newBolts_.RemoveAll();
+}
+
+void CLightningManager::Destruct() { this->CLightningManager::~CLightningManager(); }
+EI_REPLACE_METHOD(0x00562EC0, CLightningManager::Destruct);
+
+CLightningManager* CLightningManager::DeletingDestruct(unsigned flags) {
+    this->CLightningManager::~CLightningManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00562EA0, ClientListManager::DeletingDestruct);
+EI_REPLACE_METHOD(0x00562EA0, CLightningManager::DeletingDestruct);
 
 void ClientArrayManager::DestructBody() {
     ei::SetVtable(this, worlddata::kClientArrayManagerVtable);
