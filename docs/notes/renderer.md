@@ -1151,3 +1151,19 @@ across runs; the goldens check the game state.
 
 Not worth a ticket now: pipeline and texture-binding changes (2-13 / 4-66 a frame) and the state reads per pass (part
 of the 0.5-1.6 ms hand-over).
+
+### Loose .bmp textures (A-I23a)
+
+- Scenario `render_loose_bmp` (vanilla golden from three agreeing original runs): `# prepare: make_loose_bmp.py`
+  writes `textures\Zone1000..Zone1007.bmp` (24-bit, four quadrants: red and green above, blue and yellow below) and
+  an 8-bit `a_<name>.bmp` ramp for each into the run's overlay (the install has no `textures\*.bmp`; the harness's
+  FindFirstFile / CreateFile redirection finds them). `CTextureManager::LoadTexture` 006922A0 then loads zone 1's
+  terrain pages through CTexture::LoadBmp 00690260 -> LoadBmpFiles 0068FBF0 -> CDib Construct / Read / Size /
+  MakePalette. The pages are format 5:6:5 (no alpha), so the alpha file is read and its depth checked but its bytes
+  are unused; a texture of an alpha kind (types 1-4, 8, 6, 13) is not loaded from a .bmp by any scenario yet.
+- Pixels: `hues <frame> <least> <most>` (`capture::HueShares`; skipped in the original's run) needs each of the four
+  hues on 8%..25% of the 4K frame (measured: red 16.4%, green 14.7%, blue 13.6%, yellow 16.0%). A one-time
+  comparison of the original's frame (dgVoodoo) with the image's, `compare_frames.py` at WideScreen's settings: 3.5%
+  of the pixels differ with the .bmp pages against 2.6% without them (the renderers' own differences: the hero, the
+  shadows, filtering), so the quadrants sit where the original draws them (a flipped or channel-swapped page would
+  differ over the 60% of the frame the pages cover).

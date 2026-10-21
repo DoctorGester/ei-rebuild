@@ -41,6 +41,12 @@ bool Compare(const char* a, const char* b, int tolerance, double* differing, int
 // step, where the texture's sharpness jumps), and how many such pairs there are (`pairs`).
 bool LevelSteps(const char* name, double* steps, long long* pairs, const char** why);
 
+// The share of frames\<name>.bmp's pixels in each of four hues (A-I23a, tools/make_loose_bmp.py's quadrants as the
+// lit terrain shows them): `shares` gets red, green, blue and yellow, a pixel counting when its brightest channel
+// is at least 48 and its hue is clearly that one (red: red 1.8 times green and blue; yellow: red and green each
+// 1.5 times blue and within a third of each other).
+bool HueShares(const char* name, double shares[4], const char** why);
+
 // The same for any .bmp file (the game's own: 16 or 32 bits with channel masks, or 24) against
 // frames\<frame>.bmp; `how` gets the file's size and format.
 bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,
