@@ -16,6 +16,7 @@
 #include "text_reader.h"
 #include "game_arrays.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -305,7 +306,7 @@ bool CMapDatabase::LoadAll() {
 EI_REWRITTEN(0x0045EA00, CMapDatabase::LoadAll);
 
 CMapDatabase* CMapDatabase::Construct() {
-    allods.Construct(kAllodArrayVtable);
+    allods.Construct(mfc::impl::AllodArrayClass::Vtable());
     maps.Construct(kMapArrayVtable);
     return this;
 }

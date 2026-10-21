@@ -15,6 +15,7 @@
 #include "record_vectors.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 namespace {
@@ -48,7 +49,7 @@ void CMapDatabase::Destruct() {
     mapRecords.vtable = ei::GamePointer<void>(kMapArrayVtable);
     mapRecords.FreeData();
     auto& allodRecords = reinterpret_cast<mfc::CArray<AllodRecord, AllodElements>&>(allods);
-    allodRecords.vtable = ei::GamePointer<void>(kAllodArrayVtable);
+    allodRecords.vtable = mfc::impl::AllodArrayClass::Vtable();
     allodRecords.FreeData();
 }
 EI_REPLACE_METHOD(0x0045E6F0, CMapDatabase::Destruct);

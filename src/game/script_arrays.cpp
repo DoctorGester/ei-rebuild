@@ -101,7 +101,7 @@ void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs) { Fre
 
 // 004BCA20: each group's references reset (004B5AE0) and its storage freed, then the array's.
 void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
-    groups->vtable = scriptvtable::kGroupsBase;
+    groups->vtable = gamearrays::GroupArrayClass::Vtable();
     if (!groups->data) return;
     ScriptGroup* group = groups->data;
     for (int n = groups->size; n != 0; --n, ++group) {
@@ -118,7 +118,7 @@ void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
 void __fastcall ScriptRunDestruct(ScriptRun* run) {
     ScriptVars& vars = run->vars;
     FreeStrings(&vars.groupNames);
-    vars.groups.vtable = scriptvtable::kGroupsBase;
+    vars.groups.vtable = gamearrays::GroupArrayClass::Vtable();
     if (vars.groups.data) {
         gamearrays::Groups::DestructElements(vars.groups.data, vars.groups.size);
         gamecrt::operator_delete(vars.groups.data);
@@ -140,7 +140,7 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
 void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
     FreeStrings(&vars->names);
     mfc::CArray<ScriptGroup>& groups = vars->values;
-    groups.vtable = scriptvtable::kGroupsBase;
+    groups.vtable = gamearrays::GroupArrayClass::Vtable();
     if (!groups.data) return;
     ScriptGroup* group = groups.data;
     for (int n = groups.size; n != 0; --n, ++group) {

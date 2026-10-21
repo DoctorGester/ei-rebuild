@@ -364,7 +364,7 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     VertexMerge m;
     InitMap(m.seen);
     InitMap(m.index);
-    InitArray(m.maps, scenedata::MapArrayVtable());
+    InitArray(m.maps, mfc::impl::SceneObjectArrayClass::Vtable());
     InitArray(m.sources, scenedata::IndexArrayVtable());
     m.positions = {};
     m.texCoords = {};
@@ -586,7 +586,6 @@ mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
 }
 
 // The arrays' vtables the destructors write back.
-constexpr std::uintptr_t kMorphKeysVtable = std::uintptr_t(0x0073C114);
 constexpr std::uintptr_t kFramesVtable = std::uintptr_t(0x0073C12C);
 
 template <typename A>
@@ -630,7 +629,7 @@ void SceneNode::Destruct() {
     FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
     FreeArray(frames, kFramesVtable);
     FreeArray(normals, mfc::impl::Vector3ArrayClass::Vtable());
-    FreeArray(morphKeys, kMorphKeysVtable);
+    FreeArray(morphKeys, mfc::impl::AlignedAt4ArrayClass::Vtable());
     FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
     FreeArray(rotationKeys, mfc::impl::NodeItemsAClass::Vtable());
     parent.~CString();
@@ -651,7 +650,7 @@ void SceneNode::Construct() {
     restRotation.SetIdentity();
     rotationKeys.Construct(mfc::impl::NodeItemsAClass::Vtable());
     positionKeys.Construct(mfc::impl::NodeItemsBClass::Vtable());
-    morphKeys.Construct(kMorphKeysVtable);
+    morphKeys.Construct(mfc::impl::AlignedAt4ArrayClass::Vtable());
     normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     frames.Construct(kFramesVtable);
     children.Construct(mfc::impl::NodeItemsCClass::Vtable());   // 00455150
@@ -744,7 +743,7 @@ struct TextureLinks : VtArray {
     const TextureLinkRecord& Record(int i) const { return reinterpret_cast<const TextureLinkRecord*>(data)[i]; }
 };
 struct TextureNames : VtArray {
-    TextureNames() : VtArray{scenedata::TextureNameArrayVtable(), nullptr, 0, 0, 0} {}
+    TextureNames() : VtArray{mfc::impl::TextureNameArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureNames() {
         if (!data) return;
         for (int i = 0; i < size; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&Records()[i]));

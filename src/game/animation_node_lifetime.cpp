@@ -15,7 +15,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kMorphFramesVtable = std::uintptr_t(0x0073D9BC);
 constexpr int kNoKey = -1;   // the key cursors before the first ResetPose
 
 const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF0E0); }
@@ -31,7 +30,7 @@ CAnimationNode* CAnimationNode::Construct() {
     rotationKeys_.Construct();
     translationKeys_.Construct();
     normals_.Construct(mfc::impl::Vector3ArrayClass::Vtable());
-    morphFrames_.Construct(kMorphFramesVtable);
+    morphFrames_.Construct(mfc::impl::AlignedAt8ArrayClass::Vtable());
     defaultRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     poseRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     pointsB_.Construct();
@@ -74,7 +73,7 @@ void CAnimationNode::DestructBody() {
     spare000_ = 0;
     pointsA_.FreeData();
     pointsB_.FreeData();
-    morphFrames_.vtable = ei::GamePointer<void>(kMorphFramesVtable);
+    morphFrames_.vtable = mfc::impl::AlignedAt8ArrayClass::Vtable();
     morphFrames_.FreeData();
     normals_.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     normals_.FreeData();

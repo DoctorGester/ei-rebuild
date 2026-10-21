@@ -564,7 +564,6 @@ constexpr int kProjectionVertices = 0x330;
 
 // The vtables of the sector's CArray instantiations.
 constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);
-constexpr std::uintptr_t kFlagArrayArrayVtable = std::uintptr_t(0x007441A8);
 
 constexpr int kQuarterCells = 16;
 constexpr int kRow = 33;
@@ -584,7 +583,7 @@ SectorData* SectorData::Construct() {
     records.Construct(reinterpret_cast<std::uintptr_t>(recordarrays::SectorVertexArrayClass::Vtable()));
     tileTextures.Construct();
     waterTiles.Construct();
-    for (auto& flags : tileFlags) flags.Construct(kFlagArrayArrayVtable);
+    for (auto& flags : tileFlags) flags.Construct(mfc::impl::TerrainByteArraysClass::Vtable());
     for (auto& lists : tiles) lists.Construct(reinterpret_cast<std::uintptr_t>(recordarrays::TerrainAlignedArrayClass::Vtable()));
     animated.Construct();
     classCounts.Construct();
@@ -622,7 +621,7 @@ void SectorData::DestructBody() {
         tiles[q].FreeData();
     }
     for (int q = 3; q >= 0; --q) {
-        tileFlags[q].vtable = ei::GamePointer<void>(kFlagArrayArrayVtable);
+        tileFlags[q].vtable = mfc::impl::TerrainByteArraysClass::Vtable();
         tileFlags[q].FreeData();
     }
     waterTiles.FreeData();

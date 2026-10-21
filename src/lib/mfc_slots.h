@@ -212,6 +212,66 @@ inline void InitAttention12(Attention12* p) {
 }
 using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
 
+// ---- Element policies of the owned-element arrays ------------------------------------------------
+
+// The CStrings at the given offsets destroyed, in the order given.
+template <typename E, std::size_t... At>
+void DestroyStringsAt(E* p) {
+    (reinterpret_cast<CString*>(reinterpret_cast<std::uint8_t*>(p) + At)->~CString(), ...);
+}
+// The engine's aligned block whose pointer is at `At` freed (its allocation's start is the word
+// before), the pointer left.
+template <typename E, std::size_t At>
+void FreeAlignedAt(E* p) {
+    void* data = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + At);
+    if (data) lib::FreeAligned32(data);
+}
+
+// The CStrings at the given offsets set empty (the record zeroed first by EachElements).
+template <std::size_t Size, std::size_t... At>
+void InitStringsAt(Bytes<Size>* p) {
+    ((*reinterpret_cast<char**>(p->bytes + At) = PchNil()), ...);
+}
+
+template <std::size_t Size>
+using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
+template <std::size_t Size>
+using DeletedThroughFirst = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughFirst<Bytes<Size>>>>;
+template <std::size_t Size, std::size_t At>
+using AlignedBlockAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, FreeAlignedAt<Bytes<Size>, At>>>;
+template <std::size_t Size, std::size_t... At>
+using StringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DestroyStringsAt<Bytes<Size>, At...>>>;
+
+using SceneObjects = DeletedThroughObject<0x1C>;
+using FakeUnitBoneArrays = DeletedThroughObject<0x14>;
+using FakeUnitRecords9C = DeletedThroughFirst<0x9C>;
+using AlignedAt4Records = AlignedBlockAt<0x14, 4>;
+using AlignedAt8Records = AlignedBlockAt<0x18, 8>;
+using TextureNames = StringsAt<8, 4>;          // {id, CString}
+using ExitTargets = StringsAt<0x3C, 0x28>;     // zone exits: the target
+using MemoryRecords = StringsAt<0x18, 0x14>;
+using NamedRecords = StringsAt<0xC, 4>;
+using GlobalMapPoints = StringsAt<0x18, 0x14, 0x10>;
+using GlobalMapZones = StringsAt<0x10, 0xC, 8>;
+
+// Records whose CStrings SetSize sets empty and destroys (the global map's, 005FBF50 / 005FBD30 and
+// the like; a unit memory's call records, 00558D60 / 00558D00).
+template <std::size_t Size, std::size_t... At>
+using BuiltStringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, InitStringsAt<Size, At...>,
+                                                          DestroyStringsAt<Bytes<Size>, At...>>>;
+using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
+using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
+using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
+
+using List30 = ListAbi<Bytes<0x30>>;
+
+// The scene's object records: CMap<DWORD, DWORD>s built by 00477380, destroyed through slot 1.
+using DwordMap = CMap<std::uint32_t, std::uint32_t>;
+using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;
+// {id, CString}: the string empty (004553F0); its destructor (0044C490).
+using NamedStrings = ArrayAbi<WithString<8, 4>, EachElements<WithString<8, 4>, InitWithString<8, 4>,
+                                                            DestroyStringsAt<WithString<8, 4>, 4>>>;
+
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 // Arrays whose elements need nothing.
@@ -377,110 +437,54 @@ struct CornerMapCClass final
     : CompiledCollection<CornerMapCClass, &Map32::Destruct<CornerMapCClass>, &SerializeCMap<Map32>> {};
 
 // Arrays whose elements own something.
-struct FakeUnitBoneArraysClass {   // a fake unit's 20-byte CObject elements (FakeUnitConstruct)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C0F0); }
-};
-struct FakeUnitPartArrayClass {   // a fake unit's 0x220-byte figure parts
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C108); }
-};
-struct FakeUnitSceneRecordArrayClass {   // a fake unit's 0x18C-byte scene records
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C0FC); }
-};
-struct FakeUnitRecord9CArrayClass {   // a fake unit's 0x9C-byte records
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C0E4); }
-};
-struct SceneObjectArrayClass {   // the scene loader's 0x1C-byte CObject elements (SceneInfo::Load)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C80C); }
-};
-struct TerrainByteArraysClass {   // the terrain's CByteArray elements (Serialize 006C4790)
-    static void* Vtable() { return ei::GamePointer<void>(0x007441A8); }
-};
-struct AlignedAt4ArrayClass {   // the scene loader's 20-byte records with an aligned block at +4
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C114); }
-};
-struct AlignedAt8ArrayClass {   // an animation node's 24-byte records with an aligned block at +8
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D9BC); }
-};
-struct TextureNameArrayClass {   // the scene loader's {id, CString}
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C144); }
-};
-struct MemoryRecordArrayClass {   // a unit's 0x18-byte memory records, a CString at +0x14
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F064); }
-};
-struct NamedRecordArrayClass {   // 12-byte records with a CString at +4 (004C9D90)
+// A fake unit's 20-byte CObject elements (FakeUnitConstruct).
+struct FakeUnitBoneArraysClass final
+    : CompiledCollection<FakeUnitBoneArraysClass, &FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>, &SerializeCArray<OwnedBoneLinkArrays>> {};
+// The scene loader's 0x1C-byte CObject elements (SceneInfo::Load).
+struct SceneObjectArrayClass final
+    : CompiledCollection<SceneObjectArrayClass, &SceneObjects::Destruct<SceneObjectArrayClass>, &SerializeCArray<OwnedDwordMaps>> {};
+// The terrain's CByteArray elements (Serialize 006C4790).
+struct TerrainByteArraysClass final
+    : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &SerializeCArray<ByteArrays>> {};
+// The scene loader's 20-byte records with an aligned block at +4.
+struct AlignedAt4ArrayClass final
+    : CompiledCollection<AlignedAt4ArrayClass, &AlignedAt4Records::Destruct<AlignedAt4ArrayClass>, &SerializeCArray<AlignedAt4Records>> {};
+// An animation node's 24-byte records with an aligned block at +8.
+struct AlignedAt8ArrayClass final
+    : CompiledCollection<AlignedAt8ArrayClass, &AlignedAt8Records::Destruct<AlignedAt8ArrayClass>, &SerializeCArray<AlignedAt8Records>> {};
+// 12-byte records with a CString at +4 (004C9D90): game_arrays.h's ObjectiveArrayClass is the same table, which
+// static_init.cpp stores (007AA608).
+struct NamedRecordArrayClass {
     static void* Vtable() { return ei::GamePointer<void>(0x0073D46C); }
 };
-struct GlobalMapPointArrayClass {   // the global map's 0x18-byte points, CStrings at +0x10, +0x14
-    static void* Vtable() { return ei::GamePointer<void>(0x00740BF0); }
+// The scene loader's {id, CString}.
+struct TextureNameArrayClass final
+    : CompiledCollection<TextureNameArrayClass, &TextureNames::Destruct<TextureNameArrayClass>, &SerializeCArray<NamedStrings>> {};
+// A unit's 0x18-byte memory records, a CString at +0x14.
+struct MemoryRecordArrayClass final
+    : CompiledCollection<MemoryRecordArrayClass, &MemoryRecords::Destruct<MemoryRecordArrayClass>, &SerializeCArray<MemoryCallRecords>> {};
+// The global map's 0x18-byte points, CStrings at +0x10, +0x14.
+struct GlobalMapPointArrayClass final
+    : CompiledCollection<GlobalMapPointArrayClass, &GlobalMapPoints::Destruct<GlobalMapPointArrayClass>, &SerializeCArray<GlobalMapPointRecords>> {};
+// The same layout.
+struct GlobalMapPathArrayClass final
+    : CompiledCollection<GlobalMapPathArrayClass, &GlobalMapPoints::Destruct<GlobalMapPathArrayClass>, &SerializeCArray<GlobalMapPointRecords>> {};
+// The global map's 16-byte entries, CStrings at +8, +0xC.
+struct GlobalMapZoneArrayClass final
+    : CompiledCollection<GlobalMapZoneArrayClass, &GlobalMapZones::Destruct<GlobalMapZoneArrayClass>, &SerializeCArray<GlobalMapZoneRecords>> {};
+// Patrols (32 bytes, a waypoint array at +0xC).
+struct PatrolArrayClass
+    : CompiledCollection<PatrolArrayClass, &OwnedPatrols::Destruct<PatrolArrayClass>, &SerializeCArray<OwnedPatrols>> {};
+// A unit record behaviour's patrols (mapspec::Patrol elements): derived from PatrolArrayClass.
+struct BehaviourPatrolsArrayClass final : PatrolArrayClass {
+    static void* Vtable() { return CompiledVtable<BehaviourPatrolsArrayClass>(); }
 };
-struct GlobalMapPathArrayClass {   // the same layout
-    static void* Vtable() { return ei::GamePointer<void>(0x00740BE4); }
-};
-struct GlobalMapZoneArrayClass {   // the global map's 16-byte entries, CStrings at +8, +0xC
-    static void* Vtable() { return ei::GamePointer<void>(0x00740BFC); }
-};
-struct PatrolArrayClass {   // patrols (32 bytes, a waypoint array at +0xC)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C394); }
-};
-struct AllodArrayClass {   // the map database's allods (0x2C bytes: six CStrings, an id array)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C3DC); }
-};
-struct ScriptAreaArrayClass {   // the script's areas (24-byte elements that are arrays)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3C4); }
-};
-
-// ---- Element destructors -------------------------------------------------------------------------
-
-// The CStrings at the given offsets destroyed, in the order given.
-template <typename E, std::size_t... At>
-void DestroyStringsAt(E* p) {
-    (reinterpret_cast<CString*>(reinterpret_cast<std::uint8_t*>(p) + At)->~CString(), ...);
-}
-// The engine's aligned block whose pointer is at `At` freed (its allocation's start is the word
-// before), the pointer left.
-template <typename E, std::size_t At>
-void FreeAlignedAt(E* p) {
-    void* data = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + At);
-    if (data) lib::FreeAligned32(data);
-}
-
-// The CStrings at the given offsets set empty (the record zeroed first by EachElements).
-template <std::size_t Size, std::size_t... At>
-void InitStringsAt(Bytes<Size>* p) {
-    ((*reinterpret_cast<char**>(p->bytes + At) = PchNil()), ...);
-}
-
-template <std::size_t Size>
-using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
-template <std::size_t Size>
-using DeletedThroughFirst = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughFirst<Bytes<Size>>>>;
-template <std::size_t Size, std::size_t At>
-using AlignedBlockAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, FreeAlignedAt<Bytes<Size>, At>>>;
-template <std::size_t Size, std::size_t... At>
-using StringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DestroyStringsAt<Bytes<Size>, At...>>>;
-
-using SceneObjects = DeletedThroughObject<0x1C>;
-using FakeUnitBoneArrays = DeletedThroughObject<0x14>;
-using FakeUnitRecords9C = DeletedThroughFirst<0x9C>;
-using AlignedAt4Records = AlignedBlockAt<0x14, 4>;
-using AlignedAt8Records = AlignedBlockAt<0x18, 8>;
-using TextureNames = StringsAt<8, 4>;          // {id, CString}
-using ExitTargets = StringsAt<0x3C, 0x28>;     // zone exits: the target
-using MemoryRecords = StringsAt<0x18, 0x14>;
-using NamedRecords = StringsAt<0xC, 4>;
-using GlobalMapPoints = StringsAt<0x18, 0x14, 0x10>;
-using GlobalMapZones = StringsAt<0x10, 0xC, 8>;
-
-// Records whose CStrings SetSize sets empty and destroys (the global map's, 005FBF50 / 005FBD30 and
-// the like; a unit memory's call records, 00558D60 / 00558D00).
-template <std::size_t Size, std::size_t... At>
-using BuiltStringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, InitStringsAt<Size, At...>,
-                                                          DestroyStringsAt<Bytes<Size>, At...>>>;
-using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
-using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
-using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
-
-using List30 = ListAbi<Bytes<0x30>>;
+// The map database's allods (0x2C bytes: six CStrings, an id array).
+struct AllodArrayClass final
+    : CompiledCollection<AllodArrayClass, &OwnedAllods::Destruct<AllodArrayClass>, &SerializeCArray<OwnedAllods>> {};
+// The script's areas (24-byte elements that are arrays; game_arrays.h's AreaArrayClass is the same table).
+struct ScriptAreaArrayClass final
+    : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &SerializeCArray<ScriptAreas>> {};
 
 // A map trap record's areas (12-byte elements; the magic trap's circles).
 struct TrapAreasArrayClass final : TrapCircleArrayClass {
@@ -490,15 +494,5 @@ struct TrapAreasArrayClass final : TrapCircleArrayClass {
 struct TrapTargetsArrayClass final : TrapPointArrayClass {
     static void* Vtable() { return CompiledVtable<TrapTargetsArrayClass>(); }
 };
-struct BehaviourPatrolsArrayClass {   // a unit record behaviour's patrols (mapspec::Patrol elements)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C37C); }
-};
-
-// The scene's object records: CMap<DWORD, DWORD>s built by 00477380, destroyed through slot 1.
-using DwordMap = CMap<std::uint32_t, std::uint32_t>;
-using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;
-// {id, CString}: the string empty (004553F0); its destructor (0044C490).
-using NamedStrings = ArrayAbi<WithString<8, 4>, EachElements<WithString<8, 4>, InitWithString<8, 4>,
-                                                            DestroyStringsAt<WithString<8, 4>, 4>>>;
 
 } // namespace mfc::impl

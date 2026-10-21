@@ -230,12 +230,6 @@ struct ObjectRefListClass {   // CList<ScriptObjectRef>
 struct VictimListClass {   // a magic trap's victims (counted references)
     static void* Vtable() { return ei::GamePointer<void>(0x0073E730); }
 };
-struct PointLightArrayClass {   // the script's point lights
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3A0); }
-};
-struct DefinitionArrayClass {   // CArray<ScriptDefinition>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3B8); }
-};
 struct MemoryObjectArrayClass {   // a unit memory's object records
     static void* Vtable() { return ei::GamePointer<void>(0x0073F058); }
 };

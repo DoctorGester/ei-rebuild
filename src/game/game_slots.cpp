@@ -2,6 +2,7 @@
 // ticket S6a): each calls its class's destructor (ours, registered elsewhere) directly.
 #include "game/game_slots.h"
 
+#include "game/record_arrays.h"
 #include "game/world.h"
 
 #include "ei/hook.h"
@@ -17,8 +18,8 @@ void __fastcall GroupDestruct(ScriptGroup* group) { group->DestructBody(); }
 void __fastcall BridgeManagerDestroy(PlatformSet* set) { set->list.RemoveAll(); }
 EI_REPLACE(0x00561840, BridgeManagerDestroy);
 
-EI_REWRITTEN(0x004BE250, gamearrays::PointLights::Destruct<PointLightArrayClass>);
-EI_REWRITTEN(0x004BE2E0, Definitions::Destruct<DefinitionArrayClass>);
+EI_REWRITTEN(0x004BE250, gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>);
+EI_REWRITTEN(0x004BE2E0, Definitions::Destruct<recordarrays::DefinitionArrayClass>);
 EI_REWRITTEN(0x004C18E0, Commands::Destruct<CommandArrayClass>);
 EI_REWRITTEN(0x00598F40, gamelists::Refs::Destruct<RefListAClass>);
 EI_REWRITTEN(0x00599D60, gamelists::Refs::Destruct<RefListBClass>);
@@ -46,13 +47,13 @@ EI_REPLACE(0x00511FF0, ScalarDelete<&EffectObjects::Destruct<EffectObjectArrayCl
 EI_REPLACE(0x00558820, ScalarDelete<&gamelists::Holders::Destruct<ArmourSpellListClass>>);
 EI_REPLACE(0x0059B3F0, ScalarDelete<&gamelists::Refs::Destruct<RefListAClass>>);
 EI_REPLACE(0x0059B490, ScalarDelete<&gamelists::Refs::Destruct<RefListBClass>>);
-EI_REPLACE(0x004C1A20, ScalarDelete<&gamearrays::PointLights::Destruct<PointLightArrayClass>>);
-EI_REPLACE(0x004CB130, ScalarDelete<&gamearrays::PointLights::Destruct<PointLightArrayClass>>);
+EI_REPLACE(0x004C1A20, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
+EI_REWRITTEN(0x004CB130, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
 EI_REPLACE(0x004CB1E0, ScalarDelete<&gamelists::ParticleSources::Destruct<ParticleSourceListClass>>);
 EI_REPLACE(0x004CB200, ScalarDelete<&gamelists::FxSources::Destruct<FxSourceListClass>>);
 EI_REPLACE(0x004CB290, ScalarDelete<&gamelists::Lightnings::Destruct<LightningListClass>>);
-EI_REPLACE(0x004C1A40, ScalarDelete<&Definitions::Destruct<DefinitionArrayClass>>);
-EI_REPLACE(0x004CB2F0, ScalarDelete<&Definitions::Destruct<DefinitionArrayClass>>);
+EI_REPLACE(0x004C1A40, ScalarDelete<&Definitions::Destruct<recordarrays::DefinitionArrayClass>>);
+EI_REWRITTEN(0x004CB2F0, ScalarDelete<&Definitions::Destruct<recordarrays::DefinitionArrayClass>>);
 EI_REPLACE(0x004CB440, ScalarDelete<&gamelists::Definitions::Destruct<DefinitionListClass>>);
 EI_REPLACE(0x004CB550, ScalarDelete<&gamelists::Runs::Destruct<RunListClass>>);
 EI_REPLACE(0x004CB6B0, ScalarDelete<&GroupList::Destruct<GroupListClass>>);
@@ -67,13 +68,13 @@ EI_REPLACE(0x004C1840, ScalarDelete<&ScriptRefArrayDestruct>);   // 004BC9A0
 EI_REPLACE(0x004C1860, ScalarDelete<&ScriptNamesDestruct>);   // 004BC810
 EI_REPLACE(0x004C18A0, ScalarDelete<&ScriptGroupArrayDestruct>);   // 004BCA20
 EI_REPLACE(0x004CAFB0, ScalarDelete<&GroupDestruct>);   // 004C2290
-EI_REPLACE(0x004CB010, ScalarDelete<&gamearrays::Groups::Destruct<gamearrays::GroupArrayClass>>);   // 004C3B20
+EI_REWRITTEN(0x004CB010, ScalarDelete<&gamearrays::Groups::Destruct<gamearrays::GroupArrayClass>>);   // 004C3B20
 EI_REPLACE(0x004CB7B0, ScalarDelete<&gamelists::Tokens::Destruct<gamelists::TokenListClass>>);   // 004CA260
 EI_REPLACE(0x004D6590, ScalarDelete<&ScriptDefinesDestruct>);   // 004D6340
 
 // A map object controller's counted pointers, the world's shared object pointers.
 EI_REPLACE(0x00558780, ScalarDelete<&gamelists::OwnedRefs::Destruct<gamelists::OwnedRefListClass>>);   // 005575F0
-EI_REPLACE(0x0059B4D0, ScalarDelete<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>);   // 0059A100
+EI_REWRITTEN(0x0059B4D0, ScalarDelete<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>);   // 0059A100
 
 // ---- Serialize (vtable slot 2) -------------------------------------------------------------------
 

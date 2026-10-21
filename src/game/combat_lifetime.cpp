@@ -32,7 +32,6 @@ void* const kObjectListVtable = ei::GamePointer<void>(0x0073E730);
 void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
 void* const kReportsBaseVtable = ei::GamePointer<void>(0x0073F058);
 void* const kCallsVtable = ei::GamePointer<void>(0x0073F070);
-void* const kCallsBaseVtable = ei::GamePointer<void>(0x0073F064);
 
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
@@ -199,7 +198,7 @@ AIBrain* AIBrain::Construct() {
 EI_REWRITTEN(0x00545990, AIBrain::Construct);
 
 void AIMemory::Destruct() {
-    calls.vtable = kCallsBaseVtable;
+    calls.vtable = mfc::impl::MemoryRecordArrayClass::Vtable();
     if (calls.data) {
         for (int i = 0; i < calls.size; ++i) calls.data[i].Destruct();   // 00558CC0(0)
         gamecrt::operator_delete(calls.data);

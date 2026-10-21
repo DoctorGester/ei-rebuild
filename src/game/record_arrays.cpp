@@ -146,6 +146,10 @@ EI_REWRITTEN(0x00545BA0, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REWRITTEN(0x006C4C40, TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>);
 EI_REWRITTEN(0x006C4690, SectorVertices::Destruct<SectorVertexArrayClass>);
 EI_REWRITTEN(0x006BC870, gamelists::Waves::Destruct<WaveListClass>);
+// A fake unit's arrays (the tags are record_arrays.h's; mfc_slots.h has the element policies).
+EI_REWRITTEN(0x0044FE80, mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>);
+EI_REWRITTEN(0x004500F0, mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>);
+EI_REWRITTEN(0x00450770, mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>);
 // Scalar deleting destructors (vtable slot 1).
 EI_REWRITTEN(0x004529F0, ScalarDelete<&SceneNodes::Destruct<SceneNodeArrayClass>>);
 EI_REWRITTEN(0x004CB0D0, ScalarDelete<&SubCalls::Destruct<SubCallBaseClass>>);
@@ -158,13 +162,16 @@ EI_REWRITTEN(0x00454CC0, ScalarDelete<&scene::FaceGroupArrayDestruct>);
 EI_REWRITTEN(0x006C4EC0, ScalarDelete<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>);
 EI_REWRITTEN(0x006C4E80, ScalarDelete<&SectorVertices::Destruct<SectorVertexArrayClass>>);
 EI_REPLACE(0x006BD190, ScalarDelete<&gamelists::Waves::Destruct<WaveListClass>>);
+EI_REWRITTEN(0x00452890, ScalarDelete<&mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>>);
+EI_REWRITTEN(0x004528B0, ScalarDelete<&mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>>);
+EI_REWRITTEN(0x004528F0, ScalarDelete<&mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>>);
 
 // Serialize (vtable slot 2): afxtempl's with the raw element bytes (mfc_slots.h); loading sizes the
 // array through the instantiation's own SetSize, so its elements are built and destroyed as above.
 using mfc::impl::SerializeCArray;
-EI_REPLACE(0x0044FEF0, SerializeCArray<FigureParts>);
-EI_REPLACE(0x00450160, SerializeCArray<SceneMeshes>);
-EI_REPLACE(0x004507E0, SerializeCArray<Materials>);
+EI_REWRITTEN(0x0044FEF0, SerializeCArray<FigureParts>);
+EI_REWRITTEN(0x00450160, SerializeCArray<SceneMeshes>);
+EI_REWRITTEN(0x004507E0, SerializeCArray<Materials>);
 EI_REWRITTEN(0x00451640, SerializeCArray<SceneNodes>);
 EI_REWRITTEN(0x00454A70, SerializeCArray<FaceGroups>);
 EI_REWRITTEN(0x004C52A0, SerializeCArray<SubCalls>);

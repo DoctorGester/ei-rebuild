@@ -5,6 +5,7 @@
 // (each called directly). Registered in game_arrays.cpp; checked in game by verify_mfc_array.cpp until S21d.
 
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 #include "game/engine_object.h"
 #include "game/object_tables.h"
 #include "game/script.h"
@@ -94,20 +95,14 @@ using Areas = ArrayAbi<ScriptArea, EachElements<ScriptArea, nullptr, DestroyArea
 using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nullptr, DestroyDefinition>>;
 
 // CScript's arrays' vtables (their destructors 004CB150, 004CB650, 004CB310).
-struct PointLightArrayClass {   // +0x00
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3A0); }
-};
-struct AreaArrayClass {   // +0x194
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3C4); }
-};
-struct DefinitionArrayClass {   // +0x8C
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3B8); }
-};
+// +0x00: the compiler's vtable (C19). The areas (+0x194) are mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C)
+// recordarrays::DefinitionArrayClass.
+struct PointLightArrayClass final
+    : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &mfc::impl::SerializeCArray<PointLights>> {};
 
 // The vtable 0059A100 restores (an array of object pointers, Serialize 0059A170).
-struct ObjectPtrArrayBaseClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FABC); }
-};
+struct ObjectPtrArrayBaseClass
+    : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &mfc::impl::SerializeCArray<ObjectPtrs>> {};
 
 // The particles' draw order (CArray<ParticleDepth>, effects.h; 007A9C50).
 struct ParticleDepthArrayClass {
@@ -127,8 +122,7 @@ struct SmoothNodeArrayClass {
 };
 
 // The vtable 004C3B20 restores (CArray<ScriptGroup>).
-struct GroupArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D310); }
-};
+struct GroupArrayClass final
+    : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &mfc::impl::SerializeCArray<Groups>> {};
 
 } // namespace gamearrays

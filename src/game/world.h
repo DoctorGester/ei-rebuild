@@ -382,11 +382,10 @@ struct EngineObjectPtrs : mfc::CArray<CEngineObject*> {
 
 // An element of the world server's shared-object list (CWorldServer + 0x12E60, 0x20 bytes;
 // world_save.cpp): object id, player, a third dword and an MFC CArray of counted object pointers
-// (vtable 0073FAC8, base 0073FABC; constructor 005985C0, destructor 0059A100 releases the objects
+// (vtable 0073FAC8, base gamearrays::ObjectPtrArrayBaseClass; constructor 005985C0, destructor 0059A100 releases the objects
 // through slot 4 and frees the data).
 struct SharedObject {
     static void* ObjectsVtable() { return ei::GamePointer<void>(0x0073FAC8); }
-    static void* ObjectsBaseVtable() { return ei::GamePointer<void>(0x0073FABC); }   // set by the destructor
 
     int objectId;
     int player;

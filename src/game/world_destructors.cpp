@@ -23,6 +23,7 @@
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "game/record_arrays.h"
 
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 
@@ -63,7 +64,7 @@ struct SharedObjectElements {
     static void Destruct(SharedObject* entry, int count) {
         for (; count > 0; --count, ++entry) {
             auto& objects = entry->objects;
-            objects.vtable = SharedObject::ObjectsBaseVtable();
+            objects.vtable = gamearrays::ObjectPtrArrayBaseClass::Vtable();
             if (!objects.data) continue;
             for (int i = 0; i < objects.size; ++i)
                 if (CEngineObject* object = objects.data[i]) object->Release();
@@ -121,12 +122,12 @@ void CScript::Destruct() {
     errorText_.~CString();
     DestroyScriptList<gamelists::ObjectRefs, gamelists::TempObjectListClass>(tempObjects_);
     DestroyScriptList<gamelists::Groups, gamelists::TempGroupListClass>(tempGroups_);
-    DestroyScriptArray<gamearrays::Areas, gamearrays::AreaArrayClass>(areas_);
+    DestroyScriptArray<gamearrays::Areas, mfc::impl::ScriptAreaArrayClass>(areas_);
     DestroyScriptList<gamelists::Decls, gamelists::DeclListClass>(worldBlocks_);
     DestroyScriptList<gamelists::Runs, gamelists::RunListClass>(runs_);
     DestroyScriptList<gamelists::Definitions, gamelists::InstanceListClass>(instances_);
     ScriptVarsDestruct(&globals_);
-    DestroyScriptArray<gamearrays::Definitions, gamearrays::DefinitionArrayClass>(definitions_);
+    DestroyScriptArray<gamearrays::Definitions, recordarrays::DefinitionArrayClass>(definitions_);
     DestroyScriptList<gamelists::Decls, gamelists::DeclListClass>(blocks_);
     DestroyScriptList<gamelists::Lightnings, gamelists::LightningListClass>(lightning_);
     DestroyScriptList<gamelists::FxSources, gamelists::FxSourceListClass>(fxSources_);

@@ -68,7 +68,7 @@ void FreeStrings(mfc::CArray<mfc::CString>* a) {
 // Members from the last to the first.
 void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->groupNames);
-    SetBaseVtable(&vars->groups, scriptvtable::kGroupsBase);
+    SetBaseVtable(&vars->groups, gamearrays::GroupArrayClass::Vtable());
     if (ScriptGroup* groups = vars->groups.data) {
         for (int i = 0; i < vars->groups.size; ++i) groups[i].DestroyElement(0);
         gamecrt::operator_delete(vars->groups.data);
@@ -89,7 +89,7 @@ EI_REWRITTEN(0x004BE090, ScriptVarsDestruct);
 void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     ScriptVars& vars = definition->vars;
     NamesDestruct(&vars.groupNames);
-    SetBaseVtable(&vars.groups, scriptvtable::kGroupsBase);
+    SetBaseVtable(&vars.groups, gamearrays::GroupArrayClass::Vtable());
     if (vars.groups.data) {
         DestructGroups(vars.groups.data, vars.groups.size);
         gamecrt::operator_delete(vars.groups.data);
