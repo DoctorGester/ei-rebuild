@@ -122,8 +122,8 @@ bool CSectorMap::Add(CEngineObject* object) {
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
     Sector& sector = sectors[width * sy + sx];
-    bool isUnit = object->GetClassId() == kClassUnit;
-    (isUnit ? sector.units : sector.objects).AddTail(object);
+    if (object->GetClassId() == kClassUnit) sector.units.AddTail(AsUnit(object));
+    else sector.objects.AddTail(object);
 
     bool fits = aiMap->MarkFootprint(object, false);
     if (fits) {
@@ -137,7 +137,7 @@ bool CSectorMap::Add(CEngineObject* object) {
     // Does not fit: take it out of the list again.
     Sector& again = sectors[width * sy + sx];
     if (object->GetClassId() == kClassUnit) {
-        if (auto* node = again.units.Find(object)) again.units.RemoveAt(node);
+        if (auto* node = again.units.Find(AsUnit(object))) again.units.RemoveAt(node);
     } else {
         if (auto* node = again.objects.Find(object)) again.objects.RemoveAt(node);
     }
@@ -145,7 +145,7 @@ bool CSectorMap::Add(CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x005C0DF0, CSectorMap::Add);
 
-mfc::CTypedPtrList<CEngineObject>* CSectorMap::UnitsAt(int sx, int sy) {
+mfc::CTypedPtrList<CUnit>* CSectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
     return &sectors[width * sy + sx].units;
 }
@@ -157,10 +157,15 @@ bool CSectorMap::Remove(CEngineObject* object) {
     if (sx >= width || sy >= height) return false;
 
     Sector& sector = sectors[width * sy + sx];
-    auto& list = object->GetClassId() == kClassUnit ? sector.units : sector.objects;
-    auto* node = list.Find(object);
-    if (!node) return false;
-    list.RemoveAt(node);
+    if (object->GetClassId() == kClassUnit) {
+        auto* node = sector.units.Find(unit);
+        if (!node) return false;
+        sector.units.RemoveAt(node);
+    } else {
+        auto* node = sector.objects.Find(object);
+        if (!node) return false;
+        sector.objects.RemoveAt(node);
+    }
 
     bool cleared = aiMap->MarkFootprint(object, true);
     if (cleared) {
@@ -299,7 +304,7 @@ void* __fastcall BuildSectorSpiral(void* self) {
 }
 EI_REPLACE(0x005BF8F0, BuildSectorSpiral);
 
-void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius) {
+void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
     int length = SpiralLengths()[Spiral()->Find(radius * 0.03125f)];
     const std::int16_t* offset = SpiralOffsets();
     result->RemoveAll();
@@ -317,7 +322,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
         if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
         Sector& sector = grid->sectors[grid->width * gy + gx];
         for (auto* node = sector.units.head; node;) {
-            CEngineObject* unit = node->data;
+            CUnit* unit = node->data;
             node = node->next;
             float dx = PosX(unit) - px, dy = PosY(unit) - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
@@ -360,10 +365,14 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
 
     if (changesSector) {
         Sector& from = sectors[width * oldSy + oldSx];
-        auto& fromList = object->GetClassId() == kClassUnit ? from.units : from.objects;
-        if (auto* node = fromList.Find(object)) fromList.RemoveAt(node);
         Sector& to = sectors[width * newSy + newSx];
-        (object->GetClassId() == kClassUnit ? to.units : to.objects).AddTail(object);
+        if (object->GetClassId() == kClassUnit) {
+            if (auto* node = from.units.Find(unit)) from.units.RemoveAt(node);
+            to.units.AddTail(unit);
+        } else {
+            if (auto* node = from.objects.Find(object)) from.objects.RemoveAt(node);
+            to.objects.AddTail(object);
+        }
     }
     object->flags_ |= kInSectorMap;
     unit->sectorCellY = cellY;

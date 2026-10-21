@@ -200,7 +200,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
     auto& units = player->units.map;
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         CEngineObject* unit = node->value;
-        mfc::CTypedPtrList<CEngineObject> heard;
+        mfc::CTypedPtrList<CUnit> heard;
         heard.vtable = mfc::PtrListVtable();
         heard.head = nullptr;
         heard.tail = nullptr;

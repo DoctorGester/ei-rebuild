@@ -34,7 +34,8 @@ constexpr int kStatTaming = 2;
 // bytes), 005D5F60 AddMode, 005D6140 RemoveMode(kind), 005D7790 StopAction.
 void* __fastcall ModePlayerConstruct(void* a0) { return static_cast<PlayerMode*>(a0)->Construct(); }
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
-void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
+template <typename T>
+void __fastcall ReferenceRelease(T** a0) { CountedRefResetOriginal((void*)a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 
 int& Stage(CUnitServer* self) { return self->tameStage; }
@@ -48,7 +49,7 @@ void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
 // An empty reference list of the brain (CList of one reference per node): each released, then
 // RemoveAll. `release` picks how the original releases the element.
 template <bool kViaRelease>
-void ClearReferenceList(mfc::CTypedPtrList<CEngineObject>& list) {
+void ClearReferenceList(mfc::CTypedPtrList<CUnit>& list) {
     for (auto* node = list.head; node; node = node->next) {
         if (kViaRelease) {
             ReferenceRelease(&node->data);

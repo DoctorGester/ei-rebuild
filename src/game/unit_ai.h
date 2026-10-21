@@ -25,11 +25,12 @@
 #include <cstdint>
 #include <cstring>
 
+class CUnit;
 struct AIBrain;
 struct AIOrder;
 class CUnitServer;      // combat.h (the unit controller of AI units, the brain's owner)
 
-using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
+using AIObjectList = mfc::CTypedPtrList<CUnit>;
 
 // An order as the controller's order checks take it (0x1C bytes, built on the stack).
 struct AIOrder {
@@ -596,19 +597,20 @@ struct AIRef {
     void Load(CStream* stream, void* world);
     void Save(CStream* stream);
     // A counted object pointer (a member of another object) seen as the reference it is.
-    static AIRef* Of(CEngineObject** slot) { return reinterpret_cast<AIRef*>(slot); }
+    template <typename T>
+    static AIRef* Of(T** slot) { return reinterpret_cast<AIRef*>(slot); }
 
     CEngineObject* object;
 };
 
 // 0052AF20 (counted_ref.cpp; fastcall, RET 4): a count read from `stream`, then that many counted
 // references appended to `list`, each loaded in `context` (the trap's units, the brain's lists).
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, CStream* stream, void* context);
+void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, void* context);
 
 // The brain's corpse list (+0x148; its elements are counted references). 005D8D50 (RET 4,
 // unit_ai.cpp; CorpseWatcherMode::Evaluate through AIBrain::PopCorpse): RemoveHead, the head's
 // object handed to `out` with a reference (the list's own reference released). Returns `out`.
-using CorpseList = mfc::CTypedPtrList<CEngineObject>;
+using CorpseList = mfc::CTypedPtrList<CUnit>;
 AIRef* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRef* out);
 
 class CSpell;
@@ -925,7 +927,7 @@ double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
 
 // 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
 // holding a reference; returns the node.
-AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void* edx, CEngineObject* object);
+AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void* edx, CUnit* object);
 
 // The brain's perception memory (brain + 0xD0, 0xC0 bytes): what the unit sees, has seen and heard
 // (unit_ai_memory.cpp, unit_ai_brain.cpp, unit_ai_hearing.cpp, unit_ai_save.cpp; the original's
@@ -968,10 +970,10 @@ struct AIMemory {
     // 005CBC80 (RET 8). Forces `object` into sight when it is not visible and attacks the unit or
     // stands at or beyond one of the two sight ranges: a corpse joins the seen corpses (and the
     // corpses when allied), a living unit the visible list's head (both counted); each logged.
-    void ForceSee(CUnit* self, CEngineObject* object);
+    void ForceSee(CUnit* self, CUnit* object);
     // 005CBE90 (RET 8; the server's OnDamaged). Logs and adds `corpse` to the seen corpses (and to
     // the corpses when its side is allied with the unit's), both counted.
-    void SeeCorpse(CUnit* self, CEngineObject* corpse);
+    void SeeCorpse(CUnit* self, CUnit* corpse);
     // 005CB850 (RET 8; each server tick). The unit's exposure to the living hostile units nearby
     // into `out` (5 floats, CUnit + 0x4C8): per kind the smallest distance / range ratio, at most 3
     // (a zero range counts 3). [0] sight (scaled by the line of sight between the eyes, only within

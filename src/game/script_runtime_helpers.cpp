@@ -72,8 +72,8 @@ bool CAIMap::MoveInSectors(CEngineObject* object, const Vector3* position) {
 }
 EI_REPLACE_METHOD(0x004BA0E0, CAIMap::MoveInSectors);
 
-void CAIMap::FindUnitsInRadius(const Vector3* position, void* result, float radius) {
-    Sectors(this)->FindUnitsInRadius(position, static_cast<mfc::CTypedPtrList<CEngineObject>*>(result), radius);
+void CAIMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
+    Sectors(this)->FindUnitsInRadius(position, result, radius);
 }
 EI_REPLACE_METHOD(0x004BA100, CAIMap::FindUnitsInRadius);
 

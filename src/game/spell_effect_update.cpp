@@ -23,7 +23,7 @@ constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasti
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
 void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 
-using UnitList = mfc::CTypedPtrList<CEngineObject>;
+using UnitList = mfc::CTypedPtrList<CUnit>;
 
 // A player's server connection (CPlayer::connection_ on the server is a CPlayerServer).
 CPlayerServer* ServerOf(CPlayer* player) { return reinterpret_cast<CPlayerServer*>(player->connection_); }
@@ -247,7 +247,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
         e->world->WakeUnitsAround(&e->position, wake);
         e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
         for (auto* node = units.head; node;) {
-            CEngineObject* unit = node->data;
+            CUnit* unit = node->data;
             node = node->next;
             int duration = e->targetCount;
             int level = FrightLevel(&e->timer, &duration);
@@ -273,7 +273,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
             ScriptGroup* group = &ServerOf(player)->group50F8_;
             e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
             for (auto* node = units.head; node;) {
-                CEngineObject* unit = node->data;
+                CUnit* unit = node->data;
                 node = node->next;
                 group->Insert(unit);
             }

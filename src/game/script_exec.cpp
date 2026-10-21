@@ -174,7 +174,7 @@ void* EndLine() { return reinterpret_cast<void*>(0x004BA9F0); }
 // units found (CPtrList: constructor 004C96A0, destructor 004C96F0), the items given to a player
 // (constructor 004C98C0, AddTail 004C98F0, destructor 00427830) and the party slots (CArray of
 // 40-byte slots: constructor 004BB000, destructor 004BB020).
-using PtrList = mfc::CList<void*>;
+using PtrList = mfc::CList<CUnit*>;
 struct PartySlot {
     int unitId;
     std::uint8_t unused_04[36];
@@ -278,13 +278,13 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     float radius = static_cast<CMapObject*>(object)->radius + static_cast<CMapObject*>(object)->radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
     for (PtrList::Node* pos = units.head; pos;) {
-        auto* unit = static_cast<CUnit*>(pos->data);
+        CUnit* unit = pos->data;
         pos = pos->next;
         map->RemoveFromSectors(unit);
     }
     for (PtrList::Node* pos = units.head; pos;) {
         Vector3 free;
-        auto* unit = static_cast<CUnit*>(pos->data);
+        CUnit* unit = pos->data;
         pos = pos->next;
         if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
