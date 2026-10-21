@@ -7,6 +7,7 @@
 #include "gameapi.h"
 #include "mfc.h"
 #include "mfc_string.h"
+#include "game/game_data.h"
 
 namespace mfc::impl {
 
@@ -14,8 +15,8 @@ namespace {
 
 // MFC's four static windows (wndTop, wndBottom, wndTopMost, wndNoTopMost).
 bool IsStaticWindow(const CWnd* wnd) {
-    return wnd == reinterpret_cast<const CWnd*>(0x007CAA28) || wnd == reinterpret_cast<const CWnd*>(0x007CA9E8) ||
-           wnd == reinterpret_cast<const CWnd*>(0x007CA9A8) || wnd == reinterpret_cast<const CWnd*>(0x007CA968);
+    return wnd == ei::GamePointer<const CWnd>(0x007CAA28) || wnd == ei::GamePointer<const CWnd>(0x007CA9E8) ||
+           wnd == ei::GamePointer<const CWnd>(0x007CA9A8) || wnd == ei::GamePointer<const CWnd>(0x007CA968);
 }
 
 } // namespace

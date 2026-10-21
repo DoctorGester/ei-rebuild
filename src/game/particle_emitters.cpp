@@ -15,6 +15,7 @@
 #include "originals_engine.h"
 #include "originals_world.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -30,10 +31,10 @@ double Unsigned(std::uint32_t value) {
 }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 
@@ -471,7 +472,7 @@ const float* GlowAlpha() { return reinterpret_cast<const float*>(0x0078AA78); }
 const std::int32_t* DustAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AAD8); }
 
 // 00561150 on the map object at 007AF78C: the ground plane at (x, y), as a normal and a distance.
-void* PlaneMap() { return reinterpret_cast<void*>(0x007AF78C); }
+void* PlaneMap() { return ei::GamePointer<void>(0x007AF78C); }
 
 // x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {

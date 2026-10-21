@@ -36,6 +36,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "lib/mfc_slots.h"
+#include "game_data.h"
 
 #include <concepts>
 
@@ -63,7 +64,7 @@ float Bits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Bits(T) = delete;
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // --- Game data ----------------------------------------------------------------------------------
 
@@ -120,7 +121,7 @@ struct SoundMixer {
     void ResetMusic() { reinterpret_cast<CMusicSystem*>(this)->Stop(); }   // 006B4F70 (the object at *007AF760)
 };
 // The scene renderer (007AF060, what 00500960 returns).
-CSceneRenderer* Renderer() { return reinterpret_cast<CSceneRenderer*>(0x007AF060); }
+CSceneRenderer* Renderer() { return ei::GamePointer<CSceneRenderer>(0x007AF060); }
 // 006570E0: saves the game into saves\<name> (ECX name, DL flag).
 
 // --- Sprite fields set directly -------------------------------------------------------------------
@@ -238,7 +239,7 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
 
 void CGlobalMap::Create() {
     autosave_ = false;
-    if (*reinterpret_cast<const int*>(0x007AFE1C) != 0)
+    if (ei::GameData<const int>(0x007AFE1C) != 0)
         GameSaveStream()->Resize(0);
     else if (reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player->lastScreen != 5)
         autosave_ = true;   // not back from the camp
@@ -476,7 +477,7 @@ void CGlobalMap::Create() {
     minutes -= hour * 60;
     mfc::CString clock;
     mfc::CString dayText;
-    (*reinterpret_cast<CTextManager**>(0x007AF788))->GetString("save_day", &dayText);
+    (ei::GameData<CTextManager*>(0x007AF788))->GetString("save_day", &dayText);
     clock.Format("%s  %d,  %d:%02d", static_cast<const char*>(dayText), day + 1, hour, minutes);
     {
         void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -530,7 +531,7 @@ void CGlobalMap::Create() {
     SelectZone(-1, 0);
     dragging_ = false;
     GameSetWeather(0, 0.0f);   // clear
-    (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();
+    (ei::GameData<SoundMixer*>(0x007AF760))->ResetMusic();
     {
         auto* weather = static_cast<CCloudNoise*>(gamecrt::operator_new(0x34));
         if (weather) {
@@ -611,7 +612,7 @@ void CGlobalMap::Update() {
                                  D(GameFloat(0x0073C3B0)) +
                              D(angle_));
         angle_ = turned;
-        angle_ = FmodStored(turned, reinterpret_cast<const float*>(0x007C8020));
+        angle_ = FmodStored(turned, ei::GamePointer<const float>(0x007C8020));
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Vector3 side = {1.0f, 0.0f, 0.0f};
         Quaternion spin;
@@ -674,7 +675,7 @@ void CGlobalMap::Update() {
     // (00691D80, ticket R8), drawn into directly (the original: between a Lock and an Unlock).
     if (objects_.size > 4) {
         CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
-        auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+        auto* lock = ei::GamePointer<CRITICAL_SECTION>(0x007AEE78);
         gameapi::EnterCriticalSection(lock);
         SurfacePixels pixels;
         if (DirectPixels(holder, &pixels)) {   // (always: the texture has memory)
@@ -683,7 +684,7 @@ void CGlobalMap::Update() {
         }
         gameapi::LeaveCriticalSection(lock);
     }
-    static_cast<CCursor*>(reinterpret_cast<void*>(0x007C7BD8))->ChangeShape(dragging_ ? 0x16 : 0);
+    static_cast<CCursor*>(ei::GamePointer<void>(0x007C7BD8))->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
 EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);

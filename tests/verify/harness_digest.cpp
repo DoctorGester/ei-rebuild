@@ -19,6 +19,7 @@
 #include "../../src/game/world.h"
 #include "../../src/game/world_effect.h"
 #include "../../src/lib/crt.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -47,8 +48,8 @@ constexpr int kClassSound = 0x48, kClassAmbientSound = 0x49, kClassParticle = 0x
               kClassShowVisibility = 0x5E, kClassSoundSeq = 99, kClassTornado = 0x65;
 
 // The client world (a static object of game.exe) and the mission's script (the world's CScript).
-CWorldClient* ClientWorldObject() { return reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8)); }
-CScript* MissionScriptObject() { return reinterpret_cast<CScript*>(std::uintptr_t(0x007C27D4)); }
+CWorldClient* ClientWorldObject() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
+CScript* MissionScriptObject() { return ei::GamePointer<CScript>(0x007C27D4); }
 
 // A field's value: its name ('#' stands for `index`), how it is written and its 32 bits.
 enum class Kind : char { Int, Unsigned, Float, Bits, Mode };

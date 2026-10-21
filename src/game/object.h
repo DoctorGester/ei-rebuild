@@ -9,6 +9,7 @@
 #include "base_manager.h"
 #include "core_transform.h"
 #include "engine_object.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -24,7 +25,7 @@ T FieldAt(const void* object, std::size_t offset) {
 }
 
 // 007AFFA0: the manager that owns the world's objects (units, buildings, ...).
-inline CBaseManager* WorldObjectManager() { return *reinterpret_cast<CBaseManager**>(0x007AFFA0); }
+inline CBaseManager* WorldObjectManager() { return ei::GameData<CBaseManager*>(0x007AFFA0); }
 
 // CUnit fields used here (ai_map.h owns the class layout).
 namespace unitfield {

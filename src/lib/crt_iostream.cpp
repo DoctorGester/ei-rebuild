@@ -10,6 +10,7 @@
 #include "crt.h"
 #include "ei/hook.h"
 #include "gameapi.h"
+#include "game/game_data.h"
 
 #include <cstring>
 
@@ -30,8 +31,8 @@ const int* OstreamVirtualBases() { return reinterpret_cast<const int*>(0x0074828
 
 // The lock all streams share (x_lockc) and how many ios are alive (initialised with the first, deleted
 // with the last).
-CRITICAL_SECTION* SharedLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007CAE90); }
-int& LiveIosCount() { return *reinterpret_cast<int*>(0x007CAEC8); }
+CRITICAL_SECTION* SharedLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007CAE90); }
+int& LiveIosCount() { return ei::GameData<int>(0x007CAEC8); }
 
 constexpr int kReserveSize = 0x200;   // doallocate's reserve area
 

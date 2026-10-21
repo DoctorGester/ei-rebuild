@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "originals_engine.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -15,7 +16,7 @@ namespace {
 constexpr float kDefaultValue = 1.0f;
 constexpr float kDefaultValue2C = 10.0f;
 // 007AF2D0: the default colour both colours start from.
-const float* DefaultColour() { return reinterpret_cast<const float*>(0x007AF2D0); }
+const float* DefaultColour() { return ei::GamePointer<const float>(0x007AF2D0); }
 } // namespace
 
 int CTorchObjectSpec::CreateSpec() {

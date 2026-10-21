@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -16,7 +17,7 @@ namespace net {
 namespace {
 
 std::uint32_t& VariableCounter() { return *reinterpret_cast<std::uint32_t*>(0x0079B608); }
-float GameFloat(std::uintptr_t a) { return *reinterpret_cast<const volatile float*>(a); }
+float GameFloat(std::uintptr_t a) { return ei::GameData<const volatile float>(a); }
 // FCOMP then TEST AH,0x40 (C3): equal, or unordered.
 bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
 

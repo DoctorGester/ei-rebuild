@@ -31,6 +31,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
+#include "game_data.h"
 
 #include <concepts>
 #include <cstdint>
@@ -67,7 +68,7 @@ float AbsBits(float f) {
 // leads nowhere).
 MapRecord* FindZone(const char* name) { return reinterpret_cast<CMapDatabase*>(0x0079BF00)->FindMap(name); }
 
-CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
+CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 struct UiTexts {
     // 004DEFC0 (not rewritten). Finds text `key`; non-zero when found (the cursor at its start).
     int Find(const char* key);
@@ -76,7 +77,7 @@ int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, ke
 int FindText(const char* key) { return reinterpret_cast<UiTexts*>(Texts())->Find(key); }
 
 // The quest the window last selected (a global CString).
-mfc::CString& LastQuest() { return *reinterpret_cast<mfc::CString*>(0x007C8178); }
+mfc::CString& LastQuest() { return ei::GameData<mfc::CString>(0x007C8178); }
 
 // 004DBE40 (not rewritten): splits `text` at `separator` into `out`.
 
@@ -178,7 +179,7 @@ constexpr float kMarkerHeight = 20.0f;      // 0073CCF8
 constexpr float kMarkerHalfWidth = 10.0f;   // 0073BAAC
 constexpr float kExitHalf = 15.0f;          // 0073C518
 constexpr std::uint32_t kFarAway = 0x5A0E1BCA;   // 1e16
-float ExitTurn() { return *reinterpret_cast<const float*>(0x007C8170); }   // a global angle
+float ExitTurn() { return ei::GameData<const float>(0x007C8170); }   // a global angle
 constexpr float kExitTurnDown = 3.1415927f; // 00742B24
 
 } // namespace
@@ -388,7 +389,7 @@ namespace {
 // [0065CFE0].
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
-QuestDatabase::QuestIndex& QuestIndex() { return *reinterpret_cast<QuestDatabase::QuestIndex*>(0x007C87B4); }
+QuestDatabase::QuestIndex& QuestIndex() { return ei::GameData<QuestDatabase::QuestIndex>(0x007C87B4); }
 
 // The quest's record (its experience and money rewards), from the quest database.
 QuestRecord* FindQuestRecord(const char* name) {

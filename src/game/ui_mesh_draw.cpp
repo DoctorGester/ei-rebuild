@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "render/render.h"   // SetInterfaceDraw
 #include "ui_widescreen.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -26,7 +27,7 @@ constexpr int kStackView = 2;
 
 // The identity orientation (w 1, x y z 0; set by 005E6C30 at start): a sprite's first orientation,
 // and what the draw hands DrawFigure as its second argument (not read on that path).
-const Quaternion& IdentityOrientation() { return *reinterpret_cast<const Quaternion*>(0x007C7CD8); }
+const Quaternion& IdentityOrientation() { return ei::GameData<const Quaternion>(0x007C7CD8); }
 constexpr float kSpriteDepth = 10.0f;
 constexpr std::uint32_t kOpaqueBlack = 0xFF000000;
 const char* SetTextureFailed() { return "CI3DFigure::Draw.\n SetTexture failed.\n"; }
@@ -42,7 +43,7 @@ void Pop(MatrixStack& stack) {
 
 // Place's layout scale (00740158, 0.48157), the half width / height (00740160, 400; 0073FA98, 300)
 // and 1 (0073B84C), read from the exe.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 } // namespace
 

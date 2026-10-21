@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "unit.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -38,7 +39,7 @@ std::uint8_t* SpellPrototypeOf(void* spell) {
     return reinterpret_cast<std::uint8_t*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
 
-void* TextManager() { return *reinterpret_cast<void* const*>(0x007AF788); }
+void* TextManager() { return ei::GameData<void* const>(0x007AF788); }
 
 // The spell's slot 19 (the picture's name) and 20 (the model's name).
 void SpellName(CEngineObject* spell, int slot, ReturnedString* out) {

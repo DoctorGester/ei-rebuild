@@ -5,6 +5,7 @@
 #include "crt_format_vectors.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <climits>
 #include <cstdarg>
@@ -40,7 +41,7 @@ bool SameLocale(const Locale& a, const Locale& b) {
 }
 
 // __lc_handle[LC_CTYPE]: nonzero once the game has set its locale.
-unsigned LocaleHandle() { return *reinterpret_cast<const unsigned*>(0x007CABF0); }
+unsigned LocaleHandle() { return ei::GameData<const unsigned>(0x007CABF0); }
 
 // Whether the locale now is the fixture's; the fixture is taken (and offered) at the first call after
 // the game set its locale.

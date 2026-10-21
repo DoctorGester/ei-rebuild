@@ -16,6 +16,7 @@
 #include "originals_script.h"
 #include "record_arrays.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -30,7 +31,7 @@ namespace {
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 
 // The world (007AFF60): timed objects.
-CWorldServer* TheWorld() { return reinterpret_cast<CWorldServer*>(0x007AFF60); }
+CWorldServer* TheWorld() { return ei::GamePointer<CWorldServer>(0x007AFF60); }
 
 // CList::RemoveAll as the reset inlines it: each element destroyed in place, the list emptied
 // and its blocks freed.

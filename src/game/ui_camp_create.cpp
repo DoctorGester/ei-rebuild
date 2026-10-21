@@ -37,6 +37,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "render/render_state.h"
+#include "game_data.h"
 
 #include <d3d.h>
 
@@ -47,7 +48,7 @@
 namespace {
 
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }          // CUiItemPanel
 VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }          // CItemInfoPanel
@@ -85,8 +86,8 @@ constexpr int kActionEquip = 1, kActionSpellParts = 2, kActionItemParts = 3;
 constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
-const ClassTemplateVector* ClassTemplates() { return reinterpret_cast<const ClassTemplateVector*>(0x007AA5D8); }
-CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
+const ClassTemplateVector* ClassTemplates() { return ei::GamePointer<const ClassTemplateVector>(0x007AA5D8); }
+CMusicSystem* Music() { return ei::GameData<CMusicSystem* const>(0x007AF760); }
 CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
 CUiContainer* AsContainer(CCampPages* camp) { return reinterpret_cast<CUiContainer*>(camp); }

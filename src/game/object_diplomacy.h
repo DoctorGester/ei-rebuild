@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "game_data.h"
 
 using BOOL = int;
 
@@ -48,4 +49,4 @@ static_assert(offsetof(CDiplomacy, hostile_) == 0x80);
 static_assert(sizeof(CDiplomacy) == 0x100);
 
 // 007C2BC4: the game's diplomacy table.
-inline CDiplomacy* GameDiplomacy() { return reinterpret_cast<CDiplomacy*>(0x007C2BC4); }
+inline CDiplomacy* GameDiplomacy() { return ei::GamePointer<CDiplomacy>(0x007C2BC4); }

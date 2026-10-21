@@ -6,12 +6,13 @@
 #include "net_delta.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 // 007C4378: the order angle's range (+-), set by the static initialiser 005C5CB0 (twice 0073FE44).
-float OrderAngleLimit() { return *reinterpret_cast<const float*>(0x007C4378); }
+float OrderAngleLimit() { return ei::GameData<const float>(0x007C4378); }
 
 constexpr std::uint16_t kMaxStepFlags = 0x3FF;
 // A step's coordinate code (two bits each in the header): one less than the previous step's, the

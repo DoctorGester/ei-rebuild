@@ -14,6 +14,7 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -21,7 +22,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 template <typename T>
 T Get(const void* p, int offset) {
     T v;
@@ -40,7 +41,7 @@ R VirtualCall(void* object, int slot, Args... args) {
     return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
 }
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // The device's state around a frame part (thiscall, not rewritten): 004E7840 and 004E7A40.
 void FlushAndRestore(UiRenderer* renderer) {

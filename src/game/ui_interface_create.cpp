@@ -21,13 +21,14 @@
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <utility>
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 // The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
 // share of the screen width.
 const char* FontFace() { return "Times New Roman"; }

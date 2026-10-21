@@ -26,6 +26,7 @@
 #include "originals_library.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
@@ -44,11 +45,11 @@ constexpr float kPathRange = 1000000.0f;              // FindPath's range for th
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
 // The stream the received packets are decompressed into (007C83D0; ReceiveMessages fills it).
-CMemoryStream& ReceivedMessages() { return *reinterpret_cast<CMemoryStream*>(std::uintptr_t(0x007C83D0)); }
+CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The shares a revived hero loses: of the party's money (007C5490) and of its experience above the
 // NPC record's floor (007C5494). Set at startup.
-float MoneyPenalty() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x007C5490)); }
-float ExperiencePenalty() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x007C5494)); }
+float MoneyPenalty() { return ei::GameData<const volatile float>(0x007C5490); }
+float ExperiencePenalty() { return ei::GameData<const volatile float>(0x007C5494); }
 // The AI map's cell size factors (0074326C, 0073B86C): a half-cell coordinate times both is world units.
 float CellScaleA() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x0074326C)); }
 float CellScaleB() { return *reinterpret_cast<const volatile float*>(std::uintptr_t(0x0073B86C)); }
@@ -287,10 +288,10 @@ namespace {
 
 // The campaign mode (007C2CC4; 1 and 3 end the game when the leader is gone) and the game mode
 // (007B0098; 1 single player, 2 multiplayer).
-int CampaignMode() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007C2CC4)); }
-int GameMode() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007B0098)); }
+int CampaignMode() { return ei::GameData<const volatile int>(0x007C2CC4); }
+int GameMode() { return ei::GameData<const volatile int>(0x007B0098); }
 // The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
-void* PartyManager() { return reinterpret_cast<void*>(std::uintptr_t(0x007AA5A0)); }
+void* PartyManager() { return ei::GamePointer<void>(0x007AA5A0); }
 int& NextRecordObjectId() { return *reinterpret_cast<int*>(std::uintptr_t(0x00794E3C)); }
 
 constexpr std::uint8_t kMessageZone = 0x08;
@@ -641,7 +642,7 @@ namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;
 constexpr std::uint8_t kMessage19 = 0x19;
 const char* const kResendingParty = "Resending party of player ";   // 00794F34
-libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(std::uintptr_t(0x007C56B0)); }
+libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
 } // namespace
 
 void CPlayerServer::SendPartyUpdate() {

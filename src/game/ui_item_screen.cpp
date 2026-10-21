@@ -15,6 +15,7 @@
 #include "originals_gameplay.h"
 #include "item.h"
 #include "party.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,7 +23,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 
 // Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): 005E70E0 a

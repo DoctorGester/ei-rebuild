@@ -17,6 +17,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -76,8 +77,8 @@ void ClearTrack(AnimationTrack* track) {
     track->rotations = nullptr;
     track->vertexCount = 0;
     track->frames.SetSize(0, -1);
-    track->position = *reinterpret_cast<const Vector3*>(std::uintptr_t(0x007AF110));
-    track->rotation = *reinterpret_cast<const Quaternion*>(std::uintptr_t(0x007AF100));
+    track->position = ei::GameData<const Vector3>(0x007AF110);
+    track->rotation = ei::GameData<const Quaternion>(0x007AF100);
     track->vertices.RemoveAll();
     track->time = 0.0f;
 }

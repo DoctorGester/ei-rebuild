@@ -16,6 +16,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -33,7 +34,7 @@ inline double Unsigned(std::uint32_t value) {
 // A float read back from memory (the original stores, then reloads it).
 inline float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
 
-inline float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 inline double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
 inline std::uint32_t GameDword(std::uintptr_t address) {
     return *reinterpret_cast<const volatile std::uint32_t*>(address);
@@ -46,7 +47,7 @@ inline std::uint32_t Bits(const void* field) {
     return bits;
 }
 
-inline IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+inline IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 inline std::uint32_t Next() { return GlobalRandom().Next(); }
 
 // 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.

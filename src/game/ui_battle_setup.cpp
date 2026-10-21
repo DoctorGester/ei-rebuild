@@ -30,6 +30,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 using console::CStringArray;
 
@@ -70,8 +71,8 @@ void ContainerInputs::AddInput(void* input) { reinterpret_cast<CUiContainer*>(th
 
 // The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
 // game being loaded (at 007AFE1C).
-int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }
-bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
+int SaveVersion() { return ei::GameData<const int>(0x007AFE00); }
+bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
 
 // The vtables (main, input) of the panels Create builds inline.
 constexpr std::uintptr_t kClockVtable = std::uintptr_t(0x007425C8);            // CHudClock
@@ -313,12 +314,12 @@ BOOL CBattleScreen::Draw(void* target) {
         static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
-    InputMouseMove(0, *reinterpret_cast<int*>(0x007C7C50), *reinterpret_cast<int*>(0x007C7C54));
+    InputMouseMove(0, ei::GameData<int>(0x007C7C50), ei::GameData<int>(0x007C7C54));
     // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
     UiRenderer* renderer = interface_->renderer_;
     DWORD flags = kClearTarget;
     if ((renderer->caps_ & 0x4000) && renderer->stencil_) flags = kClearStencil;
-    auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+    auto* lock = ei::GamePointer<CRITICAL_SECTION>(0x007AEE78);
     gameapi::EnterCriticalSection(lock);
     renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);

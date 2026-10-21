@@ -19,11 +19,12 @@
 #include "originals_world.h"
 #include "lib/mfc_array.h"
 #include "render/render.h"
+#include "game_data.h"
 
 namespace terrain {
 namespace {
 
-double GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+double GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The constants of this code (all floats in .rdata).
 double One() { return GameFloat(0x00744160); }          // 1: vertex spacing
@@ -40,7 +41,7 @@ double Zero() { return GameFloat(0x0073B858); }         // 0
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Element helpers of the original (DestroyRecords is in terrain_lights.cpp): the flag arrays'
 // (006C4F90 / 006C4F60) and the tile lists' (006C5050 / 006C5010) instantiations.
@@ -546,9 +547,9 @@ namespace {
 using ProjectionVertex = Vector4;
 static_assert(sizeof(ProjectionVertex) == 16);
 using ProjectionBuffer = lib::AlignedArray<ProjectionVertex>;
-ProjectionBuffer& ProjectionInput() { return *reinterpret_cast<ProjectionBuffer*>(std::uintptr_t(0x007C88F8)); }
-ProjectionBuffer& ProjectionOutput() { return *reinterpret_cast<ProjectionBuffer*>(std::uintptr_t(0x007C88E8)); }
-FlagArray& ProjectionOutcodes() { return *reinterpret_cast<FlagArray*>(std::uintptr_t(0x007C88D0)); }
+ProjectionBuffer& ProjectionInput() { return ei::GameData<ProjectionBuffer>(0x007C88F8); }
+ProjectionBuffer& ProjectionOutput() { return ei::GameData<ProjectionBuffer>(0x007C88E8); }
+FlagArray& ProjectionOutcodes() { return ei::GameData<FlagArray>(0x007C88D0); }
 constexpr int kProjectionVertices = 0x330;
 
 // The vtables of the sector's CArray instantiations.

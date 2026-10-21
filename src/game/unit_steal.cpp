@@ -4,6 +4,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -11,7 +12,7 @@ namespace {
 constexpr int kQuickSlots = 4;
 constexpr int kPartItems = 5;     // MarkChanged part
 
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 } // namespace
 
 CEngineObject* CUnit::TakeRandomItem() {

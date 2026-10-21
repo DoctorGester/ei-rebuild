@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "lib/containers.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -23,10 +24,10 @@ namespace {
 
 using IntPoint = RasterTriangle::Point;
 using PointArray = lib::AlignedArray<IntPoint>;   // its inlined SetSize allocates through 004F65B0
-PointArray& TexturePoints() { return *reinterpret_cast<PointArray*>(0x007C2E00); }
-std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E10); }
+PointArray& TexturePoints() { return ei::GameData<PointArray>(0x007C2E00); }
+std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E10); }
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 } // namespace
 

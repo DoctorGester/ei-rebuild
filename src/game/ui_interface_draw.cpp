@@ -21,6 +21,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "render/render_state.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -46,10 +47,10 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 
 // --- The overlays (005F5320) ---
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
-int SurfaceBytesKept() { return *reinterpret_cast<const volatile int*>(0x007C7E74); }
-int SurfaceBytesAllocated() { return *reinterpret_cast<const volatile int*>(0x007C7E78); }
+int SurfaceBytesKept() { return ei::GameData<const volatile int>(0x007C7E74); }
+int SurfaceBytesAllocated() { return ei::GameData<const volatile int>(0x007C7E78); }
 // The option byte 00784753: backdrops of a quarter of the layout, stretched over it.
 bool SmallBackdrops() { return *reinterpret_cast<const volatile std::uint8_t*>(0x00784753) != 0; }
 

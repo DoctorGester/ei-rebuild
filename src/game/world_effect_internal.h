@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 #include <concepts>
 #include <cstdint>
@@ -25,18 +26,18 @@ namespace effect {
 
 // --- Globals -------------------------------------------------------------------------------------
 
-inline void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
+inline void* SoundSystem() { return ei::GameData<void*>(0x007AF784); }
 // The light manager: ::LightManager (map_object.h).
-inline CLightFactory* LightFactory() { return *reinterpret_cast<CLightFactory**>(0x007AF748); }   // CreateObject makes lights
-inline void* ParticleManager() { return *reinterpret_cast<void**>(0x007AF754); }
-inline CLightningManager* BoltFactory() { return *reinterpret_cast<CLightningManager**>(0x007AF758); }   // CreateObject makes bolts
-inline void* ObjectManager() { return *reinterpret_cast<void**>(0x007AF5F8); }    // CBaseManager
-inline void* CameraObject() { return *reinterpret_cast<void**>(0x007AF7C8); }
-inline int ChangeStamp() { return *reinterpret_cast<const int*>(0x007AFFC8); }
-inline int GameTick() { return *reinterpret_cast<const int*>(0x007AF61C); }
-inline std::uint8_t FrameCounter() { return *reinterpret_cast<const std::uint8_t*>(0x007AFFC4); }
+inline CLightFactory* LightFactory() { return ei::GameData<CLightFactory*>(0x007AF748); }   // CreateObject makes lights
+inline void* ParticleManager() { return ei::GameData<void*>(0x007AF754); }
+inline CLightningManager* BoltFactory() { return ei::GameData<CLightningManager*>(0x007AF758); }   // CreateObject makes bolts
+inline void* ObjectManager() { return ei::GameData<void*>(0x007AF5F8); }    // CBaseManager
+inline void* CameraObject() { return ei::GameData<void*>(0x007AF7C8); }
+inline int ChangeStamp() { return ei::GameData<const int>(0x007AFFC8); }
+inline int GameTick() { return ei::GameData<const int>(0x007AF61C); }
+inline std::uint8_t FrameCounter() { return ei::GameData<const std::uint8_t>(0x007AFFC4); }
 // While unpacking: the snapshot the field is read against (delta::ReadSnapshot in net_delta.h).
-inline BitStream* ReadSnapshot() { return *reinterpret_cast<BitStream**>(0x007A9794); }
+inline BitStream* ReadSnapshot() { return ei::GameData<BitStream*>(0x007A9794); }
 
 // Constants the original reads from memory (read the same way so nothing is folded).
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }

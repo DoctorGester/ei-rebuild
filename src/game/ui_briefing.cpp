@@ -20,6 +20,7 @@
 #include "originals_world.h"
 #include "world.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -28,7 +29,7 @@ namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
 float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
-void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
+void* TheGame() { return ei::GamePointer<void>(0x007AFE20); }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
 void** SaveLoadVtable() { return reinterpret_cast<void**>(0x00741388); }
@@ -54,7 +55,7 @@ LocalPartyRecords* LocalRecords() { return reinterpret_cast<LocalPartyRecords*>(
 int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
 
 CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
-void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
+void* ClientWorld() { return ei::GamePointer<void>(0x007AF5B8); }
 const char* ZoneTopicFormat() { return "b.%s"; }
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kTopicNameParts = 3;

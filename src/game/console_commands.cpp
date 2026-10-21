@@ -24,6 +24,7 @@
 #include "ui.h"
 #include "unit.h"
 #include "world.h"
+#include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -46,7 +47,7 @@ bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, "1") || ArgI
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
 // 007C7D50: the interface manager.
-CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
+CInterface3D* Interface() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 
 // The world's player `id` (00594180, through its address), or null.
 WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(id)); }
@@ -332,7 +333,7 @@ void RequestWithParty(CStringArray* args, const char* extra) {
     party->AddMember("F", "Human Hero", extra);
     {
         mfc::CString map((*args)[0]);
-        (reinterpret_cast<GameFlow*>(0x007AFE20)->*Request)(map, party);
+        (ei::GamePointer<GameFlow>(0x007AFE20)->*Request)(map, party);
     }
     party->DestructBody();
 }

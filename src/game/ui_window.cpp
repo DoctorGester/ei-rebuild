@@ -16,6 +16,7 @@
 #include "originals_units.h"
 #include "originals_render.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -521,12 +522,12 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
     flags_ = 0;
     rect_ = RECT{0, 0, 0, 0};
-    localRotation_ = *reinterpret_cast<const Quaternion*>(0x007C7E58);
+    localRotation_ = ei::GameData<const Quaternion>(0x007C7E58);
     localPosition_.x = 0.0f;
     heldObject_ = nullptr;
     localPosition_.y = 0.0f;
     localPosition_.z = 0.0f;
-    void* materials = *reinterpret_cast<void* const*>(0x007AF740);
+    void* materials = ei::GameData<void* const>(0x007AF740);
     auto* white = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(materials)->NewMaterial(0x16));
     whiteMaterial_ = white;
     static_cast<CMaterialManager*>(materials)->FillMaterial(white, 0x16);

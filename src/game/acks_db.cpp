@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -24,7 +25,7 @@ namespace acks {
 
 namespace {
 
-CWorldClient& ClientWorld() { return *reinterpret_cast<CWorldClient*>(0x007AF5B8); }
+CWorldClient& ClientWorld() { return ei::GameData<CWorldClient>(0x007AF5B8); }
 
 // The roll a speech's chance is compared with: rand() scaled to 0..99.
 int Roll() { return gamecrt::rand() * 100 / 0x7FFF % 100; }

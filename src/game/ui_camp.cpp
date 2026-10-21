@@ -32,6 +32,7 @@
 #include "originals_gameplay.h"
 #include "originals_world.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <d3d.h>
 
@@ -1168,7 +1169,7 @@ namespace {
 float TurnedBy(double seconds, float turn, bool backwards) {
     const double twice = seconds + seconds;
     const double turned = backwards ? turn - twice : twice + turn;
-    return static_cast<float>(libcrt::CiFmod(turned, *reinterpret_cast<const float*>(0x007C7EE8)));
+    return static_cast<float>(libcrt::CiFmod(turned, ei::GameData<const float>(0x007C7EE8)));
 }
 
 constexpr int kHeroClass = 0x32;

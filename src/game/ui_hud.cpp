@@ -39,6 +39,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 00794460
@@ -77,7 +78,7 @@ constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
 // The constants the movement panel's marker is placed with, read where the original reads them.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 float Pi() { return GameFloat(0x007423F8); }
 float Sixteenth() { return GameFloat(0x0073D040); }      // 0.0625
 float MarkerRadius() { return GameFloat(0x00742B10); }   // 73

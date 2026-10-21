@@ -18,17 +18,18 @@
 #include <cstring>
 #include "originals_engine.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 // --- 005E4EB0: a cursor image ------------------------------------------------------------------------
 
 namespace {
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager**>(0x007AF744); }
-CTextureDevice* DeviceObject() { return *reinterpret_cast<CTextureDevice**>(0x007AF080); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
+CTextureManager* TextureManager() { return ei::GameData<CTextureManager*>(0x007AF744); }
+CTextureDevice* DeviceObject() { return ei::GameData<CTextureDevice*>(0x007AF080); }
 // The cursor's size (the hot spots are given for a 32-pixel cursor).
-LONG CursorWidth() { return *reinterpret_cast<LONG*>(0x007C7C90); }
-LONG CursorHeight() { return *reinterpret_cast<LONG*>(0x007C7C94); }
+LONG CursorWidth() { return ei::GameData<LONG>(0x007C7C90); }
+LONG CursorHeight() { return ei::GameData<LONG>(0x007C7C94); }
 
 
 // The mask of `count` pixels of a row: all ones where the pixel's colour is 0 (16 bits: the whole

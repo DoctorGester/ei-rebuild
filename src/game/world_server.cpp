@@ -21,6 +21,7 @@
 #include "originals_effects.h"
 #include "originals_units.h"
 #include "game_lists.h"
+#include "game_data.h"
 
 namespace {
 
@@ -68,7 +69,7 @@ void EraseId(ObjectIdMap& map, unsigned id) {
 
 } // namespace
 
-CWorldServer* WorldServer() { return reinterpret_cast<CWorldServer*>(0x007AFF60); }
+CWorldServer* WorldServer() { return ei::GamePointer<CWorldServer>(0x007AFF60); }
 
 // ---- Id maps -------------------------------------------------------------------------------------
 

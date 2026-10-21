@@ -23,6 +23,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_engine.h"
+#include "game_data.h"
 
 #include <windows.h>
 
@@ -40,7 +41,7 @@ namespace {
 // 0079BE6C: the "draw all units" flag (the console's spectator mode).
 int& DrawAllUnits() { return *reinterpret_cast<int*>(0x0079BE6C); }
 // 007C554C: the loading screen's movie is off (LoadingMovie::off, bink_video.cpp).
-std::uint8_t& LoadingMovieOff() { return *reinterpret_cast<std::uint8_t*>(0x007C554C); }
+std::uint8_t& LoadingMovieOff() { return ei::GameData<std::uint8_t>(0x007C554C); }
 
 WorldPlayer* GetPlayer(int number) { return WorldServer()->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data; }

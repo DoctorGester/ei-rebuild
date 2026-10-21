@@ -20,13 +20,14 @@
 #include "lib/gameapi.h"
 
 #include "../hook/log.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
 
 namespace {
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // The shadow textures: CreateObject's kind, 64 pixels square, the device's 4:4:4:4 format (its
 // texture kind 0x21 in the missing-format report).

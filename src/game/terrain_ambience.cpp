@@ -14,6 +14,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -64,8 +65,8 @@ constexpr double kTwoToMinus32 = 2.3283064370807974e-10;   // 0073C468
 
 float CellSize() { return *reinterpret_cast<const float*>(0x007441D0); }
 // pi / 2 (007C8930, a static initialiser from 007441C8 * 0.5).
-float HalfPi() { return *reinterpret_cast<const float*>(0x007C8930); }
-CWorldClient* ClientWorld() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
+float HalfPi() { return ei::GameData<const float>(0x007C8930); }
+CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 
 // The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }

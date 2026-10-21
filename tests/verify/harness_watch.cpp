@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/world.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -33,7 +34,7 @@ unsigned g_updates;
 DWORD g_mainThread;
 std::uintptr_t g_addonBase, g_addonEnd, g_selfBase, g_selfEnd;
 
-CWorldClient* ClientWorld() { return reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8)); }
+CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
 
 void ModuleRange(HMODULE module, std::uintptr_t& base, std::uintptr_t& end) {
     if (!module) return;

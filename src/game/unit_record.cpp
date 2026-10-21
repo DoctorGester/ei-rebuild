@@ -9,6 +9,7 @@
 #include "originals_gameplay.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -49,8 +50,8 @@ struct Factory {
 void* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) {
     return reinterpret_cast<CItemManager*>(this)->CreateSpellItem(reinterpret_cast<const char*>(a0), reinterpret_cast<CSpellManager*>(a1));
 }
-Factory* TheFactory() { return *reinterpret_cast<Factory**>(0x007AFFB4); }
-std::uint32_t SpellOwner() { return *reinterpret_cast<const std::uint32_t*>(0x007AFFAC); }
+Factory* TheFactory() { return ei::GameData<Factory*>(0x007AFFB4); }
+std::uint32_t SpellOwner() { return ei::GameData<const std::uint32_t>(0x007AFFAC); }
 
 
 // *a = *b = float(value * *factor), the product rounded by the FPU's precision.

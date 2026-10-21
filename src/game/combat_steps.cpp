@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "unit.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -87,7 +88,7 @@ float Select(float a, float b, float ifLess, float otherwise) {
 
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
 

@@ -6,6 +6,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -37,7 +38,7 @@ struct LeverRecord {
 static_assert(sizeof(LeverRecord) == 0x2C);
 
 // The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record (originals_units.h).
-inline void* LeverTable() { return reinterpret_cast<void*>(0x0079C1A0); }
+inline void* LeverTable() { return ei::GamePointer<void>(0x0079C1A0); }
 
 // The lever table's layout: the records (an STLport vector) and their index by model name. Its
 // constructor (004632A0) is a static initialiser, its destructor 00463120 (lever_table.cpp).

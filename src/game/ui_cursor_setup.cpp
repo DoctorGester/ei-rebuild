@@ -12,12 +12,13 @@
 #include "lib/mfc.h"
 #include "lib/mfc_thread.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 namespace {
 
 // The cursor's size in pixels (007C7C90 / 007C7C94): 32, or 16 for the small cursors.
-LONG& CursorWidth() { return *reinterpret_cast<LONG*>(0x007C7C90); }
-LONG& CursorHeight() { return *reinterpret_cast<LONG*>(0x007C7C94); }
+LONG& CursorWidth() { return ei::GameData<LONG>(0x007C7C90); }
+LONG& CursorHeight() { return ei::GameData<LONG>(0x007C7C94); }
 constexpr LONG kLargeSize = 0x20;
 constexpr LONG kSmallSize = 0x10;
 

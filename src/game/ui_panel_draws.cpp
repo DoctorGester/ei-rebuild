@@ -12,6 +12,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "render/render.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -25,7 +26,7 @@ constexpr std::uint32_t kCapsStencil = 0x4000;
 
 const char* NumberFormat() { return "%d"; }
 const char* CostFormat() { return "%s %d (%d)"; }
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // 005ECA10 (rewritten, ui_item_view.cpp): the owner screen draws
 // an item's model in a cell (RET 8).

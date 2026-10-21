@@ -19,6 +19,7 @@
 #include "unit.h"
 
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -609,7 +610,7 @@ namespace console {
 class GameOStream;
 }
 // 007C53C4: the stream the AI's perception messages go to.
-inline console::GameOStream* AiLog() { return *reinterpret_cast<console::GameOStream**>(0x007C53C4); }
+inline console::GameOStream* AiLog() { return ei::GameData<console::GameOStream*>(0x007C53C4); }
 
 // 005CA050 (ECX = out, EDX = point; unit_ai_brain.cpp). Copies x and y of a point (the AI events'
 // and the heard calls' noticed points); returns `out`.

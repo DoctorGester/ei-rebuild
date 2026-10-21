@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "originals_core.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -21,7 +22,7 @@ namespace {
 inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
 #define EI_ONE GameFloat(0x0073B84C)          // 1.0f
 #define EI_MINUS_ONE GameFloat(0x0073B854)    // -1.0f

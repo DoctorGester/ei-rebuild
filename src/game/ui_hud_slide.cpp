@@ -27,6 +27,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "originals_ui.h"       // SpritePlaceOriginal, WindowFrameTimeOriginal
+#include "game_data.h"
 
 #include <concepts>
 #include <cmath>
@@ -39,7 +40,7 @@ __declspec(naked) void CHudUnitPanel::CallLayout() EI_ORIGINAL(0x00645F80)
 namespace {
 
 // The layouts' x coordinates and the slide's time are read where the original reads them.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 float MapCentreX() { return GameFloat(0x00742AAC); }      // 700
 float MapButtonsX() { return GameFloat(0x00742AA8); }     // 790
 float MapFrameX() { return GameFloat(0x00742AA4); }       // 710

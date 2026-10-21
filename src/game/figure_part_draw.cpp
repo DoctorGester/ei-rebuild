@@ -27,6 +27,7 @@
 #include "originals_render.h"
 #include "world.h"
 #include "library_trees.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -36,8 +37,8 @@ namespace {
 
 // The positions with the offsets added (007C2E48, a lib::AlignedArray; a function-local static,
 // guard 007C2E58 bit 1, freed at exit by 005A8AE0).
-lib::AlignedArray<VertexPacket>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E48); }
-std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E58); }
+lib::AlignedArray<VertexPacket>& MovedPositions() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E48); }
+std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E58); }
 // The ambient level the lights' colours are set with (0079BE9C, float bits), the "crown" option
 // (0079BD28), the flags an animated mesh's drawer gets (00790C0C) and the renderer (007AF060).
 std::uint32_t AmbientBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079BE9C); }

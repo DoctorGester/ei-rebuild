@@ -13,6 +13,7 @@
 #pragma once
 
 #include "ei/x87.h"
+#include "game/game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -34,27 +35,29 @@ using Word = std::uint32_t;
 constexpr std::uintptr_t kCrtAtExit = 0x006E727B;
 
 // The operations that do what they say, on game.exe's memory and code: the static initialisers (Run) and
-// the exit functions they register (static_exit.cpp) run through them.
+// the exit functions they register (static_exit.cpp) run through them. A data address is the original's:
+// each operation that takes one resolves it through the data seam (game_data.h), At an argument that is one.
 class Code {
 public:
+    static std::uint32_t At(std::uintptr_t address) { return static_cast<std::uint32_t>(GameAddress(address)); }
     // The once-only guard of a global (a bit in a flag byte): false when the bit is already set.
     static bool Once(std::uintptr_t flag, std::uint8_t bit) {
-        std::uint8_t& flags = *reinterpret_cast<std::uint8_t*>(flag);
+        std::uint8_t& flags = GameData<std::uint8_t>(flag);
         if (flags & bit) return false;
         flags = static_cast<std::uint8_t>(flags | bit);
         return true;
     }
-    static void Store(std::uintptr_t address, std::uint32_t value) { *reinterpret_cast<std::uint32_t*>(address) = value; }
+    static void Store(std::uintptr_t address, std::uint32_t value) { GameData<std::uint32_t>(address) = value; }
     static void Store(std::uintptr_t address, Result result) { Store(address, result.value); }
     template <class T>
-    static void StoreFloat(std::uintptr_t address, T value) { *reinterpret_cast<float*>(address) = static_cast<float>(value); }
+    static void StoreFloat(std::uintptr_t address, T value) { GameData<float>(address) = static_cast<float>(value); }
     static void Fill(std::uintptr_t address, std::uint32_t value, std::uint32_t count) {
-        auto* to = reinterpret_cast<std::uint32_t*>(address);
+        auto* to = GamePointer<std::uint32_t>(address);
         for (std::uint32_t i = 0; i < count; ++i) to[i] = value;
     }
-    static std::uint32_t Dword(std::uintptr_t address) { return *reinterpret_cast<const std::uint32_t*>(address); }
-    static float Float(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
-    static double Double(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
+    static std::uint32_t Dword(std::uintptr_t address) { return GameData<const std::uint32_t>(address); }
+    static float Float(std::uintptr_t address) { return GameData<const float>(address); }
+    static double Double(std::uintptr_t address) { return GameData<const double>(address); }
     // FLDLN2; FLD x; FYL2X.
     static double Log(double x) { return x87::flog(x); }
     // MOV reg, [address]; TEST reg, reg: a pointer (or count) that is set.
@@ -66,7 +69,7 @@ public:
             void(__thiscall* const* vtable)(Counted*, std::uint32_t);
             std::uint32_t count;
         };
-        Counted* object = *reinterpret_cast<Counted**>(pointer);
+        Counted* object = GameData<Counted*>(pointer);
         if (!object || --object->count != 0) return;
         object->vtable[0](object, 1);
     }
@@ -81,13 +84,13 @@ public:
     }
     template <class... A>
     static Result Thiscall(std::uintptr_t fn, std::uintptr_t object, A... args) {
-        return {reinterpret_cast<std::uint32_t(__thiscall*)(void*, Word<A>...)>(fn)(reinterpret_cast<void*>(object),
+        return {reinterpret_cast<std::uint32_t(__thiscall*)(void*, Word<A>...)>(fn)(GamePointer<void>(object),
                                                                                       static_cast<std::uint32_t>(args)...)};
     }
     // CALL [slot]: a Win32 function through game.exe's import address table.
     template <class... A>
     static Result Import(std::uintptr_t slot, A... args) {
-        return Stdcall(*reinterpret_cast<const std::uintptr_t*>(slot), args...);
+        return Stdcall(GameData<const std::uintptr_t>(slot), args...);
     }
 };
 
@@ -135,11 +138,12 @@ public:
         for (std::uint32_t i = 0; i < count; ++i) Store(address + 4 * i, value);
     }
     // Reads the original's memory as the initialiser did: a copy compares the two addresses' contents.
-    std::uint32_t Dword(std::uintptr_t address) const { return *reinterpret_cast<const std::uint32_t*>(address); }
-    float Float(std::uintptr_t address) const { return *reinterpret_cast<const float*>(address); }
-    double Double(std::uintptr_t address) const { return *reinterpret_cast<const double*>(address); }
+    std::uint32_t Dword(std::uintptr_t address) const { return GameData<const std::uint32_t>(address); }
+    float Float(std::uintptr_t address) const { return GameData<const float>(address); }
+    double Double(std::uintptr_t address) const { return GameData<const double>(address); }
     static double Log(double x) { return x87::flog(x); }
     std::uint32_t Local(std::uint32_t) { return 0; }
+    static std::uint32_t At(std::uintptr_t address) { return static_cast<std::uint32_t>(address); }
     template <class... A>
     Result Cdecl(std::uintptr_t, A...) { return {0}; }
     template <class... A>
@@ -173,6 +177,7 @@ public:
     static bool NonZero(std::uintptr_t) { return true; }   // both ways of an exit function's test
     static void Release(std::uintptr_t) {}                 // a virtual call: no target to collect
     std::uint32_t Local(std::uint32_t) { return 0; }
+    static std::uint32_t At(std::uintptr_t address) { return static_cast<std::uint32_t>(address); }
     template <class... A>
     Result Cdecl(std::uintptr_t fn, A...) { return Call(fn); }
     template <class... A>

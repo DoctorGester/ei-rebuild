@@ -32,6 +32,7 @@
 #include "originals_units.h"
 #include "originals_core.h"
 #include "originals_ai.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -66,7 +67,7 @@ constexpr std::uint32_t kThreeQuarters = 0x3F400000;  // 0.75
 constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 
 // The figures' default scale (007AF1D0, three floats).
-const void* DefaultFigureScale() { return reinterpret_cast<const void*>(0x007AF1D0); }
+const void* DefaultFigureScale() { return ei::GamePointer<const void>(0x007AF1D0); }
 
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }

@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -16,7 +17,7 @@ namespace {
 
 inline double D(float f) { return f; }
 
-ParticleDepthArray& DrawOrder() { return *reinterpret_cast<ParticleDepthArray*>(0x007A9C50); }
+ParticleDepthArray& DrawOrder() { return ei::GameData<ParticleDepthArray>(0x007A9C50); }
 
 // The camera's orientation (0079B2DC).
 const Quaternion& CameraRotation() { return *reinterpret_cast<const Quaternion*>(0x0079B2DC); }

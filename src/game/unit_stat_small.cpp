@@ -9,6 +9,7 @@
 #include "unit_db.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 namespace {
 // The game's settings (globals read at the time of the call).
@@ -47,9 +48,9 @@ EI_REPLACE(0x00523730, ReadPackedParams);
 
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
-    attack = static_cast<int>(attack * reinterpret_cast<const float*>(kAttackFactors)[Difficulty()]);
+    attack = static_cast<int>(attack * ei::GamePointer<const float>(kAttackFactors)[Difficulty()]);
     defence =
-        static_cast<int>(static_cast<float>(defence) * reinterpret_cast<const float*>(kDefenceFactors)[Difficulty()]);
+        static_cast<int>(static_cast<float>(defence) * ei::GamePointer<const float>(kDefenceFactors)[Difficulty()]);
 }
 EI_REPLACE_METHOD(0x0052E0D0, AttackParams::ScaleForDifficulty);
 

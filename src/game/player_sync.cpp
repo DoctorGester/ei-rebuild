@@ -28,6 +28,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -50,7 +51,7 @@ constexpr std::uint8_t kMessageJoin8 = 8;
 constexpr int kStateLeaving = 3;
 
 // The stream the received packets are decompressed into (007C83D0).
-CMemoryStream& ReceivedMessages() { return *reinterpret_cast<CMemoryStream*>(0x007C83D0); }
+CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The receive errors' formats ("Serv pkt read error prevID=%x curID=%x", ...), read from the exe.
 const char* TextReadPastEnd() { return "Serv pkt read error prevID=%x curID=%x"; }
 const char* TextNoHandler() { return "Serv packet has no handler prevID=%x curID=%x"; }
@@ -66,7 +67,7 @@ AIBrain* BrainOf(CUnit* unit) { return &static_cast<CUnitServer*>(unit->controll
 float LowLevel() { return *reinterpret_cast<const float*>(0x0073CDB8); }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
-libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(0x007C56B0); }
+libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 // The empty string the original sends in place of a non-unit's name.

@@ -12,6 +12,7 @@
 #include "camera.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -19,7 +20,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 CCamera* Camera() { return reinterpret_cast<CCamera*>(0x0079B2A8); }
 
 bool ModifierHeld(const CInterface3D* ui) {

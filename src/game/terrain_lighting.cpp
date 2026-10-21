@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "originals_effects.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -26,7 +27,7 @@ constexpr int kVertices = 33 * 33;     // per layer
 constexpr int kRow = 33;
 
 // 1 / the water depth scale (007C8908, set by a static initialiser from 0074417C).
-float WaterFalloff() { return *reinterpret_cast<const float*>(0x007C8908); }
+float WaterFalloff() { return ei::GameData<const float>(0x007C8908); }
 
 // The light's shading of a colour (r, g, b, a) for a vertex normal is CLight::AddDirectional (0068D310,
 // the sun: its direction +0xD4) or AddPoint (0068D5A0, a point light at `distance` along the unit

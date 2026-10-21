@@ -24,6 +24,7 @@
 #include "originals_gameplay.h"
 #include "originals_world.h"
 #include "game_hashes.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -67,11 +68,11 @@ constexpr int kKindNoRangeTest = 3;
 using StaticPtrArray = lib::AlignedArray<CEngineObject*>;
 
 // SyncPlayer's four function statics (their guard bits at 007AFF58) and their atexit destructors.
-StaticPtrArray& Collected() { return *reinterpret_cast<StaticPtrArray*>(0x007AFF48); }
-StaticPtrArray& Added() { return *reinterpret_cast<StaticPtrArray*>(0x007AFF38); }
-StaticPtrArray& Kept() { return *reinterpret_cast<StaticPtrArray*>(0x007AFF28); }
-StaticPtrArray& Removed() { return *reinterpret_cast<StaticPtrArray*>(0x007AFF18); }
-std::uint8_t& StaticsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007AFF58); }
+StaticPtrArray& Collected() { return ei::GameData<StaticPtrArray>(0x007AFF48); }
+StaticPtrArray& Added() { return ei::GameData<StaticPtrArray>(0x007AFF38); }
+StaticPtrArray& Kept() { return ei::GameData<StaticPtrArray>(0x007AFF28); }
+StaticPtrArray& Removed() { return ei::GameData<StaticPtrArray>(0x007AFF18); }
+std::uint8_t& StaticsGuard() { return ei::GameData<std::uint8_t>(0x007AFF58); }
 using AtExitFunction = void(__cdecl*)();
 AtExitFunction CollectedDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C4D0); }
 AtExitFunction AddedDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C4B0); }

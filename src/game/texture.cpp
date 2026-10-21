@@ -7,6 +7,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <ddraw.h>
 
@@ -16,7 +17,7 @@
 namespace {
 // Game-wide paths set at startup. Names provisional.
 const mfc::CString& GameRoot() { return *reinterpret_cast<const mfc::CString*>(0x0079BC90); }
-const char* DataPath() { return *reinterpret_cast<const char* const*>(0x007AF460); }
+const char* DataPath() { return ei::GameData<const char* const>(0x007AF460); }
 
 // Format id for a .bmp texture, by texture kind.
 int BmpFormatFor(int type) {

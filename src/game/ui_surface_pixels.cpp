@@ -21,6 +21,7 @@
 #include "render/render.h"
 #include "originals_engine.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -34,7 +35,7 @@ using SurfaceHolder = CDXSurface;
 SurfaceHolder* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // Pixels of a surface's format go to and from 0xAARRGGBB through ChannelLayout (texture.h:
 // Split 004EDAA0, FromNative 004EDC70, ToNative 004EDC00).
@@ -213,8 +214,8 @@ namespace {
 // 004E6BA0 (thiscall): drops a holder reference.
 void ReleaseHolder(SurfaceHolder* holder) { holder->Release(); }
 
-std::uint32_t& KeptBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E74); }
-std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E78); }
+std::uint32_t& KeptBytesTotal() { return ei::GameData<std::uint32_t>(0x007C7E74); }
+std::uint32_t& SurfaceBytesTotal() { return ei::GameData<std::uint32_t>(0x007C7E78); }
 
 } // namespace
 

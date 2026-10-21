@@ -10,6 +10,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "unit_db.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -17,7 +18,7 @@ namespace {
 
 const char* const kPerkSound = "buttons\\camp\\perk.wav";
 // The skill database (levels by record name).
-SkillDatabase* Skills() { return reinterpret_cast<SkillDatabase*>(0x007AF268); }
+SkillDatabase* Skills() { return ei::GamePointer<SkillDatabase>(0x007AF268); }
 
 constexpr int kHeldRows = 10;
 constexpr int kLearnableRows = 23;

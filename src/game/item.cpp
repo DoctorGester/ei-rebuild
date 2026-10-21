@@ -2,6 +2,7 @@
 
 #include "ei/hook.h"
 #include "random.h"
+#include "game_data.h"
 
 #include <climits>
 #include <cstring>
@@ -10,7 +11,7 @@ using namespace itemdb;
 
 namespace {
 // The game's global ISAAC generator.
-IsaacRandom* GlobalRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* GlobalRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 constexpr float kZero = 0.0f;   // 0073B858
 

@@ -24,6 +24,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "world_glue.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,11 +32,11 @@
 namespace {
 
 constexpr std::uint32_t kFlagSelected = 0x10;
-void* const kWorld = reinterpret_cast<void*>(0x007AF5B8);
-void* const kServerWorld = reinterpret_cast<void*>(0x007AFF60);
-void* const kTextGlue = reinterpret_cast<void*>(0x007AFEA4);
+void* const kWorld = ei::GamePointer<void>(0x007AF5B8);
+void* const kServerWorld = ei::GamePointer<void>(0x007AFF60);
+void* const kTextGlue = ei::GamePointer<void>(0x007AFEA4);
 
-IsaacRandom& UiRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& UiRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // A random value times ~-2^-34 * 0.3 (00742760): the portrait's wobble delay, stored as a float.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * *reinterpret_cast<const volatile double*>(0x00742760));
@@ -144,10 +145,10 @@ void CBattleScreen::ToggleMember(int index) {
         std::uint32_t value = chosen.data[i];
         reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data[i * 5 + 4])->visible_ = static_cast<int>(value);
         Quaternion turn;
-        const Quaternion* rest = reinterpret_cast<const Quaternion*>(0x007C8150);   // identity
+        const Quaternion* rest = ei::GamePointer<const Quaternion>(0x007C8150);   // identity
         if (value != 0) {
             const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-            const float angle = *reinterpret_cast<const volatile float*>(0x007C8144) *
+            const float angle = ei::GameData<const volatile float>(0x007C8144) *
                                 *reinterpret_cast<const volatile float*>(0x0073CDCC);   // 1/7
             rest = turn.SetAxisAngle(axis, angle);
         }
@@ -161,7 +162,7 @@ void CBattleScreen::ToggleMember(int index) {
 
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection (+0x778), record i against member i.
-    if (*reinterpret_cast<const int*>(0x007B0098) == 1) {
+    if (ei::GameData<const int>(0x007B0098) == 1) {
         if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(kServerWorld)->GetPlayer(0))) {
             for (int i = 0; i < player->mercCount; ++i) {
                 if (i >= party->size) continue;
@@ -283,7 +284,7 @@ EI_REPLACE_METHOD(0x00637750, CBattleScreen::UseAtPoint);
 // --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
 
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
-    auto* unit = reinterpret_cast<CUnit*>(static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AF5F8))->FindObject(id));
+    auto* unit = reinterpret_cast<CUnit*>(static_cast<CBaseManager*>(ei::GameData<void*>(0x007AF5F8))->FindObject(id));
     if (!unit) return;
     const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
                                                                   : acks::SayAck(unit, static_cast<int>(event));

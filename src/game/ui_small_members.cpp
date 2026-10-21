@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,7 +23,7 @@ namespace {
 mfc::CString& String(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 const mfc::CString& String(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 void* Vtable(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
 // Slot `slot` of `object`'s vtable, as a function of the object alone returning EAX.

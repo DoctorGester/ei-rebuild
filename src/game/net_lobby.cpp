@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "record_vectors.h"
 #include "../hook/log.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -60,7 +61,7 @@ void LogAddressLine(const char* text, const NetAddress* address) {
 
 float GameFloat(std::uintptr_t a) {
     float f;
-    std::memcpy(&f, reinterpret_cast<const void*>(a), 4);
+    std::memcpy(&f, ei::GamePointer<const void>(a), 4);
     return f;
 }
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }

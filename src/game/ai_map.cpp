@@ -10,6 +10,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "game_data.h"
 
 int WorldToCell(float world) {
     float cell = 1.0f / (1.0f * 0.5f) * world - 0.5f;   // 0073B84C / (0073FD18 * 0073B86C)
@@ -392,8 +393,8 @@ EI_REPLACE_METHOD(0x005BFC40, SpiralCache::Get);
 
 bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
     // Function-local static of the original (guard bit 007C2F50 & 1, destructor 005BAC00).
-    auto& guard = *reinterpret_cast<std::uint8_t*>(0x007C2F50);
-    auto* cache = reinterpret_cast<SpiralCache*>(0x007C2F48);
+    auto& guard = ei::GameData<std::uint8_t>(0x007C2F50);
+    auto* cache = ei::GamePointer<SpiralCache>(0x007C2F48);
     if (!(guard & 1)) {
         guard |= 1;
         cache->radius = -1.0f;

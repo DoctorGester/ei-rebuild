@@ -9,13 +9,14 @@
 #include "engine_object.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
+#include "game_data.h"
 
 class CInterface3D;   // ui.h
 class CLight;   // spell.h
 
 namespace worlddata {
 
-inline float ExeFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+inline float ExeFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // ---- CreateUnits (0058EF20) --------------------------------------------------------------------
 
@@ -72,8 +73,8 @@ inline float TorchLightScale() { return ExeFloat(std::uintptr_t(0x0073BAAC)); } 
 // ---- The client world's Setup (00561E50) --------------------------------------------------------
 
 // The game's folders (CStrings): the data folder and the text resources' folder.
-inline const void* DataPathString() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AF460)); }
-inline const void* TextPathString() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AF45C)); }
+inline const void* DataPathString() { return ei::GamePointer<const void>(0x007AF460); }
+inline const void* TextPathString() { return ei::GamePointer<const void>(0x007AF45C); }
 inline const char* TexturesFolderText() { return "textures\\"; }
 inline const char* LightsTableText() { return "LightsGipat.ini"; }
 inline const char* GipathText() { return "gipath"; }
@@ -124,9 +125,9 @@ constexpr std::uintptr_t kClientArrayListVtable = std::uintptr_t(0x0073F73C);   
 // The game's folders (CStrings 007AF460 data, 007AF45C text resources, 007AF458 the base folder)
 // and the configured paths they are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their
 // text pointers).
-inline void* DataFolderString() { return reinterpret_cast<void*>(std::uintptr_t(0x007AF460)); }
-inline void* TextFolderString() { return reinterpret_cast<void*>(std::uintptr_t(0x007AF45C)); }
-inline void* BaseFolderString() { return reinterpret_cast<void*>(std::uintptr_t(0x007AF458)); }
+inline void* DataFolderString() { return ei::GamePointer<void>(0x007AF460); }
+inline void* TextFolderString() { return ei::GamePointer<void>(0x007AF45C); }
+inline void* BaseFolderString() { return ei::GamePointer<void>(0x007AF458); }
 inline const char* ConfiguredDataPath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC90)); }
 inline const char* ConfiguredTextPath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC94)); }
 inline const char* ConfiguredBasePath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC98)); }
@@ -139,7 +140,7 @@ constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 // ---- The client's Segment (005641F0) ------------------------------------------------------------
 
 // The interface manager (007C7D50; script string events go to it).
-inline CInterface3D* InterfaceManager() { return reinterpret_cast<CInterface3D*>(std::uintptr_t(0x007C7D50)); }
+inline CInterface3D* InterfaceManager() { return ei::GamePointer<CInterface3D>(0x007C7D50); }
 inline const char* AutosaveEventText() { return "autosave"; }
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
@@ -149,9 +150,9 @@ inline int VolumeSettingA() { return *reinterpret_cast<const int*>(std::uintptr_
 inline int VolumeSettingB() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCCC)); }
 inline int MovieVolumeSetting() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC4)); }
 // 007AFC9C: 2 while the party fights (sound_music.cpp).
-inline int FightState() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007AFC9C)); }
+inline int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
 // The interface's list of the multiplayer peers (an STLport vector of 4-byte entries at 007C7D84).
-inline const stlp::vector<int>& PeerList() { return *reinterpret_cast<const stlp::vector<int>*>(std::uintptr_t(0x007C7D84)); }
+inline const stlp::vector<int>& PeerList() { return ei::GameData<const stlp::vector<int>>(0x007C7D84); }
 // The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
 // period (0078FF34) per tick and restarts at 0079BD24.
 inline int LightLevelsSetting() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BD58)); }
@@ -159,8 +160,8 @@ inline int WorldUpdatePeriod() { return *reinterpret_cast<const int*>(std::uintp
 inline int LightLevelsPeriod() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BD24)); }
 // The scene's sun light (007AF07C; figure_part_draw.cpp) and the point 007AFDB0 the grey levels
 // start from (its distance to the sun; meaning unknown).
-inline CLight* SceneSun() { return *reinterpret_cast<CLight* const*>(std::uintptr_t(0x007AF07C)); }
-inline const void* LightReferencePoint() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AFDB0)); }
+inline CLight* SceneSun() { return ei::GameData<CLight* const>(0x007AF07C); }
+inline const void* LightReferencePoint() { return ei::GamePointer<const void>(0x007AFDB0); }
 inline float ColourScale() { return ExeFloat(std::uintptr_t(0x0073C370)); }   // 255
 
 // ---- The world server's quests (world_quests.cpp) -----------------------------------------------
@@ -185,7 +186,7 @@ inline const char* BriefingCompleteScript() { return "WorldScript( GSSetVar( %i,
 inline const char* HumanHeroText() { return "Human Hero"; }
 // The quest database's briefings by name (an STLport hash_map<string, BriefingRecord*>, ui_briefing.h;
 // operator[] 004297A0: stlp::NamedSlot).
-inline stlp::NameMap& QuestBriefings() { return *reinterpret_cast<stlp::NameMap*>(std::uintptr_t(0x007C87D4)); }
+inline stlp::NameMap& QuestBriefings() { return ei::GameData<stlp::NameMap>(0x007C87D4); }
 // The vtables of the lists and arrays the world server builds on the stack: CPtrList of items
 // (0073BE80), CList of experience shares (0073FAB0), CArray of unit record pointers (0073FAA4).
 constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);

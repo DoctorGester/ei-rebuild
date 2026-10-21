@@ -17,6 +17,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 namespace {
 
@@ -27,7 +28,7 @@ template <typename T> T Get(const void* base, int offset) {
     return v;
 }
 
-CTextManager* Texts() { return *reinterpret_cast<CTextManager* const*>(0x007AF788); }
+CTextManager* Texts() { return ei::GameData<CTextManager* const>(0x007AF788); }
 
 // 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
 // 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture

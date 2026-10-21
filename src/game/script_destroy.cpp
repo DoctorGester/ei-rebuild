@@ -20,6 +20,7 @@
 #include "lib/mfc_slots.h"
 #include "record_arrays.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -161,7 +162,7 @@ EI_REPLACE_METHOD(0x004CE230, ScriptSubCall::DestroyElement);
 // A particle source's object: removed from the world's timed objects, then released.
 void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags) {
     if (*slot) {
-        reinterpret_cast<CWorldServer*>(0x007AFF60)->RemoveTimedObject((*slot)->id_);
+        ei::GamePointer<CWorldServer>(0x007AFF60)->RemoveTimedObject((*slot)->id_);
         (*slot)->Release();
     }
     *slot = nullptr;

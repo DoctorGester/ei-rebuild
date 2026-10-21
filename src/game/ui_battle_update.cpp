@@ -36,6 +36,7 @@
 #include "world.h"
 #include "world_glue.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -144,7 +145,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
-        (*reinterpret_cast<CTextManager**>(0x007AF788))->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
+        (ei::GameData<CTextManager*>(0x007AF788))->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
@@ -503,13 +504,13 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                     reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, 0);
                 }
                 marker(i)->visible_ = 0;
-                slot(i).restB_ = *reinterpret_cast<const Quaternion*>(0x007C8150);   // identity
+                slot(i).restB_ = ei::GameData<const Quaternion>(0x007C8150);   // identity
             }
             for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
                 int i = static_cast<int>(node->data);
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-                const float angle = *reinterpret_cast<const volatile float*>(0x007C8144) *
+                const float angle = ei::GameData<const volatile float>(0x007C8144) *
                                     *reinterpret_cast<const volatile float*>(0x0073CDCC);   // 1/7
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
@@ -548,14 +549,14 @@ CTextManager* TextGlue::Table() { return (CTextManager*)GameClientTexts(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
-float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloatAt(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 // FCOMP; TEST AH,0x40: equal, or unordered.
 bool EqualOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
 
 } // namespace
 
 void CBattleScreen::OnQuestVariable(const char* name, float value) {
-    CTextManager* texts = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
+    CTextManager* texts = ei::GamePointer<TextGlue>(0x007AFEA4)->Table();
     console::CStringArray parts;
     mfc::CString text;
     mfc::CString title;

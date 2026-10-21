@@ -32,6 +32,9 @@ rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<are
 python "%~dp0tools\check_forwarders.py" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
 python "%~dp0tools\check_cleanup.py" || exit /b 1
+rem Game data by address only through the data seam (src/game/game_data.h, S18): sealed sections none raw,
+rem the rest per file no more than config/data_seam.csv allows.
+python "%~dp0tools\data_seam.py" --check || exit /b 1
 rem Functions under five bytes (EI_REPLACE_SHORT): each port's kind against game.exe's bytes and our
 rem compiled code (not in the debug build, whose code is unoptimised).
 set SHORTMAP=--map "%~dp0build\%CFG%\ei_hook.map"

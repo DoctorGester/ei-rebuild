@@ -18,13 +18,14 @@
 #include <cstring>
 #include "originals_ai.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
-CUnitShape*& Patch() { return *reinterpret_cast<CUnitShape**>(0x007C2F64); }
-std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F68); }
+CUnitShape*& Patch() { return ei::GameData<CUnitShape*>(0x007C2F64); }
+std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2F68); }
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // An empty unit shape (as CUnitShape::Empty leaves one), built inline. The counted header (count
 // and flags) is cleared with one dword store, as the original does.

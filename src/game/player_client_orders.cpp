@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -65,7 +66,7 @@ int SendMove(BitStream& out, std::uint8_t type, const mfc::CArray<CUnit*>* units
 }
 
 // The game flow (007AFE20).
-GameFlow* Flow() { return reinterpret_cast<GameFlow*>(0x007AFE20); }
+GameFlow* Flow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
 
 // A memory stream on the stack, as the original builds (0041DD70's fields inlined) and destroys it.
 struct LocalStream {

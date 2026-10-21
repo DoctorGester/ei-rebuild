@@ -17,6 +17,7 @@
 #include "ei/x87.h"
 #include "lib/stlp_list.h"
 #include "lib/stlp_string.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -37,8 +38,8 @@ SpellModifierNode*& NodeFreeList16() { return *reinterpret_cast<SpellModifierNod
 
 // The spell and modifier tables: a holder object whose +0x0C is a name hash_map; the lookups
 // below are thiscall on it.
-void* const kSpellTableHolder = reinterpret_cast<void*>(0x007C8510);
-void* const kModifierTableHolder = reinterpret_cast<void*>(0x007C8530);
+void* const kSpellTableHolder = ei::GamePointer<void>(0x007C8510);
+void* const kModifierTableHolder = ei::GamePointer<void>(0x007C8530);
 
 // 0068C680: STLport string reserve(n) on the container's code string (stlp::StringAbi's).
 void CodesReserve(char** codes, unsigned n) { stlp::StringAbi::Reserve(reinterpret_cast<stlp::string*>(codes), nullptr, n); }

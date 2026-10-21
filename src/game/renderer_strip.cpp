@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "device_buffers.h"
 #include "originals_render.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -32,16 +33,16 @@ using devicebuffers::ProjectedVertex;
 
 // The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls 004ECB70,
 // 00468F70, 004ECB50 and 00406B30 for the element sizes, which AlignedArray::Allocate matches).
-lib::AlignedArray<TLVertex>& Strip() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AF000); }      // TL vertices of the points
-lib::AlignedArray<TLVertex>& Ribbon() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AF010); }     // TL vertices, two per point
-lib::AlignedArray<ProjectedVertex>& Projected() { return *reinterpret_cast<lib::AlignedArray<ProjectedVertex>*>(0x007AF020); }
-lib::AlignedArray<std::uint16_t>& Indices() { return *reinterpret_cast<lib::AlignedArray<std::uint16_t>*>(0x007AF030); }
-lib::AlignedArray<std::uint8_t>& Clipped() { return *reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(0x007AF040); }    // a flag byte per point
-std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007AF050); }
+lib::AlignedArray<TLVertex>& Strip() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AF000); }      // TL vertices of the points
+lib::AlignedArray<TLVertex>& Ribbon() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AF010); }     // TL vertices, two per point
+lib::AlignedArray<ProjectedVertex>& Projected() { return ei::GameData<lib::AlignedArray<ProjectedVertex>>(0x007AF020); }
+lib::AlignedArray<std::uint16_t>& Indices() { return ei::GameData<lib::AlignedArray<std::uint16_t>>(0x007AF030); }
+lib::AlignedArray<std::uint8_t>& Clipped() { return ei::GameData<lib::AlignedArray<std::uint8_t>>(0x007AF040); }    // a flag byte per point
+std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AF050); }
 // The texture coordinates of the next cross section: u (007AF05C) and the two v values.
-float& CurrentU() { return *reinterpret_cast<float*>(0x007AF05C); }
-float& TopV() { return *reinterpret_cast<float*>(0x007AF058); }
-float& BottomV() { return *reinterpret_cast<float*>(0x007AF054); }
+float& CurrentU() { return ei::GameData<float>(0x007AF05C); }
+float& TopV() { return ei::GameData<float>(0x007AF058); }
+float& BottomV() { return ei::GameData<float>(0x007AF054); }
 
 // The index array's SetAtGrow (00452FC0) and Add (00504E50).
 

@@ -24,6 +24,7 @@
 #include <new>
 #include "originals_library.h"
 #include "game_lists.h"
+#include "game_data.h"
 
 namespace {
 
@@ -61,13 +62,13 @@ constexpr float kEmitterMaxScale = 255.0f;                         // 0073C370
 
 // pi (007440D8) and pi / 2 (007C8808, set by a static initialiser).
 float Pi() { return *reinterpret_cast<const volatile float*>(0x007440D8); }
-float HalfPi() { return *reinterpret_cast<const volatile float*>(0x007C8808); }
+float HalfPi() { return ei::GameData<const volatile float>(0x007C8808); }
 // The fade step every fade request uses (007440E4, 1/96), copied as a dword.
 std::uint32_t FadeStepBits() { return *reinterpret_cast<const volatile std::uint32_t*>(0x007440E4); }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
 float StopFadeStep() { return *reinterpret_cast<const volatile float*>(0x007440E8); }
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // Miles Sound System through game.exe's import table (all __stdcall).
 using SampleIntFn = void(__stdcall*)(void*, int);

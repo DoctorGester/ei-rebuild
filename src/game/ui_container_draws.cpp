@@ -30,6 +30,7 @@
 #include "render/render.h"
 #include "render/render_state.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -37,7 +38,7 @@ namespace {
 
 template <typename T>
 T GameValue(std::uintptr_t address) {
-    return *reinterpret_cast<const T*>(address);
+    return ei::GameData<const T>(address);
 }
 
 constexpr std::uint32_t kAlphaRef = 0x18;

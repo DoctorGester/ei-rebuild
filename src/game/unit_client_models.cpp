@@ -22,6 +22,7 @@
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -61,8 +62,8 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 const char* ArmourRecord(std::uint32_t type) { return itemdb::Armors().RecordAt(type, itemdb::kArmorSize); }
 
 // The figure manager (global 007AF5F4) and the texture manager (007AF744).
-void* FigureManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
-void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+void* FigureManager() { return ei::GameData<void* const>(0x007AF5F4); }
+void* TextureManager() { return ei::GameData<void* const>(0x007AF744); }
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.

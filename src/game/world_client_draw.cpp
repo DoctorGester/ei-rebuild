@@ -48,6 +48,7 @@
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
 #include "lib/stlp_list_refs.h"
+#include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
 
@@ -64,9 +65,9 @@ void SetRenderState(CTextureDevice* renderer, int state, std::uint32_t value) {
 }
 // The renderer's state block handles: 007AEDD0 the scene's, 007AEDD8 the alpha passes', 007AEDDC
 // the terrain's.
-const std::uint32_t& StateBlockScene() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDD0); }
-const std::uint32_t& StateBlockAlpha() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDD8); }
-const std::uint32_t& StateBlockTerrain() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDDC); }
+const std::uint32_t& StateBlockScene() { return ei::GameData<const std::uint32_t>(0x007AEDD0); }
+const std::uint32_t& StateBlockAlpha() { return ei::GameData<const std::uint32_t>(0x007AEDD8); }
+const std::uint32_t& StateBlockTerrain() { return ei::GameData<const std::uint32_t>(0x007AEDDC); }
 void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
     renderer->lastLoadResult_ = device::ApplyStateBlock(device::D3D(renderer), handle);
     render::state::Block(handle);

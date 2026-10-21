@@ -13,6 +13,7 @@
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_engine.h"
+#include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -37,8 +38,8 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
 // 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
 // The spells and modifiers by name (004ABD00 operator[], 004ACC10 find_or_insert of {name, null}).
-stlp::NameMap& SpellNameMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C851C); }
-stlp::NameMap& ModifierNameMap() { return *reinterpret_cast<stlp::NameMap*>(0x007C853C); }
+stlp::NameMap& SpellNameMap() { return ei::GameData<stlp::NameMap>(0x007C851C); }
+stlp::NameMap& ModifierNameMap() { return ei::GameData<stlp::NameMap>(0x007C853C); }
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 

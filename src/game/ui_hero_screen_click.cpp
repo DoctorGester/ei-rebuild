@@ -26,6 +26,7 @@
 #include "world.h"
 #include "world_glue.h"
 #include "library_containers.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -104,16 +105,16 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
-    TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, "reserved_04", &text);
-    static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->ShowStatusText(text);
+    TextsGetString(ei::GamePointer<TextGlue>(0x007AFEA4)->Table(), nullptr, "reserved_04", &text);
+    static_cast<CInterface3D*>(ei::GamePointer<void>(0x007C7D50))->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-    static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->EndSession();
+    static_cast<GameFlow*>(ei::GamePointer<void>(0x007AFE20))->EndSession();
     ui->SetPendingValue(0);
 }
 
 // The heroes' map transfer (sent after a rename).
 // The multiplayer heroes' folder (007C82A0, a CString).
-const char* HeroesFolder() { return *reinterpret_cast<const char* const*>(0x007C82A0); }
+const char* HeroesFolder() { return ei::GameData<const char* const>(0x007C82A0); }
 const char* RenameSeparator() { return " | "; }
 const char* RenameBar() { return "|"; }
 
@@ -480,7 +481,7 @@ EI_REPLACE(0x00619150, MpHeroPlayVoice);
 
 namespace {
 const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
-void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
+void* MpHeroesObject() { return ei::GamePointer<void>(0x007C82A0); }
 
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
@@ -612,9 +613,9 @@ EI_REPLACE(0x00664410, MpHeroRecord::CopyRange);
 
 namespace {
 // The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
-const mfc::CString& MpHeroesFolder() { return *reinterpret_cast<const mfc::CString*>(0x007C82A0); }
-MpHeroRecord*& MpHeroesBegin() { return *reinterpret_cast<MpHeroRecord**>(0x007C82A4); }
-MpHeroRecord*& MpHeroesEnd() { return *reinterpret_cast<MpHeroRecord**>(0x007C82A8); }
+const mfc::CString& MpHeroesFolder() { return ei::GameData<const mfc::CString>(0x007C82A0); }
+MpHeroRecord*& MpHeroesBegin() { return ei::GameData<MpHeroRecord*>(0x007C82A4); }
+MpHeroRecord*& MpHeroesEnd() { return ei::GameData<MpHeroRecord*>(0x007C82A8); }
 // The count as the original computes it: a signed division, compared unsigned.
 std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(static_cast<int>(MpHeroesEnd() - MpHeroesBegin())); }
 constexpr std::uint32_t kListRows = 10;
@@ -667,7 +668,7 @@ EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
 // --- 00617A50: the new hero added to the list ----------------------------------------------------
 
 namespace {
-MpHeroRecord*& MpHeroesCapacity() { return *reinterpret_cast<MpHeroRecord**>(0x007C82AC); }
+MpHeroRecord*& MpHeroesCapacity() { return ei::GameData<MpHeroRecord*>(0x007C82AC); }
 const char* HeroFilePattern() { return "%s*.mp"; }
 const char* HeroFileFormat() { return "%d.mp"; }
 

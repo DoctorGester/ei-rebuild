@@ -19,6 +19,7 @@
 #include "lib/vecmath.h"
 #include "originals_ui.h"       // SpritePlaceOriginal
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -26,7 +27,7 @@
 namespace {
 
 // The constants the original reads from the exe's data.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
 float Pi() { return GameFloat(0x007423F8); }
 float Sixth() { return GameFloat(0x0073CE40); }             // the clock's sectors: pi / 6

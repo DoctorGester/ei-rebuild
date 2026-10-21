@@ -18,6 +18,7 @@
 #include "originals_ui.h"
 #include "lib/crt.h"
 #include "world.h"
+#include "game_data.h"
 
 namespace {
 
@@ -31,7 +32,7 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float Pi() { return GameFloat(0x007423F8); }
 float BlinkRate() { return GameFloat(0x007C8140); }   // radians per blink phase unit (a global)
 // The original reads its constants from memory at run time; Rebirth rewrites some of them
@@ -51,7 +52,7 @@ float BlinkBase() { return GameFloat(0x0073CDF8); }   // 1.4
 float PulseAmplitude() { return GameFloat(0x0073C54C); }   // 0.3
 float PulseMiddle() { return GameFloat(0x0073C538); }   // 0.7
 float SlideTime() { return GameFloat(0x00742428); }   // 0.3 seconds for a full slide
-bool GamePaused() { return *reinterpret_cast<const volatile bool*>(0x007AF624); }   // 00578D50
+bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
 
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
 constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, the top panel sling
@@ -173,7 +174,7 @@ constexpr float kSlingX = 400.0f;               // the sling button's place: x
 constexpr float kSlingInY = -52.0f;             // y while the panel slides out (turned over)
 constexpr float kSlingOutY = 83.0f;             // y otherwise
 // The sling button's rotation while the panel is shown (a global quaternion at 007C8150).
-const void* SlingRestRotation() { return reinterpret_cast<const void*>(0x007C8150); }
+const void* SlingRestRotation() { return ei::GamePointer<const void>(0x007C8150); }
 } // namespace
 
 void CHudTopPanel::Update() {

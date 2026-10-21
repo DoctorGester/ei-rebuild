@@ -17,6 +17,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "lib/mfc_coll.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -39,7 +40,7 @@ constexpr double kFogJitter = std::bit_cast<double>(0x3DE0000000100000ull);
 constexpr float kFogCellSize = 1.0f;                                    // 0073D6A4
 constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
@@ -53,7 +54,7 @@ double Unsigned(std::uint32_t value) {
 }
 
 // The sound manager (*007AF784): 006B9100 sets a playing sound's volume (0..100), 006B94A0 stops it.
-void* SoundManager() { return *reinterpret_cast<void**>(0x007AF784); }
+void* SoundManager() { return ei::GameData<void*>(0x007AF784); }
 
 // The game's atexit (006E727B).
 
@@ -65,8 +66,8 @@ void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32
     v->InsertOverflow<stlp::PlainElement<std::uint32_t>>(pos, *value, count);
 }
 
-KeyVector& DeadCells() { return *reinterpret_cast<KeyVector*>(0x007ABB58); }
-std::uint8_t& DeadCellsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007ABB64); }
+KeyVector& DeadCells() { return ei::GameData<KeyVector>(0x007ABB58); }
+std::uint8_t& DeadCellsGuard() { return ei::GameData<std::uint8_t>(0x007ABB64); }
 
 // The cell map's own insert (004E2E90: resize, then insert a copy of the pair unless the key
 // exists; returns the pair) and erase by key (004E2F00): the 28-byte dword-keyed table's.

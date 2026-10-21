@@ -20,6 +20,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "lib/stlp_list_refs.h"
+#include "game_data.h"
 
 namespace {
 
@@ -64,7 +65,7 @@ struct DrawQueues {
     DrawQueue visibleOther;    // 007AF598
     DrawQueue visible54;       // 007AF5A8
 };
-DrawQueues& Frame() { return *reinterpret_cast<DrawQueues*>(0x007AF508); }
+DrawQueues& Frame() { return ei::GameData<DrawQueues>(0x007AF508); }
 
 
 // 0056E840 (also inlined by the original): push_back.
@@ -87,12 +88,12 @@ ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result,
     *result = ObjectList::Insert<stlp::HeldObject>(pos, value);
     return result;
 }
-ObjectList* DeferredUnits() { return reinterpret_cast<ObjectList*>(0x007AF5B4); }
+ObjectList* DeferredUnits() { return ei::GamePointer<ObjectList>(0x007AF5B4); }
 
 const std::uint32_t& g_multiplayerView = *reinterpret_cast<const std::uint32_t*>(0x0079BE6C);
 const std::uint32_t& g_modelTouchDelay = *reinterpret_cast<const std::uint32_t*>(0x0079BD24);
 // 007AFDB0: the point PickGround / PickSurface return without a view matrix.
-const float* NoPickPoint() { return reinterpret_cast<const float*>(0x007AFDB0); }
+const float* NoPickPoint() { return ei::GamePointer<const float>(0x007AFDB0); }
 
 // Pushes the object's matrix on the device's object stack, as the original inlines it.
 void PushObjectMatrix(MatrixDevice* device, float* matrix) {

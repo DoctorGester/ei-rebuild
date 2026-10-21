@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <concepts>
 #include <cstring>
@@ -25,23 +26,23 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise (00468A00).
-const float* NoiseTable() { return reinterpret_cast<const float*>(0x0079CE78); }
+const float* NoiseTable() { return ei::GamePointer<const float>(0x0079CE78); }
 constexpr int kNoiseRowLength = 400;
 
 // Scratch curves written by LightningSegment::Animate (one float per point, at most 400).
-float* NoiseSide() { return reinterpret_cast<float*>(0x0079C1F8); }
-float* NoiseUp() { return reinterpret_cast<float*>(0x0079C838); }
+float* NoiseSide() { return ei::GamePointer<float>(0x0079C1F8); }
+float* NoiseUp() { return ei::GamePointer<float>(0x0079C838); }
 
 // Branch sway frequencies: six pairs (side, up) at 00787C8C.
 const float* BranchFrequencies() { return reinterpret_cast<const float*>(0x00787C8C); }
 
 // World clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
-int GameTicks() { return *reinterpret_cast<const volatile int*>(0x007AF61C); }
-float GameTickFraction() { return *reinterpret_cast<const volatile float*>(0x007AFCA8); }
+int GameTicks() { return ei::GameData<const volatile int>(0x007AF61C); }
+float GameTickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
 
 constexpr double kNoiseScale = 0x1.0000000100000p-31;   // 0073C508: about 2 / 2^32
 constexpr double kRandomScale = 0x1.0000000100000p-32;  // 0073C468: about 1 / 2^32

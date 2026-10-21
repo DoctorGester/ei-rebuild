@@ -16,6 +16,7 @@
 #include "object_tables.h"       // FindCommandByKey
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -54,7 +55,7 @@ constexpr int kSurfaceFormat = 5;
 // the static initialiser 0065E310).
 float ShowDelay() { return *reinterpret_cast<const float*>(std::uintptr_t(0x0079BE80)); }
 float AppearTime() { return *reinterpret_cast<const float*>(std::uintptr_t(0x00742F2C)); }
-POINT CursorOffset() { return *reinterpret_cast<const POINT*>(std::uintptr_t(0x007C8258)); }
+POINT CursorOffset() { return ei::GameData<const POINT>(0x007C8258); }
 
 // The extent of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
 // takes the CString by value and releases it, so a copy's data is handed over).

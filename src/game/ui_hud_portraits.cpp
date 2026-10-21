@@ -21,6 +21,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 namespace {
 
@@ -34,14 +35,14 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float Pi() { return GameFloat(0x007423F8); }
 float TurnPeriod() { return GameFloat(0x007C8140); }      // a global the clock also uses
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle
-const Quaternion* Identity() { return reinterpret_cast<const Quaternion*>(0x007C8150); }
-bool GamePaused() { return *reinterpret_cast<const volatile bool*>(0x007AF624); }   // 00578D50
+const Quaternion* Identity() { return ei::GamePointer<const Quaternion>(0x007C8150); }
+bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
 int SelectedUnitId() { return *reinterpret_cast<const volatile int*>(0x0079B3C4); }
-IsaacRandom* Random() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* Random() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }

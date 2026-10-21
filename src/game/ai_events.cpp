@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -27,8 +28,8 @@ constexpr int kWheelMask = kWheelTicks - 1;
 
 // The records' pool (a CList<AIEvent> whose nodes hold them; AddHead is its own instantiation
 // 005CDB00, the template's here) and the free list (chained through AIEvent::next).
-mfc::CList<AIEvent>& AIEventPool() { return *reinterpret_cast<mfc::CList<AIEvent>*>(0x007C43A8); }
-AIEvent*& FreeEvents() { return *reinterpret_cast<AIEvent**>(0x007C53F0); }
+mfc::CList<AIEvent>& AIEventPool() { return ei::GameData<mfc::CList<AIEvent>>(0x007C43A8); }
+AIEvent*& FreeEvents() { return ei::GameData<AIEvent*>(0x007C53F0); }
 
 void PushFree(AIEvent* event) {
     event->next = FreeEvents();
@@ -210,7 +211,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
         MappedResourceDestroyOriginal(archive);
         return result;
     }
-    std::memcpy(reinterpret_cast<void*>(kNormalTable), data, kNormalTableSize);
+    std::memcpy(ei::GamePointer<void>(kNormalTable), data, kNormalTableSize);
     archive->CMappedResource::CloseFileImpl(data);
     MappedResourceDestroyOriginal(archive);
     return 1;

@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -117,7 +118,7 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
 EI_REPLACE_METHOD(0x0041D420, ClientSession::CreateEntryImpl);
 
 // 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
-void ClientSession::OnJoined() { static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->BeginMultiplayerGame(); }
+void ClientSession::OnJoined() { static_cast<GameFlow*>(ei::GamePointer<void>(0x007AFE20))->BeginMultiplayerGame(); }
 namespace {
 void __fastcall ClientBeginGameHook(ClientSession* self) { self->ClientSession::OnJoined(); }
 } // namespace

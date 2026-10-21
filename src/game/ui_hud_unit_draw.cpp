@@ -25,6 +25,7 @@
 #include "originals_ui.h"        // the sprite draw and Place, the surface's DC
 #include "render/render.h"
 #include "render/render_state.h"
+#include "game_data.h"
 
 #include <d3d.h>
 
@@ -36,7 +37,7 @@
 namespace {
 
 // The constants the original reads at run time.
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 float LayoutUnit() { return GameFloat(0x0074015C); }       // 0.0025: 1 / 400, half the layout's width
 float One() { return GameFloat(0x0073B84C); }
 float DepthUnit() { return GameFloat(0x007423FC); }        // 0.48157: the layout's half height at depth 1
@@ -49,7 +50,7 @@ float SecondTurnAboutZ() { return GameFloat(0x0073B868); } // 0.4
 float BarHeight() { return GameFloat(0x00742430); }        // 15
 float PanelHeight() { return GameFloat(0x00742AE4); }      // 220
 // The world time: whole ticks (007AF61C) plus the fraction of the current one (007AFCA8).
-int WorldTick() { return *reinterpret_cast<const int*>(std::uintptr_t(0x007AF61C)); }
+int WorldTick() { return ei::GameData<const int>(0x007AF61C); }
 float WorldTickFraction() { return GameFloat(0x007AFCA8); }
 
 constexpr int kBackground = 0;        // scene objects

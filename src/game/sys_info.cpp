@@ -16,6 +16,7 @@
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <intrin.h>
 
@@ -33,12 +34,12 @@ constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped w
 constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
-float& GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
+float& GameFloatAt(std::uintptr_t address) { return ei::GameData<float>(address); }
 float Pi() { return GameFloat(0x0073D640); }
 
 // The guard of a function-local static with an empty destructor (bit 0 of 007CAEE4).
-std::uint8_t& EmptyStaticGuard() { return *reinterpret_cast<std::uint8_t*>(0x007CAEE4); }
+std::uint8_t& EmptyStaticGuard() { return ei::GameData<std::uint8_t>(0x007CAEE4); }
 
 } // namespace
 

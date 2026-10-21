@@ -746,8 +746,8 @@ constexpr int kPrototypeSize = 0x120;
 constexpr int kModelSize = 0x168;
 constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
-inline const RecordTable& Prototypes() { return *reinterpret_cast<const RecordTable*>(0x007AF358); }
-inline const RecordTable& Models() { return *reinterpret_cast<const RecordTable*>(0x007AF398); }
+inline const RecordTable& Prototypes() { return ei::GameData<const RecordTable>(0x007AF358); }
+inline const RecordTable& Models() { return ei::GameData<const RecordTable>(0x007AF398); }
 inline const RecordTable& Skills() { return ei::GameData<const RecordTable>(0x007AF268); }
 inline const RecordTable& SkillLevels() { return ei::GameData<const RecordTable>(0x007AF274); }
 // 0073E048: for each armour type, the three body slots it covers (7: none); UnitStats::AddArmourLayer.

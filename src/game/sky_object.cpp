@@ -12,6 +12,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
@@ -127,8 +128,8 @@ const char* const kSkyTextureName = "sky00";
 constexpr float kSkyDrop = 16.0f;                // 0073CA98: the dome sits this far below the eye
 constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // 0073D61C: radians per world tick
 // Two 16-byte statics the draw passes to renderer slot 14 (not read there).
-const void* const kSkyDrawA = reinterpret_cast<const void*>(std::uintptr_t(0x007AA890));
-const void* const kSkyDrawB = reinterpret_cast<const void*>(std::uintptr_t(0x007AA8A0));
+const void* const kSkyDrawA = ei::GamePointer<const void>(0x007AA890);
+const void* const kSkyDrawB = ei::GamePointer<const void>(0x007AA8A0);
 
 } // namespace
 

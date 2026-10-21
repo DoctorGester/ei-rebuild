@@ -7,6 +7,7 @@
 #include "gameapi.h"
 #include "mfc_resource.h"
 #include "mfc_window.h"
+#include "game/game_data.h"
 
 #include <new>
 
@@ -22,13 +23,13 @@ const void* FileExceptionThrowInfo() { return reinterpret_cast<const void*>(0x00
 const void* ArchiveExceptionThrowInfo() { return reinterpret_cast<const void*>(0x0077F2B0); }
 // _simpleNotSupportedException (a static CNotSupportedException) and the throw information of a
 // CNotSupportedException*.
-void* SimpleNotSupportedException() { return reinterpret_cast<void*>(0x007C8D50); }
+void* SimpleNotSupportedException() { return ei::GamePointer<void>(0x007C8D50); }
 const void* NotSupportedThrowInfo() { return reinterpret_cast<const void*>(0x0077EE80); }
 // _simpleMemoryException and _simpleResourceException (static, not auto-deleted) and the throw
 // information of a CMemoryException* and a CResourceException*.
-void* SimpleMemoryException() { return reinterpret_cast<void*>(0x007C8DE8); }
+void* SimpleMemoryException() { return ei::GamePointer<void>(0x007C8DE8); }
 const void* MemoryThrowInfo() { return reinterpret_cast<const void*>(0x0077EE38); }
-void* SimpleResourceException() { return reinterpret_cast<void*>(0x007C8C58); }
+void* SimpleResourceException() { return ei::GamePointer<void>(0x007C8C58); }
 const void* ResourceThrowInfo() { return reinterpret_cast<const void*>(0x0077EC28); }
 
 // The two classes' CRuntimeClass records.

@@ -3,6 +3,7 @@
 // Helpers shared by combat.cpp and combat_actions.cpp (not used elsewhere).
 
 #include "combat.h"
+#include "game_data.h"
 
 // The game's (MSVC 6 <iostream.h>) ostream; only the inserters the combat logs use (combat.cpp).
 struct GameOstream {
@@ -20,7 +21,7 @@ struct GameOstream {
 };
 
 // The game's log stream (global 007AF3E8) and the manipulator that ends a line (00435000).
-inline GameOstream* GameLog() { return *reinterpret_cast<GameOstream**>(0x007AF3E8); }
+inline GameOstream* GameLog() { return ei::GameData<GameOstream*>(0x007AF3E8); }
 inline void* const kLogEndLine = reinterpret_cast<void*>(0x00435000);
 
 // The unit's server object (CUnit + 0x170, a CMapObjectServer) and the stats block at its +0x20.

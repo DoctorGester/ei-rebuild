@@ -16,6 +16,7 @@
 
 #include "ei/hook.h"
 #include "gameapi.h"
+#include "game/game_data.h"
 
 #include <cstring>
 
@@ -40,38 +41,38 @@ struct LocaleCategory {
 LocaleCategory* Categories() { return reinterpret_cast<LocaleCategory*>(0x00797888); }
 const char* StaticC() { return reinterpret_cast<const char*>(0x00797778); }
 // __lc_handle (007CABE8): each category's language id (0 for "C"); __lc_id (007CAC30): its LC_ID.
-unsigned* Handles() { return reinterpret_cast<unsigned*>(0x007CABE8); }
-LocaleId* Ids() { return reinterpret_cast<LocaleId*>(0x007CAC30); }
+unsigned* Handles() { return ei::GamePointer<unsigned>(0x007CABE8); }
+LocaleId* Ids() { return ei::GamePointer<LocaleId>(0x007CAC30); }
 // __lc_codepage (007CAC00) and __lc_collate_cp (007CAC04).
-unsigned& CtypeCodePage() { return *reinterpret_cast<unsigned*>(0x007CAC00); }
-unsigned& CollateCodePage() { return *reinterpret_cast<unsigned*>(0x007CAC04); }
+unsigned& CtypeCodePage() { return ei::GameData<unsigned>(0x007CAC00); }
+unsigned& CollateCodePage() { return ei::GameData<unsigned>(0x007CAC04); }
 // getqloc's cache: the last name resolved, qualified (00797800) and as asked for (0079777C), its LC_ID
 // (007CAB24) and code page (007CAB2C).
 char* QualifiedCache() { return reinterpret_cast<char*>(0x00797800); }
 char* RequestedCache() { return reinterpret_cast<char*>(0x0079777C); }
-LocaleId& CachedId() { return *reinterpret_cast<LocaleId*>(0x007CAB24); }
-unsigned& CachedCodePage() { return *reinterpret_cast<unsigned*>(0x007CAB2C); }
+LocaleId& CachedId() { return ei::GameData<LocaleId>(0x007CAB24); }
+unsigned& CachedCodePage() { return ei::GameData<unsigned>(0x007CAB2C); }
 
 // The class tables: _pctype / _pwctype (00797DD8 / 00797DDC; the C locale's table + 1 entry is 00797DE2),
 // the heap blocks behind them (007CAC28 / 007CAC2C, null for "C") and __mb_cur_max (00797FE4).
 const unsigned short*& CtypeTable() { return *reinterpret_cast<const unsigned short**>(0x00797DD8); }
 const unsigned short*& WideCtypeTable() { return *reinterpret_cast<const unsigned short**>(0x00797DDC); }
 const unsigned short* StaticCtype() { return reinterpret_cast<const unsigned short*>(0x00797DE2); }
-unsigned short*& CtypeBlock() { return *reinterpret_cast<unsigned short**>(0x007CAC28); }
-unsigned short*& WideCtypeBlock() { return *reinterpret_cast<unsigned short**>(0x007CAC2C); }
+unsigned short*& CtypeBlock() { return ei::GameData<unsigned short*>(0x007CAC28); }
+unsigned short*& WideCtypeBlock() { return ei::GameData<unsigned short*>(0x007CAC2C); }
 int& MbCurMax() { return *reinterpret_cast<int*>(0x00797FE4); }
 
 // The multibyte code page: _mbctype (007CC180, 257 bytes, a byte's flags at + 1), _mbcasemap (007CC080),
 // __mbcodepage (007CC058), __ismbcodepage (007CC06C), __mblcid (007CC284), __mbulinfo (007CC060, three
 // dwords), fSystemSet (007CAB20: the code page came from the system) and __initmbctable's flag (007CC28C).
-unsigned char* MbFlags() { return reinterpret_cast<unsigned char*>(0x007CC180); }
-unsigned char* MbCaseMap() { return reinterpret_cast<unsigned char*>(0x007CC080); }
-unsigned& MbCodePage() { return *reinterpret_cast<unsigned*>(0x007CC058); }
-int& IsMbCodePage() { return *reinterpret_cast<int*>(0x007CC06C); }
-unsigned& MbLcid() { return *reinterpret_cast<unsigned*>(0x007CC284); }
-unsigned* MbUlInfo() { return reinterpret_cast<unsigned*>(0x007CC060); }
-int& SystemSet() { return *reinterpret_cast<int*>(0x007CAB20); }
-int& MbTableReady() { return *reinterpret_cast<int*>(0x007CC28C); }
+unsigned char* MbFlags() { return ei::GamePointer<unsigned char>(0x007CC180); }
+unsigned char* MbCaseMap() { return ei::GamePointer<unsigned char>(0x007CC080); }
+unsigned& MbCodePage() { return ei::GameData<unsigned>(0x007CC058); }
+int& IsMbCodePage() { return ei::GameData<int>(0x007CC06C); }
+unsigned& MbLcid() { return ei::GameData<unsigned>(0x007CC284); }
+unsigned* MbUlInfo() { return ei::GamePointer<unsigned>(0x007CC060); }
+int& SystemSet() { return ei::GameData<int>(0x007CAB20); }
+int& MbTableReady() { return ei::GameData<int>(0x007CC28C); }
 constexpr unsigned kMbFlagsSize = 257;
 
 // __rgcode_page_info (00797688): the four DBCS code pages and Johab, each with its lead / trail byte

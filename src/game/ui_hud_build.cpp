@@ -17,13 +17,14 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace {
 
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 float Pi() { return GameFloat(0x007423F8); }
 // A texel as a texture offset: 1 / 256 (0073EEB8).

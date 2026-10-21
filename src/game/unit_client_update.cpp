@@ -17,6 +17,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "lib/stlp_list.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <limits>
@@ -133,8 +134,8 @@ EI_REPLACE_METHOD(0x005341A0, CUnitClientSpecific::UpdateClient);
 
 namespace {
 // 007C5488 / 007C548C: the experience of level 0 and the factor between levels.
-float LevelBase() { return *reinterpret_cast<const float*>(0x007C5488); }
-float LevelFactor() { return *reinterpret_cast<const float*>(0x007C548C); }
+float LevelBase() { return ei::GameData<const float>(0x007C5488); }
+float LevelFactor() { return ei::GameData<const float>(0x007C548C); }
 
 CObject3DClientSpecific* ClientHalf(CUnit* unit) {
     return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);

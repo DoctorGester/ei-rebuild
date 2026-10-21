@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "gameapi.h"
+#include "game/game_data.h"
 
 #include <cstdarg>
 #include <cstdint>
@@ -22,9 +23,9 @@ namespace {
 
 // The game CRT's settings in the exe's data: _fmode (the translation when neither _O_TEXT nor _O_BINARY
 // is asked for), _umaskval (permission bits a new file does not get) and _commode (fopen's commit flag).
-int GameFileMode() { return *reinterpret_cast<const int*>(0x007CAC80); }
-int GameUmask() { return *reinterpret_cast<const int*>(0x007CAADC); }
-int GameCommitMode() { return *reinterpret_cast<const int*>(0x007CADA4); }
+int GameFileMode() { return ei::GameData<const int>(0x007CAC80); }
+int GameUmask() { return ei::GameData<const int>(0x007CAADC); }
+int GameCommitMode() { return ei::GameData<const int>(0x007CADA4); }
 constexpr int kStreamCommit = 0x4000;   // _IOCOMMIT
 
 // &_iob[0..2]: the game's stdin, stdout and stderr (0x20-byte FILEs).

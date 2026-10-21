@@ -18,6 +18,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 using BOOL = int;
 
@@ -943,9 +944,9 @@ struct ScriptQuestObjective {
 };
 static_assert(sizeof(ScriptQuestObjective) == 12);
 inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() {
-    return *reinterpret_cast<mfc::CArray<ScriptQuestObjective>*>(0x007AA608);
+    return ei::GameData<mfc::CArray<ScriptQuestObjective>>(0x007AA608);
 }
-inline mfc::CString& ScriptQuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C); }
+inline mfc::CString& ScriptQuestName() { return ei::GameData<mfc::CString>(0x007AA61C); }
 // 004BAEB0 (__thiscall). An objective's destructor.
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 // 004BAA40 (QStart; __fastcall). The objectives destroyed and freed (size and capacity 0), the quest
@@ -966,7 +967,7 @@ struct QuestTable {
     Map byName;             // +0x0C
 };
 static_assert(offsetof(QuestTable, byName) == 0x0C);
-inline QuestTable* TheQuestTable() { return reinterpret_cast<QuestTable*>(0x007C87A8); }
+inline QuestTable* TheQuestTable() { return ei::GamePointer<QuestTable>(0x007C87A8); }
 
 // ---- Loader arrays (script_parse_arrays.cpp) ------------------------------------------------------
 // CArray template members of the loader's arrays, __thiscall, registered as free functions; the

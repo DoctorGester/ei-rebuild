@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "render/render.h"         // MeshChanged
 #include "render/render_state.h"
+#include "game_data.h"
 
 #include <d3d.h>
 
@@ -40,7 +41,7 @@ constexpr float kByteScale = 255.0f;  // 0073C370
 // The positions of a part moved by its per-vertex offsets (007AEED0: one work array for the draws
 // and the shadow's projection).
 lib::AlignedArray<VertexPacket>& MovedPackets() {
-    return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007AEED0);
+    return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007AEED0);
 }
 
 // A screen or texture point of the shadow's rasteriser (moved as one qword; texture.h).
@@ -49,8 +50,8 @@ using PixelPair = RasterTriangle::Point;
 // A part's texture coordinates in 0..255 (007AEEB8; a local static of 004F4850: bit 0 of 007AEEC8
 // says it is constructed, and the exit handler 004F4B30, left in the exe, frees its block).
 lib::AlignedArray<PixelPair>& TexturePixels() {
-    auto& constructed = *reinterpret_cast<std::uint8_t*>(0x007AEEC8);
-    auto& pixels = *reinterpret_cast<lib::AlignedArray<PixelPair>*>(0x007AEEB8);
+    auto& constructed = ei::GameData<std::uint8_t>(0x007AEEC8);
+    auto& pixels = ei::GameData<lib::AlignedArray<PixelPair>>(0x007AEEB8);
     if (!(constructed & 1)) {
         constructed |= 1;
         pixels.Construct();

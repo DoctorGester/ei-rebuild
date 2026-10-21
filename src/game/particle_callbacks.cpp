@@ -11,6 +11,7 @@
 #include "lib/vecmath.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <concepts>
 
@@ -1615,7 +1616,7 @@ namespace {
 #define EI_BAG_BALL_SIZE GameFloat(0x0073CD18)       // 0.15
 #define EI_BAG_KICK GameFloat(0x0073C52C)            // 0.05
 
-float* BagSizes() { return reinterpret_cast<float*>(0x007A9BFC); }     // 12 entries
+float* BagSizes() { return ei::GamePointer<float>(0x007A9BFC); }     // 12 entries
 const std::int32_t* BagColours() { return reinterpret_cast<const std::int32_t*>(0x0073CBA4); }   // r, g, b
 const std::int32_t* BagAlpha() { return reinterpret_cast<const std::int32_t*>(0x0073CC34); }
 constexpr int kBagGone = -13;
@@ -3380,7 +3381,7 @@ EI_REPLACE_METHOD(0x00495120, CParticleSource::UpdateRegeneration);
 namespace {
 
 // A running angle kept by the game (007A9BF8); VisionStar's satellites turn by it.
-float SpinAngle() { return *reinterpret_cast<const volatile float*>(0x007A9BF8); }
+float SpinAngle() { return ei::GameData<const volatile float>(0x007A9BF8); }
 
 // The turn per satellite of the star: the rate for the satellite that follows `count` particles (1-4).
 float SpinRate(int count) {
@@ -4250,13 +4251,13 @@ Vector3* UnitPoint(void* unit, Vector3* out, int index) {
     return (*static_cast<Fn**>(unit))[52](unit, out, index);
 }
 double TerrainHeight(float x, float y) {
-    void* terrain = reinterpret_cast<void*>(0x007AF5B8);
+    void* terrain = ei::GamePointer<void>(0x007AF5B8);
     using Fn = double(__thiscall*)(void*, float, float);
     return (*static_cast<Fn**>(terrain))[28](terrain, x, y);
 }
 double PlatformHeight(const Vector3* at, float ground) {
     using Fn = double(__thiscall*)(void*, const Vector3*, float);
-    return reinterpret_cast<Fn>(0x00560F00)(reinterpret_cast<void*>(0x007AF78C), at, ground);
+    return reinterpret_cast<Fn>(0x00560F00)(ei::GamePointer<void>(0x007AF78C), at, ground);
 }
 
 // FCOMP's "equal" (also taken when unordered).
@@ -4288,7 +4289,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
-    Vector3 point = *UnitPoint(unit, &scratch, index + *reinterpret_cast<const int*>(0x007AF61C));
+    Vector3 point = *UnitPoint(unit, &scratch, index + ei::GameData<const int>(0x007AF61C));
     float* mark = ElementFloat(elements, 0x18);
     if (SameOrNaN(mark[0], point.x) && SameOrNaN(mark[1], point.y) && SameOrNaN(mark[2], point.z)) return 0;
     std::memcpy(mark, &point, sizeof(Vector3));

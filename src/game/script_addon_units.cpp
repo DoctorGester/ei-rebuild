@@ -17,6 +17,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -27,18 +28,18 @@ namespace scriptaddon {
 namespace {
 
 // The world (007AFF60): the player with a number (00594180).
-void* GetPlayer(int number) { return reinterpret_cast<CWorldServer*>(0x007AFF60)->GetPlayer(number); }
+void* GetPlayer(int number) { return ei::GamePointer<CWorldServer>(0x007AFF60)->GetPlayer(number); }
 
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).
-CSectorMap* const kSectorMap = reinterpret_cast<CSectorMap*>(0x007B01F4);
+CSectorMap* const kSectorMap = ei::GamePointer<CSectorMap>(0x007B01F4);
 
 // A unit's prototype record (00530930): its name and, at +4, its model name (the race).
 static const UnitPrototypeRecord* UnitPrototype(void* unit) { return reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(unit)->GetPrototype()); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
-IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
@@ -82,7 +83,7 @@ bool DataField(Call* call, float UnitStats::* field, const char* function) {
 using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
 template <typename Visit>
 void ForWorldObjects(Visit visit) {
-    reinterpret_cast<const ObjectMap*>(0x007C2CD0)->ForEach([&](ObjectMap::Node* node) { visit(node->value); });
+    ei::GamePointer<const ObjectMap>(0x007C2CD0)->ForEach([&](ObjectMap::Node* node) { visit(node->value); });
 }
 
 } // namespace

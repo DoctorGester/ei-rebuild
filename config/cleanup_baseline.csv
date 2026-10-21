@@ -86,5 +86,3 @@ src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/lib/mfc_string.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/render/render_game.h,0,0,0,0,4,0,0,0,0,0,0,0,0,0
-src/render/render_state.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,0

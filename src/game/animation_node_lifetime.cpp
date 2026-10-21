@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <new>
@@ -17,8 +18,8 @@ constexpr std::uintptr_t kNormalsVtable = std::uintptr_t(0x0073C120);
 constexpr std::uintptr_t kMorphFramesVtable = std::uintptr_t(0x0073D9BC);
 constexpr int kNoKey = -1;   // the key cursors before the first ResetPose
 
-const Quaternion& DefaultRotation() { return *reinterpret_cast<const Quaternion*>(std::uintptr_t(0x007AF0E0)); }
-const Vector3& DefaultPosition() { return *reinterpret_cast<const Vector3*>(std::uintptr_t(0x007AF0F0)); }
+const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF0E0); }
+const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF0F0); }
 
 } // namespace
 

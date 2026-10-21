@@ -10,6 +10,7 @@
 
 #include "lib/containers.h"
 #include "lib/stlp.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -205,7 +206,7 @@ static_assert(sizeof(CTransformPipeline) == 0x94);   // as 00500540 allocates it
 
 // The scene's pipeline (the global pointer at 007AF068; world_client_view.cpp calls it the render
 // device): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world draw's, 9 the views.
-inline CTransformPipeline* ScenePipeline() { return *reinterpret_cast<CTransformPipeline* const*>(0x007AF068); }
+inline CTransformPipeline* ScenePipeline() { return ei::GameData<CTransformPipeline* const>(0x007AF068); }
 
 struct tagRECT;
 struct ScreenPoints;   // renderer_lines.h
@@ -727,7 +728,7 @@ struct PrintsDatabase {
 };
 static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);
 static_assert(offsetof(PrintsDatabase, footprintsByName) == 0x2C && sizeof(PrintsDatabase) == 0x60);
-inline const PrintsDatabase& ThePrintsDatabase() { return *reinterpret_cast<const PrintsDatabase*>(0x007C89C8); }
+inline const PrintsDatabase& ThePrintsDatabase() { return ei::GameData<const PrintsDatabase>(0x007C89C8); }
 
 // ---- Water level changes (006D4400) ---------------------------------------------------------------
 

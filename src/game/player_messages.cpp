@@ -19,6 +19,7 @@
 #include "../lib/crt.h"
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -88,7 +89,7 @@ void CPlayerServer::SendGameTime() {
     std::uint32_t value = static_cast<std::uint32_t>(Owner()->sessionKind100_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
-    WriteDword(&out_, *reinterpret_cast<const std::uint32_t*>(0x007AFFC4));
+    WriteDword(&out_, ei::GameData<const std::uint32_t>(0x007AFFC4));
     Owner()->dirty_ &= ~0x10;
 }
 

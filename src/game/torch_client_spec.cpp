@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"      // SetVtable
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -32,8 +33,8 @@ constexpr int kTorchClassId = 0x41;
 // 0078F7BC: "CTorchObjectClientSpecific".
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
-CSoundManager* Sounds() { return *reinterpret_cast<CSoundManager* const*>(std::uintptr_t(0x007AF784)); }
-CLightFactory* Lights() { return *reinterpret_cast<CLightFactory* const*>(std::uintptr_t(0x007AF748)); }
+CSoundManager* Sounds() { return ei::GameData<CSoundManager* const>(0x007AF784); }
+CLightFactory* Lights() { return ei::GameData<CLightFactory* const>(0x007AF748); }
 CParticleManager* Particles() { return static_cast<CParticleManager*>(ParticleManagerObject()); }
 
 // The sources are engine objects (vtable 0073CFD0): slot 4 releases a reference.

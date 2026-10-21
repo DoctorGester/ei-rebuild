@@ -35,6 +35,7 @@
 #include "originals_world.h"
 #include "originals_gameplay.h"
 #include "originals_script.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -99,8 +100,8 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 CAIMap* ServerAIMap() { return WorldServer()->AIMap(); }
 CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
 float HalfCell() { return *reinterpret_cast<const float*>(0x0073EEE4) * *reinterpret_cast<const float*>(0x0073B86C); }
-float HeroWalkLimit() { return *reinterpret_cast<const float*>(0x007C5448); }
-float HeroRunLimit() { return *reinterpret_cast<const float*>(0x007C5440); }
+float HeroWalkLimit() { return ei::GameData<const float>(0x007C5448); }
+float HeroRunLimit() { return ei::GameData<const float>(0x007C5440); }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }

@@ -17,15 +17,16 @@
 #include "ei/hook.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
 
 namespace {
 
-DecalBuilder& Builder() { return *reinterpret_cast<DecalBuilder*>(0x007AF488); }
-lib::AlignedArray<Vector4>& PartPoints() { return *reinterpret_cast<lib::AlignedArray<Vector4>*>(0x007AF478); }
-std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007AF504); }
+DecalBuilder& Builder() { return ei::GameData<DecalBuilder>(0x007AF488); }
+lib::AlignedArray<Vector4>& PartPoints() { return ei::GameData<lib::AlignedArray<Vector4>>(0x007AF478); }
+std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AF504); }
 void(__cdecl* const kDestroyBuilder)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE30);
 void(__cdecl* const kFreePartPoints)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE10);
 

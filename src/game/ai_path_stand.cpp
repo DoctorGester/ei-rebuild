@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
@@ -34,7 +35,7 @@ void FacingFromQuaternion(const float* q, float* out) {
 }
 
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The common part; `time` is read after the reset (005B2190 passes the path's own +0x10).
 void StandAt(AIPath* path, const int* time, const CMapObject* object) {

@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <new>
 
@@ -44,7 +45,7 @@ constexpr int kBehaviourCount = 5;
 // The limit the .mob wind strength is clamped to (never written: 0).
 float MobWindLimit() { return *reinterpret_cast<const float*>(0x0079BE58); }
 // The mission script (CScript at 007C27D4).
-CScript* MissionScript() { return reinterpret_cast<CScript*>(0x007C27D4); }
+CScript* MissionScript() { return ei::GamePointer<CScript>(0x007C27D4); }
 
 // A record of the given chunk id, allocated and constructed, or null for other ids.
 Spec* NewRecord(std::uint32_t id) {

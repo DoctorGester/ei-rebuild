@@ -22,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "../../src/render/render.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -40,7 +41,7 @@ constexpr std::uintptr_t kCursorLockCall = 0x004580D7;   // CALL 005E65F0 in 004
 constexpr std::uintptr_t kCursorLock = 0x005E65F0;       // CCursor::Lock (__fastcall, ECX = 007C7BD8)
 constexpr std::uintptr_t kDeviceObject = 0x007AF080;     // the renderer's (007AF060) +0x20
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 volatile unsigned g_frames = 0;
 State g_state = State::Idle;
@@ -234,7 +235,7 @@ void Capture() {
         g_state = State::Done;
         return;
     }
-    char* device = *reinterpret_cast<char**>(kDeviceObject);
+    char* device = ei::GameData<char*>(kDeviceObject);
     char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
     auto* surface = target ? *reinterpret_cast<IDirectDrawSurface7**>(target + 0x10) : nullptr;
     if (!surface) {

@@ -25,6 +25,7 @@
 #include "unit_db.h"
 #include "world_glue.h"
 #include "record_vectors.h"
+#include "game_data.h"
 
 namespace {
 
@@ -151,7 +152,7 @@ void CTradePanel::BuildLists() {
     std::uint8_t* stats = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_) + 0x20;
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
     reinterpret_cast<RefreshFn>(owner_->vtable_[47])(owner_);
-    void* table = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
+    void* table = ei::GamePointer<TextGlue>(0x007AFEA4)->Table();
     Clear(&perks_);
     Clear(&learnable_);
     Clear(&schools_);
@@ -408,7 +409,7 @@ void CTradePanel::Build() {
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
     // The titles.
-    void* table = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
+    void* table = ei::GamePointer<TextGlue>(0x007AFEA4)->Table();
     {
         mfc::CString text;
         void* titles = &texts_;

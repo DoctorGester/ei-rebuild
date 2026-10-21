@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "game_data.h"
 
 namespace {
 
@@ -35,7 +36,7 @@ void __cdecl Pump() {
     LastPumpTime() = now;
     TickSession(GameServer(), elapsed);
     TickSession(GameClient(), elapsed);
-    static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->UpdateMultiplayerVariable();   // 0057F190 with the game flow 007AFE20: the per-frame network step
+    static_cast<GameFlow*>(ei::GamePointer<void>(0x007AFE20))->UpdateMultiplayerVariable();   // 0057F190 with the game flow 007AFE20: the per-frame network step
 }
 EI_REPLACE(0x004122D0, Pump);
 

@@ -39,6 +39,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "ui_cursor.h"
+#include "game_data.h"
 
 namespace {
 
@@ -90,7 +91,7 @@ static_assert(offsetof(LoadingMovie, surfaceType) == 0x38);
 // Game globals.
 template <typename T>
 T& Global(std::uintptr_t address) {
-    return *reinterpret_cast<T*>(address);
+    return ei::GameData<T>(address);
 }
 CTextureDevice* DeviceObject() { return Global<CTextureDevice*>(0x007AF080); }
 void* Cursor() { return &Global<std::uint8_t>(0x007C7BD8); }

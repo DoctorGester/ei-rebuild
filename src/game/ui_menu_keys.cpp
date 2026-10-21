@@ -18,6 +18,7 @@
 #include <cstdint>
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -40,7 +41,7 @@ constexpr int kOptionRows = 14;
 const UiKeyName* KeyNamesBegin() { return reinterpret_cast<const UiKeyName*>(0x007857B0); }
 const UiKeyName* KeyNamesEnd() { return reinterpret_cast<const UiKeyName*>(0x00787070); }
 
-CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
+CTextManager* Texts() { return ei::GameData<CTextManager*>(0x007AF788); }
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top (rewritten

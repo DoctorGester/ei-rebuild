@@ -4,6 +4,7 @@
 #include "render_internal.h"
 
 #include "../hook/log.h"
+#include "game/game_data.h"
 
 #include <cstdio>
 #include <cstring>
@@ -29,10 +30,10 @@ struct KnownBlock {
     std::uint32_t values[6];
 };
 constexpr KnownBlock kBlocks[] = {
-    {0x007AEDDC, {4, 2, 1, 2, 2, 1}},   // texture x current; alpha texture
-    {0x007AEDD8, {4, 2, 0, 4, 2, 0}},   // texture x diffuse; alpha texture x diffuse
-    {0x007AEDD4, {4, 2, 0, 2, 2, 1}},   // texture x diffuse; alpha texture
-    {0x007AEDD0, {4, 2, 0, 2, 0, 1}},   // texture x diffuse; alpha diffuse
+    {ei::DataId(0x007AEDDC), {4, 2, 1, 2, 2, 1}},   // texture x current; alpha texture
+    {ei::DataId(0x007AEDD8), {4, 2, 0, 4, 2, 0}},   // texture x diffuse; alpha texture x diffuse
+    {ei::DataId(0x007AEDD4), {4, 2, 0, 2, 2, 1}},   // texture x diffuse; alpha texture
+    {ei::DataId(0x007AEDD0), {4, 2, 0, 2, 0, 1}},   // texture x diffuse; alpha diffuse
 };
 
 } // namespace
@@ -51,7 +52,7 @@ void Stage(std::uint32_t stage, std::uint32_t state, std::uint32_t value) {
 
 void Block(std::uint32_t handle) {
     for (const KnownBlock& b : kBlocks) {
-        if (*reinterpret_cast<const std::uint32_t*>(b.handleAddress) != handle) continue;
+        if (ei::GameData<const std::uint32_t>(b.handleAddress) != handle) continue;
         for (int i = 0; i < 6; ++i) Stage(0, static_cast<std::uint32_t>(i + 1), b.values[i]);
         return;
     }

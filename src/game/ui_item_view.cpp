@@ -32,6 +32,7 @@
 #include "originals_ui.h"
 #include "originals_core.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -40,7 +41,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
 
 template <typename T>
@@ -202,7 +203,7 @@ void SetShade(std::uint8_t* sprite, std::uint32_t grey) {
 
 // The renderer's Direct3D device (UiRenderer 007AF080 +0x54): SetRenderState (slot 20).
 void SetSpecular(int on) {
-    auto* renderer = *reinterpret_cast<std::uint8_t**>(0x007AF080);
+    auto* renderer = ei::GameData<std::uint8_t*>(0x007AF080);
     void* device = Get<void*>(renderer, 0x54);
     using SetStateFn = long(__stdcall*)(void*, int, int);
     reinterpret_cast<SetStateFn>((*static_cast<void***>(device))[20])(device, 0x1D, on);
@@ -474,8 +475,8 @@ EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 
 namespace {
 
-CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
-void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
+CTextureManager* TextureManager() { return ei::GameData<CTextureManager* const>(0x007AF744); }
+void* PixelDecoder() { return ei::GameData<void* const>(0x007AF06C); }
 
 
 // 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
@@ -527,7 +528,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         void* decoder = PixelDecoder();
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::EnterCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
@@ -556,7 +557,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         }
     }
     if (pixels) gamecrt::operator_delete(pixels);
-    gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::LeaveCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     VirtualCall(manager, 22);
     return texture;
 }
@@ -583,7 +584,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         void* decoder = Get<void*>(device, 0x4C);
         VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::EnterCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
@@ -611,7 +612,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         }
     }
     if (pixels) gamecrt::operator_delete(pixels);
-    gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    gameapi::LeaveCriticalSection(ei::GamePointer<CRITICAL_SECTION>(0x007AEE78));
     VirtualCall(TextureManager(), 22);
     return image != nullptr;
 }

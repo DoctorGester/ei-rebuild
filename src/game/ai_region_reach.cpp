@@ -20,6 +20,7 @@
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -40,9 +41,9 @@ void __fastcall SearchReset(LocalSearch* a0, void*) { static_cast<LocalSearch*>(
 
 // LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
 // destroyed by 005B0360) and its second list at 007C2EF8 (bit 1, 005B0350).
-PointArray& FloodQueue() { return *reinterpret_cast<PointArray*>(0x007C2F10); }
-PointArray& FloodSecond() { return *reinterpret_cast<PointArray*>(0x007C2EF8); }
-std::uint8_t& FloodGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F24); }
+PointArray& FloodQueue() { return ei::GameData<PointArray>(0x007C2F10); }
+PointArray& FloodSecond() { return ei::GameData<PointArray>(0x007C2EF8); }
+std::uint8_t& FloodGuard() { return ei::GameData<std::uint8_t>(0x007C2F24); }
 ExitFn FloodQueueDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0360)); }
 ExitFn FloodSecondDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0350)); }
 

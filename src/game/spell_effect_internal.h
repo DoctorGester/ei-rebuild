@@ -27,6 +27,7 @@
 #include "ei/x87.h"
 #include "lib/vecmath.h"
 #include "lib/mfc_list.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -76,7 +77,7 @@ inline void* __fastcall PtrListConstruct(void* a0, void*, int a2) { return mfc::
 // with skill `skill` (0 when it failed).
 // Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
 // direction (005B2A00) or a disc (005B2760); then stamped into / cleared from the AI map (ai_footprint.cpp).
-inline FootprintCellSet* SpellFootprint() { return reinterpret_cast<FootprintCellSet*>(0x007C8478); }
+inline FootprintCellSet* SpellFootprint() { return ei::GamePointer<FootprintCellSet>(0x007C8478); }
 // The later states' callees.
 // 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.

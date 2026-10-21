@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <new>
@@ -29,7 +30,7 @@ constexpr int kClassLightning = 0x1E;
 constexpr int kClassHoover = 0x1F;
 
 // 007A9694: set once the lightning noise table has been loaded (00468A00).
-int& LightningNoiseLoaded() { return *reinterpret_cast<int*>(0x007A9694); }
+int& LightningNoiseLoaded() { return ei::GameData<int>(0x007A9694); }
 
 } // namespace
 

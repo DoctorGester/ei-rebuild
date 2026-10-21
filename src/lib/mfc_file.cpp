@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "game/originals_library.h"   // MbsInc
+#include "game/game_data.h"
 
 #include <cerrno>
 #include <cstdio>
@@ -61,7 +62,7 @@ void* FileFindClass() { return reinterpret_cast<void*>(0x00745EC0); }
 const char* AllFiles() { return "*.*"; }
 const char* FileUrlPrefix() { return "file://"; }
 // afxChNil: the empty text ReadString starts a line from.
-const char* ChNil() { return reinterpret_cast<const char*>(0x007C8BA8); }
+const char* ChNil() { return ei::GamePointer<const char>(0x007C8BA8); }
 
 // ---- The CRT stream calls of CStdioFile -----------------------------------------------------------
 //

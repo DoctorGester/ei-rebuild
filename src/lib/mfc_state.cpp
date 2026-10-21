@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "game/originals_library.h"   // GameAtExit
 #include "gameapi.h"
+#include "game/game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -26,8 +27,8 @@ ExitFunction WingdixTermAt() { return reinterpret_cast<ExitFunction>(0x0070B5F0)
 
 } // namespace
 
-CThreadSlotData*& AfxThreadData() { return *reinterpret_cast<CThreadSlotData**>(0x007C9084); }
-AuxData& AfxData() { return *reinterpret_cast<AuxData*>(0x007C90C8); }
+CThreadSlotData*& AfxThreadData() { return ei::GameData<CThreadSlotData*>(0x007C9084); }
+AuxData& AfxData() { return ei::GameData<AuxData>(0x007C90C8); }
 
 // ---- Thread and process locals -------------------------------------------------------------------
 
@@ -158,11 +159,11 @@ ModuleState* __cdecl ImageModuleState() {
     return &state;
 }
 
-BOOL& AfxCriticalInitDone() { return *reinterpret_cast<BOOL*>(0x007C907C); }
-BOOL& AfxCriticalWin32s() { return *reinterpret_cast<BOOL*>(0x007C9078); }
-int* AfxLockInit() { return reinterpret_cast<int*>(0x007C8E80); }
-CRITICAL_SECTION* AfxResourceLocks() { return reinterpret_cast<CRITICAL_SECTION*>(0x007C8EE0); }
-CRITICAL_SECTION* AfxLockInitLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007C8EC8); }
+BOOL& AfxCriticalInitDone() { return ei::GameData<BOOL>(0x007C907C); }
+BOOL& AfxCriticalWin32s() { return ei::GameData<BOOL>(0x007C9078); }
+int* AfxLockInit() { return ei::GamePointer<int>(0x007C8E80); }
+CRITICAL_SECTION* AfxResourceLocks() { return ei::GamePointer<CRITICAL_SECTION>(0x007C8EE0); }
+CRITICAL_SECTION* AfxLockInitLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007C8EC8); }
 
 BOOL __cdecl AfxCriticalInit() {
     if (!AfxCriticalInitDone()) {
@@ -210,8 +211,8 @@ BOOL __cdecl AfxInitDbcs() {
     return info.MaxCharSize > 1 ? TRUE : FALSE;
 }
 
-HGDIOBJ& AfxHalftoneBrush() { return *reinterpret_cast<HGDIOBJ*>(0x007C8D40); }
-char& AfxWingdixTermResult() { return *reinterpret_cast<char*>(0x007C8D44); }
+HGDIOBJ& AfxHalftoneBrush() { return ei::GameData<HGDIOBJ>(0x007C8D40); }
+char& AfxWingdixTermResult() { return ei::GameData<char>(0x007C8D44); }
 
 void __cdecl AfxWingdixTerm() { AfxDeleteObject(&AfxHalftoneBrush()); }
 

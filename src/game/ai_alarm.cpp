@@ -18,6 +18,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "lib/crt_iostream.h"
+#include "game_data.h"
 
 namespace {
 
@@ -32,7 +33,7 @@ AiLogStream* AiLogStream::Write(const char* text) { return reinterpret_cast<AiLo
 AiLogStream* AiLogStream::Write(long v) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutInt(v)); }
 AiLogStream* AiLogStream::Put(int c) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
 AiLogStream* AiLogStream::Apply(void* manipulator) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
-AiLogStream* AlarmLog() { return *reinterpret_cast<AiLogStream**>(0x007C2EB8); }
+AiLogStream* AlarmLog() { return ei::GameData<AiLogStream*>(0x007C2EB8); }
 
 // 00455940: the owner's manager context (the world server).
 static inline CWorldServer* ManagerContextAt(void* object) { return static_cast<CWorldServer*>(ManagerContextOf(object)); }

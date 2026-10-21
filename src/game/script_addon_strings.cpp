@@ -14,6 +14,7 @@
 #include "random.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <windows.h>
 
@@ -30,7 +31,7 @@ namespace {
 // 0057F440 on 007AFE20: whether this is a network game.
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
 
-IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }

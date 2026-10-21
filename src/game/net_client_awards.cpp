@@ -20,6 +20,7 @@
 #include "game_slots.h"
 #include "world.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -41,9 +42,9 @@ constexpr int kClassQuestItem = 0x14;
 void* World() { return WorldServer(); }
 // 00594180: player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return reinterpret_cast<CPlayer*>(static_cast<CWorldServer*>(World())->GetPlayer(0)); }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-std::int32_t GameMode() { return *reinterpret_cast<const std::int32_t*>(0x007C2CC4); }
-std::uint32_t Unknown7B00BC() { return *reinterpret_cast<const std::uint32_t*>(0x007B00BC); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+std::int32_t GameMode() { return ei::GameData<const std::int32_t>(0x007C2CC4); }
+std::uint32_t Unknown7B00BC() { return ei::GameData<const std::uint32_t>(0x007B00BC); }
 
 void InitList(ObjectList& list, void* vtable) {
     list.vtable = vtable;

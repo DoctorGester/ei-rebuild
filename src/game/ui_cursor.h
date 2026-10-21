@@ -7,6 +7,7 @@
 #include "originals_ui.h"
 
 #include "lib/containers.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -180,4 +181,4 @@ static_assert(offsetof(CCursor, stop_) == 0x9C);
 static_assert(offsetof(CCursor, lock_) == 0xA0);
 
 // The game's cursor (the object at 007C7BD8).
-inline CCursor* GameCursor() { return reinterpret_cast<CCursor*>(0x007C7BD8); }
+inline CCursor* GameCursor() { return ei::GamePointer<CCursor>(0x007C7BD8); }

@@ -18,6 +18,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <algorithm>
 #include <bit>
@@ -62,11 +63,11 @@ constexpr float kSamePointSq = 0.01f;               // 0073C548
 
 // 007C5404 / 007C5408: how close a follower stays and how far its goal may drift before it walks
 // again (set at startup).
-float FollowNear() { return *reinterpret_cast<const float*>(0x007C5404); }
-float FollowFar() { return *reinterpret_cast<const float*>(0x007C5408); }
+float FollowNear() { return ei::GameData<const float>(0x007C5404); }
+float FollowFar() { return ei::GameData<const float>(0x007C5408); }
 
-IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
-int WorldTick() { return *reinterpret_cast<const int*>(0x007AFFC4); }
+IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
+int WorldTick() { return ei::GameData<const int>(0x007AFFC4); }
 CAIMap* AIMap() { return WorldServer()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }

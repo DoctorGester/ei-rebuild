@@ -7,6 +7,7 @@
 #include "script.h"
 
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -15,7 +16,7 @@
 namespace {
 
 // The script being saved; the run saver (004BB320) finds a run's instance through it.
-CScript*& SavingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
+CScript*& SavingScript() { return ei::GameData<CScript*>(0x007AA620); }
 
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 

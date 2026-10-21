@@ -21,6 +21,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
@@ -116,7 +117,7 @@ namespace {
 // The lever table's record by model name [0052CB40, thiscall on the table: operator[] of its map
 // at +0xC, so an unknown name gets a null record]; the spots' SetAtGrow [0052CC50 (index, value)].
 
-void* const kLeverTable = reinterpret_cast<void*>(0x0079C1A0);
+void* const kLeverTable = ei::GamePointer<void>(0x0079C1A0);
 
 } // namespace
 

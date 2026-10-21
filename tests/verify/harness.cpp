@@ -365,6 +365,7 @@
 #include "game/ui.h"
 #include "game/unit.h"
 #include "game/world.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 #include <dwmapi.h>
@@ -427,7 +428,7 @@ constexpr std::uintptr_t kMapDatabase = 0x0079BF00;
 constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
 // The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
-void* LocalWorldPlayer() { return reinterpret_cast<CWorldServer*>(kServerWorld)->GetPlayer(kLocalPlayer); }
+void* LocalWorldPlayer() { return ei::GamePointer<CWorldServer>(kServerWorld)->GetPlayer(kLocalPlayer); }
 // Its server connection (the world player's +0x20, a CPlayerServer in single player; StateOf in
 // script_exec.cpp) or null; the connection's +0x20 is its state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
@@ -441,12 +442,12 @@ std::string DescribeLocalPlayer() {
     void* connection = LocalConnection();
     char text[200];
     std::snprintf(text, sizeof(text), "player %d -> %p, connection %p, state %d (world +0x5C = %d)", kLocalPlayer, player,
-                  connection, connection ? ConnectionState(connection) : -1, *reinterpret_cast<int*>(kWorld5C));
+                  connection, connection ? ConnectionState(connection) : -1, ei::GameData<int>(kWorld5C));
     return text;
 }
 // The server world's zone (+0x120, the map database name NewZone 00595480 stores), or "".
 const char* ServerZoneName() {
-    const char* name = *reinterpret_cast<const char* const*>(kServerWorld + 0x120);
+    const char* name = ei::GameData<const char* const>(kServerWorld + 0x120);
     return name ? name : "";
 }
 
@@ -602,7 +603,7 @@ struct GameRequest {
     int kind;
     mfc::CString argument;
 };
-GameRequest& g_request = *reinterpret_cast<GameRequest*>(0x007AFE20);
+GameRequest& g_request = ei::GameData<GameRequest>(0x007AFE20);
 
 // Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
 // and the code addresses found on the stack (game.exe addresses as is, ours as ei_hook+offset).
@@ -866,7 +867,7 @@ bool UnderRoot(const char* full, const char* root, const char** relative) {
 // The overlay path of `path`, or null when `path` is not under the game's root.
 const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
     if (!path || !*path) return nullptr;
-    const char* folder = *reinterpret_cast<const char* const*>(0x007AF460);   // CString data, may be empty
+    const char* folder = ei::GameData<const char* const>(0x007AF460);   // CString data, may be empty
     if (folder && *folder && !g_rootDirs[1][0]) {
         if (!GetFullPathNameA(folder, MAX_PATH, g_rootDirs[1], nullptr)) g_rootDirs[1][0] = '\0';
     }
@@ -1628,7 +1629,7 @@ void PostWheel(int x, int y, int delta) {
 // layout rectangle (plus the offset its hit test subtracts) goes through the game's layout-to-screen
 // scaling (005F7D20, patched by Rebirth) and then to the window's client size.
 void PostRegionMouse(const std::string& verb, int index) {
-    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    auto* ui = ei::GamePointer<CInterface3D>(0x007C7D50);
     CUiWindow* window = ui->GetActiveWindow();
     if (!window || index < 0 || index >= window->regions_.size || !window->regions_.data[index]) {
         Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window,
@@ -1686,7 +1687,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
     int id = byId ? std::atoi(name + 1) : TextKeyFromName(name);
-    auto* world = reinterpret_cast<std::uint8_t*>(kClientWorld);
+    auto* world = ei::GamePointer<std::uint8_t>(kClientWorld);
     auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
     if (!header) return label + ": no pick list (not in a game)";
     // The unit's rectangle in this frame's list (the last entry for the id).
@@ -1784,7 +1785,7 @@ __declspec(naked) void __fastcall HarnessBlinkClose(void* /*unit's client half*/
 
 std::string BlinkStep(const std::string& argument) {
     if (argument != "faces" && argument != "open" && argument != "close") return "blink needs faces, open or close";
-    auto* world = reinterpret_cast<CWorldClient*>(kClientWorld);
+    auto* world = ei::GamePointer<CWorldClient>(kClientWorld);
     if (argument == "faces") HarnessLoadUnitFaces(world);
     SectorListNode* head = world->objects_.head;
     if (!head) return "blink: no client world";
@@ -1814,7 +1815,7 @@ std::string PostGroundMouse(const std::string& argument) {
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     auto distance = [&](int lx, int ly) {
         float out[3] = {};
-        HarnessPickSurface(reinterpret_cast<void*>(kClientWorld), nullptr, out, lx * cw / 800, ly * ch / 600);
+        HarnessPickSurface(ei::GamePointer<void>(kClientWorld), nullptr, out, lx * cw / 800, ly * ch / 600);
         const double dx = double(out[0]) - wx, dy = double(out[1]) - wy;
         return dx * dx + dy * dy;
     };
@@ -1848,7 +1849,7 @@ void LogGroundView() {
     char text[400] = "groundview:";
     for (const auto& at : {std::pair{400, 300}, std::pair{0, 0}, std::pair{799, 0}, std::pair{0, 599}, std::pair{799, 599}}) {
         float out[3] = {};
-        HarnessPickSurface(reinterpret_cast<void*>(kClientWorld), nullptr, out, at.first * cw / 800, at.second * ch / 600);
+        HarnessPickSurface(ei::GamePointer<void>(kClientWorld), nullptr, out, at.first * cw / 800, at.second * ch / 600);
         const std::size_t used = std::strlen(text);
         std::snprintf(text + used, sizeof(text) - used, " (%d,%d) %.1f %.1f;", at.first, at.second, out[0], out[1]);
     }
@@ -1871,7 +1872,7 @@ std::string LookAt(const std::string& argument) {
     const RECT client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     float out[3] = {};
-    HarnessPickSurface(reinterpret_cast<void*>(kClientWorld), nullptr, out, 400 * cw / 800, 300 * ch / 600);
+    HarnessPickSurface(ei::GamePointer<void>(kClientWorld), nullptr, out, 400 * cw / 800, 300 * ch / 600);
     const float dx = (wx - out[0]) / g_minimap.sx, dy = -(wy - out[1]) / g_minimap.sy;
     if (std::fabs(wx - out[0]) < 3.0f && std::fabs(wy - out[1]) < 3.0f) {
         Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f", wx, wy, out[0], out[1]);
@@ -1891,7 +1892,7 @@ std::string LookAt(const std::string& argument) {
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
 std::string HudState(const std::string& argument) {
-    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    auto* ui = ei::GamePointer<CInterface3D>(0x007C7D50);
     auto* screen = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
     if (!screen) return "hudstate: no window on top";
     auto at = [](const void* base, int offset) {
@@ -1966,7 +1967,7 @@ std::string CampPutOn(const std::string& argument) {
     unsigned type = 0;
     int count = 0;
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
-    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    auto* ui = ei::GamePointer<CInterface3D>(0x007C7D50);
     auto* camp = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
     if (!camp || *reinterpret_cast<void**>(camp) != reinterpret_cast<void*>(0x0074091C))
         return "campputon: the camp is not on top";
@@ -2036,7 +2037,7 @@ bool WindowVtables(const std::string& name, std::uintptr_t (&vtables)[2]) {
 
 // Whether the awaited window is on top and takes input (see the step's description).
 bool WindowReady(std::uintptr_t (&vtables)[2]) {
-    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    auto* ui = ei::GamePointer<CInterface3D>(0x007C7D50);
     CUiWindow* top = ui->GetActiveWindow();
     if (!top || ui->queuedWindow_ || g_request.kind != 0) return false;
     std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(top);
@@ -2048,7 +2049,7 @@ bool WindowReady(std::uintptr_t (&vtables)[2]) {
 
 // For failure messages: the window on top and what keeps it from counting.
 std::string DescribeTopWindow() {
-    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    auto* ui = ei::GamePointer<CInterface3D>(0x007C7D50);
     CUiWindow* top = ui->GetActiveWindow();
     std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
     const char* name = "?";
@@ -2057,7 +2058,7 @@ std::string DescribeTopWindow() {
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
                   unsigned(vtable), top ? name : "none", ui->queuedWindow_, g_request.kind,
-                  *reinterpret_cast<int*>(kCampaignMode));
+                  ei::GameData<int>(kCampaignMode));
     return text;
 }
 
@@ -2552,19 +2553,19 @@ void RunSteps() {
         // the zone loads): no request pending, not the main menu, the server world holds the zone
         // and the local player is back in the world (state 1; LeaveToZone left it at 3).
         bool ready = false;
-        if (g_inputLoop && g_request.kind == 0 && *reinterpret_cast<int*>(kCampaignMode) != 2 &&
+        if (g_inputLoop && g_request.kind == 0 && ei::GameData<int>(kCampaignMode) != 2 &&
             _stricmp(ServerZoneName(), g_waitZoneName.c_str()) == 0) {
             void* connection = LocalConnection();
             ready = connection && ConnectionState(connection) == 1;
         }
         if (ready) {
             Log("harness: waitzone %s done after %lu ms (campaign mode %d)", g_waitZoneName.c_str(),
-                Now() - g_waitZoneDeadline.start, *reinterpret_cast<int*>(kCampaignMode));
+                Now() - g_waitZoneDeadline.start, ei::GameData<int>(kCampaignMode));
             g_waitingZone = false;
         } else if (g_waitZoneDeadline.Passed()) {
             char what[500];
             std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, %s)%s",
-                          g_waitZoneName.c_str(), ServerZoneName(), g_request.kind, *reinterpret_cast<int*>(kCampaignMode),
+                          g_waitZoneName.c_str(), ServerZoneName(), g_request.kind, ei::GameData<int>(kCampaignMode),
                           DescribeLocalPlayer().c_str(), g_waitZoneDeadline.Why().c_str());
             Log("harness: %s", what);
             g_failures.push_back(what);
@@ -2652,7 +2653,7 @@ void RunSteps() {
         if (!WindowReady(g_waitWindowVtables)) g_waitWindowReadyFrom = kNotReady;
         else if (g_waitWindowReadyFrom == kNotReady) g_waitWindowReadyFrom = g_frames;
         if (g_waitWindowReadyFrom != kNotReady && g_frames >= g_waitWindowReadyFrom + 2 && g_inputLoop) {
-            const CScreenFade* fade = reinterpret_cast<CInterface3D*>(0x007C7D50)->fade_;
+            const CScreenFade* fade = ei::GamePointer<CInterface3D>(0x007C7D50)->fade_;
             Log("harness: waitwindow %s done after %lu ms (frame %u; screen fade %s, alpha %.0f)", g_waitWindowName.c_str(),
                 Now() - g_waitWindowDeadline.start, g_frames, fade && fade->active_ ? "running" : "off", fade ? fade->alpha_ : 0.0f);
             g_waitingWindow = false;
@@ -2911,7 +2912,7 @@ void RunSteps() {
             int id = 0, constr = 0;
             sscanf_s(s.argument.c_str(), "%d %d", &id, &constr);
             if (id == 5 && constr > 0 &&
-                !FindClassTemplate(reinterpret_cast<void*>(kClassTemplates), nullptr, constr)) {
+                !FindClassTemplate(ei::GamePointer<void>(kClassTemplates), nullptr, constr)) {
                 std::string error = "screen: no class template " + std::to_string(constr);
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
@@ -2922,7 +2923,7 @@ void RunSteps() {
         } else if (s.verb == "chat") {
             // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
             // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
-            auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+            auto* ui = ei::GamePointer<CInterface3D>(0x007C7D50);
             if (!ui->root_) {
                 g_failures.push_back("chat: the interface has no chat overlay");
             } else if (std::atoi(s.argument.c_str()) != 0) {
@@ -3672,7 +3673,7 @@ void RestoreAfterMinimise() {
     }
     CTextureDevice* device = RenderDeviceObject();
     if (device && device->ddraw_) {
-        auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);   // the render device's lock
+        auto* lock = ei::GamePointer<CRITICAL_SECTION>(0x007AEE78);   // the render device's lock
         EnterCriticalSection(lock);
         HRESULT result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
         device->lastLoadResult_ = result;
@@ -3712,7 +3713,7 @@ LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam
 // activation a foreground start would have given (tickets R9a2, SV1c).
 void ActivateWithoutForeground(HWND window) {
     static bool sent = false;
-    if (sent || !*reinterpret_cast<void**>(0x007AF080)) return;
+    if (sent || !ei::GameData<void*>(0x007AF080)) return;
     sent = true;
     if (*reinterpret_cast<std::uint8_t*>(0x0079BC5C)) return;
     Log("harness: the game window activated (nothing activates it: harness games never take the foreground)");
@@ -3809,7 +3810,7 @@ bool IsWinMainLoop(const void* returnAddress) {
 unsigned g_closeAllHeldFrom = kNotReady;
 bool HoldMessagesForCloseAll(const void* returnAddress) {
     if (!clock::Virtual() || !IsWinMainLoop(returnAddress) ||
-        !reinterpret_cast<CInterface3D*>(0x007C7D50)->closeAll_) {
+        !ei::GamePointer<CInterface3D>(0x007C7D50)->closeAll_) {
         g_closeAllHeldFrom = kNotReady;
         return false;
     }

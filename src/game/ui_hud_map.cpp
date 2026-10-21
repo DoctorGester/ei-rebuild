@@ -17,6 +17,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -58,7 +59,7 @@ CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient
 // The local player's side: its world player's number.
 int LocalSide() { return LocalView()->Owner()->playerId_; }
 
-CBaseManager* Objects() { return *reinterpret_cast<CBaseManager* const*>(0x007AF5F8); }
+CBaseManager* Objects() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
 // The light factory's list of lit ids (CLightFactory::litIds_) is what the minimap marks.
 using IdNode = stlp::list<int>::Node;
 
@@ -354,7 +355,7 @@ EI_REPLACE_METHOD(0x00643DC0, CHudMap::BuildMarkers);
 namespace {
 
 // The camera (global 007AF7C8; its rotation at +0x34) and the ground point it looks at.
-const CTransformObject* Camera() { return *reinterpret_cast<CTransformObject* const*>(0x007AF7C8); }
+const CTransformObject* Camera() { return ei::GameData<CTransformObject* const>(0x007AF7C8); }
 std::uint32_t CameraTargetXBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079B388); }
 std::uint32_t CameraTargetYBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079B38C); }
 

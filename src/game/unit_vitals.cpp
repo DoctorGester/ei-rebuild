@@ -13,6 +13,7 @@
 #include "logic_settings.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -476,8 +477,8 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
 // 1.61 (the double at 0073E140) ^ (level / 007C5480) * 007C547C through _CIpow, unrounded: the
 // experience a skill or attribute level is worth.
 double LevelWorth(int level) {
-    return libcrt::CiPow(*reinterpret_cast<const double*>(0x0073E140), static_cast<double>(level) / *reinterpret_cast<const float*>(0x007C5480)) *
-           *reinterpret_cast<const float*>(0x007C547C);
+    return libcrt::CiPow(*reinterpret_cast<const double*>(0x0073E140), static_cast<double>(level) / ei::GameData<const float>(0x007C5480)) *
+           ei::GameData<const float>(0x007C547C);
 }
 
 // Raises `levels[index]` by `amount` (a byte) and books what the new level is worth over the old

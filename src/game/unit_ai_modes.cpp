@@ -34,9 +34,9 @@ constexpr float kZero = 0.0f;                                           // 0073B
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
 // Diplomacy: one mask of allied sides per side (007C2BC4).
-const std::uint32_t* Diplomacy() { return reinterpret_cast<const std::uint32_t*>(0x007C2BC4); }
+const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
 
-IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom* GameRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 // The server side of a unit's player (CPlayer::connection_, a CPlayerServer here; CUnit::player is
 // kept as bytes in unit.h). Its refreshPending_ == 2 is what the modes take as the player
@@ -64,7 +64,7 @@ void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
     stream->Write(&copy, size);
 }
 
-float GlobalFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float GlobalFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 
 constexpr float kMoveTime = 1000000.0f;                                 // 0x49742400
 constexpr float kNearX = 35.0f;                                         // 0073FEF8
@@ -153,11 +153,11 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     failures = 0;
     // FCOMP 0; TEST AH,1: below zero (or NaN) takes the default.
     if (!(newRadius >= kZero))
-        std::memcpy(&radius, reinterpret_cast<const void*>(0x007C540C), 4);
+        std::memcpy(&radius, ei::GamePointer<const void>(0x007C540C), 4);
     else
         std::memcpy(&radius, &newRadius, 4);
     if (!(newWander >= kZero))
-        std::memcpy(&wander, reinterpret_cast<const void*>(0x007C53FC), 4);
+        std::memcpy(&wander, ei::GamePointer<const void>(0x007C53FC), 4);
     else
         std::memcpy(&wander, &newWander, 4);
 }

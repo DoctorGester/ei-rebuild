@@ -17,6 +17,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "lib/crt_iostream.h"
+#include "game_data.h"
 
 namespace {
 constexpr float kZero = 0.0f;                       // 0073B858
@@ -85,7 +86,7 @@ UnitLogStream* UnitLogStream::PutChar(int c) { return reinterpret_cast<UnitLogSt
 UnitLogStream* UnitLogStream::Apply(void* manipulator) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 namespace {
-UnitLogStream* HitLog() { return *reinterpret_cast<UnitLogStream**>(0x007AF284); }
+UnitLogStream* HitLog() { return ei::GameData<UnitLogStream*>(0x007AF284); }
 void* const kEndLine = reinterpret_cast<void*>(0x00435000);
 } // namespace
 
@@ -101,7 +102,7 @@ void Remark(CUnit* unit, int code) {
 void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
     if (!item || !unit || !(amount > kZero)) return;
     float before = ItemFloat(item, kItemCondition);
-    float threshold = ItemFloat(item, kItemMaxCondition) * *reinterpret_cast<const float*>(0x007C549C);
+    float threshold = ItemFloat(item, kItemMaxCondition) * ei::GameData<const float>(0x007C549C);
     int pieces = *reinterpret_cast<int*>(reinterpret_cast<char*>(item) + kItemPieces);
     if (pieces > 0) {
         ItemFloat(item, kItemCondition) =
@@ -202,7 +203,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     DamageInfo copy = *hit;
     if (!(copy.amount < kZero || copy.amount > kZero)) return 0;
     float difficulty = unit->player ? kOne
-                                    : reinterpret_cast<const float*>(0x007C54A0)[*reinterpret_cast<const int*>(0x0079BEC0)];
+                                    : ei::GamePointer<const float>(0x007C54A0)[*reinterpret_cast<const int*>(0x0079BEC0)];
     float total = kZero;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -

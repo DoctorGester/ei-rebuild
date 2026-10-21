@@ -16,6 +16,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "ei/x87.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -33,7 +34,7 @@ __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x004
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
 // The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
 __declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
-void* TheRandom() { return reinterpret_cast<void*>(0x007A9D40); }
+void* TheRandom() { return ei::GamePointer<void>(0x007A9D40); }
 
 
 void ClearBase(CEffect* e) {
@@ -93,13 +94,13 @@ float RandomAngle(std::uint32_t random) {
 
 // The ISAAC Next the 0x2030 scorch inlines (same as 004667F0).
 std::uint32_t InlineRandom() {
-    auto* count = reinterpret_cast<std::uint32_t*>(0x007A9D44);
+    auto* count = ei::GamePointer<std::uint32_t>(0x007A9D44);
     std::uint32_t index = (*count)--;
     if (index == 0) {
         RandomRefill(TheRandom());
         *count = 0xFF;
     }
-    return reinterpret_cast<const std::uint32_t*>(0x007A9D48)[*count];
+    return ei::GamePointer<const std::uint32_t>(0x007A9D48)[*count];
 }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =

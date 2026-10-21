@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/mfc.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -233,7 +234,7 @@ EI_REPLACE(0x005BDD50, TerrainTypeAt);
 // ---- The event table ------------------------------------------------------------------------------
 
 namespace {
-AIEvent*& FreeEvents() { return *reinterpret_cast<AIEvent**>(std::uintptr_t(0x007C53F0)); }
+AIEvent*& FreeEvents() { return ei::GameData<AIEvent*>(0x007C53F0); }
 
 void AllocateEventCells(AIEventTable* table) {
     table->cells = static_cast<AIEventCell*>(

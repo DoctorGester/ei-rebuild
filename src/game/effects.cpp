@@ -10,6 +10,7 @@
 #include "originals_effects.h"
 #include "originals_engine.h"
 #include "lib/crt.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstring>
@@ -45,7 +46,7 @@ constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 0073CC
 const float* SizeCurve() { return reinterpret_cast<const float*>(0x0073CB38); }
 const float* AntimagicSizeCurve() { return reinterpret_cast<const float*>(0x0073CB78); }
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
 // x87 FCOM: "ST < operand or unordered" (C0), as `TEST AH,1` reads it.
 bool LessOrUnordered(double a, double b) { return !(a >= b); }

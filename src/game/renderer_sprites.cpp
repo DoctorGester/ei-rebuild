@@ -25,6 +25,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "lib/mfc_coll.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -62,16 +63,16 @@ using SpriteArray = mfc::CArray<Sprite>;
 // Engine aligned arrays (lib::AlignedArray) and a CByteArray / CWordArray (mfc::CArray layout; their
 // SetSize is MFC's afxcoll code, called through its address).
 using devicebuffers::ProjectedVertex;
-lib::AlignedArray<ProjectedVertex>& Unused() { return *reinterpret_cast<lib::AlignedArray<ProjectedVertex>*>(0x007AEFA0); }  // sized only
-lib::AlignedArray<TLVertex>& Corners() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AEF90); }     // 4 per sprite
-mfc::CArray<std::uint8_t>& Outcodes() { return *reinterpret_cast<mfc::CArray<std::uint8_t>*>(0x007AEF78); }      // a byte per corner
-mfc::CArray<std::uint16_t>& Indices() { return *reinterpret_cast<mfc::CArray<std::uint16_t>*>(0x007AEF60); }
-std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFB0); }
-lib::AlignedArray<TLVertex>& CornersCopy() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AEFE8); } // the records point here
-lib::AlignedArray<SpriteSortRecord>& Records() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord>*>(0x007AEFD8); }
-lib::AlignedArray<SpriteSortRecord*>& Order() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFC8); }
-lib::AlignedArray<SpriteSortRecord*>& Spare() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFB8); }
-std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
+lib::AlignedArray<ProjectedVertex>& Unused() { return ei::GameData<lib::AlignedArray<ProjectedVertex>>(0x007AEFA0); }  // sized only
+lib::AlignedArray<TLVertex>& Corners() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AEF90); }     // 4 per sprite
+mfc::CArray<std::uint8_t>& Outcodes() { return ei::GameData<mfc::CArray<std::uint8_t>>(0x007AEF78); }      // a byte per corner
+mfc::CArray<std::uint16_t>& Indices() { return ei::GameData<mfc::CArray<std::uint16_t>>(0x007AEF60); }
+std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AEFB0); }
+lib::AlignedArray<TLVertex>& CornersCopy() { return ei::GameData<lib::AlignedArray<TLVertex>>(0x007AEFE8); } // the records point here
+lib::AlignedArray<SpriteSortRecord>& Records() { return ei::GameData<lib::AlignedArray<SpriteSortRecord>>(0x007AEFD8); }
+lib::AlignedArray<SpriteSortRecord*>& Order() { return ei::GameData<lib::AlignedArray<SpriteSortRecord*>>(0x007AEFC8); }
+lib::AlignedArray<SpriteSortRecord*>& Spare() { return ei::GameData<lib::AlignedArray<SpriteSortRecord*>>(0x007AEFB8); }
+std::uint8_t& SortGuards() { return ei::GameData<std::uint8_t>(0x007AEFF8); }
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
 

@@ -15,6 +15,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "game_data.h"
 
 namespace {
 
@@ -26,7 +27,7 @@ void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int res
 FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
     return static_cast<FigureAnimation*>(static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind));
 }
-void* ObjectManager() { return *reinterpret_cast<void* const*>(0x007AF5F8); }
+void* ObjectManager() { return ei::GameData<void* const>(0x007AF5F8); }
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
 // A part is hidden while bit 0x80 of its flags is set.

@@ -18,6 +18,7 @@
 #include "lib/stlp_hash.h"
 #include "originals_gameplay.h"
 #include "originals_ui.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -28,7 +29,7 @@ const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kPrototypeItem = "Prototype";
 const char* const kRuneItem = "Rune";
 // The spell prototypes (their by-name lookup 00613920 is a thiscall on the table).
-void* SpellTable() { return reinterpret_cast<void*>(0x007C8510); }
+void* SpellTable() { return ei::GamePointer<void>(0x007C8510); }
 
 // Pages of the action buttons.
 enum CampPage {
@@ -146,7 +147,7 @@ const char* InstructionName(int itemClass) {
 const char* MaterialText() { return "material"; }
 const char* SpellContainerText() { return "spell container"; }
 // The quick item prototypes by name (an STLport map; 00613820 inserts a missing name).
-void* QuickItemsByName() { return reinterpret_cast<void*>(0x007C8744); }
+void* QuickItemsByName() { return ei::GamePointer<void>(0x007C8744); }
 constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).

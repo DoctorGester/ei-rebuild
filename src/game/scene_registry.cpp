@@ -18,6 +18,7 @@
 #include "lib/mfc_list.h"
 #include "originals_library.h"
 #include "lib/mfc_array.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -173,7 +174,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
             mfc::CString message;
             message.Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", static_cast<const char*>(s.groupName), static_cast<const char*>(s.section));
             game::DebugLog(message);
-            if (*reinterpret_cast<const std::uint32_t*>(0x007AF5C0) & 0x10000) {
+            if (ei::GameData<const std::uint32_t>(0x007AF5C0) & 0x10000) {
                 reinterpret_cast<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message, 0x30, 0);
             }
             m.h = 0.0f;

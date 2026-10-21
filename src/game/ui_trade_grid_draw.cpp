@@ -18,14 +18,15 @@
 
 #include <cstdint>
 #include "originals_ui.h"
+#include "game_data.h"
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+CRITICAL_SECTION* DeviceLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007AEE78); }
 
 // 005ECA10 (thiscall on the grid's +0x14C object): draws an item's model in a cell.
 // The window's surface text helpers (Rebirth patches 005FDE20).

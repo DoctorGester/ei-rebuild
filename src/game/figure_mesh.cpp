@@ -12,6 +12,7 @@
 #include "model.h"
 #include "originals_render.h"
 #include "render/render.h"   // MeshChanged
+#include "game_data.h"
 
 #include <cstring>
 
@@ -614,7 +615,7 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
 }
 
 // The shared buffer DrawOffset moves the vertices into (a function-less global at 007C2E18).
-lib::AlignedArray<VertexPacket>& OffsetVertices() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E18); }
+lib::AlignedArray<VertexPacket>& OffsetVertices() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E18); }
 } // namespace
 
 void CFigureMesh::MirrorX() {

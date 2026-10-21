@@ -18,6 +18,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "world.h"
+#include "game_data.h"
 
 #include <cstdint>
 
@@ -111,7 +112,7 @@ bool IsEmpty(const mfc::CString& s) { return reinterpret_cast<const int*>(static
 
 // 00647040. Draws the info lines of `unit`.
 void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
-    void* texts = *reinterpret_cast<void**>(0x007AF788);
+    void* texts = ei::GameData<void*>(0x007AF788);
     UnitParams* params = unitIn->Params();
     mfc::CString suffix;
     Panel panel;
@@ -139,7 +140,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text.Format(kSpeedLine, static_cast<const char*>(panel.labels[2]), speed, static_cast<const char*>(suffix));
     panel.DrawLine();
 
-    float dayTime = static_cast<float>(WorldDayTime(reinterpret_cast<void*>(0x007AF5B8)));
+    float dayTime = static_cast<float>(WorldDayTime(ei::GamePointer<void>(0x007AF5B8)));
     int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
     panel.text.Format(kValueUnit, static_cast<const char*>(panel.labels[6]), vision, static_cast<const char*>(panel.labels[13]));
     panel.DrawLine();

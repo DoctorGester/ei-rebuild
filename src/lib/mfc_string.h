@@ -10,6 +10,7 @@
 // The library's helpers (AllocBuffer, ConcatCopy, ...) are public here so they can be registered.
 
 #include "mfc.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -46,10 +47,10 @@ static_assert(sizeof(CFixedAlloc) == 0x28);
 
 // The four string allocators (_afxAlloc64 ... _afxAlloc512, constructed by the static initialisers
 // 00700722 ... 007007B5 with blocks of 64 entries).
-inline CFixedAlloc& StringAlloc64() { return *reinterpret_cast<CFixedAlloc*>(0x007C8B80); }
-inline CFixedAlloc& StringAlloc128() { return *reinterpret_cast<CFixedAlloc*>(0x007C8B58); }
-inline CFixedAlloc& StringAlloc256() { return *reinterpret_cast<CFixedAlloc*>(0x007C8B30); }
-inline CFixedAlloc& StringAlloc512() { return *reinterpret_cast<CFixedAlloc*>(0x007C8B08); }
+inline CFixedAlloc& StringAlloc64() { return ei::GameData<CFixedAlloc>(0x007C8B80); }
+inline CFixedAlloc& StringAlloc128() { return ei::GameData<CFixedAlloc>(0x007C8B58); }
+inline CFixedAlloc& StringAlloc256() { return ei::GameData<CFixedAlloc>(0x007C8B30); }
+inline CFixedAlloc& StringAlloc512() { return ei::GameData<CFixedAlloc>(0x007C8B08); }
 
 // CStringData: the header before a string's characters. `refs` is -1 for the shared empty string
 // (_afxDataNil) and for a locked buffer (LockBuffer).

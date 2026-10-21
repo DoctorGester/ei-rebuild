@@ -16,6 +16,7 @@
 #include "originals_engine.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -63,7 +64,7 @@ float ConstScrollTo() { return *reinterpret_cast<const float*>(0x0073C3B0); }   
 float ConstHalf() { return *reinterpret_cast<const float*>(0x0073B86C); }       // 0.5: the slider's centre
 float ConstThumbLift() { return *reinterpret_cast<const float*>(0x0073B850); }  // 0.1: the thumb above the track
 // The slider sprites' turn about z (a float global set at start-up, not in the file).
-float QuarterTurn() { return *reinterpret_cast<const float*>(0x007C8210); }
+float QuarterTurn() { return ei::GameData<const float>(0x007C8210); }
 
 // The game's option globals the window loads (00652200) and stores (006524A0), by setting.
 int& OptVolume0() { return *reinterpret_cast<int*>(0x0079BCC8); }       // setting 0 (the sound system's volume A)

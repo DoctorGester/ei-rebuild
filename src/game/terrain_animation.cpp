@@ -21,6 +21,7 @@
 #include "lib/vecmath.h"
 #include "originals_library.h"
 #include "render/render.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -45,10 +46,10 @@ constexpr float kCircleScale = 3.0f;                       // 0073BAA4
 constexpr float kMinComponent = 0.01f;                     // 0073C548
 
 // The world clock: whole ticks (FILD) and the fraction of the current one.
-int GameTicks() { return *reinterpret_cast<const int*>(0x007AF61C); }
-float GameTickFraction() { return *reinterpret_cast<const float*>(0x007AFCA8); }
+int GameTicks() { return ei::GameData<const int>(0x007AF61C); }
+float GameTickFraction() { return ei::GameData<const float>(0x007AFCA8); }
 // The sun's ray step scale (007C8964 = 1 * 95, a static initialiser), and the cell size (007441D0).
-float SunStepScale() { return *reinterpret_cast<const float*>(0x007C8964); }
+float SunStepScale() { return ei::GameData<const float>(0x007C8964); }
 float CellSize() { return *reinterpret_cast<const float*>(0x007441D0); }
 
 bool SignClear(float v) {
@@ -218,8 +219,8 @@ int __cdecl CompareSectors(const void* a, const void* b) {
 
 // SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270, the
 // generated ei::static_init::Exit006C9270).
-lib::AlignedArray<SectorData*>& SortedSectors() { return *reinterpret_cast<lib::AlignedArray<SectorData*>*>(0x007C8938); }
-std::uint8_t& SortedSectorsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C8948); }
+lib::AlignedArray<SectorData*>& SortedSectors() { return ei::GameData<lib::AlignedArray<SectorData*>>(0x007C8938); }
+std::uint8_t& SortedSectorsGuard() { return ei::GameData<std::uint8_t>(0x007C8948); }
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
 // with its sign (_copysign of the double 0.01f).

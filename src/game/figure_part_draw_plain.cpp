@@ -19,6 +19,7 @@
 #include "render/render.h"   // MeshSource
 #include "texture.h"           // CTextureDevice
 #include "world.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstdint>
@@ -30,8 +31,8 @@ namespace {
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
 // The moved positions (lib::AlignedArray; its inlined SetSize allocates through 00452E70).
-lib::AlignedArray<VertexPacket>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E60); }
-std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E70); }
+lib::AlignedArray<VertexPacket>& MovedPositions() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E60); }
+std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E70); }
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 // 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
@@ -132,7 +133,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
         }
     }
     if (result != 2) mesh_->flags_ |= 0x40;
-    DrawBounds(reinterpret_cast<CSceneRenderer*>(0x007AF060));
+    DrawBounds(ei::GamePointer<CSceneRenderer>(0x007AF060));
     return 1;
 }
 EI_REPLACE_METHOD(0x005A7640, FigureMeshDrawer::DrawPlain);

@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
+#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -28,7 +29,7 @@ __declspec(naked) inline int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSur
 // 00500960: the display / renderer object (the global at 007AF060; plain RET, no arguments).
 // 00468F70: 16-byte aligned scratch allocation of `count` 16-byte records (ECX, plain RET).
 // The same object without the call: the scene context the draw slots take (007AF060).
-inline void* SceneContext() { return reinterpret_cast<void*>(0x007AF060); }
+inline void* SceneContext() { return ei::GamePointer<void>(0x007AF060); }
 // 004D9880: 4x4 matrix product out = a * b (ECX = out, RET 8, no result).
 __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, void*, const float* /*a*/,
                                                                 const float* /*b*/) EI_ORIGINAL(0x004D9880)

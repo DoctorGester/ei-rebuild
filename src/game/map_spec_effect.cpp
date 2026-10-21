@@ -20,6 +20,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_effects.h"
+#include "game_data.h"
 
 namespace mapspec {
 
@@ -30,8 +31,8 @@ namespace {
 
 void __fastcall EffectRestart(void* a0) { static_cast<CEffect*>(a0)->MarkChanged(); }
 
-void* World() { return reinterpret_cast<void*>(0x007AFF60); }
-void* Effects() { return *reinterpret_cast<void**>(0x007AFFA8); }
+void* World() { return ei::GamePointer<void>(0x007AFF60); }
+void* Effects() { return ei::GameData<void*>(0x007AFFA8); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -102,7 +103,7 @@ EI_REPLACE_METHOD(0x0046DA00, LightSpec::LightSpecDelete);
 
 // 0046D3D0 (slot 2): effects are managed under -3001 - id.
 void* EffectSpec::EffectSpecWorldObject() {
-    return static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AF5F8))->FindObject(-3001 - base.id);
+    return static_cast<CBaseManager*>(ei::GameData<void*>(0x007AF5F8))->FindObject(-3001 - base.id);
 }
 EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
 
@@ -122,7 +123,7 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = (*reinterpret_cast<Terrain**>(0x007AF738))->HeightAt(p.x, p.y, 0);
+    double ground = (ei::GameData<Terrain*>(0x007AF738))->HeightAt(p.x, p.y, 0);
     if (ground > p.z) p.z = static_cast<float>(ground);
     base.Record()->ApplyObject();
 }

@@ -12,6 +12,7 @@
 #include "console.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
+#include "game_data.h"
 
 #include <bit>
 #include <cstddef>
@@ -430,14 +431,14 @@ static_assert(offsetof(MaterialRecordHead, armourFlags) == 0x48);
 template <int Stride>
 char* __fastcall RecordTableAt(const RecordTable* table, void*, std::uint32_t index);
 
-inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTable*>(0x007C86D8); }
-inline const RecordTable& Weapons() { return *reinterpret_cast<const RecordTable*>(0x007C86F8); }
-inline const RecordTable& Armors() { return *reinterpret_cast<const RecordTable*>(0x007C8718); }
-inline const RecordTable& QuickItems() { return *reinterpret_cast<const RecordTable*>(0x007C8738); }
-inline const RecordTable& QuestItems() { return *reinterpret_cast<const RecordTable*>(0x007C8758); }
-inline const RecordTable& Loot() { return *reinterpret_cast<const RecordTable*>(0x007C8778); }
-inline const RecordTable& Spells() { return *reinterpret_cast<const RecordTable*>(0x007C8510); }
-inline const RecordTable& SpellModifiers() { return *reinterpret_cast<const RecordTable*>(0x007C8530); }
+inline const RecordTable& Materials() { return ei::GameData<const RecordTable>(0x007C86D8); }
+inline const RecordTable& Weapons() { return ei::GameData<const RecordTable>(0x007C86F8); }
+inline const RecordTable& Armors() { return ei::GameData<const RecordTable>(0x007C8718); }
+inline const RecordTable& QuickItems() { return ei::GameData<const RecordTable>(0x007C8738); }
+inline const RecordTable& QuestItems() { return ei::GameData<const RecordTable>(0x007C8758); }
+inline const RecordTable& Loot() { return ei::GameData<const RecordTable>(0x007C8778); }
+inline const RecordTable& Spells() { return ei::GameData<const RecordTable>(0x007C8510); }
+inline const RecordTable& SpellModifiers() { return ei::GameData<const RecordTable>(0x007C8530); }
 
 // The records of those tables typed (null when the index is out of range).
 inline MaterialRecordHead* MaterialAt(std::uint32_t index) {

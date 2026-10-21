@@ -12,6 +12,7 @@
 
 #include "lib/stlp.h"
 #include "unit_client_models.h"
+#include "game_data.h"
 
 class ChunkArchive;
 class CUnit;
@@ -115,7 +116,7 @@ struct AckDatabase {
     AckTable<ModelAcks> models;     // +0x20
     AckTable<ExtraAcks> extras;     // +0x40
 };
-inline AckDatabase& Database() { return *reinterpret_cast<AckDatabase*>(0x007C8A60); }
+inline AckDatabase& Database() { return ei::GameData<AckDatabase>(0x007C8A60); }
 
 // The archive's helpers for the records (acks_db.cpp; thiscall on the archive): 006E4F40 a speech
 // as chunk `id` (RET 8), 006E42F0 / 006E4410 a speech list / environment speech list as chunk `id`

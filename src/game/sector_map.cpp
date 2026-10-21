@@ -6,6 +6,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 #include <cstring>
 
@@ -174,9 +175,9 @@ namespace {
 // Spiral of sector offsets ordered by distance, with a radius-to-length table. Globals at
 // 007C2FC4 (lengths) and 007C2FFC (offset pairs); 005BF7D0 (RadiusTree::Find) maps a radius to
 // a table index.
-const RadiusTree* Spiral() { return reinterpret_cast<const RadiusTree*>(0x007C2FD8); }
-const int* SpiralLengths() { return *reinterpret_cast<const int* const*>(0x007C2FC4); }
-const std::int16_t* SpiralOffsets() { return *reinterpret_cast<const std::int16_t* const*>(0x007C2FFC); }
+const RadiusTree* Spiral() { return ei::GamePointer<const RadiusTree>(0x007C2FD8); }
+const int* SpiralLengths() { return ei::GameData<const int* const>(0x007C2FC4); }
+const std::int16_t* SpiralOffsets() { return ei::GameData<const std::int16_t* const>(0x007C2FFC); }
 } // namespace
 
 int RadiusTree::Find(float radius) const {

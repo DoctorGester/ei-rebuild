@@ -8,13 +8,14 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "game_data.h"
 
 #include <cstring>
 
 namespace {
 
 // The sound manager (*007AF784).
-CSoundManager* SoundManager() { return *reinterpret_cast<CSoundManager**>(0x007AF784); }
+CSoundManager* SoundManager() { return ei::GameData<CSoundManager*>(0x007AF784); }
 
 std::uint32_t NextRandom() { return IsaacRandom::Global().Next(); }
 

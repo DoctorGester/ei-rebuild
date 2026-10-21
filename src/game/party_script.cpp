@@ -5,11 +5,12 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "game_data.h"
 
 namespace {
 
 // The party manager's record list (007AA5A0 + 0x24).
-const NamedPartyRecords* RecordList() { return reinterpret_cast<const NamedPartyRecords*>(0x007AA5C4); }
+const NamedPartyRecords* RecordList() { return ei::GamePointer<const NamedPartyRecords>(0x007AA5C4); }
 
 } // namespace
 
