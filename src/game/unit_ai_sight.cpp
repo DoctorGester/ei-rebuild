@@ -178,7 +178,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
             double dz = static_cast<double>(self->position.z) - other->position.z;
             console::GameOStream& os = LogPair(self, " sees unit ", other) << " from ";
             (void)os;
-            console::EndLine(AiLog()->PutFloat(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) << "m distance");
+            console::EndLine(AiLog()->PutFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) << "m distance");
         }
     }
 }

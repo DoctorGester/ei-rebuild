@@ -189,10 +189,10 @@ void CCamera::Pan(const Vector3* direction) {
     up.z = static_cast<float>(Dot2DUnrounded<double>(r.w, r.y, r.x, r.z) * 2.0);
     up.y = static_cast<float>((D(r.w) * r.w - LengthSquaredUnrounded<Sum3::ZXY, double>(r.x, r.y, r.z)) + D(r.y) * r.y * 2.0);
     up.x = static_cast<float>((D(r.y) * r.x - D(r.w) * r.z) * 2.0);
-    double k1 = (1.0 / x87::fsqrt(LengthSquared2DUnrounded<double>(right.y, right.x))) * direction->x;
+    double k1 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(right.y, right.x))) * direction->x;
     right.x = static_cast<float>(k1 * right.x);
     double rightY = k1 * right.y;
-    double k2 = (1.0 / x87::fsqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction->y;
+    double k2 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction->y;
     up.x = static_cast<float>(k2 * up.x);
     double upY = k2 * up.y;
     offsetA4_.x = static_cast<float>(D(up.x) + right.x);
@@ -307,7 +307,7 @@ void CCamera::Update(float dt) {
             Vector3 dir;
             dir.y = -side.y;
             dir.z = 0.0f;
-            float inv = static_cast<float>(1.0 / x87::fsqrt(D(dir.y) * dir.y + nx * nx));
+            float inv = static_cast<float>(1.0 / std::sqrt(D(dir.y) * dir.y + nx * nx));
             dir.x = static_cast<float>(nx * inv);
             dir.y = static_cast<float>(D(dir.y) * inv);
             TurnTowards(dir);
@@ -365,7 +365,7 @@ void CCamera::Update(float dt) {
             double d2 = LengthSquared2DUnrounded(by, bx);
             double radius = boundsRadius_;
             if (d2 > radius * radius) {
-                double inv = 1.0 / x87::fsqrt(d2);
+                double inv = 1.0 / std::sqrt(d2);
                 float ux = static_cast<float>(inv * bx);
                 double uy = inv * by;
                 float px = static_cast<float>(radius * ux);
@@ -503,7 +503,7 @@ void CCamera::ViewsToSettings(CameraSettings* settings) {
         if (sum > kAxisTiny) {
             double angle = gamecrt::acos(q.w);
             angle = angle + angle;
-            double inv = 1.0 / x87::fsqrt(sumF);
+            double inv = 1.0 / std::sqrt(sumF);
             float invF = static_cast<float>(inv);
             r.axis.x = static_cast<float>(inv * q.x);
             r.axis.y = static_cast<float>(D(invF) * q.y);

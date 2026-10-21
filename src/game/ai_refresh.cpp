@@ -104,7 +104,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     double halfW = static_cast<double>(ox1 - ox0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     double halfH = static_cast<double>(oy1 - oy0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     float scale = static_cast<float>(static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
-    float radius = static_cast<float>(x87::fsqrt(halfW * halfW + halfH * halfH) * scale);
+    float radius = static_cast<float>(std::sqrt(halfW * halfW + halfH * halfH) * scale);
     Vector3 centre;   // x and y (FindUnitsInRadius reads no more)
     float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * 0.5f /*0073B86C*/);
     float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * 0.5f /*0073B86C*/);

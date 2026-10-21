@@ -75,7 +75,7 @@ Vector3 Difference(const Vector3& a, const Vector3& b) { return Vector3{a.x - b.
 
 // Normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 void Normalise(Vector3* v) {
-    float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v)));
+    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v)));
     if (length == 0.0f || x87::IsNaN(length)) return;
     float inverse = 1.0f / length;
     v->x = inverse * v->x;

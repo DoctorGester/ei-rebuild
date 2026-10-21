@@ -260,7 +260,7 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     float dx = t->position.x - position.x;
     float dy = t->position.y - position.y;
     float dz = t->position.z - position.z;
-    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
     if (length > kZero) {
         dx = static_cast<float>(dx / length);
         dy = static_cast<float>(dy / length);

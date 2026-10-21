@@ -141,7 +141,7 @@ conversions follow (they keep the goldens and `ei_vectors` unchanged):
 - A `double` local or a `double` expression stands for an unrounded register: at 24-bit (main thread) and 53-bit precision control,
   storing an x87 result to a double changes nothing. Promote at the first operation (`static_cast<double>(a) - b`); `static_cast<float>`
   or a float local is the FSTP.
-- Keep `x87::fsin` / `fcos` / `fsqrt` / `fexp` / `flog` / `fpatan` / `fistp` (their results are 64-bit significands; use them inside
+- Keep `x87::fsin` / `fcos` / `fexp` / `flog` / `fpatan` / `fistp` (their results are 64-bit significands; use them inside
   the expression so the compiler takes ST0 as it is: checked in the object code for `ClampPow`, `CircleScaled`, `WallScorchShape`).
   `gamecrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` / `CiFmod` the bodies of `_CIpow` / `_CIfmod`, `x87::FromUnsigned` the FILD of
   an unsigned.
@@ -190,7 +190,7 @@ default `-nan(ind)`). The cause is not the helpers but the doubles:
 | Family (sites) | Plain C++ | Goldens | Why |
 |---|---|---|---|
 | `fistp` (197) | `std::lrint` | same | the CRT's lrint is a FISTP that follows the x87 rounding control (chop too), under SSE2 as well; but NaN and out-of-range give 0 where FISTP gives 0x80000000: kept as the instruction: lrint also reads the FP environment per call (SV10j's helper replaces both) |
-| `fsqrt` (149) | `std::sqrt` | same | on IA32 `_CIsqrt` is FSQRT at the precision control (converted, C16); under SSE2 it is SQRTSD, 53 bits |
+| `fsqrt` (149, done: C16a, double argument kept) | `std::sqrt` | same | on IA32 `_CIsqrt` is FSQRT at the precision control (converted, C16); under SSE2 it is SQRTSD, 53 bits |
 | `fsin` / `fcos` (159) | `std::sin` / `cos` | same | the CRT's 53-bit results against FSIN / FCOS's 64; equal after the float store over 800k float arguments; not bit-exact in principle (converted, C16, separate commit) |
 | `fpatan` (27) | `std::atan2` | same | as fsin (converted, separate commit) |
 | `flog` / `flog10` (16) | `std::log` / `log10` | same | FYL2X ignores the precision control (converted, separate commit) |

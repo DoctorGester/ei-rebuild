@@ -136,7 +136,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         float x = static_cast<float>(static_cast<double>(me->x) - at->x);
         float y = static_cast<float>(static_cast<double>(me->y) - at->y);
         float z = static_cast<float>(static_cast<double>(me->z) - at->z);
-        float reach = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z)) * kSeenScale);
+        float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z)) * kSeenScale);
         // The larger of the two; an unordered pair takes the new one.
         if (!(distance >= reach)) distance = reach;
     }
@@ -242,7 +242,7 @@ void FearMode::Execute(AIBrain* brain) {
             double vy = static_cast<double>(from.y) - here->y;
             double vz = static_cast<double>(from.z) - here->z;
             Vector3 step{static_cast<float>(vx), static_cast<float>(vy), static_cast<float>(vz)};
-            float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz)));
+            float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz)));
             float limit = static_cast<float>(static_cast<double>(distance) * kSpreadScale);
             // The smaller of the two; an unordered pair keeps the old spread.
             float width = (spread < limit || x87::IsNaN(spread) || x87::IsNaN(limit)) ? spread : limit;

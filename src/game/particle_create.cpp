@@ -183,7 +183,7 @@ void SetupExplosion(CParticleSource* s) {
             if (!(lengthSquared >= D(EI_ONE))) break;
             if (!(--tries > 0)) break;
         }
-        float length = static_cast<float>(x87::fsqrt(lengthSquared));
+        float length = static_cast<float>(std::sqrt(lengthSquared));
         Vector3 v;
         v.Construct(x, y, z);
         Vector3 direction;

@@ -174,7 +174,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         double ux = self->position.x - out->x;
         double uy = self->position.y - out->y;
         double uz = self->position.z - out->z;
-        float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz)));
+        float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz)));
         float range = static_cast<float>(distance * kRangePerDistance + kRangeBase);
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
@@ -206,7 +206,7 @@ void AIBrain::UpdateFollow() {
                      static_cast<float>(leader->position.z - self->position.z)};
     int now = WorldTick();
     float distance = static_cast<float>(
-        x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
+        std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
     CUnitServer* leaderController = ControllerOf(leader);
     float walkTime = static_cast<float>(distance * kRangePerDistance + kRangeBase);
 
@@ -268,7 +268,7 @@ void AIBrain::UpdateFollow() {
     Vector3 side{static_cast<float>(-along), across, 0.0f};
     double lengthSq = static_cast<double>(side.y) * side.y + along * along;
     if (!(lengthSq > 0.0)) return;
-    double scale = kSideOffset / x87::fsqrt(lengthSq);
+    double scale = kSideOffset / std::sqrt(lengthSq);
     side.x = static_cast<float>(scale * -along);
     side.y = static_cast<float>(scale * side.y);
     side.z = static_cast<float>(side.z * scale);
@@ -313,7 +313,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     double dz = from->z - to->z;
     CUnit* unit = brain->owner->unit;
     Vector3 saved = *PositionOf(unit);
-    float range = static_cast<float>(2.0 * x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
+    float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, from);
     bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, &saved);

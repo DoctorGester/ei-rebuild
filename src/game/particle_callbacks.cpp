@@ -154,7 +154,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
         z = static_cast<float>(zu);
         lengthSquared = static_cast<float>(zu * D(z) + D(y) * D(y) + D(x) * D(x));
     }
-    double inverse = D(EI_P_ONE) / x87::fsqrt(D(lengthSquared));
+    double inverse = D(EI_P_ONE) / std::sqrt(D(lengthSquared));
     p->velocity.x = static_cast<float>(inverse * D(x));
     p->velocity.y = static_cast<float>(inverse * D(y));
     p->velocity.z = static_cast<float>(inverse * D(z));
@@ -321,7 +321,7 @@ bool FollowCarrier(CParticleSource* s) {
     smoothed.z = sz;
     const Vector3& m = s->elements[1].pos;
     float* speed = ElementFloat(s->elements, 0x20);
-    *speed = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(m)));
+    *speed = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(m)));
     if (!(D(*ElementFloat(s->elements, 0x20)) >= EI_STILL_SPEED)) SetBits(ElementFloat(s->elements, 0x20), 0);
     return true;
 }
@@ -350,7 +350,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     v.Construct(x, y, z);
     std::memcpy(&p->velocity, &v, sizeof(Vector3));
     double shell = D(radius) * D(EI_SHELL);
-    double scale = shell / x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(p->velocity));
+    double scale = shell / std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(p->velocity));
     p->velocity.x = static_cast<float>(scale * D(p->velocity.x));
     p->velocity.y = static_cast<float>(scale * D(p->velocity.y));
     p->velocity.z = static_cast<float>(scale * D(p->velocity.z));
@@ -934,19 +934,19 @@ template <std::floating_point T> inline float F(T) = delete;
 void SetUpLink(CParticleSource* s) {
     SetElementCount(s, 4);
     const Vector3& x = s->extent;
-    *ElementFloat(s->elements, 0x18) = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x)));
+    *ElementFloat(s->elements, 0x18) = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x)));
     *ElementFloat(s->elements, 0x1C) = static_cast<float>(D(EI_P_ONE) / D(*ElementFloat(s->elements, 0x18)));
 
     // A side vector: (ey, -ex, 0), or (ey - ez, -ex, ex) when the extent is (nearly) vertical.
     Vector3 side;
     double zero = EI_P_ZERO;
     side.Construct(static_cast<float>(D(x.y) - zero), static_cast<float>(zero - D(x.x)), 0.0f);
-    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(side));
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(side));
     if (!(length >= EI_LINK_DEGENERATE)) {
         float ex = x.x;
         Vector3 other;
         other.Construct(static_cast<float>(D(x.y) - D(x.z)), static_cast<float>(-D(ex)), ex);
-        length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(other));
+        length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(other));
         side = other;
     }
     double inverse = D(EI_P_ONE) / length;
@@ -957,12 +957,12 @@ void SetUpLink(CParticleSource* s) {
     Vector3 cross;
     cross.Construct(static_cast<float>(D(side.z) * D(x.y) - D(side.y) * D(x.z)), static_cast<float>(D(side.x) * D(x.z) - D(side.z) * D(x.x)),
                     static_cast<float>(D(side.y) * D(x.x) - D(side.x) * D(x.y)));
-    double crossInverse = D(EI_P_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cross));
+    double crossInverse = D(EI_P_ONE) / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cross));
     cross.x = static_cast<float>(crossInverse * D(cross.x));
     cross.y = static_cast<float>(D(cross.y) * crossInverse);
     cross.z = static_cast<float>(D(cross.z) * crossInverse);
 
-    double extentLength = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x));
+    double extentLength = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x));
     Vector3 direction;
     direction.Construct(static_cast<float>(D(x.x) / extentLength), static_cast<float>(D(x.y) / extentLength), static_cast<float>(D(x.z) / extentLength));
     std::memcpy(ElementFloat(&s->elements[1], 0x18), &direction, sizeof(Vector3));
@@ -985,7 +985,7 @@ int CParticleSource::EmitLink(Particle* p, int) {
     p->velocity.x = static_cast<float>(D(a) * D(spreadMin.x));
     p->velocity.y = static_cast<float>(D(b) * D(spreadMin.y));
     p->velocity.z = static_cast<float>(c);
-    double reach = x87::fsqrt(D(b) * D(b) + D(a) * D(a));
+    double reach = std::sqrt(D(b) * D(b) + D(a) * D(a));
     float reachRounded = static_cast<float>(reach);
     double twist = reach * D(EI_LINK_TWIST);
     p->aux0 = static_cast<float>(x87::fcos(twist));
@@ -1519,7 +1519,7 @@ void ChooseShowerRays(CParticleSource* s) {
             if (!(lengthSquared >= D(EI_P_ONE))) break;
             if (!(--tries > 0)) break;
         }
-        float length = static_cast<float>(x87::fsqrt(lengthSquared));
+        float length = static_cast<float>(std::sqrt(lengthSquared));
         Vector3 v;
         v.Construct(x, y, z);
         Vector3 direction;
@@ -1552,7 +1552,7 @@ int CParticleSource::EmitShower(Particle* p, int) {
     a = static_cast<float>(D(scale) * ax);
     b = static_cast<float>(D(scale) * D(b));
     c = static_cast<float>(D(scale) * D(c));
-    float speed = static_cast<float>(D(EI_P_ONE) / x87::fsqrt(D(c) * D(c) + D(b) * D(b) + D(a) * D(a)) * D(size) * D(EI_SHOWER_SPEED));
+    float speed = static_cast<float>(D(EI_P_ONE) / std::sqrt(D(c) * D(c) + D(b) * D(b) + D(a) * D(a)) * D(size) * D(EI_SHOWER_SPEED));
     if ((Next() & 7) == 0) speed = static_cast<float>(D(speed) * D(EI_SHOWER_FAST));
     p->drift.x = static_cast<float>(D(speed) * D(a));
     SetBits(&p->velocity.x, 0x3F666666);     // 0.9: the speed kept per tick
@@ -1920,7 +1920,7 @@ int CParticleSource::EmitMushroom(Particle* p, int) {
     float a = SignedUnit();
     float b = SignedUnit();
     double c = Unsigned(Next()) * EI_MUSHROOM_UP_SCALE + D(EI_MUSHROOM_UP_BASE);
-    double k = EI_MUSHROOM_ONE / x87::fsqrt(c * c + D(b) * D(b) + D(a) * D(a));
+    double k = EI_MUSHROOM_ONE / std::sqrt(c * c + D(b) * D(b) + D(a) * D(a));
     float dx = static_cast<float>(k * D(a));
     p->drift.x = dx;
     float dy = static_cast<float>(k * D(b));
@@ -1980,7 +1980,7 @@ int CParticleSource::UpdateMushroom(Particle* p) {
     double dx = D(p->pos.x) - D(stem[0]);
     double dyu = D(p->pos.y) - D(stem[1]);
     float dy = static_cast<float>(dyu);
-    float reach = static_cast<float>(x87::fsqrt(dyu * D(dy) + dx * dx));
+    float reach = static_cast<float>(std::sqrt(dyu * D(dy) + dx * dx));
     double dz = D(p->pos.z) - D(stem[2]);
     if (D(elements[0].pos.z) > dz) {
         p->drift.x = static_cast<float>(vx - dx * D(size) * D(EI_MUSHROOM_PULL) / D(reach));
@@ -2218,7 +2218,7 @@ int CParticleSource::UpdateTornado(Particle* p) {
     p->pos.z = static_cast<float>(D(*ElementFloat(elements, 0x24)) * D(p->aux0) + base);
     if (p->life > 8) p->aux1 = PickIfLess(static_cast<float>(D(p->aux1) + D(EI_FUNNEL_FADE)), 1.0f);
     else p->aux1 = !(0.1f >= p->aux1) ? p->aux1 : 0.1f;
-    int a = x87::fistp(static_cast<float>(x87::fsqrt(D(EI_P_ONE) - D(p->aux0)) * D(p->aux1) * EI_FUNNEL_ALPHA));
+    int a = x87::fistp(static_cast<float>(std::sqrt(D(EI_P_ONE) - D(p->aux0)) * D(p->aux1) * EI_FUNNEL_ALPHA));
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);
     if (p->state != 0) {
         p->frame = (p->frame + 1) % 12;
@@ -2268,7 +2268,7 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         float ay = static_cast<float>(D(sy) * D(EI_FUNNEL_BACK));
         float az = static_cast<float>(D(sz) * D(EI_FUNNEL_BACK));
         Vector3 n = {ax, ay, az};
-        double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(ax, ay, az));
+        double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(ax, ay, az));
         if (!(length == 0.0 || x87::IsNaN(static_cast<float>(length)))) {
             double inverse = D(EI_P_ONE) / length;
             n.x = static_cast<float>(D(ax) * inverse);
@@ -2458,13 +2458,13 @@ int CParticleSource::UpdateCylinder(Particle* p) {
     p->velocity.x = static_cast<float>(D(p->velocity.x) + D(step[0]));
     p->velocity.y = static_cast<float>(D(step[1]) + D(p->velocity.y));
     p->velocity.z = static_cast<float>(D(step[2]) + D(p->velocity.z));
-    double k = D(*ElementFloat(elements, 0x28)) / x87::fsqrt(LengthSquared2DUnrounded<double>(p->velocity.x, p->velocity.y));
+    double k = D(*ElementFloat(elements, 0x28)) / std::sqrt(LengthSquared2DUnrounded<double>(p->velocity.x, p->velocity.y));
     float kx = static_cast<float>(k * D(p->velocity.x));
     p->velocity.x = kx;
     double ky = k * D(p->velocity.y);
     p->velocity.y = static_cast<float>(ky);
     float reach =
-        static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step[0], step[1], step[2])) * D(*ElementFloat(elements, 0x24)));
+        static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step[0], step[1], step[2])) * D(*ElementFloat(elements, 0x24)));
     step[0] = static_cast<float>(ky * D(reach) * D(EI_CYL_SPARK_PULL));
     step[1] = static_cast<float>(-D(kx) * D(reach) * D(EI_CYL_SPARK_PULL));
     step[2] = static_cast<float>(D(step[2]) * D(EI_CYL_SPARK_PULL));
@@ -2986,7 +2986,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
         if (!(lengthSquared >= D(EI_P_ONE))) break;
         if (!(--tries > 0)) break;
     }
-    float length = static_cast<float>(x87::fsqrt(lengthSquared));
+    float length = static_cast<float>(std::sqrt(lengthSquared));
     Vector3 v;
     v.Construct(x, y, z);
     Vector3 direction;
@@ -3718,7 +3718,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     float sn = static_cast<float>(x87::fsin(D(p->velocity.x)));
     double hu = x87::fsin(D(p->aux0)) * 0.5 /*0073CC88*/;    // * 0.5
     float h = static_cast<float>(hu);
-    double length = x87::fsqrt(hu * D(h) + D(sn) * D(sn) + c * c);
+    double length = std::sqrt(hu * D(h) + D(sn) * D(sn) + c * c);
     double ku = radius / length;
     float k = static_cast<float>(ku);
     double cx = c * ku;
@@ -4009,7 +4009,7 @@ int CParticleSource::EmitCurseStars(Particle* p, int) {
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
-    double length = x87::fsqrt(c * c + D(b) * D(b) + D(a) * D(a));
+    double length = std::sqrt(c * c + D(b) * D(b) + D(a) * D(a));
     float lengthF = static_cast<float>(length);
     p->life = 20;
     if (length > D(EI_P_ZERO)) {
@@ -4074,7 +4074,7 @@ int CParticleSource::EmitStartTrans(Particle* p, int) {
         float x, y, z;
         double lengthSquared;
         RandomInBall(x, y, z, lengthSquared);
-        float length = static_cast<float>(x87::fsqrt(lengthSquared));
+        float length = static_cast<float>(std::sqrt(lengthSquared));
         Vector3 v;
         v.Construct(x, y, z);
         Vector3 direction;

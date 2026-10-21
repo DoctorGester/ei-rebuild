@@ -176,13 +176,13 @@ inline void HeightPlusProduct(void* world, int slot, std::uint32_t x, std::uint3
 
 // *out = (float)sqrt(y*y + x*x).
 inline void PlanarLength(const Vector3* v, float* out) {
-    *out = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded<double>(v->y, v->x)));
+    *out = static_cast<float>(std::sqrt(LengthSquared2DUnrounded<double>(v->y, v->x)));
 }
 
 // The fireball's velocity: v *= (speed * 1/15) / sqrt((y*y + x*x) + z*z), the factor unrounded,
 // each component rounded to float.
 inline void ScaleToSpeed(Vector3* v, const float* speed) {
-    const double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*v));
+    const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*v));
     const double k = static_cast<double>(*speed) * 0.06666667f /*00740544*/ / length;
     v->x = static_cast<float>(k * v->x);
     v->y = static_cast<float>(k * v->y);
@@ -202,7 +202,7 @@ inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out
     out->x = static_cast<float>(nx);
     std::memcpy(&out->y, &direction->x, sizeof(float));
     out->z = 0.0f;
-    const double length = x87::fsqrt(LengthSquared2DUnrounded<double>(out->y, nx));
+    const double length = std::sqrt(LengthSquared2DUnrounded<double>(out->y, nx));
     const float k = static_cast<float>(*radius / length);
     out->x = static_cast<float>(k * nx);
     out->y = static_cast<float>(static_cast<double>(out->y) * k);

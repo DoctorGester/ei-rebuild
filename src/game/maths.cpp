@@ -20,14 +20,14 @@ float __fastcall Dot(const Vector3& a, const Vector3& b) {
 EI_REPLACE(0x00401E00, Dot);
 
 float Vector3::Length() const {
-    return static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(*this)));
+    return static_cast<float>(std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::XYZ>(*this))));
 }
 EI_REPLACE_METHOD(0x00401E20, Vector3::Length);
 
 void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
     double half = angle * 0.5f;
     float s = static_cast<float>(x87::fsin(half) /
-                                 x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(axis)));
+                                 std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::XYZ>(axis))));
     w = static_cast<float>(x87::fcos(half));
     x = s * axis.x;
     y = s * axis.y;

@@ -95,7 +95,7 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     // accepts the units within 0.5 of the plane.
     float x = direction->x;
     double minusY = -direction->y;
-    float scale = static_cast<float>(2.0f / x87::fsqrt(x * x + minusY * minusY));
+    float scale = static_cast<float>(2.0f / std::sqrt(x * x + minusY * minusY));
     float normalX = static_cast<float>(scale * minusY);
     float normalY = scale * x;
     float normalZ = 0.0f;

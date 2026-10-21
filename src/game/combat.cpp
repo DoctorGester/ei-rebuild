@@ -498,7 +498,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     double dx = static_cast<double>(self->position.x) - other->position.x;
     double dy = static_cast<double>(self->position.y) - other->position.y;
     double dz = static_cast<double>(self->position.z) - other->position.z;
-    double distance = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
+    double distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     float twice = static_cast<float>(distance + distance);
     double radius = Radius(unit) * static_cast<double>(kDistanceScale);
     float penalty = static_cast<float>(twice / (radius + radius));

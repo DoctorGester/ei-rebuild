@@ -116,7 +116,7 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
     double dx = static_cast<double>(self->position.x) - other->position.x;
     double dy = static_cast<double>(self->position.y) - other->position.y;
     double dz = static_cast<double>(self->position.z) - other->position.z;
-    float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
+    float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     AIBrain* theirBrain = theirs->Brain();
     bool attacksUs = (theirBrain->action == kActionAttack || theirBrain->action == kActionCast) &&
                      theirBrain->target == static_cast<CEngineObject*>(self);
@@ -183,7 +183,7 @@ void AIBrain::MeasureExposure(CUnitServer* self, float* out) {
         double dx = static_cast<double>(other->position.x) - unit->position.x;
         double dy = static_cast<double>(other->position.y) - unit->position.y;
         double dz = static_cast<double>(other->position.z) - unit->position.z;
-        float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
+        float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
         float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
                                    theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);
         if (!(distance >= sight)) {

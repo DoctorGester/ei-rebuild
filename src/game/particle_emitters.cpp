@@ -124,7 +124,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     points[i].pos = {cx, cy, cz};
     points[i].base = {cx, cy, cz};
 
-    double inverse = D(EI_ONE) / x87::fsqrt(LengthSquared2DUnrounded<double>(dir.y, dir.x) + D(EI_QUARTER));
+    double inverse = D(EI_ONE) / std::sqrt(LengthSquared2DUnrounded<double>(dir.y, dir.x) + D(EI_QUARTER));
     dir.x = static_cast<float>(inverse * D(dir.x));
     dir.y = static_cast<float>(D(dir.y) * inverse);
     double halfInverse = inverse * D(EI_HALF);
@@ -323,7 +323,7 @@ void PlaceModifierPoints(CParticleSource* s) {
             lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(x, y, z);
             if (NonZero(lengthSq)) break;
         }
-        double scale = D(twice) / x87::fsqrt(lengthSq);
+        double scale = D(twice) / std::sqrt(lengthSq);
         if (LessOrUnordered(s->size, EI_ZERO)) scale = scale * D(EI_SMALL_RING);
         ModifierPoint& point = reinterpret_cast<ModifierPoint*>(s->elements)[i];
         float ex = static_cast<float>(scale * D(x));

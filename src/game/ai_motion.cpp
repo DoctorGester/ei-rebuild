@@ -114,7 +114,7 @@ bool AIPath::Start(const Vector3* position, const Vector3* direction, int time) 
     MotionOrder* order = OrderOf(this);
     double dx = direction->x;
     float dy = direction->y;
-    double length = x87::fsqrt(LengthSquared2DUnrounded<double>(dy, dx));
+    double length = std::sqrt(LengthSquared2DUnrounded<double>(dy, dx));
     double angle = length > 0.0 ? x87::fpatan(dy / length, dx / length) : 0.0;
     double x = kHalfCellScale * position->x;
     float y = static_cast<float>(kHalfCellScale * position->y);
@@ -313,7 +313,7 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         direction[0] = static_cast<float>(static_cast<double>(tx) - order->x);
         double dy = ty - order->y;
         direction[1] = static_cast<float>(dy);
-        double norm = x87::fsqrt(dy * dy + static_cast<double>(direction[0]) * direction[0]);
+        double norm = std::sqrt(dy * dy + static_cast<double>(direction[0]) * direction[0]);
         if (Equal(norm, 0.0)) return true;
         double inverse = 1.0f / norm;
         direction[0] = static_cast<float>(inverse * direction[0]);
@@ -379,7 +379,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             std::memcpy(&toX, &to.x, 4 * sizeof(float));
             double dx = static_cast<double>(fromX) - toX;
             double dy = static_cast<double>(fromY) - toY;
-            double distance = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
+            double distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
             length = static_cast<float>(distance);
             CopyBits(&speed, &from.speed);
             end = end + distance / speed;
@@ -620,7 +620,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
                                   float endOffset, int* stepIndex) {
     double dx = static_cast<double>(a->x) - b->x;
     double dy = static_cast<double>(a->y) - b->y;
-    double distance = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
+    double distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
     if (Equal(distance, 0.0)) distance = kMinLength;
     MotionPoint p;
     p.cellX = -1;
@@ -671,7 +671,7 @@ void UnitMotion::LimitSpeeds(float rate) {
         if (angle > kPi) angle = twoPi - angle;
         double dx = static_cast<double>(p[0].x) - p[1].x;
         double dy = static_cast<double>(p[0].y) - p[1].y;
-        float distance = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
+        float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
         double turnTime = angle / rate;
         double wayTime = static_cast<double>(distance) / p[0].speed;
         if (turnTime > wayTime) p[0].speed = static_cast<float>(distance / turnTime);

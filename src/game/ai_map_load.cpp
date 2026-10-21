@@ -189,7 +189,7 @@ void BuildClimbTables(CAIMap& map) {
         const double sine = x87::fsin(kPi * kPerDegree * slope);
         double effort = sine * sine + 1.0;
         effort *= effort;
-        if (i < kLevelStep) effort = 1.0 / x87::fsqrt(effort);
+        if (i < kLevelStep) effort = 1.0 / std::sqrt(effort);
         const int cost = x87::fistp(static_cast<float>(effort * kFlatCost));
         map.climbSmall[i] = slope > kSmallLimit ? -1 : kFlatCostUnits;
         map.climbLarge[i] = slope > kLargeLimit ? -1 : cost;

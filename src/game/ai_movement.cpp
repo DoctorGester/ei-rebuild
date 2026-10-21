@@ -232,7 +232,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             float dx = static_cast<float>(static_cast<double>(cell.x) - eye->x);
             float dy = static_cast<float>(static_cast<double>(cell.y) - eye->y);
             float dz = static_cast<float>(-static_cast<double>(eye->z));
-            float distance = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
+            float distance = static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2DUnrounded(dy, dx))));
             if (radius < distance || x87::IsNaN(radius) || x87::IsNaN(distance)) continue;
             if (!anyDirection) {
                 double dot = DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, look->x, look->y, look->z);

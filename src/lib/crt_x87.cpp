@@ -159,7 +159,7 @@ double ArcCosineOrSine(double x, bool sine) {
     const MathControlWord control;
     const double sum = control.Round(1.0 + x);
     const double difference = control.Round(1.0 - x);
-    const double root = control.Round(x87::fsqrt(control.Round(sum * difference)));
+    const double root = control.Round(std::sqrt(control.Round(sum * difference)));
     return sine ? x87::fpatan(x, root) : x87::fpatan(root, x);
 }
 
@@ -340,7 +340,7 @@ double __cdecl Hypot(double x, double y) {
     const volatile double a = sizeX / larger;
     const volatile double b = sizeY / larger;
     const volatile double sum = a * a + b * b;
-    const volatile double root = x87::fsqrt(sum);
+    const volatile double root = std::sqrt(sum);
     int rootExponent = 0;
     int largerExponent = 0;
     const double rootMantissa = Mantissa(root, &rootExponent);

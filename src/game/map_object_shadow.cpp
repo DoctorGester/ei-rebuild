@@ -148,7 +148,7 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
     if (!(distanceSquared < 0.0f || distanceSquared > 0.0f)) {   // zero (or NaN)
         std::memcpy(&towards, DefaultLight(), sizeof(towards));
     } else {
-        double inverse = kOneDouble / x87::fsqrt(distanceSquared);
+        double inverse = kOneDouble / std::sqrt(distanceSquared);
         towards.x = static_cast<float>(towards.x * inverse);
         towards.y = static_cast<float>(towards.y * inverse);
         towards.z = static_cast<float>(towards.z * inverse);
@@ -174,18 +174,18 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     double lengthSquared = LengthSquaredUnrounded<Sum3::ZXY, double>(sum);   // (x + z) + y
     std::memcpy(direction, &sum, 12);
     if (lengthSquared < 0.0 || lengthSquared > 0.0) {
-        double inverse = kOneDouble / x87::fsqrt(lengthSquared);
+        double inverse = kOneDouble / std::sqrt(lengthSquared);
         direction->x = static_cast<float>(sum.x * inverse);
         direction->y = static_cast<float>(inverse * direction->y);
         direction->z = static_cast<float>(inverse * direction->z);
     }
-    float horizontal = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded<double>(direction->y, direction->x)));
+    float horizontal = static_cast<float>(std::sqrt(LengthSquared2DUnrounded<double>(direction->y, direction->x)));
     float height = std::bit_cast<float>(std::bit_cast<std::uint32_t>(direction->z) & 0x7FFFFFFFu);
     double elevation = x87::fpatan(height, horizontal);   // FLD y; FLD x; FPATAN
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts
     double z = static_cast<double>(horizontal) * kTiltSlope;
-    double inverse = kOne / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction->x, direction->y, z));
+    double inverse = kOne / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction->x, direction->y, z));
     direction->x = static_cast<float>(inverse * direction->x);
     direction->y = static_cast<float>(inverse * direction->y);
     direction->z = static_cast<float>(inverse * z);

@@ -39,7 +39,7 @@ float ToAxisAngle(const Quaternion& q, Vector3* axis) {
     }
     double angle = std::acos(static_cast<double>(q.w));
     angle += angle;
-    double inverse = 1.0f /*0073B84C*/ / x87::fsqrt(static_cast<double>(squared));
+    double inverse = 1.0f /*0073B84C*/ / std::sqrt(static_cast<double>(squared));
     axis->x = static_cast<float>(q.x * inverse);
     axis->y = static_cast<float>(q.y * inverse);
     axis->z = static_cast<float>(q.z * inverse);

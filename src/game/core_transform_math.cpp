@@ -80,7 +80,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
     Vector3 t = MakeVector(static_cast<float>(D(side.y) * forward.z - D(side.z) * forward.y),
                            static_cast<float>(D(side.z) * forward.x - D(forward.z) * side.x),
                            static_cast<float>(D(forward.y) * side.x - D(side.y) * forward.x));
-    double inv = D(EI_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(t));
+    double inv = D(EI_ONE) / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(t));
     t.x = static_cast<float>(inv * t.x);
     t.y = static_cast<float>(D(t.y) * inv);
     t.z = static_cast<float>(D(t.z) * inv);
@@ -142,12 +142,12 @@ void CTransformObject::TiltTowards(const Vector3& target) {
     double a = -UpX(q);
     double b = -D(static_cast<float>(UpY(q)));
     double c = -D(static_cast<float>(UpZ(q)));
-    double inv = D(EI_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v));
+    double inv = D(EI_ONE) / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v));
     float nx = static_cast<float>(inv * v.x);
     float ny = static_cast<float>(D(v.y) * inv);
     double nz = inv * v.z;
     Vector3 axis = MakeVector(static_cast<float>(nz * b - D(ny) * c), static_cast<float>(c * nx - nz * a), static_cast<float>(D(ny) * a - b * nx));
-    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
     double angle;
     if (!(length >= EI_MIN_AXIS)) {
         axis = MakeVector(1.0f, 0.0f, 0.0f);
@@ -174,12 +174,12 @@ void CTransformObject::TurnTowards(const Vector3& target) {
     double a = ForwardX(q);
     float b = static_cast<float>(ForwardY(q));
     float c = static_cast<float>(ForwardZ(q));
-    double inv = D(EI_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v));
+    double inv = D(EI_ONE) / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v));
     float nx = static_cast<float>(inv * v.x);
     float ny = static_cast<float>(D(v.y) * inv);
     double nz = inv * v.z;
     Vector3 r = MakeVector(static_cast<float>(nz * b - D(ny) * c), static_cast<float>(D(c) * nx - nz * a), static_cast<float>(D(ny) * a - D(b) * nx));
-    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(r));
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(r));
     Vector3 axis;
     float angle;
     if (!(length >= EI_MIN_AXIS)) {

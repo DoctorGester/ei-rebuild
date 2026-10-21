@@ -133,7 +133,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
         float axisStored = static_cast<float>(axis);
         angle = gamecrt::acos(rx);
         angle = angle + angle;
-        double sign = worlddata::One() / x87::fsqrt(axisStored) * rw;
+        double sign = worlddata::One() / std::sqrt(axisStored) * rw;
         if (!(sign >= worlddata::Zero())) angle = -angle;
     }
     angle = angle + worlddata::LineAngleOffset();

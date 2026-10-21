@@ -45,10 +45,10 @@ bool LessOrUnordered(double a, double b) { return !(a >= b); }
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, sizeof(f)); }
 
 // sqrt((x*x + y*y) + z*z), all on the FPU.
-double LengthDouble(const Vector3& v) { return x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(v)); }
+double LengthDouble(const Vector3& v) { return std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(v)); }
 
 // sqrt((y*y + z*z) + x*x): the order the original uses after rebuilding a degenerate side.
-double LengthYZX(const Vector3& v) { return x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v)); }
+double LengthYZX(const Vector3& v) { return std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v)); }
 
 // v *= 1 / length, the reciprocal kept on the FPU.
 void Normalize(Vector3& v, double length) {

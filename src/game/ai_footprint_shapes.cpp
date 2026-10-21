@@ -66,14 +66,14 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, floa
     float cx = static_cast<float>(scale * position->x);
     float cy = static_cast<float>(scale * position->y);
     double dx = direction->x, dy = direction->y, dz = direction->z;
-    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
     double reach = length * scale + static_cast<double>(worlddata::One());
     float r = static_cast<float>(reach);
     float r2 = static_cast<float>(reach * r);
     // The side normal (-dy, dx), divided by its length times the scaled width plus one.
     float nx = -direction->y;
     float ny = direction->x;
-    double side = x87::fsqrt(LengthSquared2DUnrounded<double>(ny, nx));
+    double side = std::sqrt(LengthSquared2DUnrounded<double>(ny, nx));
     double divisor = side * (scale * width + static_cast<double>(worlddata::One()));
     nx = static_cast<float>(nx / divisor);
     ny = static_cast<float>(ny / divisor);

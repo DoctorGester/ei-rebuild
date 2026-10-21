@@ -64,7 +64,7 @@ bool Connection::Tick(double dt) {
     std::memcpy(&bits, &spread, 4);
     bits &= 0x7FFFFFFF;
     std::memcpy(&spread, &bits, 4);
-    float loss = static_cast<float>(x87::fsqrt(spread) * D(3.0f /*0073BAA4*/) + D(roundTrip_));
+    float loss = static_cast<float>(std::sqrt(spread) * D(3.0f /*0073BAA4*/) + D(roundTrip_));
     float tenth;
     const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&tenth, &tenthBits, 4);
