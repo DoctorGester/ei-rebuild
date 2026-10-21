@@ -208,7 +208,7 @@ int GameFlow::SaveGame(const char* slot) {
     slotFolder.Format(kSlotFolder, DataFolderText(), slot);
     currentFolder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
-    if (g_campaignMode == 4) {
+    if (TheServerWorld()->sessionKind_ == 4) {
         if (CPlayer* player = TheServerWorld()->GetPlayer(0))
             ThePartyManager()->BeginRedeploy(player->Party());
     }
@@ -567,7 +567,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     TheServerWorld()->SetZoneExits(&exits);
     TheServerWorld()->SetClimate(zoneRecord->setting2C);
     TheServerWorld()->SetCave(zoneRecord->setting30);
-    g_campaignMode = 1;
+    TheServerWorld()->sessionKind_ = 1;
     TheServerWorld()->SetGameResult(kGameResultNetwork);
     SpectatorFlag() = 1;
 
@@ -612,8 +612,8 @@ int __stdcall LeaveZone(CParty* records) {
     TheServerWorld()->ZoneNameInto(&zone);
     // `path` must be destroyed after `zone`, as the original does: it is declared first.
 
-    if (g_campaignMode == 1) TheCamera()->SaveView(7);
-    else if (g_campaignMode == 3) TheCamera()->SaveView(6);
+    if (TheServerWorld()->sessionKind_ == 1) TheCamera()->SaveView(7);
+    else if (TheServerWorld()->sessionKind_ == 3) TheCamera()->SaveView(6);
     path.Format(kCurrentFolder, DataFolderText());
     {
         mfc::CString fileName = zone + kSaveExtension;
@@ -1317,7 +1317,7 @@ bool __fastcall NameInList(const char* const* list, const char* name) {
 namespace {
 
 
-// StartZone's modes (also stored as the campaign mode, g_campaignMode).
+// StartZone's modes (also stored as the campaign mode, the server world's sessionKind_).
 constexpr int kModeFromRecord = 0;   // by the zone record's kind: 0 -> 1, 1 -> 4, 2 -> 3
 constexpr int kModeMainMenu = 2;
 constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
@@ -1408,7 +1408,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         result = kResultPlaying;
     }
 
-    g_campaignMode = mode;
+    TheServerWorld()->sessionKind_ = mode;
     if (mode == 1) SpectatorFlag() = mode;
     TheServerWorld()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
@@ -1513,13 +1513,13 @@ void GameFlow::ProcessRequest() {
     int& state = state_;
     if (state == 0) return;
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
-    if (GameMode() == 1 && (g_campaignMode == 1 || g_campaignMode == 3) && state == kStateZone) {
+    if (GameMode() == 1 && (TheServerWorld()->sessionKind_ == 1 || TheServerWorld()->sessionKind_ == 3) && state == kStateZone) {
         LocalRecords records;
         ThePartyManager()->EndRedeploy(records.Party());
         LeaveZoneAt(records.Party());
         ThePartyManager()->BeginRedeploy(records.Party());
     }
-    if (GameMode() == 2 && g_campaignMode == 1 && state == kStateZone) {
+    if (GameMode() == 2 && TheServerWorld()->sessionKind_ == 1 && state == kStateZone) {
         LocalRecords records;
         LeaveZoneAt(records.Party());
     }

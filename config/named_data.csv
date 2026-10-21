@@ -256,7 +256,6 @@ address,size,name,file
 007AFF38,16,g_added,src/game/world_sync.cpp
 007AFF48,16,g_collected,src/game/world_sync.cpp
 007AFF58,1,g_staticsGuard,src/game/world_sync.cpp
-007C2CC4,4,g_campaignMode,src/game/world.h
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
 007C2E00,16,g_texturePoints,src/game/figure_rasterise.cpp
 007C2E10,1,g_texturePointsGuard,src/game/figure_rasterise.cpp

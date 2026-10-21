@@ -152,7 +152,7 @@ void ClientSession::TickImpl(double dt) {
             if (left < 0.0f /*0073B858*/) self->timers_.Erase(current);
         } while (node != sentinel);
     }
-    if (self->awards_.First() == self->awards_.End() || g_campaignMode != 3) return;
+    if (self->awards_.First() == self->awards_.End() || TheServerWorld()->sessionKind_ != 3) return;
     CPlayer* player = LocalPlayer();
     if (!player || player->connection_->state_ != 1 || !Unknown7B00BC()) return;
     ApplyAwards();

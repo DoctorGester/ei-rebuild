@@ -485,8 +485,10 @@ kinds given.
     static initialisers 00412230 / 00412280 and exit functions 00412250 / 004122A0 are ported in net_session.cpp,
     rows in config/extra_function_sizes.csv; GameServer() / GameClient() stay as accessors of the names), the pump
     time, the player / variable serials, CollectChanges's vector and guard 0079B8D0 / 0079B8DC (its exit function
-    00434980 beside it), the select timeout, net_delta.h's keep / read state, and world.h's g_campaignMode 007C2CC4
-    (the harness's HarnessCampaignMode). The CRT's locale and multibyte state is lib/crt_locale_data.cpp (a file of
+    00434980 beside it), the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
+    a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
+    left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
+    readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is lib/crt_locale_data.cpp (a file of
     its own: ei_vectors links it with crt_format.cpp; the replay's "@CrtFormatLocale" writes g_decimalPoint, the
     recorder reads game.exe's 00797FE8 and __lc_handle), crt_locale.cpp's code page / class flag / country tables,
     crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38

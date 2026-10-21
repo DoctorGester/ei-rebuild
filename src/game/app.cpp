@@ -286,7 +286,7 @@ int __cdecl StartFirstMap() {
     CWorldClient* client = TheClientWorld();
     client->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
     client->LocalView()->sendParty_ = 0;
-    g_campaignMode = 7;
+    TheServerWorld()->sessionKind_ = 7;
     if (Length(cmdScript) == 0) return 1;
     void* script = TheMissionScript();
     BOOL loaded;

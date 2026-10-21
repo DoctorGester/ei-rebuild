@@ -293,7 +293,7 @@ EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
 
 namespace {
 
-// The campaign mode (g_campaignMode; 1 and 3 end the game when the leader is gone) and the game mode
+// The campaign mode (the server world's session kind, CWorldServer::sessionKind_; 1 and 3 end the game when the leader is gone) and the game mode
 // (007B0098; 1 single player, 2 multiplayer).
 int GameMode() { return ei::GameData<const volatile int>(0x007B0098); }
 // The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
@@ -404,7 +404,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (state_ != 1) return;
     CPlayer* player = Owner();
     CParty* party = player->Party();
-    int campaign = g_campaignMode;
+    int campaign = TheServerWorld()->sessionKind_;
     if (campaign == 1 || campaign == 3) {
         CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unitId));
         if (leader == nullptr || ObjectSlots(leader)->IsDead() != 0) {
