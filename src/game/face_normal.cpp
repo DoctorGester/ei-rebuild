@@ -7,17 +7,15 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "game_data.h"
 
 #include <cmath>
-#include <cstring>
 
 namespace scene {
 
 namespace {
 
-// The normal used for a degenerate face (007A9C98).
-const Vector3& DegenerateNormal() { return ei::GameData<const Vector3>(0x007A9C98); }
+// The normal a degenerate face gets: zero (a static initialiser's stores).
+constexpr Vector3 kDegenerateNormal = /*007A9C98*/ {0.0f, 0.0f, 0.0f};
 
 constexpr double kMinimumSquare = 1e-10;
 
@@ -61,7 +59,7 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
     EI_NAN_AUDIT(length);
     if (length == 0.0) {   // FCOM 0; C3
-        std::memcpy(&normal, &DegenerateNormal(), sizeof(Vector3));
+        normal = kDegenerateNormal;
     } else {
         double inverse = 1.0 / length;
         normal.x = static_cast<float>(inverse * normal.x);

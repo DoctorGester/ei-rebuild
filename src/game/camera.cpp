@@ -76,8 +76,8 @@ void Approach(float* rate, const float* target, float response, float dt) {
 }
 
 void ResetMotion(CCamera* c) {
-    std::memcpy(&c->offset98_, &camera::ZeroVector(), sizeof(Vector3));
-    std::memcpy(&c->offsetA4_, &camera::ZeroVector(), sizeof(Vector3));
+    std::memcpy(&c->offset98_, &camera::kZeroVector, sizeof(Vector3));
+    std::memcpy(&c->offsetA4_, &camera::kZeroVector, sizeof(Vector3));
     const float zero = 0.0f;
     CopyFloat(&c->turnRate_, &zero);
     CopyFloat(&c->turnTarget_, &zero);
@@ -226,7 +226,7 @@ EI_REPLACE_METHOD(0x0040F430, CCamera::StopMotion);
 void CCamera::SetFocus(const Vector3* p) {
     std::memcpy(&focus_, p, sizeof(Vector3));
     float average, low, high;
-    SampleTerrain(p, &camera::ZeroVector(), &camera::ZeroVector(), static_cast<float>(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(), &average,
+    SampleTerrain(p, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(), &average,
                   &low, &high);
     focus_.z = static_cast<float>(D(average) + focusHeight_);
 }
@@ -377,7 +377,7 @@ void CCamera::Update(float dt) {
 
     // The focus height follows the target's or the ground's, a tenth of the way per frame.
     float average, low, high;
-    SampleTerrain(&focus_, &camera::ZeroVector(), &camera::ZeroVector(), static_cast<float>(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(),
+    SampleTerrain(&focus_, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(),
                   &average, &low, &high);
     double ground = target ? D(static_cast<const CObject3D*>(target)->position.z) : D(average);
     focus_.z = static_cast<float>(((ground + focusHeight_) - focus_.z) * kHeightLag + focus_.z);
@@ -441,7 +441,7 @@ void CCamera::Update(float dt) {
     for (ShakeList::Node* node = shakes_.First(); node != shakes_.End();) {
         CameraShake* s = &node->data;
         double damping = x87::fexp(-(D(s->decay) * s->elapsed));
-        double wave = x87::fcos(D(camera::ClockFloat()) * s->elapsed * kShakeFrequency);
+        double wave = x87::fcos(D(camera::kHalfPi) * s->elapsed * kShakeFrequency);
         offset = static_cast<float>(wave * damping * s->amplitude + offset);
         double elapsed = D(dt) + s->elapsed;
         s->elapsed = static_cast<float>(elapsed);

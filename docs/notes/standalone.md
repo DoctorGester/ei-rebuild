@@ -314,7 +314,9 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
-after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d. C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
+after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
+2,095 after C18j's unread objects and 2,068 after its particle and weather names). C18 turns them into named C++
+globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
@@ -407,14 +409,64 @@ kinds given.
     larger one that the code reaches by its base (the camera 0079B2DC, written by the briefing and view screens
     through the camera block; the world's wind 007AF5DC, inside the world's block) stays at its address until
     its whole enclosing object is named.
-    Every reader must use the name: the generated static initialisers and exit functions (static_init.cpp /
-    static_exit.cpp store into or destroy it: the definition's initialiser or constructor takes the store's place,
-    in the list's order when it has a constructor; not done yet, the objects with stores stay), the harness
+    Every reader must use the name: the generated static initialisers and exit functions (below), the harness
     (tests/verify runs in game.exe too, where a name is our copy and not the original's object: it keeps the
     address there), the vectors' stand-ins (tests/vectors fill recorded values by address), and game.exe's data
     pointing at it (a cell keeps it at its address). The check's literal and cell scans cover src/, tests/ and
     the cells; config/ and the vector data name none of these. Saves and messages carry values, not addresses:
     the goldens catch a changed value.
+  - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
+    static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (check_static_init.py re-derives both):
+    - **Named ranges**: a store, float fold or fill into a range of config/named_data.csv is left out of
+      static_init.cpp (the block keeps its `d.Begin`, its comment says "n left out"); the definition's initialiser
+      takes its place. named_data.py --check compares the definition with game.exe's bytes *as the initialisers leave
+      them* (gen_static_init.stored_values: the stores in list order, a fold computed as the original does, x87
+      order at 53 bits, rounded to a float; a call's stored result is unknown and refused), so `constexpr float
+      kCellSize = /*007AEDA8*/ 0.5f;` (a single number takes this form: one .data object that an initialiser sets,
+      not an .rdata literal) is checked against 1.0f / 2.0f. Only constant initialisation: a C++ dynamic
+      initialiser or constructor runs at our CRT's start, before every game initialiser, not at the list's point.
+      What must run in list order (a builder call, a constructor that draws random numbers) keeps its call, and the
+      call's address argument fails named_data's literal check: port that initialiser by hand on the names and
+      register it at its address (EI_REPLACE; a row in config/extra_function_sizes.csv and function_sizes.inc when
+      Ghidra has no function there); the generator then writes one `d.Cdecl(address)` at its place in the list
+      (weather_noise.cpp's BuildWeatherNoise, 004E3B20, builds the five sway curves; 004E3AD0's fills of their
+      segments are left out, the definitions' `{}` zeros take their place). An exit function that destroys a
+      named object is the same: its address fails the check until it is ported on the name (not done yet).
+      C18j named particle_callbacks' kSpinAngle 007A9BF8 (2 pi; the product with the satellite's rate is
+      `static_cast<float>` so the compiler's fold keeps the original's 24-bit FMUL), particle_create's
+      kIdentityRotation 007A9C30, face_normal's kDegenerateNormal 007A9C98, weather_particles' five scalars
+      007AED98-007AEDA8 and its seed tables 0078DEA4 / 0078DF24, and weather_noise's five sway curves
+      007ABB98-007AED98 (one type, WeatherNoiseCurve; the draw evaluates a segment through MotionCubic).
+      C18l named the camera's pi / 2, zero vector and identity rotation (camera.h: 0079B2A4, 0079B5C8, 0079B5B8),
+      the scene loader's zero vector 0079B9B0 (scene_loader.h), the angle constants and unit vectors of ground_print
+      (007C8998 / 007C899C), sound_manager (007C8808), terrain_* (007C8908, 007C8930, 007C8964, the wave scales
+      007C8968-007C8970, 007C8978, 007C8988), player_client_handlers' fixed view rotation 007C8388, and the game's
+      ISAAC generator 007A9D40 (a mutable zero-start global, `IsaacRandom g_random = /*007A9D40*/ {}`; the stores
+      zero its first dword). A product or quotient of two named constants that the original computes at run time
+      is `static_cast<float>` (check_fp_fold: sound_manager's 100 / (pi / 2)). Left as they are: 007AF3E8 and
+      007C53C4 store the address of the log stream 007C5810 (a constructed object, not yet a name), 007C2F24 is a
+      function-local guard (run-time state), 0079B2A0 (2 pi) and the folds that only game.exe's own code reads (the
+      per-window pi / 2 and 1 / 1 copies in 007C7B70-007C8844) are no hand code's; sky_object 007AA890 /
+      007AA8A0, the unit objects 007AF280 / 007AF284, the animation / object3d / map_object lifetime objects
+      (007AF0E0-007AF110, 007AF1C0-007AF238) and torch_spec 007AF2D0 wait for C19 batch 4's conversions.
+      gen_static_init reads a parenthesised negative literal in a fold; named_data takes a negative single number.
+    - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
+      initialiser reaches needs no name. `unread_objects` takes each run of contiguous dword stores of one
+      initialiser that stores constants only (kinds stores, float fold, copy) into .data and keeps it when no
+      instruction of game.exe's code has an absolute operand inside it but the initialisers' and their exit
+      functions' own (the interpreter records the instructions it decodes), no address literal of src/ or tests/
+      (but the generated files) names it, no initialiser call, atexit or exit function takes it, no initialiser
+      reads it (a copy's source), no named range holds it, and no address referenced elsewhere and stored by no
+      initialiser lies less than 0x100 below it (it could be a field of that object). Its stores are left out like a
+      named range's, and named_data.py --check gives it the same proof (no literal, no pointer or code cell). 291
+      objects, 857 store statements: the per-file copies of header constants (130 zero vectors, 102 identity
+      rotations {1, 0, 0, 0}, 59 floats: 1 / 1 and pi's folds) that the original's code never reads either. The
+      rest of the generated-only addresses are objects the original reads (read by a ported function that uses
+      the value or another name; stored by an initialiser that also calls or registers an exit function; or in
+      the 0x100 below a referenced object): name them by area as above.
+    The verify build has no run where the original's initialisers and ours meet (since S21e game.exe runs only the
+    original), so the comparison is the build's: exact for stores and folds of literals; a definition that a
+    call fills (the sway curves) is compared at its zero start, and the goldens cover what the call builds.
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)

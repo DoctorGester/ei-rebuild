@@ -11,7 +11,7 @@
 //
 // Kept as the original has it: the vertices' colour and specular are never written (what the
 // buffer held stays, the distance fog only lowers the specular's alpha), the packets' w neither;
-// the rain's height uses the snow's rise (007AEDA0; both are 40); a height that is not a number
+// the rain's height uses the snow's rise (kSnowRise; both are 40); a height that is not a number
 // would loop forever in the rain's wrap. See docs/notes/renderer.md, section 12.
 #include "effects.h"
 
@@ -25,13 +25,13 @@
 #include "model.h"
 #include "originals_library.h"
 #include "texture.h"
+#include "weather_noise.h"
 #include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
@@ -71,34 +71,31 @@ constexpr double kSwayPeriod = 50.0;                                // 0073D0A0
 constexpr int kSwayCells = 0x7C;
 
 // Set by static initialisers (004E38A0 .. 004E3920).
-float CellSize() { return ei::GameData<const float>(0x007AEDA8); }     // 0.5
-float RainRise() { return ei::GameData<const float>(0x007AEDA4); }     // 40: half a rain cycle's fall less 10
-float SnowRise() { return ei::GameData<const float>(0x007AEDA0); }     // 40: the same for snow
-float HalfHeight() { return ei::GameData<const float>(0x007AED9C); }   // 30: the band around the camera
-float FlakeHeight() { return ei::GameData<const float>(0x007AED98); }  // 0.2
+constexpr float kCellSize = /*007AEDA8*/ 0.5f;      // 1 / 2
+constexpr float kRainRise = /*007AEDA4*/ 40.0f;     // half a rain cycle's fall less 10: 0.5 * 200 * 0.5 - 10
+constexpr float kSnowRise = /*007AEDA0*/ 40.0f;     // the same for snow: 0.1 * 1000 * 0.5 - 10
+constexpr float kHalfHeight = /*007AED9C*/ 30.0f;   // the band around the camera: 40 / 2 + 10
+constexpr float kFlakeHeight = /*007AED98*/ 0.2f;   // a copy of 0073D720
 
 // A number per (column squared + row) & 31, mixed into a cell's.
-const std::uint32_t* RainSeeds() { return ei::GamePointer<const std::uint32_t>(0x0078DEA4); }
-const std::uint32_t* SnowSeeds() { return ei::GamePointer<const std::uint32_t>(0x0078DF24); }
-
-// A snowflake's sway (0xA00 bytes; five tables built at start-up by 004E3980): 128 smoothed random
-// values and the cubic between each two neighbours.
-struct SwayTable {
-    float values[128];
-    MotionCubic segments[128];
+constexpr std::uint32_t kRainSeeds[kSeedCount] = /*0078DEA4*/ {
+    0x11, 0x2B, 0x1C8, 0x3AE, 0x20, 0xEA, 0x361, 0x5F, 0x141, 0x2F, 0x38D, 0x11C, 0x21F, 0x18C, 0xC1, 0x78,
+    0x62, 0x310, 0x279, 0xA, 0x103, 0x4D, 0x76, 0x42, 0x399, 0x351, 0x164, 0x50, 0x1DB, 0xEB, 0xD5, 0x33A,
 };
-static_assert(sizeof(SwayTable) == 0xA00);
-SwayTable& SwayXByHeight() { return ei::GameData<SwayTable>(0x007AE398); }
-SwayTable& SwayXByPlace() { return ei::GameData<SwayTable>(0x007AC598); }
-SwayTable& SwayYByHeight() { return ei::GameData<SwayTable>(0x007AD998); }
-SwayTable& SwayYByPlace() { return ei::GameData<SwayTable>(0x007ABB98); }
-SwayTable& SwayZByHeight() { return ei::GameData<SwayTable>(0x007ACF98); }
+constexpr std::uint32_t kSnowSeeds[kSeedCount] = /*0078DF24*/ {
+    0x1529, 0x927, 0x8698, 0x328E, 0x2280, 0x2FCA, 0xB329, 0x20CB, 0xB109, 0x228F, 0x182C1, 0xD7F4, 0x12AFF, 0xB154,
+    0x2FA1, 0x17F48, 0x1A8E, 0x137A8, 0x2D71, 0x164E, 0xD3F3, 0xD95, 0x13126, 0x4F2, 0x17E1D, 0x13C35, 0x8BCA, 0x224C,
+    0x1328B, 0x11A2B, 0x85A5, 0x16A9A,
+};
+
 
 // The table's value at `at`, whose whole part (_ftol) is `cell`: 0 outside the table (as 004E3930,
 // which the draw has inline; the cubic's value 004E5660 is left unrounded).
-double Sway(SwayTable& table, int cell, float at) {
+double Sway(const WeatherNoiseCurve& curve, int cell, float at) {
     if (cell < 0 || cell >= kSwayCells) return 0.0;
-    return table.segments[cell].Value(static_cast<float>(at - static_cast<float>(cell)));
+    const WeatherNoiseSegment& segment = curve.segments[cell];
+    MotionCubic cubic{segment.value, segment.slope, segment.quadratic, segment.cubic};
+    return cubic.Value(static_cast<float>(at - static_cast<float>(cell)));
 }
 
 // What both draws start from.
@@ -124,9 +121,9 @@ ParticleFrame Begin(CRainSnow& layer, float sink, float rise) {
     frame.baseY = x87::fistp(static_cast<float>((eye.y - frame.wind.y * time) * kCellsPerUnit));
     layer.particleCount = 0;
     layer.positions.SetSize(kMaxPackets);
-    const float below = static_cast<float>(eye.z - HalfHeight());
+    const float below = static_cast<float>(eye.z - kHalfHeight);
     frame.low = below <= 0.0f ? 0.0f : below;
-    frame.high = static_cast<float>(HalfHeight() + eye.z);
+    frame.high = static_cast<float>(kHalfHeight + eye.z);
     return frame;
 }
 
@@ -177,7 +174,7 @@ int Finish(CRainSnow& layer, CSceneRenderer* renderer, int used) {
 } // namespace
 
 int CRainSnow::BuildRain(CSceneRenderer* renderer) {
-    const ParticleFrame frame = Begin(*this, kRainSink, RainRise());
+    const ParticleFrame frame = Begin(*this, kRainSink, kRainRise);
     // The drop's tail: its length against the wind.
     const float length = LengthXYZ(frame.wind);
     const float tailX = static_cast<float>(-(frame.wind.x / length * kDropLength));
@@ -192,25 +189,25 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
             const int col = frame.baseX + b;
             const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
             const std::uint32_t seed =
-                (RainSeeds()[(column * column + line) & (kSeedCount - 1)] + column * 172u + line * 13u) & 0xFFFF;
+                (kRainSeeds[(column * column + line) & (kSeedCount - 1)] + column * 172u + line * 13u) & 0xFFFF;
             const float phase = static_cast<float>(static_cast<float>(static_cast<int>(seed)) + frame.time);
             const int cycle = x87::fistp(static_cast<float>(phase / kRainCycle));
             if ((cycle & kDensitySteps) >= density) continue;
             const float fall = phase - static_cast<float>(cycle) * kRainCycle;
             // The height, wrapped into the band around the camera.
-            float z = fall * frame.wind.z + SnowRise();
+            float z = fall * frame.wind.z + kSnowRise;
             if (z > frame.high) {
-                const float band = HalfHeight() + HalfHeight();
+                const float band = kHalfHeight + kHalfHeight;
                 do z -= band;
                 while (z > frame.high);
             }
             EI_NAN_AUDIT(z, frame.low);
             if (z < frame.low) {
-                const float band = HalfHeight() + HalfHeight();
+                const float band = kHalfHeight + kHalfHeight;
                 do z += band;
                 while (z < frame.low);   // ends on a NaN (the original's did not)
             }
-            const float cell = CellSize();
+            const float cell = kCellSize;
             const float x = static_cast<float>(static_cast<float>(col) * cell + fall * frame.wind.x +
                                        static_cast<float>(Jitter(cycle, kJitterX)) * cell * kJitterScale);
             const float y = static_cast<float>(static_cast<float>(row) * cell + fall * frame.wind.y +
@@ -252,7 +249,7 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
 }
 
 int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
-    const ParticleFrame frame = Begin(*this, kSnowSink, SnowRise());
+    const ParticleFrame frame = Begin(*this, kSnowSink, kSnowRise);
 
     int flakes = 0;
     for (int i = 0; i < kGridCells; ++i) {
@@ -261,16 +258,16 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
             const int col = offsets.data[j] + frame.baseX;
             const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
             const std::uint32_t seed =
-                (SnowSeeds()[(column * column + line) & (kSeedCount - 1)] - column * 30064u + line * 17843u) & 0xFFFF;
+                (kSnowSeeds[(column * column + line) & (kSeedCount - 1)] - column * 30064u + line * 17843u) & 0xFFFF;
             const float phase = static_cast<float>(static_cast<float>(static_cast<int>(seed)) + frame.time);
             const int cycle = x87::fistp(static_cast<float>(phase / kSnowCycle));
             if ((cycle & kDensitySteps) >= density) continue;
             const float fall = static_cast<float>(phase - static_cast<float>(cycle) * kSnowCycle);
-            float z = static_cast<float>(fall * frame.wind.z + SnowRise());
+            float z = static_cast<float>(fall * frame.wind.z + kSnowRise);
             EI_NAN_AUDIT(z);
             if (z < frame.low) continue;
             if (z > frame.high) continue;
-            const float cell = CellSize();
+            const float cell = kCellSize;
             float x = static_cast<float>(static_cast<float>(col) * cell + fall * frame.wind.x +
                                  static_cast<float>(Jitter(cycle, kJitterX)) * cell * kJitterScale);
             float y = static_cast<float>(static_cast<float>(row) * cell + fall * frame.wind.y +
@@ -279,13 +276,13 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
 
             // The sway: by the height on all three axes, and by the place along x and y.
             const int level = static_cast<int>(gamecrt::Ftol(z));
-            const float swayX = static_cast<float>(Sway(SwayXByHeight(), level, z));
+            const float swayX = static_cast<float>(Sway(g_swayXByHeight, level, z));
             const float placeX = static_cast<float>(libcrt::StackFmod(static_cast<float>(x + kSwayShift), kSwayPeriod));
-            x = static_cast<float>(swayX + Sway(SwayXByPlace(), static_cast<int>(gamecrt::Ftol(placeX)), placeX) + x);
-            const float swayY = static_cast<float>(Sway(SwayYByHeight(), level, z));
+            x = static_cast<float>(swayX + Sway(g_swayXByPlace, static_cast<int>(gamecrt::Ftol(placeX)), placeX) + x);
+            const float swayY = static_cast<float>(Sway(g_swayYByHeight, level, z));
             const float placeY = static_cast<float>(libcrt::StackFmod(static_cast<float>(y + kSwayShift), kSwayPeriod));
-            y = static_cast<float>(swayY + Sway(SwayYByPlace(), static_cast<int>(gamecrt::Ftol(placeY)), placeY) + y);
-            Put(*this, x, y, static_cast<float>(Sway(SwayZByHeight(), level, z) + z));
+            y = static_cast<float>(swayY + Sway(g_swayYByPlace, static_cast<int>(gamecrt::Ftol(placeY)), placeY) + y);
+            Put(*this, x, y, static_cast<float>(Sway(g_swayZByHeight, level, z) + z));
             frames.data[flakes] = static_cast<std::uint8_t>(cycle & 3);
             ++flakes;
         }
@@ -302,9 +299,9 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
         // A triangle around the point, in the projection's units.
         triangle[0].x = triangle[0].x - kFlakeWidth * kHalf;
         triangle[1].x = triangle[1].x + kFlakeWidth * kHalf;
-        triangle[0].y = triangle[0].y - FlakeHeight() * kFlakeAbove;
-        triangle[1].y = triangle[1].y - FlakeHeight() * kFlakeAbove;
-        triangle[2].y = triangle[2].y + FlakeHeight() * kFlakeBelow;
+        triangle[0].y = triangle[0].y - static_cast<float>(kFlakeHeight * kFlakeAbove);
+        triangle[1].y = triangle[1].y - static_cast<float>(kFlakeHeight * kFlakeAbove);
+        triangle[2].y = triangle[2].y + static_cast<float>(kFlakeHeight * kFlakeBelow);
         SetFrame(triangle, *frameOf, kSnowTop, kSnowBottom);
         used += 3;
     }

@@ -1,7 +1,6 @@
 // The weather's noise curves (004E3980 and the static initialisers 004E3AD0 / 004E3B20; A-E2). See
-// weather_noise.h. Only the initialiser calls the builder, before the hooks install; a start-up
-// check rebuilt the five curves from the same random numbers and compared them with the original's
-// (verify_static_initialisers.cpp until S21d).
+// weather_noise.h. The curves are named globals (C18j): their zeros take the place of 004E3AD0's fills
+// of the segments, and 004E3B20, ported on the names, builds them at its place in the initialiser list.
 //
 // The arithmetic is the original's x87 sequence: sums and products stay at the FPU's precision (53
 // bits at start-up) and are rounded to a float only where the original stores one.
@@ -11,7 +10,6 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,15 +27,11 @@ constexpr int kShift = 20;            // the samples dropped from the front afte
 
 } // namespace
 
-WeatherNoiseCurve* WeatherNoiseCurveAt(int index) {
-    static constexpr std::uintptr_t kCurves[kWeatherNoiseCurves] = {
-        std::uintptr_t(0x007AE398), std::uintptr_t(0x007AD998), std::uintptr_t(0x007AC598), std::uintptr_t(0x007ABB98),
-        std::uintptr_t(0x007ACF98),
-    };
-    return ei::GamePointer<WeatherNoiseCurve>(kCurves[index]);
-}
-
-float WeatherNoiseAmplitude() { return 0.5f /*0073D728*/; }
+WeatherNoiseCurve g_swayYByPlace = /*007ABB98*/ {};
+WeatherNoiseCurve g_swayXByPlace = /*007AC598*/ {};
+WeatherNoiseCurve g_swayZByHeight = /*007ACF98*/ {};
+WeatherNoiseCurve g_swayYByHeight = /*007AD998*/ {};
+WeatherNoiseCurve g_swayXByHeight = /*007AE398*/ {};
 
 void WeatherNoiseCurve::Build(float amplitude) {
     for (float& sample : samples) sample = static_cast<float>(gamecrt::rand() - kRandCentre);
@@ -75,9 +69,13 @@ void WeatherNoiseCurve::Build(float amplitude) {
 }
 EI_REPLACE_METHOD(0x004E3980, WeatherNoiseCurve::Build);
 
-// What the two static initialisers do, on any five curves: 004E3AD0 clears every curve's segments
-// (in another order, which makes no difference), 004E3B20 builds the curves one after another.
-void BuildWeatherNoiseCurves(WeatherNoiseCurve* curves) {
-    for (int i = 0; i < kWeatherNoiseCurves; ++i) std::memset(curves[i].segments, 0, sizeof(curves[i].segments));
-    for (int i = 0; i < kWeatherNoiseCurves; ++i) curves[i].Build(WeatherNoiseAmplitude());
+// 004E3B20, a static initialiser (cdecl): the five curves built one after another with the amplitude 0.5.
+void BuildWeatherNoise() {
+    constexpr float kAmplitude = 0.5f /*0073D728*/;
+    g_swayXByHeight.Build(kAmplitude);
+    g_swayYByHeight.Build(kAmplitude);
+    g_swayXByPlace.Build(kAmplitude);
+    g_swayYByPlace.Build(kAmplitude);
+    g_swayZByHeight.Build(kAmplitude);
 }
+EI_REPLACE(0x004E3B20, BuildWeatherNoise);

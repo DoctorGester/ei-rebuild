@@ -29,7 +29,6 @@
 #include "lib/mfc_list.h"
 #include "ei/vcall.h"
 #include "core_transform.h"
-#include "game_data.h"
 
 #include <cstring>
 
@@ -68,8 +67,8 @@ double Range(float min, float max) { return RandomRange(&IsaacRandom::Global(), 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
 
-// The original's 16-byte constant at 007A9C30 (an identity rotation), copied to +0x34 by Reset.
-const void* IdentityRotation() { return ei::GamePointer<const void>(0x007A9C30); }
+// The rotation Reset gives a source: the identity (a static initialiser's stores).
+constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
 
@@ -796,7 +795,7 @@ void BuildFrames(CParticleSource* s) {
 // released; unit sizes, a 1000 emission spacing, 10000 frame delay, a one-frame grid.
 void CParticleSource::Reset() {
     std::memset(&position, 0, sizeof(Vector3));
-    std::memcpy(&orientation, IdentityRotation(), sizeof(orientation));
+    orientation = kIdentityRotation;
     attachedTo = nullptr;
     emitChance = 0;
     emitCount = 0;

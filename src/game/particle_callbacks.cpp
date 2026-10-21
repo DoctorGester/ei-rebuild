@@ -3425,8 +3425,8 @@ EI_REPLACE_METHOD(0x00495120, CParticleSource::UpdateRegeneration);
 
 namespace {
 
-// A running angle kept by the game (007A9BF8); VisionStar's satellites turn by it.
-float SpinAngle() { return ei::GameData<const volatile float>(0x007A9BF8); }
+// The angle VisionStar's satellites turn by, times their rate: 2 pi (pi + pi, a static initialiser's fold).
+constexpr float kSpinAngle = /*007A9BF8*/ 6.2831855f;
 
 // The turn per satellite of the star: the rate for the satellite that follows `count` particles (1-4).
 float SpinRate(int count) {
@@ -3441,7 +3441,7 @@ float SpinRate(int count) {
 } // namespace
 
 // 00494E00. VisionStar: up to five particles. With lifetime 1 they are a star (frame 1) at the
-// source and four satellites half a unit out, at the running angle times 0.2, 0.4, 0.6 and 0.8 (the
+// source and four satellites half a unit out, at the angles 2 pi times 0.2, 0.4, 0.6 and 0.8 (the
 // first at angle 0); with another lifetime (used as the frame) just the one particle.
 int CParticleSource::EmitVisionStar(Particle* p, int) {
     int count = particles.count;
@@ -3457,7 +3457,7 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
         p->velocity.y = static_cast<float>(x87::fsin(0.0 /*0073C340*/));
         SetBits(&p->velocity.z, 0);
     } else {
-        double angle = D(SpinAngle()) * D(SpinRate(count));
+        double angle = D(static_cast<float>(kSpinAngle * SpinRate(count)));   // the FMUL at the main thread's 24 bits
         p->velocity.x = static_cast<float>(x87::fcos(angle));
         p->velocity.y = static_cast<float>(x87::fsin(angle));
         SetBits(&p->velocity.z, 0);

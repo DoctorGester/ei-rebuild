@@ -10,6 +10,11 @@
 #include <bit>
 #include <cstring>
 
+// The game's generator: unseeded (the static initialiser 0049EE60 zeroes seeded_; Init seeds it on first use).
+IsaacRandom g_random = /*007A9D40*/ {};
+
+IsaacRandom& IsaacRandom::Global() { return g_random; }
+
 std::uint32_t IsaacRandom::Next() {
     if (count_-- == 0) {
         Refill();

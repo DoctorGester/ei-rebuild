@@ -1,10 +1,9 @@
 #pragma once
 
-// The weather's noise curves (A-E2): five tables of 0xA00 bytes at 007ABB98, 007AC598, 007ACF98,
-// 007AD998 and 007AE398 that the rain and snow code (004E4C80) reads. Each is a smooth random curve
-// of 128 samples with the cubic segments between neighbouring samples. A static initialiser builds
-// them before WinMain from the C runtime's rand (004E3B20, after 004E3AD0 has cleared the
-// segments), so their contents depend only on how many random numbers were drawn before.
+// The weather's noise curves (A-E2): five tables of 0xA00 bytes that the snow's draw (004E4C80) reads.
+// Each is a smooth random curve of 128 samples with the cubic segments between neighbouring samples. A
+// static initialiser builds them before WinMain from the C runtime's rand (004E3B20, after 004E3AD0 has
+// cleared the segments), so their contents depend only on how many random numbers were drawn before.
 
 #include <cstddef>
 
@@ -32,10 +31,10 @@ struct WeatherNoiseCurve {
 };
 static_assert(offsetof(WeatherNoiseCurve, segments) == 0x200 && sizeof(WeatherNoiseCurve) == 0xA00);
 
-// The five curves in the order the initialiser builds them, and their amplitude (0.5).
-inline constexpr int kWeatherNoiseCurves = 5;
-WeatherNoiseCurve* WeatherNoiseCurveAt(int index);
-float WeatherNoiseAmplitude();
-// What the static initialisers 004E3AD0 and 004E3B20 do, on any five curves: every curve's segments
-// cleared, then the curves built one after another.
-void BuildWeatherNoiseCurves(WeatherNoiseCurve* curves);
+// The five curves (weather_noise.cpp), the snowflakes' sway (weather_particles.cpp): along x, y and z by the
+// flake's height, along x and y by its place.
+extern WeatherNoiseCurve g_swayXByHeight;
+extern WeatherNoiseCurve g_swayYByHeight;
+extern WeatherNoiseCurve g_swayZByHeight;
+extern WeatherNoiseCurve g_swayXByPlace;
+extern WeatherNoiseCurve g_swayYByPlace;

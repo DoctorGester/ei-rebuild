@@ -22,11 +22,6 @@ namespace scene {
 namespace {
 
 
-Vector3 GamePoint(std::uintptr_t address) {
-    Vector3 p;
-    std::memcpy(&p, ei::GamePointer<const void>(address), sizeof(p));
-    return p;
-}
 double WeldDistance() {
     double d;
     std::memcpy(&d, ei::GamePointer<const void>(0x0073B860), sizeof(d));
@@ -54,7 +49,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
                 if (face.vertex[0] == key || face.vertex[1] == key || face.vertex[2] == key)
                     facesOfVertex.SetAtGrow(facesOfVertex.size, static_cast<std::uint32_t>(f));
             }
-            Vector3 sum = GamePoint(0x0079B9B0);
+            Vector3 sum = kZeroVector;
             const std::uint32_t* list = facesOfVertex.data;
             for (int i = 0; i < facesOfVertex.size; ++i) {
                 const Vector3& n = faces.data[list[i]].normal;
@@ -69,7 +64,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
                 normal.y = sum.y / length;
                 normal.z = sum.z / length;
             } else {   // within the weld distance of zero, or NaN
-                normal = GamePoint(0x0079B9B0);
+                normal = kZeroVector;
             }
             normals.SetAtGrow(normals.size, std::bit_cast<PointBits>(normal));   // 00452AF0
         }

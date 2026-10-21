@@ -40,7 +40,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     float heading = static_cast<float>(CIacos(D(ny) / libcrt::Hypot(nx, ny)));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
-        std::memcpy(&viewRotation_, &camera::IdentityRotation(), sizeof(Quaternion));
+        std::memcpy(&viewRotation_, &camera::kIdentityRotation, sizeof(Quaternion));
     } else {
         double side = -D(nx);
         float z;
@@ -136,7 +136,7 @@ void CCamera::AlignToTarget() {
 void CCamera::ClampAboveObjects() {
     Vector3* p = &localPosition_;
     float average, lowest, highest;
-    const Vector3* zero = &camera::ZeroVector();
+    const Vector3* zero = &camera::kZeroVector;
     SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     NearbyList list;
     list.Construct();   // 00411850

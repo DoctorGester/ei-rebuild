@@ -293,9 +293,11 @@ inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volat
 
 inline Terrain* TheTerrain() { return ei::GameData<Terrain* const>(0x007AF738); }   // width / height
 inline float CellSize() { return ei::GameData<const float>(0x0079BDB4); }
-inline float ClockFloat() { return ei::GameData<const float>(0x0079B2A4); }
-inline const Vector3& ZeroVector() { return ei::GameData<const Vector3>(0x0079B5C8); }
-inline const Quaternion& IdentityRotation() { return ei::GameData<const Quaternion>(0x0079B5B8); }
+// What static initialisers leave (0040C840, 0040C7E0, 0040C800): pi * 0.5 (the shake's wave runs at this rate), the
+// zero vector and the identity rotation the camera copies.
+inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
+inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
+inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
 inline void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // free list of the 12-byte nodes
 inline std::uint32_t& GlobalFlags() { return ei::GameData<std::uint32_t>(0x007AF5C0); }   // bit 0x10: camera file made
 

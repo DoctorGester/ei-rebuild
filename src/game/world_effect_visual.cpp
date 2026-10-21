@@ -34,8 +34,6 @@ __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*f
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
-// The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
-__declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
 
 
 void ClearBase(CEffect* e) {
@@ -96,13 +94,13 @@ float RandomAngle(std::uint32_t random) {
 
 // The ISAAC Next the 0x2030 scorch inlines (same as 004667F0).
 std::uint32_t InlineRandom() {
-    auto* count = ei::GamePointer<std::uint32_t>(0x007A9D44);
-    std::uint32_t index = (*count)--;
+    IsaacRandom& random = IsaacRandom::Global();
+    std::uint32_t index = random.count_--;
     if (index == 0) {
-        RandomRefill(&IsaacRandom::Global());
-        *count = 0xFF;
+        random.Refill();
+        random.count_ = 0xFF;
     }
-    return ei::GamePointer<const std::uint32_t>(0x007A9D48)[*count];
+    return random.results_[random.count_];
 }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
