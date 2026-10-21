@@ -55,8 +55,8 @@ vtable,slots,class,file,note
 0073C860,3,FilePointArrayClass,src/lib/mfc_slots.h,CArray (a model file's points)
 0073C86C,3,NormalArrayClass,src/lib/mfc_slots.h,CArray (a model file's normals)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
-0073CA08,2,dead class,-,stored only by dead code 0047C8E0
-0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
+0073CA08,1,dead class,-,stored only by dead code 0047C8E0
+0073CA0C,1,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
@@ -171,6 +171,7 @@ vtable,slots,class,file,note
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073F9D0,3,RefListBClass,src/game/game_slots.h,CList (the world server's counted pointers)
+0073F9E0,3,AreaListClass,src/lib/mfc_slots.h,CArray (the AI map's area lists; after CSectorMap's one-slot table 0073F9DC)
 0073F9EC,3,SectorArrayClass,src/game/record_arrays.h,CArray (the AI map's sectors)
 0073F9F8,3,NodeListClass,src/lib/mfc_slots.h,CList (the AI map's node lists)
 0073FA04,3,CellRowArrayClass,src/lib/mfc_slots.h,CArray (the AI map's cell rows)
@@ -180,6 +181,7 @@ vtable,slots,class,file,note
 0073FABC,3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
 0073FAC8,3,ObjectPtrArrayClass,src/game/game_arrays.h,CArray (a save's shared object pointers; derived from ObjectPtrArrayBaseClass)
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
+0073FAE0,3,SectorOccluderArrayClass,src/lib/mfc_slots.h,CArray (a sector's occluders; after the sector's one-slot table 0073FADC)
 0073FB10,13,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
 0073FB88,26,CFigureManager,src/game/figure_manager.h,
@@ -207,7 +209,7 @@ vtable,slots,class,file,note
 00742F14,3,TokenPtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's token pointers)
 00743138,3,PlayerListClass,src/lib/mfc_slots.h,CList (a player's list)
 007432E0,7,CMappedResource,src/game/resource.h,
-007432FC,9,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
+007432FC,1,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,
 00743A14,26,CSpellManager,src/game/spell.h,
 00743B50,25,CLightFactory,src/game/spell.h,

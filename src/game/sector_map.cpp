@@ -78,7 +78,7 @@ void __stdcall ConstructSectors(Sector* sectors, int count) {
     for (; count != 0; --count, ++sectors) {
         sectors->objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->units = {mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-        sectors->occluders.Construct(kSectorOccluderArrayVtable);
+        sectors->occluders.Construct(mfc::impl::SectorOccluderArrayClass::Vtable());
         ei::SetVtable(sectors, kSectorVtable);
         sectors->Clear();
     }

@@ -30,7 +30,6 @@ struct SectorOccluder {
 static_assert(sizeof(SectorOccluder) == 8);
 
 constexpr std::uintptr_t kSectorVtable = std::uintptr_t(0x0073FADC);
-constexpr std::uintptr_t kSectorOccluderArrayVtable = std::uintptr_t(0x0073FAE0);
 
 struct __declspec(novtable) Sector {
     virtual ~Sector() {}                         // 0: 0059E080
@@ -56,7 +55,7 @@ struct __declspec(novtable) Sector {
     mfc::CTypedPtrList<CEngineObject> objects;   // +0x04 non-unit objects
     mfc::CTypedPtrList<CUnit> units;             // +0x20
     int freeOccluder;                            // +0x3C head of the free records (-1 none)
-    mfc::CArray<SectorOccluder> occluders;       // +0x40 (vtable 0073FAE0)
+    mfc::CArray<SectorOccluder> occluders;       // +0x40 (mfc_slots.h's SectorOccluderArrayClass)
 };
 static_assert(sizeof(Sector) == 0x54);
 static_assert(offsetof(Sector, freeOccluder) == 0x3C);

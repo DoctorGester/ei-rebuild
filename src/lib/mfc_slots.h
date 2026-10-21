@@ -281,6 +281,9 @@ struct AnimationStepsCopyClass final : AnimationStepsClass {
 // The AI map's cell rows
 struct CellRowArrayClass final
     : CompiledCollection<CellRowArrayClass, &ArrayHeader<CellRowArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The AI map's area lists (CArray<{int, int}>)
+struct AreaListClass final
+    : CompiledCollection<AreaListClass, &ArrayHeader<AreaListClass>::Destruct, &SerializeCArray<Plain8>> {};
 // CArray<CString> (the script's string variables)
 struct StringArrayClass final
     : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &SerializeStringArray> {};
@@ -476,9 +479,9 @@ struct CountdownArrayClass final
 // The server's and interface's party unit arrays.
 struct PartyUnitArrayClass final
     : CompiledCollection<PartyUnitArrayClass, &ArrayHeader<PartyUnitArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
-struct SectorOccluderArrayClass {   // a sector's occluders
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FAE0); }
-};
+// A sector's occluders.
+struct SectorOccluderArrayClass final
+    : CompiledCollection<SectorOccluderArrayClass, &ArrayHeader<SectorOccluderArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
 struct SectorCellArrayClass {   // constructed by 005C18C0
     static void* Vtable() { return ei::GamePointer<void>(0x0073FDEC); }
 };

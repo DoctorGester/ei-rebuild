@@ -191,7 +191,7 @@ struct ClientMapArrayClass;   // the client map arrays (world_client_maps)
 struct ObjectPtrArrayClass;   // a save's shared object pointers
 struct SectorArrayClass;   // the AI map's sectors
 struct CellRowArrayClass;   // the AI map's cell rows
-struct AreaListClass { static void* Vtable() { return ei::GamePointer<void>(0x0073F9E0); } };   // the AI map's area lists (stays raw: game.exe's CSectorMap table 0073F9DC overlaps its slots)
+struct AreaListClass;   // the AI map's area lists
 struct ScriptAreaPartsClass;   // the array a script area element holds (base ScriptAreaClass)
 struct StringArrayClass;   // CArray<CString> (the script's string variables)
 struct ArrayBaseClass;   // the base vtable the element arrays' destructors restore (patrols, motion records)

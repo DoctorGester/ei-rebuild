@@ -208,7 +208,7 @@ EI_REPLACE_METHOD(0x00562B60, Terrain::DeletingDestruct);
 void Sector::Destruct() {
     ei::SetVtable(this, kSectorVtable);
     Clear();
-    occluders.vtable = ei::GamePointer<void>(kSectorOccluderArrayVtable);
+    occluders.vtable = mfc::impl::SectorOccluderArrayClass::Vtable();
     occluders.FreeData();
     units.vtable = mfc::impl::PtrListClass::Vtable();
     units.RemoveAll();
