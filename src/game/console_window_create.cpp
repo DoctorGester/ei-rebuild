@@ -45,10 +45,10 @@ ConsoleWindow* ConsoleWindow::Construct(int* screen) {
         font_ = nullptr;
     }
     int rect[4] = {kInitialRect[0], kInitialRect[1], kInitialRect[2], kInitialRect[3]};
-    static_cast<ConsoleWindow*>(this)->SetRect(rect);
+    SetRect(rect);
     history_ = kHistory;
     if (lines_.GetSize() > kHistory) lines_.RemoveAt(0, lines_.GetSize() - kHistory);
-    static_cast<ConsoleWindow*>(this)->DrawLines();
+    DrawLines();
     return this;
 }
 EI_REWRITTEN(0x005E3CE0, ConsoleWindow::Construct);

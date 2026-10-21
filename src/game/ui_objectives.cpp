@@ -166,9 +166,9 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     if (!memory) return nullptr;
-    return static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, 5, 1);
+    return memory->Construct(ui, left, top, right, bottom, 5, 1);
 }
 
 // Direct3D render states (Set fed to the renderer's mirror).
@@ -546,7 +546,7 @@ void CObjectivesWindow::Build() {
 
     // The quest log (left, below the list) and the list's scroll bar.
     void* memory = gamecrt::operator_new(0x1C8);
-    AddChild(memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, static_cast<const char*>(game::EmptyText()), RECT{60, 190, 384, 510}, 10.0f)
+    AddChild(memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f)
                     : nullptr);
     memory = gamecrt::operator_new(0x18C);
     bar_ = memory ? static_cast<CUiScrollbar*>(memory)->Construct(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f)
@@ -697,7 +697,7 @@ void CObjectivesWindow::DrawQuestList() {
     mfc::CString variable;
     auto mesh = [this](int index) { return SceneMesh(index); };
     mesh(2)->visible_ = 0;
-    auto* surface = static_cast<CUiSurface*>(surfaces_.data[0]);
+    auto* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;

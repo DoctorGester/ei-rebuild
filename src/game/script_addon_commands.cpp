@@ -138,7 +138,7 @@ bool GiveExp(Call* call) {
 bool GiveUnitExp(Call* call) {
     auto* data = UnitData(call->cmd->objectArgs.data[0]);
     if (!data) return InvalidArguments("GiveUnitExp");
-    static_cast<CUnitServer*>(data)->AddExperience(Floats(call)[0]);
+    data->AddExperience(Floats(call)[0]);
     CUnit* unit = data->unit;
     if (auto* party = unit->player)
         if (CPlayerServer* state = party->Server())

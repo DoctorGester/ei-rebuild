@@ -89,13 +89,13 @@ bool FartherThan(const float* a, const float* b, const float* limit) {
 }
 
 // Whether `object`'s speed (virtual slot 59, unrounded) compares below *than.
-bool SpeedBelow(CEngineObject* object, const float* than) {
-    EI_NAN_AUDIT(static_cast<CMapObject*>(object)->MoveSpeed(), *than);
-    return static_cast<CMapObject*>(object)->MoveSpeed() < *than;
+bool SpeedBelow(CMapObject* object, const float* than) {
+    EI_NAN_AUDIT(object->MoveSpeed(), *than);
+    return object->MoveSpeed() < *than;
 }
 
 // The speed rounded to float.
-void SpeedOf(CEngineObject* object, float* out) { *out = static_cast<float>(static_cast<CMapObject*>(object)->MoveSpeed()); }
+void SpeedOf(CMapObject* object, float* out) { *out = static_cast<float>(object->MoveSpeed()); }
 
 // *value -= *rate * (double)[0073F088]; true when the unrounded result compares below 0.
 bool Drain(float* value, const float* rate) {
@@ -117,8 +117,8 @@ AIPath* MotionPathOf(CUnitServer* c) { return c->MotionPath(); }
 // The path's `failed` byte as the original reads it: compared with 1, so read as a byte, not a bool.
 std::uint8_t FailedByte(CUnitServer* c) { return reinterpret_cast<const std::uint8_t&>(c->MotionPath()->failed); }
 // The world server (ManagerContextOf) and an object's world (ObjectWorld).
-CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(ManagerContextOf(c)); }
-int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
+CWorldServer* ServerOf(CUnitServer* c) { return c->ServerWorld(); }
+int WorldTime(const CWorld* world) { return world->tick_; }
 int GameMode() { return ei::GameData<const int>(0x007C2CC4); }
 
 constexpr int kStateIdle = 0;
@@ -365,7 +365,7 @@ void Exhaustion(CUnitServer* c) {
             int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
             if (mode != unit->moveMode2) {
                 unit->moveMode2 = mode;
-                static_cast<CMapObject*>(UnitOf(c))->MarkChanged(6);
+                UnitOf(c)->MarkChanged(6);
             }
         } else {
             if (Drain(stamina, rate)) {
@@ -376,10 +376,10 @@ void Exhaustion(CUnitServer* c) {
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
                 if (mode != UnitOf(c)->moveMode2) {
                     UnitOf(c)->moveMode2 = mode;
-                    static_cast<CMapObject*>(UnitOf(c))->MarkChanged(6);
+                    UnitOf(c)->MarkChanged(6);
                 }
             }
-            static_cast<CMapObject*>(UnitOf(c))->MarkChanged(0);
+            UnitOf(c)->MarkChanged(0);
         }
     }
     c->UpdateSneak();

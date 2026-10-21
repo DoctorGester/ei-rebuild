@@ -182,8 +182,8 @@ int CLinkFigureLoader::AddArchive(const stlp::string* path) {
     // The new string is empty (with room for 8 bytes): STLport's assign appends the whole path.
     if (&node->name != path && path->size() != 0) node->name.Append(path->data(), path->data() + path->size());
 
-    void* memory = gamecrt::operator_new(sizeof(CMMIOResource));
-    CMappedResource* resource = memory ? static_cast<CMMIOResource*>(memory)->Construct() : nullptr;
+    CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
+    CMappedResource* resource = memory ? memory->Construct() : nullptr;
     node->resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 

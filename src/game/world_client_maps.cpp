@@ -75,9 +75,6 @@
 
 namespace {
 
-// The objects the maps file are map objects (their position at +0x1C).
-CMapObject* MapObjectOf(CEngineObject* object) { return static_cast<CMapObject*>(object); }
-
 // The cell index of a coordinate: FISTP (round to nearest), then an unsigned shift by 4, so a
 // negative coordinate gives a huge index that fails the bounds tests.
 std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
@@ -102,7 +99,7 @@ void DropRef(CEngineObject* object) {
 
 template <typename Ops>
 void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) {
-    float* stored = &MapObjectOf(object)->position.x;   // x, y, z
+    float* stored = &ObjectSlots(object)->position.x;   // x, y, z
     std::uint32_t oldX = CellOf(stored[0]);
     std::uint32_t oldY = CellOf(stored[1]);
     std::uint32_t newX = CellOf(position[0]);
@@ -196,7 +193,7 @@ HitCollector* CollectHits(HitCollector* out, std::uint8_t* first, std::uint8_t* 
         CEngineObject* object = manager->FindObject(entry->objectId);
         if (!object) continue;
         LONG point[2] = {x, y};
-        CObject3DSpecific* half = MapObjectOf(object)->Object3D()->Specific();
+        CObject3DSpecific* half = ObjectSlots(object)->Object3D()->Specific();
         if (!(half->*test)(point)) continue;
         vector->PushBack(entry);
     }
@@ -290,8 +287,8 @@ constexpr int kTypeHero = 0x32;
 
 // The object's grid cell list, or null outside the grid.
 SectorList* CellFor(SectorGrid& grid, CEngineObject* object) {
-    std::uint32_t x = CellOf(MapObjectOf(object)->position.x);
-    std::uint32_t y = CellOf(MapObjectOf(object)->position.y);
+    std::uint32_t x = CellOf(ObjectSlots(object)->position.x);
+    std::uint32_t y = CellOf(ObjectSlots(object)->position.y);
     if (x >= grid.width_ || y >= grid.height_) return nullptr;
     return &grid.rows_[y][x];
 }
@@ -323,7 +320,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     }
     int kind = object->GetClassId();
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
-        CMapObject* mapObject = MapObjectOf(object);
+        CMapObject* mapObject = ObjectSlots(object);
         CObject3D* figure = mapObject->Object3D();
         for (int i = 0; i < figure->parts.size; ++i) {
             if ((figure->PartBox(i)->flags >> 10) & 1) {
@@ -376,7 +373,7 @@ void CWorldClient::RefreshPlatforms(CEngineObject* object) {
         node = next;
     }
     if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
-    CMapObject* mapObject = MapObjectOf(object);
+    CMapObject* mapObject = ObjectSlots(object);
     CObject3D* figure = mapObject->Object3D();
     for (int i = 0; i < figure->parts.size; ++i) {
         if (!((figure->PartBox(i)->flags >> 10) & 1)) continue;
@@ -466,7 +463,7 @@ void CWorldClient::DropShadows() {
     PlainList& objects = objects_;
     for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
         // The client half (CObject3DSpecific is its slot view).
-        auto* half = reinterpret_cast<CObject3DClientSpecific*>(MapObjectOf(node->data)->Object3D()->Specific());
+        auto* half = reinterpret_cast<CObject3DClientSpecific*>(ObjectSlots(node->data)->Object3D()->Specific());
         // The original tests AL only (ShadowsShown's "off" leaves the setting's upper bytes).
         if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
     }
@@ -667,7 +664,7 @@ void CWorldClient::UnitsInBox(const long* rect, SectorList* out) {
     for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
         CEngineObject* object = manager40_->FindObject(node->data.objectId);
         if (!object) continue;
-        if (!MapObjectOf(object)->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
+        if (!ObjectSlots(object)->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
         SectorList::Insert(out->End(), object);
     }
 }
@@ -726,7 +723,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
                       : -1);
         unit->SetPrototype23CByName(record->texts[6]);
         unit->flags_ |= 0x4000000;
-        if (!static_cast<CObject3D*>(unit)->MakeFigure(record->texts[2], &parts, 1)) return;
+        if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CEngineObject* figure = unit->Object3D()->attached;
         Figure51C970(figure);
         unit->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
@@ -799,7 +796,7 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
     PlainList* list = static_cast<PlainList*>(out);
     for (SectorList* cell = &grid.rows_[y][x]; cell;) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
-            CMapObject* object = MapObjectOf(node->data);
+            CMapObject* object = ObjectSlots(node->data);
             float pz = point[2];
             float ox = object->position.x + object->center.x;
             float oy = object->position.y + object->center.y;
@@ -943,7 +940,7 @@ void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& fee
         if (node) stlp::deallocate(node, sizeof(*node));
     });
     EmptyList(scorch, [](stlp::list<GroundPrint>::Node* node) {
-        static_cast<GroundPrint*>(&node->data)->DeletingDestruct(0);
+        node->data.DeletingDestruct(0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });
 }
@@ -1051,9 +1048,9 @@ namespace {
 // 26 with 0 (its light goes off).
 void Unhighlight(CEngineObject* object) {
     object->flags_ &= ~0x110u;
-    auto* half = static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached);
+    auto* half = static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached);
     half->Unused25(0);
-    half = static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached);
+    half = static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached);
     half->SetLit(0);
 }
 } // namespace
@@ -1082,11 +1079,11 @@ void CWorldClient::Deselect(CEngineObject* object) {
 
 void CWorldClient::Select(CEngineObject* object) {
     if (!object) return;
-    MapObjectOf(object)->Object3D()->UpdatePartBounds();
+    ObjectSlots(object)->Object3D()->UpdatePartBounds();
     if (!(object->flags_ & 0x10)) {
-        if (!(object->flags_ & 0x100)) static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached)->SetLit(1);
+        if (!(object->flags_ & 0x100)) static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached)->SetLit(1);
         object->flags_ |= 0x10;
-        static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached)->Unused25(1);
+        static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached)->Unused25(1);
     }
     stlp::list<void*>& selected = list7BC_;
     using Node = stlp::list<void*>::Node;
@@ -1244,7 +1241,7 @@ int CWorldClient::Setup() {
         terrain->materials.Construct();
         terrain->textureClass.Construct();
         terrain->textureFrames.Construct();
-        static_cast<CMMIOResource*>(&terrain->archive)->Construct();
+        terrain->archive.Construct();
         terrain->vertexTiles.Construct();
         mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&terrain->sectorCache, 10);
         stlp::ConstructTableWithDword(reinterpret_cast<stlp::TableWithDword*>(&terrain->lights));

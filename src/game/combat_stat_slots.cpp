@@ -30,7 +30,7 @@ AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 } // namespace
 
 BOOL CUnitServer::RefreshVitals(char withHitPoints) {
-    int now = static_cast<CWorld*>(ManagerContext())->tick_;
+    int now = WorldContext()->tick_;
     float oldRate = Combat().rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);

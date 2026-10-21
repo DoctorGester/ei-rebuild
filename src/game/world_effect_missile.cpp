@@ -117,7 +117,7 @@ int CEffectArrow::Tick() {
     localPosition_.x = localPosition_.x + velocity_.x;
     localPosition_.y = localPosition_.y + velocity_.y;
     localPosition_.z = localPosition_.z + velocity_.z;
-    if (!static_cast<CWorld*>(ManagerContext())->IsServer()) MoveParts();
+    if (!WorldContext()->IsServer()) MoveParts();
     return flying;
 }
 
@@ -310,7 +310,7 @@ int CEffectArrowFigure::Tick() {
     localPosition_.x = localPosition_.x + velocity_.x;
     localPosition_.y = localPosition_.y + velocity_.y;
     localPosition_.z = localPosition_.z + velocity_.z;
-    if (!static_cast<CWorld*>(ManagerContext())->IsServer()) MoveFigure();
+    if (!WorldContext()->IsServer()) MoveFigure();
     CWorld* world = WorldOf(this);
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
@@ -394,7 +394,7 @@ void CEffectArrowFigure::LoadState(CStream* s) {
     s->Read(&casterId_, 4);
     s->Read(&velocity_, 12);
     s->Read(&arrived_, 4);
-    AIRef::Of(&figure_)->Load(s, ManagerContext());
+    AIRef::Of(&figure_)->Load(s, WorldContext());
     s->Read(&hit_, sizeof(hit_));
     s->Read(&fromCaster_, 1);
 }

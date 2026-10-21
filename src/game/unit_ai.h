@@ -42,7 +42,7 @@ struct AIRef {
     // 0052A8F0. Hold `object` (released first unless it is already held).
     void Assign(CEngineObject* object);
     // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
-    void Load(CStream* stream, void* world);
+    void Load(CStream* stream, CWorld* world);
     void Save(CStream* stream);
     // A counted object pointer of another type (a unit list's element, a missile's figure) seen as
     // the reference it is.
@@ -618,7 +618,7 @@ static_assert(sizeof(PlayerMode) == 0x24);
 
 // 0052AF20 (counted_ref.cpp; fastcall, RET 4): a count read from `stream`, then that many counted
 // references appended to `list`, each loaded in `context` (the trap's units, the brain's lists).
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, void* context);
+void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context);
 
 // The brain's corpse list (+0x148; its elements are counted references). 005D8D50 (RET 4,
 // unit_ai.cpp; CorpseWatcherMode::Evaluate through AIBrain::PopCorpse): RemoveHead, the head's

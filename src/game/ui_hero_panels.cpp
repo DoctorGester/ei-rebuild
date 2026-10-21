@@ -335,8 +335,8 @@ void BuildCellGrid(CUiWindow* window) {
         depth = static_cast<float>(D(depth) * D(0.5f /*0073B86C*/));   // * 0.5
         v = 0x9C - v;
     }
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    window->AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(window->interface_, 200, 100, 600, 500, 5, 1)
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    window->AddSurface(memory ? memory->Construct(window->interface_, 200, 100, 600, 500, 5, 1)
                               : nullptr);
 }
 
@@ -394,8 +394,8 @@ void CHeroStatsPanel::Build() {
     AddRect(this, RECT{0, 0x7D, 0x1E, 0x91});      // previous hero
     AddRect(this, RECT{0xAA, 0x7D, 200, 0x91});    // next hero
     {
-        void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-        AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 0, 100, 200, 400, 5, 1) : nullptr);
+        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+        AddSurface(memory ? memory->Construct(interface_, 0, 100, 200, 400, 5, 1) : nullptr);
     }
     // The arrows and the hero's frame.
     AddSprite(0)->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
@@ -548,8 +548,8 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
     AddRect(this, RECT{200, 450, 400, 470});
     AddRect(this, RECT{200, 470, 400, 490});
     AddMakerPictures(this);
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 450, 400, 490, 5, 1) : nullptr);
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(memory ? memory->Construct(interface_, 200, 450, 400, 490, 5, 1) : nullptr);
     pulse_ = 0.0f;
     // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
     CTextManager* texts = TheTextManager();

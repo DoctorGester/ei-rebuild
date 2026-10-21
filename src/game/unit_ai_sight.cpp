@@ -137,7 +137,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         }
         if (!ready) Prepare(self);
         Vector3 theirEye;
-        static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
+        other->EyePoint(&theirEye);
         Vector3 d = theirEye - eye;
         CUnitServer* theirs = other->ServerController();
         float coneLimit = ours->stats.sightCone;
@@ -246,7 +246,7 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     seer->orientation.AxisY(&axis);
     Vector3 look{-axis.x, -axis.y, -axis.z};
     Vector3 eye;
-    static_cast<CMapObjectVirtuals*>(seer)->EyePoint(&eye);
+    seer->EyePoint(&eye);
     grid->originX = kNoGridOrigin;
     grid->originY = kNoGridOrigin;
     reinterpret_cast<SearchGrid<std::uint8_t>*>(&grid->data)->Resize(1, 1);   // the cells (+8) as a SearchGrid

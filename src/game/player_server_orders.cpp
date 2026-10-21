@@ -122,7 +122,7 @@ int CPlayerServer::OnPause() {
         if (record && !(record->flags7_ & CRefCounted::kDetached) && mode != 3)
             server->AnnounceText(kTextPause, record->name_.data(), nullptr);
     }
-    static_cast<CWorldServer*>(Owner()->ManagerContext())->SetServerPaused(pause != 0 ? 1 : 0);
+    Owner()->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);
     return 1;
 }
 
@@ -130,7 +130,7 @@ int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
     Received().Read(&message, sizeof(message));
     CPlayer* player = Owner();
-    CEngineObject* target = static_cast<CWorld*>(player->ManagerContext())->ObjectWithId(message.targetId);
+    CEngineObject* target = player->WorldContext()->ObjectWithId(message.targetId);
     CUnit* unit = FindUnit(player, message.unitId);
     if (target && Able(unit)) {
         AIBrain* brain = unit->ServerController()->Brain();

@@ -61,9 +61,9 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     if (scale) self->interface_->CallScaleRectToScreen(rect);
     self->width_ = rect->right - rect->left;
     self->height_ = rect->bottom - rect->top;
-    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
+    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
     // (The interface's renderer is the device object.)
-    CDXSurface* made = memory ? static_cast<CDXSurface*>(memory)->Construct(
+    CDXSurface* made = memory ? memory->Construct(
                                     reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), self->width_, self->height_)
                               : nullptr;
     ReplaceHolder(self, made);
@@ -116,14 +116,14 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
     self->background_ = 0;
     self->interface_ = static_cast<CInterface3D*>(ui);
-    CBaseManager* manager = static_cast<CBaseManager*>(TheTextureManager());
+    CBaseManager* manager = TheTextureManager();
     void* picture;
     {
         mfc::CString file = name + game::MmpExtensionText();   // ".mmp"
         picture = manager->GetFile(*reinterpret_cast<const char* const*>(&file), nullptr);
     }
-    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    CDXSurface* made = memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromPicture(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), picture, 0))
+    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
+    CDXSurface* made = memory ? memory->ConstructFromPicture(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), picture, 0)
                               : nullptr;
     CDXSurface* previous = self->holder_;
     self->holder_ = made;

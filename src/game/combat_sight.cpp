@@ -116,7 +116,7 @@ namespace {
 
 bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
     if (order->flag18) return false;
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     CEngineObject* target = order->target;
 
     if (order->kind == kOrderCast || order->kind == kOrderCastAt) {
@@ -136,7 +136,7 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
         }
         std::memcpy(&out->point, &order->point, sizeof(out->point));
         out->point.z = static_cast<float>(
-            static_cast<CWorld*>(world)->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
+            world->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
         out->eyeHeight = static_cast<float>(unit->BaseSpeed());
         return true;
     }
@@ -251,7 +251,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     eye.y = unit->position.y;
     eye.z = unit->position.z;
     eye.z = static_cast<float>(unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
-    CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
+    CAIMap* map = ServerWorld()->AIMap();
     double visibility = map->LineOfSight(&eye, &sight.point);
     return visibility >= kPointOne;
 }

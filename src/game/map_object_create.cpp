@@ -74,7 +74,7 @@ EI_REPLACE_METHOD(0x0050E840, CMapObject::DestroyMapObject);
 // --- Units and torches -----------------------------------------------------------------------------
 
 int CUnit::CreateUnit() {
-    static_cast<CMapObject*>(this)->CreateMapObject();
+    CreateMapObject();
     Reset();
     MapObject()->NetState()->SetFieldCount(kUnitNetFields);
     return 1;
@@ -82,7 +82,7 @@ int CUnit::CreateUnit() {
 EI_REPLACE_METHOD(0x0052E400, CUnit::CreateUnit);
 
 int CTorchObject::CreateTorch() {
-    static_cast<CMapObject*>(this)->CreateMapObject();
+    CreateMapObject();
     CTorchObjectSpec* old = spec;
     spec = nullptr;
     if (old) old->Release();

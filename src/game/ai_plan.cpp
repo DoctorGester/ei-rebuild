@@ -115,7 +115,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     }
 
     int count = 0;
-    const std::int16_t* offsets = static_cast<SpiralCache*>(Spiral())->Get(kAllOffsets, &count);
+    const std::int16_t* offsets = Spiral()->Get(kAllOffsets, &count);
     LocalSearch* search = &forwardSearch;
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint

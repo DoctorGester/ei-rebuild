@@ -75,7 +75,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
-        static_cast<CDiplomacy*>(&static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_)->OnAttack(tamer, unit, 10);
+        ServerWorld()->diplomacy_.OnAttack(tamer, unit, 10);
         return 0;
     }
     CPlayer* tamerPlayer = tamer->player;
@@ -93,7 +93,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         if (!tamerPlayer) break;
         tamerPlayer->ReleaseTamedUnits();   // 00665D20
         unit->SetSide(tamer->side);
-        static_cast<CUnit*>(unit)->SetPlayer(tamerPlayer);
+        unit->SetPlayer(tamerPlayer);
         auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));
         mode->refs = 0;   // written before the test, as the original does (one dword)
         mode->refsHigh = 0;
@@ -101,7 +101,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
             ModePlayerConstruct(mode);
             ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
         }
-        static_cast<AIBrain*>(&brain)->AddMode(mode);
+        brain.AddMode(mode);
         ClearReferenceList<false>(Brain()->memory.seenCorpses);
         ClearReferenceList<true>(Brain()->memory.corpses);
         Stage(this) = 3;
@@ -131,8 +131,8 @@ EI_REWRITTEN(0x00551AE0, CUnitServer::TryTame);
 
 void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;
-    static_cast<AIBrain*>(&brain)->RemoveModesOfType(kModeTamed);   // unit_ai.h: the tamed mode (8)
-    static_cast<CUnit*>(unit)->SetPlayer(nullptr);
+    brain.RemoveModesOfType(kModeTamed);   // unit_ai.h: the tamed mode (8)
+    unit->SetPlayer(nullptr);
     unit->SetRelationsB(0xFFFFFFFFu);
     if (Stage(this) > 1) unit->SetSide(ownSide);
     Stage(this) = 0;

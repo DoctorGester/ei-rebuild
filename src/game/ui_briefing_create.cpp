@@ -211,18 +211,16 @@ void CBriefingScreen::Create() {
     AddSprite(nullptr)->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 430, 600, 570, kSurfaceFormat, 1)
-                      : nullptr);
-    memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 0, 0, 250, 30, kSurfaceFormat, 1)
-                      : nullptr);
+    CUiSurface* surface = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(surface ? surface->Construct(interface_, 200, 430, 600, 570, kSurfaceFormat, 1) : nullptr);
+    surface = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(surface ? surface->Construct(interface_, 0, 0, 250, 30, kSurfaceFormat, 1) : nullptr);
 
-    memory = gamecrt::operator_new(sizeof(CUiScrollbar));
-    topicBar_ = memory ? static_cast<CUiScrollbar*>(memory)->Construct(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f)
+    CUiScrollbar* bar = gamecrt::operator_new_as<CUiScrollbar>();
+    topicBar_ = bar ? bar->Construct(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f)
                        : nullptr;
     AddChild(topicBar_);
-    memory = gamecrt::operator_new(0x1C8);
+    void* memory = gamecrt::operator_new(0x1C8);
     text_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(), RECT{165, 426, 635, 570}, 10.0f)
                    : nullptr;
     AddChild(text_);

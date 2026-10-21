@@ -79,7 +79,7 @@ int CUiContainer::DrawContainerImpl(int pass) {
     device->result_ = device->device_->ApplyStateBlock(handle);
     render::state::Block(handle);
     DrawBase(pass);
-    CUiContainer* container = static_cast<CUiContainer*>(this);
+    CUiContainer* container = this;
     for (int i = 0; i < container->children_.size; ++i) {
         CUiWindow* child = container->children_.data[i];
         if (child->enabled_) child->VirtualDraw(pass);

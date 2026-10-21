@@ -25,7 +25,7 @@ constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // CUnit::movementKind
 
 // The world's slots 29 / 30 give the ground and water surface heights at (x, y), in ST0.
-CWorld* WorldOf(CUnit* unit) { return static_cast<CWorld*>(unit->World()); }
+CWorld* WorldOf(CUnit* unit) { return unit->World(); }
 } // namespace
 
 // The map object's (map_object.cpp) and the 3D object's (map_object_figures.cpp) bodies these slots

@@ -84,7 +84,7 @@ EI_REWRITTEN(0x0052B370, Lever::CreateLever);
 
 int Lever::UpdateLever() {
     Update();
-    if (static_cast<CWorld*>(ManagerContext())->IsServer()) return 0;
+    if (WorldContext()->IsServer()) return 0;
     Vector3 shown = {scale.x, scale.y, scale.z};
     double t = (endTick - static_cast<double>(CurrentClientTick())) * rate;
     if (t > 0.0) {

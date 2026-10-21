@@ -460,8 +460,7 @@ int CPlayerClient::OnPathMarker() {
         reading->EndField();
         if (MarkersShown()) {
             static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
-            auto* source = static_cast<CParticleSource*>(
-                ParticleManagerObject()->CreateSource(kPathParticles));
+            auto* source = ParticleManagerObject()->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
@@ -474,7 +473,7 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
+        auto* marker = ParticleManagerObject()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->position = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
@@ -604,7 +603,7 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&prototypeValue, 4);
 
     // The world's slot 19 is its object manager (+0x40).
-    auto* world = static_cast<CWorld*>(Owner()->ManagerContext());
+    auto* world = Owner()->WorldContext();
     CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;
     auto* object = static_cast<CMapObject*>(created);
@@ -648,7 +647,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(kWispParticles));
+            ParticleManagerObject()->CreateSource(kWispParticles);
         source->Attach(created);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
@@ -875,7 +874,7 @@ int CPlayerClient::OnPartyState() {
 
     std::uint8_t paused;
     in_.Read(&paused, 1);
-    static_cast<CWorldClient*>(player->ManagerContext())->paused_ = paused != 0 ? 1 : 0;
+    player->ClientWorld()->paused_ = paused != 0 ? 1 : 0;
     ReadDword(&in_);   // the server's +0x24, not used
 
     int count = ReadDword(&in_);
@@ -892,7 +891,7 @@ int CPlayerClient::OnPartyState() {
     }
     PartyIdSet().Clear();
 
-    static_cast<CWorldClient*>(player->ManagerContext())->partyDanger_ = ReadDword(&in_);
+    player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
     otherUnitIds_.SetSize(others);
     for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);

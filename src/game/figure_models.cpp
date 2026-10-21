@@ -58,8 +58,8 @@ FigureModel* CFigureManager::FindModel(const stlp::string* name) {
     void* animation = OpenPart(this, name, ".anm");
     if (!mesh) return nullptr;
 
-    void* memory = gamecrt::operator_new(sizeof(FigureModel));
-    auto* model = static_cast<FigureModel*>(memory ? ConstructFigureModel(static_cast<FigureModel*>(memory)) : nullptr);
+    FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
+    auto* model = memory ? ConstructFigureModel(memory) : nullptr;
     *ModelSlot(map, name) = model;
     FigureModel* parts = *ModelSlot(map, name);
     parts->mesh->OpenFromMemory(mesh);

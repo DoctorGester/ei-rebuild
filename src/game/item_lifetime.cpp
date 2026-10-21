@@ -165,8 +165,8 @@ static_assert(sizeof(CItemQuest) == 0x50 && sizeof(CItemSpell) == 0x50);
 namespace {
 template <typename T>
 CEngineObject* NewItem() {
-    void* memory = gamecrt::operator_new(sizeof(T));
-    return memory != nullptr ? static_cast<T*>(memory)->Construct() : nullptr;
+    T* memory = gamecrt::operator_new_as<T>();
+    return memory != nullptr ? memory->Construct() : nullptr;
 }
 } // namespace
 

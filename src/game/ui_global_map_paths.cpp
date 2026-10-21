@@ -65,7 +65,6 @@ constexpr int kRegionTurnRight = 1;
 constexpr int kRegionCamp = 2;
 constexpr int kFirstLinkRegion = 3;
 constexpr int kCampScreen = 5;
-constexpr std::size_t kObjectivesSize = 0x1F0;
 
 // The zone the local player is in.
 MapRecord* PlayerZone() {
@@ -171,10 +170,10 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
             // A zone: its objectives and the ways there, to choose from (found or not).
             SearchWays(this, zone.name);
             if (!MayTravelTo(this)) return;
-            void* memory = gamecrt::operator_new(kObjectivesSize);
-            void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(interface_) : nullptr;
-            static_cast<CObjectivesWindow*>(window)->Setup(target_, &arrivals_, 1, 0);
-            interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
+            CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
+            CObjectivesWindow* window = memory ? memory->Construct(interface_) : nullptr;
+            window->Setup(target_, &arrivals_, 1, 0);
+            interface_->PushWindow(window, 1, 1);
             return;
         }
     }

@@ -77,8 +77,8 @@ void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    return memory ? static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    return memory ? memory->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
 }
 
 void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int v1) {

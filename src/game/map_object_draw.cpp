@@ -139,7 +139,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     }
     std::uint8_t lit = 0xFF;
     if (!(object->flags_ & kObjectUnlit)) {
-        Terrain* terrain = static_cast<CWorldClient*>(ManagerContext())->terrain_;
+        Terrain* terrain = ClientWorld()->terrain_;
         lit = terrain->EdgeFade(&at);   // AL as it is
     }
 

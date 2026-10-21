@@ -479,7 +479,7 @@ void* MpHeroesObject() { return &TheSavedParties(); }
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
     if (!screen) return nullptr;
-    static_cast<CUiContainer*>(screen)->Construct(ui);
+    screen->CUiContainer::Construct(ui);
     screen->entries_.Start() = nullptr;
     screen->entries_.Finish() = nullptr;
     screen->entries_.EndOfStorage() = nullptr;
@@ -711,7 +711,7 @@ void CMpHeroScreen::AddNewHero() {
         auto* container = hero->spells[0];
         auto* spell = reinterpret_cast<char*>(container->spell_);
         if (spell && !HeroCanUseSpell(hero->stats, spell)) {
-            LocalPlayerData()->AddItem(static_cast<CItem*>(container), 0, 1);
+            LocalPlayerData()->AddItem(container, 0, 1);
             hero->RemoveSpell(container);
         }
     }

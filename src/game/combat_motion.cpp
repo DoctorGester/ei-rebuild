@@ -113,8 +113,8 @@ std::uint32_t& IdleKey(CUnitServer* self) { return self->idleKey; }
 int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x974
 
 // The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
-int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
-CWorldServer* ContextOf(CUnitServer* self) { return static_cast<CWorldServer*>(ManagerContextOf(self)); }
+int TickOf(const CWorld* world) { return world->tick_; }
+CWorldServer* ContextOf(CUnitServer* self) { return self->ServerWorld(); }
 // The unit's server object (CUnit + 0x170) and its vitals.
 UnitVitals& ServerVitals(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->companion)->vitals; }
 
@@ -142,7 +142,7 @@ void DropEffectObject(CUnitServer* self) {
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y
 // axis of its rotation), then stands (0) and takes state 6: the sequence 0054A150 inlines twice.
 void FaceAndStop(CUnitServer* self) {
-    static_cast<AIPath*>(Motion(self))->Clear();
+    Motion(self)->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
@@ -251,7 +251,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
     ShowHead(self);
-    static_cast<AIPath*>(Motion(self))->Clear();
+    Motion(self)->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
@@ -264,7 +264,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
         SectorMapRemove(sectors, nullptr, self->unit);
         self->unit->obstacle = 0;
         SectorMapAdd(sectors, nullptr, self->unit);
-        static_cast<CMapObject*>(self->unit)->MarkChanged(7);
+        self->unit->MarkChanged(7);
     }
     // The list was taken by value: it is destroyed here.
     steps.vtable = kAnimationStepsBaseVtable;
@@ -435,7 +435,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         PlaySteps(&IdleSteps(this));
     }
     state = kStateActing;
-    actingCheckTime = TickOf(ManagerContextOf(this)) + 10;
+    actingCheckTime = TickOf(WorldContext()) + 10;
     if (plan.targetId == -1) {
         int now = TickOf(ObjectWorld(this));
         Motion(this)->StandAndTurnUntil(now, unit, &plan.direction, plan.endTime, plan.startTime);
@@ -451,7 +451,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     SectorMapRemove(sectors, nullptr, unit);
     unit->obstacle = 0;
     SectorMapAdd(sectors, nullptr, unit);
-    static_cast<CMapObject*>(unit)->MarkChanged(7);
+    unit->MarkChanged(7);
 }
 EI_REWRITTEN(0x005494D0, CUnitServer::StartAction);
 
@@ -470,7 +470,7 @@ void CUnitServer::UpdateSneak() {
         int mode = moveMode2.mode;
         if (mode != unit->moveMode2) {
             unit->moveMode2 = mode;
-            static_cast<CMapObject*>(unit)->MarkChanged(6);
+            unit->MarkChanged(6);
         }
     }
     if (moveMode.wasMode3 != 0) {
@@ -485,7 +485,7 @@ void CUnitServer::UpdateSneak() {
         int mode = moveMode.mode;
         if (mode != unit->moveMode) {
             unit->moveMode = mode;
-            static_cast<CMapObject*>(unit)->MarkChanged(6);
+            unit->MarkChanged(6);
         }
         unit->UpdateSizeClass();
         motionChanged = 1;
@@ -502,7 +502,7 @@ void CUnitServer::UpdateSneak() {
     int mode = UnitModeOf(moveMode);
     if (mode != unit->moveMode) {
         unit->moveMode = mode;
-        static_cast<CMapObject*>(unit)->MarkChanged(6);
+        unit->MarkChanged(6);
     }
     unit->UpdateSizeClass();
     motionChanged = 1;
@@ -525,7 +525,7 @@ bool CUnitServer::ChangeMoveMode() {
         placed = false;
     else
         placed = SectorMapAdd(ServerSectors(), nullptr, unit);
-    static_cast<CMapObject*>(unit)->MarkChanged(6);
+    unit->MarkChanged(6);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
         moveMode = saved;
@@ -579,7 +579,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
-    static_cast<AIPath*>(Motion(this))->Clear();
+    Motion(this)->Clear();
     std::uint32_t keep = unit->altPassCosts;
     CWorldServer* world = ContextOf(this);
     Motion(this)->flag6E = unit->player ? 0 : 1;   // +0xAA
@@ -761,7 +761,7 @@ void CUnitServer::ResyncWithUnit() {
     }
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
-    static_cast<AIPath*>(Motion(this))->Clear();
+    Motion(this)->Clear();
     int now = TickOf(ObjectWorld(this));
     Vector3 axis;
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
@@ -782,7 +782,7 @@ void CUnitServer::ResyncWithUnit() {
         IdleKey(this) = key;
         BuildIdle(&IdleSteps(this));
     }
-    if (!static_cast<AnimationSteps*>(&Queue(this))->SameAs(&IdleSteps(this))) {
+    if (!Queue(this).SameAs(&IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).count == 0 && QueueTime(this) == -1)
             IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
@@ -818,7 +818,7 @@ void CUnitServer::ResetController() {
     animationHeld = 0;
     Queue(this).SetSize(0, -1);
     QueueTime(this) = -1;
-    static_cast<AIPath*>(Motion(this))->Clear();
+    Motion(this)->Clear();
     OrderPlan& plan = Plan(this);
     plan.animation.SetSize(0, -1);
     plan.animation.extra = -1;
@@ -861,14 +861,14 @@ void CUnitServer::ResetController() {
     followedLeader = nullptr;
     if (waited) waited->Release();
     searchingTarget = 0;
-    static_cast<AIBrain*>(&brain)->Init();
-    static_cast<AIAlarm*>(&voice)->Reset();
+    brain.Init();
+    voice.Reset();
     aiPresence = nullptr;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;
     moveFactors[3] = 1.0f;
     moveFactors[1] = 1.0f;
-    static_cast<UnitStats*>(&stats)->Reset();
+    stats.Reset();
     tameStage = 0;
     ownSide = -1;
     tamerSide = -1;

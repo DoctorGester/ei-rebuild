@@ -232,13 +232,13 @@ EI_REPLACE(0x0055F550, SessionCloneHook);
 // ---- CWorld::OpenSession (0055F410) ---------------------------------------------------------------
 
 void CWorld::OpenSession() {
-    void* memory = gamecrt::operator_new(sizeof(DriverSession));
+    DriverSession* memory = gamecrt::operator_new_as<DriverSession>();
     DriverSession* session = nullptr;
     if (memory) {
         // The count and both flag bytes as one dword, cleared before the constructor.
-        static_cast<DriverSession*>(memory)->refs_ = 0;
-        static_cast<DriverSession*>(memory)->flags6_ = 0;
-        static_cast<DriverSession*>(memory)->flags7_ = 0;
+        memory->refs_ = 0;
+        memory->flags6_ = 0;
+        memory->flags7_ = 0;
         session = DriverSession::ConstructAt(memory);
     }
     reinterpret_cast<RefPtr*>(&netSession_)->ShareAssign(session);

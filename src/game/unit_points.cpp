@@ -106,7 +106,7 @@ static float* ActionPoint(CUnit* unit, float* out) {
         }
     }
     // The world's slot 26 (IsServer); the server's AI map.
-    auto* world = static_cast<CWorldServer*>(ObjectWorld(unit));
+    auto* world = unit->ServerWorld();
     if (world->IsServer()) {
         Vector3 point = {offset.x + unit->position.x, offset.y + unit->position.y, offset.z + unit->position.z};
         if (!world->AIMap()->IsPassableForClass(3, &point)) {

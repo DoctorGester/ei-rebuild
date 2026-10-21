@@ -405,8 +405,8 @@ void CGlobalMap::Create() {
     TheSceneRenderer()->fogColour_ = 0xFF3C005A;
 
     {
-        void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-        backdrop_ = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 0, 0, 400, 300, 5, 1) : nullptr;
+        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+        backdrop_ = memory ? memory->Construct(interface_, 0, 0, 400, 300, 5, 1) : nullptr;
         backdrop_->SetRect(0, 0, 800, 600);
     }
     {
@@ -420,8 +420,8 @@ void CGlobalMap::Create() {
         SetTexture(picture, builder.Texture(3));
     }
     {
-        void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-        CUiSurface* info = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 400, 20, 780, 300, 5, 1)
+        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+        CUiSurface* info = memory ? memory->Construct(interface_, 400, 20, 780, 300, 5, 1)
                                   : nullptr;
         AddSurface(info);
         info->Freeze(0, 0);
@@ -448,8 +448,8 @@ void CGlobalMap::Create() {
     TheTextManager()->GetString("save_day", &dayText);
     clock.Format("%s  %d,  %d:%02d", static_cast<const char*>(dayText), day + 1, hour, minutes);
     {
-        void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-        CUiSurface* text = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 20, 20, 170, 70, 5, 1)
+        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+        CUiSurface* text = memory ? memory->Construct(interface_, 20, 20, 170, 70, 5, 1)
                                   : nullptr;
         AddSurface(text);
         UiSurfaceGetDC(text);

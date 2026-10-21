@@ -237,7 +237,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
     TextureParts* set;
     if (!partSets[k]) {
         set = NewZeroed<TextureParts>();
-        set->texture = static_cast<CWorldClient*>(ManagerContext())->NewTexture(kind);
+        set->texture = ClientWorld()->NewTexture(kind);
         partSets[k] = set;
         int count = textures.size;
         textures.SetSize(count + 1, -1);
@@ -277,7 +277,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
         if (material && material->type_ == materialKind) return set->groups[g]->material;
     }
     PartGroup* group = NewZeroed<PartGroup>();
-    CMaterial* material = static_cast<CWorldClient*>(ManagerContext())->NewMaterial(materialKind);
+    CMaterial* material = ClientWorld()->NewMaterial(materialKind);
     group->material = material;
     ++material->refCount_;
     set = partSets[k];
@@ -356,7 +356,7 @@ EI_REPLACE_METHOD(0x0051B630, CObject3DClientSpecific::ReplaceTexture);
 // --- Skins and materials --------------------------------------------------------------------------
 
 int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
-    CTextureManager* manager = static_cast<CWorld*>(ManagerContext())->TextureManager();
+    CTextureManager* manager = WorldContext()->TextureManager();
     skinName = first;
     secondSkinName = second;
     const char* names[2] = {first, second};
@@ -388,7 +388,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
 EI_REWRITTEN(0x0051C250, CObject3DClientSpecific::SetSkins);
 
 void CObject3DClientSpecific::ApplyMaterials() {
-    void* manager = static_cast<CWorld*>(ManagerContext())->MaterialManager();
+    void* manager = WorldContext()->MaterialManager();
     if (materials.size <= 0) {
         materialCursor = -1;
     } else {

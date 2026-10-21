@@ -26,7 +26,7 @@ void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int res
 }
 // 00512B20 (thiscall on the object manager 007AF5F8, RET 8): the object of `kind` named `name`.
 FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
-    return static_cast<FigureAnimation*>(static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind));
+    return static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind);
 }
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 

@@ -67,7 +67,7 @@ bool IsMade(std::uint8_t* item) {
 // 005EE1B0 (CItemScreen::MoveItem, through its address): moves `item` from `from` to `to`; returns
 // the item now held.
 std::uint8_t* MoveBetween(CCampPages* camp, std::uint8_t* item, void* to, void* from, int limit, int merge, int turning) {
-    return reinterpret_cast<std::uint8_t*>(static_cast<CItemScreen*>(camp)->MoveItem(AsItem(item), static_cast<CParty*>(to), static_cast<CParty*>(from), limit, merge, turning));
+    return reinterpret_cast<std::uint8_t*>(camp->CItemScreen::MoveItem(AsItem(item), static_cast<CParty*>(to), static_cast<CParty*>(from), limit, merge, turning));
 }
 // 00621570 (CUiItemStrip::ScrollToItem, through its address).
 void ScrollTo(CUiItemStrip* strip, void* item) { strip->ScrollToItem(static_cast<CItem*>(item)); }
@@ -135,7 +135,7 @@ void CCampPages::ShowPage(int page) {
     case 2:
         if (!spellConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x65);
+        helpPanel_->ShowHelp(0x65);
         spellConstructor1_->SetEnabled(1, 1);
         spellStrip_->window.SetEnabled(1, 1);
         itemStrip_->slots_ = 1;
@@ -149,7 +149,7 @@ void CCampPages::ShowPage(int page) {
     case 4:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x64);
+        helpPanel_->ShowHelp(0x64);
         itemConstructor1_->SetEnabled(1, 1);
         partStrip_->window.SetEnabled(1, 1);
         itemStrip_->slots_ = 5;
@@ -163,7 +163,7 @@ void CCampPages::ShowPage(int page) {
     case 6:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x68);
+        helpPanel_->ShowHelp(0x68);
         itemConstructor3_->SetEnabled(1, 1);
         partStrip_->window.SetEnabled(1, 1);
         break;
@@ -172,10 +172,10 @@ void CCampPages::ShowPage(int page) {
         // what they made goes into the strips.
         trade_->Settle(0, 1);
         ReturnAll(spellParts_[0], spellParts_[1]);
-        static_cast<CItemScreen*>(this)->ReturnAll(PlayerParty(), spellParts_[2]);
+        ReturnAll(PlayerParty(), spellParts_[2]);
         ReturnAll(itemParts_[0], itemParts_[1]);
-        static_cast<CItemScreen*>(this)->ReturnAll(PlayerParty(), itemParts_[2]);
-        static_cast<CItemScreen*>(this)->ReturnAll(PlayerParty(), itemExtra_);
+        ReturnAll(PlayerParty(), itemParts_[2]);
+        ReturnAll(PlayerParty(), itemExtra_);
         TakeResults(this, spellResults_, spellParts_[0], spellStrip_);
         TakeResults(this, itemResults_, itemParts_[0], partStrip_);
         interface_->PlaySound("buttons\\globalmap\\transit.wav", 0);
@@ -498,14 +498,14 @@ void CCampPages::UpdateAction() {
                     cost_ = price(item, apartKind);
                     if (IsMade(item)) cost_ += price(item, recordKind);
                     deconstructing_ = true;
-                    static_cast<CItemInfoPanel*>(helpPanel_)->Describe(AsItem(item));
+                    helpPanel_->Describe(AsItem(item));
                     described = true;
                     action = apartText;
                     break;
                 }
                 if (isMaterial(item)) {
                     actionEnabled_ = (this->*canMake)();
-                    static_cast<CItemInfoPanel*>(helpPanel_)->Describe(AsItem(made));
+                    helpPanel_->Describe(AsItem(made));
                     described = made != nullptr;
                     if (actionEnabled_) action = makeText;
                 }
@@ -513,7 +513,7 @@ void CCampPages::UpdateAction() {
             if (!actionEnabled_) cost_ = 0;
             if (described) return;
         }
-        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(topic);
+        helpPanel_->ShowHelp(topic);
     };
 
     switch (page_) {
@@ -642,9 +642,9 @@ BOOL CCampPages::Draw(int pass) {
     }
 
     if (hoveredItem_) {
-        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->Describe(hoveredItem_);
+        if (descPanel_) descPanel_->Describe(hoveredItem_);
     } else if (topic != 0) {
-        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
+        if (descPanel_) descPanel_->ShowHelp(topic);
     } else {
         // The statistics under the mouse: the trade panel's, else the stats panel's.
         ItemHoverInfo info;
@@ -653,8 +653,8 @@ BOOL CCampPages::Draw(int pass) {
         info.part = 0;
         info.weapon = nullptr;
         info.stats = nullptr;
-        if (trade_->enabled_ == 0 || (static_cast<CTradePanel*>(trade_)->HoverInfo(x, y, &info), info.kind < 0)) {
-            if (statsPanel_->enabled_ != 0) static_cast<CHeroStatsPanel*>(statsPanel_)->HoverInfo(x, y, &info);
+        if (trade_->enabled_ == 0 || (trade_->HoverInfo(x, y, &info), info.kind < 0)) {
+            if (statsPanel_->enabled_ != 0) statsPanel_->HoverInfo(x, y, &info);
         }
         if (descPanel_) descPanel_->DescribeStats(&info);
     }
@@ -833,8 +833,8 @@ void CCampPages::Close() {
     spellMade_ = nullptr;
     if (itemMade_) AsObject(itemMade_)->Release();
     itemMade_ = nullptr;
-    static_cast<CItemInfoPanel*>(helpPanel_)->Describe(nullptr);
-    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
+    helpPanel_->Describe(nullptr);
+    descPanel_->Describe(nullptr);
     // The part lists emptied (slot 3) and deleted (slot 0, the deleting destructor); the first of
     // each constructor's lists (the class template's) is not touched here.
     for (CParty** list : {&spellParts_[1], &spellParts_[2], &spellResults_, &itemParts_[1], &itemParts_[2],
@@ -938,7 +938,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     default:
         break;
     }
-    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
+    statsPanel_->DrawStats();
     return result;
 }
 EI_REWRITTEN(0x0060FE40, CCampPages::TakeOff);
@@ -964,7 +964,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
         }
         if (heroes_[hero_]) {
             CItem* worn = hero->AddArmor(AsItem(item));   // 00660C90
-            static_cast<CUnit*>(heroes_[hero_])->EquipArmour(worn);         // 00530730
+            heroes_[hero_]->EquipArmour(worn);         // 00530730
             heroes_[hero_]->Controller()->RefreshEquipment();
         }
         RebuildArmourLayers(hero);
@@ -982,7 +982,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
         return;
     }
     static_cast<CParty*>(GluePlayerData())->RemoveItem(AsItem(item), 0);   // 00661F30
-    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
+    statsPanel_->DrawStats();
 }
 EI_REWRITTEN(0x0060FCA0, CCampPages::PutOn);
 
@@ -1162,7 +1162,7 @@ void CCampPages::RefreshStats() {
         heroes_[hero_]->SetFromStats(StatsOf(hero));
         heroes_[hero_]->Controller()->RefreshWounds();
     }
-    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
+    statsPanel_->DrawStats();
 }
 EI_REPLACE_METHOD(0x0060F980, CCampPages::RefreshStats);
 

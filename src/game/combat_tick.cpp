@@ -305,7 +305,7 @@ void DestroyPtrList(UnitPtrList* list) {
 } // namespace
 
 bool CUnitServer::StartMove() {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     UnitPtrList lifted;
     InitPtrList(&lifted);
     orderStopped = 0;
@@ -331,13 +331,13 @@ bool CUnitServer::StartMove() {
     }
     // Plan the way with the units near the goal lifted off the sector map.
     LiftNearby(&lifted, &action.point.x, action.source != 0);
-    CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
+    CAIMap* map = ServerWorld()->AIMap();
     unit->altPassCosts = map->CellFlag80At(&unit->position);
     bool found = PathTo(&action.point.x, action.point.z);
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(static_cast<CWorldServer*>(world)->Sectors(), nullptr, current->data);
+        SectorMapAdd(world->Sectors(), nullptr, current->data);
     }
     bool arrived = false;
     if (action.param) {
@@ -386,7 +386,7 @@ bool CUnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         int time = action.param;
-        int now = static_cast<CWorld*>(ManagerContext())->tick_;
+        int now = WorldContext()->tick_;
         motion.StandAndTurn(now, unit, &action.point, static_cast<std::uint32_t>(time));
         unit->RefreshMotion();
         PlayIdle();

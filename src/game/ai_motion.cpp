@@ -69,7 +69,7 @@ void ClearList(PathCellList& list) {
     list.free = nullptr;
     list.tail = nullptr;
     list.head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list.blocks));
+    mfc::PlexFreeDataChain(list.blocks);
     list.blocks = nullptr;
 }
 

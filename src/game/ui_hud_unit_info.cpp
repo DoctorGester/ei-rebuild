@@ -48,7 +48,7 @@ constexpr int kLevelDifferenceLimit = 25;
 // CUnit [thiscall]: the move speed of a mode [0052FAF0] or the current one [0052FA20] (in ST0),
 // the prototype [00530930], the level [00532D40] (rewritten, called directly).
 // The world (007AF5B8): the time of day [0055FC50, ST0].
-double __fastcall WorldDayTime(void* a0) { return static_cast<CWorld*>(a0)->NightLevel(); }
+double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
 // the description texts [005270E0: unit +0x17C, out, name is a text key].
 // 004613A0: whether an id is a text key [__fastcall].

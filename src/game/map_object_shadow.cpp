@@ -230,7 +230,7 @@ int KeyedParts(const CObject3D* object) {
 // in *failure) when the render surface cannot be locked.
 bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
     // Rasterise into the render surface.
-    void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
+    void* surface = self->WorldContext()->TextureManager()->ShadowRenderSurface();
     SurfacePixels description;
     if (!static_cast<CTexture*>(surface)->LockPixels(&description)) {
         *failure = game::FatalError("Can't lock render surface for texture \"%s\"\n", self->GetName());
@@ -499,7 +499,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     float strength = 1.0f;
     if (object->GetClassId() == kClassUnitObject)
         strength = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller)->fadeIn;
-    render::CastsShadow(static_cast<const CEngineObject*>(object), strength);
+    render::CastsShadow(object, strength);
 
     if (!texture) {
         AssignTexture(&texture, TheTextureManager()->NewShadowTexture());

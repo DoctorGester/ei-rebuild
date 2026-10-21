@@ -59,8 +59,8 @@ void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames
         old->DestructBody();
         gamecrt::operator_delete(old);
     }
-    void* memory = gamecrt::operator_new(sizeof(CAnimationNode));
-    CAnimationNode* bone = memory ? static_cast<CAnimationNode*>(memory)->Construct() : nullptr;
+    CAnimationNode* memory = gamecrt::operator_new_as<CAnimationNode>();
+    CAnimationNode* bone = memory ? memory->Construct() : nullptr;
     skin->root = bone;
     BuildBone(skin, bone, node, frames);
     int count = static_cast<std::int16_t>(frames) + 1;

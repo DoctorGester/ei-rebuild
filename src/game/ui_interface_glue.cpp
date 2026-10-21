@@ -67,8 +67,8 @@ void CInterface3D::ShowFps(int on) {
         return;
     }
     if (fpsSurface_) return;
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    fpsSurface_ = memory ? static_cast<CUiSurface*>(memory)->Construct(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom,
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    fpsSurface_ = memory ? memory->Construct(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom,
                                                                       kFpsFormat, 1)
                          : nullptr;
     ui_native::Adopt(fpsSurface_, "fps");
@@ -139,8 +139,8 @@ void CInterface3D::SaveWindowState() {
 EI_REWRITTEN(0x005F86D0, CInterface3D::SaveWindowState);
 
 void CInterface3D::ShowStatusText(const char* text) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    statusSurface_ = memory ? static_cast<CUiSurface*>(memory)->Construct(this, 0, kStatusTop, kLayoutWidth, kStatusBottom,
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    statusSurface_ = memory ? memory->Construct(this, 0, kStatusTop, kLayoutWidth, kStatusBottom,
                                                                          kStatusFormat, 1)
                             : nullptr;
     if (!statusSurface_) return;

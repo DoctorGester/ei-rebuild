@@ -106,7 +106,7 @@ void CWorldServer::CreateMissile(const void* spell, CUnit* caster, Vector3 from,
         CEngineObject* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
             reinterpret_cast<CUnitServer*>(controller)->Brain()->SetSeen(caster);
-            static_cast<CDiplomacy*>(&diplomacy_)->OnAttack(caster, static_cast<CUnit*>(target), 10);
+            diplomacy_.OnAttack(caster, static_cast<CUnit*>(target), 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }

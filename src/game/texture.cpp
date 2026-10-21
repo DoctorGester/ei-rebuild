@@ -159,7 +159,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
 EI_REWRITTEN(0x006913A0, CTextureManager::SetDevice);
 
 CEngineObject* CTextureManager::NewObjectImpl(int type) {
-    void* memory = gamecrt::operator_new(sizeof(CTexture));
+    CTexture* memory = gamecrt::operator_new_as<CTexture>();
     if (!memory) return nullptr;
     auto* texture = new (memory) CTexture();
     texture->type_ = type;

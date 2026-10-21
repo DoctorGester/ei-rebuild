@@ -198,8 +198,8 @@ CLinkMesh* CLinkFigureLoader::RemorphImpl(CLinkMesh* mesh, float s, float t, flo
 }
 
 CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, float t, float u) {
-    void* memory = gamecrt::operator_new(sizeof(CLinkMesh));
-    CLinkMesh* mesh = memory ? static_cast<CLinkMesh*>(memory)->Construct(this, name, s, t, u) : nullptr;
+    CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
+    CLinkMesh* mesh = memory ? memory->Construct(this, name, s, t, u) : nullptr;
     FigureModel* set = FindFigureSet(name);
     const char* data;
     if (set) {
@@ -235,8 +235,8 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
 
 CLinkMesh* CLinkFigureLoader::MakeFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
                                          float t, float u) {
-    void* memory = gamecrt::operator_new(sizeof(CLinkMesh));
-    CLinkMesh* mesh = memory ? static_cast<CLinkMesh*>(memory)->Construct(this, name, s, t, u) : nullptr;
+    CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
+    CLinkMesh* mesh = memory ? memory->Construct(this, name, s, t, u) : nullptr;
     FigureModel* set = FindFigureSet(name);
     for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
         if (!set) {
@@ -277,11 +277,11 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
         files[i] = FindInArchives(archives_, path);
     }
     if (!files[0]) return nullptr;
-    void* memory = gamecrt::operator_new(sizeof(FigureModel));
-    auto* set = static_cast<FigureModel*>(memory ? ConstructFigureModel(static_cast<FigureModel*>(memory)) : nullptr);
+    FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
+    auto* set = memory ? ConstructFigureModel(memory) : nullptr;
     figureSets_[*name] = set;
     // The original indexes the map a second time (resize for one more element included).
-    static_cast<FigureModel*>(figureSets_[*name])->Open(files[0], files[1], files[2]);
+    figureSets_[*name]->Open(files[0], files[1], files[2]);
     auto* found = figureSets_.Find(*name);
     return found ? found->value : nullptr;
 }

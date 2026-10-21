@@ -10,6 +10,8 @@
 class CBaseManager;
 class CStream;   // core_streams.h
 class CWorld;
+class CWorldClient;   // world.h
+class CWorldServer;   // world.h
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
 // Name provisional; vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall there). Objects
@@ -42,6 +44,12 @@ public:
     CEngineObject* DeletingDestruct(unsigned flags);
     // 00455940. The owning manager's context_ (the world, for the world's managers).
     void* ManagerContext() const;
+    // The manager context as the world, for the world's objects (units, map objects, effects, items
+    // on the ground: their managers' context_ is the world itself; ManagerContext stays void* since a
+    // party's items have the party). ServerWorld / ClientWorld where the caller runs on that side.
+    CWorld* WorldContext() const { return static_cast<CWorld*>(ManagerContext()); }
+    CWorldServer* ServerWorld() const { return static_cast<CWorldServer*>(ManagerContext()); }
+    CWorldClient* ClientWorld() const { return static_cast<CWorldClient*>(ManagerContext()); }
     // 00455950 (app_helpers.cpp). The world the object belongs to: the manager context's slot 13
     // (the world returns itself, a party null), or null without a context.
     CWorld* World() const;

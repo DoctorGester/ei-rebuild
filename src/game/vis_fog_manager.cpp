@@ -42,9 +42,9 @@ CTexture** TextureHolder(ClientArrayManager* self) { return reinterpret_cast<CTe
 // 004E2290 (slot 14, RET 4): a new CVisibilityFog, whatever the type asked: the engine object's
 // fields, everything up to the cell map zero, an empty cell map; null when the allocation fails.
 CEngineObject* ClientArrayManager::NewObjectImpl(int) {
-    void* memory = gamecrt::operator_new(sizeof(CVisibilityFog));
+    CVisibilityFog* memory = gamecrt::operator_new_as<CVisibilityFog>();
     if (!memory) return nullptr;
-    auto* fog = static_cast<CVisibilityFog*>(memory);
+    auto* fog = memory;
     auto* object = reinterpret_cast<CEngineObject*>(fog);
     ei::SetVtable(fog, CEngineObject::kVtableAddress);
     object->ClearFields();

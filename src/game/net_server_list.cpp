@@ -48,7 +48,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     stlp::StringElement::Default(&record->name);
     stlp::StringElement::Default(&record->description);
     GameBuffer buffer;
-    static_cast<GameBuffer*>(&buffer)->ConstructGrowing();
+    buffer.ConstructGrowing();
     alignas(4) std::uint8_t coder[kCoderSize];   // CoderState
     CoderConstruct(coder);
     auto* coderCursor = reinterpret_cast<BufferCursor*>(coder + 0x2800);
@@ -62,7 +62,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
         BufferUpdateHigh(&buffer);
         std::uint8_t* begin = buffer.begin;
         buffer.cur = begin;
-        if (begin > buffer.end) static_cast<GameBuffer*>(&buffer)->Grow(0);
+        if (begin > buffer.end) buffer.Grow(0);
         for (;;) {
             if (buffer.cur > buffer.high) buffer.high = buffer.cur;
             if (Offset(buffer, buffer.cur) >= Offset(buffer, buffer.high) || (buffer.flags & 8)) {

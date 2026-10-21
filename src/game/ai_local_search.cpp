@@ -236,7 +236,7 @@ void LocalSearch::PathTo(int x, int y, PathCellList* out) {
     out->free = nullptr;
     out->tail = nullptr;
     out->head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(out->blocks));
+    mfc::PlexFreeDataChain(out->blocks);
     out->blocks = nullptr;
     int wx = x - originX;
     int wy = y - originY;

@@ -94,14 +94,10 @@ float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
 
 constexpr int kClassLever = 0x5D;
 
-// A script object as the map object it is (units, levers, ...): position at +0x1C, the
-// side-specific companion at +0x170.
-CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
-
 // The companion holding a map object's vitals. Scripts run on the server, so it is the
 // CMapObjectServer (the original reads it without checking).
 CMapObjectServer* ServerHalf(CEngineObject* object) {
-    return static_cast<CMapObjectServer*>(MapObject(object)->companion);
+    return static_cast<CMapObjectServer*>(ObjectSlots(object)->companion);
 }
 
 // 00530280: the ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,
@@ -238,7 +234,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x55:   // GetX
     case 0x56: { // GetY
         CEngineObject* o = objectArgs.data[0]->object;
-        if (o) CopyFloat(result, id == 0x55 ? &MapObject(o)->position.x : &MapObject(o)->position.y);
+        if (o) CopyFloat(result, id == 0x55 ? &ObjectSlots(o)->position.x : &ObjectSlots(o)->position.y);
         else StoreBits(result, kZero);
         return;
     }
@@ -248,7 +244,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             StoreBits(result, kZero);
             return;
         }
-        float x = MapObject(o)->position.x, y = MapObject(o)->position.y, z = MapObject(o)->position.z;
+        float x = ObjectSlots(o)->position.x, y = ObjectSlots(o)->position.y, z = ObjectSlots(o)->position.z;
         if (o->GetClassId() == kClassUnit) *result = static_cast<float>(UnitGroundHeight(o, x, y) + z);
         else *result = TheServerWorld()->GridHeight(x, y) + z;
         return;
@@ -281,7 +277,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x99: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         CEngineObject* o = objectArgs.data[0]->object;
         int inWater = 0;
-        if (o) inWater = TheServerWorld()->AIMap()->CellFlag80At(&MapObject(o)->position) ? 1 : 0;
+        if (o) inWater = TheServerWorld()->AIMap()->CellFlag80At(&ObjectSlots(o)->position) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
@@ -318,7 +314,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x63:   // IsAlive
     case 0x64: { // IsDead
         CEngineObject* o = objectArgs.data[0]->object;
-        CEngineObject* stats = o ? MapObject(o)->companion : nullptr;
+        CEngineObject* stats = o ? ObjectSlots(o)->companion : nullptr;
         StoreBits(result, kZero);
         if (!stats) return;
         int state = static_cast<CMapObjectCompanion*>(stats)->IsDead();
@@ -375,13 +371,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x53: { // DistanceUnitUnit
         CEngineObject* a = objectArgs.data[0]->object;
         CEngineObject* b = objectArgs.data[1]->object;
-        if (a && b) *result = Distance(MapObject(a)->position.x, MapObject(a)->position.y, MapObject(b)->position.x, MapObject(b)->position.y);
+        if (a && b) *result = Distance(ObjectSlots(a)->position.x, ObjectSlots(a)->position.y, ObjectSlots(b)->position.x, ObjectSlots(b)->position.y);
         else StoreBits(result, kFar);
         return;
     }
     case 0x54: { // DistanceUnitPoint
         CEngineObject* o = objectArgs.data[0]->object;
-        if (o) *result = Distance(MapObject(o)->position.x, MapObject(o)->position.y, f[0], f[1]);
+        if (o) *result = Distance(ObjectSlots(o)->position.x, ObjectSlots(o)->position.y, f[0], f[1]);
         else StoreBits(result, kFar);
         return;
     }
@@ -496,7 +492,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         CEngineObject* o = objectArgs.data[0]->object;
         StoreBits(result, kZero);
         if (!o) return;
-        float x = MapObject(o)->position.x, y = MapObject(o)->position.y;
+        float x = ObjectSlots(o)->position.x, y = ObjectSlots(o)->position.y;
         EI_NAN_AUDIT(x, y, f[0], f[1], f[2], f[3]);
         bool inside = x >= f[0] && x <= f[2] && y >= f[1] && y <= f[3];
         *result = static_cast<float>(inside ? 1 : 0);

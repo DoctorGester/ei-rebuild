@@ -107,9 +107,9 @@ int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
     if (!scene::LoadFakeUnitScene(file, regFile, this)) return 0;   // 00446C10 (ECX the unit as well, not read)
     fakeunit::FigureArray& figureRecords = fakeunit::Figures(this);
     for (int i = 0; i < figureRecords.size; ++i) {
-        CBaseManager* manager = static_cast<CWorld*>(ManagerContextOf(this))->SpecificManager();
+        CBaseManager* manager = WorldContext()->SpecificManager();
         CEngineObject* object = manager->CreateObject(0x45, -1);
-        static_cast<CFigureMesh*>(&figureRecords.data[i])->SetDrawer(static_cast<FigureMeshDrawer*>(object));
+        figureRecords.data[i].SetDrawer(static_cast<FigureMeshDrawer*>(object));
     }
     return 1;
 }

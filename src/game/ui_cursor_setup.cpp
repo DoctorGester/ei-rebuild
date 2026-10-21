@@ -35,9 +35,9 @@ void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
 // A new off-screen surface of the screen's format (004EF7B0 through its address); null when the
 // allocation fails.
 CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
-    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
+    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
     if (!memory) return nullptr;
-    return static_cast<CDXSurface*>(memory)->Construct(device, width, height);
+    return memory->Construct(device, width, height);
 }
 
 } // namespace

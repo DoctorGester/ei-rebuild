@@ -50,7 +50,6 @@ constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a se
 constexpr int kKeyRepeated = 0x4000;            // the key was already down
 constexpr int kScanCodeMask = 0x1FF;
 constexpr int kQuickSlots = 8;
-constexpr std::size_t kObjectivesSize = 0x1F0;
 // The escape menu (0x168 bytes, built inline).
 constexpr std::size_t kEscMenuSize = 0x168;
 void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
@@ -168,7 +167,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     CCamera* camera = TheCamera();
     switch (action) {
     case kActionPause: {
-        auto* clock = static_cast<CHudClock*>(clock_);
+        auto* clock = clock_;
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool paused = GameClientPaused();
         GameSendFlag10(paused ? 0 : 1);
@@ -177,7 +176,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     case kActionNormalSpeed:
     case kActionFastSpeed: {
-        auto* clock = static_cast<CHudClock*>(clock_);
+        auto* clock = clock_;
         if (GameClientPaused()) return;
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         clock->interface_->PlaySound(ClockSound(), 0);
@@ -189,17 +188,17 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     case kActionObjectives: {
         // The objectives of the zone the local player is in, without buttons or a zone list.
-        auto* clock = static_cast<CHudClock*>(clock_);
+        auto* clock = clock_;
         clock->highlight_ = false;
         clock->interface_->PlaySound(ClickSound(), 0);
-        void* memory = gamecrt::operator_new(kObjectivesSize);
-        void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(clock->interface_) : nullptr;
+        CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
+        CObjectivesWindow* window = memory ? memory->Construct(clock->interface_) : nullptr;
         {
             mfc::CString zone(mfc::CString::kUnset);
             LocalPlayerName(&zone);
-            static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
+            window->Setup(zone, nullptr, 0, 0);
         }
-        clock->interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
+        clock->interface_->PushWindow(window, 1, 1);
         inputHandled_ = true;
         return;
     }
@@ -214,7 +213,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         camera->SetTargetId(-1);
         return;
     case kActionCameraNorth: {
-        auto* map = static_cast<CHudMap*>(map_);
+        auto* map = map_;
         map->interface_->PlaySound(ClickSound(), 0);
         camera->SetHeading(0.0f);
         map->northTime_ = 0.5f;
@@ -232,7 +231,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionMoveMode + 1:
     case kActionMoveMode + 2:
     case kActionMoveMode + 3: {
-        auto* panel = static_cast<CHudMovePanel*>(movePanel_);
+        auto* panel = movePanel_;
         const int mode = action - kActionMoveMode;
         if (TheClientWorld()->LocalView()) {
             panel->interface_->PlaySound(ClickSound(), 0);
@@ -246,7 +245,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kActionMoveFlag:
-        static_cast<CHudMovePanel*>(movePanel_)->ToggleFlag();
+        movePanel_->ToggleFlag();
         inputHandled_ = true;
         return;
     case kActionFollow:
@@ -302,19 +301,19 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionBodyPart + 1:
     case kActionBodyPart + 2:
     case kActionBodyPart + 3: {
-        auto* panel = static_cast<CHudUnitPanel*>(unitPanel_);
+        auto* panel = unitPanel_;
         SlideKey(panel, panel->bodyPart_, action - kActionBodyPart,
                  [](CHudUnitPanel* shown) { shown->ShowBodyPart(); });
         return;
     }
     case kActionPage:
     case kActionPage + 1: {
-        auto* panel = static_cast<CHudTopPanel*>(topPanel_);
+        auto* panel = topPanel_;
         SlideKey(panel, panel->page_, action - kActionPage, [](CHudTopPanel* shown) { shown->ShowPage(); });
         return;
     }
     case kActionMapSlide: {
-        auto* map = static_cast<CHudMap*>(map_);
+        auto* map = map_;
         map->interface_->PlaySound(SlingSound(), 0);
         map->slideDirection_ = -map->slideDirection_;
         map->sliding_ = 1;

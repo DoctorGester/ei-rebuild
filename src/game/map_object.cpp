@@ -33,10 +33,10 @@ std::uint32_t ClampToZero(float v) {
 void StoreBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(bits)); }
 
 // The world's slot 27 (GridHeightAt): the height at (x, y), in ST0.
-double GroundHeight(void* world, float x, float y) { return static_cast<CWorld*>(world)->GridHeightAt(x, y); }
+double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }
 
 // The change stamp: the world's update count.
-int UpdateCount(void* world) { return static_cast<CWorld*>(world)->updateCount_; }
+int UpdateCount(const CWorld* world) { return world->updateCount_; }
 } // namespace
 
 CWorld* CMapObject::World() { return ObjectWorld(this); }
@@ -47,7 +47,7 @@ std::uintptr_t CMapObject::MarkChanged(int part) {
     if (part >= 0) changedParts = static_cast<std::uint16_t>(changedParts | (1u << (part & 31)));
     flags_ |= kFlagDirty;
     if (refCount_ == 0) return 0;
-    void* world = World();
+    CWorld* world = World();
     if (world) changeStamp = UpdateCount(world);
     return reinterpret_cast<std::uintptr_t>(world);
 }
@@ -115,7 +115,7 @@ std::uintptr_t CMapObject::AddEffectImpl(const MapEffect* effect) {
     changedParts = static_cast<std::uint16_t>(changedParts | 8);   // part 3
     flags_ |= kFlagDirty;
     if (refCount_ != 0) {
-        if (void* world = World()) changeStamp = UpdateCount(world);
+        if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
     // The original keeps the flag in the low byte of its argument's stack slot and passes the whole
     // dword to slot 33.
@@ -145,7 +145,7 @@ std::uintptr_t CMapObject::ClearEffects() {
     changedParts = static_cast<std::uint16_t>(changedParts | 8);   // part 3
     flags_ |= kFlagDirty;
     if (refCount_ != 0) {
-        if (void* world = World()) changeStamp = UpdateCount(world);
+        if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
     ScaleEffectChanged(1);
     SetStunned(0);
@@ -193,7 +193,7 @@ std::uintptr_t CMapObject::RecomputeScale() {
     changedParts = static_cast<std::uint16_t>(changedParts | 2);   // part 1
     flags_ |= kFlagDirty;
     if (refCount_ == 0) return 0;
-    void* world = World();
+    CWorld* world = World();
     if (world) changeStamp = UpdateCount(world);
     return reinterpret_cast<std::uintptr_t>(world);
 }

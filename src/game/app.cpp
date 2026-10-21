@@ -257,13 +257,13 @@ int __cdecl StartFirstMap() {
         MenuOpen(TheGameFlow());
         return 1;
     }
-    void* world = TheServerWorld();
+    CWorldServer* world = TheServerWorld();
     if (!WorldNewZoneOriginal(world, nullptr, map, cmdMode, (const char*)0))
         return game::FatalError("Can't load map \"%s\".\n", static_cast<const char*>(map));
-    static_cast<CWorldServer*>(world)->SetGameResult(1);
-    void* client = TheClientWorld();
-    static_cast<CWorldClient*>(client)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
-    static_cast<CWorldClient*>(client)->LocalView()->sendParty_ = 0;
+    world->SetGameResult(1);
+    CWorldClient* client = TheClientWorld();
+    client->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+    client->LocalView()->sendParty_ = 0;
     ei::GameData<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;
     void* script = TheMissionScript();

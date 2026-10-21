@@ -70,7 +70,7 @@ int CObject3D::RemovePart(CFigureMesh* part) {
         if (index < 0) return 0;
         RemoveAt(pendingParts, index);
     }
-    if (animation) static_cast<CFigureAnimationState*>(animation)->DetachMesh(part);
+    if (animation) animation->DetachMesh(part);
     part->Release();
     return 1;
 }

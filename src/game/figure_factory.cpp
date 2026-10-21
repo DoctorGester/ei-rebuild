@@ -30,7 +30,7 @@ namespace {
 template <typename T, std::size_t kGameSize>
 T* New() {
     static_assert(sizeof(T) == kGameSize);
-    void* o = gamecrt::operator_new(sizeof(T));
+    T* o = gamecrt::operator_new_as<T>();
     return o ? new (o) T() : nullptr;
 }
 

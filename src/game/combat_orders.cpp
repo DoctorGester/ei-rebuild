@@ -38,7 +38,7 @@ constexpr float kReachHeight = 1.5f;    // 0073C51C
 constexpr int kMessageOutOfReach = 0x0C;
 constexpr int kMessageCannotCast = 0x13;
 
-AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
+AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 
 // The prototype records behind a spell and a unit.
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
@@ -80,7 +80,7 @@ void TellParty(CUnit* unit, int message) {
 // 00527EB0. UnitStats: the unit's skill value for spell school `school`, in ST0 (declared double).
 
 void CUnitServer::FinishCast() {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     std::uint32_t source = action.source;
     CItem* carrier = nullptr;
     CSpell* spell;
@@ -124,7 +124,7 @@ void CUnitServer::FinishCast() {
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);
     }
-    static_cast<CWorldServer*>(world)->CastSpell(spell, unit, &unit->position, action.target, &at, 0);
+    world->CastSpell(spell, unit, &unit->position, action.target, &at, 0);
     if (SpellPrototype(spell)->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
         reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
@@ -144,7 +144,7 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
 EI_REPLACE_METHOD(0x005546B0, CUnitServer::OrderTurn);
 
 void CUnitServer::OrderMove(const float* point, int run, int walk, float range) {
-    const char* world = static_cast<const char*>(ManagerContext());
+    const CWorld* world = WorldContext();
     ResetOrder(&action2);
     action2.kind = 1;
     std::memcpy(&action2.point, point, sizeof(action2.point));
@@ -155,7 +155,7 @@ void CUnitServer::OrderMove(const float* point, int run, int walk, float range) 
     action2.param = 0;
     if (!unit->player) return;
     if (std::bit_cast<std::uint32_t>(point[2]) == kNoPointZ) return;
-    if (world[0x6C] == 0) {
+    if (world->paused_ == 0) {
         action2.param = 1;
         return;
     }
@@ -236,13 +236,13 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
         if (item && item->GetClassId() == kClassQuickItem &&
             (item->GetCategory() == kCategoryCharged || item->GetCategory() == kCategoryScroll) &&
             item->GetCategory() == kCategoryScroll) {
-            void* world = ManagerContext();
+            CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(slot);
             if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
-            static_cast<CWorldServer*>(world)->CastSpell(carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
-            static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
+            world->CastSpell(carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
+            world->UseItemUp(unit, scroll);
             return;
         }
     }
@@ -270,14 +270,14 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
     if (source & kQuickItemSource) {
         CItem* carrier = SpellCarrier(source);
         if (carrier && carrier->GetCategory() == kCategoryScroll) {
-            void* world = ManagerContext();
+            CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(source & ~kQuickItemSource);
             if (!scroll || !scroll->count_) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
-            static_cast<CWorldServer*>(world)->CastSpell(spellCarrier->spell_, unit, &unit->position, target,
+            world->CastSpell(spellCarrier->spell_, unit, &unit->position, target,
                                    &reinterpret_cast<CUnit*>(target)->position, 0);
-            static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
+            world->UseItemUp(unit, scroll);
             return;
         }
     }

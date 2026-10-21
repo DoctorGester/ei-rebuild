@@ -38,7 +38,7 @@ void RemoveAt(PartyItemArray& list, int index) {
 }
 
 // The world's spell manager (the item's manager context, slot 22).
-CSpellManager* SpellManagerOf(CItem* item) { return static_cast<CWorld*>(item->ManagerContext())->SpellManager(); }
+CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
 CItem* AddEntry(CItem**& data, CItem* item) {
     CItem* entry = item->Clone(SpellManagerOf(item));

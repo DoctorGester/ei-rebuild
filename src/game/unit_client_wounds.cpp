@@ -182,9 +182,9 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
     void* manager = TheTextureManager();
     if (!woundsTexture) {
-        AssignTexture(&woundsTexture, static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindTypedTexture(kWoundsTextureKind, name)));
+        AssignTexture(&woundsTexture, static_cast<CTextureManager*>(manager)->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
-            AssignTexture(&woundsTexture, static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindOrCreate(kWoundsTextureKind, name)));
+            AssignTexture(&woundsTexture, static_cast<CTextureManager*>(manager)->FindOrCreate(kWoundsTextureKind, name));
             if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);
         }
     }
@@ -229,7 +229,7 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     char name[0x400];
     if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, static_cast<const char*>(unit->name), prototype->skin);
     else gamecrt::sprintf(name, kFace, static_cast<const char*>(unit->name));
-    auto* texture = static_cast<CEngineObject*>(TheTextureManager()->FindOrCreate(kFaceTextureKind, name));
+    CEngineObject* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
     CEngineObject* old = faceTexture;
     faceTexture = texture;
     if (texture) ++texture->refCount_;

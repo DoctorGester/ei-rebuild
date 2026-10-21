@@ -907,7 +907,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
             // The manager context's slot 33 (CWorld::MaterialManager).
-            void* manager = static_cast<CWorld*>(ManagerContextOf(fakeUnit))->MaterialManager();
+            void* manager = fakeUnit->WorldContext()->MaterialManager();
             std::uint32_t id = s.textureLinks.Record(l).id;
             if (id != s.textureNames.Id(t)) continue;
             CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
@@ -921,7 +921,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         u->Object3D()->AddPart(static_cast<CFigureMesh*>(&figureArray.data[f]));
     }
     u->skin.BindMeshes(&u->Object3D()->parts);
-    static_cast<SceneSkin*>(&u->skin)->Rewind();
+    u->skin.Rewind();
     const std::uint32_t offset[3] = {0, 0, 0x44FA0000};   // (0, 0, 500)
     std::memcpy(&u->Object3D()->position, offset, sizeof(offset));
     return 1;

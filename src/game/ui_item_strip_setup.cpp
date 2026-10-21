@@ -24,9 +24,9 @@ constexpr int kTextureKind = 3;
 // A text surface of the layout rectangle (left, top, right, bottom), format 5 (0x38 bytes; null
 // when the allocation fails).
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     if (!memory) return nullptr;
-    return static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, 5, 1);
+    return memory->Construct(ui, left, top, right, bottom, 5, 1);
 }
 
 // Layout constants of the strips (the exe's floats at 0073B858, 0073BAB0, 0074023C, 0073B84C,

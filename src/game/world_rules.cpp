@@ -31,7 +31,6 @@ CPlayer* LocalPlayer() { return TheClientWorld()->LocalView()->player_; }
 // 00460AF0: a player's named float variable (its party's variables_).
 float Variable(CPlayer* player, const char* name) { return player->Party()->variables_.Get(name); }
 
-CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
 
 // The client's list of the server's variables: STLport list nodes holding the message.
@@ -49,8 +48,8 @@ bool DepthLess::Less(const int* a, const int* b) {
     // The plane's normal at +0x20, its offset at +0x2C.
     const Vector3& normal = *reinterpret_cast<const Vector3*>(plane + 8);
     float offset = plane[11];
-    const CMapObject* p = MapObject(first);
-    const CMapObject* q = MapObject(second);
+    const CMapObject* p = ObjectSlots(first);
+    const CMapObject* q = ObjectSlots(second);
     float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->position, normal) + offset);
     float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->position, normal) + offset);
     // Living objects come before dead ones; within each kind, by depth. The original asks each

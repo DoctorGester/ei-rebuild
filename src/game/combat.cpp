@@ -598,7 +598,7 @@ BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char called
 EI_REPLACE_METHOD(0x0054F580, CUnitServer::PrepareAttack);
 
 BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
-    void* world = ManagerContext();
+    CWorldServer* world = ServerWorld();
     int dead = IsDead(unit);
     bool hadPlayer = unit->player != nullptr;
     // |+0x20| below FLT_MAX: not resolved yet.
@@ -606,7 +606,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     EI_NAN_AUDIT(roll);
     if (roll < kHitMark) ResolveHit(hit, attacker);
     if (!dead) {
-        static_cast<CWorldServer*>(world)->AddToUpdateMap(unit);
+        world->AddToUpdateMap(unit);
         if (attacker) {
             GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was attacked by ")->Put(
                 static_cast<long>(attacker->id_));
@@ -668,11 +668,11 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {
-                        static_cast<CWorldServer*>(world)->AwardExperience(nullptr, std::bit_cast<float>(prototype->experienceValue));
+                        world->AwardExperience(nullptr, std::bit_cast<float>(prototype->experienceValue));
                         return 1;
                     }
                     CPlayer* killer = source->player;
-                    static_cast<CWorldServer*>(world)->AwardExperience(killer, std::bit_cast<float>(prototype->experienceValue));
+                    world->AwardExperience(killer, std::bit_cast<float>(prototype->experienceValue));
                 }
             }
             return 1;
@@ -680,7 +680,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     }
     // Missed (or the stats refused the hit).
     if (attacker && attacker->GetClassId() == kClassUnit) {
-        auto* diplomacy = &static_cast<CWorldServer*>(ManagerContext())->diplomacy_;
+        auto* diplomacy = &ServerWorld()->diplomacy_;
         diplomacy->OnAttack(attacker, unit, 10);
     }
     brain.SetSeen(attacker);
@@ -720,7 +720,7 @@ void CUnitServer::UpdateSizeClasses() {
 EI_REPLACE_METHOD(0x00552FB0, CUnitServer::UpdateSizeClasses);
 
 void CUnitServer::UpdateMoveFactors() {
-    const auto* world = static_cast<const CWorldServer*>(ManagerContext());
+    const CWorldServer* world = ServerWorld();
     double factor = std::bit_cast<float>(world->nightLevel_);
     double scaled = (factor * Combat().daySightPercent) * kWorldFactorScale;
     moveFactors[0] = kOne;

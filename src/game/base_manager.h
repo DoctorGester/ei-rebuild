@@ -138,6 +138,8 @@ public:
     int reservedB_;                 // +0xA4 -1 when constructed, 300 after Create; nothing reads it
     int lastId_;                    // +0xA8 id most recently registered (-1 when constructed)
     void* context_;                 // +0xAC set by Init / SetContext (the world for its managers)
+    // context_ as the world, for the world's managers (a party's item manager has the party).
+    CWorld* ContextAsWorld() const { return static_cast<CWorld*>(context_); }
 };
 static_assert(offsetof(CBaseManager, objects_) == 0x1C);
 static_assert(offsetof(CBaseManager, maxId_) == 0x30);

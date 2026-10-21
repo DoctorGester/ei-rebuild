@@ -118,7 +118,7 @@ const char* SoundFolder(int type) {
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
 void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
-    CParticleSource* ring = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource));
+    CParticleSource* ring = ParticleManagerObject()->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource);
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
@@ -296,8 +296,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case kShrink:
             break;
         default: {
-            CParticleSource* source = static_cast<CParticleSource*>(
-                ParticleManagerObject()->CreateSource(ParticleSourceType(type)));
+            CParticleSource* source = ParticleManagerObject()->CreateSource(ParticleSourceType(type));
             if (source) AddReference(source);
             added.source = source;
             source->Attach(CompanionOwner(this));

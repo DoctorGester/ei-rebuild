@@ -38,7 +38,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
         int threshold = BoxSelectThreshold();
         if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) boxSelecting_ = true;
         if (boxSelecting_) {
-            CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
+            CHudUnitPanel* panel = unitPanel_;
             if (panel->hoverUnit_) panel->hoverUnit_ = nullptr;
             selectionBox_.left = x < pressX_ ? x : pressX_;
             selectionBox_.top = y < pressY_ ? y : pressY_;

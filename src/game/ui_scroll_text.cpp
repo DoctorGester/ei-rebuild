@@ -282,8 +282,8 @@ CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT
     lines_.Construct(mfc::impl::LinePtrArrayClass::Vtable());   // CArray<UiTextLine*>
     vtable_ = ei::GamePointer<void*>(kScrollTextVtable);
     inputVtable_ = ei::GamePointer<void*>(kScrollTextInputVtable);
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
+    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(memory ? memory->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
     CUiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();
@@ -352,7 +352,7 @@ EI_REPLACE_METHOD(0x0065D0A0, CUiScrollText::SetRect);
 
 BOOL CUiScrollText::Draw(int pass) {
     int position;
-    if (TakePosition(&position)) static_cast<CUiScrollText*>(this)->DrawLines(position);
+    if (TakePosition(&position)) DrawLines(position);
     return DrawBase(pass);
 }
 EI_REPLACE_METHOD(0x0065D120, CUiScrollText::Draw);

@@ -471,7 +471,7 @@ int CPlayerServer::OnJoined() {
     if (state_ != 2) return 0;
     state_ = 1;
     CPlayer* player = Owner();
-    player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->sessionKind_;
+    player->sessionKind100_ = player->ServerWorld()->sessionKind_;
     TheServerWorld()->Redeploy(player, &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;
@@ -588,7 +588,7 @@ int CPlayerServer::OnLogin() {
         int length = 0x100;
         char format[0x100];
         char text[0x140];
-        auto* world = static_cast<CWorldServer*>(player->ManagerContext());
+        auto* world = player->ServerWorld();
         world->Messages()->GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
         gamecrt::sprintf(text, format, 1, 0);
         std::uint8_t type = kMessageError;

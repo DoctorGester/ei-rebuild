@@ -32,7 +32,7 @@ void DestroyList(PathCellList& list) {
     list.free = nullptr;
     list.tail = nullptr;
     list.head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list.blocks));
+    mfc::PlexFreeDataChain(list.blocks);
 }
 
 } // namespace
@@ -85,7 +85,7 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     path->free = nullptr;
     path->tail = nullptr;
     path->head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(path->blocks));
+    mfc::PlexFreeDataChain(path->blocks);
     path->blocks = nullptr;
     if (x < 0 || x >= width || y < 0 || y >= height) return;
     // The original gives each cell's speed word and terrain bits a stack slot it never writes (the

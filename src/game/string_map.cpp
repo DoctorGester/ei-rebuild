@@ -237,8 +237,8 @@ void CDebugPanel::Show(std::uint8_t show) {
     visible_ = show;
     if (show) {
         if (!surface_) {
-            void* memory = gamecrt::operator_new(0x38);
-            surface_ = memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(ui_, &shown_, 5) : nullptr;
+            CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
+            surface_ = memory ? memory->ConstructOnRect(ui_, &shown_, 5) : nullptr;
         }
         lastDraw_ = gameapi::timeGetTime();
         Redraw();

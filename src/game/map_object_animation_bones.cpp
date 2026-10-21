@@ -33,7 +33,7 @@ int CompareNames(const char* a, const char* b) {
 }
 
 CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {
-    return static_cast<CWorld*>(state->ManagerContext())->FigureManager();
+    return state->WorldContext()->FigureManager();
 }
 
 // A bone's mesh is a counted figure part (CFigureMesh, an engine object).
@@ -61,7 +61,7 @@ void PlaceRoot(CFigureAnimationState* state) {
     origin.z = static_cast<float>(factor * owner->defaultScale.z);
     origin.y = stored * owner->defaultScale.y;
     origin.x = stored * owner->defaultScale.x;
-    static_cast<FigureBone*>(state->root)->Place(&origin);
+    state->root->Place(&origin);
 }
 
 // 0050D950 / 0050DA10 inline DestroyTrack's reset without the bone (the key frames' array emptied
@@ -278,7 +278,7 @@ void CFigureAnimationState::UpdatePose() {
     for (auto* node = bones.head; node;) {
         FigureBone* bone = node->data;
         node = node->next;
-        static_cast<AnimationTrack*>(bone->pose)->Evaluate(time);
+        bone->pose->Evaluate(time);
     }
     PlaceIfChanged();
 }

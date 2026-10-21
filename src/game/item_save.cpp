@@ -32,7 +32,7 @@ void CItem::LoadImpl(CStream* stream) {
     stream->Read(&weight_, kDword);
     stream->Read(&price_, kDword);
     stream->Read(&value3C_, kDword);
-    CSpellManager* spells = static_cast<CWorld*>(ManagerContext())->SpellManager();
+    CSpellManager* spells = WorldContext()->SpellManager();
     std::uint32_t id = StreamSlot(stream);
     stream->Read(&id, kDword);
     CEngineObject* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObject(id);
