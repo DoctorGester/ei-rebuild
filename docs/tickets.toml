@@ -3581,7 +3581,7 @@ title = "Typing: Unicode WM_CHAR; edit field, console, chat and name entry move 
 group = "standalone"
 model = "opus"
 depends = ["U2"]
-note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup. Done 2026-10-21: with EI_UTF8 the window is Unicode (RegisterClassExA, DefWindowProcA, Get/Peek/DispatchMessageA slots routed wide; 33 routed), DispatchInput passes a code point, the edit field / console / chat line / save name edit by character (asset_text.h Typing helpers); U1's save-name convert pair gone. Checks: utf8_typing (Cyrillic + U+1F600 into the console, caret/Backspace/Delete by character) passes on verify-utf8; gallery off vs on 51/54 identical (ui_gallery_mp's 3 = UB1). Routes must be our own functions (static init)."
 
 [[ticket]]
 id = "U5"
