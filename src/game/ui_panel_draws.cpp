@@ -58,11 +58,6 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
     render::ClearDepth(z, &r, 1);
 }
 
-void FlushBatches(CInterface3D* ui) {
-    ui->renderer_->FlushBatchA();
-    ui->renderer_->FlushBatchB();
-}
-
 } // namespace
 
 // --- 00622C10: the quick strip ------------------------------------------------------------------
@@ -90,7 +85,6 @@ EI_REPLACE_METHOD(0x00622C10, CHeroQuickStrip::Draw);
 
 BOOL CRepairGrid::Draw(int pass) {
     CInterface3D* ui = interface_;
-    FlushBatches(ui);
     RECT grid{200, 100, 600, 500};
     ui->CallScaleRectToScreen(&grid);
     RECT screen{0, 0, ui->width_, ui->height_};
@@ -127,7 +121,6 @@ BOOL CRepairGrid::Draw(int pass) {
     surface->End();
     DrawBase(pass);
     ui = interface_;
-    FlushBatches(ui);
     RECT whole{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;
@@ -275,15 +268,12 @@ namespace {
 // model, then the screen to 1 again.
 void DrawInSlot(CConstructorPage* page, int pass, ItemCell* cell, RECT slot) {
     CInterface3D* ui = page->interface_;
-    FlushBatches(ui);
     ui->CallScaleRectToScreen(&slot);
     RECT inside = slot;
     ClearDepth(ui->renderer_, nullptr, 0.0f);
     ClearDepth(ui->renderer_, &inside, 1.0f);
     DrawItem(page->owner_, pass, cell);
-    FlushBatches(page->interface_);
     ClearDepth(page->interface_->renderer_, nullptr, 1.0f);
-    FlushBatches(page->interface_);
 }
 
 // A part's prototype by its record type (weapons, armour, quick items), or null.

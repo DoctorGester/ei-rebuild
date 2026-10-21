@@ -80,16 +80,12 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
 // 00627390. Returns 1.
 int CTradeGrid::DrawGrid(int pass) {
     CInterface3D* ui = interface_;
-    ui->renderer_->FlushBatchA();
-    ui->renderer_->FlushBatchB();
     RECT grid{200, 100, 600, 500};
     ui->CallScaleRectToScreen(&grid);
     RECT screen{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &screen, 0.0f);
     RECT inside = grid;
     ClearDepth(ui->renderer_, &inside, 1.0f);
-    ui->renderer_->FlushBatchA();
-    ui->renderer_->FlushBatchB();
     DrawBase(pass);
 
     mfc::CString text;
@@ -102,8 +98,6 @@ int CTradeGrid::DrawGrid(int pass) {
               sellKind_);
     surface->End();
     ui = interface_;
-    ui->renderer_->FlushBatchA();
-    ui->renderer_->FlushBatchB();
     RECT whole{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;

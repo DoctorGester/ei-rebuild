@@ -29,17 +29,12 @@ std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
     Device(w)->GetRenderState(state, &value);
     return value;
 }
-void Flush(CUiWindow* w) {
-    w->interface_->renderer_->FlushBatchA();
-    w->interface_->renderer_->FlushBatchB();
-}
 
 } // namespace
 
 // 00600F70 (a container's). The children, each drawn (slot 21) when enabled.
 void CUiContainer::DrawChildrenImpl(int pass) {
     if (!interface_->drawing_) return;
-    Flush(this);
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
     UpdateRegionTips(pass);
@@ -49,7 +44,6 @@ void CUiContainer::DrawChildrenImpl(int pass) {
         if (!child->enabled_) continue;
         child->VirtualDrawChild(pass);
     }
-    Flush(this);
     SetState(this, kAlphaRef, savedRef);
 }
 EI_REPLACE_METHOD(0x00600F70, CUiContainer::DrawChildrenImpl);
@@ -68,11 +62,9 @@ EI_REPLACE(0x0062EFC0, WindowDrawBlended);
 
 // 0065A6D0. Returns 1.
 int __fastcall WindowDrawAlphaRef(CUiWindow* self, void*, int pass) {
-    Flush(self);
     std::uint32_t savedRef = GetState(self, kAlphaRef);
     SetState(self, kAlphaRef, 1);
     static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
-    Flush(self);
     SetState(self, kAlphaRef, savedRef);
     return 1;
 }

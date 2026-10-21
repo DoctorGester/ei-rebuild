@@ -75,12 +75,6 @@ void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
     render::state::Block(handle);
 }
 
-// 004E7840 / 004E7A40: the renderer flushes its two batched vertex buffers.
-void Flush(CTextureDevice* renderer) {
-    static_cast<CTextureDevice*>(renderer)->FlushBatch();
-    static_cast<CTextureDevice*>(renderer)->FlushBatch2();
-}
-
 // The pipeline's matrix stacks: 1 and 2 pushed by 004D9B80 (PushSceneMatrixOriginal), 5 the world
 // draw's, 9 the views.
 constexpr int kStackScene1 = 1;    // +0x1C
@@ -278,7 +272,6 @@ int CWorldClient::Render() {
     CTextureDevice* renderer = TheRenderDevice();
     CTransformPipeline* device = ScenePipeline();
     UpdateLighting();
-    Flush(renderer);
     Matrix4 view;
     view::CameraViewMatrix(view.m, TheCamera());   // 004F0EF0 (thiscall on the pipeline, not read)
     PopMatrix(device->stacks_[kStackView]);
@@ -298,7 +291,6 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 29, 1);
         renderer->distanceFog_ = 0;
         static_cast<CSky*>(skyDome_)->Draw(TheSceneRenderer(), static_cast<const Vector3*>(&camera_->localPosition_));
-        Flush(renderer);
         renderer->distanceFog_ = 1;
         SetRenderState(renderer, 22, 2);
         SetRenderState(renderer, 29, 0);
@@ -312,7 +304,6 @@ int CWorldClient::Render() {
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         ApplyStateBlock(renderer, StateBlockTerrain());
         terrain_->DrawGround(TheSceneRenderer());
-        Flush(renderer);
     }
     DrawPassAt(this);
     net::Pump();
@@ -321,15 +312,12 @@ int CWorldClient::Render() {
         camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
-        Flush(renderer);
         SetRenderState(renderer, 15, 0);
         ApplyStateBlock(renderer, StateBlockScene());
         terrain_->DrawWater(TheSceneRenderer());
-        Flush(renderer);
     }
     net::Pump();
     if (flags_ & 0x400) {
-        Flush(renderer);
         ApplyStateBlock(renderer, StateBlockAlpha());
         SetRenderState(TheRenderDevice(), 27, 1);
         SetRenderState(TheRenderDevice(), 15, 0);
@@ -337,21 +325,17 @@ int CWorldClient::Render() {
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
         static_cast<ClientArrayManager*>(arrayManager_)->DrawImpl(TheSceneRenderer());
-        Flush(renderer);
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
         CParticleManager* particles = ClientParticleManager();
         static_cast<CParticleManager*>(particles)->DrawAll(TheSceneRenderer());
-        Flush(renderer);
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         LightningDraw(listManager_, nullptr, TheSceneRenderer());
-        Flush(renderer);
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         static_cast<CRainSnow*>(RainSnow())->DrawImpl(TheSceneRenderer());
-        Flush(renderer);
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, StateBlockScene());
@@ -366,7 +350,6 @@ int CWorldClient::Render() {
         renderer->distanceFog_ = 0;
         static_cast<CFlyingHitPoints*>(numbers_)->Draw(TheSceneRenderer());
         renderer->distanceFog_ = 1;
-        Flush(renderer);
         SetRenderState(renderer, 7, renderer->zEnable_);
     }
     render::EndWorld();
@@ -521,12 +504,10 @@ int CWorldClient::DrawPass() {
         }
         queued.head->next = queued.head;
         queued.head->prev = queued.head;
-        Flush(renderer);
         SetRenderState(renderer, 19, 5);
         SetRenderState(renderer, 20, 6);
         SetRenderState(renderer, 27, 1);
         SetRenderState(renderer, 15, 1);
-        Flush(renderer);
     }
     if (flags_ & 0x40) {
         SortByModel(FrameList::Visible54);
@@ -538,10 +519,8 @@ int CWorldClient::DrawPass() {
         DrawEach(FrameList::Visible5D, kDrawUnit);
         CEngineObject** end = FrameObjects(FrameList::Visible5D).end();
         for (CEngineObject** p = FrameObjects(FrameList::Visible5D).begin(); p != end; ++p) QueueScreenEntry(*p, &queued);
-        Flush(renderer);
         DrawEach(FrameList::Visible54, kDraw);
         DrawEach(FrameList::Visible52, kDraw);
-        Flush(renderer);
     }
     if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits);
@@ -550,7 +529,6 @@ int CWorldClient::DrawPass() {
         DrawEach(FrameList::VisibleUnits, kDrawUnit);
         CEngineObject** end = FrameObjects(FrameList::VisibleUnits).end();
         for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin(); p != end; ++p) QueueScreenEntry(*p, &queued);
-        Flush(renderer);
     }
 
     // Light effects (three lists of the client, each behind its setting).
@@ -594,7 +572,6 @@ int CWorldClient::DrawPass() {
         DrawEach(FrameList::Shadow54, kDrawShadow);
         DrawEach(FrameList::Shadow52, kDrawShadow);
         DrawEach(FrameList::ShadowUnits, kDrawShadow);
-        Flush(renderer);
         SetRenderState(renderer, 14, 1);
         PopMatrix(device->stacks_[kStackScene2]);
         PopMatrix(device->stacks_[kStackScene1]);

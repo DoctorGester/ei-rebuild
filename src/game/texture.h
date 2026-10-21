@@ -71,12 +71,8 @@ public:
     // 004E7DA0 (RET 8). The texture format registered under `id` (0x5650, 0x5551, 0x4444, 0x8888,
     // a DXT four-character code): 1 with `format` filled, 0 with it untouched.
     int FindFormat(int id, PixelFormat* format);
-    // device_binds.cpp. 004E7840 / 004E7A40 (plain RET): the device's two vertex-buffer batches drawn. 004E7820 never
-    // gave a batch a buffer, so these do nothing (callers: R9b4).
-    void FlushBatch();
-    void FlushBatch2();
     // 004EB300 (RET 8). `holder`'s surface (or none) on texture stage `stage`, when the stage has
-    // another holder: the batch flushed, SetTexture (the result in lastLoadResult_), the change
+    // another holder: SetTexture (the result in lastLoadResult_), the change
     // counted. Returns 1.
     int BindSurface(int stage, CDXSurface* holder);
     // 004EBAF0 (RET 8). The same for a texture's surface holder (a null texture: none).
