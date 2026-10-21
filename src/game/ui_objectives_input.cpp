@@ -40,7 +40,7 @@ constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
 // The quest database's index (007C87B4; operator[] adds an empty slot for an unknown name).
-QuestDatabase::QuestIndex& QuestIndex() { return ei::GameData<QuestDatabase::QuestIndex>(0x007C87B4); }
+QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
 
 } // namespace
 

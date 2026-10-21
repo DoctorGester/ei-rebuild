@@ -9,6 +9,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -40,9 +41,6 @@ struct LeverRecord {
 };
 static_assert(sizeof(LeverRecord) == 0x2C);
 
-// The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record (originals_units.h).
-inline void* LeverTable() { return ei::GamePointer<void>(0x0079C1A0); }
-
 // The lever table's layout: the records (an STLport vector) and their index by model name. Its
 // constructor (004632A0) is a static initialiser, its destructor 00463120 (lever_table.cpp).
 namespace app {
@@ -70,6 +68,9 @@ struct LeverRecordTable {
     NameIndex byName;               // +0x0C
 };
 static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTable) == 0x20);
+// The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record (originals_units.h).
+extern lib::StaticObject<LeverRecordTable> g_leverTable;
+inline LeverRecordTable& TheLeverTable() { return *g_leverTable; }
 
 // The lever part of a zone file's lever record (map_spec.h LeverSpec + 0x8C), what SetUp reads.
 struct LeverSetup {

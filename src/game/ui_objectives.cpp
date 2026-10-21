@@ -402,7 +402,7 @@ namespace {
 // [0065CFE0].
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
-QuestDatabase::QuestIndex& QuestIndex() { return ei::GameData<QuestDatabase::QuestIndex>(0x007C87B4); }
+QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
 
 // The quest's record (its experience and money rewards), from the quest database.
 QuestRecord* FindQuestRecord(const char* name) {

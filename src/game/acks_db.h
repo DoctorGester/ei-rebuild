@@ -11,6 +11,7 @@
 #include <cstdint>
 
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "unit_client_models.h"
 #include "game_data.h"
 
@@ -116,7 +117,11 @@ struct AckDatabase {
     AckTable<ModelAcks> models;     // +0x20
     AckTable<ExtraAcks> extras;     // +0x40
 };
-inline AckDatabase& Database() { return ei::GameData<AckDatabase>(0x007C8A60); }
+static_assert(sizeof(AckDatabase) == 0x60);
+} // namespace acks
+extern lib::StaticObject<acks::AckDatabase> g_ackDatabase;   // 007C8A60, database_globals.cpp
+namespace acks {
+inline AckDatabase& Database() { return *g_ackDatabase; }
 
 // (The archive's helpers for the records are ChunkArchive::SerializeSpeech / SerializeSpeechList /
 // SerializeEnvironmentSpeeches, acks_db.cpp.)

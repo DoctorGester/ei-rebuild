@@ -125,7 +125,7 @@ void SetRootVtable(void* object) { ei::SetVtable(object, 0x0073C368); }
 
 // The Direct3D driver list (an STLport list; 004EE4A0 fills it).
 stlp::list<DirectDrawDriver>::Node* DriverListEnd() {
-    return ei::GameData<stlp::list<DirectDrawDriver>::Node* const>(0x007AEE64);
+    return DirectDrawDrivers().head;
 }
 const char* CantFindDriverText() { return "Can't find driver by index.\n"; }
 

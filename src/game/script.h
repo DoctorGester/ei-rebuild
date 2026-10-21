@@ -1134,7 +1134,8 @@ struct QuestTable {
     Map byName;             // +0x0C
 };
 static_assert(offsetof(QuestTable, byName) == 0x0C);
-inline QuestTable* TheQuestTable() { return ei::GamePointer<QuestTable>(0x007C87A8); }
+// The quest database's quests (007C87A8; g_questDatabase, quest_records.h) as the script commands read them.
+QuestTable* TheQuestTable();   // database_globals.cpp
 
 // ---- Loader arrays (script_parse_arrays.cpp) ------------------------------------------------------
 // The arrays' Add / SetAtGrow / CopyTo are members of the structs at the top of this file.

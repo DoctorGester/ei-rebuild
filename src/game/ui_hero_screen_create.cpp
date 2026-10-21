@@ -79,7 +79,7 @@ float MenuTurn() { return GameFloat(0x007C7F14) * 1.2f /*0073CDF4*/; }
 // The saved heroes' reload (00662FB0, plain RET): Rebirth-patched, so through its address (as the
 // screen's mode, 00615D30, originals_ui.h).
 __declspec(naked) void __fastcall ReloadHeroesAt(MpHeroRoster*) EI_ORIGINAL(0x00662FB0)
-MpHeroRoster* Heroes() { return ei::GamePointer<MpHeroRoster>(0x007C82A0); }
+MpHeroRoster* Heroes() { return reinterpret_cast<MpHeroRoster*>(&TheSavedParties()); }
 
 // The screen's vectors as the library's: the figures' prototype names, and the voices.
 using NameList = stlp::vector<mfc::CString>;

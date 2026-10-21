@@ -5,6 +5,7 @@
 #include "console.h"
 #include "ei/hook.h"
 #include "item.h"
+#include "item_db.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/mfc.h"
@@ -38,8 +39,8 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
 // 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
 // The spells and modifiers by name (004ABD00 operator[], 004ACC10 find_or_insert of {name, null}).
-stlp::NameMap& SpellNameMap() { return ei::GameData<stlp::NameMap>(0x007C851C); }
-stlp::NameMap& ModifierNameMap() { return ei::GameData<stlp::NameMap>(0x007C853C); }
+stlp::NameMap& SpellNameMap() { return itemdb::NameMapOf(itemdb::TheSpellDatabase().spells); }
+stlp::NameMap& ModifierNameMap() { return itemdb::NameMapOf(itemdb::TheSpellDatabase().modifiers); }
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 

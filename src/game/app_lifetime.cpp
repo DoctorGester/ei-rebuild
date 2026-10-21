@@ -19,6 +19,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_library.h"
 #include "game_hashes.h"
 #include "game_data.h"
 
@@ -146,3 +147,20 @@ PartyManager* PartyManager::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x004A5870, PartyManager::Construct);
+
+// The manager, empty at the start: built by the static initialiser 004A56D0 in the list's order and destroyed by the exit
+// function it registers (004A56F0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// "The static initialisers' objects").
+constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
+PartyManager* ThePartyManager() { return &*g_partyManager; }
+
+namespace {
+void __cdecl ConstructPartyManager() {   // 004A56D0
+    g_partyManager->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
+}
+void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }   // 004A56F0
+} // namespace
+
+EI_REPLACE(0x004A56D0, ConstructPartyManager);
+EI_REPLACE(0x004A56F0, DestroyPartyManager);

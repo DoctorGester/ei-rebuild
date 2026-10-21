@@ -19,6 +19,7 @@
 #include "bink_video.h"
 #include "ui.h"
 #include "ui_item_info.h"
+#include "world.h"
 #include "net_classes.h"
 
 #include "lib/stlp.h"
@@ -791,7 +792,7 @@ static_assert(offsetof(CMasterRequestBox, bar_) == 0x1C0);
 static_assert(sizeof(CMasterRequestBox) == 0x1C4);
 
 // The multiplayer heroes (records of 0x74 bytes; +0x30 CString name, +0x70 CString file).
-inline const RecordTable& MpHeroes() { return ei::GameData<const RecordTable>(0x007C82A4); }
+inline const RecordTable& MpHeroes() { return reinterpret_cast<const RecordTable&>(TheSavedParties().entries_); }
 constexpr int kMpHeroSize = 0x74;
 // A multiplayer hero record: its party (CParty, 0x70 bytes) and file name.
 struct MpHeroRecord {

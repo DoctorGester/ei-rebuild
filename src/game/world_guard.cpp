@@ -23,9 +23,10 @@ CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0)
 CEngineObject* ServerPlayers() { return ei::GameData<CEngineObject*>(0x007AFF98); }
 // The party records outside a game (007C82B0, laid out like WorldPlayer + 0x70): records +0x30,
 // count +0x34, gold +0x50.
-std::uint8_t* GlobalRecords() { return ei::GameData<std::uint8_t*>(0x007C82E0); }
-int GlobalRecordCount() { return ei::GameData<int>(0x007C82E4); }
-std::uint32_t& GlobalGold() { return ei::GameData<std::uint32_t>(0x007C8300); }
+PartyRecords* GlobalParty() { return reinterpret_cast<PartyRecords*>(TheSavedParties().outsideGame_); }
+std::uint8_t* GlobalRecords() { return reinterpret_cast<std::uint8_t*>(GlobalParty()->records); }
+int GlobalRecordCount() { return GlobalParty()->count; }
+std::uint32_t& GlobalGold() { return *reinterpret_cast<std::uint32_t*>(GlobalParty()->array40 + 0x10); }
 
 constexpr int kRecordSize = 0x784;
 constexpr int kRecordGuarded = 0x20;   // the 0x704 bytes from +0x20 of a party record

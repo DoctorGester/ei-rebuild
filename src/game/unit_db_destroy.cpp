@@ -7,7 +7,9 @@
 // the record destructors also from the tables' erase / reallocation code.
 #include "unit_db.h"
 
+
 #include "ei/hook.h"
+#include "originals_library.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
@@ -308,3 +310,36 @@ EI_REPLACE(0x0053EFF0, unitdb::DestroyLevelRecord);
 EI_REPLACE_METHOD(0x00540840, UnitLevelRecord::DeleteScalar);
 EI_REPLACE_METHOD(0x005407E0, UnitPrototypeRecord::DeleteScalar);
 EI_REPLACE(0x005214B0, unitdb::DestroyStringRange);
+
+// ---- The unit and skill databases (unit_db.h, unit_db_globals.cpp) --------------------------------------------------
+
+// Built empty by the static initialisers 005399F0 and 0051FAF0 in the list's order and destroyed by the exit functions
+// those register (0053A040, 0051FB40); ported on the names and registered at their addresses (docs/notes/standalone.md,
+// "The static initialisers' objects").
+namespace unitdb {
+
+namespace {
+using AtExitFunction = void(__cdecl*)();
+
+void __cdecl ConstructUnitDatabaseGlobal() {   // 005399F0
+    ConstructUnitDatabase(reinterpret_cast<unitdb::UnitDatabase*>(&g_unitDatabase.Get()));
+    GameAtExit(ei::Code<AtExitFunction>(0x0053A040));
+}
+void __cdecl DestroyUnitDatabaseGlobal() {   // 0053A040
+    DestroyUnitDatabase(reinterpret_cast<unitdb::UnitDatabase*>(&g_unitDatabase.Get()));
+}
+void __cdecl ConstructSkillDatabaseGlobal() {   // 0051FAF0
+    g_skillDatabase->Construct();
+    GameAtExit(ei::Code<AtExitFunction>(0x0051FB40));
+}
+void __cdecl DestroySkillDatabaseGlobal() {   // 0051FB40
+    DestroySkillDatabase(reinterpret_cast<unitdb::SkillDatabase*>(&g_skillDatabase.Get()));
+}
+} // namespace
+
+} // namespace unitdb
+
+EI_REPLACE(0x005399F0, unitdb::ConstructUnitDatabaseGlobal);
+EI_REPLACE(0x0053A040, unitdb::DestroyUnitDatabaseGlobal);
+EI_REPLACE(0x0051FAF0, unitdb::ConstructSkillDatabaseGlobal);
+EI_REPLACE(0x0051FB40, unitdb::DestroySkillDatabaseGlobal);

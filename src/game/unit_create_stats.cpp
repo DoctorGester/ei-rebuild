@@ -132,7 +132,7 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
 // from its level record (007AF3B8) and no layers; the others unused.
 void SetSlots(UnitStats* stats, const Model* model) {
-    const RecordTable& levels = ei::GameData<const RecordTable>(0x007AF3B8);
+    const RecordTable& levels = unitdb::ModelLevels();
     for (int i = 0; i < 6; ++i) {
         const UnitModelSlot& entry = model->slots[i];
         UnitStatSlot& slot = stats->slots[i];

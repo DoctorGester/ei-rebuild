@@ -32,6 +32,7 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "party_manager.h"
 
 #include <cmath>
 
@@ -41,7 +42,7 @@ const char* GoodbyeTopic() { return "goodbye"; }
 const char* ConstructorTopic() { return "constr"; }
 const char* BriefingSection() { return "briefing "; }
 const char* ShowLine() { return "#show"; }
-const ClassTemplateVector* ClassTemplates() { return ei::GamePointer<const ClassTemplateVector>(0x007AA5D8); }
+const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
 const char* TopicPrefix() { return "b."; }
 
 WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)); }

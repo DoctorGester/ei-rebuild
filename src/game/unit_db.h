@@ -11,6 +11,7 @@
 #include "maths.h"
 
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "unit_create.h"   // UnitPrototypeTable, NpcPrototypeTable
 
 #include <bit>
@@ -302,9 +303,10 @@ static_assert(offsetof(UnitDatabase, models) == 0x40);
 static_assert(offsetof(UnitDatabase, levels) == 0x60);
 static_assert(sizeof(UnitDatabase) == 0x80);
 
+extern lib::StaticObject<UnitDatabase> g_unitDatabase;   // 007AF358, unit_db_destroy.cpp
 namespace unitdb {
 // The unit database (007AF358; the prototype table is its first member).
-inline UnitDatabase& Database() { return reinterpret_cast<UnitDatabase&>(PrototypeTable()); }
+inline UnitDatabase& Database() { return *g_unitDatabase; }
 // operator[] on the prototype and model name indexes (005335E0 / 0053C780; an unknown name gets a
 // null entry): the record, or null.
 inline UnitPrototypeRecord* PrototypeNamed(const stlp::string& name) {
@@ -398,5 +400,6 @@ struct SkillDatabase {
     stlp::vector<SkillLevelRecord> levels;   // +0x0C
 };
 static_assert(sizeof(stlp::vector<SkillRecord>) == 0x0C);
-// The skill database (007AF268).
-inline SkillDatabase* SkillDb() { return &ei::GameData<SkillDatabase>(0x007AF268); }
+// The skill database (007AF268; unit_db_destroy.cpp).
+extern lib::StaticObject<SkillDatabase> g_skillDatabase;
+inline SkillDatabase* SkillDb() { return &*g_skillDatabase; }

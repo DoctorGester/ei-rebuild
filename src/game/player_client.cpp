@@ -14,6 +14,7 @@
 #include "net_link.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
+#include "lib/static_object.h"
 #include "party.h"
 #include "player_messages.h"
 #include "sound.h"
@@ -842,7 +843,16 @@ constexpr int kSessionKindSingle = 1;
 // The client's party unit ids (hash_set<int>, 007C8370): insert_unique 0066B400, find 0066B490,
 // clear 0066BA70.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
-IntSet& PartyIdSet() { return ei::GameData<IntSet>(0x007C8370); }
+// The set, empty at the start: built by the static initialiser 00668B40 in the list's order and destroyed by the exit
+// function it registers (00668B60); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
+IntSet& PartyIdSet() { return *g_partyIdSet; }
+void __cdecl ConstructPartyIdSet() {   // 00668B40
+    g_partyIdSet->Construct(100, 0, 0, 0);
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
+}
+void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }   // 00668B60
 // 007AFCA4: read only here (no code writes it); slot 43 runs when it is at least 1.
 int FadeInGate() { return ei::GameData<const int>(0x007AFCA4); }
 
@@ -853,6 +863,9 @@ int ReadDword(BitStream* in) {
 }
 
 } // namespace
+
+EI_REPLACE(0x00668B40, ConstructPartyIdSet);
+EI_REPLACE(0x00668B60, DestroyPartyIdSet);
 
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();

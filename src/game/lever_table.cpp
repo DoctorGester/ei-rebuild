@@ -4,6 +4,8 @@
 // (004632A0) runs from a static initializer, before the hooks are installed; the destructor
 // (00463120, registered with atexit through the thunk 00463110) is rewritten here. The STL members
 // it inlines are library code. See docs/notes/app.md.
+#include "lever.h"
+
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -78,3 +80,21 @@ void __fastcall LeverTableDestruct(Table* self) {
 EI_REPLACE(0x00463120, LeverTableDestruct);
 
 } // namespace levertable
+
+// The table, empty at the start: built by the static initialiser 004630F0 in the list's order and destroyed by the exit
+// function it registers (00463110); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// "The static initialisers' objects").
+constinit lib::StaticObject<LeverRecordTable> g_leverTable = /*0079C1A0*/ {};
+
+namespace {
+void __cdecl ConstructLeverTable() {   // 004630F0
+    g_leverTable->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x00463110));
+}
+void __cdecl DestroyLeverTable() {   // 00463110
+    levertable::LeverTableDestruct(reinterpret_cast<levertable::Table*>(&g_leverTable.Get()));
+}
+} // namespace
+
+EI_REPLACE(0x004630F0, ConstructLeverTable);
+EI_REPLACE(0x00463110, DestroyLeverTable);

@@ -112,7 +112,7 @@ void BackToMainMenu(CInterface3D* ui) {
 
 // The heroes' map transfer (sent after a rename).
 // The multiplayer heroes' folder (007C82A0, a CString).
-const char* HeroesFolder() { return ei::GameData<const char* const>(0x007C82A0); }
+const char* HeroesFolder() { return TheSavedParties().folder_; }
 const char* RenameSeparator() { return " | "; }
 const char* RenameBar() { return "|"; }
 
@@ -479,7 +479,7 @@ EI_REPLACE(0x00619150, MpHeroPlayVoice);
 
 namespace {
 const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
-void* MpHeroesObject() { return ei::GamePointer<void>(0x007C82A0); }
+void* MpHeroesObject() { return &TheSavedParties(); }
 
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
@@ -611,9 +611,9 @@ EI_REPLACE(0x00664410, MpHeroRecord::CopyRange);
 
 namespace {
 // The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
-const mfc::CString& MpHeroesFolder() { return ei::GameData<const mfc::CString>(0x007C82A0); }
-MpHeroRecord*& MpHeroesBegin() { return ei::GameData<MpHeroRecord*>(0x007C82A4); }
-MpHeroRecord*& MpHeroesEnd() { return ei::GameData<MpHeroRecord*>(0x007C82A8); }
+const mfc::CString& MpHeroesFolder() { return TheSavedParties().folder_; }
+MpHeroRecord*& MpHeroesBegin() { return reinterpret_cast<MpHeroRecord*&>(TheSavedParties().entries_); }
+MpHeroRecord*& MpHeroesEnd() { return reinterpret_cast<MpHeroRecord*&>(TheSavedParties().finish_); }
 // The count as the original computes it: a signed division, compared unsigned.
 std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(static_cast<int>(MpHeroesEnd() - MpHeroesBegin())); }
 constexpr std::uint32_t kListRows = 10;
@@ -666,7 +666,7 @@ EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
 // --- 00617A50: the new hero added to the list ----------------------------------------------------
 
 namespace {
-MpHeroRecord*& MpHeroesCapacity() { return ei::GameData<MpHeroRecord*>(0x007C82AC); }
+MpHeroRecord*& MpHeroesCapacity() { return reinterpret_cast<MpHeroRecord*&>(TheSavedParties().eos_); }
 const char* HeroFilePattern() { return "%s*.mp"; }
 const char* HeroFileFormat() { return "%d.mp"; }
 

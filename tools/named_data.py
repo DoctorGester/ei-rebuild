@@ -113,10 +113,24 @@ def braced(text, start):
     return None
 
 
+# The size of the T of a `lib::StaticObject<T>` (zero storage; a static_assert next to the definition keeps it true).
+STATIC_OBJECT_BYTES = {
+    'stlp::list<std::uint8_t>': 4, 'stlp::list<DirectDrawDriver>': 4, 'stlp::list<CEngineObject*>': 4,
+    'itemdb::SpellDatabase': 0x64, 'itemdb::ItemDatabase': 0xC0, 'QuestDatabase': 0x40, 'PrintsDatabase': 0x60,
+    'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
+    'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,
+}
+
+
 def element_format(type_):
     """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
     pointer to another type is a pointer element ('P': `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`)."""
-    found = TYPES.get(type_, TYPES.get(re.sub(r'<.*>$', '', type_)))
+    found = TYPES.get(type_)
+    if found is None:
+        inner = re.fullmatch(r'lib::StaticObject<(.*)>', type_)
+        if inner and inner.group(1) in STATIC_OBJECT_BYTES:
+            return 'B' * STATIC_OBJECT_BYTES[inner.group(1)]
+        found = TYPES.get(re.sub(r'<.*>$', '', type_))
     if found is None and type_.endswith('*'):
         return 'P'
     return found

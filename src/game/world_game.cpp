@@ -699,7 +699,7 @@ namespace {
 // begins a redeploy of a party.
 
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
-PartyRecords* GlobalParty() { return ei::GamePointer<PartyRecords>(0x007C82B0); }
+PartyRecords* GlobalParty() { return reinterpret_cast<PartyRecords*>(TheSavedParties().outsideGame_); }
 // A CParty seen as its records (PartyRecords) or through an untyped pointer; Assign / CopyConstruct
 // (00661300 / 006613C0) read the source non-const.
 CParty* AsParty(PartyRecords* records) { return reinterpret_cast<CParty*>(records); }
@@ -754,7 +754,7 @@ void GameFlow::ReturnLocalParty() {
     AsParty(GlobalParty())->Assign(party);
     ThePartyManager()->BeginRedeploy(party);
     // 00662AC0: the global party record (007C82B0) written into the heroes' folder (007C82A0).
-    reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(ei::GameData<const char* const>(0x007C82A0));
+    reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(TheSavedParties().folder_);
     FlowUpdateFromServerOriginal(this);
 }
 
@@ -1474,9 +1474,9 @@ std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
 const char* ResourcesPath() { return ei::GameData<const char* const>(0x0079BC94); }
-UnitDatabase* UnitDatabaseObject() { return ei::GamePointer<UnitDatabase>(0x007AF358); }
-void* SpellTablesObject() { return ei::GamePointer<void>(0x007C8510); }
-void* ItemDatabaseObject() { return ei::GamePointer<void>(0x007C86D8); }
+UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
+void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
+void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
 
 } // namespace
 
