@@ -1716,9 +1716,10 @@ int CWorldClient::LoadZone(CStream* block) {
     (Session() ? Session()->LocalClient() : nullptr)->AppendReceived(static_cast<CMemoryStream*>(GameObject7C2D60()));
     ticksRun_ = 0;
     BuildUnitSkinsAt(this, nullptr, &looks.figured, &looks.dressed);
-    // The wind option that is neither 0 nor a NaN sets the waves.
+    // A wind option other than 0 sets the waves.
     const float wind = worlddata::DefaultWindForceOption();
-    if (wind < 0.0f || wind > 0.0f) camera::TheTerrain()->SetWaveStrength(wind);
+    EI_NAN_AUDIT(wind);
+    if (wind != 0.0f) camera::TheTerrain()->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
     (Session() ? Session()->LocalClient() : nullptr)->SendResume();
     CloseLoadingMovie();

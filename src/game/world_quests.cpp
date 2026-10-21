@@ -187,7 +187,8 @@ CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
 // The rewards of a briefing record for `player`.
 void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecord* record) {
     float experience = record->experience;
-    if (experience < 0.0f || experience > 0.0f) {
+    EI_NAN_AUDIT(experience);
+    if (experience != 0.0f) {
         world->AwardExperience(player, experience);
     }
     PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
@@ -399,7 +400,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     }
     float minimum;
     std::memcpy(&minimum, &kMinimumWeight, 4);
-    float divisor = !(total >= minimum) ? minimum : total;   // the original's branch-free select
+    float divisor = total >= minimum ? total : minimum;   // the original's branch-free select
 
     for (ShareNode* node = list.head; node;) {
         ShareNode* next = node->next;
@@ -464,7 +465,8 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
 } // namespace
 
 void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
-    if (!(amount < 0.0f || amount > 0.0f)) return;   // C3: zero or NaN
+    EI_NAN_AUDIT(amount);
+    if (amount == 0.0f) return;
     if (!player) ShareAmongSoloPlayers(this, amount);
     else ShareAmongHeroes(this, player, amount);
 }

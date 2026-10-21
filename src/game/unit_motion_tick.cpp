@@ -26,6 +26,7 @@
 #include "originals_units.h"
 #include "game_data.h"
 #include "lib/vecmath.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -88,19 +89,21 @@ bool FartherThan(const float* a, const float* b, const float* limit) {
     return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz) > *limit;
 }
 
-// Whether `object`'s speed (virtual slot 59, unrounded) compares below *than (or unordered).
+// Whether `object`'s speed (virtual slot 59, unrounded) compares below *than.
 bool SpeedBelow(CEngineObject* object, const float* than) {
-    return !(static_cast<CMapObject*>(object)->MoveSpeed() >= *than);
+    EI_NAN_AUDIT(static_cast<CMapObject*>(object)->MoveSpeed(), *than);
+    return static_cast<CMapObject*>(object)->MoveSpeed() < *than;
 }
 
 // The speed rounded to float.
 void SpeedOf(CEngineObject* object, float* out) { *out = static_cast<float>(static_cast<CMapObject*>(object)->MoveSpeed()); }
 
-// *value -= *rate * (double)[0073F088]; true when the unrounded result compares below 0 (or is NaN).
+// *value -= *rate * (double)[0073F088]; true when the unrounded result compares below 0.
 bool Drain(float* value, const float* rate) {
     const double drained = static_cast<double>(*value) - *rate * DrainStep();
     *value = static_cast<float>(drained);
-    return !(drained >= 0.0);
+    EI_NAN_AUDIT(drained);
+    return drained < 0.0;
 }
 
 // FILD of the world's time, FSTP to float (the time Sample is called with).
@@ -360,7 +363,8 @@ void Exhaustion(CUnitServer* c) {
         const float* rate = &vitals.maxMana;
         float value;
         std::memcpy(&value, stamina, 4);
-        if (!(value < 0.0f) && !(value > 0.0f)) {   // compares equal to 0 (NaN too)
+        EI_NAN_AUDIT(value);
+        if (value == 0.0f) {
             c->moveMode2.wasMode3 = 0;
             int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
             if (mode != unit->moveMode2) {

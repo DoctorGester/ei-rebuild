@@ -180,7 +180,7 @@ void SetupExplosion(CParticleSource* s) {
             double zUnrounded = Range(-1.0f, 1.0f) + D(EI_POINT_SEVEN);
             z = static_cast<float>(zUnrounded);
             lengthSquared = zUnrounded * D(z) + D(y) * D(y) + D(x) * D(x);
-            if (!(lengthSquared >= D(EI_ONE))) break;
+            if (lengthSquared < D(EI_ONE)) break;   // random: never NaN
             if (!(--tries > 0)) break;
         }
         float length = static_cast<float>(std::sqrt(lengthSquared));

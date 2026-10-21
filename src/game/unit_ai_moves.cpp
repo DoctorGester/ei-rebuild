@@ -95,8 +95,8 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     int count = static_cast<int>(random->Next() & 3) + 1;
     Vector3 eye = order->point;
     eye.z = static_cast<float>(AIMap()->TopHeightAt(&eye) + kEyeHeight);
-    if (!(wander >= 0.0f)) wander = kDefaultWander;
-    else wander = static_cast<float>(wander * kWanderScale);
+    if (wander >= 0.0f) wander = static_cast<float>(wander * kWanderScale);
+    else wander = kDefaultWander;   // also NaN
     if (far) {
         if (owner->Busy() || std::strncmp(owner->unit->name, kHumanPrefix, 4) == 0) {
             far = false;
@@ -146,7 +146,8 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     double dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
     float radiusSq = static_cast<float>(radius * radius);
     for (int tries = 9;;) {
-        if (!(LengthSquared2DUnrounded<double>(dy, dx) > radiusSq)) break;
+        EI_NAN_AUDIT(dy, dx, radiusSq);
+        if (LengthSquared2DUnrounded<double>(dy, dx) <= radiusSq) break;
         dx = static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low);
         dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
         if (--tries < 0) break;
@@ -180,7 +181,8 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         float range = static_cast<float>(distance * kRangePerDistance + kRangeBase);
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
-        if (!found || !(kOne / (kOne * kHalf) * distance * kDetourFactor >= static_cast<double>(local.path.smoothing))) {
+        EI_NAN_AUDIT(distance);
+        if (!found || kOne / (kOne * kHalf) * distance * kDetourFactor < static_cast<double>(local.path.smoothing)) {
             result = false;
             long cooldown = x87::RoundToInt(static_cast<float>(distance * kCooldownPerDistance));
             standCooldown = static_cast<int>(std::min<long>(cooldown, kMaxCooldown));
@@ -214,7 +216,8 @@ void AIBrain::UpdateFollow() {
 
     if (leaderController->action.kind != kOrderMove && leaderController->action2.kind != kOrderMove) {
         // The leader stands: stop near it, else walk to it when the current goal is too far off.
-        if (!(static_cast<double>(distance) * distance >= nearSq)) {
+        EI_NAN_AUDIT(distance, nearSq);
+        if (static_cast<double>(distance) * distance < nearSq) {
             owner->Idle();
             return;
         }
@@ -258,7 +261,8 @@ void AIBrain::UpdateFollow() {
         double ly = self->position.y - later.y;
         double laterSq = LengthSquared2DUnrounded(lx, ly);
         if (laterSq > best) return;
-        if (!(laterSq >= kOnTheWaySq)) break;
+        EI_NAN_AUDIT(laterSq);
+        if (laterSq < kOnTheWaySq) break;
         best = static_cast<float>(laterSq);
         if (++ahead >= kLeaderLastStep) return;
     }
@@ -269,7 +273,8 @@ void AIBrain::UpdateFollow() {
     float across = static_cast<float>(passing.x - leader->position.x);
     Vector3 side{static_cast<float>(-along), across, 0.0f};
     double lengthSq = static_cast<double>(side.y) * side.y + along * along;
-    if (!(lengthSq > 0.0)) return;
+    EI_NAN_AUDIT(lengthSq);
+    if (lengthSq <= 0.0) return;
     double scale = kSideOffset / std::sqrt(lengthSq);
     side.x = static_cast<float>(scale * -along);
     side.y = static_cast<float>(scale * side.y);
@@ -277,7 +282,8 @@ void AIBrain::UpdateFollow() {
     double ux = self->position.x - leader->position.x;
     double uy = self->position.y - leader->position.y;
     double uz = self->position.z - leader->position.z;
-    if (!(DotUnrounded<Sum3::ZYX, double>(side.x, side.y, side.z, ux, uy, uz) >= 0.0)) {
+    EI_NAN_AUDIT(side.x, side.y, side.z, ux, uy, uz);
+    if (DotUnrounded<Sum3::ZYX, double>(side.x, side.y, side.z, ux, uy, uz) < 0.0) {
         side.x = -side.x;
         side.y = -side.y;
         side.z = -side.z;
@@ -290,7 +296,8 @@ void AIBrain::UpdateFollow() {
     float targetY = static_cast<float>(half * local.path.targetY);
     float offY = static_cast<float>(aside.y - targetY);
     double offX = aside.x - half * local.path.targetX;
-    if (!(LengthSquared2DUnrounded<double>(offX, offY) >= kReachedSq)) {
+    EI_NAN_AUDIT(offX, offY);
+    if (LengthSquared2DUnrounded<double>(offX, offY) < kReachedSq) {
         owner->OrderMove(&aside.x, 0, 0, kPassRange);
         followTimer = kFollowPause;
     } else {
@@ -308,7 +315,8 @@ EI_REPLACE_METHOD(0x005D6F90, AIBrain::UpdateFollow);
 bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* to) {
     double fy = from->y - to->y;
     double fx = from->x - to->x;
-    if (!(LengthSquared2DUnrounded(fx, fy) >= kSamePointSq)) return false;
+    EI_NAN_AUDIT(fx, fy);
+    if (LengthSquared2DUnrounded(fx, fy) < kSamePointSq) return false;
     ScopedPath local;
     double dx = from->x - to->x;
     double dy = from->y - to->y;

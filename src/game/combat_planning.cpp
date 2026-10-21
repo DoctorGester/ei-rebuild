@@ -31,6 +31,7 @@
 #include "originals_units.h"
 #include "originals_gameplay.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -193,7 +194,8 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
             float limitSquared = static_cast<float>(0.2f /*0073EF28*/ * 0.2f /*0073EF28*/);   // rounded to 24 bits, as the FMUL
-            if (!(LengthSquared2DUnrounded(ex, ey) < limitSquared)) continue;
+            EI_NAN_AUDIT(ex, ey);
+            if (LengthSquared2DUnrounded(ex, ey) >= limitSquared) continue;
             if (path.Cost() >= best) continue;
             best = path.Cost();
             std::memcpy(&bestSpot, &spot, sizeof(bestSpot));
@@ -260,11 +262,13 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         }
         float sy = sight.point.y - position.y;
         float sx = sight.point.x - position.x;
-        if (!(LengthSquared2DUnrounded(sy, sx) >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
+        EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
+        if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = {position.x, position.y, position.z};
         from.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
         double visible = MapOf(ManagerContextOf(this))->LineOfSight(&from, &sight.point);
-        if (!(visible < 0.1f /*0073EEC0*/)) break;
+        EI_NAN_AUDIT(visible);
+        if (visible >= 0.1f /*0073EEC0*/) break;
         t += 5.0f;
     }
     return t;

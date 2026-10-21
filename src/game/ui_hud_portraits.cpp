@@ -22,6 +22,7 @@
 #include "originals_ui.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -176,7 +177,7 @@ void CHudPortraits::Update() {
         } else if (slot.flash_ > 0.0f) {
             slot.flash_ = static_cast<float>(D(slot.flash_) - D(dt));
         }
-        if (!(slot.flash_ >= 0.0f)) slot.flash_ = 0.0f;
+        slot.flash_ = slot.flash_ >= 0.0f ? slot.flash_ : 0.0f;
         CEngineObject* flash = object(5);
         if (slot.flash_ > 0.0f) {
             Sprite(flash)->visible_ = 1;
@@ -201,8 +202,8 @@ void CHudPortraits::Update() {
         if (state == 0) {
             std::uint16_t maximum = unit->packedVitals.maxMana;
             if (maximum == 0 ||
-                !(static_cast<double>(static_cast<int>(unit->packedVitals.mana)) / static_cast<double>(static_cast<int>(maximum)) >=
-                  kLowMana))
+                static_cast<double>(static_cast<int>(unit->packedVitals.mana)) / static_cast<double>(static_cast<int>(maximum)) <
+                    kLowMana)   // integers: never NaN
                 state = 3;
         }
         if (state != slot.faceState_) {
@@ -212,10 +213,11 @@ void CHudPortraits::Update() {
 
         // The face model follows the unit's build (its scale's y): thin, medium or fat.
         float build = unit->scale.y;
-        if (slot.build_ < build || slot.build_ > build) {
+        EI_NAN_AUDIT(slot.build_, build);
+        if (slot.build_ != build) {
             slot.build_ = build;
             mfc::CString name("me");
-            if (!(build >= kThin))
+            if (build < kThin)
                 name = "th";
             else if (build > kFat)
                 name = "fa";
@@ -282,7 +284,8 @@ void CHudPortraits::Update() {
         Quaternion rest = RestProduct(slot.restA_, slot.restB_);
         Quaternion previous = slot.current_;
         Quaternion face;
-        if (!(dt >= kHalf))
+        EI_NAN_AUDIT(dt);
+        if (dt < kHalf)
             face.Slerp(static_cast<float>(D(dt) + D(dt)), previous, rest);
         else
             face = rest;

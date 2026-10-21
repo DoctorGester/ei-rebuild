@@ -16,6 +16,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -105,7 +106,8 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         if (brain->noticedLevel >= kAlertedLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.valuesB0[3].current;
         const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->position);
-        if (!(hearing * loudness > distance)) continue;
+        EI_NAN_AUDIT(hearing, loudness, distance);
+        if (hearing * loudness <= distance) continue;
         mfc::CString text;
         if (console::FilterMask() & 1) {
             const double between = vecmath::Distance<Sum3::XYZ>(other->position, unit->position);

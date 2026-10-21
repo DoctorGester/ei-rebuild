@@ -18,6 +18,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -124,13 +125,14 @@ public:
         float mapY = MapY(worldY);
         float zoomedX = static_cast<float>(mapX * Zoom());
         float zoomedY = static_cast<float>(D(mapY) * Zoom());
-        if (!(LengthSquared2DUnrounded<double>(zoomedY, zoomedX) > kInnerRadius2)) {
+        EI_NAN_AUDIT(zoomedY, zoomedX);
+        if (LengthSquared2DUnrounded<double>(zoomedY, zoomedX) <= kInnerRadius2) {
             *x = zoomedX;
             *y = zoomedY;
             return true;
         }
         float rimX = static_cast<float>(mapX);
-        if (!(D(mapY) * D(mapY) + D(rimX) * D(rimX) >= kRimRadius2)) return false;
+        if (D(mapY) * D(mapY) + D(rimX) * D(rimX) < kRimRadius2) return false;
         if (AbsBits(rimX) > kRimExtent) return false;
         if (AbsBits(mapY) > kRimExtent) return false;
         *x = rimX;
@@ -362,9 +364,10 @@ std::uint32_t CameraTargetYBits() { return ei::GameData<const std::uint32_t>(0x0
 void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
 
 // Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two
-// points), as the original's four compares decide it (NaN counts as below the line).
+// points).
 bool Crosses(float prev, float cur, float edge) {
-    return (!(prev >= edge) && cur > edge) || (prev > edge && !(cur >= edge));
+    EI_NAN_AUDIT(prev, cur, edge);
+    return (prev < edge && cur > edge) || (prev > edge && cur < edge);
 }
 
 // One Sutherland-Hodgman step as the original does it in place: walking the polygon, the point
@@ -450,7 +453,10 @@ void CHudMap::UpdateView() {
                  out->y = static_cast<float>(D(p.y) - (D(c.y) - D(p.y)) * D(p.x) / (D(c.x) - D(p.x)));
                  return true;
              },
-             [](const UiPointF& v) { return !(v.x >= 0.0f); });
+             [](const UiPointF& v) {
+                 EI_NAN_AUDIT(v.x);
+                 return v.x < 0.0f;
+             });
     ClipPass(points,
              [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.y, c.y, 0.0f)) return false;
@@ -458,7 +464,10 @@ void CHudMap::UpdateView() {
                  out->y = 0.0f;
                  return true;
              },
-             [](const UiPointF& v) { return !(v.y >= 0.0f); });
+             [](const UiPointF& v) {
+                 EI_NAN_AUDIT(v.y);
+                 return v.y < 0.0f;
+             });
     float width = worldWidth_;
     float height = worldHeight_;
     ClipPass(points,
@@ -531,10 +540,10 @@ void CHudMap::UpdateView() {
     double rightRaw = (D(worldWidth_) - D(centreX_)) * D(scale_);
     float right = static_cast<float>(rightRaw);
     float bottom = static_cast<float>(-((D(worldHeight_) - D(centreY_)) * D(scale_)));
-    if (!(left >= -1.0f)) left = -1.0f;
+    left = left >= -1.0f ? left : -1.0f;
     if (top > 1.0f) top = 1.0f;
     if (rightRaw > 1.0f) right = 1.0f;   // the original compares the value still on the FPU stack
-    if (!(bottom >= -1.0f)) bottom = -1.0f;
+    bottom = bottom >= -1.0f ? bottom : -1.0f;
     if (left >= right || bottom >= top) {
         bounds->visible_ = 0;
         return;
@@ -582,7 +591,7 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
         double zoom = WheelZoomFactor(static_cast<short>(delta)) * D(zoom_);
         zoom_ = static_cast<float>(zoom);
         if (zoom > D(zoomMax_)) std::memcpy(&zoom_, &zoomMax_, sizeof(zoom_));
-        if (!(zoom_ >= 1.0f)) zoom_ = 1.0f;
+        zoom_ = zoom_ >= 1.0f ? zoom_ : 1.0f;
     }
     inputHandled_ = true;
     return 1;

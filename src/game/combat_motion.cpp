@@ -36,6 +36,7 @@
 #include "originals_gameplay.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -344,8 +345,9 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
         key |= kKeyMoveLoop;
         if (self->type_ == kUnitTypeHero) {
             float stamina = stats.loadFactor;   // +0x238
-            if (!(stamina > HeroWalkLimit())) key |= 0x800000;
-            else if (!(stamina > HeroRunLimit())) key |= 0x400000;
+            EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
+            if (stamina <= HeroWalkLimit()) key |= 0x800000;
+            else if (stamina <= HeroRunLimit()) key |= 0x400000;
         }
     }
     if (const auto* entry = reinterpret_cast<const FigureAnimation*>(self->FindAnimation(key, 1))) {
@@ -379,8 +381,9 @@ AnimationSteps* CUnitServer::NextAnimation() {
         key |= 0x140000;
         if (self->type_ == kUnitTypeHero) {
             float stamina = stats.loadFactor;   // +0x238
-            if (!(stamina > HeroWalkLimit())) key |= 0x800000;
-            else if (!(stamina > HeroRunLimit())) key |= 0x400000;
+            EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
+            if (stamina <= HeroWalkLimit()) key |= 0x800000;
+            else if (stamina <= HeroRunLimit()) key |= 0x400000;
         }
     }
     if (MoveKey(this) == key) return &MoveSteps(this);
@@ -493,7 +496,8 @@ void CUnitServer::UpdateSneak() {
     }
     int allowed = unit->player ? PlayerOf(unit)->godMode_ : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
-    if (allowed == 0 && !(ServerVitals(unit).mana > 0.0f)) return;   // the breath (vitals +0x14)
+    EI_NAN_AUDIT(ServerVitals(unit).mana);
+    if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath (vitals +0x14)
     if (!world->AIMap()->StandsOnCheapCell(unit)) return;
     if (running != 0) return;
     sneakWait = 0;

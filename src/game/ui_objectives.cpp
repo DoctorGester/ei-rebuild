@@ -245,7 +245,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                     anyKnown = true;
                     std::memcpy(&exit->distance_, &node->second, 4);
                     exit->flag_ = true;
-                    if (!(node->second >= nearest)) {
+                    EI_NAN_AUDIT(node->second, nearest);
+                    if (node->second < nearest) {
                         nearestExit_ = index;
                         std::memcpy(&nearest, &node->second, 4);
                     }
@@ -257,7 +258,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             mfc::CString name;
             name.Format("z.%s", source.target);
             float value = LocalPlayerVariable(name);
-            if (value < 1.0f || value > 1.0f) exit->flag_ = true;   // not equal, NaN excluded
+            EI_NAN_AUDIT(value);
+            if (value != 1.0f) exit->flag_ = true;
         }
 
         // Position on the picture (world cells are 32 units).

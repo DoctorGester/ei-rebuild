@@ -30,6 +30,7 @@
 #include "lib/mfc_slots.h"
 #include "game_slots.h"
 #include "game_lists.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -179,8 +180,8 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
                 float dx = AsMapObject(unit)->position.x - origin.x;
                 float dy = AsMapObject(unit)->position.y - origin.y;
                 float dz = AsMapObject(unit)->position.z - origin.z;
-                // FCOMP; TEST AH,1: taken when below, or NaN.
-                if (!(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) >= kFar)) closest = unit;
+                EI_NAN_AUDIT(dx, dy, dz);
+                if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
             }
             if (!closest) return;
             units->RemoveAll();

@@ -23,6 +23,7 @@
 #include "ei/x87.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -136,7 +137,8 @@ void SetSlots(UnitStats* stats, const Model* model) {
         const UnitModelSlot& entry = model->slots[i];
         UnitStatSlot& slot = stats->slots[i];
         float share = entry.share;
-        if (!(share < 0.0f || share > 0.0f)) {   // zero (or NaN)
+        EI_NAN_AUDIT(share);
+        if (share == 0.0f) {
             slot.kind = 0;
             continue;
         }
@@ -429,7 +431,8 @@ void UnitStats::ResetToBase(float newLoad) {
     double bonus = kZero;
     if (const char* record = SkillLevelRecord(kSkillBodyB0)) {
         double level = LevelOf(record);
-        if (level < kZero || level > kZero) bonus = level * valuesB0[1].current * kPercent;
+        EI_NAN_AUDIT(level);
+        if (level != kZero) bonus = level * valuesB0[1].current * kPercent;
     }
     valuesB0[1].current = static_cast<float>(bonus + valuesB0[1].current);
     stat10 = static_cast<float>(LevelOrZero(this, kSkillStat10) + stat10);
@@ -448,7 +451,7 @@ void UnitStats::ResetToBase(float newLoad) {
         float maximum = static_cast<float>(static_cast<double>(perShare) * slot.share);
         slot.maximum = maximum;
         std::uint32_t current = std::bit_cast<std::uint32_t>(slot.current);
-        std::uint32_t chosen = !(maximum >= slot.current) ? std::bit_cast<std::uint32_t>(maximum) : current;
+        std::uint32_t chosen = maximum >= slot.current ? current : std::bit_cast<std::uint32_t>(maximum);
         slot.current = std::bit_cast<float>(chosen);
     }
 
@@ -488,8 +491,9 @@ void UnitStats::LearnSkill(const void* database, const void* record) {
     if (known != 0 && level <= known - 1) return;
     known = static_cast<std::uint8_t>(level + 1);
     float newMaximum = CurveHitPoints(this);
-    if (!(oldMaximum > kOneF)) return;   // NaN returns too
-    if (!(newMaximum > kOneF)) return;
+    EI_NAN_AUDIT(oldMaximum, newMaximum);
+    if (oldMaximum <= kOneF) return;
+    if (newMaximum <= kOneF) return;
     double newHitPoints = ReduceAt(this, nullptr, newMaximum);
     float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
     HealSlots(newMaximum, heal);
@@ -564,9 +568,10 @@ const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) {
 BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
     const auto* record = reinterpret_cast<const ::SkillLevelRecord*>(recordBytes);
     if (!record->learnable) return 0;
-    if (!(stat10 >= record->RequiredStat(0))) return 0;   // NaN fails too
-    if (!(stat18 >= record->RequiredStat(1))) return 0;
-    if (!(stat20 >= record->RequiredStat(2))) return 0;
+    EI_NAN_AUDIT(stat10, stat18, stat20);
+    if (stat10 < record->RequiredStat(0)) return 0;
+    if (stat18 < record->RequiredStat(1)) return 0;
+    if (stat20 < record->RequiredStat(2)) return 0;
     if (NamesRequirement(record->requiredSkillName)) {
         int skill = record->RequiredSkill();
         if (skill == 0x7FFFFFFF) return 0;

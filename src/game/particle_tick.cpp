@@ -151,7 +151,8 @@ struct TickSteps {
         const Vector3& m = s->motion;
         double distance = LengthDouble(m);
         s->distance = static_cast<float>(distance);
-        if (!(distance > EI_STILL)) {
+        EI_NAN_AUDIT(distance);
+        if (distance <= EI_STILL) {
             std::memset(&s->side, 0, sizeof(Vector3));
             std::memset(&s->up, 0, sizeof(Vector3));
             return;

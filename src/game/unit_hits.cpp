@@ -18,6 +18,7 @@
 #include "originals_units.h"
 #include "lib/crt_iostream.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 constexpr float kZero = 0.0f;                       // 0073B858
@@ -100,7 +101,8 @@ void Remark(CUnit* unit, int code) {
 } // namespace
 
 void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
-    if (!item || !unit || !(amount > kZero)) return;
+    EI_NAN_AUDIT(amount);
+    if (!item || !unit || amount <= kZero) return;
     float before = ItemFloat(item, kItemCondition);
     float threshold = ItemFloat(item, kItemMaxCondition) * ei::GameData<const float>(0x007C549C);
     int pieces = *reinterpret_cast<int*>(reinterpret_cast<char*>(item) + kItemPieces);
@@ -116,8 +118,9 @@ void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int bro
         return;
     }
     float t = threshold;
-    if (!(before >= t)) return;          // was already below (or NaN)
-    if (!(condition >= t)) Remark(unit, wornRemark);
+    EI_NAN_AUDIT(before, t, condition);
+    if (before < t) return;          // was already below
+    if (condition < t) Remark(unit, wornRemark);
 }
 EI_REPLACE(0x005253E0, WearItem);
 
@@ -149,26 +152,30 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     if (slot.kind < 2) return 0;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = hit->typeWeights[type] * hit->amount;
-        if (!(typeDamage > kZero)) continue;
+        EI_NAN_AUDIT(typeDamage);
+        if (typeDamage <= kZero) continue;
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
             typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
             WearArmour(unit, hit->location, layer, Max0(typeDamage));
-            if (!(typeDamage > kZero)) break;
+            EI_NAN_AUDIT(typeDamage);
+            if (typeDamage <= kZero) break;
         }
         if (weapon) {
             float passed = Max0(typeDamage);
             WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, kRemarkWeaponBroken,
                      kRemarkWeaponWorn);
         }
-        if (!(typeDamage > kZero)) continue;
+        EI_NAN_AUDIT(typeDamage);
+        if (typeDamage <= kZero) continue;
         damaged = 1;
         if (hit->backstabFactor > kOne) typeDamage = typeDamage * hit->backstabFactor;
         double current = slot.current - typeDamage;   // compared unrounded below
         slot.current = static_cast<float>(current);
-        // Severed by a full hit on a vital damage type, or below -5 times its maximum (or NaN).
+        // Severed by a full hit on a vital damage type, or below -5 times its maximum.
+        EI_NAN_AUDIT(current, slot.maximum);
         bool severed = (typeDamage >= slot.maximum && (slot.vitalMask & (1u << type)) != 0) ||
-                       !(current >= slot.maximum * kOverkill);
+                       current < slot.maximum * kOverkill;
         if (severed) {
             if (slot.kind > 1) {
                 int remark = slot.type == 2 ? kRemarkArmLost : slot.type == 3 ? kRemarkLegLost : 0;
@@ -176,7 +183,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
             }
             slot.kind = 1;
             slot.current = slot.maximum * kOverkill;
-        } else if (!(current > kZero)) {
+        } else if (current <= kZero) {
             slot.kind = 2;
         }
         HitLog()->Put(kTypeNames[type]);
@@ -199,9 +206,10 @@ EI_REPLACE_METHOD(0x00525070, UnitStats::DamageSlot);
 int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon) {
     if (hit->location >= kLocations) return 0;
     if (hit->location == 0) flags |= 2;
-    if (hit->typeWeights[5] < kZero || hit->typeWeights[5] > kZero) flags |= 4;
+    EI_NAN_AUDIT(hit->typeWeights[5], hit->amount);
+    if (hit->typeWeights[5] != kZero) flags |= 4;
     DamageInfo copy = *hit;
-    if (!(copy.amount < kZero || copy.amount > kZero)) return 0;
+    if (copy.amount == kZero) return 0;
     float difficulty = unit->player ? kOne
                                     : ei::GamePointer<const float>(0x007C54A0)[ei::GameData<const int>(0x0079BEC0)];
     float total = kZero;
@@ -216,7 +224,8 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
                      kRemarkWeaponWorn);
         }
     }
-    if (!(total > kZero)) return 0;
+    EI_NAN_AUDIT(total);
+    if (total <= kZero) return 0;
     if (copy.location != kAllLocations) {
         int result = DamageSlot(unit, vitals, &copy, weapon);
         unit->DropBrokenEquipment();
@@ -249,7 +258,7 @@ BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     float floor = maxHitPoints * kOverkill;
     float f = floor;
     float hp = hitPoints;
-    hitPoints = !(f >= hp) ? hp : f;
+    hitPoints = f >= hp ? f : hp;
     return 1;
 }
 EI_REPLACE_METHOD(0x00524FE0, UnitVitals::TakeHit);
@@ -292,6 +301,7 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     double z = a * b + c * d;
     z = z + z;
     double facing = DotUnrounded<Sum3::ZYX, double>(x, y, z, dx, dy, dz);
-    return !(facing >= kHalfBack) ? 1 : 0;
+    EI_NAN_AUDIT(facing);
+    return facing < kHalfBack ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x00530A60, CUnit::IsBehind);

@@ -84,10 +84,12 @@ std::uint32_t* InsertCell(CVisibilityFog::CellMap* map, const std::uint32_t* pai
 // Fades the density (and the rain loop's volume) along half a cosine from fadeStart over
 // fadeDuration, towards targetMode; when done, switches mode and stops the sound if it is off.
 void CRainSnow::UpdateFade(float now) {
-    if (!(fadeDuration < kZero) && !(fadeDuration > kZero)) {   // 0 or NaN: no fade running
+    // A NaN duration takes the last branch, which does the same as the first.
+    EI_NAN_AUDIT(now, fadeStart);
+    if (fadeDuration == kZero) {   // no fade running
         mode = targetMode;
         if (targetMode == 1 && sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, 100, 0);
-    } else if (!((now - fadeStart) / fadeDuration > kOne)) {
+    } else if ((now - fadeStart) / fadeDuration <= kOne) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
         float level = static_cast<float>((targetMode == 0 ? c + kOne : kOne - c) * kHalf);
         if (sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);

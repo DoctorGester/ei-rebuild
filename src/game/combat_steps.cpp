@@ -399,15 +399,18 @@ namespace {
 std::uint32_t BandAt(double h, float base, float size, float top) {
     if (h >= base) {
         double low = static_cast<double>(size) * kLowerPart + base;
-        if (!(h > low)) return kKeyLow;
+        EI_NAN_AUDIT(low);
+        if (h <= low) return kKeyLow;
     }
     double low = static_cast<double>(size) * kLowerPart + base;
     if (h >= low) {
         double middle = static_cast<double>(size) * kUpperPart + base;
-        if (!(h > middle)) return kKeyMiddle;
+        EI_NAN_AUDIT(middle);
+        if (h <= middle) return kKeyMiddle;
     }
     double middle = static_cast<double>(size) * kUpperPart + base;
-    if (h >= middle && !(h > top)) return kKeyHigh;
+    EI_NAN_AUDIT(top);
+    if (h >= middle && h <= top) return kKeyHigh;
     return kKeyMiddle;
 }
 

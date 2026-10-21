@@ -337,7 +337,8 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
             int high = (word >> 12) & 0x3FF, low = static_cast<int>(word >> 22);
             if (high < cz || low > cz) continue;
             visibility *= Transparency()[(word >> 5) & 3];
-            if (!(visibility >= kMinVisibility)) return kMinVisibility;
+            EI_NAN_AUDIT(visibility);
+            if (visibility < kMinVisibility) return kMinVisibility;
             continue;
         }
         // Several occluders: a chain in the sector's record list.
@@ -346,7 +347,8 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
             const SectorOccluder& o = records[index];
             if (o.top < cz || o.bottom > cz) continue;
             visibility *= Transparency()[o.transparency];
-            if (!(visibility >= kMinVisibility)) return kMinVisibility;
+            EI_NAN_AUDIT(visibility);
+            if (visibility < kMinVisibility) return kMinVisibility;
         }
     }
     return visibility;

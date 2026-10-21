@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <richedit.h>
 
@@ -137,7 +138,8 @@ void CUiScrollingSurface::RenderText() {
 EI_REPLACE_METHOD(0x0065F020, CUiScrollingSurface::RenderText);
 
 void CUiScrollingSurface::Draw() {
-    if (speed_ < 0.0f || speed_ > 0.0f) {
+    EI_NAN_AUDIT(speed_);
+    if (speed_ != 0.0f) {
         const float now = GameTime();
         offset_ = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - startTime_) * speed_ + offset_));
         startTime_ = now;

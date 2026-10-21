@@ -98,7 +98,8 @@ CUnit* AIBrain::NearestEnemy(CUnit* self) {
         double dy = static_cast<double>(self->position.y) - other->position.y;
         double dz = static_cast<double>(self->position.z) - other->position.z;
         double d2 = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
-        if (!(d2 >= best)) {
+        EI_NAN_AUDIT(d2, best);
+        if (d2 < best) {
             best = static_cast<float>(d2);
             nearest = other;
         }
@@ -161,11 +162,11 @@ float Exposure(float distance, double range) {
     EI_NAN_AUDIT(range);
     if (range == 0.0) return kMaxExposure;
     float ratio = static_cast<float>(distance / range);
-    return !(ratio >= kMaxExposure) ? ratio : kMaxExposure;
+    return ratio >= kMaxExposure ? kMaxExposure : ratio;
 }
 
 // The smaller of the two; NaN `value` wins.
-void KeepLower(float& slot, float value) { slot = !(value >= slot) ? value : slot; }
+void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; }
 } // namespace
 
 void AIBrain::MeasureExposure(CUnitServer* self, float* out) {
@@ -183,7 +184,8 @@ void AIBrain::MeasureExposure(CUnitServer* self, float* out) {
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
         float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
                                    theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);
-        if (!(distance >= sight)) {
+        EI_NAN_AUDIT(distance, sight);
+        if (distance < sight) {
             Vector3 theirEye;
             Vector3 to = *static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
             double range = WorldServer()->AIMap()->LineOfSight(&eye, &to) * sight;

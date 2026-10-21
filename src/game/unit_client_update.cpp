@@ -18,6 +18,7 @@
 #include "originals_world.h"
 #include "lib/stlp_list.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 
@@ -84,12 +85,13 @@ int CUnitClientSpecific::UpdateClient() {
     if (drawn) unit->flags_ &= ~kFlagNotDrawn;
     else unit->flags_ |= kFlagNotDrawn;
 
-    if (!(fadeIn >= 1.0f)) {   // below 1, or NaN
+    EI_NAN_AUDIT(fadeIn);
+    if (fadeIn < 1.0f) {
         auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
         for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
         float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
-        fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
+        fadeIn = next >= 1.0f ? 1.0f : next;   // the original's select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
         static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->SetLit(0);

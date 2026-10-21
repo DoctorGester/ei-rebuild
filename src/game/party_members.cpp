@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "originals_gameplay.h"
+#include "lib/nan_audit.h"
 
 #include <cstddef>
 #include <cstring>
@@ -242,7 +243,8 @@ void CParty::OpenEdgeExits() {
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable.Format(ZoneVariableFormat(), target->name);
         float value = variables.Get(variable);
-        if (!(value < 0.0f) && !(value > 0.0f)) variables.Set(variable, kOpened);   // FCOMP; TEST AH,40h
+        EI_NAN_AUDIT(value);
+        if (value == 0.0f) variables.Set(variable, kOpened);
     }
 }
 EI_REPLACE_METHOD(0x006629D0, CParty::OpenEdgeExits);

@@ -23,6 +23,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 #include <new>
@@ -55,11 +56,12 @@ std::uint8_t PartLevel(const UnitBodyPart& part) {
     if (part.state == 0 || part.maxDurability == 0) return 0;
     float maximum = static_cast<float>(part.maxDurability);
     float ratio = static_cast<float>(part.durability) / maximum;
-    if (!(ratio < kFull || ratio > kFull)) return 0;   // equal (or NaN): unhurt
+    EI_NAN_AUDIT(ratio, maximum);
+    if (ratio == kFull) return 0;   // unhurt
     float stored = static_cast<float>(ratio);
-    if (!(stored > kFull / maximum)) return 3;
-    if (!(stored > kMedium)) return 2;
-    if (!(stored < kLight)) return 0;
+    if (stored <= kFull / maximum) return 3;
+    if (stored <= kMedium) return 2;
+    if (stored >= kLight) return 0;
     return 1;
 }
 

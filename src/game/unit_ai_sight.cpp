@@ -95,7 +95,7 @@ void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
     CUnitServer* control = ControllerOf(self);
     float hearing = control->stats.valuesB0[2].current;
     float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
-    float reach = !(sight >= hearing) ? hearing : sight;
+    float reach = sight >= hearing ? sight : hearing;
     int count = 0;
     const std::int16_t* offsets =
         brain->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
@@ -150,7 +150,8 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         bool seen = false;
         if (sightRaw >= distance) {
             double along = DotZYX(d, facing);
-            if (!(static_cast<double>(coneLimit) * distance > along)) {
+            EI_NAN_AUDIT(coneLimit, distance, along);
+            if (static_cast<double>(coneLimit) * distance <= along) {
                 Vector3 to = eye + d;
                 seen = map->LineOfSight(&eye, &to) * sight > distance;
             }
@@ -163,7 +164,8 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
                 seen = true;
             } else {
                 if (dead) continue;
-                if (!(static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current > distance)) continue;
+                EI_NAN_AUDIT(theirs->stats.valuesE0[2].current, ours->stats.valuesB0[2].current, distance);
+                if (static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current <= distance) continue;
                 *AiLog() << "using sense life ";
                 alive = true;
             }

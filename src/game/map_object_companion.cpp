@@ -16,6 +16,7 @@
 #include "originals_effects.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -146,7 +147,8 @@ int CMapObjectClientSpecific::Update() {
         double dy = static_cast<double>(lightPosition.y) - followed->position.y;
         double dz = static_cast<double>(lightZ) - followed->position.z;
         double distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
-        if (distance2 < 0.0 || distance2 > 0.0) {   // FCOMP 0: C3 (equal or unordered) skips
+        EI_NAN_AUDIT(distance2);
+        if (distance2 != 0.0) {
             Vector3 direction;
             direction.x = followed->position.x - lightPosition.x;
             direction.y = followed->position.y - lightPosition.y;

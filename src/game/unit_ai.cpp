@@ -23,6 +23,7 @@
 #include "lib/crt_iostream.h"
 #include "lib/mfc_array.h"
 #include "game_arrays.h"
+#include "lib/nan_audit.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -348,27 +349,26 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
         // Kept on the FPU stack in the original (double holds the 24-bit results exactly).
         double dx = position.x - point->x;
         double dy = position.y - point->y;
-        // FCOMP; TEST AH,1: "less or unordered".
-        if (!(LengthSquared2DUnrounded(dy, dx) >= radiusSq)) return true;
+        EI_NAN_AUDIT(dy, dx, radiusSq);
+        if (LengthSquared2DUnrounded(dy, dx) < radiusSq) return true;
     }
-    // TEST AH,0x40 twice: the unit has not moved (equal or unordered) -> not near.
-    if (!(position.x < previousPosition.x) && !(position.x > previousPosition.x) && !(position.y < previousPosition.y) &&
-        !(position.y > previousPosition.y))
-        return false;
+    // The unit has not moved -> not near.
+    EI_NAN_AUDIT(position.x, previousPosition.x, position.y, previousPosition.y);
+    if (position.x == previousPosition.x && position.y == previousPosition.y) return false;
     float pointX = point->x;
     float pointY = point->y;
     float segX = previousPosition.x - position.x;     // FSTP float [EBP+0xC]
     float segY = previousPosition.y - position.y;     // FSTP float [EBP+8]
     float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
                                           LengthSquared2DUnrounded<double>(segY, segX));
-    // Clamp to [0, 1] with the original's FCOMP/mask selects (C0: "less or unordered"): t is kept
-    // when 0 < t or unordered, else 0; then 1 is taken when 1 < t or unordered.
-    float clamped = !(0.0f >= t) ? static_cast<float>(t) : 0.0f;
+    // Clamp to [0, 1] with the original's selects: a NaN t gives 1.
+    float clamped = 0.0f >= t ? 0.0f : static_cast<float>(t);
     float clampedStored = clamped;                     // FLD/FSTP through memory
-    float u = !(1.0f >= clampedStored) ? 1.0f : static_cast<float>(clampedStored);
+    float u = 1.0f >= clampedStored ? static_cast<float>(clampedStored) : 1.0f;
     double ex = position.x - (pointX - u * segX);
     double ey = position.y - (pointY - u * segY);
-    return !(LengthSquared2DUnrounded(ey, ex) >= radiusSq);
+    EI_NAN_AUDIT(ey, ex);
+    return LengthSquared2DUnrounded(ey, ex) < radiusSq;
 }
 EI_REPLACE_METHOD(0x005D50E0, AIBrain::IsNearPath);
 

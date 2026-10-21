@@ -67,7 +67,7 @@ void CPlayerServer::SetVariableMax(const char* name, float value) {
     std::memcpy(&currentBits, &current, 4);
     std::memcpy(&valueBits, &value, 4);
     // The larger value; the current one when the new one is not above it (or either is NaN).
-    std::uint32_t resultBits = !(value >= current) ? currentBits : valueBits;
+    std::uint32_t resultBits = value >= current ? valueBits : currentBits;
     float result;
     std::memcpy(&result, &resultBits, 4);
     // Nothing to do when it compares equal.

@@ -55,7 +55,7 @@ void RandomInBall(float& x, float& y, float& z) {
         double zu = Range(-1.0f, 1.0f);
         z = static_cast<float>(zu);
         double lengthSquared = zu * D(z) + D(x) * D(x) + D(y) * D(y);
-        if (!(lengthSquared >= D(EI_P_ONE))) return;
+        if (lengthSquared < D(EI_P_ONE)) return;   // random: never NaN
         if (!(--tries > 0)) return;
     }
 }
@@ -141,7 +141,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
         double sum = zu * D(z) + D(y) * D(y) + D(x) * D(x);
         lengthSquared = static_cast<float>(sum);
         if (sum > D(EI_P_ONE)) continue;
-        if (!(D(lengthSquared) > D(EI_P_ZERO))) continue;
+        if (D(lengthSquared) <= D(EI_P_ZERO)) continue;   // random: never NaN
         break;
     }
     std::uint32_t span = static_cast<std::uint32_t>(frameDelay * lifetime + 1);
@@ -278,7 +278,7 @@ void RandomInBallZYX(float& x, float& y, float& z) {
         double zu = Range(-1.0f, 1.0f);
         z = static_cast<float>(zu);
         double lengthSquared = zu * D(z) + D(y) * D(y) + D(x) * D(x);
-        if (!(lengthSquared >= D(EI_P_ONE))) return;
+        if (lengthSquared < D(EI_P_ONE)) return;   // random: never NaN
         if (!(--tries > 0)) return;
     }
 }
@@ -324,7 +324,8 @@ bool FollowCarrier(CParticleSource* s) {
     const Vector3& m = s->elements[1].pos;
     float* speed = ElementFloat(s->elements, 0x20);
     *speed = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(m)));
-    if (!(D(*ElementFloat(s->elements, 0x20)) >= EI_STILL_SPEED)) SetBits(ElementFloat(s->elements, 0x20), 0);
+    EI_NAN_AUDIT(*speed);
+    if (D(*ElementFloat(s->elements, 0x20)) < EI_STILL_SPEED) SetBits(ElementFloat(s->elements, 0x20), 0);
     return true;
 }
 
@@ -369,7 +370,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
         const Vector3& m = elements[1].pos;
         float t = static_cast<float>(-(DotUnrounded<Sum3::ZYX, double>(m, p->velocity) / speed));
         if (t >= 1.0f) t = 1.0f;
-        if (!(t >= 0.0f)) t = 0.0f;
+        t = t >= 0.0f ? t : 0.0f;
         Vector3 along;
         SubtractVectors(&offset, p->velocity, *ScaleVector(&along, m, t));
     } else {
@@ -944,7 +945,8 @@ void SetUpLink(CParticleSource* s) {
     double zero = EI_P_ZERO;
     side.Construct(static_cast<float>(D(x.y) - zero), static_cast<float>(zero - D(x.x)), 0.0f);
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(side));
-    if (!(length >= EI_LINK_DEGENERATE)) {
+    EI_NAN_AUDIT(length);
+    if (length < EI_LINK_DEGENERATE) {
         float ex = x.x;
         Vector3 other;
         other.Construct(static_cast<float>(D(x.y) - D(x.z)), static_cast<float>(-D(ex)), ex);
@@ -997,7 +999,8 @@ int CParticleSource::EmitLink(Particle* p, int) {
                     static_cast<float>(D(origin.z) + D(p->velocity.z)));
     reinterpret_cast<Vector4*>(p)->FromPoint(start);
     double factor;
-    if ((Next() & 3) == 0 && !(D(reachRounded) >= D(EI_LINK_HALF))) {
+    EI_NAN_AUDIT(reachRounded);
+    if ((Next() & 3) == 0 && D(reachRounded) < D(EI_LINK_HALF)) {
         *ParticleFloat(p, 0x3C) = static_cast<float>(Range(F(0x3DCCCCCD), F(0x3DF5C28F)));     // 0.1 .. 0.12
         factor = Range(F(0x3E051EB8), F(0x3E23D70A));                           // 0.13 .. 0.16
     } else {
@@ -1168,7 +1171,8 @@ int CParticleSource::EmitBlast(Particle* p, int) {
         p->velocity.z = static_cast<float>(D(v.z) * spreadRate);
         int age = *ElementInt(fragments, 0x30);
         float threshold = static_cast<float>(static_cast<double>(age / 7) + D(EI_BLAST_POINT_TWO));
-        if (!(outside >= D(threshold))) {
+        EI_NAN_AUDIT(outside);
+        if (outside < D(threshold)) {
             p->frame = 8;
             BlastFlameTiming(this, p);
             *ParticleFloat(p, 0x34) = static_cast<float>(Unsigned(Next()) * EI_BLAST_RISE_SCALE + D(EI_BLAST_RISE));
@@ -1520,7 +1524,7 @@ void ChooseShowerRays(CParticleSource* s) {
             double zu = Range(-1.0f, 1.0f);
             z = static_cast<float>(zu);
             lengthSquared = zu * D(z) + D(y) * D(y) + D(x) * D(x);
-            if (!(lengthSquared >= D(EI_P_ONE))) break;
+            if (lengthSquared < D(EI_P_ONE)) break;   // random: never NaN
             if (!(--tries > 0)) break;
         }
         float length = static_cast<float>(std::sqrt(lengthSquared));
@@ -1760,7 +1764,7 @@ void CParticleSource::TickBag(ParticleElement* e) {
             y = static_cast<float>(Range(-1.0f, 1.0f));
             z = static_cast<float>(Range(-1.0f, 1.0f));
             double lengthSquared = LengthSquaredUnrounded<Sum3::XYZ, double>(x, y, z);   // (y + x) + z
-            if (!(lengthSquared >= D(EI_P_ONE))) break;
+            if (lengthSquared < D(EI_P_ONE)) break;   // random: never NaN
             if (!(--tries > 0)) break;
         }
         Vector3 v;
@@ -2224,7 +2228,7 @@ int CParticleSource::UpdateTornado(Particle* p) {
     p->pos.z = static_cast<float>(base);
     p->pos.z = static_cast<float>(D(*ElementFloat(elements, 0x24)) * D(p->aux0) + base);
     if (p->life > 8) p->aux1 = PickIfLess(static_cast<float>(D(p->aux1) + D(EI_FUNNEL_FADE)), 1.0f);
-    else p->aux1 = !(0.1f >= p->aux1) ? p->aux1 : 0.1f;
+    else p->aux1 = 0.1f >= p->aux1 ? 0.1f : p->aux1;
     int a = x87::fistp(static_cast<float>(std::sqrt(D(EI_P_ONE) - D(p->aux0)) * D(p->aux1) * EI_FUNNEL_ALPHA));
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);
     if (p->state != 0) {
@@ -2591,7 +2595,8 @@ int CParticleSource::EmitFireBall(Particle* p, int index) {
         p->state = 0;
         t = Unsigned(r) * EI_P_SCALE_1 - D(EI_P_ONE);
     }
-    if (!(distance > EI_TRAIL_MOVING)) {
+    EI_NAN_AUDIT(distance);
+    if (distance <= EI_TRAIL_MOVING) {
         std::memset(&p->velocity, 0, sizeof(Vector3));
         return 1;
     }
@@ -2666,7 +2671,8 @@ int CParticleSource::EmitArrowSmoke(Particle* p, int index) {
         if (Next() % 100 > 70) p->state = 1;
         p->frame = static_cast<int>(Next() & 1) + 2;
     }
-    if (!(distance > EI_TRAIL_MOVING)) {
+    EI_NAN_AUDIT(distance);
+    if (distance <= EI_TRAIL_MOVING) {
         std::memset(&p->velocity, 0, sizeof(Vector3));
         return 1;
     }
@@ -2776,10 +2782,10 @@ int CParticleSource::EmitBanshee(Particle* p, int) {
     double innerUnrounded = (D(ringRadius) - D(height) * D(EI_BANSHEE_REACH)) * D(EI_BANSHEE_EASE) + D(ringRadius);
     float inner = static_cast<float>(innerUnrounded);
     float reach;
-    if (!(innerUnrounded + D(EI_BANSHEE_THIN) >= D(ringRadius)))
-        reach = static_cast<float>(Unsigned(Next()) * (D(ringRadius) - D(inner)) * EI_P_SCALE_1 + D(inner));
-    else
+    if (innerUnrounded + D(EI_BANSHEE_THIN) >= D(ringRadius))
         reach = inner;
+    else
+        reach = static_cast<float>(Unsigned(Next()) * (D(ringRadius) - D(inner)) * EI_P_SCALE_1 + D(inner));   // also NaN
     p->pos.x = static_cast<float>(x87::fsin(D(angle)) * D(reach) + D(origin.x));
     p->pos.y = static_cast<float>(x87::fcos(D(angle)) * D(reach) + D(origin.y));
     p->pos.z = static_cast<float>(D(origin.z) + D(elements[0].pos.z));
@@ -2996,7 +3002,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
         double zu = Range(-1.0f, 1.0f);
         z = static_cast<float>(zu);
         lengthSquared = zu * D(z) + D(y) * D(y) + D(x) * D(x);
-        if (!(lengthSquared >= D(EI_P_ONE))) break;
+        if (lengthSquared < D(EI_P_ONE)) break;   // random: never NaN
         if (!(--tries > 0)) break;
     }
     float length = static_cast<float>(std::sqrt(lengthSquared));
@@ -3138,7 +3144,7 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
     float a = static_cast<float>(s * D(direction[0]));
     float b = static_cast<float>(s * D(direction[1]));
     double c = s * D(direction[2]);
-    double k = !(size >= 0.0f) ? D(ClayReach()[t]) : D(ClayReachBackwards(t));
+    double k = size >= 0.0f ? D(ClayReachBackwards(t)) : D(ClayReach()[t]);
     float ka = static_cast<float>(D(a) * k);
     float kb = static_cast<float>(D(b) * k);
     double kc = c * k;
@@ -3355,7 +3361,8 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
         double shrunk = D(size) * D(0.75f /*0073C524*/);          // 0.75
         size = static_cast<float>(shrunk);
-        if (!(shrunk >= D(0.02f /*0073CCD8*/))) {                    // 0.02
+        EI_NAN_AUDIT(shrunk);
+        if (shrunk < D(0.02f /*0073CCD8*/)) {                    // 0.02
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3471,7 +3478,8 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
     if ((flags_ & 1) && attachedTo) return 1;
     p->size = static_cast<float>(eased * D(0.95f /*0073CD50*/));
     SetBits(&size, 0);
-    if (!(p->size >= 0.03f /*0073CD74*/)) {
+    EI_NAN_AUDIT(p->size);
+    if (p->size < 0.03f /*0073CD74*/) {
         SetBits(&p->size, 0);
         p->color = 0xFFFFFF;
         return 0;
@@ -3669,7 +3677,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
         y = static_cast<float>(Range(-1.0f, 1.0f));
         double zu = Range(-1.0f, 1.0f);
         z = static_cast<float>(zu);
-        if (!(zu * D(z) + D(y) * D(y) + D(x) * D(x) >= D(EI_P_ONE))) break;
+        if (zu * D(z) + D(y) * D(y) + D(x) * D(x) < D(EI_P_ONE)) break;   // random: never NaN
         if (!(--tries > 0)) break;
     }
     Vector3 v;
@@ -3704,7 +3712,8 @@ EI_REPLACE_METHOD(0x00495320, CParticleSource::EmitSilence);
 int CParticleSource::UpdateSilence(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
         if (p->state) size = static_cast<float>(D(size) * D(0.85f /*0073CEB8*/));    // 0.85
-        if (!(size >= 0.02f /*0073CCD8*/)) {                                 // 0.02
+        EI_NAN_AUDIT(size);
+        if (size < 0.02f /*0073CCD8*/) {                                 // 0.02
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3999,7 +4008,7 @@ void RandomInBall(float& x, float& y, float& z, double& lengthSquared) {
         y = SignedUnit();
         z = static_cast<float>(Range(-1.0f, 1.0f));
         lengthSquared = LengthSquaredUnrounded<Sum3::ZYX, double>(x, y, z);   // (y + z) + x
-        if (!(lengthSquared >= D(EI_P_ONE))) break;
+        if (lengthSquared < D(EI_P_ONE)) break;   // random: never NaN
         if (!(--tries > 0)) break;
     }
 }
@@ -4364,7 +4373,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
         y = SignedUnit();
         double zu = Range(-1.0f, 1.0f);
         z = static_cast<float>(zu);
-        if (!(zu * D(z) + D(y) * D(y) + D(x) * D(x) >= D(EI_P_ONE))) break;
+        if (zu * D(z) + D(y) * D(y) + D(x) * D(x) < D(EI_P_ONE)) break;   // random: never NaN
         if (!(--tries > 0)) break;
     }
     Vector3 v;

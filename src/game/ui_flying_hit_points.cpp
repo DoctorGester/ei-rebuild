@@ -163,7 +163,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         const FlyingHitPoint& point = node->data;
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
-        if (age > 1.0f || !(age >= 0.0f)) continue;
+        if (age > 1.0f || age < 0.0f) continue;   // integer-sourced: never NaN
         auto* unit = static_cast<CUnit*>(GameFindClientUnit(point.target));
         if (!unit) continue;
         if (!(unit->flags_ & kUnitDrawn) || (unit->flags_ & kUnitHidden) || !(unit->flags_ & kUnitPickable)) continue;
@@ -176,10 +176,10 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
             // 32 x 10 pixels centred 20 pixels above the middle.
             float x0 = static_cast<float>(static_cast<float>(middleX) - kMarkerWidth * 0.5f);
             float y0 = static_cast<float>(static_cast<float>(middleY - 20) - kMarkerHeight * 0.5f);
-            if (!(x0 >= 0.0f)) continue;
+            if (x0 < 0.0f) continue;   // integer-sourced, as below: never NaN
             float x1 = static_cast<float>(x0 + kMarkerWidth);
-            if (!(width >= x1)) continue;
-            if (!(y0 >= 0.0f)) continue;
+            if (width < x1) continue;
+            if (y0 < 0.0f) continue;
             float y1 = y0 + kMarkerHeight;
             if (y1 > height) continue;
             QuadBuffer quads;
@@ -206,10 +206,10 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         float x0 = static_cast<float>(static_cast<float>(middleX) - static_cast<float>(boxWidth) * 0.5f);
         float boxHeightF = static_cast<float>(boxHeight);
         float y0 = static_cast<float>(static_cast<float>(middleY) - boxHeightF * 0.5f);
-        if (!(x0 >= 0.0f)) continue;
-        if (!(width >= static_cast<float>(boxWidth) + x0)) continue;
-        if (!(y0 >= 0.0f)) continue;
-        if (!(height >= boxHeightF + y0)) continue;
+        if (x0 < 0.0f) continue;   // integer-sourced: never NaN
+        if (width < static_cast<float>(boxWidth) + x0) continue;
+        if (y0 < 0.0f) continue;
+        if (height < boxHeightF + y0) continue;
 
         // Fading out over the life: green, red for a player's unit, cyan with flag 8.
         auto alpha = static_cast<std::uint32_t>(static_cast<int>((1.0f - age) * 255.0f)) & 0xFF;

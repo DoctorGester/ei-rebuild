@@ -15,6 +15,7 @@
 #include "originals_effects.h"
 #include "originals_ai.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 constexpr float kTargetThreshold = 0.5f;    // 0073B86C
@@ -49,7 +50,8 @@ bool AcceptsAreaSpells(CEngineObject* object) {
     if (unit->sizeClass != 0) return true;
     float value;
     std::memcpy(&value, unit->GetPrototype() + 0x24, sizeof(value));
-    return !(value >= kTargetThreshold);
+    EI_NAN_AUDIT(value);
+    return value < kTargetThreshold;
 }
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).

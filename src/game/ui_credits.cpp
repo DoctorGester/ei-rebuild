@@ -15,6 +15,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "ui_cursor.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -49,7 +50,8 @@ EI_REPLACE_METHOD(0x0062BCB0, TitleLine::Destroy);
 // --- 0062BD80: the frame -------------------------------------------------------------------------
 
 BOOL CCreditsScreen::Draw(int pass) {
-    if (GameTime() > nextLineAt_ && !(textSurface_->speed_ < 0.0f || textSurface_->speed_ > 0.0f)) {
+    EI_NAN_AUDIT(textSurface_->speed_);
+    if (GameTime() > nextLineAt_ && textSurface_->speed_ == 0.0f) {
         nextLineAt_ = 0.0f;
         textSurface_->Freeze(0, 0);
         headerSurface_->Freeze(0, 0);

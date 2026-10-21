@@ -22,6 +22,7 @@
 #include "originals_world.h"
 #include "render/render_state.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -101,14 +102,16 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
     }
     if (!active_) return 1;
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
-    if ((!(alpha_ >= kOpaque) && rate_ > 0.0f) || (alpha_ > 0.0f && !(rate_ >= 0.0f))) {
+    EI_NAN_AUDIT(alpha_, rate_);
+    if ((alpha_ < kOpaque && rate_ > 0.0f) || (alpha_ > 0.0f && rate_ < 0.0f)) {
         const DWORD now = gameapi::timeGetTime();
         alpha_ = static_cast<float>(x87::FromUnsigned(now - lastTime_) * rate_ + alpha_);
         lastTime_ = gameapi::timeGetTime();
     }
+    EI_NAN_AUDIT(alpha_);
     if (alpha_ > kOpaque) {
         alpha_ = kOpaque;
-    } else if (!(alpha_ >= 0.0f)) {
+    } else if (alpha_ < 0.0f) {
         active_ = 0;
         return 1;
     }

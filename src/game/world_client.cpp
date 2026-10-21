@@ -48,12 +48,12 @@ CWorldClient* WorldClient() { return ei::GamePointer<CWorldClient>(0x007AF5B8); 
 float CWorldClient::ClampedGroundHeight(float x, float y) {
     // Branch-free in the original (FCOM flags turned into a select mask); NaN picks the first
     // operand of each comparison.
-    float cx = !(0.0f >= x) ? x : 0.0f;
+    float cx = 0.0f >= x ? 0.0f : x;
     float maxX = static_cast<float>(terrain_->width - 1.0f);
-    cx = !(maxX >= cx) ? maxX : cx;
-    float cy = !(0.0f >= y) ? y : 0.0f;
+    cx = maxX >= cx ? cx : maxX;
+    float cy = 0.0f >= y ? 0.0f : y;
     float maxY = static_cast<float>(terrain_->height - 1.0f);
-    cy = !(maxY >= cy) ? maxY : cy;
+    cy = maxY >= cy ? cy : maxY;
     return terrain_->HeightAt(cx, cy, 0);
 }
 
@@ -62,8 +62,8 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
         const Platform& p = node->data;
         float dx = point->x - p.x;
         float dy = point->y - p.y;
-        // Every test is "skip when below or unordered" (FCOM + TEST AH,1), so NaN skips.
-        if (!(p.radius * p.radius >= LengthSquared2DUnrounded(dy, dx))) continue;
+        EI_NAN_AUDIT(p.radius, dy, dx);
+        if (p.radius * p.radius < LengthSquared2DUnrounded(dy, dx)) continue;
         float a = point->x - p.origin.x;
         float b = point->y - p.origin.y;
         float c = point->z - p.origin.z;
@@ -71,10 +71,11 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
         c = c - DotUnrounded<Sum3::XYZ, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
         float u = static_cast<float>(DotUnrounded<Sum3::XYZ, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
         float v = static_cast<float>(DotUnrounded<Sum3::XYZ, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
-        if (!(u >= -0.5f) || !(v >= -0.5f)) continue;
-        if (!(p.sizeU + 0.5f >= u) || !(p.sizeV + 0.5f >= v)) continue;
+        EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
+        if (u < -0.5f || v < -0.5f) continue;
+        if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
         float z = static_cast<float>(p.axisV.z * v + p.axisU.z * u + p.origin.z);
-        height = !(height >= z) ? z : height;
+        height = height >= z ? height : z;
     }
     return height;
 }
@@ -84,15 +85,17 @@ bool PlatformSet::Contains(float x, float y) {
         const Platform& p = node->data;
         float dx = x - p.x;
         float dy = y - p.y;
-        if (!(p.radius * p.radius >= LengthSquared2DUnrounded(dx, dy))) continue;
+        EI_NAN_AUDIT(p.radius, dx, dy);
+        if (p.radius * p.radius < LengthSquared2DUnrounded(dx, dy)) continue;
         float a = x - p.origin.x;
         float b = y - p.origin.y;
         float c = -p.origin.z;
         c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
         float u = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
         float v = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
-        if (!(u >= -0.1f) || !(v >= -0.1f)) continue;
-        if (!(p.sizeU + 0.1f >= u) || !(p.sizeV + 0.1f >= v)) continue;
+        EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
+        if (u < -0.1f || v < -0.1f) continue;
+        if (p.sizeU + 0.1f < u || p.sizeV + 0.1f < v) continue;
         return true;
     }
     return false;
@@ -103,19 +106,22 @@ void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height)
     *normal = {0.0f, 0.0f, 1.0f};
     for (PlatformNode* node = list.head; node; node = node->next) {
         const Platform& p = node->data;
-        if (!(p.radius * p.radius >= DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y}))) continue;
+        EI_NAN_AUDIT(p.radius, x, y, p.x, p.y);
+        if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y})) continue;
         float a = x - p.origin.x;
         float b = y - p.origin.y;
         float c = -p.origin.z;
         c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
         float u = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
         float v = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
-        if (!(u >= -0.5f) || !(v >= -0.5f)) continue;
-        if (!(p.sizeU + 0.5f >= u) || !(p.sizeV + 0.5f >= v)) continue;
+        EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
+        if (u < -0.5f || v < -0.5f) continue;
+        if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
         float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
-        if (!(z > *height)) continue;   // FCOM + TEST AH,0x41: lower, equal or NaN keeps the old one
-        *height = z;
-        *normal = {p.normal.x, p.normal.y, p.normal.z};
+        if (z > *height) {   // lower, equal or NaN keeps the old one
+            *height = z;
+            *normal = {p.normal.x, p.normal.y, p.normal.z};
+        }
     }
 }
 
@@ -143,7 +149,8 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
         float dy = other->position.y - self->position.y;
         float dx = other->position.x - self->position.x;
         float distance = LengthSquared2DUnrounded(dx, dy);
-        if (!(distance >= best)) {
+        EI_NAN_AUDIT(distance, best);
+        if (distance < best) {
             best = static_cast<float>(distance);
             nearest = other;
         }

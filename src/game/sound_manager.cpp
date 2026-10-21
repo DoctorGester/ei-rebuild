@@ -131,8 +131,9 @@ int CSoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     double v = level;
     if (fade != 0) {
         float h = listener.z;
-        if (!(h < kHeightSilent)) v = 0.0;
-        else if (!(h <= kHeightFull)) v = v * HeightFactor(h);
+        EI_NAN_AUDIT(h);
+        if (h >= kHeightSilent) v = 0.0;
+        else if (h > kHeightFull) v = v * HeightFactor(h);
     }
     v = v * (isSpeech != 0 ? speechVolume : effectsVolume);
     v = v * kMilesScale;
@@ -184,10 +185,11 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     float distF = static_cast<float>(dist);
     float h = listener.z;
     int level;
-    if (!(dist >= slot->nearDistance)) {
+    EI_NAN_AUDIT(dist, slot->nearDistance, h);
+    if (dist < slot->nearDistance) {
         double v = kHundred;
-        if (!(h < kHeightSilent)) v = 0.0;
-        else if (!(h <= kHeightFull)) v = HeightFactor(h) * kHundred;
+        if (h >= kHeightSilent) v = 0.0;
+        else if (h > kHeightFull) v = HeightFactor(h) * kHundred;
         v = v * (slot->speech != 0 ? speechVolume : effectsVolume);
         v = v * kMilesScale;
         level = ClampLevel(x87::fistp(static_cast<float>(v)));
@@ -196,8 +198,8 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         int falloff = 100 - x87::fistp(static_cast<float>(t));
         slot->volume = falloff;
         double v = falloff;
-        if (!(h < kHeightSilent)) v = 0.0;
-        else if (!(h <= kHeightFull)) v = v * HeightFactor(h);
+        if (h >= kHeightSilent) v = 0.0;
+        else if (h > kHeightFull) v = v * HeightFactor(h);
         v = v * (slot->speech != 0 ? speechVolume : effectsVolume);
         v = v * kMilesScale;
         level = ClampLevel(x87::fistp(static_cast<float>(v)));
@@ -726,12 +728,14 @@ void CSoundManager::Tick() {
         double dist = std::sqrt(LengthSquared2DUnrounded(dy, dx));
         float distF = static_cast<float>(dist);
         std::uint32_t minInterval, maxInterval;
-        if (!(dist >= e->innerRadius)) {
+        EI_NAN_AUDIT(dist, e->innerRadius);
+        if (dist < e->innerRadius) {
             minInterval = static_cast<std::uint32_t>(e->minInterval);
             maxInterval = static_cast<std::uint32_t>(e->maxInterval);
         } else {
-            // Out of earshot past outerRadius - 0.001 (NaN too).
-            if (!(D(e->outerRadius) - kEmitterMargin >= distF)) continue;
+            // Out of earshot past outerRadius - 0.001.
+            EI_NAN_AUDIT(e->outerRadius);
+            if (D(e->outerRadius) - kEmitterMargin < distF) continue;
             double t = (D(e->outerRadius) - e->innerRadius) / (D(e->outerRadius) - distF);
             float tF = static_cast<float>(t);
             if (t > kEmitterMaxScale) continue;
@@ -1017,7 +1021,8 @@ void SoundFader::Update() {
     case 2: {
         double diff = D(factor) - step;
         factor = static_cast<float>(diff);
-        if (!(diff > 0.0)) {
+        EI_NAN_AUDIT(diff);
+        if (diff <= 0.0) {
             mode = 0;
             factor = 0.0f;
             finished = 1;

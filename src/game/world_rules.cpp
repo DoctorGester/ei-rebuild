@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "originals_engine.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -53,8 +54,10 @@ bool DepthLess::Less(const int* a, const int* b) {
     // Living objects come before dead ones; within each kind, by depth. The original asks each
     // object again at every step, so the calls are repeated here in the same order.
     if ((ObjectSlots(first)->IsDead() == 0 && ObjectSlots(second)->IsDead() == 0) ||
-        (ObjectSlots(first)->IsDead() != 0 && ObjectSlots(second)->IsDead() != 0))
-        return !(da >= db);
+        (ObjectSlots(first)->IsDead() != 0 && ObjectSlots(second)->IsDead() != 0)) {
+        EI_NAN_AUDIT(da, db);
+        return da < db;
+    }
     return ObjectSlots(first)->IsDead() == 0;
 }
 
@@ -86,7 +89,8 @@ int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
 }
 
 bool DepthBefore(CEngineObject* a, CEngineObject* b) {
-    return !(Object3D(a)->viewPosition.z >= Object3D(b)->viewPosition.z);
+    EI_NAN_AUDIT(Object3D(a)->viewPosition.z, Object3D(b)->viewPosition.z);
+    return Object3D(a)->viewPosition.z < Object3D(b)->viewPosition.z;
 }
 
 } // namespace

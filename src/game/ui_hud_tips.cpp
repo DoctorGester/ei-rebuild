@@ -18,6 +18,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -87,7 +88,8 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         weapon->GetDamageTypes(types);
         const float zero = 0.0f /*0073B858*/;
         unsigned type = 0;
-        while (type < 7 && !(types[type] < zero) && !(types[type] > zero)) ++type;
+        EI_NAN_AUDIT(types[0], types[1], types[2], types[3], types[4], types[5], types[6]);
+        while (type < 7 && types[type] == zero) ++type;
         description = "Unknown";
         if (type < 7) {
             line.Format("damage_%d", type);
@@ -151,7 +153,8 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
             line.Format("%s %d  ", labels_[1], Truncate(Get<float>(data, 0x24)));
         *text += line;
         float duration = Get<float>(data, 0x30);
-        if (!(duration >= one))   // TEST AH,1: below 1 or NaN
+        EI_NAN_AUDIT(duration);
+        if (duration < one)
             line.Format("%s %s \n", labels_[2], labels_[7]);   // "%s %s \n"
         else
             line.Format("%s %d \n", labels_[2], Truncate(duration));   // "%s %d \n"

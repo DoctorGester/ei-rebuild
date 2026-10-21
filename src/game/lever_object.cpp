@@ -17,6 +17,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <initializer_list>
 
@@ -51,9 +52,6 @@ void ResetLever(Lever* self) {
     self->flag260 = 0;
     self->keepsMapFlag = 0;
 }
-
-// x87 FCOMP + TEST AH,0x40 not taken: the values differ and neither is NaN.
-bool Differ(float a, float b) { return a < b || a > b; }
 } // namespace
 
 Lever* Lever::Construct() {
@@ -98,7 +96,8 @@ int Lever::UpdateLever() {
         static_cast<CWorldClient*>(ClientWorldObject())->RefreshPlatforms(this);
         return 1;
     }
-    if (Differ(shown.y, to)) {
+    EI_NAN_AUDIT(shown.y, to);
+    if (shown.y != to) {
         shown.y = to;
         Object3D()->SetFigureScale(&shown.x);
         static_cast<CWorldClient*>(ClientWorldObject())->RefreshPlatforms(this);
@@ -151,7 +150,8 @@ void Lever::WriteLeverNetState() {
     MapObjectWriteNetState(reinterpret_cast<std::uint8_t*>(this));
     DeltaField* field = NetState()->BeginField(kLeverField);
     if (!field) return;
-    if (Differ(to, scale.y)) {
+    EI_NAN_AUDIT(to, scale.y);
+    if (to != scale.y) {
         rate = 0.0f;
         to = scale.y;
     }
@@ -184,7 +184,8 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     static_cast<CWorldClient*>(ClientWorldObject())->QueueSynchronised(this);
     if (first == 1) {
         const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(LeverTable()), nullptr, name));
-        if (record && Differ(from, to))
+        EI_NAN_AUDIT(from, to);
+        if (record && from != to)
             sound::Manager()->Play3D(record->sound, 0, &position.x, kSoundNear, kSoundFar, 0, 0);
     }
     return complete;

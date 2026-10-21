@@ -35,19 +35,17 @@ EI_REPLACE_METHOD(0x0055FB50, CWorld::SetTimeSpeedImpl);
 
 double CWorld::NightLevel() {
     double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
-    // FCOM 20 with TEST AH,0x41, then FCOMP 8 with TEST AH,1: a NaN counts as night.
     if (hours > 20.0) return (hours - 20.0) * 0.25;
-    if (!(hours >= 8.0)) return 1.0;
-    return 0.0;
+    if (hours >= 8.0) return 0.0;
+    return 1.0;   // also NaN
 }
 EI_REPLACE_METHOD(0x0055FC50, CWorld::NightLevel);
 
 BOOL CWorld::IsNight() {
     double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
-    // FCOM 22 and FCOMP 6, each with TEST AH,1: a NaN is below both.
     if (hours >= 22.0) return 1;
-    if (!(hours >= 6.0)) return 1;
-    return 0;
+    if (hours >= 6.0) return 0;
+    return 1;   // also NaN
 }
 EI_REPLACE_METHOD(0x0055FC10, CWorld::IsNight);
 
@@ -84,8 +82,8 @@ void CWorldServer::SetTimeSpeedImpl(float speed) {
 EI_REPLACE_METHOD(0x0058EEE0, CWorldServer::SetTimeSpeedImpl);
 
 void CWorldServer::ChangeWind(const Vector3* direction, float strength) {
-    // FCOMP / mask selects: below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.
-    float clamped = !(strength >= 0.0f) ? 0.0f : strength;
+    // Below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.
+    float clamped = strength >= 0.0f ? strength : 0.0f;
     if (1.0f < clamped) clamped = 1.0f;
     SetWind(direction, clamped);
     MarkPlayersDirty(8);

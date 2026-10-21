@@ -107,7 +107,8 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     if (!Map()->FindPath(self, &dest, &local.path, range, kMinDistance)) return false;
     double scale = static_cast<double>(kOne) * kHalf;
     double limit = kOne / scale * wayRounded * kSmoothingScale;
-    if (!(limit >= static_cast<double>(local.path.smoothing))) return false;
+    EI_NAN_AUDIT(limit);
+    if (limit < static_cast<double>(local.path.smoothing)) return false;
     Vector3 end{static_cast<float>(scale * local.path.targetX), static_cast<float>(scale * local.path.targetY), 0.0f};
 
     AIOrder order;
@@ -120,7 +121,8 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     double ex = static_cast<double>(dest.x) - end.x;
     double ey = static_cast<double>(dest.y) - end.y;
     double ez = static_cast<double>(dest.z) - end.z;
-    if (!(LengthSquaredUnrounded<Sum3::ZYX>(ex, ey, ez) < kOne)) return false;
+    EI_NAN_AUDIT(ex, ey, ez);
+    if (LengthSquaredUnrounded<Sum3::ZYX>(ex, ey, ez) >= kOne) return false;
     *out = dest;
     return true;
 }
@@ -142,7 +144,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         float z = static_cast<float>(static_cast<double>(me->z) - at->z);
         float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z)) * kSeenScale);
         // The larger of the two; an unordered pair takes the new one.
-        if (!(distance >= reach)) distance = reach;
+        distance = distance >= reach ? distance : reach;
     }
 
     // A unit that fights from a distance keeps away from its nearest enemy.
@@ -169,7 +171,8 @@ int FearMode::Evaluate(AIBrain* brain) {
 
     if (brain->seesEnemy) return kSeesEnemy;
     const Vector3* here = PositionOf(self);
-    if (Map()->HasKind3OccluderAt(here) && (self->sizeClass != 0 || !(PrototypeSize(self) >= kHalf))) {
+    EI_NAN_AUDIT(PrototypeSize(self));
+    if (Map()->HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < kHalf)) {
         shelter = *here;
         return kShelter;
     }

@@ -79,7 +79,7 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
         const auto* prototype =
             reinterpret_cast<const itemdb::QuickItemRecord*>(static_cast<CItem*>(item)->GetPrototype());
         float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index, as the original
-        if (!(best >= bonus)) best = bonus;   // the original's FCOMP / C0 select
+        best = best >= bonus ? best : bonus;   // the original's select
     }
     switch (index) {
     case 0: return (stat18 - kStatBase) + static_cast<double>(attributes[0]) + best;

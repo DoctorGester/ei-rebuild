@@ -22,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
@@ -77,7 +78,8 @@ int CEffectMissile::Steer() {
         float speed = kMissileSpeed;
         float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
         if (GetClassId() == kClassArrowFigure) speed = speed + speed;
-        if (!(distance >= speed)) {   // within one step (or NaN)
+        EI_NAN_AUDIT(distance);
+        if (distance < speed) {   // within one step
             flying = 0;
             arrived_ = 1;
         } else {
@@ -92,7 +94,7 @@ int CEffectMissile::Steer() {
         double floor = world->RawSurfaceHeightAt(localPosition_.x, localPosition_.y) + kGroundClearance;
         if (floor > localPosition_.z) {
             float missing = static_cast<float>(floor - localPosition_.z);
-            float limited = !(missing >= kGroundClearance) ? missing : kGroundClearance;
+            float limited = missing >= kGroundClearance ? kGroundClearance : missing;
             velocity_.z = missing - limited * 0.5f;
         }
     }

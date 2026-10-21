@@ -29,7 +29,8 @@ using camera::D;
 // for a direction shorter than 1e-9.
 bool CCamera::LookDirection(float dx, float dy, float dz) {
     double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
-    if (!(lengthSquare > CAM_LOOK_EPSILON)) return false;
+    EI_NAN_AUDIT(lengthSquare);
+    if (lengthSquare <= CAM_LOOK_EPSILON) return false;
     double inv = CAM_ONE_D / std::sqrt(lengthSquare);
     float invRounded = static_cast<float>(inv);
     float nx = static_cast<float>(inv * dx);
@@ -42,7 +43,8 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     } else {
         double side = -D(nx);
         float z;
-        if (!(side >= D(CAM_ZERO))) z = CAM_MINUS_ONE;
+        EI_NAN_AUDIT(side);
+        if (side < D(CAM_ZERO)) z = CAM_MINUS_ONE;
         else if (side > D(CAM_ZERO)) z = CAM_ONE;
         else z = CAM_ZERO;
         Vector3 axis;
@@ -92,8 +94,9 @@ void CCamera::AlignToTarget() {
     hy = static_cast<float>(D(hy) * invRounded);
     double dot = DotUnrounded<Sum3::ZYX, double>(xAxis.x, xAxis.y, xAxis.z, hx, hy, hz);
     float cosine = static_cast<float>(dot);
+    EI_NAN_AUDIT(dot);
     if (dot > D(CAM_ONE)) cosine = 1.0f;
-    else if (!(D(cosine) >= D(CAM_MINUS_ONE))) cosine = -1.0f;
+    else if (D(cosine) < D(CAM_MINUS_ONE)) cosine = -1.0f;
     float angle = static_cast<float>(CIacos(cosine));
     float magnitude = angle;
     std::uint32_t bits;
@@ -153,25 +156,26 @@ void CCamera::ClampAboveObjects() {
         double dz = D(cz) - p->z;
         float outside = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) - radius);
         double factor = CAM_ZERO;
-        if (!(outside > CAM_ZERO)) factor = CAM_ONE;
-        else if (!(outside > CAM_OBJECT_FADE)) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);
+        EI_NAN_AUDIT(outside);
+        if (outside <= CAM_ZERO) factor = CAM_ONE;
+        else if (outside <= CAM_OBJECT_FADE) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);
         float height = static_cast<float>(((D(object->position.z) + object->above.z) + object->center.z) * factor);
-        if (!(best >= height)) best = height;
+        best = best >= height ? best : height;
     }
     CameraSettings* s = settings_;
     float raised;
     if (best > highest) {
         float over = static_cast<float>(D(best) - D(highest));
         float limit = s->maxRaise;
-        float used = !(over >= limit) ? over : limit;
+        float used = over >= limit ? limit : over;
         float wanted = static_cast<float>((D(used) + highest) + D(s->clearance));
         float z = p->z;
-        raised = !(z >= wanted) ? wanted : z;
+        raised = z >= wanted ? z : wanted;
     } else {
-        float top = !(best >= highest) ? highest : best;
+        float top = best >= highest ? best : highest;
         float wanted = static_cast<float>(D(top) + D(s->clearance));
         float z = p->z;
-        raised = !(z >= wanted) ? wanted : z;
+        raised = z >= wanted ? z : wanted;
     }
     p->z = raised;
     // The list's destructor, inlined: every node and the sentinel back to the node pool.

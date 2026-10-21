@@ -23,6 +23,7 @@
 #include "originals_units.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 #include <new>
@@ -262,11 +263,11 @@ CEngineObject* BowArrow(CUnitClientSpecific* self) {
     return self->unit->FindPart(kBowArrow);
 }
 
-// The original's x87 tests: `frame` was passed between the last update and now (not when the
-// last time was unordered; a NaN time counts as passed).
+// Whether `frame` was passed between the last update and now.
 bool Passed(std::uint32_t frame, float last, float now) {
     double at = x87::FromUnsigned(frame);
-    return at > last && !(at > now);
+    EI_NAN_AUDIT(now);
+    return at > last && at <= now;
 }
 } // namespace
 
@@ -276,7 +277,8 @@ void CUnitClientSpecific::UpdateArrow() {
     const FigureAnimation* current = state->current;
     if (current && (current->flags & 1)) {
         float now = state->time;
-        if (!(now < lastAnimationTime || now > lastAnimationTime)) return;   // the same time, or NaN
+        EI_NAN_AUDIT(now, lastAnimationTime);
+        if (now == lastAnimationTime) return;   // the same time
         if (Passed(current->arrowFrom, lastAnimationTime, now)) {
             if (!arrowHidden) return;
             if (CEngineObject* arrow = BowArrow(this)) {

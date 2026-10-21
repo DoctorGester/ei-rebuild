@@ -19,6 +19,7 @@
 #include "originals_effects.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 constexpr std::uint32_t kFlagNoEffect = 8;            // HitEffect's flags
@@ -104,7 +105,7 @@ const UnitModelRecord* ModelOf(CUnit* unit) {
 float SmallerExtent(const CUnit* unit) {
     float y = unit->above.y;
     float x = unit->above.x;
-    return !(y >= x) ? y : x;
+    return y >= x ? x : y;
 }
 
 // The hero's armour material over `location`, or null.
@@ -134,7 +135,8 @@ std::uint8_t HitSoundKind(CUnit* unit) {
 
 void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t flags) {
     if (flags & kFlagNoEffect) return;
-    if (!(amount > kMinAmount)) return;
+    EI_NAN_AUDIT(amount);
+    if (amount <= kMinAmount) return;
     mfc::CString material(ModelOf(unit)->hitMaterial);
     if (unit->type_ == kUnitTypeHero) {
         // Heroes sound by the armour over the location (the model's material without one), mapped
@@ -167,7 +169,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
         source->ScaleSize(part->bounds_.radius * kBloodScale);
         source->typeParam = kBloodRate;
         float alpha = amount;
-        if (!(alpha >= kBloodMinAlpha)) alpha = kBloodMinAlpha;
+        if (alpha < kBloodMinAlpha) alpha = kBloodMinAlpha;
         else if (alpha > kBloodMaxAlpha) alpha = kBloodMaxAlpha;
         source->alpha = alpha;
         source->Attach(unit);
@@ -175,7 +177,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     }
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
-    float reach = !(1.0f >= smaller) ? smaller : 1.0f;
+    float reach = 1.0f >= smaller ? 1.0f : smaller;
     float sizeStored = (part->bounds_.boxMax.y + part->bounds_.boxMax.x) * kHalf * kDecalScale;
     float size = sizeStored;
     Vector3 at;

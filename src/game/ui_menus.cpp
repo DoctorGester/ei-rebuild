@@ -14,6 +14,7 @@
 #include <cstdint>
 #include "originals_ui.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";   // 007937E4
@@ -34,7 +35,8 @@ constexpr int kResultLoad = 0x30001;
 // The windows slide in: the model's y goes from 700 to its resting place with an ease-in-out
 // curve over the slide (0..1). x87, unrounded until the float argument is stored.
 double Ease(float slide) {
-    if (!(slide >= 0.5f)) {
+    EI_NAN_AUDIT(slide);
+    if (slide < 0.5f) {
         double s = slide;
         double e = s * s;
         return e + e;
@@ -404,22 +406,23 @@ void CUiScrollbar::Update() {
     }
     int steps = 0;
     if (accumulated_ > 0.0f) {   // zero, negative and NaN take the other branch
-        if (!(accumulated_ >= 1.0f)) return;
+        if (accumulated_ < 1.0f) return;
         // Whole steps; subtracting 1 is exact, so the register precision does not matter.
         double rest = accumulated_;
         do {
             rest -= 1.0f;
             ++steps;
-        } while (!(rest < 1.0f));
+        } while (rest >= 1.0f);
         accumulated_ = static_cast<float>(rest);
     } else {
         if (accumulated_ > -1.0f) return;
+        EI_NAN_AUDIT(accumulated_);
         double rest;
         do {
             rest = accumulated_ + 1.0;
             --steps;
             accumulated_ = static_cast<float>(rest);
-        } while (!(rest > -1.0f));
+        } while (rest <= -1.0f);   // ends on a NaN (the original's did not)
     }
     if (steps != 0) CallSetPosition(position_ + steps);
 }

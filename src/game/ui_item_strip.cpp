@@ -269,14 +269,14 @@ void CUiItemStrip::Update() {
                 if (velocity_ > maxSpeed) velocity_ = maxSpeed;
                 const float limit = static_cast<float>((pending_ - nearDistance) / dt);
                 const float current = velocity_;
-                limited = !(current >= limit) ? current : limit;
+                limited = current >= limit ? limit : current;
             } else {
                 velocity_ = static_cast<float>(velocity_ - gain);
                 const float minSpeed = -maxSpeed;
-                if (!(velocity_ >= minSpeed)) velocity_ = minSpeed;
+                velocity_ = velocity_ >= minSpeed ? velocity_ : minSpeed;
                 const float limit = static_cast<float>((nearDistance + pending_) / dt);
                 const float current = velocity_;
-                limited = !(limit >= current) ? current : limit;
+                limited = limit >= current ? limit : current;
             }
             speed = (limited + velocity_) * half;
         } else if (pending_ > zero) {
@@ -287,7 +287,7 @@ void CUiItemStrip::Update() {
         }
         velocity_ = static_cast<float>(speed);
         float step = static_cast<float>(speed * dt);
-        if (!(std::fabs(pending_) >= std::fabs(step))) step = pending_;
+        step = std::fabs(pending_) >= std::fabs(step) ? step : pending_;
         position_[tab_] = static_cast<float>(step + position_[tab_]);
         pending_ = static_cast<float>(pending_ - step);
 
@@ -295,12 +295,13 @@ void CUiItemStrip::Update() {
         // 0.01 above or 0.01 below one.
         const float whole = static_cast<float>(static_cast<int>(position_[tab_]));
         bool done = false;
-        if (!(position_[tab_] - whole >= snapLow) && !(std::fabs(pending_) >= snapPending)) {
+        EI_NAN_AUDIT(position_[tab_], pending_);
+        if (position_[tab_] - whole < snapLow && std::fabs(pending_) < snapPending) {
             position_[tab_] = whole;
             pending_ = 0.0f;
             done = true;
         }
-        if (!done && position_[tab_] - whole > snapHigh && !(std::fabs(pending_) >= snapPending)) {
+        if (!done && position_[tab_] - whole > snapHigh && std::fabs(pending_) < snapPending) {
             position_[tab_] = static_cast<float>(whole + one);
             pending_ = 0.0f;
         }
@@ -311,12 +312,13 @@ void CUiItemStrip::Update() {
     CallRebuildList();
     // Kept within [0, size - 7].
     const float last = static_cast<float>(count_ - 7);
-    if (!(last >= position_[tab_])) {
+    EI_NAN_AUDIT(position_[tab_]);
+    if (last < position_[tab_]) {
         position_[tab_] = last;
         pending_ = 0.0f;
         velocity_ = 0.0f;
     }
-    if (!(position_[tab_] >= zero)) {
+    if (position_[tab_] < zero) {
         position_[tab_] = 0.0f;
         pending_ = 0.0f;
         velocity_ = 0.0f;

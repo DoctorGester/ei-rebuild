@@ -21,6 +21,7 @@
 #include "originals_units.h"
 #include "unit.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -175,7 +176,8 @@ void CHeroStatsPanel::DrawStats() {
         rect = RECT{0xA0, 0x41, 0xB4, 0x50};
         double maximum = D(35.0f /*00741F00*/);
         for (int i = 0; i < 3; ++i) {
-            bool below = !(D(storedStats[i]) >= maximum);   // FCOMP; TEST AH,1 (below or unordered)
+            EI_NAN_AUDIT(storedStats[i]);
+            bool below = D(storedStats[i]) < maximum;
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
             draw->Text("+", &rect, 0, colour, 1, 1);
             Down(&rect);

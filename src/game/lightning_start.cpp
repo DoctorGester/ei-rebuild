@@ -18,6 +18,7 @@
 #include "originals_library.h"
 #include "originals_core.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -32,10 +33,10 @@ float Absolute(float f) {
     return f;
 }
 
-// The noise amplitude of a segment's keys: 1.5 for positive power, 2 for zero (or NaN), else 1.
+// The noise amplitude of a segment's keys: 1.5 for positive power, 1 for negative, else 2 (zero or NaN).
 float KeyAmplitude(float power) {
     if (power > 0.0f) return 1.5f;
-    return !(power < 0.0f) && !(power > 0.0f) ? 2.0f : 1.0f;
+    return power < 0.0f ? 1.0f : 2.0f;
 }
 
 void FreshKeys(LightningSegment& s, float time, float amplitude) {
@@ -56,14 +57,17 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     const float strength = Absolute(power);
     amplitude_ = power_ > 0.0f /*0073B858*/ ? 0.05f /*0073C52C*/ : 0.3f /*0073C54C*/;   // 0.05 : 0.3
     // A bolt about 30 units high sways less.
-    if (!(Absolute(Absolute(to->z - from->z) - 30.0f /*0073BAF0*/) >= 0.01f /*0073C548*/)) amplitude_ = 0.05f;
+    EI_NAN_AUDIT(to->z, from->z);
+    if (Absolute(Absolute(to->z - from->z) - 30.0f /*0073BAF0*/) < 0.01f /*0073C548*/) amplitude_ = 0.05f;
 
     main_.Init(from, to);
     FreshKeys(main_, time, KeyAmplitude(power_));
     main_.width = strength;
-    if (!(power_ >= 0.0f /*0073B858*/)) main_.width = strength * 1.5f /*0073C51C*/;   // 1.5
+    EI_NAN_AUDIT(power_);
+    if (power_ < 0.0f /*0073B858*/) main_.width = strength * 1.5f /*0073C51C*/;   // 1.5
 
-    if (strength > 0.0f || strength < 0.0f) {
+    EI_NAN_AUDIT(strength);
+    if (strength != 0.0f) {
         const float positions[6] = {0.2f, 0.3f, 0.5f, 0.8f, 0.9f, 0.9f};
         std::memcpy(branchPos_, positions, sizeof(positions));
         for (int i = 0; i < 6; ++i) {

@@ -79,7 +79,7 @@ float Scaled(float value, float scale) {
 float FogStart(float hour) {
     const float day = FogStartDay(), night = FogStartNight();
     double fog;
-    if (hour >= kDayStart && !(hour > kDayEnd)) fog = day;
+    if (hour >= kDayStart && hour <= kDayEnd) fog = day;
     else if (hour < kNightStart && hour > kDawnStart) {
         if (hour < kDayStart) fog = (hour - kDawnStart) / kDawnLength * (day - night) + night;
         else fog = day - (hour - kDayEnd) / kDuskLength * (day - night);
@@ -88,11 +88,12 @@ float FogStart(float hour) {
     return stored;
 }
 
-// The sun's elevation in degrees for `hour` (NaN takes the first night formula, as the original).
+// The sun's elevation in degrees for `hour`.
 double SunElevation(float hour) {
     double night;
-    if (!(hour >= kSunrise)) {
-        if (!(hour > kSunset)) night = (kSunrise - hour) / kSunrise;
+    EI_NAN_AUDIT(hour);
+    if (hour < kSunrise) {
+        if (hour <= kSunset) night = (kSunrise - hour) / kSunrise;
         else night = (hour - kSunset) / (kDayLength - kSunset);
     } else if (hour > kSunset) {
         night = (hour - kSunset) / (kDayLength - kSunset);
@@ -156,7 +157,8 @@ int CWorldClient::UpdateLighting() {
             const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
             skyDome_->Light(&kCaveSun.x, black, black, black);
         }
-        if (!(hour - LastLitHour() >= 1.0f)) return 0;
+        EI_NAN_AUDIT(hour, LastLitHour());
+        if (hour - LastLitHour() < 1.0f) return 0;
         LastLitHour() = static_cast<float>(std::floor(static_cast<double>(hour)));
         if (terrain_) terrain_->SetSun(light, Ambient(&frameAmbient_));
         return 1;
@@ -214,7 +216,8 @@ int CWorldClient::UpdateLighting() {
         const SkyColour skyColour = {sky.r, sky.g, sky.b, 0.0f};   // the original's fourth float is stack garbage
         skyDome_->Light(&direction.x, ambient, sunlight, skyColour);
     }
-    if (!(hour - LastLitHour() >= 1.0f)) return 0;
+    EI_NAN_AUDIT(hour, LastLitHour());
+    if (hour - LastLitHour() < 1.0f) return 0;
     LastLitHour() = static_cast<float>(std::floor(static_cast<double>(hour)));
     if (terrain_) terrain_->SetSun(light, Ambient(&frameAmbient_));
     return 1;

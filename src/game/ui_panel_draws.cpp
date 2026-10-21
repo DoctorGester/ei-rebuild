@@ -238,7 +238,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
         RECT first{10, 0, 200, 20};
         surface->Draw(text, &first, 1, 0);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
-        float shown = !(manaSum >= lastMana) ? lastMana : manaSum;
+        float shown = manaSum >= lastMana ? manaSum : lastMana;
         text.Format(CostFormat(), static_cast<const char*>(self->texts_[1]), mana, static_cast<int>(shown));
         RECT second{10, 20, 200, 40};
         surface->Draw(text, &second, 1, 0);

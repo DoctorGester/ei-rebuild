@@ -29,6 +29,7 @@
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -274,7 +275,8 @@ int CPlayerServer::SendPartyState() {
     const float low = LowLevel();
     for (CPlayer::ObjectMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         const float* levels = static_cast<CUnit*>(node->value)->levels4C8;
-        if (!(levels[0] > low) || !(levels[1] > low) || !(levels[2] > low) || !(levels[3] > low) || !(levels[4] > low))
+        EI_NAN_AUDIT(levels[0], levels[1], levels[2], levels[3], levels[4], low);
+        if (levels[0] <= low || levels[1] <= low || levels[2] <= low || levels[3] <= low || levels[4] <= low)
             refreshPending_ = 1;
     }
 

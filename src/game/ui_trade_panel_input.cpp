@@ -11,6 +11,7 @@
 #include "originals_units.h"
 #include "unit_db.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -135,7 +136,8 @@ void CTradePanel::UpdateHeld() {
     // The comparison uses the unrounded sum; the field keeps it rounded.
     double held = WindowFrameTimeOriginal(this) + holdTime_;
     holdTime_ = static_cast<float>(held);
-    if (!(held >= kHoldRepeat)) return;
+    EI_NAN_AUDIT(held);
+    if (held < kHoldRepeat) return;
     int region = heldRegion_;
     using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
     PartyUnitRecord* hero = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_);

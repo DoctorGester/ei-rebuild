@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "originals_units.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -69,11 +70,11 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         } else {
             out->weaponType = kTypeNoWeapon;
             auto* model = reinterpret_cast<const UnitModelRecord*>(owner->GetPrototypeModel());
-            // The first damage type whose weight is not zero (FCOMP; TEST AH,0x40: NaN counts as
-            // zero); left as it was when there is none.
+            // The first damage type whose weight is not zero; left as it was when there is none.
             for (int i = 0; i < kDamageTypes; ++i) {
                 float weight = std::bit_cast<float>(model->damageWeights[i]);
-                if (weight < kZero || weight > kZero) {
+                EI_NAN_AUDIT(weight);
+                if (weight != kZero) {
                     out->damageType = i;
                     break;
                 }

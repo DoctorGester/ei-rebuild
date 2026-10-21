@@ -14,6 +14,7 @@
 #include "originals_units.h"
 #include "unit.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -97,7 +98,8 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
             const float one = 1.0f /*0073B84C*/;
             float duration = Get<float>(data, 0x30);
-            if (!(duration >= one))   // TEST AH,1: below 1 or NaN
+            EI_NAN_AUDIT(duration);
+            if (duration < one)
                 line.Format("%s %s \n", labels[3], labels[8]);   // "%s %s \n"
             else
                 line.Format("%s %d \n", labels[3], Truncate(duration));   // "%s %d \n"

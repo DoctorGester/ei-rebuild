@@ -136,9 +136,10 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
 // next full turn (4 * (2 pi - angle)), or stops below 0.1. At most 5. The angle advances by
 // dt * speed and wraps at 2 pi (compared unrounded, stored as float).
 void Turn(ItemTurn* turn, float dt, bool hovered) {
+    EI_NAN_AUDIT(turn->speed);
     if (hovered) {
         turn->speed = static_cast<float>(D(8.0f /*007402F4*/) * D(dt) + D(turn->speed));
-    } else if (!(turn->speed >= 0.1f /*007402F0*/)) {   // FCOMP; TEST AH,1: below or unordered
+    } else if (turn->speed < 0.1f /*007402F0*/) {
         turn->angle = 0.0f;
         turn->speed = 0.0f;
     } else {

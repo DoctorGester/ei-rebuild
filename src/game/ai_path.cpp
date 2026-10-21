@@ -9,6 +9,7 @@
 #include "originals_ai.h"
 #include "originals_units.h"
 #include "originals_core.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -109,6 +110,8 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     // FCOMPP: C0 if less. No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit
     // stands on the target cell, which the suite does), and then both choices are NaN.
     float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));
+    // Kept as the original's test: a NaN scale (the case above) scales the step too, which makes
+    // the finite one of sx / sy NaN as well; the plain scale < 1 would leave it.
     if (!(scale >= 1.0f)) {
         p = scale * p;
         q = scale * q;
@@ -239,7 +242,8 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     float fx = 1.0f / (1.0f * 0.5f) * from.x;
     float fy = 1.0f / (1.0f * 0.5f) * from.y;
     float ddx = fx - goal.x, ddy = fy - goal.y;
-    if (!(LengthSquared2DUnrounded(ddy, ddx) >= 0.001f)) {
+    EI_NAN_AUDIT(ddy, ddx);
+    if (LengthSquared2DUnrounded(ddy, ddx) < 0.001f) {
         SectorMapAdd(SectorMap(), nullptr, unit);
         return false;
     }

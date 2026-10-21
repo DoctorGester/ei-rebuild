@@ -26,6 +26,7 @@
 #include "world_glue.h"
 #include "bink_video.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -135,11 +136,10 @@ void CMainMenu::Create() {
     savedEdgeFade_ = MapEdgeFade();
     MapEdgeFade() = kMenuEdgeFade;
     rain_ = (Random().Next() & 1) == 1;
-    // Unordered compares (NaN) count as false, as FCOMP with TEST AH,0x41 / AH,1.
-    // The hour is read three times (FCOMP of the unrounded result): after dawn (NaN: no), before
-    // dusk (NaN: yes), before dawn (NaN: yes).
-    daylight_ = GameServerTimeOfDay() > kDawn && !(GameServerTimeOfDay() >= kDusk);
-    if (!(GameServerTimeOfDay() >= kDawn) && rain_)
+    // The hour is read three times (the original compares the unrounded result each time).
+    EI_NAN_AUDIT(GameServerTimeOfDay());
+    daylight_ = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
+    if (GameServerTimeOfDay() < kDawn && rain_)
         GameSetWeather(kWeatherRain, kWeatherStrength);
     GameStartAmbience();
     GameShowCameraPath(kCameraPath);

@@ -19,6 +19,7 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
@@ -289,7 +290,8 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
         for (int i = 0; i < source_->size; ++i)
             if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);
     }
-    if (!(found < 0.0f)) {
+    EI_NAN_AUDIT(found);
+    if (found >= 0.0f) {
         float& position = position_[tab_];
         double lowest = static_cast<double>(found) - 8.0 + 2.0;   // kept on the FPU
         if (lowest > position) {
@@ -332,14 +334,15 @@ void CUiItemStrip::SettleScroll() {
     // Releasing an arrow completes the step under way: the pending scroll keeps its fraction of a
     // slot and gains a whole slot when that fraction is under half.
     float pending = pending_;
-    if (!(pending >= 0.0f)) {
+    EI_NAN_AUDIT(pending);
+    if (pending < 0.0f) {
         float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(gamecrt::Ftol(pending))));
         pending_ = fraction;
         if (fraction > -0.5f) pending_ = fraction - 1.0f;
     } else if (pending > 0.0f) {
         float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(gamecrt::Ftol(pending))));
         pending_ = fraction;
-        if (!(fraction >= 0.5f)) pending_ = fraction + 1.0f;
+        if (fraction < 0.5f) pending_ = fraction + 1.0f;
     }
     scrollDirection_ = 0;
     scrollTimer_ = 0.0f;

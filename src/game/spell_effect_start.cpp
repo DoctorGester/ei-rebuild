@@ -75,7 +75,7 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
     velocity.z = 0.0f;
     float distance;
     PlanarLength(&velocity, &distance);
-    if (!(speed > 0.0f)) speed = kDefaultSpeed;
+    speed = speed > 0.0f ? speed : kDefaultSpeed;
     e->timer = FlightTicks(&distance, &speed) - 2;
     ScaleToSpeed(&velocity, &speed);
 

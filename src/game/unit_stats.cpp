@@ -138,10 +138,10 @@ double UnitStats::Reduce(float value) {
     double taken = kZero;   // accumulated on the FPU stack in the original
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind < 1) continue;
-        if (!(slot.current >= kZero)) {
-            taken = value * slot.factor + taken;
-        } else {
+        if (slot.current >= kZero) {
             taken = (slot.maximum - slot.current) / slot.maximum * slot.factor * value + taken;
+        } else {
+            taken = value * slot.factor + taken;   // also NaN
         }
     }
     return value - taken;   // unrounded (ST0)

@@ -174,7 +174,7 @@ int EmitBurst(CParticleSource* s, Particle* p, BoltPoint* points) {
         vx = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
         double y = Range(-1.0f, 1.0f);
         vy = static_cast<float>(y);
-        if (!(y * D(vy) + D(vx) * D(vx) >= D(EI_ONE))) break;
+        if (y * D(vy) + D(vx) * D(vx) < D(EI_ONE)) break;   // random: never NaN
         if (!(--tries > 0)) break;
     }
     p->drift = {vx, vy, 0.0f};

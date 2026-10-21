@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 
@@ -94,7 +95,8 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     out->Empty();
     if (frame == 0) return 0;
     double at = frame;
-    if (!(at >= from)) return 0;   // before `from`, or NaN
+    EI_NAN_AUDIT(from);
+    if (at < from) return 0;   // before `from`
     if (at >= to) return 0;
     if (miss) {
         *out = "weapons\\miss.wav";
@@ -199,7 +201,8 @@ void CUnitClientSpecific::PlayStepSounds() {
         lastAnimationTime = 0.0f;
         lastAnimation = current;
     }
-    if (!(now < lastAnimationTime || now > lastAnimationTime)) return;   // the same frame, or NaN
+    EI_NAN_AUDIT(now, lastAnimationTime);
+    if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
     CSoundManager* sounds = sound::Manager();
     std::uint32_t kind = current->key & kKeyKind;
@@ -279,11 +282,12 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
         float cosine = static_cast<float>(facing.y / length);
         float clamped = cosine;
+        EI_NAN_AUDIT(clamped, facing.x);
         if (clamped > 1.0f) clamped = 1.0f;
-        else if (!(clamped >= -1.0f)) clamped = -1.0f;   // NaN too
+        else if (clamped < -1.0f) clamped = -1.0f;
         float angle = static_cast<float>(kPi - std::acos(static_cast<double>(clamped)));
         float turn = angle;
-        if (!(facing.x >= 0.0f)) turn = -turn;   // NaN too
+        if (facing.x < 0.0f) turn = -turn;
         float sizeY = foot->bounds_.boxMax.y;
         float sizeX = foot->bounds_.boxMax.x;
         int shown = AllFootprintsShown() || (unit->flags_ & kFlagPrintsShown) ? 1 : 0;

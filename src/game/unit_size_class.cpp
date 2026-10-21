@@ -40,14 +40,14 @@ void CUnit::UpdateSizeClass() {
     // The larger half extent, selected bitwise by FCOMP's C0: above.y when above.x is below it or NaN.
     float extentX = above.x;
     float extentY = above.y;
-    float extent = !(extentX >= extentY) ? extentY : extentX;
+    float extent = extentX >= extentY ? extentX : extentY;
     float height = extent * kHeightScale;
     standingHeight = height;
     unitRadius = height + kRadiusExtra;
     if (player) standingHeight = height + kPlayerExtra;
     // At most 2, selected the same way: 2 when below the height or NaN.
     float limited = standingHeight;
-    standingHeight = !(kMaxHeight >= limited) ? kMaxHeight : limited;
+    standingHeight = kMaxHeight >= limited ? limited : kMaxHeight;
     if (sizeClass != 0) return;
     // The prototype by prototypeId_; out of range the original reads address 0x24 (kept).
     auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(prototypeId_, unitdb::kPrototypeSize));

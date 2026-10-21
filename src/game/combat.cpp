@@ -194,7 +194,7 @@ EI_REPLACE_METHOD(0x0054B6C0, CUnitServer::AttacksFromRange);
 int CUnitServer::ScaledItemValue(const CItem* item) {
     if (!item) return 0;
     double factor = Combat().rate;    // stays on the FPU stack
-    if (factor < kZero || factor > kZero) factor = kFifteen / factor;
+    if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
     // +0x4C of the item's kind (CItemWeapon::actionValue_ and the others' at the same place).
     float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->actionValue_) * factor);
     return x87::fistp(value);
@@ -203,7 +203,7 @@ EI_REPLACE_METHOD(0x0054B760, CUnitServer::ScaledItemValue);
 
 int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
     float factor = Combat().rate;
-    if (factor < kZero || factor > kZero) factor = kFifteen / factor;
+    if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
     if (kind != 3) return 0;
     int value;
     if (item) value = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype())->category);
@@ -471,7 +471,8 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
             // The first damage type with a non-zero weight; left as it was when there is none.
             for (int i = 0; i < 7; ++i) {
                 float weight = std::bit_cast<float>(model->damageWeights[i]);
-                if (weight < kZero || weight > kZero) {
+                EI_NAN_AUDIT(weight);
+                if (weight != kZero) {
                     out->damageType = i;
                     break;
                 }
@@ -563,7 +564,8 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         std::memcpy(&out->attackRoll, &roll, sizeof(roll));
         double extra = kZero;
         float spread = Combat().damageSpread;
-        if (spread < kZero || spread > kZero) {
+        EI_NAN_AUDIT(spread);
+        if (spread != kZero) {
             float scaled = spread * kHundred;
             int sides = x87::fistp(scaled);
             std::uint32_t random = GlobalRandom().Next();
@@ -638,7 +640,8 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     AttackParams mine;
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > kOne) mine.defence = 0;
-    if (!(static_cast<double>(mine.defence) > std::bit_cast<float>(hit->attackRoll))) {
+    EI_NAN_AUDIT(std::bit_cast<float>(hit->attackRoll));
+    if (static_cast<double>(mine.defence) <= std::bit_cast<float>(hit->attackRoll)) {
         stats.flags |= 0x10;
         unit->MarkChanged(4);
         TriggerItemSpells(1);
