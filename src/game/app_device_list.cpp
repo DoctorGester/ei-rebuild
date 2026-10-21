@@ -106,7 +106,7 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVecto
         for (LeverRecord* r = kept; r != list->end(); ++r) RecordDestruct(r);
         list->Finish() = kept;
         n = ar->CountChunks(1);
-        recordvec::LeverVector::ResizeDefault(list, nullptr, static_cast<unsigned>(n));
+        static_cast<recordvec::LeverVector*>(list)->ResizeDefault(static_cast<unsigned>(n));
     } else {
         n = static_cast<int>(list->size());
     }

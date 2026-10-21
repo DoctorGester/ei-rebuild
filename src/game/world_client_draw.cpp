@@ -228,7 +228,7 @@ void EmptyDeferred() {
     while (node != head) {
         Node* current = node;
         node = node->next;
-        ObjectHolderDelete(&current->data, nullptr, 0);
+        ObjectHolderRelease(&current->data);
         stlp::deallocate(current, sizeof(Node));
         head = deferred->head;
     }

@@ -70,7 +70,7 @@ using Registry = CFileRegistry;
 // and the element assignment [006B4D40] (MFC template instantiations; the original inlines the
 // second SetSize and the first assignment, identically).
 void ThemesSetSize(void* themes, int size) {
-    recordarrays::Themes::SetSize(static_cast<recordarrays::Themes::Array*>(themes), nullptr, size, -1);
+    static_cast<recordarrays::Themes::Array*>(themes)->SetSize(size, -1);
 }
 
 // The theme being read, laid out as MusicTheme with constructed members.

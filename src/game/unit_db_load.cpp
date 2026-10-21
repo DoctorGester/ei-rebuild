@@ -157,7 +157,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
             if (ar.loading_) {
                 recordvec::SkillLevelVector::Clear(&levels);   // 00520C20
                 count = ar.CountChunks(kRecordChunk);
-                recordvec::SkillLevelVector::ResizeDefault(&levels, nullptr, static_cast<std::uint32_t>(count));
+                static_cast<recordvec::SkillLevelVector*>(&levels)->ResizeDefault(static_cast<std::uint32_t>(count));
             } else {
                 count = static_cast<int>(levels.size());
             }

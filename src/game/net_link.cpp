@@ -34,12 +34,12 @@ Queue::List* AsQueue(QueueNode** queue) { return reinterpret_cast<Queue::List*>(
 Queue::Node* AsNode(QueueNode* node) { return reinterpret_cast<Queue::Node*>(node); }
 QueueNode* InsertDefault(QueueNode** queue, QueueNode* pos) {
     Queue::Node* inserted;
-    Queue::InsertDefault(AsQueue(queue), nullptr, &inserted, AsNode(pos));
+    static_cast<Queue*>(AsQueue(queue))->InsertDefault(&inserted, AsNode(pos));
     return reinterpret_cast<QueueNode*>(inserted);
 }
 void Erase(QueueNode** queue, QueueNode* pos) {
     Queue::Node* next;
-    Queue::Erase(AsQueue(queue), nullptr, &next, AsNode(pos));
+    static_cast<Queue*>(AsQueue(queue))->Erase(&next, AsNode(pos));
 }
 inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
@@ -228,7 +228,7 @@ LoopbackLink* LoopbackLink::New() {
     auto* self = net::NewMessageMemory<LoopbackLink>();
     if (!self) return nullptr;
     self->NetLink::Construct();
-    Queue::Construct(AsQueue(&self->queue_), nullptr, nullptr);
+    static_cast<Queue*>(AsQueue(&self->queue_))->Construct(nullptr);
     self->peer_ = nullptr;   // 00478FB0, the null counted pointer
     ei::SetVtable(self, kVtableAddress);
     return self;
@@ -292,7 +292,7 @@ int LoopbackLink::OnShutdown() {   // 00478610
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::kVtableAddress);
     NetLink::Construct();
-    Queue::Construct(AsQueue(&queue_), nullptr, nullptr);
+    static_cast<Queue*>(AsQueue(&queue_))->Construct(nullptr);
     peer_ = nullptr;
     ei::SetVtable(this, kVtableAddress);
     return 0;
@@ -309,7 +309,7 @@ LoopbackLink* LoopbackLink::Clone() {   // 004784D0
     copy->queue_ = header;
     header->next = header;
     copy->queue_->prev = copy->queue_;
-    Queue::InsertRange(AsQueue(&copy->queue_), nullptr, AsNode(copy->queue_->next), AsNode(queue_->next), AsNode(queue_));
+    static_cast<Queue*>(AsQueue(&copy->queue_))->InsertRange(AsNode(copy->queue_->next), AsNode(queue_->next), AsNode(queue_));
     copy->peer_ = peer_;
     if (copy->peer_) ++copy->peer_->refs_;
     ei::SetVtable(copy, kVtableAddress);

@@ -89,20 +89,20 @@ EI_REPLACE_METHOD(0x005D1140, PatrolMode::Rebuild);
 
 // 005D9E40 (and its thunk 005D9590; RET 8): point `index` copied into `out`: the position, then a
 // new look array sized to the source's (new looks zeroed) with each look copied.
-PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*, PatrolPoint* out, int index) {
-    const PatrolPoint& source = points->data[index];
+PatrolPoint* PatrolPointArray::CopyAt(PatrolPoint* out, int index) const {
+    const PatrolPoint& source = data[index];
     std::memcpy(&out->position, &source.position, sizeof(Vector3));
     out->looks.Construct(mfc::impl::AiLookRecordArrayClass::Vtable());
     out->looks.SetSize(source.looks.size, -1);
     for (int i = 0; i < source.looks.size; ++i) out->looks.data[i] = source.looks.data[i];
     return out;
 }
-EI_REWRITTEN(0x005D9E40, PatrolPointCopyAt);
-EI_REWRITTEN(0x005D9590, PatrolPointCopyAt);
+EI_REWRITTEN(0x005D9E40, PatrolPointArray::CopyAt);
+EI_REWRITTEN(0x005D9590, PatrolPointArray::CopyAt);
 
 // 005D0F90 (slot 3): a copy with its own points. The reference count dword is cleared before the
 // allocation's null test; the abstract base's vtable stands while the points are copied, each
-// through a temporary copy of the source point (PatrolPointCopyAt) whose looks are freed after.
+// through a temporary copy of the source point (PatrolPointArray::CopyAt) whose looks are freed after.
 PatrolMode* PatrolMode::Clone() {
     auto* clone = static_cast<PatrolMode*>(gamecrt::operator_new(sizeof(PatrolMode)));
     std::memset(&clone->refs, 0, 4);
@@ -116,7 +116,7 @@ PatrolMode* PatrolMode::Clone() {
     clone->points.SetSize(points.size, -1);
     for (int i = 0; i < points.size; ++i) {
         PatrolPoint temporary;
-        PatrolPointCopyAt(&points, nullptr, &temporary, i);
+        points.CopyAt(&temporary, i);
         PatrolPoint& target = clone->points.data[i];
         std::memcpy(&target.position, &temporary.position, sizeof(Vector3));
         target.looks.SetSize(temporary.looks.size, -1);
@@ -178,24 +178,24 @@ AIMode* __fastcall aimode::ConstructActionBase(AIMode* mode) {
 }
 EI_REWRITTEN(0x005D6D10, aimode::ConstructActionBase);
 
-void __fastcall PatrolPointsDestruct(PatrolPointArray* points) {
-    points->vtable = aimode::kPatrolPointsBaseVtable;
-    if (!points->data) return;
-    for (int i = 0; i < points->size; ++i) {
-        AILookArray& looks = points->data[i].looks;
+void PatrolPointArray::Destruct() {
+    vtable = aimode::kPatrolPointsBaseVtable;
+    if (!data) return;
+    for (int i = 0; i < size; ++i) {
+        AILookArray& looks = data[i].looks;
         looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
         if (looks.data) gamecrt::operator_delete(looks.data);
     }
-    gamecrt::operator_delete(points->data);
+    gamecrt::operator_delete(data);
 }
-EI_REWRITTEN(0x005D8CF0, PatrolPointsDestruct);
-EI_REWRITTEN(0x005D95B0, PatrolPointsDestruct);
+EI_REWRITTEN(0x005D8CF0, PatrolPointArray::Destruct);
+EI_REWRITTEN(0x005D95B0, PatrolPointArray::Destruct);
 
-PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags) {
-    PatrolPointsDestruct(points);
-    if (flags & 1) gamecrt::operator_delete(points);
-    return points;
+PatrolPointArray* PatrolPointArray::DeletingDestruct(int flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x005D8CD0, PatrolPointsDeletingDestruct);
-EI_REPLACE(0x005D9D00, PatrolPointsDeletingDestruct);   // byte-identical copy (A-W12)
+EI_REPLACE_METHOD(0x005D8CD0, PatrolPointArray::DeletingDestruct);
+EI_REPLACE_METHOD(0x005D9D00, PatrolPointArray::DeletingDestruct);   // byte-identical copy (A-W12)
 

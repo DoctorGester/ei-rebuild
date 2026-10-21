@@ -139,7 +139,7 @@ void StringListField(ChunkArchive* ar, int id, stlp::vector<stlp::string>* list)
     if (ar->loading_) {
         list->EraseRange<stlp::StringElement>(list->begin(), list->end());
         count = ar->CountChunks(1);
-        stlp::VectorAbi<stlp::string, stlp::StringElement>::ResizeDefault(list, nullptr, static_cast<unsigned>(count));
+        static_cast<stlp::VectorAbi<stlp::string, stlp::StringElement>*>(list)->ResizeDefault(static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(list->size());
     }

@@ -127,6 +127,17 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   call-through blocks (no body to move). UI input shims are registered as `InputForward<&Class::Method>::Call` and
   `UiInput::DeleteWindow<&Class::Delete>` (ui_screens.h: the self is the input sub-object, the window found with
   `WindowFromInput`). Classes added for the factories: `CClientSpecificManager`, `CEffectManager` (base_manager.h).
+- **Container Abi types are derived.** The src/lib `*Abi` wrappers (ArrayAbi, ListAbi, MapAbi, StringAbi, VectorAbi, stlp
+  ListAbi / DequeAbi / HashtableAbi / TreeAbi, the pair structs) derive from the container, so the instantiation's
+  functions are the container's own members (`CArray::SetSize`, `CList::NewNode`, `hashtable::Resize`, ...) or members of the
+  Abi type, registered by member pointer; calls on an untyped container are `static_cast<Abi*>(container)->Member(args)`.
+  A member that has the container's name (`Clear<E>`) hides it: call `Base::template Name<E>()`. Out-pointer iterators stay
+  `Node** out` parameters. Types the original calls the members on get derived structs (`BridgeHeights`, `PatrolPoints`,
+  `GlobalMapZoneTable`, `MpAddresses`, `PartyMembers`, `SectorCellObjects`, `CountedUnits`; check_cleanup forbids new
+  `...Array` / `...List` / `...Map` struct names in game files, so a `using OldName = New;` follows). `ScalarDelete<&Destruct>`
+  (mfc_slots.h) is the one shared deleting-destructor shim. Left as shims: the serialiser templates (SerializeCArray / CList
+  / CMap / StringArray, one per template), the pair structs of hash_map / map instantiations (ShapePair, FiguredGroups),
+  free-function `void*` selfs, and the Rebirth-patched input handlers.
 - **Constants with homes.** Vtables are `static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x...)` on the
   class (check_cleanup does not count that spelling); shared ones: `CRefCounted::kVtableAddress` (0073BB68),
   `CRefObject::kVtableAddress` (0073BB58), `GameBuffer::kGrowingVtableAddress` (0073D624) / `kViewBaseVtableAddress`

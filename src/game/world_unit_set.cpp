@@ -113,7 +113,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
                               stlp::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
     Get(stream, &count, 4);
-    recordvec::FiguredUnitVector::ResizeDefault(figured, nullptr, count);
+    static_cast<recordvec::FiguredUnitVector*>(figured)->ResizeDefault(count);
     for (FiguredUnitRecord* record = figured->begin(); record != figured->end(); ++record) {
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->armourIds);
@@ -125,12 +125,12 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->morphU, 4);
         std::uint32_t names;
         Get(stream, &names, 4);
-        stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>::ResizeDefault(&recordvec::FiguredUnitElement::NamesOf(*record), nullptr, names);   // 0051F5B0
+        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(&recordvec::FiguredUnitElement::NamesOf(*record))->ResizeDefault(names);   // 0051F5B0
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
             stream->ReadInto(reinterpret_cast<mfc::CString*>(&record->names[i]));
     }
     Get(stream, &count, 4);
-    recordvec::DressedUnitVector::ResizeDefault(dressed, nullptr, count);
+    static_cast<recordvec::DressedUnitVector*>(dressed)->ResizeDefault(count);
     for (DressedUnitRecord* record = dressed->begin(); record != dressed->end(); ++record) {
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->items);

@@ -423,9 +423,9 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         list.Construct();
         alignas(StockRecipeMap::Value) std::uint8_t storage[sizeof(StockRecipeMap::Value)];
         auto* pair = reinterpret_cast<StockRecipeMap::Value*>(storage);
-        stlp::PairAbi::ConstructStringList(reinterpret_cast<stlp::StringListPair*>(pair), nullptr, &recipe->spell, &list);
+        reinterpret_cast<stlp::StringListPair*>(pair)->Construct(recipe->spell, list);
         StockList* entries = &spellMap.FindOrInsert(*pair).mapped;
-        stlp::PairAbi::DestroyStringList(reinterpret_cast<stlp::StringListPair*>(pair));
+        reinterpret_cast<stlp::StringListPair*>(pair)->Destruct();
         list.Release();
         StockList::Insert(entries->End(), static_cast<void*>(value));
     }

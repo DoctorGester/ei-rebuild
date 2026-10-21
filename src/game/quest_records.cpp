@@ -22,9 +22,9 @@ void __fastcall BriefingDestroy(QuestBriefingRecord* record) { record->Destruct(
 // The vectors' serialiser (one instantiation per record type in the original): chunk `id`
 // holding one chunk 1 per record; loading destroys the old records (erase(begin, end): the tail
 // copy is empty) and resizes to the number of record chunks first.
-template <typename Record>
+template <typename Record, typename Abi>
 void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, void(__fastcall* destroy)(Record*),
-                      void(__fastcall* resize)(stlp::vector<Record>*, void*, unsigned),
+                      void (Abi::*resize)(std::size_t),
                       void (Record::*serialize)(ChunkArchive*)) {
     if (!ar->EnterChunk(id)) return;
     int count;
@@ -33,7 +33,7 @@ void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, v
         for (Record* p = records->Start(); p != end; ++p) destroy(p);
         records->Finish() = records->Start();
         count = ar->CountChunks(1);
-        resize(records, nullptr, static_cast<unsigned>(count));
+        (static_cast<Abi*>(records)->*resize)(static_cast<std::size_t>(count));
     } else {
         count = static_cast<int>(records->size());
     }
@@ -161,12 +161,12 @@ void QuestBriefingRecord::ConstructDefault() {
 }
 
 void ChunkArchive::SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void*) {
-    SerializeRecords(this, id, quests, QuestDestroy, recordvec::QuestVector::ResizeDefault, &QuestRecord::Serialize);
+    SerializeRecords(this, id, quests, QuestDestroy, &recordvec::QuestVector::ResizeDefault, &QuestRecord::Serialize);
 }
 EI_REWRITTEN(0x006B1F20, ChunkArchive::SerializeQuests);
 
 void ChunkArchive::SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void*) {
-    SerializeRecords(this, id, briefings, BriefingDestroy, recordvec::BriefingVector::ResizeDefault,
+    SerializeRecords(this, id, briefings, BriefingDestroy, &recordvec::BriefingVector::ResizeDefault,
                      &QuestBriefingRecord::Serialize);
 }
 EI_REWRITTEN(0x006B2010, ChunkArchive::SerializeBriefings);

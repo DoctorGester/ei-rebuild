@@ -35,15 +35,15 @@ std::uint16_t& FlagsWord(AIMapCell* cell) { return *reinterpret_cast<std::uint16
 // 005B30B0 (thiscall on the bridge map, RET 0x10; x and y are read as shorts). A cell that has an
 // entry gets back its ground level, its object height (flags & 0x3F) and the occluder word's low
 // five bits; the entry is erased.
-void __fastcall RestoreBridgeCell(BridgeMap* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
-    BridgeNode* node = map->Find(BridgeKey(x, y));
+void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
+    BridgeNode* node = Find(BridgeKey(x, y));
     if (!node) return;
     cell->groundLevel = static_cast<std::uint16_t>(node->value);
     FlagsWord(cell) = static_cast<std::uint16_t>((FlagsWord(cell) & 0xFFC0) | ((node->value >> 16) & 0x3F));
     *occluder = (*occluder & 0xFFFFFFE0u) | ((node->value >> 24) & 0x1F);
-    map->Erase(node);   // 005BCE60
+    Erase(node);   // 005BCE60
 }
-EI_REWRITTEN(0x005B30B0, RestoreBridgeCell);
+EI_REWRITTEN(0x005B30B0, BridgeHeights::RestoreCell);
 
 bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {
@@ -57,7 +57,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
             int deck;
             if (!BridgeDeckAt(x, y, &deck)) {
                 if (cell->flags & kCellBridge)
-                    RestoreBridgeCell(&bridgeHeights, nullptr, x, y, &cells[y][x], &occluders[y][x]);
+                    bridgeHeights.RestoreCell(x, y, &cells[y][x], &occluders[y][x]);
                 std::uint16_t w = FlagsWord(cell) & 0xFFBF;
                 FlagsWord(cell) = static_cast<std::uint16_t>(((w & 0x3F) ? 0x80 : 0) | (w & 0xFF7F));
             } else {

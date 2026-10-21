@@ -55,7 +55,7 @@ __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const ch
 // 0064B060 (thiscall, RET 8): the entries' CArray SetSize (zeroed new entries; `growBy` -1 keeps
 // the step). The original inlines the same code after each sprite.
 void EntriesSetSize(void* entries, int size) {
-    mfc::impl::Plain12::SetSize(static_cast<mfc::impl::Plain12::Array*>(entries), nullptr, size, -1);
+    static_cast<mfc::impl::Plain12::Array*>(entries)->SetSize(size, -1);
 }
 
 // The item's slot 19 (the picture's name) and 20 (the model's name).

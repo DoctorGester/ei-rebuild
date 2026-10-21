@@ -381,7 +381,7 @@ void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;
     CInterface3D* slot = ui;
-    ItemCache::ConstructWith(CacheAt(self, 0x170), nullptr, &junk, &slot);
+    static_cast<ItemCache*>(CacheAt(self, 0x170))->ConstructWith(&junk, &slot);
     SetDword(self, 0x17C, 50);
     ItemCache::Construct(CacheAt(self, 0x180));
     SetDword(self, 0x18C, 50);

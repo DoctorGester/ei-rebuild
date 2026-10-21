@@ -506,7 +506,7 @@ private:
 // The game's instantiations are __thiscall members, declared as __fastcall functions with the
 // unused EDX second. Iterators are returned through a hidden first argument.
 template <typename Traits>
-struct HashtableAbi {
+struct HashtableAbi : hashtable<Traits> {
     using Table = hashtable<Traits>;
     using Node = typename Table::Node;
     using Value = typename Traits::Value;
@@ -515,10 +515,9 @@ struct HashtableAbi {
 
     // hashtable(n, hf, eql, a) (e.g. 00405820; RET 0x10): returns this. The key extractor's byte
     // is whatever the stack slot of the hasher argument holds: the low byte of that pointer.
-    static Table* __fastcall Construct(Table* self, void*, std::size_t n, const std::uint8_t* hasher,
-                                       const std::uint8_t* equal, const void*) {
-        self->Construct(n, *hasher, *equal, static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(hasher)));
-        return self;
+    Table* Construct(std::size_t n, const std::uint8_t* hasher, const std::uint8_t* equal, const void*) {
+        Table::Construct(n, *hasher, *equal, static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(hasher)));
+        return this;
     }
     // hash_map() / hash_set() (e.g. 004639D0): hashtable(100, ...) inlined; the functor bytes are
     // an uninitialised stack byte in the original (0 here). Returns this.
@@ -526,63 +525,60 @@ struct HashtableAbi {
         self->Construct(100, 0, 0, 0);
         return self;
     }
-    // _M_initialize_buckets(n) (e.g. 0040AA80; RET 4).
-    static void __fastcall InitializeBuckets(Table* self, void*, std::size_t n) { self->InitializeBuckets(n); }
-    // resize(hint) (e.g. 00406640; RET 4).
-    static void __fastcall Resize(Table* self, void*, std::size_t hint) { self->Resize(hint); }
+    // _M_initialize_buckets(n) (e.g. 0040AA80; RET 4), resize(hint) (e.g. 00406640; RET 4), erase(key)
+    // (e.g. 006BCCD0; RET 4: the number erased) and _M_copy_from(ht) (e.g. 004AA950; RET 4) are
+    // hashtable's own members, registered through this type.
     // find(key) (e.g. 00405560; RET 8): the iterator into *out; returns out.
-    static Iterator* __fastcall Find(Table* self, void*, Iterator* out, const Key* key) {
-        out->cur = self->Find(*key);
-        out->table = self;
+    Iterator* Find(Iterator* out, const Key& key) {
+        out->cur = Table::Find(key);
+        out->table = this;
         return out;
     }
     // begin() (e.g. 00404C30; RET 4).
-    static Iterator* __fastcall Begin(Table* self, void*, Iterator* out) {
-        out->cur = self->First();
-        out->table = self;
+    Iterator* Begin(Iterator* out) {
+        out->cur = Table::First();
+        out->table = this;
         return out;
     }
     // _M_next_size(n) (__stl_next_prime inlined, e.g. 0040AE00; RET 4): ECX is not read.
-    static std::size_t __fastcall NextSize(const Table*, void*, std::size_t n) { return NextPrime(n); }
+    std::size_t NextSize(std::size_t n) const { return NextPrime(n); }
     // _M_bkt_num_key(key) (0055C5C0; RET 4).
-    static std::size_t __fastcall BucketOfKey(const Table* self, void*, const Key* key) { return self->BucketOf(*key); }
+    std::size_t BucketOfKey(const Key& key) const { return Table::BucketOf(key); }
     // find_or_insert(obj) (e.g. 004065D0; RET 4): the stored value.
-    static Value* __fastcall FindOrInsert(Table* self, void*, const Value* obj) { return &self->FindOrInsert(*obj); }
+    Value* FindOrInsert(const Value& obj) { return &Table::FindOrInsert(obj); }
     // hash_map::operator[](key) (e.g. 004055A0; RET 4): find_or_insert of {key, zeroes}; the
     // address of the mapped part (after the key dword).
-    static void* __fastcall Subscript(Table* self, void*, const Key* key) {
+    void* Subscript(const Key& key) {
         Value obj{};
-        obj.key = *key;
-        return reinterpret_cast<unsigned char*>(&self->FindOrInsert(obj)) + sizeof(Key);
+        obj.key = key;
+        return reinterpret_cast<unsigned char*>(&Table::FindOrInsert(obj)) + sizeof(Key);
     }
     // hash_map::operator[](key) with a string key (e.g. 004297A0; RET 4): find_or_insert of a
     // temporary {copy of key, zeroes}, which is destroyed after; the address of the mapped part.
-    static void* __fastcall SubscriptKey(Table* self, void*, const Key* key) {
-        Value obj(*key);
-        return &self->FindOrInsert(obj).mapped;
+    void* SubscriptKey(const Key& key) {
+        Value obj(key);
+        return &Table::FindOrInsert(obj).mapped;
     }
     // hashtable(const hashtable&) (e.g. 004A8A50; RET 4): returns this.
-    static Table* __fastcall CopyConstruct(Table* self, void*, const Table* source) {
-        self->CopyConstruct(*source);
-        return self;
+    Table* CopyConstruct(const Table& source) {
+        Table::CopyConstruct(source);
+        return this;
     }
     // operator= (e.g. 004A8AD0; RET 4): returns this.
-    static Table* __fastcall Assign(Table* self, void*, const Table* source) {
-        self->Assign(*source);
-        return self;
+    Table* Assign(const Table& source) {
+        Table::Assign(source);
+        return this;
     }
-    // _M_copy_from(ht) (e.g. 004AA950; RET 4).
-    static void __fastcall CopyFrom(Table* self, void*, const Table* source) { self->CopyFrom(*source); }
     // pair<iterator, bool> (insert_unique's result): only the bool's byte is written after the iterator.
     struct InsertResult {
         Iterator it;
         bool inserted;
     };
     // insert_unique(obj) (0066B400; RET 8): the result into *out; returns out.
-    static InsertResult* __fastcall InsertUnique(Table* self, void*, InsertResult* out, const Value* obj) {
+    InsertResult* InsertUnique(InsertResult* out, const Value& obj) {
         bool inserted = false;
-        out->it.cur = self->InsertUnique(*obj, inserted);
-        out->it.table = self;
+        out->it.cur = Table::InsertUnique(obj, inserted);
+        out->it.table = this;
         out->inserted = inserted;
         return out;
     }
@@ -592,34 +588,32 @@ struct HashtableAbi {
         Iterator last;
     };
     // equal_range(key) (0055B5C0; RET 8): the range into *out (EAX is not read).
-    static void __fastcall EqualRange(Table* self, void*, Range* out, const Key* key) {
+    void EqualRange(Range* out, const Key& key) {
         Node* first;
         Node* last;
-        self->EqualRange(*key, first, last);
+        Table::EqualRange(key, first, last);
         out->first.cur = first;
-        out->first.table = self;
+        out->first.table = this;
         out->last.cur = last;
-        out->last.table = self;
+        out->last.table = this;
     }
     // insert_equal_noresize(obj) (0055B540; RET 8): the new node's iterator into *out; returns out.
-    static Iterator* __fastcall InsertEqualNoresize(Table* self, void*, Iterator* out, const Value* obj) {
-        Node* node = self->InsertEqualNoresize(*obj);
-        out->table = self;
+    Iterator* InsertEqualNoresize(Iterator* out, const Value& obj) {
+        Node* node = Table::InsertEqualNoresize(obj);
+        out->table = this;
         out->cur = node;
         return out;
     }
-    // erase(key) (e.g. 006BCCD0; RET 4): the number erased.
-    static std::size_t __fastcall EraseKey(Table* self, void*, const Key* key) { return self->EraseKey(*key); }
     // erase(const_iterator) (e.g. 00405620; RET 8: the iterator by value).
-    static void __fastcall EraseIterator(Table* self, void*, const Node* cur, const Table*) { self->EraseNode(cur); }
+    void EraseIterator(const Node* cur, const Table*) { Table::EraseNode(cur); }
     // clear() (e.g. 004067B0).
     static void __fastcall Clear(Table* self) { self->Clear(); }
     // ~hashtable() (e.g. 004A8B70).
     static void __fastcall Destroy(Table* self) { self->Destroy(); }
     // _M_new_node(obj) (e.g. 00407420; RET 4): the node.
-    static Node* __fastcall NewNode(Table*, void*, const Value* obj) { return Table::NewNode(*obj); }
+    Node* NewNode(const Value& obj) { return Table::NewNode(obj); }
     // _M_delete_node(n) (e.g. 004074B0; RET 4): nothing for null.
-    static void __fastcall DeleteNode(Table*, void*, Node* n) {
+    void DeleteNode(Node* n) {
         if (n) Table::DeleteNode(n);
     }
     // _Ht_iterator::_M_skip_to_next() (e.g. 004073C0): the node.
@@ -629,19 +623,22 @@ struct HashtableAbi {
         self->cur = self->table->Next(self->cur);
         return self;
     }
-    // _Ht_iterator::operator++(int) (0040A700; RET 8): the old iterator into *out; returns out.
-    static Iterator* __fastcall PostIncrement(Iterator* self, void*, Iterator* out, int) {
-        Iterator old = *self;
-        self->cur = self->table->Next(self->cur);
-        *out = old;
-        return out;
-    }
-    // _Ht_iterator(node, table) (e.g. 0040AD20; RET 8; also end() of some instantiations): returns this.
-    static Iterator* __fastcall ConstructIterator(Iterator* self, void*, Node* cur, Table* table) {
-        self->cur = cur;
-        self->table = table;
-        return self;
-    }
+    // The iterator's members at the instantiation's addresses.
+    struct IteratorAbi : Iterator {
+        // _Ht_iterator::operator++(int) (0040A700; RET 8): the old iterator into *out; returns out.
+        Iterator* PostIncrement(Iterator* out, int) {
+            Iterator old = *this;
+            this->cur = this->table->Next(this->cur);
+            *out = old;
+            return out;
+        }
+        // _Ht_iterator(node, table) (e.g. 0040AD20; RET 8; also end() of some instantiations): returns this.
+        Iterator* ConstructIterator(Node* node, Table* owner) {
+            this->cur = node;
+            this->table = owner;
+            return this;
+        }
+    };
 };
 
 // __stl_hash_string of a string (004298D0; ECX the string).

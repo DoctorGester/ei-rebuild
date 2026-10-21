@@ -210,7 +210,7 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
     ranges.words = {Append(words_, words, wordCount), wordCount};
     ranges.indices = {Append(indices_, indices, indexCount), indexCount};
 
-    *lib_trees::LinkRanges::Subscript(&ranges_, nullptr, name) = ranges;
+    *static_cast<lib_trees::LinkRanges*>(&ranges_)->Subscript(*name) = ranges;
     return true;
 }
 EI_REWRITTEN(0x004F30F0, CLinkMesh::AddPart);
@@ -219,7 +219,7 @@ EI_REWRITTEN(0x004F30F0, CLinkMesh::AddPart);
 
 void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name);
     FigHeader fig = Read<FigHeader>(cursor);
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
@@ -259,7 +259,7 @@ EI_REWRITTEN(0x004F7F00, CLinkFigureLoader::LoadFigPart);
 
 void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name);
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
     *cursor += 0xF0;   // the morphed bounds
@@ -301,7 +301,7 @@ EI_REWRITTEN(0x004F87D0, CLinkFigureLoader::LoadOldPart);
 
 void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name);
     FigHeader fig;
     std::memcpy(&fig, *cursor, sizeof(fig));
     *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
@@ -316,7 +316,7 @@ EI_REWRITTEN(0x004F9FD0, CLinkFigureLoader::RemorphFigPart);
 
 void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name);
+    LinkPartHeader* header = static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name);
     *cursor += 0xF8;   // two dwords and the morphed bounds
     int count = Read<int>(cursor);
     VertexPacket* packets = AllocatePackets(count);
@@ -404,7 +404,7 @@ bool CLinkMesh::RemovePartImpl(const stlp::string* name) {
     if (node == ranges_.end()) return false;
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
     LinkPartRanges removed = node->second;
-    lib_trees::LinkRanges::EraseAt(&ranges_, nullptr, node);   // 004F4E40
+    static_cast<lib_trees::LinkRanges*>(&ranges_)->EraseAt(node);   // 004F4E40
 
     CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count, sizeof(VertexPacket));
     CloseGap(normals_.data, normals_.size, removed.normals.start, removed.normals.count, sizeof(NormalPacket));

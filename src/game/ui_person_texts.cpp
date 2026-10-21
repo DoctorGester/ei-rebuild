@@ -43,8 +43,8 @@ void LoadPersonTexts(PersonTextMap* map) {
         if (node == map->end() || key < node->first) {
             mfc::CString empty;
             PersonTextPair pair{key, empty};
-            lib_trees::PersonTexts::InsertHint(map, nullptr, &node, node,   // 00609E70
-                                               reinterpret_cast<const lib_trees::PersonTexts::Value*>(&pair));
+            static_cast<lib_trees::PersonTexts*>(map)->InsertHint(&node, node, *(// 00609E70
+                                               reinterpret_cast<const lib_trees::PersonTexts::Value*>(&pair)));
         }
         node->second = line;
     }

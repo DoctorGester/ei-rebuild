@@ -46,7 +46,7 @@ struct PrintElement {
 // A sector grid's storage as the client's destructor frees it after setting the grid to 1 x 1: the
 // cells' lists (their vector deleting destructor), then the row pointers.
 void FreeGrid(SectorGrid& grid) {
-    if (grid.cells_) SectorListsDelete(grid.cells_, nullptr, 3);
+    if (grid.cells_) grid.cells_->VectorDelete(3);
     gamecrt::operator_delete(grid.rows_);
 }
 
@@ -253,7 +253,7 @@ void CWorldClient::Destruct() {
     DestroySectorList(&heroes_);
     countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();   // the client's +0xA0
     if (countedA0_.data) {
-        for (int i = 0; i < countedA0_.size; ++i) ObjectHolderDelete(&countedA0_.data[i], nullptr, 0);
+        for (int i = 0; i < countedA0_.size; ++i) ObjectHolderRelease(&countedA0_.data[i]);
         gamecrt::operator_delete(countedA0_.data);
     }
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(reinterpret_cast<gamearrays::Exits::Array*>(&exitsVtable_));

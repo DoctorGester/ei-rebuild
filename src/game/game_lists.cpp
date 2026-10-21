@@ -16,12 +16,12 @@ namespace gamelists {
 
 EI_REWRITTEN(0x0059A050, EngineObjects::RemoveAt);
 EI_REWRITTEN(0x00429E50, EngineObjects::RemoveAll);
-EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*, CEngineObject* object) {
-    EngineObjects::Node* node = self->NewNode(self->tail, nullptr);
+CountedEngineList::Node* CountedEngineList::AddTailCounted(CEngineObject* object) {
+    Node* node = NewNode(tail, nullptr);
     ObjectHolderAssign(&node->data, nullptr, object);
-    if (self->tail) self->tail->next = node;
-    else self->head = node;
-    self->tail = node;
+    if (tail) tail->next = node;
+    else head = node;
+    tail = node;
     return node;
 }
 EI_REWRITTEN(0x004C92C0, ObjectRefs::Destruct<gameslots::ObjectRefListClass>);
@@ -48,7 +48,7 @@ EI_REWRITTEN(0x00599CC0, Refs::RemoveAt);
 EI_REWRITTEN(0x00598EF0, Refs::RemoveAll);
 EI_REWRITTEN(0x005575F0, OwnedRefs::Destruct<gameslots::OwnedRefListClass>);
 EI_REWRITTEN(0x0052CE20, ObjectRefs::FreeNode);
-EI_REWRITTEN(0x00599FA0, CountedAddTail);
+EI_REWRITTEN(0x00599FA0, CountedEngineList::AddTailCounted);
 
 // ---- The script lists with the game's copy semantics (S7a) ----------------------------------------
 

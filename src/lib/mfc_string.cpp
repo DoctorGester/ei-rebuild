@@ -711,14 +711,11 @@ void __stdcall DestructStrings(CString* elements, int count) {
 // Constructors and the destructor are registered through shims (a member pointer cannot name them).
 
 namespace shim {
-CFixedAlloc* __fastcall FixedAllocConstruct(CFixedAlloc* self, void*, unsigned allocSize, unsigned blockSize) {
-    return self->Construct(allocSize, blockSize);
-}
 CString* __fastcall TextConstruct(CString* self, void*, const char* text) { return ::new (self) CString(text); }
 void __fastcall Destruct(CString* self) { self->~CString(); }
 } // namespace shim
 
-EI_REPLACE(0x006E6BCD, shim::FixedAllocConstruct);
+EI_REPLACE_METHOD(0x006E6BCD, CFixedAlloc::Construct);
 EI_REPLACE_METHOD(0x006E6BF5, CFixedAlloc::Destruct);
 EI_REWRITTEN(0x006E6C09, CFixedAlloc::FreeAll);
 EI_REWRITTEN(0x006E6C31, CFixedAlloc::Alloc);

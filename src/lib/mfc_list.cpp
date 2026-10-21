@@ -41,7 +41,7 @@ EI_REWRITTEN(0x0056FD40, ListHeader<ClientListClass>::Construct);
 EI_REWRITTEN(0x00570EA0, ListHeader<ClientList2Class>::Construct);
 EI_REWRITTEN(0x005715D0, ListHeader<ClientList3Class>::Construct);
 EI_REWRITTEN(0x00598EC0, ListHeader<TempListClass>::Construct);
-EI_REPLACE(0x005CDAD0, ListHeader<StaticListClass>::Construct);
+EI_REPLACE_METHOD(0x005CDAD0, ListHeader<StaticListClass>::Construct);
 EI_REWRITTEN(0x00545750, ListHeader<CellListClass>::ConstructFixed<0x80>);
 
 // The destructor: the vtable, RemoveAll.

@@ -73,7 +73,7 @@ using CellTable = stlp::HashtableAbi<stlp::DwordKeyTraits<28>>;
 CellTable::Table* CellTableOf(CVisibilityFog::CellMap* map) { return reinterpret_cast<CellTable::Table*>(map); }
 std::uint32_t* InsertCell(CVisibilityFog::CellMap* map, const std::uint32_t* pair) {
     return reinterpret_cast<std::uint32_t*>(
-        CellTable::FindOrInsert(CellTableOf(map), nullptr, reinterpret_cast<const CellTable::Value*>(pair)));
+        static_cast<CellTable*>(CellTableOf(map))->FindOrInsert(*reinterpret_cast<const CellTable::Value*>(pair)));
 }
 
 } // namespace
@@ -278,7 +278,7 @@ int CVisibilityFog::UpdateCells() {
     std::uint32_t* end = dead.end();
     for (std::uint32_t* key = dead.begin(); key != end; ++key) {
         std::uint32_t copy = *key;
-        CellTable::EraseKey(CellTableOf(&cells), nullptr, &copy);
+        CellTableOf(&cells)->EraseKey(copy);
     }
     return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
 }

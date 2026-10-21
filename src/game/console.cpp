@@ -57,7 +57,7 @@ GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
 GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
 
 
-CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return *lib_trees::Commands::Subscript(map, nullptr, &name); }
+CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return *static_cast<lib_trees::Commands*>(map)->Subscript(name); }
 
 namespace {
 

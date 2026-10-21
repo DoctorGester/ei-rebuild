@@ -99,7 +99,7 @@ using MapRecordArray = mfc::impl::OwnedDwordMaps::Array;
 using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (IndexArrayClass)
 
 // The value of `key` in `map`, inserted as 0 when missing (CMap::operator[], 00476050).
-std::uint32_t& At(DwordMap& map, std::uint32_t key) { return *Map32::ElementAt(&map, nullptr, &key); }
+std::uint32_t& At(DwordMap& map, std::uint32_t key) { return map.ElementAt(key); }
 
 } // namespace
 
@@ -199,7 +199,7 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
     std::uint32_t texture = r.texCoords.size ? face->texture[corner] : 0;
     std::uint32_t key = face->position[corner] << 16 | texture;
     std::uint32_t hash;
-    MapAssoc* assoc = Map32::GetAssocAt(&m.seen, nullptr, &key, &hash);
+    MapAssoc* assoc = m.seen.GetAssocAt(key, hash);
     if (!assoc || assoc->value == 0) {
         const std::uint32_t* point = r.Point(face->position[corner]);
         std::uint32_t x;
