@@ -355,7 +355,7 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     ei::SetVtable(this, 0x0073D840);
 
     device_ = device;
-    if (device) device->AddRef();
+    if (device) device::AddRef(device);
 
     std::memset(caps_, 0, sizeof(caps_));
     const HRESULT result = device::GetCaps(device_, &Caps(this));
@@ -392,7 +392,7 @@ void __fastcall RenderHelperDestruct(CRenderHelper* self) {
         stlp::deallocate(node, sizeof(Node));
     });
     self->records_.Destroy();
-    if (self->device_) self->device_->Release();
+    if (self->device_) device::Release(self->device_);
     SetRootVtable(self);
 }
 EI_REPLACE(0x004FCD50, RenderHelperDestruct);

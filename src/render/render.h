@@ -3,7 +3,7 @@
 // The new renderer: a sidecar module that draws the game's frame with sokol_gfx (Direct3D 11) from
 // data pulled out of the game (docs/notes/renderer.md) and presents it on the game window. The game
 // code that used to talk to the old Direct3D 7 path hands its data here instead; the Direct3D 7 calls
-// left in game code go to stand-ins that draw nothing (device.h).
+// left in game code go to the switch-over device, which draws nothing (device.h).
 //
 // The standalone image always draws with it: when the device object is built (StartPresenting) the
 // game gets no DirectDraw or Direct3D 7 device at all (ticket R9a), the new renderer presents through

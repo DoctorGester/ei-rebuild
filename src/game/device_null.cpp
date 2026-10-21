@@ -1,15 +1,11 @@
-// The switch-over device's stand-ins (ticket R9a; device.h, docs/notes/renderer.md section 9). With
-// the new renderer presenting, the device object has no DirectDraw object and no Direct3D device;
-// its IDirectDraw7 (+0x0C) and IDirect3DDevice7 (+0x54) pointers hold the two objects below. They
-// draw nothing. What the game reads back stays consistent: the device keeps the render and texture
-// stage states set on it (fed to the new renderer's mirror as well, render_state.h), records state
-// blocks and applies them, and answers the capability, display mode and video memory queries with
-// fixed values (the old device's under dgVoodoo where the game's logic depends on them). The state
-// itself is the switch-over device's (SwitchOverDevice below); the rewritten code reaches it without
-// the stand-ins through device::SetRenderState and the other calls of device.h (ticket R9b), which
-// call the real interface when there is one. Every stand-in method logs its first call from each
-// calling place ("old device: ..."; tools/old_device_calls.py lists them by function): what is left
-// there is the code of game.exe not rewritten yet.
+// The switch-over device (ticket R9a; device.h, docs/notes/renderer.md section 9). With the new
+// renderer presenting, the device object has no DirectDraw object and no Direct3D device: its
+// IDirectDraw7 (+0x0C) and IDirect3DDevice7 (+0x54) pointers hold two tokens (below), not interfaces.
+// The calls of device.h know them and answer from the switch-over device's state: what the game reads
+// back stays consistent (the render and texture stage states set, fed to the new renderer's mirror as
+// well, render_state.h; state blocks recorded and applied; the capability, display mode and video
+// memory queries answered with fixed values, the old device's under dgVoodoo where the game's logic
+// depends on them). A method called through a token directly ends the run naming its caller (R9b2).
 #include "device.h"
 
 #include "render/render_state.h"
@@ -18,60 +14,21 @@
 
 #include <intrin.h>
 
-#include <atomic>
+#include <array>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
+#include <utility>
 #include <vector>
 
 #pragma intrinsic(_ReturnAddress)
 
+namespace ei {
+void DescribeCode(std::uintptr_t address, char* out, std::size_t size);   // hook/standalone.cpp
+void ReportImageFailure(const char* what);                                // hook/standalone.cpp
+} // namespace ei
+
 namespace {
-
-// ---- Calls logged once per method and calling place ----------------------------------------------
-
-constexpr int kSeenSlots = 4096;
-constexpr int kMaxLogged = 400;
-std::atomic<std::uint64_t> g_seen[kSeenSlots];
-std::atomic<int> g_logged{0};
-
-// True the first time `method` is called from `caller`.
-bool FirstCall(std::uint32_t method, const void* caller) {
-    const std::uint64_t key = (static_cast<std::uint64_t>(method) << 32) | reinterpret_cast<std::uintptr_t>(caller);
-    std::uint32_t slot = static_cast<std::uint32_t>((key * 0x9E3779B97F4A7C15ull) >> 52) % kSeenSlots;
-    for (int probe = 0; probe < kSeenSlots; ++probe, slot = (slot + 1) % kSeenSlots) {
-        std::uint64_t expected = 0;
-        if (g_seen[slot].compare_exchange_strong(expected, key)) return true;
-        if (expected == key) return false;
-    }
-    return false;   // full: nothing more is logged
-}
-
-// "old device: IDirect3DDevice7::SetRenderState from game.exe 0050B22E" (or a module of ours with
-// its offset, resolvable through the build's map file).
-void Note(const char* interfaceName, const char* method, std::uint32_t id, const void* caller) {
-    if (!FirstCall(id, caller) || g_logged.fetch_add(1) >= kMaxLogged) return;
-    HMODULE module = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       static_cast<LPCSTR>(caller), &module);
-    char name[MAX_PATH] = "?";
-    if (module) {
-        char path[MAX_PATH];
-        DWORD n = GetModuleFileNameA(module, path, MAX_PATH);
-        if (n > 0 && n < MAX_PATH) {
-            const char* base = std::strrchr(path, '\\');
-            strncpy_s(name, base ? base + 1 : path, _TRUNCATE);
-        }
-    }
-    const auto address = reinterpret_cast<std::uintptr_t>(caller);
-    if (module == GetModuleHandleA(nullptr))
-        ei::Log("old device: %s::%s from %s %08X", interfaceName, method, name, static_cast<unsigned>(address));
-    else
-        ei::Log("old device: %s::%s from %s+%X", interfaceName, method, name,
-                static_cast<unsigned>(address - reinterpret_cast<std::uintptr_t>(module)));
-}
-
-#define EI_NOTE_D3D(method, id) Note("IDirect3DDevice7", method, id, _ReturnAddress())
-#define EI_NOTE_DD(method, id) Note("IDirectDraw7", method, 0x100 + (id), _ReturnAddress())
 
 // ---- Fixed values --------------------------------------------------------------------------------
 
@@ -184,8 +141,7 @@ DDCAPS DirectDrawCaps() {
 //
 // What a Direct3D 7 device and its DirectDraw object would keep, without either: the render and
 // texture stage states, the state blocks, the bound textures, the scene bracket, the viewport and the
-// display mode. The rewritten code reaches it through device::SetRenderState and the other calls
-// below (ticket R9b); the stand-ins (code of game.exe not rewritten yet) through their methods.
+// display mode. The code reaches it through device::SetRenderState and the other calls below.
 
 constexpr int kRenderStates = 256;
 constexpr int kStages = 8;
@@ -429,391 +385,59 @@ HRESULT FillDirectDrawCaps(LPDDCAPS driver, LPDDCAPS emulated) {
     return DD_OK;
 }
 
-// No surfaces in the switch-over: the holders that need pixels have the new renderer's memory.
-// The first ten refusals are logged.
-HRESULT RefuseSurface(const DDSURFACEDESC2* desc, LPDIRECTDRAWSURFACE7* out) {
-    static int refused = 0;
-    if (out) *out = nullptr;
-    if (refused++ < 10)
-        ei::Log("old device: a %lux%lu surface (caps %08lX) refused: the switch-over has no DirectDraw",
-                desc ? desc->dwWidth : 0ul, desc ? desc->dwHeight : 0ul, desc ? desc->ddsCaps.dwCaps : 0ul);
-    return DDERR_UNSUPPORTED;
-}
-
 HRESULT VideoMemory(LPDWORD total, LPDWORD free) {
     if (total) *total = kVideoMemory;
     if (free) *free = kVideoMemory;
     return DD_OK;
 }
 
-// ---- The IDirect3DDevice7 stand-in ----------------------------------------------------------------
+// ---- The device object's interface pointers -------------------------------------------------------
 //
-// For the code of game.exe that is not rewritten yet: each method logs its first call from each
-// calling place and answers from the switch-over device's state.
+// Tokens, not interfaces: the calls of device.h compare the pointer they are given with them. Each
+// slot of a token's method table ends the run naming its caller, so code that calls a method of the
+// old device directly instead of through device.h fails at once.
 
-class NullDirect3DDevice7 final : public IDirect3DDevice7 {
-public:
-    // IUnknown. One object for the whole run: references are not counted.
-    STDMETHOD(QueryInterface)(REFIID, LPVOID* out) override {
-        EI_NOTE_D3D("QueryInterface", 0);
-        if (out) *out = nullptr;
-        return E_NOINTERFACE;
-    }
-    STDMETHOD_(ULONG, AddRef)() override { return 1; }
-    STDMETHOD_(ULONG, Release)() override { return 1; }
+constexpr int kTrapSlots = 64;   // more than either interface has (IDirect3DDevice7 49, IDirectDraw7 30)
+const char* const kInterfaceNames[] = {"IDirect3DDevice7", "IDirectDraw7"};
 
-    STDMETHOD(GetCaps)(LPD3DDEVICEDESC7 desc) override {
-        EI_NOTE_D3D("GetCaps", 3);
-        return FillDeviceCaps(desc);
-    }
-    STDMETHOD(EnumTextureFormats)(LPD3DENUMPIXELFORMATSCALLBACK callback, LPVOID context) override {
-        EI_NOTE_D3D("EnumTextureFormats", 4);
-        return EnumFormats(callback, context);
-    }
-    STDMETHOD(BeginScene)() override {
-        EI_NOTE_D3D("BeginScene", 5);
-        return g_switchOver.BeginScene();
-    }
-    STDMETHOD(EndScene)() override {
-        EI_NOTE_D3D("EndScene", 6);
-        return g_switchOver.EndScene();
-    }
-    STDMETHOD(GetDirect3D)(LPDIRECT3D7* out) override {
-        EI_NOTE_D3D("GetDirect3D", 7);
-        if (out) *out = nullptr;
-        return DDERR_UNSUPPORTED;
-    }
-    STDMETHOD(SetRenderTarget)(LPDIRECTDRAWSURFACE7, DWORD) override {
-        EI_NOTE_D3D("SetRenderTarget", 8);
-        return D3D_OK;
-    }
-    STDMETHOD(GetRenderTarget)(LPDIRECTDRAWSURFACE7* out) override {
-        EI_NOTE_D3D("GetRenderTarget", 9);
-        if (out) *out = nullptr;
-        return DDERR_UNSUPPORTED;
-    }
-    STDMETHOD(Clear)(DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD) override {
-        EI_NOTE_D3D("Clear", 10);
-        return D3D_OK;
-    }
-    STDMETHOD(SetTransform)(D3DTRANSFORMSTATETYPE, LPD3DMATRIX) override {
-        EI_NOTE_D3D("SetTransform", 11);
-        return D3D_OK;
-    }
-    STDMETHOD(GetTransform)(D3DTRANSFORMSTATETYPE, LPD3DMATRIX matrix) override {
-        EI_NOTE_D3D("GetTransform", 12);
-        if (matrix) *matrix = D3DMATRIX{};
-        return D3D_OK;
-    }
-    STDMETHOD(SetViewport)(LPD3DVIEWPORT7 viewport) override {
-        EI_NOTE_D3D("SetViewport", 13);
-        if (viewport) g_switchOver.SetViewport(*viewport);
-        return D3D_OK;
-    }
-    STDMETHOD(MultiplyTransform)(D3DTRANSFORMSTATETYPE, LPD3DMATRIX) override {
-        EI_NOTE_D3D("MultiplyTransform", 14);
-        return D3D_OK;
-    }
-    STDMETHOD(GetViewport)(LPD3DVIEWPORT7 viewport) override {
-        EI_NOTE_D3D("GetViewport", 15);
-        if (viewport) *viewport = g_switchOver.Viewport();
-        return D3D_OK;
-    }
-    STDMETHOD(SetMaterial)(LPD3DMATERIAL7) override {
-        EI_NOTE_D3D("SetMaterial", 16);
-        return D3D_OK;
-    }
-    STDMETHOD(GetMaterial)(LPD3DMATERIAL7 material) override {
-        EI_NOTE_D3D("GetMaterial", 17);
-        if (material) *material = D3DMATERIAL7{};
-        return D3D_OK;
-    }
-    STDMETHOD(SetLight)(DWORD, LPD3DLIGHT7) override {
-        EI_NOTE_D3D("SetLight", 18);
-        return D3D_OK;
-    }
-    STDMETHOD(GetLight)(DWORD, LPD3DLIGHT7 light) override {
-        EI_NOTE_D3D("GetLight", 19);
-        if (light) *light = D3DLIGHT7{};
-        return D3D_OK;
-    }
-    STDMETHOD(SetRenderState)(D3DRENDERSTATETYPE state, DWORD value) override {
-        EI_NOTE_D3D("SetRenderState", 20);
-        g_switchOver.SetRenderState(static_cast<DWORD>(state), value);
-        return D3D_OK;
-    }
-    STDMETHOD(GetRenderState)(D3DRENDERSTATETYPE state, LPDWORD value) override {
-        EI_NOTE_D3D("GetRenderState", 21);
-        if (!value) return DDERR_INVALIDPARAMS;
-        *value = g_switchOver.RenderState(static_cast<DWORD>(state));
-        return D3D_OK;
-    }
-    STDMETHOD(BeginStateBlock)() override {
-        EI_NOTE_D3D("BeginStateBlock", 22);
-        return g_switchOver.BeginStateBlock();
-    }
-    STDMETHOD(EndStateBlock)(LPDWORD handle) override {
-        EI_NOTE_D3D("EndStateBlock", 23);
-        return g_switchOver.EndStateBlock(handle);
-    }
-    STDMETHOD(PreLoad)(LPDIRECTDRAWSURFACE7) override {
-        EI_NOTE_D3D("PreLoad", 24);
-        return D3D_OK;
-    }
-    STDMETHOD(DrawPrimitive)(D3DPRIMITIVETYPE, DWORD, LPVOID, DWORD, DWORD) override {
-        EI_NOTE_D3D("DrawPrimitive", 25);
-        return D3D_OK;
-    }
-    STDMETHOD(DrawIndexedPrimitive)(D3DPRIMITIVETYPE, DWORD, LPVOID, DWORD, LPWORD, DWORD, DWORD) override {
-        EI_NOTE_D3D("DrawIndexedPrimitive", 26);
-        return D3D_OK;
-    }
-    STDMETHOD(SetClipStatus)(LPD3DCLIPSTATUS) override {
-        EI_NOTE_D3D("SetClipStatus", 27);
-        return D3D_OK;
-    }
-    STDMETHOD(GetClipStatus)(LPD3DCLIPSTATUS status) override {
-        EI_NOTE_D3D("GetClipStatus", 28);
-        if (status) *status = D3DCLIPSTATUS{};
-        return D3D_OK;
-    }
-    STDMETHOD(DrawPrimitiveStrided)(D3DPRIMITIVETYPE, DWORD, LPD3DDRAWPRIMITIVESTRIDEDDATA, DWORD, DWORD) override {
-        EI_NOTE_D3D("DrawPrimitiveStrided", 29);
-        return D3D_OK;
-    }
-    STDMETHOD(DrawIndexedPrimitiveStrided)(D3DPRIMITIVETYPE, DWORD, LPD3DDRAWPRIMITIVESTRIDEDDATA, DWORD, LPWORD, DWORD,
-                                           DWORD) override {
-        EI_NOTE_D3D("DrawIndexedPrimitiveStrided", 30);
-        return D3D_OK;
-    }
-    STDMETHOD(DrawPrimitiveVB)(D3DPRIMITIVETYPE, LPDIRECT3DVERTEXBUFFER7, DWORD, DWORD, DWORD) override {
-        EI_NOTE_D3D("DrawPrimitiveVB", 31);
-        return D3D_OK;
-    }
-    STDMETHOD(DrawIndexedPrimitiveVB)(D3DPRIMITIVETYPE, LPDIRECT3DVERTEXBUFFER7, DWORD, DWORD, LPWORD, DWORD, DWORD) override {
-        EI_NOTE_D3D("DrawIndexedPrimitiveVB", 32);
-        return D3D_OK;
-    }
-    STDMETHOD(ComputeSphereVisibility)(LPD3DVECTOR, LPD3DVALUE, DWORD count, DWORD, LPDWORD results) override {
-        EI_NOTE_D3D("ComputeSphereVisibility", 33);
-        if (results)
-            for (DWORD i = 0; i < count; ++i) results[i] = 0;
-        return D3D_OK;
-    }
-    STDMETHOD(GetTexture)(DWORD stage, LPDIRECTDRAWSURFACE7* texture) override {
-        EI_NOTE_D3D("GetTexture", 34);
-        return g_switchOver.GetTexture(stage, texture);
-    }
-    STDMETHOD(SetTexture)(DWORD stage, LPDIRECTDRAWSURFACE7 texture) override {
-        EI_NOTE_D3D("SetTexture", 35);
-        return g_switchOver.SetTexture(stage, texture);
-    }
-    STDMETHOD(GetTextureStageState)(DWORD stage, D3DTEXTURESTAGESTATETYPE state, LPDWORD value) override {
-        EI_NOTE_D3D("GetTextureStageState", 36);
-        if (!value) return DDERR_INVALIDPARAMS;
-        *value = g_switchOver.StageState(stage, static_cast<DWORD>(state));
-        return D3D_OK;
-    }
-    STDMETHOD(SetTextureStageState)(DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value) override {
-        EI_NOTE_D3D("SetTextureStageState", 37);
-        g_switchOver.SetStageState(stage, static_cast<DWORD>(state), value);
-        return D3D_OK;
-    }
-    STDMETHOD(ValidateDevice)(LPDWORD passes) override {
-        EI_NOTE_D3D("ValidateDevice", 38);
-        if (passes) *passes = 1;
-        return D3D_OK;
-    }
-    STDMETHOD(ApplyStateBlock)(DWORD handle) override {
-        EI_NOTE_D3D("ApplyStateBlock", 39);
-        return g_switchOver.ApplyStateBlock(handle);
-    }
-    STDMETHOD(CaptureStateBlock)(DWORD handle) override {
-        EI_NOTE_D3D("CaptureStateBlock", 40);
-        return g_switchOver.CaptureStateBlock(handle);
-    }
-    STDMETHOD(DeleteStateBlock)(DWORD handle) override {
-        EI_NOTE_D3D("DeleteStateBlock", 41);
-        return g_switchOver.DeleteStateBlock(handle);
-    }
-    STDMETHOD(CreateStateBlock)(D3DSTATEBLOCKTYPE, LPDWORD handle) override {
-        EI_NOTE_D3D("CreateStateBlock", 42);
-        return g_switchOver.CreateStateBlock(handle);
-    }
-    STDMETHOD(Load)(LPDIRECTDRAWSURFACE7, LPPOINT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD) override {
-        EI_NOTE_D3D("Load", 43);
-        return D3D_OK;
-    }
-    STDMETHOD(LightEnable)(DWORD, BOOL) override {
-        EI_NOTE_D3D("LightEnable", 44);
-        return D3D_OK;
-    }
-    STDMETHOD(GetLightEnable)(DWORD, BOOL* enabled) override {
-        EI_NOTE_D3D("GetLightEnable", 45);
-        if (enabled) *enabled = FALSE;
-        return D3D_OK;
-    }
-    STDMETHOD(SetClipPlane)(DWORD, D3DVALUE*) override {
-        EI_NOTE_D3D("SetClipPlane", 46);
-        return D3D_OK;
-    }
-    STDMETHOD(GetClipPlane)(DWORD, D3DVALUE* plane) override {
-        EI_NOTE_D3D("GetClipPlane", 47);
-        if (plane)
-            for (int i = 0; i < 4; ++i) plane[i] = 0.0f;
-        return D3D_OK;
-    }
-    STDMETHOD(GetInfo)(DWORD, LPVOID info, DWORD size) override {
-        EI_NOTE_D3D("GetInfo", 48);
-        if (info) std::memset(info, 0, size);
-        return S_FALSE;
-    }
+[[noreturn]] void OldInterfaceCalled(int interfaceId, int slot, const void* caller) {
+    char from[160], what[320];
+    ei::DescribeCode(reinterpret_cast<std::uintptr_t>(caller), from, sizeof(from));
+    std::snprintf(what, sizeof(what),
+                  "old device: %s method %d called from %s: the device object holds no interface (device.h's calls "
+                  "answer for it)",
+                  kInterfaceNames[interfaceId], slot, from);
+    ei::ReportImageFailure(what);
+    TerminateProcess(GetCurrentProcess(), 3);
+    for (;;) Sleep(INFINITE);
+}
+
+template <int InterfaceId, int Slot>
+[[noreturn]] void __stdcall Trap() {
+    OldInterfaceCalled(InterfaceId, Slot, _ReturnAddress());
+}
+
+using TrapFn = void(__stdcall*)();
+template <int InterfaceId, int... Slots>
+constexpr std::array<TrapFn, sizeof...(Slots)> TrapTable(std::integer_sequence<int, Slots...>) {
+    return {&Trap<InterfaceId, Slots>...};
+}
+
+// What +0x54 / +0x0C point at: an object whose first word is its method table, as a COM object's.
+struct InterfaceToken {
+    const TrapFn* methods;
 };
-
-// ---- The IDirectDraw7 stand-in --------------------------------------------------------------------
-
-class NullDirectDraw7 final : public IDirectDraw7 {
-public:
-    STDMETHOD(QueryInterface)(REFIID, LPVOID* out) override {
-        EI_NOTE_DD("QueryInterface", 0);
-        if (out) *out = nullptr;
-        return E_NOINTERFACE;
-    }
-    STDMETHOD_(ULONG, AddRef)() override { return 1; }
-    STDMETHOD_(ULONG, Release)() override { return 1; }
-
-    STDMETHOD(Compact)() override {
-        EI_NOTE_DD("Compact", 3);
-        return DD_OK;
-    }
-    STDMETHOD(CreateClipper)(DWORD, LPDIRECTDRAWCLIPPER* out, IUnknown*) override {
-        EI_NOTE_DD("CreateClipper", 4);
-        if (out) *out = nullptr;
-        return DDERR_UNSUPPORTED;
-    }
-    STDMETHOD(CreatePalette)(DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE* out, IUnknown*) override {
-        EI_NOTE_DD("CreatePalette", 5);
-        if (out) *out = nullptr;
-        return DDERR_UNSUPPORTED;
-    }
-    // No surfaces in the switch-over: the holders that need pixels have the new renderer's memory.
-    STDMETHOD(CreateSurface)(LPDDSURFACEDESC2 desc, LPDIRECTDRAWSURFACE7* out, IUnknown*) override {
-        EI_NOTE_DD("CreateSurface", 6);
-        return RefuseSurface(desc, out);
-    }
-    STDMETHOD(DuplicateSurface)(LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7* out) override {
-        EI_NOTE_DD("DuplicateSurface", 7);
-        if (out) *out = nullptr;
-        return DDERR_UNSUPPORTED;
-    }
-    STDMETHOD(EnumDisplayModes)(DWORD, LPDDSURFACEDESC2, LPVOID context, LPDDENUMMODESCALLBACK2 callback) override {
-        EI_NOTE_DD("EnumDisplayModes", 8);
-        return EnumMode(context, callback);
-    }
-    STDMETHOD(EnumSurfaces)(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7) override {
-        EI_NOTE_DD("EnumSurfaces", 9);
-        return DD_OK;
-    }
-    STDMETHOD(FlipToGDISurface)() override {
-        EI_NOTE_DD("FlipToGDISurface", 10);
-        return DD_OK;
-    }
-    STDMETHOD(GetCaps)(LPDDCAPS driver, LPDDCAPS emulated) override {
-        EI_NOTE_DD("GetCaps", 11);
-        return FillDirectDrawCaps(driver, emulated);
-    }
-    STDMETHOD(GetDisplayMode)(LPDDSURFACEDESC2 desc) override {
-        EI_NOTE_DD("GetDisplayMode", 12);
-        if (!desc) return DDERR_INVALIDPARAMS;
-        *desc = g_switchOver.Mode();
-        return DD_OK;
-    }
-    STDMETHOD(GetFourCCCodes)(LPDWORD count, LPDWORD) override {
-        EI_NOTE_DD("GetFourCCCodes", 13);
-        if (count) *count = 0;
-        return DD_OK;
-    }
-    STDMETHOD(GetGDISurface)(LPDIRECTDRAWSURFACE7* out) override {
-        EI_NOTE_DD("GetGDISurface", 14);
-        if (out) *out = nullptr;
-        return DDERR_NOTFOUND;
-    }
-    STDMETHOD(GetMonitorFrequency)(LPDWORD frequency) override {
-        EI_NOTE_DD("GetMonitorFrequency", 15);
-        if (frequency) *frequency = kRefreshRate;
-        return DD_OK;
-    }
-    STDMETHOD(GetScanLine)(LPDWORD line) override {
-        EI_NOTE_DD("GetScanLine", 16);
-        if (line) *line = 0;
-        return DDERR_VERTICALBLANKINPROGRESS;
-    }
-    STDMETHOD(GetVerticalBlankStatus)(LPBOOL inBlank) override {
-        EI_NOTE_DD("GetVerticalBlankStatus", 17);
-        if (inBlank) *inBlank = TRUE;
-        return DD_OK;
-    }
-    STDMETHOD(Initialize)(GUID*) override {
-        EI_NOTE_DD("Initialize", 18);
-        return DDERR_ALREADYINITIALIZED;
-    }
-    STDMETHOD(RestoreDisplayMode)() override {
-        EI_NOTE_DD("RestoreDisplayMode", 19);
-        return DD_OK;
-    }
-    STDMETHOD(SetCooperativeLevel)(HWND, DWORD) override {
-        EI_NOTE_DD("SetCooperativeLevel", 20);
-        return DD_OK;
-    }
-    STDMETHOD(SetDisplayMode)(DWORD, DWORD, DWORD, DWORD, DWORD) override {
-        EI_NOTE_DD("SetDisplayMode", 21);
-        return DD_OK;
-    }
-    STDMETHOD(WaitForVerticalBlank)(DWORD, HANDLE) override {
-        EI_NOTE_DD("WaitForVerticalBlank", 22);
-        return DD_OK;
-    }
-    STDMETHOD(GetAvailableVidMem)(LPDDSCAPS2, LPDWORD total, LPDWORD free) override {
-        EI_NOTE_DD("GetAvailableVidMem", 23);
-        return VideoMemory(total, free);
-    }
-    STDMETHOD(GetSurfaceFromDC)(HDC, LPDIRECTDRAWSURFACE7* out) override {
-        EI_NOTE_DD("GetSurfaceFromDC", 24);
-        if (out) *out = nullptr;
-        return DDERR_NOTFOUND;
-    }
-    STDMETHOD(RestoreAllSurfaces)() override {
-        EI_NOTE_DD("RestoreAllSurfaces", 25);
-        return DD_OK;
-    }
-    STDMETHOD(TestCooperativeLevel)() override {
-        EI_NOTE_DD("TestCooperativeLevel", 26);
-        return DD_OK;
-    }
-    STDMETHOD(GetDeviceIdentifier)(LPDDDEVICEIDENTIFIER2 id, DWORD) override {
-        EI_NOTE_DD("GetDeviceIdentifier", 27);
-        if (id) *id = DDDEVICEIDENTIFIER2{};
-        return DD_OK;
-    }
-    STDMETHOD(StartModeTest)(LPSIZE, DWORD, DWORD) override {
-        EI_NOTE_DD("StartModeTest", 28);
-        return DDERR_UNSUPPORTED;
-    }
-    STDMETHOD(EvaluateMode)(DWORD, DWORD*) override {
-        EI_NOTE_DD("EvaluateMode", 29);
-        return DDERR_UNSUPPORTED;
-    }
-};
-
-NullDirect3DDevice7 g_device;
-NullDirectDraw7 g_directDraw;
+constexpr auto kDeviceTraps = TrapTable<0>(std::make_integer_sequence<int, kTrapSlots>{});
+constexpr auto kDirectDrawTraps = TrapTable<1>(std::make_integer_sequence<int, kTrapSlots>{});
+InterfaceToken g_device{kDeviceTraps.data()};
+InterfaceToken g_directDraw{kDirectDrawTraps.data()};
 bool g_withoutDirectDraw = false;
 
 } // namespace
 
 namespace device {
 
-IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
+void* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
     g_withoutDirectDraw = true;
     g_switchOver.SetMode(width, height, bitsPerPixel);
     ei::Log("device: built without DirectDraw or Direct3D (%dx%d, %d bits); the new renderer presents", width, height,
@@ -821,7 +445,7 @@ IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
     return &g_directDraw;
 }
 
-IDirect3DDevice7* NullDirect3DDevice() {
+void* Direct3DDeviceToken() {
     g_switchOver.Reset();
     return &g_device;
 }
@@ -843,13 +467,27 @@ std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state) {
 
 // ---- The rewritten code's device calls (ticket R9b) ----------------------------------------------
 //
-// The switch-over's state answers when the interface given is the device object's stand-in (or
-// none); any other interface is called (the real device, or a verify wrapper's recording device).
+// The switch-over's state answers when the interface given is the device object's token (or none);
+// any other interface is called (game.exe's own, in the harness's code that runs in the original).
 
 namespace {
-bool NoDevice(const IDirect3DDevice7* d3d) { return g_withoutDirectDraw && (!d3d || d3d == &g_device); }
-bool NoDirectDraw(const IDirectDraw7* ddraw) { return g_withoutDirectDraw && (!ddraw || ddraw == &g_directDraw); }
+bool NoDevice(const IDirect3DDevice7* d3d) {
+    return g_withoutDirectDraw && (!d3d || static_cast<const void*>(d3d) == &g_device);
+}
+bool NoDirectDraw(const IDirectDraw7* ddraw) {
+    return g_withoutDirectDraw && (!ddraw || static_cast<const void*>(ddraw) == &g_directDraw);
+}
 } // namespace
+
+void AddRef(IDirect3DDevice7* d3d) {
+    if (!NoDevice(d3d)) d3d->AddRef();
+}
+void Release(IDirect3DDevice7* d3d) {
+    if (!NoDevice(d3d)) d3d->Release();
+}
+void Release(IDirectDraw7* ddraw) {
+    if (!NoDirectDraw(ddraw)) ddraw->Release();
+}
 
 HRESULT GetCaps(IDirect3DDevice7* d3d, D3DDEVICEDESC7* desc) {
     return NoDevice(d3d) ? FillDeviceCaps(desc) : d3d->GetCaps(desc);

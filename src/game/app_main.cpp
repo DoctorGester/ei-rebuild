@@ -487,37 +487,23 @@ float CameraSeconds(std::uint32_t milliseconds) {
     return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f /*0073C348*/);
 }
 
-// Some calls of the loop go through the target of the original's CALL at the same point (the
-// function it calls unless something redirected it), so that the verify harness's redirections
-// (tests/verify/harness.cpp) keep working with this rewrite; the original body stays in place behind
-// the hook's jump. The frame's last camera update (00457595 -> 0040FB30) is held still while a
-// scenario is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick
-// (00457368 -> 005641F0) are followed by the harness's "speed" hold. The standalone image has no
-// original code there (its code section is guarded): it calls the function directly. A harness hook for the call
-// (ei/main_loop.h) comes first wherever one is set; in the image it is the harness's only way in.
-// `call` is an address of game.exe's code, read only in game.exe (the image has nothing there: S18k).
-template <typename Fn>
-Fn CallTarget(std::uintptr_t call, Fn fallback) {
-    if (ei::Standalone()) return fallback;
-    const auto* code = reinterpret_cast<const unsigned char*>(call);
-    if (code[0] != 0xE8) return fallback;
-    std::int32_t relative;
-    std::memcpy(&relative, code + 1, sizeof(relative));
-    return reinterpret_cast<Fn>(call + 5 + relative);
-}
+// Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
+// one is set: the frame's last camera update (00457595 -> 0040FB30) is held still while a scenario
+// is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick (00457368 -> 005641F0)
+// are followed by the harness's "speed" hold. Otherwise the function itself.
 using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
 CameraUpdate FrameCameraUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) return reinterpret_cast<CameraUpdate>(hook);
-    return CallTarget<CameraUpdate>(std::uintptr_t(0x00457595), &CameraUpdateOf);
+    return &CameraUpdateOf;
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
 WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
-    return CallTarget(std::uintptr_t(0x00457314), reinterpret_cast<WorldUpdate>(&ServerUpdateOriginal));
+    return reinterpret_cast<WorldUpdate>(&ServerUpdateOriginal);
 }
 WorldUpdate ClientSegment() {
     if (auto hook = ei::mainloop::g_harnessHooks.clientSegment) return hook;
-    return CallTarget(std::uintptr_t(0x00457368), reinterpret_cast<WorldUpdate>(&ClientSegmentOriginal));
+    return reinterpret_cast<WorldUpdate>(&ClientSegmentOriginal);
 }
 
 // A change of the window's activation taken up: active again, every surface is restored (when the

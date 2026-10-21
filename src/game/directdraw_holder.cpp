@@ -1,6 +1,6 @@
 // The device object's DirectDraw base class (CTextureDevice, texture.h; vtable 0073D770, the
 // members up to +0x50). A-S13: IDirectDraw7 is called as the original calls it, through device.h
-// (the stand-in answers: device_null.cpp). See docs/notes/renderer.md (sections 9, 12).
+// (the switch-over device answers: device_null.cpp). See docs/notes/renderer.md (sections 9, 12).
 //
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
 // unwound on the way (the original's handlers free what the constructor had built), and every such
@@ -109,7 +109,7 @@ void CTextureDevice::DestructDirectDraw() {
     if (clipper_) static_cast<IDirectDrawClipper*>(clipper_)->Release();
     device::AssignHolder(renderTarget_, nullptr);
     device::AssignHolder(primary_, nullptr);
-    if (ddraw_) device::DDraw(this)->Release();
+    if (ddraw_) device::Release(device::DDraw(this));
     modes_.Destroy();
     ei::SetVtable(this, 0x0073D768);
 }
@@ -160,7 +160,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     converter_ = getProcessor();
 
     // The switch-over (device.h): the new renderer presents; no DirectDraw object, display mode or
-    // surfaces. The stand-in takes the cooperative level (the flags and the screen rectangle are
+    // surfaces. The switch-over takes the cooperative level (the flags and the screen rectangle are
     // kept) and lists the one display mode; the primary and the render target are holders without
     // a surface; no video formats. Without the new renderer the game cannot run (R11a: no DirectDraw
     // fallback): the error ends it in WinMain.

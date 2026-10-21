@@ -305,9 +305,10 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
 - **game.exe at run time**: none since S18k ("What comes from game.exe at build time", above). The harness's run_all
   hands ei_launch none (S18k1).
 - **Command line**: `ei_standalone ... -- <game args>` is WinMain's line and GetCommandLineA's after `"<game.exe>"`.
-- **Code bytes read as data**: app_main's `CallTarget` (camera 00457595, server update 00457314, client segment
-  00457368) and app_frame's cursor lock (004580D7) call our rewrites directly in the image; the harness reaches those
-  calls through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness_hooks.h).
+- **Code bytes read as data**: app_frame's cursor lock (004580D7) calls our rewrite directly in the image; the
+  harness reaches it and WinMain's camera (00457595), server update (00457314) and client segment (00457368) calls
+  through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness_hooks.h; app_main reads
+  no code bytes since R9b2).
   ClassifyToken's keyword table is the immediate at 004CF69B (Rebirth rewrites it): `KeywordTable` gives the vanilla
   table 0078BCA0 in the image. `AddonPanelOffset` returns none. No other GameData read of a code address is left.
 - **DirectInput**: DirectInputCreateEx refuses an instance that is not a loaded module, so the image's import goes to

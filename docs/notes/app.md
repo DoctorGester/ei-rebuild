@@ -30,7 +30,8 @@ the game's draw (EndScene) and the interface draw, before the cursor blit (005E5
 untouched so the harness can still find the call. The camera-freeze skip (`CALL 0040FB30` at 00457595)
 and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00456440); the rewritten
 WinMain keeps both working (A-E2 below). A harness hook point (ei/main_loop.h, S15a) for each of these
-calls comes before the call-site read; the standalone image has only those.
+calls comes before the call-site read; the standalone image has only those (WinMain's rewrite reads no
+call site since R9b2: game.exe runs only the original).
 
 ## Kept and skipped
 
@@ -100,8 +101,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 - The harness told the loop's calls apart by return address (the two `PeekMessageA` calls that take posted
   input, the frame's `timeGetTime`). The rewrite names the call it makes in `ei::mainloop::g_site`
   (`include/ei/main_loop.h`), which the harness accepts beside the addresses, and makes the frame's last
-  camera update through the current target of the original `CALL` at 00457595 (the harness redirects it to
-  hold the camera during "freeze"); the original body stays behind the entry jump.
+  camera update, the server's update and the client's tick through the harness's hook points when set
+  (`g_harnessHooks`: "freeze" holds the camera, "speed" the updates), else directly.
 - Start-up order: sysmsg.txt (three lines, built-in fallback), DirectX 7, the two class factories, the command
   line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr, "-benchmark_", "-devicetarget_"), the window class
   (a running game is brought forward and this one exits), the registry root and options, the new handler, the

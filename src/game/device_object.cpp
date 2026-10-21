@@ -1,6 +1,6 @@
 // The device object itself (CTextureDevice, texture.h; vtable 0073D760): its constructor (004E5E50),
 // its destructor body (004E68A0) and the texture format table (004E6EE0). A-S13: IDirect3DDevice7 is
-// called as the original calls it, through device.h (the stand-in answers). The Direct3D device
+// called as the original calls it, through device.h (the switch-over device answers). The Direct3D device
 // enumeration callback (004ED820) and the depth buffer (004E6C30) had no caller of ours left and
 // went in R11b (config/dead_code.csv). The base class is in directdraw_holder.cpp. See
 // docs/notes/renderer.md (sections 9, 12).
@@ -82,12 +82,12 @@ void RecordStageBlocks(CTextureDevice* device) {
 }
 
 // The rest of the constructor in the switch-over (device.h): no Direct3D object, device list,
-// depth formats, depth buffer or render target; the IDirect3DDevice7 stand-in in their place (with
-// the HAL device's id). The texture formats come from the stand-in's fixed table, the state blocks
+// depth formats, depth buffer or render target; the IDirect3DDevice7 token in their place (with the
+// HAL device's id). The texture formats come from the switch-over's fixed table, the state blocks
 // are recorded on it (their handles tokens the new renderer's mirror knows), the viewport is the
 // screen's.
 void ConstructWithoutDirect3D(CTextureDevice* device) {
-    device->d3dDevice_ = device::NullDirect3DDevice();
+    device->d3dDevice_ = device::Direct3DDeviceToken();
     device->deviceGuid_ = device::IidHalDevice();
     device->zEnable_ = D3DZB_TRUE;
     // Direct3D 7 makes its device with the calling thread's x87 precision at 24 bits (the game sets
@@ -206,7 +206,7 @@ void CTextureDevice::Destruct() {
         pipeline_ = nullptr;
         pipeline->Release();
     }
-    if (d3dDevice_) device::D3D(this)->Release();
+    if (d3dDevice_) device::Release(device::D3D(this));
     if (d3d_) device::Direct3D(this)->Release();
 
     // The members' destructors, last to first.

@@ -98,7 +98,7 @@ bool ReadDisplayModeFormat(CTextureDevice* device, PixelFormat* format) {
 }
 
 // The screen's pixel format into `format`: the display mode's (ticket R8: the original reads the
-// primary surface's, which is in the display mode's format; the stand-in always answers with an RGB
+// primary surface's, which is in the display mode's format; the switch-over always answers with an RGB
 // one). Otherwise the original's report (`format` stays as it was).
 void ReadScreenFormat(CTextureDevice* device, PixelFormat* format) {
     if (ReadDisplayModeFormat(device, format)) return;

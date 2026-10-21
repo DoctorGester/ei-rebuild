@@ -178,7 +178,7 @@ std::uint32_t __fastcall RendererZEnableHook(CSceneRenderer* self) { return self
 EI_REPLACE(0x00501AA0, RendererZEnableHook);
 
 // The holder is stored before the batch is flushed; no device lock. The stage's texture is null on
-// the stand-in (no holder has a DirectDraw surface); the new renderer draws with the holder.
+// the switch-over (no holder has a DirectDraw surface); the new renderer draws with the holder.
 int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
     CTextureDevice* device = device_;
     CDXSurface*& bound = device->stageSurfaces_[stage];

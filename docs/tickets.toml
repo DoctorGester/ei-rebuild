@@ -123,7 +123,7 @@ title = "WinMain's original in harness runs: the last old-device calls"
 group = "renderer"
 model = "opus"
 depends = ["R9b"]
-note = "The harness patches the CALL at 00457595, so WinMain 00456440's original runs: GetAvailableVidMem x3 and RestoreAllSurfaces stay on the stand-in. Let the rewrite run under the harness (freeze hook in app_main.cpp), then the COM stand-ins can go once Rebirth's patched originals (006462A0, 0060C870) are covered."
+note = "Narrowed (2026-10-21): since S18i/S21 the image runs only our code, so WinMain's rewrite already runs under the harness (freeze / speed through g_harnessHooks) and 006462A0 / 0060C870 are ours behind flags; main's runs showed no WinMain old-device calls, only CItemScreen::DrawItem's raw SetRenderState and the harness's RestoreAfterMinimise. Done: both through device.h, the COM stand-ins replaced by trap tokens (a direct method call ends the run naming its caller), AddRef / Release wrappers, app_main's dead code-byte CallTarget removed, tools/old_device_calls.py gone."
 
 [[ticket]]
 id = "PF3"

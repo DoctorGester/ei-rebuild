@@ -11,6 +11,7 @@
 #include "game_strings.h"
 #include "plugin_fixes.h"
 
+#include "device.h"
 #include "dx_surface.h"
 #include "item.h"
 #include "random.h"
@@ -20,7 +21,6 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/vecmath.h"
-#include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -203,13 +203,9 @@ void SetShade(std::uint8_t* sprite, std::uint32_t grey) {
     Set(sprite, 0x22C, grey);
 }
 
-// The renderer's Direct3D device (UiRenderer 007AF080 +0x54): SetRenderState (slot 20).
+// The renderer's Direct3D device (007AF080 +0x54): SetRenderState (slot 20).
 void SetSpecular(int on) {
-    auto* renderer = ei::GameData<std::uint8_t*>(0x007AF080);
-    void* device = Get<void*>(renderer, 0x54);
-    using SetStateFn = long(__stdcall*)(void*, int, int);
-    reinterpret_cast<SetStateFn>((*static_cast<void***>(device))[20])(device, 0x1D, on);
-    render::state::Render(0x1D, static_cast<std::uint32_t>(on));
+    device::SetRenderState(device::D3D(TheRenderDevice()), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
 }
 
 } // namespace

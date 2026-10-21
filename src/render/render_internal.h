@@ -232,7 +232,7 @@ std::uint32_t CommitNumber();
 int AddMatrix(const Matrix4& m);
 // The frame's fog (FOGENABLE / FOGCOLOR of the old device), read once per frame.
 void ReadFog(Frame& f);
-// Render states / stage 0..1 texture stage states of the old device: the stand-in's, which keeps
+// Render states / stage 0..1 texture stage states of the old device: the switch-over's, which keeps
 // every state the game sets (device_switchover.h).
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count);
 void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count);

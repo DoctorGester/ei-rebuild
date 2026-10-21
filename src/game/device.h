@@ -60,18 +60,17 @@ inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) { return a == 
 // object is filled for the game: the screen rectangle, holders without a surface for the primary
 // and the render target (the screen's width, height and bits), 2DintMMX's converter, the texture
 // formats from a fixed table, the four state blocks as tokens. In place of the IDirectDraw7 and
-// IDirect3DDevice7 pointers it holds two stand-ins that draw nothing: they keep the render and
-// texture stage states the game sets (and feed them to the new renderer's mirror, render_state.h),
-// record and apply state blocks, answer the capability, display mode and memory queries with fixed
-// values, refuse to make surfaces, and log every method once per calling place ("old device: ...")
-// so that the remaining callers can be guarded and the stand-ins removed (ticket R9b).
+// IDirect3DDevice7 pointers it holds two tokens that are not interfaces: the calls below know them
+// and answer from the switch-over device's state (ticket R9b2). A method called through a token
+// directly ends the run naming its caller.
 
 // The device object is being built without DirectDraw for a `width` x `height` screen of
-// `bitsPerPixel` (16 or 32): from now on the calls below answer for the stand-ins. Returns the
-// IDirectDraw7 stand-in.
-IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel);
-// The IDirect3DDevice7 stand-in, its states back at a new device's.
-IDirect3DDevice7* NullDirect3DDevice();
+// `bitsPerPixel` (16 or 32): from now on the calls below answer for the tokens. Returns the
+// IDirectDraw7 token (the device object's +0x0C).
+void* StartWithoutDirectDraw(int width, int height, int bitsPerPixel);
+// The IDirect3DDevice7 token (the device object's +0x54), the switch-over device's states back at a
+// new device's.
+void* Direct3DDeviceToken();
 // The screen's pixel format for a colour depth: 16 bits 5:6:5, otherwise X8R8G8B8.
 void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
 // The texture formats of the switch-over device (in place of IDirect3DDevice7::EnumTextureFormats):
@@ -82,9 +81,9 @@ const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
 //
 // Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name on the interface given (the
 // device object's +0x54 / +0x0C), as the original calls it. Once the device object is built
-// (StartWithoutDirectDraw), when the interface is the device object's stand-in (or null), it is not used and the call has the
-// same result without a device (any other interface, such as a verify wrapper's recording device,
-// is called as before): the render and
+// (StartWithoutDirectDraw), when the interface is the device object's token (or null), the call has
+// the same result without a device (any other interface, game.exe's own in the harness, is called):
+// the render and
 // texture stage states, state blocks, bound textures, viewport and scene bracket are kept in the
 // switch-over device's state (the states also go to the new renderer's mirror, render_state.h), the
 // capability, display mode, texture format and video memory queries answer the fixed values, and
@@ -121,5 +120,9 @@ HRESULT GetAvailableVidMem(IDirectDraw7* ddraw, DDSCAPS2* caps, DWORD* total, DW
 HRESULT RestoreAllSurfaces(IDirectDraw7* ddraw);
 HRESULT FlipToGDISurface(IDirectDraw7* ddraw);
 HRESULT WaitForVerticalBlank(IDirectDraw7* ddraw, DWORD flags, HANDLE event);
+// IUnknown's AddRef / Release: nothing for the tokens.
+void AddRef(IDirect3DDevice7* d3d);
+void Release(IDirect3DDevice7* d3d);
+void Release(IDirectDraw7* ddraw);
 
 } // namespace device

@@ -654,7 +654,7 @@ int AddMatrix(const Matrix4& m) {
     return static_cast<int>(g_frame.matrices.size()) - 1;
 }
 
-// The stand-in device's states (device_switchover.h): what the game last set, Direct3D 7's defaults
+// The switch-over device's states (device_switchover.h): what the game last set, Direct3D 7's defaults
 // before that.
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
     for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);

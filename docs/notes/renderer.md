@@ -336,11 +336,6 @@ come first, then what holds for the present path (the subsection names are cited
 
 ### Open items
 
-- **R9b2** (ready): WinMain's original in harness runs. The harness patches the CALL at 00457595, so WinMain 00456440's
-  original runs (GetAvailableVidMem at 00456DA2 / 00456DC6 / 00456E0D, RestoreAllSurfaces at 0045715A) and reaches the
-  stand-ins; `app_main.cpp`'s rewrite runs only in a launch without the harness. Let the rewrite run under the harness
-  (freeze hook in app_main.cpp); the COM stand-ins can go after that, once Rebirth's patched originals (006462A0,
-  0060C870) are covered.
 - A desktop display mode change while the game runs is not exercised: no run may switch the display mode (R9c4
   below). R9c covers a window resized from outside, which is what such a change does to the game window.
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
@@ -350,7 +345,7 @@ come first, then what holds for the present path (the subsection names are cited
   code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
   them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
   the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). `CDXSurface::surface` (+0x10) stays, always null.
-  Left: the COM stand-ins and device.h's wrappers (R9b2). R11d: the blink is a texture patch drawn in the shader (section 7).
+  Left: device.h's calls on the switch-over device (R9b2 replaced the COM stand-ins with tokens, R9a below). R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
@@ -371,27 +366,26 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   **DXT2/4/5 must stay**: Rebirth's battle00 and footprints are DXT5, and without them the texture load failed and
   `SetTexture` crashed), sets the viewport and records the four state blocks on it (handles 1..4, which
   `render::state::Block` knows by their addresses).
-- `src/game/device_null.cpp`: the two stand-ins in the device object's +0x0C / +0x54. They draw nothing; their state
-  (render / stage states, state blocks, bound textures, viewport, scene bracket, display mode) is a plain object,
-  `SwitchOverDevice`, and the COM stand-ins log and forward to it. The IDirect3DDevice7 one keeps the states (Direct3D
-  7 defaults at the start), feeds them to the mirror (`render_state.h`), records / applies / captures / deletes state
-  blocks, answers GetCaps with fixed capabilities (8 stages, every texture operation, 4096 textures, no
-  sort-independent antialiasing) and counts SetTexture references. The IDirectDraw7 one answers GetDisplayMode with
-  the chosen mode in `device::ScreenFormat` (16 bits 5:6:5, else X8R8G8B8: what dx_surface.cpp's ReadScreenFormat
-  reads; the windows' colour keys, CUiSurface +0x34, are 0 or a COLORREF set without the format, so they agree),
-  GetCaps with 3D / texture / mipmap capabilities and no gamma or FourCC, GetAvailableVidMem 256 MB, and refuses
-  CreateSurface (logged; no code of ours calls it since R11b). Every method
-  logs its first call from each calling place (`old device: IDirect3DDevice7::SetRenderState from game.exe 0050B22E`,
-  at most 400 lines); `tools/old_device_calls.py [run folders]` lists that log by calling function (default: every
-  `build/verify/runs/*present*`).
-- `device.h`: `device::SetRenderState(d3d, ...)` and one call per method the rewritten code uses (GetCaps,
+- `src/game/device_null.cpp`: the switch-over device, `SwitchOverDevice`, a plain object with what a Direct3D 7
+  device and its DirectDraw object would keep (render / stage states, Direct3D 7's defaults at the start, fed to the
+  mirror `render_state.h`; state blocks recorded / applied / captured / deleted; bound textures, viewport, scene
+  bracket, display mode). The device object's +0x0C / +0x54 hold two tokens, not interfaces (R9b2; the COM stand-ins
+  are gone): each slot of a token's method table ends the run with `old device: IDirect3DDevice7 method <n> called
+  from <caller>` (the image's failure report), so a direct call is found at once. Fixed answers: the device's GetCaps
+  (8 stages, every texture operation, 4096 textures, no sort-independent antialiasing); GetDisplayMode the chosen mode
+  in `device::ScreenFormat` (16 bits 5:6:5, else X8R8G8B8: what dx_surface.cpp's ReadScreenFormat reads; the windows'
+  colour keys, CUiSurface +0x34, are 0 or a COLORREF set without the format, so they agree); DirectDraw's GetCaps 3D /
+  texture / mipmap capabilities and no gamma or FourCC; GetAvailableVidMem 256 MB.
+- `device.h`: `device::SetRenderState(d3d, ...)` and one call per method the code uses (GetCaps,
   EnumTextureFormats, Begin / EndScene, Clear, SetViewport, SetRenderTarget, Set / GetRenderState, Set /
-  GetTextureStageState, state block calls, SetTexture, DrawPrimitive, DrawIndexedPrimitive; IDirectDraw7 GetCaps,
-  GetDisplayMode, EnumDisplayModes, RestoreDisplayMode, SetCooperativeLevel,
-  GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank). Each answers from `SwitchOverDevice`
-  when the interface is the device object's stand-in (or null): draws, clears, mode changes and restores give D3D_OK.
-  Every `->Method(` on the device in src/game goes through these; the interface's `UiD3DDevice` (ui.h) has declared
-  methods (`ui_d3d_device.cpp`). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
+  GetTextureStageState, state block calls, SetTexture, DrawPrimitive, DrawIndexedPrimitive, AddRef / Release;
+  IDirectDraw7 GetCaps, GetDisplayMode, EnumDisplayModes, RestoreDisplayMode, SetCooperativeLevel,
+  GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank, Release). Each answers from
+  `SwitchOverDevice` when the interface is the device object's token (or null): draws, clears, mode changes and
+  restores give D3D_OK; another interface (game.exe's own, the harness's RestoreAfterMinimise in the original's runs)
+  is called. Every method call on the device in src/ goes through these; the interface's `UiD3DDevice` (ui.h) has
+  declared methods (`ui_d3d_device.cpp`). Left behind the token without a call of device.h: the vertex-buffer
+  batches' DrawIndexedPrimitiveVB (device_binds.cpp), unreachable (no batch gets a buffer without a Direct3D object). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
   `SwitchOverDevice` through `device_switchover.h` (no Direct3D 7 headers there).
 - 004EF610 ends the frame (`render::Present`) and returns 0: `EndFrame` draws the frame into a flip-model swap chain
   (FLIP_DISCARD, BGRA8, two buffers, `MakeWindowAssociation` without Alt+Enter / window changes) on the game window,
@@ -406,8 +400,6 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   holder is 004EF7B0's (only the renderer's memory; a video-memory request would throw into the game's error box); each
   Bink frame is copied into memory the renderer owns (`render::MovieFrame`). Pictures loaded with the video-memory flag
   (004F0060) get the renderer's memory as the system-memory ones do (dx_surface.cpp).
-- Not touched (the stand-ins answer): app.cpp's FlipToGDISurface, app_main's GetAvailableVidMem / RestoreAllSurfaces,
-  texture.cpp's video memory and largest texture, the camp's antialiasing GetCaps.
 - The harness shows windows without activating them; without DirectDraw nothing activates the game window, so the
   game's active flag (0079BC5C) and the renderer's bit 0 stay 0 and no frame is drawn. The harness sends one WM_ACTIVATE
   (active) once the device object exists. A player's own start is in the foreground and gets the activation from
