@@ -31,6 +31,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 #include <cmath>
 #include <cstring>
@@ -52,8 +53,8 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The shares a revived hero loses: of the party's money (007C5490) and of its experience above the
 // NPC record's floor (007C5494). Set at startup.
-float MoneyPenalty() { return ei::GameData<const volatile float>(0x007C5490); }
-float ExperiencePenalty() { return ei::GameData<const volatile float>(0x007C5494); }
+float MoneyPenalty() { return GameLogicSettings().lostMoney; }
+float ExperiencePenalty() { return GameLogicSettings().lostXp; }
 // The AI map's cell size factors (0074326C, 0073B86C): a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }

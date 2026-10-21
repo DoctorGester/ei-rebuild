@@ -10,12 +10,11 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
+#include "logic_settings.h"
 
 namespace {
 // The game's settings (globals read at the time of the call).
 constexpr std::uintptr_t kDifficulty = std::uintptr_t(0x0079BEC0);
-constexpr std::uintptr_t kAttackFactors = std::uintptr_t(0x007C54AC);    // a float per difficulty
-constexpr std::uintptr_t kDefenceFactors = std::uintptr_t(0x007C54B8);
 
 int Difficulty() { return ei::GameData<const int>(kDifficulty); }
 
@@ -29,9 +28,9 @@ T* RecordAt(T* begin, T* end, std::uint32_t index) {
 
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
-    attack = static_cast<int>(attack * ei::GamePointer<const float>(kAttackFactors)[Difficulty()]);
+    attack = static_cast<int>(attack * GameLogicSettings().attack[Difficulty()]);
     defence =
-        static_cast<int>(static_cast<float>(defence) * ei::GamePointer<const float>(kDefenceFactors)[Difficulty()]);
+        static_cast<int>(static_cast<float>(defence) * GameLogicSettings().defence[Difficulty()]);
 }
 EI_REWRITTEN(0x0052E0D0, AttackParams::ScaleForDifficulty);
 

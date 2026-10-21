@@ -161,9 +161,9 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 1770 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 1605 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text and the cells inside named ranges (C18, below); 1031 point into .data, 739 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 866 point into .data, 739 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
@@ -315,7 +315,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
-2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f). C18 turns them into named C++
+2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -325,6 +325,20 @@ kinds given.
   0079BCF0 and 0079BEC8 are GameOptions members (0079BC70 +0x80, +0x258), read as `options::TheOptions()->...`, not named.
   A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
   `void* g_hook = /*addr*/ {nullptr};` cast at the call.
+- **C18h (the small areas)**: three kinds of reads went away. (1) Members of blocks read by their base: the logic
+  settings 007C53F8 (`GameLogicSettings()`: guard / follow radii, the hit point curve's hpVal, skillVal, lost money /
+  experience, durability, absorption / attack / defence per difficulty; 25 literals in unit*, combat*, player_server_handlers)
+  and the options 0079BC70 (`options::TheOptions()->...`: video / audio, texture quality, mipmapping, reverse stereo, flora
+  light, the two LOD distances, the camera's terrain area, keyboard layout, the objects' lighting coefficient, the hero and
+  quest lights). Check a new candidate against these two structs first (an offset from 007C53F8 / 0079BC70 is a member).
+  (2) Struct tables with string pointers: TYPES has `OptionDefinition` / `ActionDefinition` (ui_options.cpp), `ScriptParticleType`
+  (script_effects.cpp), `AmbientSoundClass` (terrain_ambience.cpp, written by CountAmbientVariants: not const). (3) Lone
+  variables, guards and scratch arrays (lightning's noise curves, terrain's animation speeds and light-block lists, the
+  mouse drag, shot counter, party id counter, ...); a header's global is `inline T g_x = /*addr*/ {};`.
+  Left for later: objects a static initialiser stores into (floats such as 007C7D20 are the C18j `constexpr float` form),
+  members of the camera 0079B2A8 (0079B2B0, 0079B2C4, 0079B388, 0079B3C4), the scene renderer 007AF060 (007AF064), the client
+  and server world blocks (007AF604, 007AFCA4, 007AFFAC, 007AFFC4), the mission script (007C2CD0), the CWordArray 0079B668
+  (0079B66C), the singleton pointers of game_singletons.h, the loading movie 007C5520 (static initialisers store into it).
 - **The harness in game.exe**: the original suite (`--no-hooks`) runs game.exe's own code, which never touches our
   named globals. A harness step there must read game.exe's copy (`ei::OriginalGameData<T>(address)`, tests/ only)
   or call game.exe's function by address instead of ours (the zone step's LeaveToZone, modfile's text folder, the

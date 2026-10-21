@@ -25,6 +25,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -66,7 +67,6 @@ void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
     stream->Write(&copy, size);
 }
 
-float GlobalFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 
 constexpr float kMoveTime = 1000000.0f;                                 // 0x49742400
 constexpr float kNearX = 35.0f;                                         // 0073FEF8
@@ -123,7 +123,7 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 // The static candidate list of Aggression::Evaluate (007C54C8, guard bit 0 of 007C54E4): a CPtrList
 // built by 004C96A0.
 AIObjectList& Candidates() { return ei::GameData<AIObjectList>(0x007C54C8); }
-std::uint8_t& CandidatesGuard() { return ei::GameData<std::uint8_t>(0x007C54E4); }
+std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
 
 } // namespace
 
@@ -157,11 +157,11 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     if (newRadius >= kZero)
         std::memcpy(&radius, &newRadius, 4);
     else
-        std::memcpy(&radius, ei::GamePointer<const void>(0x007C540C), 4);
+        std::memcpy(&radius, &GameLogicSettings().guardRadius, 4);
     if (newWander >= kZero)
         std::memcpy(&wander, &newWander, 4);
     else
-        std::memcpy(&wander, ei::GamePointer<const void>(0x007C53FC), 4);
+        std::memcpy(&wander, &GameLogicSettings().guardStayTime, 4);
 }
 EI_REWRITTEN(0x005D0B70, GuardMode::Set);
 
@@ -328,7 +328,7 @@ void SentryMode::Execute(AIBrain* brain) {
     bool farLook = IsaacRandom::Global().Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
     // 007C53FC / 007C5400: the wander radii of a far and a near look-around.
-    float wanderRadius = farLook ? GlobalFloat(0x007C53FC) : GlobalFloat(0x007C5400);
+    float wanderRadius = farLook ? GameLogicSettings().guardStayTime : GameLogicSettings().sentryStayTime;
     brain->PlanLooks(&order, &none, wanderRadius, farLook);
     StartMove(brain, &order);
     SetPositions(brain, &order.point, kNearX, kNearY);
@@ -496,7 +496,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         return kNoPriority;
     }
     if (!brain->memory.seesEnemy) return kNoPriority;
-    std::uint8_t& guard = CandidatesGuard();
+    std::uint8_t& guard = g_candidatesGuard;
     if (!(guard & 1)) {
         guard |= 1;
         mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&Candidates(), 10);

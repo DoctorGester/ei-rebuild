@@ -2772,7 +2772,6 @@ struct OptionDefinition {
     int row_;                        // +0x14 its row there
 };
 static_assert(sizeof(OptionDefinition) == 0x18);
-inline const OptionDefinition* OptionDefinitions() { return ei::GamePointer<const OptionDefinition>(0x00787430); }
 constexpr int kOptionDefinitionCount = 26;
 
 // A key action's definition (0x10 bytes; the exe's table of 59 at 00787080).
@@ -2783,7 +2782,6 @@ struct ActionDefinition {
     int row_;                        // +0x0C
 };
 static_assert(sizeof(ActionDefinition) == 0x10);
-inline const ActionDefinition* ActionDefinitions() { return ei::GamePointer<const ActionDefinition>(0x00787080); }
 constexpr int kActionDefinitionCount = 59;
 
 // A setting of the options window (0x14 bytes, 26 of them at +0x378; copy constructor 00653100,
@@ -3335,8 +3333,8 @@ static_assert(sizeof(CDifficultyBox) == 0x184);
 // accumulates, read and cleared by the drag's mouse-move handlers 00630010 / 005EB210).
 inline int& MouseScreenX() { return ei::GameData<int>(0x007C7C50); }
 inline int& MouseScreenY() { return ei::GameData<int>(0x007C7C54); }
-inline int& MouseDragX() { return ei::GameData<int>(0x007C7C60); }
-inline int& MouseDragY() { return ei::GameData<int>(0x007C7C64); }
+inline int g_mouseDragX = /*007C7C60*/ {};
+inline int g_mouseDragY = /*007C7C64*/ {};
 
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
 inline int& GameDifficulty() { return ei::GameData<int>(0x0079BEC0); }

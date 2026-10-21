@@ -20,6 +20,75 @@
 
 namespace {
 
+// The particle types CreateParticleSource accepts (the exe's table of 64: name, CEffectParticle type,
+// lifetime in ticks, -1 forever).
+constexpr ScriptParticleType kScriptParticleTypes[64] = /*0078B120*/ {
+    {"AcidRay", 0x2012, -1},
+    {"FireArrow", 0x2011, -1},
+    {"FireBall", 0x2000, -1},
+    {"CampFire", 0x2001, -1},
+    {"FireBlast", 0x2002, 200},
+    {"LightningBlast", 0x2030, 200},
+    {"Fire", 0x2003, -1},
+    {"Smoke", 0x2004, -1},
+    {"VulcanSmoke", 0x2005, -1},
+    {"Healing", 0x2006, 200},
+    {"PoisonFog", 0x2007, -1},
+    {"Geyser", 0x2009, -1},
+    {"Tornado", 0x200A, -1},
+    {"Casting", 0x200B, 200},
+    {"Nuke", 0x200C, 200},
+    {"Mushroom", 0x200E, 200},
+    {"Link", 0x2014, -1},
+    {"BlueGas", 0x2013, -1},
+    {"SphereAcid", 0x2015, -1},
+    {"SphereElectricity", 0x2016, -1},
+    {"SphereFire", 0x2017, -1},
+    {"ClayRing", 0x2018, 200},
+    {"Teleport", 0x2019, 200},
+    {"Modifier1", 0x201B, 200},
+    {"Modifier2", 0x201C, 200},
+    {"Modifier3", 0x201D, 200},
+    {"Modifier4", 0x201E, 200},
+    {"Modifier5", 0x201F, 200},
+    {"Modifier6", 0x2020, 200},
+    {"Modifier7", 0x2021, 200},
+    {"Modifier8", 0x2022, 200},
+    {"Modifier9", 0x2023, 200},
+    {"Modifier10", 0x2024, 200},
+    {"Modifier11", 0x2025, 200},
+    {"Modifier12", 0x2026, 200},
+    {"Antimagic", 0x201A, -1},
+    {"CastingFire", 0x2027, -1},
+    {"CastingElectricity", 0x2028, -1},
+    {"CastingAcid", 0x2029, -1},
+    {"CastingDivination", 0x202A, -1},
+    {"CastingIllusion", 0x202B, -1},
+    {"CastingDomination", 0x202C, -1},
+    {"CastingEnchantment", 0x202D, -1},
+    {"CastingHealing", 0x202E, -1},
+    {"ZoneExit", 0x2038, -1},
+    {"Portal", 0x203E, -1},
+    {"PortalStar", 0x203D, -1},
+    {"Cylinder1", 0x203F, 200},
+    {"Cylinder2", 0x2040, 200},
+    {"FireStar", 0x2041, 20},
+    {"AcidStar", 0x2042, 20},
+    {"Sparks", 0x2043, 60},
+    {"VisionStar1", 0x2044, -1},
+    {"VisionStar2", 0x2045, -1},
+    {"VisionStar3", 0x2046, -1},
+    {"Regeneration", 0x2047, -1},
+    {"Silence", 0x2048, -1},
+    {"FeebleMind", 0x2049, -1},
+    {"FeetCloud1", 0x204A, -1},
+    {"FeetCloud2", 0x204B, -1},
+    {"CurseStars", 0x204F, -1},
+    {"CurseHolder", 0x2050, -1},
+    {"StartTrans", 0x2051, 200},
+    {"Transform", 0x2052, 200},
+};
+
 // Class ids of the effect objects the script makes (CBaseManager::CreateObject).
 constexpr int kClassSound = 0x48;       // CEffectSound
 constexpr int kClassParticles = 0x4A;   // CEffectParticle
@@ -184,8 +253,8 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     mfc::CString name(cmd->stringArgs.data[0]);
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
-        if (libcrt::Stricmp(ScriptParticleTypes()[i].name, name) == 0) {
-            type = &ScriptParticleTypes()[i];
+        if (libcrt::Stricmp(kScriptParticleTypes[i].name, name) == 0) {
+            type = &kScriptParticleTypes[i];
             break;
         }
     }

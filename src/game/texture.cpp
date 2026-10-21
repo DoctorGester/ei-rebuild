@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "options.h"
 
 #include <ddraw.h>
 
@@ -121,7 +122,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
 
 namespace {
 // The texture quality setting (0 best .. 3).
-int TextureQuality() { return ei::GameData<const int>(0x0079BCDC); }
+int TextureQuality() { return options::TheOptions()->textureQuality_; }
 const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
 } // namespace
 

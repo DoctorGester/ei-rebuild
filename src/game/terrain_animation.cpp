@@ -230,7 +230,7 @@ int __cdecl CompareSectors(const void* a, const void* b) {
 // SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270, the
 // generated ei::static_init::Exit006C9270).
 lib::AlignedArray<SectorData*>& SortedSectors() { return ei::GameData<lib::AlignedArray<SectorData*>>(0x007C8938); }
-std::uint8_t& SortedSectorsGuard() { return ei::GameData<std::uint8_t>(0x007C8948); }
+std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
 // with its sign (_copysign of the double 0.01f).
@@ -264,8 +264,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
     auto& sorted = terrain::SortedSectors();
-    if ((terrain::SortedSectorsGuard() & 1) == 0) {
-        terrain::SortedSectorsGuard() |= 1;
+    if ((terrain::g_sortedSectorsGuard & 1) == 0) {
+        terrain::g_sortedSectorsGuard |= 1;
         sorted = {nullptr, 0, 0, 0};
         GameAtExit(ei::static_init::Exit006C9270);
     }

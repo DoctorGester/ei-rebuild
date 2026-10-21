@@ -29,8 +29,8 @@ constexpr int kLastVertex = 32;   // the last vertex of a sector row / column
 constexpr int kSectorCells = 32;
 
 // The pool's two block lists (see LightRefBlock).
-LightRefBlock*& BlocksWithFree() { return ei::GameData<LightRefBlock*>(0x007C8840); }
-LightRefBlock*& FullBlocks() { return ei::GameData<LightRefBlock*>(0x007C8844); }
+LightRefBlock* g_blocksWithFree = /*007C8840*/ {nullptr};
+LightRefBlock* g_fullBlocks = /*007C8844*/ {nullptr};
 
 void Unlink(LightRefBlock* block, LightRefBlock*& head) {
     if (block->prev) block->prev->next = block->next;
@@ -79,9 +79,9 @@ void UpdateArea(Terrain* terrain, CLight* light, const Vector3* position, const 
 namespace terrain {
 
 LightRef* AllocLightRef() {
-    if (!BlocksWithFree()) {
+    if (!g_blocksWithFree) {
         auto* block = static_cast<LightRefBlock*>(gamecrt::operator_new(sizeof(LightRefBlock)));
-        BlocksWithFree() = block;
+        g_blocksWithFree = block;
         block->next = nullptr;
         block->prev = nullptr;
         block->freeList = &block->refs[0];
@@ -93,15 +93,15 @@ LightRef* AllocLightRef() {
         block->refs[LightRefBlock::kRefs - 1].next = nullptr;
         block->refs[LightRefBlock::kRefs - 1].block = block;
     }
-    LightRefBlock* block = BlocksWithFree();
+    LightRefBlock* block = g_blocksWithFree;
     LightRef* ref = block->freeList;
     block->freeList = ref->next;
     if (--block->freeCount == 0) {
         // Full: it moves to the front of the full list (it is the head of the other one).
         if (block->next) block->next->prev = nullptr;
         LightRefBlock* rest = block->next;
-        PushFront(block, FullBlocks());
-        BlocksWithFree() = rest;
+        PushFront(block, g_fullBlocks);
+        g_blocksWithFree = rest;
     }
     return ref;
 }
@@ -112,10 +112,10 @@ void __stdcall FreeLightRef(LightRef* ref) {
     block->freeList = ref;
     int free = ++block->freeCount;
     if (free == 1) {
-        Unlink(block, FullBlocks());
-        PushFront(block, BlocksWithFree());
+        Unlink(block, g_fullBlocks);
+        PushFront(block, g_blocksWithFree);
     } else if (free == LightRefBlock::kRefs) {
-        Unlink(block, BlocksWithFree());
+        Unlink(block, g_blocksWithFree);
         gamecrt::operator_delete(block);
     }
 }

@@ -260,8 +260,8 @@ EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
 
 // --- Esc menu (0062AB20) ------------------------------------------------------------------------
 
-// The five regions' rectangles (menus.reg) the game keeps at 007C80A8.
-constexpr std::uintptr_t kEscMenuRects = std::uintptr_t(0x007C80A8);
+// The five regions' rectangles (menus.reg): nothing of the game's fills them, all zero.
+constexpr RECT kEscMenuRects[5] = /*007C80A8*/ {};
 
 void CEscMenu::Build() {
     window.rect_ = RECT{0, 0, 800, 600};
@@ -275,11 +275,10 @@ void CEscMenu::Build() {
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through 0062AC90 (SetRect with a RECT by value).
-    const std::uintptr_t rects = ei::GameAddress(kEscMenuRects);
-    for (std::uintptr_t source = rects; source < rects + 5 * sizeof(RECT); source += sizeof(RECT)) {
+    for (const RECT& source : kEscMenuRects) {
         CUiRegion* region = window.AddRegion();
         RECT rect;
-        gameapi::CopyRect(&rect, reinterpret_cast<const RECT*>(source));
+        gameapi::CopyRect(&rect, &source);
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     window.models_.data[0]->Play(1);

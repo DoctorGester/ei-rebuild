@@ -34,7 +34,24 @@ struct AmbientSoundClass {
     int chance;             // +0x14 percent per frame for a one-shot
 };
 static_assert(sizeof(AmbientSoundClass) == 0x18);
-const AmbientSoundClass* SoundClasses() { return ei::GamePointer<const AmbientSoundClass>(0x007969D0); }
+AmbientSoundClass g_soundClasses[16] = /*007969D0*/ {
+    {"Grass", -1, 1.0f, -1, 3e+01f, 6},
+    {"Ground", -1, 1.0f, -1, 3e+01f, 6},
+    {"Stone", -1, 1.0f, -1, 3e+01f, 6},
+    {"sand", -1, 1.0f, -1, 3e+01f, 6},
+    {"rock", -1, 1.5f, -1, 1e+02f, 4},
+    {"field", -1, 1.0f, -1, 3e+01f, 6},
+    {"water", -1, 3.0f, -1, 1e+02f, 6},
+    {"road", -1, 3.0f, -1, 3e+01f, 6},
+    {"", 0, 0.0f, -1, 1e+02f, 0},
+    {"snow", -1, 1.0f, -1, 3e+01f, 6},
+    {"Ice", -1, 3.0f, -1, 3e+01f, 6},
+    {"DryGrass", -1, 1.0f, -1, 3e+01f, 6},
+    {"SnowBall", -1, 1.0f, -1, 3e+01f, 6},
+    {"lava", -1, 3.0f, -1, 1e+02f, 0},
+    {"swamp", -1, 3.0f, -1, 1e+02f, 7},
+    {"rock", -1, 1.5f, -1, 1e+02f, 4},
+};
 constexpr int kClasses = 16;
 
 // One of the 3x3 sectors around the listener.
@@ -119,7 +136,7 @@ void Terrain::PlayAmbience() {
     int centreY = SectorOf(listener.y);
     float radius = static_cast<float>(CellSize() * kRadiusCells);
     float radiusSquared = static_cast<float>(radius * radius);
-    const AmbientSoundClass* classes = SoundClasses();
+    const AmbientSoundClass* classes = g_soundClasses;
 
     // Each sector votes for the class with the most weighted textures (the first of equals).
     ClassVotes votes[kClasses];
@@ -259,7 +276,7 @@ void Terrain::StopAmbience() {
 // The map loader's part (006C68B0, A-H26). The table is the game's own writable data; a class
 // that votes for another keeps its count.
 void terrain::CountAmbientVariants(const char* set) {
-    auto* classes = const_cast<AmbientSoundClass*>(SoundClasses());
+    AmbientSoundClass* classes = g_soundClasses;
     for (int i = 0; i < kClasses; ++i) {
         AmbientSoundClass& kind = classes[i];
         if (kind.countsAs >= 0) continue;
@@ -272,7 +289,7 @@ void terrain::CountAmbientVariants(const char* set) {
         }
     }
 }
-int terrain::AmbientVariants(int soundClass) { return SoundClasses()[soundClass].variants; }
+int terrain::AmbientVariants(int soundClass) { return g_soundClasses[soundClass].variants; }
 
 EI_REWRITTEN(0x006CB390, Terrain::PlayAmbience);
 EI_REWRITTEN(0x006CBC00, CWorldClient::AmbienceTimeOfDay);

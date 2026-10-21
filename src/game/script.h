@@ -477,7 +477,6 @@ struct ScriptParticleType {
     int lifetime;           // ticks, -1 forever
 };
 static_assert(sizeof(ScriptParticleType) == 12);
-inline const ScriptParticleType* ScriptParticleTypes() { return ei::GamePointer<const ScriptParticleType>(0x0078B120); }
 constexpr int kScriptParticleTypeCount = 64;
 
 struct ScriptDecl;

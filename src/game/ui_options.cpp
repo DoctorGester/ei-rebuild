@@ -19,6 +19,7 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "options.h"
 
 #include <cstdint>
 #include <cstring>
@@ -101,7 +102,98 @@ float& Opt20() { return ei::GameData<float>(0x0079BE80); }        // setting 20
 int& Opt21() { return ei::GameData<int>(0x0079BE84); }
 float& OptSign22() { return ei::GameData<float>(0x0079BD64); }    // setting 22 (-1 for 1, else +1)
 float& OptSign23() { return ei::GameData<float>(0x0079BD68); }    // setting 23 (likewise)
-int& Opt24() { return ei::GameData<int>(0x0079BD08); }
+// The settings and the key actions of the options window (the exe's tables of 26 and 59), by the window's rows.
+constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
+    {0, "volume_sfx", 0, 100, 1, 0},
+    {1, "volume_stream", 0, 100, 1, 1},
+    {2, "volume_voice", 0, 100, 1, 2},
+    {3, "power_kbd", 0, 100, 2, 0},
+    {4, "power_mouse", 0, 100, 2, 1},
+    {5, "scroll_border", 0, 10, 2, 2},
+    {6, "rubber_select", 0, 10, 2, 3},
+    {7, "shadow_units", 1, 2, 0, 0},
+    {8, "shadow_buildings", 1, 2, 0, 1},
+    {9, "shadow_flora", 1, 2, 0, 2},
+    {10, "marks", 1, 2, 0, 4},
+    {11, "footprints", 1, 2, 0, 5},
+    {12, "select_type", 1, 2, 0, 6},
+    {13, "show_path", 1, 2, 0, 7},
+    {14, "brightness", 0, 100, 0, 10},
+    {15, "contrast", 0, 100, 0, 11},
+    {16, "gamma", 0, 100, 0, 12},
+    {17, "show_flying_hp", 1, 2, 0, 8},
+    {18, "show_tutorial", 1, 2, 10, 11},
+    {19, "autosave", 1, 2, 3, 11},
+    {20, "tooltip_time", 0, 20, 2, 4},
+    {21, "switch_filters", 1, 2, 3, 12},
+    {22, "camera_reverse_x", 1, 2, 2, 6},
+    {23, "camera_reverse_y", 1, 2, 2, 7},
+    {24, "reverse_stereo", 1, 2, 1, 4},
+    {25, "difficulty", 1, 2, 3, 0},
+};
+constexpr ActionDefinition kActionDefinitions[59] = /*00787080*/ {
+    {1, "pause", 3, 4},
+    {2, "decel", 3, 3},
+    {3, "accel", 3, 2},
+    {4, "obj", 3, 6},
+    {5, "camera_up", 6, 1},
+    {6, "camera_down", 6, 2},
+    {7, "camera_left", 6, 3},
+    {8, "camera_right", 6, 4},
+    {9, "camera_zoom_in", 6, 5},
+    {10, "camera_zoom_out", 6, 6},
+    {11, "camera_track", 6, 0},
+    {12, "camera_norm", 6, 8},
+    {13, "camera1", 6, 9},
+    {14, "camera2", 6, 10},
+    {15, "camera3", 6, 11},
+    {16, "camera4", 6, 12},
+    {17, "cs_head", 9, 0},
+    {18, "cs_body", 9, 1},
+    {19, "cs_rleg", 9, 2},
+    {20, "cs_lleg", 9, 3},
+    {21, "cs_rhand", 9, 4},
+    {22, "cs_lhand", 9, 5},
+    {23, "crawl", 5, 7},
+    {24, "sneak", 5, 6},
+    {25, "walk", 5, 5},
+    {26, "run", 5, 4},
+    {27, "swarm", 5, 2},
+    {28, "follow", 5, 0},
+    {29, "use_science", 5, 1},
+    {30, "spell1", 8, 0},
+    {31, "spell2", 8, 1},
+    {32, "spell3", 8, 2},
+    {33, "spell4", 8, 3},
+    {34, "spell5", 8, 4},
+    {35, "spell6", 8, 5},
+    {36, "spell7", 8, 6},
+    {37, "spell8", 8, 7},
+    {38, "weapon1", 7, 0},
+    {39, "weapon2", 7, 1},
+    {40, "weapon3", 7, 2},
+    {41, "weapon4", 7, 3},
+    {42, "item1", 7, 5},
+    {43, "item2", 7, 6},
+    {44, "item3", 7, 7},
+    {45, "item4", 7, 8},
+    {46, "w_info1", 10, 3},
+    {47, "w_info2", 10, 4},
+    {48, "w_info3", 10, 5},
+    {49, "w_info4", 10, 6},
+    {50, "w_text1", 10, 0},
+    {51, "w_text2", 10, 1},
+    {52, "w_minimap", 10, 8},
+    {53, "quicksave", 3, 8},
+    {54, "quickload", 3, 9},
+    {55, "select1", 4, 0},
+    {56, "select2", 4, 1},
+    {57, "select3", 4, 2},
+    {58, "select_all", 4, 4},
+    {59, "tutorial_script", 10, 10},
+};
+
+int& Opt24() { return options::TheOptions()->reverseStereo_; }
 int& OptDifficultyCopy() { return ei::GameData<int>(0x0079BEC4); } // setting 25 (with GameDifficulty 0079BEC0)
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
@@ -198,7 +290,7 @@ void COptionsWindow::ShowGroup(int group) {
         regions_.data[kFirstRowRegion + row]->SetTip(0, 1, 0);
     }
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
-        const OptionDefinition& definition = OptionDefinitions()[i];
+        const OptionDefinition& definition = kOptionDefinitions[i];
         if (definition.group_ != group) continue;
         rows_[definition.row_].setting_ = &settings_[i];
         tip.Format(TextTipOption(), definition.name_);
@@ -206,7 +298,7 @@ void COptionsWindow::ShowGroup(int group) {
         regions_.data[kFirstRowRegion + definition.row_]->SetTipString(tip, 1, 0);
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
-        const ActionDefinition& action = ActionDefinitions()[i];
+        const ActionDefinition& action = kActionDefinitions[i];
         if (action.group_ != group) continue;
         rows_[action.row_].binding_ = &bindings_[i];
         tip.Format(TextTipAction(), action.name_);
@@ -250,7 +342,7 @@ void COptionsWindow::BuildSettings() {
         OptionSetting blank{};
         settings_.push_back(blank);
         OptionSetting& setting = settings_.back();
-        const OptionDefinition* definition = &OptionDefinitions()[i];
+        const OptionDefinition* definition = &kOptionDefinitions[i];
         setting.value_ = 0;
         setting.definition_ = definition;
         ShownName(&setting.text_, TextOptionPrefix(), definition->name_);
@@ -294,7 +386,7 @@ void COptionsWindow::BuildBindings() {
     bindings_.Finish() = bindings_.Start();
 
     for (int i = 0; i < kActionDefinitionCount; ++i) {
-        const ActionDefinition* action = &ActionDefinitions()[i];
+        const ActionDefinition* action = &kActionDefinitions[i];
         AppendBlankBinding(bindings_);
         OptionBinding& binding = bindings_.back();
         binding.action_ = action;

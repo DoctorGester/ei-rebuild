@@ -17,7 +17,7 @@ namespace {
 __declspec(naked) void __fastcall CameraDestruct(void* /*camera*/) EI_ORIGINAL(0x0040CE60)
 
 // The once-only flags of the two buffers (bit 0: 0079B900, bit 1: 0079B8E0).
-std::uint8_t& BufferFlags() { return ei::GameData<std::uint8_t>(0x0079B8FC); }
+std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
 } // namespace
 
 // 0040C8A0: the camera at 0079B2A8.
@@ -31,15 +31,15 @@ void __cdecl ReleaseGlobalClient() { ::RefPtrRelease(&ei::GameData<RefPtr>(0x007
 void __cdecl DestroyGlobalWordArray() { ei::GameData<mfc::impl::CWordArray>(0x0079B668).Destruct(); }
 // 00432CC0 / 00432D00: the growing buffers at 0079B900 and 0079B8E0, each destroyed once.
 void __cdecl DestroyGlobalBuffer1() {
-    std::uint8_t flags = BufferFlags();
+    std::uint8_t flags = g_bufferFlags;
     if (flags & 1) return;
-    BufferFlags() = static_cast<std::uint8_t>(flags | 1);
+    g_bufferFlags = static_cast<std::uint8_t>(flags | 1);
     GrowingBufferDestruct(&ei::GameData<char>(0x0079B900));
 }
 void __cdecl DestroyGlobalBuffer2() {
-    std::uint8_t flags = BufferFlags();
+    std::uint8_t flags = g_bufferFlags;
     if (flags & 2) return;
-    BufferFlags() = static_cast<std::uint8_t>(flags | 2);
+    g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
     GrowingBufferDestruct(&ei::GameData<char>(0x0079B8E0));
 }
 // 00434980: the vector at 0079B8D0.
