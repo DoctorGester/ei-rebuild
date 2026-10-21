@@ -256,8 +256,8 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xE1:   // GetLootItemsCount
     case 0xE2: { // GetMoney
         StoreBits(result, kZero);
-        WorldPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = static_cast<float>(id == 0xE1 ? player->items.count : player->Party()->Money());
+        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
+        if (player) *result = static_cast<float>(id == 0xE1 ? player->items_.count : player->Party()->Money());
         return;
     }
     case 0xE3: { // WasLooted
@@ -447,16 +447,16 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
 
     case 0x7C: { // HaveItem(player, item)
         StoreBits(result, kZero);
-        auto* player = reinterpret_cast<CPlayer*>(TheServerWorld()->GetPlayer(Ftol(f[0])));
+        auto* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
         if (player && player->HasLoot(Ftol(f[1]))) StoreBits(result, kOne);
         return;
     }
     case 0xB1:   // IsPlayerInDanger
     case 0xB2: { // IsPlayerInSafety
         StoreBits(result, kZero);
-        WorldPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
+        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
         if (!player) return;
-        int danger = player->server->refreshPending_;
+        int danger = player->Server()->refreshPending_;
         if (id == 0xB1 ? danger == 2 : danger == 0) StoreBits(result, kOne);
         return;
     }
@@ -473,8 +473,8 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         StoreBits(result, kZero);
-        WorldPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = player->variables.Get(stringArgs.data[0]);
+        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
+        if (player) *result = player->Party()->variables_.Get(stringArgs.data[0]);
         return;
     }
     case 0xA2:   // IsCameraPlaying
@@ -506,9 +506,9 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         CEngineObject* o = objectArgs.data[0]->object;
         StoreBits(result, kZero);
         if (!o) return;
-        WorldPlayer* player = TheServerWorld()->GetPlayer(0);
+        CPlayer* player = TheServerWorld()->GetPlayer(0);
         if (!player) return;
-        const ScriptGroup& visible = player->server->partyUnits_;
+        const ScriptGroup& visible = player->Server()->partyUnits_;
         bool found = false;
         for (int i = 0; i < visible.size; ++i)
             if (visible.data[i].object == o) {
@@ -579,7 +579,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0xB4: { // GetUnitOfPlayer(player, index)
-        WorldPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs.data[0]));
+        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs.data[0]));
         CEngineObject* o = nullptr;
         if (player) {
             const PartyMemberArray& members = player->Party()->members_;
@@ -612,7 +612,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             unitId = server->LeaderId();
         } else {
             unitId = 0x3B9AF5CE;
-            WorldPlayer* player = TheServerWorld()->GetPlayer(0);
+            CPlayer* player = TheServerWorld()->GetPlayer(0);
             if (player && player->Party()->members_.size > 0)
                 unitId = static_cast<int>(player->Party()->members_.data[0].unitId);
         }
@@ -708,13 +708,13 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         break;
     }
     case 0xA5: { // PlayerSee(player): the player's seen objects, its units and what they see
-        WorldPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs.data[0]));
+        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs.data[0]));
         if (!player) {
             (*result)->SetSize(0, -1);
             break;
         }
-        (*result)->CopyFrom(player->server->group50F8_);
-        const auto& units = player->units.map;
+        (*result)->CopyFrom(player->Server()->group50F8_);
+        const auto& units = player->units_;
         for (auto* node = units.First(); node; node = units.After(node)) {
             CUnit* unit = node->value;
             if (!unit) break;

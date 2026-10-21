@@ -2,6 +2,7 @@
 // the id maps. See world.h.
 #include "player_messages.h"
 #include "unit.h"
+#include "party.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -83,10 +84,10 @@ CEngineObject* CWorldServer::FindObject(unsigned id) {
     return node ? node->value : nullptr;
 }
 
-WorldPlayer* CWorldServer::GetPlayer(int id) {
+CPlayer* CWorldServer::GetPlayer(int id) {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        if (player->id == id) return player;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        if (player->playerId_ == id) return player;
     return nullptr;
 }
 
@@ -100,11 +101,11 @@ float CWorldServer::GridHeight(float x, float y) {
 }
 
 int CWorldServer::CountLivingMercs(int id) {
-    WorldPlayer* player = GetPlayer(id);
+    CPlayer* player = GetPlayer(id);
     if (!player) return 0;
     int living = 0;
-    for (int i = 0; i < player->mercCount; ++i) {
-        unsigned unitId = *reinterpret_cast<unsigned*>(player->mercs + i * 0x784 + 0x1C);
+    for (int i = 0; i < player->Party()->members_.size; ++i) {
+        unsigned unitId = player->Party()->members_.data[i].unitId;
         CEngineObject* unit = reinterpret_cast<WorldBase*>(this)->FindUnit(unitId);
         if (unit && ObjectSlots(unit)->IsDead() == 0) ++living;
     }
@@ -133,8 +134,8 @@ void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
 
 void CWorldServer::MarkPlayersDirty(std::uint32_t mask) {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        player->dirty |= mask;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        player->dirty_ |= mask;
 }
 
 void CWorldServer::SetCave(int value) { cave_ = value; }
@@ -248,8 +249,8 @@ void CWorldServer::RemoveObject(unsigned id) {
     }
     {
         PlayerIterator players;
-        for (WorldPlayer* player = players.First(PlayerList()); player; player = players.Next())
-            player->server->ForgetObject(object);
+        for (CPlayer* player = players.First(PlayerList()); player; player = players.Next())
+            player->Server()->ForgetObject(object);
         object->Release();
         object->Release();
     }

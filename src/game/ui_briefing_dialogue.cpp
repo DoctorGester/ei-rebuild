@@ -45,7 +45,7 @@ const char* HumanPrototype() { return "unhuma"; }
 using ActionDone = void(__fastcall*)(CUnit*);
 ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)); }
+CPlayer* LocalServerPlayer() { return TheServerWorld()->GetPlayer(0); }
 
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;
@@ -76,8 +76,8 @@ void CBriefingScreen::StartPhrases() {
         state_ = 0;
         return;
     }
-    void* server = LocalServerPlayer()->server;
-    if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventPhrases, 0);
+    CPlayerServer* server = LocalServerPlayer()->Server();
+    if (server) server->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
     const CCamera* camera = TheCamera();
@@ -200,7 +200,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     at.x = static_cast<float>(eye.x + alongX);
     at.y = static_cast<float>(eye.y + alongY);
     at.z = static_cast<float>(eye.z + height);
-    static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition0F(&at, &eye, 1);
+    LocalServerPlayer()->Server()->SendPosition0F(&at, &eye, 1);
 }
 EI_REWRITTEN(0x00607BB0, CBriefingScreen::ViewSpeaker);
 
@@ -314,8 +314,8 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     BriefingSpeaker* entry = speakers_;
     while (entry != speakersEnd_ && entry->unit != person) ++entry;
     if (entry != speakersEnd_) {
-        void* server = LocalServerPlayer()->server;
-        if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventLeaves, person->id_);
+        CPlayerServer* server = LocalServerPlayer()->Server();
+        if (server) server->SendPair19(kEventLeaves, person->id_);
         auto* model = reinterpret_cast<CUnitClientSpecific*>(person->controller);
         model->blinks = 0;
         model->BlinkOpen(true);

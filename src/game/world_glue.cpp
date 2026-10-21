@@ -5,6 +5,7 @@
 #include "net_classes.h"
 #include "object_tables.h"
 #include "script.h"
+#include "party.h"
 #include "world.h"
 #include "world_data.h"
 
@@ -68,7 +69,7 @@ int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error
 EI_REWRITTEN(0x005785D0, RunScriptText);
 
 void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
-    WorldPlayer* player;
+    CPlayer* player;
     if (IsMultiplayerClient()) {
         player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     } else {
@@ -78,7 +79,7 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
             return;
         }
     }
-    player->variables.CopyPrefixed(prefix, out);
+    player->Party()->variables_.CopyPrefixed(prefix, out);
 }
 EI_REWRITTEN(0x00578C40, PlayerZeroVariables);
 
@@ -111,8 +112,8 @@ CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(TheClient
 } // namespace
 
 void __stdcall GameSetConstructionVariable(std::uint32_t value) {
-    WorldPlayer* player = TheServerWorld()->GetPlayer(0);
-    if (player) player->server->SetVariable(kConstructionVariable, value);
+    CPlayer* player = TheServerWorld()->GetPlayer(0);
+    if (player) player->Server()->SetVariable(kConstructionVariable, value);
 }
 EI_REWRITTEN(0x00578560, GameSetConstructionVariable);
 
@@ -253,8 +254,8 @@ void GameRejoin() {
 EI_REWRITTEN(0x00578B20, GameRejoin);
 
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out) {
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
-    player->variables.CopyPrefixed(prefix, out);
+    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    player->Party()->variables_.CopyPrefixed(prefix, out);
 }
 EI_REWRITTEN(0x00578B70, GameLocalPlayerVariables);
 

@@ -94,14 +94,14 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     }
 
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        player->dirty = 0xFFFFFFFFu;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
+        player->dirty_ = 0xFFFFFFFFu;
     if (it.manager) --it.manager->refCount_;
     zoneLoaded_ = 1;
     weather_ = 0;
     weatherStrength_ = 0.0f;
     it.manager = nullptr;
-    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= 2;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty_ |= 2;
     if (it.manager) {
         --it.manager->refCount_;
         it.manager = nullptr;
@@ -158,7 +158,7 @@ void CWorldServer::ResetZone() {
     if (PlayerList()) {
         auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
         if (it) it->manager = nullptr;
-        for (WorldPlayer* player = it->First(PlayerList()); player; player = it->Next())
+        for (CPlayer* player = it->First(PlayerList()); player; player = it->Next())
             PlayerClearOriginal((void*)player);
         if (it) {
             if (it->manager) {
@@ -195,7 +195,7 @@ namespace {
 void CWorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(PlayerList()); player;
+    for (CPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
         PlayerDisconnectOriginal((void*)player);
         static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
@@ -266,8 +266,8 @@ void CWorldServer::SendFreshObjects() {
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    WorldPlayer* temporary = (WorldPlayer*)PlayerCreateOriginal((void*)players_);
-    CPlayerServer* state = temporary->server;
+    CPlayer* temporary = (CPlayer*)PlayerCreateOriginal((void*)players_);
+    CPlayerServer* state = temporary->Server();
     lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
     for (auto* node = fresh.head; node;) {
         auto* next = node->next;

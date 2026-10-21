@@ -3,6 +3,7 @@
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "object_tables.h"
 #include "ui.h"
+#include "party.h"
 #include "world.h"
 #include "game_strings.h"
 
@@ -95,7 +96,7 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
 }
 
 void GameFlow::MarkBriefing(const char* briefing) {
-    auto* player = *reinterpret_cast<WorldPlayer**>(TheClientWorld()->LocalView() + 0x1C);
+    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     // "<zone>_N": the zone's quests are loaded first.
     std::size_t length = std::strlen(briefing);
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
@@ -108,7 +109,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
     }
     StringSlot variable;
     BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
-    player->variables.Set(variable.Get(), 1.0f);
+    player->Party()->variables_.Set(variable.Get(), 1.0f);
     variable.Get().~CString();
 }
 
@@ -140,10 +141,10 @@ EI_REPLACE(0x005809C0, DestroyQuestFiles);
 EI_REPLACE(0x00581090, DestroyQuestFolders);
 
 void GameFlow::ForgetBriefing(const char* briefing) {
-    auto* player = *reinterpret_cast<WorldPlayer**>(TheClientWorld()->LocalView() + 0x1C);
+    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     StringSlot variable;
     BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
-    player->variables.Remove(variable.Get());
+    player->Party()->variables_.Remove(variable.Get());
     variable.Get().~CString();
 }
 

@@ -136,7 +136,7 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
     if (wanted.data) gamecrt::operator_delete(wanted.data);
 }
 
-void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
+void CWorldServer::RestorePlayerItems(CPlayer* player) {
     ObjectList taken;
     InitList(taken);
     if (sessionKind_ != kKindNetwork) {
@@ -159,7 +159,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
                 auto* fresh = static_cast<CItem*>(DuplicateItem(item));
                 fresh->count_ = item->count_;
                 AddTail(one, fresh);
-                reinterpret_cast<CPlayer*>(player)->GiveItems(&one, 0);
+                player->GiveItems(&one, 0);
                 item->Release();
                 mfc::impl::DestructList<mfc::impl::ItemListClass>(one);
                 node = next;
@@ -176,7 +176,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
     mfc::PlexFreeDataChain(taken.blocks);
 }
 
-void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScripts) {
+void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
     if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
@@ -222,14 +222,14 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     WorldCreateUnitsOriginal(this, nullptr, player, &records, &start, rotation, placements);
     if (placements)   // 0059C3D0
         mfc::impl::Placements::SetSize(static_cast<mfc::impl::Placements::Array*>(placements), nullptr, 0, -1);
-    CPlayerServer* state = player->server;
+    CPlayerServer* state = player->Server();
     std::uint32_t lastZ;
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
     if (lastZ != kNoStart) {
         std::memcpy(&state->lastPosition_, &start, sizeof(start));
         state->SendPosition04(&start, startValue, sessionKind_);
     }
-    player->lastTick = tick_;
+    player->lastTick_ = tick_;
     if (sessionKind_ == kKindNoRangeTest) UpdateMercBriefings();
     if (runScripts) {
         scriptsActive_ = 1;
@@ -296,7 +296,7 @@ EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
 void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {
         if (auto* link = reinterpret_cast<ItemSourceRef*>(item->link_)) {
-            CParty* party = reinterpret_cast<WorldPlayer*>(unit->player)->Party();
+            CParty* party = unit->player->Party();
             if (party->Find(unit->id_)) {
                 CEngineObject* source = party->ItemManager()->FindObject(link->itemId);
                 if (source) --static_cast<CItem*>(source)->count_;

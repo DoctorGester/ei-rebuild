@@ -16,7 +16,7 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
   CItem `GetUse`, CParty `ItemManager`, CPlayerSource `TakeNew` / `Query`, CEngineObject `ClearState` / `Release`, Projectile `DeletingDestructor`.
 - **Members instead of offsets:** `CEffect::startTick_` (timed objects), `CParty::Money()` (player gold), `CPlayerServer::partyUnits_`,
   `AIBrain::visible` / `unknown_37`, `CUnitServer::stats`, `CTextManager::cursor_`, `CWorld::shared5C_`, `CWorldServer::hoover_`,
-  `WorldPlayer::units` / `server`.
+  `CPlayer::units_` / `Server()`.
 - **AddUnitToServer's record builder** (`world_zone.cpp`) is storage for a `CParty`. Its record is the party's first `PartyUnitRecord`, and the
   unit id goes in `unknown_01C`. `world.h` still counts `ObjectIdMap`, `PlatformSet` and `UnitSet` as per-file container structs: they are game
   structures built on the shared templates, not container layouts.
@@ -39,7 +39,7 @@ A gap became a name when src reads or writes it through the class, else `unused_
 - `CWorldServer::sendsStartPosition_` (+0x11C) is never set non-zero by the game code, so SendZone's start-position branch is dead.
 - `CUnitServer::aiPresence` (+0x918) holds 005C9770's result, which is `AIViewer::StepNoise` and always returns 0: the presence record is never
   written and `AIEventPresence` is speculative.
-- `CPlayer` +0x108 is god mode (`WorldPlayer::godMode`); `CPlayerClient` +0x84 is the local session.
+- `CPlayer` +0x108 is god mode (`CPlayer::godMode_`); `CPlayerClient` +0x84 is the local session.
 - Written, never read: `CWorldClient::lightingMark_`, `CUnitServer::orderStopped` (saved too), `DamageInfo::weaponValue`.
 - Methods renamed with their fields: `SetCave`, `SetClimate`, `SetWeather` (the forwarders `WorldSetCave`, `WorldSetClimate`, `GameSetWeather`); the
   save version constant `kVersionRainBoltTick`.

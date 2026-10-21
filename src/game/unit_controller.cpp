@@ -46,12 +46,12 @@ void CUnit::RefreshMotion() {
 }
 EI_REPLACE_METHOD(0x0052E9D0, CUnit::RefreshMotion);
 
-void CUnit::SetPlayer(char* newPlayer) {
-    char* old = player;
+void CUnit::SetPlayer(CPlayer* newPlayer) {
+    CPlayer* old = player;
     if (old == newPlayer) return;
     player = newPlayer;
-    if (old) reinterpret_cast<CPlayer*>(old)->RemoveUnit(this);
-    if (player) reinterpret_cast<CPlayer*>(player)->AddUnit(this);
+    if (old) old->RemoveUnit(this);
+    if (player) player->AddUnit(this);
     MarkChanged(kPartRelations);
     if (controller) Controller()->PlayerChanged(newPlayer);
 }

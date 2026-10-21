@@ -398,13 +398,13 @@ int CPlayerClient::OnParty() {
         block.Get()->CMemoryStream::SeekImpl(0);
         if (in_.ok_) {
             party->LoadParty(block.Get(), 1);
-            mfc::CTypedPtrList<void>& recharging = Owner()->objects_;
+            mfc::CList<std::uint32_t>& recharging = Owner()->recharging_;
             recharging.RemoveAll();
             ObjectListIterator walk{nullptr, nullptr};
             for (CEngineObject* object = walk.First(party->ItemManager()); object != nullptr; object = walk.Next()) {
                 auto* item = static_cast<CItem*>(object);
                 if (item->chargeMax_ > item->charge_)
-                    recharging.AddTail(reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_)));
+                    recharging.AddTail(static_cast<std::uint32_t>(item->id_));
             }
             if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
         }

@@ -1,5 +1,6 @@
 // The client world's light by the time of day (UpdateLighting, 00566360) and the zone exit
 // markers' colour (UpdateExitMarkers, 00567680). See world.h and docs/notes/world.md.
+#include "party.h"
 #include "world.h"
 #include "world_data.h"
 
@@ -227,7 +228,7 @@ EI_REWRITTEN(0x00566360, CWorldClient::UpdateLighting);
 
 void CWorldClient::UpdateExitMarkers() {
     if (exitCount_ != countedA0_.GetSize()) return;
-    NamedFloatTable* variables = &reinterpret_cast<WorldPlayer*>(session_)->variables;
+    NamedFloatTable* variables = &session_->Party()->variables_;
     for (int i = 0; i < exitCount_; ++i) {
         auto* marker = reinterpret_cast<CParticleSource*>(countedA0_[i]);
         if (!marker) continue;

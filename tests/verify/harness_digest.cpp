@@ -229,17 +229,17 @@ void ReadRandom(Builder& b) {
     b.Bits("crt.rand", libcrt::RandState());
 }
 
-void ReadPlayer(WorldPlayer* p, Builder& b) {
-    b.Int("id", p->id);
-    b.Unsigned("partyId", p->partyId);
-    b.Unsigned("sessionKind", p->sessionKind);
-    b.Int("lastScreen", p->lastScreen);
-    b.Unsigned("godMode", p->godMode);
-    b.Int("lastTick", p->lastTick);
-    b.Int("items", p->items.GetCount());
-    b.Int("ids", p->ids.GetCount());
-    b.Unsigned("units", static_cast<std::uint32_t>(p->units.map.Size()));
-    b.Unsigned("objects", static_cast<std::uint32_t>(p->objects.map.Size()));
+void ReadPlayer(CPlayer* p, Builder& b) {
+    b.Int("id", p->playerId_);
+    b.Unsigned("partyId", p->partyId_);
+    b.Unsigned("sessionKind", p->sessionKind100_);
+    b.Int("lastScreen", p->lastScreen_);
+    b.Unsigned("godMode", p->godMode_);
+    b.Int("lastTick", p->lastTick_);
+    b.Int("items", p->items_.GetCount());
+    b.Int("ids", p->recharging_.GetCount());
+    b.Unsigned("units", static_cast<std::uint32_t>(p->units_.Size()));
+    b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects_.Size()));
     CParty* party = p->Party();
     b.Unsigned("money", party->money_);
     b.Int("partyItems", party->items_.size);
@@ -781,9 +781,9 @@ void Read(CWorldServer* w, Snapshot& s) {
     std::map<const void*, int> players;
     if (w->players_) {
         PlayerIterator it;
-        for (WorldPlayer* p = it.First(w->players_); p; p = it.Next()) {
-            players[p] = p->id;
-            b.entity = &Slot(s.state, {kPlayer, p->id});
+        for (CPlayer* p = it.First(w->players_); p; p = it.Next()) {
+            players[p] = p->playerId_;
+            b.entity = &Slot(s.state, {kPlayer, p->playerId_});
             b.entity->description = "player";
             ReadPlayer(p, b);
         }
@@ -1097,8 +1097,8 @@ UnitNow Unit(int id) {
 int LocalLeader(unsigned* money) {
     if (!g_server || !g_server->players_) return -1;
     PlayerIterator it;
-    for (WorldPlayer* p = it.First(g_server->players_); p; p = it.Next()) {
-        if (p->id != 0) continue;
+    for (CPlayer* p = it.First(g_server->players_); p; p = it.Next()) {
+        if (p->playerId_ != 0) continue;
         CParty* party = p->Party();
         if (money) *money = party->money_;
         return party->members_.GetSize() > 0 ? static_cast<int>(party->members_[0].unitId) : -1;

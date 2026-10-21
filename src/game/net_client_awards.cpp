@@ -40,7 +40,7 @@ constexpr int kClassQuestItem = 0x14;
 
 void* World() { return TheServerWorld(); }
 // 00594180: player 0 of the world (the local player), or null.
-CPlayer* LocalPlayer() { return reinterpret_cast<CPlayer*>(static_cast<CWorldServer*>(World())->GetPlayer(0)); }
+CPlayer* LocalPlayer() { return static_cast<CWorldServer*>(World())->GetPlayer(0); }
 std::int32_t GameMode() { return ei::GameData<const std::int32_t>(0x007C2CC4); }
 std::uint32_t Unknown7B00BC() { return ei::GameData<const std::uint32_t>(0x007B00BC); }
 
@@ -79,7 +79,7 @@ void ClientSession::ApplyAwards() {
             GivenItems none;
             InitList(none, mfc::impl::ItemListClass::Vtable());
             player->Party()->Money() += static_cast<int>(gamecrt::Ftol(award->value_));
-            reinterpret_cast<CPlayer*>(player)->GiveItems(&none, 0);
+            player->GiveItems(&none, 0);
             none.vtable = mfc::impl::ItemListClass::Vtable();
             none.RemoveAll();
             break;
@@ -93,7 +93,7 @@ void ClientSession::ApplyAwards() {
             if (items.tail) items.tail->next = added;
             else items.head = added;
             items.tail = added;
-            reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
+            player->GiveItems(&items, 0);
             items.vtable = gameslots::ItemObjectListClass::Vtable();
             mfc::impl::ListAs<gamelists::EngineObjects>(&items)->RemoveAll();   // 00429E50
             break;

@@ -32,7 +32,6 @@ constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
-CPlayer* PlayerOf(const CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
 
 // A list on the stack as the original builds it (CPtrList, blocks of 10).
 void InitList(AIObjectList& list) {
@@ -43,8 +42,8 @@ void InitList(AIObjectList& list) {
 
 // The player controls the unit directly (its player's server connection in state 2).
 bool DirectlyControlled(const CUnit* unit) {
-    CPlayer* player = PlayerOf(unit);
-    return player && reinterpret_cast<CPlayerServer*>(player->connection_)->refreshPending_ == kDirectControl;
+    CPlayer* player = unit->player;
+    return player && player->Server()->refreshPending_ == kDirectControl;
 }
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
@@ -194,7 +193,7 @@ void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     CUnit* unit = brain->owner->unit;
     if (!unit) return;
     party->AddTail(unit);
-    CPlayer* player = PlayerOf(unit);
+    CPlayer* player = unit->player;
     if (!player) return;
     // The chain of leaders above the unit.
     for (const CUnit* member = unit;;) {
@@ -222,7 +221,7 @@ EI_REWRITTEN(0x005D4600, PlayerMode::CollectParty);
 bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     float slack = moving ? kMovingSlack : kStandingSlack;
     CUnit* unit = brain->owner->unit;
-    CPlayer* player = PlayerOf(unit);
+    CPlayer* player = unit->player;
     if (!player) return true;
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         CUnit* member = node->value;

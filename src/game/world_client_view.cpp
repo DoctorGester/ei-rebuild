@@ -122,7 +122,7 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
-    if (g_multiplayerView != 0 && Session()->gameKind == 1) drawAllUnits = false;
+    if (g_multiplayerView != 0 && Session()->sessionKind100_ == 1) drawAllUnits = false;
 
     ObjectListNode* node = static_cast<ObjectList*>(list)->head->next;
     if (node == static_cast<ObjectList*>(list)->head) return 0;

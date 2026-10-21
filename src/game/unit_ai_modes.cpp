@@ -43,8 +43,8 @@ const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0
 // The server side of a unit's player (CPlayer::connection_, a CPlayerServer here; CUnit::player is
 // kept as bytes in unit.h). Its refreshPending_ == 2 is what the modes take as the player
 // controlling the unit directly.
-inline const CPlayerServer* PlayerServerOf(const char* player) {
-    return reinterpret_cast<const CPlayerServer*>(reinterpret_cast<const CPlayer*>(player)->connection_);
+inline const CPlayerServer* PlayerServerOf(const CPlayer* player) {
+    return player->Server();
 }
 
 template <typename T>
@@ -730,7 +730,7 @@ EI_REPLACE_METHOD(0x005D4A90, PlayerMode::Execute);
 namespace {
 // Does the player control the unit directly?
 bool DirectControl(const AIBrain* brain) {
-    const char* player = brain->owner->unit->player;
+    const CPlayer* player = brain->owner->unit->player;
     return player && PlayerServerOf(player)->refreshPending_ == 2;
 }
 

@@ -107,7 +107,7 @@ float SinkAcceleration() { return 0.01f /*0073C548*/; }
 int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
 int WorldTime(const void* object) { return TickOf(ManagerContextOf(object)); }
 // The connection of a unit's player (CPlayer::connection_; a CPlayerServer on the server).
-CPlayerConnection* ConnectionOf(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
+CPlayerConnection* ConnectionOf(CPlayer* player) { return player->connection_; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 AnimationSteps& SavedQueue(CUnitServer* self) { return self->savedQueue; }
@@ -238,8 +238,8 @@ int CUnitServer::UpdateServer() {
             int& bored = boredTicks;
             ++bored;
             if (bored > kBoredTicks && IsaacRandom::Global().Next() % kBoredChance == 0) {
-                char* player = unit->player;
-                if (!player || reinterpret_cast<CPlayerServer*>(ConnectionOf(player))->refreshPending_ != 0) {
+                CPlayer* player = unit->player;
+                if (!player || player->Server()->refreshPending_ != 0) {
                     bored = 0;
                 } else {
                     PlayerMessage(ConnectionOf(player), nullptr, unit, kRemarkBored);
@@ -279,9 +279,9 @@ int CUnitServer::UpdateServer() {
     if (reported == 0 && Queue(this).count == 0) {
         reported = 1;
         static_cast<CWorldServer*>(world)->TellPartiesGone(unit);
-        char* player = unit->player;
+        CPlayer* player = unit->player;
         unit->SetPlayer(nullptr);
-        if (player && reinterpret_cast<CPlayer*>(player)->IsLeader(unit) != 0) {
+        if (player && player->IsLeader(unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {
             static_cast<AIBrain*>(&brain)->Reset();

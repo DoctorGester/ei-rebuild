@@ -104,9 +104,8 @@ void CPlayerServer::OnLeaderDied() {
         TheServerWorld()->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
         player->TakeAllItems();
     }
-    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     if (flag70_) {
-        TheServerWorld()->CollectParty(worldPlayer, nullptr);
+        TheServerWorld()->CollectParty(player, nullptr);
         flag70_ = 0;
     }
     if (party->members_.size == 1) {
@@ -125,7 +124,7 @@ void CPlayerServer::OnLeaderDied() {
     SendParty();
     lastPosition_.z = kUnknownZ;
     if (!flag70_) {
-        TheServerWorld()->Redeploy(worldPlayer, nullptr, 1);
+        TheServerWorld()->Redeploy(player, nullptr, 1);
         flag70_ = 1;
     }
     CUnit* revived = FindUnit(newId);
@@ -407,9 +406,8 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
             if (!IsMultiplayerClient()) return;
         }
     }
-    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     if (flag70_) {
-        TheServerWorld()->CollectParty(worldPlayer, nullptr);
+        TheServerWorld()->CollectParty(player, nullptr);
         flag70_ = 0;
     }
     state_ = 3;
@@ -434,7 +432,7 @@ EI_REWRITTEN(0x0066F310, CPlayerServer::LeaveToZone);
 void CPlayerServer::Leave() {
     if (state_ == 1) {
         if (flag70_) {
-            TheServerWorld()->CollectParty(reinterpret_cast<WorldPlayer*>(Owner()), nullptr);
+            TheServerWorld()->CollectParty(Owner(), nullptr);
             flag70_ = 0;
         }
         if (GameMode() == 2) SendParty();
@@ -469,7 +467,7 @@ int CPlayerServer::OnJoined() {
     state_ = 1;
     CPlayer* player = Owner();
     player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->sessionKind_;
-    TheServerWorld()->Redeploy(reinterpret_cast<WorldPlayer*>(player), &placements_, 1);
+    TheServerWorld()->Redeploy(player, &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;
 }
@@ -519,7 +517,7 @@ int CPlayerServer::OnResume() {
     if (state_ != 4) return 0;
     state_ = 1;
     if (!flag70_) {
-        TheServerWorld()->Redeploy(reinterpret_cast<WorldPlayer*>(Owner()), nullptr, 1);
+        TheServerWorld()->Redeploy(Owner(), nullptr, 1);
         flag70_ = 1;
     }
     return 1;
@@ -576,7 +574,7 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) 
 EI_REWRITTEN(0x0047ADA0, IsPrintableText);
 
 int CPlayerServer::OnLogin() {
-    LoginMessage login;
+    PlayerLoginMessage login;
     login.partyId = 0;
     ReceivedMessages().Read(&login, sizeof(login));
     if (state_ != 0) return 0;
@@ -662,10 +660,9 @@ void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
     CPlayer* player = Owner();
     GameCout()->PutText(kResendingParty)->PutInt(player->playerId_)->PutChar('\n')->Apply(libcrt::FlushManipulator);
-    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
-    TheServerWorld()->SyncPartyRecords(worldPlayer);
+    TheServerWorld()->SyncPartyRecords(player);
     SendParty();
-    TheServerWorld()->ClearPlayerItems(worldPlayer);
+    TheServerWorld()->ClearPlayerItems(player);
 }
 EI_REWRITTEN(0x0066F450, CPlayerServer::ResendParty);
 

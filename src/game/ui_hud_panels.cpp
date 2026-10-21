@@ -283,10 +283,10 @@ void CHudTopPanel::ShowItems() {
     CTextManager* texts = TheTextManager();
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
     mfc::CTypedPtrList<CItem> merged{ei::GamePointer<void>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     mfc::CString line;
     mfc::CString format;
-    for (auto* node = player->items.head; node;) {
+    for (auto* node = player->items_.head; node;) {
         CItem* item = node->data;
         node = node->next;
         CItem* same = nullptr;

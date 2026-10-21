@@ -158,10 +158,10 @@ using SpotArray = mfc::CArray<float[3]>;
 using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 
 // The messages of a unit's player (CPlayer::connection_).
-void* PlayerConnection(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
+CPlayerServer* PlayerConnection(CPlayer* player) { return player->Server(); }
 
 void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, int flag, float limit) {
-    if (unit->player) reinterpret_cast<CPlayerServer*>(PlayerConnection(unit->player))->SendPathMessage(unit, const_cast<void*>(motion), point, kind, flag, std::bit_cast<std::uint32_t>(limit));
+    if (unit->player) PlayerConnection(unit->player)->SendPathMessage(unit, const_cast<void*>(motion), point, kind, flag, std::bit_cast<std::uint32_t>(limit));
 }
 
 } // namespace
@@ -275,7 +275,7 @@ EI_REWRITTEN(0x0054E250, CUnitServer::TimeUntilAction);
 // --- Planning an order's way ---------------------------------------------------------------------
 
 bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
-    char* player = unit->player;
+    CPlayer* player = unit->player;
     if (order->kind != kOrderSkill && !player) return true;
     float best = kFar;
     LocalMotionOrder route;

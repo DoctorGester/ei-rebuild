@@ -105,7 +105,7 @@ int WorldTick(const void* object) { return ObjectWorld(static_cast<const CEngine
 // The prototype's height offset (UnitPrototypeRecord +0x24).
 float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height); }
 // The messages of a unit's player (CPlayer::connection_).
-void* PlayerMessages(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
+CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
 } // namespace
@@ -515,9 +515,9 @@ EI_REWRITTEN(0x0054B390, CUnitServer::UpdateOrders);
 void CUnitServer::ContinueAction() {
     CEngineObject* target = action.target;
     bool seen = true;
-    char* player = unit->player;
+    CPlayer* player = unit->player;
     if (player && IsUnit(target) && !Brain()->memory.IsEnemy(unit, target))
-        seen = static_cast<CPlayerServer*>(PlayerMessages(player))->IsPartyUnit(target);
+        seen = PlayerMessages(player)->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);
     bool carryOn = false;

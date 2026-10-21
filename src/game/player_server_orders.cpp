@@ -88,7 +88,7 @@ int CPlayerServer::OnGameStateRequest() {
     int state;
     Received().Read(&state, 4);
     player->sessionKind100_ = state;
-    TheServerWorld()->CollectParty(reinterpret_cast<WorldPlayer*>(player), &placements_);
+    TheServerWorld()->CollectParty(player, &placements_);
     SendParty();
     std::uint8_t type = kMessageGameState;
     out_.Write(&type, 1);

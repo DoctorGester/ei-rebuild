@@ -261,13 +261,13 @@ namespace {
 } // namespace
 
 void CPlayer::Tick() {
-    auto* node = objects_.head;
+    auto* node = recharging_.head;
     while (node != nullptr) {
         auto* current = node;
         node = node->next;
-        int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
+        int id = static_cast<int>(current->data);
         CEngineObject* object = static_cast<CBaseManager*>(Party()->ItemManager())->FindObject(id);
-        if (object == nullptr || object->RunTick() == 0) objects_.RemoveAt(current);
+        if (object == nullptr || object->RunTick() == 0) recharging_.RemoveAt(current);
     }
     connection_->TickDone();
 }

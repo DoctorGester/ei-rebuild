@@ -78,7 +78,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         static_cast<CDiplomacy*>(&static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_)->OnAttack(tamer, unit, 10);
         return 0;
     }
-    char* tamerPlayer = tamer->player;
+    CPlayer* tamerPlayer = tamer->player;
     switch (Stage(this)) {
     case 0:
         unit->SetRelationsB(~(1u << (tamer->side & 31)));
@@ -91,7 +91,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         break;
     case 2: {
         if (!tamerPlayer) break;
-        reinterpret_cast<CPlayer*>(tamerPlayer)->ReleaseTamedUnits();   // 00665D20
+        tamerPlayer->ReleaseTamedUnits();   // 00665D20
         unit->SetSide(tamer->side);
         static_cast<CUnit*>(unit)->SetPlayer(tamerPlayer);
         auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));

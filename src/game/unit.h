@@ -23,6 +23,7 @@
 
 class CItem;   // item.h
 class CParty;   // party.h
+class CPlayer;   // player_messages.h
 struct UnitStats;
 struct UnitParams;
 struct DamageInfo;   // spell.h
@@ -581,7 +582,7 @@ public:
     // 005300D0. Moves the unit to `newPlayer` (nothing when it is the current one): the old
     // player loses it (00665B50), the new one gains it (00665A70), part 11 is marked and the
     // controller hears of it (slot 18).
-    void SetPlayer(char* newPlayer);
+    void SetPlayer(CPlayer* newPlayer);
     // unit_small_methods.cpp (A-U12).
     // 0052EA40 (RET 8; the client's path marker message). As RefreshMotion with the speeds given
     // (the motion's speed scale and base turn rate) and no part marked.
@@ -615,7 +616,7 @@ public:
     CEngineObject* controller;      // +0x240 (the script code calls it the perception object)
     std::uint32_t relationsA;       // +0x244 \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // +0x248 / bit s set
-    char* player;                   // +0x24C the player that owns the unit (null: none)
+    CPlayer* player;                // +0x24C the player that owns the unit (null: none)
     int side;                       // +0x250
     // +0x254 / +0x255 the animation entries (FigureAnimation::index) the unit shows: -1 none; the
     // second -2 for the special idle. The client's RestartAnimation (controller slot 14) plays them.
