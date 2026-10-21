@@ -873,17 +873,45 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     Raw constants gone: flowdata::kExitArrayVtable / kExitArrayBaseVtable, world_construct.cpp's kZoneExitArrayVtable,
     world_destructors.cpp's kWaterLevelsVtable, sector_map.h's kSectorArrayVtable, world.h's ObjectsVtable, script.h's
     kRefs / kRefsBase and the literals in script_load.cpp, script_runtime_helpers.cpp and script_vars_append.cpp.
-  - **Left raw**: AreaList 0073F9E0 (game.exe's CSectorMap table 0073F9DC is listed with four slots in vtables.csv, so
-    the retirement check refuses a table that shares them), FloatArray 0073D3E8 (static_init.cpp stores it), the script variables' derived tables
-    (script.h's kFloats 0073D2E0, kStrings 0073D2D4, kGroups 0073D304, kIfThen 0073D430: not tags of the two headers),
-    and the batch 10 skips (0073D024, 0073FDEC, 0073FE34, 0073D46C, 0073FAE0, RefListA 0073FA4C).
+  - **Left raw** (batch 12 took them): AreaList 0073F9E0, FloatArray 0073D3E8, the script variables' derived tables and
+    the batch 10 skips.
+- **Batch 12's families** (2026-10-21): the container tables earlier batches left for tool or initialiser reasons: 12
+  rows, 6,194 -> 6,158 code cells, 24 slot registrations EI_REWRITTEN.
+  - **One-slot tables** (find_vtables.py): a table ends after its first slot when the next address is one the code
+    stores (`mov r/m32, imm32` / `mov r32, imm32`: a vtable of its own; an address the code only calls through, `call
+    [v]`, still splits only after the second slot). CSectorMap's 0073F9DC and the sector's 0073FADC (each only a
+    deleting destructor) were 4 slots, overlapping the area list's 0073F9E0 and the occluder array's 0073FAE0; 19 other
+    rows got their one slot too (0073CAB0, 0073D760 / 64 / 70 / 74, 0073FD58, 00740F28, 00742F20 / 24, 00743320,
+    00744054-00744064, 00744264, and the retired 0073CA08, 0073CA0C, 007432FC). Only the slot counts of
+    config/vtables.csv were taken from the rerun: a full rerun also rewrites installed_by from today's functions.csv and
+    adds five library rows (0074676C, 0074718C, 007474B8, 00747E2C / 30), left for the library batch. The union of
+    slots is the same, so no code cell moved. AreaListClass and SectorOccluderArrayClass are compiled tags in
+    mfc_slots.h (sector_map.h's kSectorOccluderArrayVtable gone).
+  - **Tables the static initialisers stored** (ParticleDepth 0073D024 / 007A9C50, Objective 0073D46C / 007AA608, SpiralOffset
+    0073FDEC / 007C2FF8, CArray<float> 0073D3E8 / the radius tree's keys 007C2FD8, SmoothNode 0073FE34 / 007C3038): the
+    initialisers inlined the arrays' constructors (00498E60, 004C9D90, 005C18C0, 005BF890, 005C44B0); game_arrays.cpp
+    registers those constructors (`ArrayHeader<Tag>::Construct`), so gen_static_init.py writes `d.Thiscall(ctor, object)`
+    in place of the stores of game.exe's table (no change to the generator: a registered callee is called, not inlined).
+    The four game tags are game_arrays.h's (mfc_slots.h's raw duplicates Array0498Class, SectorCellArrayClass,
+    SmoothRowArrayClass and NamedRecordArrayClass are gone, their slot registrations moved to game_arrays.cpp);
+    FloatArrayClass is mfc_slots.h's (the raw constants of sector_map, terrain_landscape and map_object_lifetime gone).
+    Two unread objects right after two of the arrays (007A9C64, 007C3010) are REVIEWED_NEAR entries: with the stores
+    gone the array below is no longer an initialiser-stored object, and its maxSize / growBy field is the referenced
+    address below them.
+  - **The script variables' tables**: kFloats 0073D2E0 is mfc_slots.h's ScriptFloatValuesClass (derived from
+    ScriptFloatsClass, whose destructor its slot calls), kIfThen 0073D430 ScriptIfThenPairsClass (derived from
+    ScriptIfThenArrayClass); kStrings 0073D2D4 and kGroups 0073D304 are game_arrays.h's ScriptStringValuesClass /
+    ScriptGroupValuesClass over the destructors their slots call (ScriptNamesDestruct 004BC810, ScriptGroupArrayDestruct
+    004BCA20). script.h's scriptvtable::kFloats / kStrings / kGroups / kIfThen, game_lists.cpp's DefinitionIfThenClass
+    and the literals in script_load.cpp / script_parse_load.cpp are gone. RefListAClass 0073FA4C (the world server's
+    new connections, AcceptNewPlayers) is game_slots.h's compiled tag (game_flow_data.h's kSessionListVtable gone).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
   stored; retiring it zeroes live slots (the first try of batch 2 retired 0073BD98: every run crashed calling a null
   slot at startup). gen_image_cells.py's check refuses a retired row that no code of game.exe stores
-  (`stored_vtable`: `mov r/m32, imm32` or `mov r32, imm32`) or that shares a slot with a row still in use (the overlapping
-  rows 0073D760 / 0073D764 / 0073D768). A family's retirement takes its tails with it (0073E954's 0073E98C).
+  (`stored_vtable`: `mov r/m32, imm32` or `mov r32, imm32`) or that shares a slot with a row still in use (rows that overlap
+  where find_vtables.py could not tell a table's end). A family's retirement takes its tails with it (0073E954's 0073E98C).
 - **Retired with no class of ours** (batch 2; file `-` in the csv, the note names the storing functions): 0073B98C
   (an exception class, 0040C440 / 0040C500), 0073BFAC (CDebugPanel's base), 0073D860 / 0073D888 (the render helper's
   base and local), 0074019C (CUiMesh::SetVertexCount's local), 00740244 (the battle camera's input side, before
@@ -891,7 +919,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   cells. Not retired from the "no store in src/" row: the tails 0073BD98 (CMemoryStream), 0073E98C (0073E954),
   0073EAA0, 007435B4, 00743618, 00743678, 007436D8, 00743738, 00743AA8, 00743ADC (devirtualised slot calls of the
   tables before them), 0073BF08, 0073E6E8, 0073E850, 0073F4E8, 00740FE8, 007418E8, 0074247C, 007435D8 (byte matches:
-  inside the table before them), 0073D764 (shares slots with 0073D760 / 0073D768), 0073B984 (an exception base: six stores
+  inside the table before them), 0073D764 (shared slots with 0073D760 / 0073D768 until batch 12
+  gave each one slot: a candidate now), 0073B984 (an exception base: six stores
   but some 140 compares with its address in game.exe's code; kept for the library batch) and the five one-slot rows 0074E824,
   00753B04, 00758904, 00758B0C, 00758B14 (EH unwind map entries, not vtables). The library kind's unstored MFC
   vtables (CClientDC, CWinApp, ...; config/standalone_unreachable.csv) go with the library batch.

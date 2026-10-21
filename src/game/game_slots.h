@@ -218,10 +218,9 @@ using mfc::impl::CompiledCollection;
 using mfc::impl::SerializeCArray;
 using mfc::impl::SerializeCListThrough;
 
-// Counted pointer lists of the world server (00598F40): left to a later batch (its table is not derivable yet).
-struct RefListAClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FA4C); }
-};
+// Counted pointer lists of the world server (00598F40): the connections AcceptNewPlayers takes.
+struct RefListAClass final
+    : CompiledCollection<RefListAClass, &gamelists::Refs::Destruct<RefListAClass>, &SerializeCListThrough<RefsThrough>> {};
 // A list of engine objects released through slot 4 (00427600).
 struct ItemObjectListClass final
     : CompiledCollection<ItemObjectListClass, &gamelists::EngineObjects::Destruct<ItemObjectListClass>, &SerializeCListThrough<EngineObjectsThrough>> {};

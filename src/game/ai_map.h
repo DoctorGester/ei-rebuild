@@ -1025,7 +1025,7 @@ public:
     int waterWidth, waterHeight;        // +0x1FC
     // +0x204 the standing levels' special areas (ClearUnmarkedArea): RefreshArea reads the first
     // list for levels 0..4, the second for 5 and 6, the third for 7 (the other three are not read
-    // there). CArray<{int, int}> (vtable 0073F9E0), filled by FillAreaLists (005B4150).
+    // there). CArray<{int, int}> (mfc_slots.h's AreaListClass), filled by FillAreaLists (005B4150).
     mfc::CArray<AreaOffset> areaLists[6];
     CUnitLayer unitLayerSmall;          // +0x27C unit occupancy (005B36B0 / 005B3890)
     CUnitLayer unitLayerLarge;          // +0x12A4

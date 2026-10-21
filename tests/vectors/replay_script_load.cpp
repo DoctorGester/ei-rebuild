@@ -45,7 +45,7 @@ void ReadShape(Reader& r, mfc::CArray<T>* a, void* vtable) {
 }
 
 void ReadTexts(Reader& r, mfc::CArray<mfc::CString>* a) {
-    ReadShape(r, a, scriptvtable::kStrings);
+    ReadShape(r, a, gamearrays::ScriptStringValuesClass::Vtable());
     for (int i = 0; i < a->size; ++i) {
         const std::string text = r.String();
         new (&a->data[i]) mfc::CString(text.c_str(), static_cast<int>(text.size()));
@@ -55,7 +55,7 @@ void ReadTexts(Reader& r, mfc::CArray<mfc::CString>* a) {
 // PutVars' set: objects null, groups empty (the loader reads neither).
 void ReadVars(Reader& r, ScriptVars* v) {
     v->ScriptVarsConstruct();
-    ReadShape(r, &v->floats, scriptvtable::kFloats);
+    ReadShape(r, &v->floats, mfc::impl::ScriptFloatValuesClass::Vtable());
     if (v->floats.size > 0) {
         if (const unsigned char* p = r.Bytes(static_cast<std::size_t>(v->floats.size) * 4))
             std::memcpy(v->floats.data, p, static_cast<std::size_t>(v->floats.size) * 4);
@@ -65,7 +65,7 @@ void ReadVars(Reader& r, ScriptVars* v) {
     ReadTexts(r, &v->stringNames);
     ReadShape(r, &v->objects, mfc::impl::ScriptGroupClass::Vtable());
     ReadTexts(r, &v->objectNames);
-    ReadShape(r, &v->groups, scriptvtable::kGroups);
+    ReadShape(r, &v->groups, gamearrays::ScriptGroupValuesClass::Vtable());
     for (int i = 0; i < v->groups.size; ++i) v->groups.data[i].vtable = mfc::impl::ScriptGroupClass::Vtable();
     ReadTexts(r, &v->groupNames);
 }
@@ -101,7 +101,7 @@ CScript* ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
             new (&d.name) mfc::CString(name.c_str(), static_cast<int>(name.size()));
             const std::string params = r.String();
             new (&d.params) mfc::CString(params.c_str(), static_cast<int>(params.size()));
-            ReadShape(r, &d.ifThen, scriptvtable::kIfThen);
+            ReadShape(r, &d.ifThen, mfc::impl::ScriptIfThenPairsClass::Vtable());
             if (pairs) pairs->push_back(d.ifThen.size);
             ReadVars(r, &d.vars);
         }

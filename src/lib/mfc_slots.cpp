@@ -94,7 +94,6 @@ EI_REWRITTEN(0x005604B0, ArrayHeader<CountdownArrayClass>::Destruct);
 EI_REWRITTEN(0x0059B0B0, ArrayHeader<PartyUnitArrayClass>::Destruct);
 EI_REWRITTEN(0x0059E0A0, ArrayHeader<SectorOccluderArrayClass>::Destruct);
 EI_REWRITTEN(0x005C1A90, ArrayHeader<SpiralCellArrayClass>::Destruct);
-EI_REWRITTEN(0x005C5850, ArrayHeader<SmoothRowArrayClass>::Destruct);
 EI_REWRITTEN(0x005C5890, ArrayHeader<SmoothEdgeArrayClass>::Destruct);
 EI_REWRITTEN(0x005C58D0, ArrayHeader<SmoothCopyArrayClass>::Destruct);
 EI_REWRITTEN(0x005C5910, ArrayHeader<SmoothStepArrayClass>::Destruct);
@@ -125,7 +124,6 @@ EI_REWRITTEN(0x0050A410, ScalarDelete<&AlignedAt8Records::Destruct<AlignedAt8Arr
 EI_REWRITTEN(0x00452A30, ScalarDelete<&TextureNames::Destruct<TextureNameArrayClass>>);
 EI_REPLACE(0x00556B50, ScalarDelete<&MemoryRecords::Destruct<MemoryRecordArrayClass>>);
 EI_REWRITTEN(0x00558720, ScalarDelete<&MemoryRecords::Destruct<MemoryRecordArrayClass>>);
-EI_REPLACE(0x004CB790, ScalarDelete<&NamedRecords::Destruct<NamedRecordArrayClass>>);
 EI_REWRITTEN(0x005FB870, ScalarDelete<&GlobalMapPoints::Destruct<GlobalMapPointArrayClass>>);
 EI_REWRITTEN(0x005FB890, ScalarDelete<&GlobalMapPoints::Destruct<GlobalMapPathArrayClass>>);
 EI_REWRITTEN(0x005FB850, ScalarDelete<&GlobalMapZones::Destruct<GlobalMapZoneArrayClass>>);
@@ -172,13 +170,12 @@ EI_REWRITTEN(0x00476D50, ScalarDelete<&Map32::Destruct<DwordMapClass>>);   // 00
 EI_REWRITTEN(0x00476D90, ScalarDelete<&ArrayHeader<IndexArrayClass>::Destruct>);   // 00476780
 EI_REWRITTEN(0x00476DB0, ScalarDelete<&ArrayHeader<NormalArrayClass>::Destruct>);   // 00476AB0
 EI_REWRITTEN(0x00499020, ScalarDelete<&PtrList::Destruct<ClientListClass>>);   // 00498CA0
-EI_REPLACE(0x00499040, ScalarDelete<&ArrayHeader<Array0498Class>::Destruct>);   // 00498E80
 EI_REWRITTEN(0x004C1800, ScalarDelete<&ArrayHeader<ScriptAreaClass>::Destruct>);   // 004C1820
-EI_REPLACE(0x004C1880, ScalarDelete<&ArrayHeader<ScriptFloatsClass>::Destruct>);   // 004BC980
-EI_REPLACE(0x004C1A00, ScalarDelete<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>);   // 004BE410
+EI_REWRITTEN(0x004C1880, ScalarDelete<&ArrayHeader<ScriptFloatsClass>::Destruct>);   // 004BC980
+EI_REWRITTEN(0x004C1A00, ScalarDelete<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>);   // 004BE410
 EI_REWRITTEN(0x004CAF70, ScalarDelete<&ArrayHeader<ScriptAreaClass>::Destruct>);   // 004CAF90
 EI_REWRITTEN(0x004CAFF0, ScalarDelete<&ArrayHeader<ScriptFloatsClass>::Destruct>);   // 004C29C0
-EI_REPLACE(0x004CB030, ScalarDelete<&ArrayHeader<FloatArrayClass>::Destruct>);   // 004CB050
+EI_REWRITTEN(0x004CB030, ScalarDelete<&ArrayHeader<FloatArrayClass>::Destruct>);   // 004CB050
 EI_REWRITTEN(0x004CB070, ScalarDelete<&ArrayHeader<ArgObjectsBaseClass>::Destruct>);   // 004C4840
 EI_REWRITTEN(0x004CB090, ScalarDelete<&ArrayHeader<ArgGroupsBaseClass>::Destruct>);   // 004C4B30
 EI_REWRITTEN(0x004CB0B0, ScalarDelete<&ArrayHeader<BindingsBaseClass>::Destruct>);   // 004C4E20
@@ -216,13 +213,11 @@ EI_REWRITTEN(0x00571EB0, ScalarDelete<&PtrList::Destruct<ClientList2Class>>);   
 EI_REWRITTEN(0x00571FA0, ScalarDelete<&PtrList::Destruct<ClientList3Class>>);   // 00571600
 EI_REWRITTEN(0x0059B410, ScalarDelete<&ArrayHeader<CellRowArrayClass>::Destruct>);   // 00599180
 EI_REWRITTEN(0x0059B450, ScalarDelete<&PtrList::Destruct<NodeListClass>>);   // 005995E0
-EI_REPLACE(0x0059B470, ScalarDelete<&ArrayHeader<AreaListClass>::Destruct>);   // 005997A0
+EI_REWRITTEN(0x0059B470, ScalarDelete<&ArrayHeader<AreaListClass>::Destruct>);   // 005997A0
 EI_REWRITTEN(0x0059B540, ScalarDelete<&ArrayHeader<PartyUnitArrayClass>::Destruct>);   // 0059B0B0
 EI_REWRITTEN(0x0059B560, ScalarDelete<&PtrList::Destruct<ExperienceListClass>>);   // 0059B260
-EI_REPLACE(0x0059E240, ScalarDelete<&ArrayHeader<SectorOccluderArrayClass>::Destruct>);   // 0059E0A0
-EI_REPLACE(0x005C1C30, ScalarDelete<&ArrayHeader<SectorCellArrayClass>::Destruct>);   // 005C18E0
+EI_REWRITTEN(0x0059E240, ScalarDelete<&ArrayHeader<SectorOccluderArrayClass>::Destruct>);   // 0059E0A0
 EI_REWRITTEN(0x005C1C50, ScalarDelete<&ArrayHeader<SpiralCellArrayClass>::Destruct>);   // 005C1A90
-EI_REPLACE(0x005C5830, ScalarDelete<&ArrayHeader<SmoothRowArrayClass>::Destruct>);   // 005C5850
 EI_REWRITTEN(0x005C5870, ScalarDelete<&ArrayHeader<SmoothEdgeArrayClass>::Destruct>);   // 005C5890
 EI_REWRITTEN(0x005C58B0, ScalarDelete<&ArrayHeader<SmoothCopyArrayClass>::Destruct>);   // 005C58D0
 EI_REWRITTEN(0x005C58F0, ScalarDelete<&ArrayHeader<SmoothStepArrayClass>::Destruct>);   // 005C5910
@@ -264,14 +259,14 @@ EI_REWRITTEN(0x00475A00, SerializeCArray<Plain24>);   // PosKeyArrayClass
 EI_REWRITTEN(0x00475D60, SerializeCArray<Plain8>);   // MorphHeadArrayClass
 EI_REWRITTEN(0x004767A0, SerializeCArray<Plain4>);   // IndexArrayClass
 EI_REWRITTEN(0x00476AD0, SerializeCArray<Plain20>);   // NormalArrayClass
-EI_REPLACE(0x00498EA0, SerializeCArray<Plain8>);   // Array0498Class
+EI_REWRITTEN(0x00498EA0, SerializeCArray<Plain8>);   // gamearrays::ParticleDepthArrayClass
 EI_REWRITTEN(0x004C1E70, SerializeCArray<Plain20>);   // ScriptAreaClass
-EI_REPLACE(0x004C29E0, SerializeCArray<Plain4>);   // ScriptFloatsClass
-EI_REPLACE(0x004C4560, SerializeCArray<Plain4>);   // FloatArrayClass
+EI_REWRITTEN(0x004C29E0, SerializeCArray<Plain4>);   // ScriptFloatsClass
+EI_REWRITTEN(0x004C4560, SerializeCArray<Plain4>);   // FloatArrayClass
 EI_REWRITTEN(0x004C4860, SerializeCArray<Plain4>);   // ArgObjectsBaseClass
 EI_REWRITTEN(0x004C4B50, SerializeCArray<Plain4>);   // ArgGroupsBaseClass
 EI_REWRITTEN(0x004C4E40, SerializeCArray<Plain12>);   // BindingsBaseClass
-EI_REPLACE(0x004C5B10, SerializeCArray<Plain8>);   // ScriptIfThenArrayClass
+EI_REWRITTEN(0x004C5B10, SerializeCArray<Plain8>);   // ScriptIfThenArrayClass
 EI_REWRITTEN(0x004C9B10, SerializeCArray<Plain16>);   // AiLookArrayClass
 EI_REWRITTEN(0x0050FFD0, SerializeCArray<Plain20>);   // EffectArrayClass
 EI_REWRITTEN(0x00532E70, SerializeCArray<Plain28>);   // MotionPointArrayClass
@@ -282,10 +277,10 @@ EI_REWRITTEN(0x00557270, SerializeCArray<Plain8>);   // PointArrayClass
 EI_REWRITTEN(0x00557430, SerializeCArray<Plain40>);   // AttackOptionArrayClass
 EI_REWRITTEN(0x00560200, SerializeCArray<Plain16>);   // CountdownArrayClass
 EI_REWRITTEN(0x005991A0, SerializeCArray<Plain4>);   // CellRowArrayClass
-EI_REPLACE(0x005997C0, SerializeCArray<Plain8>);   // AreaListClass
+EI_REWRITTEN(0x005997C0, SerializeCArray<Plain8>);   // AreaListClass
 EI_REWRITTEN(0x0059B0D0, SerializeCArray<Plain4>);   // PartyUnitArrayClass
-EI_REPLACE(0x005C1900, SerializeCArray<Plain4>);   // SectorCellArrayClass
-EI_REPLACE(0x005C4D80, SerializeCArray<Plain8>);   // SmoothRowArrayClass
+EI_REWRITTEN(0x005C1900, SerializeCArray<Plain4>);   // gamearrays::SpiralOffsetArrayClass
+EI_REWRITTEN(0x005C4D80, SerializeCArray<Plain8>);   // gamearrays::SmoothNodeArrayClass
 EI_REWRITTEN(0x005C5070, SerializeCArray<Plain20>);   // SmoothEdgeArrayClass
 EI_REWRITTEN(0x005C5360, SerializeCArray<Plain8>);   // SmoothCopyArrayClass
 EI_REWRITTEN(0x005C5670, SerializeCArray<Plain36>);   // SmoothStepArrayClass
@@ -330,7 +325,7 @@ EI_REWRITTEN(0x004C9510, SerializeCArray<Placements>);   // PartySlotArrayClass
 EI_REWRITTEN(0x00511E20, SerializeCArray<SoundRecords>);   // EffectSoundArrayClass
 EI_REWRITTEN(0x005396E0, SerializeCArray<PathRecords>);   // SkinLayerArrayClass
 EI_REWRITTEN(0x00557E90, SerializeCArray<AnimationSteps>);   // AnimationStepsClass
-EI_REPLACE(0x0059E0C0, SerializeCArray<Plain8>);   // SectorOccluderArrayClass
+EI_REWRITTEN(0x0059E0C0, SerializeCArray<Plain8>);   // SectorOccluderArrayClass
 EI_REWRITTEN(0x005C1AB0, SerializeCArray<Plain8>);   // SpiralCellArrayClass
 EI_REWRITTEN(0x006CD8A0, SerializeCArray<Plain16>);   // TerrainArrayBClass
 EI_REWRITTEN(0x00519B50, SerializeCArray<Plain56>);   // FrameArrayClass
@@ -363,7 +358,7 @@ EI_REWRITTEN(0x005CDC00, SerializeCList<List30>);          // StaticListClass
 EI_REWRITTEN(0x005D9A40, SerializeCList<AttentionList>);   // AttentionListClass
 
 // CArray<CString> (vtables 0073D2D4 / 0073D2F8) and its SerializeElements.
-EI_REPLACE(0x004C2700, SerializeStringArray);
+EI_REWRITTEN(0x004C2700, SerializeStringArray);
 EI_REWRITTEN(0x007085AF, SerializeStrings);
 
 } // namespace mfc::impl

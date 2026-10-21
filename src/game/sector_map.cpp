@@ -73,7 +73,7 @@ void __stdcall ConstructSectors(Sector* sectors, int count) {
     for (; count != 0; --count, ++sectors) {
         sectors->objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->units = {mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-        sectors->occluders.Construct(kSectorOccluderArrayVtable);
+        sectors->occluders.Construct(mfc::impl::SectorOccluderArrayClass::Vtable());
         ei::SetVtable(sectors, kSectorVtable);
         sectors->Clear();
     }
@@ -227,8 +227,6 @@ namespace {
 constexpr int kSpiralReach = 10;                                    // sectors either way
 constexpr int kSpiralCells = (kSpiralReach * 2 + 1) * (kSpiralReach * 2 + 1);
 constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA: the last radius
-// The vtables of the builder's own arrays: the cells (CArray of 8-byte records) and the radii.
-constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);
 
 // A sector of the square and how far it is: the gap between the sectors, in sectors.
 struct SpiralCell {
@@ -273,7 +271,7 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
 
     // A length per distinct distance: the offsets up to and including that distance.
     mfc::CArray<float> radii;
-    radii.Construct(kFloatArrayVtable);
+    radii.Construct(mfc::impl::FloatArrayClass::Vtable());
     lengths->SetSize(0, -1);
     radii.Add(0.0f);
     lengths->Add(1);

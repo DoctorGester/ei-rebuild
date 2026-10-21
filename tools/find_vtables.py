@@ -45,6 +45,22 @@ def main():
         except struct.error:
             return ''
 
+    def stored(v):
+        """Whether the code stores `v` (mov r/m32, imm32: C7 /0; or mov r32, imm32: B8+r): a vtable's start, not a
+        slot the code calls through (call [v]) or a byte match."""
+        for site in refs.get(v, ()):
+            i = site - TEXT[0]
+            if i >= 1 and 0xB8 <= text[i - 1] <= 0xBF:
+                return True
+            for back, mods, rms in ((2, (0,), (0, 1, 2, 3, 6, 7)), (3, (0,), (4,)), (3, (1,), (0, 1, 2, 3, 5, 6, 7)),
+                                    (4, (1,), (4,)), (6, (0,), (5,)), (6, (2,), (0, 1, 2, 3, 5, 6, 7)),
+                                    (7, (2,), (4,))):
+                if i >= back and text[i - back] == 0xC7:
+                    m = text[i - back + 1]
+                    if m >> 6 in mods and m & 7 in rms and (m >> 3) & 7 == 0:
+                        return True
+        return False
+
     rows = []
     for vt in sorted(refs):
         if vt % 4 or not in_text(u32(vt)):
@@ -52,7 +68,10 @@ def main():
         n = 0
         while vt + 4 * n < RDATA[1] and in_text(u32(vt + 4 * n)):
             n += 1
-            if n > 1 and (vt + 4 * n) in refs:  # next vtable starts here
+            # The next vtable starts here: any address the code holds after the first slot (a slot call splits a
+            # tail off, docs/notes/standalone.md "Tails"), or right after the first slot one the code stores (a
+            # one-slot table, e.g. CSectorMap's 0073F9DC before the area list's 0073F9E0).
+            if (vt + 4 * n) in refs and (n > 1 or stored(vt + 4 * n)):
                 break
         users = {}
         for site in refs[vt]:
