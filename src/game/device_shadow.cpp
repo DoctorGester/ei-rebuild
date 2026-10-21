@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "texture.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -34,13 +35,6 @@ constexpr int kScreenStack = 1;
 // *z = *scale * *z (FLD scale, FMUL z, FSTP).
 void ScaleZ(float* z, const float* scale) { *z = *scale * *z; }
 
-// FCOMP with 1.0 (0073B84C) and C3: equal, or unordered.
-bool OneOrNaN(const float* v) {
-    std::uint32_t bits;
-    std::memcpy(&bits, v, 4);
-    return bits == 0x3F800000u || ((bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0);
-}
-
 // The vertices: projected position, the colour / specular pair, the vertex's texture coordinate
 // (each copied as qwords).
 void Fill(TLVertex* out, int count, const void* colours, const char* uvs) {
@@ -53,7 +47,8 @@ void Fill(TLVertex* out, int count, const void* colours, const char* uvs) {
 }
 
 void Scale(int count, const float* scale) {
-    if (OneOrNaN(scale)) return;
+    EI_NAN_AUDIT(*scale);
+    if (*scale == 1.0f) return;   // FCOMP with 1.0 (0073B84C); TEST AH,0x40
     for (int i = 0; i < count; ++i) ScaleZ(&Vertices().data[i].z, scale);
 }
 
@@ -75,7 +70,7 @@ void HandOver(CTextureDevice* device, const void* positions, const char* uvs, in
     m.screenMatrix = true;
     m.clipped = clipped;
     m.distanceFog = false;   // no fog pass (slot 35) here
-    m.zScale = OneOrNaN(zScale) ? 1.0f : *zScale;
+    m.zScale = *zScale;   // the scale Scale applies (1: none)
     render::BeginMesh(device, m);
 }
 

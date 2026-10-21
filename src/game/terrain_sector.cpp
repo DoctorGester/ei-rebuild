@@ -20,6 +20,7 @@
 #include "lib/mfc_array.h"
 #include "render/render.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace terrain {
 namespace {
@@ -174,7 +175,8 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
                     for (int i = 1; i < around.count; ++i) {
                         int c = waterTiles.data[around.tiles[i]];
                         if (c == -1) continue;
-                        if (m == -1 || !(owner->materials[c].priority >= owner->materials[m].priority)) m = c;
+                        if (m != -1) EI_NAN_AUDIT(owner->materials[c].priority, owner->materials[m].priority);
+                        if (m == -1 || owner->materials[c].priority < owner->materials[m].priority) m = c;
                     }
                     if (m == -1) {
                         out->x = static_cast<float>(x);
@@ -460,7 +462,8 @@ void SectorData::ApplyWaterLevels() {
         int k = 0;
         for (; k < waterMaterials.size; ++k) {
             float v = levels.data[waterMaterials.data[k]];
-            if (v < Zero() || v > Zero()) break;     // FCOMP; TEST AH,0x40: equal or unordered goes on
+            EI_NAN_AUDIT(v);
+            if (v != Zero()) break;     // FCOMP; TEST AH,0x40
         }
         if (k == waterMaterials.size) return;
         unsigned id = waterMaterials.data[k];
@@ -505,7 +508,9 @@ int Terrain::SurfaceClass(float x, float y) {
     if (!sector) return 8;
     if (sector->hasWater && sector->waterTiles.data[tile] != -1) {
         float water = static_cast<float>(terrain::RawHeight(this, x, y, 1));
-        if (!(terrain::RawHeight(this, x, y, 0) >= water)) return textureClass[sector->tileTextures.data[tile + 0x100]];
+        const double ground = terrain::RawHeight(this, x, y, 0);
+        EI_NAN_AUDIT(ground, water);
+        if (ground < water) return textureClass[sector->tileTextures.data[tile + 0x100]];
     }
     return textureClass[sector->tileTextures.data[tile]];
 }

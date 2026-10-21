@@ -10,7 +10,8 @@
 
 const float* Terrain::VertexAt(int ix, int iy, int layer) {
     if (ix < 0 || iy < 0) return nullptr;
-    if (!(width >= static_cast<float>(ix)) || !(height >= static_cast<float>(iy))) return nullptr;
+    EI_NAN_AUDIT(width, height);
+    if (width < static_cast<float>(ix) || height < static_cast<float>(iy)) return nullptr;
 
     // Vertex 32 of one sector is vertex 0 of the next; the last sector owns its far edge.
     int sx = ix / 32, sy = iy / 32;
@@ -60,9 +61,13 @@ float Terrain::HeightAt(float x, float y, int layer) {
 
         // Both triangles of the cell must be counter-clockwise, else take the diagonal's midpoint.
         float s1 = v00[1] - v10[1], s2 = v11[0] - v10[0], s3 = v11[1] - v10[1], s4 = v00[0] - v10[0];
-        if (!(s2 * s1 - s4 * s3 > 0.0f)) return (v11[2] + v01[2]) * 0.5f;
+        const float turnS = s2 * s1 - s4 * s3;
+        EI_NAN_AUDIT(turnS);
+        if (turnS <= 0.0f) return (v11[2] + v01[2]) * 0.5f;
         float t1 = v11[1] - v01[1], t2 = v00[0] - v01[0], t3 = v00[1] - v01[1], t4 = v11[0] - v01[0];
-        if (!(t2 * t1 - t4 * t3 > 0.0f)) return (v11[2] + v01[2]) * 0.5f;
+        const float turnT = t2 * t1 - t4 * t3;
+        EI_NAN_AUDIT(turnT);
+        if (turnT <= 0.0f) return (v11[2] + v01[2]) * 0.5f;
 
         float u1 = v10[0] - x, u2 = v10[1] - y;
         float w1 = v01[0] - x, w2 = v01[1] - y;
@@ -79,7 +84,9 @@ float Terrain::HeightAt(float x, float y, int layer) {
             float across = t3 * w1 - t2 * w2;
             EI_NAN_AUDIT(across);
             if (across < 0.0f) { --ix0; --ix1; continue; }
-            if (!(t1 * w1 - t4 * w2 > 0.0f)) return PlaneHeight(v00, v11, x, y, v01);
+            const float beyond = t1 * w1 - t4 * w2;
+            EI_NAN_AUDIT(beyond);
+            if (beyond <= 0.0f) return PlaneHeight(v00, v11, x, y, v01);
             ++iy0; ++iy1;
         }
     }

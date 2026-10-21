@@ -10,6 +10,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "originals_library.h"
+#include "lib/nan_audit.h"
 
 #include <concepts>
 #include <bit>
@@ -23,10 +24,10 @@ constexpr std::uint32_t kFlagDirty = 2;
 constexpr int kTypeHero = 0x32;          // CEngineObject::type_ of the player's units
 constexpr int kClassMapObjectServer = 0x39;
 
-// The original's branch-free max(0, v): FCOMP of 0 against v, C0 (0 < v, or unordered) as a mask
-// selecting v's bits, else 0.
+// The original's branch-free max(0, v): FCOMP of 0 against v, C0 as a mask selecting v's bits
+// (also a NaN's), else 0.
 std::uint32_t ClampToZero(float v) {
-    return !(0.0f >= v) ? std::bit_cast<std::uint32_t>(v) : 0u;
+    return 0.0f >= v ? 0u : std::bit_cast<std::uint32_t>(v);
 }
 
 void StoreBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(bits)); }
@@ -88,13 +89,15 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
     for (int i = 0; i < object->effectCount - 1; ++i) {
         MapEffect* e = &object->effects[i];
         if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
-        if (!(FloatBits(effect->value) >= FloatBits(e->value))) continue;   // FCOMPP; TEST AH,1
+        EI_NAN_AUDIT(FloatBits(effect->value), FloatBits(e->value));
+        if (FloatBits(effect->value) < FloatBits(e->value)) continue;   // FCOMPP; TEST AH,1
         if (e->ending != effect->ending) continue;
         float difference = FloatBits(e->strength) - FloatBits(effect->strength);
         float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
-        if (!(static_cast<double>(distance) < kRebirthSameStrength)) continue;
-        std::memmove(e, e + 1, (object->effectCount - i - 1) * sizeof(MapEffect));
-        --object->effectCount;
+        if (static_cast<double>(distance) < kRebirthSameStrength) {          // TEST AH,5; JP: IEEE
+            std::memmove(e, e + 1, (object->effectCount - i - 1) * sizeof(MapEffect));
+            --object->effectCount;
+        }
     }
 }
 } // namespace
@@ -157,7 +160,7 @@ float CMapObject::EffectValue(std::uint32_t type) {
         if (effect.type != type) continue;   // the record's first dword & 0xFF
         float current = std::bit_cast<float>(best);
         float value = std::bit_cast<float>(effect.value);
-        if (!(current >= value)) best = effect.value;   // C0: current < value, or unordered
+        best = current >= value ? best : effect.value;   // the C0 mask: a NaN takes the value
     }
     return std::bit_cast<float>(best);
 }

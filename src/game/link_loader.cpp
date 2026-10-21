@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "library_trees.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -75,7 +76,9 @@ bool SameMorph(const CLinkMesh* mesh, float s, float t, float u) {
     float ds = mesh->morphWeights_[0] - s;
     float dt = mesh->morphWeights_[1] - t;
     float du = mesh->morphWeights_[2] - u;
-    return !(ds * ds + dt * dt + du * du >= kSameMorph);
+    const float distance = ds * ds + dt * dt + du * du;
+    EI_NAN_AUDIT(distance);
+    return distance < kSameMorph;
 }
 
 // The first cached mesh named `name` with close coefficients, or null.

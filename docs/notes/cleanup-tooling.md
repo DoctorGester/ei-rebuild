@@ -249,8 +249,30 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   `!(scale >= 1)` (the NaN step of the free-cell search occurs in the suite and must scale both components),
   `UnitStats::HealSlots`'s `!(magnitude > kMinHeal)` (the audit fired in every run: `LearnSkill` passes a NaN heal while a
   new unit's stats are set up), `unit_skill_price`'s below-4 branch (a price of 0 gives 0 / 0; written as `if (leading >= 4) return ...` first),
-  `unit_client_path`'s turn loop (C16c) and addon's `Max` / `Min`. Left for C16g: the engine, network, terrain, device and
-  render files (about 100 lines, `tickets.py show C16g`).
+  `unit_client_path`'s turn loop (C16c) and addon's `Max` / `Min`.
+- **The engine, network, terrain, device and render files (C16g; about 75 float sites, 42 files).** Exact plain forms
+  where they read naturally: selects for the clamps and folds (`ClampUnit`, `SpeedForBalance`, the acos clamps
+  `dot >= -1 ? dot : -1` in core_transform_math / terrain_ambience / view_matrices, `Extend`, `ClampToZero`, `EffectValue`,
+  `RaiseVariable`, the loss bounds, wind, pan, wave strength, the sky's horizon and cosine, the clip code bits,
+  terrain_decal `Lower` / `Raised`, terrain_shadow `AtMostZero` and the fade), swapped branches (the transform turns,
+  `Slerp`, clip's ratio, the acknowledged-history erase, scene normals, `Silent`), `ByWeight` (`> `, then `==`) and the
+  time of day (`< 6 || > 18` first) reordered, `LightRotation`'s axis as a select, the ambience vote loop's condition
+  (`heard < 3 && weightSum > kMinWeight`), and terrain_decal's settle loop as `if (!(lowest < previous)) break;`
+  (`Lower` never raises it, so this is the old equal test, and a NaN ends it). Plain with `EI_NAN_AUDIT` (about 35 sites):
+  the equal / differs tests (`InvertModelMatrix`'s determinant, the strip's u length, map_object_shadow's two lengths,
+  the field of view, the water levels; device_shadow's `OneOrNaN` is `*scale == 1`, and the hand-over passes the scale
+  as it is), the timers (awards, server lists, announcement, lobby), weld / sector / morph distances, the terrain
+  height's turn tests and bounds, `SetTurnRate` / `SetTiltRate`, light facing, print alphas, detail levels, water
+  priority / height tests. Loop: the cloud phase loop now ends on a NaN (the original looped for ever). addon's
+  `RemoveOutdatedEffects` (disassembled): the value test is TEST AH,1 (C0, plain with audit), the strength test
+  TEST AH,5 / JP (IEEE: the removal under `distance < 0.001`, exact). Stay: sector_map's FixMoveObject test (addon's
+  IEEE test, as `Max` / `Min`), the integer, pointer and flag `!(...)` tests, `NotOlder` (save times are integers),
+  crt_x87's pow range test (plain `>=`: never NaN there, NaN arguments return first). The new renderer's own guards
+  (render_shadows) are plain. Goldens 111 the same, no audit line in any run.
+- **Complete.** No `IsNaN` / `CompareStatus` term, NaN-keeping helper, equal-or-NaN or differs form, or negated
+  float comparison is left, except the kept ones named above with their reasons (ai_path's free-cell scale,
+  `HealSlots`, `unit_skill_price`, the loop breaks `if (!(gap > limit)) break;` / terrain_decal's settle, addon's
+  IEEE tests, script_addon's CVTTSD2SI emulation). A NaN bit test stays only in `lib/nan_audit.h` and the CRT emulation (`crt_x87`).
 
 **Main-thread CPU per frame** (render_stats, vanilla 4K, best of three alternating runs on a shared machine, ms): SSE2 against x87
 menu 2.49 / 2.47, zone1 5.13 / 6.02, fight 18.07 / 19.10, town 7.39 / 7.98, camp 3.94 / 3.98, map 0.96 / 1.03: 0-15% less in

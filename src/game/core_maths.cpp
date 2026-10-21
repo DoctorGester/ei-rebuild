@@ -35,8 +35,7 @@ EI_REPLACE_METHOD(0x00410750, Vector3::AddInPlace);
 
 float __stdcall ClampUnit(float v) {
     if (v > 1.0f) return 1.0f;
-    if (!(v >= -1.0f)) return -1.0f;
-    return v;
+    return v >= -1.0f ? v : -1.0f;   // -1 also for NaN
 }
 EI_REPLACE(0x004022D0, ClampUnit);
 

@@ -398,7 +398,8 @@ void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSiz
     const PrintRecord* entry = EntryAt(ThePrintsDatabase().blood, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, RainSnow()->mode != 0);
-    if (!(look.alpha > 0.0f) || look.life <= 0 || look.lifetime <= 0) return;
+    EI_NAN_AUDIT(look.alpha);
+    if (look.alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     std::uint32_t colour = ((Channel(frameSun_.r) | 0x100) << 8 | Channel(frameSun_.g)) << 8 | Channel(frameSun_.b);
     alignas(BloodPrint) unsigned char storage[sizeof(BloodPrint)];
     auto* print = reinterpret_cast<BloodPrint*>(storage);
@@ -449,7 +450,8 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
     const PrintRecord* entry = EntryAt(ThePrintsDatabase().scorch, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, RainSnow()->mode != 0);
-    if (!(alpha > 0.0f) || look.life <= 0 || look.lifetime <= 0) return;
+    EI_NAN_AUDIT(alpha);
+    if (alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     alignas(GroundPrint) unsigned char storage[sizeof(GroundPrint)];
     auto* print = reinterpret_cast<GroundPrint*>(storage);
     print->ConstructScorch(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);

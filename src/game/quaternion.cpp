@@ -117,14 +117,14 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     float weightA;
     double weightB;
     double one = EI_ONE_D;
-    if (!(one - cosine > EI_SLERP_LINEAR)) {
-        weightA = static_cast<float>(D(EI_ONE_F) - D(t));
-        weightB = t;
-    } else {
+    if (one - cosine > EI_SLERP_LINEAR) {
         double angle = gamecrt::acos(stored);
         double inverseSine = one / x87::fsin(angle);
         weightA = static_cast<float>(x87::fsin((one - D(t)) * angle) * inverseSine);
         weightB = x87::fsin(angle * D(t)) * inverseSine;
+    } else {   // also NaN
+        weightA = static_cast<float>(D(EI_ONE_F) - D(t));
+        weightB = t;
     }
     x = static_cast<float>(D(weightA) * D(a.x) + weightB * D(c.x));
     y = static_cast<float>(D(weightA) * D(a.y) + weightB * D(c.y));

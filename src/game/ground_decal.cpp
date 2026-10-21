@@ -6,6 +6,7 @@
 #include "ground_decal.h"
 
 #include "ei/hook.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
@@ -196,12 +197,12 @@ bool DecalBuilder::Touches(const Vector3* center, float radius) const {
     double v = DotZYX(vAxis_, *center) + vOffset_;
     double vReach = radius * vLength_;
     if (v - vReach > 1.0f) return false;
-    if (!(v + vReach >= 0.0f)) return false;
+    EI_NAN_AUDIT(v, vReach);
+    if (v + vReach < 0.0f) return false;
     double u = DotZYX(uAxis_, *center) + uOffset_;
     double uReach = radius * uLength_;
     if (u - uReach > 1.0f) return false;
-    if (!(u + uReach >= 0.0f)) return false;
-    return true;
+    return u + uReach >= 0.0f;
 }
 
 void DecalBuilder::Reserve(int triangles) {

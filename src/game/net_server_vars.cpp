@@ -95,7 +95,7 @@ void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);
     std::memcpy(&valueBits, &value, 4);
-    std::uint32_t bits = !(current >= value) ? valueBits : currentBits;
+    std::uint32_t bits = current >= value ? currentBits : valueBits;
     float selected;
     std::memcpy(&selected, &bits, 4);
     volatile double loaded = selected;   // FLD / FSTP

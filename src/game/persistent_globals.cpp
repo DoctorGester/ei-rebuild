@@ -109,7 +109,7 @@ private:
     // element in list order.
     void CheckSize() {
         std::size_t buckets = vec_.size() / 2;
-        if (!(static_cast<float>(list_.size()) / static_cast<float>(buckets) > 1.0f)) return;
+        if (static_cast<float>(list_.size()) / static_cast<float>(buckets) <= 1.0f) return;
         for (int i = 0; i < 3 && buckets < 0x1FFFFFFF; ++i) buckets *= 2;
         Init(buckets);
         if (list_.empty()) return;

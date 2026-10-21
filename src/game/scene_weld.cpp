@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -55,7 +56,8 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
                 const Vector3& q = reinterpret_cast<Vector3*>(points.data)[index];
                 float dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
                 double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz));
-                if (!(length >= weld)) break;
+                EI_NAN_AUDIT(length);
+                if (length < weld) break;
             }
             if (index == points.size) {
                 points.Add(std::bit_cast<PointBits>(p));
@@ -89,7 +91,9 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
             for (; index < coords.size; ++index) {
                 const float* known = reinterpret_cast<float*>(coords.data) + index * 2;
                 float du = known[0] - uv[0], dv = known[1] - uv[1];
-                if (!(libcrt::Hypot(du, dv) >= weld)) break;
+                const double distance = libcrt::Hypot(du, dv);
+                EI_NAN_AUDIT(distance);
+                if (distance < weld) break;
             }
             if (index == coords.size) {
                 coords.Add(UvBits{std::bit_cast<std::uint32_t>(uv[0]), std::bit_cast<std::uint32_t>(uv[1])});

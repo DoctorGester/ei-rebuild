@@ -8,6 +8,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
+#include "lib/nan_audit.h"
 
 #include <cfloat>
 #include <cmath>
@@ -99,7 +100,8 @@ float Lit(float base, float amount, float color) {
 
 void CLight::AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const {
     const float facing = -vecmath::Dot<Sum3::ZYX>(direction_, *normal);
-    if (!(facing > 0.0f)) {
+    EI_NAN_AUDIT(facing);
+    if (facing <= 0.0f) {
         *out = *base;
         return;
     }

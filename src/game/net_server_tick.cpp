@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "world_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -26,8 +27,8 @@ bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
 }
 
-// Timed entries {next, prev, seconds left (float), ...}: each loses `dt`; those below zero (or
-// NaN) are erased. The end is read again after every entry, as the original does.
+// Timed entries {next, prev, seconds left (float), ...}: each loses `dt`; those below zero are
+// erased. The end is read again after every entry, as the original does.
 template <typename List>
 void CountDown(List& list, float dt) {
     TimedNode* node = list.First();
@@ -37,7 +38,8 @@ void CountDown(List& list, float dt) {
         float& seconds = current->data.seconds;
         float left = seconds - dt;
         seconds = left;
-        if (!(left >= worlddata::Zero())) list.Erase(current);
+        EI_NAN_AUDIT(left);
+        if (left < worlddata::Zero()) list.Erase(current);
     }
 }
 
@@ -55,7 +57,8 @@ void ServerSession::TickImpl(double dt) {
     CountDown(awards_, step);
     if (!public_) return;
     announceTimer_ = static_cast<float>(announceTimer_ - dt);
-    if (!(announceTimer_ >= worlddata::Zero())) {   // run out (or NaN)
+    EI_NAN_AUDIT(announceTimer_);
+    if (announceTimer_ < worlddata::Zero()) {   // run out
         std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
         const unsigned char* host = MasterHost();
         if (gamecrt::mbscmp(host, reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) ServerAnnounceToMaster(this);

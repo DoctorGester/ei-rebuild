@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
@@ -122,13 +123,15 @@ EI_REPLACE_METHOD(0x0040E810, CCamera::GroundPoint);
 
 void CCamera::SetTurnRate(float rate) {
     std::memcpy(&turnTarget_, &rate, sizeof(float));
-    if (!(std::fabs(turnRate_) >= std::fabs(rate))) std::memcpy(&turnRate_, &turnTarget_, sizeof(float));
+    EI_NAN_AUDIT(turnRate_, rate);
+    if (std::fabs(turnRate_) < std::fabs(rate)) std::memcpy(&turnRate_, &turnTarget_, sizeof(float));
 }
 EI_REPLACE_METHOD(0x0040F360, CCamera::SetTurnRate);
 
 void CCamera::SetTiltRate(float rate) {
     std::memcpy(&tiltTarget_, &rate, sizeof(float));
-    if (!(std::fabs(tiltRate_) >= std::fabs(rate))) std::memcpy(&tiltRate_, &tiltTarget_, sizeof(float));
+    EI_NAN_AUDIT(tiltRate_, rate);
+    if (std::fabs(tiltRate_) < std::fabs(rate)) std::memcpy(&tiltRate_, &tiltTarget_, sizeof(float));
 }
 EI_REPLACE_METHOD(0x0040F3C0, CCamera::SetTiltRate);
 
