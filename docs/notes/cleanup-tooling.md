@@ -204,7 +204,7 @@ TEST AH,0x41 `<=` / `>`, a C0 mask `a < b ? x : y`); where an `x87::IsNaN` / `Co
 unordered result (equal and less), it is gone, and a NaN compares as IEEE says. Where detecting NaN is the code's purpose (data
 checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNaN` is left only in `lib/nan_audit.h`, and
 `CompareStatus` / `kC0`-`kC3` are gone from `x87.h`. Per site:
-- **Plain, NaN result changes (85 `EI_NAN_AUDIT` sites, 47 files):** zero tests (`ZeroOrNaN` helpers renamed `IsZero`, the
+- **Plain, NaN result changes (84 `EI_NAN_AUDIT` sites, 46 files):** zero tests (`ZeroOrNaN` helpers renamed `IsZero`, the
   particle sizes / bends / alphas, lengths before a normalise, the script `Not` / flag tests / `PowerFactor`), equality (`Same`,
   `Equal`, `Differs`, zone variables against 1, quest states, hash key heights), less-than selects (`MinOf`, `MaxZero`, `AtMost`,
   the larger of two extents or reaches), the script comparisons (`IsEqual`, `IsLess`, `IsInSquare`, `IsInArea`, `GetPlayerUnits`:
@@ -218,6 +218,9 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   `gap <= kHalfTurn` would never end on a NaN), and all of addon.dll's status tests (an IEEE compiler; they read C2:
   `Max` `!(f < m)`, `Min` `!(f > m)`, `Abs` / `Round` `x < 0`, `Random` `high > low`, `NearestUnit` `distance < radius`, `Equals` `==`).
   Four selects on integer-sourced floats (ui_objectives' map sizes, ui_hud_portraits' mana) cannot see a NaN and carry no audit.
+  `CAIMap`'s free-cell search (ai_path.cpp) sees a NaN in the suite (net_pair_quest, zone_gz15h_tornado: the step is 0 / 0 when
+  the unit stands on the target cell, the original's behaviour); its select is exact because p and q are NaN together, so it has
+  no audit (the audit fired there in the first suite run).
 - **Behaviour change** (NaN only): every audited comparison now takes the IEEE branch: e.g. a NaN length is normalised (a NaN vector)
   instead of left alone, a NaN zone variable counts as "not visited", a NaN script argument is "not zero" and "not equal", a NaN
   height marks a moved object changed, a NaN hash key height never matches (each lookup adds an entry), `CCamera::StopMotion` keeps

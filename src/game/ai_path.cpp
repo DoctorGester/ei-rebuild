@@ -5,7 +5,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "lib/nan_audit.h"
 #include "lib/mfc.h"
 #include "originals_ai.h"
 #include "originals_units.h"
@@ -107,8 +106,9 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     // The step rotated by -45 and +45 degrees, scaled so that no component exceeds 1.
     float p = sx * kDiagonal - sy * kDiagonal;
     float q = (sy + sx) * kDiagonal;
-    EI_NAN_AUDIT(p, q);
-    float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));   // FCOMPP: C0 if less
+    // FCOMPP: C0 if less. No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit
+    // stands on the target cell, which the suite does), and then both choices are NaN.
+    float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));
     if (!(scale >= 1.0f)) {
         p = scale * p;
         q = scale * q;
