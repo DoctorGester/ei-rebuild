@@ -206,11 +206,16 @@ each step green on the goldens and removing a measured tie:
   the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
   is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
-  image_code_cells.inc (21,439 cells of .rdata and .data holding a function start: vtable slots, EH unwind /
-  handler / throw / copy entries, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
+  image_code_cells.inc (7,928 cells of .rdata and .data holding a function start: vtable slots, ThrowInfo
+  destructors / copy constructors, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
   points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
   code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
-  (`FixUpCodePointer`). The CRT's SEH scope tables are left: only game.exe's own frames read them. The
+  (`FixUpCodePointer`). Left as game.exe's bytes, no code cells: the CRT's SEH scope tables and the C++ EH
+  FuncInfos' unwind actions and catch handlers (13,511 funclet cells, C20a; `LEFT_KINDS`): only a frame handler
+  on game.exe's own frames reads them (its FuncInfo comes from the function's prologue, and our code's are the
+  compiler's); none had a registration, so all sat at stubs that end the run, and no golden reached one. A stray
+  call through one lands in the guarded code section (`no code at`). The ThrowInfo cells stay: our frame handler
+  reads game.exe's throw information when our code throws with it (`CxxThrowException`). The
   launch-free check: every registration is its address's code (`CheckCode`); `CheckGuard` logs what of game.exe's
   range is open. Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's

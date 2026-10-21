@@ -25,9 +25,11 @@ The code cells (S18i, src/standalone/image_code_cells.inc; image_code.cpp points
 registrations are in, or at a stub that reports there is no code at its address): the aligned dwords of the same data
 whose value lies in game.exe's code section and that are code pointers: the cells of the structures the tool walks
 (CODE_STRUCTURES: vtable slots from config/vtables.csv less the retired vtables' (config/retired_vtables.csv, C19:
-classes whose vtable is the compiler's; their bytes are zero in the image), the C++ exception tables' funclets, destructors and copy
+classes whose vtable is the compiler's; their bytes are zero in the image), the C++ exception tables' (ThrowInfo) destructors and copy
 constructors, MFC's CreateObject, the static initialiser list) and the CODE_REVIEWED groups (MFC's message maps, the
-CRT's function pointers). The rest of the dwords in that range are left as they are: NOT_CODE groups (text, the
+CRT's function pointers). The C++ exception tables' unwind actions and catch handlers (funclets, C20a) are walked and
+counted but are no code cells: only __CxxFrameHandler on game.exe's own frames reads them (LEFT_KINDS). The rest of
+the dwords in that range are left as they are: NOT_CODE groups (text, the
 import names' hints, the CRT's SEH scope tables, which only game.exe's own frames read) and text by the filters above
 whose value is no function start (config/functions.csv). A dword that is neither fails until it is reviewed.
 
@@ -153,13 +155,22 @@ VTABLE_SLOT_CELLS = 7258
 CODE_STRUCTURES = [
     ('vtable', None, "a vtable's slots (config/vtables.csv)"),
     ('vtable-retired', None, "a retired vtable's slots (config/retired_vtables.csv): not code cells"),
-    ('eh-unwind', 13129, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet)"),
-    ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet)'),
+    ('eh-unwind', 13129, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet): not code cells"),
+    ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet): not code cells'),
     ('eh-throw', 2, "C++ EH: ThrowInfo: the thrown object's destructor"),
     ('eh-copy', 5, "C++ EH: ThrowInfo -> catchable type: the thrown object's copy constructor"),
     ('mfc-create', 13, "MFC CRuntimeClass (config/runtime_classes.csv): CreateObject"),
     ('static-init', 748, 'the C++ initialiser list (00783004-00783BB0, __xc_a..__xc_z): the static initialisers'),
 ]
+
+# Kinds of CODE_STRUCTURES that are walked and counted but left out of the code cells. The C++ EH funclets (C20a):
+# __CxxFrameHandler reads a FuncInfo's unwind map and try blocks only for the frame whose prologue hands it that
+# FuncInfo, i.e. game.exe's own functions, and none run in the image (our code's FuncInfo is the compiler's); no
+# funclet has a registration (all were at stubs, which end the run, and no golden reached one), and nothing in src/
+# or tests/ names their tables. Their bytes stay game.exe's, as the NOT_CODE groups' (a stray call through one lands
+# in the guarded code section and is reported as no code there). The ThrowInfo cells (eh-throw, eh-copy) stay code
+# cells: our frame handler reads them for a throw of game.exe's throw information (CxxThrowException).
+LEFT_KINDS = ('vtable-retired', 'eh-unwind', 'eh-handler')
 
 # Code cells outside those structures, as looked at in game.exe: (first cell, last cell, the number of dwords in the
 # code section, what). Every dword of the range whose value lies in the code section is a code cell.
@@ -460,7 +471,7 @@ def code_check(img, problems, keep_named=False):
                             '(CODE_REVIEWED) or not (NOT_CODE)? (tools/gen_image_cells.py)')
             continue
         counts[g] = counts.get(g, 0) + 1
-        if g[0] == 'code' or g[0] == 'structure' and CODE_STRUCTURES[g[1]][0] != 'vtable-retired':
+        if g[0] == 'code' or g[0] == 'structure' and CODE_STRUCTURES[g[1]][0] not in LEFT_KINDS:
             code.append((c, v, g))
     retired = sum(in_code(struct.unpack_from('<I', img, c - BASE)[0]) for c in retired_cells())
     check_retired(problems, img)

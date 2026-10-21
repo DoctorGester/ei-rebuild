@@ -2499,7 +2499,7 @@ id = "C20a"
 title = "Code cells: drop game.exe's C++ EH tables' funclet cells"
 group = "cleanup"
 model = "opus"
-note = "13,511 of the 21,439 code cells (13,129 FuncInfo unwind-map actions, 382 try-block catch handlers) are game.exe's own exception metadata: only __CxxFrameHandler running on game.exe's frames reads them, and the standalone runs none of game.exe's code (our compiled code has its own FuncInfo). Check that nothing reads them (no reference from src/ or tests/ to their tables, no registration of a funclet address that a live path needs, the harness's stack walks), then leave them out of image_code_cells.inc in one group, as the CRT's SEH scope tables already are. Same review for the 5+2 ThrowInfo copy/destructor cells if C18e has not taken them. Goldens are the check (every run throws through the EH paths that exist). User 2026-10-21 found C19's pace (~185 cells a batch) slow; this is the one-shot lever, vtables (7,061) stay C19's."
+note = "Done: gen_image_cells leaves the EH funclet kinds (eh-unwind 13,129, eh-handler 382) out of the code cells (LEFT_KINDS, with the retired vtables); code cells 21,439 -> 7,928, stubs at start 15,071 -> 1,560 (registered 6,367 unchanged). Verified: no unwind/handler target has a registration (.eireg of main's ei_hook.dll), nothing in src/ or tests/ names their FuncInfo / unwind / try / handler tables (only digest coincidences), the harness's crash report reads ThrowInfo only; all 13,511 sat at stubs that end the run and no golden reached one. Bytes stay game.exe's (as the NOT_CODE groups; a stray call lands in the guarded code section). ThrowInfo cells (eh-throw 2, eh-copy 5) stay code cells: our frame handler reads them for throws with game.exe's throw information. Goldens 121 same, 0 differ. Follow-up C20b: the same tables' 3,721 data pointer cells."
 
 [[ticket]]
 id = "C18f"
@@ -2540,6 +2540,13 @@ group = "cleanup"
 model = "opus"
 depends = ["C18d"]
 note = "1,235 addresses only static_init.cpp / static_exit.cpp name, and many hand-owned ones (particle's 007A9BF8 / 007A9C30 / 007A9C50, weather_particles' noise tables): gen_static_init.py and check_static_init.py leave a named range's stores out (the definition's initialiser or constructor takes their place, in list order when it has one; the verify build's Check compares our value with the original's memory), static_exit likewise for destructors. Set the pattern on one area, then sonnet batches."
+
+[[ticket]]
+id = "C20b"
+title = "Pointer cells: drop game.exe's C++ EH tables' data cells (FuncInfo -> unwind / try maps, try block -> handler arrays)"
+group = "cleanup"
+depends = ["C20a"]
+note = "C20a left the 13,511 funclet code cells out (only __CxxFrameHandler on game.exe's own frames reads FuncInfo tables). The same tables' 3,721 pointer cells into .rdata in image_cells.inc (eh-unwind 2,963 FuncInfo -> unwind map, eh-try 378, eh-handlers 380) and the catch handler types' half of the 38 type-descriptor cells are fixed up at the move for the same dead readers. Check as C20a (no reference from src/ or tests/, the harness's crash report reads only ThrowInfo), leave them out of the cells, keep ThrowInfo / catchable types (CxxThrowException uses them). Goldens are the check."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
