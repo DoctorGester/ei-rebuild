@@ -8,14 +8,16 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include <new>
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_script.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
-void* const kTrapVtable = ei::GamePointer<void>(0x0073E548);
 const char* const kTrapName = "CTrapObject";
 const char* const kMagicTrapName = "CMagicTrapObject";
 // 0078F730: the script the trap runs when set off (x, y, z).
@@ -32,17 +34,16 @@ constexpr int kBlockSize = 10;
 BOOL LockKey::AcceptedByTrap() const { return 1; }
 EI_REPLACE_METHOD(0x00522AD0, LockKey::AcceptedByTrap);
 
-CTrapObject* CTrapObject::Construct() {
-    CMapObject::Construct();
-    *reinterpret_cast<void**>(this) = kTrapVtable;
+CTrapObject::CTrapObject() {
     CreateMapObject();
     flags_ &= ~kFlag40;
-    return this;
 }
+
+CTrapObject* CTrapObject::Construct() { return new (this) CTrapObject(); }
 EI_REPLACE_METHOD(0x00529A80, CTrapObject::Construct);
 
 CTrapObject* CTrapObject::DeletingDestruct(int flags) {
-    CMapObject::DestructBody();
+    this->CTrapObject::~CTrapObject();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -104,23 +105,34 @@ void CTrapObject::SaveTrapObject(CStream* stream) {
 }
 EI_REPLACE_METHOD(0x00529DA0, CTrapObject::SaveTrapObject);
 
+void CTrapObject::Load(void* stream) { LoadTrapObject(static_cast<CStream*>(stream)); }
+void CTrapObject::Save(void* stream) { SaveTrapObject(static_cast<CStream*>(stream)); }
+bool CTrapObject::ApplyScience(int first, int second) {
+    return Disarm(reinterpret_cast<const LockKey*>(static_cast<std::intptr_t>(first)), second);
+}
+
 bool CTrapObject::Slot29True() { return true; }
 EI_REPLACE_METHOD(0x00529AE0, CTrapObject::Slot29True);
 
 int CTrapObject::Slot38One() { return 1; }
 EI_REPLACE_METHOD(0x00529AF0, CTrapObject::Slot38One);
 
-const char* __fastcall TrapClassName(CMapObject*) { return kTrapName; }
+const char* CTrapObject::GetClassName() { return kTrapName; }
+int CTrapObject::GetClassId() { return kClassTrap; }
+const char* MagicTrap::GetClassName() { return kMagicTrapName; }
+int MagicTrap::GetClassId() { return kClassMagicTrap; }
+
+const char* __fastcall TrapClassName(CTrapObject* self) { return self->CTrapObject::GetClassName(); }
 EI_REPLACE(0x00529B00, TrapClassName);
-int __fastcall TrapClassId(CMapObject*) { return kClassTrap; }
+int __fastcall TrapClassId(CTrapObject* self) { return self->CTrapObject::GetClassId(); }
 EI_REPLACE(0x00529B10, TrapClassId);
-const char* __fastcall MagicTrapClassName(CMapObject*) { return kMagicTrapName; }
+const char* __fastcall MagicTrapClassName(MagicTrap* self) { return self->MagicTrap::GetClassName(); }
 EI_REPLACE(0x00529F50, MagicTrapClassName);
-int __fastcall MagicTrapClassId(CMapObject*) { return kClassMagicTrap; }
+int __fastcall MagicTrapClassId(MagicTrap* self) { return self->MagicTrap::GetClassId(); }
 EI_REPLACE(0x00529F60, MagicTrapClassId);
 
 MagicTrap* MagicTrap::DeletingDestruct(int flags) {
-    DestructBody();
+    this->MagicTrap::~MagicTrap();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

@@ -10,6 +10,12 @@ vtable,slots,class,file,note
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
+0073E548,61,CTrapObject,src/game/trap_object.h,
+0073E63C,43,MagicTrap,src/game/magic_trap.h,
+0073E6E8,18,MagicTrap,src/game/magic_trap.h,the tail of 0073E63C (a byte match)
+0073E740,61,Lever,src/game/lever.h,
+0073E834,7,CTorchObject,src/game/torch.h,
+0073E850,54,CTorchObject,src/game/torch.h,the tail of 0073E834 (a byte match)
 0073F754,3,BloodPrint,src/game/ground_print.h,
 0073F760,3,Footprint,src/game/ground_print.h,
 0073F76C,3,GroundPrint,src/game/ground_print.h,

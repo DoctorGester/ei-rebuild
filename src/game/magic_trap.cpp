@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include "originals_effects.h"
 #include "originals_ai.h"
 #include "originals_core.h"
@@ -32,6 +33,8 @@
 #include "game_lists.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -290,8 +293,7 @@ void SetSpell(MagicTrap* trap, CEngineObject* spell) {
 }
 } // namespace
 
-MagicTrap* MagicTrap::Construct() {
-    CMapObject::Construct();
+MagicTrap::MagicTrap() {
     spell = nullptr;
     EmptyArray(area);
     area.vtable = mfc::impl::TrapAreasArrayClass::Vtable();   // while constructed
@@ -304,7 +306,6 @@ MagicTrap* MagicTrap::Construct() {
     inside.head = nullptr;
     inside.blocks = nullptr;
     inside.blockSize = kVictimBlockSize;
-    ei::SetVtable(this, kVtableAddress);
 
     static_cast<CMapObject*>(this)->CreateMapObject();
     sides = 0xFFFFFFFFu;
@@ -316,12 +317,12 @@ MagicTrap* MagicTrap::Construct() {
     countdown = 0;
     singleTarget = 0;
     period = static_cast<int>(kDefaultPeriod);
-    return this;
 }
+
+MagicTrap* MagicTrap::Construct() { return new (this) MagicTrap(); }
 EI_REPLACE_METHOD(0x00529DD0, MagicTrap::Construct);
 
-void MagicTrap::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+MagicTrap::~MagicTrap() {
     DestroyMapObject();
     SetSpell(this, nullptr);   // 0052C690(0)
     area.SetSize(0, -1);
@@ -336,9 +337,14 @@ void MagicTrap::DestructBody() {
     area.vtable = mfc::impl::TrapCircleArrayClass::Vtable();
     if (area.data) gamecrt::operator_delete(area.data);
     if (spell) spell->Release();
-    CMapObject::DestructBody();
 }
+
+void MagicTrap::DestructBody() { this->MagicTrap::~MagicTrap(); }
 EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
+
+void MagicTrap::Load(void* stream) { LoadTrap(static_cast<CStream*>(stream)); }
+void MagicTrap::Save(void* stream) { SaveTrap(static_cast<CStream*>(stream)); }
+int MagicTrap::ForgetObject(CEngineObject* object) { return ForgetObjectImpl(object); }
 
 void MagicTrap::SaveTrap(CStream* stream) {
     SaveMapObject(stream);

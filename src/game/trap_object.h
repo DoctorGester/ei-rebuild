@@ -1,26 +1,47 @@
 #pragma once
 
-// Placed traps (GetClassName "CTrapObject", class id 0x55, 0x23C bytes, vtable 0073E548, made by the
-// factory 00512730 for kind 0x3010): the world arms one when a trap item is used (0058ECE0 calls
+// Placed traps (GetClassName "CTrapObject", class id 0x55, 0x23C bytes, made by the factory 00512730
+// for kind 0x3010; a real virtual class: the compiler makes its vtable, C19, game.exe's 0073E548 is
+// retired): the world arms one when a trap item is used (0058ECE0 calls
 // Arm); while armed on the server, the first unit within 1 of it sets it off: a world script
 // "CreateParticleSource( 100, x, y, z, 1, "Mushroom")" at its position and the trap disarms.
 // Names provisional; trap_object.cpp (A-U6).
 
 #include "map_object.h"
+#include "lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CStream;      // core_streams.h
 struct LockKey;     // unit.h
 
 class CTrapObject : public CMapObject {
 public:
-    // 00529A80. The map object's constructor, the vtable, the map object's Create (0050E770),
-    // flags_ bit 0x40 cleared. Returns this.
+    // 00529A80. The map object's constructor, the map object's Create (0050E770), flags_ bit 0x40
+    // cleared. The destructor is the map object's (00529B50 jumps there: no Destroy).
+    CTrapObject();
+    // The deleting destructor (slot 0, 00529B30) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    int Create() override { return CreateTrap(); }         // 2: 00529B60
+    int RunTick() override { return UpdateTrap(); }        // 6: 00529B80
+    void Load(void* stream) override;                      // 9: 00529D70 LoadTrapObject
+    void Save(void* stream) override;                      // 10: 00529DA0 SaveTrapObject
+    const char* GetClassName() override;                   // 11: 00529B00 "CTrapObject"
+    int GetClassId() override;                             // 12: 00529B10 (0x55)
+    bool IsSynchronised() override { return Slot29True(); }   // 29
+    int IsUsable() override { return Slot38One(); }           // 38
+    // 41: Disarm. The first argument is the key record (combat_actions.cpp passes its address).
+    bool ApplyScience(int first, int second) override;
+    int AcceptsKey(const LockKey* key) override { return KeyFits(key); }   // 42
+
+    // The registrations (C20 retires them): 00529A80 the constructor in place (returns this),
+    // 00529B30 (slot 0, RET 4) the destructor, then operator delete when `flags` bit 0 is set
+    // (returns this).
     CTrapObject* Construct();
-    // 00529B30 (slot 0, RET 4). The map object's destructor body (00529B50 jumps there: no vtable
-    // or Destroy), then operator delete when `flags` bit 0 is set; returns this.
     CTrapObject* DeletingDestruct(int flags);
     // 00529B60 (slot 2). The map object's Create, flags_ bit 0x40 cleared; returns Create's result.
     int CreateTrap();
@@ -50,7 +71,8 @@ static_assert(sizeof(CTrapObject) == 0x23C);
 
 // 00529B00 / 00529B10 (slots 11 / 12): "CTrapObject" (0078F724) and 0x55. 00529F50 / 00529F60:
 // the magic trap's "CMagicTrapObject" (0078F774) and 0x61.
-const char* __fastcall TrapClassName(CMapObject* self);
-int __fastcall TrapClassId(CMapObject* self);
-const char* __fastcall MagicTrapClassName(CMapObject* self);
-int __fastcall MagicTrapClassId(CMapObject* self);
+class MagicTrap;   // magic_trap.h
+const char* __fastcall TrapClassName(CTrapObject* self);
+int __fastcall TrapClassId(CTrapObject* self);
+const char* __fastcall MagicTrapClassName(MagicTrap* self);
+int __fastcall MagicTrapClassId(MagicTrap* self);
