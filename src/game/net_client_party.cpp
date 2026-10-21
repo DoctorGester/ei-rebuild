@@ -66,7 +66,6 @@ RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessa
     }
     return first;
 }
-EI_REPLACE(0x00429FC0, FindSameMessage);
 
 // 0041DA50: rebuilds the member messages of our offer (+0x260C) from our party (+0x2620): one per
 // item of the party. Each gives its spell's id, type and packed id and the spell's Save (slot 10),
@@ -146,7 +145,6 @@ void* __fastcall ClientFindParty(ClientSession* self) {
     }
     return nullptr;
 }
-EI_REPLACE(0x0041E220, ClientFindParty);
 
 // 0041E180: an accepted offer is unaccepted with its version moved on, so it is sent again.
 void __fastcall ClientCommitParty(ClientSession* self) {
@@ -155,7 +153,6 @@ void __fastcall ClientCommitParty(ClientSession* self) {
     state->accepted_ = 0;
     ++static_cast<PartyMessage*>(self->party_.ptr)->version_;
 }
-EI_REPLACE(0x0041E180, ClientCommitParty);
 
 // 0041DDC0: rebuilds the partner's party (+0x2690) from the paired offer, once every member message
 // of it holds data. Each message gives (when its first dword, the spell's id, is positive) a spell

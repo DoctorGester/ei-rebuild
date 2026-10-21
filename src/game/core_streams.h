@@ -229,9 +229,5 @@ void* __fastcall RefValueDeletingDestructor(void* self, void* edx, unsigned flag
 // operator new is stored just before the aligned pointer (freed through it by 0047B620).
 void** __fastcall AlignedPointerArrayAlloc(int count);
 
-// 0047B620 (thiscall). Releases every element of an aligned array of objects (slot 4; the size is
-// read again after each), frees the block and empties the array (the growth step stays).
-void __fastcall AlignedObjectsClear(lib::AlignedArray<CEngineObject*>* objects);
-
 // The 0x2828-byte coder state (CoderState) is declared in net_coder.h; its constructor 0042FCA0
 // is in core_streams.cpp.

@@ -45,4 +45,3 @@ void __fastcall FillAreaLists(CAIMap* map) {
     }
 }
 
-EI_REPLACE(0x005B4150, FillAreaLists);

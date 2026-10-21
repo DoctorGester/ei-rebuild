@@ -69,17 +69,9 @@ static_assert(sizeof(ShownItemNodes::Node) == sizeof(BriefingShownItem));
 
 // ---- Algorithms -----------------------------------------------------------------------------------
 
-// copy(first, last, result) of the briefing's speakers (0060AB60; ECX first, EDX last, RET 4): each
-// assigned in order (the unit, the name by CString's operator=, the flag byte); the end of the copies.
-BriefingSpeaker* __fastcall CopySpeakers(const BriefingSpeaker* first, const BriefingSpeaker* last,
-                                         BriefingSpeaker* result);
 // _Construct(p, value) of a RefPtr (0060AA80; ECX p, EDX value): a copy with one more reference,
 // nothing for a null p.
 void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
-// copy_backward(first, last, result) of RefPtrs (0060AAA0; ECX first, EDX last, RET 4): from the
-// back, each assigned (the new object's count raised, then the old one released); the start of the
-// copies.
-RefPtr* __fastcall CopyBackwardRefPtrs(const RefPtr* first, const RefPtr* last, RefPtr* result);
 // _Construct(p, value) of a held engine object (004FB680; thiscall on p, RET 4): the pointer copied,
 // its count raised when not null; returns p.
 CEngineObject** __fastcall ConstructHeldObject(CEngineObject** p, void*, CEngineObject* const* value);
@@ -88,22 +80,18 @@ CEngineObject** __fastcall ConstructHeldObject(CEngineObject** p, void*, CEngine
 
 // CString's destructor (005F9680, 005FBE20: a jump to 00700970).
 void __fastcall DestroyCString(mfc::CString* self);
-// Its scalar deleting destructor (005FBCB0, 0060ABE0; RET 4): returns self.
-void* __fastcall DeleteCString(void* self, void*, unsigned flags);
 
 // A record with a CString at +0x0C (the text tokenizer's word): 00445FC0 destroys it.
 struct TokenWord {
     std::uint8_t unused_00[0x0C];
     mfc::CString text;   // +0x0C
 };
-void __fastcall DestroyTokenWord(TokenWord* self);
 
 // A local of the .mob loader whose third dword an unwind funclet clears (00482E90).
 struct LoaderLocal {
     std::uint8_t unused_00[8];
     std::uint32_t cleared;   // +0x08
 };
-void __fastcall ClearLoaderLocal(LoaderLocal* self);
 
 // Two vectors of pointers (+0x00, +0x10), a local two unwind funclets end with: 005F60B0 frees the second's
 // storage, then the first's.
@@ -112,7 +100,6 @@ struct PointerVectorsPair {
     std::uint32_t unused_0C;
     stlp::vector<void*> second;   // +0x10
 };
-void __fastcall DestroyPointerVectors(PointerVectorsPair* self);
 
 // 004F69F0: the counted root's vtable (0073C368) stored (unwind funclets and the deleting destructor
 // 004F6A00).
@@ -121,15 +108,6 @@ void __fastcall SetRootVtable(void* self);
 // 005E0550 (library.csv: a pointer iterator's operator-(n)): CTime::operator-(CTimeSpan), the time
 // less a span of seconds into `out` (thiscall, RET 8; called from 005E0400 after a CTime
 // constructor); returns out.
-
-// ---- Vector members destroyed inside an owner (S12e) ------------------------------------------------
-
-// The server list's game record (net_classes.h; 0041AC30): the description's block back to the pool,
-// then the name's.
-void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self);
-// The print records' name (model.h; 006D29A0 for PrintRecord, 006D29E0 for PrintRecord2, whose name
-// is at the same +0x04): its block back to the pool.
-void __fastcall DestroyPrintName(PrintRecord* self);
 
 // ---- The party file entries' vector (S12f) ------------------------------------------------------
 
@@ -165,14 +143,8 @@ void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* valu
 // (Registered as SpeakerAbi::InsertOverflow.)
 using SpeakerAbi = stlp::VectorAbi<BriefingSpeaker, SpeakerElement>;
 
-// The client's trade record's destructor (00424DB0): the three parties' CParty destructor
-// (006611D0), the traded party first.
-void __fastcall DestroyTradeRecord(net::TradeRecord* self);
-
 // find_if(first, last, pred) over the server's banned addresses (00427FF0; out in ECX, RET 0xC): the
 // first node whose address has value's host (the port is not compared), else last.
 using AddressList = stlp::list<net::NetAddress>;
-AddressList::Node** __fastcall FindAddressByHost(AddressList::Node** out, void*, AddressList::Node* first,
-                                                 AddressList::Node* last, const net::NetAddress* value);
 
 } // namespace libcontainers

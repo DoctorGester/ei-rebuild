@@ -48,4 +48,3 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const 
     return 1;
 }
 
-EI_REPLACE_METHOD(0x005AC010, CFigureManager::LoadFigureBounds);

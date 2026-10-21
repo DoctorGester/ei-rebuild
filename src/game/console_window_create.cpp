@@ -51,6 +51,5 @@ ConsoleWindow* ConsoleWindow::Construct(int* screen) {
     static_cast<ConsoleWindow*>(this)->DrawLines();
     return this;
 }
-EI_REPLACE_METHOD(0x005E3CE0, ConsoleWindow::Construct);
 
 } // namespace console

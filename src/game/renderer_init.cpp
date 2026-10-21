@@ -301,12 +301,6 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
 }
 EI_REPLACE_METHOD(0x00500B70, CSceneRenderer::CreateRendererImpl);
 
-// 00501980 (ECX = the matrix; only SetView calls it). Transposes a 4x4 matrix in place.
-void __fastcall MatrixTransposeInPlace(float* m) { Transpose(m); }
-EI_REPLACE(0x00501980, MatrixTransposeInPlace);
-
-EI_REPLACE_METHOD(0x005019D0, CTransformPipeline::Top);
-
 void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     CTransformPipeline* pipeline = pipeline_;
     MatrixStack* stacks = pipeline->stacks_;

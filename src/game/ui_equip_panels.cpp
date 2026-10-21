@@ -42,7 +42,6 @@ void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
     int index = IndexIn(hero->weapons, static_cast<int>(hero->weaponCount), weapon);
     if (index >= 0) hero->weaponIndex = static_cast<std::uint32_t>(index);
 }
-EI_REPLACE_METHOD(0x006229E0, CHeroEquipPanel::ShowWeapon);
 
 void CHeroEquipPanel::ShowArmour(CItem* item) {
     PartyUnitRecord* hero = ShownHero(owner_);
@@ -50,7 +49,6 @@ void CHeroEquipPanel::ShowArmour(CItem* item) {
     int index = IndexIn(hero->quickItems, static_cast<int>(hero->quickItemCount), item);
     if (index >= 0) selected_ = index;
 }
-EI_REPLACE_METHOD(0x00622A30, CHeroEquipPanel::ShowArmour);
 
 void CHeroQuickStrip::ShowEntry(CItem* item) {
     PartyUnitRecord* hero = ShownHero(owner_);
@@ -58,7 +56,6 @@ void CHeroQuickStrip::ShowEntry(CItem* item) {
     int index = IndexIn(hero->spells, static_cast<int>(hero->spellCount), item);
     if (index >= 0) selected_ = index;
 }
-EI_REPLACE_METHOD(0x00622BC0, CHeroQuickStrip::ShowEntry);
 
 // --- 00622960: the equipment panel's right button --------------------------------------------------
 
@@ -73,8 +70,6 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     }
     RefreshWeapons(owner_);
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00622960, InputForward<&CHeroEquipPanel::OnRightDown>::Call);
 
 // --- 00622860 / 00622D40: the item under a point ---------------------------------------------------

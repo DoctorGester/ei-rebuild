@@ -20,26 +20,22 @@ int __fastcall TextKeyFromName(const char* name) {
         h = static_cast<std::uint32_t>(libcrt::Toupper(static_cast<unsigned char>(*p))) + h * 5;
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
-EI_REPLACE(0x00461360, TextKeyFromName);
 
 BOOL __fastcall IsTextKey(int id) {
     return id >= 1000000000 && id < 2000000000 ? 1 : 0;
 }
-EI_REPLACE(0x004613A0, IsTextKey);
 
 MapRecord* CMapDatabase::FindMap(const char* name) {
     for (int i = 0; i < maps.size; ++i)
         if (gamecrt::mbsicmp(maps.data[i].name, name) == 0) return &maps.data[i];
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0045E850, CMapDatabase::FindMap);
 
 AllodRecord* CMapDatabase::FindAllod(const char* name) {
     for (int i = 0; i < allods.size; ++i)
         if (gamecrt::mbsicmp(allods.data[i].name, name) == 0) return &allods.data[i];
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0045E910, CMapDatabase::FindAllod);
 
 float NamedFloatTable::Get(const char* name) {
     constexpr float kZero = 0.0f;   // 0073B858
@@ -121,4 +117,3 @@ void* __fastcall FindCommandByKey(int key) {
     }
     return nullptr;
 }
-EI_REPLACE(0x00462F70, FindCommandByKey);

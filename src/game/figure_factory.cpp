@@ -106,4 +106,3 @@ void* __fastcall CreateFigureObject(void*, void*, int classId) {
     return object;
 }
 
-EI_REPLACE(0x005AA8E0, CreateFigureObject);

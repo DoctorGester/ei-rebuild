@@ -30,14 +30,9 @@ PathCell* PathCell::Step(PathCell* out, int direction) const {
     }
     return out;
 }
-EI_REPLACE_METHOD(0x005C5CC0, PathCell::Step);
 
 // 00539980: the cells zero filled.
 void PathCellElements::Construct(PathCell* cells, int count) { mfc::PlainElements<PathCell>::Construct(cells, count); }
-
-// 005BD200 / 005BD2A0: CList<PathCell>::AddHead / AddTail (RET 4).
-EI_REPLACE_METHOD(0x005BD200, PathCellList::AddHead);
-EI_REPLACE_METHOD(0x005BD2A0, PathCellList::AddTail);
 
 void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* other) {
     for (const PathCellList::Node* n = other->head; n;) {
@@ -47,7 +42,6 @@ void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* o
         n = next;
     }
 }
-EI_REPLACE(0x005C5DA0, PathCellsAppend);
 
 PathCellList* __fastcall PathCellsReversed(const PathCellList* list, void*, PathCellList* out) {
     using Node = PathCellList::Node;
@@ -64,7 +58,6 @@ PathCellList* __fastcall PathCellsReversed(const PathCellList* list, void*, Path
     reversed.RemoveAll();
     return out;
 }
-EI_REPLACE(0x005C5E60, PathCellsReversed);
 
 void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
     using Node = PathCellList::Node;
@@ -87,7 +80,6 @@ void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
         n = next;
     }
 }
-EI_REPLACE(0x005C6000, PathCellsRemoveRepeats);
 
 void AIPath::ToMotionOrder(AIPath* out) const {
     constexpr int kFollowSteps = 2;
@@ -100,7 +92,6 @@ void AIPath::ToMotionOrder(AIPath* out) const {
     out->SetStepSpeeds(0x200);
     out->SetTarget(targetX, targetY);
 }
-EI_REPLACE_METHOD(0x005B22C0, AIPath::ToMotionOrder);
 
 AIPath* AIPath::ConstructSteps() {
     steps = {};
@@ -108,7 +99,6 @@ AIPath* AIPath::ConstructSteps() {
     steps.blockSize = 0x80;
     return this;
 }
-EI_REPLACE_METHOD(0x0054EAC0, AIPath::ConstructSteps);
 
 void CAIMap::ClearMarksAround(const PathCellList* chain) {
     constexpr int kBlock = 8;
@@ -133,4 +123,3 @@ void CAIMap::ClearMarksAround(const PathCellList* chain) {
     for (int y = y0; y < y1; ++y)
         for (int x = x0; x < x1; ++x) marks.rows[y][x] = 0;
 }
-EI_REPLACE_METHOD(0x005B9BC0, CAIMap::ClearMarksAround);

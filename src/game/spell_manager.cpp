@@ -123,13 +123,6 @@ CSpellManager* CSpellManager::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00688970, CSpellManager::DeletingDestruct);
 
-CSpellContainer* __fastcall NextSpellContainer(SpellContainerWalk* walk) {
-    if (!walk->node) return nullptr;
-    walk->node = walk->table->After(walk->node);
-    return walk->node ? walk->node->value : nullptr;
-}
-EI_REPLACE(0x00689820, NextSpellContainer);
-
 namespace {
 int __fastcall SpellManagerCreateHook(CSpellManager* self) { return self->CSpellManager::Create(); }
 void __fastcall SpellManagerDestroyHook(CSpellManager* self) { self->CSpellManager::Destroy(); }
@@ -142,14 +135,6 @@ CEngineObject* CSpellManager::NewObject(int type) { return NewObjectImpl(type); 
 const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
 int CSpellManager::GetClassId() { return 0x33; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
-
-const char* __fastcall SpellManagerClassName(CSpellManager* self) { return self->CSpellManager::GetClassName(); }
-int __fastcall SpellManagerClassId(CSpellManager* self) { return self->CSpellManager::GetClassId(); }
-EI_REPLACE(0x00688950, SpellManagerClassName);
-EI_REPLACE(0x00688960, SpellManagerClassId);
-// 00688940: slot 25, the folder "spells" (A-H24).
-const char* __fastcall SpellManagerFolder(CSpellManager* self) { return self->CSpellManager::GetFolderName(); }
-EI_REPLACE(0x00688940, SpellManagerFolder);
 
 // 00689570 / 00689610 (A-H25). The array takes the table's count, then element i the name of record
 // i while i is below the count (read again each time).
@@ -189,7 +174,6 @@ CSpellContainer* CSpellContainer::Construct() {
     Reset();   // inlined in the original
     return this;
 }
-EI_REPLACE_METHOD(0x0068BA80, CSpellContainer::Construct);
 
 void CSpellContainer::Destruct() {
     ei::SetVtable(this, kVtableAddress);

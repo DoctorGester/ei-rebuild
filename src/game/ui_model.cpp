@@ -70,14 +70,12 @@ void CUiModel::ReleaseObject() {
     if (object_) reinterpret_cast<CEngineObject*>(object_)->Release();
     object_ = nullptr;
 }
-EI_REPLACE_METHOD(0x005FC1D0, CUiModel::ReleaseObject);
 
 // 005FC3B0 (RET 4). Skill animation `animation` + 1 of the object (00518FC0) played.
 void CUiModel::Play(int animation) {
     CObject3D* object = Figure();
     PlayAnimation(object, nullptr, object->FindSkillAnimation(animation + 1), 1);
 }
-EI_REPLACE_METHOD(0x005FC3B0, CUiModel::Play);
 
 // 005FC3D0. The rest pose: the object named like the figure (+0xA4) of kind 0x80590000 from the
 // object manager, played.
@@ -92,14 +90,12 @@ EI_REPLACE_METHOD(0x005FC3D0, CUiModel::Stop);
 void CUiModel::ShowPart(const char* name, int show) {
     if (CFigureMesh* part = Figure()->FindPart(name)) ShowFigurePart(part, show);
 }
-EI_REPLACE_METHOD(0x005FC4C0, CUiModel::ShowPart);
 
 // 005FC4F0 (RET 4). Every part (+0xD0) shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < Figure()->parts.size; ++i)
         if (auto* part = static_cast<CFigureMesh*>(Figure()->parts.data[i])) ShowFigurePart(part, show);
 }
-EI_REPLACE_METHOD(0x005FC4F0, CUiModel::ShowAllParts);
 
 // 005FC2F0 (RET 4). Draws the object in `pass` in plain white (the pass's colour, slot 7, put back
 // afterwards) at the interface clock, with flag 0x800 set during the draw. The original builds

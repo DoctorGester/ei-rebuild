@@ -92,7 +92,6 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
     nearby.RemoveAll();
     return blocker;
 }
-EI_REPLACE_METHOD(0x005B7BB0, CAIMap::BlockingUnitAt);
 
 const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     std::uint32_t tenth = 0x3DCCCCCD;   // 0.1f
@@ -105,7 +104,6 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     out->climb = climb.data + climb.size / 2;
     return out->climb;
 }
-EI_REPLACE_METHOD(0x005B9510, CAIMap::CostContext);
 
 void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
     // The original also asks the unit for its movement speeds twice (0052F920) and divides by one
@@ -138,7 +136,6 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
         node = next;
     }
 }
-EI_REPLACE_METHOD(0x005BA400, CAIMap::SetStepSpeeds);
 
 bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     PassCostContext context;
@@ -157,7 +154,6 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     int cost = context.costs[(cells[y][x].passable >> (context.shift & 31)) & 0xF];
     return cost > 0 && cost < kExpensive;
 }
-EI_REPLACE_METHOD(0x005BA5A0, CAIMap::StandsOnCheapCell);
 
 
 namespace {
@@ -209,8 +205,6 @@ void VisibilityGrid::Grow(int x, int y, int n) {
     gamecrt::operator_delete(old.data);
     gamecrt::operator_delete(old.rows);
 }
-// Registered in A-W11 (A-W6 wrote and verified it, but only the verify build ran it).
-EI_REPLACE_METHOD(0x005C8D40, VisibilityGrid::Grow);
 
 void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
                               float targetHeight, VisibilityGrid* grid) {
@@ -252,7 +246,6 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
         }
     }
 }
-EI_REPLACE_METHOD(0x005BC970, CAIMap::MarkVisibleCells);
 
 namespace {
 // The shape cache's map (UnitShapes()->shapes, 007C2F78): an STLport hash_map<ShapeHandle, RefPtr>,
@@ -277,13 +270,11 @@ ShapePair* __fastcall ConstructShapePair(ShapePair* pair, void*, const ShapeHand
     pair->value.Share(value->ptr);
     return pair;
 }
-EI_REPLACE(0x005BE370, ConstructShapePair);
 
 void __fastcall DestroyShapePair(ShapePair* pair) {
     pair->value.Destroy();
     ReleaseHandle(const_cast<ShapeHandle*>(&pair->key));
 }
-EI_REPLACE(0x005BE280, DestroyShapePair);
 
 void* CAIMap::UnitShape(float standingHeight) {
     ShapeHandle handle;
@@ -321,4 +312,3 @@ void* CAIMap::UnitShape(float standingHeight) {
     ReleaseHandle(&handle);
     return shape;
 }
-EI_REPLACE_METHOD(0x005B8350, CAIMap::UnitShape);

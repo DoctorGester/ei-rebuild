@@ -573,9 +573,4 @@ struct StringArrayAbi {
     }
 };
 
-// mfc_array.cpp: the element destructors registered on their own (0045E1E0, 004C9AF0, 004608D0).
-void __fastcall DestroyPatrol(PatrolElement* p);
-void __fastcall DestroyAiLookRecord(AiLookElement* p);
-void __fastcall DestroyAllod(AllodElement* p);
-
 } // namespace mfc::impl

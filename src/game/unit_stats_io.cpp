@@ -21,7 +21,5 @@ int UnitStats::LoadFrom(CStream* stream) {
     else size = sizeof(UnitStats);
     return stream->Read(this, size);
 }
-EI_REPLACE_METHOD(0x005287A0, UnitStats::LoadFrom);
 
 void UnitStats::SaveTo(CStream* stream) { stream->Write(this, sizeof(UnitStats)); }
-EI_REPLACE_METHOD(0x00528800, UnitStats::SaveTo);

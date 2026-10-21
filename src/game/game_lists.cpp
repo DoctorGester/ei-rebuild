@@ -13,10 +13,6 @@
 
 namespace gamelists {
 
-// Engine object pointers released through slot 4 (the slot left as it is).
-EI_REPLACE(0x0059A050, EngineObjects::RemoveAt);
-EI_REPLACE(0x00429E50, EngineObjects::RemoveAll);
-
 EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*, CEngineObject* object) {
     EngineObjects::Node* node = self->NewNode(self->tail, nullptr);
     ObjectHolderAssign(&node->data, nullptr, object);
@@ -25,43 +21,6 @@ EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*,
     self->tail = node;
     return node;
 }
-EI_REPLACE(0x00599FA0, CountedAddTail);
-
-// The magic trap's victims: released through slot 4, the slot cleared.
-EI_REPLACE(0x0052CE20, ObjectRefs::FreeNode);
-
-// Counted pointers: the plain release (the world's missiles, a session list), the owner's.
-EI_REPLACE(0x0059C810, Refs::FreeNode);
-EI_REPLACE(0x00599CC0, Refs::RemoveAt);
-EI_REPLACE(0x00598EF0, Refs::RemoveAll);
-EI_REPLACE(0x005575F0, OwnedRefs::Destruct<OwnedRefListClass>);
-
-// The armour spells (12-byte records holding an engine object).
-EI_REPLACE(0x00558B80, Holders::FreeNode);
-EI_REPLACE(0x00558020, Holders::RemoveAll);
-
-// The world's shared objects.
-EI_REPLACE(0x0059CAD0, SharedObjects::FreeNode);
-EI_REPLACE(0x0059A3C0, SharedObjects::Destruct<SharedObjectListClass>);
-
-// The script's effects, tokens, definitions and runs.
-EI_REPLACE(0x004C6040, ParticleSources::RemoveAt);
-EI_REPLACE(0x004C6370, FxSources::RemoveAt);
-EI_REPLACE(0x004C6680, Lightnings::RemoveAt);
-EI_REPLACE(0x004CA260, Tokens::Destruct<TokenListClass>);
-EI_REPLACE(0x004CD9B0, Definitions::FreeNode);
-EI_REPLACE(0x004CDAB0, Runs::FreeNode);
-EI_REPLACE(0x004C54A0, ScriptDeclDestruct);   // the command block list's element destructor
-
-// CScript's lists' destructors (S13b; CScript::Destruct, world_destructors.cpp).
-EI_REPLACE(0x004C92C0, ObjectRefs::Destruct<TempObjectListClass>);
-EI_REPLACE(0x004C8E20, Groups::Destruct<TempGroupListClass>);
-EI_REPLACE(0x004C7560, Decls::Destruct<DeclListClass>);
-EI_REPLACE(0x004C8520, Runs::Destruct<RunListClass>);
-EI_REPLACE(0x004C7E30, Definitions::Destruct<InstanceListClass>);
-EI_REPLACE(0x004C6760, Lightnings::Destruct<LightningListClass>);
-EI_REPLACE(0x004C6410, FxSources::Destruct<FxSourceListClass>);
-EI_REPLACE(0x004C6120, ParticleSources::Destruct<ParticleSourceListClass>);
 
 // ---- The script lists with the game's copy semantics (S7a) ----------------------------------------
 
@@ -142,9 +101,6 @@ typename List::Node* LinkTail(List* self, typename List::Node* node) {
     return node;
 }
 
-using DefinitionArray = mfc::impl::ArrayAbi<ScriptDefinition, DefinitionElements>;
-using RunArray = mfc::impl::ArrayAbi<ScriptRun, RunElements>;
-using DefineArray = mfc::impl::ArrayAbi<ScriptDefine, ScriptDefineElements>;   // CList<ScriptDefine>'s
 
 } // namespace
 
@@ -157,11 +113,6 @@ void InitDefinition(ScriptDefinition* p) {
 }
 void InitRun(ScriptRun* p) { p->vars.ScriptVarsConstruct(); }
 
-EI_REPLACE(0x004CEB80, DefinitionArray::ConstructElements);
-EI_REPLACE(0x004CECB0, RunArray::ConstructElements);
-EI_REPLACE(0x004D6840, DefineArray::ConstructElements);   // the zero fill, then both strings empty
-EI_REPLACE(0x004CD930, Definitions::NewNode);
-EI_REPLACE(0x004CDA30, Runs::NewNode);
 
 
 
@@ -170,11 +121,6 @@ EI_REPLACE(0x004CDA30, Runs::NewNode);
 
 
 
-
-
-// The sound manager's wave cache.
-EI_REPLACE(0x006BD4F0, Waves::NewNode);
-EI_REPLACE(0x006BD560, Waves::FreeNode);
 
 } // namespace gamelists
 
@@ -193,7 +139,6 @@ ScriptDecl* ScriptDecls::PopHead(ScriptDecl* out) {
     list->RemoveAt(list->head);
     return out;
 }
-EI_REPLACE_METHOD(0x004C69B0, ScriptDecls::PopHead);
 
 ScriptDefinition* ScriptInstances::PopHead(ScriptDefinition* out) {
     auto* list = As<gamelists::Definitions>(this);
@@ -201,7 +146,6 @@ ScriptDefinition* ScriptInstances::PopHead(ScriptDefinition* out) {
     list->RemoveAt(list->head);
     return out;
 }
-EI_REPLACE_METHOD(0x004C7A10, ScriptInstances::PopHead);
 
 ScriptRun* ScriptRuns::PopHead(ScriptRun* out) {
     auto* list = As<gamelists::Runs>(this);
@@ -209,7 +153,6 @@ ScriptRun* ScriptRuns::PopHead(ScriptRun* out) {
     list->RemoveAt(list->head);
     return out;
 }
-EI_REPLACE_METHOD(0x004C82B0, ScriptRuns::PopHead);
 
 ScriptInstances::Node* ScriptInstances::PushHead(const ScriptDefinition* value) {
     auto* list = As<gamelists::Definitions>(this);
@@ -217,7 +160,6 @@ ScriptInstances::Node* ScriptInstances::PushHead(const ScriptDefinition* value) 
     node->data.ScriptDefinitionAssign(value);
     return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
 }
-EI_REPLACE_METHOD(0x004C7C90, ScriptInstances::PushHead);
 
 ScriptTempObjects::Node* ScriptTempObjects::PushHead(const ScriptObjectRef* value) {
     auto* list = As<gamelists::ObjectRefs>(this);
@@ -228,7 +170,6 @@ ScriptTempObjects::Node* ScriptTempObjects::PushHead(const ScriptObjectRef* valu
     if (object) ++object->refCount_;
     return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
 }
-EI_REPLACE_METHOD(0x004C9210, ScriptTempObjects::PushHead);
 
 ScriptObjectRef* ScriptTempObjects::PopTail(ScriptObjectRef* out) {
     auto* list = As<gamelists::ObjectRefs>(this);
@@ -242,7 +183,6 @@ ScriptObjectRef* ScriptTempObjects::PopTail(ScriptObjectRef* out) {
     }
     return out;
 }
-EI_REPLACE_METHOD(0x004C9100, ScriptTempObjects::PopTail);
 
 ScriptTempGroups::Node* ScriptTempGroups::PushHead(const ScriptGroup* value) {
     auto* list = As<gamelists::Groups>(this);
@@ -250,7 +190,6 @@ ScriptTempGroups::Node* ScriptTempGroups::PushHead(const ScriptGroup* value) {
     node->data.CopyFrom(*value);
     return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
 }
-EI_REPLACE_METHOD(0x004C8CE0, ScriptTempGroups::PushHead);
 
 ScriptTempGroups::Node* ScriptTempGroups::PushTail(const ScriptGroup* value) {
     auto* list = As<gamelists::Groups>(this);
@@ -258,7 +197,6 @@ ScriptTempGroups::Node* ScriptTempGroups::PushTail(const ScriptGroup* value) {
     node->data.CopyFrom(*value);
     return reinterpret_cast<Node*>(gamelists::LinkTail(list, node));
 }
-EI_REPLACE_METHOD(0x004C8D80, ScriptTempGroups::PushTail);
 
 ScriptGroup* ScriptTempGroups::PopTail(ScriptGroup* out) {
     auto* list = As<gamelists::Groups>(this);
@@ -266,4 +204,3 @@ ScriptGroup* ScriptTempGroups::PopTail(ScriptGroup* out) {
     list->RemoveAt(list->tail);
     return out;
 }
-EI_REPLACE_METHOD(0x004C8AF0, ScriptTempGroups::PopTail);

@@ -118,7 +118,6 @@ void CRainSnow::FinishFade() {
     fadeDuration = 0.0f;
     density = 64;
 }
-EI_REPLACE_METHOD(0x004E4050, CRainSnow::FinishFade);
 
 // SetWind script command (00564190 calls it): the drops' slant.
 void CRainSnow::SetWind(const Vector3& direction, float strength) {
@@ -129,7 +128,6 @@ void CRainSnow::SetWind(const Vector3& direction, float strength) {
     wind.y = y;
     wind.z = z;
 }
-EI_REPLACE_METHOD(0x004E41F0, CRainSnow::SetWind);
 
 namespace {
 constexpr int kWeatherTextureKind = 6;
@@ -157,7 +155,6 @@ void CRainSnow::Clear() {
     fadeDuration = 0.0f;
     density = kFullDensity;
 }
-EI_REPLACE_METHOD(0x004E3B80, CRainSnow::Clear);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
 EI_REPLACE_METHOD(0x005617B0, CRainSnow::Clear);
@@ -174,7 +171,6 @@ void CRainSnow::Start(int newMode, float duration) {
     std::memcpy(&fadeDuration, &duration, sizeof(fadeDuration));
     fadeStart = static_cast<float>(world->tick_);
 }
-EI_REPLACE_METHOD(0x004E3FC0, CRainSnow::Start);
 
 void CRainSnow::DestructBody() {
     ei::SetVtable(this, kRainSnowVtable);
@@ -189,7 +185,6 @@ void CRainSnow::DestructBody() {
     if (texture) texture->Release();
     DestructBase();
 }
-EI_REPLACE_METHOD(0x005616C0, CRainSnow::DestructBody);
 
 CRainSnow* CRainSnow::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -244,7 +239,6 @@ void CVisibilityFog::ComputeBounds() {
     boundsKind = 3;
     boundsValid = 1;
 }
-EI_REPLACE_METHOD(0x004E1770, CVisibilityFog::ComputeBounds);
 
 // Per-frame fade: visible cells halve their distance to opaque, the others halve their alpha and
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
@@ -317,7 +311,6 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
         }
     }
 }
-EI_REPLACE_METHOD(0x004E1C60, CVisibilityFog::Reveal);
 
 // ---- The fog object's slots (A-S10) ----------------------------------------------------------------
 
@@ -336,7 +329,6 @@ void CVisibilityFog::Destruct() {
     cells.Destroy();
     reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x004E24E0, CVisibilityFog::Destruct);
 
 CVisibilityFog* CVisibilityFog::DeletingDestruct(int flags) {
     Destruct();

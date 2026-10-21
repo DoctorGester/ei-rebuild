@@ -472,7 +472,6 @@ void CTradePanel::SnapshotRecord() {
 namespace {
 void __fastcall TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord(); }
 } // namespace
-EI_REPLACE(0x00626F10, TradeSnapshotRecord);
 
 // --- 00626FA0: the hero's statistics back from the record ---------------------------------------
 
@@ -502,7 +501,6 @@ void CTradePanel::RestoreRecord() {
 namespace {
 void __fastcall TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
 } // namespace
-EI_REPLACE(0x00626FA0, TradeRestoreRecord);
 
 // --- 006255A0 / 00625860: settling and choosing the hero --------------------------------------------
 

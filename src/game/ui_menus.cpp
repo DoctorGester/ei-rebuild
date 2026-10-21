@@ -311,9 +311,6 @@ constexpr float kGammaScale = 0.02f;   // 00742B80: value * 0.02 - 1
 constexpr float kSlideSeconds = 0.5f;  // 00742B74
 } // namespace
 
-namespace {
-} // namespace
-
 void COptionsWindow::Update() {
     UpdateBase();
     if (sliding_) {
@@ -357,9 +354,6 @@ void COptionsWindow::Update() {
         }
     }
 }
-
-namespace {
-} // namespace
 
 EI_REPLACE_METHOD(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
 EI_REPLACE_METHOD(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
@@ -451,10 +445,6 @@ void CUiScrollbar::OnMouseUp(int, int, int) {
     inputHandled_ = true;
 }
 
-namespace {
-} // namespace
-
-EI_REPLACE_METHOD(0x0065B090, CUiScrollbar::TakePosition);
 EI_REPLACE_METHOD(0x0065B360, CUiScrollbar::Update);
 EI_REPLACE_METHOD(0x0065B240, InputForward<&CUiScrollbar::OnMouseDown>::Call);
 EI_REPLACE_METHOD(0x0065B340, InputForward<&CUiScrollbar::OnMouseUp>::Call);

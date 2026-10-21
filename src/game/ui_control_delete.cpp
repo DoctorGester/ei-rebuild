@@ -36,8 +36,6 @@ void CUiScrollbar::DestroyBody() {
     inputVtable_ = ei::GamePointer<void*>(kScrollbarInputVtable);
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0065AFC0, CUiScrollbar::DestroyBody);
-EI_REPLACE_METHOD(0x0065BCB0, CUiScrollbar::DestroyBody);   // the slider's (the same code)
 
 void CUiSpin::DestroyBody() {
     vtable_ = ei::GamePointer<void*>(kSpinVtable);

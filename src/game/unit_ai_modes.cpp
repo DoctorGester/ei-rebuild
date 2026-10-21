@@ -163,7 +163,6 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     else
         std::memcpy(&wander, ei::GamePointer<const void>(0x007C53FC), 4);
 }
-EI_REPLACE_METHOD(0x005D0B70, GuardMode::Set);
 
 void GuardMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
@@ -269,7 +268,6 @@ PatrolPoint* PatrolMode::LastPoint() {
     if (points.size == 0) return nullptr;
     return points.data + (points.size - 1);
 }
-EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 
 void PatrolMode::Load(CStream* stream) {
     int count;
@@ -315,7 +313,6 @@ EI_REPLACE_METHOD(0x005D1A40, PatrolMode::Save);
 // --- Sentry --------------------------------------------------------------------------------------
 
 void SentryMode::Set(const Vector3* p) { std::memcpy(&point, p, sizeof(Vector3)); }
-EI_REPLACE_METHOD(0x005D1B50, SentryMode::Set);
 
 void SentryMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
@@ -797,13 +794,11 @@ void PlayerMode::CommandAttack(AIBrain* brain, CEngineObject* object, int how, i
     }
     brain->owner->OrderAttack(brain->target, how, unknown, 2);
 }
-EI_REPLACE_METHOD(0x005D3C30, PlayerMode::CommandAttack);
 
 void PlayerMode::CommandUse(AIBrain* brain, CEngineObject* object, int kind, int a, int b) {
     state = kStateFollow;
     brain->UseOn(object, kind, a, b);
 }
-EI_REPLACE_METHOD(0x005D3CF0, PlayerMode::CommandUse);
 
 void PlayerMode::CommandCast(AIBrain* brain, int spell, CEngineObject* object, int) {
     std::uint8_t running = run;
@@ -818,7 +813,6 @@ void PlayerMode::CommandCast(AIBrain* brain, int spell, CEngineObject* object, i
     brain->actionTime = spell;
     brain->owner->OrderCast(spell, object, running);
 }
-EI_REPLACE_METHOD(0x005D3D20, PlayerMode::CommandCast);
 
 void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int) {
     std::uint8_t running = run;
@@ -827,7 +821,6 @@ void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int
     brain->actionTime = spell;
     brain->owner->OrderCastAt(spell, &at->x, running);
 }
-EI_REPLACE_METHOD(0x005D3D90, PlayerMode::CommandCastAt);
 
 namespace {
 // The first Player mode (type 6) in the brain of `unit`'s controller, or null.
@@ -875,7 +868,6 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
         leader = newLeader;
     }
 }
-EI_REPLACE_METHOD(0x005D3DE0, PlayerMode::SetLeader);
 
 void PlayerMode::OnObjectDeleted(CEngineObject* object) {
     if (target == object && target) ReleaseRef(target);

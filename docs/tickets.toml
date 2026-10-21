@@ -2616,7 +2616,7 @@ id = "C20c"
 title = "Registrations: measure what still needs each EI_REPLACE, drop the ones nothing reads"
 group = "cleanup"
 model = "opus"
-note = "After C20a/C20b the image's code cells are 7,928 (6,367 at our code) while src/ has 9,304 EI_REPLACE registrations. Measure, per registration, what still reads its address: a code cell (vtable slot, static initialiser, CRT/MFC table), a code literal through CodeAddress, the harness's address names / profiler / crash report, the scenarios' or goldens' address keys, check tools (check_registrations, check_signatures, check_stolen). Registrations nothing reads go (the function stays, called directly); report the split of the rest by reader so the next batches (C19 vtables, static init, harness names) are sized. Goldens are the check."
+note = "After C20a/C20b the image's code cells are 7,928 (6,367 at our code) while src/ has 9,304 EI_REPLACE registrations. Measure, per registration, what still reads its address: a code cell (vtable slot, static initialiser, CRT/MFC table), a code literal through CodeAddress, the harness's address names / profiler / crash report, the scenarios' or goldens' address keys, check tools (check_registrations, check_signatures, check_stolen). Registrations nothing reads go (the function stays, called directly); report the split of the rest by reader so the next batches (C19 vtables, static init, harness names) are sized. Goldens are the check. Result (C20c, 2026-10-21): tools/registration_readers.py prints the split by reader (--unread, --files, --list R, --drop). Registrations 9,347 -> 5,258 (progress.py EI_REPLACE 9,304 -> 5,253; after merging C19 batch 4): 4,090 dropped in src/lib + src/hook (1,419), src/game a-l (1,222), m-z (1,450). Left, by first reader: vtable cells 2,202, check_fp_fold only 1,754 (C20d), static init 325, forwarders 270, code literals 143 (C20f), harness 20, vectors 18, static init list 8, short generator 6, CRT/MFC/throwinfo cells 7, verify/vectors forwarders 9, exit generator 1, unread 495 (430 in the files C19 batch 4 held and the map objects', 65 generated short functions: C20e). Dead functions left by the drops: C20g. check_fp_fold.py --linked writes the registrations it links through; one template needed an explicit instantiation (AckTable<ExtraAcks>::RecordAt); config/standalone_unreachable.csv gained 00780E08 (import name text read as 00570000). Missed reader found by the goldens: static_init.cpp writes callbacks without leading zeros (0x5C4210, SmoothTable::Construct): the tool reads six-digit literals too; standalone_gaps skips src/standalone and check_static_init does not check that a callback it passes has code. Goldens 121 the same, original suite 114 the same."
 
 [[ticket]]
 id = "C22"
@@ -2656,6 +2656,35 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C18k"]
 note = "C18k's lib::StaticObject<mfc::CString> pattern (app_main.cpp's command line strings, game_folders.cpp): ui_objectives' CString 007C8178 (guarded exit, guard 007C8174), bink_video's guarded release 007C551C (guard 007C5518); then the other 'constructor + atexit' objects static_exit.cpp still lists whose class has no game.exe vtable (string_map 0079B930, app_helpers 0079BC2C, options 0079BC70, ... check each: a vtable store in the constructor means C19). The initialiser and the exit function are ported on the names and registered at their addresses (rows in config/extra_function_sizes.csv / function_sizes.inc for an initialiser without a Ghidra function)."
+
+[[ticket]]
+id = "C20d"
+title = "A function-to-original address map that is not the registrations (check_fp_fold first)"
+group = "cleanup"
+model = "opus"
+note = "C20c kept 1,754 registrations whose only reader is check_fp_fold: it links a function to its original (to compare x87 constants) through the function's own registration, or a helper through its registered callers (check_fp_fold.py --linked); dropping them reported folds that were none (24). Other tools also read every registration as the function-to-address map and lose the dropped ones without failing: coverage.py (watch list), check_signatures (RET n against the original), direct_calls.py, save_trace.py, ui_census_report.py, progress.py's rewritten count. Give them one map that does not register code (e.g. a record per rewritten function in its own section, or the map file plus a names table) and drop the 1,754 with tools/registration_readers.py --drop."
+
+[[ticket]]
+id = "C20e"
+title = "Registrations: drop the unread ones C20c left in C19's files and the generated short functions"
+group = "cleanup"
+model = "sonnet"
+depends = ["C19"]
+note = "After C20c (tools/registration_readers.py --unread): 495 unread, 430 in the files C19 batch 4 held (material, item, sky object, server / client specific, particles, lightning, light, player manager, CUnit tables, map objects, Object3D, traps, levers, torches) and 65 EI_REPLACE_SHORT nothing reads. Rerun --drop on those files after C19 (C20c's build/C20c/batch.py pipeline: dead shims, unused aliases, empty sections), and make gen_short_functions.py write a short function only where something reads its address (64 rewrites are registered only so the generator leaves them out)."
+
+[[ticket]]
+id = "C20f"
+title = "Code literals: call registered functions by name instead of through their game address"
+group = "cleanup"
+model = "sonnet"
+note = "C20c: 182 registrations are read by a code literal (ei::Code<F>(0x...), handler tables, CodeAddress), 143 of them by nothing else (tools/registration_readers.py --list 'code literal'). Where the function is ours, take its address directly; the registration then goes with the next --drop. Leave static_init.cpp / static_exit.cpp (generated, C18) and the harness (tests/verify)."
+
+[[ticket]]
+id = "C20g"
+title = "Dead functions after the registration drops"
+group = "cleanup"
+model = "sonnet"
+note = "C20c dropped 4,090 registrations and removed only the free shims nothing mentioned. Functions and methods that were reached only through their registration are now dead in the image (/OPT:NOREF keeps them). List them (the linker map with /OPT:REF in a scratch build, or a call-graph scan) and delete the dead ones with their declarations, keeping anything a test, check or harness names."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

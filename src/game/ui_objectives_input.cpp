@@ -144,8 +144,6 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x0064E330, InputForward<&CObjectivesWindow::OnLButtonDown>::Call);
 EI_REPLACE_METHOD(0x0064E5A0, InputForward<&CObjectivesWindow::OnKeyDown>::Call);
 
@@ -231,7 +229,6 @@ void CObjectivesWindow::RefreshQuests() {
     DrawQuestList();
     ShowQuest();
 }
-EI_REPLACE_METHOD(0x0064E8B0, CObjectivesWindow::RefreshQuests);
 
 void CObjectivesWindow::Update() {
     UpdateBase();

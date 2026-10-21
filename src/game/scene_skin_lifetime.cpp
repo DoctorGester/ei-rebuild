@@ -85,4 +85,3 @@ void SceneSkin::Clear() {
 EI_REPLACE_METHOD(0x005088E0, SceneSkin::Clear);
 
 void SceneSkin::SetOwner(std::uint32_t value) { owner = value; }
-EI_REPLACE_METHOD(0x00508930, SceneSkin::SetOwner);

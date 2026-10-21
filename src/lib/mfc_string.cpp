@@ -708,114 +708,20 @@ void __stdcall DestructStrings(CString* elements, int count) {
 
 // ---- Registrations ------------------------------------------------------------------------------
 //
-// Constructors, the destructor and overloads are registered through shims (a member pointer cannot
-// name them); the shims are what the verify wrappers call as "ours".
+// Constructors and the destructor are registered through shims (a member pointer cannot name them).
 
 namespace shim {
 CFixedAlloc* __fastcall FixedAllocConstruct(CFixedAlloc* self, void*, unsigned allocSize, unsigned blockSize) {
     return self->Construct(allocSize, blockSize);
 }
-CString* __fastcall CopyConstruct(CString* self, void*, const CString& source) { return ::new (self) CString(source); }
 CString* __fastcall TextConstruct(CString* self, void*, const char* text) { return ::new (self) CString(text); }
-CString* __fastcall CountConstruct(CString* self, void*, const char* text, int length) {
-    return ::new (self) CString(text, length);
-}
 void __fastcall Destruct(CString* self) { self->~CString(); }
-const CString* __fastcall AssignString(CString* self, void*, const CString& source) { return &(*self = source); }
-const CString* __fastcall AssignText(CString* self, void*, const char* text) { return &(*self = text); }
-const CString* __fastcall AssignChar(CString* self, void*, char c) { return &(*self = c); }
-const CString* __fastcall AppendString(CString* self, void*, const CString& text) { return &(*self += text); }
-const CString* __fastcall AppendText(CString* self, void*, const char* text) { return &(*self += text); }
-const CString* __fastcall AppendChar(CString* self, void*, char c) { return &(*self += c); }
-int __fastcall FindChar(const CString* self, void*, char c) { return self->Find(c); }
-int __fastcall FindCharFrom(const CString* self, void*, char c, int start) { return self->Find(c, start); }
-int __fastcall FindText(const CString* self, void*, const char* sub) { return self->Find(sub); }
-int __fastcall FindTextFrom(const CString* self, void*, const char* sub, int start) { return self->Find(sub, start); }
-CString* __fastcall MidFrom(const CString* self, void*, CString* result, int first) {
-    return ::new (result) CString(self->Mid(first));
-}
-CString* __fastcall MidCount(const CString* self, void*, CString* result, int first, int count) {
-    return ::new (result) CString(self->Mid(first, count));
-}
-CString* __fastcall Left(const CString* self, void*, CString* result, int count) {
-    return ::new (result) CString(self->Left(count));
-}
-CString* __fastcall Right(const CString* self, void*, CString* result, int count) {
-    return ::new (result) CString(self->Right(count));
-}
-void __fastcall TrimRightSpace(CString* self) { self->TrimRight(); }
-void __fastcall TrimRightChar(CString* self, void*, char target) { self->TrimRight(target); }
-void __fastcall TrimRightSet(CString* self, void*, const char* targets) { self->TrimRight(targets); }
-void __fastcall TrimLeftSpace(CString* self) { self->TrimLeft(); }
-void __fastcall TrimLeftChar(CString* self, void*, char target) { self->TrimLeft(target); }
-void __fastcall ReleaseThis(CString* self) { self->Release(); }
-void __stdcall ReleaseData(CStringData* data) { CString::Release(data); }
-CString* __stdcall PlusStrings(CString* result, const CString& a, const CString& b) { return ::new (result) CString(a + b); }
-CString* __stdcall PlusStringText(CString* result, const CString& a, const char* b) { return ::new (result) CString(a + b); }
-CString* __stdcall PlusTextString(CString* result, const char* a, const CString& b) { return ::new (result) CString(a + b); }
-CString* __stdcall PlusStringChar(CString* result, const CString& a, char b) { return ::new (result) CString(a + b); }
-CString* __stdcall PlusCharString(CString* result, char a, const CString& b) { return ::new (result) CString(a + b); }
 } // namespace shim
 
 EI_REPLACE(0x006E6BCD, shim::FixedAllocConstruct);
 EI_REPLACE_METHOD(0x006E6BF5, CFixedAlloc::Destruct);
-EI_REPLACE_METHOD(0x006E6C09, CFixedAlloc::FreeAll);
-EI_REPLACE_METHOD(0x006E6C31, CFixedAlloc::Alloc);
-EI_REPLACE_METHOD(0x006E6CC0, CFixedAlloc::Free);
 
-EI_REPLACE(0x007006E5, shim::CopyConstruct);
 EI_REPLACE(0x007009DE, shim::TextConstruct);
-EI_REPLACE(0x006FD4DE, shim::CountConstruct);
 EI_REPLACE(0x00700970, shim::Destruct);
-EI_REPLACE(0x00700AA9, shim::AssignString);
-EI_REPLACE(0x00700AF9, shim::AssignText);
-EI_REPLACE(0x006FD559, shim::AssignChar);
-EI_REPLACE(0x00700D88, shim::AppendString);
-EI_REPLACE(0x00700D4C, shim::AppendText);
-EI_REPLACE(0x00700D73, shim::AppendChar);
-EI_REPLACE(0x00700B9F, shim::PlusStrings);
-EI_REPLACE(0x00700C05, shim::PlusStringText);
-EI_REPLACE(0x00700C79, shim::PlusTextString);
-EI_REPLACE(0x006FD56E, shim::PlusStringChar);
-EI_REPLACE(0x006FD5D0, shim::PlusCharString);
-EI_REPLACE_METHOD(0x007008FB, CString::Empty);
-EI_REPLACE_METHOD(0x00702B0E, CString::LoadResourceString);
-EI_REPLACE_METHOD(0x00700DA0, CString::GetBuffer);
-EI_REPLACE_METHOD(0x00700DEF, CString::ReleaseBuffer);
-EI_REPLACE_METHOD(0x00700E17, CString::GetBufferSetLength);
-EI_REPLACE_METHOD(0x00700E6A, CString::LockBuffer);
-EI_REPLACE_METHOD(0x00700E7C, CString::UnlockBuffer);
-EI_REPLACE(0x00700E91, shim::FindChar);
-EI_REPLACE(0x00700E9F, shim::FindCharFrom);
-EI_REPLACE(0x006FDBD9, shim::FindText);
-EI_REPLACE(0x006FDBE7, shim::FindTextFrom);
-EI_REPLACE_METHOD(0x006FDBB7, CString::ReverseFind);
-EI_REPLACE_METHOD(0x00700ECC, CString::FindOneOf);
-EI_REPLACE(0x006FD9B4, shim::MidFrom);
-EI_REPLACE(0x006FD9D7, shim::MidCount);
-EI_REPLACE(0x006FDAE9, shim::Left);
-EI_REPLACE(0x006FDA6D, shim::Right);
-EI_REPLACE_METHOD(0x00700EFE, CString::MakeLower);
-EI_REPLACE_METHOD(0x006FD963, CString::Remove);
-EI_REPLACE(0x006FE11F, shim::TrimRightSpace);
-EI_REPLACE(0x006FE0DD, shim::TrimRightChar);
-EI_REPLACE(0x006FE08A, shim::TrimRightSet);
-EI_REPLACE(0x006FE216, shim::TrimLeftSpace);
-EI_REPLACE(0x006FE1D3, shim::TrimLeftChar);
-EI_REPLACE_METHOD(0x006FDF5F, CString::Format);
-EI_REPLACE_METHOD(0x006FDC12, CString::FormatV);
-EI_REPLACE(0x006FE268, ConstructStrings);
-EI_REPLACE(0x006FE296, DestructStrings);
-
-EI_REPLACE_METHOD(0x007007DD, CString::AllocBuffer);
-EI_REPLACE(0x0070085F, CString::FreeData);
-EI_REPLACE(0x007008A7, shim::ReleaseThis);
-EI_REPLACE(0x007008D8, shim::ReleaseData);
-EI_REPLACE_METHOD(0x00700919, CString::CopyBeforeWrite);
-EI_REPLACE_METHOD(0x00700947, CString::AllocBeforeWrite);
-EI_REPLACE_METHOD(0x0070099A, CString::AllocCopy);
-EI_REPLACE_METHOD(0x00700A7C, CString::AssignCopy);
-EI_REPLACE_METHOD(0x00700B61, CString::ConcatCopy);
-EI_REPLACE_METHOD(0x00700CED, CString::ConcatInPlace);
 
 } // namespace mfc::impl

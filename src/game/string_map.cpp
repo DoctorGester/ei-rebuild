@@ -40,10 +40,6 @@ void*& NodeFreeList() { return ei::GameData<void*>(0x0079B234); }
 
 } // namespace
 
-// 004447D0.
-void* __cdecl StringTable() { return ei::GamePointer<void>(0x0079B930); }
-EI_REPLACE(0x004447D0, StringTable);
-
 // 004447E0 (slot 0): table[key] = value (a missing key is inserted at its lower bound with an
 // empty value first).
 void CDebugPanel::Set(const char* key, const char* value) {
@@ -196,7 +192,6 @@ void CDebugPanel::Tick() {
     }
     if (CUiSurface* surface = surface_) surface->Blit();
 }
-EI_REPLACE_METHOD(0x00444CD0, CDebugPanel::Tick);
 
 // 00444D00: clears the panel and draws each entry (the key in the left half, the value in the
 // right half; a dark copy one pixel down and right first) until the next line would not fit.
@@ -233,7 +228,6 @@ void CDebugPanel::Redraw() {
     dc->SelectFont(oldFont);
     UiSurfaceReleaseDC(surface_);
 }
-EI_REPLACE_METHOD(0x00444D00, CDebugPanel::Redraw);
 
 // 00444F50: shows the panel (its surface made when missing, drawn at once) or hides it (the
 // surface freed).

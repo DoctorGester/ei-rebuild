@@ -67,14 +67,6 @@ RefPtr* RefPtr::CopyPlain(const RefPtr* other) {
     return this;
 }
 
-namespace net {
-EI_REPLACE_METHOD(0x004263B0, RefPtr::CopyPlain);
-EI_REPLACE_METHOD(0x00429910, RefPtr::CopyPlain);   // byte-identical copy
-EI_REPLACE_METHOD(0x00609960, RefPtr::CopyPlain);   // byte-identical copy (the lobby's player list)
-EI_REPLACE_METHOD(0x005BEF50, RefPtr::CopyPlain);   // byte-identical copy (A-W12)
-
-} // namespace net
-
 // 00609D40: the counted pointer's assignment from another holder (the chat window's player list
 // 006091C0): RefPtr::Assign of the other's object (a reference added, the old one released, even
 // for the same object; no copy-on-share handling). Returns the holder.
@@ -84,7 +76,6 @@ RefPtr* RefPtr::AssignCounted(const RefPtr* other) {
 }
 
 namespace net {
-EI_REPLACE_METHOD(0x00609D40, RefPtr::AssignCounted);
 
 // 0041ACF0: the trade between the two offers (in either order), or null.
 void* ServerSession::FindTrade(void* offer, void* other) {
@@ -197,7 +188,6 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) 
     ReleaseInline(removing.ptr);
 }
 
-EI_REPLACE_METHOD(0x0041ACF0, ServerSession::FindTrade);
 EI_REPLACE(0x0041B720, ServerOnObjectRemoved);
 EI_REPLACE(0x0041B7A0, ServerOnTradeOffer);
 EI_REPLACE(0x0041B970, ServerOnTradeUpdate);

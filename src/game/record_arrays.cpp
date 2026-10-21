@@ -25,21 +25,7 @@ void InitFigurePart(CFigureMesh* p) {
     ei::SetVtable(p, CFigureMesh::kPlainMeshVtableAddress);
 }
 
-EI_REPLACE(0x0044FCD0, FigureParts::SetSize);
-EI_REPLACE(0x00453240, FigureParts::ConstructElements);
-EI_REPLACE(0x00453550, Materials::SetSize);
-EI_REPLACE(0x00454E40, Materials::ConstructElements);
-EI_REPLACE(0x004545C0, SceneMeshes::ConstructElements);
-EI_REPLACE(0x00454F80, SceneNodes::ConstructElements);
-EI_REPLACE(0x00477100, SceneNodes::DestructElements);
-EI_REPLACE(0x00474DB0, FaceGroups::SetSize);
-EI_REPLACE(0x00476F20, FaceGroups::DestructElements);
-EI_REPLACE(0x00454A50, ArrayHeader<FaceGroupArrayClass>::Construct);
-
 // ---- Records -------------------------------------------------------------------------------------
-
-EI_REPLACE(0x0050FA30, DeltaFields::SetSize);
-EI_REPLACE(0x005101A0, DeltaFields::ConstructElements);
 
 void InitTheme(MusicTheme* p) {
     new (&p->name) mfc::CString();
@@ -55,35 +41,20 @@ void __fastcall DestroyTheme(MusicTheme* p) {
     p->briefing.~CString();
     p->name.~CString();
 }
-EI_REPLACE(0x006B59A0, Themes::SetSize);
-EI_REPLACE(0x006B5BC0, Themes::ConstructElements);
 EI_REPLACE(0x006B4D90, DestroyTheme);
-EI_REPLACE(0x006B56C0, Themes::Destruct<ThemeArrayClass>);
 
 void __fastcall DestroyWave(WaveRecord* p) { gamelists::DestroyWave(p); }
-EI_REPLACE(0x006BE240, Waves::ConstructElements);
-EI_REPLACE(0x006BE210, Waves::DestructElements);
 EI_REPLACE(0x006B90C0, DestroyWave);
-
-EI_REPLACE(0x00557890, Behaviours::Destruct<BehaviourArrayClass>);
-EI_REPLACE(0x00558E10, Behaviours::ConstructElements);
 
 mfc::CString* PartNames::CopyAt(mfc::CString* result, int index) const {
     new (result) mfc::CString(data[index]);
     return result;
 }
 EI_REPLACE_METHOD(0x004698A0, PartNames::CopyAt);
-EI_REPLACE_METHOD(0x004698C0, PartNames::CopyAt);
-
 
 // The global map's links and quests (the zero fill, then both strings empty).
 void __fastcall DestroyGlobalMapRecord(Bytes<0x18>* p) { mfc::impl::DestroyStringsAt<Bytes<0x18>, 0x14, 0x10>(p); }
-EI_REPLACE(0x00631E70, GlobalMapPointRecords::SetSize);
-EI_REPLACE(0x00631FF0, GlobalMapPointRecords::SetSize);
-EI_REPLACE(0x005FBFB0, GlobalMapPointRecords::ConstructElements);
-EI_REPLACE(0x005FC010, GlobalMapPointRecords::ConstructElements);
 EI_REPLACE(0x005FBD80, DestroyGlobalMapRecord);
-EI_REPLACE(0x005FBDD0, DestroyGlobalMapRecord);
 // The zones (16 bytes): the strings at +0xC, then +8.
 void __fastcall DestroyGlobalMapZone(Bytes<0x10>* p) { mfc::impl::DestroyStringsAt<Bytes<0x10>, 0xC, 8>(p); }
 EI_REPLACE(0x005FBD30, DestroyGlobalMapZone);
@@ -131,16 +102,6 @@ void InitSubCall(ScriptSubCall* p) {
     p->cmd = cmd ? cmd->Construct() : nullptr;
 }
 
-EI_REPLACE(0x004CD2B0, Cmds::SetSize);
-EI_REPLACE(0x004CE920, Cmds::ConstructElements);
-EI_REPLACE(0x004CD470, Cmds::DestructElements);
-EI_REPLACE(0x004C4FD0, SubCalls::SetSize);
-EI_REPLACE(0x004CD130, SubCalls::ConstructElements);
-EI_REPLACE(0x004CD0F0, SubCalls::DestructElements);
-EI_REPLACE(0x004CD770, Definitions::SetSize);
-EI_REPLACE(0x004CD900, Definitions::DestructElements);
-EI_REPLACE(0x004CEC80, Runs::DestructElements);
-EI_REPLACE(0x004CD740, Decls::DestructElements);
 // The by-value GetAt wrappers: their bodies (004CE750, 004CCAA0) have the same arguments.
 EI_REPLACE_METHOD(0x004CD450, ScriptCommands::CopyAt);
 EI_REPLACE_METHOD(0x004C7510, ScriptSubCalls::CopyAt);
@@ -148,17 +109,6 @@ EI_REPLACE_METHOD(0x004C7510, ScriptSubCalls::CopyAt);
 // ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
 
 using mfc::impl::ScalarDelete;
-
-// The array destructors: each element's destructor inlined (the nested calls' commands destroyed and
-// deleted; 00545BA0 is 00557890's copy).
-EI_REPLACE(0x004514B0, SceneNodes::Destruct<SceneNodeArrayClass>);
-EI_REPLACE(0x004C5180, SubCalls::Destruct<SubCallBaseClass>);
-EI_REPLACE(0x004CCF70, SubCalls::Destruct<SubCallBaseClass>);
-EI_REPLACE(0x0050FBC0, DeltaFields::Destruct<DeltaFieldArrayClass>);
-EI_REPLACE(0x00545BA0, Behaviours::Destruct<BehaviourArrayClass>);
-EI_REPLACE(0x006C4C40, TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>);
-EI_REPLACE(0x006C4690, SectorVertices::Destruct<SectorVertexArrayClass>);
-EI_REPLACE(0x006BC870, gamelists::Waves::Destruct<WaveListClass>);
 
 // Scalar deleting destructors (vtable slot 1).
 EI_REPLACE(0x004529F0, ScalarDelete<&SceneNodes::Destruct<SceneNodeArrayClass>>);
@@ -191,13 +141,10 @@ EI_REPLACE(0x00571240, SerializeCArray<WaterLevels>);
 EI_REPLACE(0x005993A0, SerializeCArray<Sectors>);
 
 // The water levels' element helpers.
-EI_REPLACE(0x00575690, WaterLevels::ConstructElements);
 void __fastcall DestroyWaterLevel(WaterLevelElement* p) {
     mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>(p);
 }
 EI_REPLACE(0x005755C0, DestroyWaterLevel);
-// The array's destructor (vtable 0073F730; each element as above, then the storage freed).
-EI_REPLACE(0x005711E0, WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>);
 
 } // namespace recordarrays
 
@@ -256,7 +203,6 @@ mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
     return result;
 }
 EI_REPLACE_METHOD(0x0046EAB0, mapspec::Patrols::CopyAt);
-EI_REPLACE_METHOD(0x0046EFD0, mapspec::Patrols::CopyAt);
 
 
 // The first ten dwords as they are, the target copy-constructed, then the rest (the flag as a byte).
@@ -271,7 +217,6 @@ ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {
     return result;
 }
 EI_REPLACE_METHOD(0x00584EA0, ZoneExits::CopyAt);
-EI_REPLACE_METHOD(0x00587DD0, ZoneExits::CopyAt);
 
 void DeltaState::SetFieldCount(int count) {
     recordarrays::DeltaFields::SetSize(reinterpret_cast<recordarrays::DeltaFields::Array*>(this), nullptr, count, -1);

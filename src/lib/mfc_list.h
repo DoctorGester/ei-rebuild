@@ -315,8 +315,4 @@ using Map32 = MapAbi<std::uint32_t, std::uint32_t>;
 using Map64x32 = MapAbi<std::uint64_t, std::uint32_t>;
 using Map64x64 = MapAbi<std::uint64_t, std::uint64_t>;
 
-// 00477380 ConstructElements of an array of CMap<DWORD, DWORD> (__stdcall, RET 8).
-using MapElements = InitElements<CMap<std::uint32_t, std::uint32_t>, InitMap<DwordMapClass>>;
-void __stdcall ConstructDwordMaps(CMap<std::uint32_t, std::uint32_t>* maps, int count);
-
 } // namespace mfc::impl

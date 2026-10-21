@@ -406,4 +406,3 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     DrawBounds(TheSceneRenderer());
     return 1;
 }
-EI_REPLACE_METHOD(0x005A7A70, FigureMeshDrawer::DrawLit);

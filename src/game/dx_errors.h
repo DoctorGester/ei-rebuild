@@ -23,9 +23,6 @@ struct GameError {
 };
 // 00480250 (cdecl: the object, a wvsprintf format, its arguments). Returns the object.
 GameError* __cdecl GameErrorConstruct(GameError* error, const char* format, ...);
-// 00480300 (cdecl: the object, a DirectX result, a format, its arguments): the message is
-// "<text> (0x<result>) <DirectXErrorText(result)>". Returns the object.
-GameError* __cdecl GameErrorConstructResult(GameError* error, long result, const char* format, ...);
 // The two constructors' bodies with the arguments as a va_list (the verify wrappers call them).
 GameError* GameErrorFormat(GameError* error, const char* format, va_list args);
 GameError* GameErrorFormatResult(GameError* error, long result, const char* format, va_list args);

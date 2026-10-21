@@ -25,7 +25,6 @@ bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
     gamecrt::operator_delete(block);
     return true;
 }
-EI_REPLACE_METHOD(0x004A4940, CStream::ReadTagged);
 
 bool CStream::FindTagged(std::uint32_t id, CStream* out) {
     Seek(0);
@@ -37,7 +36,6 @@ bool CStream::FindTagged(std::uint32_t id, CStream* out) {
     out->Clear();
     return false;
 }
-EI_REPLACE_METHOD(0x004A4A90, CStream::FindTagged);
 
 namespace {
 
@@ -75,7 +73,6 @@ void CStream::ReplaceTagged(std::uint32_t id, CStream* replacement, CStream* out
     if (!replaced) WriteTagged(out, id, replacement);
     block.Destruct();
 }
-EI_REPLACE_METHOD(0x004A4AF0, CStream::ReplaceTagged);
 
 void CStream::ReadText(char* buffer, int capacity) {
     char* at = buffer;
@@ -91,4 +88,3 @@ void CStream::ReadText(char* buffer, int capacity) {
     }
     buffer[capacity - 1] = 0;
 }
-EI_REPLACE_METHOD(0x004A48F0, CStream::ReadText);

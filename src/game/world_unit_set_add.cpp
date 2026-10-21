@@ -206,39 +206,14 @@ mfc::CString* __fastcall DeleteName(mfc::CString* self, void*, unsigned flags) {
 
 } // namespace unitset
 
-namespace {
-using Map8 = stlp::HashtableAbi<stlp::DwordKeyTraits<8>>;
-using Ids = stlp::VectorAbi<std::uint32_t>;
-} // namespace
-
 // The records: the head's constructor and destructor, the copies, equal() of two id ranges.
-EI_REPLACE(0x00559DB0, unitset::ConstructHead);
 EI_REPLACE(0x00559DE0, unitset::DestroyHead);
 EI_REPLACE_METHOD(0x0055A860, FiguredUnitRecord::CopyConstruct);
-EI_REPLACE_METHOD(0x0055A9F0, DressedUnitRecord::CopyConstruct);
-EI_REPLACE(0x0055D020, unitset::EqualIds);
 
 // The tables: a group's pair, hash_map(), its copy and destructor; the groups' find_or_insert and
 // resize; the multimaps' equal_range, resize, insert_equal_noresize and the iterator's step.
 EI_REPLACE(0x0055ABB0, gamehash::ConstructGroupPair);
-EI_REPLACE(0x0055AC40, gamehash::FiguredAbi::ConstructDefault);
-EI_REPLACE(0x0055AEB0, gamehash::FiguredAbi::CopyConstruct);
-EI_REPLACE(0x0055AD10, gamehash::FiguredAbi::Destroy);
-EI_REPLACE(0x0055BA10, gamehash::FiguredGroupsAbi::FindOrInsert);
-EI_REPLACE(0x0055CEB0, Map8::Resize);
-EI_REPLACE(0x0055B5C0, Map8::EqualRange);
-EI_REPLACE(0x0055BB40, Map8::EqualRange);
-EI_REPLACE(0x0055B670, Map8::Resize);
-EI_REPLACE(0x0055BBF0, Map8::Resize);
-EI_REPLACE(0x0055B540, gamehash::FiguredAbi::InsertEqualNoresize);
-EI_REPLACE(0x0055BAC0, gamehash::DressedAbi::InsertEqualNoresize);
-EI_REPLACE(0x0055BA80, Map8::SkipToNext);
 
 // The id and name vectors: _M_insert_overflow, ~_Vector_base (2), _Construct of an id and of a
 // CString, and the CString's scalar deleting destructor (the names' element loop calls it with 0).
-EI_REPLACE(0x004FF640, Ids::InsertOverflow);
-EI_REPLACE(0x004FE420, Ids::DestroyBase);
-EI_REPLACE(0x004FDE90, Ids::DestroyBase);
-EI_REPLACE(0x0055C260, stlp::ConstructAt<std::uint32_t>);
-EI_REPLACE(0x0055C270, stlp::ConstructAt<mfc::CString>);
 EI_REPLACE(0x0051FAD0, unitset::DeleteName);

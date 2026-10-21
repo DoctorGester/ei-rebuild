@@ -50,7 +50,6 @@ CCloudNoise* CCloudNoise::Construct(int size) {
     step_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00499DC0, CCloudNoise::Construct);
 
 void CCloudNoise::DestructBody() {
     ei::SetVtable(this, BaseVtable());
@@ -59,10 +58,6 @@ void CCloudNoise::DestructBody() {
     for (std::uint8_t* frame : frames_) gamecrt::operator_delete(frame);
     gamecrt::operator_delete(ramp_);
 }
-EI_REPLACE_METHOD(0x00499E90, CCloudNoise::DestructBody);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
-EI_REPLACE_METHOD(0x0062EDC0, CCloudNoise::DestructBody);
 
 // 00499E30 (base slot 2, RET 4): DestructBody, freed when bit 0 of `flags` is set. Returns this.
 CCloudNoise* CCloudNoise::DeletingDestructImpl(unsigned flags) {
@@ -76,7 +71,6 @@ void CCloudNoise::Start() {
     for (int step = 0; step < kSteps; ++step) Generate(frames_[0], step);
     for (int step = 0; step < kSteps; ++step) Generate(frames_[1], step);
 }
-EI_REPLACE_METHOD(0x00499EE0, CCloudNoise::Start);
 
 void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
     phase_ = seconds * speed_ + phase_;
@@ -100,7 +94,6 @@ void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
     const std::uint8_t* to = frames_[1];
     for (int i = 0; i < count; ++i) pixels[i] = ramp_[(to[i] * blend + from[i] * (256 - blend)) >> 8];
 }
-EI_REPLACE_METHOD(0x00499F10, CCloudNoise::Draw);
 
 void CCloudNoise::SetRamp(int start, int width, float speed) {
     float base = static_cast<float>(width) * (1.0f / 255.0f);   // FSTP to a float

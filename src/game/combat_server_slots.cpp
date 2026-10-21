@@ -40,7 +40,6 @@ UnitAction* UnitAction::Construct() {
     flag18 = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00545F70, UnitAction::Construct);
 
 AnimationStep* AnimationStep::Construct() {
     variant = 0xFF;
@@ -51,4 +50,3 @@ AnimationStep* AnimationStep::Construct() {
     padding = 0;   // SV7b2a: the original leaves it (a stack byte); the harness zeroes it there too
     return this;
 }
-EI_REPLACE_METHOD(0x00550A60, AnimationStep::Construct);

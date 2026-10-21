@@ -13,8 +13,6 @@ namespace mfc::impl {
 
 namespace {
 
-// CArchive's CString operators (MFC's arccore.cpp; S8).
-
 // The growth when the allocation is outgrown: the step, or size / 8 clamped to 4..1024.
 int GrowthStep(int growBy, int size) {
     if (growBy != 0) return growBy;
@@ -227,54 +225,22 @@ void CStringArray::Serialize(CArchive* ar) {
 
 // ---- Registrations ------------------------------------------------------------------------------
 
-namespace shim {
-void __fastcall SetAtGrowText(CStringArray* self, void*, int index, const char* text) { self->SetAtGrow(index, text); }
-void __fastcall SetAtGrowString(CStringArray* self, void*, int index, const CString& value) {
-    self->SetAtGrow(index, value);
-}
-} // namespace shim
-
 EI_REPLACE_METHOD(0x006FEE9A, CWordArray::Construct);
 EI_REPLACE_METHOD(0x006FEEB1, CWordArray::DeletingDestructor);
 EI_REPLACE_METHOD(0x006FEECD, CWordArray::Destruct);
-EI_REPLACE_METHOD(0x006FEEFA, CWordArray::SetSize);
-EI_REPLACE_METHOD(0x006FF0B4, CWordArray::SetAtGrow);
 EI_REPLACE_METHOD(0x006FF1E7, CWordArray::Serialize);
 
-EI_REPLACE_METHOD(0x006FF23A, CDWordArray::Construct);
 EI_REPLACE_METHOD(0x006FF251, CDWordArray::DeletingDestructor);
-EI_REPLACE_METHOD(0x006FF26D, CDWordArray::Destruct);
-EI_REPLACE_METHOD(0x006FF29A, CDWordArray::SetSize);
-EI_REPLACE_METHOD(0x006FF45E, CDWordArray::SetAtGrow);
 EI_REPLACE_METHOD(0x006FF595, CDWordArray::Serialize);
 
 EI_REPLACE_METHOD(0x006FF5EA, CByteArray::Construct);
 EI_REPLACE_METHOD(0x006FF601, CByteArray::DeletingDestructor);
 EI_REPLACE_METHOD(0x006FF61D, CByteArray::Destruct);
-EI_REPLACE_METHOD(0x006FF64A, CByteArray::SetSize);
-EI_REPLACE_METHOD(0x006FF7DC, CByteArray::SetAtGrow);
 EI_REPLACE_METHOD(0x006FF8E6, CByteArray::Serialize);
 
-EI_REPLACE_METHOD(0x006FF933, CUIntArray::Construct);
 EI_REPLACE_METHOD(0x006FF94A, CUIntArray::DeletingDestructor);
-EI_REPLACE_METHOD(0x006FF966, CUIntArray::Destruct);
-EI_REPLACE_METHOD(0x006FF993, CUIntArray::SetSize);
-EI_REPLACE_METHOD(0x006FFB57, CUIntArray::SetAtGrow);
 
-EI_REPLACE_METHOD(0x006FE925, CStringArray::Construct);
 EI_REPLACE_METHOD(0x006FE93C, CStringArray::DeletingDestructor);
-EI_REPLACE_METHOD(0x006FE958, CStringArray::Destruct);
-EI_REPLACE_METHOD(0x006FE9B8, CStringArray::SetSize);
-EI_REPLACE_METHOD(0x006FEB01, CStringArray::Append);
-EI_REPLACE_METHOD(0x006FEB61, CStringArray::Copy);
-EI_REPLACE(0x006FEBCE, shim::SetAtGrowText);
-EI_REPLACE(0x006FEBFA, shim::SetAtGrowString);
-EI_REPLACE_METHOD(0x006FEC26, CStringArray::InsertEmpty);
-EI_REPLACE_METHOD(0x006FED03, CStringArray::InsertAt);
-EI_REPLACE_METHOD(0x006FED3C, CStringArray::RemoveAt);
 EI_REPLACE_METHOD(0x006FEE31, CStringArray::Serialize);
-EI_REPLACE(0x006FEAD5, CStringArray::ConstructElements);
-EI_REPLACE(0x006FE996, CStringArray::DestructElements);
-EI_REPLACE(0x006FEB37, CStringArray::CopyElements);
 
 } // namespace mfc::impl

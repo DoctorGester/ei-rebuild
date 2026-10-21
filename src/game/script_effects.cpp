@@ -330,20 +330,8 @@ void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
     stream->Read(&countdown, 4);
 }
 
-EI_REPLACE_METHOD(0x004B1940, ScriptPointLight::ScriptPointLightSave);
-EI_REPLACE_METHOD(0x004B1A80, ScriptParticleSource::ScriptParticleSourceSave);
-EI_REPLACE_METHOD(0x004B1C50, ScriptFxSource::ScriptFxSourceSave);
-EI_REPLACE_METHOD(0x004B1DB0, ScriptLightning::ScriptLightningSave);
-EI_REPLACE_METHOD(0x004B18B0, ScriptPointLight::ScriptPointLightLoad);
 EI_REPLACE_METHOD(0x004B1B40, ScriptFxSource::ScriptFxSourceLoad);
-EI_REPLACE_METHOD(0x004B17F0, ScriptPointLight::ScriptPointLightDestruct);
-EI_REPLACE_METHOD(0x004B1820, ScriptLightning::ScriptLightningDestruct);
-EI_REPLACE_METHOD(0x004B1850, ScriptParticleSource::ScriptParticleSourceDestruct);
-EI_REPLACE_METHOD(0x004B1880, ScriptFxSource::ScriptFxSourceDropSound);
-EI_REPLACE_METHOD(0x004BD260, CScript::ScriptCreateFx);
 EI_REPLACE_METHOD(0x004BD310, CScript::ScriptCreateFxSource);
 EI_REPLACE_METHOD(0x004BCFF0, CScript::ScriptCreateLightning);
 EI_REPLACE_METHOD(0x004BD540, ScriptFxSource::ScriptFxSourceDestruct);
 EI_REPLACE_METHOD(0x004BD9A0, CScript::ScriptCreateParticleSource);
-EI_REPLACE_METHOD(0x004BDBB0, CScript::ScriptMoveParticleSource);
-EI_REPLACE(0x004CD690, ScriptLightningElementsDestruct);

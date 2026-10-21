@@ -34,16 +34,6 @@ static_assert(offsetof(MotionSegment, segment) == offsetof(UnitMotion, segment) 
 int __fastcall WorldTick(CWorld* world) { return world->tick_; }
 EI_REPLACE(0x0054B220, WorldTick);
 
-// 0054E5D0 (thiscall on a motion's segment part): both curves zeroed, no segment. Returns it.
-void* __fastcall MotionSegmentInit(void* part) {
-    auto* segment = static_cast<MotionSegment*>(part);
-    segment->curveX = {};
-    segment->curveY = {};
-    segment->segment = -1;
-    return segment;
-}
-EI_REPLACE(0x0054E5D0, MotionSegmentInit);
-
 ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     CEngineObject* old = item;
     item = other->item;
@@ -53,7 +43,6 @@ ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     worn = other->worn;
     return this;
 }
-EI_REPLACE_METHOD(0x00558840, ArmourSpell::Assign);
 
 // 00558CA0 / 00558CC0 (the counted reference and the call record deleting destructors) are in
 // world_deleting_destructors.cpp.

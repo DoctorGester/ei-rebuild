@@ -69,8 +69,6 @@ FigureModel* CFigureManager::FindModel(const stlp::string* name) {
     return found ? found->value : nullptr;
 }
 
-EI_REPLACE_METHOD(0x005AA5F0, CFigureManager::FindModel);
-
 // 005A9EF0 (thiscall on a model, RET 4): the model's animation of a name, loaded on first use from
 // its animation archive (GetFile, slot 5, with the name) into a new archive over that data
 // (OpenFromMemory, slot 2); without data nothing is created. The cached entry is looked up again
@@ -88,7 +86,6 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
     const AnimationMap::Node* found = map->Find(*name);
     return found ? found->value : nullptr;
 }
-EI_REPLACE_METHOD(0x005A9EF0, FigureModel::FindAnimation);
 
 // The library's hash table sizes.
 constexpr std::uint32_t kPrimeCount = 28;
@@ -130,4 +127,3 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     }
     return model;
 }
-EI_REPLACE(0x005A9A50, ConstructFigureModel);

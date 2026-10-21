@@ -52,7 +52,6 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     CreateMesh();
     return this;
 }
-EI_REPLACE_METHOD(0x005AABC0, CFigureMesh::ConstructBase);
 
 int CFigureMesh::CreateMesh() {
     radius_ = 0.0f;
@@ -136,7 +135,6 @@ void CFigureMesh::DestructMesh() {
     ei::SetVtable(this, kMeshVtableAddress);
     DestructPlainMesh();
 }
-EI_REPLACE_METHOD(0x005AAD00, CFigureMesh::DestructMesh);
 
 void CFigureMesh::DestructPlainMesh() {
     texCoords_.FreeData();
@@ -147,7 +145,6 @@ void CFigureMesh::DestructPlainMesh() {
     vertices_.FreeData();
     FigureDestructBodyOriginal(this);
 }
-EI_REPLACE_METHOD(0x00454510, CFigureMesh::DestructPlainMesh);
 
 CFigureMesh* CFigureMesh::DeletingDestructPlainMesh(unsigned flags) {
     DestructPlainMesh();
@@ -161,7 +158,6 @@ void CFigureMesh::DestructSharedMesh() {
     vertices_.FreeData();
     FigureDestructBodyOriginal(this);
 }
-EI_REPLACE_METHOD(0x005AADC0, CFigureMesh::DestructSharedMesh);
 
 CFigureMesh* CFigureMesh::DeletingDestructMesh(unsigned flags) {
     DestructMesh();
@@ -190,20 +186,17 @@ void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
         ++AsObject(drawer_)->refCount_;
     }
 }
-EI_REPLACE_METHOD(0x0059F390, CFigureMesh::SetDrawer);
 
 void CFigureMesh::LoadNothing(char**, float, float, float) { flags_ |= 0x20; }
 EI_REPLACE_METHOD(0x005A2480, CFigureMesh::LoadNothing);
 
 void CFigureMesh::SetObject(CObject3D* object) { object_ = object; }
-EI_REPLACE_METHOD(0x0059F3D0, CFigureMesh::SetObject);
 
 // --- The figure manager -------------------------------------------------------------------------
 
 CFigureManager::CFigureManager() { models_.InitBuckets(100); }
 
 CFigureManager* CFigureManager::Construct() { return new (this) CFigureManager(); }
-EI_REPLACE_METHOD(0x005AA070, CFigureManager::Construct);
 
 CEngineObject* CFigureManager::NewObject(int type) {
     return static_cast<CEngineObject*>(::CreateFigureObject(this, nullptr, type));
@@ -217,4 +210,3 @@ CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     reinterpret_cast<CFigureMesh*>(object)->SetDrawer(drawer);
     return object;
 }
-EI_REPLACE_METHOD(0x005AAE00, CFigureManager::CreateFigureObject);

@@ -463,7 +463,6 @@ void* CRenderBase::DeleteScalar(unsigned flags) {
     return DeleteIf(this, flags);
 }
 EI_REPLACE_METHOD(0x004FCD30, CRenderBase::DeleteScalar);
-EI_REPLACE_METHOD(0x004FD900, CRenderBase::DeleteScalar);
 
 // 004E6880: the device object's (vtable 0073D760).
 void* CTextureDevice::DeleteDevice(unsigned flags) {

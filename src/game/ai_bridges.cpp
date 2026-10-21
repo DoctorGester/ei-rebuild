@@ -43,7 +43,6 @@ void __fastcall RestoreBridgeCell(BridgeMap* map, void*, int x, int y, AIMapCell
     *occluder = (*occluder & 0xFFFFFFE0u) | ((node->value >> 24) & 0x1F);
     map->Erase(node);   // 005BCE60
 }
-EI_REPLACE(0x005B30B0, RestoreBridgeCell);
 
 bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {
@@ -93,4 +92,3 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     return true;
 }
 
-EI_REPLACE_METHOD(0x005B6740, CAIMap::ApplyBridgeDecks);

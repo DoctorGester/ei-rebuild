@@ -93,12 +93,6 @@ PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
 }
 EI_REPLACE_METHOD(0x00664950, PartyUnitRecord::Assign);
 
-// The record lists' own copies of AlignedPtrArray::SetAtGrow (00519E80; the same code): the
-// weapons (00664490), quick items (006645D0) and armour (00664710).
-EI_REPLACE_METHOD(0x00664490, AlignedPtrArray::SetAtGrow);
-EI_REPLACE_METHOD(0x006645D0, AlignedPtrArray::SetAtGrow);
-EI_REPLACE_METHOD(0x00664710, AlignedPtrArray::SetAtGrow);
-
 // --- CParty -------------------------------------------------------------------------------------
 
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
@@ -205,12 +199,6 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
 }
 EI_REPLACE_METHOD(0x006625B0, CParty::EquipFromPrototype);
 
-// The record lists' out-of-line Add (spells, 00663E40) and RemoveAt(index, count) (spells
-// 00663F60, weapons 00663A70).
-EI_REPLACE_METHOD(0x00663E40, AlignedPtrArray::Add);
-EI_REPLACE_METHOD(0x00663F60, AlignedPtrArray::RemoveRange);
-EI_REPLACE_METHOD(0x00663A70, AlignedPtrArray::RemoveRange);
-
 BOOL CParty::RemoveMember(int key) {
     for (int i = 0; i < members_.size; ++i) {
         PartyUnitRecord* record = &members_.data[i];
@@ -223,7 +211,6 @@ BOOL CParty::RemoveMember(int key) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x006620F0, CParty::RemoveMember);
 
 // --- A-H17 -----------------------------------------------------------------------------------
 

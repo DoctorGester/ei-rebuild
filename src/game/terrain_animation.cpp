@@ -317,13 +317,7 @@ int Terrain::RunTickImpl() {
     return 1;
 }
 
-namespace {
-} // namespace
-
 EI_REPLACE_METHOD(0x006C3C80, SectorData::Clear);
-EI_REPLACE_METHOD(0x006C3D70, SectorData::ResetFields);
-EI_REPLACE_METHOD(0x006C3E30, SectorData::ScheduleRelight);
-EI_REPLACE_METHOD(0x006C3E50, SectorData::RelightTick);
 EI_REPLACE_METHOD(0x006C3E80, SectorData::Animate);
 EI_REPLACE_METHOD(0x006C8ED0, Terrain::SetSun);
 EI_REPLACE_METHOD(0x006CB1E0, Terrain::RunTickImpl);
