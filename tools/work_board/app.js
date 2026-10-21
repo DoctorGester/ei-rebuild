@@ -90,6 +90,9 @@ function ticketCard(t, also = []) {
   if (a) {
     sub.push(`<span class="who" title="${esc(a.agent)}\n${esc(a.worktree)}\n${esc(a.branch || '')}">${esc(shortAgent(a.agent))}${a.open ? '' : ' (ended)'}</span>`);
     sub.push(`on it ${ageOf(a.started)}`);
+    const d = a.diff;
+    if (d && d.files) sub.push(`<span class="diffstat mono" title="${d.files} file${d.files > 1 ? 's' : ''} changed against main, uncommitted edits included">` +
+      `<span class="add">+${d.added.toLocaleString('en-US')}</span> <span class="del">−${d.removed.toLocaleString('en-US')}</span></span>`);
     if (a.branch && !defaultBranch(a)) sub.push(`<span class="mono">${esc(a.branch)}</span>`);
   }
   if (t.group_name) sub.push(esc(t.group_name));
