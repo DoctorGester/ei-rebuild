@@ -55,12 +55,13 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   (`CMapObject::ServerCompanion()`, `CUnit::GetWeapon` / `AsWeapon` (item.h), `FindItem`, `UnitWithId` for a
   unit's id, `CLightFactory::LightWithId`, `AIBrain::FindPlayerMode` / `FindPatrolMode`,
   `CBattleScreen::MessageLog()`, `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
-  map object; `CWorld::ObjectWithId` and `CWorldServer::FindObject` already return `CMapObject*`), not a cast
-  at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
+  map object; `CWorld::ObjectWithId` and `CWorldServer::FindObject` already return `CMapObject*`, and the server
+  world's id maps but `timedObjects_` are `MapObjectIdMap`s of `CMapObject*`), not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
   pointer is never null there (the null test it adds changes nothing); keep the cast where the original
   calls something between the test and the use.
 - `static_cast<T*>(gamecrt::operator_new(sizeof(T)))` is `gamecrt::operator_new_as<T>()`; a literal size
-  stays where the original passes one.
+  the class's size matches (with a `static_assert(sizeof(T) == ...)`) goes the same way, the size in a comment.
+  Left: `operator_new_zeroed` (light.cpp) and allocations written to before the null test (world_units' player mode).
 
 ## Shared forwarder headers (cleanup ticket C3)
 
