@@ -6,6 +6,7 @@
 #include "registry.h"
 #include "resource.h"
 #include "originals_engine.h"
+#include "settings_file.h"
 #include "system_text.h"
 
 #include "ei/hook.h"
@@ -44,20 +45,16 @@ private:
     }
 };
 
-// A string value of the starter's settings (HKCU), or `fallback`. addon reads them with
-// RegQueryValueExW; these go through the game's RegQueryValueExA, which harness runs can answer.
+// A string value of the starter's settings (HKCU; the standalone's settings file, settings_file.h), or
+// `fallback`. addon reads them with RegQueryValueExW.
 std::string StarterValue(const char* key, const char* name, const char* fallback) {
     std::string value = fallback;
-    HKEY handle;
-    if (gameapi::RegOpenKeyExA(HKEY_CURRENT_USER, key, 0, KEY_READ, &handle) != ERROR_SUCCESS) return value;
     char text[MAX_PATH * 2];
     DWORD size = sizeof(text) - 1, type = 0;
-    if (gameapi::RegQueryValueExA(handle, name, nullptr, &type, reinterpret_cast<BYTE*>(text), &size) == ERROR_SUCCESS &&
-        (type == REG_SZ || type == REG_EXPAND_SZ)) {
+    if (settings_file::ReadValue(key, name, &type, text, &size) == ERROR_SUCCESS && (type == REG_SZ || type == REG_EXPAND_SZ)) {
         text[size] = '\0';
         value = text;
     }
-    gameapi::RegCloseKey(handle);
     return value;
 }
 

@@ -13,6 +13,12 @@
 // does a call on these keys the module does not answer (enumeration, RegGetValue). The scenario's starter
 // lines (harness_starter.h) are answered first.
 //
+// The standalone image keeps its settings in a file instead (game/settings_file.h, ST1): its runs get their own,
+// <run folder>\ei_settings.ini, written at start from the snapshot's HKEY_CURRENT_USER keys with the starter
+// lines' answers in place (any key with that value name) and pinned: read only, nothing imported from the
+// registry, and a read of a value the file lacks fails the run as above (unless marked absent). The game paths'
+// redirects (hook/paths.cpp, harness_startup.cpp's discprompt) change its reads as they did the registry's.
+//
 // Install files the user's play rewrites and every run reads (config\keyboard.ini: the key bindings,
 // config\addrbook.ini: the multiplayer address book): read from config\harness\<vanilla|rebirth>\ unless the
 // run's overlay has its own copy (a "# prepare:" tool's, or the game's own write; harness.cpp ReadPath).
@@ -23,7 +29,8 @@
 
 namespace ei::verify::settings {
 
-// Loads the snapshot and answers the registry (once, at harness start, before the game reads its settings).
+// Loads the snapshot and answers the registry (once, at harness start, before the game reads its settings);
+// in the standalone image also writes and pins the run's settings file.
 void Install();
 
 // The pinned copy of `relative` (a path under the game folder, e.g. "config\keyboard.ini") for this run's

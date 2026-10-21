@@ -26,6 +26,7 @@
 #include "originals_engine.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "settings_file.h"
 #include "system_text.h"
 
 #include <windows.h>
@@ -73,16 +74,12 @@ CPlayerServer* FirstPlayerState() {
 const std::string& ModFolder() {
     static const std::string folder = [] {
         std::string path;
-        HKEY key;
-        if (text::sys::RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Gipat.Ru\\EI_Starter\\Settings", 0, KEY_READ, &key) == 0) {
-            char value[MAX_PATH * 2];
-            DWORD size = sizeof(value) - 1, type = 0;
-            if (text::sys::RegQueryValueExA(key, "AddonPath", nullptr, &type, reinterpret_cast<BYTE*>(value), &size) == 0 &&
-                type == REG_SZ) {
-                value[size] = 0;
-                path = value;
-            }
-            RegCloseKey(key);
+        char value[MAX_PATH * 2];
+        DWORD size = sizeof(value) - 1, type = 0;
+        if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath", &type, value, &size) == 0 &&
+            type == REG_SZ) {
+            value[size] = 0;
+            path = value;
         }
         if (!path.empty() && path.back() != '\\') path += '\\';
         return path;
