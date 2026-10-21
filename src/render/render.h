@@ -275,9 +275,17 @@ void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source
 // differ from what its texture holds), and that part uploaded. Writers: the DC release 005FDC60 (GDI's
 // bounds), DirectPixels for writing (the pixel code), CopyFrameTo.
 void SurfaceWritten(const void* holder, const Rect* written);
-// Harness build only: the window surfaces whose memory changed where no SurfaceWritten mark said (a
-// writer without a mark: stale pixels in the product; the run fails), and the first one's description.
+// A texture holder's memory is read again only when marked written since its texture last read it
+// (and it differs from what the texture was made from), into the same image (R16b).
+// Harness build only: the window surfaces whose memory changed where no SurfaceWritten mark said, and
+// the memory textures whose memory changed with no mark (a writer without a mark: stale pixels in the
+// product; the run fails), and the first one's description.
 int MissedSurfaceWrites(const char** first);
+// Harness build only (the harness's "memorytextures", R16b): the textures in the renderer's memory
+// updated in place, their levels made on the GPU (on, the default), or made again as new images with
+// their levels box-filtered on the CPU (off: as before R16b, for frame comparisons). Every memory
+// texture is read again at its next use.
+void SetMemoryTexturesInPlace(bool on);
 
 // A movie's decoded frame (CBinkVideo 005DBD80): R, G, B, X bytes per pixel (BinkCopyToBuffer's
 // 32-bit "R" type), kept for `key` (the video object) until the next one; MovieBlit draws the last

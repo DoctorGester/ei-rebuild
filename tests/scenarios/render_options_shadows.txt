@@ -9,7 +9,9 @@
 #
 # Group 0 (region 2) holds the three as its rows 0-2 (spin controls; Enter steps the selected one,
 # Down selects the next). The world: the hero on zone1, blocked and standing; captures at frozen
-# moments with the shadows as they started, off (or on, when they started off), and back.
+# moments with the shadows as they started, off (or on, when they started off), and back. R16b: each
+# moment with the classic shadows too (the shadow textures), updated in place and made again as new
+# images (memorytextures remake, as before R16b): they match at 8 / 0.5%.
 render new,present
 reject Script error
 waitmenu
@@ -24,7 +26,14 @@ move 400 60
 wait 1000
 freeze
 capture shadows
+shadows classic
+capture shadows_classic
+memorytextures remake
+capture shadows_remade
+memorytextures inplace
+shadows map
 unfreeze
+samecapture shadows_classic shadows_remade 8 0.005
 
 # The three switches stepped, then OK (region 0; it closes the Esc menu too).
 key esc
@@ -53,7 +62,14 @@ frames 5
 wait 500
 freeze
 capture switched
+shadows classic
+capture switched_classic
+memorytextures remake
+capture switched_remade
+memorytextures inplace
+shadows map
 unfreeze
+samecapture switched_classic switched_remade 8 0.005
 
 # And back.
 key esc
@@ -82,7 +98,14 @@ frames 5
 wait 500
 freeze
 capture shadows_again
+shadows classic
+capture shadows_again_classic
+memorytextures remake
+capture shadows_again_remade
+memorytextures inplace
+shadows map
 unfreeze
+samecapture shadows_again_classic shadows_again_remade 8 0.005
 check IsAlive(GetLeader())
 report
 quit

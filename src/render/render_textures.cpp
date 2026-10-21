@@ -4,8 +4,8 @@
 // holder goes, with what they were decoded from for a new device. Also here: the holders' pixels in
 // memory the renderer owns (render::SurfaceMemory: DIB sections the game code draws into). A texture
 // whose holder has such memory (the save / load screen's pictures, the CPU-written, shadow and .bmp
-// textures) is read from it, again when the memory changes; so are window surfaces
-// (WindowSurfaceView).
+// textures) is read from it, again into the same image when the memory was marked written and
+// changed (R16b); so are window surfaces (WindowSurfaceView).
 #include "render_internal.h"
 
 #include "../hook/log.h"
@@ -21,6 +21,7 @@
 #include <cstring>
 #include <iterator>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace render::detail {
 
@@ -50,7 +51,8 @@ struct Texture {
     bool owned = false;              // decoded for a holder without memory (.mmp files, TexturePixels): the
                                      // only copy, kept until the holder goes
     TextureSource source;            // owned: what it was decoded from, to make it again on a new device
-    bool updatable = false;          // window surfaces: rectangles can be written into the image
+    bool updatable = false;          // window surfaces: rectangles can be written into the image;
+                                     // memory textures: level 0 written in place, the others made on the GPU
 };
 
 std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures with mip levels
@@ -159,6 +161,33 @@ bool DecodeDxtBlocks(const void* data, int width, int height, std::uint32_t four
     return true;
 }
 
+// 16-bit pixels of one mask layout as RGBA8 (alpha 255 without an alpha mask), every value looked up:
+// the shadow textures' 4:4:4:4 and the other 16-bit memory (the masks' loop per channel cost more
+// than the rest of a texture's update, R16b). A few layouts are ever in use.
+struct Table16 {
+    std::uint32_t masks[4] = {};
+    std::vector<std::uint32_t> rgba;   // 65536 entries, the bytes R, G, B, A in memory order
+};
+std::vector<Table16> g_tables16;
+
+const std::uint32_t* Lookup16(std::uint32_t red, std::uint32_t green, std::uint32_t blue, std::uint32_t alpha) {
+    for (const Table16& t : g_tables16)
+        if (t.masks[0] == red && t.masks[1] == green && t.masks[2] == blue && t.masks[3] == alpha) return t.rgba.data();
+    Table16 t;
+    t.masks[0] = red;
+    t.masks[1] = green;
+    t.masks[2] = blue;
+    t.masks[3] = alpha;
+    t.rgba.resize(65536);
+    Channel r = MakeChannel(red), g = MakeChannel(green), b = MakeChannel(blue), a = MakeChannel(alpha);
+    for (std::uint32_t pixel = 0; pixel < 65536; ++pixel) {
+        std::uint8_t o[4] = {Expand(pixel, r, 0), Expand(pixel, g, 0), Expand(pixel, b, 0), Expand(pixel, a, 255)};
+        std::memcpy(&t.rgba[pixel], o, 4);
+    }
+    g_tables16.push_back(std::move(t));
+    return g_tables16.back().rgba.data();
+}
+
 bool Empty(const Rect& r) { return r.right <= r.left || r.bottom <= r.top; }
 
 // The union of two rectangles (either may be empty).
@@ -198,6 +227,16 @@ bool Convert(const SurfaceMemory& m, const Rect& part, std::vector<std::uint8_t>
                 o[x * 4 + 1] = static_cast<std::uint8_t>(pixel >> 8);
                 o[x * 4 + 2] = static_cast<std::uint8_t>(pixel);
                 o[x * 4 + 3] = keyed && (pixel & colourBits) == keyBits ? 0 : 255;
+            }
+            continue;
+        }
+        if (bytes == 2) {
+            const std::uint32_t* table = Lookup16(m.redMask, m.greenMask, m.blueMask, m.alphaMask);
+            for (int x = 0; x < width; ++x) {
+                std::uint16_t pixel = 0;
+                std::memcpy(&pixel, row + x * 2, 2);
+                std::memcpy(o + x * 4, &table[pixel], 4);
+                if (keyed) o[x * 4 + 3] = (pixel & colourBits) == keyBits ? 0 : 255;
             }
             continue;
         }
@@ -293,9 +332,10 @@ void Retire(Texture& t) {
 
 // The holders' pixels in memory the new renderer owns (render::NewSurfaceMemory).
 std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder
-// The memory as the texture was last made from it. A memory texture is converted again when its
-// memory differs (compared once a frame); a window surface only where the game marked it written
-// since (render::SurfaceWritten, g_written) and that part differs (R16a).
+// The memory as the texture was last made from it. A memory texture is converted again when the game
+// marked its memory written since (g_textureMarks) and it differs (compared once a frame, R16b); a
+// window surface only where the game marked it written since (render::SurfaceWritten, g_written) and
+// that part differs (R16a).
 using Snapshots = std::unordered_map<const void*, std::vector<std::uint8_t>>;
 Snapshots g_snapshots;          // by holder: window surfaces
 Snapshots g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
@@ -331,16 +371,101 @@ void TakeSnapshot(Snapshots& snapshots, const void* holder, const SurfaceMemory&
     std::memcpy(snapshot.data(), m.bits, snapshot.size());
 }
 
-// Reads a texture whose pixels are in the renderer's memory (one level from the memory, the others
-// box-filtered) into `t`.
+// Memory textures (R16b): updated in place (the default) or, the harness's `memorytextures remake`,
+// made again as new images with their levels box-filtered on the CPU, as before R16b (for frame
+// comparisons).
+bool g_memoryInPlace = true;
+// Holders whose memory was marked written (render::SurfaceWritten) since their texture last read it.
+std::unordered_set<const void*> g_textureMarks;
+
+// The levels of a `width` x `height` texture down to 1 x 1.
+int LevelCount(int width, int height) {
+    int levels = 1;
+    while ((width > 1 || height > 1) && levels < SG_MAX_MIPMAPS) {
+        width = width > 1 ? width / 2 : 1;
+        height = height > 1 ? height / 2 : 1;
+        ++levels;
+    }
+    return levels;
+}
+
+// A memory texture's image of `w` x `h` with every level, written in place (WriteMemoryTexture): a
+// Direct3D 11 texture of default usage handed to sokol that the GPU makes its levels for
+// (GenerateMips). No image when the device cannot make one.
+sg_image MakeMemoryImage(int w, int h) {
+    auto* device = static_cast<ID3D11Device*>(const_cast<void*>(sg_d3d11_device()));
+    if (!device) return sg_image{};
+    D3D11_TEXTURE2D_DESC d{};
+    d.Width = static_cast<UINT>(w);
+    d.Height = static_cast<UINT>(h);
+    d.MipLevels = static_cast<UINT>(LevelCount(w, h));
+    d.ArraySize = 1;
+    d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    d.SampleDesc.Count = 1;
+    d.Usage = D3D11_USAGE_DEFAULT;
+    d.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;   // (GenerateMips draws into the levels)
+    d.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+    ID3D11Texture2D* texture = nullptr;
+    if (FAILED(device->CreateTexture2D(&d, nullptr, &texture))) return sg_image{};
+    sg_image_desc desc{};
+    desc.width = w;
+    desc.height = h;
+    desc.num_mipmaps = static_cast<int>(d.MipLevels);
+    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+    desc.label = "ei-memory-texture";
+    desc.d3d11_texture = texture;
+    sg_image image = sg_make_image(&desc);
+    texture->Release();   // sokol holds its own reference
+    CountImage(ImageUse::Texture, true);
+    return image;
+}
+
+// Writes `rgba` (level 0) into the in-place image of `t` and has the GPU make the other levels from it.
+bool WriteMemoryTexture(const Texture& t, const std::vector<std::uint8_t>& rgba) {
+    sg_d3d11_image_info image = sg_d3d11_query_image_info(t.image);
+    sg_d3d11_view_info view = sg_d3d11_query_view_info(t.view);
+    auto* context = static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context()));
+    if (!image.res || !view.srv || !context) return false;
+    context->UpdateSubresource(static_cast<ID3D11Resource*>(const_cast<void*>(image.res)), 0, nullptr, rgba.data(),
+                               static_cast<UINT>(t.width) * 4, 0);
+    context->GenerateMips(static_cast<ID3D11ShaderResourceView*>(const_cast<void*>(view.srv)));
+    return true;
+}
+
+// Reads a texture whose pixels are in the renderer's memory into `t`: level 0 from the memory, the
+// others made from it. In place when `t` has an in-place image of the memory's size; else a new image
+// (`t`'s old one retired).
 void ReadClientTexture(Texture& t, const void* holder, const SurfaceMemory& c) {
     std::vector<std::uint8_t> pixels;
     bool ok = Convert(c, Whole(c), pixels);
     TakeSnapshot(g_textureSnapshots, holder, c, ok);
     if (!ok) {
+        Retire(t);
         if (g_failures++ < 10)
             ei::Log("render: cannot read the memory of texture holder %p (%d bits)", holder, c.bitsPerPixel);
         return;
+    }
+    std::size_t bytes = pixels.size() + pixels.size() / 3;   // with its levels
+    if (g_memoryInPlace && t.updatable && t.view.id && t.width == c.width && t.height == c.height &&
+        WriteMemoryTexture(t, pixels)) {
+        CountImage(ImageUse::Texture, false);
+        CountUpload(FrameStats::MemoryTexture, bytes);
+        return;
+    }
+    Retire(t);
+    t.width = c.width;
+    t.height = c.height;
+    t.updatable = false;
+    if (g_memoryInPlace) {
+        t.image = MakeMemoryImage(c.width, c.height);
+        t.view = MakeTextureView(t.image);
+        t.updatable = t.view.id && sg_query_view_state(t.view) == SG_RESOURCESTATE_VALID && WriteMemoryTexture(t, pixels);
+        if (t.updatable) {
+            CountUpload(FrameStats::MemoryTexture, bytes);
+            return;
+        }
+        if (t.view.id) sg_destroy_view(t.view);
+        if (t.image.id) sg_destroy_image(t.image);
     }
     std::vector<std::vector<std::uint8_t>> levels;
     levels.push_back(std::move(pixels));
@@ -517,6 +642,26 @@ void CheckMarks(const void* holder, const SurfaceMemory& m, const std::vector<st
                 holder, m.width, m.height, missed.left, missed.top, missed.right, missed.bottom, w.left, w.top, w.right, w.bottom);
     *written = Union(w, missed);
 }
+
+// Harness build: a memory texture's memory compared with its snapshot though nothing marked it
+// written (R16b). A difference is a writer that set no mark (the product would show the texture
+// stale): logged and counted as above; true, so that this frame reads it.
+bool CheckTextureMark(const void* holder, const SurfaceMemory& m) {
+    StatsTimer timer(&FrameStats::statsMs);
+    GdiFlush();
+    auto it = g_textureSnapshots.find(holder);
+    if (it == g_textureSnapshots.end() || it->second.size() != MemoryBytes(m) ||
+        std::memcmp(it->second.data(), m.bits, it->second.size()) == 0)
+        return false;
+    if (g_missedWrites++ == 0)
+        std::snprintf(g_firstMissedWrite, sizeof(g_firstMissedWrite),
+                      "texture holder %p (%dx%d): its memory changed without a mark, frame %u", holder, m.width, m.height,
+                      static_cast<unsigned>(FrameNumber()));
+    if (g_missedWrites <= 10)
+        ei::Log("render: MISSED WRITE: texture holder %p (%dx%d): its memory changed without a mark", holder, m.width,
+                m.height);
+    return true;
+}
 #endif
 
 void Remake(Texture& t);
@@ -544,14 +689,21 @@ sg_view SurfaceView(const void* holder) {
     Texture& t = g_textures[holder];
     t.usedFrame = frame;
     if (t.checkedFrame == frame) return t.view.id ? t.view : White().view;
-    // Textures in the renderer's memory are checked once a frame by comparing that memory with what
-    // they were made from.
-    bool reread = !t.view.id || MemoryChanged(g_textureSnapshots, holder, memory->second);
+    // Textures in the renderer's memory are checked once a frame: read again when the game marked
+    // their memory written since (render::SurfaceWritten: 0051CE60's copy of a shadow into its
+    // texture, the pixel code's DirectPixels, GDI) and it differs from what they were made from.
+    const SurfaceMemory& m = memory->second;
     t.checkedFrame = frame;
-    if (reread) {
-        Retire(t);
-        ReadClientTexture(t, holder, memory->second);
-    }
+    bool marked = g_textureMarks.erase(holder) != 0;
+    // (No snapshot: the memory was made again since, NewSurfaceMemory.)
+    auto snapshot = g_textureSnapshots.find(holder);
+    bool reread = !t.view.id || t.width != m.width || t.height != m.height || snapshot == g_textureSnapshots.end() ||
+                  snapshot->second.size() != MemoryBytes(m);
+    if (!reread && marked) reread = MemoryChanged(g_textureSnapshots, holder, m);
+#if defined(EI_RENDER_VALIDATION)
+    if (!reread && !marked) reread = CheckTextureMark(holder, m);
+#endif
+    if (reread) ReadClientTexture(t, holder, m);
     return t.view.id ? t.view : White().view;
 }
 
@@ -1142,6 +1294,7 @@ void FreeSurfaceMemory(const void* holder) {
     detail::g_snapshots.erase(holder);
     detail::g_textureSnapshots.erase(holder);
     detail::g_written.erase(holder);
+    detail::g_textureMarks.erase(holder);
 }
 
 void SurfaceWritten(const void* holder, const Rect* written) {
@@ -1154,6 +1307,7 @@ void SurfaceWritten(const void* holder, const Rect* written) {
     if (r.right > m.width) r.right = m.width;
     if (r.bottom > m.height) r.bottom = m.height;
     if (detail::Empty(r)) return;
+    detail::g_textureMarks.insert(holder);
     auto marked = detail::g_written.try_emplace(holder, r);
     if (!marked.second) marked.first->second = detail::Union(marked.first->second, r);
 }
@@ -1187,6 +1341,23 @@ void PictureFromMmp(const void* holder, const void* data) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
+void SetMemoryTexturesInPlace(bool on) {
+    using namespace detail;
+    if (on != g_memoryInPlace)
+        ei::Log("render: memory textures %s", on ? "updated in place" : "made again as new images (as before R16b)");
+    g_memoryInPlace = on;
+    // Every memory texture is read again at its next use, the new way.
+    for (auto it = g_textures.begin(); it != g_textures.end();) {
+        if (!g_memory.count(it->first)) {
+            ++it;
+            continue;
+        }
+        Retire(it->second);
+        g_textureSnapshots.erase(it->first);
+        it = g_textures.erase(it);
+    }
+}
+
 MmpLevelCheck CheckMmpLevels() {
     using namespace detail;
     MmpLevelCheck c;
