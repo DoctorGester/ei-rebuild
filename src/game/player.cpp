@@ -221,10 +221,10 @@ BOOL CPlayer::IsLeader(const CEngineObject* unit) {
     return static_cast<std::uint32_t>(unit->id_) == members.data[0].unitId;
 }
 
-void CPlayer::GiveItems(const mfc::CTypedPtrList<CEngineObject>* items, int flag) {
+void CPlayer::GiveItems(const mfc::CTypedPtrList<CItem>* items, int flag) {
     connection_->ItemsGiven(items, flag);
     for (auto* node = items->head; node != nullptr;) {
-        CEngineObject* item = node->data;
+        CItem* item = node->data;
         node = node->next;
         ++item->refCount_;
         items_.AddTail(item);

@@ -496,7 +496,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
                 list.free = nullptr;
                 list.blockSize = 10;
                 list.AddHead(item);
-                reinterpret_cast<CPlayer*>(player)->GiveItems(reinterpret_cast<const mfc::CTypedPtrList<CEngineObject>*>(&list), 0);
+                reinterpret_cast<CPlayer*>(player)->GiveItems(&list, 0);
                 list.vtable = kPtrListVtable;
                 list.RemoveAll();
             }

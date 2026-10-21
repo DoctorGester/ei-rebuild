@@ -50,7 +50,7 @@ constexpr int kKindNetwork = 4;
 constexpr int kGameResultLost = 2;
 constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last z: no start position
 
-using ObjectList = mfc::CTypedPtrList<CEngineObject>;
+using ObjectList = mfc::CTypedPtrList<CItem>;
 
 // The player's carried items (CParty::items_): an aligned array of item pointers (its SetSize
 // 0059CB50 is lib::AlignedArray's).
@@ -78,7 +78,7 @@ void InitList(ObjectList& list) {
 }
 
 // AddTail through the game's out-of-line NewNode.
-void AddTail(ObjectList& list, CEngineObject* object) {
+void AddTail(ObjectList& list, CItem* object) {
     ObjectList::Node* node = list.NewNode(list.tail, nullptr);
     node->data = object;
     if (list.tail) list.tail->next = node;
@@ -106,9 +106,7 @@ CItem* ItemAt(const ItemArray* items, int i) { return items->data[i]; }
 
 } // namespace
 
-void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
-    auto* items = static_cast<ItemArray*>(itemArray);
-    auto* list = static_cast<ObjectList*>(listArg);
+void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
     // The quest ids this zone's objects ask for (slot 38, slot 40), each once.
     IdArray wanted{IdArrayVtable(), nullptr, 0, 0, 0};
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
@@ -155,11 +153,11 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
             // one is released.
             for (ObjectList::Node* node = taken.head; node;) {
                 ObjectList::Node* next = node->next;
-                CEngineObject* item = node->data;
+                CItem* item = node->data;
                 ObjectList one;
                 InitList(one);
-                CEngineObject* fresh = DuplicateItem(item);
-                static_cast<CItem*>(fresh)->count_ = static_cast<CItem*>(item)->count_;
+                auto* fresh = static_cast<CItem*>(DuplicateItem(item));
+                fresh->count_ = item->count_;
                 AddTail(one, fresh);
                 reinterpret_cast<CPlayer*>(player)->GiveItems(&one, 0);
                 item->Release();

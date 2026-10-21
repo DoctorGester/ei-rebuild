@@ -104,15 +104,16 @@ constexpr std::uint8_t kMessageItemStates = 0x05;
 constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
 constexpr int kItemListBlockSize = 10;
-using GivenList = mfc::CTypedPtrList<CEngineObject>;
+using GivenList = mfc::CTypedPtrList<CItem>;
+using GatheredList = mfc::CTypedPtrList<CEngineObject>;
 void* ItemListVtable() { return ei::GamePointer<void>(0x0073B8D4); }   // the CPtrList built on the stack
 
 } // namespace
 
 void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     if (state_ != kStateJoined) return;
-    GivenList spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
-    GivenList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
+    GatheredList spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
+    GatheredList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
         GatherItem(&gathered, reinterpret_cast<mfc::CTypedPtrList<void>*>(&spells), node->data);   // 0069FB60
     alignas(4) unsigned char bytes[sizeof(CMemoryStream)];

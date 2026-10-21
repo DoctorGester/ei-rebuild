@@ -361,7 +361,7 @@ const char* TextPartyReceived() { return "party received on client"; }
 } // namespace
 
 int CPlayerClient::OnItemsReceived() {
-    mfc::CTypedPtrList<CEngineObject> items{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
+    mfc::CTypedPtrList<CItem> items{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
     int& money = Owner()->Party()->Money();
     int before = money;
     in_.Read(&money, 4);
@@ -377,7 +377,7 @@ int CPlayerClient::OnItemsReceived() {
             break;
         }
         auto* manager = TheClientWorld()->itemManager_;
-        if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
+        if (auto* item = static_cast<CItem*>(manager->FindObject(static_cast<unsigned>(id)))) items.AddHead(item);
     }
     if (result != 0) {
         Owner()->GiveItems(&items, flag);

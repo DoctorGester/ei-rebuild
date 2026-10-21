@@ -166,13 +166,13 @@ using NameList = BriefingRecord::NameList;
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
-CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
+CItem* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::CTypedPtrList<void> lists[2];
     mfc::CTypedPtrList<void>* first = fromSecond ? &lists[0] : &lists[1];
     mfc::CTypedPtrList<void>* second = fromSecond ? &lists[1] : &lists[0];
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(first, nullptr, 10);
     mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(second, nullptr, 10);
-    CEngineObject* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
+    CItem* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*second);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*first);
     return item;
@@ -187,7 +187,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     }
     PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
 
-    mfc::CTypedPtrList<CEngineObject> items;
+    mfc::CTypedPtrList<CItem> items;
     items.vtable = ei::GamePointer<void>(worlddata::kItemListVtable);
     items.head = nullptr;
     items.tail = nullptr;
@@ -196,7 +196,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     items.blocks = nullptr;
     items.blockSize = 10;
     for (const mfc::CString* name = record->giveItems.begin(); name != record->giveItems.end(); ++name) {
-        CEngineObject* item = CreateNamedItem(*name, true);
+        CItem* item = CreateNamedItem(*name, true);
         if (!item) continue;
         auto* node = items.NewNode(items.tail, nullptr);
         node->data = item;
@@ -207,7 +207,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     if (items.count) reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
 
     for (const mfc::CString* name = record->removeItems.begin(); name != record->removeItems.end(); ++name) {
-        CEngineObject* item = CreateNamedItem(*name, false);
+        CItem* item = CreateNamedItem(*name, false);
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
@@ -555,7 +555,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
     CParty* party = PartyOf(player);
     for (auto* node = player->items.head; node;) {
         auto* next = node->next;
-        party->AddItem(reinterpret_cast<CItem*>(node->data), 1, 1);
+        party->AddItem(node->data, 1, 1);
         node = next;
     }
     RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
@@ -684,9 +684,9 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
 void CWorldServer::StorePlayerItems(WorldPlayer* player, CParty* party) {
     if (!player) return;
     for (auto* node = player->items.head; node;) {
-        CEngineObject* item = node->data;
+        CItem* item = node->data;
         node = node->next;
-        party->AddItem(static_cast<CItem*>(item), 1, 1);
+        party->AddItem(item, 1, 1);
         item->Release();
     }
     player->items.RemoveAll();

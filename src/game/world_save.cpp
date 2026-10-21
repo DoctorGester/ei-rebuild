@@ -332,7 +332,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         for (;;) {
             int id = ReadValue<int>(stream);
             if (id == -1) break;
-            CEngineObject* object = items->FindObject(id);
+            auto* object = static_cast<CItem*>(items->FindObject(id));
             if (!object) continue;
             player->items.AddTail(object);
             ++object->refCount_;
@@ -804,7 +804,7 @@ void SharedObject::Load(WorldStream* stream) {
     }
 }
 
-void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, void* objectsArg) {
+void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, const mfc::CTypedPtrList<CItem>* objects) {
     // The entry's player: the session player record's +0x30 in a multiplayer game, else -1.
     int player = -1;
     net::ServerSession* session = net::GameServer();
@@ -830,7 +830,6 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     entry.objectId = id;
     entry.player = player;
     entry.money = value;
-    auto* objects = static_cast<mfc::CTypedPtrList<CEngineObject>*>(objectsArg);
     for (auto* it = objects->head; it;) {
         auto* next = it->next;
         Append(entry.objects, it->data);
