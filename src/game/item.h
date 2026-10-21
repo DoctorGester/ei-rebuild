@@ -13,6 +13,8 @@
 
 #include <cstring>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 class CSpell;
 class CSpellConstructor;
 class CSpellManager;
@@ -544,13 +546,25 @@ public:
     virtual CSpellManager* SpellManager();         // 22
 };
 
-// The item manager (007AFFB4; a CResourceManager with vtable 0073F25C, 0xBC bytes, as the world
-// and every party make one). Only the functions rewritten here are declared; context_ (+0xAC) is
-// its manager context (slot 16: the item constructor, slot 22: the spell manager).
+// The item manager (007AFFB4; 0xBC bytes, as the world and every party make one; a real virtual
+// class: the compiler makes its vtable, C19, game.exe's 0073F25C is retired). Only the functions
+// rewritten here are declared; context_ (+0xAC) is its manager context (slot 16: the item
+// constructor, slot 22: the spell manager).
 struct CItemManager : CResourceManager {
-    CItemManager* DeleteScalar(unsigned flags);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F25C);
     static constexpr std::size_t kSize = 0xBC;
+
+    // CResourceManager's constructor, then this class's vtable (inlined where the original makes
+    // one: the world's 0055EE40, a party's CreateParty 006614F0; world_managers.cpp).
+    CItemManager();
+    CItemManager* Construct();   // the constructor in place; returns this
+    // 0055F400. CResourceManager's destructor.
+    ~CItemManager() override;
+    const char* GetClassName() override;     // 11: 0055F3C0 "CItemManager"
+    int GetClassId() override;               // 12: 0055F3D0 (0x2F)
+    const char* GetFolderName() override;    // 25: 0055F3B0 "items"
+    // 0055F3E0 (slot 0's registration): the destructor, then operator delete when bit 0 of
+    // `flags` is set. Returns this.
+    CItemManager* DeleteScalar(unsigned flags);
 
     // 006AC780 (slot 2; item_lifetime.cpp, A-H25). CBaseManager::Create's result as 0 / 1 (the
     // original also copies the text folder's name into a temporary it does not use).
@@ -590,6 +604,7 @@ struct CItemManager : CResourceManager {
     void ListArmorNames(mfc::CStringArray* names);
     void ListQuickItemNames(mfc::CStringArray* names);
 };
+static_assert(sizeof(CItemManager) == CItemManager::kSize);
 
 // --- Weapon model parts (item_parts.cpp)------------------------------------------------------
 

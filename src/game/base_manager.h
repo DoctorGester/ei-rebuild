@@ -163,18 +163,26 @@ struct ObjectListIterator {
 };
 static_assert(sizeof(ObjectListIterator) == 8);
 
-// The client-specific manager (vtable 0073BECC, class id 0x30; misc_400.cpp): only its object factory
-// has a body in a class here, the other slots are rewritten as free functions.
+// The client-specific manager (class id 0x30; misc_400.cpp; a real virtual class: the compiler makes
+// its vtable, C19, game.exe's 0073BECC with its tail 0073BF08 is retired).
 class CClientSpecificManager : public CBaseManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BECC);
-    // 0042D690 (misc_400.cpp): the base manager constructed, then this class's vtable. Returns this.
+    // 0042D690. CBaseManager's constructor.
+    CClientSpecificManager();
+    // 0042D6F0. CBaseManager's destructor.
+    ~CClientSpecificManager() override;
+    const char* GetClassName() override;     // 11: 0042D6B0 "CClientSpecificManager" (00783DD8)
+    int GetClassId() override;               // 12: 0042D6C0 (0x30)
+    // 14: 0042D700. A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
+    // failed allocation.
+    CEngineObject* NewObject(int type) override;
+    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
+
+    // 0042D690's registration: the constructor in place; returns this.
     CClientSpecificManager* Construct();
-    // Body of the slot at 0042D700 (registered by member pointer).
-    CEngineObject* NewObjectImpl(int type);
 };
 namespace misc400 {
-// 0042D6F0 (misc_400.cpp): the destructor body (this class's vtable, then the base manager's body).
+// 0042D6F0 (misc_400.cpp): the destructor (0042D6D0, slot 0, adds the delete).
 void __fastcall ManagerDestruct(CBaseManager* self);
 } // namespace misc400
 
@@ -185,11 +193,24 @@ void* __fastcall ConstructOn(void* memory) {
     return (static_cast<T*>(memory)->*Construct)();
 }
 
-// The effect manager (class of the effects; world_effect_lifetime.cpp / world_managers.cpp).
+// The effect manager (the world's timed objects, +0x48; world_effect_lifetime.cpp /
+// world_managers.cpp; a real virtual class: the compiler makes its vtable, C19, game.exe's 0073F2C4
+// is retired).
 class CEffectManager : public CBaseManager {
 public:
-    // Body of the slot at 0055F380 (registered by member pointer).
+    // CBaseManager's constructor (inlined in WorldCreateManagers 0055EE40).
+    CEffectManager();
+    CEffectManager* Construct();   // the constructor in place; returns this
+    // 0055F3A0. CBaseManager's destructor.
+    ~CEffectManager() override;
+    // 0055F380 (slot 0's registration): the destructor, then operator delete when bit 0 of
+    // `flags` is set. Returns this.
     CBaseManager* DeleteScalar(unsigned flags);
-    // Body of the slot at 0067E170 (registered by member pointer).
-    CEngineObject* NewObjectImpl(int type);
+    // 2: 0067E150. CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
+    int Create() override;
+    const char* GetClassName() override;     // 11: 0055F360 "CEffectManager"
+    int GetClassId() override;               // 12: 0055F370 (0x32)
+    // 14: 0067E170. A new effect of `type`.
+    CEngineObject* NewObject(int type) override;
+    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
 };

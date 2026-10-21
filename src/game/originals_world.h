@@ -102,7 +102,6 @@ class CWorldClient;
 // A-W13. The client world's two small managers (world.h): 004E2850 the array manager's Clear (plain RET: its object
 // and every listed one released, the list emptied).
 struct ClientArrayManager;
-struct ClientListManager;
 void __fastcall VisFogManagerDestroy(ClientArrayManager* /*manager*/);
 // 004E28D0 (vis_fog_manager.cpp): a new fog object, counted, at the array manager's list end.
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
