@@ -237,11 +237,8 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 004461F0: stores
+    // 004461F0: stores; 3 left out
     d.Begin(0x004461F0);
-    d.Store(0x0079B9B0, 0);
-    d.Store(0x0079B9B4, 0);
-    d.Store(0x0079B9B8, 0);
     // 00446210: stores; 4 left out
     d.Begin(0x00446210);
     // 00446240: float fold; 1 left out

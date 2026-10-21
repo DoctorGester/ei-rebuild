@@ -73,7 +73,7 @@ void CopyTranslationKeys(CAnimationNode* bone, const SceneNode* node) {
         dst->next = frame + 1;
         std::memcpy(&dst->position, &src.value, sizeof(Vector3));
         if (i == 0) {
-            std::memcpy(&dst->step, &ZeroVector(), sizeof(Vector3));
+            std::memcpy(&dst->step, &kZeroVector, sizeof(Vector3));
         } else {
             AnimationTranslationKey* previous = dst - 1;
             previous->step = dst->position - previous->position;
