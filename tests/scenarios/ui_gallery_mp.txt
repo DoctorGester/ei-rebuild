@@ -49,10 +49,12 @@ freeze
 capture connect
 unfreeze
 
-# Host (region 0).
+# Host (region 0). The player list shows our player whatever the order its record and our binding
+# came in (UB1; EI_HEAP_JITTER varies it).
 clickregion 0
 waitwindow 25 briefing
 frames 10
+checkplayers
 move 400 20
 frames 5
 freeze
