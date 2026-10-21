@@ -264,7 +264,7 @@ void CEffectParticle::Reset() {
 
 Vector3* CEffectParticle::Position(void* group) {
     if (attachedTo_ == -1) return &localPosition_;
-    CEngineObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
+    CMapObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
     if (object == nullptr) return &localPosition_;
     if (static_cast<const ScriptGroup*>(group)->Contains(object) == 0) {
         // Not in the group: far away.
@@ -273,7 +273,7 @@ Vector3* CEffectParticle::Position(void* group) {
         worldPosition_.z = 0.0f;
         return &worldPosition_;
     }
-    const Vector3& at = static_cast<CTransformObject*>(object)->localPosition_;
+    const Vector3& at = object->localPosition_;
     float x = localPosition_.x + at.x;
     float y = at.y + localPosition_.y;
     float z = at.z + localPosition_.z;
@@ -323,7 +323,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
 void CEffectParticle::Spawn() {
     if (source_ != nullptr) {
         // Already running: follow the effect.
-        std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
+        std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
         float baseSize;
         std::memcpy(&baseSize, &source_->baseSize, 4);
         ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
@@ -335,7 +335,7 @@ void CEffectParticle::Spawn() {
 
     TexturePointerAssign(reinterpret_cast<CEngineObject**>(&source_), nullptr,   // 0056F1A0
                          reinterpret_cast<CParticleManager*>(ParticleManager())->CreateSource(type_));
-    std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
+    std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);
     ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
@@ -418,9 +418,9 @@ void CEffectParticle::Attach() {
     }
     void* object = FindObject(TheObjectManager(), nullptr, attachedTo_);
     Vector3 saved;
-    std::memcpy(&saved, &source_->position, sizeof(Vector3));
+    std::memcpy(&saved, &source_->localPosition_, sizeof(Vector3));
     ParticleSourceAttachOriginal(source_, nullptr, object);
-    if (object == nullptr) std::memcpy(&source_->position, &saved, sizeof(Vector3));
+    if (object == nullptr) std::memcpy(&source_->localPosition_, &saved, sizeof(Vector3));
 }
 
 void CEffectParticle::LoadState(CStream* stream) {
@@ -473,7 +473,7 @@ int CEffectParticle::Tick() {
             localPosition_.x = x;
             localPosition_.y = y;
             std::memcpy(&localPosition_.z, &zBits, 4);
-            if (source_ != nullptr) std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
+            if (source_ != nullptr) std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
         }
     }
     if (!IsOneShotType(type_)) return 1;
@@ -573,9 +573,9 @@ void CEffectLightning::Reset() {
 }
 
 void CEffectLightning::UpdateEnds() {
-    CEngineObject* target = WorldOf(this)->ObjectWithId(toObject_);
+    CMapObject* target = WorldOf(this)->ObjectWithId(toObject_);
     if (target != nullptr) {
-        std::memcpy(&to_, &static_cast<CTransformObject*>(target)->localPosition_, sizeof(Vector3));
+        std::memcpy(&to_, &target->localPosition_, sizeof(Vector3));
         to_.z = to_.z + ConstAt(worlddata::OneRef());
     }
     CEngineObject* source = WorldOf(this)->ObjectWithId(fromObject_);

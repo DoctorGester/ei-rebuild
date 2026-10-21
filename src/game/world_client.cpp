@@ -145,8 +145,8 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
         if (ObjectSlots(found)->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
         if ((found->relationsA & (side & found->relationsB)) == 0) continue;
-        float dy = found->position.y - unit->position.y;
-        float dx = found->position.x - unit->position.x;
+        float dy = found->localPosition_.y - unit->localPosition_.y;
+        float dx = found->localPosition_.x - unit->localPosition_.x;
         float distance = LengthSquared2DUnrounded(dx, dy);
         EI_NAN_AUDIT(distance, best);
         if (distance < best) {
@@ -231,7 +231,7 @@ void CWorldClient::CreateExitMarkers() {
         CEngineObject* marker = source;
         AssignCounted(&countedA0_[i], marker);
         const ZoneExit& exit = exits_[i];
-        source->position = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
+        source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
         source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
         source->turnCos = static_cast<float>(x87::fcos(static_cast<double>(exit.angle)));
@@ -252,7 +252,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;
-        if (!FindExitAt(&found->position.x, &index) || index != exit) {
+        if (!FindExitAt(&found->localPosition_.x, &index) || index != exit) {
             result = 0;
             continue;
         }
@@ -267,7 +267,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
 
 void CWorldClient::SummonBird() {
     if (!owned1B0_) {
-        auto* memory = static_cast<CEffectMoshka*>(gamecrt::operator_new(sizeof(CEffectMoshka)));
+        auto* memory = gamecrt::operator_new_as<CEffectMoshka>();
         owned1B0_ = memory ? memory->Construct() : nullptr;
     }
     TimedSlots(owned1B0_)->Reset();
@@ -320,9 +320,9 @@ float* CWorldClient::ExitCentre(float* out, int index) {
     return out;
 }
 
-std::uint32_t CWorldClient::EnvironmentFlags(CEngineObject* unit) {
+std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     std::uint32_t flags = 0;
-    switch (static_cast<std::uint32_t>(static_cast<CUnit*>(unit)->moveMode2)) {
+    switch (static_cast<std::uint32_t>(unit->moveMode2)) {
     case 0: flags = 8; break;
     case 1: flags = 4; break;
     case 2: flags = 2; break;

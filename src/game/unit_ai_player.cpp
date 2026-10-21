@@ -31,7 +31,7 @@ constexpr float kMovingSlack = 2.0f;                            // 0x40000000
 constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
 constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
-const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
+const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 
 // A list on the stack as the original builds it (CPtrList, blocks of 10).
@@ -51,7 +51,7 @@ bool DirectlyControlled(const CUnit* unit) {
 CUnit* LeaderOf(const CUnit* unit) {
     AIBrain* brain = unit->ServerController()->Brain();
     CMapObject* leader = nullptr;
-    if (auto* mode = static_cast<PlayerMode*>(brain->FindMode(kModePlayer))) leader = mode->leader;
+    if (auto* mode = brain->FindPlayerMode()) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
     return static_cast<CUnit*>(leader);
 }
@@ -120,8 +120,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         EI_NAN_AUDIT(sight, hearing);
         float reach = sight < hearing ? hearing : sight;
         double limit = static_cast<double>(reach) * kReachScale;
-        double dy = static_cast<double>(other->position.y) - unit->position.y;
-        double dx = static_cast<double>(other->position.x) - unit->position.x;
+        double dy = static_cast<double>(other->localPosition_.y) - unit->localPosition_.y;
+        double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;
         if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.RemoveAt(node);
         node = next;
     }
@@ -142,7 +142,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 node = node->next;
                 if (other == unit) continue;
                 AIBrain* theirs = other->ServerController()->Brain();
-                auto* mode = static_cast<PlayerMode*>(theirs->FindMode(kModePlayer));
+                auto* mode = theirs->FindPlayerMode();
                 if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
                 mode->state = kStateFollow;
                 if (theirs->target) {
@@ -226,18 +226,12 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     if (!player) return true;
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         CUnit* member = node->value;
-        PlayerMode* mode = nullptr;
-        for (auto* entry = member->ServerController()->Brain()->modes.head; entry; entry = entry->next) {
-            if (entry->data->GetType() == kModePlayer) {
-                mode = static_cast<PlayerMode*>(entry->data);
-                break;
-            }
-        }
+        PlayerMode* mode = member->ServerController()->Brain()->FindPlayerMode();
         // The original reads the leader of a unit without a Player mode at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
-        double dx = static_cast<double>(member->position.x) - unit->position.x;
-        double dy = static_cast<double>(member->position.y) - unit->position.y;
-        double dz = static_cast<double>(member->position.z) - unit->position.z;
+        double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;
+        double dy = static_cast<double>(member->localPosition_.y) - unit->localPosition_.y;
+        double dz = static_cast<double>(member->localPosition_.z) - unit->localPosition_.z;
         double limit = static_cast<double>(GameLogicSettings().followMaxDist) * slack + kOne;
         EI_NAN_AUDIT(limit, dx, dy, dz);
         if (limit * limit < LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) return false;

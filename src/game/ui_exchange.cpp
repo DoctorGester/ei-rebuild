@@ -185,8 +185,8 @@ void CExchangeScreen::Create() {
     static_cast<CItemIconWindow*>(iconWindow_)->PlaceBars(300);
 
     // The scratch party (made through its slot 2, not checked), our offer cleared, the partner's.
-    void* memory = gamecrt::operator_new(sizeof(CParty));
-    scratch_ = memory ? static_cast<CParty*>(memory)->Construct() : nullptr;
+    auto* party = gamecrt::operator_new_as<CParty>();
+    scratch_ = party ? party->Construct() : nullptr;
     scratch_->Create();
     net::ClientSession* client = net::GameClient();
     ownOffer_ = client->parties_[0].Party();
@@ -207,10 +207,8 @@ void CExchangeScreen::Create() {
     descPanel_->Build(600, 100);
 
     // The local party's items (the strip that hands clicks to this screen).
-    memory = gamecrt::operator_new(sizeof(CUiItemStrip));
-    CUiItemStrip* strip = nullptr;
-    if (memory) {
-        strip = static_cast<CUiItemStrip*>(memory);
+    CUiItemStrip* strip = gamecrt::operator_new_as<CUiItemStrip>();
+    if (strip) {
         strip->window.Construct(interface_);
         strip->owner_ = this;
         strip->list_.Construct(ItemArrayVtable());
@@ -236,8 +234,8 @@ void CExchangeScreen::Create() {
     grid_->mode_ = kGridMode;
 
     // The money offered.
-    memory = gamecrt::operator_new(sizeof(CUiEditField));
-    moneyField_ = memory ? static_cast<CUiEditField*>(memory)->Construct(interface_, RECT{0, 0x15E, 200, 0x16E}) : nullptr;
+    auto* field = gamecrt::operator_new_as<CUiEditField>();
+    moneyField_ = field ? field->Construct(interface_, RECT{0, 0x15E, 200, 0x16E}) : nullptr;
     AsContainer(this)->AddChild(moneyField_);
     moneyField_->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField_->SetText("");

@@ -120,12 +120,12 @@ EI_REWRITTEN(0x005FC2F0, CUiModel::Draw);
 void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = TheClientWorld()->MapObjectManager();
     auto* object = static_cast<CObject3D*>(manager->CreateObject(kPreviewClass, kPreviewId));
-    object_ = reinterpret_cast<CTransformObject*>(object);
+    object_ = object;
     ++object->refCount_;
     object->flags_ |= kPreviewObject;
-    object->position.x = 0.0f;
-    object->position.y = 0.0f;
-    object->position.z = 3.0f;
+    object->localPosition_.x = 0.0f;
+    object->localPosition_.y = 0.0f;
+    object->localPosition_.z = 3.0f;
     CObject3DClientSpecific* specific = object->ClientSpecific();
     console::CStringArray parts;
     object->MakeFigure(name, &parts, 1);

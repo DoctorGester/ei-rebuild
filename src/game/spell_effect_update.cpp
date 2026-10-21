@@ -48,9 +48,9 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->ReleaseLight();
 
     auto* target = static_cast<CUnit*>(e->target);   // no null check
-    std::memcpy(&e->targetPoint, &target->position, 12);
+    std::memcpy(&e->targetPoint, &target->localPosition_, 12);
     Vector3 at;
-    std::memcpy(&at, &target->position, 12);
+    std::memcpy(&at, &target->localPosition_, 12);
     at.z = static_cast<float>(target->ModeSpeed());
     at.z = GroundPlus(e, kWorldSlotGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
@@ -312,7 +312,7 @@ void Possession(CSpellEffect* e) {
         float reach = sight >= floor ? sight : floor;
         float wake;
         MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
-        e->world->WakeUnitsAround(&target->position, wake);
+        e->world->WakeUnitsAround(&target->localPosition_, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;

@@ -130,12 +130,12 @@ int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
     Received().Read(&message, sizeof(message));
     CPlayer* player = Owner();
-    CMapObject* target = ObjectSlots(player->WorldContext()->ObjectWithId(message.targetId));
+    CMapObject* target = player->WorldContext()->ObjectWithId(message.targetId);
     CUnit* unit = FindUnit(player, message.unitId);
     if (target && Able(unit)) {
         AIBrain* brain = unit->ServerController()->Brain();
-        if (AIMode* mode = brain->FindPlayerMode())
-            static_cast<PlayerMode*>(mode)->CommandCast(brain, message.spell, target, message.flag != 0);
+        if (PlayerMode* mode = brain->FindPlayerMode())
+            mode->CommandCast(brain, message.spell, target, message.flag != 0);
     }
     return 1;
 }
@@ -146,9 +146,9 @@ int CPlayerServer::OnCastAtPoint() {
     CUnit* unit = FindUnit(Owner(), message.unitId);
     if (Able(unit)) {
         AIBrain* brain = unit->ServerController()->Brain();
-        if (AIMode* mode = brain->FindPlayerMode()) {
+        if (PlayerMode* mode = brain->FindPlayerMode()) {
             const Vector3 point = message.point;
-            static_cast<PlayerMode*>(mode)->CommandCastAt(brain, message.spell, &point, message.flag != 0);
+            mode->CommandCastAt(brain, message.spell, &point, message.flag != 0);
         }
     }
     return 1;
@@ -186,7 +186,7 @@ int CPlayerServer::OnFollow() {
     if (!unit) return 1;
     CUnit* leader = FindUnit(player, ids[1]);
     AIBrain* brain = unit->ServerController()->Brain();
-    if (AIMode* mode = brain->FindPlayerMode()) static_cast<PlayerMode*>(mode)->SetLeader(brain, leader);
+    if (PlayerMode* mode = brain->FindPlayerMode()) mode->SetLeader(brain, leader);
     return 1;
 }
 

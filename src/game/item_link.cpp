@@ -24,7 +24,7 @@ EI_REPLACE_METHOD(0x0058FB90, CItemLink::Reset);
 // The original clears the count dword before testing the allocation; ours tests first. The
 // counted value's vtable (0073BB58) stands while the value is copied.
 CItemLink* CItemLink::Clone() {
-    auto* copy = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
+    auto* copy = gamecrt::operator_new_as<CItemLink>();
     if (!copy) return nullptr;
     copy->references = 0;
     copy->refsHigh = 0;

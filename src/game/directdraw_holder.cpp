@@ -60,7 +60,7 @@ HRESULT WINAPI DisplayModeCallback(DDSURFACEDESC2* mode, void* context) {
 // The switch-over's holder of the screen (the primary or the render target; device.h): no surface,
 // the screen's size and colour depth, counted like a holder of a surface.
 CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int bitsPerPixel) {
-    auto* holder = static_cast<CDXSurface*>(gamecrt::operator_new(sizeof(CDXSurface)));
+    auto* holder = gamecrt::operator_new_as<CDXSurface>();
     if (!holder) return nullptr;
     holder->refCount = 0;
     holder->result = 0;

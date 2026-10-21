@@ -46,7 +46,6 @@ float TickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
 constexpr int kReserve = 0x1000;
 
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
-void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(a0)); }
 // The arrays are function-local statics in the original (guard bits 1 and 2 of g_arraysConstructed, the
 // destructors 00497D30 / 00497D10 registered with atexit).
 void ConstructArrays() {
@@ -96,8 +95,8 @@ EI_REPLACE(0x0059A670, NextParticle);
 EI_REPLACE(0x005BD340, NextParticle);
 
 // 00497CE0.
-int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** holder) {
-    EnsureTextureLoaded(holder);
+int __fastcall BindParticleTexture(void* renderer, void*, int stage, CTexture** holder) {
+    TextureHolderEnsureLoaded(holder);
     using BindFn = int(__fastcall*)(void*, void*, int, void*);
     BindFn bind = ei::ObjectSlot<BindFn>(renderer, 11);
     return bind(renderer, nullptr, stage, *holder);

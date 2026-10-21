@@ -177,15 +177,15 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
     if (attachedTo) {
         Vector3 point;
         const Vector3* a = AttachmentPoint(&point, attachedTo);
-        double z = D(a->z) + D(position.z);
-        double y = D(a->y) + D(position.y);
-        double x = D(a->x) + D(position.x);
+        double z = D(a->z) + D(localPosition_.z);
+        double y = D(a->y) + D(localPosition_.y);
+        double x = D(a->x) + D(localPosition_.x);
         out->x = static_cast<float>(x);
         out->y = static_cast<float>(y);
         out->z = static_cast<float>(z);
         return out;
     }
-    std::memcpy(out, &position, sizeof(Vector3));
+    std::memcpy(out, &localPosition_, sizeof(Vector3));
     return out;
 }
 EI_REPLACE_METHOD(0x00484AE0, CParticleSource::WorldPosition);

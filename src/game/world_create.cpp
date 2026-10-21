@@ -90,7 +90,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
-    auto* helper = static_cast<CWorldHandle*>(gamecrt::operator_new(sizeof(CWorldHandle)));
+    auto* helper = gamecrt::operator_new_as<CWorldHandle>();
     // The count and both flag bytes as one dword, written before the test as the original does.
     const std::uint32_t noReferences = 0;
     std::memcpy(&helper->refs_, &noReferences, sizeof(noReferences));
@@ -132,7 +132,7 @@ CUnit* CWorld::FindUnit(int id) {
 }
 EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
 
-CEngineObject* CWorld::FindMapObject(int id) {
-    return MapObjectManager()->FindObject(static_cast<unsigned>(id));
+CMapObject* CWorld::FindMapObject(int id) {
+    return ObjectSlots(MapObjectManager()->FindObject(static_cast<unsigned>(id)));   // the map object manager's objects
 }
 EI_REPLACE_METHOD(0x0055FAE0, CWorld::FindMapObject);

@@ -84,7 +84,7 @@ EI_REPLACE_METHOD(0x0055F2F0, CPlayerSource::DeletingDestructBase);
 // A new helper with the same pending link (counted). The original writes the count before testing
 // the allocation; ours tests first.
 CWorldHandle* CWorldHandle::Clone() {   // 0055F1A0
-    auto* copy = static_cast<CWorldHandle*>(gamecrt::operator_new(sizeof(CWorldHandle)));
+    auto* copy = gamecrt::operator_new_as<CWorldHandle>();
     if (!copy) return nullptr;
     copy->refs_ = 0;
     copy->flags6_ = 0;
@@ -129,7 +129,7 @@ EI_REPLACE(0x0055F1A0, HandleCloneHook);
 
 // The original clears the count before testing the allocation; ours tests first.
 CClientHandle* CClientHandle::Clone() {   // 005626B0
-    auto* copy = static_cast<CClientHandle*>(gamecrt::operator_new(sizeof(CClientHandle)));
+    auto* copy = gamecrt::operator_new_as<CClientHandle>();
     if (!copy) return nullptr;
     copy->refs_ = 0;
     copy->flags6_ = 0;
@@ -174,7 +174,7 @@ DriverSession* DriverSession::ConstructAt(void* memory) {
 // A copy: every driver shared (a copy-on-share driver is cloned), every holder counted. The original
 // writes the count before testing the allocation; ours tests first.
 DriverSession* DriverSession::Clone() {   // 0055F550
-    auto* copy = static_cast<DriverSession*>(gamecrt::operator_new(sizeof(DriverSession)));
+    auto* copy = gamecrt::operator_new_as<DriverSession>();
     if (!copy) return nullptr;
     copy->refs_ = 0;
     copy->flags6_ = 0;

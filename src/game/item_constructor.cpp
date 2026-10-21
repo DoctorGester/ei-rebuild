@@ -62,7 +62,7 @@ template <typename T> void CopyBits(T& to, const T& from) {
 // A record of kind R: the base record's construction (inline in Build; 006A63B0 as a function),
 // then the kind's vtable. Null when the allocation fails.
 template <typename R> R* NewRecordOf() {
-    auto* record = static_cast<R*>(gamecrt::operator_new(sizeof(R)));
+    auto* record = gamecrt::operator_new_as<R>();
     if (!record) return nullptr;
     record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
     ei::SetVtable(record, R::kVtableAddress);
@@ -83,7 +83,7 @@ ItemRecordHead* NewRecord(int classId) {
         return NewRecordOf<ArmorRecord>();
     case kClassQuick:
     case kClassSpell: {
-        auto* record = static_cast<QuickItemRecord*>(gamecrt::operator_new(sizeof(QuickItemRecord)));
+        auto* record = gamecrt::operator_new_as<QuickItemRecord>();
         if (!record) return nullptr;
         record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
         new (&record->text7C) mfc::CString();   // a CString the record's destructor would free
@@ -92,7 +92,7 @@ ItemRecordHead* NewRecord(int classId) {
         return record;
     }
     case kClassQuest: {
-        auto* record = static_cast<QuestItemRecord*>(gamecrt::operator_new(sizeof(QuestItemRecord)));
+        auto* record = gamecrt::operator_new_as<QuestItemRecord>();
         if (!record) return nullptr;
         record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
         std::memset(&record->zonesBegin, 0, 3 * sizeof(record->zonesBegin));   // an empty STLport vector (0055A3E0)

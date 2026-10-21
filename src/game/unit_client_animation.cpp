@@ -73,7 +73,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     float step = stored;
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
-        Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
+        Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
         position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);
         ObjectWorld(this)->MoveObject(unit, &position.x);

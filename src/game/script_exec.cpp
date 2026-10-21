@@ -183,9 +183,9 @@ void* UnitState(CUnit* unit) { return unit->controller; }
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
 AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
 // The brain's patrol mode, null when it has none.
-PatrolMode* PatrolOf(void* state) { return static_cast<PatrolMode*>(BrainOf(state)->FindPatrolMode()); }
+PatrolMode* PatrolOf(void* state) { return BrainOf(state)->FindPatrolMode(); }
 UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
-Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->position; }
+Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
 // An object argument the command takes as a map object (a unit's leader or target).
@@ -367,7 +367,7 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
             CMapObject* target = MapObjectArg(cmd, 0);
-            if (target) TheWorld()->CastSpell(spell, 0, &from, target, &target->position, 0);
+            if (target) TheWorld()->CastSpell(spell, 0, &from, target, &target->localPosition_, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
             TheWorld()->CastSpell(spell, 0, &from, nullptr, &to, 0);
@@ -986,8 +986,8 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x29: {   // UMPatrolClear
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            void* patrol = BrainOf(state)->FindPatrolMode();
-            if (patrol) static_cast<PatrolMode*>(patrol)->points.SetSize(0, -1);
+            PatrolMode* patrol = BrainOf(state)->FindPatrolMode();
+            if (patrol) patrol->points.SetSize(0, -1);
             break;
         }
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)

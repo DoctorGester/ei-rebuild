@@ -143,7 +143,7 @@ void camera::NoteTargetTick(const CCamera* camera) {
     ticks.previous = ticks.current;
     ticks.previousGround = ticks.currentGround;
     std::memcpy(&ticks.current, &static_cast<const CTransformObject*>(target)->localPosition_, sizeof(Vector3));
-    ticks.currentGround = static_cast<const CObject3D*>(target)->position.z;
+    ticks.currentGround = static_cast<const CObject3D*>(target)->localPosition_.z;
     if (ticks.count < 2) ++ticks.count;
 }
 
@@ -354,7 +354,7 @@ void CCamera::Update(float dt) {
     float targetGround = 0.0f;
     if (target) {
         std::memcpy(&targetAt, &static_cast<const CTransformObject*>(target)->localPosition_, sizeof(Vector3));
-        CopyFloat(&targetGround, &static_cast<const CObject3D*>(target)->position.z);
+        CopyFloat(&targetGround, &static_cast<const CObject3D*>(target)->localPosition_.z);
         if (smooth) TargetPlace(targetId_, &targetAt, &targetGround);
     }
     if (flags_ & kFollowing) {

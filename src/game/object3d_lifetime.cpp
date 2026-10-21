@@ -47,8 +47,8 @@ EI_REPLACE_METHOD(0x0051E570, CountedRef<WoundsMaterial>::Assign);   // byte-ide
 EI_REPLACE_METHOD(0x0051E4F0, CountedRef<CRenderPreset>::Assign);
 
 int CObject3D::Create3D() {
-    std::memset(&position, 0, sizeof(position));
-    orientation = IdentityOrientation();
+    std::memset(&localPosition_, 0, sizeof(localPosition_));
+    localRotation_ = IdentityOrientation();
     attached = nullptr;
     flags_ = 0;
     spare09C = 0;

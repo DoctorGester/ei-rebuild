@@ -354,7 +354,7 @@ void CUiSurface::Freeze(int frozen, int restore) {
 EI_REPLACE_METHOD(0x005FD760, CUiSurface::Freeze);
 
 CUiRegion* CUiWindow::AddRegion() {
-    auto* region = static_cast<CUiRegion*>(gamecrt::operator_new(sizeof(CUiRegion)));
+    auto* region = gamecrt::operator_new_as<CUiRegion>();
     if (region) {
         // The bounds are left uninitialised, as in the original.
         region->interface_ = interface_;
@@ -391,7 +391,7 @@ void CUiWindow::ClearRegions() {
 EI_REWRITTEN(0x005FFA20, CUiWindow::ClearRegions);
 
 CUiModel* CUiWindow::AddModel() {
-    auto* model = static_cast<CUiModel*>(gamecrt::operator_new(sizeof(CUiModel)));
+    auto* model = gamecrt::operator_new_as<CUiModel>();
     if (!model) return nullptr;
     model->object_ = nullptr;   // 005FC1C0, the constructor
     models_.Add(model);

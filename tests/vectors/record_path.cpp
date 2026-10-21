@@ -197,8 +197,8 @@ void PutCallMap(Writer& w, const CAIMap* map, std::uint8_t planes = kCallAll) {
 UnitState StateOf(CUnit* unit) {
     auto s = Zeroed<UnitState>();
     s.classId = unit->GetClassId();
-    std::memcpy(s.position, &unit->position, sizeof(s.position));
-    std::memcpy(s.orientation, &unit->orientation, sizeof(s.orientation));
+    std::memcpy(s.position, &unit->localPosition_, sizeof(s.position));
+    std::memcpy(s.orientation, &unit->localRotation_, sizeof(s.orientation));
     s.sizeClass = unit->sizeClass;
     s.standingHeight = unit->standingHeight;
     s.altPassCosts = unit->altPassCosts;

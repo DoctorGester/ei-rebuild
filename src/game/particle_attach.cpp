@@ -54,9 +54,9 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
         *out = point;
         return out;
     }
-    out->x = object->position.x;
-    out->y = object->position.y;
-    out->z = object->position.z + object->above.z;
+    out->x = object->localPosition_.x;
+    out->y = object->localPosition_.y;
+    out->z = object->localPosition_.z + object->above.z;
     return out;
 }
 EI_REPLACE_METHOD(0x00484B40, CParticleSource::PartPoint);
@@ -70,21 +70,21 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, void* objectArg) {
         return out;
     }
     if (!(flags_ & kFlagOnPart)) {
-        SetPosition(out, &object->position.x);
+        SetPosition(out, &object->localPosition_.x);
         return out;
     }
     const auto point = static_cast<std::uint32_t>(attachPoint);
     if (object->GetClassId() == kClassUnit && point <= 12) {
-        if (point == 0) return reinterpret_cast<CUnit*>(object)->EffectPoint(out);
+        if (point == 0) return static_cast<CUnit*>(object)->EffectPoint(out);
         PartPoint(out, object, kPartNames[point]);
         if (point == 2) out->z = out->z + 1.0f;
         return out;
     }
     float rise = (object->boundsFlags & kBoundsSphere) ? object->radius * 1.6f
                                                          : object->above.z - object->below.z;
-    out->x = object->position.x;
-    out->y = object->position.y;
-    out->z = rise + object->position.z;
+    out->x = object->localPosition_.x;
+    out->y = object->localPosition_.y;
+    out->z = rise + object->localPosition_.z;
     return out;
 }
 EI_REWRITTEN(0x00484C00, CParticleSource::AttachmentPoint);
@@ -118,7 +118,7 @@ void CParticleSource::Attach(void* objectArg) {
     auto* object = static_cast<CObject3D*>(objectArg);
     auto* old = static_cast<CObject3D*>(attachedTo);
     if (old == object) {
-        if (!old) origin = position;
+        if (!old) origin = localPosition_;
         return;
     }
     attachedTo = nullptr;
@@ -127,19 +127,19 @@ void CParticleSource::Attach(void* objectArg) {
             // Let go where the source is: the attachment point becomes part of the position.
             Vector3 point;
             AttachmentPoint(&point, old);
-            float x = point.x + position.x;
-            float y = position.y + point.y;
-            float z = position.z + point.z;
-            position.x = x;
-            position.y = y;
-            position.z = z;
+            float x = point.x + localPosition_.x;
+            float y = localPosition_.y + point.y;
+            float z = localPosition_.z + point.z;
+            localPosition_.x = x;
+            localPosition_.y = y;
+            localPosition_.z = z;
         }
         // Drops the source and calls Attach(null) again (nothing to do then but the origin).
         old->RemoveEffectSource(this);
     }
     attachedTo = object;
     if (!object) {
-        origin = position;
+        origin = localPosition_;
         return;
     }
     object->ComputeBounds();

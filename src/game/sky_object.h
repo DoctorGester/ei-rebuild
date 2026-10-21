@@ -17,6 +17,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CTexture;   // texture.h
+
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
@@ -83,7 +85,7 @@ struct CSky {
 
     CSkyObject* object;   // +0x00 null until the zone's sky is loaded
     CEngineObject* material;   // +0x04 counted (0068E970, type 0x12, by CWorldClient::LoadSky); 0 when constructed
-    void* texture;        // +0x08 texture holder
+    CTexture* texture;    // +0x08 texture holder
     int turns;            // +0x0C 1 when constructed
 
     // 004D9DE0 (RET 0x34). object->Light(...) when there is an object.

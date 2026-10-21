@@ -213,7 +213,7 @@ struct ItemHoverInfo {
                              //       6 the magic skills, 7 a plain text
     int index;               // +0x04 the attribute, skill, school or perks learned
     int part;                // +0x08 body part (kind 4)
-    CItem* weapon;           // +0x0C kind 5
+    CItemWeapon* weapon;     // +0x0C kind 5
     UnitStats* stats;        // +0x10 the hero's statistics (hero record + 0x20)
     mfc::CString text;       // +0x14 the text key
 };

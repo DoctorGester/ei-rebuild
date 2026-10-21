@@ -70,8 +70,8 @@ int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
     CWorldClient* world = TheClientWorld();
-    float x = unit->position.x;
-    float y = unit->position.y;
+    float x = unit->localPosition_.x;
+    float y = unit->localPosition_.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
     Vector3 at{x, y, 0.0f};
     float surface = world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(x, y));   // its slot 27
@@ -173,7 +173,7 @@ void Shake(CUnit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
-        TheCamera()->Shake(&unit->position, kShakeDuration, strength,
+        TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
@@ -188,7 +188,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     const CFigureAnimationState* state = unit->Object3D()->animation;
     const FigureAnimation* current = state->current;
     float now = state->time;
-    Vector3 position{unit->position.x, unit->position.y, unit->position.z};
+    Vector3 position{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
     int priority = 0;
     mfc::CString sound;
     if (lastAnimation != current) {
@@ -252,7 +252,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                TheCamera()->Shake(&unit->position, kShakeDuration, strength,
+                TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = unit->GetPrototypeModel();
@@ -270,7 +270,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         Vector3 footAt;
         unit->Object3D()->PartWorldPosition(&footAt.x, foot);
         Vector3 facing;
-        unit->orientation.AxisY(&facing);
+        unit->localRotation_.AxisY(&facing);
         double length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
         float cosine = static_cast<float>(facing.y / length);

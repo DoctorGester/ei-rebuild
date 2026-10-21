@@ -6,6 +6,7 @@
 
 #include "core_maths.h"
 #include "random.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -257,10 +258,10 @@ EI_REWRITTEN(0x00466820, LightningSegment::Init);
 void CLightning::Reset() {
     power_ = 1.0f;
     amplitude_ = FromBits(0x3DCCCCCD);   // 0.1f
-    CEngineObject* texture = texture_;
+    CTexture* texture = texture_;
     texture_ = nullptr;
     if (texture) texture->Release();
-    CEngineObject* glow = glowTexture_;
+    CTexture* glow = glowTexture_;
     glowTexture_ = nullptr;
     if (glow) glow->Release();
 }
@@ -290,14 +291,14 @@ void CLightning::ExpandBounds(const LightningSegment* segment) {
 EI_REPLACE_METHOD(0x00466FD0, CLightning::ExpandBounds);
 
 void CLightning::UpdateBounds() {
-    const float big = FromBits(0x7149F2CA);      // 1e30
-    const float small = FromBits(0xF149F2CA);    // -1e30
-    boundsMin_.x = big;
-    boundsMin_.y = big;
-    boundsMin_.z = big;
-    boundsMax_.x = small;
-    boundsMax_.y = small;
-    boundsMax_.z = small;
+    const float largest = FromBits(0x7149F2CA);      // 1e30
+    const float lowest = FromBits(0xF149F2CA);    // -1e30
+    boundsMin_.x = largest;
+    boundsMin_.y = largest;
+    boundsMin_.z = largest;
+    boundsMax_.x = lowest;
+    boundsMax_.y = lowest;
+    boundsMax_.z = lowest;
     ExpandBounds(&main_);
     for (int i = 0; i < 6; ++i) ExpandBounds(&branches_[i]);
 

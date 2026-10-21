@@ -48,9 +48,9 @@ void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
 
 } // namespace
 
-bool CWorldServer::Loot(CEngineObject* object, CPlayer* player) {
+bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
     GivenItems items;    // [0x18]
-    ObjectList second;   // [0x5C]
+    GivenItems second;   // [0x5C]
     ObjectList third;    // [0x40]
     InitList(items, mfc::impl::ItemListClass::Vtable());
     InitList(second, mfc::impl::ItemListClass::Vtable());
@@ -76,16 +76,16 @@ bool CWorldServer::Loot(CEngineObject* object, CPlayer* player) {
         abandon();
         return false;
     }
-    if (static_cast<CUnit*>(object)->HasPlayer() && ObjectSlots(object)->IsDead() == 0) {
+    if (unit->HasPlayer() && unit->IsDead() == 0) {
         abandon();
         return false;   // a living unit of a player
     }
 
-    if (object->flags_ & kFlagSharedLoot) {
+    if (unit->flags_ & kFlagSharedLoot) {
         // The shared-object list's entry for the object (SharedObject: its unknown_08 is the gold).
         SharedObjectList& list = sharedObjects_;
         SharedObjectList::Node* node = list.head;
-        while (node && node->data.objectId != object->id_) node = node->next;
+        while (node && node->data.objectId != unit->id_) node = node->next;
         if (!node) {
             abandon();
             return false;
@@ -109,7 +109,7 @@ bool CWorldServer::Loot(CEngineObject* object, CPlayer* player) {
         return true;
     }
 
-    if (!HooverCollectLoot(hoover_, nullptr, this, reinterpret_cast<char*>(object), &items, &second, &third, &gold)) {   // 00461CB0
+    if (!HooverCollectLoot(hoover_, nullptr, this, unit, &items, &second, &third, &gold)) {   // 00461CB0
         destroy();
         return false;
     }
@@ -219,8 +219,9 @@ void CWorldServer::LootDeadUnits() {
 
     IdList dead;
     while (node) {
-        if (object->GetClassId() == world::kClassUnit && ObjectSlots(object)->IsDead()) {
-            TheServerWorld()->Loot(object, local);
+        CUnit* unit = UnitOrNull(object);   // (the original has no null test: the map holds no null here)
+        if (unit && unit->IsDead()) {
+            TheServerWorld()->Loot(unit, local);
             dead.PushBack(static_cast<unsigned>(object->id_));
         }
         node = objects_.map.After(node);

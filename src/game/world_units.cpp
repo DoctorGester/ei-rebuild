@@ -83,7 +83,7 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).
 void DestroyMessage(UnitSpec* message) {
     ei::SetVtable(message, worlddata::kUnitSpecVtable);
-    for (int i = 4; i >= 0; --i) message->lists[i].Destruct();
+    for (int i = 4; i >= 0; --i) message->record.lists[i].Destruct();
     message->prototype.~CString();
     VectorDestruct(message->behaviour, sizeof(mapspec::Behaviour), 5,
                    reinterpret_cast<void*>(worlddata::kBehaviourDestructor));
@@ -157,9 +157,9 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 // An item from an item record, with its counted record (+0x1C) holding the item record's id.
 // `refValueBase`: the record is built through the reference value constructor (00419720) and the
 // vtable stored after it, instead of 0058FBB0.
-CItem* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool refValueBase) {
-    auto* item = static_cast<CItem*>(world->DuplicateItem(itemRecord));
-    auto* memory = static_cast<ItemSourceRef*>(gamecrt::operator_new(sizeof(ItemSourceRef)));
+CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
+    CItem* item = world->DuplicateItem(itemRecord);
+    auto* memory = gamecrt::operator_new_as<ItemSourceRef>();
     memory->refs = 0;   // written before the null test
     ItemSourceRef* record = nullptr;
     if (memory) {
@@ -261,9 +261,9 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         brain->StopAction();
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
-        std::memcpy(&free, &unit->position.x, sizeof(free));
+        std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
         AIMap()->FindFreeCellNear(unit, position, &free);
-        std::memcpy(&unit->position.x, &free, sizeof(free));
+        std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
         unit->SetPlayer(static_cast<CPlayer*>(player));
@@ -296,7 +296,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
-            bool flagged = AIMap()->IsPassableForClass(1, &unit->position);
+            bool flagged = AIMap()->IsPassableForClass(1, &unit->localPosition_);
             if (flagged) unit->SetMoveModes(placement->value20, placement->value20);
             else unit->moveMode2 = static_cast<int>(placement->value20);
         }
@@ -315,9 +315,9 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             CUnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
             AIBrain* brain = &controller->brain;
-            AIMode* follow = brain->FindPlayerMode();
+            PlayerMode* follow = brain->FindPlayerMode();
             if (!follow) continue;
-            static_cast<PlayerMode*>(follow)->SetLeader(brain, WorldFindUnit(this, nullptr, record->leaderId));
+            follow->SetLeader(brain, WorldFindUnit(this, nullptr, record->leaderId));
         }
     }
 
@@ -348,7 +348,7 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     message->parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     std::memset(&message->scale.y, 0, 4);
     // At the unit's position, on the ground.
-    std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->position.x, 12);
+    std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->localPosition_.x, 12);
     std::memset(&message->base.position.z, 0, 4);
     int id = WorldMakeObjectOriginal(this, nullptr, message);
     CEngineObject* effect = ObjectWithId(id);
@@ -417,13 +417,13 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ObjectSetFigureScaleOriginal(object, nullptr, &spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
-        Copy(&object->position.x, &spec->base.position, 12);
-        Copy(&object->orientation, &spec->base.rotation, 16);
+        Copy(&object->localPosition_.x, &spec->base.position, 12);
+        Copy(&object->localRotation_, &spec->base.rotation, 16);
     };
     auto timed = [this](CEffect* object) {
         object->startTick_ = tick_;
         ++object->refCount_;
-        static_cast<CEffect*>((void*)object)->MarkChanged();
+        object->MarkChanged();
         timedObjects_.Set(static_cast<unsigned>(object->id_), object);
         return object->id_;
     };
@@ -474,7 +474,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
-        static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
+        object->SetUpAnimatedFigure(spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -536,12 +536,12 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             reinterpret_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(unit, unitSpec->prototype);
-            const mfc::CStringArray& worn = unitSpec->lists[1];
+            const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
                 unit->AddQuickItem(ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
             }
-            reinterpret_cast<unitrecord::UnitRecord*>(unitSpec->stats)->ApplyTo(unit);
+            unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
             const char* prototypeName = unitSpec->prototype;
             UnitPrototypeRecord* prototype;
@@ -578,7 +578,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         object->MarkChanged(7);
         object->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
-        static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
+        object->SetUpAnimatedFigure(spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);

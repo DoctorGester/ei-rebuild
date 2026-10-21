@@ -594,7 +594,7 @@ CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
         SearchGrid<BlockRecord>& records = search->records;
         records.width = 1;
         records.height = 1;
-        records.data = static_cast<BlockRecord*>(gamecrt::operator_new(sizeof(BlockRecord)));
+        records.data = gamecrt::operator_new_as<BlockRecord>();
         records.rows = static_cast<BlockRecord**>(gamecrt::operator_new(static_cast<std::size_t>(records.height * 4)));
         for (int y = 0; y < records.height; ++y) records.rows[y] = records.data + y * records.width;
         search->active = false;

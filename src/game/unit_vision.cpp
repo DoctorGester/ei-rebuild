@@ -51,7 +51,7 @@ void CUnit::AdvanceTimeImpl(float time) {
     float daylight = static_cast<float>(TheClientWorld()->NightLevel());
     float range = static_cast<float>(Params()->VisionRange(daylight));
     if (moveMode == 0) range = range * kOne;
-    TheClientWorld()->MarkFootprintsInSight(&position.x, range);
+    TheClientWorld()->MarkFootprintsInSight(&localPosition_.x, range);
 }
 EI_REPLACE_METHOD(0x0052FC40, CUnit::AdvanceTimeImpl);
 

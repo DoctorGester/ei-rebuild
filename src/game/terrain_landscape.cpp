@@ -69,7 +69,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
     SectorData* sector;
     SectorData* last = sectorCache.count != 0 ? sectorCache.tail->data : nullptr;
     if (!last || frame - kSectorAge <= last->lastUsed) {
-        auto* memory = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
+        auto* memory = gamecrt::operator_new_as<SectorData>();
         sector = memory ? memory->Construct() : nullptr;
     } else {
         sector = last;

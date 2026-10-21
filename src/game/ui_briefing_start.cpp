@@ -61,11 +61,11 @@ int Compare(const char* a, const char* b) {
     return gamecrt::mbsicmp(a, b);
 }
 
-Vector3 Position(const CUnit* unit) { return Vector3{unit->position.x, unit->position.y, unit->position.z}; }
+Vector3 Position(const CUnit* unit) { return Vector3{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z}; }
 
 Vector3 Facing(const CUnit* unit) {
     Vector3 axis;
-    unit->orientation.AxisY(&axis);
+    unit->localRotation_.AxisY(&axis);
     return Vector3{-axis.x, -axis.y, -axis.z};
 }
 
@@ -169,7 +169,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     Vector3& standingPlace = noWalk_ ? leaderPlace : personPlace;
     Vector3& walkingPlace = noWalk_ ? personPlace : leaderPlace;
     Vector3 axis;
-    standing->orientation.AxisY(&axis);
+    standing->localRotation_.AxisY(&axis);
     Vector3 at = Position(standing);
     float stepY = static_cast<float>(axis.y * reach);
     float stepX = static_cast<float>(axis.x * reach);

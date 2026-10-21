@@ -5,6 +5,7 @@
 // one per figure piece) and their bounding box, and the scale the figure was built for. Names
 // provisional; see docs/notes/map_objects.md ("Figures").
 
+#include "core_transform.h"
 #include "engine_object.h"
 #include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
@@ -368,9 +369,10 @@ inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedR
 // The virtual slots are game.exe's table 0073DDD4 (27 slots, abstract: 11 / 12 are _purecall): the
 // game builds most objects with Construct, which stores that table; a class whose constructor is
 // C++ (C19: the torches, levers and traps) gets the compiler's, built from the same bodies (the
-// slots below are defined, object3d_slots.cpp). Slots 13-17 are CTransformObject's (the object
-// starts with its fields: Transform()).
-class CObject3D : public CEngineObject {
+// slots below are defined, object3d_slots.cpp). Slots 13-17 are CTransformObject's: the object
+// starts with its fields (local position +0x1C, world position +0x28, which CWorldClient's
+// CollectVisible sets to the position in view space, local rotation +0x34, world rotation +0x44).
+class CObject3D : public CTransformObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DDD4);
 
@@ -378,17 +380,10 @@ public:
     int Create() override { return Create3D(); }          // 2: 00515F70
     void Destroy() override { Destroy3D(); }               // 3: 00516080
     void ClearState() override { RemoveAllEffectSources(); }   // 5: 00515E90
-    // 13: 00401490. CTransformObject::CopyTransform: the local and world transform copied; returns
-    // this as the transform.
-    virtual CTransformObject* CopyTransform(const CTransformObject& other);
-    // 14: 00516370 (CombineRotation3D). worldOrientation = parent * orientation.
-    virtual void CombineRotation(const Quaternion& parent);
-    // 15: 0040CC30. CTransformObject::UpdateWorld: the world transform from the parent's.
-    virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
-    // 16 / 17: 00516350 / 00516360. The transform written to / read from the MFC file
-    // (CTransformObject 00401510 / 00401540).
-    virtual void SaveTransform(void* file);
-    virtual void LoadTransform(void* file);
+    // 13: 00401490 and 15: 0040CC30 are CTransformObject's. 16 / 17: 00516350 / 00516360 hand the
+    // file to CTransformObject's 00401510 / 00401540 (the same work as its slots).
+    // 14: 00516370 (CombineRotation3D). worldRotation_ = parent * localRotation_.
+    void CombineRotation(const Quaternion& parent) override;
     // 18 (0x48, RET 4; AL): whether the object may play the animation entry (FigureAnimation);
     // 0050E400: any. CUnit 00532DA0 (AcceptsTarget: its flags +0x18 for heroes).
     virtual bool AcceptsAnimation(const void* animation);
@@ -612,13 +607,7 @@ public:
     // The figure (+0xF0) as the counted reference 00519580 assigns.
     CountedRef<CLinkMesh>& FigureRef() { return *reinterpret_cast<CountedRef<CLinkMesh>*>(&figure); }
     // The object as the CTransformObject it starts with (core_transform.h).
-    CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
-    const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }
 
-    Vector3 position;               // +0x01C
-    Vector3 viewPosition;           // +0x028 the position in view space (CWorldClient::CollectVisible)
-    Quaternion orientation;         // +0x034
-    Quaternion worldOrientation;    // +0x044 the parent's rotation times the orientation (slot 14)
     Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
@@ -657,8 +646,7 @@ protected:
     // 00515BD0 as C++, for a class whose vtable is the compiler's: SetUpObject3D (the name is a member).
     CObject3D();
 };
-static_assert(offsetof(CObject3D, orientation) == 0x34);
-static_assert(offsetof(CObject3D, worldOrientation) == 0x44);
+static_assert(offsetof(CObject3D, worldMatrix) == 0x54);
 static_assert(offsetof(CObject3D, dirtyRect) == 0x100);
 static_assert(offsetof(CObject3D, attached) == 0x94);
 static_assert(offsetof(CObject3D, effectSources) == 0xA8);

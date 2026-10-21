@@ -17,6 +17,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CTexture;   // texture.h
+
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // One polyline point (16 bytes: the fourth float is never written here).
@@ -104,8 +106,8 @@ public:
     // textures ("Lightning" / "SmtgLight", or the "Demon" pair).
     void Start(const Vector3* from, const Vector3* to, float power, bool demon);
 
-    CEngineObject* texture_;            // +0x1C
-    CEngineObject* glowTexture_;        // +0x20
+    CTexture* texture_;                 // +0x1C
+    CTexture* glowTexture_;             // +0x20
     int boundsKind_;                    // +0x24 3 once the bounds are set (passed to the renderer)
     Vector3 center_;                    // +0x28
     float radius_;                      // +0x34

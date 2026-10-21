@@ -412,7 +412,7 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
         return 0;
     }
     // The first spare of this type: a new list (CPtrList(10)).
-    auto* list = static_cast<ObjectList*>(gamecrt::operator_new(sizeof(ObjectList)));
+    auto* list = gamecrt::operator_new_as<ObjectList>();
     if (list) {
         list->count = 0;
         list->free = nullptr;

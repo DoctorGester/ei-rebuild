@@ -286,7 +286,7 @@ void CSaveLoadWindow::SaveGame() {
     mfc::impl::CTime now;
     entriesBegin_->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
     SaveEntry* first = entriesBegin_;
-    static_cast<CStream*>(&info.s)->WriteHeader(kInfoMagic, kInfoVersion);
+    info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
     info.WriteText(first->map_);
@@ -357,21 +357,21 @@ void CSaveLoadWindow::FillEntries() {
             infoFind.FindNext();
             LocalFileStream info;
             info.Open(FilePath(infoFind), 0, 1);
-            if (static_cast<CStream*>(&info.s)->ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
+            if (info.Stream()->ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.Read(&entry->gameTime_, 4);
                 {
                     mfc::CString map(mfc::CString::kUnset);
                     reinterpret_cast<CStream*>(&info.s)->ReadString(&map);
                     entry->map_ = map;
                 }
-                static_cast<CStream*>(&info.s)->ReadInto(&entry->zone_);
+                info.Stream()->ReadInto(&entry->zone_);
                 // +8 of the stream: the version the header read.
                 if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
                     info.Read(&savedAt, 4);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.s.version_) > 2) static_cast<CStream*>(&info.s)->ReadInto(&entry->title_);
+                if (static_cast<int>(info.s.version_) > 2) info.Stream()->ReadInto(&entry->title_);
             }
             info.Close();
             if (console::Length(entry->title_) == 0) entry->MakeTitle(1);
@@ -507,7 +507,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString folder = SlotFolder(slot);
     LocalFileStream info;
     info.Open(folder + game::savewords::InfoFile(), kOpenWrite, 0);
-    static_cast<CStream*>(&info.s)->WriteHeader(kInfoMagic, kInfoVersion);
+    info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     info.Write(&gameTime, 4);
     info.WriteText(map);
     info.WriteText(zone);

@@ -49,7 +49,7 @@ Mode* NewCounted() {
 // allocate inline).
 template <typename Mode>
 Mode* NewInline() {
-    auto* mode = static_cast<Mode*>(gamecrt::operator_new(sizeof(Mode)));
+    auto* mode = gamecrt::operator_new_as<Mode>();
     if (mode) {
         mode->refs = 0;
         mode->refsHigh = 0;
@@ -156,7 +156,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     case kPatrol: {
         auto* mode = NewCounted<PatrolMode>();
         AddMode(mode ? mode->Construct() : nullptr);
-        AddPatrolPoints(static_cast<PatrolMode*>(FindMode(kModePatrol)), record);
+        AddPatrolPoints(FindPatrolMode(), record);
         break;
     }
     default:

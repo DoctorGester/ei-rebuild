@@ -204,7 +204,7 @@ std::int16_t UnitFrame(const CUnit* unit) {
 // The arrow of a unit at map position (x, y) (already zoomed), pointing along the unit's
 // facing: the tip twice (vertices 0 and 1), then the two back corners.
 void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
-    const Quaternion* rotation = &unit->orientation;
+    const Quaternion* rotation = &unit->localRotation_;
     // The original computes the rotated Y axis twice and takes x from the first, y from the
     // second (the function is pure).
     Vector3 first;
@@ -274,13 +274,13 @@ void CHudMap::BuildMarkers() {
     // The units the local view lists: an arrow, unless dead or outside the circle.
     for (int i = 0; i < unitCount; ++i) {
         out.BeginUnit();
-        auto* unit = static_cast<CUnit*>(objects->FindObject(view->partyUnitIds_[i]));
+        CUnit* unit = UnitWithId(objects, view->partyUnitIds_[i]);
         if (!unit || unit->IsDead() != 0) {
             out.Hide();
             continue;
         }
-        double mapX = out.MapX(unit->position.x);
-        float mapY = out.MapY(unit->position.y);
+        double mapX = out.MapX(unit->localPosition_.x);
+        float mapY = out.MapY(unit->localPosition_.y);
         float x = static_cast<float>(mapX * out.Zoom());
         double zoomedY = D(mapY) * out.Zoom();   // the original stores it but squares the register
         float y = static_cast<float>(zoomedY);
@@ -305,9 +305,9 @@ void CHudMap::BuildMarkers() {
     for (int i = 0; i < markedCount; ++i, node = node->next) {
         if (node == marked.End()) break;
         out.BeginQuad();
-        auto* object = static_cast<CUnit*>(markers->FindObject(node->data));
+        CLight* light = markers->LightWithId(node->data);
         float x, y;
-        if (object && out.Place(object->position.x, object->position.y, &x, &y)) {
+        if (light && out.Place(light->position_.x, light->position_.y, &x, &y)) {
             out.PutSquare(x, y);
             out.Show(kFrameMarked);
         } else {
@@ -337,9 +337,9 @@ void CHudMap::BuildMarkers() {
     if (IsMultiplayerClient()) {
         for (int i = 0; i < playerCount; ++i) {
             out.BeginQuad();
-            auto* unit = static_cast<CUnit*>(objects->FindObject(view->otherUnitIds_[i]));
+            CUnit* unit = UnitWithId(objects, view->otherUnitIds_[i]);
             float x, y;
-            if (unit && out.Place(unit->position.x, unit->position.y, &x, &y)) {
+            if (unit && out.Place(unit->localPosition_.x, unit->localPosition_.y, &x, &y)) {
                 out.PutDiamond(x, y);
                 out.Show(kFrameParty);
             } else {

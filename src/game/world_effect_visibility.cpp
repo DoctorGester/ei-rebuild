@@ -116,7 +116,7 @@ int CEffectShowVisibility::Tick() {
     CUnit* seer = WorldFindUnit(ObjectWorld(this), nullptr, seerId_);
     CUnit* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
     if (seer == nullptr || observer == nullptr) return 0;
-    std::memcpy(&localPosition_, &seer->position.x, sizeof(Vector3));
+    std::memcpy(&localPosition_, &seer->localPosition_.x, sizeof(Vector3));
     // 005CD210: the squares `seer` sees, with `observer`'s skills (the fog grid is a VisibilityGrid).
     MarkSightCells(seer, observer, reinterpret_cast<VisibilityGrid*>(&grid_));
     MarkChanged();

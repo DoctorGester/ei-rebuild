@@ -288,8 +288,8 @@ void COptionsWindow::BuildSettings() {
 
         int top = definition->row_ * 24;
         if (definition->kind_ == kSliderKind) {
-            void* memory = gamecrt::operator_new(sizeof(CUiSlider));
-            CUiSlider* slider = memory ? static_cast<CUiSlider*>(memory)->Construct(interface_, RECT{0, 0, 100, 100}, 3.0f,
+            auto* memory = gamecrt::operator_new_as<CUiSlider>();
+            CUiSlider* slider = memory ? memory->Construct(interface_, RECT{0, 0, 100, 100}, 3.0f,
                                                                                    definition->maximum_, 1.0f)
                                        : nullptr;
             setting.bar_ = slider;

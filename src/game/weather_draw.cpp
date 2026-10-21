@@ -36,7 +36,7 @@ int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
     if (this->mode == 0) return 1;
     UpdateFade(static_cast<float>(currentWorld->tick_));
     if (this->mode == 0) return 1;
-    TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(&texture));
+    TextureHolderEnsureLoaded(&texture);
     renderer->SetTexture(0, texture);
     int currentMode = mode;
     int result;

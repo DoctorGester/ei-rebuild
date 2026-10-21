@@ -114,8 +114,8 @@ CSectorMap* CSectorMap::DeletingDestruct(unsigned flags) {
 EI_REPLACE_METHOD(0x0058A780, CSectorMap::DeletingDestruct);
 
 bool CSectorMap::Add(CMapObject* object) {
-    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->position.x - 0.5f);
-    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * object->position.y - 0.5f);
+    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.x - 0.5f);
+    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
@@ -318,7 +318,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
         for (auto* node = sector.units.head; node;) {
             CUnit* unit = node->data;
             node = node->next;
-            float dx = unit->position.x - px, dy = unit->position.y - py;
+            float dx = unit->localPosition_.x - px, dy = unit->localPosition_.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
             if (distance < radiusSquared) result->AddHead(unit);
@@ -332,7 +332,7 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= kZero) || !(position->y >= kZero)))
         return false;
-    Vector3& current = object->position;
+    Vector3& current = object->localPosition_;
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
     int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
     Vector3 saved;

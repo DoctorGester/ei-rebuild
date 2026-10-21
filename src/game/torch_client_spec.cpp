@@ -44,7 +44,7 @@ void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The torch's position plus `offset`, each sum stored as a float.
 Vector3 AtTorch(const CMapObject* torch, const float* offset) {
-    return {torch->position.x + offset[0], torch->position.y + offset[1], torch->position.z + offset[2]};
+    return {torch->localPosition_.x + offset[0], torch->localPosition_.y + offset[1], torch->localPosition_.z + offset[2]};
 }
 
 } // namespace
@@ -120,7 +120,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     }
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float far = values_[1] * kShowFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, far, 1, 0);
 }
 EI_REWRITTEN(0x0052D580, CTorchObjectClientSpec::ShowEffects);
 
@@ -157,7 +157,7 @@ void CTorchObjectClientSpec::SetParticles(std::uint32_t type, const float* offse
     particles_ = source;
     if (source) ++source->refCount_;
     if (old) ReleaseSource(old);
-    particles_->position = at;
+    particles_->localPosition_ = at;
     particles_->ScaleSize(scale);
     particles_->Attach(nullptr);
 }
@@ -192,7 +192,7 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
     SetName(name);
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float far = values_[1] * kSetFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, far, 1, 0);
 }
 EI_REWRITTEN(0x0052D520, CTorchObjectClientSpec::SetSound);
 

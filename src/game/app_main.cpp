@@ -436,7 +436,7 @@ void ReleaseMouse(CDirectInputMouse* mouse) {
 
 // The mouse object made (not set up yet) and kept with one reference.
 void CreateMouse() {
-    auto* mouse = static_cast<CDirectInputMouse*>(gamecrt::operator_new(sizeof(CDirectInputMouse)));
+    auto* mouse = gamecrt::operator_new_as<CDirectInputMouse>();
     if (mouse) {
         mouse->references_ = 0;
         mouse->input_ = nullptr;

@@ -145,7 +145,7 @@ void CRainSnow::Clear() {
         TheSoundManager()->StopSound(sound);
         sound = 0;
     }
-    CEngineObject* old = texture;
+    CTexture* old = texture;
     texture = nullptr;
     if (old) old->Release();
     wind = Vector3{0.0f, 0.0f, 0.0f};
@@ -163,7 +163,7 @@ EI_REWRITTEN(0x004E3B80, CRainSnow::Clear);
 EI_REPLACE_METHOD(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
-    TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, kWeatherTextureKind, WeatherTextureName());
+    TextureHolderLoad(&texture, nullptr, kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
         TheSoundManager()->StopSound(sound);
         sound = 0;

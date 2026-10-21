@@ -392,7 +392,7 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
     float offset = std::bit_cast<float>(other->GetPrototype()->height);
-    double height = static_cast<double>(offset) + other->position.z;
+    double height = static_cast<double>(offset) + other->localPosition_.z;
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
 }
@@ -492,9 +492,9 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     float speedRatio = static_cast<float>(theirs.speed / (static_cast<double>(kSpeedScale) * mine.speed));
     const CUnit* self = unit;
     const CUnit* other = attacker->unit;
-    double dx = static_cast<double>(self->position.x) - other->position.x;
-    double dy = static_cast<double>(self->position.y) - other->position.y;
-    double dz = static_cast<double>(self->position.z) - other->position.z;
+    double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
+    double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
+    double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
     double distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     float twice = static_cast<float>(distance + distance);
     double radius = Radius(unit) * static_cast<double>(kDistanceScale);

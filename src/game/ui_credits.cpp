@@ -84,7 +84,7 @@ BOOL CCreditsScreen::Draw(int pass) {
         Close();
         return 1;
     }
-    return window.DrawContainer(pass);
+    return DrawContainer(pass);
 }
 EI_REPLACE_METHOD(0x0062BD80, CCreditsScreen::Draw);
 

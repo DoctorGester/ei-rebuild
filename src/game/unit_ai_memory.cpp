@@ -31,9 +31,9 @@ bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u 
 
 // (a - b) squared in 3D, summed as the original: z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {
-    double dx = static_cast<double>(a->position.x) - b[0];
-    double dy = static_cast<double>(a->position.y) - b[1];
-    double dz = static_cast<double>(a->position.z) - b[2];
+    double dx = static_cast<double>(a->localPosition_.x) - b[0];
+    double dy = static_cast<double>(a->localPosition_.y) - b[1];
+    double dz = static_cast<double>(a->localPosition_.z) - b[2];
     return LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
 }
 
@@ -70,8 +70,8 @@ void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* po
             AIBrain* theirs = other->ServerController()->Brain();
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
-            auto* enemy = static_cast<CUnit*>(theirs->AggressionEnemy());
-            if (enemy && enemy->GetClassId() == kClassUnit && !Allied(self->side, enemy->side)) continue;
+            CUnit* enemy = UnitOrNull(theirs->AggressionEnemy());
+            if (enemy && !Allied(self->side, enemy->side)) continue;
             if (!theirs->memory.seesEnemy) continue;
         }
         out->AddTail(other);
@@ -86,9 +86,9 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     for (auto* node = visible.head; node; node = node->next) {
         auto* other = node->data;
         if (!self->IsHostileTo(other) || IsDead(other)) continue;
-        double dx = static_cast<double>(self->position.x) - other->position.x;
-        double dy = static_cast<double>(self->position.y) - other->position.y;
-        double dz = static_cast<double>(self->position.z) - other->position.z;
+        double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
+        double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
+        double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
         double d2 = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
         EI_NAN_AUDIT(d2, best);
         if (d2 < best) {
@@ -106,9 +106,9 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     CUnit* other = object;
     CUnitServer* theirs = other->ServerController();
     CUnitServer* ours = self->ServerController();
-    double dx = static_cast<double>(self->position.x) - other->position.x;
-    double dy = static_cast<double>(self->position.y) - other->position.y;
-    double dz = static_cast<double>(self->position.z) - other->position.z;
+    double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
+    double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
+    double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     AIBrain* theirBrain = theirs->Brain();
     bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
@@ -167,9 +167,9 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
         auto* other = node->data;
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
         CUnitServer* theirs = other->ServerController();
-        double dx = static_cast<double>(other->position.x) - unit->position.x;
-        double dy = static_cast<double>(other->position.y) - unit->position.y;
-        double dz = static_cast<double>(other->position.z) - unit->position.z;
+        double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;
+        double dy = static_cast<double>(other->localPosition_.y) - unit->localPosition_.y;
+        double dz = static_cast<double>(other->localPosition_.z) - unit->localPosition_.z;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
         float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
                                    theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);

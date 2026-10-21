@@ -65,16 +65,16 @@ bool SnapshotReadToEnd() {
 int CEffectMissile::Steer() {
     int flying = 1;
     CWorld* world = WorldOf(this);
-    auto* target = static_cast<CMapObject*>(world->ObjectWithId(targetId_));
+    CMapObject* target = world->ObjectWithId(targetId_);
     if (target == nullptr) {
         velocity_ = Vector3{0.0f, 0.0f, 0.0f};
         flying = 0;
         arrived_ = 1;
     } else {
         // At the middle of the target's bounding box.
-        float aimZ = target->above.z * 0.5f + target->center.z + target->position.z;
-        velocity_.x = target->position.x - localPosition_.x;
-        velocity_.y = target->position.y - localPosition_.y;
+        float aimZ = target->above.z * 0.5f + target->center.z + target->localPosition_.z;
+        velocity_.x = target->localPosition_.x - localPosition_.x;
+        velocity_.y = target->localPosition_.y - localPosition_.y;
         velocity_.z = aimZ - localPosition_.z;
         float speed = kMissileSpeed;
         float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
@@ -314,9 +314,9 @@ int CEffectArrowFigure::Tick() {
     CWorld* world = WorldOf(this);
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
-        CEngineObject* target = world->ObjectWithId(targetId_);
+        CMapObject* target = world->ObjectWithId(targetId_);
         CEngineObject* caster = WorldFindUnit(world, nullptr, casterId_);
-        if (target != nullptr) ObjectSlots(target)->ReceiveHit(&hit_, caster, caster);
+        if (target != nullptr) target->ReceiveHit(&hit_, caster, caster);
     }
     return arrived_ == 0 ? 1 : 0;
 }
@@ -345,7 +345,7 @@ void CEffectArrowFigure::Start(int update) {
     // figure is made, as the original does.
     auto* figure = static_cast<CObject3D*>(figure_);
     CObject3DClientSpecific* attached = figure->ClientSpecific();
-    std::memcpy(&figure->position, &localPosition_, sizeof(figure->position));
+    std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
     console::CStringArray parts;
     figure->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();

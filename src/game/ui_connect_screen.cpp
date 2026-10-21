@@ -727,8 +727,8 @@ void CMpConnectScreen::Create() {
 
     AddSurface(NewSurface(interface_, 100, 100, 700, 500));
     {
-        void* memory = gamecrt::operator_new(sizeof(CUiScrollbar));
-        scroll_ = memory ? static_cast<CUiScrollbar*>(memory)->Construct(interface_, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f)
+        auto* memory = gamecrt::operator_new_as<CUiScrollbar>();
+        scroll_ = memory ? memory->Construct(interface_, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f)
                          : nullptr;
         AddChild(scroll_);
     }
@@ -741,9 +741,9 @@ void CMpConnectScreen::Create() {
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
         const int right = extended ? kExtendedFieldRight : 650;
-        void* memory = gamecrt::operator_new(sizeof(CUiSlider));
+        auto* memory = gamecrt::operator_new_as<CUiSlider>();
         playersSlider_ =
-            memory ? static_cast<CUiSlider*>(memory)->Construct(interface_, RECT{450, 196, 650, 206}, 3.0f, maximum, 1.0f)
+            memory ? memory->Construct(interface_, RECT{450, 196, 650, 206}, 3.0f, maximum, 1.0f)
                    : nullptr;
         AddChild(playersSlider_);
         RECT rect{450, 196, right, 206};

@@ -53,15 +53,15 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         node = node->next;
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
-        double dy = static_cast<double>(position->y) - other->position.y;
-        double dx = static_cast<double>(position->x) - other->position.x;
+        double dy = static_cast<double>(position->y) - other->localPosition_.y;
+        double dx = static_cast<double>(position->x) - other->localPosition_.x;
         if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
-        int unitX = CellOf(unit->position.x);
-        int unitY = CellOf(unit->position.y);
-        int otherX = CellOf(other->position.x);
-        int otherY = CellOf(other->position.y);
+        int unitX = CellOf(unit->localPosition_.x);
+        int unitY = CellOf(unit->localPosition_.y);
+        int otherX = CellOf(other->localPosition_.x);
+        int otherY = CellOf(other->localPosition_.y);
         float otherHeight = other->standingHeight;
         ShapeHandle handle;
         gamehash::InitShapeHandle(&handle);
@@ -145,8 +145,8 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     PassCostContext context;
     CostContext(unit->sizeClass, &context);
     // The original also asks the unit for its movement speeds (0052F920) and ignores them.
-    int x = CellOf(unit->position.x);
-    int y = CellOf(unit->position.y);
+    int x = CellOf(unit->localPosition_.x);
+    int y = CellOf(unit->localPosition_.y);
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     if (HasKind3Occluder(x, y)) {
         int sizeClass = unit->sizeClass;

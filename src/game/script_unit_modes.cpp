@@ -102,7 +102,7 @@ constexpr int kTypeFollow = 10;
 // tests the result (a null result would fault there; operator new does not return null).
 template <typename T>
 T* NewMode() {
-    auto* mode = static_cast<T*>(gamecrt::operator_new(sizeof(T)));
+    auto* mode = gamecrt::operator_new_as<T>();
     if (!mode) return nullptr;
     mode->refs = 0;
     mode->refsHigh = 0;

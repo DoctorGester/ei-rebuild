@@ -212,21 +212,21 @@ EI_REPLACE_METHOD(0x0050E440, CMapObject::ResetScale);
 // --- Position --------------------------------------------------------------------------------
 
 float* CMapObject::GetPosition(float* out, int) {
-    std::memcpy(out, &position.x, 3 * sizeof(float));
+    std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
     return out;
 }
 EI_REPLACE_METHOD(0x0050E4B0, CMapObject::GetPosition);
 
 float* CMapObject::GetPosition2(float* out) {
-    std::memcpy(out, &position.x, 3 * sizeof(float));
+    std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
     return out;
 }
 EI_REPLACE_METHOD(0x0050E4D0, CMapObject::GetPosition2);
 
 float* CMapObject::GroundPoint(float* out) {
-    float x = position.x + center.x;   // each stored to a float local
-    float y = position.y + center.y;
-    float z = position.z + center.z;
+    float x = localPosition_.x + center.x;   // each stored to a float local
+    float y = localPosition_.y + center.y;
+    float z = localPosition_.z + center.z;
     double height = GroundHeight(World(), x, y);
     out[0] = x;
     out[1] = y;
@@ -236,8 +236,8 @@ float* CMapObject::GroundPoint(float* out) {
 EI_REPLACE_METHOD(0x0050F730, CMapObject::GroundPoint);
 
 void CMapObject::PlaceOnGroundImpl(float offset) {
-    double height = GroundHeight(World(), position.x, position.y);
-    position.z = static_cast<float>(height + offset);
+    double height = GroundHeight(World(), localPosition_.x, localPosition_.y);
+    localPosition_.z = static_cast<float>(height + offset);
 }
 EI_REPLACE_METHOD(0x0050F020, CMapObject::PlaceOnGroundImpl);
 

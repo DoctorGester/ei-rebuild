@@ -96,7 +96,7 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 
-AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&memory.corpses, nullptr, out); }
+AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return CorpsesPopHead(&memory.corpses, nullptr, out); }
 void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b) {
     // 005D0030 reads `a` as a byte.
     attention.Choose(this, choice, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
@@ -108,9 +108,9 @@ void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vecto
 // copies the head's object into a counted local, unlinks the node, destroys the element in place
 // (0052CEC0 inlined: released, cleared), frees the node (the last one frees every block), then
 // copies the local into `out` and drops the local.
-AIRef* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRef* out) {
+AIRefTo<CUnit>* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRefTo<CUnit>* out) {
     CorpseList::Node* old = list->head;
-    CEngineObject* value = old->data;
+    CUnit* value = old->data;
     if (value) ++value->refCount_;
     list->head = old->next;
     if (list->head) list->head->prev = nullptr;
@@ -136,7 +136,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            TheServerWorld()->InvokeAlarm(alarm, &owner->unit->position.x, 0);
+            TheServerWorld()->InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
             owner->voice.Raise(kVoiceAlarm);
         }
     }
@@ -265,46 +265,35 @@ AIMode* AIBrain::FindMode(int type) {
 }
 EI_REWRITTEN(0x005D5DD0, AIBrain::FindMode);
 
-AIMode* AIBrain::FindPatrolMode() {
+PatrolMode* AIBrain::FindPatrolMode() {
     for (auto* node = modes.head; node;) {
         AIMode* mode = node->data;
         node = node->next;
-        if (mode->GetType() == kModePatrol) return mode;
+        if (mode->GetType() == kModePatrol) return static_cast<PatrolMode*>(mode);
     }
     return nullptr;
 }
 EI_REWRITTEN(0x005D5E30, AIBrain::FindPatrolMode);
 
-AIMode* AIBrain::FindPlayerMode() {
+PlayerMode* AIBrain::FindPlayerMode() {
     for (auto* node = modes.head; node;) {
         AIMode* mode = node->data;
         node = node->next;
-        if (mode->GetType() == kModePlayer) return mode;
+        if (mode->GetType() == kModePlayer) return static_cast<PlayerMode*>(mode);
     }
     return nullptr;
 }
 EI_REWRITTEN(0x005D5E60, AIBrain::FindPlayerMode);
 
 CUnit* AIBrain::PlayerModeLeader() {
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
-        if (mode->GetType() == kModePlayer) return mode ? static_cast<PlayerMode*>(mode)->leader : nullptr;
-    }
-    return nullptr;
+    PlayerMode* mode = FindPlayerMode();   // (the original inlines the walk)
+    return mode ? mode->leader : nullptr;
 }
 EI_REWRITTEN(0x005D5EE0, AIBrain::PlayerModeLeader);
 
 CMapObject* AIBrain::LeaderOrFollowed() {
     CMapObject* leader = nullptr;
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
-        if (mode->GetType() == kModePlayer) {
-            if (mode) leader = static_cast<PlayerMode*>(mode)->leader;
-            break;
-        }
-    }
+    if (PlayerMode* mode = FindPlayerMode()) leader = mode->leader;   // (the original inlines the walk)
     if (!leader && action == kActionFollow) return target;
     return leader;
 }
@@ -387,8 +376,8 @@ void AIBrain::UpdateMove() {
     if (o->action.kind == 1 || o->action2.kind == 1 || o->action.kind == 2 || o->action2.kind == 2) return;
     if (o->orderStopped) {
         CUnit* unit = o->unit;
-        double dy = actionPoint.y - unit->position.y;     // kept on the FPU stack
-        double dx = actionPoint.x - unit->position.x;
+        double dy = actionPoint.y - unit->localPosition_.y;     // kept on the FPU stack
+        double dx = actionPoint.x - unit->localPosition_.x;
         // TEST AH,0x41; JNZ: continue below when <= or unordered.
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
             if (target) target.Reset();
@@ -447,7 +436,7 @@ void AIBrain::UpdateAttack() {
         giveUp = true;
     }
     if (giveUp) {
-        if (IsGone(target) == 0) memory.Notice(&target->position, 1000, -2);
+        if (IsGone(target) == 0) memory.Notice(&target->localPosition_, 1000, -2);
         action = kActionNone;
         return;
     }
@@ -556,9 +545,9 @@ void AIBrain::SetSeen(CMapObject* object) {
             std::uint32_t bit = 1u << (seenUnit->side & 31);
             allied = (Diplomacy()[owner->unit->side] & bit) != 0;
         }
-        if (!allied) CallAllies(&object->position);
+        if (!allied) CallAllies(&object->localPosition_);
     } else {
-        CallAllies(&owner->unit->position);
+        CallAllies(&owner->unit->localPosition_);
     }
     if (!alerted && alertMode == 1) alerted = 1;
     if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);

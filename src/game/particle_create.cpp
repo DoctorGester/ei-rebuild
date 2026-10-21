@@ -328,8 +328,8 @@ void SetupClayRing(CParticleSource* s) {
         direction[0] = static_cast<float>(x87::fsin(angle));
         direction[1] = static_cast<float>(x87::fcos(angle));
         SetBits(&direction[2], 0);
-        std::memcpy(&s->elements[i].pos, &s->position, sizeof(Vector3));
-        std::memcpy(&s->elements[i].value[0], &s->position, sizeof(Vector3));
+        std::memcpy(&s->elements[i].pos, &s->localPosition_, sizeof(Vector3));
+        std::memcpy(&s->elements[i].value[0], &s->localPosition_, sizeof(Vector3));
         SetElementDword(s, i, 0x34, 14);
     }
 }
@@ -795,8 +795,8 @@ void BuildFrames(CParticleSource* s) {
 // 004847E0. Back to the defaults: no position, attachment, callbacks or elements; the texture
 // released; unit sizes, a 1000 emission spacing, 10000 frame delay, a one-frame grid.
 void CParticleSource::Reset() {
-    std::memset(&position, 0, sizeof(Vector3));
-    orientation = kIdentityRotation;
+    std::memset(&localPosition_, 0, sizeof(Vector3));
+    localRotation_ = kIdentityRotation;
     attachedTo = nullptr;
     emitChance = 0;
     emitCount = 0;
@@ -804,9 +804,9 @@ void CParticleSource::Reset() {
     frameCount = 1;
     frameColumns = 1;
     frameDelay = 10000;
-    void* held = texture;
+    CTexture* held = texture;
     texture = nullptr;
-    if (held) (*static_cast<void (__fastcall***)(void*, void*)>(held))[4](held, nullptr);
+    if (held) held->Release();
     std::memset(&windDirection, 0, sizeof(Vector3));
     std::memset(&extent, 0, sizeof(Vector3));
     emitFn = nullptr;
@@ -841,9 +841,9 @@ EI_REWRITTEN(0x004847E0, CParticleSource::Reset);
 // from the object the source follows, then resets.
 void CParticleSource::Clear() {
     ReleaseAllParticles();
-    void* held = texture;
+    CTexture* held = texture;
     texture = nullptr;
-    if (held) (*static_cast<void (__fastcall***)(void*, void*)>(held))[4](held, nullptr);
+    if (held) held->Release();
     if (attachedTo)   // 00518AE0: detached from the object it is attached to
         static_cast<CObject3D*>(attachedTo)->RemoveEffectSource(this);
     Reset();
@@ -872,7 +872,7 @@ int CParticleSource::CreateForType() {
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, 6, name);
+    TextureHolderLoad(&texture, nullptr, 6, name);
     BuildFrames(this);
     return 1;
 }
@@ -901,17 +901,16 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     // tries (each a GlobalRandom draw) from whatever the heap held. The harness zeroes the original's alike.
     void* memory = gamecrt::operator_new_zeroed(sizeof(CParticleSource));
     if (!memory) return nullptr;
-    auto* bytes = static_cast<std::uint8_t*>(memory);
     auto* s = static_cast<CParticleSource*>(memory);
     EngineObjectConstruct(s);
-    reinterpret_cast<Quaternion*>(bytes + 0x34)->SetIdentity();
-    reinterpret_cast<Quaternion*>(bytes + 0x44)->SetIdentity();
+    s->localRotation_.SetIdentity();
+    s->worldRotation_.SetIdentity();
     ei::SetVtable(s, CTransformObject::kVtableAddress);
     s->elements = nullptr;
     s->elementGrowBy = 0;
     s->elementCapacity = 0;
     s->elementCount = 0;
-    std::memset(bytes + offsetof(CParticleSource, boundsFlags), 0, 0x38);
+    std::memset(&s->boundsFlags, 0, 0x38);
     ei::SetVtable(&s->particles, mfc::impl::ClientListClass::Vtable());
     s->particles.count = 0;
     s->particles.free = nullptr;
@@ -942,7 +941,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
 void CParticleSource::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     Clear();
-    if (texture) (*static_cast<void(__fastcall***)(void*, void*)>(texture))[4](texture, nullptr);
+    if (texture) texture->Release();
     if (frameBase) gamecrt::operator_delete(reinterpret_cast<void**>(static_cast<std::uintptr_t>(frameBase))[-1]);
     ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
     particles.count = 0;

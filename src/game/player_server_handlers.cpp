@@ -66,7 +66,7 @@ float CellScaleB() { return 0.5f /*0073B86C*/; }
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
-const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
+const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
 // 0052CDB0's new node holds a null reference, then the assignment counts the object).
@@ -214,7 +214,7 @@ int CPlayerServer::OnUseOrder() {
     in.Read(&value, 4);
     in.Read(&objectId, 4);
     // A map object (the use order's target), or null.
-    CMapObject* object = ObjectSlots(TheServerWorld()->FindObject(static_cast<unsigned>(objectId)));
+    CMapObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId));
 
     CUnit* chosen = nullptr;
     if (units.size >= 2) {
@@ -273,8 +273,8 @@ int CPlayerServer::OnUseOrder() {
 
     if (chosen) {
         AIBrain* brain = chosen->ServerController()->Brain();
-        if (AIMode* mode = brain->FindPlayerMode())
-            static_cast<PlayerMode*>(mode)->CommandUse(brain, object, kind, value, flag != 0);
+        if (PlayerMode* mode = brain->FindPlayerMode())
+            mode->CommandUse(brain, object, kind, value, flag != 0);
     }
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
@@ -341,8 +341,8 @@ int MoveUnits(MoveCommand command) {
     FormationOffsets(&units, &offsets);
     for (int i = 0; i < units.size; ++i) {
         AIBrain* brain = units[i]->ServerController()->Brain();
-        if (AIMode* mode = brain->FindPlayerMode())
-            (static_cast<PlayerMode*>(mode)->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
+        if (PlayerMode* mode = brain->FindPlayerMode())
+            (mode->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
     }
     FreeArray(&offsets, mfc::impl::Vector3ArrayClass::Vtable());
     FreeArray(&units, mfc::impl::UnitPtrArrayClass::Vtable());
@@ -540,11 +540,11 @@ int CPlayerServer::OnAttack() {
     in.Read(&ctrl, 4);
     in.Read(&how, 4);
     in.Read(&objectId, 4);
-    if (CMapObject* object = ObjectSlots(TheServerWorld()->FindObject(static_cast<unsigned>(objectId)))) {
+    if (CMapObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < units.size; ++i) {
             AIBrain* brain = units[i]->ServerController()->Brain();
-            if (AIMode* mode = brain->FindPlayerMode())
-                static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, ctrl != 0);
+            if (PlayerMode* mode = brain->FindPlayerMode())
+                mode->CommandAttack(brain, object, how, ctrl != 0);
         }
     }
     FreeArray(&units, mfc::impl::UnitPtrArrayClass::Vtable());

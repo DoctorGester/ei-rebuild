@@ -114,8 +114,8 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     boundsMax_.y += 1.0f;
     boundsMax_.z += 1.0f;
     radius_ = boundsMax_.Length();
-    auto** glow = reinterpret_cast<CTexture**>(&glowTexture_);
-    auto** main = reinterpret_cast<CTexture**>(&texture_);
+    CTexture** glow = &glowTexture_;
+    CTexture** main = &texture_;
     if (demon) {
         TextureHolderLoad(glow, nullptr, 6, "DemonLight");
         TextureHolderLoad(main, nullptr, 6, "DemonLightning");
@@ -136,8 +136,8 @@ void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct
 void __fastcall SegmentDestruct(LightningSegment* segment) { segment->Destruct(); }
 
 // A texture reference dropped: cleared, then released.
-void DropTexture(CEngineObject*& slot) {
-    CEngineObject* old = slot;
+void DropTexture(CTexture*& slot) {
+    CTexture* old = slot;
     slot = nullptr;
     if (old) old->Release();
 }
@@ -148,7 +148,7 @@ void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::
 // engine object's constructor inlined, the bounds cleared, the main segment's points empty, the
 // branches constructed), reset like slot 3.
 CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
-    auto* bolt = static_cast<CLightning*>(gamecrt::operator_new(sizeof(CLightning)));
+    auto* bolt = gamecrt::operator_new_as<CLightning>();
     if (!bolt) return nullptr;
     auto* bytes = reinterpret_cast<std::uint8_t*>(bolt);
     SetVtable(bolt, CEngineObject::kVtableAddress);

@@ -549,6 +549,11 @@ public:
 // The item with id `id` in an item manager (a party's, the world's item factory), or null.
 inline CItem* FindItem(const CBaseManager* items, unsigned id) { return static_cast<CItem*>(items->FindObject(id)); }
 
+// An item known to be a weapon as the CItemWeapon it is: a weapon slot's item (CUnit::weapons,
+// PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a
+// weapon. The original calls the weapon's methods without a class test.
+inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
+
 // The item manager (007AFFB4; 0xBC bytes, as the world and every party make one; a real virtual
 // class: the compiler makes its vtable, C19, game.exe's 0073F25C is retired). Only the functions
 // rewritten here are declared; context_ (+0xAC) is its manager context (slot 16: the item

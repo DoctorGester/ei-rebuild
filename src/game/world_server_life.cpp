@@ -46,11 +46,11 @@ int CWorldServer::Setup() {
     }
     if (!opened) return game::FatalError(CantOpenText());
 
-    auto* specific = static_cast<CServerSpecificManager*>(gamecrt::operator_new(sizeof(CServerSpecificManager)));
+    auto* specific = gamecrt::operator_new_as<CServerSpecificManager>();
     manager44_ = specific ? specific->Construct() : nullptr;
     ++manager44_->refCount_;   // the original counts the reference without testing the pointer
     manager44_->SetContext(this);
-    auto* hoover = static_cast<CHoover*>(gamecrt::operator_new(sizeof(CHoover)));
+    auto* hoover = gamecrt::operator_new_as<CHoover>();
     hoover_ = hoover ? hoover->Construct() : nullptr;
     ++hoover_->refCount_;
 
@@ -74,7 +74,7 @@ int CWorldServer::Setup() {
 
 void CWorldServer::Teardown() {
     // Every player disconnected and released (a heap iterator, as the original allocates it).
-    auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
+    auto* it = gamecrt::operator_new_as<PlayerIterator>();
     if (it) it->manager = nullptr;
     if (PlayerList()) {
         for (CPlayer* player = it->First(PlayerList()); player; player = it->Next()) {

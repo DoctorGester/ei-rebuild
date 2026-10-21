@@ -124,7 +124,7 @@ void CUnitServer::FinishCast() {
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);
     }
-    world->CastSpell(spell, unit, &unit->position, action.target, &at, 0);
+    world->CastSpell(spell, unit, &unit->localPosition_, action.target, &at, 0);
     if (SpellPrototype(spell)->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
         reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
@@ -186,7 +186,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
             }
             if (!ranged) {
                 double height =
-                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->position.z;
+                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->localPosition_.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;
@@ -240,7 +240,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
             if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
-            world->CastSpell(carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
+            world->CastSpell(carrier->spell_, unit, &unit->localPosition_, nullptr, reinterpret_cast<const Vector3*>(point), 0);
             world->UseItemUp(unit, scroll);
             return;
         }
@@ -274,8 +274,8 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
             if (!scroll || !scroll->count_) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
-            world->CastSpell(spellCarrier->spell_, unit, &unit->position, target,
-                                   &reinterpret_cast<CUnit*>(target)->position, 0);
+            world->CastSpell(spellCarrier->spell_, unit, &unit->localPosition_, target,
+                                   &reinterpret_cast<CUnit*>(target)->localPosition_, 0);
             world->UseItemUp(unit, scroll);
             return;
         }

@@ -265,9 +265,9 @@ EI_REWRITTEN(0x00524FE0, UnitVitals::TakeHit);
 BOOL CUnit::IsBehind(const CEngineObject* target) {
     if (!player) return 0;
     auto* t = static_cast<const CObject3D*>(target);
-    float dx = t->position.x - position.x;
-    float dy = t->position.y - position.y;
-    float dz = t->position.z - position.z;
+    float dx = t->localPosition_.x - localPosition_.x;
+    float dy = t->localPosition_.y - localPosition_.y;
+    float dz = t->localPosition_.z - localPosition_.z;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
     if (length > kZero) {
         dx = static_cast<float>(dx / length);
@@ -288,10 +288,10 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
         if (weapon->GetType() == 6) return 0;
     }
     // The target's facing from its orientation quaternion.
-    float a = t->orientation.w;
-    float b = t->orientation.x;
-    float c = t->orientation.y;
-    float d = t->orientation.z;
+    float a = t->localRotation_.w;
+    float b = t->localRotation_.x;
+    float c = t->localRotation_.y;
+    float d = t->localRotation_.z;
     double x = c * b - a * d;
     x = x + x;
     double cc = c * c;

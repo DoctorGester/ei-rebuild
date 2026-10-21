@@ -89,7 +89,7 @@ EI_REWRITTEN(0x006A2DE0, CItemWeapon::RollDamage);
 
 BOOL CItemWeapon::IsSameAsImpl(CItem* item) {
     if (!CItem::IsSameAsImpl(item)) return 0;
-    auto* other = static_cast<CItemWeapon*>(item);
+    CItemWeapon* other = AsWeapon(item);   // of this one's type (the base's test)
     if (other->actionValue_ != actionValue_) return 0;
     EI_NAN_AUDIT(other->damage_, damage_, other->damageSpread_, damageSpread_, other->reach_, reach_);
     if (other->damage_ != damage_) return 0;

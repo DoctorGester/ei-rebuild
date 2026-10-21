@@ -9,6 +9,7 @@
 #include "figure_mesh.h"          // VertexPacket, MeshCorner
 #include "ground_decal.h"
 #include "link_figure.h"          // CLinkMesh, ITransformPipeline
+#include "map_object.h"           // CMapObject (ObjectWithId)
 #include "map_object_figures.h"   // CObject3D
 #include "model.h"                // CTransformPipeline, ScenePipeline
 #include "originals_library.h"    // GameAtExit
@@ -37,11 +38,11 @@ void(__cdecl* const kFreePartPoints)() = reinterpret_cast<void(__cdecl*)()>(0x00
 
 // A scene node's matrix from its orientation and position (the bottom row 0, 0, 0, 1).
 void BuildNodeMatrix(CObject3D* node) {
-    node->orientation.ToMatrix(node->worldMatrix.m);
+    node->localRotation_.ToMatrix(node->worldMatrix.m);
     float* m = node->worldMatrix.m;
-    m[11] = node->position.z;
-    m[3] = node->position.x;
-    m[7] = node->position.y;
+    m[11] = node->localPosition_.z;
+    m[3] = node->localPosition_.x;
+    m[7] = node->localPosition_.y;
     m[14] = 0.0f;
     m[13] = 0.0f;
     m[12] = 0.0f;
@@ -127,15 +128,15 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
         PartData data;
         for (PlatformNode* face = platforms_.list.head; face;) {
             PlatformNode* next = face->next;
-            auto* object = static_cast<CObject3D*>(ObjectWithId(face->data.id));
+            CObject3D* object = ObjectWithId(face->data.id);
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.
-            if (!builder.Touches(&object->position, Length<Sum3::XYZ>(object->center) + object->radius))
+            if (!builder.Touches(&object->localPosition_, Length<Sum3::XYZ>(object->center) + object->radius))
                 continue;
             BuildNodeMatrix(object);
             Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->center) +
-                             object->position;
+                             object->localPosition_;
             if (!builder.Touches(&centre, object->radius)) continue;
             PushDecalMatrix(pipeline, object->worldMatrix.m);
             auto* figure = reinterpret_cast<CLinkMesh*>(object->figure);

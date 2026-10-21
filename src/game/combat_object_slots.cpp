@@ -87,7 +87,7 @@ void CUnitServer::Resettle() {
     unit->UpdateSizeClass();
     CAIMap* map = world->AIMap();
     if (!map->CanLeaveCell(unit)) {
-        auto* position = &unit->position;
+        auto* position = &unit->localPosition_;
         Vector3 spot;
         std::memcpy(&spot, position, sizeof(spot));
         if (map->FindFreeCellNear(unit, position, &spot)) {

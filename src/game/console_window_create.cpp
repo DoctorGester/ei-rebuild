@@ -33,7 +33,7 @@ ConsoleWindow* ConsoleWindow::Construct(int* screen) {
     shown_ = false;
     ctrl_ = false;
     shift_ = false;
-    auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(sizeof(ui_gdi::GameFont)));
+    auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
     if (font) {
         font->handle = nullptr;
         font->vtable = FontVtable();

@@ -624,9 +624,9 @@ public:
     void Play(int animation);
     // 005FC3D0. Plays the figure's rest pose (the object manager's object named like the figure).
     void Stop();
-    CObject3D* Figure() const { return reinterpret_cast<CObject3D*>(object_); }
+    CObject3D* Figure() const { return object_; }
 
-    CTransformObject* object_;
+    CObject3D* object_;
 };
 static_assert(sizeof(CUiModel) == 4);
 
@@ -1103,6 +1103,7 @@ class CHudWeaponBar;
 class CHudPortraits;
 class CHudUnitPanel;
 class CBattleScreen;   // below CUiContainer
+class CUiScrollText;  // below CBattleScreen
 
 // An MFC CDWordArray (SetSize 0059C660; `growBy` -1 keeps the step).
 using UiDwordArray = mfc::CArray<std::uint32_t>;
@@ -2309,8 +2310,10 @@ public:
     CHudMap* map_;                   // +0x1AC
     CHudClock* clock_;               // +0x1B0
     CHudMovePanel* movePanel_;       // +0x1B4
-    CUiWindow* messageLog_;          // +0x1B8 a CUiScrollText
+    CUiScrollText* messageLog_;      // +0x1B8
     CHudTopPanel* topPanel_;         // +0x1BC
+    // The message log (child window 9; defined after CUiScrollText).
+    CUiScrollText* MessageLog() const;
     bool viewPressed_;               // +0x1C0 the left button went down on the view (00638A40)
     bool boxSelecting_;              // +0x1C1 a selection box is being dragged
     std::uint8_t unused_1C2[0x1C4 - 0x1C2];
@@ -2591,6 +2594,9 @@ private:
     void DeleteTokens();
 };
 static_assert(offsetof(CUiScrollText, textRect_) == 0x18C);
+
+// The battle screen's message log as its code reaches it: the tenth child window (messageLog_).
+inline CUiScrollText* CBattleScreen::MessageLog() const { return static_cast<CUiScrollText*>(children_.data[9]); }
 static_assert(offsetof(CUiScrollText, tokens_) == 0x19C);
 static_assert(offsetof(CUiScrollText, lines_) == 0x1B0);
 static_assert(offsetof(CUiScrollText, align_) == 0x1C4);

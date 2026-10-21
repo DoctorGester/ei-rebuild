@@ -139,8 +139,8 @@ const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
     return item->GetPrototype();
 }
 int CategoryOf(CItem* item) { return item->GetCategory(); }
-const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
-    return static_cast<CSpell*>(spell)->GetPrototype();
+const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
+    return spell->GetPrototype();
 }
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
@@ -274,7 +274,7 @@ constexpr int kLoot = 0x3009;
 
 int KindOf(CItem* item) { return Read<int>(item, 0x10); }
 std::uint32_t PackedIdOf(CItem* item) { return Read<std::uint32_t>(item, 0x18); }
-void* SpellOf(CItem* item) { return Read<void*>(item, 0x44); }
+CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0:
 // FCOMP; TEST AH,0x40; JZ. Returns the index, or 7.
@@ -386,7 +386,7 @@ void CItemInfoPanel::DescribeItem() {
 
     if (kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) {
         // The charge and the carried spell's level.
-        void* spell = SpellOf(item);
+        CSpell* spell = SpellOf(item);
         int spellValue = spell ? Read<int>(spell, 0x50) : 0;
         w.Number(2, FtolOf(Read<float>(item, 0x2C)));
         w.line.Format("%s %d/%d", static_cast<const char*>(w.T(14)), spellValue, Read<int>(item, 0x40));
@@ -405,10 +405,11 @@ void CItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
         if (kind == kWeapon) {
+            CItemWeapon* weapon = AsWeapon(item);
             // Damage: min-max and the first damage kind with a weight ("damage_<n>"; the text
             // keeps the material line's otherwise).
             float weights[7];
-            static_cast<CItemWeapon*>(item)->GetDamageTypes(weights);
+            weapon->GetDamageTypes(weights);
             unsigned first = FirstDamageKind(weights);
             if (first < 7) {
                 w.line.Format("damage_%d", first);
@@ -424,7 +425,7 @@ void CItemInfoPanel::DescribeItem() {
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
             w.Number(38, Ftol(WeaponStat84(PackedIdOf(item))));
-            if (static_cast<CItemWeapon*>(item)->GetType() == 5 || static_cast<CItemWeapon*>(item)->GetType() == 6)
+            if (weapon->GetType() == 5 || weapon->GetType() == 6)
                 w.Number(10, FtolOf(Read<float>(item, 0x58)));
             else
                 w.Number(39, Ftol(WeaponStat88(PackedIdOf(item))));
@@ -451,7 +452,7 @@ tail:
         w.Down();
         w.Down();
         if (kind != kWeapon) w.Down();
-        void* spell;
+        CSpell* spell;
         if ((kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) &&
             (spell = SpellOf(item)) != nullptr) {
             // The carried spell's name ("spell <name>").
@@ -666,7 +667,7 @@ void CItemInfoPanel::DescribeQuickItem() {
     Writer w(this);
     w.Draw()->Begin();
     w.Head(name, kindText);
-    if (void* spell = SpellOf(item)) {
+    if (CSpell* spell = SpellOf(item)) {
         bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
         SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
         DurationLine(w, Read<std::uint32_t>(spell, 0x20));
@@ -681,7 +682,7 @@ EI_REWRITTEN(0x005EF300, CItemInfoPanel::DescribeQuickItem);
 
 void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
-    void* spell = item ? SpellOf(item) : nullptr;
+    CSpell* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
         static_cast<SurfaceDraw*>(surfaces_.data[0])->End();   // without a Begin, as the original
         return;
@@ -736,11 +737,11 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Down();
     w.Down();
     w.Down();
-    if (static_cast<CSpell*>(spell)->GetModifierCount() > 0) {
+    if (spell->GetModifierCount() > 0) {
         // "<infoitem_19> name, name, ...": each modifier's third text line ("modifier <code>"),
         // "?" without one.
         w.line = w.T(19);
-        for (int i = 0; i < static_cast<CSpell*>(spell)->GetModifierCount(); ++i) {
+        for (int i = 0; i < spell->GetModifierCount(); ++i) {
             w.line += " ";
             text = "?";
             std::uint32_t index = static_cast<std::uint32_t>(Read<signed char>(spell, 0x54 + i) - 1);
@@ -858,9 +859,9 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
 // Kind 5, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
 // weapon of type 5 or 6, infoitem_34).
 void WeaponLines(Writer& w, const ItemHoverInfo* info) {
-    CItem* weapon = info->weapon;
+    CItemWeapon* weapon = info->weapon;
     UnitStats* stats = info->stats;
-    int type = static_cast<CItemWeapon*>(weapon)->GetType();
+    int type = weapon->GetType();
     if (MbsCmp(info->text, "defense") == 0 && (type == 5 || type == 6)) {
         w.Wrapped(w.T(34), 2);
         w.Down();

@@ -106,9 +106,9 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
         CUnit* unit = node->data;
         node = node->next;
         const CUnit* at = unit;
-        double dz = at->position.z - position.z;
-        double dy = at->position.y - position.y;
-        double dx = at->position.x - position.x;
+        double dz = at->localPosition_.z - position.z;
+        double dy = at->localPosition_.y - position.y;
+        double dx = at->localPosition_.x - position.x;
         float distance = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, normalX, normalY, normalZ));
         std::uint32_t bits;
         std::memcpy(&bits, &distance, sizeof(bits));

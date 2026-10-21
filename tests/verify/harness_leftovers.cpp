@@ -89,7 +89,7 @@ ClassTemplate* __fastcall ZeroedTemplateConstruct(ClassTemplate* t) {
 // (S17a; zeroed after the construction).
 CObject3D* __fastcall ZeroedViewConstruct(CObject3D* object) {
     CObject3D* result = reinterpret_cast<CObject3D*(__fastcall*)(CObject3D*)>(kObject3DConstruct)(object);
-    std::memset(&object->viewPosition, 0, sizeof(object->viewPosition));
+    std::memset(&object->worldPosition_, 0, sizeof(object->worldPosition_));
     return result;
 }
 

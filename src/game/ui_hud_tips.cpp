@@ -51,8 +51,8 @@ void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
 int Truncate(float value) { return static_cast<int>(value); }
 
 // The spell's prototype record (0068BA20) of a spell's data block (an item's +0x44).
-const itemdb::SpellRecord* SpellPrototype(void* spell) {
-    return static_cast<CSpell*>(spell)->GetPrototype();
+const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
+    return spell->GetPrototype();
 }
 
 } // namespace
@@ -104,7 +104,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         tip += line;
 
         // A weapon with a spell: the spell's name ("spell <name>").
-        if (void* spell = weapon->spell_) {
+        if (CSpell* spell = weapon->spell_) {
             description = "Unknown";
             int found = TextsOpenSection(TheTextManager(), nullptr,
                                  mfc::operator+(mfc::CString("spell "),
@@ -132,7 +132,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     text->Empty();
     // (The original passes one CString as the description and the kind.)
     TheTextManager()->GetItemTexts(item, text, &line, &line);
-    auto* data = reinterpret_cast<std::uint8_t*>(item->spell_);
+    CSpell* data = item->spell_;
     if (!data) return;
     const float one = 1.0f /*0073B84C*/;
     const float pi = 3.1415927f /*007423F8*/;

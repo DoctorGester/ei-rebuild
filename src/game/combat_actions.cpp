@@ -217,7 +217,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = target->AimPoint(&point);
-    TheServerWorld()->CastSpell(spell, self, &self->position, target, at, 0);
+    TheServerWorld()->CastSpell(spell, self, &self->localPosition_, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
@@ -234,7 +234,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         UseItemCharge(item, cost);
         CUnit* self = unit;
-        TheServerWorld()->CastSpell(spell, self, &self->position, self, &self->position, 0);
+        TheServerWorld()->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 0);
     }
 }
 EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
@@ -269,10 +269,10 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     if (!attacker) return 0;
     if (hitKind) return 0;
     const CUnit* self = unit;
-    float dx = attacker->position.x - self->position.x;
-    float dy = attacker->position.y - self->position.y;
-    float dz = attacker->position.z - self->position.z;
-    const Quaternion* rotation = &self->orientation;
+    float dx = attacker->localPosition_.x - self->localPosition_.x;
+    float dy = attacker->localPosition_.y - self->localPosition_.y;
+    float dz = attacker->localPosition_.z - self->localPosition_.z;
+    const Quaternion* rotation = &self->localRotation_;
     Vector3 axisY;
     rotation->AxisY(&axisY);
     // The unit's Y axis points backwards: "front" is the negated projection on it.
@@ -344,8 +344,8 @@ void CUnitServer::PropagateHostility() {
         node = node->next;
         if (!(diplomacy->allied_[side] & (1u << (static_cast<std::uint32_t>(other->side) & 31)))) continue;
         CUnit* self = unit;
-        double dx = static_cast<double>(other->position.x) - self->position.x;
-        double dy = static_cast<double>(other->position.y) - self->position.y;
+        double dx = static_cast<double>(other->localPosition_.x) - self->localPosition_.x;
+        double dy = static_cast<double>(other->localPosition_.y) - self->localPosition_.y;
         float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
@@ -423,8 +423,9 @@ EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
 void CUnitServer::UseSkill(CMapObject* target) {
     CWorldServer* world = ServerWorld();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
-        if (!target || target->GetClassId() != kClassUnit) return;
-        if (CPlayer* player = unit->player) TheServerWorld()->Loot(target, player);
+        CUnit* looted = UnitOrNull(target);
+        if (!looted) return;
+        if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
         WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
@@ -462,13 +463,13 @@ void CUnitServer::UseSkill(CMapObject* target) {
     case 0: {
         ItemUse record = {1, 0, 0};
         auto* items = world->ItemFactory();
-        CEngineObject* studied = items->FindObject(action.param);
+        CItem* studied = FindItem(items, action.param);
         record = {1, 0, 0};
         if (studied) {
             ItemUse scratch;
-            if (static_cast<CItem*>(studied)->GetUse(&scratch)->kind != 0) {
+            if (studied->GetUse(&scratch)->kind != 0) {
                 ItemUse scratch2;
-                const ItemUse* found = static_cast<CItem*>(studied)->GetUse(&scratch2);
+                const ItemUse* found = studied->GetUse(&scratch2);
                 record = *found;
             }
         }

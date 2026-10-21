@@ -122,7 +122,7 @@ int CEffectTornado::Tick() {
     if (moving_ != 0) {
         localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
                                  static_cast<float>(localPosition_.z + velocity_.z)};
-        if (source_ != nullptr) Source()->position = localPosition_;
+        if (source_ != nullptr) Source()->localPosition_ = localPosition_;
         if (sound_ != -1) TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
     }
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) Source()->Stop();
@@ -178,7 +178,7 @@ void CEffectTornado::Start(int update) {
     source_ = source;
     if (source != nullptr) ++source->refCount_;
     if (old != nullptr) old->Release();
-    Source()->position = localPosition_;
+    Source()->localPosition_ = localPosition_;
     Source()->ScaleSize(1.0f);
     int behind = CurrentClientTick() - launchTick_;
     if (behind >= kMaxCatchUp) behind = kMaxCatchUp;

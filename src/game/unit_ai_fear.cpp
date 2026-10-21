@@ -65,7 +65,7 @@ bool IsZero(double v) {
 bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x) == kUnsetBits; }
 
 const Vector3* PositionOf(CEngineObject* object) {
-    return &static_cast<CMapObject*>(object)->position;
+    return &static_cast<CMapObject*>(object)->localPosition_;
 }
 
 CAIMap* Map() { return TheServerWorld()->AIMap(); }
@@ -188,8 +188,8 @@ int FearMode::Evaluate(AIBrain* brain) {
             auto* other = node->data;
             if (!other->player) continue;
             const Vector3* me = PositionOf(brain->owner->unit);
-            double oy = static_cast<double>(me->y) - other->position.y;
-            double ox = static_cast<double>(me->x) - other->position.x;
+            double oy = static_cast<double>(me->y) - other->localPosition_.y;
+            double ox = static_cast<double>(me->x) - other->localPosition_.x;
             double d2 = LengthSquared2DUnrounded(ox, oy);
             if (d2 < best) {
                 nearest = *PositionOf(other);

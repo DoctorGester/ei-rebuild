@@ -80,7 +80,7 @@ namespace terrain {
 
 LightRef* AllocLightRef() {
     if (!g_blocksWithFree) {
-        auto* block = static_cast<LightRefBlock*>(gamecrt::operator_new(sizeof(LightRefBlock)));
+        auto* block = gamecrt::operator_new_as<LightRefBlock>();
         g_blocksWithFree = block;
         block->next = nullptr;
         block->prev = nullptr;

@@ -27,8 +27,6 @@
 
 namespace {
 
-// 00500970: makes sure the texture in `holder` is loaded.
-void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(a0)); }
 // 004F16A0: the visibility of a bounds record for the device's view (+8): 2 is outside.
 // 00455950: the world an engine object belongs to (its frame counter at +0x64).
 // The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the
@@ -80,9 +78,8 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
         p.size = 0;
         GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x004679F0));
     }
-    auto** holder = reinterpret_cast<void**>(&glowTexture_);
-    EnsureTextureLoaded(holder);
-    if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, *holder)) return;
+    TextureHolderEnsureLoaded(&glowTexture_);   // 00500970
+    if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, glowTexture_)) return;
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
     float frames[15][4];
@@ -124,10 +121,9 @@ EI_REWRITTEN(0x00467590, CLightning::DrawGlow);
 
 // 00467AD0. 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
 int CLightning::DrawImpl(void* device) {
-    auto** holder = reinterpret_cast<void**>(&texture_);
-    EnsureTextureLoaded(holder);
+    TextureHolderEnsureLoaded(&texture_);   // 00500970
     auto* renderer = static_cast<CSceneRenderer*>(device);
-    if (!renderer->SetTexture(0, *holder)) return 0;
+    if (!renderer->SetTexture(0, texture_)) return 0;
     int visibility = renderer->pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&boundsKind_));
     if (visibility == 2) return 1;
     const float zero = 0.0f /*0073B858*/;
