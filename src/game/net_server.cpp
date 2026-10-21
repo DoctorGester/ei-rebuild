@@ -21,8 +21,6 @@ namespace {
 
 void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
-// 00783E30: the game's UDP port (read at run time, as the original does).
-int GamePort() { return ei::GameData<const volatile int>(0x00783E30); }
 
 } // namespace
 
@@ -32,7 +30,7 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     SessionBase::Construct();
     joins_.Construct();
     ei::SetVtable(this, ServerBase::kVtableAddress);
-    socket_.Open(GamePort());
+    socket_.Open(g_gamePort);
     masterAddress_ = NetAddress{};
     players_.Construct();
     lines_.Construct();
@@ -106,7 +104,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
     if (!bindings_.Empty()) {
         for (RefNode* n = bindings_.First(); n != bindings_.End(); n = n->next) {
             auto* binding = ValueOf<BindingMessage>(n);
-            if (binding->ConnectionRef().ptr != CurrentConnection()) continue;
+            if (binding->ConnectionRef().ptr != g_currentConnection) continue;
             record = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
             if (record->host_) hosting = true;
             PushReplicated(*out, binding, 2);
@@ -115,7 +113,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
             for (RefNode* n = lines_.First(); n != lines_.End(); n = n->next) {
                 auto* line = ValueOf<LineMessage>(n);
                 CRefObject* target = line->connection_.ptr;
-                if ((!target || target == CurrentConnection()) &&
+                if ((!target || target == g_currentConnection) &&
                     static_cast<std::int32_t>(line->number_) > static_cast<std::int32_t>(record->firstLine_))
                     PushReplicated(*out, line, 2);
             }
@@ -126,7 +124,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         RefNode* requests = fileRequests_.End();
         for (RefNode* m = requests->next; m != requests; m = m->next) {
             auto* request = ValueOf<FileRequestMessage>(m);
-            if (request->FileRef().ptr != ValueOf(n) || request->ConnectionRef().ptr != CurrentConnection()) continue;
+            if (request->FileRef().ptr != ValueOf(n) || request->ConnectionRef().ptr != g_currentConnection) continue;
             const RefVector& chunks = ValueOf<FileMessage>(n)->chunks_;
             for (RefPtr* p = chunks.begin(); p != chunks.end(); ++p) PushReplicated(*out, p->ptr, 1);
             break;
@@ -138,7 +136,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
     if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
     for (TimedNode* n = awards_.First(); n != awards_.End(); n = n->next) {
         auto* award = TimedValueOf<AwardMessage>(n);
-        if (award->connection_.ptr == CurrentConnection()) PushReplicated(*out, award, 2);
+        if (award->connection_.ptr == g_currentConnection) PushReplicated(*out, award, 2);
     }
     for (RefNode* n = offers_.First(); n != offers_.End(); n = n->next) {
         auto* offer = ValueOf<PartyMessage>(n);

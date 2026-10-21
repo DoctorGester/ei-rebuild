@@ -65,8 +65,7 @@ const char* RefusalKey(int refusal) {
     default: return "lmp_cannot_connect";
     }
 }
-// The port an address typed without one gets (8888), and the master server's host name.
-int DefaultPort() { return ei::GameData<const int>(0x00783E30); }
+// The master server's host name.
 const char* MasterHost() { return static_cast<const char*>(options::TheOptions()->masterServerName_); }
 constexpr int kMasterPort = 28004;
 
@@ -343,7 +342,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         DrawListAt(this);
     } else if (result == (kBoxAddress | kAnswerOk)) {
         net::NetAddress address{};
-        if (address.Parse(boxText_, DefaultPort())) net::GameClient()->Ask(&address);
+        if (address.Parse(boxText_, net::g_gamePort)) net::GameClient()->Ask(&address);
         SaveAddressBook();
         DrawListAt(this);
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {

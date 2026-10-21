@@ -1077,7 +1077,7 @@ __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_
 void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
                            int value25FC) {
     FlowBeforeServer(this, nullptr);
-    net::NetLog() = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
     {
         void* memory = net::NewRefObject(sizeof(net::ServerSession));
         net::ServerSession* server = memory ? static_cast<net::ServerSession*>(memory)->Construct(gameType) : nullptr;
@@ -1090,7 +1090,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     // The local client connects to the local server with the password as its hello.
     alignas(4) std::uint8_t address[16] = {};
-    AddressSet(address, nullptr, kLocalHost, ei::GameData<const int>(0x00783E30));
+    AddressSet(address, nullptr, kLocalHost, net::g_gamePort);
     {
         GameBuffer hello;
         hello.ConstructGrowing();
@@ -1112,7 +1112,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 }
 
 void GameFlow::StartClient() {
-    net::NetLog() = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
     RefPtrAssign(&net::GameServer(), nullptr, nullptr);
     void* memory = net::NewRefObject(sizeof(net::ClientSession));
     net::ClientSession* client = memory ? static_cast<net::ClientSession*>(memory)->Construct() : nullptr;

@@ -10,10 +10,10 @@
 //             connections to the peers, the message type registry and the handler tables.
 //   0073BBB4  ServerBase: the pending joins; answers pings and logins. Inlined into the game
 //             server's constructor; destructor body 004132F0.
-//   0073BB70  ServerSession, the game server (0x2600 bytes; constructor 00412D80; pointer at 0079B5DC).
+//   0073BB70  ServerSession, the game server (0x2600 bytes; constructor 00412D80; pointer g_gameServer).
 //   0073BE30  ClientBase: finding servers and joining one. Inlined into the game client's
 //             constructor; destructor body 0041C530.
-//   0073BDEC  ClientSession, the game client (0x2700 bytes; constructor 0041BC40; pointer at 0079B5D8).
+//   0073BDEC  ClientSession, the game client (0x2700 bytes; constructor 0041BC40; pointer g_gameClient).
 //   0073BC10  Message (below): the replicated object base; classes 0073BBF8 ... 0073BDD0 (0x18 apart,
 //             net_messages.h).
 //   0073BB40  ServerEntry's base and 0073BB28 ServerEntry (below): a server as the lobby lists it.
@@ -88,7 +88,7 @@ static_assert(sizeof(MasterLink) == 0x40);
 // 00440D40 (net_socket_driver.cpp): the socket closed (when open) and the buffers destroyed.
 void __fastcall MasterLinkDestruct(MasterLink* self);
 
-// The network log (0079B91C; null when logging is off): an old iostream whose inserters are library
+// The network log (g_netLog; null when logging is off): an old iostream whose inserters are library
 // code, called at their addresses (net_session_tick.cpp).
 class LogStream : public libcrt::Ostream {
 public:
@@ -106,18 +106,23 @@ class SessionBase;
 class ServerSession;
 class ClientSession;
 
-// 0079B91C: the network log.
-inline LogStream*& NetLog() { return ei::GameData<LogStream*>(0x0079B91C); }
-// 0079B920: the session being updated (set by Tick / Receive and by the connection code).
-inline SessionBase*& CurrentSession() { return ei::GameData<SessionBase*>(0x0079B920); }
-// 0079B924: the connection being updated or read (null outside the session code).
-inline Connection*& CurrentConnection() { return ei::GameData<Connection*>(0x0079B924); }
+// The game's UDP port (8888; the harness writes a free port of its own, tests/verify/harness_net.h).
+inline int g_gamePort = /*00783E30*/ {8888};
+// The network log.
+inline LogStream* g_netLog = /*0079B91C*/ {nullptr};
+// The session being updated (set by Tick / Receive and by the connection code).
+inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
+// The connection being updated or read (null outside the session code).
+inline Connection* g_currentConnection = /*0079B924*/ {nullptr};
 // 0079B900: the buffer every update packet is built in; 0079B8E0: the one datagrams are received into.
 inline GameBuffer* SendBuffer() { return ei::GamePointer<GameBuffer>(0x0079B900); }
 inline GameBuffer* ReceiveBuffer() { return ei::GamePointer<GameBuffer>(0x0079B8E0); }
-// 0079B5DC / 0079B5D8: the game server and the game client (null when there is none).
-inline ServerSession*& GameServer() { return ei::GameData<ServerSession*>(0x0079B5DC); }
-inline ClientSession*& GameClient() { return ei::GameData<ClientSession*>(0x0079B5D8); }
+// The game client and the game server (null when there is none): counted pointers, cleared by their static
+// initialisers and released at exit (net_session.cpp).
+inline ClientSession* g_gameClient = /*0079B5D8*/ {nullptr};
+inline ServerSession* g_gameServer = /*0079B5DC*/ {nullptr};
+inline ServerSession*& GameServer() { return g_gameServer; }
+inline ClientSession*& GameClient() { return g_gameClient; }
 // The game client's trade offer (net_client_party.cpp, net_client_handlers.cpp; plain RET each):
 // 0041DA50 publishes our offer, 0041E220 finds the partner's offer that pairs with ours (a
 // PartyMessage, or null), 0041E180 takes the acceptance back, 0041E3E0 drops the offer.
@@ -497,7 +502,7 @@ public:
 static_assert(offsetof(ServerBase, joins_) == 0x2568);
 static_assert(sizeof(ServerBase) == 0x2570);
 
-// The game server (vtable 0073BB70). 0x2600 bytes, pointer at 0079B5DC (GameServer()).
+// The game server (vtable 0073BB70). 0x2600 bytes, pointer g_gameServer (GameServer()).
 // The lists are STLport lists of counted pointers (value at +8, or at +0xC after a float delay).
 class __declspec(novtable) ServerSession : public ServerBase {
 public:
@@ -711,7 +716,7 @@ struct TradeRecord {
 using TradeRecordNode = stlp::list<TradeRecord>::Node;
 static_assert(sizeof(TradeRecordNode) == 0x160);
 
-// The game client (vtable 0073BDEC). 0x2700 bytes, pointer at 0079B5D8 (GameClient()). It keeps
+// The game client (vtable 0073BDEC). 0x2700 bytes, pointer g_gameClient (GameClient()). It keeps
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
 class __declspec(novtable) ClientSession : public ClientBase {
 public:

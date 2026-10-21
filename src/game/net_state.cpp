@@ -153,11 +153,11 @@ namespace {
 // A companion (+0x170) as its virtual interface.
 CMapObjectCompanion* CompanionOf(CEngineObject* companion) { return static_cast<CMapObjectCompanion*>(companion); }
 
-// Whether the stream read against (007A9794) is consumed: slot 5 (position) == slot 4 (size).
+// Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
 std::uint32_t SnapshotConsumed() {
-    BitStream* snapshot = delta::ReadSnapshot();
+    BitStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
-    std::uint32_t size = delta::ReadSnapshot()->Size();
+    std::uint32_t size = delta::g_readSnapshot->Size();
     return position == size ? 1u : 0u;
 }
 

@@ -107,7 +107,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     ei::SetVtable(this, kVtableAddress);
     std::uint32_t tick = gameapi::GetTickCount();
     id_ = 0;
-    SessionBase* session = CurrentSession();
+    SessionBase* session = g_currentSession;
     if (session) {
         roundTrip_ = static_cast<float>(static_cast<double>(session->maxRoundTrip_));
     } else {

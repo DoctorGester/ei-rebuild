@@ -178,9 +178,9 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     field->ReadDelta(&rate, 4);
     std::uint8_t disabled;
     field->ReadDelta(&disabled, 1);
-    BitStream* snapshot = delta::ReadSnapshot();
+    BitStream* snapshot = delta::g_readSnapshot;
     std::uint32_t readTo = snapshot->Position();
-    std::uint32_t size = delta::ReadSnapshot()->Size();
+    std::uint32_t size = delta::g_readSnapshot->Size();
     complete &= readTo == size ? 1u : 0u;
     field->EndField();
     if (disabled) flags_ |= kDisabled;

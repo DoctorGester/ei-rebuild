@@ -229,7 +229,7 @@ void SortIds(IdVector* ids) {
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
 void RebuildClientParty(CBattleScreen* screen) {
-    net::ClientSession* session = ei::GameData<net::ClientSession*>(0x0079B5D8);
+    net::ClientSession* session = net::GameClient();
     ListNode** players = reinterpret_cast<ListNode**>(&session->players_);
     PartyIds ids;
     ids.Construct();
