@@ -59,6 +59,15 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
+// game.exe's code section (.text, 00401000 up to 0073A670): the addresses registrations, forwarders and code
+// cells name (the image guards it, image_code.cpp; standalone.cpp reports a stray access there).
+constexpr std::uintptr_t kGameTextBegin = 0x00401000;
+constexpr std::uintptr_t kGameTextEnd = 0x0073A670;
+constexpr bool InGameText(std::uintptr_t address) { return address - kGameTextBegin < kGameTextEnd - kGameTextBegin; }
+// game.exe's WinMain (app_main.cpp's GameMain): the harness installs the hooks when it starts (hook.cpp), the
+// image calls it (standalone.cpp).
+constexpr std::uintptr_t kGameWinMain = 0x00456440;
+
 // What runs for game.exe's function at `address` (S18i, src/standalone/image_code.cpp): in game.exe the
 // address itself (the original); in the standalone image, whose code section is guarded, the replacement
 // registered for it (from InstallHooks on), the harness's (RedirectCode), else a stub that reports there is

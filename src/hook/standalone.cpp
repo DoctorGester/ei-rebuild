@@ -31,17 +31,12 @@ int ImageImportsMissing();                                              // stand
 int FixCodeCells();                                                     // standalone/image_code.cpp
 bool RedirectedByHarness(std::uintptr_t address);                       // standalone/image_code.cpp
 
-namespace {
-// game.exe's code section (.text, 0x401000-0x73A670).
-constexpr std::uintptr_t kTextBegin = 0x00401000;
-constexpr std::uintptr_t kTextEnd = 0x0073A670;
-} // namespace
 
 // A code address as the log names it: inside game.exe's code plainly, elsewhere as module+offset.
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
     HMODULE module = nullptr;
     char path[MAX_PATH];
-    if ((address < kTextBegin || address >= kTextEnd) &&
+    if (!InGameText(address) &&
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                            reinterpret_cast<LPCSTR>(address), &module) &&
         GetModuleFileNameA(module, path, MAX_PATH)) {
@@ -82,7 +77,6 @@ std::string g_commandLine;      // as the CRT would see game.exe's: "<game.exe>"
 std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's command line)
 void (*g_missingCodeHandler)(const char* what);
 
-constexpr std::uintptr_t kWinMain = 0x00456440;
 
 // An access to game.exe's guarded code section: execution there (a jump or call to an address of game.exe's
 // code that did not go through CodeAddress: its caller is the return address on the stack when it is a call) is
@@ -93,7 +87,7 @@ LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     const auto at = reinterpret_cast<std::uintptr_t>(r->ExceptionAddress);
     const std::uintptr_t data = r->ExceptionInformation[1];
     const bool execute = r->ExceptionInformation[0] == 8 || at == data;
-    if (data < kTextBegin || data >= kTextEnd) return EXCEPTION_CONTINUE_SEARCH;
+    if (!InGameText(data)) return EXCEPTION_CONTINUE_SEARCH;
     if (execute) ReportNoCode(at, *reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp));
     char code[160], what[320];
     DescribeCode(at, code, sizeof(code));
@@ -295,7 +289,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     SetUnhandledExceptionFilter(OnUnhandled);
     const int installed = InstallHooks();
     const int bad = CheckCode();
-    const bool winMain = HasCode(kWinMain);
+    const bool winMain = HasCode(kGameWinMain);
     Log("standalone: %d registration(s) taken as game.exe's code, %d wrong, WinMain %s", installed, bad,
         winMain ? "rewritten" : "missing");
     FixCodeCells();
@@ -324,7 +318,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     libcrt::InitMultibyteTable();
     static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
-    const int result = Code<WinMainFn>(kWinMain)(GetModuleHandleA(nullptr), nullptr,
+    const int result = Code<WinMainFn>(kGameWinMain)(GetModuleHandleA(nullptr), nullptr,
                                                   g_commandLine.data() + g_argumentsAt, SW_SHOWNORMAL);
     libcrt::Exit(result);
     return result;

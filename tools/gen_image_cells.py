@@ -61,7 +61,7 @@ TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTim
 MOVED = (0x0073B000, 0x007CD000)
 IMPORTS = (0x0073B000, 0x0073B820)
 TEXT_SECTION = (0x00401000, 0x0073B000)
-CODE = (0x00401000, 0x0073A670)   # .text's bytes (hook/standalone.cpp's kTextBegin / kTextEnd)
+CODE = (0x00401000, 0x0073A670)   # .text's bytes (include/ei/hook.h's kGameTextBegin / kGameTextEnd)
 STATIC_INIT_LIST = (0x00783004, 0x00783BB0)   # inclusive (tools/gen_static_init.py's LIST_BEGIN / LIST_END)
 # The targets by section, and the data that can hold cells (as the file holds it: .data's raw bytes end at 0079C000;
 # the import table's file bytes are not the image's: ei_hook.dll fills its own slots).
