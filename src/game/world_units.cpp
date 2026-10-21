@@ -461,7 +461,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             if (spell) spell->Release();
         }
         base.object = object;
-        CTorchObjectSpecSlots* torch = TorchSpecSlots(static_cast<CTorchObject*>(object)->spec);
+        CTorchObjectSpec* torch = static_cast<CTorchObject*>(object)->spec;
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
         *NameString(object) = spec->texture;
         companionTexts(companion);

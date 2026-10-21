@@ -1,7 +1,8 @@
 #pragma once
 
 // The torch's client half, CTorchObjectClientSpecific (the exe's GetClassName, 0078F7BC; class id
-// 0x41; vtable 0073E954, 19 slots; 0x64 bytes): the client-specific manager makes it for type 'K'
+// 0x41; 19 slots; 0x64 bytes; a real virtual class: the compiler makes its vtable, C19, game.exe's
+// 0073E954 and its tail 0073E98C are retired): the client-specific manager makes it for type 'K'
 // (0042D700). It extends the torch's state object (CTorchObjectSpec) with what the torch shows: a
 // particle source, a point light and a looping sound, all placed relative to the torch. The
 // spec's setters (slots 16-18) are overridden to rebuild them; slots 13 / 14 show and hide them.
@@ -17,20 +18,38 @@
 #include <cstddef>
 #include <cstdint>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 class CLight;            // spell.h
 class CParticleSource;   // effects.h
 
 class CTorchObjectClientSpec : public CTorchObjectSpec {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073E954);
+    // 0052D0D0. The spec's constructor (CreateSpec), no light or particles. sound_ stays unwritten.
+    CTorchObjectClientSpec();
+    // 0052D1D0. The client's Destroy inlined (HideEffects, the light dropped, the particles stopped
+    // and dropped, DestroySpec), then the spec's destructor.
+    ~CTorchObjectClientSpec() override;
+    // The deleting destructor (slot 0, 0052D1B0) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    // 0052D0D0. The constructor: the engine object's fields, an empty name, the spec's vtable and
-    // CreateSpec, no light or particles, then this vtable. sound_ stays unwritten. Returns this.
+    int Create() override { return CreateClient(); }    // 2: 0052D2A0
+    void Destroy() override { DestroyClient(); }        // 3: 0052D2E0
+    int RunTick() override;                             // 6: 0052D180 (1)
+    const char* GetClassName() override;                // 11: 0052D190 "CTorchObjectClientSpecific"
+    int GetClassId() override;                          // 12: 0052D1A0 (0x41)
+    void ShowEffectsSlot() override { ShowEffects(); }             // 13
+    void HideEffectsSlot() override { HideEffects(); }             // 14
+    void WarmUpParticlesSlot() override { WarmUpParticles(); }     // 15
+    void SetLightSlot(std::uint32_t kind, const float* colour, float value) override { SetParticles(kind, colour, value); }   // 16
+    void SetFlameSlot(const float* colour, float value, const float* values) override { SetLightAt(colour, value, values); }   // 17
+    void SetNameSlot(const char* name) override { SetSound(name); }   // 18
+
+    // The registrations (C20 retires them): 0052D0D0 the constructor in place (returns this),
+    // 0052D1D0 the destructor, 0052D1B0 (slot 0, RET 4) the destructor, then operator delete when
+    // bit 0 of `flags` is set (returns this).
     CTorchObjectClientSpec* Construct();
-    // 0052D1D0. The destructor body: this vtable, the client's Destroy inlined (HideEffects, the
-    // light dropped, the particles stopped and dropped, DestroySpec), then the spec's destructor body.
     void DestructClient();
-    // 0052D1B0 (slot 0, RET 4). DestructClient, operator delete when bit 0 of `flags` is set. Returns this.
     CTorchObjectClientSpec* DeleteClient(unsigned flags);
     // 0052D2A0 (slot 2). CreateSpec, the light and particles dropped (released), sound_ 0. Returns 1.
     int CreateClient();

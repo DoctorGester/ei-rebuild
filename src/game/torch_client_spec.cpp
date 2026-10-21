@@ -22,6 +22,8 @@
 #include <cstring>
 #include <new>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 constexpr std::uint32_t kLightHidden = 0x80;   // CEngineObject::flags_ of a light
@@ -47,22 +49,15 @@ Vector3 AtTorch(const CMapObject* torch, const float* offset) {
 
 } // namespace
 
-CTorchObjectClientSpec* CTorchObjectClientSpec::Construct() {
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
-    ClearFields();
-    new (&name_) mfc::CString;
-    ei::SetVtable(this, CTorchObjectSpec::kVtableAddress);
-    torch_ = nullptr;
-    CreateSpec();
+CTorchObjectClientSpec::CTorchObjectClientSpec() {
     light_ = nullptr;
     particles_ = nullptr;
-    ei::SetVtable(this, kVtableAddress);
-    return this;
 }
+
+CTorchObjectClientSpec* CTorchObjectClientSpec::Construct() { return new (this) CTorchObjectClientSpec(); }
 EI_REPLACE_METHOD(0x0052D0D0, CTorchObjectClientSpec::Construct);
 
-void CTorchObjectClientSpec::DestructClient() {
-    ei::SetVtable(this, kVtableAddress);
+CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     HideEffects();
     if (CLight* old = light_) {
         light_ = nullptr;
@@ -74,13 +69,14 @@ void CTorchObjectClientSpec::DestructClient() {
         ReleaseSource(old);
     }
     DestroySpec();
-    // The members' destructors find both null; then the spec's destructor body.
-    Destruct();
+    // The members' destructors find both null; then the spec's destructor.
 }
+
+void CTorchObjectClientSpec::DestructClient() { this->CTorchObjectClientSpec::~CTorchObjectClientSpec(); }
 EI_REPLACE_METHOD(0x0052D1D0, CTorchObjectClientSpec::DestructClient);
 
 CTorchObjectClientSpec* CTorchObjectClientSpec::DeleteClient(unsigned flags) {
-    DestructClient();
+    this->CTorchObjectClientSpec::~CTorchObjectClientSpec();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -102,7 +98,7 @@ int CTorchObjectClientSpec::CreateClient() {
 EI_REPLACE_METHOD(0x0052D2A0, CTorchObjectClientSpec::CreateClient);
 
 void CTorchObjectClientSpec::DestroyClient() {
-    TorchSpecSlots(this)->HideEffectsSlot();
+    HideEffectsSlot();
     if (CLight* old = light_) {
         light_ = nullptr;
         old->Release();
@@ -202,10 +198,16 @@ EI_REPLACE_METHOD(0x0052D520, CTorchObjectClientSpec::SetSound);
 
 // Slots 6, 11 and 12 (0052D180 / 0052D190 / 0052D1A0): the update returns 1, the class name and id.
 namespace {
-int __fastcall TorchClientUpdate(CTorchObjectClientSpec*) { return 1; }
-const char* __fastcall TorchClientClassName(CTorchObjectClientSpec*) { return ClassNameText(); }
-int __fastcall TorchClientClassId(CTorchObjectClientSpec*) { return kTorchClassId; }
+int __fastcall TorchClientUpdate(CTorchObjectClientSpec* self) { return self->CTorchObjectClientSpec::RunTick(); }
+const char* __fastcall TorchClientClassName(CTorchObjectClientSpec* self) {
+    return self->CTorchObjectClientSpec::GetClassName();
+}
+int __fastcall TorchClientClassId(CTorchObjectClientSpec* self) { return self->CTorchObjectClientSpec::GetClassId(); }
 } // namespace
+
+int CTorchObjectClientSpec::RunTick() { return 1; }
+const char* CTorchObjectClientSpec::GetClassName() { return ClassNameText(); }
+int CTorchObjectClientSpec::GetClassId() { return kTorchClassId; }
 EI_REPLACE(0x0052D180, TorchClientUpdate);
 EI_REPLACE(0x0052D190, TorchClientClassName);
 EI_REPLACE(0x0052D1A0, TorchClientClassId);

@@ -64,6 +64,9 @@ void CTorchObjectSpec::SaveSpec(CStream* stream) {
 }
 EI_REPLACE_METHOD(0x0052C500, CTorchObjectSpec::SaveSpec);
 
+void CTorchObjectSpec::Load(void* stream) { LoadSpec(static_cast<CStream*>(stream)); }
+void CTorchObjectSpec::Save(void* stream) { SaveSpec(static_cast<CStream*>(stream)); }
+
 void CTorchObjectSpec::SetLight(std::uint32_t kind, const float* colour, float value) {
     lightKind_ = kind;
     std::memcpy(colours_[0], colour, sizeof(colours_[0]));
@@ -96,11 +99,10 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
         name_ = *read;
         read->~CString();
     }
-    CTorchObjectSpecSlots* slots = TorchSpecSlots(this);
-    slots->SetLightSlot(lightKind_, colours_[0], values_[0]);
-    slots->SetFlameSlot(colours_[1], values_[1], &values_[2]);
-    slots->SetNameSlot(name_);
-    slots->ShowEffectsSlot();
-    slots->WarmUpParticlesSlot();
+    SetLightSlot(lightKind_, colours_[0], values_[0]);
+    SetFlameSlot(colours_[1], values_[1], &values_[2]);
+    SetNameSlot(name_);
+    ShowEffectsSlot();
+    WarmUpParticlesSlot();
 }
 EI_REPLACE_METHOD(0x0052C390, CTorchObjectSpec::ReadNetState);

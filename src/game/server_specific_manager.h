@@ -2,15 +2,19 @@
 
 // The world server's manager of server-side state objects (A-S7): CServerSpecificManager
 // (004D6900-004D6BA0, vtable 0073D4F4, class id 0x31; created by 0058AE10) and the torch state
-// object it makes for type 0x4B, CTorchObjectSpec (vtable 0073D558, 0x58 bytes, class id 0x42).
+// object it makes for type 0x4B, CTorchObjectSpec (0x58 bytes, class id 0x42; a real virtual class:
+// the compiler makes its vtable, C19, game.exe's 0073D558 is retired).
 // server_specific_manager.cpp. Names from the classes' own GetClassName strings.
 
 #include "base_manager.h"
 #include "engine_object.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CStream;   // core_streams.h
 class CMapObject;   // map_object.h
@@ -41,15 +45,36 @@ static_assert(sizeof(CServerSpecificManager) == 0xB0);
 
 class CTorchObjectSpec : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D558);
+    // The engine object's fields, an empty name, no torch, then CreateSpec (the manager's
+    // NewObject 004D6970 constructs it inline and calls Create; the client half's constructor
+    // 0052D0D0 calls CreateSpec).
+    CTorchObjectSpec();
+    // 004D6BA0. DestroySpec (the original's Destroy through the vtable), the name, the engine object.
+    ~CTorchObjectSpec() override;
+    // The deleting destructor (slot 0, 004D6B80) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    // Slots 2 / 3: CreateSpec / DestroySpec below (torch_spec.cpp).
+    int Create() override { return CreateSpec(); }   // 2: 0052C610
+    void Destroy() override { DestroySpec(); }       // 3: 0052C680
+    int RunTick() override;                          // 6: 004D6B50 (1)
+    void Load(void* stream) override;                // 9: 0052C490 LoadSpec
+    void Save(void* stream) override;                // 10: 0052C500 SaveSpec
     // 11: 004D6B60 "CTorchObjectSpec" (0078DAE8). 12: 004D6B70 (0x42).
     const char* GetClassName() override;
     int GetClassId() override;
+    // 13-15: empty here (004D6B20 / 30 / 40); the client half (torch_client_spec.h) shows its
+    // effects (0052D580), hides them (0052D610) and warms its particles up (0052D3F0).
+    virtual void ShowEffectsSlot() {}       // 13
+    virtual void HideEffectsSlot() {}       // 14
+    virtual void WarmUpParticlesSlot() {}   // 15
+    // 16-18: the setters below; the client half rebuilds its effects there. Callers reach them
+    // through the vtable (the network read 0052C390, the world server's CreateObject 005927C0).
+    virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }   // 16: 0052C590
+    virtual void SetFlameSlot(const float* colour, float value, const float* values) { SetFlame(colour, value, values); }   // 17: 0052C5C0
+    virtual void SetNameSlot(const char* name) { SetName(name); }   // 18: 0052C600
 
-    // 004D6BA0 destructor body (Destroy, the name, the engine object), 004D6B80 slot 0's scalar
-    // deleting destructor (returns this).
+    // The registrations (C20 retires them): 004D6BA0 the destructor, 004D6B80 (slot 0) the
+    // destructor, then operator delete when `flags` bit 0 is set (returns this).
     void Destruct();
     CTorchObjectSpec* DeletingDestruct(unsigned flags);
 
@@ -82,19 +107,3 @@ static_assert(offsetof(CTorchObjectSpec, torch_) == 0x1C);
 static_assert(offsetof(CTorchObjectSpec, name_) == 0x24);
 static_assert(offsetof(CTorchObjectSpec, colours_) == 0x40);
 static_assert(sizeof(CTorchObjectSpec) == 0x58);
-
-// CTorchObjectSpec's slots past CEngineObject's (vtable 0073D558), as callers reach them through the
-// vtable (the world server's CreateObject 005927C0 on a torch's +0x238). The bodies stay the plain
-// members above, registered by address (rewrite guide rule 4).
-class CTorchObjectSpecSlots : public CEngineObject {
-public:
-    // 13-15: empty here (004D6B20 / 30 / 40); the client half (torch_client_spec.h) shows its
-    // effects (0052D580), hides them (0052D610) and warms its particles up (0052D3F0).
-    virtual void ShowEffectsSlot() = 0;       // 13
-    virtual void HideEffectsSlot() = 0;       // 14
-    virtual void WarmUpParticlesSlot() = 0;   // 15
-    virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) = 0;   // 16: 0052C590 SetLight
-    virtual void SetFlameSlot(const float* colour, float value, const float* values) = 0;  // 17: 0052C5C0 SetFlame
-    virtual void SetNameSlot(const char* name) = 0;                                    // 18: 0052C600 SetName
-};
-inline CTorchObjectSpecSlots* TorchSpecSlots(CEngineObject* spec) { return static_cast<CTorchObjectSpecSlots*>(spec); }
