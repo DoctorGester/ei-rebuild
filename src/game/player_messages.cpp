@@ -325,7 +325,7 @@ BOOL CPlayerServer::CreateServer() {
     handlers_.SetSize(kServerHandlerCount);
     std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
     for (const HandlerEntry& entry : kServerHandlers)
-        handlers_[entry.type] = reinterpret_cast<Handler>(entry.address);
+        handlers_[entry.type] = ei::Code<Handler>(entry.address);
     return 1;
 }
 

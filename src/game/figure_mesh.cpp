@@ -355,7 +355,7 @@ void CFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
     // 005A18E0 through its address (the verify build checks it there).
-    reinterpret_cast<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
+    ei::Code<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
 
     vertices_.SetSize(header.vertexCount);
@@ -400,7 +400,7 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    reinterpret_cast<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
+    ei::Code<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
 
     vertices_.SetSize(header.vertexCount);
@@ -649,8 +649,8 @@ void CFigureMesh::RefreshBuffers() {
     buffers_.normalCount = normals_.size;
     // 005A6E70 through its address (the verify build checks it there).
     using ResizeFn = void(__fastcall*)(lib::AlignedArray<std::uint32_t>*, void*, int, int);
-    reinterpret_cast<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
-    reinterpret_cast<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
+    ei::Code<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
+    ei::Code<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
     buffers_.texCoords = texCoords_.data;
     buffers_.texCoordCount = texCoords_.size;
     buffers_.corners = corners_.data;

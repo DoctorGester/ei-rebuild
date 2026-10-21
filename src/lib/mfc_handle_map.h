@@ -14,6 +14,7 @@
 
 #include "crt.h"
 #include "mfc.h"
+#include "ei/hook.h"
 #include "game/game_data.h"
 
 #include <cstdint>
@@ -44,7 +45,7 @@ int __cdecl CriticalNewHandler(std::size_t size);
 // when an allocation fails: throws a CMemoryException. Image only (the hook build keeps the exe's).
 int __cdecl DefaultNewHandler(std::size_t size);
 // The handler's address as the exe has it (our CriticalNewHandler in the image).
-inline gamecrt::NewHandler CriticalNewHandlerAt() { return reinterpret_cast<gamecrt::NewHandler>(0x0070AB1A); }
+inline gamecrt::NewHandler CriticalNewHandlerAt() { return ei::Code<gamecrt::NewHandler>(0x0070AB1A); }
 
 // CMapPtrToPtr (0x1C bytes, vtable 0074689C): void* to void*, hashed by `key >> 4`.
 struct CMapPtrToPtr {

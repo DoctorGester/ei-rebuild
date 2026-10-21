@@ -24,13 +24,13 @@ using SmoothFn = int(__fastcall*)(PathSmoother*, void*, CUnit*, CAIMap*, PathCel
 
 // SearchPathTo clears `path` first, so every cell afterwards is its own.
 void __fastcall PlainSearchPathTo(void* search, void*, int x, int y, PathCellList* path) {
-    reinterpret_cast<SearchPathToFn>(kSearchPathTo)(search, nullptr, x, y, path);
+    ei::Code<SearchPathToFn>(kSearchPathTo)(search, nullptr, x, y, path);
     SetPlainCellWords(path);
 }
 
 // BuildCellsTo clears `path` first too.
 void __fastcall PlainBuildCells(CAIMap* map, void*, int x, int y, PathCellList* path) {
-    reinterpret_cast<BuildCellsFn>(kBuildCells)(map, nullptr, x, y, path);
+    ei::Code<BuildCellsFn>(kBuildCells)(map, nullptr, x, y, path);
     SetPlainCellWords(path);
 }
 
@@ -38,7 +38,7 @@ void __fastcall PlainBuildCells(CAIMap* map, void*, int x, int y, PathCellList* 
 // a single cell); the smoother's rebuilt cells get them here.
 int __fastcall PlainSmooth(PathSmoother* smoother, void*, CUnit* unit, CAIMap* map, PathCellList* path,
                            int startDirection, float fraction) {
-    int cost = reinterpret_cast<SmoothFn>(kSmooth)(smoother, nullptr, unit, map, path, startDirection, fraction);
+    int cost = ei::Code<SmoothFn>(kSmooth)(smoother, nullptr, unit, map, path, startDirection, fraction);
     SetPlainCellWords(path);
     return cost;
 }

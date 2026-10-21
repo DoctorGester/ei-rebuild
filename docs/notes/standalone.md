@@ -59,20 +59,24 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 - **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is linked below
   0x400000 and reserves 0x400000-0x7D7000. It copies game.exe's headers from disk into place and no section
   (.rsrc stays zero and PAGE_NOACCESS since S18h: a reader would end the run with `ei_standalone: read of game.exe's
-  .rsrc at ...`; the resource imports read game.exe loaded as a data file), fills .text with INT3 and loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
+  .rsrc at ...`; the resource imports read game.exe loaded as a data file), guards .text (PAGE_NOACCESS since S18i)
+  and loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
   and resolves game.exe's imports as it initialises (S18f: DDraw, mss32 and binkw32 from game.exe's folder or the
   working directory, the rest from System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
-  then `InstallHooks` writes a JMP for every registration into the blank text. Forwarders, function pointers in data and vtable slots
-  reach our code through those jumps. `ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game
-  args>]`, run from the game folder; without `--run` it builds the image, checks the jumps and exits.
+  then `InstallHooks` takes the registrations as the code for their addresses ("Code", below). Nothing runs in or
+  jumps through game.exe's code. `ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game
+  args>]`, run from the game folder; without `--run` it builds the image, checks the code table, the cells and the
+  guard and exits.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
   list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
-- **Missing code.** An INT3 hit logs `FAILED: standalone: no code at <address> (in the game function at <start> |
-  library code), [esp] <caller>` and ends the run; `tools/resolve_crash.py <run folder>` names it. The breakpoint
-  handler goes in before InstallHooks (S16c), so a startup action's hit is reported too; a hit during ei_hook.dll's
-  static constructors prints `ei_standalone: no code at ... before ei_hook.dll's missing-code report` and exits 3.
+- **Missing code.** Reaching an address without code (CodeAddress's stub, or a jump into the guarded .text) logs
+  `FAILED: standalone: no code at <address> (in the game function at <start> | library code), [esp] <caller>` and
+  ends the run; `tools/resolve_crash.py <run folder>` names it. A read or write of .text is reported as such
+  (`... of game.exe's code at ...: the image's code section is guarded`). The handler goes in before InstallHooks
+  (S16c), so a startup action's hit is reported too; a hit during ei_hook.dll's static constructors prints
+  `ei_standalone: no code at ... before ei_hook.dll's missing-code report` and exits 3.
   ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
-- **What the image could still reach as INT3**: `python tools/standalone_gaps.py` lists forwarder targets, code
+- **What the image could still reach without code**: `python tools/standalone_gaps.py` lists forwarder targets, code
   addresses written in src/ and function starts the exe's data points at, each without a registration. The rule
   (S16d): the image runs none of game.exe's code, so a table entry or vtable slot is reached only when our code calls
   through it. `config/standalone_unreachable.csv` holds each decision with its reason (CObject::GetRuntimeClass
@@ -165,6 +169,22 @@ each step green on the goldens and removing a measured tie:
   **Addresses read back from objects** (a vtable, a string pointer) are the storage's in the image: the harness
   prints them as the original's with `ei::OriginalAddress` (game_data.h; DescribeTopWindow, harness_digest's
   missile vtable, ui_census's window labels and its game-vtable test).
+- **Code** (S18i, src/standalone/image_code.cpp): `ei::CodeAddress(address)` (ei/hook.h; `ei::Code<F>`) is what
+  runs for game.exe's function at an address: in game.exe the address; in the image the harness's replacement
+  (`RedirectCode`: FixedIsaacSeed, the clock's rand), else the registration (InstallHooks hands its table over),
+  else a stub (16 bytes, CALL NoCodeEntry plus the address) that reports `no code at`. Who asks: the forwarders
+  (`EI_ORIGINAL` pushes the address and jumps to `ei_code_dispatch`, which keeps EAX / ECX / EDX), the static
+  initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
+  the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
+  iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
+  is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
+  image_code_cells.inc (21,636 cells of .rdata and .data holding a function start: vtable slots, EH unwind /
+  handler / throw / copy entries, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
+  points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
+  code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
+  (`FixUpCodePointer`). The CRT's SEH scope tables are left: only game.exe's own frames read them. The
+  launch-free check: every registration is its address's code (`CheckCode`) and .text is PAGE_NOACCESS
+  (`CheckGuard`). Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
   `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
   the storage starts at 0073B000 (low 16 bits 0xB000; the .rdata between the table and .data has its place there,
@@ -180,10 +200,9 @@ each step green on the goldens and removing a measured tie:
   helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
   **game.exe's own table** is guarded with the rest of the old .rdata since S18h (the read of an old slot names its
   import, above; S18f had an INT3 trap per old slot instead); a slot of ours whose import did not resolve leads to a
-  trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run. The image's .text is INT3 but for the
-  jumps InstallHooks writes (no trampolines or stolen bytes in the image: recorders install in game.exe only), so no
-  `CALL [slot]` / `JMP [slot]` of the original exists; the launch-free check proves it (`CheckText`: every byte of
-  .text is INT3 or one of our jumps' five, logged as `game.exe's code section: INT3 and our jumps only`). No pointer
+  trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run: the image's .text is zero and
+  guarded (S18i; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
+  original exists. No pointer
   cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
   only through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
   import hooks (`PatchModule(GetModuleHandleA(nullptr))` is the host in the image, as before S18f).
@@ -242,7 +261,7 @@ each step green on the goldens and removing a measured tie:
 | S18f | own import table: generated slots resolved by the DLL into the storage (one shift with .data); gameapi.h and the harness's routes through it; old slots trap; iat sealed | the host's import resolution, the IAT |
 | S18g | .rdata sealed: vtables (SetVtable through the seam), tables, the harness's vtable tables | raw .rdata uses 365 -> 0 |
 | S18h | .rdata moves into the storage with .data (one range, one shift): bytes from the build, 5531 cells (4460 into .rdata: walked EH / RTTI / MFC structures, reviewed string tables), guarded, old import slots under the guard | the host's copy of .rdata |
-| S18i | code pointers in our sections fixed up to our functions (a stub reports an unregistered one), static init calls and forwarders direct, .text guarded | the jumps in .text |
+| S18i | code pointers in our sections fixed up to our functions (21,636 code cells; a stub reports an unregistered one), static init calls, forwarders and code literals through CodeAddress, .text guarded | the jumps in .text |
 | S18j | game.exe's resources built into ei_standalone.exe, the module handle the host's | the read of game.exe's .rsrc |
 | S18k | no reserved range, no read of game.exe | the address image |
 
@@ -299,7 +318,8 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
   operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
   once-only guard bit; a single-use decodable
   callee is inlined, everything else is called at its address. One template, `StaticInitialisers(Do&)`
-  (static_init.h), with visitors `Run` (the image) and `Targets` (logs call targets that are still INT3).
+  (static_init.h), with visitors `Run` (the image; calls go to `ei::Code` of the address) and `Targets` (logs call
+  targets without code).
   `tools/check_static_init.py` (build.cmd) re-decodes game.exe: when a helper gets registered later the output
   changes, so rerun the generator.
 - **Exit functions** (S3a, S16a): src/standalone/static_exit.cpp, same tool: 130 whole-function patterns

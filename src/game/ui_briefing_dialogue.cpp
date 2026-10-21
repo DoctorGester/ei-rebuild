@@ -42,7 +42,7 @@ void* MusicSystem() { return ei::GameData<void* const>(0x007AF760); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);
-ActionDone SpeakerActionDone() { return reinterpret_cast<ActionDone>(0x006023F0); }
+ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
 
 WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0)); }
 

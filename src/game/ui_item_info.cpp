@@ -75,8 +75,8 @@ int MbsCmp(const char* a, const char* b) {
 // ECX, EDX unused, an optional stack argument the callee pops).
 using StatFunction = double(__fastcall*)(const void* self, void* unused);
 using StatArgFunction = double(__fastcall*)(const void* self, void* unused, int arg);
-double Stat(std::uintptr_t fn, const void* self) { return reinterpret_cast<StatFunction>(fn)(self, nullptr); }
-double StatArg(std::uintptr_t fn, const void* self, int arg) { return reinterpret_cast<StatArgFunction>(fn)(self, nullptr, arg); }
+double Stat(std::uintptr_t fn, const void* self) { return ei::Code<StatFunction>(fn)(self, nullptr); }
+double StatArg(std::uintptr_t fn, const void* self, int arg) { return ei::Code<StatArgFunction>(fn)(self, nullptr, arg); }
 int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
 // _ftol of such a value (optionally with one stack argument and a multiplication by the float at
@@ -108,7 +108,7 @@ float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x1
 // An original function returning a float in ST0 with the packed id in ECX (006A2D40 / 006A2D90),
 // truncated.
 int PackedFtol(std::uintptr_t fn, std::uint32_t packedId) {
-    return Ftol(reinterpret_cast<double(__fastcall*)(std::uint32_t)>(fn)(packedId));
+    return Ftol(ei::Code<double(__fastcall*)(std::uint32_t)>(fn)(packedId));
 }
 
 // The surface's drawing (thiscall on the surface).
@@ -868,7 +868,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
         // The cost (00528050; negative: 0x7FFFFFFF), on a line 15 pixels wider.
         w.Rect()->right += 15;
         using CostFn = int(__thiscall*)(const std::uint8_t*, const char*);
-        int cost = reinterpret_cast<CostFn>(0x00528050)(info->stats, level);
+        int cost = ei::Code<CostFn>(0x00528050)(info->stats, level);
         if (cost < 0) cost = 0x7FFFFFFF;
         w.line.Format(plain, static_cast<const char*>(w.Skill(18)), cost);
         w.Text(w.line);

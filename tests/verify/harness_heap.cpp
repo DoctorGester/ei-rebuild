@@ -78,7 +78,7 @@ namespace {
 
 // A value on the stack that looks like a return address into game.exe or ours (after a CALL).
 bool ReturnAddress(std::uintptr_t v) {
-    const bool game = v >= 0x00401000 && v < 0x0073A670;   // game.exe's .text
+    const bool game = !ei::Standalone() && v >= 0x00401000 && v < 0x0073A670;   // game.exe's .text (guarded in the image)
     const bool self = v >= g_selfBase + 0x1000 && v < g_selfEnd;
     if (!game && !self) return false;
     const auto* code = reinterpret_cast<const unsigned char*>(v);
@@ -170,6 +170,7 @@ HANDLE Owner(const void* p) { return !p || InReservation(p) ? g_heap : g_large; 
 // handle is in the map already, so whether they are made, depends on the handle values Windows gives
 // (GetDC's cache of DCs), and the idle cleanup frees them in hash order of those values (SV3i).
 bool InHandleMap(void* const* frame) {
+    if (ei::Standalone()) return false;   // no frame of game.exe's code (its code section is guarded)
     constexpr std::uintptr_t kFromHandle = 0x0070367C;
     constexpr std::uintptr_t kFromHandleEnd = kFromHandle + 174;
     const auto* top = static_cast<void* const*>(reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase);
@@ -449,7 +450,7 @@ constexpr CountdownSite kCountdownSites[] = {
 
 // Each site's `SAR r,5 / AND r,0xF` (6 bytes) becomes `MOV r,[r+0xC] / AND r,0xF`: the object's id
 // (CEngineObject::id_) instead of its address, as CWorldServer::UpdateCountdownFor does.
-// The standalone image has none of these sites (INT3): there the eight functions are ours only.
+// The standalone image has none of these sites (no game.exe code): there the eight functions are ours only.
 void SpreadCountdownsById() {
     if (ei::Standalone()) {
         CWorldServer::SpreadUpdateCountdownsById();

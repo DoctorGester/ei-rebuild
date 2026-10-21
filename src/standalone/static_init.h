@@ -12,6 +12,7 @@
 // Addresses are game.exe's (the image in the standalone build, the original in the hook build).
 #pragma once
 
+#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game/game_data.h"
 
@@ -37,6 +38,7 @@ constexpr std::uintptr_t kCrtAtExit = 0x006E727B;
 // The operations that do what they say, on game.exe's memory and code: the static initialisers (Run) and
 // the exit functions they register (static_exit.cpp) run through them. A data address is the original's:
 // each operation that takes one resolves it through the data seam (game_data.h), At an argument that is one.
+// A code address is the original's too: a call goes to CodeAddress's code for it (ei/hook.h, S18i).
 class Code {
 public:
     static std::uint32_t At(std::uintptr_t address) { return static_cast<std::uint32_t>(GameAddress(address)); }
@@ -76,15 +78,15 @@ public:
 
     template <class... A>
     static Result Cdecl(std::uintptr_t fn, A... args) {
-        return {reinterpret_cast<std::uint32_t(__cdecl*)(Word<A>...)>(fn)(static_cast<std::uint32_t>(args)...)};
+        return {::ei::Code<std::uint32_t(__cdecl*)(Word<A>...)>(fn)(static_cast<std::uint32_t>(args)...)};
     }
     template <class... A>
     static Result Stdcall(std::uintptr_t fn, A... args) {
-        return {reinterpret_cast<std::uint32_t(__stdcall*)(Word<A>...)>(fn)(static_cast<std::uint32_t>(args)...)};
+        return {::ei::Code<std::uint32_t(__stdcall*)(Word<A>...)>(fn)(static_cast<std::uint32_t>(args)...)};
     }
     template <class... A>
     static Result Thiscall(std::uintptr_t fn, std::uintptr_t object, A... args) {
-        return {reinterpret_cast<std::uint32_t(__thiscall*)(void*, Word<A>...)>(fn)(GamePointer<void>(object),
+        return {::ei::Code<std::uint32_t(__thiscall*)(void*, Word<A>...)>(fn)(GamePointer<void>(object),
                                                                                       static_cast<std::uint32_t>(args)...)};
     }
     // CALL [slot]: a Win32 function through game.exe's import address table.

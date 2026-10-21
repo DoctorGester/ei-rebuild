@@ -67,7 +67,7 @@ void* ItemManager() { return ei::GameData<void* const>(0x007AF60C); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);
-ActionDone SpeakerActionDone() { return reinterpret_cast<ActionDone>(0x006023F0); }
+ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
 
 constexpr int kStateRewards = 4;
 constexpr int kQuestNameParts = 3;

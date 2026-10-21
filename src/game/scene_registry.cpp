@@ -175,7 +175,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
             message.Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", static_cast<const char*>(s.groupName), static_cast<const char*>(s.section));
             game::DebugLog(message);
             if (ei::GameData<const std::uint32_t>(0x007AF5C0) & 0x10000) {
-                reinterpret_cast<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message, 0x30, 0);
+                ei::Code<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message, 0x30, 0);
             }
             m.h = 0.0f;
             m.w = 0.0f;

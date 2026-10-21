@@ -19,12 +19,12 @@ void RunStaticInitialisers() {
 int ReportMissingTargets() {
     Targets targets;
     StaticInitialisers(targets);
-    // An address of game.exe's code with no jump written into it is still INT3 in the image.
+    // An address of game.exe's code with no registration has no code in the image (CodeAddress's stub).
     auto missing = [](const std::vector<std::uintptr_t>& list, const char* what) {
         std::set<std::uintptr_t> seen;
         int n = 0;
         for (std::uintptr_t a : list) {
-            if (!seen.insert(a).second || *reinterpret_cast<const unsigned char*>(a) != 0xCC) continue;
+            if (!seen.insert(a).second || HasCode(a)) continue;
             Log("standalone: static initialisers: %s %08X has no code yet", what, static_cast<unsigned>(a));
             ++n;
         }

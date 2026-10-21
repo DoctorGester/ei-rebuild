@@ -3533,11 +3533,11 @@ const std::int32_t* FeetAlpha() { return ei::GamePointer<const std::int32_t>(0x0
 // world position (005188B0).
 void* FindFigurePart(void* unit, const char* name) {
     using Fn = void*(__thiscall*)(void*, const char*);
-    return reinterpret_cast<Fn>(0x00516A80)(unit, name);
+    return ei::Code<Fn>(0x00516A80)(unit, name);
 }
 Vector3* FigurePartPosition(void* unit, Vector3* out, void* part) {
     using Fn = Vector3*(__thiscall*)(void*, Vector3*, void*);
-    return reinterpret_cast<Fn>(0x005188B0)(unit, out, part);
+    return ei::Code<Fn>(0x005188B0)(unit, out, part);
 }
 
 const char* kLeftFoot = "ll3";
@@ -4253,7 +4253,7 @@ double TerrainHeight(float x, float y) {
 }
 double PlatformHeight(const Vector3* at, float ground) {
     using Fn = double(__thiscall*)(void*, const Vector3*, float);
-    return reinterpret_cast<Fn>(0x00560F00)(ei::GamePointer<void>(0x007AF78C), at, ground);
+    return ei::Code<Fn>(0x00560F00)(ei::GamePointer<void>(0x007AF78C), at, ground);
 }
 
 // FCOMP's "equal" (also taken when unordered).

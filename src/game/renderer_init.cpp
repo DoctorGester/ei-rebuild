@@ -44,14 +44,15 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
 // Matrices (model.cpp, called through their addresses): 004F1370 viewport,
 // 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (MatrixMultiplyOriginal).
 __declspec(naked) Matrix4* __stdcall AxisSwapMatrix(Matrix4*) EI_ORIGINAL(0x004F1330)
-// The game's operator new, keeping EDX as the allocator leaves it (see CreateHelper).
+// The game's operator new (007005AF, through its forwarder), keeping EDX as the allocator leaves it (see
+// CreateHelper).
+void* (__cdecl* const kGameOperatorNew)(std::size_t) = &gamecrt::operator_new;
 __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::uint32_t* /*edx out*/) {
     __asm {
         push esi
         mov esi, edx
         push ecx
-        mov eax, 007005AFh
-        call eax
+        call dword ptr [kGameOperatorNew]
         add esp, 4
         mov dword ptr [esi], edx
         pop esi

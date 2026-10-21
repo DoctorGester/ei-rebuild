@@ -9,17 +9,21 @@
 #include <cstring>
 #include <algorithm>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace ei {
 
 static HookEntry* g_hooks = nullptr;
 
-// Every address InstallHooks patched, in install order, with what its jump leads to (the replacement,
-// or a recorder in game.exe): the standalone image checks the jumps (standalone.cpp CheckJumps).
+// The standalone image's code table (src/standalone/image_code.cpp, S18i).
+void SetCodeTable(const std::vector<std::pair<std::uintptr_t, void*>>& installed);
+bool RedirectedByHarness(std::uintptr_t address);
+
+// Every address InstallHooks took, in install order, with its code (the replacement, or a recorder in game.exe,
+// where a jump is written): the standalone image's code table (SetCodeTable) and its check (standalone.cpp CheckCode).
 static std::vector<std::pair<std::uintptr_t, void*>> g_installed;
 const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks() { return g_installed; }
 
@@ -317,13 +321,11 @@ int InstallHooks() {
     }
 
     IndexHooks();
-    // In the standalone image the code section is INT3 until the jumps go in: a registered address that
-    // already holds something else was patched by the harness (its fixed ISAAC seed at 0049F660).
-    std::unordered_set<std::uintptr_t> patchedBefore;
-    if (standalone)
-        for (const HookEntry* h = g_hooks; h; h = h->next)
-            if (*reinterpret_cast<const unsigned char*>(h->address) != 0xCC) patchedBefore.insert(h->address);
-    TextUnprotect text(nt);
+    // The standalone image writes nothing into game.exe's code section (guarded since S18i): the replacements
+    // become the code for their addresses (SetCodeTable, src/standalone/image_code.cpp). game.exe's recorders
+    // write their jumps.
+    std::optional<TextUnprotect> text;
+    if (!standalone) text.emplace(nt);
     int installed = 0;
     g_unexpectedSkips = 0;
     std::unordered_map<std::uintptr_t, const char*> hookedBy;   // address -> the entry installed there
@@ -331,8 +333,9 @@ int InstallHooks() {
     for (HookEntry* h = g_hooks; h; h = h->next) {
         // The image takes the replacements, game.exe (recording) the recorders.
         if (h->record == standalone) continue;
-        if (patchedBefore.count(h->address)) {
-            LogSkip(h, true, "patched before the hooks (the harness)");
+        // In the image the harness replaced a registered address before the hooks (its fixed ISAAC seed at 0049F660).
+        if (standalone && RedirectedByHarness(h->address)) {
+            LogSkip(h, true, "replaced before the hooks (the harness)");
             continue;
         }
         auto* target = reinterpret_cast<unsigned char*>(h->address);
@@ -379,15 +382,17 @@ int InstallHooks() {
                 continue;
             }
         }
-        DWORD old = 0;
-        const bool inText = text.Contains(h->address, 5);
-        if (!inText) VirtualProtect(target, 5, PAGE_EXECUTE_READWRITE, &old);
-        target[0] = 0xE9; // JMP rel32
-        std::int32_t rel = static_cast<std::int32_t>(
-            reinterpret_cast<std::uintptr_t>(h->replacement) - (h->address + 5));
-        std::memcpy(target + 1, &rel, 4);
-        if (!inText) VirtualProtect(target, 5, old, &old);
-        FlushInstructionCache(GetCurrentProcess(), target, 5);
+        if (!standalone) {
+            DWORD old = 0;
+            const bool inText = text->Contains(h->address, 5);
+            if (!inText) VirtualProtect(target, 5, PAGE_EXECUTE_READWRITE, &old);
+            target[0] = 0xE9; // JMP rel32
+            std::int32_t rel = static_cast<std::int32_t>(
+                reinterpret_cast<std::uintptr_t>(h->replacement) - (h->address + 5));
+            std::memcpy(target + 1, &rel, 4);
+            if (!inText) VirtualProtect(target, 5, old, &old);
+            FlushInstructionCache(GetCurrentProcess(), target, 5);
+        }
         char line[320];
         std::snprintf(line, sizeof(line), h->record ? "recording %s at %08X -> %p\n" : "hooked %s at %08X -> %p\n", h->name,
                       static_cast<unsigned>(h->address), h->replacement);
@@ -396,7 +401,8 @@ int InstallHooks() {
         hookedBy.emplace(h->address, h->name);
         ++installed;
     }
-    text.Restore();
+    if (text) text->Restore();
+    if (standalone) SetCodeTable(g_installed);
     LogLines(installedLines.c_str());
     if (g_unexpectedSkips) Log("%d unexpected SKIP(s) above: those rewrites never run", g_unexpectedSkips);
     return installed;

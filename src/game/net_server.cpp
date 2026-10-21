@@ -19,7 +19,7 @@ namespace {
 
 // 00421800: STLport string constructor with room for n bytes, library.
 
-void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
+void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
 // 00783E30: the game's UDP port (read at run time, as the original does).
 int GamePort() { return ei::GameData<const volatile int>(0x00783E30); }

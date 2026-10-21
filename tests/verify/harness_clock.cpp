@@ -79,7 +79,8 @@ DWORD FindMainThread() {
 DWORD g_mainThread = 0;
 FILE* g_randomFile = nullptr;   // the random trace (InstallRandomTrace)
 std::uintptr_t g_selfBase = 0, g_selfEnd = 0;   // ei_hook.dll's image (set with it)
-bool InGameCode(std::uintptr_t a) { return a >= 0x00401000 && a < 0x00730000; }
+// game.exe's code (none runs in the standalone image, whose code section is guarded: S18i).
+bool InGameCode(std::uintptr_t a) { return !ei::Standalone() && a >= 0x00401000 && a < 0x00730000; }
 bool InHookCode(std::uintptr_t a) { return a >= g_selfBase + 0x1000 && a < g_selfEnd; }
 
 // The calls on the current stack (random trace notes): the game has no frame pointers, so every word
@@ -796,9 +797,15 @@ int __cdecl TracedRand() {
     return value;
 }
 
+// A JMP at `entry` to `to`; for an address of game.exe's code in the image (no code there, the code section guarded)
+// the code for the address (ei::RedirectCode).
 void JumpFrom(std::uintptr_t entry, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(entry);
     ei::NoteHarnessPatch(entry, 5, "the random trace");
+    if (ei::Standalone() && entry >= 0x00401000 && entry < 0x0073A670) {
+        ei::RedirectCode(entry, to);
+        return;
+    }
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     p[0] = 0xE9;

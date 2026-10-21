@@ -160,7 +160,7 @@ bool __fastcall NumberedAppendChild(ChunkArchive* archive, void*, ChunkArchive::
     std::uint32_t object;
     std::memcpy(&object, data, 4);
     std::uint32_t number = Number(archive, object);
-    return reinterpret_cast<AppendChildFn>(kAppendChild)(archive, nullptr, chunk, id, &number, size);
+    return ei::Code<AppendChildFn>(kAppendChild)(archive, nullptr, chunk, id, &number, size);
 }
 
 // Close's index (0040A2D3): per object its class id and its address, the address now its number; the
