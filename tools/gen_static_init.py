@@ -153,7 +153,17 @@ class Interpreter:
         self.fpu = []
         self.flag = None     # (address, bit) of the last test
         self.local = 0
+        self.shadow = None
         if address in self.registered:
+            # Ported by hand (C18k): one call to its own address. What its instructions do is still decoded, for
+            # unread_objects only (SHADOW: the objects it stores into and the exit function it registers).
+            try:
+                self.run(address, None, '')
+                self.shadow = (list(self.lines), sorted(self.spans), list(self.targets))
+            except Unknown:
+                pass
+            self.lines, self.kinds, self.targets, self.inlined = [], [], [], []
+            self.spans = set()
             self.emit(f'd.Cdecl({hexa(address)});', '')
             self.kinds.append('cdecl')
             self.targets.append(('call', address))
@@ -492,12 +502,16 @@ def registered_addresses():
     return regs | {int(a, 16) for a in pat.findall(text)}
 
 
+SHADOW = {}   # initialiser ported by hand -> (statements, instruction spans, targets) its instructions decode to
+
+
 def decode_all(img):
     """[(address, kind, statements, targets, inlined, instruction spans)] in list order."""
     registered = registered_addresses()
     refs = references(img)
     interp = Interpreter(img, registered, refs)
     out, bad = [], []
+    SHADOW.clear()
     for slot in range(LIST_BEGIN, LIST_END + 4, 4):
         a = img.dword(slot)
         try:
@@ -507,6 +521,8 @@ def decode_all(img):
             continue
         out.append((a, kind_of(interp.kinds, a in registered), list(interp.lines), list(interp.targets),
                     list(interp.inlined), sorted(interp.spans)))
+        if interp.shadow:
+            SHADOW[a] = interp.shadow
     return out, bad
 
 
@@ -638,10 +654,16 @@ def unread_objects(img, decoded, exits):
         if name == 'free' and m and len(initialisers) == 1:
             frees[int(m.group(1), 16)] = (fn, initialisers[0])
     sizes = load_sizes()
-    own = []
-    for a, kind, _, _, _, spans in decoded:
+    own, exit_fns = [], set()
+    for a, kind, _, targets, _, spans in decoded:
+        shadow = SHADOW.get(a)
+        if shadow:   # an initialiser ported by hand: its own instructions and exit function, as decoded
+            spans, targets = shadow[1], shadow[2]
         own += [(x, x + n) for x, n in spans] or [(a, a + sizes.get(a, 1))]
+        exit_fns.update(fn for k, fn in targets if k == 'exit')
     own += [(fn, fn + size) for fn, _, _, size, _ in exits]
+    # The exit functions ported by hand (no longer in `exits`): their instructions are the initialisers' own too.
+    own += [(fn, fn + sizes[fn]) for fn in exit_fns if fn in sizes]
     own.sort()
     starts = [b for b, _ in own]
 
@@ -662,6 +684,9 @@ def unread_objects(img, decoded, exits):
     touched = hand_literals()
     stored, groups = set(), []
     for a, kind, lines, _, _, _ in decoded:
+        # An initialiser ported by hand still stores into its object (through the name): those cells are stored.
+        for line in SHADOW.get(a, ((),))[0]:
+            stored.update(written_cells(line) or ())
         cells = []
         for line in lines:
             touched.update(int(x, 16) for x in READ.findall(line))

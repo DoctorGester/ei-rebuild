@@ -687,7 +687,9 @@ def write_bytes(img, path):
     data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
     named = named_ranges()
     for a, n in named:   # named globals of ours now (C18): nothing reads these bytes
-        data[a - lo:a - lo + n] = bytes(n)
+        b, e = a - lo, min(a - lo + n, len(data))   # a range in the zero-filled tail past the file's bytes: nothing
+        if b < e:
+            data[b:e] = bytes(e - b)
     while data.endswith(b'\0\0\0\0'):
         data = data[:-4]
     words = struct.unpack(f'<{len(data) // 4}I', data)

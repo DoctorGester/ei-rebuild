@@ -16,6 +16,7 @@
 #include "core_streams.h"
 #include "engine_object.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -1109,7 +1110,10 @@ static_assert(sizeof(ScriptQuestObjective) == 12);
 inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() {
     return ei::GameData<mfc::CArray<ScriptQuestObjective>>(0x007AA608);
 }
-inline mfc::CString& ScriptQuestName() { return ei::GameData<mfc::CString>(0x007AA61C); }
+// The quest's name (script_exec_helpers.cpp): built by its static initialiser in the list's order, destroyed by the
+// exit function that registers.
+extern lib::StaticObject<mfc::CString> g_scriptQuestName;
+inline mfc::CString& ScriptQuestName() { return *g_scriptQuestName; }
 // 004BAEB0 (__thiscall). An objective's destructor.
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 // 004BAA40 (QStart; __fastcall). The objectives destroyed and freed (size and capacity 0), the quest

@@ -76,6 +76,8 @@ TYPES = {
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
     'stlp::vector': 'III',         # stlp_vector.h: start, finish, end of storage
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
+    # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
+    'lib::StaticObject<mfc::CString>': 'I',
 }
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
@@ -112,8 +114,12 @@ def braced(text, start):
 
 
 def element_format(type_):
-    """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`)."""
-    return TYPES.get(type_, TYPES.get(re.sub(r'<.*>$', '', type_)))
+    """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
+    pointer to another type is a pointer element ('P': `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`)."""
+    found = TYPES.get(type_, TYPES.get(re.sub(r'<.*>$', '', type_)))
+    if found is None and type_.endswith('*'):
+        return 'P'
+    return found
 
 
 class Definition:

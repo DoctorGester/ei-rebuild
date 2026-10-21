@@ -83,7 +83,7 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
 EI_REPLACE(0x00578C40, PlayerZeroVariables);
 
 namespace {
-mfc::CString& StartFolder() { return ei::GameData<mfc::CString>(0x007AF454); }
+mfc::CString& StartFolder() { return TheStartFolder(); }
 constexpr unsigned kFolderBufferSize = 0x400;
 } // namespace
 

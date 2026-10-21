@@ -91,7 +91,7 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     music->themes[n].Assign(reinterpret_cast<const MusicTheme*>(&theme));
 }
 
-const mfc::CString& TextPath() { return ei::GameData<const mfc::CString>(0x007AF45C); }
+const mfc::CString& TextPath() { return TheTextFolder(); }
 
 } // namespace
 

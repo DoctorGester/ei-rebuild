@@ -70,15 +70,19 @@ inline char*& NamedRecord(RecordNameMap& map, const stlp::string& name) { return
 
 // The globals of the stock generation (the exe's data).
 namespace stock {
-// Scratch vectors: the prototypes taken (007C8680), the candidate materials of one prototype
-// (007C8650, pointers into the stock's material entries), the material entries taken (007C8640),
-// the spells (007C8670) and modifiers (007C8660) taken.
+// Scratch vectors (item_stock.cpp): the prototypes taken, the candidate materials of one prototype (pointers into
+// the stock's material entries), the material entries taken, the spells and modifiers taken.
 using CandidateVector = stlp::vector<StockMaterial*>;
-inline StockPtrVector& TakenPrototypes() { return ei::GameData<StockPtrVector>(0x007C8680); }
-inline CandidateVector& Candidates() { return ei::GameData<CandidateVector>(0x007C8650); }
-inline StockMaterialVector& TakenMaterials() { return ei::GameData<StockMaterialVector>(0x007C8640); }
-inline StockPtrVector& TakenSpells() { return ei::GameData<StockPtrVector>(0x007C8670); }
-inline StockPtrVector& TakenModifiers() { return ei::GameData<StockPtrVector>(0x007C8660); }
+extern StockPtrVector g_takenPrototypes;
+extern CandidateVector g_candidates;
+extern StockMaterialVector g_takenMaterials;
+extern StockPtrVector g_takenSpells;
+extern StockPtrVector g_takenModifiers;
+inline StockPtrVector& TakenPrototypes() { return g_takenPrototypes; }
+inline CandidateVector& Candidates() { return g_candidates; }
+inline StockMaterialVector& TakenMaterials() { return g_takenMaterials; }
+inline StockPtrVector& TakenSpells() { return g_takenSpells; }
+inline StockPtrVector& TakenModifiers() { return g_takenModifiers; }
 // The spell recipe vectors for weapons, armors and scrolls (FillSpellMaps' argument).
 inline const SpellRecipeVector* WeaponSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C8568); }
 inline const SpellRecipeVector* ArmorSpellRecipes() { return ei::GamePointer<const SpellRecipeVector>(0x007C855C); }

@@ -298,7 +298,7 @@ constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
 
-const mfc::CString& MoviesFolder() { return ei::GameData<const mfc::CString>(0x007AF458); }
+const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 
 
 // 005DB3F0. Plays a movie file (ECX path, EDX 0, five flags).

@@ -9,6 +9,7 @@
 
 #include "game_data.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 
 struct GameFlow;      // world.h
 class CInterface3D;   // ui.h
@@ -72,7 +73,17 @@ inline CCamera* TheCamera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
 // 007AA5A0: the party manager (the parties by key, the named records and the class templates).
 inline PartyManager* ThePartyManager() { return ei::GamePointer<PartyManager>(0x007AA5A0); }
 
-// 007AF460: the game's data folder (a CString, with its trailing backslash); DataFolderText() is its characters
-// for printf-style arguments.
-inline mfc::CString& TheDataFolder() { return ei::GameData<mfc::CString>(0x007AF460); }
+// The registry key of the options and the game's folders (CStrings; game_folders.cpp): where the game was started,
+// the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()
+// is its characters for printf-style arguments).
+extern lib::StaticObject<mfc::CString> g_registryRoot;
+extern lib::StaticObject<mfc::CString> g_startFolder;
+extern lib::StaticObject<mfc::CString> g_discFolder;
+extern lib::StaticObject<mfc::CString> g_textFolder;
+extern lib::StaticObject<mfc::CString> g_dataFolder;
+inline mfc::CString& TheRegistryRoot() { return *g_registryRoot; }
+inline mfc::CString& TheStartFolder() { return *g_startFolder; }
+inline mfc::CString& TheDiscFolder() { return *g_discFolder; }
+inline mfc::CString& TheTextFolder() { return *g_textFolder; }
+inline mfc::CString& TheDataFolder() { return *g_dataFolder; }
 inline const char* DataFolderText() { return TheDataFolder(); }

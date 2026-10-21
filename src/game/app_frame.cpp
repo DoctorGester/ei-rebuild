@@ -2,6 +2,7 @@
 // a screenshot per frame while recording a movie) and the intro movies (00458270: the list read
 // from an .ini file, each played, the screen cleared before and after). Every
 // callee is reached through its original address. See docs/notes/app.md.
+#include "app.h"
 #include "dib.h"
 #include "game_strings.h"
 #include "model.h"
@@ -82,7 +83,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     TheCursor()->ReleaseLock();
     if (!ei::GameData<std::uint8_t>(0x0079BC54)) return;
     char path[256];
-    gamecrt::sprintf(path, "%sshot%.4d.bmp", ei::GameData<std::uint32_t>(0x0079BA0C), ei::GameData<std::uint32_t>(0x0079BC58));
+    gamecrt::sprintf(path, "%sshot%.4d.bmp", static_cast<const char*>(MovieFolder()), ei::GameData<std::uint32_t>(0x0079BC58));
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
@@ -130,7 +131,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     for (int i = 0; i < list.size; ++i) {
         alignas(mfc::CString) unsigned char dirRaw[sizeof(mfc::CString)];
         alignas(mfc::CString) unsigned char fullRaw[sizeof(mfc::CString)];
-        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), ei::GamePointer<const mfc::CString>(0x007AF458), "Movies\\");
+        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), &TheDiscFolder(), "Movies\\");
         mfc::CString* full = ConcatString(reinterpret_cast<mfc::CString*>(fullRaw), dir, &list.data[i]);
         PlayMovie(*full, 0, 1, 0, 0, static_cast<char>(a), b);
         full->~CString();
