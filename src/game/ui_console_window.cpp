@@ -121,8 +121,8 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         }
         break;
     case VK_LEFT:
-    case VK_RIGHT:
-        caret_ += key == VK_LEFT ? -1 : 1;
+    case VK_RIGHT:   // by character (U4)
+        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_, caret_) : ::text::NextCharacter(input_, caret_);
         if (!shift_) anchor_ = caret_;
         DrawInput();
         return;
@@ -144,7 +144,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     case VK_DELETE:
         if (anchor_ == caret_) {
             if (caret_ < Length(input_)) {
-                mfc::CString rest = Ops(input_).Mid(caret_ + 1);
+                mfc::CString rest = Ops(input_).Mid(::text::NextCharacter(input_, caret_));
                 input_ = Left(input_, caret_) + rest;
                 DrawInput();
             }
@@ -233,7 +233,8 @@ std::string ClipboardText() {
 
 } // namespace
 
-// 005E44A0: typed characters. Backspace deletes the selection or the character before the caret,
+// 005E44A0: typed characters (U4: with EI_UTF8 code points, stored as UTF-8; the caret is a byte offset at a
+// character's start and moves by character). Backspace deletes the selection or the character before the caret,
 // Enter enters the line (into the history, at most 30, echoed with "> ", then executed), Escape
 // clears the line, Tab does nothing; other characters replace the selection, except while Ctrl is
 // held. Rebirth's ImproveConsole skips the history for a line equal to the last one and adds
@@ -252,9 +253,10 @@ void ConsoleWindow::OnChar(int key, int, int) {
             anchor_ = first;
         } else {
             if (caret_ == 0) return;
+            const int previous = ::text::PreviousCharacter(input_, caret_);
             mfc::CString rest = MidOf(input_, caret_);
-            input_ = Left(input_, caret_ - 1) + rest;
-            --caret_;
+            input_ = Left(input_, previous) + rest;
+            caret_ = previous;
             anchor_ = caret_;
         }
         DrawInput();
@@ -312,6 +314,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
             mfc::CString head = Left(input_, low);
             input_ = (head + clip) + rest;
             int position = Length(clip) - (anchor_ != caret_ ? 1 : 0) + high;
+            position = ::text::CharacterStart(input_, position);   // EI_UTF8: never inside a character
             caret_ = position;
             anchor_ = position;
             DrawInput();
@@ -320,9 +323,9 @@ void ConsoleWindow::OnChar(int key, int, int) {
     if (ctrl_) return;
     mfc::CString rest = MidOf(input_, high);
     mfc::CString head = Left(input_, low);
-    input_ = mfc::operator+(head, static_cast<char>(key)) + rest;
-    caret_ = low + 1;
-    anchor_ = low + 1;
+    input_ = ::text::Typed(head, key) + rest;
+    caret_ = low + ::text::TypedLength(key);
+    anchor_ = caret_;
     DrawInput();
 }
 EI_REPLACE_METHOD(0x005E44A0, ConsoleWindow::OnChar);

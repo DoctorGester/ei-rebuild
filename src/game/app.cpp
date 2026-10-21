@@ -12,6 +12,7 @@
 #include "dx_errors.h"
 #include "game_strings.h"
 #include "present_window.h"
+#include "asset_text.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -136,6 +137,23 @@ int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >>
 
 bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
+// EI_UTF8 (U4): the window is a Unicode one (system_text.h), so WM_CHAR carries a UTF-16 unit, and a character
+// past U+FFFF comes as two (a surrogate pair). The typed character as a code point, or -1 while the first
+// half of a pair waits for the second (a half that comes alone is dropped).
+unsigned g_highSurrogate = 0;
+int TypedCharacter(WPARAM unit) {
+    const unsigned u = static_cast<unsigned>(unit & 0xFFFF);
+    const unsigned high = g_highSurrogate;
+    g_highSurrogate = 0;
+    if (u >= 0xD800 && u <= 0xDBFF) {
+        g_highSurrogate = u;
+        return -1;
+    }
+    if (u >= 0xDC00 && u <= 0xDFFF)
+        return high ? static_cast<int>(0x10000 + ((high - 0xD800) << 10) + (u - 0xDC00)) : -1;
+    return static_cast<int>(u);
+}
+
 
 void __fastcall MenuOpen(void* flow) { FlowProcessRequestOriginal(flow); }
 
@@ -185,6 +203,10 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnKeyUp(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_CHAR:
+        if constexpr (text::kUtf8) {
+            w = TypedCharacter(wParam);
+            if (w < 0) return Handled();
+        }
         input->OnChar(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYDOWN:

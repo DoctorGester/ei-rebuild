@@ -1,7 +1,8 @@
-// Asset text to UTF-8 and, until U2-U4, back at the ANSI calls. See asset_text.h.
+// Asset text to UTF-8 and, until U3, back at the ANSI calls; typed text by character (U4). See asset_text.h.
 #include "asset_text.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 
 #include <windows.h>
@@ -9,6 +10,10 @@
 namespace text {
 
 namespace {
+
+std::string_view Bytes(const mfc::CString& text) {
+    return std::string_view(static_cast<const char*>(text), static_cast<std::size_t>(text.GetLength()));
+}
 
 bool IsAscii(std::string_view bytes) {
     for (char c : bytes) {
@@ -77,16 +82,6 @@ bool ToAssetText(std::string_view text, std::string* out, unsigned codepage) {
     }
 }
 
-void ToAssetText(mfc::CString* text, unsigned codepage) {
-    std::string converted;
-    if (!ToAssetText(std::string_view(static_cast<const char*>(*text), static_cast<std::size_t>(text->GetLength())),
-                     &converted, codepage))
-        return;
-    const int length = static_cast<int>(converted.size());
-    std::memcpy(text->GetBufferSetLength(length), converted.data(), converted.size());
-    text->ReleaseBuffer(length);
-}
-
 int CharacterCount(std::string_view text) {
     if constexpr (!kUtf8) {
         return static_cast<int>(text.size());
@@ -105,6 +100,95 @@ int CharacterCount(std::string_view text) {
             ++i;
         }
         return count;
+    }
+}
+
+int CharacterCount(const mfc::CString& text) { return CharacterCount(Bytes(text)); }
+
+// ---- Typing (U4) ---------------------------------------------------------------------------------------
+
+namespace {
+
+// The UTF-8 bytes of code point `character` (U+FFFD for one that is not a character's).
+std::string Utf8Of(int character) {
+    std::uint32_t c = static_cast<std::uint32_t>(character);
+    if (c > 0x10FFFF || (c >= 0xD800 && c <= 0xDFFF)) c = 0xFFFD;
+    std::string bytes;
+    if (c < 0x80) {
+        bytes += static_cast<char>(c);
+    } else if (c < 0x800) {
+        bytes += static_cast<char>(0xC0 | (c >> 6));
+        bytes += static_cast<char>(0x80 | (c & 0x3F));
+    } else if (c < 0x10000) {
+        bytes += static_cast<char>(0xE0 | (c >> 12));
+        bytes += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
+        bytes += static_cast<char>(0x80 | (c & 0x3F));
+    } else {
+        bytes += static_cast<char>(0xF0 | (c >> 18));
+        bytes += static_cast<char>(0x80 | ((c >> 12) & 0x3F));
+        bytes += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
+        bytes += static_cast<char>(0x80 | (c & 0x3F));
+    }
+    return bytes;
+}
+
+bool IsContinuation(char byte) { return (static_cast<unsigned char>(byte) & 0xC0) == 0x80; }
+
+} // namespace
+
+mfc::CString Typed(const mfc::CString& head, int character) {
+    if constexpr (kUtf8) {
+        return head + Utf8Of(character).c_str();
+    } else {
+        return mfc::operator+(head, static_cast<char>(character));
+    }
+}
+
+int TypedLength(int character) {
+    if constexpr (kUtf8) {
+        return static_cast<int>(Utf8Of(character).size());
+    } else {
+        (void)character;
+        return 1;
+    }
+}
+
+int NextCharacter(const mfc::CString& text, int at) {
+    if constexpr (!kUtf8) {
+        (void)text;
+        return at + 1;
+    } else {
+        const std::string_view bytes = Bytes(text);
+        if (at < 0 || at >= static_cast<int>(bytes.size())) return at + 1;
+        std::size_t next = static_cast<std::size_t>(at) + 1;
+        while (next < bytes.size() && IsContinuation(bytes[next])) ++next;
+        return static_cast<int>(next);
+    }
+}
+
+int PreviousCharacter(const mfc::CString& text, int at) {
+    if constexpr (!kUtf8) {
+        (void)text;
+        return at - 1;
+    } else {
+        const std::string_view bytes = Bytes(text);
+        if (at <= 0 || at > static_cast<int>(bytes.size())) return at - 1;
+        std::size_t previous = static_cast<std::size_t>(at) - 1;
+        while (previous > 0 && IsContinuation(bytes[previous])) --previous;
+        return static_cast<int>(previous);
+    }
+}
+
+int CharacterStart(const mfc::CString& text, int at) {
+    if constexpr (!kUtf8) {
+        (void)text;
+        return at;
+    } else {
+        const std::string_view bytes = Bytes(text);
+        if (at <= 0 || at >= static_cast<int>(bytes.size())) return at;
+        std::size_t start = static_cast<std::size_t>(at);
+        while (start > 0 && IsContinuation(bytes[start])) --start;
+        return static_cast<int>(start);
     }
 }
 
