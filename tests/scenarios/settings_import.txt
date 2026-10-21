@@ -1,0 +1,17 @@
+# ST1a: the image's one-time import of the registry into its settings file, without the user's registry. The run
+# starts with no ei_settings.ini; the first use of the settings imports the two trees (Software\Nival
+# Interactive\EvilIslands and Software\Gipat.Ru\EI_Starter, every subkey) from a stand-in for the registry, the
+# harness's snapshot (config/harness/registry.reg, with the scenario's starter lines and a probe key of odd values;
+# tests/verify/harness_settings.h), writes the file, and the game goes on with it; its exit save changes nothing
+# the game does not change itself. ei_launch compares the file after the exit with settings/settings_import.ini: the
+# imported keys and values only (a key outside both trees stays out), bit for bit. The unit-style checks of the same
+# import are in tests/vectors/replay_settings.cpp.
+# no original: vanilla rebirth game.exe keeps its settings in the registry (the settings file is the image's)
+# settings-file: settings/settings_import.ini
+timeout 40
+settingsfile import
+reject Script error
+waitmenu
+wait 500
+report
+quit

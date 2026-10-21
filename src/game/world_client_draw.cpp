@@ -52,6 +52,7 @@
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "settings_file.h"
 #include "system_text.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
@@ -110,13 +111,9 @@ __declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL
 // settings when it loads).
 float StarterDrawRadius(const char* name) {
     DWORD value = 100;
-    HKEY key;
-    if (text::sys::RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Gipat.Ru\\EI_Starter\\Settings", 0, KEY_READ, &key) == 0) {
-        DWORD data = 0, size = sizeof(data), type = 0;
-        if (text::sys::RegQueryValueExA(key, name, nullptr, &type, reinterpret_cast<BYTE*>(&data), &size) == 0 && type == REG_DWORD)
-            value = data;
-        RegCloseKey(key);
-    }
+    DWORD data = 0, size = sizeof(data), type = 0;
+    if (settings_file::ReadValue("Software\\Gipat.Ru\\EI_Starter\\Settings", name, &type, &data, &size) == 0 && type == REG_DWORD)
+        value = data;
     float radius = static_cast<float>(static_cast<double>(value));
     return radius;
 }

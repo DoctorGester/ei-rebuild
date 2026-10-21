@@ -388,7 +388,7 @@ void CItemInfoPanel::DescribeItem() {
     if (kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) {
         // The charge and the carried spell's level.
         CSpell* spell = SpellOf(item);
-        int spellValue = spell ? Read<int>(spell, 0x50) : 0;
+        int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(Read<float>(item, 0x2C)));
         w.line.Format("%s %d/%d", static_cast<const char*>(w.T(14)), spellValue, Read<int>(item, 0x40));
         w.Text(w.line);
@@ -669,8 +669,8 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.Head(name, kindText);
     if (CSpell* spell = SpellOf(item)) {
         bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
-        SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
-        DurationLine(w, Read<std::uint32_t>(spell, 0x20));
+        SpellLevelLine(w, known, known ? FtolOf(spell->damage_) : 0);
+        DurationLine(w, spell->duration_);
         w.Down();
     }
     w.Wrapped(description, 8);
@@ -702,12 +702,12 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Draw()->Begin();
     mfc::CString text;
     w.Head(title, kindText);
-    w.Number(7, FtolOf(Read<float>(spell, 0x40)));
-    w.Number(14, Read<int>(spell, 0x50));
+    w.Number(7, FtolOf(spell->manaCost_));
+    w.Number(14, static_cast<int>(spell->skillNeeded_));
     w.School(SpellPrototypeOf(spell)->castType);
     bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
-    SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
-    float power = Read<float>(spell, 0x30);
+    SpellLevelLine(w, known, known ? FtolOf(spell->damage_) : 0);
+    float power = spell->speed_;
     EI_NAN_AUDIT(power);
     if (power < 1.0f)
         w.line.Format("%s %s", static_cast<const char*>(w.T(9)), static_cast<const char*>(w.T(21)));
@@ -715,22 +715,22 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         w.line.Format("%s %d", static_cast<const char*>(w.T(9)), FtolOf(power));
     w.Text(w.line);
     w.Down();
-    w.line.Format("%s %d%s", static_cast<const char*>(w.T(10)), FtolOf(Read<float>(spell, 0x34)),
+    w.line.Format("%s %d%s", static_cast<const char*>(w.T(10)), FtolOf(spell->range_),
                   static_cast<const char*>(w.T(26)));   // "%s %d%s"
     w.Text(w.line);
     w.Down();
-    if (Read<std::uint32_t>(spell, 0x3C) & 0x10000000) {
+    if (spell->targetFlags_ & 0x10000000) {
         w.line.Format("%s %s", static_cast<const char*>(w.T(11)), static_cast<const char*>(w.T(22)));
     } else {
         // The area: pi * r * r in that order (FLD r; FLD pi; FMUL ST1; FMUL ST1).
-        double radius = D(Read<float>(spell, 0x28));
+        double radius = D(spell->radius_);
         double area = D(3.1415927f /*007402C0*/) * radius * radius;
         w.line.Format("%s %.1f%s", static_cast<const char*>(w.T(11)), area, static_cast<const char*>(w.T(26)));
     }
     w.Text(w.line);
     w.Down();
-    DurationLine(w, Read<std::uint32_t>(spell, 0x20));
-    w.Number(13, Read<int>(spell, 0x38));
+    DurationLine(w, spell->duration_);
+    w.Number(13, static_cast<int>(spell->targetCount_));
     w.Down();
     w.Wrapped(description, 4);
     w.Down();
@@ -744,7 +744,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         for (int i = 0; i < spell->GetModifierCount(); ++i) {
             w.line += " ";
             text = "?";
-            std::uint32_t index = static_cast<std::uint32_t>(Read<signed char>(spell, 0x54 + i) - 1);
+            std::uint32_t index = static_cast<std::uint32_t>(spell->modifiers_[i] - 1);
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(index);
             mfc::CString key("modifier ");
             key += modifier->code;

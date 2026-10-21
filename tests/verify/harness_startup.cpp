@@ -2,7 +2,9 @@
 #include "harness_startup.h"
 
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 #include "game/game_data.h"
+#include "game/settings_file.h"
 
 #include <windows.h>
 
@@ -53,6 +55,14 @@ LSTATUS WINAPI DiscPathQuery(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD ty
     return result;
 }
 
+// The same for the standalone's settings file (game/settings_file.h): each read of "CD-ROM Path" gets ".\".
+void DiscPathRead(const char* name, unsigned long, std::string& data) {
+    if (_stricmp(name, "CD-ROM Path") != 0) return;
+    data.resize(strnlen(data.data(), data.size()));
+    data += ".\\";
+    data += '\0';
+}
+
 // The disc check's root ("<drive>\.", app_main.cpp DriveRoot) gets the label; every other caller (MFC's
 // AfxFullPath asks for the flags) the volume's own answer.
 BOOL WINAPI DiscVolumeInformation(LPCSTR root, LPSTR name, DWORD nameSize, LPDWORD serial, LPDWORD component,
@@ -79,7 +89,11 @@ void AtWindowClass() {
     static bool done = false;
     if (done || g_discPrompts < 0) return;
     done = true;
-    TakeSlot(kRegQueryValueExASlot, &DiscPathQuery, g_query);
+    if (ei::Standalone()) {
+        settings_file::AddReadFilter(&DiscPathRead);
+    } else {
+        TakeSlot(kRegQueryValueExASlot, &DiscPathQuery, g_query);
+    }
     TakeSlot(kGetVolumeInformationASlot, &DiscVolumeInformation, g_volumeInformation);
     Log("harness: discprompt: %d box(es) of the second disc to answer", g_discPrompts);
 }

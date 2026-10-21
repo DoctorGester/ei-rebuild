@@ -32,15 +32,8 @@ void SetRendererBaseVtable(void* object) { ei::SetVtable(object, RendererBaseCla
 
 // ---- Counted holders ------------------------------------------------------------------------------
 
-void HeldEngineObject::Assign(CEngineObject* value) {
-    CEngineObject* previous = object;
-    object = value;
-    if (value) ++value->refCount_;
-    if (previous) previous->Release();
-}
+// (HeldEngineObject::Assign, 004EBE60: refptr_copies.cpp.)
 EI_REWRITTEN(0x004EC790, lib::AlignedArray<TLVertex>::SetSize);
-EI_REWRITTEN(0x004EBE60, HeldEngineObject::Assign);
-EI_REWRITTEN(0x0056F1A0, HeldEngineObject::Assign);
 
 // ---- Deleting destructors ---------------------------------------------------------------------------
 

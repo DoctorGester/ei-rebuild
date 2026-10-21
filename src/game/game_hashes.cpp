@@ -5,11 +5,16 @@
 
 namespace gamehash {
 
-PartyInPlace* PartyTable::At(const std::uint32_t* key) {
+void PartyElement::Construct(PartyInPlace* to, const PartyInPlace& from) {
+    to->Get()->CopyConstruct(const_cast<PartyInPlace&>(from).Get());
+}
+void PartyElement::Destroy(PartyInPlace* p) { p->Get()->DestructBody(); }
+
+PartyInPlace* PartyTable::At(const int* key) {
     PartyInPlace local;
     local.Get()->Construct();
     PartyTable::Value pair;
-    pair.key = *key;
+    pair.key = static_cast<std::uint32_t>(*key);
     pair.mapped.Get()->CopyConstruct(local.Get());
     PartyInPlace* result = &FindOrInsert(pair).mapped;
     pair.mapped.Get()->DestructBody();

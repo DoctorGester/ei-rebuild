@@ -222,15 +222,18 @@ EI_REWRITTEN(0x00598980, ObjectHolderRelease);
 EI_REWRITTEN(0x00598990, ObjectHolderRelease);
 EI_REWRITTEN(0x00421350, ObjectHolderRelease);
 
-// 00429B50: assignment: the new object gains a reference, the old one is released.
-void __fastcall ObjectHolderAssign(CEngineObject** self, void*, CEngineObject* object) {
-    CEngineObject* previous = *self;
-    *self = object;
-    if (object) ++object->refCount_;
+// 004EBE60 and its byte-identical copies (00429B50, a particle source's 0056F1A0, ...): assignment;
+// the new object gains a reference, then the old one is released.
+void HeldEngineObject::Assign(CEngineObject* value) {
+    CEngineObject* previous = object;
+    object = value;
+    if (value) ++value->refCount_;
     if (previous) previous->Release();
 }
-EI_REWRITTEN(0x00511B90, ObjectHolderAssign);
-EI_REWRITTEN(0x0052C690, ObjectHolderAssign);
-EI_REWRITTEN(0x00556C40, ObjectHolderAssign);
-EI_REWRITTEN(0x00556C60, ObjectHolderAssign);
-EI_REWRITTEN(0x00429B50, ObjectHolderAssign);
+EI_REWRITTEN(0x004EBE60, HeldEngineObject::Assign);
+EI_REWRITTEN(0x0056F1A0, HeldEngineObject::Assign);
+EI_REWRITTEN(0x00511B90, HeldEngineObject::Assign);
+EI_REWRITTEN(0x0052C690, HeldEngineObject::Assign);
+EI_REWRITTEN(0x00556C40, HeldEngineObject::Assign);
+EI_REWRITTEN(0x00556C60, HeldEngineObject::Assign);
+EI_REWRITTEN(0x00429B50, HeldEngineObject::Assign);

@@ -4,6 +4,8 @@
 // wrapper the options loader (0045B210) and writer (0045C560) use. The object is one open key; every
 // getter and setter opens `subkey` below it, reads or writes one value and closes it again.
 // Failures go to the game's debug message (0044C470) and give the default / 0.
+// In the standalone the keys and values are its settings file's (settings_file.h, ST1), never the registry's:
+// key_ is then a settings_file::CreateKey handle, and Close writes the file when a value changed.
 
 #include <cstdint>
 
@@ -36,6 +38,6 @@ public:
     mfc::CString GetString(const char* subkey, const char* name, mfc::CString defaultValue);    // 006988A0
     mfc::CString GetStringInt(const char* subkey, const char* name, mfc::CString defaultValue); // 006976B0 (REG_SZ)
 
-    void* key_;    // +0x00 HKEY, null when closed
+    void* key_;    // +0x00 HKEY (the standalone: the settings file's key), null when closed
 };
 static_assert(sizeof(CWinRegistry) == 4);

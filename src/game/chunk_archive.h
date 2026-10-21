@@ -22,6 +22,7 @@ class CRefObject;
 struct ClassTemplate;
 struct LeverRecord;
 struct PartyInPlace;
+namespace gamehash { struct PartyTable; }   // party_manager.h
 struct PartyManagerEntry;
 struct QuestBriefingRecord;
 struct QuestRecord;
@@ -131,7 +132,7 @@ public:
     // popped (RET 0xC). Loading empties the container first and takes one record per chunk 1.
     // 004ACEC0. hash_map<int, CParty>: per party a chunk 1 (field 1: the key) and a chunk 2
     // (CParty::ArchiveParty); loading inserts each key (operator[]).
-    void SerializeParties(int id, stlp::hash_map<int, PartyInPlace, stlp::IntHash>* parties, void* unused);
+    void SerializeParties(int id, gamehash::PartyTable* parties, void* unused);
     // 004AD0C0. vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
     void SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void* unused);

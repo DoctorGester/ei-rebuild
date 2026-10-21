@@ -23,6 +23,8 @@
 class CStream;   // core_streams.h
 class CEngineObject;   // engine_object.h
 class CMapObject;      // map_object.h
+class CTransformObject;   // core_transform.h
+class CUnit;           // unit.h
 
 namespace mapspec {
 
@@ -167,6 +169,7 @@ struct ObjectSpec {
 
     // The world object an object record makes is a map object (a unit for a unit record).
     CMapObject* MapObject() const;
+    CUnit* Unit() const;   // map_spec_unit.cpp
 
     Spec base;                   // +0x00
     mfc::CString model;          // +0x4C (from 0079B298, empty)
@@ -307,6 +310,8 @@ struct EffectSpec {
     void EffectSpecSetVisible(std::uint8_t newVisible);
     // 0046D420 (slot 5, RET 0xC). Moves the record, not below the terrain, then slot 7.
     void EffectSpecMove(float dx, float dy, float dz);
+    // The world object an effect record makes (the effect's carrier: a transform object).
+    CTransformObject* Transform() const;
 
     Spec base;                   // +0x00
     void* effect;                // +0x4C the effect the world object runs
@@ -436,8 +441,5 @@ bool __fastcall ReadMobChunks(Chunk* root, void*, MobRecords* records, ZoneDiplo
 // records), frees the records, then loads the scripts unless `keepIds`' low byte is set. Returns
 // true (AL). The first argument is not used.
 bool __fastcall LoadMobFile(Chunk* root, void*, void* unused, int keepIds);
-
-// The unit record's five behaviour (alarm) records (+0x90, 0x4C bytes each).
-const void* UnitSpecBehaviours(const UnitSpec* spec);
 
 } // namespace mapspec

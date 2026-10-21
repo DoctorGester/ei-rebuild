@@ -578,8 +578,6 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
-inline void __fastcall UnitSetController(CUnit* a0, void*, void* a2) { a0->SetPlayer(static_cast<CPlayer*>(a2)); }
-
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
 void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CUnit* unit) {
@@ -643,7 +641,7 @@ void CWorldServer::StoreParty(void* recordsArg, CParty* party, void* placementsA
         }
         if (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
         if (!ObjectSlots(unit)->IsDead()) WorldRemoveObject(this, nullptr, unit->id_);
-        else UnitSetController(unit, nullptr, nullptr);
+        else unit->SetPlayer(nullptr);
     }
 }
 

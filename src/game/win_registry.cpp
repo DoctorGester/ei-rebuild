@@ -1,6 +1,8 @@
 // CWinRegistry (006972A0-006988A0). See win_registry.h.
 #include "win_registry.h"
 
+#include "settings_file.h"
+
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
 #include "ei/hook.h"
@@ -27,10 +29,15 @@ bool CreateKey(void* root, const char* subkey, HKEY* key, const char* failure) {
     return true;
 }
 
-// Writes one value into an open key and closes it; logs `failure` when the value cannot be set.
-BOOL SetValue(HKEY key, const char* name, DWORD type, const void* data, DWORD size, const char* failure) {
+// Writes one value of `subkey` (created when missing): 1, or 0 with `openFailure` / `writeFailure` logged when
+// the subkey cannot be created or the value not set. The standalone's go to its settings file.
+BOOL SetValue(void* root, const char* subkey, const char* name, DWORD type, const void* data, DWORD size,
+              const char* openFailure, const char* writeFailure) {
+    if (ei::Standalone()) return settings_file::Set(root, subkey, name, type, data, size) == 0;
+    HKEY key;
+    if (!CreateKey(root, subkey, &key, openFailure)) return 0;
     if (gameapi::RegSetValueExA(key, name, 0, type, static_cast<const BYTE*>(data), size) != 0) {
-        game::DebugLog(failure);
+        game::DebugLog(writeFailure);
         gameapi::RegCloseKey(key);
         return 0;
     }
@@ -41,9 +48,10 @@ BOOL SetValue(HKEY key, const char* name, DWORD type, const void* data, DWORD si
 // Reads a 4-byte value of `subkey`: false when the subkey or the value cannot be read; `type`
 // receives the value's type.
 bool QueryValue(void* root, const char* subkey, const char* name, DWORD* type, void* data) {
+    DWORD size = 4;
+    if (ei::Standalone()) return settings_file::Query(root, subkey, name, type, data, &size) == 0;
     HKEY key;
     if (gameapi::RegOpenKeyExA(Handle(root), subkey, 0, kAllAccess, &key) != 0) return false;
-    DWORD size = 4;
     LONG status = gameapi::RegQueryValueExA(key, name, nullptr, type, static_cast<BYTE*>(data), &size);
     gameapi::RegCloseKey(key);
     return status == 0;
@@ -63,9 +71,8 @@ std::uint32_t GetDWordValue(void* root, const char* subkey, const char* name, st
 
 // The REG_DWORD writers (00697CA0 / 00697D40 are the same code).
 BOOL SetDWordValue(void* root, const char* subkey, const char* name, std::uint32_t value) {
-    HKEY key;
-    if (!CreateKey(root, subkey, &key, "CWinRegistry::SetDWordInt().\nUnable to open key.\n")) return 0;
-    return SetValue(key, name, REG_DWORD, &value, 4, "CWinRegistry::SetDWordInt().\nUnable to access registry.\n");
+    return SetValue(root, subkey, name, REG_DWORD, &value, 4, "CWinRegistry::SetDWordInt().\nUnable to open key.\n",
+                    "CWinRegistry::SetDWordInt().\nUnable to access registry.\n");
 }
 
 } // namespace
@@ -83,6 +90,10 @@ EI_REWRITTEN(0x006972B0, CWinRegistry::Destroy);
 
 BOOL CWinRegistry::Open(const char* path, std::uint32_t root) {
     Close();
+    if (ei::Standalone()) {   // the settings file's key (every caller opens below HKEY_CURRENT_USER)
+        key_ = settings_file::CreateKey(path);
+        return 1;
+    }
     DWORD disposition;
     HKEY key;
     if (gameapi::RegCreateKeyExA(reinterpret_cast<HKEY>(static_cast<std::uintptr_t>(root)), path, 0, kNoClass, 0,
@@ -96,10 +107,13 @@ BOOL CWinRegistry::Open(const char* path, std::uint32_t root) {
 EI_REWRITTEN(0x00697340, CWinRegistry::Open);
 
 void CWinRegistry::Close() {
-    if (key_) {
+    if (!key_) return;
+    if (ei::Standalone()) {
+        settings_file::Flush();   // what the key's writes changed
+    } else {
         gameapi::RegCloseKey(Handle(key_));
-        key_ = nullptr;
     }
+    key_ = nullptr;
 }
 EI_REWRITTEN(0x006973A0, CWinRegistry::Close);
 
@@ -114,16 +128,14 @@ BOOL CWinRegistry::SetInt(const char* subkey, const char* name, int value) {
 EI_REWRITTEN(0x00697D40, CWinRegistry::SetInt);
 
 BOOL CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
-    HKEY key;
-    if (!CreateKey(key_, subkey, &key, "CWinRegistry::SetBinInt().\nUnable to open key.\n")) return 0;
-    return SetValue(key, name, REG_BINARY, &bits, 4, "CWinRegistry::SetBinInt().\nUnable to access registry.\n");
+    return SetValue(key_, subkey, name, REG_BINARY, &bits, 4, "CWinRegistry::SetBinInt().\nUnable to open key.\n",
+                    "CWinRegistry::SetBinInt().\nUnable to access registry.\n");
 }
 EI_REWRITTEN(0x00697E80, CWinRegistry::SetFloat);
 
 BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, mfc::CString value) {
-    HKEY key;
-    if (!CreateKey(key_, subkey, &key, "CWinRegistry::SetStringInt().\nUnable to open key.\n")) return 0;
-    return SetValue(key, name, REG_SZ, static_cast<const char*>(value), static_cast<DWORD>(value.GetLength() + 1),
+    return SetValue(key_, subkey, name, REG_SZ, static_cast<const char*>(value), static_cast<DWORD>(value.GetLength() + 1),
+                    "CWinRegistry::SetStringInt().\nUnable to open key.\n",
                     "CWinRegistry::SetStringInt().\nUnable to access registry.\n");
 }
 EI_REWRITTEN(0x00697460, CWinRegistry::SetStringInt);
@@ -161,18 +173,22 @@ double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_
 EI_REWRITTEN(0x00698750, CWinRegistry::GetFloat);
 
 mfc::CString CWinRegistry::GetStringInt(const char* subkey, const char* name, mfc::CString defaultValue) {
-    HKEY key;
-    if (gameapi::RegOpenKeyExA(Handle(key_), subkey, 0, kAllAccess, &key) != 0) return defaultValue;
+    HKEY key = nullptr;   // the registry's (game.exe); the standalone reads its settings file
+    if (!ei::Standalone() && gameapi::RegOpenKeyExA(Handle(key_), subkey, 0, kAllAccess, &key) != 0) return defaultValue;
+    auto query = [&](DWORD* type, char* data, DWORD* size) -> LONG {
+        if (!key) return settings_file::Query(key_, subkey, name, type, data, size);
+        return gameapi::RegQueryValueExA(key, name, nullptr, type, reinterpret_cast<BYTE*>(data), size);
+    };
     char buffer[0x100];
     DWORD size = sizeof(buffer);
     DWORD type;
     char* longValue = nullptr;
-    LONG status = gameapi::RegQueryValueExA(key, name, nullptr, &type, reinterpret_cast<BYTE*>(buffer), &size);
+    LONG status = query(&type, buffer, &size);
     if (status == ERROR_MORE_DATA) {
         longValue = static_cast<char*>(gamecrt::malloc(size));
-        status = gameapi::RegQueryValueExA(key, name, nullptr, &type, reinterpret_cast<BYTE*>(longValue), &size);
+        status = query(&type, longValue, &size);
     }
-    gameapi::RegCloseKey(key);
+    if (key) gameapi::RegCloseKey(key);
     if (status == 0 && type != REG_SZ) game::DebugLog("CWinRegistry::GetStringInt().\nRegistry data type is not SZ.\n");
     if (status != 0 || type != REG_SZ) {
         if (longValue) gamecrt::free(longValue);

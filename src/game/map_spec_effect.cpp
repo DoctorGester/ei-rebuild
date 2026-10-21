@@ -30,9 +30,7 @@ namespace mapspec {
 void __stdcall EffectNotify(std::uintptr_t, std::uintptr_t);
 namespace {
 
-void __fastcall EffectRestart(void* a0) { static_cast<CEffect*>(a0)->MarkChanged(); }
-
-void* Effects() { return ei::GameData<void*>(0x007AFFA8); }
+CBaseManager* Effects() { return ei::GameData<CBaseManager*>(0x007AFFA8); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -64,7 +62,7 @@ void Notify(const char* kind, const char* family) {
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
     WorldMakeObjectOriginal(TheServerWorld(), nullptr, &self->base);
-    self->effect = static_cast<CBaseManager*>(Effects())->FindObject(self->base.id);
+    self->effect = Effects()->FindObject(self->base.id);
 }
 
 } // namespace
@@ -104,6 +102,8 @@ void* EffectSpec::EffectSpecWorldObject() {
     return TheObjectManager()->FindObject(-3001 - base.id);
 }
 EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
+
+CTransformObject* EffectSpec::Transform() const { return static_cast<CTransformObject*>(base.object); }
 
 // 0046D3F0 / 0046E490 (slot 11): shows or hides the world object (flag 0x40 hides).
 void EffectSpec::EffectSpecSetVisible(std::uint8_t newVisible) {
@@ -195,11 +195,11 @@ void ParticleSpec::ParticleSpecApply() {
         return;
     }
     auto* particle = static_cast<CEffectParticle*>(effect.effect);
-    std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
+    std::memcpy(&effect.Transform()->localPosition_, &b.position, 12);
     std::memcpy(&particle->size_, &scale, 4);
     std::memcpy(&particle->type_, &type, 4);
     std::memcpy(&particle->localPosition_, &b.position, 12);
-    EffectRestart(particle);
+    particle->MarkChanged();
 }
 EI_REPLACE_METHOD(0x0046D870, ParticleSpec::ParticleSpecApply);
 
@@ -272,8 +272,8 @@ void LightSpec::LightSpecApply() {
     std::memcpy(&light->color_, &colour, 12);
     std::memcpy(&light->range_, &radius, 4);
     std::memcpy(&light->localPosition_, &b.position, 12);
-    std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
-    EffectRestart(light);
+    std::memcpy(&effect.Transform()->localPosition_, &b.position, 12);
+    light->MarkChanged();
 }
 EI_REPLACE_METHOD(0x0046DD70, LightSpec::LightSpecApply);
 
@@ -376,7 +376,7 @@ void SoundSpec::SoundSpecApply() {
         if (sounds.size > 0) MakeEffect(&effect);
         return;
     }
-    std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
+    std::memcpy(&effect.Transform()->localPosition_, &b.position, 12);
     if (effect.effect) TheServerWorld()->RemoveTimedObject(b.id);
     if (sounds.size > 0) MakeEffect(&effect);
     else effect.effect = nullptr;
