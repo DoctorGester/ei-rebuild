@@ -21,7 +21,7 @@ namespace {
 // Slot 7 of the scene renderer's (00500960, the global at 007AF060) transform object (in
 // 3DfpFPU.dll): fits `bounds` to the vertices.
 void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
-    auto* renderer = static_cast<CSceneRenderer*>(SceneRenderer());
+    auto* renderer = SceneRenderer();
     renderer->pipeline_->transform_->FitBounds(bounds, vertices, count);
 }
 

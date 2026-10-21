@@ -109,7 +109,7 @@ using LightningList = mfc::CList<ScriptLightning>;
 void* __cdecl Renderer() { return SceneRenderer(); }
 
 // The world server.
-CWorldServer* TheWorld() { return static_cast<CWorldServer*>(TheServerWorld()); }
+CWorldServer* TheWorld() { return TheServerWorld(); }
 
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
@@ -663,7 +663,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            static_cast<CWorldServer*>(TheServerWorld())->LoadMobFile(Text(cmd, 0));
+            TheServerWorld()->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             GamePlayCameraPath(Text(cmd, 0), 0);

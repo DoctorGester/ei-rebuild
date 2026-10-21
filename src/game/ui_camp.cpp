@@ -1241,7 +1241,7 @@ void CCampPages::ShowHero() {
     // its text into a CString (RET 8).
     void* table = GameClientTexts();
     mfc::CString name;
-    mfc::CString own(static_cast<CEngineObject*>(unit)->GetName());
+    mfc::CString own(unit->GetName());
     if (own.GetLength() == 0) {
         PartyUnitRecord* hero = VirtualHeroRecord();
         own = hero->texts[1];

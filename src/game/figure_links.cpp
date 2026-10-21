@@ -33,7 +33,7 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     FigureModel* model;
     {
         stlp::string key(name);
-        model = static_cast<FigureModel*>(FindModel(&key));
+        model = FindModel(&key);
     }
 
     std::uint32_t* data;

@@ -117,7 +117,7 @@ void GroundPrint::SetTexture(const char* name) {
     CTextureManager* textures = TheTextureManager();
     AssignCounted(&texture_.texture, textures->FindTexture(name));
     if (texture_.texture) return;
-    AssignCounted(&texture_.texture, static_cast<CTexture*>(textures->FindOrCreate(kTextureKind, name)));
+    AssignCounted(&texture_.texture, textures->FindOrCreate(kTextureKind, name));
     textures->LoadTexture(texture_.texture);
 }
 

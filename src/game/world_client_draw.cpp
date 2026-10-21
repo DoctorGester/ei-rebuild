@@ -335,7 +335,7 @@ int CWorldClient::Render() {
         LightningDraw(listManager_, nullptr, TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        static_cast<CRainSnow*>(RainSnow())->DrawImpl(TheSceneRenderer());
+        RainSnow()->DrawImpl(TheSceneRenderer());
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, StateBlockScene());

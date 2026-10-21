@@ -299,7 +299,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     InitSteps(&steps);
     Vector3 origin;
     std::memcpy(&origin, &unit->position.x, sizeof(origin));
-    int now = static_cast<CWorld*>(ObjectWorld(this))->tick_;
+    int now = ObjectWorld(this)->tick_;
     void* spell = nullptr;
 
     if (order->flag18) {

@@ -114,7 +114,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        static_cast<GameFlow*>(TheGameFlow())->DropSessions();
+        TheGameFlow()->DropSessions();
         uiorig::LeaveGame();
         break;
     default:

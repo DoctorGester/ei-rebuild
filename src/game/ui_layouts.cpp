@@ -673,7 +673,7 @@ namespace {
 // format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
 // a separator.
-CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(SceneRenderer()); }
+CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or null past the end (the original's `position != -1 ? word : 0`).

@@ -45,7 +45,7 @@ const char* HumanPrototype() { return "unhuma"; }
 using ActionDone = void(__fastcall*)(CUnit*);
 ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(0)); }
+WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)); }
 
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;

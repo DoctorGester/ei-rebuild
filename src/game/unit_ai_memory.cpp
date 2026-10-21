@@ -113,7 +113,7 @@ void AIMemory::ForceSee(CUnit* self, CEngineObject* object) {
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     AIBrain* theirBrain = theirs->Brain();
     bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
-                     theirBrain->target == static_cast<CEngineObject*>(self);
+                     theirBrain->target == self;
     if (!attacksUs) {
         double sight = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
                        ours->stats.valuesB0[0].current;
@@ -163,7 +163,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
     CUnit* unit = self->unit;
     Vector3 eye;
-    static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(unit))->EyePoint(&eye);
+    static_cast<CMapObjectVirtuals*>(unit)->EyePoint(&eye);
     for (auto* node = nearby.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;

@@ -120,7 +120,7 @@ int GameFtol(double value) {
 } // namespace
 
 int CWorldClient::UpdateLighting() {
-    auto* display = static_cast<CSceneRenderer*>(SceneRenderer());
+    auto* display = SceneRenderer();
     if (!(display->flags_ & 1)) return 1;
     UpdateExitMarkers();
     const double now = HourOfDay(this);

@@ -29,7 +29,7 @@ CMapObject* AsMapObject(std::uint8_t* object) { return reinterpret_cast<CMapObje
 CUnit* AsUnit(std::uint8_t* unit) { return reinterpret_cast<CUnit*>(unit); }
 DeltaState* StateOf(std::uint8_t* object) { return AsMapObject(object)->NetState(); }   // +0x1C4
 // The world (ObjectWorld) as the base class.
-CWorld* WorldOf(const void* object) { return static_cast<CWorld*>(ObjectWorld(static_cast<const CEngineObject*>(object))); }
+CWorld* WorldOf(const void* object) { return ObjectWorld(static_cast<const CEngineObject*>(object)); }
 // The unit's player (CUnit::player, a CPlayer).
 CPlayer* AsPlayer(void* player) { return static_cast<CPlayer*>(player); }
 
@@ -349,7 +349,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         motion->speedScale = walk;
         motion->baseTurnRate = run;
         motion->Build(path2);
-        static_cast<CMapObject*>(unit)->MarkChanged(10);
+        unit->MarkChanged(10);
         unit->Controller()->MotionChanged();
         complete &= SnapshotConsumed();
         field->EndField();
@@ -366,7 +366,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 unit->player = nullptr;
                 reinterpret_cast<CPlayer*>(current)->RemoveUnit(unit);
                 if (char* now = unit->player) reinterpret_cast<CPlayer*>(now)->AddUnit(unit);
-                static_cast<CMapObject*>(unit)->MarkChanged(11);
+                unit->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || AsPlayer(current)->id_ != id) {
@@ -377,7 +377,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 unit->player = local;
                 if (old) reinterpret_cast<CPlayer*>(old)->RemoveUnit(unit);
                 if (char* now = unit->player) reinterpret_cast<CPlayer*>(now)->AddUnit(unit);
-                static_cast<CMapObject*>(unit)->MarkChanged(11);
+                unit->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(local);
             }
         }

@@ -100,7 +100,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 3: {
-            auto* item = static_cast<CItem*>(ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name));
+            auto* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
             if (item) ++item->refCount_;
             for (ObjectList::Node* position = player->items_.head; position;) {
                 ObjectList::Node* current = position;

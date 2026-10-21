@@ -198,7 +198,7 @@ int CPlayerClient::OnUnitControl() {
     auto* unit = FindClientUnit(unitId);
     switch (kind) {
     case 0:
-        if (unit) static_cast<CWorldClient*>(TheClientWorld())->Select(unit);
+        if (unit) TheClientWorld()->Select(unit);
         return 1;
     case 1:
     case 2: {

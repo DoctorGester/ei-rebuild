@@ -135,7 +135,7 @@ bool GiveExp(Call* call) {
 // GiveUnitExp(unit, value): the unit's data gains the experience; a unit in a party with a
 // server-side player also sends it (the value's bits) with the unit's id.
 bool GiveUnitExp(Call* call) {
-    auto* data = static_cast<CUnitServer*>(UnitData(call->cmd->objectArgs.data[0]));
+    auto* data = UnitData(call->cmd->objectArgs.data[0]);
     if (!data) return InvalidArguments("GiveUnitExp");
     static_cast<CUnitServer*>(data)->AddExperience(Floats(call)[0]);
     CUnit* unit = data->unit;

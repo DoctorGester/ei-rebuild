@@ -50,10 +50,10 @@ bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || Arg
 // 007C7D50: the interface manager.
 
 // The world's player `id` (00594180, through its address), or null.
-WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(id)); }
+WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(id)); }
 // The client world's local player (its local view's player).
 WorldPlayer* LocalPlayer() {
-    return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(TheClientWorld())->LocalView())->player;
+    return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
 }
 
 // 0079B5D8: the network client session, active unless it was detached.
@@ -261,7 +261,7 @@ EI_REPLACE(0x005DEC90, LoadVar);
 
 // 005DEEE0: "Current FPS: " 1000 / last frame time (printed as float).
 void __fastcall LastFps(CStringArray*) {
-    auto* timer = static_cast<CSceneRenderer*>(SceneRenderer());
+    auto* timer = SceneRenderer();
     GameOStream& os = Out() << "Current FPS: ";
     unsigned ms = timer->FrameTime();
     double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);

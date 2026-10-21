@@ -6,6 +6,8 @@
 
 #include "script_addon.h"
 
+class CUnitServer;   // combat.h
+
 namespace scriptaddon {
 
 using Handler = bool (*)(Call* call);
@@ -28,7 +30,7 @@ int Stricmp(const char* a, const char* b);
 // 10010D04: the object's class (virtual slot 12) is a unit's (0x50).
 bool IsUnit(CEngineObject* object);
 // 10010E2D: a unit's data object (+0x240), null for a missing reference, object or non-unit.
-void* UnitData(const ScriptObjectRef* ref);
+CUnitServer* UnitData(const ScriptObjectRef* ref);
 // 10010D12: addon reports a handler's problem as a "Scripts" error ("<function>: <message>") in
 // its console log only when the mod setting EnableShowingScriptErrors is on, which no Rebirth mod
 // sets, so nothing is shown. Returns true: the call counts as done.

@@ -117,7 +117,7 @@ const char* SoundFolder(int type) {
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
 void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
-    CParticleSource* ring = static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource));
+    CParticleSource* ring = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource));
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
@@ -296,7 +296,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
             break;
         default: {
             CParticleSource* source = static_cast<CParticleSource*>(
-                static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(ParticleSourceType(type)));
+                ParticleManagerObject()->CreateSource(ParticleSourceType(type)));
             if (source) AddReference(source);
             added.source = source;
             source->Attach(CompanionOwner(this));
@@ -427,7 +427,7 @@ EI_REPLACE_METHOD(0x0051CD60, CObject3DClientSpecific::ClearPartTints);
 void CMapObjectClientSpecific::HideLight() {
     if (!light || (light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ |= kLightHidden;
-    static_cast<Terrain*>(LightManager())->RemoveLight(static_cast<CLight*>(light));
+    LightManager()->RemoveLight(static_cast<CLight*>(light));
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
 }
@@ -436,7 +436,7 @@ EI_REPLACE_METHOD(0x005119B0, CMapObjectClientSpecific::HideLight);
 void CMapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ &= ~kLightHidden;
-    static_cast<Terrain*>(LightManager())->AddLight(static_cast<CLight*>(light));
+    LightManager()->AddLight(static_cast<CLight*>(light));
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && mapObject->GetClassId() == kUnitClassId && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }

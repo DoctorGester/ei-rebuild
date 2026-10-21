@@ -43,7 +43,7 @@ void Drop(CItem* item) {
 }
 
 CItem* MakeItem(CParty* party, const char* name) {
-    return static_cast<CItem*>(ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name));
+    return ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name);
 }
 
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).

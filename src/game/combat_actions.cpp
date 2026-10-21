@@ -219,7 +219,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = ObjectSlots(target)->AimPoint(&point);
-    static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, self, &self->position, target, at, 0);
+    TheServerWorld()->CastSpell(spell, self, &self->position, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
@@ -236,7 +236,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         UseItemCharge(item, cost);
         CUnit* self = unit;
-        static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, self, &self->position, self, &self->position, 0);
+        TheServerWorld()->CastSpell(spell, self, &self->position, self, &self->position, 0);
     }
 }
 EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
@@ -426,7 +426,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     void* world = ManagerContext();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
-        if (char* player = unit->player) static_cast<CWorldServer*>(TheServerWorld())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
+        if (char* player = unit->player) TheServerWorld()->Loot(target, reinterpret_cast<WorldPlayer*>(player));
         WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);

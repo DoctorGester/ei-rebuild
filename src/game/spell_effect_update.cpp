@@ -359,7 +359,7 @@ void Teleport(CSpellEffect* e) {
     if (e->timer != arrival) return;
     CEngineObject* caster = e->caster;
     std::memcpy(&e->targetPoint.z, &static_cast<CTransformObject*>(caster)->localPosition_.z, 4);
-    if (!static_cast<CAIMap*>(e->world->AIMap())->IsPassableWithoutSelf(static_cast<CUnit*>(caster), &e->targetPoint)) {
+    if (!e->world->AIMap()->IsPassableWithoutSelf(static_cast<CUnit*>(caster), &e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
     }

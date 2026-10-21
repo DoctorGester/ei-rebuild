@@ -285,7 +285,7 @@ CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ItemMana
 
 CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
     CEngineObject* manager = ItemManager();   // read before slot 22, as in the original
-    return (CEngineObject*)static_cast<CItemManager*>(manager)->CreateSpellItem(name, static_cast<CSpellManager*>(SpellManager()));
+    return (CEngineObject*)static_cast<CItemManager*>(manager)->CreateSpellItem(name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {

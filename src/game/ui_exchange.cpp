@@ -385,7 +385,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         if (offered.data[i] != item) continue;
         uiorig::PlayUiSound(interface_, kPutOffSound, 0);
         CParty* offer = ownOffer_;
-        CItem* held = static_cast<CItemScreen*>(this)->MoveItem(item, static_cast<CParty*>(LocalParty()), offer, 0, 1, 0);
+        CItem* held = static_cast<CItemScreen*>(this)->MoveItem(item, LocalParty(), offer, 0, 1, 0);
         static_cast<CUiItemStrip*>(strip_)->ScrollToItem(held);
         net::ClientPublishParty(net::GameClient());
         return;

@@ -534,7 +534,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TheSceneRenderer(), nullptr, 0, texture);
-    std::uint8_t lit = static_cast<Terrain*>(LightManager())->EdgeFade(&object->position);
+    std::uint8_t lit = LightManager()->EdgeFade(&object->position);
     if (!makeTexture) return 1;   // the shadow map draws it
     render::ClassicShadowDecal();   // drawn only with the classic shadows (the shadow map draws it)
     TheRenderDevice()

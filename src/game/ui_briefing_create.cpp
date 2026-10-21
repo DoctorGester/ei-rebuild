@@ -185,7 +185,7 @@ void CBriefingScreen::Create() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
-        static_cast<CMemoryStream*>(GameSaveStream())->Resize(0);
+        GameSaveStream()->Resize(0);
     else if (LocalViewPlayer()->lastScreen != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();

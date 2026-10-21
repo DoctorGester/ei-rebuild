@@ -208,7 +208,7 @@ EI_REPLACE_METHOD(0x005CF7F0, AIAttention::IsUsable);
 
 double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
-    float score = static_cast<CEngineObject*>(candidate) == current ? kCurrentBonus : kZero;
+    float score = candidate == current ? kCurrentBonus : kZero;
     CUnitServer* control = ControllerOf(candidate);
     int others = group->count - 1;
     int cap = option->maxCount;

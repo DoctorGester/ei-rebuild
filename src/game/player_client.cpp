@@ -107,7 +107,7 @@ constexpr int kListBlockSize = 10;
 // The quest log refreshed with an empty CPtrList built and destroyed on the stack.
 void RefreshQuestLog() {
     mfc::CTypedPtrList<void> none{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
-    static_cast<CInterface3D*>(TheInterface())->OnItemsPicked(&none, 0, 0);
+    TheInterface()->OnItemsPicked(&none, 0, 0);
     // The list's inlined destructor (RemoveAll; nothing was added).
     none.head = none.tail = nullptr;
     none.count = 0;
@@ -230,8 +230,8 @@ int CPlayerClient::OnSetVariable() {
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
-        static_cast<CInterface3D*>(TheInterface())->OnQuestVariable(name, std::bit_cast<float>(value));
-        static_cast<CWorldClient*>(TheClientWorld())->OnQuestVariable(name, std::bit_cast<float>(value));
+        TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
+        TheClientWorld()->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
 }
@@ -245,8 +245,8 @@ int CPlayerClient::OnDeleteVariable() {
     }
     Owner()->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
-        static_cast<CInterface3D*>(TheInterface())->OnQuestVariable(name, 0.0f);
-        static_cast<CWorldClient*>(TheClientWorld())->OnQuestVariable(name, 0.0f);
+        TheInterface()->OnQuestVariable(name, 0.0f);
+        TheClientWorld()->OnQuestVariable(name, 0.0f);
     }
     return 1;
 }
@@ -292,7 +292,7 @@ int CPlayerClient::OnWorldBlock5() {
 int CPlayerClient::OnItemRemoved() {
     int id;
     in_.Read(&id, 4);
-    static_cast<CPlayer*>(Owner())->TakeItem(id);
+    Owner()->TakeItem(id);
     RefreshQuestLog();
     return 1;
 }
@@ -381,7 +381,7 @@ int CPlayerClient::OnItemsReceived() {
     }
     if (result != 0) {
         Owner()->GiveItems(&items, flag);
-        static_cast<CInterface3D*>(TheInterface())->OnItemsPicked(&items, money - before, flag);
+        TheInterface()->OnItemsPicked(&items, money - before, flag);
     }
     items.RemoveAll();   // the list's inlined destructor
     return result;
@@ -460,7 +460,7 @@ int CPlayerClient::OnPathMarker() {
         if (MarkersShown()) {
             static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
             auto* source = static_cast<CParticleSource*>(
-                static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kPathParticles));
+                ParticleManagerObject()->CreateSource(kPathParticles));
             pathSource = reinterpret_cast<CEngineObject*>(source);
             source->Attach(walker);
             source->typeParam = value;
@@ -473,7 +473,7 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
+        auto* marker = static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
         marker->position = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
@@ -647,7 +647,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kWispParticles));
+            static_cast<CParticleSource*>(ParticleManagerObject()->CreateSource(kWispParticles));
         source->Attach(created);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
@@ -685,7 +685,7 @@ int CPlayerClient::OnNewObject() {
     TheClientWorld()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;
-        static_cast<CWorldClient*>(TheClientWorld())->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
+        TheClientWorld()->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)

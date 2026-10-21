@@ -158,7 +158,7 @@ void UnitPickInput::OnRightDown(int, int, int) {
     }
     picked_.maxSize = 0;
     picked_.size = 0;
-    static_cast<CWorldClient*>(TheClientWorld())->Deselect(nullptr);
+    TheClientWorld()->Deselect(nullptr);
 }
 EI_REPLACE_METHOD(0x005EBB40, UnitPickInput::OnRightDown);
 

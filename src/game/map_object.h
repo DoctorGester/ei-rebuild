@@ -26,6 +26,7 @@
 class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
+class Terrain;              // camera.h
 
 // An active effect (0x14 bytes; CArray at +0x194).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
@@ -340,7 +341,7 @@ public:
     // --- Not rewritten (forwarders) ---
 
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
-    void* World();
+    CWorld* World();
 
     // +0x000-0x16C: CObject3D (position +0x1C, orientation +0x34, the side half `attached` +0x94,
     // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
@@ -381,7 +382,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
 
 // The light manager (*007AF738; camera.h's TheTerrain reads the same global): the map object files
 // hand it to the light calls (add, remove, aim, IsLit) as their `this`.
-inline void* LightManager() { return ei::GameData<void* const>(0x007AF738); }
+inline Terrain* LightManager() { return ei::GameData<Terrain* const>(0x007AF738); }
 
 // The slot the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {

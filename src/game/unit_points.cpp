@@ -59,7 +59,7 @@ float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, i
         Vector3 direction;
         float speed;
         int cellX, cellY;
-        unit->Motion()->Sample(static_cast<CWorld*>(ObjectWorld(unit)), order, static_cast<float>(time), &turning,
+        unit->Motion()->Sample(ObjectWorld(unit), order, static_cast<float>(time), &turning,
                                &position.x, &direction.x, &speed, &cellX, &cellY);
         float toWorld = kCellScale * kHalf;
         out[0] = toWorld * position.x;

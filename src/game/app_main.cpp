@@ -396,7 +396,7 @@ DWORD CreateRenderer() {
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
-    static_cast<CSceneRenderer*>(SceneRenderer())->CreateRendererImpl(MainWindow(), options);
+    SceneRenderer()->CreateRendererImpl(MainWindow(), options);
 
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
@@ -506,10 +506,10 @@ void TakeActivationChange() {
             device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
             gameapi::LeaveCriticalSection(TheDeviceLock());
         }
-        static_cast<CSceneRenderer*>(SceneRenderer())->flags_ |= 1;
+        SceneRenderer()->flags_ |= 1;
         gameapi::SetCursor(nullptr);
     } else {
-        static_cast<CSceneRenderer*>(SceneRenderer())->flags_ &= ~1u;
+        SceneRenderer()->flags_ &= ~1u;
         gameapi::InvalidateRect(nullptr, nullptr, TRUE);
     }
     ActivationChanged() = 0;
@@ -588,7 +588,7 @@ bool RunPass() {
     TakeActivationChange();
     std::uint32_t elapsed = TimeSinceLastPass();
     void* glue = GameGlueObject();
-    if (!(static_cast<CSceneRenderer*>(SceneRenderer())->flags_ & 1)) {
+    if (!(SceneRenderer()->flags_ & 1)) {
         GuardPlayerData(glue, nullptr, 0);
         return false;
     }
@@ -676,7 +676,7 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     Mouse() = nullptr;
     if (mouse) ReleaseMouse(mouse);
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
-    static_cast<CSceneRenderer*>(SceneRenderer())->DestroyRenderer();
+    SceneRenderer()->DestroyRenderer();
     OptionsSaveAt(options::TheOptions(), nullptr, RegistryRoot());
     TheClientWorld()->SetCamera(nullptr);
     TheServerWorld()->Teardown();

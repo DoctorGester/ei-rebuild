@@ -10,6 +10,7 @@
 #include <cstdint>
 
 class CEngineObject;
+class CParticleManager;
 class CSpell;
 class CSpellConstructor;
 class CSpellManager;
@@ -20,7 +21,7 @@ struct DamageInfo;
 struct Vector3;
 
 // 00498400: the particle manager (*007AF754) makes a source of `type` (RET 4; EAX the source, referenced).
-inline void* ParticleManagerObject() { return ei::GameData<void* const>(0x007AF754); }
+inline CParticleManager* ParticleManagerObject() { return ei::GameData<CParticleManager* const>(0x007AF754); }
 // 006CA5D0: the light manager (*007AF738) adds a light (RET 4, no result).
 // 00511FB0: the light factory's (*007AF748) list of lit ids (+0xD4): removes every entry equal to *id (RET 4).
 

@@ -711,7 +711,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = static_cast<CWorldClient*>(TheClientWorld())->PickSurface(&out, x, y);
+        Vector3* p = TheClientWorld()->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };

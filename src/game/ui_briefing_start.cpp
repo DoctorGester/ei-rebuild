@@ -44,7 +44,7 @@ const char* ShowLine() { return "#show"; }
 const ClassTemplateVector* ClassTemplates() { return ei::GamePointer<const ClassTemplateVector>(0x007AA5D8); }
 const char* TopicPrefix() { return "b."; }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(TheServerWorld())->GetPlayer(0)); }
+WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)); }
 
 constexpr int kStateWalking = 0;
 constexpr int kEventEnds = 0;

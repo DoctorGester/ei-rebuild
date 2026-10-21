@@ -343,7 +343,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(OnOffSound(), 0);
         for (int i = 0; i < hud->party_.size; ++i) {
             MarkPortrait(i);
-            if (CUnit* unit = hud->party_[i]) static_cast<CWorldClient*>(TheClientWorld())->Select(unit);
+            if (CUnit* unit = hud->party_[i]) TheClientWorld()->Select(unit);
         }
         if (hud->party_.size != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
         RefreshSelection();

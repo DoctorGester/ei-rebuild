@@ -384,7 +384,7 @@ void CMpHeroScreen::ShowHero(int index) {
     heroIndex_ = -1;
     if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
         heroIndex_ = index;
-        static_cast<CParty*>(player)->Assign(static_cast<CParty*>(MpHero(index)));
+        static_cast<CParty*>(player)->Assign(MpHero(index));
         static_cast<MpHeroRoster*>(MpHeroesObject())->Select(reinterpret_cast<const MpHeroRecord*>(MpHero(index)));   // the record starts with its party
     }
     MakePreview(1);

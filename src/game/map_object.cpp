@@ -39,7 +39,7 @@ double GroundHeight(void* world, float x, float y) { return static_cast<CWorld*>
 int UpdateCount(void* world) { return static_cast<CWorld*>(world)->updateCount_; }
 } // namespace
 
-void* CMapObject::World() { return ObjectWorld(this); }
+CWorld* CMapObject::World() { return ObjectWorld(this); }
 
 // --- Change tracking -------------------------------------------------------------------------
 

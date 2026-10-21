@@ -114,7 +114,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     auto* texture = static_cast<CTexture*>(TextureManager()->FindOrCreate(kNumbersKind, NumbersName()));
     if (texture) {
         ++texture->refCount_;
-        static_cast<CTextureManager*>(TextureManager())->LoadTexture(texture);
+        TextureManager()->LoadTexture(texture);
         numbers_->object_ = texture;
         texture->flags_ |= kTextureKeep;
     }

@@ -43,7 +43,7 @@ constexpr int kClassArrowFigure = 0x5B;
 // The missile base's vtable, stored while the base part is built.
 std::uintptr_t MissileVtable() { return ei::DataId(0x00743754); }
 
-CWorld* WorldOf(const CEngineObject* object) { return static_cast<CWorld*>(ObjectWorld(object)); }
+CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 std::uint32_t Bits(const float& f) {
     std::uint32_t u;
