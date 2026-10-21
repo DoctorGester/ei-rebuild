@@ -12,7 +12,6 @@ src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/console.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0,0
 src/game/fake_unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/figure_mesh_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0

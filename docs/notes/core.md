@@ -58,7 +58,8 @@ File `core_refcount.cpp`, `refptr_copies.cpp`, `deleting_destructors_400.cpp`.
   `Destroy`, 21 of the 28-byte release, 9 `RefPtrShareReturn`, ...): all in `refptr_copies.cpp`, verified
   with the same dry run. The release copies cannot have a trampoline (short jump at +4); one copy of
   their identical 28-byte body is made when the DLL loads. 33 scalar deleting destructors that only
-  call their body share one template in `deleting_destructors_400.cpp`.
+  call their body share one template in `deleting_destructors_400.cpp`, `DeletingDestructor<body>` with the body
+  rewrite as its argument (a member pointer or a __fastcall function).
 - Kept: Release / RefPtr helpers test the pointer for null after already using it (omitted, same
   behaviour); `Destroy` leaves the pointer set.
 

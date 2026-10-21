@@ -142,8 +142,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
 - **Callbacks by function.** `src/game/at_exit_functions.h` declares what function-local statics register with `GameAtExit`
   (`atexit400::DestroyGlobalVector`, `ei::static_init::Exit...`, `ei::short_functions::Ret`); the eh-vector iterators take
   `void*` and the functions themselves.
-- **Left raw** (about 20 `kX` constants): `kNoElementTick` (particle_create: the address is stored into the particle type, so
-  it must stay the original's), the hook/ and standalone/ image addresses, `kEmptyTextAddress`, `kStateBlockAlpha`,
+- **Left raw** (about 20 `kX` constants): the hook/ and standalone/ image addresses, `kEmptyTextAddress`, `kStateBlockAlpha`,
   `kMasterHost`, unit_ai's world / time / console, the candidates list and guard, the script queue, options' two float
   factors (they feed naked `FtolProduct` / `StoreUnsignedProduct` that take an address).
 - **Library forwarder wrappers.** One-line file-local wrappers over the `originals_library.h` forwarders were inlined; kept:

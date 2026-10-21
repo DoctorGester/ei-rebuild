@@ -3,6 +3,7 @@
 // databases, save").
 #include "unit_create.h"
 
+#include "base_manager.h"
 #include "item.h"
 #include "lever.h"
 #include "magic_trap.h"
@@ -642,12 +643,13 @@ EI_REPLACE_METHOD(0x00513B60, UnitStatsBuilder::ApplyPrototype);
 // --- The factory ------------------------------------------------------------------------------
 
 namespace {
-// The constructors on the new block (each returns it): T::Construct, and the fake unit's.
-using Constructor = CEngineObject* (*)(void* block);
+// The constructors on the new block (each returns it): T::Construct (ConstructOn, base_manager.h),
+// and the fake unit's.
+using Constructor = void*(__fastcall*)(void* block);
 template <class T>
-CEngineObject* ConstructAt(void* block) { return static_cast<T*>(block)->Construct(); }
-CEngineObject* ConstructFakeUnit(void* block) {
-    return static_cast<CEngineObject*>(fakeunit::FakeUnitConstruct(static_cast<scene::FakeUnitScene*>(block)));
+constexpr Constructor ConstructAt = ConstructOn<T, &T::Construct>;
+void* __fastcall ConstructFakeUnit(void* block) {
+    return fakeunit::FakeUnitConstruct(static_cast<scene::FakeUnitScene*>(block));
 }
 struct FactoryEntry {
     int classId;
@@ -678,7 +680,7 @@ CEngineObject* CMapObjectManager::CreateObject(int classId) {
         if (entry.classId != classId) continue;
         void* block = gamecrt::operator_new_zeroed(entry.size);
         if (!block) return nullptr;
-        return entry.constructor(block);
+        return static_cast<CEngineObject*>(entry.constructor(block));
     }
     return nullptr;
 }
