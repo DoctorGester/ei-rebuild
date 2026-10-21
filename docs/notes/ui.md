@@ -237,9 +237,16 @@ regions 5-10 and 4 ask for pages 1-6 and 0 (2-6 not offered: fall back), regions
 Esc (page 7) leaves; `screen 4` opens the global map (regions 0 / 1 turn it, Esc the escape menu). Constructor pages need a
 constructor record, which only a base's dialogue ("constrN" answers, 006064E0 -> 00578560(N) -> screen 5) or `screen 5 <N>`
 provides; setting "i.onspellconstr" / "i.onitemconstr" without one crashes the original too (00621377 in `RebuildList` reads
-0x44: the lists at `+0x1C8 + 0x40` / `+0x1B4 + 0x40` stay 0). Not reached: CanMakeSpell / CanMakeItem, probably CanEquip,
-the constructor / grid Builds, the repair grid's draw, the trade panel's click, DeconstructItem (needs a made item),
-FindPaths (needs a zone / link click), CGlobalMap::Close.
+0x44: the lists at `+0x1C8 + 0x40` / `+0x1B4 + 0x40` stay 0). Reached with goldens (reach.txt): CanMakeSpell / CanMakeItem,
+DeconstructItem, the trade / repair grid and maker Builds (ui_camp_make, ui_camp_deals, ui_gallery_deals), the repair
+grid's draw (page 6; ui_camp_deals, ui_gallery_deals), the trade panel's click and RestoreRecord (ui_trade_hold,
+ui_trade_restore, ui_gallery_deals: vanilla buys only with "give 0 exp" typed while the camp is open; given in the battle
+it did not show in the camp), FindPaths and MayTravel (ui_gallery_deals: "z.gz1g" / "z.gz2g" set to 2 before `screen 4`,
+then a click on gz2g's area at (140, 277) opens the objectives window with the ways), CGlobalMap::Close (ui_camp). Not
+reached: a link click (regions 3 and up: a "z.<way>" = 2 way of kind 2 with a figure; it travels at once), the repair
+grid with an item in it (only a worn item is offered, and no script command or key wears one). The map's camp button
+(region 2) after `screen 4` makes the server fail ("Serv error during parsing command prevID=ff curID=4", the original
+too), so scenarios end on the map.
 
 Global map (`ui_global_map*.cpp`): `Create` (0062D350, 6.7 KB), `Update` (0062F050), titles (`AllodTitle`, `ZoneTitle`,
 `QuestTitle` in `ui_global_map_places.cpp`), `ZonePosition`, `QuestPosition`, `SelectZone` (RET 8, flag is a byte),

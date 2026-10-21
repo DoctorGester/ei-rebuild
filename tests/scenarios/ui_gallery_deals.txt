@@ -1,0 +1,167 @@
+# Interface gallery, the camp's deals and the global map's zone click (ticket N4a; docs/notes/ui-native.md,
+# "N4: the gallery"): what ui_gallery_camp leaves out, held still (freeze) and captured. Frames:
+# heroes_tip (the multiplayer hero list's region 0 tooltip, tip 0x9CA5: it needs a mouse move inside the
+# region after the hover starts, then the delay), camp_bought (page 1: a school level bought with the
+# trade panel's click, CTradePanel::OnLButtonDown; the experience from the console's "give 0 exp", given
+# with the camp open: given in the battle before, it did not show in the camp),camp_undone (the second action
+# button, region 1: Settle -> RestoreRecord puts the hero back), camp_repair (page 6, trader class 1:
+# CRepairGrid's draw; its cells stay empty: only a worn item is offered for repair, and nothing a script or
+# key can do wears one), camp_spell_parts / camp_spell_made (class 3's spell maker with a spell and two
+# runes in, then made: CanMakeSpell, the constructor's Build), camp_item_finished / camp_item_parts (the
+# item maker with a finished weapon, then taken apart: DeconstructItem, CanMakeItem), map_zone_tip (the
+# global map with zones gz1g and gz2g open, "z.<zone>" = 2, and the mouse on a zone: its tip) and map_ways
+# (the zone clicked: FindPaths, MayTravel and the objectives window with the ways there). Layout
+# coordinates are the 800x600 ones of ui_gallery_camp and ui_camp_make; the zone point (140, 277) is
+# where the map, as Create turns it, draws gz2g's area. The map's camp button cannot follow: with the map
+# opened by the "screen" step the server refuses the camp request ("Serv error during parsing command
+# prevID=ff curID=4", the original too), so the map comes last.
+reject Script error
+timeout 120
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 1000
+moveregion 0
+frames 3
+move 601 551
+frames 3
+move 600 550
+wait 3000
+freeze
+capture heroes_tip
+unfreeze
+key esc
+waitwindow 15 menu
+
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GiveMoney(0,100000)
+console @GiveItem(0,"Axe.steel")
+frames 5
+console @GiveSkill(GetLeader(),"elemental",5)
+console @GiveSkill(GetLeader(),"sense",5)
+console @GiveSkill(GetLeader(),"astral",5)
+console @GiveIntelligence(GetLeader(),60)
+frames 5
+console @GSSetVar(0,"z.gz1g",2)
+console @GSSetVar(0,"z.gz2g",2)
+waitfor 5 IsEqual(GSGetVar(0,"z.gz2g"),2)
+waitwindow 15 battle
+
+screen 5 1
+waitwindow 15 camp
+console give 0 exp 50000
+frames 5
+clickregion 5
+wait 500
+click 300 142
+wait 300
+move 340 157
+frames 5
+freeze
+capture camp_bought
+unfreeze
+clickregion 1
+wait 300
+move 340 157
+frames 5
+freeze
+capture camp_undone
+unfreeze
+clickregion 10
+wait 500
+console give 0 assortment
+frames 10
+click 785 580
+frames 3
+move 100 550
+frames 3
+click 100 550
+frames 3
+move 400 20
+frames 5
+freeze
+capture camp_repair
+unfreeze
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+screen 5 3
+waitwindow 15 camp
+console give 0 assortment
+frames 10
+clickregion 7
+wait 300
+click 17 22
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+click 783 19
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+move 300 43
+frames 3
+click 300 43
+frames 3
+move 600 590
+frames 5
+freeze
+capture camp_spell_parts
+unfreeze
+clickregion 0
+wait 300
+move 600 590
+frames 5
+freeze
+capture camp_spell_made
+unfreeze
+clickregion 9
+wait 300
+click 783 79
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+move 600 590
+frames 5
+freeze
+capture camp_item_finished
+unfreeze
+clickregion 0
+wait 300
+move 600 590
+frames 5
+freeze
+capture camp_item_parts
+unfreeze
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+screen 4
+waitwindow 15 map
+move 140 277
+frames 5
+freeze
+capture map_zone_tip
+unfreeze
+click 140 277
+waitwindow 10 objectives
+move 400 20
+frames 5
+freeze
+capture map_ways
+unfreeze
+key esc
+waitwindow 10 map
+report
+quit
