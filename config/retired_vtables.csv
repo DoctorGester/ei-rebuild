@@ -28,6 +28,8 @@ vtable,slots,class,file,note
 0073E850,54,CTorchObject,src/game/torch.h,the tail of 0073E834 (a byte match)
 0073E954,14,CTorchObjectClientSpec,src/game/torch_client_spec.h,
 0073E98C,5,CTorchObjectClientSpec,src/game/torch_client_spec.h,the tail of 0073E954 (a byte match)
+0073EA8C,5,CUnit,src/game/unit.h,
+0073EAA0,57,CUnit,src/game/unit.h,the tail of 0073EA8C (0052E310 calls slot 5 through the table's memory)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
