@@ -2,17 +2,18 @@
 // section 9). The game's cursor thread (005E5690, every 41 ms) drew the cursor straight onto the
 // primary surface when it moved, so it kept moving while the main thread drew no frame (a long frame,
 // a blocking load). Without DirectDraw the cursor thread hands the move here instead
-// (render::CursorBetweenFrames): the last frame presented on the game window, as it was before its
-// cursor, is presented again with the cursor at its new place.
+// (render::CursorBetweenFrames): the last frame presented on the game window, which holds no cursor
+// (the present draws it over the frame), is presented again with the cursor at its new place.
 //
 // The main thread keeps using sokol alone. The cursor thread makes no sokol call: it records its
-// draws on a Direct3D 11 deferred context with the raw objects of sokol's pipelines (the window
-// blit that draws the cursor in the frame, the present that draws the frame through the gamma ramp)
-// and runs them as one command list on the immediate context (ExecuteCommandList, which puts the
-// context's state back, so sokol's state cache stays right), with the device's multithread
-// protection on. The swap chain is shared: the main thread's present on the game window and the
-// cursor thread's take turns under one lock, and the main thread takes the references the cursor
-// thread draws with at the end of each of its presents.
+// present on a Direct3D 11 deferred context with the raw objects of sokol's present pipeline (the frame
+// target and the cursor through the gamma ramp into the back buffer: the draw the main thread's present
+// makes) and runs it as one command list on the immediate context (ExecuteCommandList, which puts the
+// context's state back, so sokol's state cache stays right), with the device's multithread protection
+// on. The swap chain and the frame target are shared: the main thread's frame draw and present on the
+// game window and the cursor thread's present take turns under one lock, and the main thread takes the
+// references the cursor thread draws with at the end of each of its presents (and drops them when it
+// begins the next frame's draws: the frame target is partly drawn until then).
 #include "render.h"
 #include "render_internal.h"
 
@@ -103,15 +104,7 @@ bool CutSheet(const Rect& from, std::vector<std::uint8_t>* rgba) {
 Lock g_presentLock;
 bool g_protected = false;          // the device's multithread protection is on
 ULONGLONG g_lastPresent = 0;       // real time of the main thread's last present on the game window
-
-// The frame without its cursor (the main thread copies it each frame), the cursor thread's work
-// target of the same size (the frame with the cursor moved), the deferred context it records on.
-ID3D11Texture2D* g_clean = nullptr;
-ID3D11Texture2D* g_work = nullptr;
-ID3D11RenderTargetView* g_workTarget = nullptr;
-ID3D11ShaderResourceView* g_workView = nullptr;
-ID3D11DeviceContext* g_deferred = nullptr;
-int g_frameWidth = 0, g_frameHeight = 0;
+ID3D11DeviceContext* g_deferred = nullptr;   // the cursor thread's deferred context
 
 // The raw objects of a sokol shader and pipeline.
 struct RawPipeline {
@@ -153,7 +146,7 @@ struct RawPipeline {
 };
 
 // What the cursor thread draws with, taken at the end of the main thread's last present on the
-// game window (references held); `valid` false while there is none.
+// game window (references held); `valid` false while there is none (or a frame is being drawn).
 struct Kit {
     bool valid = false;
     ID3D11Device* device = nullptr;
@@ -162,9 +155,11 @@ struct Kit {
     ID3D11RenderTargetView* back = nullptr;
     ID3D11ShaderResourceView* ramp = nullptr;
     ID3D11SamplerState* linear = nullptr;
-    ID3D11SamplerState* nearest = nullptr;
-    RawPipeline blit, present;
+    ID3D11ShaderResourceView* frame = nullptr;
+    RawPipeline present;
     int clientWidth = 0, clientHeight = 0;
+    int frameWidth = 0, frameHeight = 0;
+    const std::uint8_t* rampTable = nullptr;   // the ramp as uploaded (the main thread's, read under the lock)
     Rect placed{0, 0, 0, 0};
     bool vsync = true;
 } g_kit;
@@ -177,44 +172,8 @@ void DropKit() {
     Release(g_kit.back);
     Release(g_kit.ramp);
     Release(g_kit.linear);
-    Release(g_kit.nearest);
-    g_kit.blit.Drop();
+    Release(g_kit.frame);
     g_kit.present.Drop();
-}
-
-void DropTargets() {
-    Release(g_workView);
-    Release(g_workTarget);
-    Release(g_work);
-    Release(g_clean);
-    g_frameWidth = g_frameHeight = 0;
-}
-
-// The two frame-sized textures for a frame of `desc` (the off-screen target's).
-bool MakeTargets(const D3D11_TEXTURE2D_DESC& frame) {
-    DropTargets();
-    D3D11_TEXTURE2D_DESC desc{};
-    desc.Width = frame.Width;
-    desc.Height = frame.Height;
-    desc.MipLevels = 1;
-    desc.ArraySize = 1;
-    desc.Format = frame.Format;
-    desc.SampleDesc.Count = 1;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    ID3D11Device* device = D3DDevice();
-    bool ok = SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &g_clean));
-    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-    ok = ok && SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &g_work)) &&
-         SUCCEEDED(device->CreateRenderTargetView(g_work, nullptr, &g_workTarget)) &&
-         SUCCEEDED(device->CreateShaderResourceView(g_work, nullptr, &g_workView));
-    if (!ok) {
-        DropTargets();
-        return false;
-    }
-    g_frameWidth = static_cast<int>(frame.Width);
-    g_frameHeight = static_cast<int>(frame.Height);
-    return true;
 }
 
 ID3D11Buffer* ConstantBuffer(ID3D11Device* device, const void* data, UINT bytes) {
@@ -242,76 +201,99 @@ bool Refused(Refusal why) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
-// Verify build: the frame the cursor thread composed, read back and checked against the frame
-// without its cursor and the cursor's texels; kept for the harness (ReadCursorPresent).
+// Verify build: the back buffer the cursor thread drew, read back and checked against the frame, the
+// cursor's texels where their alpha is a half or more and the gamma ramp as uploaded (one to one
+// placement only; a channel off by more than one counts as a difference); kept for the harness
+// (ReadCursorPresent).
 std::vector<std::uint8_t> g_lastBgr;
 int g_lastWidth = 0, g_lastHeight = 0;
-ID3D11Texture2D* g_readback[2] = {nullptr, nullptr};   // the work target and the clean frame
+ID3D11Texture2D* g_readback[2] = {nullptr, nullptr};   // the back buffer and the frame
 
-void CheckComposed(const Kit& kit, const Rect& to, const std::vector<std::uint8_t>& cursor) {
-    D3D11_TEXTURE2D_DESC desc{};
-    g_work->GetDesc(&desc);
-    for (ID3D11Texture2D*& r : g_readback) {
+ID3D11Texture2D* TextureOf(ID3D11View* view) {
+    ID3D11Resource* resource = nullptr;
+    view->GetResource(&resource);
+    ID3D11Texture2D* texture = nullptr;
+    if (resource) {
+        resource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&texture));
+        resource->Release();
+    }
+    return texture;
+}
+
+void CheckPresented(const Kit& kit, const Rect& to, const std::vector<std::uint8_t>& cursor) {
+    if (kit.placed.left != 0 || kit.placed.top != 0 || kit.placed.right != kit.frameWidth || kit.placed.bottom != kit.frameHeight ||
+        kit.clientWidth != kit.frameWidth || kit.clientHeight != kit.frameHeight)
+        return;
+    ID3D11Texture2D* sources[2] = {TextureOf(kit.back), TextureOf(kit.frame)};
+    bool ok = sources[0] && sources[1];
+    for (int i = 0; ok && i < 2; ++i) {
+        ID3D11Texture2D*& r = g_readback[i];
+        D3D11_TEXTURE2D_DESC desc{};
+        sources[i]->GetDesc(&desc);
         if (r) {
             D3D11_TEXTURE2D_DESC have{};
             r->GetDesc(&have);
-            if (have.Width != desc.Width || have.Height != desc.Height) Release(r);
+            if (have.Width != desc.Width || have.Height != desc.Height || have.Format != desc.Format) Release(r);
         }
         if (!r) {
-            D3D11_TEXTURE2D_DESC staging = desc;
-            staging.Usage = D3D11_USAGE_STAGING;
-            staging.BindFlags = 0;
-            staging.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-            if (FAILED(kit.device->CreateTexture2D(&staging, nullptr, &r))) return;
+            desc.Usage = D3D11_USAGE_STAGING;
+            desc.BindFlags = 0;
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+            desc.MiscFlags = 0;
+            ok = SUCCEEDED(kit.device->CreateTexture2D(&desc, nullptr, &r));
         }
+        if (ok) kit.context->CopyResource(r, sources[i]);
     }
-    kit.context->CopyResource(g_readback[0], g_work);
-    kit.context->CopyResource(g_readback[1], g_clean);
-    D3D11_MAPPED_SUBRESOURCE work{}, clean{};
-    if (FAILED(kit.context->Map(g_readback[0], 0, D3D11_MAP_READ, 0, &work))) return;
-    if (FAILED(kit.context->Map(g_readback[1], 0, D3D11_MAP_READ, 0, &clean))) {
-        kit.context->Unmap(g_readback[0], 0);
-        return;
-    }
-    int width = static_cast<int>(desc.Width), height = static_cast<int>(desc.Height);
-    int cw = to.right - to.left;
-    int differing = 0;
-    g_lastBgr.resize(static_cast<std::size_t>(width) * height * 3);
-    for (int y = 0; y < height; ++y) {
-        const auto* w = static_cast<const std::uint8_t*>(work.pData) + static_cast<std::size_t>(y) * work.RowPitch;
-        const auto* c = static_cast<const std::uint8_t*>(clean.pData) + static_cast<std::size_t>(y) * clean.RowPitch;
-        std::uint8_t* out = &g_lastBgr[static_cast<std::size_t>(y) * width * 3];
-        for (int x = 0; x < width; ++x) {
-            const std::uint8_t* want = c + x * 4;
-            if (x >= to.left && x < to.right && y >= to.top && y < to.bottom) {
-                const std::uint8_t* t = &cursor[(static_cast<std::size_t>(y - to.top) * cw + (x - to.left)) * 4];
-                if (t[3] >= 128) want = t;
+    D3D11_MAPPED_SUBRESOURCE back{}, frame{};
+    bool mapped0 = ok && SUCCEEDED(kit.context->Map(g_readback[0], 0, D3D11_MAP_READ, 0, &back));
+    bool mapped1 = mapped0 && SUCCEEDED(kit.context->Map(g_readback[1], 0, D3D11_MAP_READ, 0, &frame));
+    if (mapped1) {
+        int width = kit.frameWidth, height = kit.frameHeight;
+        int cw = to.right - to.left;
+        int differing = 0;
+        g_lastBgr.resize(static_cast<std::size_t>(width) * height * 3);
+        const std::uint8_t* table = kit.rampTable;
+        for (int y = 0; y < height; ++y) {
+            const auto* b = static_cast<const std::uint8_t*>(back.pData) + static_cast<std::size_t>(y) * back.RowPitch;   // B, G, R, A
+            const auto* f = static_cast<const std::uint8_t*>(frame.pData) + static_cast<std::size_t>(y) * frame.RowPitch;   // R, G, B, A
+            std::uint8_t* out = &g_lastBgr[static_cast<std::size_t>(y) * width * 3];
+            for (int x = 0; x < width; ++x) {
+                const std::uint8_t* want = f + x * 4;
+                if (x >= to.left && x < to.right && y >= to.top && y < to.bottom) {
+                    const std::uint8_t* t = &cursor[(static_cast<std::size_t>(y - to.top) * cw + (x - to.left)) * 4];
+                    if (t[3] >= 128) want = t;
+                }
+                int wantB = table[want[2] * 4 + 2], wantG = table[want[1] * 4 + 1], wantR = table[want[0] * 4 + 0];
+                const std::uint8_t* p = b + x * 4;
+                if (p[0] - wantB > 1 || wantB - p[0] > 1 || p[1] - wantG > 1 || wantG - p[1] > 1 || p[2] - wantR > 1 || wantR - p[2] > 1)
+                    ++differing;
+                out[x * 3 + 0] = p[0];
+                out[x * 3 + 1] = p[1];
+                out[x * 3 + 2] = p[2];
             }
-            if (w[x * 4] != want[0] || w[x * 4 + 1] != want[1] || w[x * 4 + 2] != want[2]) ++differing;
-            out[x * 3 + 0] = w[x * 4 + 2];
-            out[x * 3 + 1] = w[x * 4 + 1];
-            out[x * 3 + 2] = w[x * 4 + 0];
+        }
+        g_lastWidth = width;
+        g_lastHeight = height;
+        ++g_info.checks;
+        if (differing) {
+            ++g_info.mismatches;
+            if (g_info.mismatches <= 10)
+                ei::Log("render: MISMATCH cursor between frames: %d pixels of the presented frame differ (cursor at %d,%d-%d,%d)",
+                        differing, to.left, to.top, to.right, to.bottom);
+        } else if (g_info.checks == 1 || g_info.checks % 50 == 0) {
+            ei::Log("render: cursor between frames: %d presented frames checked, %d differed", g_info.checks, g_info.mismatches);
         }
     }
-    kit.context->Unmap(g_readback[0], 0);
-    kit.context->Unmap(g_readback[1], 0);
-    g_lastWidth = width;
-    g_lastHeight = height;
-    ++g_info.checks;
-    if (differing) {
-        ++g_info.mismatches;
-        if (g_info.mismatches <= 10)
-            ei::Log("render: MISMATCH cursor between frames: %d pixels of the composed frame differ (cursor at %d,%d-%d,%d)",
-                    differing, to.left, to.top, to.right, to.bottom);
-    } else if (g_info.checks == 1 || g_info.checks % 50 == 0) {
-        ei::Log("render: cursor between frames: %d composed frames checked, %d differed", g_info.checks, g_info.mismatches);
-    }
+    if (mapped1) kit.context->Unmap(g_readback[1], 0);
+    if (mapped0) kit.context->Unmap(g_readback[0], 0);
+    for (ID3D11Texture2D* t : sources)
+        if (t) t->Release();
 }
 #endif
 
-// Records and runs the cursor thread's present: the frame without its cursor, the cursor drawn over
-// it at `to` (the window blit, one to one), that frame through the gamma ramp into the swap chain's
-// back buffer as the main thread's present draws it, Present.
+// Records and runs the cursor thread's present: the frame target (it holds no cursor) and the cursor at
+// `to` through the gamma ramp into the swap chain's back buffer as the main thread's present draws them
+// (shaders/present.hlsl), Present.
 bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::uint8_t>& cursor) {
     int w = to.right - to.left, h = to.bottom - to.top;
     ID3D11Device* device = kit.device;
@@ -327,35 +309,18 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
     D3D11_SUBRESOURCE_DATA init{cursor.data(), static_cast<UINT>(w * 4), 0};
     ID3D11Texture2D* texture = nullptr;
     ID3D11ShaderResourceView* view = nullptr;
-    // The window blit's cbuffers (shaders/blit.hlsl): the rectangle and the frame's size;
-    // the destination's corner, one texel a pixel, the source corner and the texture's size. The
-    // present's (render_window.cpp): the whole frame.
-    float blitVs[8] = {static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right), static_cast<float>(to.bottom),
-                       static_cast<float>(g_frameWidth), static_cast<float>(g_frameHeight), 0.0f, 0.0f};
-    float blitPs[8] = {static_cast<float>(to.left), static_cast<float>(to.top), 1.0f, 1.0f, 0.0f, 0.0f, static_cast<float>(w),
-                       static_cast<float>(h)};
+    // The present's cbuffers (render_window.cpp): the whole frame; the cursor's rectangle, the frame's
+    // size and the cursor texels per frame pixel (one), the cursor texture's size.
     float presentVs[4] = {0.0f, 0.0f, 1.0f, 1.0f};
-    ID3D11Buffer* buffers[3] = {ConstantBuffer(device, blitVs, sizeof(blitVs)), ConstantBuffer(device, blitPs, sizeof(blitPs)),
-                                ConstantBuffer(device, presentVs, sizeof(presentVs))};
-    bool ok = buffers[0] && buffers[1] && buffers[2] && SUCCEEDED(device->CreateTexture2D(&td, &init, &texture)) &&
+    float presentPs[12] = {static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
+                           static_cast<float>(to.bottom), static_cast<float>(kit.frameWidth), static_cast<float>(kit.frameHeight),
+                           1.0f, 1.0f, static_cast<float>(w), static_cast<float>(h), 0.0f, 0.0f};
+    ID3D11Buffer* buffers[2] = {ConstantBuffer(device, presentVs, sizeof(presentVs)), ConstantBuffer(device, presentPs, sizeof(presentPs))};
+    bool ok = buffers[0] && buffers[1] && SUCCEEDED(device->CreateTexture2D(&td, &init, &texture)) &&
               SUCCEEDED(device->CreateShaderResourceView(texture, nullptr, &view));
     ID3D11CommandList* list = nullptr;
     if (ok) {
         ID3D11DeviceContext* dc = g_deferred;
-        dc->CopyResource(g_work, g_clean);
-        // The cursor into the frame (the window blit: texels with alpha below one half left out).
-        D3D11_VIEWPORT frame{0.0f, 0.0f, static_cast<float>(g_frameWidth), static_cast<float>(g_frameHeight), 0.0f, 1.0f};
-        D3D11_RECT frameRect{0, 0, g_frameWidth, g_frameHeight};
-        dc->OMSetRenderTargets(1, &g_workTarget, nullptr);
-        dc->RSSetViewports(1, &frame);
-        dc->RSSetScissorRects(1, &frameRect);
-        kit.blit.Bind(dc);
-        dc->VSSetConstantBuffers(0, 1, &buffers[0]);
-        dc->PSSetConstantBuffers(0, 1, &buffers[1]);
-        dc->PSSetShaderResources(0, 1, &view);
-        dc->PSSetSamplers(0, 1, &kit.nearest);
-        dc->Draw(6, 0);
-        // The frame through the ramp into the back buffer (black bars around it).
         const float black[4] = {0.0f, 0.0f, 0.0f, 1.0f};
         dc->OMSetRenderTargets(1, &kit.back, nullptr);
         dc->ClearRenderTargetView(kit.back, black);
@@ -366,9 +331,10 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
         dc->RSSetViewports(1, &placed);
         dc->RSSetScissorRects(1, &client);
         kit.present.Bind(dc);
-        dc->VSSetConstantBuffers(0, 1, &buffers[2]);
-        ID3D11ShaderResourceView* views[2] = {g_workView, kit.ramp};
-        dc->PSSetShaderResources(0, 2, views);
+        dc->VSSetConstantBuffers(0, 1, &buffers[0]);
+        dc->PSSetConstantBuffers(0, 1, &buffers[1]);
+        ID3D11ShaderResourceView* views[3] = {kit.frame, kit.ramp, view};
+        dc->PSSetShaderResources(0, 3, views);
         ID3D11SamplerState* samplers[1] = {kit.linear};
         dc->PSSetSamplers(0, 1, samplers);
         dc->Draw(3, 0);
@@ -381,7 +347,7 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
     for (ID3D11Buffer*& b : buffers) Release(b);
     if (!ok) return false;
 #if defined(EI_RENDER_VALIDATION)
-    CheckComposed(kit, to, cursor);
+    CheckPresented(kit, to, cursor);
 #endif
     HRESULT hr = kit.chain->Present(kit.vsync ? 1 : 0, 0);
     if (FAILED(hr)) {
@@ -435,40 +401,26 @@ void BeginWindowPresent() {
     DropKit();
 }
 
-void KeepFrameForCursor() {
-    if (!g_protected) return;
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(FrameImage());
-    auto* frame = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    if (!frame) return;
-    D3D11_TEXTURE2D_DESC desc{};
-    frame->GetDesc(&desc);
-    if ((!g_clean || g_frameWidth != static_cast<int>(desc.Width) || g_frameHeight != static_cast<int>(desc.Height)) &&
-        !MakeTargets(desc))
-        return;
-    D3DContext()->CopyResource(g_clean, frame);
-}
-
 void EndWindowPresent(bool presented) {
     if (presented) g_lastPresent = GetTickCount64();
     WindowParts window{};
-    if (presented && g_protected && g_clean && CurrentWindowParts(&window)) {
-        sg_shader blitShader{};
-        sg_pipeline blitPipeline{};
-        sg_sampler nearest{};
-        BlitParts(&blitShader, &blitPipeline, &nearest);
+    if (presented && g_protected && CurrentWindowParts(&window)) {
         g_kit.device = Referenced<ID3D11Device>(D3DDevice());
         g_kit.context = Referenced<ID3D11DeviceContext>(D3DContext());
         g_kit.chain = Referenced<IDXGISwapChain1>(window.chain);
         g_kit.back = Referenced<ID3D11RenderTargetView>(window.view);
+        g_kit.frame = Referenced<ID3D11ShaderResourceView>(sg_d3d11_query_view_info(window.frame).srv);
         g_kit.ramp = Referenced<ID3D11ShaderResourceView>(sg_d3d11_query_view_info(window.ramp).srv);
         g_kit.linear = Referenced<ID3D11SamplerState>(sg_d3d11_query_sampler_info(LinearSampler()).smp);
-        g_kit.nearest = Referenced<ID3D11SamplerState>(sg_d3d11_query_sampler_info(nearest).smp);
-        bool pipelines = g_kit.blit.Take(blitShader, blitPipeline) && g_kit.present.Take(window.shader, window.pipeline);
+        bool pipelines = g_kit.present.Take(window.shader, window.pipeline);
         g_kit.clientWidth = window.clientWidth;
         g_kit.clientHeight = window.clientHeight;
+        g_kit.frameWidth = window.frameWidth;
+        g_kit.frameHeight = window.frameHeight;
+        g_kit.rampTable = window.rampTable;
         g_kit.placed = window.placed;
         g_kit.vsync = window.vsync;
-        g_kit.valid = pipelines && g_kit.device && g_kit.context && g_kit.ramp && g_kit.linear && g_kit.nearest;
+        g_kit.valid = pipelines && g_kit.device && g_kit.context && g_kit.frame && g_kit.ramp && g_kit.linear;
         if (!g_kit.valid) DropKit();
     }
     g_presentLock.Leave();
@@ -477,7 +429,6 @@ void EndWindowPresent(bool presented) {
 void DropCursorPresents() {
     Hold hold(g_presentLock);
     DropKit();
-    DropTargets();
     Release(g_deferred);
 #if defined(EI_RENDER_VALIDATION)
     for (ID3D11Texture2D*& r : g_readback) Release(r);
@@ -498,10 +449,10 @@ bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& 
     Hold hold(g_presentLock);
     ++g_info.calls;
     if (!cut) return Refused(Refusal::Picture);
-    if (!g_kit.valid || !g_clean) return Refused(Refusal::NoFrame);
+    if (!g_kit.valid) return Refused(Refusal::NoFrame);
     if (GetTickCount64() - g_lastPresent < kBetweenFrames) return Refused(Refusal::Recent);
     // The cursor's rectangle is clipped to its bounds by the game (005E52E0); kept inside the frame.
-    if (to.left < 0 || to.top < 0 || to.right > g_frameWidth || to.bottom > g_frameHeight ||
+    if (to.left < 0 || to.top < 0 || to.right > g_kit.frameWidth || to.bottom > g_kit.frameHeight ||
         to.right - to.left != from.right - from.left || to.bottom - to.top != from.bottom - from.top)
         return Refused(Refusal::Outside);
     FpuGuard fpu;

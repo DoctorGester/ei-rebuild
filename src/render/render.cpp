@@ -1125,14 +1125,15 @@ bool DrawPending() {
     return true;
 }
 
-// The software cursor kept out of the frame's commands (render::Cursor when the new renderer
-// presents itself) drawn over it: the frame's last draw.
-void DrawCursor() {
-    if (!g_frame.haveCursor) return;
-    g_frame.haveCursor = false;
-    g_frame.blitBatches.push_back(g_frame.cursor);
-    g_frame.commands.push_back(Command{Command::Blit, static_cast<int>(g_frame.blitBatches.size()) - 1});
-    DrawPending();
+// DrawPending for a draw in the middle of the frame (a copy of it, CopyFrameTo). With the new renderer's own
+// present the cursor thread draws the frame target itself, so it takes none of it while a pass is in
+// progress: the lock of the present, and no cursor presents until the frame's own present.
+bool DrawPendingAlone() {
+    if (!g_presentsItself) return DrawPending();
+    BeginWindowPresent();
+    bool drawn = DrawPending();
+    EndWindowPresent(false);
+    return drawn;
 }
 
 // A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until
@@ -1208,7 +1209,7 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     // with DL 0, R13): the target still holds the last frame, as the original's render target did. A
     // pass now would clear it to the clear colour first.
     bool betweenFrames = g_haveFrame && g_passes == 0 && g_frame.commands.empty();
-    if (!g_frameDrawn && !betweenFrames && !DrawPending()) return false;
+    if (!g_frameDrawn && !betweenFrames && !DrawPendingAlone()) return false;
     if (!g_colour.id) return false;
     Rect r = source;
     if (r.left < 0) r.left = 0;
@@ -1259,16 +1260,20 @@ void EndFrame() {
     g_frameDrawn = true;
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
-    if (!DrawPending()) return;
     // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
-    // turn with the cursor thread's presents (render_cursor.cpp), which take the frame as it was
-    // before its cursor.
+    // turn with the cursor thread's presents (render_cursor.cpp), which draw the frame as it is (the
+    // frame target never holds the cursor: the present draws it over the frame).
     bool toWindow = false;
     if (g_presentsItself) {
         BeginWindowPresent();
-        KeepFrameForCursor();
-        DrawCursor();
-        toWindow = DrawToWindow();
+        if (!DrawPending()) {
+            EndWindowPresent(false);
+            return;
+        }
+        toWindow = DrawToWindow(g_frame.haveCursor ? &g_frame.cursor : nullptr);
+        g_frame.haveCursor = false;
+    } else if (!DrawPending()) {
+        return;
     }
     ShadowFrameEnd();
     sg_commit();

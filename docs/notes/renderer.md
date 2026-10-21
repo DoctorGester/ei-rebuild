@@ -549,17 +549,25 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   (`BeginWindowPresent` .. `EndWindowPresent`); a lost device drops the cursor's references under it first
   (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
   in mode 2) before the present lock, in both threads.
-- render::Cursor keeps the cursor aside (`Frame::cursor`); EndFrame draws the frame, copies it (`KeepFrameForCursor`)
-  and then draws the cursor over it, so frames, captures and ReadFrame are as before; the cursor thread draws onto a
-  copy of the cursor-less frame and presents that. `CursorBetweenFrames` presents only when nothing was presented on
+- render::Cursor keeps the cursor aside (`Frame::cursor`); the frame target never holds it. The present shader
+  (`present.hlsl`) draws the cursor over the frame as it goes through the gamma ramp into the back buffer (its texels
+  with alpha of a half or more replace the frame's pixel; where the cursor touches the bilinear footprint the filter
+  is done by hand over the composed pixels, so a scaled window filters the cursor with the frame as before). The cursor
+  thread runs the same draw (the same raw pipeline) with its own cursor position over the frame target: no copy of the
+  frame (R16f; there was a whole-frame copy a frame, 33 MB of GPU traffic at 4K). So that the target is whole when it
+  reads it, everything that draws into the frame target runs under the present lock (`EndFrame`, and `DrawPendingAlone`
+  for the passes of a copy in the middle of a frame, CopyFrameTo) and `BeginWindowPresent` drops what the cursor thread
+  draws with until the frame's own present: during a frame that drew a pass early (a copy in its middle: quick save),
+  the cursor does not move between frames. `CursorBetweenFrames` presents only when nothing was presented on
   the game window for 40 ms (real time: the harness's virtual clock does not reach the renderer).
-- Harness build: every frame the cursor thread composes is read back and compared with the frame without its cursor and
-  the cursor's texels ("render: cursor between frames: N composed frames checked, M differed" / "render: MISMATCH
-  cursor between frames").
+- Harness build: every frame the cursor thread presents is read back from the back buffer and compared with the
+  frame target, the cursor's texels and the ramp as uploaded (one to one placement; "render: cursor between frames: N
+  presented frames checked, M differed" / "render: MISMATCH cursor between frames"). The ramp check of the main
+  thread's present (`CheckRamp`) leaves out the points around the cursor.
 
 Harness: `mouseglide <ms> <x0> <y0> <x1> <y1>` (the harness's mouse, what GetCursorPos reads, moved by a thread of its
 own in 10 ms steps), `stall <ms>` (the main thread away: one long frame), `cursormark`, `cursorcheck <name>|- <min>
-[max]` (presents by the cursor thread since the mark within min..max; with a name the last composed frame goes to
+[max]` (presents by the cursor thread since the mark within min..max; with a name the last presented frame (after the ramp) goes to
 frames\<name>.bmp, the checks must have found no difference and its rectangle must sit at the mouse less the hot spot
 within 24 pixels), and the starter step `fpscursor 0|1`. Scenario `render_cursor_present` (on `realtime`: on the
 virtual clock other threads see the main thread's clock plus the real time since it last moved and never go back, so
@@ -694,7 +702,7 @@ resolution must have the machine to themselves and serialised the suites.
 ### Frame capture
 
 Harness. `capture <name>` skips two presented frames and writes the next to `frames\<name>.bmp` (24-bit). In the image
-it is the new renderer's last frame (`render::ReadFrame`: before the gamma ramp and the software cursor). In a run of
+it is the new renderer's last frame (`render::ReadFrame`: before the gamma ramp and the software cursor, which the present draws). In a run of
 the original (`--no-hooks`, dgVoodoo) it is the old render target at the present point (after scene and interface,
 before the software cursor and the flip; a read-only Lock of the render target, GetDC as fallback: a GDI capture of
 the window comes back black with dgVoodoo). `freeze` / `unfreeze` hold timeGetTime / GetTickCount and the camera
@@ -895,10 +903,13 @@ across runs; the goldens check the game state.
    uploads; all decals in one instanced draw. Risk: the look changes at steep slopes, platform edges and under water;
    draw order (after ground and platforms, before figures). Check: ground_prints, render_scene, effects frames at
    16 / 2% plus a side-by-side (frame_preview.py) for the user.
-6. **R16f The present without a frame copy.** Every frame is copied whole for the cursor thread (33 MB of GPU traffic
-   at 4K) before the cursor is drawn into it; drawing the cursor and the gamma ramp in the present pass keeps the frame
-   clean for the cursor thread. Gain: GPU bandwidth only. Risk: low. Check: render_cursor_present, render_present,
-   render_present_shot (cursorcheck's own comparisons, 0 differences).
+6. **R16f The present without a frame copy (done).** The frame was copied whole every frame for the cursor thread
+   (33 MB of GPU traffic at 4K) before the cursor was drawn into it. Now the present shader draws the cursor over the
+   frame as it applies the gamma ramp (section 9, R9c2), the frame target never holds the cursor and the cursor thread
+   draws the frame target itself: the copy and the cursor's blit pass (one pass and one draw less a frame with the
+   cursor) are gone. Measured in render_stats (4K, 16 games share the GPU, so the GPU ms are noise): passes 2.0 -> 1.0 a
+   frame. Check: render_cursor_present, render_present, render_present_shot (0 differences, the main thread's cursor
+   checked in the back buffer too: "cursor in the presented frame").
 7. **R16g Per-draw records and instancing (measured, not built: under 0.2 ms a frame to gain).** The plan: one ring
    buffer of per-draw records (matrix, fog, stage operations) read by index instead of two apply_uniforms per mesh
    draw; meshes with the same geometry and state drawn instanced. Measured with a temporary timer around the parts
