@@ -11,6 +11,7 @@
 #include "../../src/game/map_spec.h"
 #include "../../src/game/material.h"
 #include "../../src/game/net_delta.h"
+#include "../../src/game/record_arrays.h"
 #include "../../src/game/scene_loader.h"
 #include "../../src/game/script.h"
 #include "../../src/game/sector_map.h"
@@ -51,7 +52,7 @@ void ScriptFxSource::ScriptFxSourceDestruct() EI_UNLINKED("ScriptFxSource::Scrip
 void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::ScriptLightningDestruct")
 
 // record_arrays.cpp's other element types.
-CFigureMesh* CFigureMesh::ConstructBase() EI_UNLINKED("CFigureMesh::ConstructBase")
+void recordarrays::InitFigurePart(CFigureMesh*) EI_UNLINKED("recordarrays::InitFigurePart")
 CMaterial* CMaterial::Construct() EI_UNLINKED("CMaterial::Construct")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")

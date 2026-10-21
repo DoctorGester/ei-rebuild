@@ -154,7 +154,7 @@ void CUiMesh::DestroySprite() {
     texture_ = nullptr;
     ClearMesh();
 }
-EI_REPLACE_METHOD(0x005E6D70, CUiMesh::DestroySprite);
+EI_REWRITTEN(0x005E6D70, CUiMesh::DestroySprite);
 
 // The original writes the counted root's vtable first and its own only for a non-null object;
 // the first store is not seen by anything.

@@ -9,10 +9,13 @@
 #include "model.h"
 
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the
 // loaders set w to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2 (005A0CD0).
@@ -75,21 +78,36 @@ struct FigureLights {
     int count;
 };
 
-// The figure mesh of class 0x42 (0x220 bytes, vtable 0073C1C4); 0x43 (0073FC48) and 0x44 derive
-// from it and share its loaders. Class 0x41 (0x1E0 bytes, vtable 0073FBF0) has the same layout up
-// to +0x1E0 and its own loaders. A CTransformObject (core_transform.h: the engine object's fields,
-// the local and world position and rotation). The parts of an object's figure (CObject3D::parts)
-// are these. Its own slots 18-21 are reached through CFigureObjectVirtuals below; the slot bodies
-// are plain members registered by address, so none takes a base virtual's name (Create is
-// CreateMesh, CopyFrom CopyFigure). The classes 0x41-0x43 are built by the constructor bodies, which
-// store game.exe's vtables; the sky (class 0x44, sky_object.h) derives from it with C++ constructors
-// and the compiler's vtable (C19), through the protected constructor and destructor below.
+// The figure meshes' base ("CFigure"): the layout of the class 0x42 mesh (0x220 bytes), which the
+// classes below share. A CTransformObject (core_transform.h: the engine object's fields, the local
+// and world position and rotation). The parts of an object's figure (CObject3D::parts) are these.
+// A real virtual class (C19): the classes 0x41 (CSharedFigureMesh), 0x42 (CPlainFigureMesh), 0x43
+// (CUiMesh, ui.h) and 0x44 (CSkyObject, sky_object.h) have C++ constructors and the compiler's
+// vtables. The slot bodies are plain members registered by address (Create's is CreateMesh,
+// CopyFigure's CopyFigureImpl, ...); the virtuals call them. Abstract: slots 20 and 21 are the
+// derived classes'. game.exe's base vtable 0073C224 (20 slots) stays: only the registered bodies
+// ConstructBase / DestructBase store it, which no code of ours calls (they go with C20).
 class CFigureMesh : public CTransformObject {
 public:
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // class 0x44, the base
-    static constexpr std::uintptr_t kMeshVtableAddress = std::uintptr_t(0x0073FC48);   // class 0x43
-    static constexpr std::uintptr_t kPlainMeshVtableAddress = std::uintptr_t(0x0073C1C4);   // class 0x42
-    static constexpr std::uintptr_t kSharedMeshVtableAddress = std::uintptr_t(0x0073FBF0);   // class 0x41
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // the base
+
+    // The vtable (game.exe's base 0073C224 and the pure slots 20 and 21). The slots not listed are
+    // CTransformObject's (1, 4-6, 8-10, 13, 14, 17).
+    int Create() override;                 // 2: 0059F210 CreateMesh (the derived classes' 005A6C70 / 005A6E00 jump to it)
+    void Destroy() override;               // 3: 0059F2B0 Clear
+    const char* GetName() override;        // 7: 00453440 (name_)
+    const char* GetClassName() override;   // 11: 00453450 "CFigure"
+    int GetClassId() override;             // 12: 00453460 (0x44)
+    // 15: 0059F510 SetPose. 16: 0059F710 SaveToFile (the mesh written to an MFC CFile).
+    void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) override;
+    void SaveTransform(void* file) override;
+    virtual void CopyFigure(const CFigureMesh* other);   // 18: 0059F0F0 CopyFigureImpl
+    // 19: 005A2480 LoadNothing (the meshes' is LoadFromMemoryImpl).
+    virtual void LoadFromMemory(char** cursor, float s, float t, float u);
+    virtual void LoadFig(char** cursor, float s, float t, float u) = 0;   // 20: "FIG" data
+    virtual void LoadOld(char** cursor, float s, float t, float u) = 0;   // 21: the older format
+    // The deleting destructors (slot 0) free into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // 005A18E0. Reads the bounding volume (centre, box, radius) that follows the mesh header and
     // morphs it: "FIG8" files hold 8 corner versions of each value, blended trilinearly by the
@@ -101,7 +119,7 @@ public:
     // figure_manager.cpp, A-W12). Loads the mesh from memory at *cursor once (flags_ 0x20 set
     // afterwards): data whose first dword starts with "FIG" through slot 20, other data through
     // slot 21.
-    void LoadFromMemory(char** cursor, float s, float t, float u);
+    void LoadFromMemoryImpl(char** cursor, float s, float t, float u);
     // 005A2480 (slot 19 of the base vtable 0073C224, class 0x44; RET 0x10; figure_mesh_life.cpp).
     // The base has no mesh to read: only marks itself loaded (flags_ 0x20).
     void LoadNothing(char** cursor, float s, float t, float u);
@@ -111,14 +129,14 @@ public:
 
     // 005A2500 (vtable slot 20 of classes 0x42-0x44). Loads a "FIG" mesh from memory at *cursor
     // (advanced past it), morphing FIG8 vertices; once only (flag 0x20). RET 0x10.
-    void LoadFig(char** cursor, float s, float t, float u);
+    void LoadFigImpl(char** cursor, float s, float t, float u);
     // 005A5C70 (slot 20 of class 0x41): the same, but only the vertices and records are copied;
     // the other buffers point into the file data.
     void LoadFigShared(char** cursor, float s, float t, float u);
     // 005A3800 (slot 21 of classes 0x42-0x44): the older format without a FIG header, chosen by
     // slot 19 (005A2490) when the data does not start with "FIG": 6 corner versions of the
     // bounds and of every vertex, each array preceded by its count. RET 0x10.
-    void LoadOld(char** cursor, float s, float t, float u);
+    void LoadOldImpl(char** cursor, float s, float t, float u);
     // 005A4D60 (slot 21 of class 0x41): the same, the last four buffers pointing into the data.
     void LoadOldShared(char** cursor, float s, float t, float u);
 
@@ -129,8 +147,8 @@ public:
 
     // 005A4B30 (vtable slot 22) / 005A4BF0 (slot 23): mirror the mesh in x / y (negates that
     // component of every vertex and normal) and swap the first two corners of every triangle.
-    void MirrorX();
-    void MirrorY();
+    void MirrorXImpl();
+    void MirrorYImpl();
     // 005A6D40: points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
     // (one per normal).
     void RefreshBuffers();
@@ -155,16 +173,17 @@ public:
     void LoadFromFile(mfc::CFileVirtuals* file);
     // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
     // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
-    void CopyFigure(const CFigureMesh* other);
+    void CopyFigureImpl(const CFigureMesh* other);
     // 0059F510 (slot 15, CTransformObject::UpdateWorld's place; RET 8): sets the rotation (slot 14
     // with `rotation`), rotates the position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110)
     // and rebuilds the rotation matrix at +0xE0 from the stored quaternion (+0x44).
     void SetPose(const Quaternion& rotation, const Vector3& offset);
 
     // Lifetime (figure_mesh_life.cpp, A-W13).
-    // 005AABC0. The constructor body the classes 0x41-0x43 share (the factory, figure_factory.cpp):
-    // the transform object's fields, no owner, empty names and arrays, no bounds, vtable 0073C224,
-    // then Create. Returns this.
+    // 005AABC0. The constructor body the classes 0x41-0x43 share in the original (the factory, the
+    // scene's figure records): the transform object's fields, no owner, empty names and arrays, no
+    // bounds, vtable 0073C224, then Create. Returns this. No code of ours calls it (the protected
+    // constructor below does its work).
     CFigureMesh* ConstructBase();
     // 0059F210 (slot 2 of every figure class; 005A6C70 / 005A6E00 jump to it). No drawer, flags,
     // buffers or bounds; white flat colours. Returns 1.
@@ -177,18 +196,8 @@ public:
     void ClearMesh();
     void ClearSharedMesh();
     // 0059F030. The destructor body: Clear, the colour and offset arrays, the names, the engine
-    // object's destructor.
+    // object's destructor. No code of ours calls it (the destructor below does its work).
     void DestructBase();
-    // 005AAD00 (class 0x43; sets its vtable 0073FC48) / 005AADC0 (class 0x41): the mesh's arrays
-    // freed, then DestructBase. 005AACE0 / 005AADA0 are their scalar deleting destructors.
-    void DestructMesh();
-    // 00454510 (class 0x42, the figure's parts; 004543A0 is its scalar deleting destructor):
-    // DestructMesh without its vtable.
-    void DestructPlainMesh();
-    CFigureMesh* DeletingDestructPlainMesh(unsigned flags);
-    void DestructSharedMesh();
-    CFigureMesh* DeletingDestructMesh(unsigned flags);
-    CFigureMesh* DeletingDestructSharedMesh(unsigned flags);
     // 0059F390 (RET 4). Lets the old drawer go (released) and takes `drawer` (one more reference,
     // its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
@@ -196,8 +205,7 @@ public:
     void SetObject(CObject3D* object);
 
 protected:
-    // 005AABC0 as C++, for a class whose vtable is the compiler's (CSkyObject): SetUpFigure, then
-    // CreateMesh.
+    // 005AABC0 as C++ (the names constructed as members): SetUpFigure, then CreateMesh.
     CFigureMesh();
     // 0059F030's work without the vtables: TearDownFigure, then the names (members) and the engine
     // object's destructor.
@@ -280,17 +288,57 @@ static_assert(offsetof(CFigureMesh, corners_) == 0x1E0);
 static_assert(offsetof(CFigureMesh, texCoords_) == 0x210);
 static_assert(sizeof(CFigureMesh) == 0x220);
 
-// A figure object (classes 0x41-0x44, CFigureMesh's layout) as callers reach its slots through the
-// vtable: CTransformObject's (0-17), then 18-21 (as CSkyObject declares them). The slot bodies
-// stay members of CFigureMesh.
-class CFigureObjectVirtuals : public CTransformObject {
+// Class 0x41 (game.exe's vtable 0073FBF0, retired; 22 slots): a part whose last four buffers point
+// into the loaded file data (the figure manager's parts that are not attached). The object is
+// 0x1E0 bytes (the factory allocates that much): CFigureMesh's layout up to corners_, which it does
+// not have; its constructor and destructor touch nothing past vertices_ and normals_ (the members
+// after them are trivial).
+class CSharedFigureMesh : public CFigureMesh {
 public:
-    virtual void CopyFigure() = 0;                                              // 18: 0059F0F0
-    virtual void LoadFromMemory(char** cursor, float s, float t, float u) = 0;  // 19: 005A2490 / 005A4CF0
-    virtual void LoadFig(char** cursor, float s, float t, float u) = 0;         // 20: "FIG" data
-    virtual void LoadOld(char** cursor, float s, float t, float u) = 0;         // 21: the older format
+    // The figure factory's class 0x41 (005AA8E0 inlines it): CFigureMesh's constructor, then the
+    // vertices and normals empty.
+    CSharedFigureMesh();
+    // 005AADC0's work: the normals and vertices freed, then CFigureMesh's destructor.
+    ~CSharedFigureMesh() override;
+
+    // The vtable: CFigureMesh's but for 0, 3 and 19-21 (slot 2, 005A6E00, jumps to CreateMesh).
+    void Destroy() override;                                                // 3: 005A6E10 ClearSharedMesh
+    void LoadFromMemory(char** cursor, float s, float t, float u) override; // 19: 005A4CF0 LoadFromMemoryImpl
+    void LoadFig(char** cursor, float s, float t, float u) override;        // 20: 005A5C70 LoadFigShared
+    void LoadOld(char** cursor, float s, float t, float u) override;        // 21: 005A4D60 LoadOldShared
+
+    // The registrations (C20 retires them): 005AADC0 the destructor, 005AADA0 (slot 0) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
+    void Destruct();
+    CSharedFigureMesh* DeletingDestruct(unsigned flags);
 };
-inline CFigureObjectVirtuals* FigureSlots(CFigureMesh* figure) { return reinterpret_cast<CFigureObjectVirtuals*>(figure); }
+
+// Class 0x42 (game.exe's vtable 0073C1C4, retired; 24 slots): a mesh that owns all its arrays (the
+// figure manager's attached parts, the scene's figure records, 00453240). CUiMesh (class 0x43,
+// ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
+class CPlainFigureMesh : public CFigureMesh {
+public:
+    // The figure factory's class 0x42 (005AA8E0) and the scene's records (00453240) inline it:
+    // CFigureMesh's constructor, then the six arrays empty.
+    CPlainFigureMesh();
+    // 00454510's work: the six arrays freed (last first), then CFigureMesh's destructor.
+    ~CPlainFigureMesh() override;
+
+    // The vtable: CFigureMesh's but for 0, 3, 17 and 19-23 (slot 2, 005A6C70, jumps to CreateMesh).
+    void Destroy() override;                                                // 3: 005A6C80 ClearMesh
+    void LoadTransform(void* file) override;                                // 17: 0059F8F0 LoadFromFile
+    void LoadFromMemory(char** cursor, float s, float t, float u) override; // 19: 005A2490 LoadFromMemoryImpl
+    void LoadFig(char** cursor, float s, float t, float u) override;        // 20: 005A2500 LoadFigImpl
+    void LoadOld(char** cursor, float s, float t, float u) override;        // 21: 005A3800 LoadOldImpl
+    virtual void MirrorX();                                                 // 22: 005A4B30 MirrorXImpl
+    virtual void MirrorY();                                                 // 23: 005A4BF0 MirrorYImpl
+
+    // The registrations (C20 retires them): 00454510 the destructor, 004543A0 (slot 0) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
+    void Destruct();
+    CPlainFigureMesh* DeletingDestruct(unsigned flags);
+};
+static_assert(sizeof(CSharedFigureMesh) == 0x220 && sizeof(CPlainFigureMesh) == 0x220);
 
 // The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element
 // counts, then the two dwords at +0x158 / +0x15C.

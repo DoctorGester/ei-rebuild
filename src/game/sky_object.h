@@ -1,13 +1,13 @@
 #pragma once
 
 // The sky dome (A-S7): CSkyObject (004D9110-004D9360, 0x230 bytes, figure class 0x44's constructor
-// in the figure factory 005AA8E0) is a figure part mesh (CFigureMesh, figure_mesh.h) with one more
+// in the figure factory 005AA8E0) is a class 0x42 figure mesh (CPlainFigureMesh, figure_mesh.h) with one more
 // aligned array, and CSky (004D9680-004D9DE0), the world view's holder that lights and draws it.
 // sky_object.cpp. A real virtual class: the compiler makes its vtable (C19; game.exe's 0073D5B8 is
 // retired). Names from GetClassName ("CSkyObject"); the rest provisional.
 
 #include "core_transform.h"
-#include "figure_mesh.h"   // CFigureMesh
+#include "figure_mesh.h"   // CPlainFigureMesh
 #include "model.h"         // Matrix4, CSceneRenderer
 
 #include "lib/containers.h"
@@ -25,37 +25,20 @@ struct SkyColour {
 };
 static_assert(sizeof(SkyColour) == 16);
 
-class CSkyObject : public CFigureMesh {
+class CSkyObject : public CPlainFigureMesh {
 public:
-    // 004D9110. The figure's constructor (CFigureMesh's: in the original 005AABC0's work with its
-    // vtable 0073C224 and its Create 0059F210), the haze empty, then the sky's Create (slot 2,
-    // 005A6C70: the same CreateMesh).
+    // 004D9110. The figure's constructor (CPlainFigureMesh's: in the original 005AABC0's work with
+    // its vtable 0073C224 and its Create 0059F210, then the mesh's arrays empty), the haze empty,
+    // then the sky's Create (slot 2, 005A6C70: the same CreateMesh).
     CSkyObject();
-    // 004D92B0. The mesh's arrays and the haze freed (last first), then the figure's destructor
-    // (CFigureMesh's: 0059F030's work).
+    // 004D92B0. The haze freed, then the mesh's arrays (CPlainFigureMesh's destructor) and the
+    // figure's (CFigureMesh's: 0059F030's work).
     ~CSkyObject() override;
-    // The deleting destructor (slot 0, 004D9290) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    // The vtable (game.exe's 0073D5B8, retired; the class 0x42 mesh's 0073C1C4 but for 0, 11 and
-    // 12). The slots the sky does not override are CTransformObject's (1, 4-6, 8-10, 13, 14).
-    int Create() override;       // 2: 005A6C70 (CreateMesh)
-    void Destroy() override;     // 3: 005A6C80 (ClearMesh)
-    const char* GetName() override;        // 7: 00453440 (the name at +0x120)
+    // The vtable (game.exe's 0073D5B8, retired): the class 0x42 mesh's (CPlainFigureMesh) but for
+    // 0, 11 and 12.
     const char* GetClassName() override;   // 11: 004D9270 "CSkyObject" (0078DB14)
     int GetClassId() override;             // 12: 004D9280 (0x20)
-    // 15: 0059F510 SetPose. 16 / 17: 0059F710 / 0059F8F0, the mesh written to / read from an MFC
-    // CFile (SaveToFile / LoadFromFile).
-    void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) override;
-    void SaveTransform(void* file) override;
-    void LoadTransform(void* file) override;
-    // The figure mesh's own slots (CFigureObjectVirtuals' 18-21, then 22 / 23), CFigureMesh's bodies.
-    virtual void CopyFigure(const CFigureMesh* other);                          // 18: 0059F0F0
-    virtual void LoadFromMemory(char** cursor, float s, float t, float u);      // 19: 005A2490
-    virtual void LoadFig(char** cursor, float s, float t, float u);             // 20: 005A2500
-    virtual void LoadOld(char** cursor, float s, float t, float u);             // 21: 005A3800
-    virtual void MirrorX();                                                     // 22: 005A4B30
-    virtual void MirrorY();                                                     // 23: 005A4BF0
 
     // The registrations (C20 retires them): 004D9110 constructs in place (returns this), 004D92B0
     // the destructor, 004D9290 (slot 0) the destructor, then operator delete when bit 0 of `flags`

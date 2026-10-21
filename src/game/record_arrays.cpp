@@ -18,13 +18,6 @@ using mfc::impl::GlobalMapPointRecords;
 
 // ---- Scene records -------------------------------------------------------------------------------
 
-// 00453240 writes zeros over the mesh's six arrays (+0x1C0..+0x21C) after ConstructBase; the zero
-// fill already cleared them.
-void InitFigurePart(CFigureMesh* p) {
-    p->ConstructBase();
-    ei::SetVtable(p, CFigureMesh::kPlainMeshVtableAddress);
-}
-
 EI_REWRITTEN(0x0044FCD0, FigureParts::SetSize);
 EI_REWRITTEN(0x00453240, FigureParts::ConstructElements);
 EI_REWRITTEN(0x00453550, Materials::SetSize);

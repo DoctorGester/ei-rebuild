@@ -1,6 +1,7 @@
 // The figure meshes' lifetime (A-W13): the constructor body the figure classes share, Create and
-// Clear (vtable slots 2 and 3), the destructor bodies, the drawer and owner setters, and the figure
-// manager's constructor and its CreateObject (slot 23), which gives every new figure a drawer.
+// Clear (vtable slots 2 and 3), the classes 0x41 and 0x42's constructors, destructors and virtual
+// slots (C19), the drawer and owner setters, and the figure manager's constructor and its
+// CreateObject (slot 23), which gives every new figure a drawer.
 // See figure_mesh.h, figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -12,9 +13,12 @@
 #include "link_figure.h"
 #include "originals_core.h"
 #include "originals_world.h"
+#include "record_arrays.h"   // InitFigurePart
 
 #include <cstring>
 #include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -82,8 +86,8 @@ EI_REPLACE_METHOD(0x0059F210, CFigureMesh::CreateMesh);
 // 005A6C70 / 005A6E00: the jumps of the figure classes' slot 2 to CreateMesh (through its address,
 // so its check runs).
 int __fastcall CreateMeshJump(CFigureMesh* self) { return self->CreateMesh(); }
-EI_REPLACE(0x005A6C70, CreateMeshJump);
-EI_REPLACE(0x005A6E00, CreateMeshJump);
+EI_REWRITTEN(0x005A6C70, CreateMeshJump);
+EI_REWRITTEN(0x005A6E00, CreateMeshJump);
 
 // --- Clearing -----------------------------------------------------------------------------------
 
@@ -115,14 +119,14 @@ void CFigureMesh::ClearMesh() {
     texCoords_.SetSize(0);
     Clear();
 }
-EI_REPLACE_METHOD(0x005A6C80, CFigureMesh::ClearMesh);
+EI_REWRITTEN(0x005A6C80, CFigureMesh::ClearMesh);
 
 void CFigureMesh::ClearSharedMesh() {
     vertices_.SetSize(0);
     normals_.SetSize(0);
     Clear();
 }
-EI_REPLACE_METHOD(0x005A6E10, CFigureMesh::ClearSharedMesh);
+EI_REWRITTEN(0x005A6E10, CFigureMesh::ClearSharedMesh);
 
 // --- Destruction --------------------------------------------------------------------------------
 
@@ -145,50 +149,87 @@ EI_REPLACE_METHOD(0x0059F030, CFigureMesh::DestructBase);
 
 CFigureMesh::~CFigureMesh() { TearDownFigure(); }
 
-void CFigureMesh::DestructMesh() {
-    ei::SetVtable(this, kMeshVtableAddress);
-    DestructPlainMesh();
-}
-EI_REWRITTEN(0x005AAD00, CFigureMesh::DestructMesh);
+// --- The classes 0x41 and 0x42 ---------------------------------------------------------------
 
-void CFigureMesh::DestructPlainMesh() {
+CSharedFigureMesh::CSharedFigureMesh() {
+    vertices_.Construct();
+    normals_.Construct();
+}
+
+CSharedFigureMesh::~CSharedFigureMesh() {
+    normals_.FreeData();
+    vertices_.FreeData();
+}
+
+void CSharedFigureMesh::Destruct() { this->CSharedFigureMesh::~CSharedFigureMesh(); }
+EI_REWRITTEN(0x005AADC0, CSharedFigureMesh::Destruct);
+
+CSharedFigureMesh* CSharedFigureMesh::DeletingDestruct(unsigned flags) {
+    this->CSharedFigureMesh::~CSharedFigureMesh();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REWRITTEN(0x005AADA0, CSharedFigureMesh::DeletingDestruct);
+
+CPlainFigureMesh::CPlainFigureMesh() {
+    vertices_.Construct();
+    normals_.Construct();
+    corners_.Construct();
+    words_.Construct();
+    indices_.Construct();
+    texCoords_.Construct();
+}
+
+CPlainFigureMesh::~CPlainFigureMesh() {
     texCoords_.FreeData();
     indices_.FreeData();
     words_.FreeData();
     corners_.FreeData();
     normals_.FreeData();
     vertices_.FreeData();
-    FigureDestructBodyOriginal(this);
 }
-EI_REWRITTEN(0x005AADC0, CFigureMesh::DestructSharedMesh);
-EI_REWRITTEN(0x00454510, CFigureMesh::DestructPlainMesh);
 
-CFigureMesh* CFigureMesh::DeletingDestructPlainMesh(unsigned flags) {
-    DestructPlainMesh();
+void CPlainFigureMesh::Destruct() { this->CPlainFigureMesh::~CPlainFigureMesh(); }
+EI_REWRITTEN(0x00454510, CPlainFigureMesh::Destruct);
+
+CPlainFigureMesh* CPlainFigureMesh::DeletingDestruct(unsigned flags) {
+    this->CPlainFigureMesh::~CPlainFigureMesh();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004543A0, CFigureMesh::DeletingDestructPlainMesh);
+EI_REWRITTEN(0x004543A0, CPlainFigureMesh::DeletingDestruct);
 
-void CFigureMesh::DestructSharedMesh() {
-    normals_.FreeData();
-    vertices_.FreeData();
-    FigureDestructBodyOriginal(this);
-}
+// 00453240 (the scene's figure records, record_arrays.h) inlines ConstructBase, then writes zeros
+// over the mesh's six arrays (+0x1C0..+0x21C) and stores the class 0x42 vtable: CPlainFigureMesh's
+// constructor.
+void recordarrays::InitFigurePart(CFigureMesh* p) { new (p) CPlainFigureMesh(); }
 
-CFigureMesh* CFigureMesh::DeletingDestructMesh(unsigned flags) {
-    DestructMesh();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REPLACE_METHOD(0x005AACE0, CFigureMesh::DeletingDestructMesh);
+// --- The virtual slots (the registered bodies) ---------------------------------------------------
 
-CFigureMesh* CFigureMesh::DeletingDestructSharedMesh(unsigned flags) {
-    DestructSharedMesh();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
+int CFigureMesh::Create() { return CreateMesh(); }
+void CFigureMesh::Destroy() { Clear(); }
+const char* CFigureMesh::GetName() { return name_; }
+const char* CFigureMesh::GetClassName() { return "CFigure"; }
+int CFigureMesh::GetClassId() { return 0x44; }
+void CFigureMesh::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
+    SetPose(parentRotation, parentPosition);
 }
-EI_REPLACE_METHOD(0x005AADA0, CFigureMesh::DeletingDestructSharedMesh);
+void CFigureMesh::SaveTransform(void* file) { SaveToFile(static_cast<mfc::CFileVirtuals*>(file)); }
+void CFigureMesh::CopyFigure(const CFigureMesh* other) { CopyFigureImpl(other); }
+void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadNothing(cursor, s, t, u); }
+
+void CSharedFigureMesh::Destroy() { ClearSharedMesh(); }
+void CSharedFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadFromMemoryImpl(cursor, s, t, u); }
+void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) { LoadFigShared(cursor, s, t, u); }
+void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) { LoadOldShared(cursor, s, t, u); }
+
+void CPlainFigureMesh::Destroy() { ClearMesh(); }
+void CPlainFigureMesh::LoadTransform(void* file) { LoadFromFile(static_cast<mfc::CFileVirtuals*>(file)); }
+void CPlainFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadFromMemoryImpl(cursor, s, t, u); }
+void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) { LoadFigImpl(cursor, s, t, u); }
+void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) { LoadOldImpl(cursor, s, t, u); }
+void CPlainFigureMesh::MirrorX() { MirrorXImpl(); }
+void CPlainFigureMesh::MirrorY() { MirrorYImpl(); }
 
 // --- Drawer and owner ---------------------------------------------------------------------------
 

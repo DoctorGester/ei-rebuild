@@ -187,8 +187,10 @@ the old cell (counted copy), stores the position, push_backs a counted copy into
 
 `figure_mesh.h/.cpp`. The 0x005A0000-0x005B0000 range holds the game-side figure part mesh (classes 0x41-0x44 of the factory
 005AA8E0) and the figure loader (005AC010), not AI code.
-- `CFigureMesh` (class 0x42, 0x220 bytes, vtable 0073C1C4; 0x43 (0073FC48) and 0x44 derive and share the loaders; class 0x41,
-  0x1E0 bytes, vtable 0073FBF0, same layout up to +0x1E0 with its own loaders): a CTransformObject, +0x08 flags (0x20
+- `CFigureMesh` (the base "CFigure", the layout of class 0x42: 0x220 bytes). Class 0x42 is `CPlainFigureMesh`; 0x43
+  (`CUiMesh`, "CI3DFigure") and 0x44 (`CSkyObject`) derive from it and share its loaders; class 0x41 (`CSharedFigureMesh`,
+  0x1E0 bytes, the same layout up to +0x1E0) has its own loaders. Real virtual classes since C19 batch 6 (standalone.md,
+  "Compiler-made vtables"). A CTransformObject, +0x08 flags (0x20
   loaded), +0x9C MeshBuffers (pointer / count pairs the renderer draws from), +0x128 vertex offsets, +0x138 / +0x148 colour
   arrays (one per normal), +0x158 / +0x15C header words, +0x160 centre, +0x16C / +0x178 box, +0x184 radius, +0x188
   ClipBounds, +0x1C0 vertex packets, +0x1D0 normal packets, +0x1E0 corners, +0x200 corner indices (3 per triangle), +0x210

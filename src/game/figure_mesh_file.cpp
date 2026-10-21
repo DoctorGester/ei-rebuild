@@ -98,7 +98,7 @@ float One() { return 1.0f /*0073B84C*/; }
 
 } // namespace
 
-void CFigureMesh::CopyFigure(const CFigureMesh* other) {
+void CFigureMesh::CopyFigureImpl(const CFigureMesh* other) {
     BuffersChanged();
     CTransformObject::CopyTransformImpl(*other);   // 00401490: the transform base's copy
     name_ = other->name_;
@@ -123,7 +123,7 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
 
 void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
     // Slot 14 stores the quaternion as the world rotation (+0x44).
-    FigureSlots(this)->CombineRotation(rotation);
+    CombineRotation(rotation);
     // The position (+0x1C) rotated by the quaternion (w, v):
     //   2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
     Vector3 v{rotation.x, rotation.y, rotation.z};
@@ -189,7 +189,7 @@ void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
     std::memcpy(&m[14], &moved[2], sizeof(float));
 }
 
-EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigure);
+EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigureImpl);
 EI_REPLACE_METHOD(0x0059F510, CFigureMesh::SetPose);
 EI_REPLACE_METHOD(0x0059F710, CFigureMesh::SaveToFile);
-EI_REPLACE_METHOD(0x0059F8F0, CFigureMesh::LoadFromFile);
+EI_REWRITTEN(0x0059F8F0, CFigureMesh::LoadFromFile);

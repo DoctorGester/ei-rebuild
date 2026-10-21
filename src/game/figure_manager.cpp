@@ -82,7 +82,7 @@ CEngineObject* CFigureManager::NewFigure(const char* name) {
         return nullptr;
     }
     char* cursor = static_cast<char*>(data);
-    FigureSlots(figure)->LoadFromMemory(&cursor, 0.0f, 0.0f, 0.0f);
+    figure->LoadFromMemory(&cursor, 0.0f, 0.0f, 0.0f);
     figure->bounds_.flags = 0;
     CloseFile(data);
     return object;
@@ -92,19 +92,19 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
     void* data;
     if (model) {
         CMappedResource* mesh = model->mesh;
-        data = mesh->GetFile(FigureSlots(part)->GetName(), nullptr);
+        data = mesh->GetFile(part->GetName(), nullptr);
     } else {
         const char* directory = part->directory_;
         mfc::CString path;
-        path.Format(game::FigPathFormat(), directory, FigureSlots(part)->GetName());
+        path.Format(game::FigPathFormat(), directory, part->GetName());
         data = GetFile(path, nullptr);
     }
     if (!data) {
         const char* directory = part->directory_;
-        return game::FatalError(game::CantOpenFigText(), directory, FigureSlots(part)->GetName());
+        return game::FatalError(game::CantOpenFigText(), directory, part->GetName());
     }
     char* cursor = static_cast<char*>(data);
-    FigureSlots(part)->LoadFromMemory(&cursor, s, t, u);
+    part->LoadFromMemory(&cursor, s, t, u);
     return 1;
 }
 
@@ -123,17 +123,17 @@ int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator
     return 1;
 }
 
-void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
+void CFigureMesh::LoadFromMemoryImpl(char** cursor, float s, float t, float u) {
     if (flags_ & kLoaded) return;
     std::uint32_t magic;
     std::memcpy(&magic, *cursor, 4);
-    if ((magic & 0xFFFFFF) == kFigMagic) FigureSlots(this)->LoadFig(cursor, s, t, u);
-    else FigureSlots(this)->LoadOld(cursor, s, t, u);
+    if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor, s, t, u);
+    else LoadOld(cursor, s, t, u);
     flags_ |= kLoaded;
 }
 
-EI_REPLACE_METHOD(0x005A2490, CFigureMesh::LoadFromMemory);
-EI_REPLACE_METHOD(0x005A4CF0, CFigureMesh::LoadFromMemory);   // byte-identical (class 0x41's slot 19)
+EI_REWRITTEN(0x005A2490, CFigureMesh::LoadFromMemoryImpl);
+EI_REWRITTEN(0x005A4CF0, CFigureMesh::LoadFromMemoryImpl);   // byte-identical (class 0x41's slot 19)
 EI_REWRITTEN(0x005AC1A0, CFigureManager::NewFigure);
 EI_REWRITTEN(0x005AC2B0, CFigureManager::NewPart);
 EI_REWRITTEN(0x005A9EB0, FigureModel::Open);

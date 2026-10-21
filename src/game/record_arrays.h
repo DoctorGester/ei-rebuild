@@ -32,8 +32,8 @@ using mfc::impl::EachElements;
 // ---- Scene records -------------------------------------------------------------------------------
 
 // The figure's 0x220-byte parts (ConstructElements 00453240): a class 0x42 figure mesh as the figure
-// factory builds one (figure_factory.cpp): CFigureMesh::ConstructBase, the mesh's arrays empty, its
-// vtable (0073C1C4). Destroyed through slot 0 (00453210).
+// factory builds one (figure_factory.cpp): CPlainFigureMesh's constructor (InitFigurePart,
+// figure_mesh_life.cpp). Destroyed through slot 0 (00453210).
 void InitFigurePart(CFigureMesh* p);
 using FigureParts = ArrayAbi<CFigureMesh, EachElements<CFigureMesh, InitFigurePart, DeleteThroughFirst<CFigureMesh>>>;
 

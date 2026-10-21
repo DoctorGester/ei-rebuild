@@ -347,7 +347,7 @@ void LoadArray(lib::AlignedArray<T>& array, char** cursor, int count) {
 
 } // namespace
 
-void CFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
+void CFigureMesh::LoadFigImpl(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     FigHeader header;
     std::memcpy(&header, *cursor, sizeof(header));
@@ -391,7 +391,7 @@ void CFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.words = words_.data;
     flags_ |= 0x20;
 }
-EI_REPLACE_METHOD(0x005A2500, CFigureMesh::LoadFig);
+EI_REWRITTEN(0x005A2500, CFigureMesh::LoadFigImpl);
 
 void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
@@ -437,7 +437,7 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
-EI_REPLACE_METHOD(0x005A5C70, CFigureMesh::LoadFigShared);
+EI_REWRITTEN(0x005A5C70, CFigureMesh::LoadFigShared);
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
@@ -494,7 +494,7 @@ void SkipRecords34(char** cursor) {
 
 } // namespace
 
-void CFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
+void CFigureMesh::LoadOldImpl(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     LoadOldCommon(this, cursor, s, t, u, false);
     LoadArray(texCoords_, cursor, ReadCount(cursor));
@@ -520,7 +520,7 @@ void CFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     buffers_.indices = indices_.data;
     flags_ |= 0x20;
 }
-EI_REPLACE_METHOD(0x005A3800, CFigureMesh::LoadOld);
+EI_REWRITTEN(0x005A3800, CFigureMesh::LoadOldImpl);
 
 void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
     // Unlike the other three loaders, this one does not test the loaded flag.
@@ -549,7 +549,7 @@ void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
     colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
-EI_REPLACE_METHOD(0x005A4D60, CFigureMesh::LoadOldShared);
+EI_REWRITTEN(0x005A4D60, CFigureMesh::LoadOldShared);
 
 // ---- World-space box ----------------------------------------------------------------------------
 
@@ -618,26 +618,26 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
 lib::AlignedArray<VertexPacket>& OffsetVertices() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E18); }
 } // namespace
 
-void CFigureMesh::MirrorX() {
+void CFigureMesh::MirrorXImpl() {
     NegateBlock(vertices_, 0);
     NegateBlock(normals_, 0);
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REPLACE_METHOD(0x005A4B30, CFigureMesh::MirrorX);
+EI_REWRITTEN(0x005A4B30, CFigureMesh::MirrorXImpl);
 
 void CFigureMesh::FitVertexBounds() {
     if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
 }
 EI_REWRITTEN(0x005A37C0, CFigureMesh::FitVertexBounds);
 
-void CFigureMesh::MirrorY() {
+void CFigureMesh::MirrorYImpl() {
     NegateBlock(vertices_, 1);
     NegateBlock(normals_, 1);
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REPLACE_METHOD(0x005A4BF0, CFigureMesh::MirrorY);
+EI_REWRITTEN(0x005A4BF0, CFigureMesh::MirrorYImpl);
 
 EI_REPLACE_METHOD(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
 

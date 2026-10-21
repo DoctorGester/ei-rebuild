@@ -699,10 +699,6 @@ namespace {
 
 int Length(const mfc::CString& s) { return s.GetLength(); }
 
-// The figure meshes are engine objects (class 0x42; CFigureMesh keeps its vtable as a field): slot
-// 7 (GetName) gives the name.
-CEngineObject* FigureObject(CFigureMesh* figure) { return reinterpret_cast<CEngineObject*>(figure); }
-
 // The figures (00453240 builds them, 00453210 destroys them; sized by 0044FCD0).
 using FigureRecordArray = recordarrays::FigureParts::Array;
 // Per figure, a copy of its node's frame records (NodeFrame, 0x28 bytes each, sized by 00450F20 as
@@ -848,7 +844,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     linkArray.SetSize(figures->size);
     for (int f = 0; f < figures->size; ++f) {
         for (int n = 0; n < s.nodes.size; ++n) {
-            const char* name = FigureObject(&figureArray.data[f])->GetName();
+            const char* name = figureArray.data[f].GetName();
             SceneNode& nd = nodeArray.data[n];
             if (gamecrt::mbscmp(static_cast<const char*>(nd.name),
                                 name) != 0)
