@@ -254,9 +254,13 @@ namespace {
 // plain values).
 using PlainList = SectorList;
 using PlainAbi = stlp::ListAbi<CEngineObject*>;
+using FiledNode = MapObjectList::Node;
 struct PlainOps {
     static void Erase(SectorList* list, SectorListNode** out, SectorListNode* node) {
         static_cast<PlainAbi*>(static_cast<stlp::list<CEngineObject*>*>(list))->Erase(out, node);
+    }
+    static void Erase(MapObjectList* list, FiledNode** out, FiledNode* node) {
+        static_cast<stlp::ListAbi<CMapObject*>*>(list)->Erase(out, node);
     }
 };
 
@@ -296,18 +300,18 @@ constexpr int kClassPlatform5D = 0x5D;
 constexpr int kTypeHero = 0x32;
 
 // The object's grid cell list, or null outside the grid.
-SectorList* CellFor(SectorGrid& grid, CEngineObject* object) {
-    std::uint32_t x = CellOf(ObjectSlots(object)->localPosition_.x);
-    std::uint32_t y = CellOf(ObjectSlots(object)->localPosition_.y);
+SectorList* CellFor(SectorGrid& grid, CMapObject* object) {
+    std::uint32_t x = CellOf(object->localPosition_.x);
+    std::uint32_t y = CellOf(object->localPosition_.y);
     if (x >= grid.width_ || y >= grid.height_) return nullptr;
     return &grid.rows_[y][x];
 }
 
 } // namespace
 
-int CWorldClient::AddObject(CEngineObject* object) {
-    PlainList& objects = objects_;
-    for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
+int CWorldClient::AddObject(CMapObject* object) {
+    MapObjectList& objects = objects_;
+    for (FiledNode* node = objects.head->next; node != objects.head; node = node->next) {
         if (node->data->id_ == object->id_) {
             ++object->refCount_;
             object->Release();
@@ -315,7 +319,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         }
     }
     const PendingMap::Node* entry = dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_));
-    if (!entry && ObjectSlots(object)->IsSynchronised()) {
+    if (!entry && object->IsSynchronised()) {
         DynamicList& kept = dynamicObjects_;
         DynamicNode* node = kept.NewNode(kept.tail, nullptr);
         node->data = object;
@@ -330,12 +334,11 @@ int CWorldClient::AddObject(CEngineObject* object) {
     }
     int kind = object->GetClassId();
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
-        CMapObject* mapObject = ObjectSlots(object);
-        CObject3D* figure = mapObject->Object3D();
+        CObject3D* figure = object->Object3D();
         for (int i = 0; i < figure->parts.size; ++i) {
             if ((figure->PartBox(i)->flags >> 10) & 1) {
                 int id = object->id_;
-                platforms_.AddBox(id, figure->PartBox(i), &mapObject->localPosition_, &mapObject->localRotation_);
+                platforms_.AddBox(id, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
             }
         }
     }
@@ -345,7 +348,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     }
 
     ++object->refCount_;
-    SectorList::Insert(objects.End(), object);
+    MapObjectList::Insert(objects.End(), object);
 
     SectorGrid& grid = objectGrid_;
     if (SectorList* cell = CellFor(grid, object)) {
@@ -370,10 +373,10 @@ int CWorldClient::AddObject(CEngineObject* object) {
     return 1;
 }
 
-void CWorldClient::RefreshPlatforms(CEngineObject* object) {
+void CWorldClient::RefreshPlatforms(CMapObject* object) {
     const int id = object->id_;
-    PlainList& objects = objects_;
-    SectorListNode* filed = objects.head->next;
+    MapObjectList& objects = objects_;
+    FiledNode* filed = objects.head->next;
     while (filed != objects.head && filed->data->id_ != id) filed = filed->next;
     if (filed == objects.head) return;
     PlatformList& platforms = platforms_.list;
@@ -383,11 +386,10 @@ void CWorldClient::RefreshPlatforms(CEngineObject* object) {
         node = next;
     }
     if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
-    CMapObject* mapObject = ObjectSlots(object);
-    CObject3D* figure = mapObject->Object3D();
+    CObject3D* figure = object->Object3D();
     for (int i = 0; i < figure->parts.size; ++i) {
         if (!((figure->PartBox(i)->flags >> 10) & 1)) continue;
-        platforms_.AddBox(object->id_, figure->PartBox(i), &mapObject->localPosition_, &mapObject->localRotation_);
+        platforms_.AddBox(object->id_, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
     }
 }
 
@@ -450,7 +452,7 @@ void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
 }
 
 void CWorldClient::LoadUnitFaces() {
-    for (SectorListNode* node = objects_.head->next; node != objects_.head; node = node->next) {
+    for (FiledNode* node = objects_.head->next; node != objects_.head; node = node->next) {
         // The original tests the pointer after the class call (the list holds no null).
         if (CUnit* unit = UnitOrNull(node->data)) unit->ClientController()->LoadFaceTexture();
     }
@@ -468,10 +470,9 @@ int CWorldClient::SendFlag10(int value) {
 }
 
 void CWorldClient::DropShadows() {
-    PlainList& objects = objects_;
-    for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
-        // The client half (CObject3DSpecific is its slot view).
-        auto* half = reinterpret_cast<CObject3DClientSpecific*>(ObjectSlots(node->data)->Object3D()->Specific());
+    MapObjectList& objects = objects_;
+    for (FiledNode* node = objects.head->next; node != objects.head; node = node->next) {
+        CObject3DClientSpecific* half = node->data->ClientSpecific();
         // The original tests AL only (ShadowsShown's "off" leaves the setting's upper bytes).
         if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
     }
@@ -500,13 +501,13 @@ void CWorldClient::RemoveObject(int id) {
         kept.FreeNode(node);
         if (const PendingMap::Node* again = ids.Find(static_cast<std::uint32_t>(id))) ids.Erase(const_cast<PendingMap::Node*>(again));
     }
-    PlainList& objects = objects_;
-    SectorListNode* node = objects.head->next;
+    MapObjectList& objects = objects_;
+    FiledNode* node = objects.head->next;
     for (;; node = node->next) {
         if (node == objects.head) return;
         if (node->data->id_ == id) break;
     }
-    CEngineObject* object = node->data;
+    CMapObject* object = node->data;
     if (object->type_ == kTypeHero && (IsTextKey(id) & 0xFF)) {
         CEngineObject* value = object;
         HoldRef(value);
@@ -528,7 +529,7 @@ void CWorldClient::RemoveObject(int id) {
         CellOps::Remove(cell, value);
         DropRef(value);
     }
-    SectorListNode* ignored;
+    FiledNode* ignored;
     PlainOps::Erase(&objects, &ignored, node);
     object->Release();
 }
@@ -578,14 +579,14 @@ void CWorldClient::ClearMaps() {
     heroes.head->next = heroes.head;
     heroes.head->prev = heroes.head;
 
-    PlainList& objects = objects_;
-    SectorListNode* node = objects.head->next;   // begin() (0056DF90)
-    SectorListNode* end = objects.head;
+    MapObjectList& objects = objects_;
+    FiledNode* node = objects.head->next;   // begin() (0056DF90)
+    FiledNode* end = objects.head;
     ReleaseIdentified functor{};
     while (node != end) {
-        SectorListNode* next = node->next;
+        FiledNode* next = node->next;
         if (functor.Test(node->data)) {
-            SectorListNode* ignored;
+            FiledNode* ignored;
             PlainOps::Erase(&objects, &ignored, node);
         }
         node = next;
@@ -999,9 +1000,9 @@ void CWorldClient::Teardown() {
         ObjectHolderRelease(&node->data);
         stlp::deallocate(node, 12);   // 0056FB40
     });
-    PlainList& objects = objects_;
-    stlp::ListForEachRelease(objects.head->next, objects.head, 0);
-    EmptyList(objects, [](SectorListNode* node) { stlp::deallocate(node, 12); });
+    MapObjectList& objects = objects_;
+    stlp::ListForEachRelease<CMapObject>(objects.head->next, objects.head, 0);
+    EmptyList(objects, [](FiledNode* node) { stlp::deallocate(node, 12); });
     if (CPlayer* session = Session()) {
         session->Release();
         session_ = nullptr;

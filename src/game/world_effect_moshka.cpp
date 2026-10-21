@@ -6,6 +6,7 @@
 #include "world_effect.h"
 #include "world_effect_class.h"
 #include "game_data.h"
+#include "map_object.h"
 
 #include "ai_map.h"
 #include "base_manager.h"
@@ -149,7 +150,7 @@ void CEffectMoshka::Update(float now) {
     CEngineObject* followedObject = TheClientWorld()->ObjectWithId(followedId_);
     if (followedObject == nullptr) return;
     const Vector3& followed = PositionOf(followedObject);
-    auto* bird = static_cast<CObject3D*>(bird_);
+    CObject3D* bird = bird_;
     Vector3 birdAt;
     std::memcpy(&birdAt, &bird->localPosition_, sizeof(birdAt));
 
@@ -240,7 +241,7 @@ void CEffectMoshka::Update(float now) {
         }
         Vector3 to{static_cast<float>(move.x + birdAt.x), static_cast<float>(move.y + birdAt.y), static_cast<float>(move.z + birdAt.z)};
         TheClientWorld()->objectGrid_.Move(bird_, &to.x);
-        static_cast<CTransformObject*>(bird_)->RollTowards(move);
+        bird_->RollTowards(move);
     }
     bird->animation->Advance(frames);
 }
@@ -256,7 +257,7 @@ void CEffectMoshka::Follow(int objectId) {
     AIRef::Of(&bird_)->Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, as the original does.
-    auto* bird = static_cast<CObject3D*>(bird_);
+    CObject3D* bird = bird_;
     CObject3DClientSpecific* attached = bird->ClientSpecific();
     Vector3 perch;
     FindPerch(&perch, &PositionOf(followed));

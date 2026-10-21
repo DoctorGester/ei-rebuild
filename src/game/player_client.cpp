@@ -682,7 +682,7 @@ int CPlayerClient::OnNewObject() {
         object->TakePrototype(model);
     object->WriteFullState();
     if (object->ReadState(0, &in_) == 0) return 0;
-    TheClientWorld()->AddObject(created);
+    TheClientWorld()->AddObject(object);
     if (object->name2[0] != 0) {
         TextBuffer variable;
         TheClientWorld()->ObjectVariableName(variable.Get(), object->name2);
