@@ -46,22 +46,6 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
 // Matrices (model.cpp, called through their addresses): 004F1370 viewport,
 // 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (MatrixMultiplyOriginal).
 __declspec(naked) Matrix4* __stdcall AxisSwapMatrix(Matrix4*) EI_ORIGINAL(0x004F1330)
-// The game's operator new (007005AF, through its forwarder), keeping EDX as the allocator leaves it (see
-// CreateHelper).
-void* (__cdecl* const kGameOperatorNew)(std::size_t) = &gamecrt::operator_new;
-__declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::uint32_t* /*edx out*/) {
-    __asm {
-        push esi
-        mov esi, edx
-        push ecx
-        call dword ptr [kGameOperatorNew]
-        add esp, 4
-        mov dword ptr [esi], edx
-        pop esi
-        ret
-    }
-}
-
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
@@ -221,14 +205,13 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     renderer->SetSun(light);
 }
 
-// The counted helper object (+0x24). The flag argument is pushed as EDX with only DL set, the rest
-// of EDX being what operator new left there; the same value is passed.
+// The counted helper object (+0x24). The original pushes the flag as EDX with only DL set (the rest
+// of EDX is what operator new left there); the constructor reads only the low byte.
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
-    std::uint32_t edx = 0;
-    void* memory = NewKeepingEdx(sizeof(CRenderHelper), &edx);
+    void* memory = gamecrt::operator_new(sizeof(CRenderHelper));
     CRenderHelper* helper = nullptr;
     if (memory) {
-        std::uint32_t flag = (edx & 0xFFFFFF00u) | (settings->driverIndex_ != 0 ? 1u : 0u);
+        std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
         helper = static_cast<CRenderHelper*>(memory)->RenderHelperConstruct(D3DDevice(renderer), flag);
     }
     CRenderHelper* old = renderer->helper_;

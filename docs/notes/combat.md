@@ -136,8 +136,7 @@ The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; als
 the zero-extended remainder (`Unsigned`). Random-number wrappers keep their snapshots on the stack so nested wrappers
 (AttackRoll in ResolveHit, BuildAttackHit in PrepareAttack, RollDamage) each leave the generator as one original run would.
 005536B0 starts with PUSH / MOV and a relative CALL, so its wrapper (`stolenBytes` 0) calls `OriginalUpdateMoveFactors`, a
-naked stub in verify_combat.cpp. The movement tick's stale-local quirk is reproduced by reading the stack dword at entry
-ESP - 0x98 in a naked entry before the frame exists.
+naked stub in verify_combat.cpp.
 
 ### Declarations (C6 cleanup)
 
@@ -221,8 +220,10 @@ here is gone. What it covered, by file:
   only the steps; PathTo saves and restores CUnit +0x43C around FindPath; NextAnimation passes a pause step's emote as the
   misaligned dword at step + 1; LiftNearby's first loop does nothing; boredom draws ISAAC only past 500.
 - Movement tick: the "blocked" local is uninitialised when no cell was reached or the cell is outside the AI map
-  (CanStandAtFromHere returns before writing the reason), the original decides on stack garbage (ours reads the same stack
-  dword); the animation key passed to 00530240 keeps the queue count's upper 24 bits; the fall animation is assigned to the
+  (CanStandAtFromHere returns before writing the reason), the original decides on stack garbage (the dword at its entry
+  ESP - 0x98, left by earlier calls; only 1 replan and 2 wait mean anything, every other value acts as none). Ours starts
+  at 0. The standalone has no original frame to read (its callers are ours), and no golden reaches the read: an
+  instrumented suite (C12b, 2026-10-21) logged no tick that consumed the value. The animation key passed to 00530240 keeps the queue count's upper 24 bits; the fall animation is assigned to the
   queue twice. Taming, CreateManagers and the mode Clones write reference counts / the new mode's +4 before testing the
   allocations (the Clones test first in ours).
 - Lifetime: TakeSteps clears isCast twice; LoadArmourSpells' new entries carry a stack byte in `worn` (ours 0) and its

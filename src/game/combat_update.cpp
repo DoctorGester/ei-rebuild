@@ -45,7 +45,7 @@
 #include <cstdint>
 #include <cstring>
 
-void __fastcall UpdateMotion(CUnitServer*);
+void UpdateMotion(CUnitServer*);
 namespace {
 
 // The controller's state (+0x164). combat_tick.cpp names 6 "chasing" (the state an order leaves
