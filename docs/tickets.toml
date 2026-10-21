@@ -2314,7 +2314,7 @@ size = 0.5
 model = "opus"
 depends = ["C13"]
 files = ["src/game/renderer_init.cpp", "src/game/sound_manager.cpp", "src/game/unit_motion_tick.cpp"]
-note = "NewKeepingEdx (renderer_init: an allocation that must keep EDX), CallWithOne (sound_manager) and UpdateMotion (unit_motion_tick: reads the caller's frame at [esp-98h]) are naked because of the original's register / stack conventions at their call sites. They go when those callers call our code directly (C13) or the caller's frame value becomes an argument."
+note = "Done (2026-10-21): all three shims gone. CreateHelper calls gamecrt::operator_new and passes the helper flag whole (RenderHelperConstruct reads only its low byte, so EDX's upper bits were never observable). StopStream calls the ASI codec's close as __stdcall via VirtualSlot, like sound_manager_lifetime's codec calls. UpdateMotion (00547890, EI_REWRITTEN, called only by our 005499F0) is a plain function; the original's uninitialised 'blocked' local starts at 0: only 1 (replan) and 2 (wait) mean anything, every other value acts as none. The naked entry had read the standalone's own stack, not the original's, and an instrumented golden suite logged no tick consuming the value. Naked non-forwarders 12->9, __asm blocks 14->11, fastcall shims 90 unchanged. Image goldens 121 the same, original 114 the same."
 
 [[ticket]]
 id = "C13a"
@@ -2739,7 +2739,7 @@ group = "cleanup"
 size = 0.5
 model = "sonnet"
 files = ["tools/named_data.py"]
-note = "From C18i (2026-10-21): 007C2CC4 was named as a separate global but is CWorldServer::sessionKind_ inside TheServerWorld (007AFF60 + 0x12D64); UpdateWeather kept reading the old location and every image run stopped before the main menu. named_data.py should refuse a named range that falls inside a known global object (TheServerWorld at 007AFF60 sized by sizeof(CWorldServer), and the other big singletons), listing the owner and field offset instead."
+note = "Done: tools/named_data.py --check refuses a named range (definitions and unread objects) inside a global object of config/global_objects.csv (10 singletons: TheServerWorld 007AFF60+0x12E7C, TheClientWorld, TheGameFlow, TheInterface, TheCursor, TheCamera, TheSceneRenderer, TheMapDatabase, ThePartyManager, TheDeviceLock) and names owner + field via the sources' offsetof static_asserts (007C2CC4 -> TheServerWorld + 0x12D64 (CWorldServer::sessionKind_)); --owner BEGIN [END] queries any address. Sizes are checked against static_assert(sizeof) where present; CWorldServer 0x12E7C, CCamera 0x308, CSceneRenderer 0x5C have none (read off the compiler). Every GamePointer<T>(addr) accessor in game_singletons.h must lie in a listed object. Existing 335 names: 0 inside such objects. Nested world members TheMissionScript 007C27D4 (commandsA_), 007C29CC (commandsB_), TheSectorMap 007B01F4, 007B00D0 aiMap_, 007C2BC4 diplomacy_ are covered by TheServerWorld. Verify build green; no C++ changes. Optional follow-up: add static_assert(sizeof) for CWorldServer/CCamera/CSceneRenderer."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

@@ -386,11 +386,8 @@ void Exhaustion(CUnitServer* c) {
 
 } // namespace
 
-// 00547890. `stale` is what the original finds in its uninitialised "blocked" local (see
-// UpdateMotion below): it is only written by CanStandAtFromHere (inside the map) and the blocker
-// cases, so a unit that reached no cell, or a cell outside the map, decides on whatever the stack
-// held there.
-void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
+// 00547890 (called by name from CUnitServer's update 005499F0, combat_update.cpp).
+void UpdateMotion(CUnitServer* c) {
     CWorldServer* world = ServerOf(c);
     Vector3 position;
     std::memcpy(&position, &UnitOf(c)->localPosition_.x, 12);
@@ -419,7 +416,11 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     // the blocking unit means for it.
     bool canStand;
     bool liftBlocker = false;
-    int blocked = stale;
+    // The original's "blocked" local is uninitialised: only CanStandAtFromHere (a cell inside the
+    // map) and the blocker cases write it, so a unit that reached no cell, or a cell outside the
+    // map, decides on whatever the stack held there (entry ESP - 0x98, left by earlier calls). Every
+    // value but kBlockedReplan and kBlockedWait acts alike; ours is 0 (docs/notes/combat.md).
+    int blocked = 0;
     if (cellX < 0) {
         canStand = true;
     } else {
@@ -460,12 +461,4 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     Exhaustion(c);
 }
 
-// The entry: reads the dword the original's local [ESP+0x14] occupies (entry ESP - 0x98) before
-// anything overwrites it, and continues in the body with the same return address.
-__declspec(naked) void __fastcall UpdateMotion(CUnitServer* /*c*/) {
-    __asm {
-        mov edx, dword ptr [esp - 98h]
-        jmp UpdateMotionBody
-    }
-}
 EI_REWRITTEN(0x00547890, UpdateMotion);

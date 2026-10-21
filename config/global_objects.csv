@@ -1,0 +1,11 @@
+address,size,name,type
+0079B2A8,0x308,TheCamera,CCamera
+0079BF00,0x28,TheMapDatabase,CMapDatabase
+007AA5A0,0x44,ThePartyManager,PartyManager
+007AEE78,0x18,TheDeviceLock,_RTL_CRITICAL_SECTION
+007AF060,0x5C,TheSceneRenderer,CSceneRenderer
+007AF5B8,0x7E4,TheClientWorld,CWorldClient
+007AFE20,0x84,TheGameFlow,GameFlow
+007AFF60,0x12E7C,TheServerWorld,CWorldServer
+007C7BD8,0xB8,TheCursor,CCursor
+007C7D50,0xB0,TheInterface,CInterface3D
