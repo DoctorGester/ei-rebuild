@@ -99,7 +99,7 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 // The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
 CAIMap* ServerAIMap() { return WorldServer()->AIMap(); }
 CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
-float HalfCell() { return ei::GameData<const float>(0x0073EEE4) * ei::GameData<const float>(0x0073B86C); }
+float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 float HeroWalkLimit() { return ei::GameData<const float>(0x007C5448); }
 float HeroRunLimit() { return ei::GameData<const float>(0x007C5440); }
 
@@ -649,7 +649,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     float dx = point[0] - unit->position.x;
     float dy = point[1] - unit->position.y;
     float dz = point[2] - unit->position.z;
-    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > ei::GameData<const float>(0x0073CA98)) {
+    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
         CSectorMap* sectors = world->Sectors();
         sectors->FindUnitsInRadius(reinterpret_cast<const Vector3*>(point), list, 4.0f);
         void* group = &reinterpret_cast<CPlayerServer*>(player->connection_)->partyUnits_;
@@ -712,7 +712,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         float ey = half * path->targetY - goal[1];
         float ex = half * path->targetX - goal[0];
         float left = LengthSquared2DUnrounded(ex, ey);
-        bool stillFar = reached * ei::GameData<const float>(0x0073F0B8) > left;   // unordered: not far
+        bool stillFar = reached * 0.010000001f /*0073F0B8*/ > left;   // unordered: not far
         if (self->player)
             PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;

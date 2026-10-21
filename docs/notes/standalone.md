@@ -197,8 +197,8 @@ each step green on the goldens and removing a measured tie:
   literal with the bytes of game.exe (Python's float parsing; `--asserts FILE` writes static_asserts on the same literals for the
   compiler, `cl /std:c++20 /c`: all 984 held). What stays data: the cells addon.dll writes (tests/verify/addon_sites.inc: 007428AC,
   00742B08, 007432F4, 0073B720; found by reading config/rebirth_patches.csv's generated site list; vanilla's and Rebirth's .rdata
-  are the same bytes, and the section is read-only, so those are the only writers), the import table, SV10j's files (unit_ai*,
-  combat_*, unit_hits) and tables / vtables / GUIDs (S18g). **Folds**: the compiler folds a product of constants at 53 bits where the
+  are the same bytes, and the section is read-only, so those are the only writers), the import table and tables / vtables / GUIDs (S18g). SV10j's files (unit_ai*, combat_*) followed in S18e2
+  (13 reads; a limit * limit product is written `static_cast<float>(0.2f * 0.2f)` so it keeps the FMUL's 24 bits). **Folds**: the compiler folds a product of constants at 53 bits where the
   original's FMUL on the main thread rounds to 24, and a literal has no volatile load to stop it: `tools/check_fp_fold.py` flags the
   doubles that come out of it and its `-v` list of new float constants was compared with main's (all of this ticket's new entries
   reviewed). The pi * (1/180) of two doubles is `ei::kRadiansPerDegree` (src/game/angles.h, float, checked against exact

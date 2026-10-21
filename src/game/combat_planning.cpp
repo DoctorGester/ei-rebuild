@@ -83,7 +83,7 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 bool& PathFlag() { return WorldServer()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
 CAIMap* MapOf(void* world) { return static_cast<CWorldServer*>(world)->AIMap(); }
-float HalfCell() { return ei::GameData<const float>(0x0073EEE4) * ei::GameData<const float>(0x0073B86C); }
+float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
 struct LocalPath {
@@ -138,7 +138,7 @@ struct LocalUnitMotion {
         motion.curveY = {};
         motion.segment = -1;
         static_cast<UnitMotion*>(&motion)->Clear();
-        motion.speedScale = ei::GameData<const float>(0x0073EF20);
+        motion.speedScale = 0.5f /*0073EF20*/;
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
     }
@@ -192,8 +192,8 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
-            float limit = ei::GameData<const float>(0x0073EF28);
-            if (!(LengthSquared2DUnrounded(ex, ey) < limit * limit)) continue;
+            float limitSquared = static_cast<float>(0.2f /*0073EF28*/ * 0.2f /*0073EF28*/);   // rounded to 24 bits, as the FMUL
+            if (!(LengthSquared2DUnrounded(ex, ey) < limitSquared)) continue;
             if (path.Cost() >= best) continue;
             best = path.Cost();
             std::memcpy(&bestSpot, &spot, sizeof(bestSpot));
@@ -264,7 +264,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         Vector3 from = {position.x, position.y, position.z};
         from.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
         double visible = MapOf(ManagerContextOf(this))->LineOfSight(&from, &sight.point);
-        if (!(visible < ei::GameData<const float>(0x0073EEC0))) break;
+        if (!(visible < 0.1f /*0073EEC0*/)) break;
         t += 5.0f;
     }
     return t;
