@@ -47,7 +47,7 @@ void* Weather() { return ei::GamePointer<void>(0x007AFCAC); }   // "RainSnow"
 // The zone whose camera placement keeps a fixed view ("gz20g").
 const char* FixedViewZone() { return "gz20g"; }
 // 007C8388: an identity rotation (set by the static initialiser 00666CC0).
-const Quaternion& FixedViewRotation() { return ei::GameData<const Quaternion>(0x007C8388); }
+constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
 
 CUnit* FindClientUnit(int id) { return WorldFindUnit(TheClientWorld(), nullptr, id); }
@@ -85,7 +85,7 @@ int CPlayerClient::OnCameraPlacement() {
                         FixedViewZone()) == 0) {
         CameraView view;
         view.distance = kSpecialZoneDistance;
-        view.rotation = FixedViewRotation();
+        view.rotation = kFixedViewRotation;
         view.pitch = static_cast<float>(ei::kRadiansPerDegree * 30.0 /*0073DF70*/);
         camera->SetDistancePitch(&view);
     } else {

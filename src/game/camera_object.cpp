@@ -65,7 +65,7 @@ CCamera* CCamera::Construct() {
     shakes_.Construct();
     for (CameraView& view : views_) {
         view.distance = 30.0f;
-        std::memcpy(&view.rotation, &camera::IdentityRotation(), sizeof(Quaternion));
+        std::memcpy(&view.rotation, &camera::kIdentityRotation, sizeof(Quaternion));
         view.pitch = DefaultPitch();
     }
     viewStack_.Construct(0);
@@ -75,8 +75,8 @@ CCamera* CCamera::Construct() {
     keyCapacity_ = 0;
     keyCount_ = 0;
     ei::SetVtable(this, kVtableAddress);
-    std::memcpy(&offset98_, &camera::ZeroVector(), sizeof(Vector3));
-    std::memcpy(&offsetA4_, &camera::ZeroVector(), sizeof(Vector3));
+    std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
+    std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
     panResponse_ = 2.0f / 15.0f;
     turnResponse_ = 1.0f / 3.0f;
     tiltResponse_ = 1.0f / 3.0f;
@@ -91,7 +91,7 @@ CCamera* CCamera::Construct() {
     zoomTarget_ = 0;
     focusHeight_ = 2.0f;
     focus_.z = 2.0f;
-    std::memcpy(&viewRotation_, &camera::IdentityRotation(), sizeof(Quaternion));
+    std::memcpy(&viewRotation_, &camera::kIdentityRotation, sizeof(Quaternion));
     targetId_ = -1;
     nearDistance_ = 1.0f;
     farDistance_ = 2000.0f;
@@ -281,8 +281,8 @@ void CCamera::LoadState(CStream* stream) {
     }
     targetId_ = target;
     if (target != -1) {
-        std::memcpy(&offsetA4_, &camera::ZeroVector(), sizeof(Vector3));
-        std::memcpy(&offset98_, &camera::ZeroVector(), sizeof(Vector3));
+        std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
+        std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     }
 }
 EI_REPLACE_METHOD(0x00410AB0, CCamera::LoadState);

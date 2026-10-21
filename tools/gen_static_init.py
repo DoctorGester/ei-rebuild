@@ -20,7 +20,7 @@ tools/check_static_init.py (build.cmd) re-decodes game.exe and compares.
 
 usage: python tools/gen_static_init.py [--exe game.exe]
 """
-import argparse, collections, os, re, struct, sys
+import argparse, bisect, collections, os, re, struct, sys
 
 import capstone
 
@@ -147,6 +147,7 @@ class Interpreter:
 
     def decode(self, address):
         self.lines, self.kinds, self.targets, self.inlined = [], [], [], []
+        self.spans = set()   # (address, size) of every instruction interpreted (inlined helpers included)
         self.regs = {}
         self.stack = []      # ('frame',) markers and argument expressions
         self.fpu = []
@@ -179,6 +180,7 @@ class Interpreter:
             x = next(self.md.disasm(self.img.read(at, 16), at), None)
             if x is None:
                 raise Unknown(f'{at:08X}: cannot disassemble')
+            self.spans.add((x.address, x.size))
             yield x
             at = x.address + x.size
 
@@ -491,7 +493,7 @@ def registered_addresses():
 
 
 def decode_all(img):
-    """[(address, kind, statements, targets, inlined)] in list order."""
+    """[(address, kind, statements, targets, inlined, instruction spans)] in list order."""
     registered = registered_addresses()
     refs = references(img)
     interp = Interpreter(img, registered, refs)
@@ -504,8 +506,233 @@ def decode_all(img):
             bad.append(f'{a:08X} (slot {slot:08X}): {e}')
             continue
         out.append((a, kind_of(interp.kinds, a in registered), list(interp.lines), list(interp.targets),
-                    list(interp.inlined)))
+                    list(interp.inlined), sorted(interp.spans)))
     return out, bad
+
+
+# ---- game.exe's data our code holds or nothing reads (C18j; docs/notes/standalone.md "Named data (C18)") -----------
+#
+# A store, float fold or fill into a range of config/named_data.csv (a named global of ours, tools/named_data.py) is
+# left out: the definition's initialiser takes its place (named_data.py compares it with what game.exe's bytes and
+# these stores leave, stored_values). A store into an object nothing reads (unread_objects, config/unread_data.csv) is
+# left out too. A call, an atexit or an exit function that names such an object is not left out: named_data.py's
+# check refuses its address literal, so the initialiser (or exit function) is ported by hand on the name and runs
+# in list order through its registration.
+
+NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
+UNREAD_DATA = os.path.join(ROOT, 'config', 'unread_data.csv')
+UNREAD_HEADER = 'address,size,initialiser,dwords'
+STORE_LINE = re.compile(r'^\s*d\.(Store|StoreFloat)\((0x[0-9A-F]{8}), (.*)\);$')
+FILL_LINE = re.compile(r'^\s*d\.Fill\((0x[0-9A-F]{8}), (\w+), (\w+)\);$')
+CALL = re.compile(r'^d\.(?:Cdecl|Stdcall|Thiscall|Import)\(')
+READ = re.compile(r'd\.(?:Dword|Float|Double|NonZero)\((0x[0-9A-F]{8})\)')
+DATA_SECTIONS = (0x00783000, 0x007CD000)   # .data and its zero-filled tail
+UNREAD_KINDS = ('stores', 'float fold', 'copy')   # initialisers of plain constant objects
+UNREAD_NEAR = 0x100   # an object referenced right below may be the enclosing one
+
+
+def written_cells(line):
+    """The dword addresses a store, float fold or fill statement writes (None for another statement)."""
+    m = STORE_LINE.match(line)
+    if m:
+        return [int(m.group(2), 16)]
+    m = FILL_LINE.match(line)
+    if m:
+        base = int(m.group(1), 16)
+        return [base + 4 * i for i in range(int(m.group(3), 0))]
+    return None
+
+
+def named_ranges():
+    """[(begin, end, name)] of config/named_data.csv."""
+    if not os.path.exists(NAMED_DATA):
+        return []
+    rows = open(NAMED_DATA, encoding='utf-8').read().splitlines()[1:]
+    return [(int(r.split(',')[0], 16), int(r.split(',')[0], 16) + int(r.split(',')[1]), r.split(',')[2]) for r in rows if r]
+
+
+def stored_values(img, decoded):
+    """{address: dword or None} of what the initialisers' stores, float folds and fills leave in game.exe's data, in
+    list order (calls are not run: a call's stored result, a fold of ln or of an unknown value is None). A float fold
+    is computed as the original does: x87 order at 53 bits (check_static_init), rounded to a float."""
+    values = {}
+
+    def dword(a):
+        return values[a] if a in values else img.dword(a)
+
+    def operand(text):
+        text = text.strip()
+        if text.startswith('(') and text.endswith(')') and text.count('(') == 1:   # a negative literal: (-0.3f /*addr*/)
+            text = text[1:-1]
+        m = rdata.TAG.fullmatch(text.strip())
+        if m:
+            single = m.group(3) or m.group(1).rstrip(')').endswith(('f', 'F'))
+            return struct.unpack('<f' if single else '<d', img.read(int(m.group(2), 16), 4 if single else 8))[0]
+        m = re.fullmatch(r'd\.Float\((0x[0-9A-F]{8})\)', text.strip())
+        if m:
+            v = dword(int(m.group(1), 16))
+            return None if v is None else struct.unpack('<f', struct.pack('<I', v))[0]
+        return None
+
+    for _, _, lines, _, _, _ in decoded:
+        for line in lines:
+            m = STORE_LINE.match(line)
+            if m and m.group(1) == 'Store':
+                v = m.group(3)
+                at = re.fullmatch(r'd\.(At|Dword)\((0x[0-9A-F]{8})\)', v)
+                if at:
+                    values[int(m.group(2), 16)] = int(at.group(2), 16) if at.group(1) == 'At' else dword(int(at.group(2), 16))
+                elif CALL.match(v):
+                    values[int(m.group(2), 16)] = None
+                else:
+                    values[int(m.group(2), 16)] = int(v, 0) & 0xFFFFFFFF
+            elif m:
+                parts = re.split(r' ([-+*/]) ', m.group(3))
+                result = operand(parts[0])
+                for op, text in zip(parts[1::2], parts[2::2]):
+                    v = operand(text)
+                    result = None if result is None or v is None else {'+': result + v, '-': result - v,
+                                                                        '*': result * v, '/': result / v}[op]
+                values[int(m.group(2), 16)] = None if result is None else struct.unpack('<I', struct.pack('<f', result))[0]
+            elif FILL_LINE.match(line):
+                f = FILL_LINE.match(line)
+                for a in written_cells(line):
+                    values[a] = int(f.group(2), 0) & 0xFFFFFFFF
+    return values
+
+
+def hand_literals():
+    """The game data addresses src/ and tests/ name (comments blanked), but in the files this tool writes."""
+    import named_data
+    found = set()
+    for rel, full in named_data.other_files():
+        if os.path.normpath(os.path.join(ROOT, rel)) in (OUT, OUT_EXIT) or rel.endswith(('image_cells.inc', 'image_code_cells.inc')):
+            continue
+        with open(full, encoding='utf-8', errors='replace') as f:
+            code = named_data.srcscan.blank_comments(f.read())
+        found.update(int(m.group(1), 16) for m in named_data.LITERAL.finditer(code))
+    return found
+
+
+def unread_objects(img, decoded, exits):
+    """[(begin, size, initialiser)] of the objects nothing but their initialiser reaches: each the contiguous stores
+    of one initialiser that stores constants only (UNREAD_KINDS), into .data, whose bytes
+      - no instruction of game.exe's code reaches but the initialisers' and their exit functions' own (an absolute
+        operand inside the range; the same object read elsewhere in the original is not unread),
+      - no address literal of src/ or tests/ names, no initialiser call or exit function takes, no initialiser reads,
+      - no named range (config/named_data.csv) holds,
+    and right below which (UNREAD_NEAR) no address referenced elsewhere starts an object the stores may lie inside.
+    These are the per-file copies of header constants (zero vectors, identity rotations, 1 / 1, pi's folds) that
+    the original's code never reads: nothing of ours needs them."""
+    sizes = load_sizes()
+    own = []
+    for a, kind, _, _, _, spans in decoded:
+        own += [(x, x + n) for x, n in spans] or [(a, a + sizes.get(a, 1))]
+    own += [(fn, fn + size) for fn, _, _, size, _ in exits]
+    own.sort()
+    starts = [b for b, _ in own]
+
+    def owned(at):
+        i = bisect.bisect_right(starts, at) - 1
+        return i >= 0 and own[i][0] <= at < own[i][1]
+
+    _, va, vsz, rp, _ = next(s for s in img.sections if s[0] == '.text')
+    text = img.data[rp:rp + vsz]
+    referenced, foreign = set(), set()
+    for k in range(4):
+        n = (len(text) - k) // 4
+        for i, (v,) in enumerate(struct.iter_unpack('<I', text[k:k + 4 * n])):
+            if DATA_SECTIONS[0] <= v < DATA_SECTIONS[1]:
+                referenced.add(v)
+                if not owned(va + k + 4 * i):
+                    foreign.add(v)
+    touched = hand_literals()
+    stored, groups = set(), []
+    for a, kind, lines, _, _, _ in decoded:
+        cells = []
+        for line in lines:
+            touched.update(int(x, 16) for x in READ.findall(line))
+            if re.search(r'd\.(?:Cdecl|Stdcall|Thiscall|Import|AtExit)\(', line):
+                touched.update(int(x, 16) for x in re.findall(r'0x([0-9A-F]{8})', line))
+            written = written_cells(line)
+            if written:
+                m = STORE_LINE.match(line)
+                cells += [(c, bool(m and CALL.match(m.group(3)))) for c in written]
+        stored.update(c for c, _ in cells)
+        run = []
+        for c, call in sorted(cells) + [(None, False)]:
+            if run and c == run[-1][0] + 4:
+                run.append((c, call))
+                continue
+            if run:
+                groups.append((a, kind, run))
+            run = [(c, call)]
+    for _, _, body, _, _ in exits:
+        touched.update(int(x, 16) for x in re.findall(r'0x([0-9A-F]{8})', body))
+    named = named_ranges()
+    points = sorted(referenced | stored)
+    out = []
+    for a, kind, run in groups:
+        lo, hi = run[0][0], run[-1][0] + 4
+        if (kind not in UNREAD_KINDS or any(call for _, call in run) or not DATA_SECTIONS[0] <= lo < hi <= DATA_SECTIONS[1]
+                or any(lo <= v < hi for v in foreign) or any(lo <= v < hi for v in touched)
+                or any(b < hi and lo < e for b, e, _ in named)):
+            continue
+        i = bisect.bisect_left(points, lo) - 1
+        below = points[i] if i >= 0 else 0
+        if below in foreign and below not in stored and lo - below < UNREAD_NEAR:
+            continue
+        out.append((lo, hi - lo, a))
+    return out
+
+
+def unread_csv(img, decoded, unread):
+    values = stored_values(img, decoded)
+    rows = [UNREAD_HEADER]
+    for lo, size, a in sorted(unread):
+        rows.append(f'{lo:08X},{size},{a:08X},' + ' '.join(f'{values[c]:08X}' for c in range(lo, lo + size, 4)))
+    return '\n'.join(rows) + '\n'
+
+
+LEFT_OUT = {}   # initialiser -> number of statements left out (render's note)
+
+
+def leave_out(decoded, ranges):
+    """The initialisers without the stores, float folds and fills into `ranges` ([(begin, end)]); problems for a
+    statement that writes across a range's end or stores a call's result there (port the initialiser by hand)."""
+    LEFT_OUT.clear()
+    out, problems = [], []
+    for a, kind, lines, targets, inlined, spans in decoded:
+        kept = []
+        for line in lines:
+            written = written_cells(line)
+            inside = [c for c in written or () if any(b <= c < e for b, e in ranges)]
+            if not inside:
+                kept.append(line)
+                continue
+            m = STORE_LINE.match(line)
+            if len(inside) != len(written):
+                problems.append(f'{a:08X}: {line.strip()} writes across the end of a named or unread range')
+            elif m and CALL.match(m.group(3)):
+                problems.append(f'{a:08X}: {line.strip()} stores a call\'s result into a named range: port the '
+                                'initialiser by hand on the name (EI_REPLACE at its address)')
+            LEFT_OUT[a] = LEFT_OUT.get(a, 0) + 1
+        out.append((a, kind, kept, targets, inlined, spans))
+    return out, problems
+
+
+def generate(img):
+    """(initialisers with their named and unread stores left out, exit functions, unread objects, problems)."""
+    decoded, bad = decode_all(img)
+    if bad:
+        return None, None, None, [f'not decoded (port by hand or teach the interpreter): {b}' for b in bad]
+    exits, bad = decode_exits(img, decoded)
+    if bad:
+        return None, None, None, [f'not decoded (port by hand or add a pattern): {b}' for b in bad]
+    unread = unread_objects(img, decoded, exits)
+    ranges = [(b, e) for b, e, _ in named_ranges()] + [(lo, lo + n) for lo, n, _ in unread]
+    kept, problems = leave_out(decoded, ranges)
+    return kept, exits, unread_csv(img, decoded, unread), problems
 
 
 # The exit functions the initialisers register with atexit, each a whole-function pattern of
@@ -617,7 +844,7 @@ def decode_exits(img, decoded):
     registered = registered_addresses()
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
     by = collections.OrderedDict()
-    for a, _, _, targets, _ in decoded:
+    for a, _, _, targets, _, _ in decoded:
         for kind, fn in targets:
             if kind == 'exit' and fn not in registered and a not in by.setdefault(fn, []):
                 by[fn].append(a)
@@ -680,10 +907,12 @@ def write_sizes(exits):
 
 
 def render(decoded):
-    kinds = collections.Counter(k for _, k, _, _, _ in decoded)
+    kinds = collections.Counter(k for _, k, _, _, _, _ in decoded)
     body = []
-    for a, kind, lines, _, inlined in decoded:
+    for a, kind, lines, _, inlined, _ in decoded:
         note = f'{a:08X}: {kind}' + (f' (inlined {", ".join(f"{t:08X}" for t in inlined)})' if inlined else '')
+        if LEFT_OUT.get(a):
+            note += f'; {LEFT_OUT[a]} left out'
         body.append(f'    // {note}')
         body.append(f'    d.Begin({hexa(a)});')
         body.extend('    ' + line for line in lines)
@@ -696,21 +925,20 @@ def main():
     ap.add_argument('--exe')   # default: tools/exe_path.py
     args = ap.parse_args()
     args.exe = exe_path.resolve(args.exe)
-    decoded, bad = decode_all(Image(args.exe))
-    if bad:
-        print('not decoded (port by hand or teach the interpreter):\n  ' + '\n  '.join(bad))
-        return 1
-    exits, bad = decode_exits(Image(args.exe), decoded)
-    if bad:
-        print('not decoded (port by hand or add a pattern):\n  ' + '\n  '.join(bad))
+    decoded, exits, unread, problems = generate(Image(args.exe))
+    if problems:
+        print('\n'.join(problems))
         return 1
     with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
         f.write(render(decoded))
     with open(OUT_EXIT, 'w', encoding='utf-8', newline='\n') as f:
         f.write(render_exits(exits))
+    with open(UNREAD_DATA, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(unread)
     write_sizes(exits)
-    print(f'{len(decoded)} static initialiser(s) written to {os.path.relpath(OUT, ROOT)}, {len(exits)} exit function(s) '
-          f'to {os.path.relpath(OUT_EXIT, ROOT)}')
+    print(f'{len(decoded)} static initialiser(s) written to {os.path.relpath(OUT, ROOT)} ({sum(LEFT_OUT.values())} '
+          f'statement(s) left out), {len(exits)} exit function(s) to {os.path.relpath(OUT_EXIT, ROOT)}, '
+          f'{len(unread.splitlines()) - 1} unread object(s) to {os.path.relpath(UNREAD_DATA, ROOT)}')
     return 0
 
 
@@ -719,6 +947,9 @@ HEADER = '''\
 //
 // game.exe's @COUNT@ static initialisers (the C++ initialiser list in .data, 00783004-00783BB0), in list
 // order (docs/notes/standalone.md, S3): @SUMMARY@.
+// Stores, float folds and fills into game.exe's data that a named global of ours holds (config/named_data.csv: its
+// definition's initialiser takes their place) or that nothing reads (config/unread_data.csv) are left out ("n left
+// out"; docs/notes/standalone.md, "Named data (C18)").
 // The standalone image runs them before WinMain (Run in static_init.h); the verify build compares the
 // stores and float folds with what the original's initialisers left in memory (Check). Calls go to the
 // callee's address in the image: our rewrite through its jump, or a library port.

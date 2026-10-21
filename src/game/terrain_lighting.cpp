@@ -27,7 +27,7 @@ constexpr int kVertices = 33 * 33;     // per layer
 constexpr int kRow = 33;
 
 // 1 / the water depth scale (007C8908, set by a static initialiser from 0074417C).
-float WaterFalloff() { return ei::GameData<const float>(0x007C8908); }
+constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initialiser: 1 / 15
 
 // The light's shading of a colour (r, g, b, a) for a vertex normal is CLight::AddDirectional (0068D310,
 // the sun: its direction +0xD4) or AddPoint (0068D5A0, a point light at `distance` along the unit
@@ -60,7 +60,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
     const SectorVertex& water = record[kVertices];
     if (hasWater && layer == 0 && water.waterMaterial != 0xFFFF && SignClear(record->depth)) {
         float absorption = terrain->materials[water.waterMaterial].absorption;
-        float loss = static_cast<float>(Product(WaterFalloff(), absorption, record->depth, record->depth));
+        float loss = static_cast<float>(Product(kWaterFalloff, absorption, record->depth, record->depth));
         float dim = AtLeastZero(static_cast<float>(1.0f - loss));
         ambient.x = static_cast<float>(dim * ambient.x);
         ambient.y = static_cast<float>(dim * ambient.y);
@@ -105,7 +105,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
         const SectorVertex& water = record[kVertices];
         if (layer == 0 && hasWater && water.waterMaterial != 0xFFFF && SignClear(record->depth)) {
             float absorption = terrain->materials[water.waterMaterial].absorption;
-            double loss = Product(absorption, record->depth, record->depth, direction.z, direction.z, WaterFalloff());
+            double loss = Product(absorption, record->depth, record->depth, direction.z, direction.z, kWaterFalloff);
             attenuation = AtLeastZero(static_cast<float>(1.0 - loss));
         }
         float source[4] = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};

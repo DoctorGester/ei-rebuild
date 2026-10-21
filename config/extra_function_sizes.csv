@@ -859,3 +859,4 @@ address,size,note
 006023F0,146,the briefing speakers' actionDone callback (no Ghidra function; S16c)
 006B68A0,276,the sound manager's DirectSoundEnumerateA callback (no Ghidra function; S16c)
 0070058F,8,library function registered at its address (S16d; Ghidra size)
+004E3B20,84,static initialiser of the weather noise curves (list slot 00783364; no Ghidra function)

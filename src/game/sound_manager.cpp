@@ -60,7 +60,7 @@ constexpr float kEmitterMaxScale = 255.0f;                         // 0073C370
 
 // pi (007440D8) and pi / 2 (007C8808, set by a static initialiser).
 float Pi() { return 3.1415927f /*007440D8*/; }
-float HalfPi() { return ei::GameData<const volatile float>(0x007C8808); }
+constexpr float kHalfPi = /*007C8808*/ 1.5707964f;   // a static initialiser: pi * 0.5
 // The fade step every fade request uses (007440E4, 1/96), copied as a dword.
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
@@ -216,8 +216,8 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         return;
     }
     double angle = CIacos(D(ahead) / distF);
-    if (angle > HalfPi()) angle = D(Pi()) - angle;
-    double scale = D(kHundred) / HalfPi();
+    if (angle > kHalfPi) angle = D(Pi()) - angle;
+    double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the FDIV at the main thread's 24 bits
     int pan = x87::fistp(static_cast<float>(scale * angle));
     slot->pan = pan;
     if (D(dy) * listenerAxis.x > D(dx) * listenerAxis.y) slot->pan = -pan;

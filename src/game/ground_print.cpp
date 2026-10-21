@@ -49,8 +49,8 @@ constexpr float kSpinDegrees = 30.0f;            // 0073BAF0
 
 // Globals.
 // pi / 2 and 2 pi as floats (set by the static initialisers 006CEC90 / 006CEC80).
-float HalfPi() { return ei::GameData<const float>(0x007C899C); }
-float TwoPi() { return ei::GameData<const float>(0x007C8998); }
+constexpr float kHalfPi = /*007C899C*/ 1.5707964f;   // static initialisers: pi * 0.5 and pi + pi
+constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the original).
 double Pi() { return 3.141592653589793 /*00744238*/; }
 double PerDegree() { return 0.005555555555555556 /*0073BA30*/; }
@@ -157,7 +157,7 @@ GroundPrint::GroundPrint(float x, float y, float halfWidth, float halfLength, fl
     uvOffset_.x = static_cast<float>(quarter & 1) * kHalf;
     uvOffset_.y = static_cast<float>(quarter >> 1) * kHalf;
     angle_ = angle;
-    uvAngle_ = static_cast<float>(quarter) * HalfPi();
+    uvAngle_ = static_cast<float>(quarter) * kHalfPi;
     SetTexture("fireprints");
     growth_ = 0.0f;
 }
@@ -349,8 +349,8 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * kHalf;
     uvScale_ = {kQuarter, kQuarter};
     uvOffset_.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * kHalf;
-    uvAngle_ = static_cast<float>(RandomQuarter()) * HalfPi();
-    int steps = x87::fistp(static_cast<float>(TwoPi() * kAngleMilli));
+    uvAngle_ = static_cast<float>(RandomQuarter()) * kHalfPi;
+    int steps = x87::fistp(static_cast<float>(kTwoPi * kAngleMilli));
     angle_ = static_cast<float>(gamecrt::rand() * steps / 0x7FFF % steps) * kMilli;
     SetTexture("bloodprints");
     int spread = life / 2;

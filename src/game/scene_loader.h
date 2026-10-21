@@ -105,7 +105,7 @@ struct MeshFace {
     // face_normal.cpp (A-S4). 0049AEC0 (__thiscall, RET 4): the face's plane from the points
     // `positions` (an array of 3-float points) holds: the edges from vertex 1 to vertex 2 and to
     // vertex 0 are normalised unless shorter than 1e-5, crossed, the result normalised (a zero
-    // length gives the vector at 007A9C98), then the distance.
+    // length gives the zero vector), then the distance.
     void ComputeNormal(const PointBuffer* positions);
     std::uint32_t vertex[3];       // +00
     std::uint32_t vertex2[3];      // +0C
@@ -365,8 +365,8 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
 inline const char* FirstKeyNotAtZeroText() { return "ResolveNodesAMF.\n This version requires start from position 0 !\n"; }
 inline const char* NoRootNodeText() { return "Can't find top-level object in hierarchy\n"; }
 
-// 0079B9B0: the exe's zero vector (the scene code copies it).
-inline const Vector3& ZeroVector() { return ei::GameData<const Vector3>(0x0079B9B0); }
+// The scene code's zero vector (a static initialiser's stores).
+inline constexpr Vector3 kZeroVector = /*0079B9B0*/ {0.0f, 0.0f, 0.0f};
 // 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
 inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %g\ty = %g\tz = %g\n"; }
 

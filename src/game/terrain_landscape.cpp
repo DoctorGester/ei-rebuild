@@ -198,11 +198,11 @@ constexpr int kRipples = 40;
 // Static initialisers (006C52D0, 006C52F0, 006C5360..006C53A0): the zero position and identity
 // rotation Create gives the landscape, and the waves' scales (computed from other constants at
 // startup, read from memory).
-const Vector3& ZeroPosition() { return ei::GameData<const Vector3>(0x007C8988); }
-const Quaternion& IdentityRotation() { return ei::GameData<const Quaternion>(0x007C8978); }
-float WaveHeightScale() { return ei::GameData<const float>(0x007C8970); }
-float WaveSpeedScale() { return ei::GameData<const float>(0x007C8968); }
-float WaveDirectionScale() { return ei::GameData<const float>(0x007C896C); }
+constexpr Vector3 kZeroPosition = /*007C8988*/ {0.0f, 0.0f, 0.0f};
+constexpr Quaternion kIdentityRotation = /*007C8978*/ {1.0f, 0.0f, 0.0f, 0.0f};
+constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
+constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
+constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
 
 
 } // namespace
@@ -212,8 +212,8 @@ int Terrain::CreateImpl() {
     BuildVertexTiles();
     BuildWavePhases();
     for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
-    localPosition_ = ZeroPosition();
-    localRotation_ = IdentityRotation();
+    localPosition_ = kZeroPosition;
+    localRotation_ = kIdentityRotation;
     return 1;
 }
 
@@ -310,13 +310,13 @@ void Terrain::SetWaveStrength(float strength) {
     strength = strength >= 0.0f ? strength : 0.0f;
     strength = 1.0f >= strength ? strength : 1.0f;
     waveGlow = strength;
-    waveHeight = WaveHeightScale() * strength;
-    waveSpeed = WaveSpeedScale() * strength;
+    waveHeight = kWaveHeightScale * strength;
+    waveSpeed = kWaveSpeedScale * strength;
     double step = Asin(1.0f - strength) + kPi * kWaveStepTurn;
     float length = LengthXYZ(waveDirection);
     if (length > 0.0f) waveDirection *= 1.0f / length;
-    waveDirection.x = static_cast<float>(WaveDirectionScale() * waveDirection.x * step);
-    waveDirection.y = static_cast<float>(WaveDirectionScale() * waveDirection.y * step);
+    waveDirection.x = static_cast<float>(kWaveDirectionScale * waveDirection.x * step);
+    waveDirection.y = static_cast<float>(kWaveDirectionScale * waveDirection.y * step);
 }
 
 void Terrain::SetWaves(const Vector3* direction, float strength) {

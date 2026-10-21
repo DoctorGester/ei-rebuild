@@ -24,6 +24,12 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
     pointer elements (gen_image_cells' scans; its cell lists leave the named ranges' cells out). What the image's
     code does not name and no cell points at, nothing reads: the zero bytes are never seen.
 
+The bytes a definition is compared with are game.exe's as its static initialisers leave them (C18j): their stores,
+float folds and fills in list order (gen_static_init.stored_values; tools/gen_static_init.py leaves those statements
+out of static_init.cpp, the definition's initialiser takes their place). A call's stored result is unknown: such a
+range is refused (port that initialiser by hand on the name). The unread objects of config/unread_data.csv (written
+by gen_static_init.py: only their initialiser stores into them) get the same proof that nothing reaches them.
+
 A .data or .bss object (C18d) takes the same form; it is constexpr when no code of ours writes it (most .data tables:
 the original's arrays lacked const), plain when the code writes it (`float g_bagSizes[12] = /*007A9BFC*/ {};`).
 Elements the initialiser leaves out are zero, as in C++ (`{}`: all of them; the zero-filled tail's objects). A range
@@ -59,14 +65,18 @@ TYPES = {
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
     'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
     'RECT': 'iiii', 'GUID': 'IHH8B', 'IID': 'IHH8B', 'CLSID': 'IHH8B',
+    'Vector3': 'fff', 'Quaternion': 'ffff',
+    'IsaacRandom': 'I' * 0x205,   # random.h: seeded_, count_, results_[256], memory_[256], a_, b_, c_
+    'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
     'MaterialKindFile': 'iP',
 }
-# `T name[dims] = /*address*/ {` or, for one pointer, `const char* const name = /*address*/ "text";`. A pointer
+# `T name[dims] = /*address*/ {`, for one pointer `const char* const name = /*address*/ "text";`, for one number
+# `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
 # type's `*` (and a const after it) joins the element type: `const char* const kX[]` is a table of `char*`.
-DEF = re.compile(r'(?<![\w:])([\w:]+)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"])')
-TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*[{"]')   # a file with no such tag has no definition
+DEF = re.compile(r'(?<![\w:])([\w:]+)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"]|-?[\d.])')
+TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*(?:[{"]|-?[\d.])')   # a file with no such tag has no definition
 # The initialiser's tokens where its element type holds a pointer: a string literal (adjacent ones joined), a number,
 # a name (`&` optional: another named range, a function of ours with a registration, or nullptr).
 TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)'
@@ -327,10 +337,11 @@ def definitions(sources=None):
                 continue
             if m.group(6) == '{':
                 body = braced(s.raw, m.end() - 1)
-            else:   # one pointer: the string literal(s) up to the `;`
-                end = next((e.start() for e in re.finditer(r'"(?:\\.|[^"\\\n])*"|;', s.code[m.end() - 1:])
+            else:   # one pointer (its string literal(s)) or one number, up to the `;`
+                at = m.start(6)   # a number's sign included
+                end = next((e.start() for e in re.finditer(r'"(?:\\.|[^"\\\n])*"|;', s.code[at:])
                             if e.group() == ';'), None)
-                body = s.raw[m.end() - 1:m.end() - 1 + end] if end is not None else None
+                body = s.raw[at:at + end] if end is not None else None
             type_ = m.group(1) + ('*' if '*' in m.group(2) else '')
             start = max(s.code.rfind(c, 0, m.start(1)) for c in ';{}')   # where the declaration begins
             const = bool(re.search(r'\bconst(?:expr)?\b', s.code[start + 1:m.start(1)] + m.group(2)))
@@ -368,6 +379,16 @@ def read_csv():
         return [(int(r['address'], 16), int(r['size']), r['name'], r['file']) for r in csv.DictReader(f)]
 
 
+UNREAD_CSV = os.path.join(ROOT, 'config', 'unread_data.csv')
+
+
+def read_unread():
+    if not os.path.exists(UNREAD_CSV):
+        return []
+    with open(UNREAD_CSV, newline='') as f:
+        return [(int(r['address'], 16), int(r['size']), r['initialiser']) for r in csv.DictReader(f)]
+
+
 def csv_text(defs):
     lines = ['address,size,name,file']
     for d in sorted(defs, key=lambda d: d.address):
@@ -375,11 +396,43 @@ def csv_text(defs):
     return '\n'.join(lines) + '\n'
 
 
-def check(img, update):
+class Unread:
+    """An object of config/unread_data.csv (tools/gen_static_init.py): only its static initialiser stored into it."""
+    def __init__(self, address, size, initialiser):
+        self.address, self.size = address, size
+        self.name, self.path = f'the unread object of initialiser {initialiser}', 'config/unread_data.csv'
+
+    def where(self):
+        return self.path
+
+
+def initialised(img_path):
+    """game.exe's data as its static initialisers leave it: the image with their stores, float folds and fills
+    applied (gen_static_init.stored_values; calls are not run), and the dwords a call's result went to (unknown)."""
+    import gen_static_init
+    exe = gen_static_init.Image(img_path)
+    decoded, bad = gen_static_init.decode_all(exe)
+    if bad:
+        return None, set()
+    values = gen_static_init.stored_values(exe, decoded)
+    return values, {a for a, v in values.items() if v is None}
+
+
+def check(img, update, img_path):
     problems = []
     sources = srcscan.load_sources()
     defs = definitions(sources)
     targets = Targets(defs, sources)
+    # A definition is compared with what the static initialisers leave there (their stores are left out of the
+    # generated static_init.cpp for a named range: the definition's initialiser takes their place).
+    values, unknown = initialised(img_path)
+    if values is None:
+        problems.append('game.exe\'s static initialisers do not decode (tools/check_static_init.py)')
+        values = {}
+    img = bytearray(img)
+    for a, v in values.items():
+        if v is not None:
+            struct.pack_into('<I', img, a - BASE, v)
     for d in defs:
         d.pack(img, targets)
         if d.problem:
@@ -392,7 +445,11 @@ def check(img, update):
         if hi <= RDATA[1] and not d.const:
             problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
         want = bytes(img[lo - BASE:hi - BASE])
-        if d.packed != want:
+        late = sorted(a for a in unknown if lo <= a < hi)
+        if late:
+            problems.append(f'{d.where()}: {d.name}: a static initialiser stores a call\'s result at {late[0]:08X}: port '
+                            'that initialiser by hand on the name')
+        elif d.packed != want:
             at = next(i for i in range(d.size) if d.packed[i] != want[i])
             problems.append(f'{d.where()}: {d.name} is not the bytes of game.exe: first difference at {lo + at:08X} '
                             f'(+{at}): ours {d.packed[at:at + 4].hex()}, game.exe {want[at:at + 4].hex()}')
@@ -415,7 +472,13 @@ def check(img, update):
         for a, b in addon_sites():
             if a < r.address + r.size and r.address < b and a not in RETIRED_ADDON_SITES:
                 problems.append(f'{r.where()}: {r.name} overlaps the addon.dll site {a:08X}: that slot is written')
-    reached = good + retired
+    # The unread objects (config/unread_data.csv, gen_static_init.py): the same proof; no named range overlaps one.
+    unread = [Unread(a, n, i) for a, n, i in read_unread()]
+    for u in unread:
+        for d in good:
+            if d.address < u.address + u.size and u.address < d.address + d.size:
+                problems.append(f'{d.where()}: {d.name} overlaps {u.name} at {u.address:08X} (run tools/gen_static_init.py)')
+    reached = good + retired + unread
 
     def inside(a):
         for d in reached:
@@ -566,14 +629,15 @@ def main():
     ap.add_argument('--exe')
     a = ap.parse_args()
     try:
-        img = image(exe_path.find_exe(a.exe))
+        path = exe_path.find_exe(a.exe)
+        img = image(path)
     except exe_path.ExeNotFound as e:
         sys.exit(f'named_data: {e}')
     if a.split is not None:
         return split(img, set(a.split))
     if a.refs:
         return refs(img, int(a.refs[0], 16), int(a.refs[-1], 16))
-    return check(img, a.update)
+    return check(img, a.update, path)
 
 
 if __name__ == '__main__':

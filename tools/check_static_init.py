@@ -11,6 +11,9 @@
   - A float fold of .rdata literals (tagged, tools/rdata_literals.py; S18e1) gives the same float
     whether it is computed as the original does (x87 order, 53 bits) or as the compiler may fold it
     (C++ precedence, in double or in float).
+  - The stores, float folds and fills into a named range (config/named_data.csv) or an unread object are left out
+    (gen_static_init.leave_out; C18j), and config/unread_data.csv is the unread objects decoding finds now
+    (gen_static_init.unread_objects); tools/named_data.py --check compares each definition with what the stores leave.
   - src/standalone/static_exit.cpp (the exit functions no rewrite registers) is what their instructions
     decode to now, its addresses are where they belong (as above), and src/hook/function_sizes.inc and
     config/extra_function_sizes.csv give each exit function its decoded size.
@@ -98,9 +101,9 @@ def main():
     ap.add_argument('--exe')   # default: tools/exe_path.py
     args = ap.parse_args()
     img = gen.Image(gen.exe_path.resolve(args.exe))
-    problems = []
-    decoded, bad = gen.decode_all(img)
-    problems += [f'not decoded: {b}' for b in bad]
+    decoded, exits, unread, problems = gen.generate(img)
+    bad = decoded is None
+    decoded, exits = decoded or [], exits or []
     if not os.path.exists(gen.OUT):
         problems.append(f'{os.path.relpath(gen.OUT, gen.ROOT)} is missing (run tools/gen_static_init.py)')
         text = ''
@@ -120,8 +123,9 @@ def main():
             problems.append(f'{a:08X}: differs from what its instructions decode to now (run tools/gen_static_init.py)')
     if not problems and gen.render(decoded) != text:
         problems.append('the header or footer differs (run tools/gen_static_init.py)')
-    exits, bad = gen.decode_exits(img, decoded)
-    problems += [f'not decoded: {b}' for b in bad]
+    current = open(gen.UNREAD_DATA, encoding='utf-8').read() if os.path.exists(gen.UNREAD_DATA) else ''
+    if not bad and unread != current:
+        problems.append(f'{os.path.relpath(gen.UNREAD_DATA, gen.ROOT)} is not the unread objects (run tools/gen_static_init.py)')
     exit_text = open(gen.OUT_EXIT, encoding='utf-8').read() if os.path.exists(gen.OUT_EXIT) else ''
     if not bad and gen.render_exits(exits) != exit_text:
         problems.append(f'{os.path.relpath(gen.OUT_EXIT, gen.ROOT)} differs from what the exit functions decode to now '

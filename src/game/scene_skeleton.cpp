@@ -38,7 +38,7 @@ void __stdcall ConstructFrameRecords(void* records, int count) {
 
 bool SameAsZero(const Vector3& v) {
     Vector3 zero;
-    std::memcpy(&zero, &ZeroVector(), sizeof(zero));
+    std::memcpy(&zero, &kZeroVector, sizeof(zero));
     EI_NAN_AUDIT(v.x, v.y, v.z);
     return v.x == zero.x && v.y == zero.y && v.z == zero.z;
 }
