@@ -83,7 +83,7 @@ ClientSession* ClientSession::Construct() {
         stlp::StringElement::Default(&record->name_);
         stlp::StringElement::Default(&record->text_);
         record->binding_.ptr = nullptr;   // 0041FFE0
-        ei::SetVtable(record, LoginMessage::kVtableAddress);
+        ei::SetVtable(record, LoginMessage::Vtable());
         record->host_ = 0;
         record->state_ = 4;
         record->id_ = -1;

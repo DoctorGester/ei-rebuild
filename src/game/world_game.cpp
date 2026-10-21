@@ -490,7 +490,7 @@ void AnnounceHost(const char* zone) {
         net::MessageConstructBase(memory);   // 004186E0
         stlp::StringElement::Default(&memory->address_);
         stlp::StringElement::Default(&memory->zone_);
-        ei::SetVtable(memory, net::HostMessage::kVtableAddress);
+        ei::SetVtable(memory, net::HostMessage::Vtable());
         record = memory;
     }
     RefPtr& slot = net::GameServer()->hostInfo_;

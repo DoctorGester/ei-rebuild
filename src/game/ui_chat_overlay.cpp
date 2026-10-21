@@ -56,10 +56,10 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 void SendSay(const char* text) {
     auto* say = net::NewMessageMemory<net::SayMessage>();
     if (say) {
-        ei::SetVtable(say, net::kMessageVtable);
+        ei::SetVtable(say, net::Message::Vtable());
         say->version_ = 1;
         stlp::StringElement::Default(&say->text_);
-        ei::SetVtable(say, net::SayMessage::kVtableAddress);
+        ei::SetVtable(say, net::SayMessage::Vtable());
     }
     // As the original: a failed allocation is not checked from here on.
     say->text_.Assign(text);   // inlined by the original: overwrite, then cut or append

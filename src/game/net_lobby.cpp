@@ -7,6 +7,7 @@
 #include "game_strings.h"
 #include "core_refcount.h"
 #include "net_classes.h"
+#include "net_messages.h"
 #include "net_coder.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
@@ -123,7 +124,7 @@ ServerEntry* EntryIn(const RefPtr& entry) { return static_cast<ServerEntry*>(ent
 
 ServerEntryBase* ServerEntryBase::ConstructBase() {
     std::memset(&address_, 0, sizeof(address_));
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     SetBits(timeout_, 0);
     ping_ = 9.999f /*0073BFA0*/;
     foreign_ = 0;

@@ -44,27 +44,27 @@ using destructors400::CleanupClear8;
 using destructors400::DeletingDestructor;
 using namespace net;
 
-EI_REPLACE(0x004128C0, DeletingDestructor<&ServerEntry::Destruct>);          // 004128E0
-EI_REPLACE(0x00412970, DeletingDestructor<RefObjectDestructBase>);           // 00412960
+EI_REWRITTEN(0x004128C0, DeletingDestructor<&ServerEntry::Destruct>);          // 004128E0
+EI_REWRITTEN(0x00412970, DeletingDestructor<RefObjectDestructBase>);           // 00412960
 EI_REPLACE(0x004132D0, DeletingDestructor<&ServerBase::DestructBase>);       // 004132F0
-EI_REPLACE(0x00413410, DeletingDestructor<RefObjectDestructBase>);           // 00413430: Message (0073BC10)
-EI_REPLACE(0x004137E0, DeletingDestructor<&LoginMessage::Destruct>);         // 00413800: 0073BBF8
-EI_REPLACE(0x00413C20, DeletingDestructor<&SayMessage::Destruct>);           // 00413C40: 0073BC28
-EI_REPLACE(0x00414040, DeletingDestructor<&CommandMessage::Destruct>);       // 00414060: 0073BC40
-EI_REPLACE(0x00414250, DeletingDestructor<&FileRequestMessage::Destruct>);   // 00414270: 0073BC58
-EI_REPLACE(0x004148C0, DeletingDestructor<&PlayerMessage::Destruct>);        // 004148E0: 0073BC70 player
-EI_REPLACE(0x00414CF0, DeletingDestructor<&LineMessage::Destruct>);          // 00414D10: 0073BC88 chat line
-EI_REPLACE(0x00415280, DeletingDestructor<&HostMessage::Destruct>);          // 004152A0: 0073BCA0
-EI_REPLACE(0x004154B0, DeletingDestructor<&BindingMessage::Destruct>);       // 004154D0: 0073BCB8 binding
-EI_REPLACE(0x00415910, DeletingDestructor<&ZoneMessage::Destruct>);          // 00415930: 0073BCD0 queued map message
-EI_REPLACE(0x00415CE0, DeletingDestructor<&VariableMessage::Destruct>);      // 00415D00: 0073BCE8 script variable
-EI_REPLACE(0x004160F0, DeletingDestructor<&MapMessage::Destruct>);           // 00416110: 0073BD00 map message
-EI_REPLACE(0x00416620, DeletingDestructor<&FileMessage::Destruct>);          // 00416640: 0073BD18 file
-EI_REPLACE(0x004168C0, DeletingDestructor<&FileChunkMessage::Destruct>);     // 004168E0: 0073BD30 file chunk
-EI_REPLACE(0x00416D50, DeletingDestructor<&AwardMessage::Destruct>);         // 00416D70: 0073BD48 award
-EI_REPLACE(0x00416FA0, DeletingDestructor<&TradeMessage::Destruct>);         // 00416FC0: 0073BD60 trade
-EI_REPLACE(0x00417600, DeletingDestructor<&PartyMemberMessage::Destruct>);   // 00417620: 0073BD78 party member
-EI_REPLACE(0x004178D0, DeletingDestructor<&PartyMessage::Destruct>);         // 004178F0
+EI_REWRITTEN(0x00413410, DeletingDestructor<RefObjectDestructBase>);           // 00413430: Message (0073BC10)
+EI_REWRITTEN(0x004137E0, DeletingDestructor<&LoginMessage::Destruct>);         // 00413800: 0073BBF8
+EI_REWRITTEN(0x00413C20, DeletingDestructor<&SayMessage::Destruct>);           // 00413C40: 0073BC28
+EI_REWRITTEN(0x00414040, DeletingDestructor<&CommandMessage::Destruct>);       // 00414060: 0073BC40
+EI_REWRITTEN(0x00414250, DeletingDestructor<&FileRequestMessage::Destruct>);   // 00414270: 0073BC58
+EI_REWRITTEN(0x004148C0, DeletingDestructor<&PlayerMessage::Destruct>);        // 004148E0: 0073BC70 player
+EI_REWRITTEN(0x00414CF0, DeletingDestructor<&LineMessage::Destruct>);          // 00414D10: 0073BC88 chat line
+EI_REWRITTEN(0x00415280, DeletingDestructor<&HostMessage::Destruct>);          // 004152A0: 0073BCA0
+EI_REWRITTEN(0x004154B0, DeletingDestructor<&BindingMessage::Destruct>);       // 004154D0: 0073BCB8 binding
+EI_REWRITTEN(0x00415910, DeletingDestructor<&ZoneMessage::Destruct>);          // 00415930: 0073BCD0 queued map message
+EI_REWRITTEN(0x00415CE0, DeletingDestructor<&VariableMessage::Destruct>);      // 00415D00: 0073BCE8 script variable
+EI_REWRITTEN(0x004160F0, DeletingDestructor<&MapMessage::Destruct>);           // 00416110: 0073BD00 map message
+EI_REWRITTEN(0x00416620, DeletingDestructor<&FileMessage::Destruct>);          // 00416640: 0073BD18 file
+EI_REWRITTEN(0x004168C0, DeletingDestructor<&FileChunkMessage::Destruct>);     // 004168E0: 0073BD30 file chunk
+EI_REWRITTEN(0x00416D50, DeletingDestructor<&AwardMessage::Destruct>);         // 00416D70: 0073BD48 award
+EI_REWRITTEN(0x00416FA0, DeletingDestructor<&TradeMessage::Destruct>);         // 00416FC0: 0073BD60 trade
+EI_REWRITTEN(0x00417600, DeletingDestructor<&PartyMemberMessage::Destruct>);   // 00417620: 0073BD78 party member
+EI_REWRITTEN(0x004178D0, DeletingDestructor<&PartyMessage::Destruct>);         // 004178F0
 EI_REPLACE(0x0041C450, DeletingDestructor<&ClientBase::DestructBase>);       // 0041C530
 // Counted pointer holders (bodies 0041DDA0 and 00421640); the world range has a byte-identical copy
 // of each (A-W12).

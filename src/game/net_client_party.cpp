@@ -92,7 +92,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         if (message) {
             MessageConstructBase(message);
             message->stream_.Construct();
-            ei::SetVtable(message, PartyMemberMessage::kVtableAddress);
+            ei::SetVtable(message, PartyMemberMessage::Vtable());
         }
         RefPtr ref;
         ref.FromRawCounted(message);

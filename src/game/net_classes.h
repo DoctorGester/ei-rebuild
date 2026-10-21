@@ -20,8 +20,9 @@
 //
 // The sessions are allocated and built by the game's code (or our rewrites of their constructor
 // bodies), which store the game's vtables. The classes are __declspec(novtable) and never built by
-// C++, so their virtual functions dispatch through the game's vtables; the slots that are not
-// rewritten are declared only.
+// C++, so their virtual functions dispatch through the vtable the object holds; the slots that are
+// not rewritten are declared only. The message classes and the server entries store compiled tags'
+// tables in place of game.exe's (C19; net_messages.h's ReplicatedClass, `X::Vtable()`).
 
 #include "core_refcount.h"
 #include "net_coder.h"
@@ -138,7 +139,7 @@ void __fastcall ClientDropParty(ClientSession* self);
 // (destroyed and built again in place), slot 3 clones it.
 class __declspec(novtable) Message : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BC10);
+    static void* Vtable();   // the compiled table (net_messages.h; game.exe's 0073BC10)
 
     // 0: 00413410 deleting destructor; 1: Serialize (empty); 2 / 3 pure in the base.
     virtual void Write(BufferCursor* cursor) = 0;   // 4: the fields at the cursor's byte position
@@ -148,14 +149,11 @@ public:
 };
 static_assert(sizeof(Message) == 12);
 
-// The message base vtable under the name the message code uses.
-constexpr std::uintptr_t kMessageVtable = Message::kVtableAddress;
-
 using MessageFactory = Message* (__fastcall*)();
 
 // 00413250. operator new(size) with the CRefObject count cleared. No null check (as the original).
 void* __fastcall NewRefObject(std::size_t size);
-// 004186E0. The message base constructor body: vtable 0073BC10, version 1. Returns this.
+// 004186E0. The message base constructor body: the base table (Message::Vtable()), version 1. Returns this.
 Message* __fastcall MessageConstructBase(Message* self);
 
 // The message classes are declared in net_messages.h.
@@ -165,7 +163,7 @@ Message* __fastcall MessageConstructBase(Message* self);
 // A server entry's base (vtable 0073BB40, 0x28 bytes; constructor body 004413E0).
 class __declspec(novtable) ServerEntryBase : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB40);
+    static void* Vtable();   // the compiled table (net_messages.h; game.exe's 0073BB40)
 
     // 0: 00412970 deleting destructor; 1: Serialize; 2 / 3 pure.
     virtual void Write(BufferCursor* cursor) = 0;   // 4
@@ -195,7 +193,7 @@ static_assert(sizeof(ServerEntryBase) == 0x28);
 // and the client lists (net_lobby.cpp, net_server_list.cpp).
 class __declspec(novtable) ServerEntry : public ServerEntryBase {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB28);
+    static void* Vtable();   // the compiled table (net_messages.h; game.exe's 0073BB28)
 
     // 0: 004128C0 deleting destructor; 1: 00412580 (empty). net_messages.cpp.
     int OnShutdown() override;                  // 2: 00412750 reset (EAX undefined in the original)

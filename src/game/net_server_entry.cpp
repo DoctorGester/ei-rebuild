@@ -2,6 +2,7 @@
 // client reads from the server list (net_server_list.cpp). See net_classes.h and
 // docs/notes/network.md.
 #include "net_classes.h"
+#include "net_messages.h"
 #include "options.h"
 #include "game_strings.h"
 #include "core_refcount.h"
@@ -27,7 +28,7 @@ void ServerSession::DescribeImpl(RefPtr* out) {
         entry->ConstructBase();
         stlp::StringElement::Default(&entry->name_);
         stlp::StringElement::Default(&entry->description_);
-        ei::SetVtable(entry, ServerEntry::kVtableAddress);
+        ei::SetVtable(entry, ServerEntry::Vtable());
         entry->name_.Assign(game::QuestionMarkText());
         entry->kind_ = 4;
         entry->description_.Assign(game::QuestionMarkText());

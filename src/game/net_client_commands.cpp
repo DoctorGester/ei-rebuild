@@ -63,10 +63,10 @@ void ClientSession::SendCommand(int kind, const char* text) {
     ClientSession* self = this;
     auto* command = NewMessageMemory<CommandMessage>();
     if (command) {
-        ei::SetVtable(command, kMessageVtable);
+        ei::SetVtable(command, Message::Vtable());
         command->version_ = 1;
         stlp::StringElement::Default(&command->text_);
-        ei::SetVtable(command, CommandMessage::kVtableAddress);
+        ei::SetVtable(command, CommandMessage::Vtable());
     }
     command->kind_ = static_cast<std::uint32_t>(kind);
     // The inlined assign of a C string: copied over the current characters, the rest cut (the
@@ -93,7 +93,7 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
         entry->ConstructBase();
         stlp::StringElement::Default(&entry->name_);
         stlp::StringElement::Default(&entry->description_);
-        ei::SetVtable(entry, ServerEntry::kVtableAddress);
+        ei::SetVtable(entry, ServerEntry::Vtable());
         const char* empty = game::QuestionMarkText();
         entry->name_.Assign(empty);
         entry->kind_ = 4;
