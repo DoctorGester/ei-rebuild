@@ -25,7 +25,7 @@ void PartyConstruct(PartyStorage* party) { reinterpret_cast<CParty*>(party)->Con
 static_assert(sizeof(PartyStorage) == sizeof(CParty));
 // 0041F460: an empty STLport string (library).
 
-void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
+void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
 template <typename T>
 void RegisterInline(ClientSession* client, int channel, std::uintptr_t handler) {

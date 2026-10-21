@@ -2,19 +2,19 @@
 //
 // The host is linked below game.exe's image base and holds game.exe's address range (0x400000 up to
 // its SizeOfImage) inside its own image, as a zero-filled array. There it lays out game.exe's headers from the
-// file on disk and no section: the code section is filled with INT3 (nothing of it runs); .rdata and .data
-// stay zero (ei_hook.dll keeps both sections in its own storage, with bytes from the build,
-// src/standalone/image_data.cpp); .rsrc stays zero and is guarded (the image's resources come from game.exe
-// loaded as a data file, hook/standalone.cpp's ImageRoute). Then it loads ei_hook.dll, which resolves game.exe's
-// imports into a table
-// of its own as it initialises (src/standalone/image_imports.cpp; game.exe's path comes from this exe's
-// export EiStandaloneExe), and hands over: the DLL writes a jump at each rewritten function's address
-// (InstallHooks) and runs WinMain. Forwarders, function pointers in the data and vtable slots reach our
-// code through those jumps; an INT3 hit names an address that has no rewrite yet.
+// file on disk and no section: the code section stays zero and is guarded (S18i: nothing of it runs, nothing
+// jumps through it); .rdata and .data stay zero (ei_hook.dll keeps both sections in its own storage, with bytes
+// from the build, src/standalone/image_data.cpp); .rsrc stays zero and is guarded (the image's resources come
+// from game.exe loaded as a data file, hook/standalone.cpp's ImageRoute). Then it loads ei_hook.dll, which
+// resolves game.exe's imports into a table of its own as it initialises (src/standalone/image_imports.cpp;
+// game.exe's path comes from this exe's export EiStandaloneExe), and hands over: the DLL takes the registrations
+// as game.exe's code (InstallHooks, src/standalone/image_code.cpp), points the code cells of game.exe's data at
+// them and runs WinMain. Forwarders, function pointers in the data and vtable slots reach our code that way; a
+// jump into the code section names an address that went around it.
 //
 // usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
-//   the image, installs the jumps, checks them and exits: no window, nothing of the game runs. What
+//   the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What
 //   follows "--" is the game's command line, as typed (WinMain's, and GetCommandLineA's after the exe).
 
 #include <windows.h>
@@ -34,22 +34,28 @@ constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;    // game.exe 1.06 (Russian), 
 constexpr std::size_t kReserve = 0x00640000;
 unsigned char g_reserve[kReserve];
 
-// game.exe's code section in the image (INT3 until ei_hook.dll writes its jumps).
+// game.exe's code section in the image: zero and PAGE_NOACCESS (EarlyOldCode, then ei_hook.dll's OnOldCode).
 std::uintptr_t g_textBegin, g_textEnd;
 // game.exe's .rsrc in the image: zero and PAGE_NOACCESS (OnOldResources).
 std::uintptr_t g_rsrcBegin, g_rsrcEnd;
 
 std::string g_exe = R"(F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe)";   // --exe
 
-// An INT3 of the image hit before ei_hook.dll's own report is in place (its static constructors run
-// at LoadLibrary): named on stderr (ei_launch's run notes) and the process ends, never silently
-// (S16c). ei_hook.dll's handler, added later at the front, reports the hits after that itself.
-LONG CALLBACK EarlyBreakpoint(EXCEPTION_POINTERS* e) {
-    const auto at = reinterpret_cast<std::uintptr_t>(e->ExceptionRecord->ExceptionAddress);
-    if (e->ExceptionRecord->ExceptionCode != EXCEPTION_BREAKPOINT || at < g_textBegin || at >= g_textEnd)
-        return EXCEPTION_CONTINUE_SEARCH;
-    std::fprintf(stderr, "ei_standalone: no code at %08X before ei_hook.dll's missing-code report, [esp] %08X\n",
-                 static_cast<unsigned>(at), static_cast<unsigned>(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp)));
+// An access to the image's code section before ei_hook.dll's own report is in place (its static constructors
+// run at LoadLibrary): named on stderr (ei_launch's run notes) and the process ends, never silently (S16c).
+// ei_hook.dll's handler, added later at the front, reports the accesses after that itself.
+LONG CALLBACK EarlyOldCode(EXCEPTION_POINTERS* e) {
+    const EXCEPTION_RECORD* r = e->ExceptionRecord;
+    if (r->ExceptionCode != EXCEPTION_ACCESS_VIOLATION || r->NumberParameters < 2) return EXCEPTION_CONTINUE_SEARCH;
+    const std::uintptr_t data = r->ExceptionInformation[1];
+    if (data < g_textBegin || data >= g_textEnd) return EXCEPTION_CONTINUE_SEARCH;
+    if (r->ExceptionInformation[0] == 8)
+        std::fprintf(stderr, "ei_standalone: no code at %08X before ei_hook.dll's missing-code report, [esp] %08X\n",
+                     static_cast<unsigned>(data), static_cast<unsigned>(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp)));
+    else
+        std::fprintf(stderr, "ei_standalone: %s of game.exe's code at %08X by %08X before ei_hook.dll's report\n",
+                     r->ExceptionInformation[0] == 1 ? "write" : "read", static_cast<unsigned>(data),
+                     static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(r->ExceptionAddress)));
     std::fflush(stderr);
     TerminateProcess(GetCurrentProcess(), 3);
     return EXCEPTION_CONTINUE_SEARCH;
@@ -91,7 +97,7 @@ std::string Folder(const std::string& path) {
     return slash == std::string::npos ? std::string(".") : path.substr(0, slash);
 }
 
-// Lays out game.exe at its base: the headers as in the file, the code section INT3, every other section zero.
+// Lays out game.exe at its base: the headers as in the file, every section zero.
 bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32*& nt) {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(file.data());
     if (file.size() < 0x1000 || dos->e_magic != IMAGE_DOS_SIGNATURE) return false;
@@ -117,16 +123,11 @@ bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32
     std::memcpy(image, file.data(), fileNt->OptionalHeader.SizeOfHeaders);
     const IMAGE_SECTION_HEADER* sec = IMAGE_FIRST_SECTION(fileNt);
     for (WORD i = 0; i < fileNt->FileHeader.NumberOfSections; ++i) {
-        unsigned char* to = image + sec[i].VirtualAddress;
-        if (sec[i].Characteristics & IMAGE_SCN_MEM_EXECUTE) {
-            std::memset(to, 0xCC, sec[i].Misc.VirtualSize);
-            continue;
-        }
         if (std::memcmp(sec[i].Name, ".rsrc", 6) == 0) {
             g_rsrcBegin = kImageBase + sec[i].VirtualAddress;
             g_rsrcEnd = g_rsrcBegin + ((sec[i].Misc.VirtualSize + 0xFFF) & ~DWORD{0xFFF});
         }
-        // .rdata and .data (ei_hook.dll's, S18h, S18d) and .rsrc: nothing to copy.
+        // .text (none of it runs, S18i), .rdata and .data (ei_hook.dll's, S18h, S18d) and .rsrc: nothing to copy.
     }
     nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(image + dos->e_lfanew);
     return true;
@@ -155,7 +156,7 @@ std::string GameArguments() {
 extern "C" __declspec(dllexport) const char* __cdecl EiStandaloneExe() { return g_exe.c_str(); }
 
 int main(int argc, char** argv) {
-    // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on an INT3 hit
+    // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on a missing-code report
     // (TerminateProcess) loses none of it.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     std::string& exe = g_exe;
@@ -185,8 +186,11 @@ int main(int argc, char** argv) {
             g_textBegin = kImageBase + sec[i].VirtualAddress;
             g_textEnd = g_textBegin + sec[i].Misc.VirtualSize;
         }
-    AddVectoredExceptionHandler(1, EarlyBreakpoint);
+    AddVectoredExceptionHandler(1, EarlyOldCode);
     DWORD was;
+    if (g_textEnd > g_textBegin &&
+        !VirtualProtect(reinterpret_cast<void*>(g_textBegin), g_textEnd - g_textBegin, PAGE_NOACCESS, &was))
+        return Fail("cannot guard game.exe's code section");
     if (g_rsrcEnd > g_rsrcBegin &&
         !VirtualProtect(reinterpret_cast<void*>(g_rsrcBegin), g_rsrcEnd - g_rsrcBegin, PAGE_NOACCESS, &was))
         return Fail("cannot guard game.exe's .rsrc");

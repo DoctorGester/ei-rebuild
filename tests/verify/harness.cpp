@@ -786,13 +786,15 @@ void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     T* slot = ei::GamePointer<T>(address);
     // A slot outside the import table (a vtable's) is game data the harness changes (harness_addon.h checks them).
     const auto at = reinterpret_cast<std::uintptr_t>(slot);
-    if (at - ei::GameAddress(ei::kImportsBegin) >= ei::kImportsEnd - ei::kImportsBegin)
-        ei::NoteHarnessPatch(at, sizeof(T), "a slot the harness takes");
+    const bool importSlot = at - ei::GameAddress(ei::kImportsBegin) < ei::kImportsEnd - ei::kImportsBegin;
+    if (!importSlot) ei::NoteHarnessPatch(at, sizeof(T), "a slot the harness takes");
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     original = *slot;
     *slot = replacement;
     VirtualProtect(slot, sizeof(*slot), old, &old);
+    // A vtable slot's original is game.exe's code address: in the image it goes with the code cells (S18i).
+    if (!importSlot) ei::FixUpCodePointer(reinterpret_cast<std::uintptr_t*>(&original));
 }
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it
@@ -1106,7 +1108,7 @@ int __fastcall HeldServerUpdate(void* server, void*) {
     int result;
     {
         timing::Scope scope(timing::Server);
-        result = reinterpret_cast<WorldUpdate>(kServerUpdate)(server, nullptr);
+        result = ei::Code<WorldUpdate>(kServerUpdate)(server, nullptr);
     }
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
     {
@@ -1121,7 +1123,7 @@ int __fastcall HeldClientSegment(void* client, void*) {
     int result;
     {
         timing::Scope scope(timing::Client);
-        result = reinterpret_cast<WorldUpdate>(kClientSegment)(client, nullptr);
+        result = ei::Code<WorldUpdate>(kClientSegment)(client, nullptr);
     }
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
     return result;
@@ -1294,7 +1296,7 @@ constexpr std::uintptr_t kFrameCameraUpdateCall = 0x00457595;
 constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
 void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
     if (clock::Frozen()) return;
-    reinterpret_cast<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
+    ei::Code<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
 }
 
 // A pass's frame step (CL draw, DL cursor): a pair's game ends its turn first, so that it draws while
@@ -1304,7 +1306,7 @@ constexpr std::uintptr_t kFrameStepCall = 0x004575FD;
 constexpr std::uintptr_t kFrameStep = 0x00458010;
 void __fastcall HandOffThenFrameStep(bool draw, bool cursor) {
     pair::HandOff();
-    reinterpret_cast<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
+    ei::Code<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
 }
 
 // Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.
@@ -1331,15 +1333,21 @@ bool RedirectCall(std::uintptr_t site, std::uintptr_t expected, const void* to) 
 // rand() gets a fixed seed; 0049F150 then mixes them exactly as before.
 using SrandFn = void(__cdecl*)(unsigned);
 void __fastcall FixedIsaacSeed(void* isaac) {
-    reinterpret_cast<SrandFn>(0x006E77EA)(12345);
+    ei::Code<SrandFn>(0x006E77EA)(12345);
     auto* results = reinterpret_cast<std::uint32_t*>(static_cast<char*>(isaac) + 8);
     std::uint32_t x = 0x2001C0DE;
     for (int i = 0; i < 256; ++i) results[i] = x = x * 1664525u + 1013904223u;
 }
 
+// game.exe's function at `from` replaced by `to`: a JMP written there, in the image (no code there, the code section
+// guarded) the code for the address (ei::RedirectCode).
 void JumpTo(std::uintptr_t from, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(from);
     ei::NoteHarnessPatch(from, 5, "the harness's replacement");
+    if (ei::Standalone()) {
+        ei::RedirectCode(from, to);
+        return;
+    }
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     p[0] = 0xE9;

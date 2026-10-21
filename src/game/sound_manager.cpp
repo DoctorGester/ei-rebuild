@@ -85,7 +85,7 @@ EosFn AilRegisterEosCallback() { return ei::GameData<EosFn>(0x0073B75C); }
 using ReverbFn = void(__stdcall*)(void*, float, float, float);
 ReverbFn AilSetSampleReverb() { return ei::GameData<ReverbFn>(0x0073B764); }
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
-void* EndOfSampleCallback() { return reinterpret_cast<void*>(0x006B75E0); }
+void* EndOfSampleCallback() { return ei::Code<void*>(0x006B75E0); }
 
 // Calls a one-argument function pointer of another module whatever its convention (the ASI
 // codec's close, __stdcall in Miles): ESP is restored from EBP afterwards, as the original's
@@ -1228,7 +1228,7 @@ SampleFileFn AilSetSampleFile() { return ei::GameData<SampleFileFn>(0x0073B750);
 MemAllocFn AilMemAllocLock() { return ei::GameData<MemAllocFn>(0x0073B758); }
 MemFreeFn AilMemFreeLock() { return ei::GameData<MemFreeFn>(0x0073B7FC); }
 DecompressFn AilDecompressAsi() { return ei::GameData<DecompressFn>(0x0073B804); }
-void* DecompressCallback() { return reinterpret_cast<void*>(0x006B89B0); }   // SoundDecompressCallback
+void* DecompressCallback() { return ei::Code<void*>(0x006B89B0); }   // SoundDecompressCallback
 const char* Mp3Suffix() { return ".mp3"; }
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use

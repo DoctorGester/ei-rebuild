@@ -1,7 +1,8 @@
 // ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2).
-// The host has laid out game.exe's headers, .rdata and .rsrc at 0x400000 with INT3 in place of its code; the
-// DLL's static initialisation has put .data and the import slots in its own storage (image_data.cpp,
-// image_imports.cpp); here the jumps to our code are written and checked, and WinMain runs.
+// The host has laid out game.exe's headers at 0x400000 with its code section guarded; the DLL's static
+// initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
+// image_imports.cpp); here the registrations become game.exe's code (image_code.cpp), the code cells of
+// its data are pointed at them, and WinMain runs.
 #include "ei/hook.h"
 #include "log.h"
 #include "standalone/static_init.h"
@@ -11,11 +12,11 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -24,6 +25,8 @@ namespace ei {
 const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks();   // hook.cpp
 std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.cpp
 int ImageImportsMissing();                                              // standalone/image_imports.cpp
+int FixCodeCells();                                                     // standalone/image_code.cpp
+bool RedirectedByHarness(std::uintptr_t address);                       // standalone/image_code.cpp
 
 namespace {
 // game.exe's code section (.text, 0x401000-0x73A670).
@@ -55,6 +58,21 @@ void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
 // harness's handler (its report) before the process ends.
 void ReportImageFailure(const char* what);
 
+// Execution reached game.exe's code at `address` with no code of ours for it (a stub of image_code.cpp, or the
+// guarded code section): "no code at <address> (in the game function at <start> | library code), [esp] <caller>"
+// (tools/resolve_crash.py reads it), then the process ends.
+[[noreturn]] void ReportNoCode(std::uintptr_t address, std::uintptr_t caller) {
+    const std::uintptr_t function = FunctionContaining(address);
+    char where[64], from[160], what[256];
+    if (function) std::snprintf(where, sizeof(where), "in the game function at %08X", static_cast<unsigned>(function));
+    else strcpy_s(where, "library code");
+    DescribeCode(caller, from, sizeof(from));
+    std::snprintf(what, sizeof(what), "no code at %08X (%s), [esp] %s", static_cast<unsigned>(address), where, from);
+    ReportImageFailure(what);
+    TerminateProcess(GetCurrentProcess(), 3);
+    for (;;) Sleep(INFINITE);
+}
+
 namespace {
 
 char g_exePath[MAX_PATH];
@@ -65,18 +83,23 @@ void (*g_missingCodeHandler)(const char* what);
 
 constexpr std::uintptr_t kWinMain = 0x00456440;
 
-// Execution reached an address of game.exe's code with no rewrite: the INT3 filling the image there.
-// Its caller is the return address on the stack when the hit is a function's first byte (a call).
-LONG CALLBACK OnBreakpoint(EXCEPTION_POINTERS* e) {
+// An access to game.exe's guarded code section: execution there (a jump or call to an address of game.exe's
+// code that did not go through CodeAddress: its caller is the return address on the stack when it is a call) is
+// reported as no code at the address; a read or write of its bytes as such.
+LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;
+    if (r->ExceptionCode != EXCEPTION_ACCESS_VIOLATION || r->NumberParameters < 2) return EXCEPTION_CONTINUE_SEARCH;
     const auto at = reinterpret_cast<std::uintptr_t>(r->ExceptionAddress);
-    if (r->ExceptionCode != EXCEPTION_BREAKPOINT || at < kTextBegin || at >= kTextEnd) return EXCEPTION_CONTINUE_SEARCH;
-    const std::uintptr_t function = FunctionContaining(at);
-    char where[64], caller[160], what[256];
-    if (function) std::snprintf(where, sizeof(where), "in the game function at %08X", static_cast<unsigned>(function));
-    else strcpy_s(where, "library code");
-    DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
-    std::snprintf(what, sizeof(what), "no code at %08X (%s), [esp] %s", static_cast<unsigned>(at), where, caller);
+    const bool execute = r->ExceptionInformation[0] == 8;
+    const std::uintptr_t data = r->ExceptionInformation[1];
+    if (data < kTextBegin || data >= kTextEnd) return EXCEPTION_CONTINUE_SEARCH;
+    if (execute) ReportNoCode(at, *reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp));
+    char code[160], what[320];
+    DescribeCode(at, code, sizeof(code));
+    std::snprintf(what, sizeof(what), "%s of game.exe's code at %08X by %s: the image's code section is guarded",
+                  r->ExceptionInformation[0] == 1 ? "write" : "read", static_cast<unsigned>(data), code);
+    std::fprintf(stderr, "ei_hook: %s\n", what);
+    std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
     return EXCEPTION_CONTINUE_SEARCH;
@@ -88,52 +111,40 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-// Every jump InstallHooks wrote leads into this DLL, to the registered replacement where there is one.
-// An address registered twice keeps the jump installed last (as in the hook build): logged, not counted.
-int CheckJumps() {
+// Every registration InstallHooks took is the code for its address, in this DLL (or the harness's replacement
+// there, RedirectCode). Returns the ones that are not.
+int CheckCode() {
     HMODULE self = nullptr;
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&CheckJumps), &self);
-    std::unordered_map<std::uintptr_t, int> times;
-    for (const auto& installed : InstalledHooks()) ++times[installed.first];
+                       reinterpret_cast<LPCSTR>(&CheckCode), &self);
     int bad = 0;
     for (const auto& [address, registered] : InstalledHooks()) {
-        int& n = times[address];
-        if (n > 1) Log("standalone: %08X is registered %d times; the last one installed runs", static_cast<unsigned>(address), n);
-        const void* replacement = n == 1 ? registered : nullptr;
-        n = 0;
-        const auto* code = reinterpret_cast<const unsigned char*>(address);
-        std::int32_t rel;
-        std::memcpy(&rel, code + 1, 4);
-        const std::uintptr_t target = address + 5 + rel;
+        const std::uintptr_t code = CodeAddress(address);
         HMODULE owner = nullptr;
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(target), &owner);
-        if (code[0] != 0xE9 || owner != self || (replacement && target != reinterpret_cast<std::uintptr_t>(replacement))) {
-            Log("standalone: bad jump at %08X", static_cast<unsigned>(address));
+                           reinterpret_cast<LPCSTR>(code), &owner);
+        if (owner != self || (code != reinterpret_cast<std::uintptr_t>(registered) && !RedirectedByHarness(address))) {
+            Log("standalone: the code for %08X is not its registration", static_cast<unsigned>(address));
             ++bad;
         }
     }
     return bad;
 }
 
-// The image's code section holds nothing of game.exe's code: INT3 but for the jumps InstallHooks wrote (and,
-// in a harness run, the harness's own patches). So no instruction of the original runs, none that calls
-// through game.exe's import slots (CALL [slot], JMP [slot]) either. Returns the bytes found besides those.
-int CheckText() {
-    std::vector<bool> jump(kTextEnd - kTextBegin);
-    for (const auto& installed : InstalledHooks())
-        for (std::uintptr_t a = installed.first; a < installed.first + 5 && a < kTextEnd; ++a) jump[a - kTextBegin] = true;
-    int stray = 0;
-    const auto* text = reinterpret_cast<const unsigned char*>(kTextBegin);
-    for (std::size_t i = 0; i < jump.size(); ++i) {
-        if (jump[i] || text[i] == 0xCC) continue;
-        if (stray < 8)
-            Log("standalone: game.exe's code holds %02X at %08X (not INT3, not a jump of ours)", text[i],
-                static_cast<unsigned>(kTextBegin + i));
-        ++stray;
+// The image's code section holds nothing of game.exe's code and is guarded (the host makes it PAGE_NOACCESS):
+// no instruction of the original runs, none that calls through game.exe's import slots (CALL [slot], JMP
+// [slot]) either, and nothing jumps through it. Returns the bytes of it that are not guarded.
+std::size_t CheckGuard() {
+    std::size_t open = 0;
+    for (std::uintptr_t a = kTextBegin; a < kTextEnd;) {
+        MEMORY_BASIC_INFORMATION mbi;
+        if (!VirtualQuery(reinterpret_cast<const void*>(a), &mbi, sizeof(mbi))) return kTextEnd - a + open;
+        const std::uintptr_t regionEnd = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
+        const std::uintptr_t end = (std::min)(kTextEnd, regionEnd);
+        if (mbi.Protect != PAGE_NOACCESS) open += end - a;
+        a = end;
     }
-    return stray;
+    return open;
 }
 
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
@@ -220,7 +231,7 @@ bool RouteImport(std::uintptr_t base, const char* dll, const char* function, con
 }
 
 // Miles (mss32.dll) loads every *.asi it finds as a sound provider. EI_Plugin.asi (Rebirth) patches
-// game.exe's code, which here is the image with our jumps: it stays out (its features are Rebirth
+// game.exe's code, which the image does not have: it stays out (its features are Rebirth
 // flags of our code, from ei_rebirth.ini). mp3dec.asi, the MP3 decoder, loads.
 HMODULE WINAPI MilesLoadLibrary(LPCSTR name) {
     const char* slash = name ? std::strrchr(name, '\\') : nullptr;
@@ -308,8 +319,8 @@ void ReportImageFailure(const char* what) {
 } // namespace ei
 
 // Called by the host once the image is laid out, with the game's arguments (what followed "--" on the
-// host's command line, as typed). `run` 0: install and check the jumps and route the image's calls,
-// then return (0 when all of it is right and WinMain has a jump). `run` 1: then run WinMain.
+// host's command line, as typed). `run` 0: take and check the registrations, point the code cells at them and
+// route the image's calls, then return (0 when all of it is right and WinMain has code). `run` 1: then run WinMain.
 extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePath, int run, const char* arguments) {
     using namespace ei;
     strcpy_s(g_exePath, exePath);
@@ -318,17 +329,18 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     g_argumentsAt = std::strlen(exePath) + 2 + (hasArguments ? 1 : 0);
     SetProcessDPIAware();
     // The missing-code report first: InstallHooks runs the startup actions (WideScreen's parses its
-    // resolution there, S16b), so an INT3 hit before WinMain is named too, not a silent end (S16c).
-    AddVectoredExceptionHandler(1, OnBreakpoint);
+    // resolution there, S16b), so a jump into game.exe's code before WinMain is named too, not a silent end (S16c).
+    AddVectoredExceptionHandler(1, OnOldCode);
     SetUnhandledExceptionFilter(OnUnhandled);
     const int installed = InstallHooks();
-    const int bad = CheckJumps();
-    const bool winMain = *reinterpret_cast<const unsigned char*>(kWinMain) == 0xE9;
-    Log("standalone: %d jump(s) written into the image, %d wrong, WinMain %s", installed, bad,
+    const int bad = CheckCode();
+    const bool winMain = HasCode(kWinMain);
+    Log("standalone: %d registration(s) taken as game.exe's code, %d wrong, WinMain %s", installed, bad,
         winMain ? "rewritten" : "missing");
-    const int stray = CheckText();
-    Log("standalone: game.exe's code section: INT3 and our jumps%s (%d other byte(s))",
-        stray ? " and more" : " only", stray);
+    FixCodeCells();
+    const std::size_t open = CheckGuard();
+    Log("standalone: game.exe's code section %s (%zu byte(s) not)", open ? "NOT all guarded" : "guarded", open);
+    const int stray = open ? 1 : 0;
     const bool routed = RouteImageCalls();
     Log("standalone: game.exe's resources, module and command line%s routed; arguments: '%s'", routed ? "" : " not all",
         g_commandLine.c_str() + g_argumentsAt);
@@ -348,8 +360,8 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     libcrt::InitMultibyteTable();
     static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
-    const int result = reinterpret_cast<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr,
-                                                              g_commandLine.data() + g_argumentsAt, SW_SHOWNORMAL);
+    const int result = Code<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr,
+                                                  g_commandLine.data() + g_argumentsAt, SW_SHOWNORMAL);
     libcrt::Exit(result);
     return result;
 }

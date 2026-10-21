@@ -166,8 +166,8 @@ console::GameOStream& SpeedLog() { return Global<console::GameOStream>(0x007C56B
 // app::TypeRegistryRegister (00458570): a class the chunk archives can hold, by id and factory. The
 // two factories: 00457850 (class 1) and 00457740 (class 2, the party record).
 using ClassFactory = void* (__cdecl*)();
-ClassFactory ClassTemplateFactory() { return reinterpret_cast<ClassFactory>(0x00457850); }
-ClassFactory PartyRecordFactory() { return reinterpret_cast<ClassFactory>(0x00457740); }
+ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
+ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
 // 0045B210 / 0045C560 (RET 4): the options read from and written to the registry key.
 __declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
 __declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
@@ -288,7 +288,7 @@ void RegisterWindowClass(HINSTANCE instance) {
     WNDCLASSEXA windowClass;
     windowClass.cbSize = sizeof(windowClass);
     windowClass.style = CS_DBLCLKS;
-    windowClass.lpfnWndProc = reinterpret_cast<WNDPROC>(&Global<char>(0x00457D40));
+    windowClass.lpfnWndProc = ei::Code<WNDPROC>(0x00457D40);
     windowClass.cbClsExtra = 0;
     windowClass.cbWndExtra = 0;
     windowClass.hInstance = instance;
@@ -493,7 +493,7 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // the hook's jump. The frame's last camera update (00457595 -> 0040FB30) is held still while a
 // scenario is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick
 // (00457368 -> 005641F0) are followed by the harness's "speed" hold. The standalone image has no
-// original code there (INT3): it calls the function directly. A harness hook for the call
+// original code there (its code section is guarded): it calls the function directly. A harness hook for the call
 // (ei/main_loop.h) comes first wherever one is set; in the image it is the harness's only way in.
 template <typename Fn>
 Fn CallTarget(const unsigned char& call, Fn fallback) {
@@ -733,7 +733,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     }
     OptionsLoadAt(options, nullptr, RegistryRoot());
     const gamecrt::NewHandler previousHandler =
-        libcrt::SetNewHandler(reinterpret_cast<gamecrt::NewHandler>(&Global<char>(0x00455A30)));
+        libcrt::SetNewHandler(ei::Code<gamecrt::NewHandler>(0x00455A30));
     Client()->Setup();
     Server()->Setup();
     // The field of view: pi * 2 / 7 (51.4 degrees).

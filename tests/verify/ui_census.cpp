@@ -35,6 +35,7 @@
 #include "../../src/game/ui.h"
 #include "../../src/hook/log.h"
 #include "../../src/render/render.h"
+#include "ei/hook.h"
 #include "game/game_data.h"
 
 #include <windows.h>
@@ -381,12 +382,14 @@ bool AfterFunctionEnd(std::uintptr_t target) {
 }
 
 // Follows the jump at the entry of a function (E9 rel32: an incremental link's thunk, a hook's
-// redirected entry; `mov eax, imm32; jmp eax`: EI_ORIGINAL's forwarders) to where it goes; 0 when the
-// code at `entry` is not such a jump.
+// redirected entry; `push imm32; jmp ei_code_dispatch`: EI_ORIGINAL's forwarders, to the code for the address) to
+// where it goes; 0 when the code at `entry` is not such a jump.
 std::uintptr_t JumpTarget(std::uintptr_t entry) {
     const auto* q = reinterpret_cast<const std::uint8_t*>(entry);
     if (q[0] == 0xE9) return entry + 5 + *reinterpret_cast<const std::int32_t*>(entry + 1);
-    if (q[0] == 0xB8 && q[5] == 0xFF && q[6] == 0xE0) return *reinterpret_cast<const std::uintptr_t*>(entry + 1);
+    if (q[0] == 0x68 && q[5] == 0xE9 &&
+        entry + 10 + *reinterpret_cast<const std::int32_t*>(entry + 6) == reinterpret_cast<std::uintptr_t>(&ei_code_dispatch))
+        return ei::CodeAddress(*reinterpret_cast<const std::uintptr_t*>(entry + 1));
     return 0;
 }
 

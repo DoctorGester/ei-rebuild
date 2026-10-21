@@ -74,6 +74,22 @@ extern "C" void* __cdecl ei_replay_lookup(std::uintptr_t address) {
     std::exit(3);
 }
 
+namespace ei {
+
+// The code for game.exe's function at `address` in ei_vectors (ei/hook.h): a stand-in or the replacement as a
+// forwarder finds them, else the address itself (nothing runs there: calling it fails where it is called).
+std::uintptr_t CodeAddress(std::uintptr_t address) {
+    for (const StandIn& s : StandIns())
+        if (s.address == address) return reinterpret_cast<std::uintptr_t>(s.function);
+    for (const HookEntry* e = g_entries; e; e = e->next)
+        if (e->address == address) return reinterpret_cast<std::uintptr_t>(e->replacement);
+    return address;
+}
+
+bool HasCode(std::uintptr_t address) { return CodeAddress(address) != address; }
+
+} // namespace ei
+
 // EI_ORIGINAL's target in ei_vectors: [ESP] the address, [ESP+4] the caller's return address, the
 // arguments in their registers (EAX too: some originals take one there; ECX, EDX) and on the stack as
 // the forwarder received them. The target is reached with all of them as they were.

@@ -740,7 +740,7 @@ BOOL CPlayerClient::CreateClient() {
     handlers_.SetSize(kClientHandlerCount);
     std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
     for (const HandlerEntry& entry : kClientHandlers)
-        handlers_[entry.type] = reinterpret_cast<Handler>(entry.address);
+        handlers_[entry.type] = ei::Code<Handler>(entry.address);
     return 1;
 }
 EI_REPLACE_METHOD(0x00667230, CPlayerClient::CreateClient);

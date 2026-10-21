@@ -43,7 +43,7 @@ const char* ItemImageFormat() { return "quitem%04d"; }
 const int* SlotXs() { return ei::GamePointer<const int>(0x0074111C); }   // 300, 500, 200, 400, 600, 75, 725
 const int* SlotYs() { return ei::GamePointer<const int>(0x00741138); }   // 300 x5, 500, 500
 using ActionDoneFn = void(__fastcall*)(CUnit*);
-ActionDoneFn SpeakerActionDone() { return reinterpret_cast<ActionDoneFn>(0x006023F0); }
+ActionDoneFn SpeakerActionDone() { return ei::Code<ActionDoneFn>(0x006023F0); }
 
 
 constexpr int kEventJoins = 1;

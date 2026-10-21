@@ -120,13 +120,13 @@ void InstallProfiler() {
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof info);
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    // game.exe's code: its module, or in the standalone image (the host exe's own module sits below
-    // 0x400000) the headers the host laid out at the image base.
-    const std::uintptr_t base = Standalone() ? kImageBase : reinterpret_cast<std::uintptr_t>(GetModuleHandleA(nullptr));
+    // game.exe's code: its module's code sections. None in the standalone image: none of game.exe's code runs
+    // there and its code section is guarded (S18i), so a stack word there is not read.
+    const std::uintptr_t base = reinterpret_cast<std::uintptr_t>(GetModuleHandleA(nullptr));
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
     const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);
     const IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(nt);
-    for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i, ++section) {
+    for (unsigned i = 0; !Standalone() && i < nt->FileHeader.NumberOfSections; ++i, ++section) {
         if (!(section->Characteristics & IMAGE_SCN_CNT_CODE)) continue;
         const std::uintptr_t start = base + section->VirtualAddress, end = start + section->Misc.VirtualSize;
         if (!g_exeCode || start < g_exeCode) g_exeCode = start;

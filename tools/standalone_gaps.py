@@ -1,7 +1,8 @@
-"""Lists the code the standalone image could still reach as INT3 (docs/notes/standalone.md, S16c).
+"""Lists the game.exe code the standalone image could still reach without a rewrite (docs/notes/standalone.md, S16c).
 
 In the image every address of game.exe's code section without a registration (EI_REPLACE*, the UI input
-handlers) holds INT3. Three ways our code can get there:
+handlers) has no code: what reaches it lands on CodeAddress's stub, which reports it (S18i). Three ways our
+code can get there:
   forwarders   EI_ORIGINAL targets in src/ (a forwarder runs the address)
   literals     code addresses written in src/ (callbacks, function pointers handed to the game's tables:
                particle callbacks, qsort comparators, network handlers, actionDone, ...); the five

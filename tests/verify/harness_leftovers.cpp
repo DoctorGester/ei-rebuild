@@ -69,19 +69,19 @@ void* __cdecl ZeroedNew(std::size_t size) {
 using SuspectionConstructFn = SuspectionMode*(__fastcall*)(SuspectionMode*);
 SuspectionMode* __fastcall ZeroedSuspectionConstruct(SuspectionMode* mode) {
     mode->ClearFields();
-    return reinterpret_cast<SuspectionConstructFn>(kSuspectionConstruct)(mode);
+    return ei::Code<SuspectionConstructFn>(kSuspectionConstruct)(mode);
 }
 using FearConstructFn = FearMode*(__fastcall*)(FearMode*, void*, int);
 FearMode* __fastcall ZeroedFearConstruct(FearMode* mode, void*, int flag) {
     mode->ClearFields();
-    return reinterpret_cast<FearConstructFn>(kFearConstruct)(mode, nullptr, flag);
+    return ei::Code<FearConstructFn>(kFearConstruct)(mode, nullptr, flag);
 }
 
 // A class template: the dword after its nine weights (+0x34, archived with them) zeroed first.
 using TemplateConstructFn = ClassTemplate*(__fastcall*)(ClassTemplate*);
 ClassTemplate* __fastcall ZeroedTemplateConstruct(ClassTemplate* t) {
     std::memset(t->weightsTail, 0, sizeof(t->weightsTail));
-    return reinterpret_cast<TemplateConstructFn>(kTemplateConstruct)(t);
+    return ei::Code<TemplateConstructFn>(kTemplateConstruct)(t);
 }
 
 // CMapObject::Construct's call of CObject3D::Construct: the view position, which the constructor

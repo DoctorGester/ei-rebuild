@@ -276,7 +276,7 @@ void __fastcall CaptureThenCursorLock(void* cursor) {
         if (g_skip > 0) --g_skip;
         else Capture();
     }
-    reinterpret_cast<void(__fastcall*)(void*)>(kCursorLock)(cursor);
+    ei::Code<void(__fastcall*)(void*)>(kCursorLock)(cursor);
 }
 
 } // namespace

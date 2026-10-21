@@ -460,7 +460,9 @@ void ShortSort(char* lo, char* hi, std::size_t width, Compare compare) {
 
 } // namespace
 
+// A comparator at its address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
+    compare = ei::Code<Compare>(reinterpret_cast<std::uintptr_t>(compare));
     constexpr std::size_t kShortSort = 8;
     if (count < 2 || width == 0) return;
     char* loStack[30];
@@ -966,7 +968,8 @@ int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
 EI_REPLACE_STANDALONE(0x006E727B, libcrt::AtExit);
 
 // exit: the onexit list, then the host CRT's exit. The exe's own terminators (__xp / __xt, for the
-// game CRT's streams) have nothing to do in the image, where the streams are the host's.
+// game CRT's streams) have nothing to do in the image, where the streams are the host's. A function
+// registered at its address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
 void __cdecl Exit(int code) {
     static bool exiting = false;
     if (!exiting) {
@@ -979,7 +982,7 @@ void __cdecl Exit(int code) {
                 function = ExitFunctions().back();
                 ExitFunctions().pop_back();
             }
-            if (function) function();
+            if (function) ei::Code<ExitFunction>(reinterpret_cast<std::uintptr_t>(function))();
         }
     }
     std::exit(code);
@@ -1080,8 +1083,13 @@ struct ArrayUnwind {
 };
 } // namespace
 
+// An element function at its address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
+ElementFunction ElementCode(ElementFunction f) { return ei::Code<ElementFunction>(reinterpret_cast<std::uintptr_t>(f)); }
+
 void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
                                  ElementFunction destroy) {
+    construct = ElementCode(construct);
+    destroy = ElementCode(destroy);
     char* p = static_cast<char*>(array);
     int constructed = 0;
     ArrayUnwind unwind{p, size, constructed, destroy};
@@ -1094,6 +1102,7 @@ void __stdcall ConstructElements(void* array, std::size_t size, int count, Eleme
 EI_REPLACE(0x006E8693, libcrt::ConstructElements);
 
 void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
+    destroy = ElementCode(destroy);
     char* p = static_cast<char*>(array) + size * count;
     ArrayUnwind unwind{p, size, count, destroy};
     while (--count >= 0) {

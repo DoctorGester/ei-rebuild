@@ -594,7 +594,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
     CodecClose(m);
-    m->streamFile = reinterpret_cast<CodecOpenFn>(m->streamCodec[kCodecOpen])(m, reinterpret_cast<void*>(kStreamReadCallback), 0);
+    m->streamFile = reinterpret_cast<CodecOpenFn>(m->streamCodec[kCodecOpen])(m, ei::Code<void*>(kStreamReadCallback), 0);
     int rate = CodecAttribute(m, kCodecOutputRate);
     int channels = CodecAttribute(m, kCodecOutputChannels);
     int bits = CodecAttribute(m, kCodecOutputBits);
@@ -702,7 +702,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     if (deviceIndex >= 0) {
         lib::AlignedArray<int> devices;
         devices.Construct();
-        if (DirectSoundEnumerate()(reinterpret_cast<void*>(kDeviceCallback), &devices) == 0 && deviceIndex < devices.size)
+        if (DirectSoundEnumerate()(ei::Code<void*>(kDeviceCallback), &devices) == 0 && deviceIndex < devices.size)
             device = devices[deviceIndex];
         devices.FreeData();
     }

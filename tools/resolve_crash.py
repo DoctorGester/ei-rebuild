@@ -202,15 +202,15 @@ class Stack:
 
     def thunk(self, kind, t):
         """(module, address) where code at t really goes: through jump thunks (incremental linking) and
-        the forwarders to the original game function (mov eax, address; jmp eax)."""
+        the forwarders to the original game function (push address; jmp ei_code_dispatch, S18i)."""
         for _ in range(3):
             img = self.images.get(kind)
-            head = img.read(t - img.base, 7) if img else None
+            head = img.read(t - img.base, 10) if img else None
             if not head:
                 break
             if head[0] == 0xE9:
                 t += 5 + struct.unpack_from('<i', head, 1)[0]
-            elif head[0] == 0xB8 and head[5:7] == bytes([0xFF, 0xE0]) and 'game' in self.images:
+            elif len(head) == 10 and head[0] == 0x68 and head[5] == 0xE9 and 'game' in self.images:
                 kind, t = 'game', struct.unpack_from('<I', head, 1)[0]
             else:
                 break

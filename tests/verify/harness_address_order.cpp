@@ -43,7 +43,7 @@ void __fastcall SortForOriginal(ObjectSet* self) {
     for (std::uint32_t* p = self->data + 1; p < end; ++p)
         if (*p != p[-1]) *out++ = *p;
     using ResizeFn = void(__fastcall*)(ObjectSet*, void*, int, int);
-    reinterpret_cast<ResizeFn>(0x0047B880)(self, nullptr, static_cast<int>(out - self->data), -1);
+    ei::Code<ResizeFn>(0x0047B880)(self, nullptr, static_cast<int>(out - self->data), -1);
 }
 
 // 006C8E90 (cdecl, two slots of SetSun's sector array): by (sy, sx) of the sectors in the slots.
