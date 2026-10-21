@@ -15,7 +15,8 @@ game.exe for the callbacks.
 
 ## Structure
 
-- `CParticleSource` (vtable 0073CFD0, class id 0xC, 0x1F0 bytes, made by `NewParticleSource` 004981B0). Slot 2 `Create`
+- `CParticleSource` (vtable 0073CFD0, class id 0xC, 0x1F0 bytes, made by `NewParticleSource` 004981B0; a CTransformObject in the game,
+  declared as a `CEngineObject` subclass, so sources are engine objects without casts). Slot 2 `Create`
   fills the per-type parameters by `type_` (0x2000-0x2052; names in the table at 0078B120: name, type, lifetime) and
   stores three callbacks (all `__thiscall` on the source): +0x1E0 emit one particle `(Particle*, int)`, +0x1E4 update one
   particle (0 drops it), +0x1E8 update one element of the array at +0x154 (0x38-byte elements). Slot 6 `Tick`

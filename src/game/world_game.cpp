@@ -667,7 +667,7 @@ int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->ob
 } // namespace
 
 void GameFlow::UpdateMultiplayerVariable() {
-    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     NamedFloatTable* variables = &player->Party()->variables_;
     if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
@@ -745,7 +745,7 @@ constexpr int kRequestDone = 3;   // the client's game state request: answered
 
 void GameFlow::ReturnLocalParty() {
     if (!Active(net::GameClient())) return;
-    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     CParty* party = player->Party();
     GlobalParty()->Assign(party);
     ThePartyManager()->BeginRedeploy(party);
@@ -800,7 +800,7 @@ int GameFlow::SaveGameThunk(const char* slot) { return SaveGameAt(this, nullptr,
 int __stdcall RequestZone(const char* zone, int entrance) {
     ei::GameData<char>(0x007C7D94) = 1;
     // 0066B1B0: the local view asks to go to a zone (name, entrance).
-    return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(zone, entrance);
+    return TheClientWorld()->LocalView()->RequestZone(zone, entrance);
 }
 
 void GameFlow::DropSessions() {
@@ -1001,7 +1001,7 @@ void GameFlow::SwitchMultiplayerZone() {
             mfc::CString zone(mfc::CString::kUnset);
             MultiplayerZoneInto(&zone);
             ToMainMenu() = 1;
-            reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(zone, 0);   // 0066B1B0
+            TheClientWorld()->LocalView()->RequestZone(zone, 0);   // 0066B1B0
         }
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
@@ -1327,7 +1327,7 @@ constexpr int kResultMainMenu = 4;
 
 
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
-inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(client)->LocalView()); }
+inline CPlayerClient* ClientWorldLocalView(void* client) { return static_cast<CWorldClient*>(client)->LocalView(); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
 __declspec(naked) int __stdcall EnterZoneAt(CParty*) EI_ORIGINAL(0x0057A060)
 
@@ -1413,7 +1413,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheServerWorld()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
     TheClientWorld()->SetPlayer(reinterpret_cast<std::uint8_t*>(TheServerWorld()->shared5C_.ptr));
-    ClientWorldLocalView(TheClientWorld())->sendParty = 0;
+    ClientWorldLocalView(TheClientWorld())->sendParty_ = 0;
 }
 
 // ---- New game (0057BD10) ------------------------------------------------------------------------
@@ -1536,7 +1536,7 @@ void GameFlow::ProcessRequest() {
         break;
     case kStateLoad:
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
-        ClientWorldLocalView(clientWorld)->sendParty = 0;
+        ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         TheServerWorld()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
         ServerUpdateAt(TheServerWorld());
@@ -1546,10 +1546,10 @@ void GameFlow::ProcessRequest() {
         if (requestArg_) {
             const char* autoplay = kAutoplay;
             if (autoplay) {
-                reinterpret_cast<CPlayerClient*>(ClientWorldLocalView(clientWorld))->StartRecording(autoplay);
+                ClientWorldLocalView(clientWorld)->StartRecording(autoplay);
                 AutoplayOn() = 1;
             } else {
-                reinterpret_cast<CPlayerClient*>(ClientWorldLocalView(clientWorld))->StopRecording();
+                ClientWorldLocalView(clientWorld)->StopRecording();
                 AutoplayOn() = 0;
             }
         }
@@ -1564,7 +1564,7 @@ void GameFlow::ProcessRequest() {
         break;
     case kStatePartyZone: {
         const char* zone = requestTarget_;
-        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         TheServerWorld()->TeardownZone();
         if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
@@ -1575,15 +1575,15 @@ void GameFlow::ProcessRequest() {
                 StartZoneAt(this, nullptr, kMainMenu, 2);
             }
         }
-        ClientWorldLocalView(clientWorld)->sendParty = 1;
+        ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }
     case kStateNetworkZone: {
         StartNetworkZoneAt(requestTarget_);
-        CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+        CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         static_cast<CWorldClient*>(clientWorld)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
-        ClientWorldLocalView(clientWorld)->sendParty = 1;
+        ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }
     default:
@@ -1846,7 +1846,7 @@ void GameFlow::UpdateFromServer() {
         stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(&g_questFiles);   // 00581860
     }
     auto* clientWorld = TheClientWorld();
-    CPlayer* player = ClientWorldLocalView(clientWorld)->player;
+    CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
     LocalVariables unusedEmpty;
     unusedEmpty.table.ConstructDefault();
     NamedFloatTable* variables = &player->Party()->variables_;
@@ -1907,7 +1907,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The server's variables, by stamp.
-    if (ClientWorldLocalView(clientWorld)->player->sessionKind100_ == 1) {
+    if (ClientWorldLocalView(clientWorld)->player_->sessionKind100_ == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
         NodeVector changed;

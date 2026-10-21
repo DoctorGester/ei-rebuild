@@ -5,6 +5,7 @@
 // original addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
+#include "player_client.h"
 #include "world_glue.h"
 #include "sound.h"
 #include "ui_cursor.h"
@@ -262,7 +263,7 @@ int __cdecl StartFirstMap() {
     static_cast<CWorldServer*>(world)->SetGameResult(1);
     void* client = TheClientWorld();
     static_cast<CWorldClient*>(client)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
-    static_cast<CWorldClient*>(client)->LocalView()[0x85] = 0;
+    static_cast<CWorldClient*>(client)->LocalView()->sendParty_ = 0;
     ei::GameData<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;
     void* script = TheMissionScript();

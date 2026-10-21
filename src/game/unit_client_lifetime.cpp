@@ -57,7 +57,7 @@ void CUnitClientSpecific::DestroyClient() {
     for (CParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
-        reinterpret_cast<CEngineObject*>(source)->Release();
+        source->Release();
         source = nullptr;
     }
     ReleaseFace(this);
@@ -70,7 +70,7 @@ void CUnitClientSpecific::DestructClientBody() {
     for (CParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
-        reinterpret_cast<CEngineObject*>(source)->Release();
+        source->Release();
         source = nullptr;
     }
     ReleaseFace(this);   // 004EBE60 with null; the original's release test after it finds null

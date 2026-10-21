@@ -58,9 +58,8 @@ void LightForMaterial(CLight* light, CMaterial* material, std::uint32_t ambient)
     light->SetLitColors(reinterpret_cast<const float*>(material), std::bit_cast<float>(ambient));
 }
 
-// The mesh's name: its slot 7, CEngineObject::GetName (the mesh is an engine object; CFigureMesh
-// keeps its vtable as a plain field).
-const char* MeshName(CFigureMesh* mesh) { return reinterpret_cast<CEngineObject*>(mesh)->GetName(); }
+// The mesh's name: its slot 7, CEngineObject::GetName.
+const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
 
 // --- x87 sequences --------------------------------------------------------------------------------
 

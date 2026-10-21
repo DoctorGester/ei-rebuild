@@ -206,8 +206,8 @@ int CParticleManager::DrawAll(void* renderer) {
     Vector3 axis;
     CameraRotation().AxisZ(&axis);
 
-    // The manager's objects are its sources (CParticleSource is not declared as a CEngineObject).
-    auto sourceOf = [](CEngineObject* object) { return reinterpret_cast<CParticleSource*>(object); };
+    // The manager's objects are its sources.
+    auto sourceOf = [](CEngineObject* object) { return static_cast<CParticleSource*>(object); };
     auto* node = objectList_.head;
     CParticleSource* source = node ? sourceOf(node->data) : nullptr;
     while (source) {

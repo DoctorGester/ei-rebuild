@@ -20,7 +20,6 @@ constexpr int kServerClassId = 0x39;
 constexpr std::uint32_t kShowsNumbers = 0x400000;   // CMapObject::flags_: hits show their number
 
 // A particle source as the counted engine object it is (effects.h declares only its own members).
-CEngineObject* AsObject(CParticleSource* particleSource) { return reinterpret_cast<CEngineObject*>(particleSource); }
 } // namespace
 
 // --- The base companion -------------------------------------------------------------------------------
@@ -111,15 +110,15 @@ EffectParticle* EffectParticle::Assign(const EffectParticle* other) {
     power = other->power;
     CParticleSource* old = source;
     source = other->source;
-    if (source) ++AsObject(source)->refCount_;
-    if (old) AsObject(old)->Release();
+    if (source) ++source->refCount_;
+    if (old) old->Release();
     present = other->present;
     return this;
 }
 EI_REPLACE_METHOD(0x00512490, EffectParticle::Assign);
 
 void EffectParticle::ReleaseSource() {
-    if (source) AsObject(source)->Release();
+    if (source) source->Release();
 }
 EI_REPLACE_METHOD(0x00511290, EffectParticle::ReleaseSource);
 

@@ -36,6 +36,7 @@ class CItem;       // item.h
 class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
+class CPlayerClient;   // player_client.h
 class CScript;   // script.h
 struct AIEventTable;   // unit_ai.h
 namespace netlink {
@@ -86,21 +87,6 @@ struct ObjectIdMap {
     void Construct();
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
-
-
-
-// What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
-struct LocalViewData {
-    std::uint8_t engineObject[0x1C];     // the CPlayerClient's engine object fields
-    CPlayer* player;                 // +0x1C
-    std::uint8_t clientState[0x84 - 0x20]; // the CPlayerClient's state, handlers and streams
-    // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
-    // player whatever its id (UnitReadNetState), and the game-state message only presses Enter.
-    std::uint8_t localSession;
-    std::uint8_t sendParty;              // +0x85 CPlayerClient::sendParty_: the flow sets it once the local player took the requested party (the login then sends the party first), clears it for a new zone
-};
-static_assert(offsetof(LocalViewData, localSession) == 0x84);
-static_assert(offsetof(LocalViewData, sendParty) == 0x85);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
 // it; its MFC list head is at +0x38 and each node's data (+8) is a CPlayer.
@@ -1298,8 +1284,8 @@ public:
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see
     // (relation masks +0x244/+0x248 of the candidate); null when none or `unit` is null.
     CUnit* NearestVisibleUnit(CUnit* unit);
-    // 005699F0. The local view (session +0x20; its +0x1C is the local CPlayer), or null.
-    std::uint8_t* LocalView();
+    // 005699F0. The local view (the session's connection; its player_ is the local CPlayer), or null.
+    CPlayerClient* LocalView();
     // 00566EC0. Whether the local view is in mode 2 (+0x20).
     bool IsLocalViewMode2();
     // world_small_calls.cpp (A-W14).

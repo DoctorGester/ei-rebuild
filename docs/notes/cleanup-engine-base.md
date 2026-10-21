@@ -84,5 +84,5 @@ none may be devirtualised.
 - `CParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `CObject3D::orientation`; the sound
   manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading_` and `Current()->occurrence`.
 - `LeverRecord` (lever.h) is the only declaration of the lever table's record (CString members, spots as floats). bink_video.cpp's
-  `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `LocalViewData::partyTaken` is `sendParty` (CPlayerClient::sendParty_, the same
-  byte).
+  `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `LocalViewData::partyTaken` was `CPlayerClient::sendParty_`
+  (LocalViewData is gone: `CWorldClient::LocalView()` returns the CPlayerClient).

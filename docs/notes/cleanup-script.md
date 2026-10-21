@@ -18,7 +18,7 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
 - Console: the interface is `CInterface3D` (`SetConsoleRect`, `SetDebugInfoRect`, `SetConsoleHistory`, `ShowFps`, `ConsoleAddText`, `fade_->Start`),
   the debug display switches are `CWorldClient::Show* / Hide*`, the world is `WorldServer()` (`LootDeadUnits`; players through the shared
   `WorldGetPlayer`), a player is `CPlayer` (`Server()`, `Party()->members_` / `variables_` / `Money()`, `logTraffic_` +0x10C), the local player is
-  `LocalViewData::player`, the network client is `net::GameClient()` (active unless `flags7_ & kDetached`; the host test reads
+  `LocalView()->player_`, the network client is `net::GameClient()` (active unless `flags7_ & kDetached`; the host test reads
   `BindingMessage::PlayerRef()` as a `PlayerMessage::host_`), the frame timer is `CSceneRenderer::FrameTime` (slot 6).
 - `mfc::CTime` (006FE3BB `Construct`) and `mfc::CString::FormatV` (006FDC12) in lib/mfc.h; `ConsoleStreambuf::StreambufConstruct` /
   `StreambufDestruct` (the old iostream base, 006FCAD2 / 006FCB35); `CUiWindow::VirtualPlayerList(mode)` (slot 38, kick / ban) and

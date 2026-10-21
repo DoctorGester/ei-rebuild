@@ -57,7 +57,7 @@ constexpr std::int16_t kFrameMarked = 3;    // marked objects
 
 // The local view (CWorldClient::LocalView): the ids of the units shown on the map (partyUnitIds_)
 // and, in multiplayer, of the other players' units (otherUnitIds_).
-CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
+CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 // The local player's side: its world player's number.
 int LocalSide() { return LocalView()->Owner()->playerId_; }
 

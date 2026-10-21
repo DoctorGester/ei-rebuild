@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "core_streams.h"
 #include "core_transform.h"
+#include "effects.h"       // CParticleSource
 #include "game_lists.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
@@ -459,7 +460,7 @@ void CMapObjectClientSpecific::DestructBody() {
     SetVtable(&particles, kParticleArrayVtable);
     if (EffectParticle* data = particles.data) {
         for (int i = 0; i < particles.size; ++i)
-            if (data[i].source) reinterpret_cast<CEngineObject*>(data[i].source)->Release();
+            if (data[i].source) data[i].source->Release();
         gamecrt::operator_delete(particles.data);
     }
     SetVtable(this, CMapObjectCompanion::kVtableAddress);

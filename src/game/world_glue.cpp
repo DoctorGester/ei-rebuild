@@ -71,7 +71,7 @@ EI_REWRITTEN(0x005785D0, RunScriptText);
 void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     CPlayer* player;
     if (IsMultiplayerClient()) {
-        player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+        player = TheClientWorld()->LocalView()->player_;
     } else {
         player = TheServerWorld()->GetPlayer(0);
         if (!player) {
@@ -108,7 +108,7 @@ float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 const char* DefaultMusic() { return ei::GameData<const char*>(0x0079BECC); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
-CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
+CPlayerClient* LocalClient() { return TheClientWorld()->LocalView(); }
 } // namespace
 
 void __stdcall GameSetConstructionVariable(std::uint32_t value) {
@@ -254,12 +254,12 @@ void GameRejoin() {
 EI_REWRITTEN(0x00578B20, GameRejoin);
 
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out) {
-    CPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    CPlayer* player = TheClientWorld()->LocalView()->player_;
     player->Party()->variables_.CopyPrefixed(prefix, out);
 }
 EI_REWRITTEN(0x00578B70, GameLocalPlayerVariables);
 
-std::uint8_t* GameLocalView() { return TheClientWorld()->LocalView(); }
+CPlayerClient* GameLocalView() { return TheClientWorld()->LocalView(); }
 EI_REWRITTEN(0x00578BC0, GameLocalView);
 
 int __stdcall GameSendFlag10(int value) { return TheClientWorld()->SendFlag10(value); }

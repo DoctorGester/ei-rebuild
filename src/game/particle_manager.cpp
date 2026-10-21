@@ -14,8 +14,6 @@ constexpr int kStoppedTypeA = 0x2001;
 constexpr int kStoppedTypeB = 0x2003;
 constexpr int kStoppedTypeC = 0x2004;
 
-CParticleSource* AsSource(CEngineObject* object) { return reinterpret_cast<CParticleSource*>(object); }
-CEngineObject* AsObject(CParticleSource* source) { return reinterpret_cast<CEngineObject*>(source); }
 
 // The original's inlined iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
@@ -35,7 +33,7 @@ int CParticleManager::Create() {
 // particle is deleted (RemoveHead, which frees the list's blocks with the last node).
 void CParticleManager::Destroy() {
     for (HeldMap::Node* node = held_.First(); node && node->value; node = held_.After(node))
-        AsObject(node->value)->Release();
+        node->value->Release();
     held_.Clear();
     maxHeldId_ = 0;
     while (freeParticles.count != 0) gamecrt::operator_delete(freeParticles.RemoveHead());
@@ -49,7 +47,7 @@ CParticleSource* CParticleManager::CreateSource(int type) {
     ++object->refCount_;
     int id = object->id_;
     if (id > maxHeldId_) maxHeldId_ = id;
-    CParticleSource* source = AsSource(object);
+    CParticleSource* source = static_cast<CParticleSource*>(object);
     held_[id] = source;
     if (quietStart != 0) {
         int kind = object->type_;

@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CPlayerClient {
+class CPlayerClient : public CPlayerConnection {
 public:
     // player_client_orders.cpp (A-H14): the local view's orders, queued for the server (out_), each
     // a type byte and a payload; all return 1. Units go as their ids (-1 for a null entry).
@@ -249,19 +249,18 @@ public:
     // in the login record (+0x2C) and raises its version.
     void NotifyUnitChanged(CUnit* unit);
 
-    CPlayer* Owner() const { return player_; }
-
-    void* vtable_;
-    std::uint8_t engineObject_[0x1C - 0x04];
-    CPlayer* player_;               // +0x1C the world player
-    int state_;                     // +0x20 0 connecting, 1 logged in, 2 sending the camera, ...
+    // +0x20 state_: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
     // +0x24 the message handlers by type (thiscall, 0: refused), built by 00667230 (256 of them).
     using Handler = int(__fastcall*)(CPlayerClient*, void*);
     lib::AlignedArray<Handler> handlers_;
     BitStream in_;                  // +0x34 the server's messages being run
     BitStream out_;                 // +0x5C requests for the server
-    std::uint8_t localSession_;     // +0x84 a local session (LocalViewData::localSession): the game-state message only presses Enter
-    std::uint8_t sendParty_;        // +0x85 the login sends the party first
+    // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
+    // player whatever its id (UnitReadNetState), and the game-state message only presses Enter.
+    std::uint8_t localSession_;
+    // +0x85 the login sends the party first: the flow sets it once the local player took the
+    // requested party, clears it for a new zone.
+    std::uint8_t sendParty_;
     std::uint8_t unused_86[2];
     CoderState compressor_;         // +0x88 for the requests sent
     CoderState decompressor_;       // +0x28B0 for the messages received
@@ -277,6 +276,8 @@ static_assert(offsetof(CPlayerClient, in_) == 0x34);
 static_assert(offsetof(CPlayerClient, out_) == 0x5C);
 static_assert(offsetof(CPlayerClient, sendParty_) == 0x85);
 static_assert(offsetof(CPlayerClient, decompressor_) == 0x28B0);
+static_assert(offsetof(CPlayerClient, localSession_) == 0x84);
+static_assert(sizeof(CPlayerClient) == 0x50F8);
 
 // 00666EC0 / 00666F70 (RET 4) and 00666F90 / 00666FA0 (player_client.cpp, A-H21): CPlayerConnection's
 // own destructor body and deleting destructor; CPlayerClient's class name and id.

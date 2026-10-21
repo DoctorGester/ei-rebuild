@@ -7,6 +7,7 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "map_object.h"
+#include "player_client.h"
 #include "player_messages.h"
 #include "unit.h"
 #include "world.h"
@@ -370,9 +371,9 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || current->id_ != id) {
-            auto* view = reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(ManagerContextOf(unit))->LocalView());
-            CPlayer* local = view->player;
-            if ((local->id_ == id || view->localSession) && unit->player != local) {
+            CPlayerClient* view = static_cast<CWorldClient*>(ManagerContextOf(unit))->LocalView();
+            CPlayer* local = view->player_;
+            if ((local->id_ == id || view->localSession_) && unit->player != local) {
                 CPlayer* old = unit->player;
                 unit->player = local;
                 if (old) old->RemoveUnit(unit);

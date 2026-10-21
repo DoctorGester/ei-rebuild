@@ -134,7 +134,7 @@ Vector3* MatrixRows::Transform(Vector3* out, const Vector3* v) const {
 // ---- Units and players ---------------------------------------------------------------------------
 
 CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
-    CPlayerClient* view = Session()->Client();
+    CPlayerClient* view = LocalView();
     if (!view || !unit) return nullptr;
     float best = 1e38f;
     CUnit* nearest = nullptr;
@@ -161,14 +161,13 @@ FootprintPart* CObject3D::PartBox(int index) {
     return reinterpret_cast<FootprintPart*>(&part->bounds_);
 }
 
-std::uint8_t* CWorldClient::LocalView() {
-    if (session_) return reinterpret_cast<std::uint8_t*>(Session()->connection_);
+CPlayerClient* CWorldClient::LocalView() {
+    if (session_) return static_cast<CPlayerClient*>(Session()->connection_);
     return nullptr;
 }
 
 bool CWorldClient::IsLocalViewMode2() {
-    if (!session_) return false;
-    CPlayerClient* view = Session()->Client();
+    CPlayerClient* view = LocalView();
     if (!view) return false;
     return view->state_ == 2;
 }
@@ -229,7 +228,7 @@ void CWorldClient::CreateExitMarkers() {
         }
         auto* source = static_cast<CParticleSource*>(
             ParticleManagerObject()->CreateSource(kExitParticles));
-        auto* marker = reinterpret_cast<CEngineObject*>(source);
+        CEngineObject* marker = source;
         AssignCounted(&countedA0_[i], marker);
         const ZoneExit& exit = exits_[i];
         source->position = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};

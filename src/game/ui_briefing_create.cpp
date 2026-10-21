@@ -2,6 +2,7 @@
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "core_streams.h"
 #include "game_strings.h"
+#include "player_client.h"
 #include "world_glue.h"
 #include "combat.h"
 #include "player_messages.h"
@@ -95,7 +96,7 @@ MapRecord* FindLocalMap() {
 }
 
 CPlayer* LocalViewPlayer() {
-    return reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
+    return TheClientWorld()->LocalView()->player_;
 }
 
 CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }

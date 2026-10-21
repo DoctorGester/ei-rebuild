@@ -23,7 +23,7 @@ const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF110
 const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF100); }
 
 // The mesh is a counted engine object (its slot 4 releases it).
-void ReleaseMesh(CFigureMesh* mesh) { reinterpret_cast<CEngineObject*>(mesh)->Release(); }
+void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
 
 } // namespace
 

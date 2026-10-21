@@ -86,7 +86,7 @@ constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 // The screen as the panels know it (the same object; ui.h).
 CBattleScreen* Hud(CBattleScreen* screen) { return screen; }
-CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }
+CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 
 // The action column's button of an action name: "follow" is button 0, any other name button 1
 // (the original compares the two constant names inline).
