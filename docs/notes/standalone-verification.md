@@ -504,6 +504,10 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   quiet run had town 8.19 / 8.40, fight 19.36 / 19.22. The load moves these by 2x between runs, more than the change
   (by the profile ~1.6% of the town, ~0.1 ms). Left: libcrt::Controlfp (006EBBB4) still converts through
   __control87_2, 0.2-0.4% of the town and fight under terrain lighting (SectorData::Light, two calls a lit sector).
+- **_controlfp without the UCRT (SV10k).** `libcrt::Controlfp` is the original's FNSTCW / converter / merge / converter /
+  FLDCW (docs/notes/standalone.md, "_controlfp without the UCRT"); checked against game.exe's own bytes over 342M calls
+  (return, control word, MXCSR, status), two mutations caught; goldens 110 the same, 0 differ. By profile (EI_PROFILE=1,
+  render_stats, 9,177 samples): no sample under control87 / _controlfp / Controlfp anywhere in the run.
 - **The profiler and the sealed .bss (SV10j).** EI_PROFILE's stack scan took any word inside game.exe's image as a
   possible return address and read the bytes before it; a word pointing into .bss tripped the image's data-seam
   guard ("read of game.exe's .bss ... a use that missed the data seam", the run failed at once). It now takes words

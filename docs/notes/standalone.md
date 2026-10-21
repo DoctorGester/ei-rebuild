@@ -345,6 +345,21 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
   61,547 / 786,725 cases at 027F. No call site depends on lrint's 0: Usable / the armour layers test > 0, the tornado clamps
   below 0, the armour's int16 store keeps 0; the script ids (a NaN id now takes the next negative id, as 004BD347 does),
   delays, steps and AI cells follow the original. Goldens the same.
+- **_controlfp without the UCRT (SV10k)**: `libcrt::Controlfp` 006EBBB4 is the original's own steps: FNSTCW
+  (`x87::ControlWord`), 006EBC2A (hardware word to the CRT's abstract one: _EM_* in bits 0-4 in the reverse order of
+  the hardware's masks plus denormal in 19, _RC_* in 8-9, _PC_* in 16-17 with 64 bits = 0, _IC in 18), the merge
+  `(abstract & ~mask) | (value & mask)` (returned as is, junk bits of `value` included), 006EBCBC (abstract back to
+  hardware) and FLDCW (`x87::SetControlWord`), the last only when a bit the FPU keeps (0x1F3F) would change. No MXCSR
+  effect, as VC6's. The UCRT's `__control87_2` (0.2-0.4% of the town's / fight's main thread, two calls per lit sector
+  from `SectorData::Light`) is gone from the profile. Checked old against new against the original's own bytes
+  (build/SV10k/equiv.cpp, not checked in: game.exe 006EBBB4..006EBD45 copied into executable memory and called, the
+  UCRT version and the port side by side, built with the image's flags): return value, control word, MXCSR and x87 status
+  after, over every 16-bit start word x 90 masks x 52 values (307M calls), every FPU-kept start word x every abstract
+  word x 8 masks, the callers' sequences (0,0) / (0x300,0x300) / (previous,~0) from every start word, and 2M random
+  calls: the port equals the original in all. The UCRT version (sampled every 64th call) differed from it in the
+  control word in 437k of 4.9M calls, never in the return value or MXCSR (probably start words whose reserved bits the
+  round trip changes, which the UCRT version skipped setting: the original always loads the converted word).
+  Mutations (_PC_53 mapped to 24 bits; the FLDCW test ignoring bit 3, the overflow mask) differ in 69M / 2.9M cases.
 - **Exceptions** (crt_except.cpp): _CxxThrowException 006E7819 raises 0xE06D7363 with the thrower's ThrowInfo, so
   the exe's catch tables and ours match; MSVC 6 std::exception (vtable 00747290, "Unknown exception").
 - **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers
