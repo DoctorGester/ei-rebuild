@@ -443,7 +443,7 @@ namespace {
 
 // The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
 // (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
-CUnit* UnitAtPoint(CWorldClient* world, void*, int* point) { return static_cast<CUnit*>(world->UnitAt(reinterpret_cast<const long*>(point))); }
+CUnit* UnitAtPoint(CWorldClient* world, void*, int* point) { return world->UnitAt(reinterpret_cast<const long*>(point)); }
 
 } // namespace
 

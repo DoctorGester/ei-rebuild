@@ -58,6 +58,8 @@ class CCamera;   // camera.h
 class CMaterial;   // material.h
 class CStream;   // core_streams.h
 class CUnit;     // unit.h
+class CMapObject;   // map_object.h
+class CSpell;   // spell.h
 class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
@@ -641,12 +643,12 @@ public:
     // `to`, or, for a spell with several targets (+0x38) or area flags, at the nearest living units
     // within its radius (+0x34) the caster may hit (its heroes group, friends or diplomacy), the
     // requested target first. Network clients cast nothing with a caster.
-    void CastSpell(const void* spell, CUnit* caster, const Vector3* from, CEngineObject* target,
+    void CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, CMapObject* target,
                    const Vector3* to, int extra);
     // 0058E670 (RET 0x20). One missile of `spell` from the caster (or `from`) to the target (or
     // `to`, on the ground there); kept on the missile list unless its first update ends it. A
     // hostile spell turns the target unit against the caster.
-    void CreateMissile(const void* spell, CUnit* caster, Vector3 from, CEngineObject* target, const Vector3* to,
+    void CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target, const Vector3* to,
                        int extra);
 
     // world_loot.cpp
@@ -1450,9 +1452,9 @@ public:
     // from PickAt2's object on, the first unit among the sorted hits (the cursor +0x100 moves past
     // the others and those whose object is gone); failing that the same from PickAt's. Null if
     // none.
-    CEngineObject* UnitAt(const long* point);
+    CUnit* UnitAt(const long* point);
     // 00565D00 (RET 4). The same from PickAt2's object only (no second pick).
-    CEngineObject* UnitAt2(const long* point);
+    CUnit* UnitAt2(const long* point);
     // 005656A0 (RET 8; the battle screen's selection box). Every object of the frame's window list
     // (+0xF0) that still exists and whose side half has a drawn part meeting the screen rectangle
     // `rect` (slot 23) is appended to `out`.

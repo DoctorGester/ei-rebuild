@@ -108,7 +108,7 @@ float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetProtot
 // The messages of a unit's player (CPlayer::connection_).
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
+CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 } // namespace
 
 namespace {

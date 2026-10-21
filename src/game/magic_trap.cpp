@@ -167,7 +167,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
     auto* world = ObjectWorld(this);
     // The world's slot 28: the height at (x, y), in ST0.
     from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
-    if (!(static_cast<CSpell*>(spell)->targetFlags_ & kSpellAtUnits) && points.size != 0) {
+    if (!(spell->targetFlags_ & kSpellAtUnits) && points.size != 0) {
         for (int i = 0; i < points.size; ++i) {
             const TrapPoint& point = points.data[i];
             Vector3 at = {point.x, point.y, 0.0f};
@@ -228,8 +228,8 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     const char* text = record->spell;
     CSpellManager* manager = SpellManagerOf(WorldContext());
-    CEngineObject* made = manager->CreateSpellFromText(text);
-    CEngineObject* old = spell;
+    CSpell* made = manager->CreateSpellFromText(text);
+    CSpell* old = spell;
     spell = made;
     if (made) ++made->refCount_;
     if (old) old->Release();
@@ -284,8 +284,8 @@ void EmptyArray(mfc::CArray<T>& array) {
 
 // The spell (+0x23C), a counted reference: the new one's count raised before the old one is
 // released.
-void SetSpell(MagicTrap* trap, CEngineObject* spell) {
-    CEngineObject* old = trap->spell;
+void SetSpell(MagicTrap* trap, CSpell* spell) {
+    CSpell* old = trap->spell;
     trap->spell = spell;
     if (spell) ++spell->refCount_;
     if (old) old->Release();
@@ -371,12 +371,12 @@ EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
 
 void MagicTrap::LoadTrap(CStream* stream) {
     LoadMapObject(stream);
-    void* manager = SpellManagerOf(WorldContext());
+    CSpellManager* manager = SpellManagerOf(WorldContext());
     // The original reads the id and the two counts into its argument's stack slot: a read that
     // fails leaves the previous value there (at first the stream pointer itself).
     auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&value, 4);
-    SetSpell(this, value == -1 ? nullptr : static_cast<CBaseManager*>(manager)->FindObject(value));
+    SetSpell(this, value == -1 ? nullptr : static_cast<CSpell*>(manager->FindObject(value)));
     stream->Read(&value, 4);
     area.SetSize(value, -1);
     for (int i = 0; i < area.size; ++i) stream->Read(&area.data[i], sizeof(TrapCircle));

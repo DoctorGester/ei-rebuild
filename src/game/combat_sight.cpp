@@ -77,7 +77,7 @@ bool Greater(double a, double b) { return a > b; }   // TEST AH,0x41 not taken
 
 bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
+CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
 // _ftol (006E853C) of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).

@@ -180,7 +180,7 @@ EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
 
 void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     CWorldServer* world = ServerWorld();
-    auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
+    CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) {
         CBaseManager* factory = world->TimedObjectManager();
         CEngineObject* missile = factory->CreateObject(kMissileObject, -1);

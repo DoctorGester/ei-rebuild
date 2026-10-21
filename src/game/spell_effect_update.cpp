@@ -299,7 +299,7 @@ void Possession(CSpellEffect* e) {
     }
     auto* player = e->caster->player;
     if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
-        CEngineObject* target = e->target;
+        CMapObject* target = e->target;
         CUnitServer* server = ControllerOf(target);
         ScriptGroup* group = &ServerOf(player)->group50F8_;
         group->Insert(target);
@@ -312,7 +312,7 @@ void Possession(CSpellEffect* e) {
         float reach = sight >= floor ? sight : floor;
         float wake;
         MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
-        e->world->WakeUnitsAround(&static_cast<CUnit*>(target)->position, wake);
+        e->world->WakeUnitsAround(&target->position, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;

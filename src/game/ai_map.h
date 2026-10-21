@@ -826,10 +826,10 @@ public:
     // 004BA090 (RET 4). refreshUnits = the low byte of `on`; returns the old byte (AL).
     std::uint8_t SetRefreshUnits(int on);
     // 004BA0A0 / 004BA0C0 (RET 4). CSectorMap::Add / Remove (AL).
-    bool AddToSectors(CEngineObject* object);
-    bool RemoveFromSectors(CEngineObject* object);
+    bool AddToSectors(CMapObject* object);
+    bool RemoveFromSectors(CMapObject* object);
     // 004BA0E0 (RET 8). CSectorMap::Move, through its address (Rebirth patches it; AL).
-    bool MoveInSectors(CEngineObject* object, const Vector3* position);
+    bool MoveInSectors(CMapObject* object, const Vector3* position);
     // 004BA100 (RET 0xC). CSectorMap::FindUnitsInRadius into `result` (a CTypedPtrList<CUnit>).
     void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius);
 
@@ -906,7 +906,7 @@ public:
     int MaterialAt(const Vector3* position);
     // 005BC180 (RET 8; ai_map.cpp, A-W14; UnitSpecApply 0046C4D0). Gives `object` the orientation
     // `rotation`: it is taken out of the sector map, turned and put back.
-    void TurnObject(CEngineObject* object, const Quaternion* rotation);
+    void TurnObject(CMapObject* object, const Quaternion* rotation);
     // 005BC1F0. Material record (0x118 bytes) of the cell at `position`; the first one outside.
     void* MaterialRecordAt(const Vector3* position);
     // 005B64E0. Has cell (x, y) a bridge occluder? `height` (optional) gets the highest deck.

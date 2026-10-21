@@ -181,7 +181,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
         if (other && ObjectSlots(other)->IsDead() == 0 && other->sizeClass == 0) {
             bool ranged = false;
             if (action2.kind == 3) {
-                auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
+                CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
                 ranged = weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
             }
             if (!ranged) {

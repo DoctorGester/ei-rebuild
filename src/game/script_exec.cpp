@@ -360,14 +360,14 @@ void PlayMovie(const SSCCmd* cmd) {
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
-    CEngineObject* spell = TheSpellManager()->CreateSpellFromText(Text(cmd, 0));
+    CSpell* spell = TheSpellManager()->CreateSpellFromText(Text(cmd, 0));
     if (spell) ++spell->refCount_;
     if (spell) {
         const float* f = cmd->floatArgs.data;
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
-            CEngineObject* target = Arg(cmd, 0);
-            if (target) TheWorld()->CastSpell(spell, 0, &from, target, Position(target), 0);
+            CMapObject* target = MapObjectArg(cmd, 0);
+            if (target) TheWorld()->CastSpell(spell, 0, &from, target, &target->position, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
             TheWorld()->CastSpell(spell, 0, &from, nullptr, &to, 0);

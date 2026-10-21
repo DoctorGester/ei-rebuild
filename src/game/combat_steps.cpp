@@ -89,7 +89,7 @@ float Select(float a, float b, float ifLess, float otherwise) {
 }
 
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
+CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
 // 1 << the active weapon's type, else of the natural weapon (none from type 7 up).
 std::uint32_t WeaponBit(CUnitServer* self) {

@@ -46,7 +46,7 @@ EI_REPLACE_METHOD(0x005533B0, CUnitServer::RefreshVitals);
 void CUnitServer::UpdateProtection() {
     stats.PackBodyProtection(unit, &VitalsOf(unit), protection);
     float factor = unit->player ? 1.0f : DefenceFactors()[GameDifficulty()];
-    auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
+    CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {
         double bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
         protection[0] = static_cast<std::int16_t>(static_cast<int>(bonus * factor));

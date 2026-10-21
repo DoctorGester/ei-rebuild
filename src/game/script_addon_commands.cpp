@@ -51,12 +51,6 @@ const float* Floats(Call* call) { return call->cmd->floatArgs.data; }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
 CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]->object; }
 
-CUnit* AsCUnit(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
-CUnitServer* ServerOf(CEngineObject* unit) { return AsCUnit(unit)->ServerController(); }
-const UnitPrototypeRecord* PrototypeOf(CEngineObject* unit) {
-    return static_cast<CUnit*>(unit)->GetPrototype();
-}
-
 // The float bits of `value` as the dword the player messages take.
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
@@ -160,9 +154,9 @@ bool StopCameraSave(Call*) {
 // ResetTarget(unit) (replaces the game's): the brain's alarm record at the brain's alarm slot
 // byte (+0x36) is applied again, after the perception memory is emptied.
 bool ResetTarget(Call* call) {
-    CEngineObject* unit = ObjectArg(call, 0);
-    if (!unit || !IsUnit(unit)) return InvalidArguments("ResetTarget");
-    AIBrain* brain = ServerOf(unit)->Brain();
+    CUnit* unit = UnitOrNull(ObjectArg(call, 0));   // IsUnit's test
+    if (!unit) return InvalidArguments("ResetTarget");
+    AIBrain* brain = unit->ServerController()->Brain();
     int index = brain->alarmSlot;
     brain->memory.Reset();
     if (index >= brain->alarmRecords.size) return Report("ResetTarget", "Failed to reset unit %d", unit->id_);
@@ -239,21 +233,22 @@ bool GSListPlayerVars(Call* call) {
 // GiveUnitWeapon(unit, item, override) / GiveUnitArmor: the item made from its name goes to the
 // unit; with override 1 (only for units without a text-key id) the unit's stats are set from it.
 bool GiveUnitWeapon(Call* call) {
-    CEngineObject* unit = ObjectArg(call, 0);
+    CEngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
-    if (!unit) return Report("GiveUnitWeapon", "Unit doesn't exists");
-    if (!IsUnit(unit)) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", unit->id_);
+    if (!object) return Report("GiveUnitWeapon", "Unit doesn't exists");
+    CUnit* unit = UnitOrNull(object);   // IsUnit's test
+    if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id_);
     const char* name = Text(call, 0);
     auto* item = static_cast<CItemWeapon*>(TheServerWorld()->CreateItemNamed(name));
     if (override && unit->id_ >= 1000000000) override = false;   // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
-    int slot = static_cast<CUnit*>(unit)->AddWeapon(item);
+    int slot = unit->AddWeapon(item);
     if (slot == -1) return true;
-    AsCUnit(unit)->pendingWeapon = slot;
+    unit->pendingWeapon = slot;
     if (override) {
         auto* weapon = static_cast<const itemdb::WeaponRecord*>(item->GetPrototype());
-        CombatStats& stats = ServerOf(unit)->Combat();
-        const UnitPrototypeRecord* prototype = PrototypeOf(unit);
+        CombatStats& stats = unit->ServerController()->Combat();
+        const UnitPrototypeRecord* prototype = unit->GetPrototype();
         Store(&stats.damage, item->damage_);
         Store(&stats.damageSpread, item->damageSpread_);
         float sum = prototype->combat[3] + weapon->defenceBonus;
@@ -266,10 +261,10 @@ bool GiveUnitWeapon(Call* call) {
         stats.attackCategory = static_cast<float>(x87::FromUnsigned(weapon->category));
         stats.naturalWeapon = item->GetType();
         for (int i = 0; i < 7; ++i) Store(&stats.damageWeights[i], weapon->damageTypes[i]);
-        static_cast<CMapObject*>(unit)->MarkChanged(0);
+        unit->MarkChanged(0);
     }
-    ServerSlots(ServerOf(unit))->RefreshModel();
-    ServerSlots(ServerOf(unit))->RefreshEquipment();
+    ServerSlots(unit->ServerController())->RefreshModel();
+    ServerSlots(unit->ServerController())->RefreshEquipment();
     return true;
 }
 
@@ -277,18 +272,19 @@ bool GiveUnitWeapon(Call* call) {
 // 1, 3 and 6 second block) + 0.3 * (the slots 2, 4, 5), each plus the prototype's protection
 // scale, into both halves of the unit's server-side protection pair c.
 bool GiveUnitArmor(Call* call) {
-    CEngineObject* unit = ObjectArg(call, 0);
+    CEngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
-    if (!unit) return Report("GiveUnitArmor", "Unit doesn't exists");
-    if (!IsUnit(unit)) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", unit->id_);
+    if (!object) return Report("GiveUnitArmor", "Unit doesn't exists");
+    CUnit* unit = UnitOrNull(object);   // IsUnit's test
+    if (!unit) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", object->id_);
     const char* name = Text(call, 0);
     CItem* item = TheServerWorld()->CreateItemNamed(name);
     if (override && unit->id_ >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
-    static_cast<CUnit*>(unit)->EquipArmour(item);
+    unit->EquipArmour(item);
     if (override) {
-        UnitStatPair* protection = static_cast<CMapObjectServer*>(AsCUnit(unit)->companion)->vitals.protection;
-        const UnitPrototypeRecord* prototype = PrototypeOf(unit);
+        UnitStatPair* protection = static_cast<CMapObjectServer*>(unit->companion)->vitals.protection;
+        const UnitPrototypeRecord* prototype = unit->GetPrototype();
         // Four blocks of seven values (A, C, B, D in memory order) and their weights.
         float blocks[4][7] = {};
         const float weights[4] = {0.05f, 0.3f, 0.3f, 0.3f};
@@ -296,7 +292,7 @@ bool GiveUnitArmor(Call* call) {
             for (int c = 0; c < 7; ++c) blocks[block][c] = from[c] + blocks[block][c];
         };
         for (int slot = 0; slot < 7; ++slot) {
-            auto* equipped = static_cast<CItemArmor*>(AsCUnit(unit)->armor[slot]);
+            auto* equipped = static_cast<CItemArmor*>(unit->armor[slot]);
             if (!equipped) continue;
             switch (slot) {
             case 0: addInto(0, equipped->absorb_[0]); break;
@@ -319,9 +315,9 @@ bool GiveUnitArmor(Call* call) {
             value = prototype->protectionScale + sum;
             Store(&protection[c].current, value);
         }
-        static_cast<CMapObject*>(unit)->MarkChanged(0);
+        unit->MarkChanged(0);
     }
-    ServerSlots(ServerOf(unit))->RefreshEquipment();
+    ServerSlots(unit->ServerController())->RefreshEquipment();
     return true;
 }
 
