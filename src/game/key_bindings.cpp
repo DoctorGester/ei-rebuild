@@ -37,8 +37,8 @@ struct Action {
 };
 static_assert(sizeof(Action) == 0x10);
 
-constexpr std::uintptr_t kKeysAddress = std::uintptr_t(0x007857B0);      // the key table, then the actions' table
-constexpr std::uintptr_t kActionsAddress = std::uintptr_t(0x00787070);
+constexpr std::uintptr_t kKeysAddress = ei::DataId(0x007857B0);      // the key table, then the actions' table
+constexpr std::uintptr_t kActionsAddress = ei::DataId(0x00787070);
 Key* Keys() { return ei::GamePointer<Key>(kKeysAddress); }
 constexpr int kKeyCount = (kActionsAddress - kKeysAddress) / 0x48;   // 88
 Action* Actions() { return ei::GamePointer<Action>(kActionsAddress); }
