@@ -315,11 +315,11 @@ public:
     // particle_attach.cpp. Follow `object` (a CObject3D, or null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
     // the emission point becomes the new attachment point (or the local position).
-    void Attach(void* object);                      // 004849F0
+    void Attach(CObject3D* object);                 // 004849F0
     // Where the source sits on `object` (a CObject3D): with flag 0x10 a unit's part chosen by
     // attachPoint (0 the effect point, 1-7 head / hands / legs / body, 8-12 body00-04), else the
     // top of its bounds; without flag 0x10 its position. Returns `out`.
-    Vector3* AttachmentPoint(Vector3* out, void* object);   // 00484C00
+    Vector3* AttachmentPoint(Vector3* out, CObject3D* object);   // 00484C00
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else
     // its position raised by the bounds' upper z extent. Returns `out` (`this` is not used).
     Vector3* PartPoint(Vector3* out, CObject3D* object, const char* prefix);   // 00484B40
@@ -331,7 +331,7 @@ public:
     // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000..
     // (see the name table at 0078B120); owner_ the particle manager.
     std::uint8_t unused_054[0x94 - 0x54];
-    void* attachedTo;               // +0x094
+    CObject3D* attachedTo;          // +0x094 the object followed, null: none
     Vector3 origin;                 // +0x098 world emission point
     Vector3 motion;                 // +0x0A4 movement since the last tick
     Vector3 side;                   // +0x0B0 unit, motion x (0, 0, 1) (zero while still)

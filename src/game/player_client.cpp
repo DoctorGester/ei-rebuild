@@ -648,7 +648,7 @@ int CPlayerClient::OnNewObject() {
     if (Same(model, TextWisp())) {
         auto* source =
             ParticleManagerObject()->CreateSource(kWispParticles);
-        source->Attach(created);
+        source->Attach(object);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
     }
