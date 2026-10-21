@@ -71,7 +71,7 @@ Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with th
 
 Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14).
 
-- **N1** 2D canvas layer (ready; 2 sessions). Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too). Files: `src/render/render_ui.{h,cpp}`, `src/render/render.cpp`, `src/render/render_internal.h`. After: SV1.
+- **N1** 2D canvas layer (review since 2026-10-21; 2 sessions). Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too). Files: `src/render/render_ui.{h,cpp}`, `src/render/render.cpp`, `src/render/render_internal.h`. After: SV1.
 - **N4** ui_gallery scenario: every window family captured (ready; 1 session). Files: `tests/scenarios/`. After: SV1.
 - **P7** CPU-written textures and clouds on the GPU (optional) (ready; 1.5 sessions).
 - **N3** Comparison harness: uinative / uiboth, per-surface diff (waiting on N1; 1.5 sessions). Text compared with a tolerance (own fonts). One registration line in harness.cpp after SV1 and W2 merge. Files: `tests/verify/harness_ui.cpp`, `tools/compare_frames.py`, `src/render/render_ui.cpp`.
@@ -461,8 +461,8 @@ After the standalone exe (user 2026-10-14). Mission scripts run on Lua through a
 
 Finished 2026-10-14: every hookable game function is rewritten (99.97% of game code); 201 stubs of 1-4 bytes wait for the standalone build. Area history is in the area notes.
 
-- **A-I23** Interface functions no scenario checks (running since 2026-10-21). The connection screen Create / list draw, exchange slots 0062D100 / 0062D200. Also unreached: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers.
 - **A-Z1** The last eight functions: the port is complete (done 2026-10-14). The last eight functions ported: the port is complete (function_sizes.inc hand-patched for two sizes).
+- **A-I23** Interface functions no scenario checks (done 2026-10-21). The connection screen Create / list draw, exchange slots 0062D100 / 0062D200. Also unreached: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers.
 - **PF1** Script keyword matching without per-character locale calls (done 2026-10-14; opus, 0.5 sessions). Script keyword matching (ClassifyToken 004CF600) uses a 256-byte case-fold table built from the game CRT's tolower instead of per-character _strnicmp locale calls; no behaviour change. Files: `src/game/script_parse.cpp`.
 - **PF1a** Case-fold table for the other game _strnicmp callers (done 2026-10-14; sonnet, 0.3 sessions). Other game _strnicmp callers (CMappedResource::FindEntry, object3d_figure_setup.cpp, net_server_players.cpp) use SameIgnoringCase / CaseFoldTable from lib/crt where hot. Files: `src/game/resource.cpp`, `src/game/object3d_figure_setup.cpp`, `src/game/net_server_players.cpp`. After: PF1.
 
