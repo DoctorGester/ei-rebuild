@@ -15,7 +15,7 @@
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.
 // --standalone runs ei_standalone.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
-// it runs without game.exe (S18k; --exe only places the shared host copy) and loads ei_hook.dll itself (--run), with the same
+// it runs without game.exe (S18k; --exe only places the shared host copy of a launch without a scenario) and loads ei_hook.dll itself (--run), with the same
 // environment, working directory, output folder, job object and time limits as a game.exe run. Its own
 // output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
 // game.exe would). EI_LAUNCH_STANDALONE=1 in the environment does the same as --standalone (a test batch's
@@ -506,6 +506,9 @@ int wmain(int argc, wchar_t** argv) {
         // so the game's registry path lookups point there instead of at another install.
         exe = exeOverride;
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
+    } else if (standalone) {
+        // The image reads no game.exe (S18k): no exe needed, the data folder is the install's.
+        SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
     }
     if (!harness.empty()) {
         wchar_t scenario[MAX_PATH];
@@ -561,7 +564,8 @@ int wmain(int argc, wchar_t** argv) {
     if (standalone) {
         GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
         const std::wstring built = Dir(self) + L"\\ei_standalone.exe";
-        program = harness.empty() ? SharedStandaloneHost(built, full) : built;
+        // The shared copy needs --exe: the run folder it sits in is found from there (never from the install's).
+        program = harness.empty() && !exeOverride.empty() ? SharedStandaloneHost(built, full) : built;
         cmd = L"\"" + program + L"\" --dll \"" + dll + L"\" --run";   // the host reads no game.exe (S18k)
         if (!gameArgs.empty()) cmd += L" --" + gameArgs;
         // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.

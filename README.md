@@ -44,7 +44,7 @@ with `ei_hook.dll` (the harness) and `EI_NO_HOOKS=1`: none of our code replaces 
 
 ### Vanilla (no Rebirth)
 
-`launch-vanilla.cmd` runs the image on the plain GOG install in `F:\games\EvilIslands`. On first use, `tools\setup_vanilla_run.cmd` builds `run\vanilla`: the GOG `game.exe` with Rebirth's dgVoodoo DLLs beside it (the original code's harness runs draw through them). The image itself starts from `runanilla-clean`, the same files without dgVoodoo's DLLs (`tools\clean_run.py` makes or updates it with hard links; `launch-vanilla.cmd` and `harness.cmd` call it), so the DirectX check takes the native path. `run\` is not committed. The game's shared registry paths are redirected to the GOG folder for that process only.
+`launch-vanilla.cmd` runs the image on the plain GOG install in `F:\games\EvilIslands`. On first use, `tools\setup_vanilla_run.cmd` builds `run\vanilla`: the GOG `game.exe` with Rebirth's dgVoodoo DLLs beside it (the original code's harness runs draw through them). The image reads nothing from `run\` but the place of its shared host copy (`run\standalone`; `launch-vanilla.cmd` passes `--exe` for it), so dgVoodoo's DLLs there do not touch it. `run\` is not committed. The game's shared registry paths are redirected to the GOG folder for that process only.
 
 ### Automated harness
 
@@ -204,8 +204,7 @@ change, so none of its runs needs the machine to itself); dgVoodoo draws the ori
 `--widescreen --record`'s addon runs, compare.py's original side). Passed runs of the original code are cached in
 `build\reference` by scenario commit and install (`--fresh` plays them again; the key leaves out the harness).
 The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
-`standalone`: the image on the vanilla data, our renderer; `ei_launch --standalone`, which still names
-run\vanilla-clean's game.exe, though the image reads none since S18k) and on the Rebirth install (`standalone-rebirth`:
+`standalone`: the image on the vanilla data, our renderer; `ei_launch --standalone` with `--game` the install, no game.exe: the image reads none since S18k) and on the Rebirth install (`standalone-rebirth`:
 the Rebirth data and
 goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of
 config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
