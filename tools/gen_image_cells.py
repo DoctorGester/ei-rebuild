@@ -83,8 +83,8 @@ REVIEWED_DATA = [
                                 'variable, set by a static initialiser to RegisterWindowMessageA("commctrl_DragListMsg")'),
     (0x007482F0, 0x0074C60C, 117, 'RTTI (MFC, the CRT, iostream, STLport): complete object locators and base class '
                                   'descriptors -> their type descriptors'),
-    (0x00753F04, 0x0077F7CC, 38, 'C++ EH: catch handler types (FuncInfo) and catchable types (ThrowInfo) -> the '
-                                 'caught / thrown pointer types\' type descriptors (".PAV...")'),
+    (0x00753F04, 0x0077F7CC, 12, 'C++ EH: catchable types (ThrowInfo) -> the thrown pointer types\' type '
+                                 'descriptors (".PAV...")'),
     # .data
     (0x007857B4, 0x0078706C, 88, 'the key bindings\' command table (007857B0, 0x48-byte entries): names'),
     (0x00787074, 0x0078768C, 86, 'the action definitions (00787070) and the settings table after them: names'),
@@ -119,11 +119,22 @@ REVIEWED_DATA = [
     (0x0079AE50, 0x0079AE50, 1, 'the CRT\'s __lconv: __lconv_c'),
 ]
 
+# Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc), as C20a did for
+# the code cells (LEFT_KINDS): the C++ EH tables read only by __CxxFrameHandler on game.exe's own frames, which gets
+# the FuncInfo (unwind map, try block map, handler arrays, the caught types of the handlers) from the function's
+# prologue. No such frame runs in the image (our code's FuncInfos are the compiler's, and none of game.exe's
+# functions has a registration that reaches one: C20a), and nothing in src/ or tests/ names the tables; the
+# harness's crash report (tests/verify/harness_crash.cpp) reads ThrowInfo only, as CxxThrowException and our frame
+# handler do. The cells keep game.exe's values, unshifted. The ThrowInfo kinds (eh-throw, eh-catchable) stay
+# cells, with the catchable types' type descriptor cells (the group at 00753F04 below).
+LEFT_STRUCTURES = ('eh-unwind', 'eh-try', 'eh-handlers', 'eh-handler-type')
+
 # Cells into .rdata that belong to the structures the tool walks (structures()): kind, the number of cells, what.
 STRUCTURES = [
-    ('eh-unwind', 2963, "C++ EH: FuncInfo (magic 19930520) -> its unwind map"),
-    ('eh-try', 378, 'C++ EH: FuncInfo -> its try block map'),
-    ('eh-handlers', 380, 'C++ EH: try block -> its catch handler array'),
+    ('eh-unwind', 2963, "C++ EH: FuncInfo (magic 19930520) -> its unwind map: not pointer cells"),
+    ('eh-try', 378, 'C++ EH: FuncInfo -> its try block map: not pointer cells'),
+    ('eh-handlers', 380, 'C++ EH: try block -> its catch handler array: not pointer cells'),
+    ('eh-handler-type', 26, "C++ EH: catch handler -> the caught type's type descriptor (a pointer type's, \".PAV...\"): not pointer cells"),
     ('eh-throw', 10, 'C++ EH: ThrowInfo -> its catchable type array'),
     ('eh-catchable', 41, 'C++ EH: catchable type array -> its catchable types'),
     ('rtti-locator', 53, "RTTI: a vtable's complete object locator (the vtable's slot -1)"),
@@ -325,7 +336,13 @@ def structures(img):
             mark(a + 16, 'eh-try')
             if rdata(dw(a + 16)):
                 for i in range(dw(a + 12)):   # try block: tryLow, tryHigh, catchHigh, nCatches, pHandlerArray
-                    mark(dw(a + 16) + 20 * i + 16, 'eh-handlers')
+                    block = dw(a + 16) + 20 * i
+                    mark(block + 16, 'eh-handlers')
+                    if rdata(dw(block + 16)):
+                        for j in range(dw(block + 12)):   # handler type: adjectives, pType (0 for catch (...)), ...
+                            cell = dw(block + 16) + 16 * j + 4
+                            if type_descriptor(dw(cell)):
+                                kinds.setdefault(cell, 'eh-handler-type')
         # ThrowInfo: attributes, pmfnUnwind (code or 0), pForwardCompat 0, pCatchableTypeArray (count, entries);
         # a catchable type: properties, pType (a type descriptor), ...
         unwind = dw(a + 4)
@@ -524,13 +541,18 @@ def group_of(cell, value, kinds):
         if first <= cell <= last:
             return ('text', i)
     section = section_of(value)
-    if section == 'rdata' and cell in kinds:
+    if cell in kinds:
         return ('structure', [k for k, _, _ in STRUCTURES].index(kinds[cell]))
     groups = REVIEWED_RDATA if section == 'rdata' else REVIEWED_DATA
     for i, g in enumerate(groups):
         if g[0] <= cell <= g[1] and (len(g) < 5 or g[4] == value):
             return (section, i)
     return None
+
+
+def left_out(group):
+    """Whether a group is no pointer cells: text, or a structure of LEFT_STRUCTURES."""
+    return group[0] == 'text' or group[0] == 'structure' and STRUCTURES[group[1]][0] in LEFT_STRUCTURES
 
 
 def describe(group):
@@ -556,7 +578,7 @@ def render(cells, img):
     by_group = {}
     for a, v in cells:
         g = group_of(a, v, kinds)
-        if g is None or g[0] != 'text':
+        if g is None or not left_out(g):
             by_group.setdefault(g, []).append((a, v))
     for g in order + [None]:
         if g not in by_group:
@@ -724,7 +746,7 @@ def main():
             problems.append(f'gen_image_cells: {c:08X} -> {v:08X} has no review (tools/gen_image_cells.py)')
             continue
         counts[g] = counts.get(g, 0) + 1
-        moved += g[0] != 'text'
+        moved += not left_out(g)
         if section_of(v) is None:
             problems.append(f'gen_image_cells: {c:08X} -> {v:08X} is the end of the moved range: a one-past-the-end '
                             'pointer of its last object, or the next section\'s start? decide and review')

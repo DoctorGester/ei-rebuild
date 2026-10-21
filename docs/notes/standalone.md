@@ -161,16 +161,17 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 5517 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 1770 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text and the cells inside named ranges (C18, below); 1057 point into .data, 4460 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 1031 point into .data, 739 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
   0074xxxx: "Nov", "Thu", "pow", "Div", "net" pass them and are the tool's TEXT list; real pointers such as
   `8]t\0` read as text too, so no stronger text rule is safe): every cell into .rdata is either in a structure
   the tool walks (STRUCTURES, counted per kind: the C++ EH tables, FuncInfo (magic 19930520) -> unwind map 2963,
-  -> try block map 378, try block -> handler array 380, ThrowInfo -> catchable type array 10, array -> catchable
+  -> try block map 378, try block -> handler array 380, handler -> the caught type's type descriptor 26 (these four
+  are counted but no cells, C20b, below), ThrowInfo -> catchable type array 10, array -> catchable
   types 41; RTTI, a vtable's slot -1 -> complete object locator 53, locator -> class hierarchy 53, hierarchy ->
   base class array 53, array -> base class descriptors 128; MFC's CRuntimeClass from config/runtime_classes.csv,
   class name 40 and base class 40) or in a REVIEWED_RDATA group: CCmdTarget's maps and CWnd's / CWinApp's message
@@ -179,13 +180,21 @@ each step green on the goldens and removing a measured tie:
   (142), the run-time error messages). Cells into .data are in REVIEWED_DATA groups (cell range, count, what it
   is; a new cell or a changed count fails): in .rdata the per-file `const char* const` copies of ".SEC" (73) and a few other
   string constants, MFC's CCmdTarget maps (3), the message map entry 00746C80, RTTI locators and base class
-  descriptors (117) and EH handler / catchable types (38) to their type descriptors (in .data); in .data the
+  descriptors (117) and EH catchable types (12) to their type descriptors (in .data); in .data the
   string-pointer tables (the key bindings' command table, the action definitions, the script's particle types
   and keyword table (442), skills, log channels, ambient sounds, ...) and the CRT / MFC cells (the lock table,
   `_iob`, `_pctype`, the small-block heap's self-linked region list, `_tzname`, `__lconv_c`, CString's empty
   string and `_afxDataNil`). Every cell lies inside the range and is fixed up in its new place. game.exe's own
   code points at .rdata too (FuncInfo addresses in its EH prologues, string immediates), but none of it runs in
-  the image.
+  the image. **Left out of the cells** (C20b, `LEFT_STRUCTURES`; the code-cell side is C20a below): the C++ EH
+  FuncInfos' pointers (unwind map 2963, try block map 378, handler arrays 380) and the handlers' caught-type
+  descriptors (26 of the 38 cells into the type descriptors; the 12 of the catchable types stay) are 3,747 cells
+  `MoveData` no longer fixes up, 5517 -> 1770: only a frame handler on game.exe's own frames reads them (its
+  FuncInfo comes from the function's prologue, and our code's are the compiler's); nothing in src/ or tests/
+  names the tables (address literals checked), the harness's crash report reads only ThrowInfo, named_data.py
+  names none of them. They keep game.exe's values, so a stray read of one lands in the guarded old range
+  (`OnOldData`). ThrowInfo -> catchable type array and the array's entries stay: `CxxThrowException` and our
+  frame handler read them.
   **The guard**: nothing at the old range (the host's reservation, "Host and image"): a use that missed the seam ends the run with
   `standalone: read|write of game.exe's .rdata|.data at <data> by <code>: ...` (in the import table:
   `... of game.exe's own import slot <slot> (<dll>!<function>) by <code>`) in ei_hook.log, on stderr and in the
@@ -211,7 +220,7 @@ each step green on the goldens and removing a measured tie:
   points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
   code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
   (`FixUpCodePointer`). Left as game.exe's bytes, no code cells: the CRT's SEH scope tables and the C++ EH
-  FuncInfos' unwind actions and catch handlers (13,511 funclet cells, C20a; `LEFT_KINDS`): only a frame handler
+  FuncInfos' unwind actions and catch handlers (13,511 funclet cells, C20a; `LEFT_KINDS`; the tables' pointer cells likewise, C20b, "The cells" above): only a frame handler
   on game.exe's own frames reads them (its FuncInfo comes from the function's prologue, and our code's are the
   compiler's); none had a registration, so all sat at stubs that end the run, and no golden reached one. A stray
   call through one lands in the guarded code section (`no code at`). The ThrowInfo cells stay: our frame handler
