@@ -23,6 +23,7 @@
 #include "originals_render.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 

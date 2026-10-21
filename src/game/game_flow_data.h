@@ -36,8 +36,6 @@ constexpr const char* kMobExtension = ".mob";
 
 // ---- StartNetworkZone --------------------------------------------------------------------------
 constexpr const char* kNetworkExitTarget = "MPGame1";   // where every exit leads
-constexpr std::uintptr_t kExitArrayVtable = std::uintptr_t(0x0073C400);      // CArray<ZoneExit> (after 0056FFE0)
-constexpr std::uintptr_t kExitArrayBaseVtable = std::uintptr_t(0x0073C3F4);
 
 // ---- LeaveZone ---------------------------------------------------------------------------------
 constexpr const char* kCantWrite = "Can`t write to %s";

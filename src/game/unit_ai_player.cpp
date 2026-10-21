@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstdint>
@@ -36,7 +37,7 @@ CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapOb
 // A list on the stack as the original builds it (CPtrList, blocks of 10).
 void InitList(AIObjectList& list) {
     list = {};
-    list.vtable = mfc::PtrListVtable();
+    list.vtable = mfc::impl::PtrListClass::Vtable();
     list.blockSize = 10;
 }
 

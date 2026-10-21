@@ -15,15 +15,8 @@
 #include "originals_library.h"
 #include "game/game_slots.h"
 
-namespace {
-
-void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::GamePointer<const void>(vtable)); }
-
-
-} // namespace
-
 void ScriptGroup::DestructBody() {
-    SetVtable(this, 0x0073D11C);   // CArray<ScriptObjectRef>'s base vtable
+    ei::SetVtable(this, mfc::impl::ObjectRefArrayClass::Vtable());   // CArray<ScriptObjectRef>'s base vtable
     if (!data) return;
     for (int i = 0; i < size; ++i) {
         if (data[i].object) data[i].object->Release();

@@ -178,8 +178,8 @@ EI_REWRITTEN(0x0050FC80, SerializeCArray<DeltaFields>);
 EI_REPLACE(0x00557960, SerializeCArray<Behaviours>);
 EI_REPLACE(0x006B5770, SerializeCArray<Themes>);
 EI_REWRITTEN(0x006C4790, SerializeCArray<SectorVertices>);
-EI_REPLACE(0x00571240, SerializeCArray<WaterLevels>);
-EI_REPLACE(0x005993A0, SerializeCArray<Sectors>);
+EI_REWRITTEN(0x00571240, SerializeCArray<WaterLevels>);
+EI_REWRITTEN(0x005993A0, SerializeCArray<Sectors>);
 
 // The water levels' element helpers.
 EI_REWRITTEN(0x00575690, WaterLevels::ConstructElements);
@@ -266,3 +266,10 @@ EI_REWRITTEN(0x00587DD0, ZoneExits::CopyAt);
 void DeltaState::SetFieldCount(int count) {
     recordarrays::DeltaFields::SetSize(reinterpret_cast<recordarrays::DeltaFields::Array*>(this), nullptr, count, -1);
 }
+
+// The lib templates over tags the game's headers define (C19): the registrations that need the complete tag.
+namespace mfc::impl {
+
+EI_REWRITTEN(0x005711C0, ArrayHeader<ClientMapArrayClass>::Construct);
+
+} // namespace mfc::impl

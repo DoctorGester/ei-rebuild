@@ -69,7 +69,7 @@ void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
 
 void InitGroup(ScriptGroup* group) {
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>((void*)group);
-    group->vtable = scriptvtable::kRefs;
+    group->vtable = mfc::impl::ScriptGroupClass::Vtable();
 }
 
 } // namespace
@@ -133,7 +133,7 @@ int CWorldServer::Update() {
         InitGroup(&sum);
         sum.Union(state->partyUnits_, heroes);
         heroes.CopyFrom(sum);
-        sum.vtable = scriptvtable::kRefsBase;
+        sum.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (sum.data) {
             RefsRelease(sum.data, sum.size);
             gamecrt::operator_delete(sum.data);
@@ -153,7 +153,7 @@ int CWorldServer::Update() {
             copy.Reset();
         }
     }
-    heroes.vtable = scriptvtable::kRefsBase;
+    heroes.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
     if (heroes.data) {
         ScriptObjectRef* ref = heroes.data;
         for (int n = heroes.size; n != 0; --n) (ref++)->DestroyElement(0);

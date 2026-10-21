@@ -221,54 +221,22 @@ void InitMap(CMap<std::uint32_t, std::uint32_t>* p) {
 
 // ---- The instantiations' vtables (game data) ------------------------------------------------------
 
-struct PtrListClass {   // CPtrList (the lists the code builds on the stack; blocks of 10)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D454); }
-};
-struct ItemListClass {   // the item and object pointer lists (CTypedPtrList)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073BE80); }
-};
-struct TempListClass {   // a pointer list built around each item creation (world quests)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073B8D4); }
-};
-struct CellListClass {   // the units' path cell lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EDB0); }
-};
-struct LootListClass {   // the loot lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F12C); }
-};
-struct PlatformListClass {   // the client maps' platform lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F548); }
-};
-struct ClientListClass {   // the client map's lists (world_client_maps 0056FD40)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D018); }
-};
-struct ClientList2Class {   // 00570EA0's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F724); }
-};
-struct ClientList3Class {   // 005715D0's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F73C); }
-};
-struct NodeListClass {   // the AI map's node lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F9F8); }
-};
-struct BlockCostListClass {   // the AI's block cost lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FCFC); }
-};
-struct AiMapListClass {   // the AI map's lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FCF0); }
-};
-struct WaypointListClass {   // the AI plan's waypoint lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FD9C); }
-};
-struct StaticListClass {   // the list a static initialiser builds (005CDAD0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FEB4); }
-};
-struct DwordMapClass {   // the scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C818); }
-};
-struct ScriptCommandsClass {   // CArray<SSCCmd> (a script block, a CList element)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3DC); }
-};
+struct PtrListClass;   // CPtrList (the lists the code builds on the stack; blocks of 10)
+struct ItemListClass;   // the item and object pointer lists (CTypedPtrList)
+struct TempListClass;   // a pointer list built around each item creation (world quests)
+struct CellListClass;   // the units' path cell lists
+struct LootListClass;   // the loot lists
+struct PlatformListClass;   // the client maps' platform lists
+struct ClientListClass;   // the client map's lists (world_client_maps 0056FD40)
+struct ClientList2Class;   // 00570EA0's list
+struct ClientList3Class;   // 005715D0's list
+struct NodeListClass;   // the AI map's node lists
+struct BlockCostListClass;   // the AI's block cost lists
+struct AiMapListClass;   // the AI map's lists
+struct WaypointListClass;   // the AI plan's waypoint lists
+struct StaticListClass;   // the list a static initialiser builds (005CDAD0)
+struct DwordMapClass;   // the scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
+struct ScriptCommandsClass;   // CArray<SSCCmd> (a script block, a CList element)
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -287,10 +255,6 @@ inline void InitLightning8(Lightning8* p) {
 using LightningElements = InitElements<Lightning8, InitLightning8>;
 using FxSourceElement = WithString<0x34, 8>;   // the FX source: its name (+8) empty
 using FxSourceElements = InitElements<FxSourceElement, InitWithString<0x34, 8>>;
-using CommandBlock = WithArray<0x18, 0, ScriptCommandsClass>;
-using CommandBlocks = InitElements<CommandBlock, InitWithArray<0x18, 0, ScriptCommandsClass>>;
-using SharedObjectElement = WithArray<0x20, 0xC, ObjectPtrArrayClass>;   // game/world.h SharedObject
-using SharedObjectElements = InitElements<SharedObjectElement, InitWithArray<0x20, 0xC, ObjectPtrArrayClass>>;
 
 using PtrList = ListAbi<void*>;
 using List8 = ListAbi<Bytes<8>>;
@@ -300,16 +264,12 @@ using List1C = ListAbi<Bytes<0x1C>>;
 using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
 using FxSourceList = ListAbi<FxSourceElement, FxSourceElements>;
-using CommandBlockList = ListAbi<CommandBlock, CommandBlocks>;
-using SharedObjectNewList = ListAbi<SharedObjectElement, SharedObjectElements>;
 
 // The ConstructElements helpers those NewNodes call (__stdcall, RET 8).
 using ParticleSourceArray = ArrayAbi<Bytes<0x24>>;   // 0x24-byte particle sources: the zero fill
 using Plain4C = ArrayAbi<Bytes<0x4C>>;
 using LightningArray = ArrayAbi<Lightning8, LightningElements>;
 using FxSourceArray = ArrayAbi<FxSourceElement, FxSourceElements>;
-using CommandBlockArray = ArrayAbi<CommandBlock, CommandBlocks>;
-using SharedObjectArray = ArrayAbi<SharedObjectElement, SharedObjectElements>;
 
 using Map32 = MapAbi<std::uint32_t, std::uint32_t>;
 using Map64x32 = MapAbi<std::uint64_t, std::uint32_t>;

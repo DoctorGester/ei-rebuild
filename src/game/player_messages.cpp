@@ -21,7 +21,9 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "game_arrays.h"
 
 #include <bit>
 #include <cstring>
@@ -336,7 +338,6 @@ namespace {
 
 constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x00743280);
-constexpr std::uintptr_t kPlacementsVtable = std::uintptr_t(0x0073D2C8);
 constexpr const char* kClassNameAddress = "CPlayerServer";
 constexpr int kClassId = 0x3B;
 
@@ -345,7 +346,7 @@ void ConstructGroup(ScriptGroup& group) {
     group.size = 0;
     group.maxSize = 0;
     group.growBy = 0;
-    group.vtable = scriptvtable::kRefs;
+    group.vtable = mfc::impl::ScriptGroupClass::Vtable();
 }
 
 // A delta field on the stack (four memory streams), as 0066D490 builds and destroys it inline.
@@ -366,7 +367,7 @@ CPlayerServer* CPlayerServer::Construct() {
     player_ = nullptr;
     handlers_.Construct();
     out_.ConstructQueueStream();
-    placements_.vtable = ei::GamePointer<void>(kPlacementsVtable);
+    placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     placements_.data = nullptr;
     placements_.size = 0;
     placements_.maxSize = 0;
@@ -377,7 +378,7 @@ CPlayerServer* CPlayerServer::Construct() {
     sentTimed_.Construct();
     ConstructGroup(group50F8_);
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
-    partyUnits_.vtable = scriptvtable::kRefs;
+    partyUnits_.vtable = mfc::impl::ScriptGroupClass::Vtable();
     ei::SetVtable(this, kServerVtable);
     ClearServerState();
     return this;
@@ -392,7 +393,7 @@ void CPlayerServer::DestructBody() {
     sentObjects_.FreeData();
     decompressor_.out.End();
     compressor_.out.End();
-    placements_.vtable = ei::GamePointer<void>(kPlacementsVtable);
+    placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     if (placements_.data) gamecrt::operator_delete(placements_.data);
     out_.Destruct();
     handlers_.FreeData();

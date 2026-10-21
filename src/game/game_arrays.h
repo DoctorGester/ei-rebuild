@@ -42,7 +42,8 @@ inline void DestroyExit(MapExit* p) { zone::ExitDestruct(p); }
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
 // Script groups: the group's vtable, empty (004CC9B0); the destructor body.
-inline void InitGroup(ScriptGroup* p) { mfc::impl::ConstructHeader<mfc::impl::ScriptGroupClass>(p); }
+inline void InitGroup(ScriptGroup* p);   // defined below the tags
+inline void __fastcall DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }   // 004C2290
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
 // Quest objectives: the text empty (004CEE80); the destructor.
@@ -125,4 +126,47 @@ struct SmoothNodeArrayClass {
 struct GroupArrayClass final
     : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &mfc::impl::SerializeCArray<Groups>> {};
 
+} // namespace gamearrays
+
+// The tags lib/mfc_array.h only declares (their slots need the game's elements).
+namespace mfc::impl {
+
+// A zone's exits, the table a map record's items (0073C400) and the worlds' exit arrays restore; the destructor
+// 00460490 frees each exit's target string.
+struct ExitArrayClass
+    : CompiledCollection<ExitArrayClass, &ExitTargets::Destruct<ExitArrayClass>, &SerializeCArray<gamearrays::Exits>> {};
+// The array inside a map record (constructor 004607E0): derived from ExitArrayClass.
+struct MapRecordItemsClass final : ExitArrayClass {
+    static void* Vtable() { return CompiledVtable<MapRecordItemsClass>(); }
+};
+// CArray<ScriptObjectRef> as a script group's base: the destructor body of 004C2290 (the references released, the
+// storage freed).
+struct ObjectRefArrayClass final
+    : CompiledCollection<ObjectRefArrayClass, &gamearrays::DestructGroupBody, &SerializeCArray<gamearrays::ObjectRefs>> {};
+// A script group (ScriptGroup): its destructor (004BC9A0) stores ObjectRefArrayClass' table.
+struct ScriptGroupClass final
+    : CompiledCollection<ScriptGroupClass, &ScriptRefArrayDestruct, &SerializeCArray<gamearrays::ObjectRefs>> {};
+// A save's shared object pointers (constructor 005985C0): derived from ObjectPtrArrayBaseClass.
+struct ObjectPtrArrayClass final : gamearrays::ObjectPtrArrayBaseClass {
+    static void* Vtable() { return CompiledVtable<ObjectPtrArrayClass>(); }
+};
+
+// The element policies over them (the lib headers cannot name the complete tags).
+// A zone record (92 bytes: eight strings, the exits array at +0x48; constructor 004607E0).
+using MapRecords = ArrayAbi<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
+                            InitElements<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
+                                         InitStringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>>>;
+// The script's groups (the element 004CC9B0 builds, 20 bytes: the group's array at +0).
+using ScriptGroups = ArrayAbi<WithArray<0x14, 0, ScriptGroupClass>,
+                              InitElements<WithArray<0x14, 0, ScriptGroupClass>, InitWithArray<0x14, 0, ScriptGroupClass>>>;
+// The world's shared objects (game/world.h SharedObject): the three dwords, then the objects' array at +0xC.
+using SharedObjectElement = WithArray<0x20, 0xC, ObjectPtrArrayClass>;
+using SharedObjectElements = InitElements<SharedObjectElement, InitWithArray<0x20, 0xC, ObjectPtrArrayClass>>;
+using SharedObjectNewList = ListAbi<SharedObjectElement, SharedObjectElements>;
+using SharedObjectArray = ArrayAbi<SharedObjectElement, SharedObjectElements>;
+
+} // namespace mfc::impl
+
+namespace gamearrays {
+inline void InitGroup(ScriptGroup* p) { mfc::impl::ConstructHeader<mfc::impl::ScriptGroupClass>(p); }
 } // namespace gamearrays

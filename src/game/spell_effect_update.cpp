@@ -13,6 +13,7 @@
 #include "unit_ai.h"
 #include "world_effect.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 using namespace spellfx;
 
@@ -21,7 +22,6 @@ namespace {
 constexpr float kExplosionLoudness = 5.0f;             // immediate
 constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasting strike
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
-void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 
 using UnitList = mfc::CTypedPtrList<CUnit>;
 
@@ -415,7 +415,7 @@ EI_REWRITTEN(0x00681BB0, CSpellEffect::UpdateMissile);
 
 void CSpellEffect::UpdateLasting(int type) {
     UnitList units;   // the inline CPtrList the fireworks and clairvoyance fill
-    units.vtable = kPtrListVtable;
+    units.vtable = mfc::impl::PtrListClass::Vtable();
     units.count = 0;
     units.tail = nullptr;
     units.head = nullptr;
@@ -446,7 +446,7 @@ void CSpellEffect::UpdateLasting(int type) {
     default: break;
     }
 
-    units.vtable = kPtrListVtable;
+    units.vtable = mfc::impl::PtrListClass::Vtable();
     units.RemoveAll();
 }
 EI_REWRITTEN(0x00682650, CSpellEffect::UpdateLasting);

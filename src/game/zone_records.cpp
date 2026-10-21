@@ -6,6 +6,7 @@
 #include "lib/mfc.h"
 #include "game/game_flow_data.h"
 #include "game/object_tables.h"
+#include "game/game_arrays.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -32,7 +33,7 @@ EI_REWRITTEN(0x004608B0, ExitDelete);
 // destroyed, the block freed, the fields left as they are), then the strings from +0x1C down to +0.
 void __fastcall ZoneRecordDestruct(MapRecord* self) {
     mfc::CArray<MapExit>& exits = self->exits;
-    exits.vtable = ei::GamePointer<void>(flowdata::kExitArrayBaseVtable);
+    exits.vtable = mfc::impl::ExitArrayClass::Vtable();
     if (MapExit* data = exits.data) {
         for (int i = 0, n = exits.size; i < n; ++i) DestroyString(data[i].target);
         gamecrt::operator_delete(exits.data);

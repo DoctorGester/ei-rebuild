@@ -26,7 +26,6 @@ namespace {
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);   // the abstract controller
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 void* const kAlarmRecordsVtable = ei::GamePointer<void>(0x0073F04C);
-void* const kAttackOptionsVtable = ei::GamePointer<void>(0x0073F040);
 void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
 void* const kCallsVtable = ei::GamePointer<void>(0x0073F070);
 
@@ -39,7 +38,7 @@ static_assert(offsetof(AIBrain, looks) == offsetof(AIBrain, actionPoint) + offse
 // A step list's constructor (00556850 / 00546060, and 00557B60 with the derived vtable written
 // after it): no steps; `extra` is left as it was.
 void InitSteps(AnimationSteps& steps) {
-    steps.vtable = kAnimationStepsVtable;
+    steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     steps.steps = nullptr;
     steps.count = 0;
     steps.capacity = 0;
@@ -78,7 +77,7 @@ void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
 // The attack option arrays' destructor (00557410, inlined for the second): the vtable, the data
 // freed (the options have no destructor).
 void DestroyAttackOptions(AIAttackOptions& options) {
-    options.vtable = kAttackOptionsVtable;
+    options.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     if (options.data) gamecrt::operator_delete(options.data);
 }
 
@@ -129,7 +128,7 @@ EI_REWRITTEN(0x00545580, CUnitServer::Construct);
 // --- AIPath -------------------------------------------------------------------------------------
 
 void AIPath::Destruct() {
-    excludedBlocks.vtable = ei::GamePointer<void>(kExcludedBlocksVtable);
+    excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
     if (excludedBlocks.data) gamecrt::operator_delete(excludedBlocks.data);
     cells.vtable = PathCellListVtable();
     cells.RemoveAll();
@@ -175,9 +174,9 @@ AIBrain* AIBrain::Construct() {
     alarmRecords = {};
     alarmRecords.vtable = kAlarmRecordsVtable;
     attention.weapons = {};
-    attention.weapons.vtable = kAttackOptionsVtable;
+    attention.weapons.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     attention.spells = {};
-    attention.spells.vtable = kAttackOptionsVtable;
+    attention.spells.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     // The perception memory (inlined): two sight caches, four object lists, reports and calls.
     memory.spareCells = kEmptySightCache;
     memory.sightCells = kEmptySightCache;

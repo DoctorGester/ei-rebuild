@@ -141,7 +141,6 @@ public:
     CSectorMap* DeletingDestruct(unsigned flags);
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F9DC);
-    static constexpr std::uintptr_t kSectorArrayVtable = std::uintptr_t(0x0073F9EC);
 
     void* vtable;           // +0x00 (one slot: the deleting destructor)
     int width;              // +0x04 in sectors

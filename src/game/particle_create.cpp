@@ -27,6 +27,7 @@
 #include "originals_engine.h"
 #include "originals_render.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 #include "ei/vcall.h"
 #include "core_transform.h"
 

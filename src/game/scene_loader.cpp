@@ -585,9 +585,6 @@ mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
     return reinterpret_cast<mfc::impl::CDWordArray*>(faces);
 }
 
-// The arrays' vtables the destructors write back.
-constexpr std::uintptr_t kFramesVtable = std::uintptr_t(0x0073C12C);
-
 template <typename A>
 void FreeArray(A& array, void* vtable) {
     array.vtable = vtable;
@@ -627,7 +624,7 @@ EI_REWRITTEN(0x00454CE0, FaceGroupArrayDestruct);
 
 void SceneNode::Destruct() {
     FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
-    FreeArray(frames, kFramesVtable);
+    FreeArray(frames, mfc::impl::BoneLinkArrayClass::Vtable());
     FreeArray(normals, mfc::impl::Vector3ArrayClass::Vtable());
     FreeArray(morphKeys, mfc::impl::AlignedAt4ArrayClass::Vtable());
     FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
@@ -652,7 +649,7 @@ void SceneNode::Construct() {
     positionKeys.Construct(mfc::impl::NodeItemsBClass::Vtable());
     morphKeys.Construct(mfc::impl::AlignedAt4ArrayClass::Vtable());
     normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
-    frames.Construct(kFramesVtable);
+    frames.Construct(mfc::impl::BoneLinkArrayClass::Vtable());
     children.Construct(mfc::impl::NodeItemsCClass::Vtable());   // 00455150
 }
 

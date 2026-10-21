@@ -113,8 +113,6 @@ inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
 constexpr std::uintptr_t kTerrainVtable = std::uintptr_t(0x0073F6A8);
 constexpr std::uintptr_t kClientHandleVtable = std::uintptr_t(0x0073F628);
-constexpr std::uintptr_t kPlatformListVtable = std::uintptr_t(0x0073F548);       // the platform set's CList
-constexpr std::uintptr_t kClientArrayListVtable = std::uintptr_t(0x0073F73C);   // the array manager's CList
 
 // ---- WorldCreateManagers (0055EE40) -----------------------------------------------------------
 
@@ -175,10 +173,6 @@ inline const char* HumanHeroText() { return "Human Hero"; }
 // The quest database's briefings by name (an STLport hash_map<string, BriefingRecord*>, ui_briefing.h;
 // operator[] 004297A0: stlp::NamedSlot).
 stlp::NameMap& QuestBriefings();   // database_globals.cpp
-// The vtables of the lists and arrays the world server builds on the stack: CPtrList of items
-// (0073BE80), CList of experience shares (0073FAB0), CArray of unit record pointers (0073FAA4).
-constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);
-
 // ---- Update (world_update.cpp) --------------------------------------------------------------
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }

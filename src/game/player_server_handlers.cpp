@@ -61,7 +61,6 @@ float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
 // The use order's unit list: an MFC CArray<CUnit*> (vtable 007402AC; SetAtGrow 0060AD50, RemoveAt
 // 00671200 are the template's members).
-constexpr std::uintptr_t kUnitArrayVtable = std::uintptr_t(0x007402AC);
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
@@ -156,7 +155,7 @@ AIPath* AIPath::Construct() {
     cells = {};
     cells.vtable = PathCellListVtable();
     cells.blockSize = 0x80;
-    excludedBlocks.vtable = ei::GamePointer<void>(kExcludedBlocksVtable);
+    excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
     excludedBlocks.data = nullptr;
     excludedBlocks.size = 0;
     excludedBlocks.maxSize = 0;
@@ -198,7 +197,7 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
 
 int CPlayerServer::OnUseOrder() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    UnitArray units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
     int count = 0;
     in.Read(&count, 4);
     for (int i = 0; i < count; ++i) {
@@ -274,7 +273,7 @@ int CPlayerServer::OnUseOrder() {
         if (AIMode* mode = brain->FindPlayerMode())
             static_cast<PlayerMode*>(mode)->CommandUse(brain, object, kind, value, flag != 0);
     }
-    units.vtable = ei::GamePointer<void>(kUnitArrayVtable);
+    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
     return 1;
 }
@@ -330,7 +329,7 @@ void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtableAddress) {
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    UnitArray units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
     PointArray offsets{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
     int run = 0;
@@ -344,7 +343,7 @@ int MoveUnits(MoveCommand command) {
             (static_cast<PlayerMode*>(mode)->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
     }
     FreeArray(&offsets, mfc::impl::Vector3ArrayClass::Vtable());
-    FreeArray(&units, kUnitArrayVtable);
+    FreeArray(&units, mfc::impl::UnitPtrArrayClass::Vtable());
     return 1;
 }
 
@@ -533,7 +532,7 @@ int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
 int CPlayerServer::OnAttack() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    UnitArray units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
     in.Read(&ctrl, 4);
@@ -546,7 +545,7 @@ int CPlayerServer::OnAttack() {
                 static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, ctrl != 0);
         }
     }
-    FreeArray(&units, kUnitArrayVtable);
+    FreeArray(&units, mfc::impl::UnitPtrArrayClass::Vtable());
     return 1;
 }
 

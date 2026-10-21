@@ -17,6 +17,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -606,7 +607,7 @@ CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
     local.levels.width = 1;
     local.levels.height = 1;
     AllocateByteGrid(&local.levels);
-    local.cellRowsVtable = ei::GamePointer<void>(kCellRowArrayVtable);
+    local.cellRowsVtable = mfc::impl::CellRowArrayClass::Vtable();
     local.cellRows = nullptr;
     local.cellRowGrowBy = 0;
     local.cellRowMax = 0;

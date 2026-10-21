@@ -11,6 +11,7 @@
 #include <new>
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_script.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -60,7 +61,7 @@ int CTrapObject::UpdateTrap() {
     Update();
     if (!(flags_ & kArmed)) return 0;
     if (!WorldContext()->IsServer()) return 0;
-    mfc::CTypedPtrList<CUnit> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
+    mfc::CTypedPtrList<CUnit> units{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
     auto* world = ServerWorld();
     world->Sectors()->FindUnitsInRadius(&position, &units, kTriggerRadius);
     if ((flags_ & kArmedFresh) && units.count == 0) {

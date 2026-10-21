@@ -7,6 +7,7 @@
 #include "ai_map.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 class ScopedPath {
@@ -15,7 +16,7 @@ public:
         InitList(path.steps);
         InitList(path.cells);
         BlockPointArray& excluded = path.excludedBlocks;
-        excluded.vtable = ei::GamePointer<void>(AIPath::kExcludedBlocksVtable);
+        excluded.vtable = mfc::impl::PointArrayClass::Vtable();
         excluded.data = nullptr;
         excluded.size = 0;
         excluded.maxSize = 0;
@@ -23,7 +24,7 @@ public:
         path.Clear();
     }
     ~ScopedPath() {
-        path.excludedBlocks.vtable = ei::GamePointer<void>(AIPath::kExcludedBlocksVtable);
+        path.excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
         if (path.excludedBlocks.data) gamecrt::operator_delete(path.excludedBlocks.data);
         FreeList(path.cells);
         FreeList(path.steps);

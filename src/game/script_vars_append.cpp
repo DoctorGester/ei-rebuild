@@ -110,7 +110,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
             Release(member.object);
         }
         // The copy's destructor (vtable 0073D11C): each reference destroyed, the array freed.
-        copy.vtable = ei::GamePointer<void>(0x0073D11C);
+        copy.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (copy.data) {
             for (int k = 0; k < copy.size; ++k) copy.data[k].DestroyElement(0);
             gamecrt::operator_delete(copy.data);

@@ -19,6 +19,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "logic_settings.h"
@@ -75,13 +76,13 @@ Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
     list = {};
-    list.vtable = ei::GamePointer<void>(0x0073D454);
+    list.vtable = mfc::impl::PtrListClass::Vtable();
     list.blockSize = 10;
 }
 } // namespace
 
 // 005D5B40
-void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool far) {
+void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool farGoal) {
     AILookArray& planned = order->looks;
     if (planned.data) {
         gamecrt::operator_delete(planned.data);
@@ -96,9 +97,9 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     eye.z = static_cast<float>(AIMap()->TopHeightAt(&eye) + kEyeHeight);
     if (wander >= 0.0f) wander = static_cast<float>(wander * kWanderScale);
     else wander = kDefaultWander;   // also NaN
-    if (far) {
+    if (farGoal) {
         if (owner->Busy() || std::strncmp(owner->unit->name, kHumanPrefix, 4) == 0) {
-            far = false;
+            farGoal = false;
         } else {
             wander = static_cast<float>(static_cast<float>(count) * wander);
             count = 1;
@@ -127,7 +128,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
         look.angle = static_cast<float>(x87::fpatan(dy, dx));
         look.time = 0.0f;
         look.wait = wait;
-        look.stopFirst = far;
+        look.stopFirst = farGoal;
         planned.SetAtGrow(planned.size, look);
     }
 }
