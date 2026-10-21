@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "ei/vcall.h"
 
 #include <cmath>
 #include <cstring>
@@ -36,7 +37,7 @@ int Octave(const std::uint8_t* layer, int x, int y, int scale, int shift) {
 } // namespace
 
 CCloudNoise* CCloudNoise::Construct(int size) {
-    *reinterpret_cast<std::uintptr_t*>(this) = BaseVtable();
+    ei::SetVtable(this, BaseVtable());
     size_ = size;
     const auto layerBytes = static_cast<std::size_t>((size >> 3) * (size >> 3) * 4);
     noise_ = static_cast<std::int32_t*>(gamecrt::operator_new(layerBytes));
@@ -51,7 +52,7 @@ CCloudNoise* CCloudNoise::Construct(int size) {
 EI_REPLACE_METHOD(0x00499DC0, CCloudNoise::Construct);
 
 void CCloudNoise::DestructBody() {
-    *reinterpret_cast<std::uintptr_t*>(this) = BaseVtable();
+    ei::SetVtable(this, BaseVtable());
     gamecrt::operator_delete(noise_);
     gamecrt::operator_delete(layers_);
     for (std::uint8_t* frame : frames_) gamecrt::operator_delete(frame);

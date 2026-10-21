@@ -168,8 +168,8 @@ using AilVoidFn = void(__stdcall*)();
 AilVoidFn AilStartup() { return ei::GameData<AilVoidFn>(0x0073B7D4); }
 AilVoidFn AilShutdown() { return ei::GameData<AilVoidFn>(0x0073B7D0); }
 
-template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, std::uintptr_t vtable) {
-    list.vtable = reinterpret_cast<void*>(vtable);
+template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, std::uintptr_t vtableAddress) {
+    list.vtable = ei::GamePointer<void>(vtableAddress);
     list.head = nullptr;
     list.tail = nullptr;
     list.count = 0;

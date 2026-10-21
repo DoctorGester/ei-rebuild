@@ -24,6 +24,7 @@
 #include "game_data.h"
 #include "world_glue.h"
 #include "library_trees.h"
+#include "ei/vcall.h"
 
 #include <cstdint>
 #include <cstring>
@@ -408,9 +409,9 @@ void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag,
     SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // prev
     CStringConstructTextOriginal(Bytes(self) + 0x1D4, nullptr, text);
     Screen8Member1D8(Bytes(self) + 0x1D8);
-    SetDword(self, 0x00, 0x00740C3C);
+    ei::SetVtable(self, 0x00740C3C);
     Bytes(self)[0x1F4] = static_cast<std::uint8_t>(flag);
-    SetDword(self, 0x94, 0x00740C08);
+    ei::SetVtable(Bytes(self) + 0x94, 0x00740C08);
     return self;
 }
 EI_REPLACE(0x005F6D50, Screen8Construct);

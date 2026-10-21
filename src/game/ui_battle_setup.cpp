@@ -89,8 +89,8 @@ Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner, s
     if (!memory) return nullptr;
     auto* panel = static_cast<Panel*>(NewWindowBase(memory, ui));
     panel->owner_ = owner;
-    panel->vtable_ = reinterpret_cast<void**>(vtable);
-    panel->inputVtable_ = reinterpret_cast<void**>(inputVtable);
+    panel->vtable_ = ei::GamePointer<void*>(vtable);
+    panel->inputVtable_ = ei::GamePointer<void*>(inputVtable);
     return panel;
 }
 

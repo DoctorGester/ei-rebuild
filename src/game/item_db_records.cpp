@@ -4,6 +4,7 @@
 #include "item_db.h"
 
 #include "console.h"
+#include "game_data.h"
 
 #include "ei/hook.h"
 #include "originals_library.h"
@@ -57,7 +58,7 @@ void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
     new (&list20) console::CStringArray();
     new (&list50) console::CStringArray();
     field15 = 1;
-    vtable = reinterpret_cast<void*>(vtableAddress);
+    vtable = ei::GamePointer<void>(vtableAddress);
 }
 
 void WeaponRecord::CopyOwn(const WeaponRecord* source) {

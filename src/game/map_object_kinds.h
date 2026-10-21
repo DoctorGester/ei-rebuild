@@ -9,14 +9,16 @@
 // this); slots 11 / 12 return the class name and id.
 
 #include "map_object.h"
+#include "game_data.h"
 
 #include <cstdint>
 
 namespace mapkind {
-constexpr std::uintptr_t kTreeVtable = std::uintptr_t(0x0073E178);
-constexpr std::uintptr_t kBuildingVtable = std::uintptr_t(0x0073E26C);
-constexpr std::uintptr_t kStoneVtable = std::uintptr_t(0x0073E360);
-constexpr std::uintptr_t kStuffVtable = std::uintptr_t(0x0073E454);
+// game.exe's vtables (ids: the class resolves its own through the seam).
+constexpr std::uintptr_t kTreeVtable = ei::DataId(0x0073E178);
+constexpr std::uintptr_t kBuildingVtable = ei::DataId(0x0073E26C);
+constexpr std::uintptr_t kStoneVtable = ei::DataId(0x0073E360);
+constexpr std::uintptr_t kStuffVtable = ei::DataId(0x0073E454);
 } // namespace mapkind
 
 template <std::uintptr_t Vtable>

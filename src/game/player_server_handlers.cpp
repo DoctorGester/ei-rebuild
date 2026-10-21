@@ -314,8 +314,8 @@ void ReadUnits(CMemoryStream& in, UnitArray* units) {
 }
 // The arrays' inlined destructors: the vtable back, the storage freed.
 template <typename T>
-void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtable) {
-    array->vtable = reinterpret_cast<void*>(vtable);
+void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtableAddress) {
+    array->vtable = ei::GamePointer<void>(vtableAddress);
     if (array->data) gamecrt::operator_delete(array->data);
 }
 

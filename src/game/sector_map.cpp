@@ -7,6 +7,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "ei/vcall.h"
 
 #include <cstring>
 
@@ -75,8 +76,7 @@ void __stdcall ConstructSectors(Sector* sectors, int count) {
         sectors->objects = {ei::GamePointer<void>(kSectorObjectListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->units = {mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->occluders.Construct(kSectorOccluderArrayVtable);
-        std::uintptr_t vtable = kSectorVtable;
-        std::memcpy(static_cast<void*>(sectors), &vtable, sizeof(vtable));
+        ei::SetVtable(sectors, kSectorVtable);
         sectors->Clear();
     }
 }

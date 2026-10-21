@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "ei/vcall.h"
 
 namespace {
 const char* const kTreeName = "CTree";
@@ -19,14 +20,14 @@ constexpr int kClassStuff = 0x56;
 template <std::uintptr_t Vtable>
 PlainMapObject<Vtable>* PlainMapObject<Vtable>::Construct() {
     CMapObject::Construct();
-    *reinterpret_cast<std::uintptr_t*>(this) = Vtable;
+    ei::SetVtable(this, Vtable);
     CreateMapObject();
     return this;
 }
 
 template <std::uintptr_t Vtable>
 void PlainMapObject<Vtable>::DestructBody() {
-    *reinterpret_cast<std::uintptr_t*>(this) = Vtable;
+    ei::SetVtable(this, Vtable);
     DestroyMapObject();
     CMapObject::DestructBody();
 }

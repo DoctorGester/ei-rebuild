@@ -8,6 +8,7 @@
 #include "sector_map.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_ai.h"
@@ -15,7 +16,7 @@
 
 namespace {
 
-void SetVtable(void* object, std::uintptr_t vtable) { *static_cast<std::uintptr_t*>(object) = vtable; }
+void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::GamePointer<const void>(vtable)); }
 
 
 } // namespace

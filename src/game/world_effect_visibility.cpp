@@ -40,7 +40,7 @@ void ReleaseFog(CEngineObject*& fog) {
 
 } // namespace
 
-std::uintptr_t CEffectShowVisibility::Vtable() { return static_cast<std::uintptr_t>(0x0074381C); }
+std::uintptr_t CEffectShowVisibility::Vtable() { return ei::DataId(0x0074381C); }
 
 CEffectShowVisibility* CEffectShowVisibility::Construct() {
     ConstructEffect();

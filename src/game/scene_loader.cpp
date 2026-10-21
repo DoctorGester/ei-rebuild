@@ -131,7 +131,7 @@ void InitArray(Records& a, void* vtable) {
 }
 
 void InitMap(DwordMap& map) {
-    map.vtable = reinterpret_cast<void*>(scenedata::DwordMapVtable());
+    map.vtable = scenedata::DwordMapVtable();
     map.table = nullptr;
     map.hashSize = 17;
     map.count = 0;
@@ -581,8 +581,8 @@ constexpr std::uintptr_t kFramesVtable = std::uintptr_t(0x0073C12C);
 constexpr std::uintptr_t kChildrenVtable = std::uintptr_t(0x0073C138);
 
 template <typename A>
-void FreeArray(A& array, std::uintptr_t vtable) {
-    array.vtable = reinterpret_cast<void*>(vtable);
+void FreeArray(A& array, std::uintptr_t vtableAddress) {
+    array.vtable = ei::GamePointer<void>(vtableAddress);
     array.FreeData();
 }
 

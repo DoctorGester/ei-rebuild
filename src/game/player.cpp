@@ -24,8 +24,8 @@ constexpr std::uintptr_t kRechargeListVtable = std::uintptr_t(0x00743138);
 constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);
 
 template <typename T>
-void InitList(mfc::CList<T>& list, std::uintptr_t vtable) {
-    list.vtable = reinterpret_cast<void*>(vtable);
+void InitList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
+    list.vtable = ei::GamePointer<void>(vtableAddress);
     list.tail = nullptr;
     list.count = 0;
     list.head = nullptr;

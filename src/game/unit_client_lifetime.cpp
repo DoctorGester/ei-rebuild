@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
+#include "ei/vcall.h"
 
 namespace {
 constexpr int kNone = -1;
@@ -65,7 +66,7 @@ void CUnitClientSpecific::DestroyClient() {
 EI_REPLACE_METHOD(0x005340C0, CUnitClientSpecific::DestroyClient);
 
 void CUnitClientSpecific::DestructClientBody() {
-    *reinterpret_cast<std::uintptr_t*>(this) = kVtableAddress;
+    ei::SetVtable(this, kVtableAddress);
     for (CParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
@@ -85,7 +86,7 @@ void CUnitClientSpecific::DestructClientBody() {
     stlp::deallocate(speech, sizeof(ClientSpeechNode));
     list58.vtable = ei::GamePointer<void>(kList58VtableAddress);
     list58.RemoveAll();
-    *reinterpret_cast<std::uintptr_t*>(this) = kBaseVtableAddress;
+    ei::SetVtable(this, kBaseVtableAddress);
     unit = nullptr;
     DestructBase();
 }
@@ -93,7 +94,7 @@ EI_REPLACE_METHOD(0x00533EA0, CUnitClientSpecific::DestructClientBody);
 
 CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     ClearFields();
-    *reinterpret_cast<std::uintptr_t*>(this) = kBaseVtableAddress;
+    ei::SetVtable(this, kBaseVtableAddress);
     unit = nullptr;
     list58.vtable = ei::GamePointer<void>(kList58VtableAddress);
     list58.count = 0;
@@ -107,7 +108,7 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     header->next = header;
     header->prev = header;
     faceTexture = nullptr;
-    *reinterpret_cast<std::uintptr_t*>(this) = kVtableAddress;
+    ei::SetVtable(this, kVtableAddress);
     fadeIn = 1.0f;
     return this;
 }

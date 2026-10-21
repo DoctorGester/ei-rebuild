@@ -21,6 +21,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "game_data.h"
 
 #include <cmath>
 #include <cstring>
@@ -38,7 +39,7 @@ constexpr std::uint32_t kLightFlags = 0x840;
 constexpr int kClassArrowFigure = 0x5B;
 
 // The missile base's vtable, stored while the base part is built.
-std::uintptr_t MissileVtable() { return static_cast<std::uintptr_t>(0x00743754); }
+std::uintptr_t MissileVtable() { return ei::DataId(0x00743754); }
 
 CWorld* WorldOf(const CEngineObject* object) { return static_cast<CWorld*>(ObjectWorld(object)); }
 
@@ -105,7 +106,7 @@ void CEffectMissile::SetTarget(int objectId) {
 
 // --- CEffectArrow --------------------------------------------------------------------------------
 
-std::uintptr_t CEffectArrow::Vtable() { return static_cast<std::uintptr_t>(0x007436F0); }
+std::uintptr_t CEffectArrow::Vtable() { return ei::DataId(0x007436F0); }
 
 int CEffectArrow::Tick() {
     fromCaster_ = 0;
@@ -288,7 +289,7 @@ namespace {
 constexpr int kClassFigureObject = 0x38;   // the object manager's class of the drawn arrow
 }
 
-std::uintptr_t CEffectArrowFigure::Vtable() { return static_cast<std::uintptr_t>(0x007437B8); }
+std::uintptr_t CEffectArrowFigure::Vtable() { return ei::DataId(0x007437B8); }
 
 void CEffectArrowFigure::Reset() {
     ResetMissile();

@@ -123,7 +123,7 @@ VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)};
 VtablePair ForwardingStripVtables() { return {Vtable(0x0074197C), Vtable(0x00741948)}; }
 VtablePair FigureStripVtables() { return {Vtable(0x00741BF4), Vtable(0x00741C60)}; }
 VtablePair TradeGridVtables() { return {Vtable(0x0074170C), Vtable(0x007416D8)}; }
-std::uintptr_t ItemArrayVtable() { return std::uintptr_t(0x00741BC0); }   // the strip's CArray<char*>
+std::uintptr_t ItemArrayVtable() { return ei::DataId(0x00741BC0); }   // the strip's CArray<char*>
 constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list
 constexpr int kSurfaceFormat = 5;
 constexpr int kStripActionTake = 1;

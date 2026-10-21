@@ -88,9 +88,9 @@ struct ProjectileElements {
 // A list emptied as its instantiation's destructor does: the vtable back, then RemoveAll with the
 // elements destroyed.
 template <typename Elements, typename T>
-void DestroyList(mfc::CList<T>& list, std::uintptr_t vtable) {
+void DestroyList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
     auto& typed = reinterpret_cast<mfc::CList<T, Elements>&>(list);
-    typed.vtable = reinterpret_cast<void*>(vtable);
+    typed.vtable = ei::GamePointer<void>(vtableAddress);
     typed.RemoveAll();
 }
 

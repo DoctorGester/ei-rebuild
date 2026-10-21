@@ -275,7 +275,7 @@ CUnit* CUnit::Construct() {
     static_cast<UnitMotion*>(m)->Clear();
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
-    carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
+    carriedVtable = static_cast<std::uint32_t>(ei::GameAddress(kCarriedArrayVtable));
     carried = nullptr;
     carriedGrowBy = 0;
     carriedCapacity = 0;
@@ -341,7 +341,7 @@ void CUnit::DestructBody() {
     ei::GamePointer<const Slot>(CUnit::kVtableAddress)[5](this);
     DestroyMapObject();
     Reset();
-    carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
+    carriedVtable = static_cast<std::uint32_t>(ei::GameAddress(kCarriedArrayVtable));
     if (carried) gamecrt::operator_delete(carried);
     UnitMotion* m = Motion();
     DestroyArray(m->stepSpeeds, kMotionSpeedsEndVtable);

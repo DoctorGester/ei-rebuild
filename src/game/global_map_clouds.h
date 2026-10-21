@@ -7,12 +7,14 @@
 // while the third is built a slice per step from four layers of value noise; every 16 steps they
 // rotate. The blend goes through a 256-entry ARGB4444 alpha ramp. Names are provisional.
 
+#include "game_data.h"
+
 #include <cstddef>
 #include <cstdint>
 
 class __declspec(novtable) CCloudNoise {
 public:
-    static std::uintptr_t BaseVtable() { return std::uintptr_t(0x0073D030); }
+    static const void* BaseVtable() { return ei::GamePointer<const void>(0x0073D030); }
 
     // 0: 0049A090 (RET 4). A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by
     // three ISAAC words; the raw values go through `noise_`.

@@ -7,6 +7,7 @@
 #include "random.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_render.h"
@@ -136,7 +137,7 @@ void DropTexture(CEngineObject*& slot) {
     slot = nullptr;
     if (old) old->Release();
 }
-void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
+void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::GamePointer<const void>(vtable)); }
 } // namespace
 
 // 00468680 (CLightningManager slot 14, the object factory; `type` is not used): a new bolt (the

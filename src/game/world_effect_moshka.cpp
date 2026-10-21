@@ -4,6 +4,7 @@
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
+#include "game_data.h"
 
 #include "ai_map.h"
 #include "base_manager.h"
@@ -69,7 +70,7 @@ Vector3& PositionOf(CEngineObject* object) { return static_cast<CTransformObject
 
 } // namespace
 
-std::uintptr_t CEffectMoshka::Vtable() { return static_cast<std::uintptr_t>(0x0074387C); }
+std::uintptr_t CEffectMoshka::Vtable() { return ei::DataId(0x0074387C); }
 
 CEffectMoshka* CEffectMoshka::Construct() {
     ConstructEffect();
