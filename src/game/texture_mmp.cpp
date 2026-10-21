@@ -143,7 +143,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     std::memset(&header, 0, sizeof(header));
     mfc::CString path;
     mfc::CFile file;
-    path.Format(game::Text(0x00795DCC), DataPath(), name);   // "%stextures\\%s.mmp"
+    path.Format("%stextures\\%s.mmp", DataPath(), name);
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);
@@ -152,7 +152,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
         file.Close();
         return 1;
     }
-    path.Format(game::Text(0x00795F44), name, game::Text(0x0078FB4C));   // "%s%s", ".mmp"
+    path.Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
     void* data = GetFile(path, nullptr);
     if (!data) {
         out->SetSizeDiscard(0);

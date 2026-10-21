@@ -53,10 +53,10 @@ bool SameText(const char* a, const char* b) {
 // EI_Plugin's Fixes (006408E6, 00640D2F): "f" when the fifth character of the name is 'f', else "m".
 void SexOf(const char* figure, mfc::CString& sex) {
     const bool fixes = pluginfixes::Enabled();
-    if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, game::Text(0x007908C8)))   // "unhuma"
-        sex = game::Text(0x00792EAC);                     // "m"
-    else if (fixes || SameText(figure, game::Text(0x00792EA4)))     // "unhufe"
-        sex = game::Text(0x0078BBD8);                     // "f"
+    if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, "unhuma"))
+        sex = "m";
+    else if (fixes || SameText(figure, "unhufe"))
+        sex = "f";
 }
 
 // The client's player records (a list of counted PlayerMessages).
@@ -81,11 +81,11 @@ void CHudPortraits::ShowFace(int index, int state) {
     }
     mfc::CString name(slots_[index].FaceName());
     if (state == 1)
-        name += game::Text(0x00794594);   // "a"
+        name += "a";
     else if (state == 2)
-        name += game::Text(0x0079254C);   // "c"
+        name += "c";
     else if (state == 3)
-        name += game::Text(0x00792558);   // "b"
+        name += "b";
     const int texture = index / 4 + 1;
     if (static_cast<char>(CopyImage(objects_.data[texture], name, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
         CopyImage(objects_.data[texture], slots_[index].FaceName(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
@@ -201,15 +201,15 @@ void CHudPortraits::Rebuild(int wide) {
         const int skin = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->skin;
         SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;
-        build = game::Text(0x007844A8);                              // "me"
+        build = "me";
         if (!(figureBuild >= Thin()))
-            build = game::Text(0x007945AC);                          // "th"
+            build = "th";
         else if (figureBuild > Fat())
-            build = game::Text(0x007945A8);                          // "fa"
+            build = "fa";
         const char* figure = unit->name;
-        model.Format(game::Text(0x007935AC), figure, static_cast<const char*>(build),   // "infa%s%s%dface"
+        model.Format("infa%s%s%dface", figure, static_cast<const char*>(build),
                      reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair + 1);
-        picture.Format(game::Text(0x00792E88), static_cast<const char*>(sex), skin);     // "face%s%02d"
+        picture.Format("face%s%02d", static_cast<const char*>(sex), skin);
         AddPortraitAt(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
@@ -221,9 +221,9 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].FaceName() = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].ModelPrefix().Format(game::Text(0x007945A0), unit->name);   // "infa%s"
+        slots_[i].ModelPrefix().Format("infa%s", unit->name);
         const int hair = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair;
-        slots_[i].ModelSuffix().Format(game::Text(0x00794598), hair + 1);             // "%dface"
+        slots_[i].ModelSuffix().Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;
         slots_[i].playerId_ = -1;
         owner_->UnitName(owner_->party_[i], &tip);
@@ -251,9 +251,9 @@ void CHudPortraits::Rebuild(int wide) {
                 unitdb::ModelNamed(stlp::string(static_cast<const char*>(prototype->modelName))));
         }
         SexOf(figure->model, sex);
-        build = game::Text(0x007844A8);                              // "me"
-        model.Format(game::Text(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);
-        picture.Format(game::Text(0x00792E88), static_cast<const char*>(sex), prototype->skin);
+        build = "me";
+        model.Format("infa%s%s%dface", figure->model, static_cast<const char*>(build), prototype->hair + 1);
+        picture.Format("face%s%02d", static_cast<const char*>(sex), prototype->skin);
         AddPortraitAt(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;

@@ -54,9 +54,9 @@ bool SameName(const char* a, const char* b) {
 
 // --- The click (0062F950) ---
 
-const char* MoveSound() { return game::Text(0x00794180); }      // "buttons\globalmap\move.wav"
-const char* TransitSound() { return game::Text(0x0079372C); }   // "buttons\globalmap\transit.wav"
-const char* OkSound() { return game::Text(0x0079419C); }        // "buttons\globalmap\ok.wav"
+const char* MoveSound() { return "buttons\\globalmap\\move.wav"; }
+const char* TransitSound() { return "buttons\\globalmap\\transit.wav"; }
+const char* OkSound() { return "buttons\\globalmap\\ok.wav"; }
 
 constexpr int kRegionTurnLeft = 0;
 constexpr int kRegionTurnRight = 1;

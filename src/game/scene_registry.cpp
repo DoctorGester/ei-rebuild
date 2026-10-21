@@ -154,24 +154,24 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
     FindListedName(foundString, &sections, helperRecord->name2);
     s.section = *foundString;
     foundString->~CString();
-    s.mapping = reg.GetString(s.section, game::Text(0x007846DC), mfc::CString(game::Text(0x007846F0)));   // "Main Texture Name", "none"
+    s.mapping = reg.GetString(s.section, "Main Texture Name", mfc::CString("none"));   // "Main Texture Name", "none"
 
     Mapping m;
-    m.width = static_cast<float>(reg.GetInt2(game::Text(0x007846C8), game::Text(0x007846D4), 0x100));      // "Dimentions", "Width"
-    m.height = static_cast<float>(reg.GetInt2(game::Text(0x007846C8), game::Text(0x007846C0), 0x100));     // "Height"
+    m.width = static_cast<float>(reg.GetInt2("Dimentions", "Width", 0x100));      // "Dimentions", "Width"
+    m.height = static_cast<float>(reg.GetInt2("Dimentions", "Height", 0x100));
     if (s.mapping.GetLength() == 0) {
         m.h = 0.0f;
         m.w = 0.0f;
         m.y = 0.0f;
         m.x = 0.0f;
     } else {
-        m.x = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846BC), -1));   // "X"
-        m.y = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846B8), -1));   // "Y"
-        m.w = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846D4), -1));   // "Width"
-        m.h = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846C0), -1));   // "Height"
+        m.x = static_cast<float>(reg.GetInt2(s.mapping, "X", -1));
+        m.y = static_cast<float>(reg.GetInt2(s.mapping, "Y", -1));
+        m.w = static_cast<float>(reg.GetInt2(s.mapping, "Width", -1));
+        m.h = static_cast<float>(reg.GetInt2(s.mapping, "Height", -1));
         if (IsMinusOne(m.x) || IsMinusOne(m.y) || IsMinusOne(m.w) || IsMinusOne(m.h)) {
             mfc::CString message;
-            message.Format(game::Text(0x0078466C), static_cast<const char*>(s.groupName), static_cast<const char*>(s.section));
+            message.Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", static_cast<const char*>(s.groupName), static_cast<const char*>(s.section));
             game::DebugLog(message);
             if (*reinterpret_cast<const std::uint32_t*>(0x007AF5C0) & 0x10000) {
                 reinterpret_cast<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message, 0x30, 0);
@@ -204,7 +204,7 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
     int type;
     int value;
     if (ParseMaterial(groupName, &type, &value) != 1) {
-        game::DebugLog(game::Text(0x00784648));   // Undefined texture/material types.
+        game::DebugLog("Undefined texture/material types.\n");   // Undefined texture/material types.
         return;
     }
     int textureType = type;
@@ -256,7 +256,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
     Registry reg;
     reg.Construct();
     if (!reg.Open(*path)) {
-        int result = game::FatalError(game::Text(0x007846F8), static_cast<const char*>(*path));   // Can't open .reg file
+        int result = game::FatalError("Can't open .reg file \"%s\".\n", static_cast<const char*>(*path));   // Can't open .reg file
         reg.Destroy();
         return result;
     }

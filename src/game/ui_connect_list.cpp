@@ -163,7 +163,7 @@ void CMpConnectScreen::DrawListVanilla() {
         TextColour() = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text.Format(game::Text(0x00792F34), label(7), nameEdit_->text_);   // "%s %s"
+            text.Format("%s %s", label(7), nameEdit_->text_);
             if (extended)
                 DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else
@@ -177,16 +177,16 @@ void CMpConnectScreen::DrawListVanilla() {
                 Draw(surface, entry.name, &row, kFormatNoPrefix);
             }
             row.left = 142;
-            text.Format(game::Text(0x00793BB8), entry.players, entry.maxPlayers);   // "%d/%d"
+            text.Format("%d/%d", entry.players, entry.maxPlayers);
             Draw(surface, text, &row, 0);
             row.left = 170;
             if (entry.gameType == kNewGameType)
-                text = game::Text(0x00783D6C);   // "?"
+                text = "?";
             else
-                text.Format(game::Text(0x0079190C), allod(entry.gameType));   // "%s"
+                text.Format("%s", allod(entry.gameType));
             Draw(surface, text, &row, 0);
             row.left = layout.rowLeftPing;
-            text.Format(game::Text(0x0078EEEC), entry.ping);   // "%d"
+            text.Format("%d", entry.ping);
             Draw(surface, text, &row, kFormatRight);
             row.left = 12;
         }
@@ -204,7 +204,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Draw(surface, label(0), &row, 0);
             Down(&row);
             Down(&row);
-            text.Format(game::Text(0x00792F14), label(2), maxPlayers_);   // "%s %d"
+            text.Format("%s %d", label(2), maxPlayers_);
             Draw(surface, text, &row, 0);
             Down(&row);
             Down(&row);
@@ -221,7 +221,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Down(&row);
             Draw(surface, label(17), &row, 0);
         } else {
-            text.Format(game::Text(0x00792F34), label(0), static_cast<const char*>(entry.name));   // "%s %s"
+            text.Format("%s %s", label(0), static_cast<const char*>(entry.name));
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
                 int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
@@ -231,23 +231,23 @@ void CMpConnectScreen::DrawListVanilla() {
                 Draw(surface, text, &row, 0);
             }
             Down(&row);
-            text.Format(game::Text(0x00793BAC), label(1), entry.players, entry.maxPlayers);   // "%s %d / %d"
+            text.Format("%s %d / %d", label(1), entry.players, entry.maxPlayers);
             Draw(surface, text, &row, 0);
             Down(&row);
             if (entry.gameType == kNewGameType)
-                text = texts_[3] + game::Text(0x00793BA8);   // " ?"
+                text = texts_[3] + " ?";
             else
-                text.Format(game::Text(0x00792F34), label(3), allod(entry.gameType));
+                text.Format("%s %s", label(3), allod(entry.gameType));
             Draw(surface, text, &row, 0);
             Down(&row);
-            text.Format(game::Text(0x00792F34), label(4), static_cast<const char*>(entry.description));
+            text.Format("%s %s", label(4), static_cast<const char*>(entry.description));
             int lines = surface->DrawWrappedText(text, &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
             stlp::string address;
-            text.Format(game::Text(0x00792F34), label(5), entry.address.ToString(&address)->data());
+            text.Format("%s %s", label(5), entry.address.ToString(&address)->data());
             Draw(surface, text, &row, 0);
             Down(&row);
-            text.Format(game::Text(0x00792F14), label(6), entry.ping);
+            text.Format("%s %d", label(6), entry.ping);
             Draw(surface, text, &row, 0);
             Down(&row);
             if (entry.password) {

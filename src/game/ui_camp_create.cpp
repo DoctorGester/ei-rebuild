@@ -176,7 +176,7 @@ void CCampPages::BuildPages() {
     itemParts_[0] = nullptr;
     GameSetServerPaused(1);
     constructor_ = nullptr;
-    int constructor = static_cast<int>(gamecrt::Ftol(LocalPlayerVariable(game::Text(0x00790384))));   // "constr.current"
+    int constructor = static_cast<int>(gamecrt::Ftol(LocalPlayerVariable("constr.current")));
     if (constructor > 0) {
         constructor_ = ClassTemplatesFind(ClassTemplates(), nullptr, constructor);
         if (!constructor_) {
@@ -189,13 +189,13 @@ void CCampPages::BuildPages() {
         spellParts_[0] = reinterpret_cast<CParty*>(constructor_->spells);
         itemParts_[0] = reinterpret_cast<CParty*>(constructor_->items);
     }
-    noConstructor_ = PlayerSwitch(game::Text(0x007936AC));                      // "i.noconstr"
-    if (PlayerSwitch(game::Text(0x00793698))) spellConstructor_ = false;        // "i.offspellconstr"
-    if (PlayerSwitch(game::Text(0x00793688))) spellConstructor_ = true;         // "i.onspellconstr"
-    if (PlayerSwitch(game::Text(0x00793678))) itemConstructor_ = false;         // "i.offitemconstr"
-    if (PlayerSwitch(game::Text(0x00793668))) itemConstructor_ = true;          // "i.onitemconstr"
+    noConstructor_ = PlayerSwitch("i.noconstr");
+    if (PlayerSwitch("i.offspellconstr")) spellConstructor_ = false;
+    if (PlayerSwitch("i.onspellconstr")) spellConstructor_ = true;
+    if (PlayerSwitch("i.offitemconstr")) itemConstructor_ = false;
+    if (PlayerSwitch("i.onitemconstr")) itemConstructor_ = true;
 
-    LoadTexture(game::Text(0x0079365C), 3, nullptr);   // "campinfo"
+    LoadTexture("campinfo", 3, nullptr);
     // The regions: the two action buttons, the two hero turn areas, the eight page buttons (a
     // page the camp does not offer has no tip).
     auto region = [this](int left, int top, int right, int bottom, int tip) {
@@ -424,19 +424,19 @@ void CCampPages::BuildPages() {
     mfc::CString title;
     auto& titles = pageTitles_;
     const char* const titleKeys[] = {
-        game::Text(0x0079364C),   // "mode_weapons"
-        game::Text(0x00793640),   // "mode_spells"
-        game::Text(0x00793630),   // "mode_spelltrade"
-        game::Text(0x0079361C),   // "mode_spellconstr"
-        game::Text(0x0079360C),   // "mode_itemtrade"
-        game::Text(0x007935FC),   // "mode_itemconstr"
-        game::Text(0x007935EC),   // "mode_itemrepair"
+        "mode_weapons",
+        "mode_spells",
+        "mode_spelltrade",
+        "mode_spellconstr",
+        "mode_itemtrade",
+        "mode_itemconstr",
+        "mode_itemrepair",
     };
     for (const char* key : titleKeys) {
         texts->GetString(key, &title);
         titles.SetAtGrow(titles.size, title);
     }
-    titles.SetAtGrow(titles.size, game::Text(0x0079239C));   // "quit"
+    titles.SetAtGrow(titles.size, "quit");
 
     page_ = itemConstructor_ ? kPageItemConstructor : spellConstructor_ ? kPageSpellConstructor : kPageEquipment;
     ShowPage(page_);
@@ -469,14 +469,14 @@ void CCampPages::BuildPages() {
         BriefingPlayerName name;
         zone = GameMapDatabase()->FindMap(name);
     }
-    Music()->PlayConstructor(zone ? zone->allod : game::Text(0x0079014C));   // "gipat"
+    Music()->PlayConstructor(zone ? zone->allod : "gipat");
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = RenderDeviceObject();
     D3DDEVICEDESC7 description = {};
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(display->d3dDevice_), &description);
     display->lastLoadResult_ = result;
-    if (result != 0) app::FatalErrorCode(result, game::Text(0x0078EE20));   // "Can't get device description."
+    if (result != 0) app::FatalErrorCode(result, "Can't get device description.\n");   // "Can't get device description."
     if (description.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT) {
         device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);

@@ -20,7 +20,7 @@ void Flush(CTextureDevice* device, DeviceVertexBatch& batch) {
     if (!buffer) return;
     buffer->result = static_cast<IDirect3DVertexBuffer7*>(buffer->buffer)->Unlock();
     gameapi::LeaveCriticalSection(device::Lock());
-    if (buffer->result != 0) app::FatalErrorCode(buffer->result, game::Text(0x0078E2D4));   // "Can't unlock vertex buffer.\n"
+    if (buffer->result != 0) app::FatalErrorCode(buffer->result, "Can't unlock vertex buffer.\n");   // "Can't unlock vertex buffer.\n"
     const int vertexCount = batch.vertexCount;
     if (vertexCount != 0) {
         const int indexCount = batch.indices.size;

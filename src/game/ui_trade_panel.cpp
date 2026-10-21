@@ -91,12 +91,12 @@ void Clear(TradeRows* rows) {
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
 int HasPerkText(void* table, const mfc::CString& name) {
-    mfc::CString prefix(game::Text(0x00792FC8));   // "perk "
+    mfc::CString prefix("perk ");
     mfc::CString key = prefix + name;
     return TextsOpenSection(table, nullptr, key);
 }
 int HasPerkText(void* table, const char* name) {
-    mfc::CString prefix(game::Text(0x00792FC8));
+    mfc::CString prefix("perk ");
     mfc::CString key = prefix + name;
     return TextsOpenSection(table, nullptr, key);
 }
@@ -104,8 +104,8 @@ int HasPerkText(void* table, const char* name) {
 // A perk record's text key: its name (+4) without trailing level digits, plus "0".
 void PerkBaseName(mfc::CString* text, const std::uint8_t* record) {
     *text = StrAt(record + 4);
-    text->TrimRight(game::Text(0x00793E60));   // "123"
-    *text += game::Text(0x007856B8);           // "0"
+    text->TrimRight("123");
+    *text += "0";
 }
 
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
@@ -181,7 +181,7 @@ void CTradePanel::BuildLists() {
 
     mfc::CString text;
     mfc::CString perkLevel;
-    TextsGetString(table, nullptr, game::Text(0x00793E70), &perkLevel);   // "perk_level"
+    TextsGetString(table, nullptr, "perk_level", &perkLevel);
 
     // The perks held: the skill records come in groups of three levels; the group's level byte.
     for (unsigned group = 0; group < 0x6C; group += 3) {
@@ -198,7 +198,7 @@ void CTradePanel::BuildLists() {
         else
             text = StrAt(record);
         if (level > 1)
-            Str(row->name)->Format(game::Text(0x00793E64), static_cast<const char*>(text),   // "%s (%s%d)"
+            Str(row->name)->Format("%s (%s%d)", static_cast<const char*>(text),
                                    static_cast<const char*>(perkLevel), level);
         else
             *Str(row->name) = text;
@@ -265,7 +265,7 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
 // A school row: name, level 40 pixels in from the right, and below level 100 the next level's price.
 void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* school, mfc::CString* value) {
     draw->Text(school->name, row, 0, kBright, 0, 1);
-    value->Format(game::Text(0x0078EEEC), school->level);   // "%d"
+    value->Format("%d", school->level);
     RECT shifted = *row;
     gameapi::OffsetRect(&shifted, -40, 0);
     RECT levelRect = shifted;
@@ -413,11 +413,11 @@ void CTradePanel::Build() {
         mfc::CString text;
         void* titles = &texts_;
         int* size = &texts_.size;
-        TextsGetString(table, nullptr, game::Text(0x00793E58), &text);   // "skills"
+        TextsGetString(table, nullptr, "skills", &text);
         StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
-        TextsGetString(table, nullptr, game::Text(0x00793E50), &text);   // "perks"
+        TextsGetString(table, nullptr, "perks", &text);
         StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
-        TextsGetString(table, nullptr, game::Text(0x00793E44), &text);   // "perks_av"
+        TextsGetString(table, nullptr, "perks_av", &text);
         StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
 
         // One statistics record per party member (inlined in the original; 00625430's body).

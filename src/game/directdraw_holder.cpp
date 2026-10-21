@@ -80,17 +80,17 @@ CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int b
 void CTextureDevice::RestoreDisplayMode() {
     if (!(flags_ & DDSCL_FULLSCREEN)) return;
     lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E47C));   // "Can't restore display mode.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
 }
 EI_REPLACE_METHOD(0x004EEC60, CTextureDevice::RestoreDisplayMode);
 
 void CTextureDevice::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     // "CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n"
-    if (!window_) ThrowGameError(game::Text(0x0078E638));
+    if (!window_) ThrowGameError("CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n");
     flags_ = fullScreen ? (DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE) : DDSCL_NORMAL;
     lastLoadResult_ = device::SetCooperativeLevel(device::DDraw(this), window_, flags_ | DDSCL_FPUSETUP | DDSCL_MULTITHREADED);
     // "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n"
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E5F0));
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n");
     if (screen) screen_ = *screen;
     else gameapi::SetRectEmpty(&screen_);
 }
@@ -100,7 +100,7 @@ void CTextureDevice::DestructDirectDraw() {
     ei::SetVtable(this, 0x0073D770);
     if (flags_ & DDSCL_FULLSCREEN) {
         lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
-        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E47C));   // "Can't restore display mode.\n"
+        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
     }
     if (converterLibrary_) gameapi::FreeLibrary(converterLibrary_);
     converterLibrary_ = nullptr;
@@ -143,19 +143,19 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
         processor.features2 = static_cast<std::uint32_t>(registers[2]);
     }
     if (!(processor.features & kFeatureMmx)) {
-        game::FatalError(game::Text(0x0078E348));   // "MMX required in this version !!!.\n"
+        game::FatalError("MMX required in this version !!!.\n");   // "MMX required in this version !!!.\n"
         libcrt::Exit(-1);
     }
 
-    converterLibrary_ = gameapi::LoadLibraryA(game::Text(0x0078E46C));   // "2DintMMX.dll"
-    game::DebugLog(game::Text(0x0078E444));                        // "MMX graphics release library loaded.\n"
-    if (!converterLibrary_) ThrowGameError(game::Text(0x0078E36C));      // "Can't load 2D graphics library.\n"
+    converterLibrary_ = gameapi::LoadLibraryA("2DintMMX.dll");
+    game::DebugLog("MMX graphics release library loaded.\n");                        // "MMX graphics release library loaded.\n"
+    if (!converterLibrary_) ThrowGameError("Can't load 2D graphics library.\n");      // "Can't load 2D graphics library.\n"
     using GetGraphicsProcessor = void*(__cdecl*)();
     const auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
-        gameapi::GetProcAddress(converterLibrary_, game::Text(0x0078E42C)));   // "GetGraphicsProcessor"
+        gameapi::GetProcAddress(converterLibrary_, "GetGraphicsProcessor"));
     // "Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n"
-    if (!getProcessor) ThrowGameError(game::Text(0x0078E390));
-    game::DebugLog(game::Text(0x0078E3F4));   // "Acquiring graphics processor from graphics library.\n"
+    if (!getProcessor) ThrowGameError("Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n");
+    game::DebugLog("Acquiring graphics processor from graphics library.\n");   // "Acquiring graphics processor from graphics library.\n"
     converter_ = getProcessor();
 
     // The switch-over (device.h): the new renderer presents; no DirectDraw object, display mode or

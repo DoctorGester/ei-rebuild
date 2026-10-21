@@ -166,7 +166,7 @@ const ScriptToken& NextToken(ScriptPos* pos) {
 // A token with the game's initial value ("None", line -1), destroyed at scope exit.
 struct LocalToken : ScriptToken {
     LocalToken() {
-        text = game::Text(0x0078BC6C);
+        text = "None";
         line = -1;
     }
     void Set(const ScriptToken& from) {
@@ -227,7 +227,7 @@ void ClearDefinition(ScriptDefinition* decl) {
     decl->name = game::EmptyText();
 }
 
-const char* kTypeLetter[] = {nullptr, game::Text(0x0078BBD8), game::Text(0x0078BBD4), game::Text(0x0078BBD0), game::Text(0x0078BBCC)};
+const char* kTypeLetter[] = {nullptr, "f", "s", "o", "g"};
 
 } // namespace
 
@@ -285,7 +285,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 
     BOOL result;
     if (!*pos) {
-        result = Error(this, tokens->tail->data.line, 4, game::Text(0x0078D838), KeywordName(kLexOpen));   // "Expected '%s'"
+        result = Error(this, tokens->tail->data.line, 4, "Expected '%s'", KeywordName(kLexOpen));
         DeleteCmd(sub.cmd);
         return result;
     }
@@ -301,7 +301,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             if (scriptaddon::Enabled()) scriptaddon::SignatureStep(cmd, &signature, tokenId);
             if (tokenId == kLexClose) {
                 if (*signature) {
-                    result = Error(this, token.line, 5, game::Text(0x0078D7DC));   // "Not enough parameters"
+                    result = Error(this, token.line, 5, "Not enough parameters");
                     DeleteCmd(sub.cmd);
                     return result;
                 }
@@ -310,12 +310,12 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             }
             if (paramIndex == 0) {
                 if (tokenId != kLexOpen) {
-                    result = Error(this, token.line, 4, game::Text(0x0078D838), KeywordName(kLexOpen));
+                    result = Error(this, token.line, 4, "Expected '%s'", KeywordName(kLexOpen));
                     DeleteCmd(sub.cmd);
                     return result;
                 }
             } else if (tokenId != kLexComma) {
-                result = Error(this, token.line, 4, game::Text(0x0078D838), KeywordNameAt(kLexComma));
+                result = Error(this, token.line, 4, "Expected '%s'", KeywordNameAt(kLexComma));
                 DeleteCmd(sub.cmd);
                 return result;
             }
@@ -328,7 +328,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                     DeleteCmd(sub.cmd);
                     return 1;
                 }
-                result = Error(this, token.line, 5, game::Text(0x0078D7DC));
+                result = Error(this, token.line, 5, "Not enough parameters");
                 DeleteCmd(sub.cmd);
                 return result;
             }
@@ -345,7 +345,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         bool bind = true;
         switch (*signature) {
         case 0:
-            result = Error(this, token.line, 6, game::Text(0x0078D790));   // "Too much parameters"
+            result = Error(this, token.line, 6, "Too much parameters");
             DeleteCmd(sub.cmd);
             return result;
         case 'f':
@@ -361,7 +361,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                 bind = false;
             }
             ++floatCount;
-            typeName = game::Text(0x0078D830);   // "float"
+            typeName = "float";
             break;
         case 's':
             local.type = kScriptString;
@@ -376,7 +376,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                 bind = false;
             }
             ++stringCount;
-            typeName = game::Text(0x0078D828);   // "string"
+            typeName = "string";
             break;
         case 'o':
             local.type = kScriptObject;
@@ -387,7 +387,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             local.argIndex = objectCount;
             global.argIndex = objectCount;
             ++objectCount;
-            typeName = game::Text(0x00787D5C);   // "object"
+            typeName = "object";
             break;
         case 'O':
             // Loop counter of For/ForIf/Every/Any/Sum: must be a global object variable.
@@ -397,14 +397,14 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             if (global.varIndex < 0) {
                 global.varIndex = FindName(globals->objectNames, qualified);
                 if (global.varIndex < 0) {
-                    result = Error(this, token.line, 8, game::Text(0x0078D7A4));   // "Only global variables ..."
+                    result = Error(this, token.line, 8, "Only global variables are allowed to be loop counters");   // "Only global variables ..."
                     DeleteCmd(sub.cmd);
                     return result;
                 }
             }
             global.argIndex = objectCount;
             ++objectCount;
-            typeName = game::Text(0x00787D5C);
+            typeName = "object";
             break;
         case 'g':
             local.type = kScriptGroup;
@@ -415,10 +415,10 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             local.argIndex = groupCount;
             global.argIndex = groupCount;
             ++groupCount;
-            typeName = game::Text(0x0078D820);   // "group"
+            typeName = "group";
             break;
         default:
-            game::FatalError(game::Text(0x0078D7F4));   // "wrong type char in CScript::LoadFunction"
+            game::FatalError("wrong type char in CScript::LoadFunction");
             break;
         }
 
@@ -435,7 +435,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                 sub.type = local.type;
                 const char* nested = SignatureAt(tokenId, local.type);
                 if (!nested) {
-                    result = Error(this, token.line, 7, game::Text(0x0078D770), static_cast<const char*>(typeName));   // "Parameter of type %s expected"
+                    result = Error(this, token.line, 7, "Parameter of type %s expected", static_cast<const char*>(typeName));
                     DeleteCmd(sub.cmd);
                     return result;
                 }
@@ -455,7 +455,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         ++paramIndex;
     } while (*pos);
 
-    result = Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));   // "Unexpected end of file"
+    result = Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
     DeleteCmd(sub.cmd);
     return result;
 }
@@ -470,7 +470,7 @@ BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, co
     LocalCmd cmd;
     mfc::impl::ArrayAs<recordarrays::Cmds>(*conditions).SetSize(0, -1);
     for (;;) {
-        if (!*pos) return Error(this, token.line, 1, game::Text(0x0078D740));
+        if (!*pos) return Error(this, token.line, 1, "Unexpected end of file");
         cmd.Get()->Clear();
         token.Set(NextToken(pos));
         text = token.text;
@@ -478,7 +478,7 @@ BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, co
         ClassifyAt(text, &id, nullptr);
         if (id == kLexClose) return 1;
         const char* signature = SignatureAt(id, kScriptFloat);
-        if (!signature) return Error(this, token.line, 9, game::Text(0x0078D858));   // "Function returning float expected"
+        if (!signature) return Error(this, token.line, 9, "Function returning float expected");
         if (!Orig(this)->LoadFunctionAt(cmd.Get(), pos, tokens, id, locals, signature, 0, 0)) return 0;
         ScriptCmdsSetAtGrow(conditions, nullptr, conditions->size, cmd.Get());
     }
@@ -490,25 +490,25 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
     mfc::CString text;
     ScriptIfThen pair{nullptr, nullptr};
     for (;;) {
-        if (!*pos) return Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));
+        if (!*pos) return Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
         int id;
         token.Set(NextToken(pos));
         text = token.text;
         ClassifyAt(text, &id, nullptr);
         if (id == kLexClose) {
             if (script->ifThen.size == 0)   // "In script %s should be at least one condtion"
-                return Error(this, token.line, 11, game::Text(0x0078D87C), static_cast<const char*>(script->name));
+                return Error(this, token.line, 11, "In script %s should be at least one condtion", static_cast<const char*>(script->name));
             return 1;
         }
         if (id != kLexIf) {
-            Error(this, token.line, 10, game::Text(0x0078D8AC));   // "expected if section"
+            Error(this, token.line, 10, "expected if section");
             return 0;
         }
         token.Set(NextToken(pos));
         text = token.text;
         ClassifyAt(text, &id, nullptr);
         if (id != kLexOpen) {
-            Error(this, token.line, 4, game::Text(0x0078D8F0));   // "If section, ( expected"
+            Error(this, token.line, 4, "If section, ( expected");
             return 0;
         }
         pair.conditions = NewCommandList();
@@ -517,14 +517,14 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
         text = token.text;
         ClassifyAt(text, &id, nullptr);
         if (id != kLexThen) {
-            Error(this, token.line, 4, game::Text(0x0078D8D8));   // "then expected after if"
+            Error(this, token.line, 4, "then expected after if");
             return 0;
         }
         token.Set(NextToken(pos));
         text = token.text;
         ClassifyAt(text, &id, nullptr);
         if (id != kLexOpen) {
-            Error(this, token.line, 4, game::Text(0x0078D8C0));   // "Expected ( after then"
+            Error(this, token.line, 4, "Expected ( after then");
             return 0;
         }
         pair.commands = NewCommandList();
@@ -543,14 +543,14 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
     cmd->Clear();
     BOOL ok;
     if (!*pos) {
-        ok = Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));
+        ok = Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
     } else {
         ScriptToken token;
         token.CopyConstruct(NextToken(pos));
         mfc::CString text(token.text);
         int id;
         ClassifyAt(text, &id, nullptr);
-        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, game::Text(0x0078D730), static_cast<const char*>(text));
+        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", static_cast<const char*>(text));
     }
     if (!ok) return 0;
 
@@ -559,7 +559,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
     // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {
-        game::FatalError(game::Text(0x0078D920));   // "Uknown variable type at CScript::LoadAssignOperator"
+        game::FatalError("Uknown variable type at CScript::LoadAssignOperator");
         return 0;
     }
     BOOL result = Orig(this)->LoadFunctionAt(cmd, pos, tokens, kCmdAssign, locals, kTypeLetter[type], 1, 0);
@@ -578,26 +578,26 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
     while (*pos) {
         token.Set(NextToken(pos));
         name = token.text;
-        if (Mbscmp(name, game::Text(0x0078D71C)) == 0) {   // ")"
+        if (Mbscmp(name, ")") == 0) {
             result = 1;
             break;
         }
         if (!first) {
-            if (Mbscmp(name, game::Text(0x00787B5C)) != 0)   // ","
-                return Error(this, token.line, 4, game::Text(0x0078D988));   // "Expected , or ) after variable"
+            if (Mbscmp(name, ",") != 0)
+                return Error(this, token.line, 4, "Expected , or ) after variable");
             token.Set(NextToken(pos));
             name = token.text;
         }
         BOOL ok;
         if (!*pos) {
-            ok = Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));
+            ok = Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
         } else {
             ScriptToken colon;
             colon.CopyConstruct(NextToken(pos));
             mfc::CString text(colon.text);
             int id;
             ClassifyAt(text, &id, nullptr);
-            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, game::Text(0x0078D730), static_cast<const char*>(text));
+            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", static_cast<const char*>(text));
         }
         if (!ok) return 0;
         if (qualify) {
@@ -608,13 +608,13 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         token.Set(NextToken(pos));
         typeName = token.text;
         int type;
-        if (Mbscmp(typeName, game::Text(0x0078D830)) == 0) type = kScriptFloat;
-        else if (Mbscmp(typeName, game::Text(0x0078D828)) == 0) type = kScriptString;
-        else if (Mbscmp(typeName, game::Text(0x00787D5C)) == 0) type = kScriptObject;
-        else if (Mbscmp(typeName, game::Text(0x0078D820)) == 0) type = kScriptGroup;
-        else return Error(this, token.line, 12, game::Text(0x0078D954));   // "Unknown parameter type"
+        if (Mbscmp(typeName, "float") == 0) type = kScriptFloat;
+        else if (Mbscmp(typeName, "string") == 0) type = kScriptString;
+        else if (Mbscmp(typeName, "object") == 0) type = kScriptObject;
+        else if (Mbscmp(typeName, "group") == 0) type = kScriptGroup;
+        else return Error(this, token.line, 12, "Unknown parameter type");
         if (!script->AddParameterImpl(&name, type))   // "Duplicate variable name %s"
-            return Error(this, token.line, 13, game::Text(0x0078D96C), static_cast<const char*>(name));
+            return Error(this, token.line, 13, "Duplicate variable name %s", static_cast<const char*>(name));
         first = false;
     }
     return result;
@@ -630,7 +630,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
     if (!locals) locals = empty.Get();
     mfc::impl::ArrayAs<recordarrays::Cmds>(*commands).SetSize(0, -1);
     for (;;) {
-        if (!*pos) return Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));
+        if (!*pos) return Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
         cmd->Clear();
         token.Set(NextToken(pos));
         text = token.text;
@@ -655,14 +655,14 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
                 // failed.
                 BOOL open;
                 if (!*pos) {
-                    open = Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));
+                    open = Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
                 } else {
                     ScriptToken next;
                     next.CopyConstruct(NextToken(pos));
                     mfc::CString nextText(next.text);
                     int nextId;
                     ClassifyAt(nextText, &nextId, nullptr);
-                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, game::Text(0x0078D730), static_cast<const char*>(nextText));
+                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", static_cast<const char*>(nextText));
                 }
                 if (!open) return 0;
                 ScriptDecl* body = NewCommandList();
@@ -695,7 +695,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
             } else if (Globals()->HasVariable(qualified)) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
-                return Error(this, token.line, 3, game::Text(0x0078D908), static_cast<const char*>(text));   // "Unexpected token '%s'"
+                return Error(this, token.line, 3, "Unexpected token '%s'", static_cast<const char*>(text));
             }
         }
         if (!ok) return 0;
@@ -717,7 +717,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
 
     ErrorLine() = 0;
     ErrorCode() = 0;
-    ErrorText() = game::Text(0x0078DA0C);   // "No errors found"
+    ErrorText() = "No errors found";
 
     // Preprocess line by line: "#define name value" lines are collected (and become empty), the
     // other lines get the defines substituted. The text is replaced by the result.
@@ -725,7 +725,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         ScriptDefineList defines{reinterpret_cast<void*>(0x0073D4C0), nullptr, nullptr, 0, nullptr, nullptr, 10};
         mfc::CString result, line;
         ScriptDefine define;
-        const char* keyword = game::Text(0x0078DA04);   // "#define"
+        const char* keyword = "#define";
         char* p = Ops(*text).LockBuffer();
         while (*p) {
             char* start = p;
@@ -748,7 +748,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ApplyDefinesAt(&line, &defines);
             }
-            result = (result + line) + game::Text(0x00784340);   // "\n"
+            result = (result + line) + "\n";   // "\n"
         }
         Ops(*text).UnlockBuffer();
         *text = result;
@@ -771,17 +771,17 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         case kLexWorldScript: {
             BOOL ok;
             if (!pos) {
-                ok = Error(this, tokens.tail->data.line, 1, game::Text(0x0078D740));
+                ok = Error(this, tokens.tail->data.line, 1, "Unexpected end of file");
             } else {
                 ScriptToken next;
                 next.CopyConstruct(NextToken(&pos));
                 mfc::CString nextText(next.text);
                 int nextId;
                 ClassifyAt(nextText, &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, game::Text(0x0078D730), static_cast<const char*>(nextText));
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", static_cast<const char*>(nextText));
             }
             if (!ok) return fail(0);
-            if (worldScript) return fail(Error(this, token.line, 14, game::Text(0x0078D9DC)));   // "Only one WorldScript() per file allowed"
+            if (worldScript) return fail(Error(this, token.line, 14, "Only one WorldScript() per file allowed"));
             worldScript = ScriptNewWorldScript(this, nullptr);
             if (!Orig(this)->LoadCommandsAt(&worldScript->commands, &pos, &tokens, nullptr)) return fail(0);
             break;
@@ -806,7 +806,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ScriptDefinition* declared = &Scripts().data[index];
                 if (declared->ifThen.size != 0)   // "Multiple declaration of script %s"
-                    return fail(Error(this, token.line, 16, game::Text(0x0078D9B8), static_cast<const char*>(declared->name)));
+                    return fail(Error(this, token.line, 16, "Multiple declaration of script %s", static_cast<const char*>(declared->name)));
                 if (!LoadScriptBody(declared, &pos, &tokens)) return fail(0);
             }
             break;
@@ -821,7 +821,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 decl->name = name;
             }
             if (FindScript(decl->name) != -1)   // "Duplicate script %s"
-                return fail(Error(this, token.line, 15, game::Text(0x0078BC18), static_cast<const char*>(word)));
+                return fail(Error(this, token.line, 15, "Duplicate script %s", static_cast<const char*>(word)));
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
             ScriptDefinitionsAdd(&Scripts(), nullptr, decl);
@@ -831,14 +831,14 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             ClearDefinition(decl);
             BOOL ok;
             if (!pos) {
-                ok = Error(this, tokens.tail->data.line, 1, game::Text(0x0078D740));
+                ok = Error(this, tokens.tail->data.line, 1, "Unexpected end of file");
             } else {
                 ScriptToken next;
                 next.CopyConstruct(NextToken(&pos));
                 mfc::CString nextText(next.text);
                 int nextId;
                 ClassifyAt(nextText, &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, game::Text(0x0078D730), static_cast<const char*>(nextText));
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", static_cast<const char*>(nextText));
             }
             if (!ok) return fail(0);
             // Declared with qualified names, then added to the global variables.
@@ -848,7 +848,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             break;
         }
         default:   // "Unexpected '%s'"
-            return fail(Error(this, token.line, 3, game::Text(0x0078D9A8), static_cast<const char*>(word)));
+            return fail(Error(this, token.line, 3, "Unexpected '%s'", static_cast<const char*>(word)));
         }
     }
 
@@ -862,7 +862,7 @@ EI_REPLACE_METHOD(0x004D23A0, CScript::Load);
 
 BOOL CScript::LoadFile(const char* path) {
     mfc::CString text;
-    if (!ReadTextFile(path, &text)) return Error(this, 0, 17, game::Text(0x0078DA1C), path);   // "Unable to read file \"%s\""
+    if (!ReadTextFile(path, &text)) return Error(this, 0, 17, "Unable to read file \"%s\"", path);   // "Unable to read file \"%s\""
     return Orig(this)->LoadAt(&text, 1);
 }
 EI_REPLACE_METHOD(0x004D36F0, CScript::LoadFile);

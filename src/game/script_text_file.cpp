@@ -16,7 +16,7 @@ namespace {
 constexpr unsigned kOpenFlags = 0x4020;   // CFile::typeText | CFile::shareDenyWrite, for reading
 constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
 // The empty text the result starts from (a zero byte of the exe).
-const char* NoText() { return game::Text(0x0079B298); }
+const char* NoText() { return ""; }
 } // namespace
 
 int __fastcall ReadTextFile(const char* path, mfc::CString* text) {

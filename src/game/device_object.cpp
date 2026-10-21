@@ -66,8 +66,8 @@ void RecordStageBlocks(CTextureDevice* device) {
     for (const StageBlock& block : kStageBlocks) {
         IDirect3DDevice7* d3d = device::D3D(device);
         device->lastLoadResult_ = device::BeginStateBlock(d3d);
-        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, game::Text(0x0078E034)))   // "Can't begin state block.\n"
-            ThrowGameError(game::Text(0x0078E034));
+        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, "Can't begin state block.\n"))   // "Can't begin state block.\n"
+            ThrowGameError("Can't begin state block.\n");
         device::SetTextureStageState(d3d, 0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
         device::SetTextureStageState(d3d, 0, D3DTSS_COLOROP, D3DTOP_MODULATE);
         device::SetTextureStageState(d3d, 0, D3DTSS_COLORARG2, block.colourArg2);
@@ -75,8 +75,8 @@ void RecordStageBlocks(CTextureDevice* device) {
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAOP, block.alphaOp);
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAARG2, block.alphaArg2);
         device->lastLoadResult_ = device::EndStateBlock(d3d, block.handle);
-        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, game::Text(0x0078E01C)))   // "Can't end state block.\n"
-            ThrowGameError(game::Text(0x0078E01C));
+        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, "Can't end state block.\n"))   // "Can't end state block.\n"
+            ThrowGameError("Can't end state block.\n");
     }
 }
 
@@ -135,8 +135,8 @@ void CTextureDevice::BuildFormatTable() {
     textureFormats_.ClearWith([](PixelFormat*) {});
     lastLoadResult_ = device::EnumTextureFormats(device::D3D(this), &PixelFormatCallback, &textureFormats_);
     // "Choosen HW device have no texture support.\n"
-    if (lastLoadResult_ == D3DERR_TEXTURE_NO_SUPPORT) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E288));
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E264));   // "Can't enumerate texture formats.\n"
+    if (lastLoadResult_ == D3DERR_TEXTURE_NO_SUPPORT) ThrowGameErrorResult(lastLoadResult_, "Choosen HW device have no texture support.\n");
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't enumerate texture formats.\n");   // "Can't enumerate texture formats.\n"
 
     formats_.Clear();
     largestFormatId_ = 0;
@@ -153,7 +153,7 @@ void CTextureDevice::BuildFormatTable() {
                 char text[5];
                 std::memcpy(text, &code, 4);
                 text[4] = 0;
-                game::DebugLog(game::Text(0x0078E238), code, text);   // "Non-DXT FourCC format found: 0x%.8X = %s.\n"
+                game::DebugLog("Non-DXT FourCC format found: 0x%.8X = %s.\n", code, text);   // "Non-DXT FourCC format found: 0x%.8X = %s.\n"
                 continue;
             }
             id = code;
@@ -194,7 +194,7 @@ void CTextureDevice::Destruct() {
     for (const StageBlock& block : kStageBlocks) {
         const DWORD handle = *block.handle;
         lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
-        if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, game::Text(0x0078E18C), handle);   // "Can't delete state block %d.\n"
+        if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, "Can't delete state block %d.\n", handle);   // "Can't delete state block %d.\n"
     }
     ReleaseBuffers(batch_.used);
     ReleaseBuffers(batch2_.used);

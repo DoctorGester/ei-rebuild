@@ -89,8 +89,8 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
 
     CUiRegion** regions = window.regions_.data;
     if (mode == kModeHeroList) {
-        menu->ShowPart(game::Text(0x007939E8), 1);   // "but03"
-        menu->ShowPart(game::Text(0x007939D0), 1);   // "button03_multiplayer"
+        menu->ShowPart("but03", 1);
+        menu->ShowPart("button03_multiplayer", 1);
         Enable(heroScroll_, 1);
         for (int i = 0; i < window.sceneObjects_.size; ++i) Sprite(this, i)->visible_ = 1;
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 0);

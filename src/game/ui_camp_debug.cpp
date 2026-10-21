@@ -19,15 +19,15 @@
 
 namespace {
 
-const char* InstructionWeapon() { return game::Text(0x007938D0); }      // "Instruction Weapon"
-const char* InstructionArmor() { return game::Text(0x007938E4); }       // "Instruction Armor"
-const char* InstructionQuickItem() { return game::Text(0x007938F8); }   // "Instruction Quick Item"
-const char* PrototypeWord() { return game::Text(0x00793924); }          // "prototype"
-const char* WandWord() { return game::Text(0x0079391C); }               // "wand"
-const char* MaterialWord() { return game::Text(0x00793910); }           // "Material"
-const char* Dot() { return game::Text(0x00783D78); }                    // "."
-const char* RuneItem() { return game::Text(0x007938B0); }               // "Rune"
-const char* PrototypeItem() { return game::Text(0x007938B8); }          // "Prototype"
+const char* InstructionWeapon() { return "Instruction Weapon"; }
+const char* InstructionArmor() { return "Instruction Armor"; }
+const char* InstructionQuickItem() { return "Instruction Quick Item"; }
+const char* PrototypeWord() { return "prototype"; }
+const char* WandWord() { return "wand"; }
+const char* MaterialWord() { return "Material"; }
+const char* Dot() { return "."; }
+const char* RuneItem() { return "Rune"; }
+const char* PrototypeItem() { return "Prototype"; }
 
 // The item and spell databases (their name lists, originals_gameplay.h).
 void* ItemDatabase() { return *reinterpret_cast<void* const*>(0x007AF60C); }

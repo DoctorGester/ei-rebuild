@@ -65,7 +65,7 @@ Spec* Spec::SpecConstruct() {
     new (&name) mfc::CString();
     new (&comment) mfc::CString();
     ei::SetVtable(this, kVtableAddress);
-    mfc::CString none(game::Text(0x007846F0));   // "none"
+    mfc::CString none("none");
     id = -1;
     spareId = -1;
     position = {0.0f, 0.0f, 0.0f};
@@ -97,7 +97,7 @@ EI_REPLACE_METHOD(0x00469E30, Spec::SpecDelete);
 
 // 00469DB0 (slot 4): "error".
 mfc::CString* Spec::SpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(game::Text(0x00787DC4));
+    new (out) mfc::CString("error");
     return out;
 }
 EI_REPLACE_METHOD(0x00469DB0, Spec::SpecTypeName);
@@ -133,7 +133,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&skinTexture) mfc::CString();
     StringArrayConstruct(&parts);
     ei::SetVtable(this, kVtableAddress);
-    mfc::CString none(game::Text(0x007846F0));
+    mfc::CString none("none");
     base.kind = 1;
     parentId = 0;
     model = game::EmptyText();
@@ -325,7 +325,7 @@ EI_REPLACE_METHOD(0x0046AFB0, ObjectSpec::ObjectSpecApply);
 // 0046B090 (slot 4): the player number ("%i").
 mfc::CString* ObjectSpec::ObjectSpecTypeName(mfc::CString* out) {
     mfc::CString text;
-    text.Format(game::Text(0x007842D8), player);
+    text.Format("%i", player);
     new (out) mfc::CString(text);
     return out;
 }
@@ -342,7 +342,7 @@ FlameSpec* FlameSpec::FlameSpecConstruct() {
     object.base.kind = 6;
     std::uint32_t volumeBits = 0x3F333333;   // 0.7f
     std::memcpy(&volume, &volumeBits, 4);
-    sound = game::Text(0x00787DCC);   // "nature\fire\small.wav"
+    sound = "nature\\fire\\small.wav";
     return this;
 }
 EI_REPLACE_METHOD(0x0046B210, FlameSpec::FlameSpecConstruct);
@@ -447,7 +447,7 @@ EI_REPLACE_METHOD(0x0046B550, TrapSpec::TrapSpecDelete);
 
 // 0046B520 (slot 4): "MagicTrap".
 mfc::CString* TrapSpec::TrapSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(game::Text(0x00787DE4));
+    new (out) mfc::CString("MagicTrap");
     return out;
 }
 EI_REPLACE_METHOD(0x0046B520, TrapSpec::TrapSpecTypeName);
@@ -601,7 +601,7 @@ ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
         StringArraySetAtGrowTextOriginal(names, nullptr, names->size, game::EmptyText());
-        names->data[i].Format(game::Text(0x00787E44), i);   // "Player-%i"
+        names->data[i].Format("Player-%i", i);
     }
     return self;
 }

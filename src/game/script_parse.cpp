@@ -197,7 +197,7 @@ EI_REPLACE(0x004D0B10, FunctionSignature);
 const char* __fastcall KeywordName(int id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
         if (k->id == id) return k->name;
-    return game::Text(0x0078D848);   // "Unknown command"
+    return "Unknown command";
 }
 EI_REPLACE(0x004D0BA0, KeywordName);
 
@@ -205,7 +205,7 @@ EI_REPLACE(0x004D0BA0, KeywordName);
 
 ScriptToken* ScriptToken::Construct() {
     new (&text) mfc::CString;
-    text = game::Text(0x0078BC6C);   // "None"
+    text = "None";
     line = -1;
     return this;
 }
@@ -277,7 +277,7 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
         if (Strncmp(buffer, CommentOpen(), std::strlen(CommentOpen())) == 0) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
-            if (!*p) return Error(this, line, 1, game::Text(0x0078D758), CommentClose());   // "End of file before '%s'"
+            if (!*p) return Error(this, line, 1, "End of file before '%s'", CommentClose());
             for (;;) {
                 const char c = *p;
                 if (c == '\n') ++line;
@@ -287,7 +287,7 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
                     break;
                 }
                 ++p;
-                if (!*p) return Error(this, line, 1, game::Text(0x0078D758), CommentClose());
+                if (!*p) return Error(this, line, 1, "End of file before '%s'", CommentClose());
             }
             continue;
         }
@@ -322,14 +322,14 @@ EI_REPLACE_METHOD(0x004CF7A0, CScript::Tokenize);
 
 BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id) {
     ScriptPos node = *pos;
-    if (!node) return Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));   // "Unexpected end of file"
+    if (!node) return Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
     *pos = node->next;
     ScriptToken token;
     token.CopyConstruct(node->data);
     mfc::CString text(token.text);
     int found;
     ClassifyAt(text, &found, nullptr);
-    if (found != id) return Error(this, token.line, 2, game::Text(0x0078D730), static_cast<const char*>(text));   // "Wrong lexeme %s"
+    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", static_cast<const char*>(text));
     return 1;
 }
 EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
@@ -342,7 +342,7 @@ mfc::CString* CScript::QualifyName(mfc::CString* out, const mfc::CString& name) 
         return out;
     }
     mfc::CString qualified;
-    qualified.Format(game::Text(0x0078DA38), FileCount(), static_cast<const char*>(name));   // "!%i!%s"
+    qualified.Format("!%i!%s", FileCount(), static_cast<const char*>(name));
     new (out) mfc::CString(qualified);
     return out;
 }

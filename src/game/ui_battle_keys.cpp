@@ -30,14 +30,14 @@
 
 namespace {
 
-const char* ClockSound() { return game::Text(0x0079447C); }     // "buttons\\battle\\clock.wav"
-const char* ClickSound() { return game::Text(0x00794460); }     // "buttons\\battle\\click.wav"
-const char* WeaponSound() { return game::Text(0x00794444); }    // "buttons\\battle\\weapon.wav"
-const char* SlingSound() { return game::Text(0x00794428); }     // "buttons\\battle\\sling.wav"
-const char* OnOffSound() { return game::Text(0x007935BC); }     // "buttons\\battle\\on_off.wav"
-const char* QuickSaveName() { return game::Text(0x007933AC); }  // "saveq"
-const char* FollowName() { return game::Text(0x00787928); }     // "follow"
-const char* ScienceName() { return game::Text(0x0078B8FC); }    // "science"
+const char* ClockSound() { return "buttons\\battle\\clock.wav"; }
+const char* ClickSound() { return "buttons\\battle\\click.wav"; }
+const char* WeaponSound() { return "buttons\\battle\\weapon.wav"; }
+const char* SlingSound() { return "buttons\\battle\\sling.wav"; }
+const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
+const char* QuickSaveName() { return "saveq"; }
+const char* FollowName() { return "follow"; }
+const char* ScienceName() { return "science"; }
 
 // The world's update period in milliseconds: the game's speed.
 int& UpdatePeriod() { return *reinterpret_cast<int*>(0x0078FF34); }

@@ -202,14 +202,14 @@ enum MessageLine { kNeedsDirectX7, kLittleDiskSpace, kInsertDisc };
 constexpr int kMessageLines = 3;
 
 void AppendDefaultMessages(console::CStringArray& messages) {
-    messages.SetAtGrow(messages.size, game::Text(0x007849A8));   // "This Game requires DX7 in order to run!"
-    messages.SetAtGrow(messages.size, game::Text(0x00784974));   // "Not enough free disk space - play on your own risk!"
-    messages.SetAtGrow(messages.size, game::Text(0x00784940));   // "Please, insert EI disc 2 in the CD-ROM and press OK"
+    messages.SetAtGrow(messages.size, "This Game requires DX7 in order to run!");
+    messages.SetAtGrow(messages.size, "Not enough free disk space - play on your own risk!");
+    messages.SetAtGrow(messages.size, "Please, insert EI disc 2 in the CD-ROM and press OK");
 }
 
 // The lines of .\res\sysmsg.txt, or the built-in three when the file is missing or shorter.
 void LoadSystemMessages(console::CStringArray& messages) {
-    gamecrt::CrtFile* file = libcrt::Fopen(game::Text(0x007849D0), game::Text(0x007849E4));   // "rt"
+    gamecrt::CrtFile* file = libcrt::Fopen(".\\res\\sysmsg.txt", "rt");
     if (!file) {
         AppendDefaultMessages(messages);
         return;
@@ -236,14 +236,14 @@ mfc::CString Tail(const mfc::CString& argument, int prefixLength) { return argum
 void ReadCommandLine(const char* commandLine) {
     console::CStringArray arguments;
     text::Split(commandLine, &arguments, ' ');
-    CameraFile() = game::Text(0x00784920);   // ".\camera.cam"
+    CameraFile() = ".\\camera.cam";
     CommandLineScript().Empty();
     CommandLineMob().Empty();
     CommandLineMap().Empty();
     CWorldClient* client = Client();
     GameOptions* options = options::TheOptions();
     for (int i = 0; i < arguments.size; ++i) {
-        if (arguments[i].Find(game::Text(0x00784914)) == 0) {   // "-moviepath_"
+        if (arguments[i].Find("-moviepath_") == 0) {
             client->flags_ &= ~0x20u;
             {
                 mfc::CString folder = Tail(arguments[i], 11);
@@ -255,26 +255,26 @@ void ReadCommandLine(const char* commandLine) {
         }
         if (!(client->flags_ & 0x10)) {
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(arguments[i])),
-                                reinterpret_cast<const unsigned char*>(game::Text(0x0078490C))) == 0) {   // "-nocam"
+                                reinterpret_cast<const unsigned char*>("-nocam")) == 0) {
                 client->flags_ &= ~8u;
                 continue;
             }
-            if (!(client->flags_ & 0x10) && arguments[i].Find(game::Text(0x00784904)) != -1) {   // ".cam"
+            if (!(client->flags_ & 0x10) && arguments[i].Find(".cam") != -1) {
                 CameraFile() = arguments[i];
                 continue;
             }
         }
-        if (arguments[i].Find(game::Text(0x007848FC)) != -1) {   // ".scr"
+        if (arguments[i].Find(".scr") != -1) {
             CommandLineScript() = arguments[i];
-        } else if (arguments[i].Find(game::Text(0x007848F4)) != -1) {   // ".mob"
+        } else if (arguments[i].Find(".mob") != -1) {
             CommandLineMob() = arguments[i];
-        } else if (arguments[i].Find(game::Text(0x007848EC)) != -1) {   // ".mpr"
+        } else if (arguments[i].Find(".mpr") != -1) {
             CommandLineMap() = arguments[i];
-        } else if (arguments[i].Find(game::Text(0x007848E0)) == 0) {   // "-benchmark_"
+        } else if (arguments[i].Find("-benchmark_") == 0) {
             mfc::CString frames = Tail(arguments[i], 11);
             options->numberOfFrames_ = libcrt::Atoi(frames);
             options->createOutputInfo_ = 1;
-        } else if (arguments[i].Find(game::Text(0x007848D0)) == 0) {   // "-devicetarget_"
+        } else if (arguments[i].Find("-devicetarget_") == 0) {
             mfc::CString driver = Tail(arguments[i], 14);
             options->driverIndex_ = libcrt::Atoi(driver);
         }
@@ -325,7 +325,7 @@ struct PathParts {
 // "<drive>\." of `path`: the root the volume calls take.
 void DriveRoot(const char* path, PathParts& parts) {
     libcrt::Splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
-    std::memcpy(parts.drive + std::strlen(parts.drive), game::Text(0x00784894), 3);   // "\." appended
+    std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
 }
 
 // The free bytes on the drive of `folder` through GetDiskFreeSpaceExA where kernel32 has it, else
@@ -335,7 +335,7 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
     DriveRoot(folder, parts);
     using FreeSpaceEx = BOOL(__stdcall*)(const char*, ULARGE_INTEGER*, ULARGE_INTEGER*, ULARGE_INTEGER*);
     auto* extended = reinterpret_cast<FreeSpaceEx>(
-        gameapi::GetProcAddress(gameapi::GetModuleHandleA(game::Text(0x00784788)), game::Text(0x00784798)));   // kernel32.dll
+        gameapi::GetProcAddress(gameapi::GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceExA"));   // kernel32.dll
     if (extended) {
         ULARGE_INTEGER available, total, totalFree;
         const BOOL ok = extended(parts.drive, &available, &total, &totalFree);
@@ -356,7 +356,7 @@ bool CheckDrives(const console::CStringArray& messages) {
     mfc::CString dataFolder(DataFolder());
     double freeBytes;
     if (FreeDiskSpace(dataFolder, &freeBytes) && !(freeBytes == ExeDouble(0x0073C340)) && freeBytes < ExeDouble(0x0073C358)) {
-        if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], game::Text(0x0078488C), kWarningBox) == IDCANCEL) return false;
+        if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
     if (GameMbscmp(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
@@ -364,7 +364,7 @@ bool CheckDrives(const console::CStringArray& messages) {
         DriveRoot(discFolder, parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         while (GameMbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
-            if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], game::Text(0x0078488C), kWarningBox) == IDCANCEL) return false;
+            if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
     }
@@ -393,11 +393,11 @@ void CreateMouse() {
 
 // The folders the game writes to.
 void CreateFolders(mfc::CString& path) {
-    path.Format(game::Text(0x00784880), static_cast<const char*>(DataFolder()));   // "%ssaves\"
+    path.Format("%ssaves\\", static_cast<const char*>(DataFolder()));
     gameapi::CreateDirectoryA(path, nullptr);
-    path.Format(game::Text(0x00784878), static_cast<const char*>(DataFolder()));   // "%smp\"
+    path.Format("%smp\\", static_cast<const char*>(DataFolder()));
     gameapi::CreateDirectoryA(path, nullptr);
-    path.Format(game::Text(0x0078486C), static_cast<const char*>(DataFolder()));   // "%stextures\"
+    path.Format("%stextures\\", static_cast<const char*>(DataFolder()));
     gameapi::CreateDirectoryA(path, nullptr);
 }
 
@@ -438,19 +438,19 @@ std::uintptr_t OpenSound() {
     mfc::CString discFolder(DiscFolder());
     Sound()->Open(MainWindow(), 1, -1, 44100, 16);
     {
-        mfc::CString registry = textFolder + game::Text(0x0078485C);   // "streamsn.reg"
-        mfc::CString folder = dataFolder + game::Text(0x00784854);     // "stream\"
+        mfc::CString registry = textFolder + "streamsn.reg";
+        mfc::CString folder = dataFolder + "stream\\";
         SoundSetPathAt(Sound(), nullptr, folder, registry);
     }
     {
-        mfc::CString effects = textFolder + game::Text(0x0078484C);   // "sfx.res"
+        mfc::CString effects = textFolder + "sfx.res";
         CSoundManager* sound = Sound();
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
     {
-        mfc::CString unused = discFolder + game::Text(0x0078483C);   // "res\speech.res" (built twice)
-        mfc::CString speech = discFolder + game::Text(0x0078483C);
+        mfc::CString unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
+        mfc::CString speech = discFolder + "res\\speech.res";
         Sound()->AddWaveSource(speech);
     }
     Sound()->SetEffectsVolume(options->audioSfx_);
@@ -461,7 +461,7 @@ std::uintptr_t OpenSound() {
 }
 
 void LoadDatabases() {
-    const char* archive = game::Text(0x00784818);   // "database.res"
+    const char* archive = "database.res";
     GameOptions* options = options::TheOptions();
     SkillDatabaseLoadOriginal(SkillDatabaseObject(), nullptr, options->resourcesPath_, archive);
     QuestDatabaseLoadAt(QuestDatabaseObject(), nullptr, options->resourcesPath_);
@@ -600,8 +600,8 @@ float SpeedForBalance(double balance, float rounded) {
 
 void PrintClientSpeed(float speed, float balance) {
     console::GameOStream& log = SpeedLog();
-    log << game::Text(0x00784808);            // "Client speed = "
-    log.PutFloat(speed) << game::Text(0x007847FC);   // " balance = "
+    log << "Client speed = ";
+    log.PutFloat(speed) << " balance = ";
     log.PutFloat(balance) << '\n';
     log.Flush();
 }
@@ -712,7 +712,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     console::CStringArray messages;
     LoadSystemMessages(messages);
     if (GetDxVersion() < 0x700) {
-        gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7], game::Text(0x00784930), kCriticalBox);   // "CRITICAL ERROR"
+        gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7], "CRITICAL ERROR", kCriticalBox);
         return kExitDeclined;
     }
     app::TypeRegistryRegister(ClassRegistry(), nullptr, 1, ClassTemplateFactory());
@@ -724,10 +724,10 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     // NivalRegistry: addon's PUSH at 004568E9 names its own key instead.
     RegistryRoot() = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
                          ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
-                         : game::Text(0x007848A8);   // "Software\Nival Interactive\EvilIslands"
+                         : "Software\\Nival Interactive\\EvilIslands";
     StoreStartFolder();
     {
-        mfc::CString settings = StartFolder() + game::Text(0x00784898);   // "config\ai.reg"
+        mfc::CString settings = StartFolder() + "config\\ai.reg";
         static_cast<LogicSettings*>(LogicSettingsObject())->Load(settings);
     }
     OptionsLoadAt(options, nullptr, RegistryRoot());
@@ -760,8 +760,8 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     std::uintptr_t reusedSlot = CreateRenderer();
     if (options->audio_) reusedSlot = OpenSound();
 
-    PlayMoviesOriginal(game::Text(0x00784834), 1, 1, 1, 1);   // "Start"
-    LoadingMovieName() = game::Text(0x00784828);              // "Progres.bik"
+    PlayMoviesOriginal("Start", 1, 1, 1, 1);
+    LoadingMovieName() = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();

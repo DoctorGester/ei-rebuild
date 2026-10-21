@@ -22,13 +22,13 @@
 
 namespace {
 
-const char* OkSound() { return game::Text(0x0079477C); }       // "buttons\tutorial\ok.wav"
-const char* CancelSound() { return game::Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
-const char* SelectSound() { return game::Text(0x0079475C); }   // "buttons\objectives\select.wav"
-const char* EnterSound() { return game::Text(0x0079473C); }    // "buttons\objectives\enter.wav"
-const char* MessageOkSound() { return game::Text(0x00793A88); }   // "buttons\messbox\ok.wav"
-const char* MapText() { return game::Text(0x007856A0); }       // "map.txt"
-const char* QuestHeader() { return game::Text(0x007941D4); }   // "#quest %s"
+const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
+const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
+const char* SelectSound() { return "buttons\\objectives\\select.wav"; }
+const char* EnterSound() { return "buttons\\objectives\\enter.wav"; }
+const char* MessageOkSound() { return "buttons\\messbox\\ok.wav"; }
+const char* MapText() { return "map.txt"; }
+const char* QuestHeader() { return "#quest %s"; }
 
 constexpr int kRegionOk = 0;
 constexpr int kRegionCancel = 1;

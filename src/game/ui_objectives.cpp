@@ -224,7 +224,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     for (int i = 0; i < map->exits.size; ++i) {
         const MapExit& source = map->exits.data[i];
         if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(source.target),
-                            reinterpret_cast<const unsigned char*>(game::Text(0x007846F0))) == 0)   // "none"
+                            reinterpret_cast<const unsigned char*>("none")) == 0)
             continue;
         int index = exits_.size;
         ObjectiveExit blank = {};
@@ -253,7 +253,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             }
         } else {
             mfc::CString name;
-            name.Format(game::Text(0x00794148), source.target);   // "z.%s"
+            name.Format("z.%s", source.target);
             float value = LocalPlayerVariable(name);
             if (value < 1.0f || value > 1.0f) exit->flag_ = true;   // not equal, NaN excluded
         }
@@ -318,7 +318,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         CStringArray parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
-        prefix.Format(game::Text(0x00794140), shownZone_);   // "q.%s"
+        prefix.Format("q.%s", shownZone_);
         table->Fill(prefix);
         ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
@@ -355,7 +355,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             mfc::CString title;
             int foundText;
             {
-                mfc::CString zoneKey(game::Text(0x007941F8));   // "zone "
+                mfc::CString zoneKey("zone ");
                 mfc::CString key = zoneKey + *reinterpret_cast<const mfc::CString*>(&shownZone_);
                 foundText = FindText(key);
             }
@@ -420,13 +420,13 @@ void CObjectivesWindow::ShowQuest() {
     mfc::CString failed;
     mfc::CString costExp;
     mfc::CString costMoney;
-    texts->GetString(game::Text(0x0079472C), &completed);   // "obj_completed"
-    texts->GetString(game::Text(0x00794720), &failed);      // "obj_failed"
-    texts->GetString(game::Text(0x00794710), &costExp);     // "obj_cost_exp"
-    texts->GetString(game::Text(0x00794700), &costMoney);   // "obj_cost_money"
+    texts->GetString("obj_completed", &completed);
+    texts->GetString("obj_failed", &failed);
+    texts->GetString("obj_cost_exp", &costExp);
+    texts->GetString("obj_cost_money", &costMoney);
     bool found;
     {
-        mfc::CString questWord(game::Text(0x00790790));     // "quest "
+        mfc::CString questWord("quest ");
         mfc::CString key = questWord + (*quests)[selectedQuest_];
         found = FindText(key) != 0;
     }
@@ -437,47 +437,47 @@ void CObjectivesWindow::ShowQuest() {
     TextNextLine(texts);
     texts->ReadToHash(&text, 1);
     {
-        mfc::CString colour(game::Text(0x007946F8));
+        mfc::CString colour("\007C\344\327\247 ");
         text = colour + text;
     }
-    text += game::Text(0x007946F4);
+    text += "\n ";
     if (QuestRecord* record = FindQuestRecord((*quests)[selectedQuest_])) {
         float experience = record->exp;
-        text += game::Text(0x007946EC);
+        text += "\007C\377\377\377 ";
         if (experience > 0.0f) {   // 0073B858
-            part.Format(game::Text(0x007946E4), static_cast<const char*>(costExp), static_cast<int>(gamecrt::Ftol(D(experience))));   // "%s %d\n"
+            part.Format("%s %d\n ", static_cast<const char*>(costExp), static_cast<int>(gamecrt::Ftol(D(experience))));   // "%s %d\n"
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part.Format(game::Text(0x007946E4), static_cast<const char*>(costMoney), static_cast<int>(gamecrt::Ftol(D(money))));
+            part.Format("%s %d\n ", static_cast<const char*>(costMoney), static_cast<int>(gamecrt::Ftol(D(money))));
             text += part;
         }
     }
     while (TextFindLineOriginal(texts, nullptr, nullptr)) {
         texts->Split(&fields, 1);
         if (fields.GetSize() < 2) continue;
-        if (SameText(fields[0], game::Text(0x007946DC))) break;      // "#quest"
-        if (!SameText(fields[0], game::Text(0x007946D4))) continue;  // "#subobj"
-        variable.Format(game::Text(0x007946C8), shownZone_, static_cast<const char*>((*quests)[selectedQuest_]),
+        if (SameText(fields[0], "#quest")) break;
+        if (!SameText(fields[0], "#subobj")) continue;
+        variable.Format("q.%s.%s.%s", shownZone_, static_cast<const char*>((*quests)[selectedQuest_]),
                         static_cast<const char*>(fields[1]));   // "q.%s.%s.%s"
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
-        text += game::Text(0x0079349C);
+        text += "\007C\377\263" "1 ";
         text += line;
-        text += game::Text(0x0078DA40);   // " "
+        text += " ";
         if (state == 2) {
-            text += game::Text(0x007946B8);
+            text += "\007Ct\334\001 ";
             text += completed;
         } else if (state == 3) {
-            text += game::Text(0x007946C0);
+            text += "\007C\377`H ";
             text += failed;
         }
-        text += game::Text(0x007946AC);
+        text += "\n \n \007C\344\327\247";
         texts->ReadToHash(&line, 1);
         text += line;
-        text += game::Text(0x007946A4);
+        text += "\n \n ";
     }
     TextClose(texts);
     static_cast<CUiScrollText*>(children_.data[0])->SetText(text);
@@ -526,7 +526,7 @@ void CObjectivesWindow::Build() {
     mfc::CString key;
     mfc::CStringArray* objectiveTexts = &objectiveTexts_;
     for (int k = 0; k < 3; ++k) {
-        key.Format(game::Text(0x00794670), k);   // "obj_%d"
+        key.Format("obj_%d", k);
         Texts()->GetString(key, &text);
         objectiveTexts->SetAtGrow(objectiveTexts->GetSize(), text);
     }
@@ -541,8 +541,8 @@ void CObjectivesWindow::Build() {
                   : nullptr;
     AddChild(bar_);
 
-    LoadTexture(game::Text(0x00793380), 3, 0);   // "saveload"
-    LoadTexture(game::Text(0x00794668), 3, 0);   // "cross"
+    LoadTexture("saveload", 3, 0);
+    LoadTexture("cross", 3, 0);
     AddSurface(NewSurface(interface_, 50, 20, 390, 160));
     AddSurface(NewSurface(interface_, 410, 380, 750, 520));
     AddSurface(NewSurface(interface_, 280, 540, 520, 580));
@@ -626,7 +626,7 @@ void CObjectivesWindow::Build() {
         CStringArray parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
-        table->Fill(game::Text(0x00783D7C));   // "q."
+        table->Fill("q.");
         ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
@@ -697,13 +697,13 @@ void CObjectivesWindow::DrawQuestList() {
         mark->visible_ = 1;
         bool found;
         {
-            mfc::CString questWord(game::Text(0x00790790));     // "quest "
+            mfc::CString questWord("quest ");
             mfc::CString key = questWord + (*quests)[row];
             found = FindText(key) != 0;
         }
         if (found) texts->ReadLine(&title, 1);
         else title = (*quests)[row];
-        variable.Format(game::Text(0x0079469C), shownZone_, static_cast<const char*>((*quests)[row]));   // "q.%s.%s"
+        variable.Format("q.%s.%s", shownZone_, static_cast<const char*>((*quests)[row]));
         int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;

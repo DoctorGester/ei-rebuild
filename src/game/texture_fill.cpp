@@ -13,8 +13,8 @@
 
 namespace {
 
-const char* AlreadyLoadedText() { return game::Text(0x00795BE8); }     // "CTexture::Load.\n Texture \"%s\" already loaded.\n"
-const char* AlphaPrefixText() { return game::Text(0x00795BE4); }       // "a_"
+const char* AlreadyLoadedText() { return "CTexture::Load.\n Texture \"%s\" already loaded.\n"; }     // "CTexture::Load.\n Texture \"%s\" already loaded.\n"
+const char* AlphaPrefixText() { return "a_"; }
 
 } // namespace
 

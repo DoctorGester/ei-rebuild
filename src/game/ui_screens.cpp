@@ -20,11 +20,11 @@
 #include "originals_units.h"
 
 namespace {
-const char* const kSoundCampScroll = game::Text(0x00793CB8);   // "buttons\camp\scroll.wav"
-const char* const kSoundCampMode = game::Text(0x00793CA0);     // "buttons\camp\mode.wav"
-const char* const kSoundMenuStone = game::Text(0x00793FCC);    // "buttons\menu\stone.wav"
-const char* const kSoundMenuOk = game::Text(0x00793FF0);       // "buttons\menu\ok.wav"
-const char* const kSoundMessageOk = game::Text(0x00793A88);    // "buttons\messbox\ok.wav"
+const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
+const char* const kSoundCampMode = "buttons\\camp\\mode.wav";
+const char* const kSoundMenuStone = "buttons\\menu\\stone.wav";
+const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
+const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
 // Item fields read by the strips.
 int ItemType(const char* item) { return *reinterpret_cast<const int*>(item + 0x10); }

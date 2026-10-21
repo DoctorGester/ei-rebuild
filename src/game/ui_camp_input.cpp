@@ -16,18 +16,18 @@
 
 namespace {
 
-const char* MoveSound() { return game::Text(0x00793764); }   // "buttons\camp\move.wav"
+const char* MoveSound() { return "buttons\\camp\\move.wav"; }
 
 // The help topics of pages 0-6 (the game's strings).
 const char* PageHelpTopic(int page) {
     switch (page) {
-    case 0: return game::Text(0x0079371C);   // "camp_weapons"
-    case 1: return game::Text(0x00793710);   // "camp_skills"
-    case 2: return game::Text(0x007936FC);   // "camp_spell_trade"
-    case 3: return game::Text(0x007936E8);   // "camp_spell_constr"
-    case 4: return game::Text(0x007936D8);   // "camp_item_trade"
-    case 5: return game::Text(0x007936C4);   // "camp_item_constr"
-    case 6: return game::Text(0x007936B8);   // "camp_repair"
+    case 0: return "camp_weapons";
+    case 1: return "camp_skills";
+    case 2: return "camp_spell_trade";
+    case 3: return "camp_spell_constr";
+    case 4: return "camp_item_trade";
+    case 5: return "camp_item_constr";
+    case 6: return "camp_repair";
     default: return nullptr;
     }
 }

@@ -49,7 +49,7 @@ mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, con
 // Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {
     alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-    mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), GameDataPathString(), game::Text(0x00787C04));
+    mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), GameDataPathString(), "config\\keyboard.ini");
     bool opened = file.Open(*path, flags, nullptr) != 0;
     path->~CString();
     return opened;
@@ -111,7 +111,7 @@ void __cdecl SaveKeyBindings() {
         for (int action = 0; action < kActionCount; ++action) {
             if (Actions()[action].id != id) continue;
             if (known) {
-                line.Format(game::Text(0x00787C18), Keys()[key].name, Actions()[action].name);
+                line.Format("%s %s\n", Keys()[key].name, Actions()[action].name);
                 file.WriteString(line);
             }
             break;

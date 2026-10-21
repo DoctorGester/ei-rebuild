@@ -108,32 +108,32 @@ int CMusicSystem::LoadThemes() {
         int result;
         {
             mfc::CString file(MusicReg());
-            mfc::CString message = game::Text(0x0079684C) + file;   // "CMusicSystem::Create()\nUnable to open file \""
-            mfc::CString full = message + game::Text(0x0078DA64);    // "\""
+            mfc::CString message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "CMusicSystem::Create()\nUnable to open file \""
+            mfc::CString full = message + "\"";    // "\""
             result = game::FatalError(static_cast<const char*>(full));
         }
         reg.Destroy();
         return result;
     }
-    const char* const common = game::Text(0x00796844);   // "Common"
-    credits = reg.GetString(common, game::Text(0x00790EF4), mfc::CString(game::EmptyText()));    // "Credits"
-    mainMenu = reg.GetString(common, game::Text(0x007904EC), mfc::CString(game::EmptyText()));   // "MainMenu"
+    const char* const common = "Common";
+    credits = reg.GetString(common, "Credits", mfc::CString(game::EmptyText()));
+    mainMenu = reg.GetString(common, "MainMenu", mfc::CString(game::EmptyText()));
     {
         console::CStringArray sections;
         reg.GetSectionNames(&sections);
         for (int i = 0; i < sections.size; ++i) {
             const char* section = sections.data[i];
-            if (CompareNoCase(section, game::Text(0x0079683C)) == 0) continue;   // "common"
+            if (CompareNoCase(section, "common") == 0) continue;
             LocalTheme read;
             read.name = sections.data[i];
             read.dungeon = 0;
-            read.briefing = reg.GetString(section, game::Text(0x00796830), mfc::CString(game::EmptyText()));      // "Briefing"
-            read.constructor = reg.GetString(section, game::Text(0x00796824), mfc::CString(game::EmptyText()));   // "Constructor"
-            reg.GetStringArray(section, game::Text(0x00796818), &read.calm);     // "CalmOpen"
-            reg.GetStringArray(section, game::Text(0x00796810), &read.combat);   // "Combat"
+            read.briefing = reg.GetString(section, "Briefing", mfc::CString(game::EmptyText()));
+            read.constructor = reg.GetString(section, "Constructor", mfc::CString(game::EmptyText()));
+            reg.GetStringArray(section, "CalmOpen", &read.calm);
+            reg.GetStringArray(section, "Combat", &read.combat);
             AppendTheme(this, read);
             read.dungeon = 1;
-            reg.GetStringArray(section, game::Text(0x00796804), &read.calm);     // "CalmDungeon"
+            reg.GetStringArray(section, "CalmDungeon", &read.calm);
             AppendTheme(this, read);
         }
     }

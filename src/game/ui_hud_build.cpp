@@ -51,7 +51,7 @@ void AddLabels(mfc::CStringArray* labels, const int (&ids)[N]) {
     CTextManager* texts = GameTexts();
     mfc::CString text;
     for (int id : ids) {
-        text.Format(game::Text(0x00792ED8), id);   // "infoitem_%d"
+        text.Format("infoitem_%d", id);
         texts->GetString(text, &text);
         labels->SetAtGrow(labels->size, text);
     }
@@ -317,7 +317,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
     unit_ = nullptr;
     mfc::CString text;
-    GameTexts()->GetString(game::Text(0x00794540), &text);   // "infoitem_16"
+    GameTexts()->GetString("infoitem_16", &text);
     labels->SetAtGrow(labels->size, text);
     widescreen::LeavePanel();        // addon's 10023430
     return this;
