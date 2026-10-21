@@ -110,7 +110,7 @@ void CFigureMesh::Clear() {
 }
 EI_REPLACE_METHOD(0x0059F2B0, CFigureMesh::Clear);
 
-void CFigureMesh::ClearMesh() {
+void CPlainFigureMesh::ClearMesh() {
     vertices_.SetSize(0);
     normals_.SetSize(0);
     corners_.SetSize(0);
@@ -119,7 +119,7 @@ void CFigureMesh::ClearMesh() {
     texCoords_.SetSize(0);
     Clear();
 }
-EI_REWRITTEN(0x005A6C80, CFigureMesh::ClearMesh);
+EI_REWRITTEN(0x005A6C80, CPlainFigureMesh::ClearMesh);
 
 void CFigureMesh::ClearSharedMesh() {
     vertices_.SetSize(0);
@@ -202,7 +202,7 @@ EI_REWRITTEN(0x004543A0, CPlainFigureMesh::DeletingDestruct);
 // 00453240 (the scene's figure records, record_arrays.h) inlines ConstructBase, then writes zeros
 // over the mesh's six arrays (+0x1C0..+0x21C) and stores the class 0x42 vtable: CPlainFigureMesh's
 // constructor.
-void recordarrays::InitFigurePart(CFigureMesh* p) { new (p) CPlainFigureMesh(); }
+void recordarrays::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
 
 // --- The virtual slots (the registered bodies) ---------------------------------------------------
 

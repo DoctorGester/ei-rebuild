@@ -24,24 +24,25 @@
 
 namespace {
 
-// A figure object of class T in new storage of `size` bytes (the class 0x41 object is smaller than
-// its C++ class: figure_mesh.h), or null when the allocation fails.
-template <typename T>
-T* New(std::size_t size) {
-    void* o = gamecrt::operator_new(size);
+// A figure object of class T in new storage (the game's size for the class), or null when the
+// allocation fails.
+template <typename T, std::size_t kGameSize>
+T* New() {
+    static_assert(sizeof(T) == kGameSize);
+    void* o = gamecrt::operator_new(sizeof(T));
     return o ? new (o) T() : nullptr;
 }
 
 void* Create(int classId) {
     switch (classId) {
     case 0x41:
-        return New<CSharedFigureMesh>(0x1E0);
+        return New<CSharedFigureMesh, 0x1E0>();
     case 0x42:
-        return New<CPlainFigureMesh>(0x220);
+        return New<CPlainFigureMesh, 0x220>();
     case 0x43:
-        return New<CUiMesh>(0x284);
+        return New<CUiMesh, 0x284>();
     case 0x44:
-        return New<CSkyObject>(0x230);
+        return New<CSkyObject, 0x230>();
     case 0x300B: {
         void* o = gamecrt::operator_new(0x78);
         return o ? static_cast<AnimationTrack*>(o)->Construct() : nullptr;

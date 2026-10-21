@@ -78,8 +78,8 @@ struct FigureLights {
     int count;
 };
 
-// The figure meshes' base ("CFigure"): the layout of the class 0x42 mesh (0x220 bytes), which the
-// classes below share. A CTransformObject (core_transform.h: the engine object's fields, the local
+// The figure meshes' base ("CFigure"): the layout the classes below share (0x1E0 bytes, class 0x41's
+// object; class 0x42 adds four arrays, CPlainFigureMesh). A CTransformObject (core_transform.h: the engine object's fields, the local
 // and world position and rotation). The parts of an object's figure (CObject3D::parts) are these.
 // A real virtual class (C19): the classes 0x41 (CSharedFigureMesh), 0x42 (CPlainFigureMesh), 0x43
 // (CUiMesh, ui.h) and 0x44 (CSkyObject, sky_object.h) have C++ constructors and the compiler's
@@ -127,16 +127,9 @@ public:
     // vertices (the transform pipeline's slot 7); nothing without vertices.
     void FitVertexBounds();
 
-    // 005A2500 (vtable slot 20 of classes 0x42-0x44). Loads a "FIG" mesh from memory at *cursor
-    // (advanced past it), morphing FIG8 vertices; once only (flag 0x20). RET 0x10.
-    void LoadFigImpl(char** cursor, float s, float t, float u);
     // 005A5C70 (slot 20 of class 0x41): the same, but only the vertices and records are copied;
     // the other buffers point into the file data.
     void LoadFigShared(char** cursor, float s, float t, float u);
-    // 005A3800 (slot 21 of classes 0x42-0x44): the older format without a FIG header, chosen by
-    // slot 19 (005A2490) when the data does not start with "FIG": 6 corner versions of the
-    // bounds and of every vertex, each array preceded by its count. RET 0x10.
-    void LoadOldImpl(char** cursor, float s, float t, float u);
     // 005A4D60 (slot 21 of class 0x41): the same, the last four buffers pointing into the data.
     void LoadOldShared(char** cursor, float s, float t, float u);
 
@@ -145,13 +138,6 @@ public:
     // (00401570); nothing when the position is 1e4 or more from the origin. RET 0x18.
     void ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const;
 
-    // 005A4B30 (vtable slot 22) / 005A4BF0 (slot 23): mirror the mesh in x / y (negates that
-    // component of every vertex and normal) and swap the first two corners of every triangle.
-    void MirrorXImpl();
-    void MirrorYImpl();
-    // 005A6D40: points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
-    // (one per normal).
-    void RefreshBuffers();
     // The mesh's buffers or vertices changed in place: the new renderer builds its copy kept on the GPU
     // again (render::MeshChanged, R16d).
     void BuffersChanged();
@@ -166,11 +152,6 @@ public:
     // there are any (into the shared buffer at 007C2E18). Returns the vertex count (4 per packet).
     // RET 0x10.
     int DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds);
-    // 0059F710 / 0059F8F0 (vtable slots, RET 4; figure_mesh_file.cpp): write the mesh to / read it
-    // from an MFC CFile: the name (+0x120, length then characters), each array as a count and its
-    // elements, a 0, then centre, box, radius and +0x158 / +0x15C.
-    void SaveToFile(mfc::CFileVirtuals* file);
-    void LoadFromFile(mfc::CFileVirtuals* file);
     // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
     // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
     void CopyFigureImpl(const CFigureMesh* other);
@@ -178,6 +159,10 @@ public:
     // with `rotation`), rotates the position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110)
     // and rebuilds the rotation matrix at +0xE0 from the stored quaternion (+0x44).
     void SetPose(const Quaternion& rotation, const Vector3& offset);
+    // 0059F710 (slot 16, RET 4; figure_mesh_file.cpp): writes the mesh to an MFC CFile: the name
+    // (+0x120, length then characters), each buffer (buffers_) as a count and its elements, a 0,
+    // then centre, box, radius and +0x158 / +0x15C. CPlainFigureMesh::LoadFromFile reads it back.
+    void SaveToFile(mfc::CFileVirtuals* file);
 
     // Lifetime (figure_mesh_life.cpp, A-W13).
     // 005AABC0. The constructor body the classes 0x41-0x43 share in the original (the factory, the
@@ -191,9 +176,7 @@ public:
     // 0059F2B0 (slot 3 of vtable 0073C224): names and colour arrays emptied, the buffer descriptor
     // cleared, the drawer let go (released), no flags.
     void Clear();
-    // 005A6C80 (slot 3 of classes 0x42-0x44) / 005A6E10 (class 0x41): the mesh's own arrays freed,
-    // then Clear.
-    void ClearMesh();
+    // 005A6E10 (slot 3 of class 0x41): the vertices and normals emptied, then Clear.
     void ClearSharedMesh();
     // 0059F030. The destructor body: Clear, the colour and offset arrays, the names, the engine
     // object's destructor. No code of ours calls it (the destructor below does its work).
@@ -266,11 +249,6 @@ public:
     Vector3 boxPivot_;                  // +0x1B4 the part's position when it was loaded; cleared with the bounds
     lib::AlignedArray<VertexPacket> vertices_;     // +0x1C0
     lib::AlignedArray<NormalPacket> normals_;    // +0x1D0
-    // Class 0x41 ends here (0x1E0 bytes).
-    lib::AlignedArray<MeshCorner> corners_;  // +0x1E0
-    lib::AlignedArray<std::uint32_t> words_;     // +0x1F0
-    lib::AlignedArray<std::uint16_t> indices_;    // +0x200
-    lib::AlignedArray<TexCoord> texCoords_;       // +0x210
 };
 static_assert(offsetof(CFigureMesh, flags_) == 0x08 && offsetof(CFigureMesh, localRotation_) == 0x34);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
@@ -284,15 +262,10 @@ static_assert(offsetof(CFigureMesh, center_) == 0x160);
 static_assert(offsetof(CFigureMesh, radius_) == 0x184 && offsetof(CFigureMesh, boxPivot_) == 0x1B4);
 static_assert(offsetof(CFigureMesh, bounds_) == 0x188);
 static_assert(offsetof(CFigureMesh, vertices_) == 0x1C0);
-static_assert(offsetof(CFigureMesh, corners_) == 0x1E0);
-static_assert(offsetof(CFigureMesh, texCoords_) == 0x210);
-static_assert(sizeof(CFigureMesh) == 0x220);
+static_assert(sizeof(CFigureMesh) == 0x1E0);
 
-// Class 0x41 (game.exe's vtable 0073FBF0, retired; 22 slots): a part whose last four buffers point
-// into the loaded file data (the figure manager's parts that are not attached). The object is
-// 0x1E0 bytes (the factory allocates that much): CFigureMesh's layout up to corners_, which it does
-// not have; its constructor and destructor touch nothing past vertices_ and normals_ (the members
-// after them are trivial).
+// Class 0x41 (game.exe's vtable 0073FBF0, retired; 22 slots; 0x1E0 bytes): a part whose last four
+// buffers point into the loaded file data (the figure manager's parts that are not attached).
 class CSharedFigureMesh : public CFigureMesh {
 public:
     // The figure factory's class 0x41 (005AA8E0 inlines it): CFigureMesh's constructor, then the
@@ -313,9 +286,9 @@ public:
     CSharedFigureMesh* DeletingDestruct(unsigned flags);
 };
 
-// Class 0x42 (game.exe's vtable 0073C1C4, retired; 24 slots): a mesh that owns all its arrays (the
-// figure manager's attached parts, the scene's figure records, 00453240). CUiMesh (class 0x43,
-// ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
+// Class 0x42 (game.exe's vtable 0073C1C4, retired; 24 slots; 0x220 bytes): a mesh that owns all its
+// arrays (the figure manager's attached parts, the scene's figure records, 00453240). CUiMesh
+// (class 0x43, ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
 class CPlainFigureMesh : public CFigureMesh {
 public:
     // The figure factory's class 0x42 (005AA8E0) and the scene's records (00453240) inline it:
@@ -333,12 +306,38 @@ public:
     virtual void MirrorX();                                                 // 22: 005A4B30 MirrorXImpl
     virtual void MirrorY();                                                 // 23: 005A4BF0 MirrorYImpl
 
+    // 005A2500 (slot 20). Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing
+    // FIG8 vertices; once only (flag 0x20). RET 0x10.
+    void LoadFigImpl(char** cursor, float s, float t, float u);
+    // 005A3800 (slot 21): the older format without a FIG header, chosen by slot 19 (005A2490) when
+    // the data does not start with "FIG": 6 corner versions of the bounds and of every vertex, each
+    // array preceded by its count. RET 0x10.
+    void LoadOldImpl(char** cursor, float s, float t, float u);
+    // 005A4B30 (slot 22) / 005A4BF0 (slot 23): mirror the mesh in x / y (negates that component of
+    // every vertex and normal) and swap the first two corners of every triangle.
+    void MirrorXImpl();
+    void MirrorYImpl();
+    // 005A6D40: points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
+    // (one per normal).
+    void RefreshBuffers();
+    // 0059F8F0 (slot 17, RET 4; figure_mesh_file.cpp): reads the mesh SaveToFile wrote.
+    void LoadFromFile(mfc::CFileVirtuals* file);
+    // 005A6C80 (slot 3): the mesh's own arrays emptied, then Clear.
+    void ClearMesh();
+
     // The registrations (C20 retires them): 00454510 the destructor, 004543A0 (slot 0) the
     // destructor, then operator delete when bit 0 of `flags` is set (returns this).
     void Destruct();
     CPlainFigureMesh* DeletingDestruct(unsigned flags);
+
+    lib::AlignedArray<MeshCorner> corners_;       // +0x1E0
+    lib::AlignedArray<std::uint32_t> words_;      // +0x1F0
+    lib::AlignedArray<std::uint16_t> indices_;    // +0x200
+    lib::AlignedArray<TexCoord> texCoords_;       // +0x210
 };
-static_assert(sizeof(CSharedFigureMesh) == 0x220 && sizeof(CPlainFigureMesh) == 0x220);
+static_assert(offsetof(CPlainFigureMesh, corners_) == 0x1E0 && offsetof(CPlainFigureMesh, texCoords_) == 0x210);
+// The figure factory allocates the game's sizes (figure_factory.cpp).
+static_assert(sizeof(CSharedFigureMesh) == 0x1E0 && sizeof(CPlainFigureMesh) == 0x220);
 
 // The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element
 // counts, then the two dwords at +0x158 / +0x15C.

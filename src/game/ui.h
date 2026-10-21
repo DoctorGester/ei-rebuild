@@ -1549,7 +1549,7 @@ public:
     const lib::AlignedArray<UiQuadBlock>& Quads() const { return const_cast<CUiMesh*>(this)->Quads(); }
     const lib::AlignedArray<UiMeshVertex>& Vertices() const { return const_cast<CUiMesh*>(this)->Vertices(); }
     const lib::AlignedArray<UiTexel>& Texels() const { return const_cast<CUiMesh*>(this)->Texels(); }
-    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CFigureMesh::RefreshBuffers, 005EA150.)
+    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CPlainFigureMesh::RefreshBuffers, 005EA150.)
     // 005E7010 (RET 0xC; ui_mesh_draw.cpp). Where Place put the sprite: the layout point
     // ((x / z / 0.4816 + 1) * 400, y / z / 0.4816 * 400 + 300; each stored as float) and the depth
     // (z, copied).
